@@ -1527,10 +1527,11 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 {
+	struct ppm_proclist_info *res = NULL;
+#ifdef __linux__
 	DIR *dir_p = NULL;
 	DIR *taskdir_p = NULL;
 	FILE *fp = NULL;
-	struct ppm_proclist_info *res = NULL;
 	struct dirent *dir_entry_p;
 	char procdirname[SCAP_MAX_PATH_SIZE];
 
@@ -1629,6 +1630,6 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 	{
 		fclose(fp);
 	}
-
+#endif /* __linux__ */
 	return res;
 }
