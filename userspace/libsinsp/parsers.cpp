@@ -43,6 +43,7 @@ limitations under the License.
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
+#include "sinsp_int.h"
 
 #include "container_engine/docker.h"
 
