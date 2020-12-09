@@ -1523,13 +1523,15 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 	}
 
 	if (consumer->dropping_mode) {
+		nanoseconds ns2 = ns;
 		if (drop_flags & UF_ALWAYS_DROP) {
 			ASSERT((drop_flags & UF_NEVER_DROP) == 0);
 			return 1;
 		}
 
 		if (consumer->sampling_interval < SECOND_IN_NS &&
-		    (ns % SECOND_IN_NS) >= consumer->sampling_interval) {
+		    /* do_div replaces ns2 with the quotient and returns the remainder */
+		    do_div(ns2, SECOND_IN_NS) >= consumer->sampling_interval) {
 			if (consumer->is_dropping == 0) {
 				consumer->is_dropping = 1;
 				record_drop_e(consumer, ns, drop_flags);
