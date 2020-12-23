@@ -174,6 +174,8 @@ struct scap
 	// The number of events that were skipped due to the comm
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
+
+	scap_src_info* src_plugin;
 };
 
 typedef enum ppm_dumper_type

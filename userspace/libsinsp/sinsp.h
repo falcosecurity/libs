@@ -879,8 +879,10 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
+	void set_source_plugin(scap_src_info* src_plugin);
 
+	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
+	
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -953,7 +955,7 @@ private:
 	void get_procs_cpu_from_driver(uint64_t ts);
 
 	scap_t* m_h;
-	uint32_t m_nevts;
+	uint64_t m_nevts;
 	int64_t m_filesize;
 
 	scap_mode_t m_mode = SCAP_MODE_NONE;
@@ -1160,6 +1162,11 @@ public:
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
 	std::set<std::string> m_suppressed_comms;
+
+	//
+	// Custom event source plugin if configured by the user
+	//
+	scap_src_info* m_src_plugin;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
