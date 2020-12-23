@@ -17,6 +17,8 @@ limitations under the License.
 #pragma once
 
 #if defined(_WIN32)
+/* This prevents including <windows.h> when including Ws2tcpip.h */
+#define NOMINMAX
 #    include <Ws2tcpip.h>
 #else
 #    include <arpa/inet.h>

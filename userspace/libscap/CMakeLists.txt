@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-include_directories("${PROJECT_SOURCE_DIR}/common")
+include_directories(../../common)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
