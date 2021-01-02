@@ -535,3 +535,8 @@ const struct ppm_name_value openat2_flags[] = {
 	{"RESOLVE_CACHED", PPM_RESOLVE_CACHED},
 	{0, 0},
 };
+
+const struct ppm_name_value execve_flags[] = {
+	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
+	{0, 0},
+};

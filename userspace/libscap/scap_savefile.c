@@ -409,7 +409,8 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
                     scap_dump_writev(d, cgroups, cgroupscnt) != cgroupslen ||
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
                     scap_dump_write(d, (char *) root, rootlen) != rootlen ||
-            scap_dump_write(d, &(tinfo->loginuid), sizeof(uint32_t)) != sizeof(uint32_t))
+            scap_dump_write(d, &(tinfo->loginuid), sizeof(uint32_t)) != sizeof(uint32_t) ||
+			scap_dump_write(d, &(tinfo->exe_writable), sizeof(uint8_t)) != sizeof(uint8_t))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
@@ -479,7 +480,8 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				sizeof(int64_t) +  // vpid
 				2 + tinfo->cgroups_len +
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE) +
-				sizeof(int32_t)); // loginuid;
+				sizeof(int32_t) + // loginuid;
+				sizeof(uint8_t)); // exe_writable
 
 			lengths[idx++] = il;
 			totlen += il;
@@ -1266,6 +1268,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		tinfo.tty = 0;
 		tinfo.exepath[0] = 0;
 		tinfo.loginuid = -1;
+		tinfo.exe_writable = false;
 
 		//
 		// len
@@ -1724,6 +1727,15 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			subreadsize += readsize;
 		}
 
+		//
+		// exe_writable
+		//
+		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
+		{
+			readsize = scap_reader_read(r, &(tinfo.exe_writable), sizeof(uint8_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint8_t));
+			subreadsize += readsize;
+		}
 
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback

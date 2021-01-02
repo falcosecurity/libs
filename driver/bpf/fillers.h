@@ -1667,6 +1667,208 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 	return PPM_SUCCESS;
 }
 
+// log(NGROUPS_MAX) = log(65536)
+#define MAX_GROUP_SEARCH_DEPTH 16
+
+static __always_inline bool bpf_groups_search(struct group_info *group_info, kgid_t grp) {
+	unsigned int left, right;
+	if (!group_info) {
+		return 0;
+	}
+
+	left = 0;
+	right = _READ(group_info->ngroups);
+
+	#pragma unroll MAX_GROUP_SEARCH_DEPTH
+	for (int j = 0; j < MAX_GROUP_SEARCH_DEPTH; j++) {
+		if (left >= right) {
+			break;
+		}
+		
+		unsigned int mid = (left+right)/2;
+		if (gid_gt(grp, _READ(group_info->gid[mid]))) {
+			left = mid + 1;
+		} else if (gid_lt(grp, _READ(group_info->gid[mid]))) {
+			right = mid;
+		} else {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// log(UID_GID_MAP_MAX_EXTENTS) = log(340)
+#define MAX_EXTENT_SEARCH_DEPTH 9
+
+static __always_inline struct uid_gid_extent * 
+bpf_map_id_up_max(unsigned extents, struct uid_gid_map *map, u32 id)
+{
+	u32 left, right;
+	left = 0;
+	right = _READ(map->nr_extents);
+	
+	#pragma unroll MAX_EXTENT_SEARCH_DEPTH
+	for (int j = 0; j < MAX_EXTENT_SEARCH_DEPTH; j++) {
+		if (left >= right) {
+			break;
+		}
+		
+		unsigned int mid = (left+right)/2;
+		u32 mid_id = _READ(map->extent[mid].lower_first);
+		if (id > mid_id) {
+			left = mid + 1;
+		} else if (id < mid_id) {
+			right = mid;
+		} else {
+			return &map->extent[mid];
+		}
+	}
+	
+	return NULL;
+}
+
+static __always_inline struct uid_gid_extent * 
+bpf_map_id_up_base(unsigned extents, struct uid_gid_map *map, u32 id)
+{
+	unsigned idx;
+	u32 first, last;
+
+	#pragma unroll UID_GID_MAP_MAX_BASE_EXTENTS
+	for (idx = 0; idx < UID_GID_MAP_MAX_BASE_EXTENTS; idx++) {
+		if (idx >= extents) {
+			break;
+		}
+
+		first = _READ(map->extent[idx].lower_first);
+		last = first + _READ(map->extent[idx].count) - 1;
+		if (id >= first && id <= last)
+			return &map->extent[idx];
+	}
+	return NULL;
+}
+
+// UP means get NS id (uid/gid) from kuid/kgid
+static __always_inline u32 bpf_map_id_up(struct uid_gid_map *map, u32 id)
+{
+	struct uid_gid_extent *extent;
+	unsigned extents = _READ(map->nr_extents);
+
+	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS) {
+		extent = bpf_map_id_up_base(extents, map, id);
+	} else {
+		extent = bpf_map_id_up_max(extents, map, id);
+	}
+
+	/* Map the id or note failure */
+	if (extent) {
+		id = (id - _READ(extent->lower_first)) + _READ(extent->first);
+	} else {
+		id = (u32) - 1;
+	}
+
+	return id;
+}
+
+static __always_inline bool bpf_kuid_has_mapping(struct user_namespace *targ, kuid_t kuid)
+{
+	/* Map the uid from a global kernel uid */
+	return bpf_map_id_up(&targ->uid_map, __kuid_val(kuid)) != (uid_t) -1;
+}
+
+static __always_inline bool bpf_kgid_has_mapping(struct user_namespace *targ, kgid_t kgid)
+{
+	return bpf_map_id_up(&targ->gid_map, __kgid_val(kgid)) != (gid_t) -1;
+}
+
+static __always_inline bool get_exe_writable(struct task_struct *task)
+{
+	struct file *exe_file;
+	struct mm_struct *mm;
+	mm = _READ(task->mm);
+	exe_file = _READ(mm->exe_file);
+	if (!exe_file) {
+		return false;
+	}
+
+	struct inode *inode = _READ(exe_file->f_inode);
+	umode_t i_mode = _READ(inode->i_mode);
+	unsigned i_flags = _READ(inode->i_flags);
+	struct super_block *sb = _READ(inode->i_sb);
+	kuid_t i_uid = _READ(inode->i_uid);
+	kgid_t i_gid = _READ(inode->i_gid);
+
+	struct cred *cred = (struct cred*) _READ(task->cred);
+	kuid_t fsuid = _READ(cred->fsuid);
+	kgid_t fsgid = _READ(cred->fsgid);
+	struct group_info *group_info = _READ(cred->group_info);
+
+	// basic inode_permission()
+
+	// check superblock permissions, i.e. if the FS is read only
+	if ((_READ(sb->s_flags) & SB_RDONLY) && (S_ISREG(i_mode) || S_ISDIR(i_mode) || S_ISLNK(i_mode))) {
+		return false;
+	}
+
+	if (i_flags & S_IMMUTABLE) {
+		return false;
+	}
+
+	// HAS_UNMAPPED_ID()
+	if (!uid_valid(i_uid) || !gid_valid(i_gid)) {
+		return false;
+	}
+
+	// inode_owner_or_capable check. If the owner matches the exe counts as writable
+	if (uid_eq(fsuid, i_uid)) {
+		return true;
+	}
+
+	// Basic file permission check -- this may not work in all cases as kernel functions are more complex
+	// and take into account different types of ACLs which can use custom function pointers,
+	// but I don't think we can inspect those in eBPF
+
+	// basic acl_permission_check()
+
+	// XXX this doesn't attempt to locate extra POSIX ACL checks (if supported by the kernel)
+
+	umode_t mode = i_mode;
+
+	if (uid_eq(i_uid, fsuid)) {
+		mode >>= 6;
+	} else {
+		bool in_group = false;
+
+		if (gid_eq(i_gid, fsgid)) {
+			in_group = true;
+		} else {
+			in_group = bpf_groups_search(group_info, i_gid);
+		}
+
+		if (in_group) {
+			mode >>= 3;
+		}
+	}
+
+	if ((MAY_WRITE & ~mode) == 0) {
+		return true;
+	}
+
+	struct user_namespace *ns = _READ(cred->user_ns);
+	bool kuid_mapped = bpf_kuid_has_mapping(ns, i_uid);
+	bool kgid_mapped = bpf_kgid_has_mapping(ns, i_gid);
+	if (cap_raised(_READ(cred->cap_effective), CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped) {
+		return true;
+	}
+
+	// Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants.
+	if (cap_raised(_READ(cred->cap_effective), CAP_FOWNER) && kuid_mapped) {
+		return true;
+	}
+
+	return false;
+}
+
 FILLER(proc_startupdate, true)
 {
 	struct task_struct *real_parent;
@@ -2021,6 +2223,9 @@ FILLER(proc_startupdate_3, true)
 		long env_len = 0;
 		kuid_t loginuid;
 		int tty;
+		bool exe_writable = false;
+		uint32_t flags = 0;
+		struct file *exe_file;
 
 		/*
 		 * environ
@@ -2102,6 +2307,24 @@ FILLER(proc_startupdate_3, true)
 #endif
 
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * exe_writable
+		 */
+
+		exe_writable = get_exe_writable(task);
+		if (exe_writable) {
+			flags |= PPM_EXE_WRITABLE;
+		}
+
+		/*
+		 * flags
+		 * Write all the additional flags for execve
+		 */
+
+		res = bpf_val_to_ring_type(data, flags, PT_UINT32);
 		if (res != PPM_SUCCESS)
 			return res;
 	}

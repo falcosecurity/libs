@@ -606,6 +606,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_RESOLVE_CACHED			(1 << 5)
 
 /*
+ * Execve additional flags
+ */
+#define PPM_EXE_WRITABLE		(1 << 0)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -1537,6 +1542,7 @@ extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
 extern const struct ppm_name_value openat2_flags[];
+extern const struct ppm_name_value execve_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

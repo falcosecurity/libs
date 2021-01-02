@@ -225,6 +225,7 @@ typedef struct scap_threadinfo
 	char comm[SCAP_MAX_PATH_SIZE+1]; ///< Command name (e.g. "top")
 	char exe[SCAP_MAX_PATH_SIZE+1]; ///< argv[0] (e.g. "sshd: user@pts/4")
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
+	bool exe_writable; ///< true if the original executable is writable by the same user that spawned it.
 	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment

@@ -252,6 +252,7 @@ public:
 	std::string m_comm; ///< Command name (e.g. "top")
 	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	std::string m_exepath; ///< full executable path
+	bool m_exe_writable;
 	std::vector<std::string> m_args; ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env; ///< Environment variables
 	std::vector<std::pair<std::string, std::string>> m_cgroups; ///< subsystem-cgroup pairs

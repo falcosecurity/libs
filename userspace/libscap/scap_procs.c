@@ -28,6 +28,9 @@ limitations under the License.
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/fsuid.h>
+#include <sys/types.h>
+#include <fcntl.h>
 #endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 
@@ -561,6 +564,51 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	}
 }
 
+int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
+{
+	char proc_exe_path[SCAP_MAX_PATH_SIZE];
+	struct stat targetstat;
+
+	snprintf(proc_exe_path, sizeof(proc_exe_path), "%sroot%s", procdirname, exetarget);
+
+	// if the file doesn't exist we can't determine if it was writable, assume false
+	if(stat(proc_exe_path, &targetstat) < 0)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	// if you're the user owning the file you can chmod, so you can effectively write to it
+	if(targetstat.st_uid == uid) {
+		tinfo->exe_writable = true;
+		return SCAP_SUCCESS;
+	}
+
+	uid_t orig_uid = getuid();
+	uid_t orig_gid = getgid();
+
+	if(seteuid(uid) != -1 && setegid(gid) != -1) {
+		if(euidaccess(proc_exe_path, W_OK) == 0) {
+			tinfo->exe_writable = true;
+		}
+	}
+
+	if(seteuid(orig_uid) == -1)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original euid from %d to %d",
+			uid, orig_uid);
+		return SCAP_FAILURE;
+	}
+
+	if(setegid(orig_gid) == -1)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original egid from %d to %d",
+			gid, orig_gid);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -858,6 +906,14 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	else
 	{
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
+	}
+
+	if(SCAP_FAILURE == scap_proc_fill_exe_writable(handle, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "can't fill exe writable access for %s (%s)",
+			 dir_name, handle->m_lasterr);
+		free(tinfo);
+		return SCAP_FAILURE;
 	}
 
 	//
