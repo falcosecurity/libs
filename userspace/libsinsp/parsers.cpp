@@ -1170,6 +1170,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the full executable path from the parent
 		tinfo->m_exepath = ptinfo->m_exepath;
 
+		// Copy the exe writable metadata from the parent
+		tinfo->m_exe_writable = ptinfo->m_exe_writable;
+
 		// Copy the command arguments from the parent
 		tinfo->m_args = ptinfo->m_args;
 
@@ -1815,6 +1818,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
+	}
+
+	// Get execve flags
+	if(evt->get_num_params() > 19)
+	{
+		parinfo = evt->get_param(19);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		uint32_t flags = *(uint32_t *) parinfo->m_val;
+
+		evt->m_tinfo->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
 	}
 
 	//

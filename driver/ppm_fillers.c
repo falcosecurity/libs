@@ -1036,6 +1036,9 @@ cgroups_error:
 		 */
 		long env_len = 0;
 		int tty_nr = 0;
+		bool exe_writable = false;
+		struct file *exe_file = NULL;
+		uint32_t flags = 0; // execve additional flags
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1110,6 +1113,36 @@ cgroups_error:
 		val = audit_get_loginuid(current->audit_context);
 #endif
 		res = val_to_ring(args, val, 0, false, 0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * exe_writable flag
+		 */
+
+		exe_file = get_mm_exe_file(mm);
+
+		if (exe_file != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
+			exe_writable |= (inode_permission(current_user_ns(), exe_file->f_inode, MAY_WRITE) == 0);
+			exe_writable |= inode_owner_or_capable(current_user_ns(), exe_file->f_inode);
+#else
+			exe_writable |= (inode_permission(exe_file->f_inode, MAY_WRITE) == 0);
+			exe_writable |= inode_owner_or_capable(exe_file->f_inode);
+#endif
+			fput(exe_file);
+		}
+
+		if (exe_writable) {
+			flags |= PPM_EXE_WRITABLE;
+		}
+
+		/*
+		 * flags
+		 * Write all the additional flags for execve
+		 */
+
+		res = val_to_ring(args, flags, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 	}
