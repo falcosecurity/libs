@@ -97,7 +97,6 @@ set(SINSP_SOURCES
 	user_event.cpp
 	value_parser.cpp
 	viewinfo.cpp
-	source_plugins/source_dynlib.cpp
 )
 
 if(WITH_CHISEL)
