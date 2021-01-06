@@ -65,7 +65,7 @@ struct iovec;
 #define MAP_FAILED (void*)-1
 #endif
 
-#include "source_plugin_info.h"
+#include "plugin_info.h"
 
 //
 // Return types
