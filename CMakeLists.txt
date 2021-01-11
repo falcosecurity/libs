@@ -631,7 +631,6 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	endif()
 endif() # NOT WIN32
 
-add_subdirectory(userspace/sysdig)
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)
 
