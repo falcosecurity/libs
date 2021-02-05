@@ -31,93 +31,77 @@ limitations under the License.
 
 #include <third-party/tinydir.h>
 
-static uint64_t s_sum;
-static uint64_t s_count;
-static uint64_t s_high;
-static uint64_t s_low;
-
-class AutoProfiler
-{
-public:
-	AutoProfiler(std::string name)
-		: m_name(std::move(name)),
-		  m_beg(std::chrono::high_resolution_clock::now())
-	{
-	}
-	~AutoProfiler()
-	{
-		auto end = std::chrono::high_resolution_clock::now();
-		auto dur = std::chrono::duration_cast<std::chrono::nanoseconds>(end - m_beg);
-		auto ns = dur.count();
-		s_sum += ns;
-		s_count++;
-		auto avg = s_sum / s_count;
-		if (ns < s_low || s_low == 0)
-		{
-			s_low = ns;
-		}
-		if (ns > s_high)
-		{
-			s_high = ns;
-		}
-		std::cout << m_name << " : " << dur.count() << " (avg=" << avg << ", low=" << s_low << ", high=" << s_high << ", count=" << s_count << ") nsec\n";
-		if (s_count >= (5 * 1000 * 1000))
-		{
-			std::cout << "Bench mark end (" << s_count << " rounds)\n";
-			std::exit(0);
-		}
-	}
-
-private:
-	std::string m_name;
-	std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
-};
-
 class sinsp_async_extractor_ctx
 {
 public:
 	sinsp_async_extractor_ctx()
 	{
-		// printf("sinsp_async_extractor_ctx %p\n", this);
-		m_lock = 0;
+		m_lock = state::INIT;
 	}
+
+	enum state
+	{
+		INIT = 0,
+		INPUT_READY = 1,
+		PROCESSING = 2,
+		DONE = 3,
+		SHUTDOWN_REQ = 4,
+		SHUTDOWN_DONE = 5,
+	};
 
 	inline void notify()
 	{
-		// printf("notify %p\n", this);
-		// atomically acquire the worker iff its state == 3
-		// that allows (if needed) contentious callers to work nicely without performance loss.
-		// N.B.:
-		//  - compare_exchange_strong performance seems to be better than compare_exchange_weak
-		//    the latter may work better on other architectures
-		int old_val = 3;
-		while (m_lock.compare_exchange_strong(old_val, 1))
+		int old_val = state::DONE;
+		while (!m_lock.compare_exchange_strong(old_val, state::INPUT_READY))
 		{
-			old_val = 3;
+			old_val = state::DONE;
 		}
 
-
-		// allow other threads to be scheduled before this starts spinning
-		// std::this_thread::yield();
-
-		// await worker completition
-		while (m_lock != 3)
+		//
+		// Once INPUT_READY state has been aquired, wait for worker completition
+		//
+		while (m_lock != state::DONE)
 			;
 	}
 
-	inline void wait()
+	inline bool wait()
 	{
-		// AutoProfiler p("wait");
-		m_lock = 3;
-		
-		
-		// std::this_thread::yield();
+		m_lock = state::DONE;
 
-		int old_val = 1;
-		while (m_lock.compare_exchange_strong(old_val, 2))
+		//
+		// Worker has done and now waits for a new input or a shutdown request.
+		//
+		// todo(leogr): the loop will eat up one CPU core,
+		// which is a waste of resources if the input producer is idle for a lot of time
+		//
+		int old_val = state::INPUT_READY;
+		while(!m_lock.compare_exchange_strong(old_val, state::PROCESSING))
 		{
-			old_val = 1;
+			// shutdown
+			if (old_val == state::SHUTDOWN_REQ)
+			{
+				m_lock = state::SHUTDOWN_DONE;
+				return false;
+			}
+			old_val = state::INPUT_READY;
 		}
+		return true;
+	}
+
+	inline void shutdown()
+	{
+		//
+		// Set SHUTDOWN_REQ iff the worker
+		//
+		int old_val = state::DONE;
+		while(m_lock.compare_exchange_strong(old_val, state::SHUTDOWN_REQ))
+		{
+			old_val = state::DONE;
+		}
+
+		// await shutdown
+		while (m_lock != state::SHUTDOWN_DONE)
+			;
 	}
 
 private:
@@ -245,11 +229,7 @@ public:
 				m_pasync_extractor_info->data = parinfo->m_val;
 				m_pasync_extractor_info->datalen= parinfo->m_len;
 
-				auto *p = new AutoProfiler("extract (critical sec)");
-
 				static_cast<sinsp_async_extractor_ctx *>(m_pasync_extractor_info->waitCtx)->notify();
-
-				delete p;
 
 				pret = m_pasync_extractor_info->res;
 			}
@@ -327,6 +307,10 @@ sinsp_plugin::~sinsp_plugin()
 {
 	if(m_source_info.destroy != NULL)
 	{
+		if(m_source_info.register_async_extractor)
+		{
+			static_cast<sinsp_async_extractor_ctx *>(m_async_extractor_info.waitCtx)->shutdown();
+		}
 		m_source_info.destroy(m_source_info.state);
 	}
 }
@@ -479,7 +463,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		{
 			m_async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
 			m_async_extractor_info.wait = [](void *waitCtx) {
-				static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
+				return static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
 			};
 
 			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
