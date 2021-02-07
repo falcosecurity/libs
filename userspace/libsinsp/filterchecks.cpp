@@ -4552,7 +4552,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(ppg != NULL)
 			{
 				sinsp_evt_param *parinfo = evt->get_param(1);
-				char* estr = ppg->m_source_info.event_to_string((uint8_t*)parinfo->m_val, parinfo->m_len);
+				char *estr = ppg->m_source_info.event_to_string(ppg->m_source_info.state, (uint8_t *)parinfo->m_val, parinfo->m_len);
 				RETURN_EXTRACT_CSTR(estr);
 			}
 

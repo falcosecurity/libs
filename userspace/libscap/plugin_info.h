@@ -164,7 +164,7 @@ typedef struct
 	// Return value: the text representation of the event This is used, for example, 
 	// by sysdig to print a line for the given event.
 	//
-	char* (*event_to_string)(uint8_t* data, uint32_t datalen);
+	char *(*event_to_string)(ss_plugin_t *s, uint8_t *data, uint32_t datalen);
 	//
 	// Extract a filter field value from an event. 
 	// We offer multiple versions of extract(), differing from each other only in 
@@ -184,12 +184,12 @@ typedef struct
 	// Return value: the produced value of the filter field. For extract_str(), a
 	// NULL return value means that the field is missing for the given event.
 	//
-	char* (*extract_str)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen);
-	uint64_t (*extract_u64)(uint64_t evtnum, uint32_t id, char* arg, uint8_t* data, uint32_t datalen, uint32_t* field_present);
+	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
+	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 	//
 	//
 	//
-	int32_t (*register_async_extractor)(async_extractor_info* info);
+	int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.

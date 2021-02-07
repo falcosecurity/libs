@@ -215,10 +215,12 @@ public:
 			char* pret;
 			if(m_pasync_extractor_info == NULL)
 			{
-				pret = m_psource_info->extract_str(evt->get_num(),
+				pret = m_psource_info->extract_str(
+					m_psource_info->state,
+					evt->get_num(),
 					m_field_id,
 					m_arg,
-					(uint8_t*)parinfo->m_val,
+					(uint8_t *)parinfo->m_val,
 					parinfo->m_len);
 			}
 			else
@@ -252,9 +254,11 @@ public:
 			}
 
 			uint32_t present;
-			m_u64_res = m_psource_info->extract_u64(evt->get_num(), 
-				m_field_id, m_arg, 
-				(uint8_t*)parinfo->m_val, 
+			m_u64_res = m_psource_info->extract_u64(
+				m_psource_info->state,
+				evt->get_num(),
+				m_field_id, m_arg,
+				(uint8_t *)parinfo->m_val,
 				parinfo->m_len,
 				&present);
 
@@ -467,7 +471,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 			};
 
 			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
-			if (m_source_info.register_async_extractor(&m_async_extractor_info) != SCAP_SUCCESS)
+			if (m_source_info.register_async_extractor(m_source_info.state, &m_async_extractor_info) != SCAP_SUCCESS)
 			{
 				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error());
 			}
