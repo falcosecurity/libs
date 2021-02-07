@@ -362,7 +362,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		m_source_info.state = m_source_info.init(config, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
-			throw sinsp_exception(m_source_info.get_last_error());
+			throw sinsp_exception(m_source_info.get_last_error(m_source_info.state));
 		}
 	}
 
@@ -473,7 +473,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
 			if (m_source_info.register_async_extractor(m_source_info.state, &m_async_extractor_info) != SCAP_SUCCESS)
 			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error());
+				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error(m_source_info.state));
 			}
 		}
 		else

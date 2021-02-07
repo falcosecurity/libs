@@ -975,7 +975,7 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, ss_plugin_info* input_plu
 
 	if(*rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error());
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
 		scap_close(handle);
 		return NULL;
 	}
@@ -1678,7 +1678,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	{
 		if(res != SCAP_TIMEOUT)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error());
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
 		}
 		return res;
 	}
