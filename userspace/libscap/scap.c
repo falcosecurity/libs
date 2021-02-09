@@ -1674,7 +1674,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		handle->m_input_plugin->handle, &data, &datalen, &ts);
 	if(res != SCAP_SUCCESS)
 	{
-		if(res != SCAP_TIMEOUT)
+		if(res != SCAP_TIMEOUT && res != SCAP_EOF)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
 		}
