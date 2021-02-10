@@ -451,7 +451,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread=false);
+	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false);
 
 	/*!
 	  \brief Return the table with all the machine users.
@@ -880,7 +880,7 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	uint64_t get_lastevent_ts() const {return m_lastevent_ts; }
+	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);

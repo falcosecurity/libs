@@ -651,8 +651,7 @@ private:
 	uint64_t m_n_proc_lookups_duration_ns = 0;
 	int32_t m_n_main_thread_lookups = 0;
 	int32_t m_max_n_proc_lookups = -1;
-    int32_t m_max_n_proc_socket_lookups = -1;
-
+	int32_t m_max_n_proc_socket_lookups = -1;
 
 	INTERNAL_COUNTER(m_failed_lookups);
 	INTERNAL_COUNTER(m_cached_lookups);

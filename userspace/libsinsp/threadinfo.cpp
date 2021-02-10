@@ -1787,7 +1787,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 #ifdef GATHER_INTERNAL_STATS
 			m_cached_lookups->increment();
 #endif
-			// THis allows us to avoid performing an actual timestamp lookup
+			// This allows us to avoid performing an actual timestamp lookup
 			// for something that may not need to be precise
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
 			return thr;
