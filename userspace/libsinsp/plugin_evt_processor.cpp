@@ -107,11 +107,13 @@ sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 
 	for(auto it : m_workers)
 	{
+printf("T>%d\n", it->m_cnt);
 		delete it;
 	}
 
 	if(m_sync_worker)
 	{
+printf("S>%d\n", m_sync_worker->m_cnt);
 		delete m_sync_worker;
 	}
 }
