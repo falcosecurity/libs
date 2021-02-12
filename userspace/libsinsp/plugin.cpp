@@ -28,85 +28,9 @@ limitations under the License.
 #include "chisel.h"
 #include "filterchecks.h"
 #include "plugin.h"
+#include "plugin_evt_processor.h"
 
 #include <third-party/tinydir.h>
-
-class sinsp_async_extractor_ctx
-{
-public:
-	sinsp_async_extractor_ctx()
-	{
-		m_lock = state::INIT;
-	}
-
-	enum state
-	{
-		INIT = 0,
-		INPUT_READY = 1,
-		PROCESSING = 2,
-		DONE = 3,
-		SHUTDOWN_REQ = 4,
-		SHUTDOWN_DONE = 5,
-	};
-
-	inline void notify()
-	{
-		int old_val = state::DONE;
-		while (!m_lock.compare_exchange_strong(old_val, state::INPUT_READY))
-		{
-			old_val = state::DONE;
-		}
-
-		//
-		// Once INPUT_READY state has been aquired, wait for worker completition
-		//
-		while (m_lock != state::DONE)
-			;
-	}
-
-	inline bool wait()
-	{
-		m_lock = state::DONE;
-
-		//
-		// Worker has done and now waits for a new input or a shutdown request.
-		//
-		// todo(leogr): the loop will eat up one CPU core,
-		// which is a waste of resources if the input producer is idle for a lot of time
-		//
-		int old_val = state::INPUT_READY;
-		while(!m_lock.compare_exchange_strong(old_val, state::PROCESSING))
-		{
-			// shutdown
-			if (old_val == state::SHUTDOWN_REQ)
-			{
-				m_lock = state::SHUTDOWN_DONE;
-				return false;
-			}
-			old_val = state::INPUT_READY;
-		}
-		return true;
-	}
-
-	inline void shutdown()
-	{
-		//
-		// Set SHUTDOWN_REQ iff the worker
-		//
-		int old_val = state::DONE;
-		while(m_lock.compare_exchange_strong(old_val, state::SHUTDOWN_REQ))
-		{
-			old_val = state::DONE;
-		}
-
-		// await shutdown
-		while (m_lock != state::SHUTDOWN_DONE)
-			;
-	}
-
-private:
-	std::atomic<int> m_lock;
-};
 
 extern sinsp_filter_check_list g_filterlist;
 extern vector<chiseldir_info>* g_plugin_dirs;
@@ -167,8 +91,15 @@ public:
 		np->set_name(m_info.m_name);
 		np->m_id = m_id;
 		np->m_type = m_type;
-		np->m_psource_info = m_psource_info;
-		np->m_pasync_extractor_info = m_pasync_extractor_info;
+		ss_plugin_info* isi = m_inspector->get_plugin_evt_processor()->get_plugin_source_info(m_id);
+		if(isi != NULL)
+		{
+			np->m_psource_info = isi;
+		}
+		else
+		{
+			np->m_psource_info = m_psource_info;
+		}
 
 		return (sinsp_filter_check*)np;
 	}
@@ -199,6 +130,38 @@ public:
 			}
 		}
 
+		//
+		// If the plugin exports an async_extractor (for performance reasons) which
+		// has not been configured yet, configure and initialize it here
+		//
+		if(!m_psource_info->is_async_extractor_configured)
+		{
+			if(m_psource_info->register_async_extractor)
+			{
+				m_psource_info->async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
+				m_psource_info->async_extractor_info.wait = [](void *waitCtx)
+				{
+					return static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
+				};
+
+				if(m_psource_info->register_async_extractor(m_psource_info->state, &(m_psource_info->async_extractor_info)) != SCAP_SUCCESS)
+				{
+					throw sinsp_exception(string("error in plugin ") + m_psource_info->get_name() + ": " + m_psource_info->get_last_error(m_psource_info->state));
+				}
+
+				m_psource_info->is_async_extractor_present = true;
+			}
+			else
+			{
+				m_psource_info->is_async_extractor_present = false;
+			}
+
+			m_psource_info->is_async_extractor_configured = true;
+		}
+
+		//
+		// Get the event payload
+		//
 		parinfo = evt->get_param(1);
 		*len = 0;
 
@@ -213,7 +176,19 @@ public:
 			}
 
 			char* pret;
-			if(m_pasync_extractor_info == NULL)
+			if(m_psource_info->is_async_extractor_present)
+			{
+				m_psource_info->async_extractor_info.evtnum = evt->get_num();
+				m_psource_info->async_extractor_info.id = m_field_id;
+				m_psource_info->async_extractor_info.arg = m_arg;
+				m_psource_info->async_extractor_info.data = parinfo->m_val;
+				m_psource_info->async_extractor_info.datalen= parinfo->m_len;
+
+				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.waitCtx)->notify();
+
+				pret = m_psource_info->async_extractor_info.res;
+			}
+			else
 			{
 				pret = m_psource_info->extract_str(
 					m_psource_info->state,
@@ -222,18 +197,6 @@ public:
 					m_arg,
 					(uint8_t *)parinfo->m_val,
 					parinfo->m_len);
-			}
-			else
-			{
-				m_pasync_extractor_info->evtnum = evt->get_num();
-				m_pasync_extractor_info->id = m_field_id;
-				m_pasync_extractor_info->arg = m_arg;
-				m_pasync_extractor_info->data = parinfo->m_val;
-				m_pasync_extractor_info->datalen= parinfo->m_len;
-
-				static_cast<sinsp_async_extractor_ctx *>(m_pasync_extractor_info->waitCtx)->notify();
-
-				pret = m_pasync_extractor_info->res;
 			}
 
 			if(pret != NULL)
@@ -296,7 +259,6 @@ public:
 	ss_plugin_type m_type;
 	uint64_t m_u64_res;
 	ss_plugin_info* m_psource_info;
-	async_extractor_info* m_pasync_extractor_info = NULL;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -309,12 +271,16 @@ sinsp_plugin::sinsp_plugin(sinsp* inspector)
 
 sinsp_plugin::~sinsp_plugin()
 {
+	if(m_source_info.register_async_extractor)
+	{
+		if(m_source_info.is_async_extractor_present == true)
+		{
+			static_cast<sinsp_async_extractor_ctx *>(m_source_info.async_extractor_info.waitCtx)->shutdown();
+		}
+	}
+
 	if(m_source_info.destroy != NULL)
 	{
-		if(m_source_info.register_async_extractor)
-		{
-			static_cast<sinsp_async_extractor_ctx *>(m_async_extractor_info.waitCtx)->shutdown();
-		}
 		m_source_info.destroy(m_source_info.state);
 	}
 }
@@ -327,15 +293,17 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 	ASSERT(plugin_info != NULL);
 
 	m_source_info = *plugin_info;
+	m_source_info.is_async_extractor_configured = false;
+	m_source_info.is_async_extractor_present = false;
 
 	ENSURE_PLUGIN_EXPORT(get_type);
 	ENSURE_PLUGIN_EXPORT(get_last_error);
+	ENSURE_PLUGIN_EXPORT(get_id);
 
 	m_type = (ss_plugin_type)m_source_info.get_type();
 
 	if(m_type == TYPE_SOURCE_PLUGIN)
 	{
-		ENSURE_PLUGIN_EXPORT(get_id);
 		ENSURE_PLUGIN_EXPORT(get_name);
 		ENSURE_PLUGIN_EXPORT(get_description);
 		ENSURE_PLUGIN_EXPORT(open);
@@ -362,20 +330,12 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		m_source_info.state = m_source_info.init(config, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
-			throw sinsp_exception(m_source_info.get_last_error(m_source_info.state));
+			throw sinsp_exception(string("unable to initialize plugin ") + m_source_info.get_name());
 		}
 	}
 
-	if(m_source_info.get_id)
-	{
-		m_id = m_source_info.get_id();
-		m_source_info.id = m_id;
-	}
-	else
-	{
-		m_id = 0;
-		m_source_info.id = 0;
-	}
+	m_id = m_source_info.get_id();
+	m_source_info.id = m_id;
 
 	//
 	// If filter fields are exported by the plugin, the json from get_fields(), 
@@ -458,28 +418,6 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		m_filtercheck->m_id = m_id;
 		m_filtercheck->m_type = m_type;
 		m_filtercheck->m_psource_info = &m_source_info;
-
-		//
-		// If the plugin exports an async_extractor (for performance reasons),
-		// configure and initialize it here
-		//
-		if(m_source_info.register_async_extractor)
-		{
-			m_async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
-			m_async_extractor_info.wait = [](void *waitCtx) {
-				return static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
-			};
-
-			m_filtercheck->m_pasync_extractor_info = &m_async_extractor_info;
-			if (m_source_info.register_async_extractor(m_source_info.state, &m_async_extractor_info) != SCAP_SUCCESS)
-			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": " + m_source_info.get_last_error(m_source_info.state));
-			}
-		}
-		else
-		{
-			m_filtercheck->m_pasync_extractor_info = NULL;
-		}
 
 		g_filterlist.add_filter_check(m_filtercheck);
 	}

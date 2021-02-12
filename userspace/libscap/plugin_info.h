@@ -197,4 +197,7 @@ typedef struct
 	ss_plugin_t* state;
 	ss_instance_t* handle;
 	uint32_t id;
+	async_extractor_info async_extractor_info;
+	bool is_async_extractor_configured;
+	bool is_async_extractor_present;
 } ss_plugin_info;

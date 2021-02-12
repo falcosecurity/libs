@@ -36,6 +36,8 @@ limitations under the License.
 #include "protodecoder.h"
 #include "dns_manager.h"
 #include "plugin.h"
+#include "plugin_evt_processor.h"
+
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
@@ -76,12 +78,14 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif
 	m_h = NULL;
 	m_parser = NULL;
+	m_plugin_evt_processor = NULL;
 	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
+	m_plugin_evt_processor = new sinsp_plugin_evt_processor(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -180,6 +184,12 @@ sinsp::~sinsp()
 	{
 		delete m_parser;
 		m_parser = NULL;
+	}
+
+	if(m_plugin_evt_processor)
+	{
+		delete m_plugin_evt_processor;
+		m_plugin_evt_processor = NULL;
 	}
 
 	if(m_thread_manager)
@@ -1119,6 +1129,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
+	bool from_plugin_proc_backlog = false;
 
 	//
 	// Check if there are fake cpu events to  events
@@ -1143,58 +1154,67 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 	else
 	{
-		evt = &m_evt;
-
-		//
-		// Reset previous event's decoders if required
-		//
-		if(m_decoders_reset_list.size() != 0)
+		evt = m_plugin_evt_processor->get_event_from_backlog();
+		if(evt != NULL)
 		{
-			vector<sinsp_protodecoder*>::iterator it;
-			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+			res = SCAP_SUCCESS;
+			from_plugin_proc_backlog = true;
+		}
+		else
+		{
+			evt = &m_evt;
+
+			//
+			// Reset previous event's decoders if required
+			//
+			if(m_decoders_reset_list.size() != 0)
 			{
-				(*it)->on_reset(evt);
+				vector<sinsp_protodecoder*>::iterator it;
+				for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
+				{
+					(*it)->on_reset(evt);
+				}
+
+				m_decoders_reset_list.clear();
 			}
 
-			m_decoders_reset_list.clear();
-		}
+			//
+			// Get the event from libscap
+			//
+			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
 
-		//
-		// Get the event from libscap
-		//
-		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
-
-		if(res != SCAP_SUCCESS)
-		{
-			if(res == SCAP_TIMEOUT)
+			if(res != SCAP_SUCCESS)
 			{
-				if (m_external_event_processor)
+				if(res == SCAP_TIMEOUT)
 				{
-					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+					if (m_external_event_processor)
+					{
+						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
+					}
+					*puevt = NULL;
+					return res;
 				}
-				*puevt = NULL;
+				else if(res == SCAP_EOF)
+				{
+					if (m_external_event_processor)
+					{
+						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+					}
+				}
+				else if(res == SCAP_UNEXPECTED_BLOCK)
+				{
+					uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+					restart_capture_at_filepos(filepos);
+					return SCAP_TIMEOUT;
+
+				}
+				else
+				{
+					m_lasterr = scap_getlasterr(m_h);
+				}
+
 				return res;
 			}
-			else if(res == SCAP_EOF)
-			{
-				if (m_external_event_processor)
-				{
-					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
-				}
-			}
-			else if(res == SCAP_UNEXPECTED_BLOCK)
-			{
-				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-				restart_capture_at_filepos(filepos);
-				return SCAP_TIMEOUT;
-
-			}
-			else
-			{
-				m_lasterr = scap_getlasterr(m_h);
-			}
-
-			return res;
 		}
 	}
 
@@ -1334,7 +1354,23 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	m_parser->process_event(evt);
+//	if(evt->get_type() == PPME_PLUGINEVENT_E)
+	if(0)
+	{
+		if(!from_plugin_proc_backlog)
+		{
+			evt = m_plugin_evt_processor->process_event(evt);
+			if(evt == NULL)
+			{
+				*puevt = evt;
+				return SCAP_TIMEOUT;
+			}
+		}
+	}
+	else
+	{
+		m_parser->process_event(evt);
+	}
 #endif
 
 	//
@@ -1738,6 +1774,8 @@ void sinsp::set_filter(const string& filter)
 	sinsp_filter_compiler compiler(this, filter);
 	m_filter = compiler.compile();
 	m_filterstring = filter;
+
+	m_plugin_evt_processor->compile(filter);
 }
 
 const string sinsp::get_filter()
