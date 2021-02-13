@@ -258,7 +258,7 @@ public:
 	char* m_arg = NULL;
 	ss_plugin_type m_type;
 	uint64_t m_u64_res;
-	ss_plugin_info* m_psource_info;
+	ss_plugin_info* m_psource_info = NULL;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

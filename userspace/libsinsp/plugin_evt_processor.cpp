@@ -121,19 +121,23 @@ printf("S>%d\n", m_sync_worker->m_cnt);
 void sinsp_plugin_evt_processor::compile(string filter)
 {
 	sinsp_filter_compiler compiler(m_inspector, filter);
-
-	m_inprogress = true;
-	m_inprogress_infos.clear();
-
-	sinsp_filter* cf = compiler.compile();
-	m_inprogress = false;
+	sinsp_filter* cf;
 
 	for(uint32_t j = 0; j < m_nworkers; j++)
 	{
+		m_inprogress = true;
+		m_inprogress_infos.clear();
+		cf = compiler.compile();
+		m_inprogress = false;
+
 		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(cf, this, true);
 		m_workers.push_back(w);
 	}
 
+	m_inprogress = true;
+	m_inprogress_infos.clear();
+	cf = compiler.compile();
+	m_inprogress = false;
 	m_sync_worker = new sinsp_pep_flt_worker(cf, this, false);
 }
 
@@ -185,6 +189,7 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 			}
 
 			m_inprogress_infos[id] = newpsi;
+			return newpsi;
 		}
 		else
 		{
