@@ -62,10 +62,10 @@ private:
 	bool is_worker_available();
 
 	sinsp* m_inspector;
-	uint32_t m_nworkers = 1;
+	uint32_t m_nworkers = 3;
 	vector<sinsp_pep_flt_worker*> m_workers;
 	sinsp_pep_flt_worker* m_sync_worker = NULL;
-	vector<ss_plugin_info> m_source_info_list;
+	vector<ss_plugin_info*> m_source_info_list;
 	bool m_inprogress = false;
 	map<uint32_t, ss_plugin_info*> m_inprogress_infos;
 	ss_plugin_info* m_cur_source_info = NULL;

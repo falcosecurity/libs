@@ -156,6 +156,7 @@ public:
 				m_psource_info->is_async_extractor_present = false;
 			}
 
+			m_psource_info->is_async_extractor_present = false;
 			m_psource_info->is_async_extractor_configured = true;
 		}
 
