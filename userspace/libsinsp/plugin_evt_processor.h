@@ -37,7 +37,6 @@ public:
 		return &m_evt;
 	}
 
-//	sinsp_evt* m_input_evt = NULL;
 	sinsp_evt m_evt;
 	std::vector<char> m_evt_storage;
 	sinsp_filter* m_filter = NULL;
@@ -63,7 +62,7 @@ private:
 	bool is_worker_available();
 
 	sinsp* m_inspector;
-	uint32_t m_nworkers = 0;
+	uint32_t m_nworkers = 1;
 	vector<sinsp_pep_flt_worker*> m_workers;
 	sinsp_pep_flt_worker* m_sync_worker = NULL;
 	vector<ss_plugin_info> m_source_info_list;
