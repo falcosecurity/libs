@@ -91,18 +91,20 @@ sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 {
 	for(auto it : m_source_info_list)
 	{
-		if(it.register_async_extractor)
+		if(it->register_async_extractor)
 		{
-			if(it.is_async_extractor_present == true)
+			if(it->is_async_extractor_present == true)
 			{
-				static_cast<sinsp_async_extractor_ctx *>(it.async_extractor_info.waitCtx)->shutdown();
+				static_cast<sinsp_async_extractor_ctx *>(it->async_extractor_info.waitCtx)->shutdown();
 			}
 		}
 
-		if(it.destroy != NULL)
+		if(it->destroy != NULL)
 		{
-			it.destroy(it.state);
+			it->destroy(it->state);
 		}
+
+		delete it;
 	}
 
 	for(auto it : m_workers)
@@ -120,14 +122,14 @@ printf("S>%d\n", m_sync_worker->m_cnt);
 
 void sinsp_plugin_evt_processor::compile(string filter)
 {
-	sinsp_filter_compiler compiler(m_inspector, filter);
 	sinsp_filter* cf;
 
 	for(uint32_t j = 0; j < m_nworkers; j++)
 	{
 		m_inprogress = true;
 		m_inprogress_infos.clear();
-		cf = compiler.compile();
+		sinsp_filter_compiler wcompiler(m_inspector, filter);
+		cf = wcompiler.compile();
 		m_inprogress = false;
 
 		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(cf, this, true);
@@ -136,7 +138,8 @@ void sinsp_plugin_evt_processor::compile(string filter)
 
 	m_inprogress = true;
 	m_inprogress_infos.clear();
-	cf = compiler.compile();
+	sinsp_filter_compiler scompiler(m_inspector, filter);
+	cf = scompiler.compile();
 	m_inprogress = false;
 	m_sync_worker = new sinsp_pep_flt_worker(cf, this, false);
 }
@@ -168,9 +171,8 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 				throw sinsp_exception("cannot find plugin with ID " + to_string(id));
 			}
 
-			ss_plugin_info* oldpsi = &(pplg->m_source_info);
-			m_source_info_list.push_back(*oldpsi);
-			ss_plugin_info* newpsi = &(m_source_info_list[m_source_info_list.size() - 1]);
+			ss_plugin_info* newpsi = new ss_plugin_info;
+			*newpsi = pplg->m_source_info;
 
 			//
 			// Initialize the new plugin instance
