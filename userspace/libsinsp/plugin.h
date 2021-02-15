@@ -55,6 +55,7 @@ public:
 
 	inline bool wait()
 	{
+printf("*1\n");
 		m_lock = state::DONE;
 
 		//

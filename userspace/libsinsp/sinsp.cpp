@@ -1354,8 +1354,8 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	if(evt->get_type() == PPME_PLUGINEVENT_E)
-//	if(0)
+//	if(evt->get_type() == PPME_PLUGINEVENT_E)
+	if(0)
 	{
 		if(!from_plugin_proc_backlog)
 		{
