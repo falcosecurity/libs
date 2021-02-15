@@ -42,11 +42,13 @@ void worker_thread(sinsp_pep_flt_worker* This)
 	}
 }
 
-sinsp_pep_flt_worker::sinsp_pep_flt_worker(sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async)
+sinsp_pep_flt_worker::sinsp_pep_flt_worker(sinsp* inspector, sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async)
 {
+	m_inspector = inspector;
 	m_filter = filter;
 	m_pprocessor = pprocessor;
 	m_evt.m_info = &(g_infotables.m_event_info[PPME_PLUGINEVENT_E]);
+	m_evt.m_inspector = m_inspector;
 	if(async)
 	{
 		m_th = new thread(worker_thread, this);
@@ -141,7 +143,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 		cf = wcompiler.compile();
 		m_inprogress = false;
 
-		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(cf, this, true);
+		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(m_inspector, cf, this, true);
 		m_workers.push_back(w);
 	}
 
@@ -150,7 +152,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 	sinsp_filter_compiler scompiler(m_inspector, filter);
 	cf = scompiler.compile();
 	m_inprogress = false;
-	m_sync_worker = new sinsp_pep_flt_worker(cf, this, false);
+	m_sync_worker = new sinsp_pep_flt_worker(m_inspector, cf, this, false);
 }
 
 ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
