@@ -64,7 +64,7 @@ private:
 	bool is_worker_available();
 
 	sinsp* m_inspector;
-	uint32_t m_nworkers = 1;
+	uint32_t m_nworkers = 0;
 	vector<sinsp_pep_flt_worker*> m_workers;
 	sinsp_pep_flt_worker* m_sync_worker = NULL;
 	vector<ss_plugin_info*> m_source_info_list;
