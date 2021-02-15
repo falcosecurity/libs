@@ -28,7 +28,7 @@ public:
 		WS_WORKING,
 		WS_HAS_RESULT,
 	};
-	sinsp_pep_flt_worker(sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async);
+	sinsp_pep_flt_worker(sinsp* inspector, sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async);
 	~sinsp_pep_flt_worker();
 	inline bool process_event();
 
@@ -37,6 +37,7 @@ public:
 		return &m_evt;
 	}
 
+	sinsp* m_inspector;
 	sinsp_evt m_evt;
 	std::vector<char> m_evt_storage;
 	sinsp_filter* m_filter = NULL;
