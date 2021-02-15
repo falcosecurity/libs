@@ -45,6 +45,7 @@ public:
 	pep_flt_worker_state m_state = WS_READY;
 	sinsp_plugin_evt_processor* m_pprocessor;
 	uint32_t m_cnt = 0;
+	uint32_t m_tmp = 0;
 };
 
 class sinsp_plugin_evt_processor
@@ -62,7 +63,7 @@ private:
 	bool is_worker_available();
 
 	sinsp* m_inspector;
-	uint32_t m_nworkers = 3;
+	uint32_t m_nworkers = 0;
 	vector<sinsp_pep_flt_worker*> m_workers;
 	sinsp_pep_flt_worker* m_sync_worker = NULL;
 	vector<ss_plugin_info*> m_source_info_list;

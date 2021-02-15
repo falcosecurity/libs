@@ -1355,7 +1355,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 #else
 	if(evt->get_type() == PPME_PLUGINEVENT_E)
-//	if(1)
+//	if(0)
 	{
 		if(!from_plugin_proc_backlog)
 		{

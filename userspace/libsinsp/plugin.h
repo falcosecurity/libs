@@ -64,6 +64,7 @@ public:
 		// which is a waste of resources if the input producer is idle for a lot of time
 		//
 		int old_val = state::INPUT_READY;
+
 		while(!m_lock.compare_exchange_strong(old_val, state::PROCESSING))
 		{
 			// shutdown
