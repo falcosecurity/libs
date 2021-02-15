@@ -76,6 +76,15 @@ bool sinsp_pep_flt_worker::process_event()
 		m_evt.m_filtered_out = true;
 	}
 
+//	m_evt.m_filtered_out = true;
+// uint64_t r = 0;
+// for(uint64_t j = 0; j < 10000; j++)
+// {
+// 	r += j;
+// 	r *= (r + j);
+// }
+// m_tmp = r;
+
 	return &m_evt;
 }
 
