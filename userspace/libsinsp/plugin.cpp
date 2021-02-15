@@ -158,7 +158,6 @@ public:
 				m_psource_info->is_async_extractor_present = false;
 			}
 
-			m_psource_info->is_async_extractor_present = false;
 			m_psource_info->is_async_extractor_configured = true;
 		}
 
@@ -191,9 +190,9 @@ public:
 
 				volatile int32_t* lock = &(m_psource_info->async_extractor_info.lock);
 				#ifdef _WIN32
- 					InterlockedCompareExchange((volatile LONG*)lock, 1, 2);
+ 					InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
 				#else
- 					__sync_bool_compare_and_swap(lock, 2, 1);
+ 					__sync_bool_compare_and_swap(lock, 3, 1);
 				#endif
 
 				while(*lock != 3);
