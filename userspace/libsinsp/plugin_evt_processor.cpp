@@ -42,10 +42,9 @@ void worker_thread(sinsp_pep_flt_worker* This)
 	}
 }
 
-sinsp_pep_flt_worker::sinsp_pep_flt_worker(sinsp* inspector, sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async)
+sinsp_pep_flt_worker::sinsp_pep_flt_worker(sinsp* inspector, sinsp_plugin_evt_processor* pprocessor, bool async)
 {
 	m_inspector = inspector;
-	m_filter = filter;
 	m_pprocessor = pprocessor;
 	m_evt.m_info = &(g_infotables.m_event_info[PPME_PLUGINEVENT_E]);
 	m_evt.m_inspector = m_inspector;
@@ -54,6 +53,11 @@ sinsp_pep_flt_worker::sinsp_pep_flt_worker(sinsp* inspector, sinsp_filter* filte
 		m_th = new thread(worker_thread, this);
 	}
 	m_evt_storage.resize(128000);
+}
+
+void sinsp_pep_flt_worker::set_filter(sinsp_filter* filter)
+{
+	m_filter = filter;
 }
 
 sinsp_pep_flt_worker::~sinsp_pep_flt_worker()
@@ -96,6 +100,7 @@ bool sinsp_pep_flt_worker::process_event()
 sinsp_plugin_evt_processor::sinsp_plugin_evt_processor(sinsp* inspector)
 {
 	m_inspector = inspector;
+	init();
 }
 
 sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
@@ -131,6 +136,21 @@ sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 	}
 }
 
+void sinsp_plugin_evt_processor::init()
+{
+	sinsp_filter* cf;
+
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+	for(uint32_t j = 0; j < m_nworkers; j++)
+	{
+		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(m_inspector, this, true);
+		m_workers.push_back(w);
+	}
+#endif
+
+	m_sync_worker = new sinsp_pep_flt_worker(m_inspector, this, false);
+}
+
 void sinsp_plugin_evt_processor::compile(string filter)
 {
 	sinsp_filter* cf;
@@ -144,8 +164,8 @@ void sinsp_plugin_evt_processor::compile(string filter)
 		cf = wcompiler.compile();
 		m_inprogress = false;
 
-		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(m_inspector, cf, this, true);
-		m_workers.push_back(w);
+		sinsp_pep_flt_worker* w = m_workers[j];
+		w->set_filter(cf);
 	}
 #endif
 
@@ -154,7 +174,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 	sinsp_filter_compiler scompiler(m_inspector, filter);
 	cf = scompiler.compile();
 	m_inprogress = false;
-	m_sync_worker = new sinsp_pep_flt_worker(m_inspector, cf, this, false);
+	m_sync_worker->set_filter(cf);
 }
 
 ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
