@@ -120,13 +120,13 @@ sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 
 	for(auto it : m_workers)
 	{
-printf("T>%d\n", it->m_cnt);
+		//printf("T>%d\n", it->m_cnt);
 		delete it;
 	}
 
 	if(m_sync_worker)
 	{
-printf("S>%d\n", m_sync_worker->m_cnt);
+		//printf("S>%d\n", m_sync_worker->m_cnt);
 		delete m_sync_worker;
 	}
 }
@@ -135,6 +135,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 {
 	sinsp_filter* cf;
 
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 	for(uint32_t j = 0; j < m_nworkers; j++)
 	{
 		m_inprogress = true;
@@ -146,6 +147,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(m_inspector, cf, this, true);
 		m_workers.push_back(w);
 	}
+#endif
 
 	m_inprogress = true;
 	m_inprogress_infos.clear();
@@ -218,6 +220,7 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 	}
 }
 
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt)
 {
 	uint32_t pelen = evt->m_pevt->len;
@@ -231,9 +234,18 @@ void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_e
 	w->m_evt.m_pevt = (scap_evt*)&(w->m_evt_storage[0]);
 	w->m_evt.m_evtnum = evt->m_evtnum;
 }
+#else
+void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt)
+{
+	uint32_t pelen = evt->m_pevt->len;
+	w->m_evt.m_pevt = evt->m_pevt;
+	w->m_evt.m_evtnum = evt->m_evtnum;
+}
+#endif
 
 sinsp_evt* sinsp_plugin_evt_processor::process_event(sinsp_evt* evt)
 {
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 	if(is_worker_available())
 	{
 		for(auto w : m_workers)
@@ -246,20 +258,12 @@ sinsp_evt* sinsp_plugin_evt_processor::process_event(sinsp_evt* evt)
 			}
 		}
 	}
+#endif
 
 	prepare_worker(m_sync_worker, evt);
 	m_sync_worker->process_event();
 	sinsp_evt* res = m_sync_worker->get_evt();
 	return res;
-
-	//while(true)
-	//{
-	//	sinsp_evt* bevt = get_event_from_backlog();
-	//	if(bevt != NULL)
-	//	{
-	//		return bevt;
-	//	}
-	//}
 }
 
 sinsp_evt* sinsp_plugin_evt_processor::get_event_from_backlog()
