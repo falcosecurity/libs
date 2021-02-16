@@ -1129,7 +1129,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 	bool from_plugin_proc_backlog = false;
 #endif
 
@@ -1156,7 +1156,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 	else
 	{
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 		evt = m_plugin_evt_processor->get_event_from_backlog();
 		if(evt != NULL)
 		{
@@ -1360,9 +1360,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	if(evt->get_type() == PPME_PLUGINEVENT_E)
 	{
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 		if(!from_plugin_proc_backlog)
-#endif // PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#endif // MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 		{
 			evt = m_plugin_evt_processor->process_event(evt);
 			if(evt == NULL)

@@ -109,4 +109,4 @@ static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 // Define this to enable parallel (multi-threaded) filtering of events coming 
 // from plugins
 //
-#undef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#undef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
