@@ -107,3 +107,8 @@ typedef sinsp_fdinfo<int> sinsp_fdinfo_t;
 // very big JSONs returned by container inspect call
 static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 
+//
+// Define this to enable parallel (multi-threaded) filtering of events coming 
+// from plugins
+//
+#undef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED

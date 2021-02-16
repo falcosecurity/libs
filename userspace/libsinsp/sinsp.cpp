@@ -1131,7 +1131,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 	bool from_plugin_proc_backlog = false;
+#endif
 
 	//
 	// Check if there are fake cpu events to  events
@@ -1156,6 +1158,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 	else
 	{
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 		evt = m_plugin_evt_processor->get_event_from_backlog();
 		if(evt != NULL)
 		{
@@ -1163,6 +1166,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			from_plugin_proc_backlog = true;
 		}
 		else
+#endif
 		{
 			evt = &m_evt;
 
@@ -1356,10 +1360,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		return SCAP_TIMEOUT;
 	}
 #else
-//	if(evt->get_type() == PPME_PLUGINEVENT_E)
-	if(0)
+	if(evt->get_type() == PPME_PLUGINEVENT_E)
 	{
+#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 		if(!from_plugin_proc_backlog)
+#endif // PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 		{
 			evt = m_plugin_evt_processor->process_event(evt);
 			if(evt == NULL)
