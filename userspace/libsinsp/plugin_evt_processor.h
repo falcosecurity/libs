@@ -28,7 +28,8 @@ public:
 		WS_WORKING,
 		WS_HAS_RESULT,
 	};
-	sinsp_pep_flt_worker(sinsp* inspector, sinsp_filter* filter, sinsp_plugin_evt_processor* pprocessor, bool async);
+	sinsp_pep_flt_worker(sinsp* inspector, sinsp_plugin_evt_processor* pprocessor, bool async);
+	void set_filter(sinsp_filter* filter);
 	~sinsp_pep_flt_worker();
 	inline bool process_event();
 
@@ -54,6 +55,7 @@ class sinsp_plugin_evt_processor
 public:
 	sinsp_plugin_evt_processor(sinsp* inspector);
 	~sinsp_plugin_evt_processor();
+	void init();
 	void compile(string filter);
 	sinsp_evt* process_event(sinsp_evt *evt);
 	sinsp_evt* get_event_from_backlog();
