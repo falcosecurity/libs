@@ -36,7 +36,7 @@ typedef bool (*pfnWait)(void *waitCtx);
 
 typedef struct async_extractor_info
 {
-	volatile int32_t lock;
+//	volatile int32_t lock;
 	uint64_t evtnum;
 	uint32_t id;
 	char* arg;

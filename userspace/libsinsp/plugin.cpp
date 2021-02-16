@@ -138,7 +138,7 @@ public:
 		{
 			if(m_psource_info->register_async_extractor)
 			{
-				m_psource_info->async_extractor_info.lock = 3;
+				// m_psource_info->async_extractor_info.lock = 3;
 
 				m_psource_info->async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
 				m_psource_info->async_extractor_info.wait = [](void *waitCtx)
@@ -186,16 +186,16 @@ public:
 				m_psource_info->async_extractor_info.data = parinfo->m_val;
 				m_psource_info->async_extractor_info.datalen= parinfo->m_len;
 
-//				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.waitCtx)->notify();
+				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.waitCtx)->notify();
 
-				volatile int32_t* lock = &(m_psource_info->async_extractor_info.lock);
-				#ifdef _WIN32
- 					InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
-				#else
- 					__sync_bool_compare_and_swap(lock, 3, 1);
-				#endif
+				//volatile int32_t* lock = &(m_psource_info->async_extractor_info.lock);
+				//#ifdef _WIN32
+ 			//		InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
+				//#else
+ 			//		__sync_bool_compare_and_swap(lock, 3, 1);
+				//#endif
 
-				while(*lock != 3);
+				//while(*lock != 3);
 
 				pret = m_psource_info->async_extractor_info.res;
 			}
