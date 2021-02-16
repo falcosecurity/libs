@@ -155,7 +155,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 {
 	sinsp_filter* cf;
 
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 	for(uint32_t j = 0; j < m_nworkers; j++)
 	{
 		m_inprogress = true;
@@ -240,7 +240,7 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 	}
 }
 
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt)
 {
 	uint32_t pelen = evt->m_pevt->len;
@@ -265,7 +265,7 @@ void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_e
 
 sinsp_evt* sinsp_plugin_evt_processor::process_event(sinsp_evt* evt)
 {
-#ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
+#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
 	if(is_worker_available())
 	{
 		for(auto w : m_workers)
