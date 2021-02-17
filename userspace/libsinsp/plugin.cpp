@@ -140,10 +140,10 @@ public:
 			{
 				// m_psource_info->async_extractor_info.lock = 3;
 
-				m_psource_info->async_extractor_info.waitCtx = new sinsp_async_extractor_ctx();
-				m_psource_info->async_extractor_info.wait = [](void *waitCtx)
+				m_psource_info->async_extractor_info.wait_ctx = new sinsp_async_extractor_ctx();
+				m_psource_info->async_extractor_info.cb_wait = [](void *wait_ctx)
 				{
-					return static_cast<sinsp_async_extractor_ctx *>(waitCtx)->wait();
+					return static_cast<sinsp_async_extractor_ctx *>(wait_ctx)->wait();
 				};
 
 				if(m_psource_info->register_async_extractor(m_psource_info->state, &(m_psource_info->async_extractor_info)) != SCAP_SUCCESS)
@@ -186,7 +186,7 @@ public:
 				m_psource_info->async_extractor_info.data = parinfo->m_val;
 				m_psource_info->async_extractor_info.datalen= parinfo->m_len;
 
-				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.waitCtx)->notify();
+				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.wait_ctx)->notify();
 
 				//volatile int32_t* lock = &(m_psource_info->async_extractor_info.lock);
 				//#ifdef _WIN32
@@ -286,7 +286,7 @@ sinsp_plugin::~sinsp_plugin()
 	{
 		if(m_source_info.is_async_extractor_present == true)
 		{
-			static_cast<sinsp_async_extractor_ctx *>(m_source_info.async_extractor_info.waitCtx)->shutdown();
+			static_cast<sinsp_async_extractor_ctx *>(m_source_info.async_extractor_info.wait_ctx)->shutdown();
 		}
 	}
 
