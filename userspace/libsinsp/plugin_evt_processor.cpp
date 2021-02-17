@@ -111,7 +111,7 @@ sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 		{
 			if(it->is_async_extractor_present == true)
 			{
-				static_cast<sinsp_async_extractor_ctx *>(it->async_extractor_info.waitCtx)->shutdown();
+				static_cast<sinsp_async_extractor_ctx *>(it->async_extractor_info.wait_ctx)->shutdown();
 			}
 		}
 
