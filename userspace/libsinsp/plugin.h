@@ -111,7 +111,7 @@ class sinsp_plugin
 public:
 	sinsp_plugin(sinsp* inspector);
 	~sinsp_plugin();
-	void configure(ss_plugin_info* plugin_info, char* config);
+	void configure(string filename, ss_plugin_info* plugin_info, char* config);
 	uint32_t get_id();
 	ss_plugin_type get_type();
 	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
