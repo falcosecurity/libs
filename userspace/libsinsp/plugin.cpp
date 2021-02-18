@@ -35,7 +35,7 @@ limitations under the License.
 extern sinsp_filter_check_list g_filterlist;
 extern vector<chiseldir_info>* g_plugin_dirs;
 
-#define ENSURE_PLUGIN_EXPORT(_fn) if(m_source_info._fn == NULL) throw sinsp_exception("invalid source plugin: '" #_fn "' method missing");
+#define ENSURE_PLUGIN_EXPORT(_fn) if(m_source_info._fn == NULL) throw sinsp_exception("invalid source plugin " + filename + ": '" #_fn "' method missing");
 
 ///////////////////////////////////////////////////////////////////////////////
 // source_plugin filter check implementation
@@ -296,7 +296,7 @@ sinsp_plugin::~sinsp_plugin()
 	}
 }
 
-void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
+void sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char* config)
 {
 	int32_t init_res = SCAP_FAILURE;
 
@@ -531,7 +531,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->open)) = getsym(handle, "plugin_open");
 	*(void**)(&(info->close)) = getsym(handle, "plugin_close");
 	*(void**)(&(info->next)) = getsym(handle, "plugin_next");
-	*(void**)(&(info->next)) = getsym(handle, "plugin_next_batch");
+	*(void**)(&(info->next_batch)) = getsym(handle, "plugin_next_batch");
 	*(void**)(&(info->event_to_string)) = getsym(handle, "plugin_event_to_string");
 	*(void**)(&(info->extract_str)) = getsym(handle, "plugin_extract_str");
 	*(void**)(&(info->extract_u64)) = getsym(handle, "plugin_extract_u64");
@@ -579,7 +579,7 @@ void sinsp_plugin::load_dynlib_plugins(sinsp* inspector)
 				goto nextfile;
 			}
 
-			inspector->add_plugin(&si, NULL);
+			inspector->add_plugin(file.path, &si, NULL);
 
 nextfile:
 			tinydir_next(&dir);

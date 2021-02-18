@@ -1648,10 +1648,10 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
+sinsp_plugin* sinsp::add_plugin(string filename, ss_plugin_info* src_plugin, char* config)
 {
 	sinsp_plugin* nsp = new sinsp_plugin(this);
-	nsp->configure(src_plugin, config);
+	nsp->configure(filename, src_plugin, config);
 	uint32_t id = nsp->get_id();
 	string name = nsp->m_source_info.get_name();
 
