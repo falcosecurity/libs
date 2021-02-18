@@ -1670,6 +1670,10 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	uint8_t* data;
 	uint32_t datalen;
 	uint64_t* ts = UINT64_MAX;
+
+int32_t res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state, 
+	handle->m_input_plugin->handle, &data, &datalen, &ts);
+
 	int32_t res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
 		handle->m_input_plugin->handle, &data, &datalen, &ts);
 	if(res != SCAP_SUCCESS)
