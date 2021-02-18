@@ -320,6 +320,7 @@ void sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config)
 		ENSURE_PLUGIN_EXPORT(open);
 		ENSURE_PLUGIN_EXPORT(close);
 		ENSURE_PLUGIN_EXPORT(next);
+		ENSURE_PLUGIN_EXPORT(next_batch);
 		ENSURE_PLUGIN_EXPORT(event_to_string);
 	}
 	else if(m_type == TYPE_EXTRACTOR_PLUGIN)
@@ -530,6 +531,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->open)) = getsym(handle, "plugin_open");
 	*(void**)(&(info->close)) = getsym(handle, "plugin_close");
 	*(void**)(&(info->next)) = getsym(handle, "plugin_next");
+	*(void**)(&(info->next)) = getsym(handle, "plugin_next_batch");
 	*(void**)(&(info->event_to_string)) = getsym(handle, "plugin_event_to_string");
 	*(void**)(&(info->extract_str)) = getsym(handle, "plugin_extract_str");
 	*(void**)(&(info->extract_u64)) = getsym(handle, "plugin_extract_u64");

@@ -189,7 +189,11 @@ typedef struct
 	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
 	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 	//
+	// This is an optional, internal, function used to speed up event capture
 	//
+	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint8_t** data, uint32_t* datalen);
+	//
+	// This is an optional, internal, function used to speed up value extraction
 	//
 	int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 
