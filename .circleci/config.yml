@@ -1,0 +1,72 @@
+version: 2
+jobs:
+  # Build using ubuntu LTS
+  # This build is dynamic, most dependencies are taken from the OS
+  "build/ubuntu-focal":
+    docker:
+      - image: ubuntu:focal
+    steps:
+      - checkout
+      - run:
+          name: Update base image
+          command: apt update -y
+      - run:
+          name: Install dependencies
+          command: DEBIAN_FRONTEND=noninteractive apt install libssl-dev libyaml-dev libncurses-dev libc-ares-dev libprotobuf-dev protobuf-compiler libjq-dev libyaml-cpp-dev libgrpc++-dev protobuf-compiler-grpc rpm libelf-dev cmake build-essential libcurl4-openssl-dev linux-headers-generic clang llvm git -y
+      - run:
+          name: Prepare project
+          command: |
+            mkdir build
+            pushd build
+            cmake -DBUILD_BPF=On ..
+            popd
+      - run:
+          name: Build
+          command: |
+            pushd build
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4 all
+            popd
+      - run:
+          name: Run unit tests
+          command: |
+            pushd build
+            make run-unit-tests
+            popd
+  # Build using Ubuntu Bionic Beaver (18.04)
+  # This build is static, dependencies are bundled in the libreries
+  "build/ubuntu-bionic":
+    docker:
+      - image: ubuntu:bionic
+    steps:
+      - checkout
+      - run:
+          name: Update base image
+          command: apt update -y
+      - run:
+          name: Install dependencies
+          command: DEBIAN_FRONTEND=noninteractive apt install cmake build-essential clang llvm git linux-headers-generic libncurses-dev pkg-config autoconf libtool libelf-dev -y
+      - run:
+          name: Prepare project
+          command: |
+            mkdir build
+            pushd build
+            cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=On ..
+            popd
+      - run:
+          name: Build
+          command: |
+            pushd build
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4 all
+            popd
+      - run:
+          name: Run unit tests
+          command: |
+            pushd build
+            make run-unit-tests
+            popd
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - "build/ubuntu-bionic"
