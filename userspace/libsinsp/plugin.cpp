@@ -320,7 +320,7 @@ void sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 		ENSURE_PLUGIN_EXPORT(open);
 		ENSURE_PLUGIN_EXPORT(close);
 		ENSURE_PLUGIN_EXPORT(next);
-		ENSURE_PLUGIN_EXPORT(next_batch);
+		//ENSURE_PLUGIN_EXPORT(next_batch);
 		ENSURE_PLUGIN_EXPORT(event_to_string);
 	}
 	else if(m_type == TYPE_EXTRACTOR_PLUGIN)

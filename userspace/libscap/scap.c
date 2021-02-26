@@ -972,6 +972,10 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, ss_plugin_info* input_plu
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state, 
 		input_plugin_params,
 		rc);
+	handle->m_input_plugin_batch_data = NULL;
+	handle->m_input_plugin_batch_data_pos = 0;
+	handle->m_input_plugin_batch_data_len = 0;
+	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
 
 	if(*rc != SCAP_SUCCESS)
 	{
@@ -1672,16 +1676,68 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	uint8_t* data;
 	uint32_t datalen;
 	uint64_t* ts = UINT64_MAX;
+	int32_t res;
 
-	int32_t res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
-		handle->m_input_plugin->handle, &data, &datalen, &ts);
-	if(res != SCAP_SUCCESS)
+	if(handle->m_input_plugin->next_batch != NULL)
 	{
-		if(res != SCAP_TIMEOUT && res != SCAP_EOF)
+		if(handle->m_input_plugin_batch_data_pos >= handle->m_input_plugin_batch_data_len)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
+			if(handle->m_input_plugin_last_batch_res != SCAP_SUCCESS)
+			{
+				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
+				}
+				return handle->m_input_plugin_last_batch_res;
+			}
+
+			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
+				handle->m_input_plugin->handle,
+				&(handle->m_input_plugin_batch_data),
+				&(handle->m_input_plugin_batch_data_len));
+
+			if(handle->m_input_plugin_batch_data_len == 0)
+			{
+				if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->get_name());
+					ASSERT(false);
+				}
+				else
+				{
+					if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
+					{
+						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
+					}
+					return handle->m_input_plugin_last_batch_res;
+				}
+			}
+
+			handle->m_input_plugin_batch_data_pos = 0;
 		}
-		return res;
+
+		uint32_t pos = handle->m_input_plugin_batch_data_pos;
+		ts = *(uint64_t*)(handle->m_input_plugin_batch_data + pos);
+		pos += sizeof(uint64_t);
+		datalen = *(uint32_t*)(handle->m_input_plugin_batch_data + pos);
+		pos += sizeof(uint32_t);
+		data = handle->m_input_plugin_batch_data + pos;
+		pos += datalen;
+		handle->m_input_plugin_batch_data_pos = pos;
+		res = SCAP_SUCCESS;
+	}
+	else
+	{
+		res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
+			handle->m_input_plugin->handle, &data, &datalen, &ts);
+		if(res != SCAP_SUCCESS)
+		{
+			if(res != SCAP_TIMEOUT && res != SCAP_EOF)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
+			}
+			return res;
+		}
 	}
 
 	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
