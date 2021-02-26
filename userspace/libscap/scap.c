@@ -1686,7 +1686,9 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 				{
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
 				}
-				return handle->m_input_plugin_last_batch_res;
+				int32_t tres = handle->m_input_plugin_last_batch_res;
+				handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
+				return tres;
 			}
 
 			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
@@ -1700,6 +1702,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 				{
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->get_name());
 					ASSERT(false);
+					return SCAP_FAILURE;
 				}
 				else
 				{
