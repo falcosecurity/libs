@@ -174,7 +174,7 @@ public:
 		{
 			if(m_psource_info->extract_str == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + "is missing the extract_str export");
+				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + " is missing the extract_str export");
 			}
 
 			char* pret;
@@ -224,7 +224,7 @@ public:
 		{
 			if(m_psource_info->extract_u64 == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + "is missing the extract_u64 export");
+				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + " is missing the extract_u64 export");
 			}
 
 			uint32_t present;
