@@ -33,7 +33,6 @@ typedef enum ss_plugin_type
 }ss_plugin_type;
 
 typedef bool (*cb_wait_t)(void* wait_ctx);
-typedef void (*cb_next_t)(char* data, uint32_t datalen);
 
 typedef struct async_extractor_info
 {
@@ -45,7 +44,6 @@ typedef struct async_extractor_info
 	uint32_t field_present;
 	char* res;
 	cb_wait_t cb_wait;
-	cb_next_t cb_next;
 	void* wait_ctx;
 } async_extractor_info;
 
@@ -189,7 +187,8 @@ typedef struct
 	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
 	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 	//
-	// This is an optional, internal, function used to speed up event capture
+	// This is an optional, internal, function used to speed up event capture by 
+	// batching the calls to next()
 	//
 	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint8_t** data, uint32_t* datalen);
 	//
