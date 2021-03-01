@@ -392,8 +392,8 @@ if(NOT WIN32 AND NOT APPLE)
 		set(B64_INCLUDE "${B64_SRC}/include")
 		set(B64_LIB "${B64_SRC}/src/libb64.a")
 		ExternalProject_Add(b64
-			URL "http://download.draios.com/dependencies/libb64-1.2.src.zip"
-			URL_MD5 "a609809408327117e2c643bed91b76c5"
+			URL "https://github.com/libb64/libb64/archive/v1.2.1.tar.gz"
+			URL_HASH "SHA256=d620e7caf3ed5f9c28d727fa799918ad3ef69c80975905646bb549a6019cdcbd"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
