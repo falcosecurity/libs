@@ -421,8 +421,8 @@ if(NOT WIN32 AND NOT MINIMAL_BUILD)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")
 
 		ExternalProject_Add(openssl
-			URL "http://download.draios.com/dependencies/openssl-1.0.2n.tar.gz"
-			URL_MD5 "13bdc1b1d1ff39b6fd42a255e74676a4"
+			URL "https://github.com/openssl/openssl/archive/OpenSSL_1_0_2n.tar.gz"
+			URL_HASH "SHA256=4f4bc907caff1fee6ff8593729e5729891adcee412049153a3bb4db7625e8364"
 			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
