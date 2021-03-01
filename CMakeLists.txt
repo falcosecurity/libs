@@ -257,8 +257,8 @@ if(WIN32 OR NOT MINIMAL_BUILD)
 		if(NOT WIN32)
 			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
+				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
 				CONFIGURE_COMMAND "./configure"
 				BUILD_COMMAND ${CMD_MAKE}
 				BUILD_IN_SOURCE 1
@@ -267,8 +267,8 @@ if(WIN32 OR NOT MINIMAL_BUILD)
 		else()
 			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
 			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
+				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
+				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND nmake -f win32/Makefile.msc
 				BUILD_IN_SOURCE 1
