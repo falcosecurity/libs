@@ -332,9 +332,24 @@ if(NOT WIN32 AND NOT APPLE)
 		set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
 		message(STATUS "Bundled jq: include: ${JQ_INCLUDE}, lib: ${JQ_LIB}")
 
+		# Why we mirror jq here?
+		#
+		# In their readme, jq claims that you don't have
+		# to do autoreconf -fi when downloading a released tarball.
+		#
+		# However, they forgot to push the released makefiles
+		# into their release tarbal.
+		#
+		# For this reason, we have to mirror their release after
+		# doing the configuration ourselves.
+		#
+		# This is needed because many distros do not ship the right
+		# version of autoreconf, making virtually impossible to build Falco on them.
+		# Read more about it here:
+		#   https://github.com/stedolan/jq/issues/2061#issuecomment-593445920
 		ExternalProject_Add(
 			jq
-			URL "http://download.draios.com/dependencies/jq-1.6.tar.gz"
+			URL "https://download.falco.org/dependencies/jq-1.6.tar.gz"
 			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
 			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
