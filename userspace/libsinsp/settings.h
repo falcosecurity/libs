@@ -79,16 +79,6 @@ limitations under the License.
 #define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S 30
 
 //
-// Enables Lua chisel scripts support
-//
-#define HAS_CHISELS
-
-//
-// Relative path to chisels
-//
-#define CHISELS_INSTALLATION_DIR "/share/sysdig/chisels"
-
-//
 // Default snaplen
 //
 #define DEFAULT_SNAPLEN 80

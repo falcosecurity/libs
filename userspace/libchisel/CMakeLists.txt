@@ -21,6 +21,7 @@ include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
 include_directories("${JSONCPP_INCLUDE}")
+include_directories("${LUAJIT_INCLUDE}")
 
 if(NOT MINIMAL_BUILD)
 	include_directories("${CARES_INCLUDE}")
@@ -43,6 +44,8 @@ if(NOT WIN32)
 endif() # NOT WIN32
 
 set(SINSP_SOURCES
+	chisel.cpp
+	chisel_api.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp
 	container_engine/static_container.cpp
@@ -62,6 +65,8 @@ set(SINSP_SOURCES
 	ifinfo.cpp
 	json_query.cpp
 	json_error_log.cpp
+	lua_parser.cpp
+	lua_parser_api.cpp
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
@@ -153,6 +158,10 @@ target_link_libraries(sinsp
 	"${TBB_LIB}"
 	"${CARES_LIB}")
 
+if(USE_BUNDLED_LUAJIT)
+	add_dependencies(sinsp luajit)
+endif()
+
 if(NOT WIN32)
 	if(USE_BUNDLED_OPENSSL AND NOT MINIMAL_BUILD)
 		add_dependencies(sinsp openssl)
@@ -236,6 +245,10 @@ if(NOT WIN32)
         endif()
 
 	target_link_libraries(sinsp
+		"${LUAJIT_LIB}"
 		dl
 		pthread)
+else()
+	target_link_libraries(sinsp
+		"${LUAJIT_LIB}")
 endif() # NOT WIN32

@@ -27,7 +27,9 @@ limitations under the License.
 #include <algorithm> 
 
 #include <sinsp.h>
+#ifdef HAS_CHISELS
 #include "chisel.h"
+#endif
 #include "fields_info.h"
 
 // Must match the value in the zsh tab completion

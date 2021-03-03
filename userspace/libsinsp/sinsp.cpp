@@ -34,7 +34,9 @@ limitations under the License.
 #include "sinsp_auth.h"
 #include "filter.h"
 #include "filterchecks.h"
+#ifdef HAS_CHISELS
 #include "chisel.h"
+#endif
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "dns_manager.h"
