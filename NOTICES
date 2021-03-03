@@ -22,3 +22,7 @@ SUBCOMPONENTS:
   kernel module and may be injected into eBPF; these are dual licensed
   under the MIT license or the GNU General Public License 2. Copies of
   both licenses are available in the subdirectory.
+
+- The files in <userspace/libsinsp/third-party/jsoncpp> and its 
+  subdirectories are licensed separately, see the headers of each file. 
+  Copyright (c) 2007-2010 Baptiste Lepilleur.
