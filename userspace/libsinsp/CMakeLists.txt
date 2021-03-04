@@ -29,7 +29,6 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 	include_directories("${B64_INCLUDE}")
-	include_directories("${CURSES_INCLUDE_DIR}")
 	if(NOT MINIMAL_BUILD)
 		include_directories("${GRPC_INCLUDE}")
 		include_directories("${PROTOBUF_INCLUDE}")
@@ -51,12 +50,7 @@ set(SINSP_SOURCES
 	container_engine/container_engine_base.cpp
 	container_engine/static_container.cpp
 	container_info.cpp
-	ctext.cpp
 	cyclewriter.cpp
-	cursescomponents.cpp
-	cursestable.cpp
-	cursesspectro.cpp
-	cursesui.cpp
 	event.cpp
 	eventformatter.cpp
 	dns_manager.cpp

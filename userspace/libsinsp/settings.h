@@ -102,15 +102,6 @@ limitations under the License.
 // Size the user event buffer is brought back once in a while 
 //
 #define MIN_USER_EVT_BUFFER 256
- 
-//
-// Is csysdig functionality included?
-//
-#define CSYSDIG
-
-#ifdef _WIN32
-#define NOCURSESUI
-#endif
 
 //
 // Name of the device used for tracer injection
