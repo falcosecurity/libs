@@ -5997,7 +5997,9 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Kubernetes pod name."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Kubernetes namespace name."}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -6471,7 +6473,63 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = "NONE";
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
+	case TYPE_CONTAINER_K8S_POD_NAME:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
 
+			if(container_info->m_labels.empty())
+			{
+				return NULL;
+			}
+
+			if(container_info->m_labels.count("io.kubernetes.pod.name") == 0)
+			{
+				return NULL;
+			}
+			m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
+		}
+
+		RETURN_EXTRACT_STRING(m_tstr);
+		break;
+	case TYPE_CONTAINER_K8S_NS_NAME:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			if(container_info->m_labels.empty())
+			{
+				return NULL;
+			}
+
+			if(container_info->m_labels.count("io.kubernetes.pod.namespace") == 0)
+			{
+				return NULL;
+			}
+			m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
+		}
+
+		RETURN_EXTRACT_STRING(m_tstr);
+		break;
 	default:
 		ASSERT(false);
 		break;
