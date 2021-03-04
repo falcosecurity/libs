@@ -10,8 +10,9 @@ option(BPF_TEST_DEBUG "Enable debug mode for the BPF driver tests" OFF)
 
 if (BUILD_BPF_TEST)
   message(STATUS "BPF tests build enabled")
-  add_executable(test_fillers
+  add_executable(test_fillers_bpf
     test_fillers.c
+    test_renameat2.cpp
     "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c"
     "${PROJECT_BINARY_DIR}/driver/src/syscall_table.c"
     "${PROJECT_BINARY_DIR}/driver/src/event_table.c"
@@ -20,16 +21,18 @@ if (BUILD_BPF_TEST)
   if (BPF_TEST_DEBUG)
     message(STATUS "BPF test debug mode enabled")
     add_definitions(-DBPF_TEST_DEBUG)
+    add_definitions(-DPROBE_PATH=${BPF_PROBE_PATH})
   endif ()
 
-  add_dependencies(test_fillers libbpf zlib)
+  add_dependencies(test_fillers_bpf libbpf zlib bpf)
   target_include_directories(
-    test_fillers
+    test_fillers_bpf
     PUBLIC
     "${ZLIB_INCLUDE}"
     "${LIBBPF_INCLUDE}"
     "${PROJECT_BINARY_DIR}/driver/src"
-    "${PROJECT_BINARY_DIR}/userspace")
+    "${PROJECT_BINARY_DIR}/userspace"
+    "${GTEST_INCLUDE_DIR}")
 
-  target_link_libraries(test_fillers elf rt z "${LIBBPF_LIB}")
+  target_link_libraries(test_fillers_bpf elf rt "${LIBBPF_LIB}" "${ZLIB_LIB}" "${GTEST_LIB}" "${GTEST_MAIN_LIB}")
 endif ()

@@ -128,5 +128,5 @@ btf-core-probe.o: probe.c \
 vmlinux.h:
 	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
 
-# btf-probe.h: btf-probe.o
-# 	$(BPFTOOL) gen skeleton $(patsubst %.h,%.o,$@) > $@
+#btf-probe.h: btf-probe.o
+#	$(BPFTOOL) gen skeleton $(patsubst %.h,%.o,$@) > $@

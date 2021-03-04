@@ -10,16 +10,22 @@ configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_confi
 option(BUILD_BPF "Build the BPF driver on Linux" OFF)
 
 if (BUILD_BPF)
+  set(BPF_PROBE_PATH "${CMAKE_CURRENT_BINARY_DIR}/probe.o")
+  message(STATUS "[BPF] compiled bpf probe will be located at: ${BPF_PROBE_PATH}")
   add_custom_target(bpf ALL
     COMMAND make LIBBPF_INCLUDE=-I${LIBBPF_INCLUDE}
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different probe.o "${CMAKE_CURRENT_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     VERBATIM)
+  set(BPF_BTF_PROBE_PATH "${CMAKE_CURRENT_BINARY_DIR}/btf-probe.o")
+  message(STATUS "[BPF BTF] compiled bpf probe (btf build) will be located at: ${BPF_BTF_PROBE_PATH}")
   add_custom_target(bpf-btf ALL
     COMMAND make LIBBPF_INCLUDE=-I${LIBBPF_INCLUDE} btf-probe.o
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different btf-probe.o "${CMAKE_CURRENT_BINARY_DIR}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     VERBATIM)
+  set(BPF_BTF_CORE_PROBE_PATH "${CMAKE_CURRENT_BINARY_DIR}/btf-core-probe.o")
+  message(STATUS "[BPF CO-RE] compiled bpf probe (btf build + CO RE) will be located at: ${BPF_BTF_CORE_PROBE_PATH}")
   add_custom_target(bpf-btf-core ALL
     COMMAND make LIBBPF_INCLUDE=-I${LIBBPF_INCLUDE} btf-core-probe.o
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different btf-core-probe.o "${CMAKE_CURRENT_BINARY_DIR}"

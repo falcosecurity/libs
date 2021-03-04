@@ -72,6 +72,10 @@ if(MUSL_OPTIMIZED_BUILD)
 endif()
 
 include(ExternalProject)
+
+include(googletest)
+include(zlib)
+
 if(NOT WIN32)
 
 	set(SYSDIG_DEBUG_FLAGS "-D_DEBUG")
@@ -237,48 +241,6 @@ else()
 	set(JSONCPP_LIB_SRC "${JSONCPP_SRC}/jsoncpp.cpp")
 	message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
 endif()
-
-#
-# zlib
-#
-option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
-
-if(WIN32 OR NOT MINIMAL_BUILD)
-	if(NOT USE_BUNDLED_ZLIB)
-		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
-		find_library(ZLIB_LIB NAMES z)
-		if(ZLIB_INCLUDE AND ZLIB_LIB)
-			message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
-		else()
-			message(FATAL_ERROR "Couldn't find system zlib")
-		endif()
-	else()
-		set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
-		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
-		set(ZLIB_INCLUDE "${ZLIB_SRC}")
-		if(NOT WIN32)
-			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
-			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-				CONFIGURE_COMMAND "./configure"
-				BUILD_COMMAND ${CMD_MAKE}
-				BUILD_IN_SOURCE 1
-				BUILD_BYPRODUCTS ${ZLIB_LIB}
-				INSTALL_COMMAND "")
-		else()
-			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
-			ExternalProject_Add(zlib
-				URL "http://download.draios.com/dependencies/zlib-1.2.11.tar.gz"
-				URL_MD5 "1c9f62f0778697a09d36121ead88e08e"
-				CONFIGURE_COMMAND ""
-				BUILD_COMMAND nmake -f win32/Makefile.msc
-				BUILD_IN_SOURCE 1
-				BUILD_BYPRODUCTS ${ZLIB_LIB}
-				INSTALL_COMMAND "")
-		endif()
-	endif()
-endif() # MINIMAL_BUILD
 
 #
 # Intel tbb
@@ -591,45 +553,6 @@ if(NOT WIN32 AND NOT APPLE)
 	endif() # NOT WIN32 AND NOT APPLE
 endif() # MINIMAL_BUILD
 
-option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
-if(CREATE_TEST_TARGETS AND NOT WIN32)
-	option(USE_BUNDLED_GTEST "Enable building of the bundled gtest" ${USE_BUNDLED_DEPS})
-	if(NOT USE_BUNDLED_GTEST)
-		find_path(GTEST_INCLUDE_DIR PATH_SUFFIXES gtest NAMES gtest.h)
-		find_library(GTEST_LIB NAMES gtest)
-		find_library(GTEST_MAIN_LIB NAMES gtest_main)
-		if(GTEST_INCLUDE_DIR AND GTEST_LIB AND GTEST_MAIN_LIB)
-			message(STATUS "Found gtest: include: ${GTEST_INCLUDE_DIR}, lib: ${GTEST_LIB}, main lib: ${GTEST_MAIN_LIB}")
-		else()
-			message(FATAL_ERROR "Couldn't find system gtest")
-		endif()
-	else()
-		# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
-		# Download and unpack googletest at configure time
-		configure_file(CMakeListsGtestInclude.cmake googletest-download/CMakeLists.txt)
-		execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-			RESULT_VARIABLE result
-			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-		if(result)
-			message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-		endif()
-		execute_process(COMMAND ${CMAKE_COMMAND} --build .
-			RESULT_VARIABLE result
-			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-		if(result)
-			message(FATAL_ERROR "Build step for googletest failed: ${result}")
-		endif()
-
-		# Add googletest directly to our build. This defines
-		# the gtest and gtest_main targets.
-		add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-		                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-		                 EXCLUDE_FROM_ALL)
-
-		set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
-		set(GTEST_MAIN_LIB "gtest_main")
-	endif()
-endif() # NOT WIN32
 
 add_subdirectory(userspace/libscap)
 add_subdirectory(userspace/libsinsp)

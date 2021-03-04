@@ -71,7 +71,7 @@ static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
 SEC(TP_NAME "filler/" #x)					\
 static __always_inline int bpf_##x(void *ctx)				\
-{									\
+{                                  \
 	struct filler_data data;					\
 	int res;							\
 									\
