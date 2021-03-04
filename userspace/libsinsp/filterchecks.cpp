@@ -34,7 +34,7 @@ limitations under the License.
 #include "value_parser.h"
 
 extern sinsp_evttables g_infotables;
-int32_t g_csysdig_screen_w = -1;
+int32_t g_screen_w = -1;
 bool g_filterchecks_force_raw_times = false;
 
 #define RETURN_EXTRACT_VAR(x) do {  \
@@ -3539,7 +3539,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 						llatency = 11;
 					}
 
-					m_u64val = (uint64_t)(llatency * g_csysdig_screen_w / 11) + 1;
+					m_u64val = (uint64_t)(llatency * g_screen_w / 11) + 1;
 
 					RETURN_EXTRACT_VAR(m_u64val);
 				}
@@ -5240,7 +5240,7 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 						lduration = 11;
 					}
 
-					m_s64val = (uint64_t)(lduration * g_csysdig_screen_w / 11) + 1;
+					m_s64val = (uint64_t)(lduration * g_screen_w / 11) + 1;
 
 					RETURN_EXTRACT_VAR(m_s64val);
 				}
