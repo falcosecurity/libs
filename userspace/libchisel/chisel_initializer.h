@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Sysdig Inc.
+Copyright (C) 2013-2018 Draios Inc dba Sysdig.
 
 This file is part of sysdig.
 
@@ -19,12 +19,15 @@ limitations under the License.
 
 #pragma once
 
-#include <vector>
-
-class sinsp;
-
-//
-// Printer functions
-//
-void list_fields(bool verbose, bool markdown, bool names_only=false);
-void list_events(sinsp* inspector);
+///////////////////////////////////////////////////////////////////////////////
+// Initializer class.
+// An instance of this class is created when the library is loaded.
+// ONE-SHOT INIT-TIME OPERATIONS SHOULD BE DONE IN THE CONSTRUCTOR OF THIS
+// CLASS TO KEEP THEM UNDER A SINGLE PLACE.
+///////////////////////////////////////////////////////////////////////////////
+class chisel_initializer
+{
+public:
+	chisel_initializer();
+	~chisel_initializer();
+};

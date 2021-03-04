@@ -23,9 +23,6 @@ limitations under the License.
 #include "sinsp_signal.h"
 #include "filter.h"
 #include "filterchecks.h"
-#ifdef HAS_CHISELS
-#include "chisel.h"
-#endif
 #include "protodecoder.h"
 
 ///////////////////////////////////////////////////////////////////////////////

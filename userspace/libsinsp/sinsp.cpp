@@ -34,9 +34,6 @@ limitations under the License.
 #include "sinsp_auth.h"
 #include "filter.h"
 #include "filterchecks.h"
-#ifdef HAS_CHISELS
-#include "chisel.h"
-#endif
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "dns_manager.h"
@@ -59,10 +56,6 @@ limitations under the License.
 #include "analyzer_int.h"
 #include "analyzer.h"
 #include "tracer_emitter.h"
-#endif
-
-#ifdef HAS_CHISELS
-extern vector<chiseldir_info>* g_chisel_dirs;
 #endif
 
 void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
@@ -1831,32 +1824,6 @@ void sinsp::set_min_log_severity(sinsp_logger::severity sev)
 sinsp_evttables* sinsp::get_event_info_tables()
 {
 	return &g_infotables;
-}
-
-void sinsp::add_chisel_dir(string dirname, bool front_add)
-{
-#ifdef HAS_CHISELS
-	trim(dirname);
-
-	if(dirname[dirname.size() -1] != '/')
-	{
-		dirname += "/";
-	}
-
-	chiseldir_info ncdi;
-
-	ncdi.m_dir = std::move(dirname);
-	ncdi.m_need_to_resolve = false;
-
-	if(front_add)
-	{
-		g_chisel_dirs->insert(g_chisel_dirs->begin(), ncdi);
-	}
-	else
-	{
-		g_chisel_dirs->push_back(ncdi);
-	}
-#endif
 }
 
 void sinsp::set_buffer_format(sinsp_evt::param_fmt format)

@@ -48,9 +48,6 @@ limitations under the License.
 #include "sinsp_signal.h"
 #include "filter.h"
 #include "filterchecks.h"
-#ifdef HAS_CHISELS
-#include "chisel.h"
-#endif
 #include "protodecoder.h"
 #include "uri.h"
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD)
@@ -59,18 +56,6 @@ limitations under the License.
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096
-#endif
-
-#ifdef HAS_CHISELS
-const chiseldir_info g_chisel_dirs_array[] =
-{
-	{false, ""}, // file as is
-#ifdef _WIN32
-	{false, "c:/sysdig/chisels/"},
-#endif
-	{false, "./chisels/"},
-	{true, "~/.chisels/"},
-};
 #endif
 
 #ifndef _WIN32
@@ -114,9 +99,6 @@ sinsp_initializer g_initializer;
 sinsp_filter_check_list g_filterlist;
 #endif
 sinsp_protodecoder_list g_decoderlist;
-#ifdef HAS_CHISELS
-vector<chiseldir_info>* g_chisel_dirs = NULL;
-#endif
 
 //
 // loading time initializations
@@ -134,42 +116,6 @@ sinsp_initializer::sinsp_initializer()
 	//
 	g_logger.set_severity(sinsp_logger::SEV_TRACE);
 
-#ifdef HAS_CHISELS
-	//
-	// Init the chisel directory list
-	//
-	g_chisel_dirs = NULL;
-	g_chisel_dirs = new vector<chiseldir_info>();
-
-	for(uint32_t j = 0; j < sizeof(g_chisel_dirs_array) / sizeof(g_chisel_dirs_array[0]); j++)
-	{
-		if(g_chisel_dirs_array[j].m_need_to_resolve)
-		{
-#ifndef _WIN32
-			std::string resolved_path = realpath_ex(g_chisel_dirs_array[j].m_dir);
-			if(!resolved_path.empty())
-			{
-				if(resolved_path[resolved_path.size() - 1] != '/')
-				{
-					resolved_path += '/';
-				}
-
-				chiseldir_info cdi;
-				cdi.m_need_to_resolve = false;
-				cdi.m_dir = std::move(resolved_path);
-				g_chisel_dirs->push_back(cdi);
-			}
-#else
-			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
-#endif
-		}
-		else
-		{
-			g_chisel_dirs->push_back(g_chisel_dirs_array[j]);
-		}
-	}
-#endif // HAS_CHISELS
-
 	//
 	// Sockets initialization on windows
 	//
@@ -182,12 +128,7 @@ sinsp_initializer::sinsp_initializer()
 
 sinsp_initializer::~sinsp_initializer()
 {
-#ifdef HAS_CHISELS
-	if(g_chisel_dirs)
-	{
-		delete g_chisel_dirs;
-	}
-#endif
+	
 }
 
 ///////////////////////////////////////////////////////////////////////////////

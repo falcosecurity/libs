@@ -19,16 +19,7 @@ limitations under the License.
 
 #pragma once
 
-#include <vector>
-
-class sinsp;
 class chisel_desc;
-
-//
-// Printer functions
-//
-void list_fields(bool verbose, bool markdown, bool names_only=false);
-void list_events(sinsp* inspector);
 
 #ifdef HAS_CHISELS
 void print_chisel_info(chisel_desc* cd);
