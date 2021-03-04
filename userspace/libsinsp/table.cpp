@@ -18,9 +18,6 @@ limitations under the License.
 */
 
 #include <algorithm>
-#ifndef _WIN32
-#include <curses.h>
-#endif
 
 #include "sinsp.h"
 #include "sinsp_int.h"
