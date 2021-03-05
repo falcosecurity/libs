@@ -123,16 +123,6 @@ class k8s_api_handler;
 std::vector<std::string> sinsp_split(const std::string &s, char delim);
 
 /*!
-  \brief Information about a chisel
-*/
-class sinsp_chisel_details
-{
-public:
-	std::string m_name;
-	std::vector<pair<std::string, std::string>> m_args;
-};
-
-/*!
   \brief Information about a group of filter/formatting fields.
 */
 class filter_check_info
@@ -562,16 +552,6 @@ public:
 	{
 		return m_lasterr;
 	}
-
-	/*!
-	  \brief Add a new directory containing chisels.
-
-	  \parame front_add if true, the chisel directory is added at the front of
-	   the search list and therefore gets priority.
-
-	  \note This function is not reentrant.
-	*/
-	void add_chisel_dir(string dirname, bool front_add);
 
 	/*!
 	  \brief Get the list of machine network interfaces.
