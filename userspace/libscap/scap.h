@@ -60,7 +60,7 @@ struct iovec;
 //
 #include <time.h>
 #include "uthash.h"
-#include "../common/sysdig_types.h"
+#include "../common/types.h"
 #include "../../driver/ppm_events_public.h"
 #ifdef _WIN32
 #include <time.h>
