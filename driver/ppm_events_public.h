@@ -17,7 +17,7 @@ or GPL2.txt for full copies of the license.
 #ifdef __KERNEL__
 #include <linux/types.h>
 #else
-#include "../userspace/common/sysdig_types.h"
+#include "../userspace/common/types.h"
 #endif
 
 /*

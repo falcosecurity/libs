@@ -24,7 +24,7 @@ limitations under the License.
 #include <lm.h>
 #include <iphlpapi.h>
 
-#include "../common/sysdig_types.h"
+#include "../common/types.h"
 #define DRAGENT_WIN_HAL_C_ONLY
 #include "win_hal/win_hal_public.h"
 #include "scap.h"
