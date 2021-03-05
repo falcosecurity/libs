@@ -37,7 +37,6 @@ limitations under the License.
 #define PRINTF_WRAP_CPROC(x) #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
 
-#ifdef HAS_CHISELS
 struct summary_chisel_comparer
 {
 	bool operator()(const chisel_desc& first, const chisel_desc& second) const
@@ -189,4 +188,3 @@ void list_chisels(vector<chisel_desc>* chlist, bool verbose)
 		printf("\nUse the -i flag to get detailed information about a specific chisel\n");
 	}
 }
-#endif // HAS_CHISELS

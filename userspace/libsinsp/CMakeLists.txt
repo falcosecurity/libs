@@ -21,7 +21,10 @@ include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
 include_directories("${JSONCPP_INCLUDE}")
-include_directories("${LUAJIT_INCLUDE}")
+if(WITH_CHISEL)
+	include_directories(../chisel)
+	include_directories("${LUAJIT_INCLUDE}")
+endif()
 
 if(NOT MINIMAL_BUILD)
 	include_directories("${CARES_INCLUDE}")
@@ -44,8 +47,6 @@ if(NOT WIN32)
 endif() # NOT WIN32
 
 set(SINSP_SOURCES
-	chisel.cpp
-	chisel_api.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp
 	container_engine/static_container.cpp
@@ -65,8 +66,6 @@ set(SINSP_SOURCES
 	ifinfo.cpp
 	json_query.cpp
 	json_error_log.cpp
-	lua_parser.cpp
-	lua_parser_api.cpp
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
@@ -90,6 +89,16 @@ set(SINSP_SOURCES
 	value_parser.cpp
 	viewinfo.cpp
 )
+
+if(WITH_CHISEL)
+	list(APPEND SINSP_SOURCES
+		../chisel/chisel_api.cpp
+		../chisel/chisel_fields_info.cpp
+		../chisel/chisel_utils.cpp
+		../chisel/chisel.cpp
+		../chisel/lua_parser_api.cpp
+		../chisel/lua_parser.cpp)
+endif()
 
 if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
@@ -158,7 +167,7 @@ target_link_libraries(sinsp
 	"${TBB_LIB}"
 	"${CARES_LIB}")
 
-if(USE_BUNDLED_LUAJIT)
+if(WITH_CHISEL AND USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
 endif()
 
@@ -244,11 +253,17 @@ if(NOT WIN32)
                     "${OPENSSL_LIBRARIES}")
         endif()
 
-	target_link_libraries(sinsp
-		"${LUAJIT_LIB}"
-		dl
-		pthread)
+		if(WITH_CHISEL)
+		target_link_libraries(sinsp
+			"${LUAJIT_LIB}")
+		endif()
+
+		target_link_libraries(sinsp
+			dl
+			pthread)
 else()
-	target_link_libraries(sinsp
-		"${LUAJIT_LIB}")
+	if(WITH_CHISEL)
+		target_link_libraries(sinsp
+			"${LUAJIT_LIB}")
+	endif()
 endif() # NOT WIN32
