@@ -21,10 +21,7 @@ limitations under the License.
 
 #include <vector>
 
-class sinsp;
-
-//
-// Printer functions
-//
-void list_fields(bool verbose, bool markdown, bool names_only=false);
-void list_events(sinsp* inspector);
+#ifdef HAS_CHISELS
+void print_chisel_info(chisel_desc* cd);
+void list_chisels(std::vector<chisel_desc>* chlist, bool verbose);
+#endif
