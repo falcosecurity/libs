@@ -21,6 +21,8 @@ limitations under the License.
 
 #ifdef HAS_CHISELS
 
+void chisel_add_dir(string dirname, bool front_add);
+
 class sinsp_filter_check;
 class sinsp_evt_formatter;
 class sinsp_view_info;
