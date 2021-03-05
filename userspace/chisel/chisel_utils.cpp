@@ -49,10 +49,8 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "utils.h"
-#ifdef HAS_CHISELS
 #include "chisel.h"
 #include "chisel_utils.h"
-#endif
 #include "protodecoder.h"
 #include "uri.h"
 
@@ -60,7 +58,6 @@ limitations under the License.
 #define PATH_MAX 4096
 #endif
 
-#ifdef HAS_CHISELS
 const chiseldir_info g_chisel_dirs_array[] =
 	{
 		{false, ""}, // file as is
@@ -171,5 +168,3 @@ void chisel_add_dir(string dirname, bool front_add)
 		g_chisel_dirs->push_back(ncdi);
 	}
 }
-
-#endif // HAS_CHISEL

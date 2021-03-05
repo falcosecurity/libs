@@ -19,8 +19,6 @@ limitations under the License.
 
 #pragma once
 
-#ifdef HAS_CHISELS
-
 /*!
 	\brief Add a new directory containing chisels.
 
@@ -173,6 +171,4 @@ private:
 };
 
 /*@}*/
-
-#endif // HAS_CHISELS
 

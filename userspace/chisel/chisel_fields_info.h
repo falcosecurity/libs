@@ -21,7 +21,5 @@ limitations under the License.
 
 #include <vector>
 
-#ifdef HAS_CHISELS
 void print_chisel_info(chisel_desc* cd);
 void list_chisels(std::vector<chisel_desc>* chlist, bool verbose);
-#endif

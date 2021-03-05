@@ -40,7 +40,6 @@ limitations under the License.
 #include "filterchecks.h"
 #include "table.h"
 
-#ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
 
 #ifdef HAS_LUA_CHISELS
@@ -1795,5 +1794,3 @@ bool sinsp_chisel::get_nextrun_args(OUT string* args)
 	*args = m_lua_cinfo->m_nextrun_args;
 	return m_lua_cinfo->m_has_nextrun_args;
 }
-
-#endif // HAS_CHISELS

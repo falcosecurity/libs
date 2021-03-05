@@ -19,8 +19,6 @@ limitations under the License.
 
 #pragma once
 
-#ifdef HAS_CHISELS
-
 class lua_cbacks
 {
 public:
@@ -72,6 +70,4 @@ public:
 private:
 	static int get_thread_table_int(lua_State *ls, bool include_fds, bool barebone);
 };
-
-#endif // HAS_CHISELS
 

@@ -42,7 +42,6 @@ limitations under the License.
 #include "analyzer.h"
 #endif
 
-#ifdef HAS_CHISELS
 #define HAS_LUA_CHISELS
 
 #ifdef HAS_LUA_CHISELS
@@ -1592,4 +1591,3 @@ int lua_cbacks::push_metric(lua_State *ls)
 
 #endif // HAS_ANALYZER
 #endif // HAS_LUA_CHISELS
-#endif // HAS_CHISELS
