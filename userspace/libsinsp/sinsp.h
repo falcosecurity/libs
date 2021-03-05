@@ -604,6 +604,14 @@ public:
 	}
 
 	/*!
+	  \brief Returns true if the current capture has a plugin producing events
+	*/
+	inline bool is_plugin()
+	{
+		return m_mode == SCAP_MODE_PLUGIN;
+	}
+
+	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
 	inline bool large_envs_enabled()
