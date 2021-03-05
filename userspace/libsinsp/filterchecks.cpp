@@ -5997,9 +5997,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.name", "Kubernetes pod name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.ns.name", "Kubernetes namespace name."}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"}
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -6473,63 +6471,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = "NONE";
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
-		break;
-	case TYPE_CONTAINER_K8S_POD_NAME:
-		if(tinfo->m_container_id.empty())
-		{
-			return NULL;
-		}
-		else
-		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
-			if(!container_info)
-			{
-				return NULL;
-			}
 
-			if(container_info->m_labels.empty())
-			{
-				return NULL;
-			}
-
-			if(container_info->m_labels.count("io.kubernetes.pod.name") == 0)
-			{
-				return NULL;
-			}
-			m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
-		}
-
-		RETURN_EXTRACT_STRING(m_tstr);
-		break;
-	case TYPE_CONTAINER_K8S_NS_NAME:
-		if(tinfo->m_container_id.empty())
-		{
-			return NULL;
-		}
-		else
-		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
-			if(!container_info)
-			{
-				return NULL;
-			}
-
-			if(container_info->m_labels.empty())
-			{
-				return NULL;
-			}
-
-			if(container_info->m_labels.count("io.kubernetes.pod.namespace") == 0)
-			{
-				return NULL;
-			}
-			m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
-		}
-
-		RETURN_EXTRACT_STRING(m_tstr);
-		break;
 	default:
 		ASSERT(false);
 		break;
@@ -7430,6 +7372,26 @@ void sinsp_filter_check_k8s::concatenate_labels(const k8s_pair_list& labels, str
 	}
 }
 
+void sinsp_filter_check_k8s::concatenate_container_labels(const map<std::string, std::string>& labels, string* s)
+{
+	for (auto const& label_pair : labels)
+	{
+		// exclude annotations and internal labels
+		if (label_pair.first.find("annotation.") == 0 || label_pair.first.find("io.kubernetes.") == 0) {
+			continue;
+		}
+		if(!s->empty())
+		{
+			s->append(", ");
+		}
+		s->append(label_pair.first);
+		if(!label_pair.second.empty())
+		{
+			s->append(":" + label_pair.second);
+		}
+	}
+}
+
 bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const string& key, string* value)
 {
 	for(const k8s_pair_t& label_pair : labels)
@@ -7447,10 +7409,6 @@ bool sinsp_filter_check_k8s::find_label(const k8s_pair_list& labels, const strin
 uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
-	if(m_inspector->m_k8s_client == NULL)
-	{
-		return NULL;
-	}
 
 	ASSERT(evt);
 	if(evt == NULL)
@@ -7464,14 +7422,76 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 	{
 		return NULL;
 	}
+	m_tstr.clear();
+	// there is metadata we can pull from the container directly instead of the k8s apiserver
+	const sinsp_container_info::ptr_t container_info =
+		m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+	if(!tinfo->m_container_id.empty() && container_info && !container_info->m_labels.empty())
+	{
+		switch(m_field_id)
+		{
+		case TYPE_K8S_POD_NAME:
+			if(container_info->m_labels.count("io.kubernetes.pod.name") > 0)
+			{
+				m_tstr = container_info->m_labels.at("io.kubernetes.pod.name");
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			break;
+		case TYPE_K8S_NS_NAME:
+			if(container_info->m_labels.count("io.kubernetes.pod.namespace") > 0)
+			{
+				m_tstr = container_info->m_labels.at("io.kubernetes.pod.namespace");
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			break;
+		case TYPE_K8S_POD_ID:
+			if(container_info->m_labels.count("io.kubernetes.pod.uid") > 0)
+			{
+				m_tstr = container_info->m_labels.at("io.kubernetes.pod.uid");
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			break;
+		case TYPE_K8S_POD_LABEL:
+		case TYPE_K8S_POD_LABELS:
+			if(container_info->m_labels.count("io.kubernetes.sandbox.id") > 0)
+			{
+				std::string sandbox_container_id;
+				sandbox_container_id = container_info->m_labels.at("io.kubernetes.sandbox.id");
+				if(sandbox_container_id.size() > 12)
+				{
+					sandbox_container_id.resize(12);
+				}
+				const sinsp_container_info::ptr_t sandbox_container_info =
+					m_inspector->m_container_manager.get_container(sandbox_container_id);
+				if(sandbox_container_info && !sandbox_container_info->m_labels.empty())
+				{
+					if (m_field_id == TYPE_K8S_POD_LABEL && sandbox_container_info->m_labels.count(m_argname) > 0)
+					{
+						m_tstr = sandbox_container_info->m_labels.at(m_argname);
+						RETURN_EXTRACT_STRING(m_tstr);
+					}
+					if (m_field_id == TYPE_K8S_POD_LABELS)
+					{
+						concatenate_container_labels(sandbox_container_info->m_labels, &m_tstr);
+						RETURN_EXTRACT_STRING(m_tstr);
+					}
+				}
+
+			}
+			break;
+		}
+	}
+
+	if(m_inspector->m_k8s_client == NULL)
+	{
+		return NULL;
+	}
 
 	const k8s_pod_t* pod = find_pod_for_thread(tinfo);
 	if(pod == NULL)
 	{
 		return NULL;
 	}
-
-	m_tstr.clear();
 
 	switch(m_field_id)
 	{
