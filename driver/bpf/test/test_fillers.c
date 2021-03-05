@@ -10,6 +10,9 @@
 
 #include "test_fillers.h"
 
+#define _STRINGIFY_PASS(x) #x
+#define STRINGIFY(x) _STRINGIFY_PASS(x)
+
 void set_rlimit_infinity(void)
 {
 	struct rlimit rinf = {RLIM_INFINITY, RLIM_INFINITY};
@@ -27,8 +30,7 @@ int do_test_single_filler(__u32 *retval, const char *filler_name, struct filler_
 	int prog_fd;
 	int err;
 
-//	obj = bpf_object__open(STRINGIZE(PROBE_PATH));
-	obj = bpf_object__open("/home/fntlnz/Projects/falcosecurity/libs/build/driver/bpf/btf-probe.o");
+	obj = bpf_object__open(STRINGIFY(PROBE_PATH));
 	load_attr.obj = obj;
 
 	if(libbpf_get_error(obj))

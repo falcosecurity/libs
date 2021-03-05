@@ -7,7 +7,7 @@
 #include "ppm_events_public.h"
 #include "../types.h"
 
-#define STRINGIZE(x) #x
+
 
 #ifndef PROBE_PATH
 #define PROBE_PATH "driver/bpf/btf-probe.o"
