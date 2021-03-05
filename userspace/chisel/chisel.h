@@ -21,6 +21,14 @@ limitations under the License.
 
 #ifdef HAS_CHISELS
 
+/*!
+	\brief Add a new directory containing chisels.
+
+	\parame front_add if true, the chisel directory is added at the front of
+	the search list and therefore gets priority.
+
+	\note This function is not reentrant.
+*/
 void chisel_add_dir(string dirname, bool front_add);
 
 class sinsp_filter_check;
