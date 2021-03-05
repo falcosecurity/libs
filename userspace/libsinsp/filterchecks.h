@@ -755,8 +755,6 @@ public:
 		TYPE_CONTAINER_HEALTHCHECK,
 		TYPE_CONTAINER_LIVENESS_PROBE,
 		TYPE_CONTAINER_READINESS_PROBE,
-		TYPE_CONTAINER_K8S_POD_NAME,
-		TYPE_CONTAINER_K8S_NS_NAME,
 	};
 
 	sinsp_filter_check_container();
@@ -906,6 +904,7 @@ private:
 	vector<const k8s_service_t*> find_svc_by_pod(const k8s_pod_t* pod);
 	const k8s_deployment_t* find_deployment_by_pod(const k8s_pod_t* pod);
 	void concatenate_labels(const k8s_pair_list& labels, string* s);
+	void concatenate_container_labels(const map<std::string, std::string>& labels, string* s);
 	bool find_label(const k8s_pair_list& labels, const string& key, string* value);
 
 	string m_argname;
