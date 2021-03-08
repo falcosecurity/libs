@@ -168,6 +168,7 @@ public:
 		*len = 0;
 
 		ppm_param_type type = m_info.m_fields[m_field_id].m_type;
+		m_psource_info->async_extractor_info.ftype = type;
 		switch(type)
 		{
 		case PT_CHARBUF:
