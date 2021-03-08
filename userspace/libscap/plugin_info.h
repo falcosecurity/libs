@@ -38,11 +38,13 @@ typedef struct async_extractor_info
 {
 	uint64_t evtnum;
 	uint32_t id;
+	uint32_t ftype;
 	char* arg;
 	char* data;
 	uint32_t datalen;
 	uint32_t field_present;
 	char* res;
+	int32_t rc;
 	cb_wait_t cb_wait;
 	void* wait_ctx;
 } async_extractor_info;
@@ -73,6 +75,11 @@ typedef struct
 {
 	//
 	// Initialize the plugin and, if needed, allocate its state.
+	// Arguments:
+	// - config: a string with the plugin configuration. The format of the
+	//           string is chosen by the plugin itself.
+	// - rc: pointer to an integer that will contain the initialization result, 
+	//       as a SCAP_* value (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
 	//
 	ss_plugin_t* (*init)(char* config, int32_t* rc);
 	//
