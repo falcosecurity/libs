@@ -66,7 +66,7 @@ public:
 		//
 		int old_val = state::INPUT_READY;
 
-		auto start_time = chrono::steady_clock::now();
+		auto start_time = chrono::high_resolution_clock::now();
 
 		while(!m_lock.compare_exchange_strong(old_val, state::PROCESSING))
 		{
@@ -87,7 +87,7 @@ public:
 				ncycles++;
 				if(ncycles >= 100000)
 				{
-					auto cur_time = chrono::steady_clock::now();
+					auto cur_time = chrono::high_resolution_clock::now();
 					auto delta_time = chrono::duration_cast<std::chrono::microseconds>(cur_time - start_time).count();
 					if(delta_time > 1000)
 					{
@@ -136,7 +136,7 @@ class sinsp_plugin
 public:
 	sinsp_plugin(sinsp* inspector);
 	~sinsp_plugin();
-	void configure(string filename, ss_plugin_info* plugin_info, char* config);
+	bool configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async);
 	uint32_t get_id();
 	ss_plugin_type get_type();
 	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
