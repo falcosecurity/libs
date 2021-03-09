@@ -138,8 +138,6 @@ public:
 		{
 			if(m_psource_info->register_async_extractor)
 			{
-				// m_psource_info->async_extractor_info.lock = 3;
-
 				m_psource_info->async_extractor_info.wait_ctx = new sinsp_async_extractor_ctx();
 				m_psource_info->async_extractor_info.cb_wait = [](void *wait_ctx)
 				{
