@@ -43,7 +43,8 @@ typedef struct async_extractor_info
 	char* data;
 	uint32_t datalen;
 	uint32_t field_present;
-	char* res;
+	char* res_str;
+	uint64_t res_u64;
 	int32_t rc;
 	cb_wait_t cb_wait;
 	void* wait_ctx;
