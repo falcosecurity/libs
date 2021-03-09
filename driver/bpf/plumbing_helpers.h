@@ -302,7 +302,6 @@ static __always_inline int init_filler_data(void *ctx,
 					    bool is_syscall)
 {
 	unsigned int cpu;
-
 	data->ctx = ctx;
 
 	data->settings = get_bpf_settings();
@@ -341,7 +340,6 @@ static __always_inline int init_filler_data(void *ctx,
 
 	data->curarg_already_on_frame = false;
 	data->fd = -1;
-
 	return PPM_SUCCESS;
 }
 

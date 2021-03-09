@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/resource.h>
-#include <linux/perf_event.h>
 
 #include "test_fillers.h"
 
@@ -20,15 +19,26 @@ void set_rlimit_infinity(void)
 	setrlimit(RLIMIT_MEMLOCK, &rinf);
 }
 
-int do_test_single_filler(__u32 *retval, const char *filler_name, struct filler_data data)
+int get_scratch(struct bpf_object *obj, unsigned int cpu, char *scratch)
 {
-	struct bpf_object *obj;
+	int frame_scratch_map;
+	frame_scratch_map = bpf_object__find_map_fd_by_name(obj, "frame_scratch_map");
+	return bpf_map_lookup_elem(frame_scratch_map, &cpu, scratch);
+}
+
+int do_test_single_filler(const char *filler_name, struct filler_data data, char *scratch)
+{
+	unsigned int cpu;
+	unsigned int numa;
 	struct bpf_program *prog;
 	struct bpf_map *map;
 	struct bpf_object_load_attr load_attr = {};
 	struct bpf_prog_test_run_attr tattr = {};
 	int prog_fd;
 	int err;
+	int local_state_map;
+	int event_info_map;
+	struct bpf_object *obj;
 
 	obj = bpf_object__open(STRINGIFY(PROBE_PATH));
 	load_attr.obj = obj;
@@ -61,16 +71,41 @@ int do_test_single_filler(__u32 *retval, const char *filler_name, struct filler_
 		bpf_object__close(obj);
 		return -1;
 	}
+	local_state_map = bpf_object__find_map_fd_by_name(obj, "local_state_map");
+
+	getcpu(&cpu, &numa);
+
+	err = bpf_map_update_elem(local_state_map, &cpu, data.state, BPF_ANY);
+	if(err != 0)
+	{
+		fprintf(stderr, "ERROR: could not update local_state_map\n");
+		bpf_object__close(obj);
+		return err;
+	}
+
+	event_info_map = bpf_object__find_map_fd_by_name(obj, "event_info_table");
+	err = bpf_map_update_elem(event_info_map, &data.state->tail_ctx.evt_type, &g_event_info[data.state->tail_ctx.evt_type], BPF_ANY);
+	if(err != 0)
+	{
+		fprintf(stderr, "ERROR: could not update event_info_table\n");
+		bpf_object__close(obj);
+		return err;
+	}
 
 	prog = bpf_object__find_program_by_name(obj, filler_name);
 
 	prog_fd = bpf_program__fd(prog);
 
 	tattr.prog_fd = prog_fd;
-	tattr.ctx_in = &data;
-	tattr.ctx_size_in = sizeof(data);
+	tattr.ctx_in = data.ctx;
+	tattr.ctx_size_in = sizeof(struct sys_exit_args);
 
 	err = bpf_prog_test_run_xattr(&tattr);
-	*retval = tattr.retval;
+
+	get_scratch(obj, cpu, scratch);
+
+	int nparams = g_event_info[data.state->tail_ctx.evt_type].nparams;
+	int header_offset = sizeof(struct ppm_evt_hdr) + sizeof(__u16) * nparams;
+
 	return err;
 }

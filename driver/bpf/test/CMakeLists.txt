@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2013-2021 Sysdig Inc.
+# Copyright (c) 2021 The Falco Authors
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
@@ -12,6 +12,7 @@ if (BUILD_BPF_TEST)
   message(STATUS "BPF tests build enabled")
 
   set(BPF_TEST_SOURCES
+    runner.cpp
     test_renameat2.cpp
     test_fillers.c
     "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c"
