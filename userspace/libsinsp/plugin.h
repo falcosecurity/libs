@@ -41,7 +41,8 @@ public:
 	inline void notify()
 	{
 		int old_val = state::DONE;
-		while (!m_lock.compare_exchange_strong(old_val, state::INPUT_READY))
+
+		while(!m_lock.compare_exchange_strong(old_val, state::INPUT_READY))
 		{
 			old_val = state::DONE;
 		}
@@ -49,31 +50,55 @@ public:
 		//
 		// Once INPUT_READY state has been aquired, wait for worker completition
 		//
-		while (m_lock != state::DONE)
-			;
+		while(m_lock != state::DONE);
 	}
 
 	inline bool wait()
 	{
 		m_lock = state::DONE;
+		uint64_t ncycles = 0;
+		bool sleeping = false;
 
 		//
 		// Worker has done and now waits for a new input or a shutdown request.
-		//
-		// todo(leogr): the loop will eat up one CPU core,
-		// which is a waste of resources if the input producer is idle for a lot of time
+		// Note: we busy loop for the first 1ms to guarantee maximum performance.
+		//       After 1ms we start sleeping to conserve CPU.
 		//
 		int old_val = state::INPUT_READY;
+
+		auto start_time = chrono::steady_clock::now();
 
 		while(!m_lock.compare_exchange_strong(old_val, state::PROCESSING))
 		{
 			// shutdown
-			if (old_val == state::SHUTDOWN_REQ)
+			if(old_val == state::SHUTDOWN_REQ)
 			{
 				m_lock = state::SHUTDOWN_DONE;
 				return false;
 			}
 			old_val = state::INPUT_READY;
+
+			if(sleeping)
+			{
+				this_thread::sleep_for(chrono::milliseconds(10));
+			}
+			else
+			{
+				ncycles++;
+				if(ncycles >= 100000)
+				{
+					auto cur_time = chrono::steady_clock::now();
+					auto delta_time = chrono::duration_cast<std::chrono::microseconds>(cur_time - start_time).count();
+					if(delta_time > 1000)
+					{
+						sleeping = true;
+					}
+					else
+					{
+						ncycles = 0;
+					}
+				}
+			}
 		}
 		return true;
 	}
@@ -95,7 +120,7 @@ public:
 	}
 
 private:
-	std::atomic<int> m_lock;
+	atomic<int> m_lock;
 };
 
 class sinsp_plugin_desc
