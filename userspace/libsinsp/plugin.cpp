@@ -168,7 +168,17 @@ public:
 		*len = 0;
 
 		ppm_param_type type = m_info.m_fields[m_field_id].m_type;
-		m_psource_info->async_extractor_info.ftype = type;
+
+		if(m_psource_info->is_async_extractor_present)
+		{
+			m_psource_info->async_extractor_info.evtnum = evt->get_num();
+			m_psource_info->async_extractor_info.id = m_field_id;
+			m_psource_info->async_extractor_info.ftype = type;
+			m_psource_info->async_extractor_info.arg = m_arg;
+			m_psource_info->async_extractor_info.data = parinfo->m_val;
+			m_psource_info->async_extractor_info.datalen= parinfo->m_len;
+		}
+		
 		switch(type)
 		{
 		case PT_CHARBUF:
@@ -181,24 +191,21 @@ public:
 			char* pret;
 			if(m_psource_info->is_async_extractor_present)
 			{
-				m_psource_info->async_extractor_info.evtnum = evt->get_num();
-				m_psource_info->async_extractor_info.id = m_field_id;
-				m_psource_info->async_extractor_info.arg = m_arg;
-				m_psource_info->async_extractor_info.data = parinfo->m_val;
-				m_psource_info->async_extractor_info.datalen= parinfo->m_len;
-
 				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.wait_ctx)->notify();
+				pret = m_psource_info->async_extractor_info.res_str;
 
-				//volatile int32_t* lock = &(m_psource_info->async_extractor_info.lock);
-				//#ifdef _WIN32
- 			//		InterlockedCompareExchange((volatile LONG*)lock, 1, 3);
-				//#else
- 			//		__sync_bool_compare_and_swap(lock, 3, 1);
-				//#endif
-
-				//while(*lock != 3);
-
-				pret = m_psource_info->async_extractor_info.res;
+				int32_t rc = m_psource_info->async_extractor_info.rc;
+				if(rc != SCAP_SUCCESS)
+				{
+					if(rc == SCAP_NOT_SUPPORTED)
+					{
+						throw sinsp_exception("plugin extract error: missing plugin_extract_string export");
+					}
+					else
+					{
+						throw sinsp_exception("plugin extract error: " + to_string(rc));
+					}
+				}
 			}
 			else
 			{
@@ -229,13 +236,35 @@ public:
 			}
 
 			uint32_t present;
-			m_u64_res = m_psource_info->extract_u64(
-				m_psource_info->state,
-				evt->get_num(),
-				m_field_id, m_arg,
-				(uint8_t *)parinfo->m_val,
-				parinfo->m_len,
-				&present);
+			if(m_psource_info->is_async_extractor_present)
+			{
+				static_cast<sinsp_async_extractor_ctx *>(m_psource_info->async_extractor_info.wait_ctx)->notify();
+				present = m_psource_info->async_extractor_info.field_present;
+				m_u64_res = m_psource_info->async_extractor_info.res_u64;
+
+				int32_t rc = m_psource_info->async_extractor_info.rc;
+				if(rc != SCAP_SUCCESS)
+				{
+					if(rc == SCAP_NOT_SUPPORTED)
+					{
+						throw sinsp_exception("plugin extract error: missing plugin_extract_u64 export");
+					}
+					else
+					{
+						throw sinsp_exception("plugin extract error: " + to_string(rc));
+					}
+				}
+			}
+			else
+			{
+				m_u64_res = m_psource_info->extract_u64(
+					m_psource_info->state,
+					evt->get_num(),
+					m_field_id, m_arg,
+					(uint8_t *)parinfo->m_val,
+					parinfo->m_len,
+					&present);
+			}
 
 			if(present == 0)
 			{
@@ -246,7 +275,7 @@ public:
 		}
 		default:
 			ASSERT(false);
-			throw sinsp_exception("plugin extract error unsupported field type " + to_string(type));
+			throw sinsp_exception("plugin extract error: unsupported field type " + to_string(type));
 			break;
 		}
 
