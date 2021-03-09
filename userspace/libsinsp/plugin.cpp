@@ -324,7 +324,8 @@ sinsp_plugin::~sinsp_plugin()
 	}
 }
 
-void sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char* config)
+// Returns true if the plugin is allocating a thread for high speed async extraction
+bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async)
 {
 	int32_t init_res = SCAP_FAILURE;
 
@@ -459,7 +460,16 @@ void sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 		m_filtercheck->m_psource_info = &m_source_info;
 
 		g_filterlist.add_filter_check(m_filtercheck);
+
+		if(avoid_async)
+		{
+			m_source_info.register_async_extractor = NULL;
+		}
+
+		return (m_source_info.register_async_extractor != NULL);
 	}
+
+	return false;
 }
 
 uint32_t sinsp_plugin::get_id()

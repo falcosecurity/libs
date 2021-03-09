@@ -1188,6 +1188,11 @@ public:
 	//
 	vector<sinsp_plugin*> m_plugins_list;
 	//
+	// Count of plugins that are using a full CPU to accelerate field 
+	// extraction. We want this to be lower than the number of available CPUs.
+	//
+	uint32_t m_n_async_plugin_extractors;
+	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//

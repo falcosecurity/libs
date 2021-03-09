@@ -169,6 +169,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_filter_proc_table_when_saving = false;
 
 	m_input_plugin = NULL;
+	m_n_async_plugin_extractors = 0;
 }
 
 sinsp::~sinsp()
@@ -1649,7 +1650,12 @@ void sinsp::set_statsd_port(const uint16_t port)
 sinsp_plugin* sinsp::add_plugin(string filename, ss_plugin_info* src_plugin, char* config)
 {
 	sinsp_plugin* nsp = new sinsp_plugin(this);
-	nsp->configure(filename, src_plugin, config);
+	uint32_t ncpus = std::thread::hardware_concurrency();
+	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
+	if(nsp->configure(filename, src_plugin, config, avoid_async))
+	{
+		m_n_async_plugin_extractors++;
+	}
 	uint32_t id = nsp->get_id();
 	string name = nsp->m_source_info.get_name();
 
