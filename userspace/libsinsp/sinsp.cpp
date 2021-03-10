@@ -1650,7 +1650,7 @@ void sinsp::set_statsd_port(const uint16_t port)
 sinsp_plugin* sinsp::add_plugin(string filename, ss_plugin_info* src_plugin, char* config)
 {
 	sinsp_plugin* nsp = new sinsp_plugin(this);
-	uint32_t ncpus = std::thread::hardware_concurrency();
+	uint32_t ncpus = thread::hardware_concurrency();
 	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
 	if(nsp->configure(filename, src_plugin, config, avoid_async))
 	{
