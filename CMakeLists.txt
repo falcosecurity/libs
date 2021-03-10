@@ -344,7 +344,7 @@ if(NOT WIN32 AND NOT APPLE)
 		# doing the configuration ourselves.
 		#
 		# This is needed because many distros do not ship the right
-		# version of autoreconf, making virtually impossible to build Falco on them.
+		# version of autoreconf, making virtually impossible to build libs on them.
 		# Read more about it here:
 		#   https://github.com/stedolan/jq/issues/2061#issuecomment-593445920
 		ExternalProject_Add(
