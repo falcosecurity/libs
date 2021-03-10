@@ -11,10 +11,14 @@ option(BPF_TEST_DEBUG "Enable debug mode for the BPF driver tests" OFF)
 if (BUILD_BPF_TEST)
   message(STATUS "BPF tests build enabled")
 
+  set(FILLER_TESTS
+    test_renameat2.cpp)
+
   set(BPF_TEST_SOURCES
     runner.cpp
-    test_renameat2.cpp
-    test_fillers.c
+    filler_executor.cpp
+    probe_loader.c
+    "${FILLER_TESTS}"
     "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c"
     "${PROJECT_BINARY_DIR}/driver/src/syscall_table.c"
     "${PROJECT_BINARY_DIR}/driver/src/event_table.c"

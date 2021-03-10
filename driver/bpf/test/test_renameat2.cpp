@@ -16,21 +16,18 @@ limitations under the License.
 
 #include <gtest.h>
 
-extern "C"
-{
-#include "test_fillers.h"
-}
+#include "filler_executor.h"
 
-// todo(fntlnz): do we really want to pass data or just what is needed?
-// it may create confusion because the filler does not get data at all but ctx void ptr
-// todo(fntlnz): finish this test and make the others
-TEST(test_run_approach, basic)
+TEST(test_renameat2, basic)
 {
 	int err;
+	uint32_t off;
 
-	struct pt_regs regs = {
-		.di = 100,
-	};
+	struct pt_regs regs;
+	regs.di = -100;
+	regs.si = (unsigned long)"oldpath";
+	regs.dx = -100;
+	regs.r10 = (unsigned long)"newpath";
 
 	struct sys_exit_args ctx
 	{
@@ -38,35 +35,28 @@ TEST(test_run_approach, basic)
 		.ret = 110,
 	};
 
-	struct tail_context tail_ctx
-	{
-		.evt_type = PPME_SYSCALL_RENAMEAT2_X,
-		.curarg = 0,
-		.curoff = 0,
-		.len = 0,
-		.prev_res = 0,
-	};
-
-	struct sysdig_bpf_per_cpu_state state
-	{
-		.tail_ctx = tail_ctx
-	};
-
-	struct filler_data data
-	{
-		.ctx = &ctx,
-		.state = &state,
-	};
-
-	std::string filler_name = "bpf_sys_renameat2_x";
-
-	char *scratch = (char *)malloc(sizeof(char) * SCRATCH_SIZE_HALF);
-
-	err = do_test_single_filler(filler_name.c_str(), data, scratch);
-	int nparams = g_event_info[data.state->tail_ctx.evt_type].nparams;
-	int header_offset = sizeof(struct ppm_evt_hdr) + sizeof(__u16) * nparams;
-
+	auto fe = new filler_executor(PPME_SYSCALL_RENAMEAT2_X, ctx);
+	err = fe->do_test();
 	ASSERT_EQ(err, 0);
-	ASSERT_EQ((int) scratch[header_offset], 110);
-	ASSERT_EQ((int) scratch[header_offset + sizeof(long)], 100);
+
+	auto ret = (unsigned long)fe->get_retval();
+	ASSERT_EQ(ret, 110);
+	off = sizeof(ret);
+
+	auto olddirfd = (long)fe->get_argument(off);
+	ASSERT_EQ(olddirfd, -100);
+	off += sizeof(olddirfd);
+
+	char oldpath[PPM_MAX_PATH_SIZE];
+	fe->get_argument(&oldpath, off, PPM_MAX_PATH_SIZE);
+	ASSERT_STREQ(oldpath, "oldpath");
+	off += strlen(oldpath) + 1;
+
+	auto newdirfd = (long)fe->get_argument(off);
+	ASSERT_EQ(newdirfd, -100);
+	off += sizeof(newdirfd);
+
+	char newpath[PPM_MAX_PATH_SIZE];
+	fe->get_argument(&newpath, off, PPM_MAX_PATH_SIZE);
+	ASSERT_STREQ(newpath, "newpath");
 }

@@ -1,10 +1,11 @@
-#ifndef __TEST_FILLERS_H
-#define __TEST_FILLERS_H
+#ifndef _TEST_PROBE_LOADER_H
+#define _TEST_PROBE_LOADER_H
 
 #include <bpf/libbpf.h>
 
 #include "ppm_fillers.h"
 #include "ppm_events_public.h"
+
 // The defines here are so that when we include driver/bpf/types.h
 // we pretend to be the kernel so that we write internal data types
 // for writing the data fixtures for our tests.
@@ -19,6 +20,9 @@
 #define PROBE_PATH "driver/bpf/btf-probe.o" // todo(fntlnz): check if this default works
 #endif
 
+// pt_regs is an internal data structure
+// it is copied here directly to avoid a dependency with kernel sources
+// for this userspace code
 struct pt_regs
 {
 	long unsigned int r15;
@@ -51,7 +55,7 @@ extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 
-int do_test_single_filler(const char *filler_name, struct filler_data data, char *scratch);
+int do_test_single_filler(const char *filler_name, struct sys_exit_args ctx, enum ppm_event_type event_type, char *scratch);
 
 #ifdef BPF_TEST_DEBUG
 #define debug_fprintf fprintf
@@ -59,4 +63,4 @@ int do_test_single_filler(const char *filler_name, struct filler_data data, char
 #define debug_fprintf
 #endif
 
-#endif // _TEST_FILLERS_H
+#endif // _TEST_PROBE_LOADER_H

@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <sys/resource.h>
 
-#include "test_fillers.h"
+#include "probe_loader.h"
 
 #define _STRINGIFY_PASS(x) #x
 #define STRINGIFY(x) _STRINGIFY_PASS(x)
@@ -26,7 +26,7 @@ int get_scratch(struct bpf_object *obj, unsigned int cpu, char *scratch)
 	return bpf_map_lookup_elem(frame_scratch_map, &cpu, scratch);
 }
 
-int do_test_single_filler(const char *filler_name, struct filler_data data, char *scratch)
+int do_test_single_filler(const char *filler_name, struct sys_exit_args ctx, enum ppm_event_type event_type, char *scratch)
 {
 	unsigned int cpu;
 	unsigned int numa;
@@ -75,7 +75,17 @@ int do_test_single_filler(const char *filler_name, struct filler_data data, char
 
 	getcpu(&cpu, &numa);
 
-	err = bpf_map_update_elem(local_state_map, &cpu, data.state, BPF_ANY);
+	struct tail_context tail_ctx;
+	tail_ctx.evt_type = event_type;
+	tail_ctx.curarg = 0;
+	tail_ctx.curoff = 0;
+	tail_ctx.len = 0;
+	tail_ctx.prev_res = 0;
+
+	struct sysdig_bpf_per_cpu_state state;
+	state.tail_ctx = tail_ctx;
+
+	err = bpf_map_update_elem(local_state_map, &cpu, &state, BPF_ANY);
 	if(err != 0)
 	{
 		fprintf(stderr, "ERROR: could not update local_state_map\n");
@@ -84,7 +94,7 @@ int do_test_single_filler(const char *filler_name, struct filler_data data, char
 	}
 
 	event_info_map = bpf_object__find_map_fd_by_name(obj, "event_info_table");
-	err = bpf_map_update_elem(event_info_map, &data.state->tail_ctx.evt_type, &g_event_info[data.state->tail_ctx.evt_type], BPF_ANY);
+	err = bpf_map_update_elem(event_info_map, &event_type, &g_event_info[event_type], BPF_ANY);
 	if(err != 0)
 	{
 		fprintf(stderr, "ERROR: could not update event_info_table\n");
@@ -97,15 +107,12 @@ int do_test_single_filler(const char *filler_name, struct filler_data data, char
 	prog_fd = bpf_program__fd(prog);
 
 	tattr.prog_fd = prog_fd;
-	tattr.ctx_in = data.ctx;
+	tattr.ctx_in = &ctx;
 	tattr.ctx_size_in = sizeof(struct sys_exit_args);
 
 	err = bpf_prog_test_run_xattr(&tattr);
 
 	get_scratch(obj, cpu, scratch);
-
-	int nparams = g_event_info[data.state->tail_ctx.evt_type].nparams;
-	int header_offset = sizeof(struct ppm_evt_hdr) + sizeof(__u16) * nparams;
 
 	return err;
 }
