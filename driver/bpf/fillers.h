@@ -2007,6 +2007,8 @@ FILLER(proc_startupdate_3, true)
 		long env_len = 0;
 		kuid_t loginuid;
 		int tty;
+		bool is_exe_writable = false;
+		struct file *exe_file;
 
 		/*
 		 * environ
@@ -2088,6 +2090,25 @@ FILLER(proc_startupdate_3, true)
 #endif
 
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * is_exe_writable
+		 */
+
+		exe_file = _READ(mm->exe_file);
+
+		if (exe_file) {
+			struct inode *inode = _READ(exe_file->f_inode);
+			if (inode) {
+				// XXX if I remove the following two lines this compiles and runs under clang-7
+				is_exe_writable |= (inode_permission(inode, MAY_WRITE) == 0);
+				is_exe_writable |= inode_owner_or_capable(inode);
+			}
+		}
+
+		res = bpf_val_to_ring_type(data, is_exe_writable, PT_INT32);
 		if (res != PPM_SUCCESS)
 			return res;
 	}
