@@ -21,9 +21,15 @@ limitations under the License.
 #include <thread>
 #include <future>
 #include <chrono>
+#include <getopt.h>
+
+#include "filler_test.h"
+
+char *g_probe_path;
 
 void handle_bpf_tracing(std::future<void> future)
 {
+#ifdef BPF_TEST_DEBUG
 	std::ifstream trace_pipe("/sys/kernel/debug/tracing/trace_pipe");
 	if(!trace_pipe.good())
 	{
@@ -41,16 +47,47 @@ void handle_bpf_tracing(std::future<void> future)
 		}
 		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
+#endif
 }
 
 int main(int argc, char **argv)
 {
 	int ret;
+
+	::testing::InitGoogleTest(&argc, argv);
+
+	int c;
+	std::string probe_path;
+	while(true)
+	{
+		int option_index = 0;
+		static struct option long_options[] = {
+			{"probe", required_argument, 0, 'p'},
+			{0, 0, 0, 0}};
+
+		c = getopt_long(argc, argv, "p:",
+				long_options, &option_index);
+		if(c == -1)
+			break;
+
+		if(c == 'p')
+		{
+			probe_path = optarg;
+		}
+	}
+
+	if(probe_path.length() == 0)
+	{
+		std::cerr << "You need to provide the probe path to execute this test suite" << std::endl;
+		std::cerr << "\t --probe=<path>" << std::endl;
+		return EXIT_FAILURE;
+	}
+	g_probe_path = (char *)probe_path.c_str();
+
 	std::promise<void> exit_promise;
 	std::future<void> future = exit_promise.get_future();
 	std::thread bpf_trace_pipe_thread(&handle_bpf_tracing, std::move(future));
 
-	::testing::InitGoogleTest(&argc, argv);
 	ret = RUN_ALL_TESTS();
 
 	exit_promise.set_value();

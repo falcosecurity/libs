@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2021 The Falco Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #ifndef _TEST_PROBE_LOADER_H
 #define _TEST_PROBE_LOADER_H
 
@@ -15,10 +31,6 @@
 #define TASK_COMM_LEN 16
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #include "../types.h"
-
-#ifndef PROBE_PATH
-#define PROBE_PATH "driver/bpf/btf-probe.o" // todo(fntlnz): check if this default works
-#endif
 
 // pt_regs is an internal data structure
 // it is copied here directly to avoid a dependency with kernel sources
@@ -48,12 +60,12 @@ struct pt_regs
 	long unsigned int ss;
 };
 
-// todo(fntlnz): are these needed now that we use bpf_prog_test_run ?
-// drivers common external interface for syscall<->ppm interfacing/routing
 extern const struct ppm_event_entry g_ppm_events[];
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[];
+
+extern char *g_probe_path;
 
 int do_test_single_filler(const char *filler_name, struct sys_exit_args ctx, enum ppm_event_type event_type, char *scratch);
 
