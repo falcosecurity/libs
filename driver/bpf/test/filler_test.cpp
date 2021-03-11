@@ -14,12 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#include "filler_executor.h"
+#include "filler_test.h"
 
 #include <cstring>
 
-filler_executor::filler_executor(ppm_event_type event_type, struct sys_exit_args ctx):
-	m_event_type(event_type), m_ctx(ctx)
+filler_test::filler_test(ppm_event_type event_type):
+	m_event_type(event_type)
 {
 	m_scratch = (char*)malloc(sizeof(char) * SCRATCH_SIZE_HALF);
 	m_filler_nparams = g_event_info[m_event_type].nparams;
@@ -39,27 +39,50 @@ filler_executor::filler_executor(ppm_event_type event_type, struct sys_exit_args
 	m_filler_name = filler_name;
 }
 
-int filler_executor::do_test()
+int filler_test::do_test(
+	unsigned long retval,
+	unsigned long arg0,
+	unsigned long arg1,
+	unsigned long arg2,
+	unsigned long arg3,
+	unsigned long arg4,
+	unsigned long arg5)
 {
-	return do_test_single_filler(m_filler_name.c_str(), m_ctx, m_event_type, m_scratch);
+	// This is the set of registers
+	// for x86_64, see (man 2 syscall)
+	// to support other architectures
+	struct pt_regs regs;
+	regs.di = arg0;
+	regs.si = arg1;
+	regs.dx = arg2;
+	regs.r10 = arg3;
+	regs.r8 = arg4;
+	regs.r9 = arg5;
+
+	struct sys_exit_args ctx
+	{
+		.regs = reinterpret_cast<unsigned long>(&regs),
+		.ret = retval,
+	};
+	return do_test_single_filler(m_filler_name.c_str(), ctx, m_event_type, m_scratch);
 }
 
-filler_executor::~filler_executor()
+filler_test::~filler_test()
 {
 	free(m_scratch);
 }
 
-unsigned long filler_executor::get_retval()
+unsigned long filler_test::get_retval()
 {
 	return m_scratch[m_scratch_header_offset];
 }
 
-unsigned long filler_executor::get_argument(uint32_t off)
+unsigned long filler_test::get_argument(uint32_t off)
 {
 	return m_scratch[m_scratch_header_offset + off];
 }
 
-unsigned long filler_executor::get_argument(void* to, uint32_t off, unsigned long n)
+unsigned long filler_test::get_argument(void* to, uint32_t off, unsigned long n)
 {
 	memcpy(to, m_scratch + m_scratch_header_offset + off, n);
 	return n;

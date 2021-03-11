@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#ifndef _TEST_FILLER_EXECUTOR_H
-#define _TEST_FILLER_EXECUTOR_H
+#ifndef _TEST_FILLER_TEST_H
+#define _TEST_FILLER_TEST_H
 
 extern "C"
 {
@@ -24,14 +24,20 @@ extern "C"
 
 #include <string>
 
-class filler_executor
+class filler_test
 {
 public:
-	explicit filler_executor(ppm_event_type event_type, struct sys_exit_args ctx);
-	virtual ~filler_executor();
+	explicit filler_test(ppm_event_type event_type);
+	virtual ~filler_test();
 
 public:
-	int do_test();
+	int do_test(unsigned long retval,
+		    unsigned long arg0 = 0,
+		    unsigned long arg1 = 0,
+		    unsigned long arg2 = 0,
+		    unsigned long arg3 = 0,
+		    unsigned long arg4 = 0,
+		    unsigned long arg5 = 0);
 	unsigned long get_argument(void* to, uint32_t off, unsigned long n);
 	unsigned long get_argument(uint32_t off);
 	unsigned long get_retval();
@@ -42,9 +48,6 @@ private:
 	char* m_scratch{};
 	int m_filler_nparams;
 	int m_scratch_header_offset;
-	struct sys_exit_args m_ctx
-	{
-	};
 };
 
-#endif // _TEST_FILLER_EXECUTOR_H
+#endif // _TEST_FILLER_TEST_H
