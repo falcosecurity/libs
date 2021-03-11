@@ -16,7 +16,7 @@ if (BUILD_BPF_TEST)
 
   set(BPF_TEST_SOURCES
     runner.cpp
-    filler_executor.cpp
+    filler_test.cpp
     probe_loader.c
     "${FILLER_TESTS}"
     "${PROJECT_BINARY_DIR}/driver/src/fillers_table.c"
@@ -37,7 +37,7 @@ if (BUILD_BPF_TEST)
   add_executable(test_fillers_bpf
     ${BPF_TEST_SOURCES})
 
-  add_dependencies(test_fillers_bpf libbpf zlib bpf)
+  add_dependencies(test_fillers_bpf libbpf zlib)
 
   target_include_directories(
     test_fillers_bpf
@@ -45,34 +45,6 @@ if (BUILD_BPF_TEST)
     ${BPF_TEST_INCLUDES}
   )
   target_link_libraries(test_fillers_bpf ${BPF_TEST_LINK_LIBRARIES})
-  target_compile_definitions(test_fillers_bpf PUBLIC -DPROBE_PATH=${BPF_PROBE_PATH})
-
-  # Test against the BPF probe + BTF
-  add_executable(test_fillers_bpf_btf
-    ${BPF_TEST_SOURCES})
-  add_dependencies(test_fillers_bpf_btf libbpf zlib bpf)
-
-  target_include_directories(
-    test_fillers_bpf_btf
-    PUBLIC
-    ${BPF_TEST_INCLUDES}
-  )
-  target_link_libraries(test_fillers_bpf_btf ${BPF_TEST_LINK_LIBRARIES})
-  target_compile_definitions(test_fillers_bpf_btf PUBLIC -DPROBE_PATH=${BPF_PROBE_PATH})
-
-  # Test against the BPF probe + BTF + CO-RE
-  add_executable(test_fillers_bpf_btf_core
-    ${BPF_TEST_SOURCES})
-
-  add_dependencies(test_fillers_bpf_btf_core libbpf zlib bpf)
-
-  target_include_directories(
-    test_fillers_bpf_btf_core
-    PUBLIC
-    ${BPF_TEST_INCLUDES}
-  )
-  target_link_libraries(test_fillers_bpf_btf_core ${BPF_TEST_LINK_LIBRARIES})
-  target_compile_definitions(test_fillers_bpf_btf_core PUBLIC -DPROBE_PATH=${BPF_PROBE_PATH})
 
   if (BPF_TEST_DEBUG)
     message(STATUS "BPF test debug mode enabled")
