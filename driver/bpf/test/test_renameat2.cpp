@@ -16,27 +16,15 @@ limitations under the License.
 
 #include <gtest.h>
 
-#include "filler_executor.h"
+#include "filler_test.h"
 
 TEST(test_renameat2, basic)
 {
 	int err;
 	uint32_t off;
 
-	struct pt_regs regs;
-	regs.di = -100;
-	regs.si = (unsigned long)"oldpath";
-	regs.dx = -100;
-	regs.r10 = (unsigned long)"newpath";
-
-	struct sys_exit_args ctx
-	{
-		.regs = reinterpret_cast<unsigned long>(&regs),
-		.ret = 110,
-	};
-
-	auto fe = new filler_executor(PPME_SYSCALL_RENAMEAT2_X, ctx);
-	err = fe->do_test();
+	auto fe = new filler_test(PPME_SYSCALL_RENAMEAT2_X);
+	err = fe->do_test(110, -100, (unsigned long)"oldpath", -100, (unsigned long)"newpath");
 	ASSERT_EQ(err, 0);
 
 	auto ret = (unsigned long)fe->get_retval();
