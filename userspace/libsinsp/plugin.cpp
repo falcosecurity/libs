@@ -367,10 +367,28 @@ bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 	//
 	if(m_source_info.init != NULL)
 	{
-		m_source_info.state = m_source_info.init(config, &init_res);
+		uint32_t api_version = UINT32_MAX;
+		m_source_info.state = m_source_info.init(config, &api_version, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(string("unable to initialize plugin ") + m_source_info.get_name());
+		}
+
+		if(api_version == UINT32_MAX)
+		{
+			throw sinsp_exception(string("unable to initialize plugin ") + 
+				m_source_info.get_name() +
+				": plugin's init() is not setting the minimum API version");
+		}
+		else if(api_version > PLUGIN_API_VERSION_MAJOR)
+		{
+			throw sinsp_exception(string("unable to initialize plugin ") + 
+				m_source_info.get_name() +
+				": plugin is requesting API version " + to_string(api_version) +
+				" which is not supported by this engine (version " + 
+				to_string(PLUGIN_API_VERSION_MAJOR) + "." +
+				to_string(PLUGIN_API_VERSION_MINOR) + "." +
+				to_string(PLUGIN_API_VERSION_PATCH) + ")");
 		}
 	}
 

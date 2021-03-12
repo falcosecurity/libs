@@ -24,6 +24,13 @@ limitations under the License.
 //
 
 //
+// API versions of this plugin engine
+//
+#define PLUGIN_API_VERSION_MAJOR 1
+#define PLUGIN_API_VERSION_MINOR 0
+#define PLUGIN_API_VERSION_PATCH 0
+
+//
 // Plugin types
 //
 typedef enum ss_plugin_type
@@ -82,7 +89,7 @@ typedef struct
 	// - rc: pointer to an integer that will contain the initialization result, 
 	//       as a SCAP_* value (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
 	//
-	ss_plugin_t* (*init)(char* config, int32_t* rc);
+	ss_plugin_t* (*init)(char* config, uint32_t* min_api_version, int32_t* rc);
 	//
 	// Destroy the plugin and, if plugin state was allocated, free it.
 	//

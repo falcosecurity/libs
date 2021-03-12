@@ -216,10 +216,28 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 			if(newpsi->init != NULL)
 			{
 				int32_t init_res;
-				newpsi->state = newpsi->init(NULL, &init_res);
+				uint32_t api_version = UINT32_MAX;
+				newpsi->state = newpsi->init(NULL, &api_version, &init_res);
 				if(init_res != SCAP_SUCCESS)
 				{
 					throw sinsp_exception(string("unable to initialize plugin ") + newpsi->get_name());
+				}
+
+				if(api_version == UINT32_MAX)
+				{
+					throw sinsp_exception(string("unable to initialize plugin ") + 
+						newpsi->get_name() +
+						": plugin's init() is not setting the minimum API version");
+				}
+				else if(api_version > PLUGIN_API_VERSION_MAJOR)
+				{
+					throw sinsp_exception(string("unable to initialize plugin ") + 
+						newpsi->get_name() +
+						": plugin is requesting API version " + to_string(api_version) +
+						" which is not supported by this engine (version " + 
+						to_string(PLUGIN_API_VERSION_MAJOR) + "." +
+						to_string(PLUGIN_API_VERSION_MINOR) + "." +
+						to_string(PLUGIN_API_VERSION_PATCH) + ")");
 				}
 			}
 
