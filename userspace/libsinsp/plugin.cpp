@@ -35,7 +35,7 @@ limitations under the License.
 extern sinsp_filter_check_list g_filterlist;
 extern vector<chiseldir_info>* g_plugin_dirs;
 
-#define ENSURE_PLUGIN_EXPORT(_fn) if(m_source_info._fn == NULL) throw sinsp_exception("invalid source plugin " + filename + ": '" #_fn "' method missing");
+#define ENSURE_PLUGIN_EXPORT(_fn) if(m_source_info._fn == NULL) throw sinsp_exception("invalid source plugin " + filename + ": '" #_fn "' export missing");
 
 ///////////////////////////////////////////////////////////////////////////////
 // source_plugin filter check implementation
@@ -324,6 +324,30 @@ sinsp_plugin::~sinsp_plugin()
 	}
 }
 
+void sinsp_plugin::validate_plugin_version(ss_plugin_info* plugin_info)
+{
+	uint32_t pv_maj, pv_min, pv_patch;
+	char* avstr = plugin_info->get_required_api_version();
+
+	if(sscanf(avstr, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &pv_maj, &pv_min, &pv_patch) != 3)
+	{
+		throw sinsp_exception(string("unable to load plugin ") + 
+			plugin_info->get_name() +
+			": plugin's get_api_version() is returning invalid data. Required format is \"<major>.<minor>.<patch>\", e.g. \"1.2.3\"");
+	}
+
+	if(!(pv_maj == PLUGIN_API_VERSION_MAJOR && pv_min <= PLUGIN_API_VERSION_MINOR))
+	{
+		throw sinsp_exception(string("unable to initialize plugin ") + 
+			plugin_info->get_name() +
+			": plugin is requesting API version " + string(avstr) +
+			" which is not supported by this engine (version " + 
+			to_string(PLUGIN_API_VERSION_MAJOR) + "." +
+			to_string(PLUGIN_API_VERSION_MINOR) + "." +
+			to_string(PLUGIN_API_VERSION_PATCH) + ")");
+	}
+}
+
 // Returns true if the plugin is allocating a thread for high speed async extraction
 bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async)
 {
@@ -339,13 +363,14 @@ bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 	ENSURE_PLUGIN_EXPORT(get_type);
 	ENSURE_PLUGIN_EXPORT(get_last_error);
 	ENSURE_PLUGIN_EXPORT(get_id);
+	ENSURE_PLUGIN_EXPORT(get_name);
+	ENSURE_PLUGIN_EXPORT(get_description);
+	ENSURE_PLUGIN_EXPORT(get_required_api_version);
 
 	m_type = (ss_plugin_type)m_source_info.get_type();
 
 	if(m_type == TYPE_SOURCE_PLUGIN)
 	{
-		ENSURE_PLUGIN_EXPORT(get_name);
-		ENSURE_PLUGIN_EXPORT(get_description);
 		ENSURE_PLUGIN_EXPORT(open);
 		ENSURE_PLUGIN_EXPORT(close);
 		ENSURE_PLUGIN_EXPORT(next);
@@ -353,8 +378,6 @@ bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 	}
 	else if(m_type == TYPE_EXTRACTOR_PLUGIN)
 	{
-		ENSURE_PLUGIN_EXPORT(get_name);
-		ENSURE_PLUGIN_EXPORT(get_description);
 		ENSURE_PLUGIN_EXPORT(get_fields);
 	}
 	else
@@ -363,32 +386,19 @@ bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char*
 	}
 
 	//
+	// Get the plugin version and make sure we can run it
+	//
+	validate_plugin_version(&m_source_info);
+
+	//
 	// Initialize the plugin
 	//
 	if(m_source_info.init != NULL)
 	{
-		uint32_t api_version = UINT32_MAX;
-		m_source_info.state = m_source_info.init(config, &api_version, &init_res);
+		m_source_info.state = m_source_info.init(config, &init_res);
 		if(init_res != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(string("unable to initialize plugin ") + m_source_info.get_name());
-		}
-
-		if(api_version == UINT32_MAX)
-		{
-			throw sinsp_exception(string("unable to initialize plugin ") + 
-				m_source_info.get_name() +
-				": plugin's init() is not setting the minimum API version");
-		}
-		else if(api_version > PLUGIN_API_VERSION_MAJOR)
-		{
-			throw sinsp_exception(string("unable to initialize plugin ") + 
-				m_source_info.get_name() +
-				": plugin is requesting API version " + to_string(api_version) +
-				" which is not supported by this engine (version " + 
-				to_string(PLUGIN_API_VERSION_MAJOR) + "." +
-				to_string(PLUGIN_API_VERSION_MINOR) + "." +
-				to_string(PLUGIN_API_VERSION_PATCH) + ")");
 		}
 	}
 
@@ -582,6 +592,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->get_id)) = getsym(handle, "plugin_get_id");
 	*(void**)(&(info->get_name)) = getsym(handle, "plugin_get_name");
 	*(void**)(&(info->get_description)) = getsym(handle, "plugin_get_description");
+	*(void**)(&(info->get_required_api_version)) = getsym(handle, "plugin_get_required_api_version");
 	*(void**)(&(info->get_fields)) = getsym(handle, "plugin_get_fields");
 	*(void**)(&(info->open)) = getsym(handle, "plugin_open");
 	*(void**)(&(info->close)) = getsym(handle, "plugin_close");
