@@ -141,6 +141,7 @@ public:
 	ss_plugin_type get_type();
 	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
 	static void list_plugins(sinsp* inspector);
+	static void validate_plugin_version(ss_plugin_info* plugin_info);
 
 	ss_plugin_info m_source_info;
 
