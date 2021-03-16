@@ -599,6 +599,7 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	*(void**)(&(info->next)) = getsym(handle, "plugin_next");
 	*(void**)(&(info->next_batch)) = getsym(handle, "plugin_next_batch");
 	*(void**)(&(info->event_to_string)) = getsym(handle, "plugin_event_to_string");
+	*(void**)(&(info->get_progress)) = getsym(handle, "plugin_get_progress");
 	*(void**)(&(info->extract_str)) = getsym(handle, "plugin_extract_str");
 	*(void**)(&(info->extract_u64)) = getsym(handle, "plugin_extract_u64");
 	*(void**)(&(info->register_async_extractor)) = getsym(handle, "plugin_register_async_extractor");

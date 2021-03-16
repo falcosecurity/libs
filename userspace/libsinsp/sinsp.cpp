@@ -2056,7 +2056,7 @@ bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int durat
 	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit, &m_dumper);
 }
 
-double sinsp::get_read_progress()
+double sinsp::get_read_progress_file()
 {
 	if(m_input_fd != 0)
 	{
@@ -2080,6 +2080,60 @@ double sinsp::get_read_progress()
 	}
 
 	return (double)fpos * 100 / m_filesize;
+}
+
+void sinsp::get_read_progress_plugin(OUT double* nres, string* sres)
+{
+	ASSERT(m_input_plugin != NULL);
+	ASSERT(nres != NULL);
+	if(m_input_plugin->m_source_info.get_progress != NULL)
+	{
+		uint32_t nplg;
+		char* splg = m_input_plugin->m_source_info.get_progress(m_input_plugin->m_source_info.state, 
+			m_input_plugin->m_source_info.handle,
+			&nplg);
+
+		*nres = ((double)nplg) / 100;
+
+		if(splg != NULL && sres != NULL)
+		{
+			*sres = splg;
+		}
+	}
+	else
+	{
+		*nres = 0;
+		*sres = "";
+	}
+}
+
+double sinsp::get_read_progress()
+{
+	if(is_plugin())
+	{
+		double res;
+		get_read_progress_plugin(&res, NULL);
+		return res;
+	}
+	else
+	{
+		return get_read_progress_file();
+	}
+}
+
+double sinsp::get_read_progress_with_str(OUT string* progress_str)
+{
+	if(is_plugin())
+	{
+		double res;
+		get_read_progress_plugin(&res, progress_str);
+		return res;
+	}
+	else
+	{
+		*progress_str = "";
+		return get_read_progress_file();
+	}
 }
 
 bool sinsp::remove_inactive_threads()

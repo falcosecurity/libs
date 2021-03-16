@@ -759,10 +759,17 @@ public:
 	void unset_eventmask(uint32_t event_id);
 
 	/*!
-	  \brief When reading events from a trace file, this function returns the
-	   read progress as a number between 0 and 100.
+	  \brief When reading events from a trace file or a plugin, this function 
+	   returns the read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
+
+	/*!
+	  \brief When reading events from a trace file or a plugin, this function 
+	   returns the read progress as a number and as a string, giving the plugins 
+	   flexibility on the format.
+	*/
+	double get_read_progress_with_str(OUT string* progress_str);
 
 	/*!
 	  \brief Make the amount of data gathered for a syscall to be
@@ -969,6 +976,9 @@ private:
 		return m_increased_snaplen_port_range.range_start > 0 &&
 		       m_increased_snaplen_port_range.range_end > 0;
 	}
+
+	double get_read_progress_file();
+	void get_read_progress_plugin(OUT double* nres, string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
 
