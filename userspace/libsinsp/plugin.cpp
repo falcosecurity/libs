@@ -544,18 +544,18 @@ void sinsp_plugin::list_plugins(sinsp* inspector)
 	{
 		auto p = plist->at(j);
 
+		printf("Name: %s\n", p->m_source_info.get_name());
+		printf("Description: %s\n", p->m_source_info.get_description());
+
 		if(p->get_type() == TYPE_SOURCE_PLUGIN)
 		{
-			printf("name: %s\n", p->m_source_info.get_name());
-			printf("description: %s\n", p->m_source_info.get_description());
-			printf("type: source plugin\n");
-			printf("id: %" PRIu32 "\n\n", p->get_id());
+			printf("Type: source plugin\n");
+			printf("ID: %" PRIu32 "\n\n", p->get_id());
 		}
 		else
 		{
-			printf("name: %s\n", p->m_source_info.get_name());
-			printf("description: %s\n", p->m_source_info.get_description());
-			printf("type: extractor plugin\n\n");
+			printf("Name: %s\n", p->m_source_info.get_name());
+			printf("Description: %s\n", p->m_source_info.get_description());
 		}
 	}
 }
