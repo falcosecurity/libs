@@ -17,7 +17,8 @@ limitations under the License.
 
 */
 
-#pragma once:
+#pragma once
+
 class sinsp_filter_check_plugin;
 
 class sinsp_async_extractor_ctx

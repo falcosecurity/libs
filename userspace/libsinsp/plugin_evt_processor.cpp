@@ -75,6 +75,7 @@ bool sinsp_pep_flt_worker::process_event()
 	m_cnt++;
 	m_evt.m_filtered_out = false;
 	m_evt.m_flags = 0;
+	m_evt.m_poriginal_evt = NULL;
 
 	m_evt.m_filtered_out = false;
 	if(m_filter && m_filter->run(&m_evt) == false)
