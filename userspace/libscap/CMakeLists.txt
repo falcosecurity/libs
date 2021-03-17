@@ -16,9 +16,11 @@
 # limitations under the License.
 #
 include_directories("${PROJECT_SOURCE_DIR}/common")
-if(NOT MINIMAL_BUILD)
-include_directories("${ZLIB_INCLUDE}")
+
+if(WIN32 OR NOT MINIMAL_BUILD)
+	include(zlib)
 endif()
+
 if(CYGWIN)
 include_directories("${WIN_HAL_INCLUDE}")
 endif()
