@@ -148,48 +148,6 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 option(WITH_CHISEL "Include chisel implementation" OFF)
 #
-# zlib
-#
-option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
-
-if(WIN32 OR NOT MINIMAL_BUILD)
-	if(NOT USE_BUNDLED_ZLIB)
-		find_path(ZLIB_INCLUDE zlib.h PATH_SUFFIXES zlib)
-		find_library(ZLIB_LIB NAMES z)
-		if(ZLIB_INCLUDE AND ZLIB_LIB)
-			message(STATUS "Found zlib: include: ${ZLIB_INCLUDE}, lib: ${ZLIB_LIB}")
-		else()
-			message(FATAL_ERROR "Couldn't find system zlib")
-		endif()
-	else()
-		set(ZLIB_SRC "${PROJECT_BINARY_DIR}/zlib-prefix/src/zlib")
-		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
-		set(ZLIB_INCLUDE "${ZLIB_SRC}")
-		if(NOT WIN32)
-			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
-			ExternalProject_Add(zlib
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
-				CONFIGURE_COMMAND "./configure"
-				BUILD_COMMAND ${CMD_MAKE}
-				BUILD_IN_SOURCE 1
-				BUILD_BYPRODUCTS ${ZLIB_LIB}
-				INSTALL_COMMAND "")
-		else()
-			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
-			ExternalProject_Add(zlib
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
-				CONFIGURE_COMMAND ""
-				BUILD_COMMAND nmake -f win32/Makefile.msc
-				BUILD_IN_SOURCE 1
-				BUILD_BYPRODUCTS ${ZLIB_LIB}
-				INSTALL_COMMAND "")
-		endif()
-	endif()
-endif() # MINIMAL_BUILD
-
-#
 # Intel tbb
 #
 if(NOT WIN32)
@@ -360,6 +318,8 @@ endif() # NOT MINIMAL_BUILD
 
 if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
+		include(zlib)
+
 		option(USE_BUNDLED_PROTOBUF "Enable building of the bundled protobuf" ${USE_BUNDLED_DEPS})
 		if(NOT USE_BUNDLED_PROTOBUF)
 			find_program(PROTOC NAMES protoc)
