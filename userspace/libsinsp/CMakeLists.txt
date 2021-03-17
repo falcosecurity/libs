@@ -25,7 +25,7 @@ if(NOT WIN32 AND NOT APPLE)
 	include(b64)
 endif()
 
-include_directories("${JSONCPP_INCLUDE}")
+include(jsoncpp)
 if(WITH_CHISEL)
 	include_directories(../chisel)
 	include_directories("${LUAJIT_INCLUDE}")

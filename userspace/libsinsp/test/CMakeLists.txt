@@ -16,8 +16,9 @@
 # limitations under the License.
 #
 
+include(jsoncpp)
+
 include_directories("${GTEST_INCLUDE_DIR}")
-include_directories("${JSONCPP_INCLUDE}")
 include_directories("${TBB_INCLUDE_DIR}")
 if(NOT MINIMAL_BUILD)
 	include_directories("${CURL_INCLUDE_DIR}")
