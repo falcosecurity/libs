@@ -40,7 +40,7 @@ if(NOT WIN32 AND NOT APPLE)
 		include_directories("${GRPC_INCLUDE}")
 		include_directories("${PROTOBUF_INCLUDE}")
 		include(openssl)
-		include_directories("${CURL_INCLUDE_DIR}")
+		include(curl)
 	endif() # NOT MINIMAL_BUILD
 	include(jq)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
