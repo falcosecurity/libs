@@ -32,7 +32,7 @@ if(WITH_CHISEL)
 endif()
 
 if(NOT MINIMAL_BUILD)
-	include_directories("${CARES_INCLUDE}")
+	include(cares)
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
