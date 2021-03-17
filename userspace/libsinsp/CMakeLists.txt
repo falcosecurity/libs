@@ -39,7 +39,7 @@ if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
 		include_directories("${GRPC_INCLUDE}")
 		include_directories("${PROTOBUF_INCLUDE}")
-		include_directories("${OPENSSL_INCLUDE_DIR}")
+		include(openssl)
 		include_directories("${CURL_INCLUDE_DIR}")
 	endif() # NOT MINIMAL_BUILD
 	include(jq)
