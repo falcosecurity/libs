@@ -219,27 +219,6 @@ if(WITH_CHISEL)
 endif()
 
 #
-# JsonCpp
-#
-option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ${USE_BUNDLED_DEPS})
-
-set(JSONCPP_SRC "${PROJECT_SOURCE_DIR}/userspace/libsinsp/third-party/jsoncpp")
-
-if(NOT USE_BUNDLED_JSONCPP)
-	find_path(JSONCPP_INCLUDE json/json.h PATH_SUFFIXES jsoncpp)
-	find_library(JSONCPP_LIB NAMES jsoncpp)
-	if(JSONCPP_INCLUDE AND JSONCPP_LIB)
-		message(STATUS "Found jsoncpp: include: ${JSONCPP_INCLUDE}, lib: ${JSONCPP_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find system jsoncpp")
-	endif()
-else()
-	set(JSONCPP_INCLUDE "${JSONCPP_SRC}")
-	set(JSONCPP_LIB_SRC "${JSONCPP_SRC}/jsoncpp.cpp")
-	message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
-endif()
-
-#
 # zlib
 #
 option(USE_BUNDLED_ZLIB "Enable building of the bundled zlib" ${USE_BUNDLED_DEPS})
