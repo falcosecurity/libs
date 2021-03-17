@@ -19,7 +19,7 @@
 include(jsoncpp)
 
 include_directories("${GTEST_INCLUDE_DIR}")
-include_directories("${TBB_INCLUDE_DIR}")
+include(tbb)
 if(NOT MINIMAL_BUILD)
 	include_directories("${CURL_INCLUDE_DIR}")
 endif() # MINIMAL_BUILD

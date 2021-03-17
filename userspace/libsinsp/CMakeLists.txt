@@ -47,8 +47,8 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 if(NOT WIN32)
-	include_directories("${TBB_INCLUDE_DIR}")
-endif() # NOT WIN32
+	include(tbb)
+endif()
 
 set(SINSP_SOURCES
 	container.cpp
