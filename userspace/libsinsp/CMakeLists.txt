@@ -28,7 +28,7 @@ endif()
 include(jsoncpp)
 if(WITH_CHISEL)
 	include_directories(../chisel)
-	include_directories("${LUAJIT_INCLUDE}")
+	include(luajit)
 endif()
 
 if(NOT MINIMAL_BUILD)
