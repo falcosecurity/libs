@@ -171,16 +171,6 @@ struct perf_event_sample {
 
 #endif /* __KERNEL__ */
 
-struct bpf_map_def {
-	unsigned int type;
-	unsigned int key_size;
-	unsigned int value_size;
-	unsigned int max_entries;
-	unsigned int map_flags;
-	unsigned int inner_map_idx;
-	unsigned int numa_node;
-};
-
 enum sysdig_map_types {
 	SYSDIG_PERF_MAP = 0,
 	SYSDIG_TAIL_MAP = 1,
