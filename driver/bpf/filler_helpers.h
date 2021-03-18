@@ -217,7 +217,6 @@ static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 {
 	if (ulen < 0 || ulen > sizeof(struct sockaddr_storage))
 		return -EINVAL;
-
 	if (ulen == 0)
 		return 0;
 
@@ -778,7 +777,6 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 				}
 
 				sl = bpf_compute_snaplen(data, dpi_lookahead_size);
-
 				if (len > sl)
 					len = sl;
 			}
