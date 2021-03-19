@@ -37,7 +37,7 @@ endif()
 
 if(NOT WIN32 AND NOT APPLE)
 	if(NOT MINIMAL_BUILD)
-		include_directories("${GRPC_INCLUDE}")
+		include(grpc)
 		include(protobuf)
 		include(openssl)
 		include(curl)
