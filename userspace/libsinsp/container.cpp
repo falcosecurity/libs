@@ -370,12 +370,12 @@ string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo) cons
 
 		if(!container_info)
 		{
-			return NULL;
+			return "";
 		}
 
 		if(container_info->m_name.empty())
 		{
-			return NULL;
+			return "";
 		}
 
 		res = container_info->m_name;
