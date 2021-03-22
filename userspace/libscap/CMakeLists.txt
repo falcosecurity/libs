@@ -17,6 +17,10 @@
 #
 include_directories("${PROJECT_SOURCE_DIR}/common")
 
+option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
+
+include(ExternalProject)
+
 if(WIN32 OR NOT MINIMAL_BUILD)
 	include(zlib)
 endif()

@@ -142,10 +142,6 @@ if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
 
-include(ExternalProject)
-
-option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
-
 option(WITH_CHISEL "Include chisel implementation" OFF)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
