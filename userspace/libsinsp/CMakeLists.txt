@@ -21,6 +21,10 @@ include_directories(../libscap)
 include_directories(../async)
 include_directories(./include)
 
+option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
+
+include(ExternalProject)
+
 if(NOT WIN32 AND NOT APPLE)
 	include(b64)
 endif()
