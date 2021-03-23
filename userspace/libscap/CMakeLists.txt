@@ -91,6 +91,8 @@ target_link_libraries(scap
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
+
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 
     if (BUILD_LIBSCAP_EXAMPLES)
