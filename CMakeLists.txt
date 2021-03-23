@@ -107,7 +107,6 @@ if(NOT WIN32)
 			set(PROBE_DEVICE_NAME "sysdig")
 		endif()
 
-		add_subdirectory(driver)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
 
