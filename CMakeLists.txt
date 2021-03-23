@@ -58,8 +58,6 @@ endif()
 
 set(PACKAGE_NAME "sysdig")
 
-add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
-
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
 if(MINIMAL_BUILD)
