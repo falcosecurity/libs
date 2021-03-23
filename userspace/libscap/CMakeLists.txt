@@ -28,6 +28,10 @@ endif()
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS}")
+	endif()
+
     if(NOT DEFINED PROBE_VERSION)
         set(PROBE_VERSION "${SYSDIG_VERSION}")
     endif()
