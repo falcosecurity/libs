@@ -646,6 +646,7 @@ private:
 	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;
 	uint64_t m_last_flush_time_ns;
 	uint32_t m_n_drops;
+	const uint32_t m_thread_table_absolute_max_size = 131072;
 	uint32_t m_max_thread_table_size;
 	int32_t m_n_proc_lookups = 0;
 	uint64_t m_n_proc_lookups_duration_ns = 0;

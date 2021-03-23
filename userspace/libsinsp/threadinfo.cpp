@@ -1212,7 +1212,7 @@ void sinsp_threadinfo::fd_to_scap(scap_fdinfo *dst, sinsp_fdinfo_t* src)
 // sinsp_thread_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
-	: m_max_thread_table_size(uint32_t(MAX_THREAD_TABLE_SIZE))
+	: m_max_thread_table_size(m_thread_table_absolute_max_size)
 {
 	m_inspector = inspector;
 	clear();
@@ -1822,6 +1822,5 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 {
-    uint32_t max_size = uint32_t(MAX_THREAD_TABLE_SIZE);
-    m_max_thread_table_size = (value < max_size ? value : max_size);
+    m_max_thread_table_size = std::min(value, m_thread_table_absolute_max_size);
 }

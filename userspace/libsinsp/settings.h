@@ -53,12 +53,6 @@ limitations under the License.
 #define SCAP_TIMEOUT_MS 30
 
 //
-// Max size that the thread table can reach
-//
-#define MAX_THREAD_TABLE_SIZE 131072
-#define DEFAULT_THREAD_TABLE_SIZE 65536
-
-//
 // Max size that the FD table of a process can reach
 //
 #define MAX_FD_TABLE_SIZE 4096

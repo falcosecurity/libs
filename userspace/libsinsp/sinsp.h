@@ -497,8 +497,6 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats) const override;
 
-	void set_max_thread_table_size(uint32_t value);
-
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
