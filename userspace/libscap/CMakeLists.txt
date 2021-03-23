@@ -25,6 +25,8 @@ if(WIN32 OR NOT MINIMAL_BUILD)
 	include(zlib)
 endif()
 
+add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     if(NOT DEFINED PROBE_VERSION)
         set(PROBE_VERSION "${SYSDIG_VERSION}")
