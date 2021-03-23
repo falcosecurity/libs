@@ -90,8 +90,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_parser = new sinsp_parser(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
-	m_thread_timeout_ns = DEFAULT_THREAD_TIMEOUT_S * ONE_SECOND_IN_NS;
-	m_inactive_thread_scan_time_ns = DEFAULT_INACTIVE_THREAD_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
@@ -1203,19 +1201,25 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
 
-#ifndef HAS_ANALYZER
-	//
-	// Delayed removal of threads from the thread table, so that
-	// things like exit() or close() can be parsed.
-	// We only do this if the analyzer is not enabled, because the analyzer
-	// needs the process at the end of the sample and will take care of deleting
-	// it.
-	//
-	if(m_tid_to_remove != -1)
+	if (m_automatic_threadtable_purging)
 	{
-		remove_thread(m_tid_to_remove, false);
-		m_tid_to_remove = -1;
+		//
+		// Delayed removal of threads from the thread table, so that
+		// things like exit() or close() can be parsed.
+		//
+		if(m_tid_to_remove != -1)
+		{
+			remove_thread(m_tid_to_remove, false);
+			m_tid_to_remove = -1;
+		}
+
+		if(!is_capture())
+		{
+			m_thread_manager->remove_inactive_threads();
+		}
 	}
+
+#ifndef HAS_ANALYZER
 
 	if(is_debug_enabled() && is_live())
 	{
@@ -1248,7 +1252,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	if(!is_capture())
 	{
-		m_thread_manager->remove_inactive_threads();
 		m_container_manager.remove_inactive_containers();
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
@@ -2361,6 +2364,21 @@ bool sinsp::is_bpf_enabled()
 	}
 
 	return false;
+}
+
+void sinsp::disable_automatic_threadtable_purging()
+{
+	m_automatic_threadtable_purging = false;
+}
+
+void sinsp::set_thread_purge_interval_s(uint32_t val)
+{
+	m_inactive_thread_scan_time_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+}
+
+void sinsp::set_thread_timeout_s(uint32_t val)
+{
+	m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
