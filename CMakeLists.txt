@@ -94,17 +94,6 @@ if(NOT WIN32)
 			set(KBUILD_FLAGS "${SYSDIG_DEBUG_FLAGS}")
 		endif()
 
-		if(NOT DEFINED PROBE_VERSION)
-			set(PROBE_VERSION "${SYSDIG_VERSION}")
-		endif()
-		if(NOT DEFINED PROBE_NAME)
-			set(PROBE_NAME "sysdig-probe")
-		endif()
-
-		if(NOT DEFINED PROBE_DEVICE_NAME)
-			set(PROBE_DEVICE_NAME "sysdig")
-		endif()
-
 		add_definitions(-DHAS_CAPTURE)
 	endif()
 
