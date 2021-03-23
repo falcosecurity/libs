@@ -29,8 +29,8 @@ limitations under the License.
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
 #include "container_engine/bpm.h"
-#include "container_engine/static_container.h"
 #endif // MINIMAL_BUILD
+#include "container_engine/static_container.h"
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -513,7 +513,6 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::create_engines()
 {
-#ifndef MINIMAL_BUILD
 	if (m_static_container)
 	{
 		auto engine = std::make_shared<container_engine::static_container>(*this,
@@ -524,6 +523,7 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_STATIC] = engine;
 		return;
 	}
+#ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
 	{
 		auto docker_engine = std::make_shared<container_engine::docker>(*this, m_inspector /*wmi source*/);
