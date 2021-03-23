@@ -58,16 +58,6 @@ limitations under the License.
 #define MAX_FD_TABLE_SIZE 4096
 
 //
-// The time after an inactive thread is removed.
-//
-#define DEFAULT_THREAD_TIMEOUT_S 1800
-
-//
-// How often the thread table is scanned for inactive threads
-//
-#define DEFAULT_INACTIVE_THREAD_SCAN_TIME_S 1200
-
-//
 // How often the container table is scanned for inactive containers
 //
 #define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S 30

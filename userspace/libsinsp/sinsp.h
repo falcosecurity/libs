@@ -384,6 +384,29 @@ public:
 	void set_min_log_severity(sinsp_logger::severity sev);
 
 	/*!
+	 * \brief set whether the library will automatically purge the threadtable
+	 *        at specific times. If not, client is responsible for thread lifetime
+	 *        management. If invoked, then the purge interval and thread timeout change
+	 *        defaults, but have no observable effect.
+	 */
+	void disable_automatic_threadtable_purging();
+
+	/*!
+	 * \brief sets the interval at which the thread purge code runs. This does
+	 *        not run every event as it's mildly expensive if there are lots of threads
+	 */
+	void set_thread_purge_interval_s(uint32_t val);
+
+	/*!
+	 * \brief sets the amount of time after which a thread which has seen no events
+	 *        can be purged. As the purging happens only every m_thread_purge_interval_s,
+	 *        the max time a thread may linger is actually m_thread_purge_interval +
+	 *        m_thread_timeout_s
+	 */
+	void set_thread_timeout_s(uint32_t val);
+
+
+	/*!
 	  \brief Start writing the captured events to file.
 
 	  \param dump_filename the destination trace file.
@@ -995,6 +1018,7 @@ private:
 	bool m_large_envs_enabled;
 
 	sinsp_network_interfaces* m_network_interfaces;
+
 public:
 	sinsp_thread_manager* m_thread_manager;
 
@@ -1078,8 +1102,9 @@ public:
 	// Some thread table limits
 	//
 	uint32_t m_max_fdtable_size;
-	uint64_t m_thread_timeout_ns;
-	uint64_t m_inactive_thread_scan_time_ns;
+	bool m_automatic_threadtable_purging = true;
+	uint64_t m_thread_timeout_ns = (uint64_t)1800 * ONE_SECOND_IN_NS;
+	uint64_t m_inactive_thread_scan_time_ns = (uint64_t)1200 * ONE_SECOND_IN_NS;
 
 	//
 	// Container limits
