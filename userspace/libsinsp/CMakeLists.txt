@@ -17,7 +17,7 @@
 #
 include_directories(./)
 include_directories(../../common)
-include_directories(../libscap)
+include_directories(${LIBSCAP_INCLUDE_DIR})
 include_directories(../async)
 include_directories(./include)
 

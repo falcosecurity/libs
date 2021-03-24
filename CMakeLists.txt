@@ -60,7 +60,7 @@ option(WITH_CHISEL "Include chisel implementation" OFF)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
-add_subdirectory(userspace/libscap)
+include(libscap)
 add_subdirectory(userspace/libsinsp)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
