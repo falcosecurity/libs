@@ -14,6 +14,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/fdtable.h>
 
 #include "types.h"
+#include "builtins.h"
 
 #define _READ(P) ({ typeof(P) _val;				\
 		    memset(&_val, 0, sizeof(_val));		\

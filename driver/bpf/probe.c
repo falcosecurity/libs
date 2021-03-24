@@ -21,6 +21,7 @@ or GPL2.txt for full copies of the license.
 #include "ring_helpers.h"
 #include "filler_helpers.h"
 #include "fillers.h"
+#include "builtins.h"
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 #define BPF_PROBE(prefix, event, type)			\
