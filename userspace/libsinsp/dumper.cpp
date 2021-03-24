@@ -19,7 +19,7 @@ limitations under the License.
 
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "../libscap/scap.h"
+#include "scap.h"
 #include "dumper.h"
 
 sinsp_dumper::sinsp_dumper(sinsp* inspector)

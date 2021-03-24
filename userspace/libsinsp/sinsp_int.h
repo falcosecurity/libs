@@ -45,10 +45,10 @@ limitations under the License.
 
 using namespace std;
 
-#include "../libscap/scap.h"
+#include "scap.h"
 #include "settings.h"
 #include "utils.h"
-#include "../libscap/scap.h"
+#include "scap.h"
 #include "parsers.h"
 #include "ifinfo.h"
 #include "internal_metrics.h"

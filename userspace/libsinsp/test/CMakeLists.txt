@@ -24,7 +24,7 @@ if(NOT MINIMAL_BUILD)
 endif() # MINIMAL_BUILD
 
 include_directories("..")
-include_directories("../../libscap")
+include_directories(${LIBSCAP_INCLUDE_DIR})
 
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
