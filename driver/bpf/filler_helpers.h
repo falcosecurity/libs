@@ -216,15 +216,16 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 					      struct sockaddr *kaddr)
 {
-	if (ulen < 0 || ulen > sizeof(struct sockaddr_storage))
+	int len = _READ(ulen);
+	if (len < 0 || len > sizeof(struct sockaddr_storage))
 		return -EINVAL;
-	if (ulen == 0)
+	if (len == 0)
 		return 0;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-	if (bpf_probe_read(kaddr, ((ulen - 1) & 0xff) + 1, uaddr))
+	if (bpf_probe_read(kaddr, ((len - 1) & 0xff) + 1, uaddr))
 #else
-	if (bpf_probe_read(kaddr, ulen & 0xff, uaddr))
+	if (bpf_probe_read(kaddr, len & 0xff, uaddr))
 #endif
 		return -EFAULT;
 
