@@ -61,7 +61,7 @@ option(WITH_CHISEL "Include chisel implementation" OFF)
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 include(libscap)
-add_subdirectory(userspace/libsinsp)
+include(libsinsp)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
 		# Add command to run all unit tests at once via the make system.
