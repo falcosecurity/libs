@@ -271,3 +271,10 @@ else()
 			"${LUAJIT_LIB}")
 	endif()
 endif() # NOT WIN32
+
+option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+		# Add unit test directories
+		add_subdirectory(test)
+endif()
