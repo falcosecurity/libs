@@ -2630,6 +2630,8 @@ void sysdig_exit(void)
 
 module_init(sysdig_init);
 module_exit(sysdig_exit);
+MODULE_VERSION(PROBE_VERSION);
+
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
