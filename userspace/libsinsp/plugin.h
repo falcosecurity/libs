@@ -140,17 +140,15 @@ public:
 	bool configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async);
 	uint32_t get_id();
 	ss_plugin_type get_type();
-	static void register_source_plugins(sinsp* inspector, string sysdig_installation_dir);
+	static void register_source_plugin(sinsp* inspector, string filepath);
 	static void list_plugins(sinsp* inspector);
 	static void validate_plugin_version(ss_plugin_info* plugin_info);
 
 	ss_plugin_info m_source_info;
 
 private:
-	static void add_plugin_dirs(sinsp* inspector, string sysdig_installation_dir);
 	static void* getsym(void* handle, const char* name);
 	static bool create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error);
-	static void load_dynlib_plugins(sinsp* inspector);
 
 	sinsp* m_inspector;
 	uint32_t m_id;
