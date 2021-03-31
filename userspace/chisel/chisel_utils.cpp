@@ -69,6 +69,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 };
 
 vector<chiseldir_info>* g_chisel_dirs = NULL;
+chisel_initializer g_chisel_initializer;
 
 #ifndef _WIN32
 static std::string realpath_ex(const std::string& path)
