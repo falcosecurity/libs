@@ -19,8 +19,8 @@ else()
 		message(STATUS "Using bundled c-ares in '${CARES_SRC}'")
 		ExternalProject_Add(c-ares
 			PREFIX "${PROJECT_BINARY_DIR}/c-ares-prefix"
-			URL "http://download.sysdig.com/dependencies/c-ares-1.13.0.tar.gz"
-			URL_MD5 "d2e010b43537794d8bedfb562ae6bba2"
+			URL "https://c-ares.haxx.se/download/c-ares-1.15.0.tar.gz"
+			URL_HASH "SHA256=6cdb97871f2930530c97deb7cf5c8fa4be5a0b02c7cea6e7c7667672a39d6852"
 			CONFIGURE_COMMAND ./configure --prefix=${CARES_SRC}/target
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
