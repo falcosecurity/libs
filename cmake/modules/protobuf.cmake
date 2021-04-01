@@ -19,6 +19,7 @@ else()
 	set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
 	set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
 	set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
+	set(PROTOC_LIB "${PROTOBUF_SRC}/target/lib/libprotoc.a")
 
 	if(NOT TARGET protobuf)
 		message(STATUS "Using bundled protobuf in '${PROTOBUF_SRC}'")
