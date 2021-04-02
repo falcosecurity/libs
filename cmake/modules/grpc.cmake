@@ -32,9 +32,9 @@ else()
 	endif()
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INCLUDE "${GRPC_SRC}/include")
-	set(GRPC_LIB "${GRPC_SRC}-build/libgrpc_unsecure.a")
-	set(GRPCPP_LIB "${GRPC_SRC}-build/libgrpc++_unsecure.a")
-	set(GRPC_CPP_PLUGIN "${GRPC_SRC}-build/grpc_cpp_plugin")
+	set(GRPC_LIB "${GRPC_SRC}/libs/opt/libgrpc.a")
+	set(GRPCPP_LIB "${GRPC_SRC}/libs/opt/libgrpc++.a")
+	set(GRPC_CPP_PLUGIN "${GRPC_SRC}/bins/opt/grpc_cpp_plugin")
 
 	get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
@@ -43,41 +43,28 @@ else()
 		message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
 
 		ExternalProject_Add(grpc
-			DEPENDS c-ares protobuf zlib
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
 			GIT_TAG v1.32.0
 			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
 			INSTALL_COMMAND ""
-			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GRPC_CPP_PLUGIN}
-			CMAKE_CACHE_ARGS
-				-DgRPC_INSTALL:BOOL=OFF
-				-DgRPC_BUILD_TESTS:BOOL=OFF
-				-DgRPC_BUILD_CSHARP_EXT:BOOL=OFF
-				-DgRPC_BUILD_GRPC_CPP_PLUGIN:BOOL=ON
-				-DgRPC_BUILD_GRPC_CSHARP_PLUGIN:BOOL=OFF
-				-DgRPC_BUILD_GRPC_NODE_PLUGIN:BOOL=OFF
-				-DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN:BOOL=OFF
-				-DgRPC_BUILD_GRPC_PHP_PLUGIN:BOOL=OFF
-				-DgRPC_BUILD_GRPC_PYTHON_PLUGIN:BOOL=OFF
-				-DgRPC_BUILD_GRPC_RUBY_PLUGIN:BOOL=OFF
-				-DgRPC_ABSL_PROVIDER:STRING=module
-				-DgRPC_RE2_PROVIDER:STRING=module
-				-DgRPC_PROTOBUF_PROVIDER:STRING=package
-				-DProtobuf_DIR:PATH=${PROTOBUF_INCLUDE}
-				-DProtobuf_INCLUDE_DIR:PATH=${PROTOBUF_INCLUDE}
-				-DProtobuf_LIBRARY:PATH=${PROTOBUF_LIB}
-				-DProtobuf_PROTOC_LIBRARY:PATH=${PROTOC_LIB}
-				-DProtobuf_PROTOC_EXECUTABLE:PATH=${PROTOC}
-				-DgRPC_ZLIB_PROVIDER:STRING=package
-				-DZLIB_ROOT:STRING=${ZLIB_INCLUDE}
-				-DgRPC_CARES_PROVIDER:STRING=package
-				-Dc-ares_DIR:PATH=${CARES_SRC}
-				-Dc-ares_INCLUDE_DIR:PATH=${CARES_INCLUDE}
-				-Dc-ares_LIBRARY:PATH=${CARES_LIB}
-				-DgRPC_SSL_PROVIDER:STRING=package
-				-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_BUNDLE_DIR}
+			CONFIGURE_COMMAND ""
+			BUILD_IN_SOURCE 1
+			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB}
+			BUILD_COMMAND
+				CFLAGS=-Wno-implicit-fallthrough
+				PATH=${PROTOC_DIR}:$ENV{PATH}
+				# PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${CARES_SRC}
+				PKG_CONFIG_PATH=${PROTOBUF_SRC}:${CARES_SRC}:${OPENSSL_BUNDLE_DIR}
+				HAS_SYSTEM_ZLIB=true
+				HAS_SYSTEM_PROTOBUF=true
+				HAS_SYSTEM_CARES=true
+				HAS_EMBEDDED_OPENSSL_ALPN=false
+				HAS_SYSTEM_OPENSSL_ALPN=true
+				LDFLAGS=-L${PROTOBUF_SRC}/target/lib
+				LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${PROTOBUF_SRC}/target/lib
+				make static_c static_cxx
 		)
 	endif()
 endif()
