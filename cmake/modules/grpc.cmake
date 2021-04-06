@@ -55,7 +55,6 @@ else()
 			BUILD_COMMAND
 				CFLAGS=-Wno-implicit-fallthrough
 				PATH=${PROTOC_DIR}:$ENV{PATH}
-				# PKG_CONFIG_PATH=${OPENSSL_BUNDLE_DIR}:${CARES_SRC}
 				PKG_CONFIG_PATH=${PROTOBUF_SRC}:${CARES_SRC}:${OPENSSL_BUNDLE_DIR}
 				HAS_SYSTEM_ZLIB=true
 				HAS_SYSTEM_PROTOBUF=true
@@ -63,8 +62,8 @@ else()
 				HAS_EMBEDDED_OPENSSL_ALPN=false
 				HAS_SYSTEM_OPENSSL_ALPN=true
 				LDFLAGS=-L${PROTOBUF_SRC}/target/lib
-				LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${PROTOBUF_SRC}/target/lib
-				make static_c static_cxx
+				LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${PROTOBUF_SRC}/target/lib:${CARES_SRC}/target/lib
+				make static_c static_cxx grpc_cpp_plugin
 		)
 	endif()
 endif()

@@ -193,6 +193,8 @@ if(NOT WIN32)
 
 	if(NOT APPLE)
 		if(NOT MINIMAL_BUILD)
+			include(protobuf)
+			include(cares)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri.proto ${CMAKE_CURRENT_BINARY_DIR}/cri.proto COPYONLY)
 			add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 						${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.h
@@ -201,7 +203,7 @@ if(NOT WIN32)
 					COMMENT "Generate CRI grpc code"
 					DEPENDS
 					COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=. ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
-					COMMAND LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${PROTOBUF_SRC}/target/lib ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
+					COMMAND LD_LIBRARY_PATH=$ENV{LD_LIBRARY_PATH}:${PROTOBUF_SRC}/target/lib:${CARES_SRC}/target/lib ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
 					WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 			if(USE_BUNDLED_GRPC)
