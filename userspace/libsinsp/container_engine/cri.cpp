@@ -72,7 +72,7 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 
 	m_cri->parse_cri_env(root, container);
 	m_cri->parse_cri_json_image(root, container);
-	m_cri->parse_cri_runtime_spec(root, container);
+	bool ret = m_cri->parse_cri_runtime_spec(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
@@ -80,7 +80,7 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 		container.m_container_ip = ntohl(m_cri->get_pod_sandbox_ip(pod_sandbox_id));
 	}
 
-	return true;
+	return ret;
 }
 
 bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp::cgroup_limits::cgroup_limits_key& key)
@@ -128,23 +128,24 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 	m_cri->parse_cri_image(resp_container, container);
 	m_cri->parse_cri_mounts(resp_container, container);
 
-	if(parse_containerd(resp, container))
+	if(!parse_containerd(resp, container))
 	{
-		return true;
+		libsinsp::cgroup_limits::cgroup_limits_value limits;
+		libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
+
+		container.m_memory_limit = limits.m_memory_limit;
+		container.m_cpu_shares = limits.m_cpu_shares;
+		container.m_cpu_quota = limits.m_cpu_quota;
+		container.m_cpu_period = limits.m_cpu_period;
+		container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
 	}
-
-	libsinsp::cgroup_limits::cgroup_limits_value limits;
-	libsinsp::cgroup_limits::get_cgroup_resource_limits(key, limits);
-
-	container.m_memory_limit = limits.m_memory_limit;
-	container.m_cpu_shares = limits.m_cpu_shares;
-	container.m_cpu_quota = limits.m_cpu_quota;
-	container.m_cpu_period = limits.m_cpu_period;
-	container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
 
 	if(s_cri_extra_queries)
 	{
-		container.m_container_ip = m_cri->get_container_ip(container.m_id);
+		if(!container.m_container_ip)
+		{
+			container.m_container_ip = m_cri->get_container_ip(container.m_id);
+		}
 		container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
 	}
 
