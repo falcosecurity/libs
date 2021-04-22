@@ -8,12 +8,10 @@ This directory contains a program that demonstrates how to use libsinsp for even
 
 To use filtering, specify a [Sysdig filter](https://github.com/draios/sysdig/wiki/Sysdig-User-Guide#all-supported-filters) using `-f`.
 
-To use Falco rules, specify a rules directory using `-r`.
-
 ### Usage ###
 
 ```
-$ sudo ./sinsp-example [-f filter] [-r rules_dir]
+$ sudo ./sinsp-example [-f filter]
 ```
 
 ## Sample Output ##
