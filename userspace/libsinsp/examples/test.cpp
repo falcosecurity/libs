@@ -22,7 +22,6 @@ limitations under the License.
 #include <signal.h>
 #include <unistd.h>
 #include <sinsp.h>
-#include <chisel.h>
 #include "util.h"
 
 using namespace std;
@@ -42,7 +41,6 @@ static void usage()
 Options:
   -h, --help                    Print this page
   -f <filter>                   Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields)
-  -r, --rules_dir <path>        Specify the rules directory
 )";
     cout << usage << endl;
 }
@@ -59,14 +57,12 @@ int main(int argc, char **argv)
     // Parse configuration options.
     static struct option long_options[] = {
             {"help",      no_argument, 0, 'h'},
-            {"rules_dir", required_argument, 0,  'r'},
             {0,   0,         0,  0}
     };
 
     int op;
     int long_index = 0;
     string filter_string;
-    string rules_directory;
     while((op = getopt_long(argc, argv,
                             "hr:s:f:",
                             long_options, &long_index)) != -1)
@@ -76,9 +72,6 @@ int main(int argc, char **argv)
             case 'h':
                 usage();
                 return EXIT_SUCCESS;
-            case 'r':
-                rules_directory = optarg;
-                break;
             case 'f':
                 filter_string = optarg;
                 break;
@@ -91,11 +84,6 @@ int main(int argc, char **argv)
     signal(SIGPIPE, sigint_handler);
 
     inspector.open();
-
-    if(!rules_directory.empty())
-    {
-    	chisel_add_dir(rules_directory, true);
-    }
 
     if(!filter_string.empty())
     {
