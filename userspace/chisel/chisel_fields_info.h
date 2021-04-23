@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2020 Sysdig Inc.
+Copyright (C) 2021 The Falco Authors.
 
 This file is part of sysdig.
 
