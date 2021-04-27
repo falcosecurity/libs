@@ -24,12 +24,54 @@ else()
 	endif()
 
 	if(NOT TARGET curl)
-		ExternalProject_Add(curl
+		ExternalProject_Add(
+			curl
 			PREFIX "${PROJECT_BINARY_DIR}/curl-prefix"
 			DEPENDS openssl
+			# START CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
 			URL "https://github.com/curl/curl/releases/download/curl-7_61_0/curl-7.61.0.tar.bz2"
 			URL_HASH "SHA256=5f6f336921cf5b84de56afbd08dfb70adeef2303751ffb3e570c936c6d656c9c"
-			CONFIGURE_COMMAND ./configure ${CURL_SSL_OPTION} --disable-threaded-resolver --disable-shared --enable-optimize --disable-curldebug --disable-rt --enable-http --disable-ftp --disable-file --disable-ldap --disable-ldaps --disable-rtsp --disable-telnet --disable-tftp --disable-pop3 --disable-imap --disable-smb --disable-smtp --disable-gopher --disable-sspi --disable-ntlm-wb --disable-tls-srp --without-winssl --without-darwinssl --without-polarssl --without-cyassl --without-nss --without-axtls --without-ca-path --without-ca-bundle --without-libmetalink --without-librtmp --without-winidn --without-libidn --without-libidn2 --without-nghttp2 --without-libssh2  --without-libpsl
+			# END CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
+			CONFIGURE_COMMAND
+			./configure
+			${CURL_SSL_OPTION}
+			--disable-shared
+			--enable-optimize
+			--disable-curldebug
+			--disable-rt
+			--enable-http
+			--disable-ftp
+			--disable-file
+			--disable-ldap
+			--disable-ldaps
+			--disable-rtsp
+			--disable-telnet
+			--disable-tftp
+			--disable-pop3
+			--disable-imap
+			--disable-smb
+			--disable-smtp
+			--disable-gopher
+			--disable-sspi
+			--disable-ntlm-wb
+			--disable-tls-srp
+			--without-winssl
+			--without-darwinssl
+			--without-polarssl
+			--without-cyassl
+			--without-nss
+			--without-axtls
+			--without-ca-path
+			--without-ca-bundle
+			--without-libmetalink
+			--without-librtmp
+			--without-winidn
+			--without-libidn2
+			--without-libpsl
+			--without-nghttp2
+			--without-libssh2
+			--disable-threaded-resolver
+			--without-brotli
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
