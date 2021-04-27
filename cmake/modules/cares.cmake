@@ -22,7 +22,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/c-ares-prefix"
 			URL "https://c-ares.haxx.se/download/c-ares-1.15.0.tar.gz"
 			URL_HASH "SHA256=6cdb97871f2930530c97deb7cf5c8fa4be5a0b02c7cea6e7c7667672a39d6852"
-			CONFIGURE_COMMAND ./configure --prefix=${CARES_INSTALL_DIR}
+			CONFIGURE_COMMAND CPPFLAGS=-DCARES_STATICLIB ./configure --disable-shared --prefix=${CARES_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}
