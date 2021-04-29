@@ -46,8 +46,8 @@ limitations under the License.
 // Some of this code is taken from the kernel samples under samples/bpf,
 // namely the parsing of the ELF objects, which is very tedious and not
 // worth reinventing from scratch. The code has been readapted and simplified
-// to tailor the sysdig use case. In the future, sysdig can fully switch to
-// libbpf, but at the moment is not very worth the effort considering the
+// to tailor our use case. In the future, a full switch to libbpf
+// is possible, but at the moment is not very worth the effort considering the
 // subset of features needed.
 //
 
