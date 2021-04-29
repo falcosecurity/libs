@@ -248,6 +248,8 @@ public:
 
 	bool m_is_pod_sandbox;
 
+	std::string m_container_user;
+
 	sinsp_container_lookup_state m_lookup_state;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;

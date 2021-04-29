@@ -312,6 +312,30 @@ bool cri_interface::parse_cri_runtime_spec(const Json::Value &info, sinsp_contai
 	return true;
 }
 
+bool cri_interface::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
+{
+	const Json::Value *user = nullptr;
+	if(!walk_down_json(info, &user, "runtimeSpec", "process", "user") || !user->isObject())
+	{
+		return false;
+	}
+
+	const Json::Value *uid = nullptr;
+	if(walk_down_json(*user, &uid, "uid"))
+	{
+		// Convert "0" into "root" to distinguish from the
+		// no-value "0".
+		if(uid->asInt() == 0) {
+			container.m_container_user = "root";
+		}
+		else {
+			container.m_container_user = uid->asString();
+		}
+	}
+
+	return true;
+}
+
 bool cri_interface::is_pod_sandbox(const std::string &container_id)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;

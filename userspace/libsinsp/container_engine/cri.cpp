@@ -73,6 +73,7 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 	m_cri->parse_cri_env(root, container);
 	m_cri->parse_cri_json_image(root, container);
 	m_cri->parse_cri_runtime_spec(root, container);
+	m_cri->parse_cri_user_info(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{

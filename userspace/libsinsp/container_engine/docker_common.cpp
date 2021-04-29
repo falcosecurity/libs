@@ -568,6 +568,17 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		container.m_imageid = imgstr.substr(cpos + 1);
 	}
 
+	// Convert "0" into "root" to distinguish from the no-value
+	// "0"
+	if(config_obj["User"].asString() == "0")
+	{
+		container.m_container_user = "root";
+	}
+	else
+	{
+		container.m_container_user = config_obj["User"].asString();
+	}
+
 	parse_health_probes(config_obj, container);
 
 	// containers can be spawned using just the imageID as image name,
