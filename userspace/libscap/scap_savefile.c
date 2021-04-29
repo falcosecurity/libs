@@ -2526,7 +2526,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	if(sh.major_version > CURRENT_MAJOR_VERSION)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
-			 "cannot correctly parse the capture. Upgrade your version of sysdig.");
+			 "cannot correctly parse the capture. Upgrade your version.");
 		return SCAP_VERSION_MISMATCH;
 	}
 
