@@ -1419,7 +1419,7 @@ struct ppm_param_info {
 /*!
   \brief Event information.
   This structure contains the full description of an event type (e.g. 'open') that
-   is supported by the sysdig infrastructure.
+   is supported by the infrastructure.
 */
 struct ppm_event_info {
 	char name[PPM_MAX_NAME_LEN]; /**< Name. */
