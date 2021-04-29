@@ -22,7 +22,7 @@ limitations under the License.
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>
-#include <algorithm> 
+#include <algorithm>
 
 #include <sinsp.h>
 #include "fields_info.h"
@@ -42,7 +42,7 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 
 	if(markdown && !names_only)
 	{
-		printf("# Sysdig Filter Fields List\n\n");
+		printf("# Filter Fields List\n\n");
 	}
 
 	vector<const filter_check_info*> fc_plugins;
@@ -167,10 +167,10 @@ void list_events(sinsp* inspector)
 				printf(", ");
 			}
 
-			printf("%s %s", param_type_to_string(ei.params[k].type), 
+			printf("%s %s", param_type_to_string(ei.params[k].type),
 				ei.params[k].name);
 		}
-				
+
 		printf(")\n");
 	}
 }

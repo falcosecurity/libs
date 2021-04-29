@@ -23,7 +23,7 @@ limitations under the License.
 #include <string>
 
 /**
- * Sysdig component logging API.  This API exposes the ability to log to a
+ * Component logging API.  This API exposes the ability to log to a
  * variety of log sinks.  sinsp_logger will use only one enabled log* sink;
  * if multiple are enabled, then it will use the first available one it
  * finds.  The order in which log sinks is considered is: (1) a registered
@@ -233,7 +233,7 @@ extern sinsp_logger g_logger;
 #    define DBG_SINSP_NOTICE(fmt, ...)
 #    define DBG_SINSP_INFO(fmt, ...)
 #    define DBG_SINSP_DEBUG(fmt, ...)
-#    define DBG_SINSP_TRACE(fmt, ...) 
+#    define DBG_SINSP_TRACE(fmt, ...)
 
 #    define DBG_SINSP_STR_FATAL(str)
 #    define DBG_SINSP_STR_CRITICAL(str)

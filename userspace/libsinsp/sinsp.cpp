@@ -1975,7 +1975,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 									m_marathon_api_server,
 									true, // mesos leader auto-follow
 									m_marathon_api_server.empty(), // marathon leader auto-follow if no uri
-									mesos::credentials_t(), // mesos creds, the only way to provide creds in sysdig is embedded in URI
+									mesos::credentials_t(), // mesos creds, the only way to provide creds is embedded in URI
 									mesos::credentials_t(), // marathon creds
 									mesos::default_timeout_ms,
 									is_live,
