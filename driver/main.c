@@ -130,7 +130,7 @@ void ppm_task_cputime_adjusted(struct task_struct *p, cputime_t *ut, cputime_t *
 #endif
 
 #ifndef CONFIG_HAVE_SYSCALL_TRACEPOINTS
- #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order for sysdig to be useful
+ #error The kernel must have HAVE_SYSCALL_TRACEPOINTS in order to work
 #endif
 
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id);
@@ -390,8 +390,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 * will never get events for that cpu even if it later comes
 		 * online via hotplug. We could allocate these rings on-demand
 		 * later in this function if needed for hotplug, but that
-		 * requires the consumer to know to call open again, and sysdig
-		 * doesn't support that.
+		 * requires the consumer to know to call open again, and that is
+		 * not supported.
 		 */
 		for_each_online_cpu(cpu) {
 			ring = per_cpu_ptr(consumer->ring_buffers, cpu);
@@ -2148,8 +2148,8 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	struct event_data_t event_data;
 
 	/* We register both tracepoints under the same probe and
-	 * sysdig event since there's little reason to expose this
-	 * complexity to the sysdig user. The distinction can still be made
+	 * the event since there's little reason to expose this
+	 * complexity to the user. The distinction can still be made
 	 * in the output by looking for the USER_FAULT/SUPERVISOR_FAULT
 	 * flags
 	 */
