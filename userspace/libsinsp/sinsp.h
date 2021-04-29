@@ -130,7 +130,7 @@ public:
 	{
 		FL_NONE =   0,
 		FL_WORKS_ON_THREAD_TABLE = (1 << 0),	///< This filter check class supports filtering incomplete events that contain only valid thread info and FD info.
-		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by stuff like the -l sysdig command line switch.
+		FL_HIDDEN = (1 << 1),	///< This filter check class won't be shown by fields/filter listings.
 	};
 
 	filter_check_info()
@@ -285,7 +285,7 @@ public:
 	  this capture. This also means that no user or group info will be
 	  written to the trace file by the -w flag. The user/group tables are
 	  necessary to use filter fields like user.name or group.name. However,
-	  creating them can increase sysdig's startup time. Moreover, they contain
+	  creating them can increase the startup time. Moreover, they contain
 	  information that could be privacy sensitive.
 
 	  \note default behavior is import_users=true.
@@ -315,7 +315,7 @@ public:
 	  \brief Compiles and installs the given capture filter.
 
 	  \param filter the filter string. Refer to the filtering language
-	   section in the sysdig website for information about the filtering
+	   section for information about the filtering
 	   syntax.
 
 	  @throws a sinsp_exception containing the error string is thrown in case
@@ -518,7 +518,7 @@ public:
     {
         return m_external_event_processor ? m_external_event_processor->build_threadinfo(this)
                                           : new sinsp_threadinfo(this);
-    } 
+    }
 
 	/*!
 	  \brief registers external event processor.
@@ -592,7 +592,7 @@ public:
 	}
 
 	/*!
-	  \brief Returns true if the sysdig module is not loaded
+	  \brief Returns true if the kernel module is not loaded
 	*/
 	inline bool is_nodriver()
 	{
@@ -620,7 +620,7 @@ public:
 	  \brief Set the debugging mode of the inspector.
 
 	  \param enable_debug when it is true and the current capture is live
-	  the inspector filters out events about sysdig itself.
+	  the inspector filters out events about itself.
 	*/
 	void set_debug_mode(bool enable_debug);
 
@@ -647,9 +647,9 @@ public:
 	void set_internal_events_mode(bool enable_internal_events);
 
 	/*!
-	  \brief Set whether Sysdig should resolve hostnames and port protocols or not.
+	  \brief Set whether to resolve hostnames and port protocols or not.
 
-	  \note Sysdig can use the system library functions getservbyport and so to
+	  \note It can use the system library functions getservbyport and so to
 	   resolve protocol names and domain names.
 
 	  \param enable If set to false it will enable this function and use plain
@@ -1031,7 +1031,7 @@ public:
 	uint64_t m_mesos_last_watch_time_ns;
 
 	//
-	// True if sysdig is ran with -v.
+	// True when ran with -v.
 	// Used by mesos and k8s objects.
 	//
 	bool m_verbose_json = false;

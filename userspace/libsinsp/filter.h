@@ -30,7 +30,7 @@ limitations under the License.
  */
 
 /*!
-  \brief This is the class that runs sysdig-type filters.
+  \brief This is the class that runs the filters.
 */
 class SINSP_PUBLIC sinsp_filter : public gen_event_filter
 {
@@ -46,7 +46,7 @@ private:
 
 
 /*!
-  \brief This is the class that compiles sysdig-type filters.
+  \brief This is the class that compiles the filters.
 */
 class SINSP_PUBLIC sinsp_filter_compiler
 {
