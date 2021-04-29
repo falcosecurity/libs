@@ -1,17 +1,17 @@
 0 Introduction
 ------
 
-Sysdig strives for a consistent high quality code base and uses the conventions 
+This repository strives for a consistent high quality code base and uses the conventions
 below.  If you are going to commit code that doesn't follow them, then you put the
-work on us. :-(.
+work on us. :-(
 
 If you use vim or emacs, you can put a custom configuration file in the base
-directory of sysdig in order to follow the conventions.
+directory in order to follow the conventions.
 
-Also, note that the conventions in this file apply **strictly to the userspace** part 
-of sysdig. For the kernel code, you should refer to 
+Also, note that the conventions in this file apply **strictly to the userspace** part
+of this repository. For the kernel code, you should refer to
 https://www.kernel.org/doc/html/latest/process/coding-style.html
-and always run checkpatch.pl from the kernel tree before submitting pull requests.
+and always run `checkpatch.pl` from the kernel tree before submitting pull requests.
 
 Thanks for your attention and time.
 
@@ -41,7 +41,7 @@ Example:
 
 and not
 
-    if(a == 0) 
+    if(a == 0)
       b = 1;
 
 3 Whitespace usage
@@ -71,7 +71,7 @@ Note that:
 ------
 
 For portability reasons, please use the standard C99 types instead of the native C types
-like `int` and `long`. C99 types types will be available in all the user level sysdig 
+like `int` and `long`. C99 types types will be available in all the user level
 source files:
 
 Example:
@@ -81,7 +81,7 @@ Example:
 5 Commenting Style
 ------
 
-Comments should be in the C++ style so we can use `/* */` to quickly remove 
+Comments should be in the C++ style so we can use `/* */` to quickly remove
 portions of code during development.
 
 Example:
@@ -160,28 +160,28 @@ Packed structures should use the GCC and MSVC-style supported `pragma`:
 
 There's an online wiki which enumerates the different macros for compilers, operating systems, and architectures.
 It's available at [http://sourceforge.net/p/predef/wiki/Home/](http://sourceforge.net/p/predef/wiki/Home/). Generally speaking we use the operating system page: [http://sourceforge.net/p/predef/wiki/OperatingSystems/](http://sourceforge.net/p/predef/wiki/OperatingSystems/).
-	
+
 12 64-bit constants
 -------
 
-Put an "LL" at the end of your 64 bit constants. Without the LL, on some platforms the compiler tries to interpret the constant on the right hand side 
+Put an "LL" at the end of your 64 bit constants. Without the LL, on some platforms the compiler tries to interpret the constant on the right hand side
 as a long integer instead of a long long and in some platform this generate an error at building time.
 
 Example:
 
     x=0X00FF00000000000LL
 
-13 Class Declaration 
+13 Class Declaration
 -------
 
 Class declarations follow the following sequence
 
   1. constructors and destructor
-  1. public functions
-  1. public data
-  1. private functions
-  1. private data
-  1. friend declarations 
+  2. public functions
+  3. public data
+  4. private functions
+  5. private data
+  6. friend declarations
 
 Example:
 
@@ -191,11 +191,11 @@ Example:
       foo();
       ~foo();
 
-      int32_t lonli();	
+      int32_t lonli();
       int32_t m_val;
 
     private:
-      int32_t temustra();	
+      int32_t temustra();
       int32_t m_val2;
     };
 
@@ -203,7 +203,7 @@ Example:
 -------
 
 We think hiding the presence of a pointer makes the code unnecessarily
-ambiguous and more difficult. 
+ambiguous and more difficult.
 
 Seeing a * in a variable declaration immediately identifies a pointer, which
 is easier to mentally keep track of!
@@ -218,7 +218,7 @@ lives easier.
     typedef struct _my_struct
     {
       u_int16	m_field;
-    } my_struct, 
+    } my_struct,
     *p_my_struct;
 
     //
@@ -229,11 +229,11 @@ lives easier.
     };
 
 
-15 Temporary variables 
+15 Temporary variables
 -------
 
-Since "j" is used less frequently in english prose than "a" or "i", we find 
-that these variables (in hierarchical order) are great for counters: j, k, l, 
+Since "j" is used less frequently in english prose than "a" or "i", we find
+that these variables (in hierarchical order) are great for counters: j, k, l,
 m, n.
 
 Example:
@@ -258,13 +258,13 @@ as opposed to:
       }
     }
 
-16 Error management 
+16 Error management
 -------
 
-Error management inside libscap is done through return values, since the scap 
+Error management inside libscap is done through return values, since the scap
 library is written in C.
-Error management in the rest of the sysdig user level code base is done through
-exceptions. We know there's a lot of debate between return values and 
+Error management in the rest of the user level code base is done through
+exceptions. We know there's a lot of debate between return values and
 exceptions. We decided to pick the latter, so please stick with that.
 
 ## You Made It!
