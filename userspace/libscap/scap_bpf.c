@@ -154,6 +154,7 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	attr.prog_type = type;
 	attr.insn_cnt = (uint32_t) insns_cnt;
 	attr.insns = (unsigned long) insns;
+	attr.license = (unsigned long) "GPL";
 	attr.log_buf = (unsigned long) NULL;
 	attr.log_size = 0;
 	attr.log_level = 0;
