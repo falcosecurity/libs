@@ -566,6 +566,12 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		container.m_imageid = imgstr.substr(cpos + 1);
 	}
 
+	const Json::Value& user = config_obj["User"];
+	if(!user.isNull())
+	{
+		container.m_container_user = config_obj["User"].asString();
+	}
+
 	parse_health_probes(config_obj, container);
 
 	// containers can be spawned using just the imageID as image name,

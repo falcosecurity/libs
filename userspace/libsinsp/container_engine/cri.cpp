@@ -55,9 +55,12 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 
 bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
+
 	const auto &info_it = status.info().find("info");
 	if(info_it == status.info().end())
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) no info property, returning", container.m_id.c_str());
 		return false;
 	}
 
@@ -65,13 +68,19 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 	Json::Reader reader;
 	if(!reader.parse(info_it->second, root))
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) could not json parse info, returning", container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
 
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): will parse info json: %s",
+			container.m_id.c_str(),
+			info_it->second.c_str());
+
 	m_cri->parse_cri_env(root, container);
 	m_cri->parse_cri_json_image(root, container);
 	bool ret = m_cri->parse_cri_ext_container_info(root, container);
+	m_cri->parse_cri_user_info(root, container);
 
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
@@ -106,6 +115,7 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 
 	if(!resp.has_status())
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) no status, returning", container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -137,6 +147,11 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 		container.m_cpu_quota = limits.m_cpu_quota;
 		container.m_cpu_period = limits.m_cpu_period;
 		container.m_cpuset_cpu_count = limits.m_cpuset_cpu_count;
+
+		// In some cases (e.g. openshift), the cri-o response
+		// may not have an info property, which is used to set
+		// the container user. In those cases, the container
+		// name stays at its default "<NA>" value.
 	}
 
 	if(s_cri_extra_queries)

@@ -4738,6 +4738,12 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 #endif
 
+		const Json::Value& user = container["User"];
+		if(check_json_val_is_convertible(user, Json::stringValue, "User"))
+		{
+			container_info->m_container_user = user.asString();
+		}
+
 		sinsp_container_info::container_health_probe::parse_health_probes(container, container_info->m_health_probes);
 
 		const Json::Value& contip = container["ip"];
