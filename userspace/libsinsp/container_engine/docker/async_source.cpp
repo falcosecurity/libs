@@ -607,6 +607,12 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 	get_image_info(request, container, root);
 
 	const Json::Value& config_obj = root["Config"];
+	const Json::Value& user = config_obj["User"];
+	if(!user.isNull())
+	{
+		container.m_container_user = user.asString();
+	}
+
 	parse_health_probes(config_obj, container);
 
 	container.m_full_id = root["Id"].asString();
