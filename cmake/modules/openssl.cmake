@@ -22,7 +22,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/openssl-prefix"
 			URL "https://github.com/openssl/openssl/archive/OpenSSL_1_0_2n.tar.gz"
 			URL_HASH "SHA256=4f4bc907caff1fee6ff8593729e5729891adcee412049153a3bb4db7625e8364"
-			CONFIGURE_COMMAND ./config shared --prefix=${OPENSSL_INSTALL_DIR}
+			CONFIGURE_COMMAND ./config no-shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${OPENSSL_LIBRARY_SSL} ${OPENSSL_LIBRARY_CRYPTO}
