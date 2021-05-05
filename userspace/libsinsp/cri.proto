@@ -283,7 +283,7 @@ message LinuxSandboxSecurityContext {
     // * localhost/<full-path-to-profile>: the profile installed on the node.
     //   <full-path-to-profile> is the full path of the profile.
     // Default: "", which is identical with unconfined.
-    string seccomp_profile_path = 7 [deprecated=true];
+    string seccomp_profile_path = 7;
 }
 
 // A security profile which can be used for sandboxes and containers.
@@ -668,14 +668,14 @@ message LinuxContainerSecurityContext {
     // * localhost/<profile_name>: profile loaded on the node
     //    (localhost) by name. The possible profile names are detailed at
     //    https://gitlab.com/apparmor/apparmor/-/wikis/AppArmor_Core_Policy_Reference
-    string apparmor_profile = 9 [deprecated=true];
+    string apparmor_profile = 9;
     // Seccomp profile for the container, candidate values are:
     // * runtime/default: the default profile for the container runtime
     // * unconfined: unconfined profile, ie, no seccomp sandboxing
     // * localhost/<full-path-to-profile>: the profile installed on the node.
     //   <full-path-to-profile> is the full path of the profile.
     // Default: "", which is identical with unconfined.
-    string seccomp_profile_path = 10 [deprecated=true];
+    string seccomp_profile_path = 10;
 }
 
 // LinuxContainerConfig contains platform-specific configuration for
