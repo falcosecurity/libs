@@ -6,7 +6,7 @@ This directory contains a program that demonstrates how to use libsinsp for even
 
 `sinsp-example` monitors the host and any running containers for system activity. By default, it prints events of all types and is very noisy. 
 
-To use filtering, specify a [Sysdig filter](https://github.com/draios/sysdig/wiki/Sysdig-User-Guide#all-supported-filters) using `-f`.
+To use filtering, specify a [filter](https://falco.org/docs/rules/supported-fields/#system-calls-source-syscall) using `-f`.
 
 ### Usage ###
 
