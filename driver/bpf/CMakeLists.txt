@@ -19,6 +19,7 @@ endif()
 
 install(FILES
 	bpf_helpers.h
+	builtins.h
 	filler_helpers.h
 	fillers.h
 	Makefile
