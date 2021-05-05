@@ -166,7 +166,7 @@ endif()
 
 add_library(sinsp STATIC ${SINSP_SOURCES})
 
-target_link_libraries(sinsp
+set(SINSP_LIBRARIES
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
@@ -191,6 +191,8 @@ if(NOT WIN32)
 
 	if(NOT APPLE)
 		if(NOT MINIMAL_BUILD)
+			include(protobuf)
+			include(cares)
 			configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cri.proto ${CMAKE_CURRENT_BINARY_DIR}/cri.proto COPYONLY)
 			add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 						${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.h
@@ -204,24 +206,26 @@ if(NOT WIN32)
 
 			if(USE_BUNDLED_GRPC)
 				add_dependencies(sinsp grpc)
+				list(APPEND SINSP_LIBRARIES "${GRPC_LIBRARIES}")
 			endif() # USE_BUNDLED_GRPC
 
-			target_link_libraries(sinsp
+			list(APPEND SINSP_LIBRARIES
 				"${GRPCPP_LIB}"
 				"${GRPC_LIB}"
+				"${GPR_LIB}"
 				"${PROTOBUF_LIB}"
 				"${CARES_LIB}"
 				"${JQ_LIB}"
 				"${B64_LIB}")
 
 			if(NOT MUSL_OPTIMIZED_BUILD)
-			target_link_libraries(sinsp
+				list(APPEND SINSP_LIBRARIES
 				rt
 				anl)
 			endif()
 
 		else()
-			target_link_libraries(sinsp
+			list(APPEND SINSP_LIBRARIES
 				"${JQ_LIB}"
 				"${B64_LIB}"
 				rt)
@@ -229,7 +233,7 @@ if(NOT WIN32)
 		# when JQ is compiled statically, it will
 		# also compile a static object for oniguruma we need to link
 		if(ONIGURUMA_LIB)
-			target_link_libraries(sinsp
+			list(APPEND SINSP_LIBRARIES
 			"${ONIGURUMA_LIB}")
 			add_dependencies(sinsp jq)
 		endif()
@@ -240,28 +244,31 @@ if(NOT WIN32)
 	endif() # NOT APPLE
 
         if(USE_BUNDLED_OPENSSL AND NOT MINIMAL_BUILD)
-		target_link_libraries(sinsp
+		list(APPEND SINSP_LIBRARIES
 			"${OPENSSL_LIBRARY_SSL}"
 			"${OPENSSL_LIBRARY_CRYPTO}")
         else()
-		target_link_libraries(sinsp
+		list(APPEND SINSP_LIBRARIES
                     "${OPENSSL_LIBRARIES}")
         endif()
 
 		if(WITH_CHISEL)
-		target_link_libraries(sinsp
+		list(APPEND SINSP_LIBRARIES
 			"${LUAJIT_LIB}")
 		endif()
 
-		target_link_libraries(sinsp
+		list(APPEND SINSP_LIBRARIES
 			dl
 			pthread)
 else()
 	if(WITH_CHISEL)
-		target_link_libraries(sinsp
+		list(APPEND SINSP_LIBRARIES
 			"${LUAJIT_LIB}")
 	endif()
 endif() # NOT WIN32
+
+
+target_link_libraries(sinsp ${SINSP_LIBRARIES})
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
