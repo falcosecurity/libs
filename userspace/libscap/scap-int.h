@@ -208,6 +208,16 @@ struct scap
 
 	// The return value from the last call to next_batch().
 	ss_plugin_rc m_input_plugin_last_batch_res;
+
+	// API version supported by the probe
+	// If the API version is unavailable for whatever reason,
+	// it's equivalent to version 0.0.0
+	uint64_t m_api_version;
+
+	// schema version supported by the probe
+	// If the schema version is unavailable for whatever reason,
+	// it's equivalent to version 0.0.0
+	uint64_t m_schema_version;
 };
 
 typedef enum ppm_dumper_type

@@ -782,6 +782,12 @@ cleanup_ioctl_procinfo:
 		}
 		ret = 0;
 		goto cleanup_ioctl_nolock;
+	} else if (cmd == PPM_IOCTL_GET_API_VERSION) {
+		ret = PPM_API_CURRENT_VERSION;
+		goto cleanup_ioctl_nolock;
+	} else if (cmd == PPM_IOCTL_GET_SCHEMA_VERSION) {
+		ret = PPM_SCHEMA_CURRENT_VERSION;
+		goto cleanup_ioctl_nolock;
 	}
 
 	mutex_lock(&g_consumer_mutex);
@@ -2632,6 +2638,9 @@ void sysdig_exit(void)
 module_init(sysdig_init);
 module_exit(sysdig_exit);
 MODULE_VERSION(PROBE_VERSION);
+MODULE_INFO(build_commit, PROBE_COMMIT);
+MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
+MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
