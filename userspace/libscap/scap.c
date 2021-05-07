@@ -387,6 +387,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	{
 		int len;
 		uint32_t all_scanned_devs;
+		uint64_t api_version;
+		uint64_t schema_version;
 
 		//
 		// Allocate the device descriptors.
@@ -431,6 +433,67 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				*rc = SCAP_FAILURE;
 				return NULL;
 			}
+
+			// Check the API version reported
+			api_version = ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_API_VERSION, 0);
+			if ((int64_t)api_version < 0)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_API_VERSION");
+				close(handle->m_devs[j].m_fd);
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+			// Make sure all devices report the same API version
+			if (handle->m_api_version != 0 && handle->m_api_version != api_version)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "API version mismatch: device %s reports API version %lu.%lu.%lu, expected %lu.%lu.%lu",
+					filename,
+					PPM_API_VERSION_MAJOR(api_version),
+					PPM_API_VERSION_MINOR(api_version),
+					PPM_API_VERSION_PATCH(api_version),
+					PPM_API_VERSION_MAJOR(handle->m_api_version),
+					PPM_API_VERSION_MINOR(handle->m_api_version),
+					PPM_API_VERSION_PATCH(handle->m_api_version)
+				);
+				close(handle->m_devs[j].m_fd);
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+			// Set the API version from the first device
+			// (for subsequent devices it's a no-op thanks to the check above)
+			handle->m_api_version = api_version;
+
+			// Check the schema version reported
+			schema_version = ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, 0);
+			if ((int64_t)schema_version < 0)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_SCHEMA_VERSION");
+				close(handle->m_devs[j].m_fd);
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+			// Make sure all devices report the same schema version
+			if (handle->m_schema_version != 0 && handle->m_schema_version != schema_version)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "Schema version mismatch: device %s reports schema version %lu.%lu.%lu, expected %lu.%lu.%lu",
+					filename,
+					PPM_API_VERSION_MAJOR(schema_version),
+					PPM_API_VERSION_MINOR(schema_version),
+					PPM_API_VERSION_PATCH(schema_version),
+					PPM_API_VERSION_MAJOR(handle->m_schema_version),
+					PPM_API_VERSION_MINOR(handle->m_schema_version),
+					PPM_API_VERSION_PATCH(handle->m_schema_version)
+				);
+				scap_close(handle);
+				*rc = SCAP_FAILURE;
+				return NULL;
+			}
+			// Set the schema version from the first device
+			// (for subsequent devices it's a no-op thanks to the check above)
+			handle->m_schema_version = schema_version;
 
 			//
 			// Map the ring buffer
@@ -494,6 +557,34 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				}
 			}
 		}
+	}
+
+	if(!scap_is_api_compatible(handle->m_api_version, SCAP_MINIMUM_PROBE_API_VERSION))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "Probe supports API version %lu.%lu.%lu, but running version needs %d.%d.%d",
+			PPM_API_VERSION_MAJOR(handle->m_api_version),
+			PPM_API_VERSION_MINOR(handle->m_api_version),
+			PPM_API_VERSION_PATCH(handle->m_api_version),
+			PPM_API_CURRENT_VERSION_MAJOR,
+			PPM_API_CURRENT_VERSION_MINOR,
+			PPM_API_CURRENT_VERSION_PATCH);
+		*rc = SCAP_FAILURE;
+		scap_close(handle);
+		return NULL;
+	}
+
+	if(!scap_is_api_compatible(handle->m_schema_version, SCAP_MINIMUM_PROBE_SCHEMA_VERSION))
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "Probe supports schema version %lu.%lu.%lu, but running version needs %d.%d.%d",
+			PPM_API_VERSION_MAJOR(handle->m_schema_version),
+			PPM_API_VERSION_MINOR(handle->m_schema_version),
+			PPM_API_VERSION_PATCH(handle->m_schema_version),
+			PPM_SCHEMA_CURRENT_VERSION_MAJOR,
+			PPM_SCHEMA_CURRENT_VERSION_MINOR,
+			PPM_SCHEMA_CURRENT_VERSION_PATCH);
+		*rc = SCAP_FAILURE;
+		scap_close(handle);
+		return NULL;
 	}
 
 	for(j = 0; j < handle->m_ndevs; ++j)
@@ -2968,4 +3059,43 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 
 	return SCAP_SUCCESS;
 #endif
+}
+
+bool scap_is_api_compatible(unsigned long probe_api_version, unsigned long required_api_version)
+{
+	unsigned long probe_major = PPM_API_VERSION_MAJOR(probe_api_version);
+	unsigned long probe_minor = PPM_API_VERSION_MINOR(probe_api_version);
+	unsigned long probe_patch = PPM_API_VERSION_PATCH(probe_api_version);
+	unsigned long required_major = PPM_API_VERSION_MAJOR(required_api_version);
+	unsigned long required_minor = PPM_API_VERSION_MINOR(required_api_version);
+	unsigned long required_patch = PPM_API_VERSION_PATCH(required_api_version);
+
+	if(probe_major != required_major)
+	{
+		// major numbers disagree
+		return false;
+	}
+
+	if(probe_minor < required_minor)
+	{
+		// probe's minor version is < ours
+		return false;
+	}
+	if(probe_minor == required_minor && probe_patch < required_patch)
+	{
+		// probe's minor versions match and patch level is < ours
+		return false;
+	}
+
+	return true;
+}
+
+uint64_t scap_get_probe_api_version(scap_t* handle)
+{
+	return handle->m_api_version;
+}
+
+uint64_t scap_get_probe_schema_version(scap_t* handle)
+{
+	return handle->m_schema_version;
 }

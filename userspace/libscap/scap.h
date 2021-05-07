@@ -59,6 +59,7 @@ struct iovec;
 #include <time.h>
 #include "uthash.h"
 #include "../common/types.h"
+#include "../../driver/ppm_api_version.h"
 #include "../../driver/ppm_events_public.h"
 #ifdef _WIN32
 #include <time.h>
@@ -66,6 +67,23 @@ struct iovec;
 #endif
 
 #include "plugin_info.h"
+
+//
+// The minimum API and schema versions the probe has to support before we can use it
+//
+// The reason to increment these would be a bug in the probe that userspace
+// cannot or does not want to work around.
+//
+// Note: adding new events or event fields should not need a version bump
+// here, since libscap has to suport old event formats anyway (for capture
+// files).
+//
+// If a consumer relies on events or APIs added in a new version, it should
+// call `scap_get_probe_api_version()` and/or `scap_get_probe_schema_version()`
+// and handle the result
+//
+#define SCAP_MINIMUM_PROBE_API_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_PROBE_SCHEMA_VERSION PPM_API_VERSION(1, 0, 0)
 
 //
 // Return types
@@ -1120,6 +1138,21 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
  * get the expanded snaplen for the correct port.
  */
 int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
+
+/**
+ * Is `probe_api_version` compatible with `required_api_version`?
+ */
+bool scap_is_api_compatible(unsigned long probe_api_version, unsigned long required_api_version);
+
+/**
+ * Get API version supported by the probe
+ */
+uint64_t scap_get_probe_api_version(scap_t* handle);
+
+/**
+ * Get schema version supported by the probe
+ */
+uint64_t scap_get_probe_schema_version(scap_t* handle);
 
 #ifdef __cplusplus
 }
