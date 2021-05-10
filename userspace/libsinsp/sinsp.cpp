@@ -1947,6 +1947,15 @@ double sinsp::get_read_progress()
 	return (double)fpos * 100 / m_filesize;
 }
 
+void sinsp::set_metadata_download_params(uint32_t data_max_mb,
+	uint32_t data_chunk_wait_us,
+	uint32_t data_watch_freq_sec)
+{
+	m_metadata_download_params.m_data_max_mb = data_max_mb;
+	m_metadata_download_params.m_data_chunk_wait_us = data_chunk_wait_us;
+	m_metadata_download_params.m_data_watch_freq_sec = data_watch_freq_sec;
+}
+
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
@@ -2104,7 +2113,8 @@ void sinsp::collect_k8s()
 			}
 			if(m_k8s_client)
 			{
-				if(m_lastevent_ts > m_k8s_last_watch_time_ns + ONE_SECOND_IN_NS)
+				if(m_lastevent_ts >
+					m_k8s_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
 				{
 					m_k8s_last_watch_time_ns = m_lastevent_ts;
 					g_logger.log("K8s updating state ...", sinsp_logger::SEV_DEBUG);
@@ -2210,7 +2220,9 @@ void sinsp::update_k8s_state()
 					}
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 										    "/api", ".versions", "1.1",
-										    m_k8s_ssl, m_k8s_bt, true));
+										    m_k8s_ssl, m_k8s_bt, true,
+										    m_metadata_download_params.m_data_max_mb,
+										    m_metadata_download_params.m_data_chunk_wait_us));
 				}
 				else
 				{
@@ -2295,7 +2307,8 @@ bool sinsp::get_mesos_data()
 void sinsp::update_mesos_state()
 {
 	ASSERT(m_mesos_client);
-	if(m_lastevent_ts > m_mesos_last_watch_time_ns + ONE_SECOND_IN_NS)
+	if(m_lastevent_ts >
+		m_mesos_last_watch_time_ns + (m_metadata_download_params.m_data_watch_freq_sec * ONE_SECOND_IN_NS))
 	{
 		m_mesos_last_watch_time_ns = m_lastevent_ts;
 		if(m_mesos_client->is_alive())
