@@ -144,6 +144,22 @@ public:
 	uint32_t m_flags;
 };
 
+#define K8S_DATA_MAX_MB 100 * 1024 * 1024
+#define K8S_DATA_CHUNK_WAIT_US 1000
+#define METADATA_DATA_WATCH_FREQ_SEC 1
+
+/*!
+  \brief Parameters to configure the download behavior when connected to an
+  orchestrator like Kubernetes or mesos.
+*/
+class metadata_download_params
+{
+public:
+	uint32_t m_data_max_mb = K8S_DATA_MAX_MB;
+	uint32_t m_data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US;
+	uint32_t m_data_watch_freq_sec = METADATA_DATA_WATCH_FREQ_SEC;
+};
+
 /*!
   \brief The default way an event is converted to string by the library
 */
@@ -770,6 +786,15 @@ public:
 		}
 	}
 
+	/*!
+	  \brief Se the parameters that control metadata fetching from orchestrators
+	  like Kuberneted and mesos.
+	*/
+	void set_metadata_download_params(uint32_t data_max_mb,
+		uint32_t data_chunk_wait_us,
+		uint32_t data_watch_freq_sec);
+
+
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void init_k8s_ssl(const std::string *ssl_cert);
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
@@ -1001,6 +1026,8 @@ public:
 	sinsp_thread_manager* m_thread_manager;
 
 	sinsp_container_manager m_container_manager;
+
+	metadata_download_params m_metadata_download_params;
 
 	//
 	// Kubernetes

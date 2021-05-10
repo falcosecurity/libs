@@ -82,7 +82,9 @@ public:
 		bool keep_alive = true,
 		bool blocking = false,
 		unsigned data_limit = 524288u,
-		bool fetching_state = true): m_obj(obj),
+		bool fetching_state = true,
+		uint32_t data_max_mb = K8S_DATA_MAX_MB,
+		uint32_t data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US): m_obj(obj),
 			m_id(id),
 			m_url(url),
 			m_keep_alive(keep_alive ? std::string("Connection: keep-alive\r\n") : std::string()),
@@ -94,7 +96,9 @@ public:
 			m_request(make_request(url, http_version)),
 			m_http_version(http_version),
 			m_data_limit(data_limit),
-			m_fetching_state(fetching_state)
+			m_fetching_state(fetching_state),
+			m_data_max_mb(data_max_mb),
+			m_data_chunk_wait_us(data_chunk_wait_us)
 
 	{
 		g_logger.log(std::string("Creating Socket handler object for (" + id + ") "
@@ -354,7 +358,7 @@ public:
 		ssize_t rec = 0;
 		std::vector<char> buf(1024, 0);
 		int counter = 0;
-		int processed = 0;
+		uint32_t processed = 0;
 		init_http_parser();
 		do
 		{
@@ -374,7 +378,7 @@ public:
 				if(rec > 0)
 				{
 					process(&buf[0], rec, false);
-					processed += rec;
+					processed += (uint32_t)rec;
 				}
 				else if(rec == 0)
 				{
@@ -388,16 +392,16 @@ public:
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
 
-                        // To prevent reads from entirely stalling (like in gigantic k8s
-                        // environments), give up after reading 30mb.
+			// To prevent reads from entirely stalling (like in gigantic k8s
+			// environments), give up after reading 30mb.
 			++counter;
-			if(processed > 30 * 1024 * 1024)
+			if(processed > m_data_max_mb)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
 						      "read more than 30MB of data from " + m_url.to_string(false) + m_path +
 						      " (" + std::to_string(processed) + " bytes, " + std::to_string(counter) + " reads). Giving up");
 			}
-			else { usleep(10000); }
+			else { usleep(m_data_chunk_wait_us); }
 		} while(!m_msg_completed);
 		init_http_parser();
 		return processed;
@@ -1628,6 +1632,10 @@ private:
 	// request for this handler is completed, at which point all newlines are purged
 	// from the string and the purged buffer is posted for further processing
 	bool                     m_fetching_state = true;
+
+	uint32_t m_data_max_mb;
+	uint32_t m_data_chunk_wait_us;
+
 };
 
 template <typename T>

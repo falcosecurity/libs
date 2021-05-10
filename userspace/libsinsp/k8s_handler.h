@@ -69,7 +69,9 @@ public:
 		bool blocking_socket = false,
 #endif // HAS_CAPTURE
 		unsigned max_messages = ~0,
-		k8s_state_t* state = nullptr);
+		k8s_state_t* state = nullptr,
+		uint32_t data_max_mb = K8S_DATA_MAX_MB,
+		uint32_t data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US);
 
 	virtual ~k8s_handler();
 
