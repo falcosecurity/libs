@@ -27,13 +27,12 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 		" 4. Run cmake from the build directory. ex: cmake ..\n"
 		" 5. Run make from the build directory. ex: make\n"
 		"Full paste-able example:\n"
-		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )\n"
-		"The following wiki page has more information on manually building sysdig: http://bit.ly/1oJ84UI")
+		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )")
 endif()
 
 cmake_minimum_required(VERSION 2.8.2)
 
-project(sysdig)
+project(falcosecurity-libs)
 
 option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
@@ -42,15 +41,15 @@ option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-if(NOT DEFINED SYSDIG_VERSION)
-	set(SYSDIG_VERSION "0.1.1dev")
+if(NOT DEFINED FALCOSECURITY_LIBS_VERSION)
+	set(FALCOSECURITY_LIBS_VERSION "0.1.1dev")
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(PACKAGE_NAME "sysdig")
+set(PACKAGE_NAME "libs")
 
 include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
