@@ -22,5 +22,4 @@ driver/driver_config.h
 *.ll
 .vscode
 .cache.mk
-build-*
-
+build*
