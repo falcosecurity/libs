@@ -12,8 +12,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -60,6 +60,8 @@ struct bpf_map_data {
 static const int BUF_SIZE_PAGES = 2048;
 
 static const int BPF_LOG_SIZE = 1 << 18;
+
+static char* license;
 
 #define FILLER_NAME_FN(x) #x,
 static const char *g_filler_names[PPM_FILLER_MAX] = {
@@ -152,6 +154,7 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	attr.prog_type = type;
 	attr.insn_cnt = (uint32_t) insns_cnt;
 	attr.insns = (unsigned long) insns;
+	attr.license = (unsigned long) license;
 	attr.log_buf = (unsigned long) NULL;
 	attr.log_size = 0;
 	attr.log_level = 0;
@@ -613,6 +616,11 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 					 (char *) data->d_buf, PROBE_VERSION);
 				goto cleanup;
 			}
+		}
+		else if(strcmp(shname, "license") == 0)
+		{
+			license = data->d_buf;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
 		}
 	}
 
