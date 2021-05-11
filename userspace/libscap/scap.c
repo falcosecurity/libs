@@ -56,8 +56,6 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
-static const char *SYSDIG_BPF_PROBE_ENV = "FALCO_BPF_PROBE";
-
 //
 // Probe version string size
 //
@@ -197,7 +195,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// While in theory we could always rely on the scap caller to properly
 	// set a BPF probe from the environment variable, it's in practice easier
 	// to do one more check here in scap so we don't have to repeat the logic
-	// in all the possible users of the libraries (sysdig, csysdig, dragent, ...)
+	// in all the possible users of the libraries
 	//
 	if(!bpf_probe)
 	{
@@ -220,7 +218,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				return NULL;
 			}
 
-			snprintf(buf, sizeof(buf), "%s/.falco/%s-bpf.o", home, PROBE_NAME);
+			snprintf(buf, sizeof(buf), "%s/.%s/%s-bpf.o", home, PROBE_DEVICE_NAME, PROBE_NAME);
 			bpf_probe = buf;
 		}
 	}
@@ -380,7 +378,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many Falco instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many consumers attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
@@ -471,7 +469,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	}
 
 	//
-	// Now that sysdig has done all its /proc parsing, start the capture
+	// Now that /proc parsing has been done, start the capture
 	//
 	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
 	{
@@ -676,7 +674,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	}
 
 	//
-	// Now that sysdig has done all its /proc parsing, start the capture
+	// Now that /proc parsing has been done, start the capture
 	//
 	if(udig_begin_capture(handle, error) != SCAP_SUCCESS)
 	{
@@ -2509,7 +2507,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 
 const char* scap_get_host_root()
 {
-	char* p = getenv("HOST_ROOT");
+	char* p = getenv(SCAP_HOST_ROOT_ENV_VAR_NAME);
 	static char env_str[SCAP_MAX_PATH_SIZE + 1];
 	static bool inited = false;
 	if (! inited) {
@@ -2710,7 +2708,7 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 
 const char *scap_get_bpf_probe_from_env()
 {
-	return getenv(SYSDIG_BPF_PROBE_ENV);
+	return getenv(PROBE_ENV_VAR_NAME);
 }
 
 bool scap_get_bpf_enabled(scap_t *handle)
