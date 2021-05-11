@@ -56,7 +56,7 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
-static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
+static const char *SYSDIG_BPF_PROBE_ENV = "FALCO_BPF_PROBE";
 
 //
 // Probe version string size
@@ -146,7 +146,7 @@ static uint32_t get_max_consumers()
 {
 #ifndef _WIN32
 	uint32_t max;
-	FILE *pfile = fopen("/sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers", "r");
+	FILE *pfile = fopen("/sys/module/" PROBE_DEVICE_NAME "/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
 		int w = fscanf(pfile, "%"PRIu32, &max);
@@ -220,7 +220,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				return NULL;
 			}
 
-			snprintf(buf, sizeof(buf), "%s/.sysdig/%s-bpf.o", home, PROBE_NAME);
+			snprintf(buf, sizeof(buf), "%s/.falco/%s-bpf.o", home, PROBE_NAME);
 			bpf_probe = buf;
 		}
 	}
@@ -380,7 +380,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many sysdig instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "_probe/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many Falco instances attached to device %s. Current value for /sys/module/" PROBE_DEVICE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
@@ -2509,7 +2509,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 
 const char* scap_get_host_root()
 {
-	char* p = getenv("SYSDIG_HOST_ROOT");
+	char* p = getenv("HOST_ROOT");
 	static char env_str[SCAP_MAX_PATH_SIZE + 1];
 	static bool inited = false;
 	if (! inited) {
