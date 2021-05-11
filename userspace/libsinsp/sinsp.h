@@ -144,10 +144,6 @@ public:
 	uint32_t m_flags;
 };
 
-#define K8S_DATA_MAX_MB 100 * 1024 * 1024
-#define K8S_DATA_CHUNK_WAIT_US 1000
-#define METADATA_DATA_WATCH_FREQ_SEC 1
-
 /*!
   \brief Parameters to configure the download behavior when connected to an
   orchestrator like Kubernetes or mesos.
