@@ -33,7 +33,9 @@ limitations under the License.
 
 extern sinsp_filter_check_list g_filterlist;
 
-#define ENSURE_PLUGIN_EXPORT(_fn) if(m_source_info._fn == NULL) throw sinsp_exception("invalid source plugin " + filename + ": '" #_fn "' export missing");
+#define ENSURE_PLUGIN_EXPORT(_fn)     \
+	if(m_source_info._fn == NULL) \
+		throw sinsp_exception("'" #_fn "' export missing");
 
 ///////////////////////////////////////////////////////////////////////////////
 // source_plugin filter check implementation
@@ -299,7 +301,7 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_source_plugin implementation
+// sinsp_plugin implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_plugin::sinsp_plugin(sinsp* inspector)
 {
@@ -347,7 +349,7 @@ void sinsp_plugin::validate_plugin_version(ss_plugin_info* plugin_info)
 }
 
 // Returns true if the plugin is allocating a thread for high speed async extraction
-bool sinsp_plugin::configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async)
+bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avoid_async)
 {
 	int32_t init_res = SCAP_FAILURE;
 
@@ -547,16 +549,16 @@ void* sinsp_plugin::getsym(void* handle, const char* name)
 //
 // Polulate a source_plugin_info struct with the symbols coming from a dynamic library
 //
-bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error)
+bool sinsp_plugin::create_dynlib_source(string filepath, OUT ss_plugin_info* info, OUT string* error)
 {
 #ifdef _WIN32
-	HINSTANCE handle = LoadLibrary(libname.c_str());
+	HINSTANCE handle = LoadLibrary(filepath.c_str());
 #else
-	void* handle = dlopen(libname.c_str(), RTLD_LAZY);
+	void* handle = dlopen(filepath.c_str(), RTLD_LAZY);
 #endif
 	if(handle == NULL)
 	{
-		*error = "error loading plugin " + libname + ": " + strerror(errno);
+		*error = "error loading plugin " + filepath + ": " + strerror(errno);
 		return false;
 	}
 
@@ -582,16 +584,22 @@ bool sinsp_plugin::create_dynlib_source(string libname, OUT ss_plugin_info* info
 	return true;
 }
 
-void sinsp_plugin::register_source_plugin(sinsp* inspector, string filepath)
+void sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* config)
 {
 	ss_plugin_info si;
 	string error;
 
 	if(create_dynlib_source(filepath, &si, &error) == false)
 	{
-		// fixme: return error instead of printing here
-		fprintf(stderr, "warning: cannot load plugin %s: %s\n", filepath, error.c_str());
+		throw sinsp_exception("cannot load plugin " + filepath + ": " + error.c_str());
 	}
 
-	inspector->add_plugin(filepath, &si, NULL);
+	try
+	{
+		inspector->add_plugin(&si, config);
+	}
+	catch(sinsp_exception const& e)
+	{
+		throw sinsp_exception("cannot load plugin " + filepath + ": " + e.what());
+	}
 }

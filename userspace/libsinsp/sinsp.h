@@ -896,7 +896,7 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	sinsp_plugin* add_plugin(string filename, ss_plugin_info* src_plugin, char* config);
+	sinsp_plugin* add_plugin(ss_plugin_info* src_plugin, char* config);
 	void set_input_plugin(string plugin_name);
 	void set_input_plugin_open_params(string params);
 	vector<sinsp_plugin*>* get_plugins();

@@ -137,10 +137,10 @@ class sinsp_plugin
 public:
 	sinsp_plugin(sinsp* inspector);
 	~sinsp_plugin();
-	bool configure(string filename, ss_plugin_info* plugin_info, char* config, bool avoid_async);
+	bool configure(ss_plugin_info* plugin_info, char* config, bool avoid_async);
 	uint32_t get_id();
 	ss_plugin_type get_type();
-	static void register_source_plugin(sinsp* inspector, string filepath);
+	static void register_plugin(sinsp* inspector, string filepath, char* config);
 	static void list_plugins(sinsp* inspector);
 	static void validate_plugin_version(ss_plugin_info* plugin_info);
 
@@ -148,7 +148,7 @@ public:
 
 private:
 	static void* getsym(void* handle, const char* name);
-	static bool create_dynlib_source(string libname, OUT ss_plugin_info* info, OUT string* error);
+	static bool create_dynlib_source(string filepath, OUT ss_plugin_info* info, OUT string* error);
 
 	sinsp* m_inspector;
 	uint32_t m_id;
