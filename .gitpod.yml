@@ -1,0 +1,17 @@
+image: gitpod/workspace-full
+checkoutLocation: falco-libs
+tasks:
+  - name: kernel dev environment
+    init: |
+      sudo apt update -y
+      sudo apt install gcc flex bison libelf-dev qemu qemu-system-x86 linux-image-$(uname -r) libguestfs-tools clang llvm -y
+      .gitpod/prepare-kernel.sh 5.13-rc3
+      .gitpod/prepare-rootfs.sh
+    command: |
+      .gitpod/qemu.sh 5.13-rc3
+vscode:
+  extensions:
+    - twxs.cmake
+    - eamodio.gitlens
+    - zxh404.vscode-proto3
+    - llvm-vs-code-extensions.vscode-clangd
