@@ -125,6 +125,9 @@ else()
 				-DZLIB_ROOT:STRING=${ZLIB_SRC}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GPR_LIB} ${GRPC_LIBRARIES}
+			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
+			# since here is the case when we are embedding gRPC
+			INSTALL_COMMAND DESTDIR= ${CMD_MAKE} install
 		)
 	endif()
 endif()
