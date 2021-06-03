@@ -18,6 +18,7 @@ limitations under the License.
 #include "sinsp.h"
 
 #include "container_engine/static_container.h"
+#include <iostream>
 
 using namespace libsinsp::container_engine;
 
@@ -32,6 +33,19 @@ static_container::static_container(container_cache_interface& cache,
 	m_static_container_info->m_type = CT_STATIC;
 	m_static_container_info->m_name = name;
 	m_static_container_info->m_image = image;
+
+	// we don't care about these, so make dummies to
+	// dump them on the floor
+	std::string hostname;
+	std::string port;
+	sinsp_utils::split_container_image(m_static_container_info->m_image,
+									   hostname,
+									   port,
+									   m_static_container_info->m_imagerepo,
+									   m_static_container_info->m_imagetag,
+									   m_static_container_info->m_imagedigest,
+									   false);
+
 
 	cache.add_container(m_static_container_info, nullptr);
 }
