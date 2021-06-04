@@ -38,12 +38,16 @@ k8s::k8s(const std::string& uri, bool is_captured,
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter,
 		ext_list_ptr_t extensions,
-		bool events_only) :
+		bool events_only
+#ifdef HAS_CAPTURE
+		,const std::string& node_selector
+#endif // HAS_CAPTURE
+		) :
 		m_state(is_captured),
 		m_event_filter(event_filter)
 #ifdef HAS_CAPTURE
 		,m_net(uri.empty() ?
-			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, event_filter, block))
+			   nullptr : new k8s_net(*this, m_state, uri, ssl, bt, event_filter, block, node_selector))
 #endif
 {
 	g_logger.log(std::string("Creating K8s object for [" +

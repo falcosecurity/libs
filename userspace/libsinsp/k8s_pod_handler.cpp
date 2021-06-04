@@ -86,11 +86,14 @@ k8s_pod_handler::k8s_pod_handler(k8s_state_t& state
 	,bt_ptr_t bt
 	,bool connect
 	,bool blocking_socket
+	,std::string node_selector
 #endif // HAS_CAPTURE
 	):
 		k8s_handler("k8s_pod_handler", true,
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-					url, "/api/v1/pods?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded",
+					url, 
+					"/api/v1/pods?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded"
+					+ (node_selector.size() == 0 ? "" : ",spec.nodeName=" + node_selector),
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
