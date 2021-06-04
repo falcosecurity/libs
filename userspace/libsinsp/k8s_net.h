@@ -50,7 +50,8 @@ public:
 		ssl_ptr_t ssl = nullptr,
 		bt_ptr_t bt = nullptr,
 		filter_ptr_t event_filter = nullptr,
-		bool blocking_sockets = false);
+		bool blocking_sockets = false,
+		const std::string& node_selector = "");
 
 	~k8s_net();
 
@@ -58,7 +59,7 @@ public:
 									 handler_ptr_t dep = std::make_shared<k8s_dummy_handler>(),
 									 collector_ptr_t collector = nullptr, const std::string& urlstr = "",
 									 ssl_ptr_t ssl = nullptr, bt_ptr_t bt = nullptr, bool blocking = false,
-									 filter_ptr_t event_filter = nullptr);
+									 filter_ptr_t event_filter = nullptr, const std::string& node_selector = "");
 	void add_handler(const k8s_component::type_map::value_type& component);
 	bool has_handler(const k8s_component::type_map::value_type& component);
 	bool has_dependency(const k8s_component::type_map::value_type& component);
@@ -96,6 +97,7 @@ private:
 	bool            m_blocking_sockets = false;
 	filter_ptr_t    m_event_filter;
 	std::string     m_machine_id;
+	std::string     m_node_selector;
 };
 
 inline bool k8s_net::is_secure()

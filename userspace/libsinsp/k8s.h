@@ -53,7 +53,11 @@ public:
 #endif // HAS_CAPTURE
 		filter_ptr_t event_filter = nullptr,
 		ext_list_ptr_t extensions = nullptr,
-		bool events_only = false);
+		bool events_only = false
+#ifdef HAS_CAPTURE
+		,const std::string& node_selector = ""
+#endif // HAS_CAPTURE
+		);
 
 	~k8s();
 
