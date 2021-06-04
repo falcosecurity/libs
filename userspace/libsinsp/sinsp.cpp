@@ -2059,16 +2059,20 @@ void sinsp::make_k8s_client()
 #else
 		,nullptr
 #endif // HAS_CAPTURE
+		,false // events_only
+#ifdef HAS_CAPTURE
+		,m_k8s_node_name ? *m_k8s_node_name : std::string() // node_selector
+#endif // HAS_CAPTURE
 	);
 }
 
-void sinsp::init_k8s_client(string* api_server, string* ssl_cert, bool verbose)
+void sinsp::init_k8s_client(string* api_server, string* ssl_cert, string* node_name, bool verbose)
 {
 	ASSERT(api_server);
 	m_verbose_json = verbose;
 	m_k8s_api_server = api_server;
 	m_k8s_api_cert = ssl_cert;
-
+	m_k8s_node_name = node_name;
 
 #ifdef HAS_CAPTURE
 	if(m_k8s_api_detected && m_k8s_ext_detect_done)
@@ -2092,7 +2096,7 @@ void sinsp::collect_k8s()
 		{
 			if(!m_k8s_client)
 			{
-				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_verbose_json);
+				init_k8s_client(m_k8s_api_server, m_k8s_api_cert, m_k8s_node_name, m_verbose_json);
 				if(m_k8s_client)
 				{
 					g_logger.log("K8s client created.", sinsp_logger::SEV_DEBUG);

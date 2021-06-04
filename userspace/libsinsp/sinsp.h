@@ -772,7 +772,15 @@ public:
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void init_k8s_ssl(const std::string *ssl_cert);
-	void init_k8s_client(std::string* api_server, std::string* ssl_cert, bool verbose = false);
+
+	/*!
+	  \brief Initialize the Kubernetes client.
+	  \param api_server Kubernetes API server URI
+	  \param ssl_cert use the provided file name to authenticate with the Kubernetes API server
+	  \param node_name the node name is used as a filter when requesting metadata of pods 
+	  to the API server; if empty, no filter is set
+	*/
+	void init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string *node_name, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
 
@@ -1008,6 +1016,7 @@ public:
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
+	std::string* m_k8s_node_name;
 #ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
