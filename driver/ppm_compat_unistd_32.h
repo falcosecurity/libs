@@ -355,6 +355,7 @@
 #define __NR_ia32_process_vm_readv	347
 #define __NR_ia32_process_vm_writev	348
 #define __NR_ia32_renameat2 349
+#define __NR_ia32_userfaultfd 350
 
 #ifdef __KERNEL__
 
