@@ -174,6 +174,13 @@ struct scap
 	// The number of events that were skipped due to the comm
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
+
+	// /proc scan parameters
+	uint64_t m_proc_scan_timeout_ms;
+	uint64_t m_proc_scan_log_interval_ms;
+
+	// Function which may be called to log a debug event
+	void(*m_debug_log_fn)(const char* msg);
 };
 
 typedef enum ppm_dumper_type
@@ -258,7 +265,7 @@ void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // Read an event from disk
 int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the file descriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
+int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
 // read tcp or udp sockets from the proc filesystem
 int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
