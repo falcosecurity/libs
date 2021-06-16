@@ -89,6 +89,9 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+	handle->m_debug_log_fn = oargs->debug_log_fn;
 	//
 	// Extract machine information
 	//
@@ -204,6 +207,9 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+	handle->m_debug_log_fn = oargs->debug_log_fn;
 	handle->m_vtable = &scap_udig_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
@@ -347,6 +353,10 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
 	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -415,6 +425,10 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
 	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -446,7 +460,7 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
+	handle = (scap_t*)calloc(sizeof(scap_t), 1);
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
@@ -502,7 +516,10 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 			       proc_entry_callback proc_callback,
 			       void* proc_callback_context,
-			       bool import_users)
+			       bool import_users,
+			       void(*debug_log_fn)(const char* msg),
+			       uint64_t proc_scan_timeout_ms,
+			       uint64_t proc_scan_log_interval_ms)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -519,7 +536,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
+	handle = (scap_t*)calloc(sizeof(scap_t), 1);
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
@@ -545,6 +562,10 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	handle->m_proclist.m_proc_callback = proc_callback;
 	handle->m_proclist.m_proc_callback_context = proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
+
+	handle->m_debug_log_fn = debug_log_fn;
+	handle->m_proc_scan_timeout_ms = proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = proc_scan_log_interval_ms;
 
 	//
 	// Extract machine information
@@ -639,6 +660,10 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 	handle->m_proclist.m_proc_callback_context = NULL;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
 	//
 	// Extract machine information
 	//
@@ -722,7 +747,10 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
-					      oargs->import_users);
+					      oargs->import_users,
+						  oargs->debug_log_fn,
+						  oargs->proc_scan_timeout_ms,
+						  oargs->proc_scan_log_interval_ms);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN

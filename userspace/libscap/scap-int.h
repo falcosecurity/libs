@@ -74,6 +74,13 @@ struct scap
 	// If the schema version is unavailable for whatever reason,
 	// it's equivalent to version 0.0.0
 	uint64_t m_schema_version;
+
+	// /proc scan parameters
+	uint64_t m_proc_scan_timeout_ms;
+	uint64_t m_proc_scan_log_interval_ms;
+
+	// Function which may be called to log a debug event
+	void(*m_debug_log_fn)(const char* msg);
 };
 
 typedef enum ppm_dumper_type
@@ -137,7 +144,7 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinf
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // read the file descriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
+int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
 int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
