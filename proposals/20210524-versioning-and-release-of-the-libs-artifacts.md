@@ -32,6 +32,7 @@ This proposal intends to extend on points 10-12 for the libsinsp and libscap pla
 ## Non-Goals
 
 - Define the artifacts
+  - They have already been defined within the [Contribution Proposal](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md) (see points 8-9)
 - Define the release process cadence
 - Change the way the Falco drivers (kernel module and eBPF probe) artifacts are shipped
 
