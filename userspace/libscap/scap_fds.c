@@ -1881,7 +1881,7 @@ char * decode_st_mode(struct stat* sb)
 //
 // Scan the directory containing the fd's of a proc /proc/x/fd
 //
-int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, char *error)
+int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, uint64_t* num_fds_ret, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -1895,6 +1895,11 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	uint64_t net_ns;
 	ssize_t r;
 	uint16_t fd_added = 0;
+
+	if (num_fds_ret != NULL)
+	{
+		*num_fds_ret = 0;
+	}
 
 	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
@@ -2019,6 +2024,12 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		}
 	}
 	closedir(dir_p);
+
+	if (num_fds_ret != NULL)
+	{
+		*num_fds_ret = fd_added;
+	}
+
 	return res;
 }
 
