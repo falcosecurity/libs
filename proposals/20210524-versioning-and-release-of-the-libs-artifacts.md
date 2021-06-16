@@ -93,6 +93,4 @@ Its goals are:
 
 Once merged in, this pull request will automatically build the new prebuilt Falco driver artifacts for the current `falcosecurity/libs` version (eg., `0.y.z`) and deploy them to <https://download.falco.org/?prefix=driver/0.y.z>
 
-12. Edit the Falco build system to make it able to link against a system libsinp
-
-13. Write down the release process steps in a RELEASE.md file
+12. Write down the release process steps in a RELEASE.md file
