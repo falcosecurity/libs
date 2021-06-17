@@ -19,7 +19,7 @@ endif()
 include(b64)
 include(jq)
 
-set(LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/libsinsp ${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_DIR})
+set(LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/libsinsp ${LIBSINSP_DIR}/common ${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_DIR})
 if(WITH_CHISEL)
 	list(APPEND LIBSINSP_INCLUDE_DIRS ${LIBSINSP_DIR}/userspace/chisel)
 endif()
