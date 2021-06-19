@@ -89,6 +89,10 @@ using namespace std;
 
 #define ONE_SECOND_IN_NS 1000000000LL
 
+#ifdef _WIN32
+#define NOCURSESUI
+#endif
+
 #include "tuples.h"
 #include "fdinfo.h"
 #include "threadinfo.h"
