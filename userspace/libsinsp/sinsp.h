@@ -112,8 +112,6 @@ class k8s;
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class sinsp_partial_tracer;
 class mesos;
-class sinsp_plugin;
-class sinsp_plugin_evt_processor;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -606,14 +604,6 @@ public:
 	}
 
 	/*!
-	  \brief Returns true if the current capture has a plugin producing events
-	*/
-	inline bool is_plugin()
-	{
-		return m_mode == SCAP_MODE_PLUGIN;
-	}
-
-	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
 	inline bool large_envs_enabled()
@@ -763,17 +753,10 @@ public:
 	void unset_eventmask(uint32_t event_id);
 
 	/*!
-	  \brief When reading events from a trace file or a plugin, this function 
-	   returns the read progress as a number between 0 and 100.
+	        \brief When reading events from a trace file, this function returns the
+		       read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
-
-	/*!
-	  \brief When reading events from a trace file or a plugin, this function 
-	   returns the read progress as a number and as a string, giving the plugins 
-	   flexibility on the format.
-	*/
-	double get_read_progress_with_str(OUT string* progress_str);
 
 	/*!
 	  \brief Make the amount of data gathered for a syscall to be
@@ -900,18 +883,8 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	sinsp_plugin* add_plugin(ss_plugin_info* src_plugin, char* config);
-	void set_input_plugin(string plugin_name);
-	void set_input_plugin_open_params(string params);
-	vector<sinsp_plugin*>* get_plugins();
-	sinsp_plugin* get_source_plugin_by_id(uint32_t plugin_id);
-	sinsp_plugin_evt_processor* get_plugin_evt_processor()
-	{
-		return m_plugin_evt_processor;
-	}
-
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
-	
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -981,13 +954,10 @@ private:
 		       m_increased_snaplen_port_range.range_end > 0;
 	}
 
-	double get_read_progress_file();
-	void get_read_progress_plugin(OUT double* nres, string* sres);
-
 	void get_procs_cpu_from_driver(uint64_t ts);
 
 	scap_t* m_h;
-	uint64_t m_nevts;
+	uint32_t m_nevts;
 	int64_t m_filesize;
 
 	scap_mode_t m_mode = SCAP_MODE_NONE;
@@ -1015,7 +985,6 @@ private:
 	uint64_t m_lastevent_ts;
 	// the parsing engine
 	sinsp_parser* m_parser;
-	sinsp_plugin_evt_processor* m_plugin_evt_processor;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
 	bool m_is_dumping;
@@ -1195,27 +1164,6 @@ public:
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
 	std::set<std::string> m_suppressed_comms;
-
-	//
-	// List of the sinsp/scap plugins configured by the user, indexed by
-	// plugin id.
-	//
-	vector<sinsp_plugin*> m_plugins_list;
-	//
-	// Count of plugins that are using a full CPU to accelerate field 
-	// extraction. We want this to be lower than the number of available CPUs.
-	//
-	uint32_t m_n_async_plugin_extractors;
-	//
-	// The ID of the plugin to use as event input, or zero
-	// if no source plugin should be used as source
-	//
-	sinsp_plugin* m_input_plugin;
-	//
-	// String with the parameters for the plugin to be used as input.
-	// These parameters will be passed to the open function of the plugin.
-	//
-	string m_input_plugin_open_params;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

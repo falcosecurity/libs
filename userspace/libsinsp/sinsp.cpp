@@ -35,9 +35,6 @@ limitations under the License.
 #include "cyclewriter.h"
 #include "protodecoder.h"
 #include "dns_manager.h"
-#include "plugin.h"
-#include "plugin_evt_processor.h"
-
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
@@ -78,14 +75,12 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif
 	m_h = NULL;
 	m_parser = NULL;
-	m_plugin_evt_processor = NULL;
 	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
-	m_plugin_evt_processor = new sinsp_plugin_evt_processor(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -167,9 +162,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
-
-	m_input_plugin = NULL;
-	m_n_async_plugin_extractors = 0;
 }
 
 sinsp::~sinsp()
@@ -185,12 +177,6 @@ sinsp::~sinsp()
 	{
 		delete m_parser;
 		m_parser = NULL;
-	}
-
-	if(m_plugin_evt_processor)
-	{
-		delete m_plugin_evt_processor;
-		m_plugin_evt_processor = NULL;
 	}
 
 	if(m_thread_manager)
@@ -223,11 +209,6 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
-
-	for(auto it : m_plugins_list)
-	{
-		delete it;
-	}
 }
 
 void sinsp::add_protodecoders()
@@ -501,18 +482,6 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	}
 
 	add_suppressed_comms(oargs);
-
-	//
-	// If a plugin was configured, pass it to scap and set the capture mode to
-	// SCAP_MODE_PLUGIN.
-	//
-	if(m_input_plugin != NULL)
-	{
-		oargs.input_plugin = &(m_input_plugin->m_source_info);
-		oargs.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
-		m_mode = SCAP_MODE_PLUGIN;
-		oargs.mode = SCAP_MODE_PLUGIN;
-	}
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -1130,9 +1099,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-	bool from_plugin_proc_backlog = false;
-#endif
 
 	//
 	// Check if there are fake cpu events to  events
@@ -1157,69 +1123,58 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 	else
 	{
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		evt = m_plugin_evt_processor->get_event_from_backlog();
-		if(evt != NULL)
-		{
-			res = SCAP_SUCCESS;
-			from_plugin_proc_backlog = true;
-		}
-		else
-#endif
-		{
-			evt = &m_evt;
+		evt = &m_evt;
 
-			//
-			// Reset previous event's decoders if required
-			//
-			if(m_decoders_reset_list.size() != 0)
+		//
+		// Reset previous event's decoders if required
+		//
+		if(m_decoders_reset_list.size() != 0)
+		{
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
 			{
-				vector<sinsp_protodecoder*>::iterator it;
-				for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
-				{
-					(*it)->on_reset(evt);
-				}
-
-				m_decoders_reset_list.clear();
+				(*it)->on_reset(evt);
 			}
 
-			//
-			// Get the event from libscap
-			//
-			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+			m_decoders_reset_list.clear();
+		}
 
-			if(res != SCAP_SUCCESS)
+		//
+		// Get the event from libscap
+		//
+		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+
+		if(res != SCAP_SUCCESS)
+		{
+			if(res == SCAP_TIMEOUT)
 			{
-				if(res == SCAP_TIMEOUT)
+				if (m_external_event_processor)
 				{
-					if (m_external_event_processor)
-					{
-						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
-					}
-					*puevt = NULL;
-					return res;
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-				else if(res == SCAP_EOF)
-				{
-					if (m_external_event_processor)
-					{
-						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
-					}
-				}
-				else if(res == SCAP_UNEXPECTED_BLOCK)
-				{
-					uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-					restart_capture_at_filepos(filepos);
-					return SCAP_TIMEOUT;
-
-				}
-				else
-				{
-					m_lasterr = scap_getlasterr(m_h);
-				}
-
+				*puevt = NULL;
 				return res;
 			}
+			else if(res == SCAP_EOF)
+			{
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+				}
+			}
+			else if(res == SCAP_UNEXPECTED_BLOCK)
+			{
+				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+				restart_capture_at_filepos(filepos);
+				return SCAP_TIMEOUT;
+
+			}
+			else
+			{
+				m_lasterr = scap_getlasterr(m_h);
+			}
+
+			return res;
 		}
 	}
 
@@ -1359,24 +1314,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	if(evt->get_type() == PPME_PLUGINEVENT_E)
-	{
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		if(!from_plugin_proc_backlog)
-#endif // MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		{
-			evt = m_plugin_evt_processor->process_event(evt);
-			if(evt == NULL)
-			{
-				*puevt = evt;
-				return SCAP_TIMEOUT;
-			}
-		}
-	}
-	else
-	{
-		m_parser->process_event(evt);
-	}
+	m_parser->process_event(evt);
 #endif
 
 	//
@@ -1647,77 +1585,6 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
-{
-	sinsp_plugin* nsp = new sinsp_plugin(this);
-	uint32_t ncpus = thread::hardware_concurrency();
-	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
-	if(nsp->configure(src_plugin, config, avoid_async))
-	{
-		m_n_async_plugin_extractors++;
-	}
-	uint32_t id = nsp->get_id();
-	string name = nsp->m_source_info.get_name();
-
-	for(auto& it : m_plugins_list)
-	{
-		if(id != 0 && it->get_id() == id)
-		{
-			throw sinsp_exception("found multiple plugins with ID " + to_string(id) + ". Aborting.");
-		}
-
-		if(it->m_source_info.get_name() == name)
-		{
-			throw sinsp_exception("found multiple plugins with name " + name + ". Aborting.");
-		}
-	}
-
-	m_plugins_list.push_back(nsp);
-	return nsp;
-}
-
-void sinsp::set_input_plugin(string plugin_name)
-{
-	for(auto& it : m_plugins_list)
-	{
-		if(it->m_source_info.get_name() == plugin_name)
-		{
-			if(it->get_type() != TYPE_SOURCE_PLUGIN)
-			{
-				throw sinsp_exception("plugin " + plugin_name + " is not a source plugin and cannot be used as input.");
-			}
-
-			m_input_plugin = it;
-			return;
-		}
-	}
-
-	throw sinsp_exception("plugin " + plugin_name + " does not exist");
-}
-
-void sinsp::set_input_plugin_open_params(string params)
-{
-	m_input_plugin_open_params = params;
-}
-
-vector<sinsp_plugin*>* sinsp::get_plugins()
-{
-	return &m_plugins_list;
-}
-
-sinsp_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
-{
-	for(auto it : m_plugins_list)
-	{
-		if(it->get_id() == plugin_id)
-		{
-			return it;
-		}
-	}
-
-	return NULL;
-}
-
 void sinsp::stop_capture()
 {
 	if(scap_stop_capture(m_h) != SCAP_SUCCESS)
@@ -1785,8 +1652,6 @@ void sinsp::set_filter(const string& filter)
 	sinsp_filter_compiler compiler(this, filter);
 	m_filter = compiler.compile();
 	m_filterstring = filter;
-
-	m_plugin_evt_processor->compile(filter);
 }
 
 const string sinsp::get_filter()
@@ -2056,7 +1921,7 @@ bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int durat
 	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit, &m_dumper);
 }
 
-double sinsp::get_read_progress_file()
+double sinsp::get_read_progress()
 {
 	if(m_input_fd != 0)
 	{
@@ -2080,60 +1945,6 @@ double sinsp::get_read_progress_file()
 	}
 
 	return (double)fpos * 100 / m_filesize;
-}
-
-void sinsp::get_read_progress_plugin(OUT double* nres, string* sres)
-{
-	ASSERT(m_input_plugin != NULL);
-	ASSERT(nres != NULL);
-	if(m_input_plugin->m_source_info.get_progress != NULL)
-	{
-		uint32_t nplg;
-		char* splg = m_input_plugin->m_source_info.get_progress(m_input_plugin->m_source_info.state, 
-			m_input_plugin->m_source_info.handle,
-			&nplg);
-
-		*nres = ((double)nplg) / 100;
-
-		if(splg != NULL && sres != NULL)
-		{
-			*sres = splg;
-		}
-	}
-	else
-	{
-		*nres = 0;
-		*sres = "";
-	}
-}
-
-double sinsp::get_read_progress()
-{
-	if(is_plugin())
-	{
-		double res;
-		get_read_progress_plugin(&res, NULL);
-		return res;
-	}
-	else
-	{
-		return get_read_progress_file();
-	}
-}
-
-double sinsp::get_read_progress_with_str(OUT string* progress_str)
-{
-	if(is_plugin())
-	{
-		double res;
-		get_read_progress_plugin(&res, progress_str);
-		return res;
-	}
-	else
-	{
-		*progress_str = "";
-		return get_read_progress_file();
-	}
 }
 
 bool sinsp::remove_inactive_threads()

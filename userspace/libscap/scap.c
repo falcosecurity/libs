@@ -617,7 +617,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #else
 		&(handle->m_devs[0].m_bufinfo_fd),
 #endif
-		&handle->m_devs[0].m_bufinfo, 
+		&handle->m_devs[0].m_bufinfo,
 		&handle->m_devs[0].m_bufstatus,
 		error) != SCAP_SUCCESS)
 	{
@@ -918,73 +918,6 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, ss_plugin_info* input_plugin, char* input_plugin_params)
-{
-	scap_t* handle = NULL;
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-
-	//
-	// Preliminary initializations
-	//
-	memset(handle, 0, sizeof(scap_t));
-	handle->m_mode = SCAP_MODE_PLUGIN;
-
-	//
-	// Extract machine information
-	//
-	handle->m_proc_callback = NULL;
-	handle->m_proc_callback_context = NULL;
-#ifdef _WIN32
-	handle->m_machine_info.num_cpus = 0;
-	handle->m_machine_info.memory_size_bytes = 0;
-#else
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-#endif
-	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	handle->m_machine_info.reserved1 = 0;
-	handle->m_machine_info.reserved2 = 0;
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
-	handle->refresh_proc_table_when_saving = true;
-
-	handle->m_input_plugin = input_plugin;
-	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state, 
-		input_plugin_params,
-		rc);
-	handle->m_input_plugin_batch_data = NULL;
-	handle->m_input_plugin_batch_data_pos = 0;
-	handle->m_input_plugin_batch_data_len = 0;
-	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
-
-	if(*rc != SCAP_SUCCESS)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
-		scap_close(handle);
-		return NULL;
-	}
-
-	return handle;
-}
-
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 {
 	switch(args.mode)
@@ -1039,7 +972,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.suppressed_comms);
 		}
 #else
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on Windows.");
+		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on windows. Use nodriver mode instead.");
 		*rc = SCAP_NOT_SUPPORTED;
 		return NULL;
 #endif
@@ -1047,8 +980,6 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return scap_open_nodriver_int(error, rc, args.proc_callback,
 					      args.proc_callback_context,
 					      args.import_users);
-	case SCAP_MODE_PLUGIN:
-		return scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -1147,10 +1078,6 @@ void scap_close(scap_t* handle)
 			free(handle->m_devs);
 		}
 #endif // HAS_CAPTURE
-	}
-	else if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1669,120 +1596,6 @@ inline uint64_t get_windows_timestamp()
 }
 #endif // _WIN32
 
-static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	uint8_t* data;
-	uint32_t datalen;
-	uint64_t* ts = UINT64_MAX;
-	int32_t res;
-
-	if(handle->m_input_plugin->next_batch != NULL)
-	{
-		if(handle->m_input_plugin_batch_data_pos >= handle->m_input_plugin_batch_data_len)
-		{
-			if(handle->m_input_plugin_last_batch_res != SCAP_SUCCESS)
-			{
-				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
-				}
-				int32_t tres = handle->m_input_plugin_last_batch_res;
-				handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
-				return tres;
-			}
-
-			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-				handle->m_input_plugin->handle,
-				&(handle->m_input_plugin_batch_data),
-				&(handle->m_input_plugin_batch_data_len));
-
-			if(handle->m_input_plugin_batch_data_len == 0)
-			{
-				if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->get_name());
-					ASSERT(false);
-					return SCAP_FAILURE;
-				}
-				else
-				{
-					if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
-					{
-						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
-					}
-					return handle->m_input_plugin_last_batch_res;
-				}
-			}
-
-			handle->m_input_plugin_batch_data_pos = 0;
-		}
-
-		uint32_t pos = handle->m_input_plugin_batch_data_pos;
-		ts = *(uint64_t*)(handle->m_input_plugin_batch_data + pos);
-		pos += sizeof(uint64_t);
-		datalen = *(uint32_t*)(handle->m_input_plugin_batch_data + pos);
-		pos += sizeof(uint32_t);
-		data = handle->m_input_plugin_batch_data + pos;
-		pos += datalen;
-		handle->m_input_plugin_batch_data_pos = pos;
-		res = SCAP_SUCCESS;
-	}
-	else
-	{
-		res = handle->m_input_plugin->next(handle->m_input_plugin->state, 
-			handle->m_input_plugin->handle, &data, &datalen, &ts);
-		if(res != SCAP_SUCCESS)
-		{
-			if(res != SCAP_TIMEOUT && res != SCAP_EOF)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", handle->m_input_plugin->get_last_error(handle->m_input_plugin->state));
-			}
-			return res;
-		}
-	}
-
-	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
-	if(handle->m_input_plugin_evt_storage_len < reqsize)
-	{
-		handle->m_input_plugin_evt_storage = (uint8_t*)malloc(reqsize);
-		handle->m_input_plugin_evt_storage_len = reqsize;
-	}
-
-	scap_evt* evt = (scap_evt*)handle->m_input_plugin_evt_storage;
-	evt->len = reqsize;
-	evt->tid = -1;
-	evt->type = PPME_PLUGINEVENT_E;
-	evt->nparams = 2;
-
-	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
-	*(uint16_t*)buf = 4;
-	buf += 2;
-	*(uint16_t*)buf = datalen;
-	buf += 2;
-	*(uint32_t*)buf = handle->m_input_plugin->id;
-	buf += 4;
-	memcpy(buf, data, datalen);
-
-	if(ts != UINT64_MAX)
-	{
-		evt->ts = ts;
-	}
-	else
-	{
-#ifdef _WIN32
-		struct timespec ts;
-		evt->ts = get_windows_timestamp();
-#else
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		evt->ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
-#endif
-	}
-
-	*pevent = evt;
-	return res;
-}
-
 uint64_t scap_max_buf_used(scap_t* handle)
 {
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
@@ -1825,9 +1638,6 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		res = scap_next_nodriver(handle, pevent, pcpuid);
 		break;
 #endif
-	case SCAP_MODE_PLUGIN:
-		res = scap_next_plugin(handle, pevent, pcpuid);
-		break;
 	case SCAP_MODE_NONE:
 		res = SCAP_FAILURE;
 	}

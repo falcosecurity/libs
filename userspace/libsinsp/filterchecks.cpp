@@ -30,7 +30,6 @@ limitations under the License.
 #include "protodecoder.h"
 #include "tracers.h"
 #include "value_parser.h"
-#include "plugin.h"
 
 extern sinsp_evttables g_infotables;
 int32_t g_screen_w = -1;
@@ -2794,7 +2793,6 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.iso8601", "event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime.s", "event timestamp as a time string that includes the date."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
 	{PT_ABSTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.rawtime.ns", "fractional part of the absolute event timestamp."},
@@ -2858,8 +2856,6 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, the name of the plugin that generated it."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3345,7 +3341,6 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME_S:
 	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
-	case TYPE_DATETIME_S:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
@@ -3437,9 +3432,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
-		RETURN_EXTRACT_STRING(m_strstorage);
-	case TYPE_DATETIME_S:
-		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, false);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_RAWTS:
 		RETURN_EXTRACT_VAR(evt->m_pevt->ts);
@@ -4520,50 +4512,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					}
 				}
 			}
-		}
-		break;
-	case TYPE_PLUGIN_NAME:
-		if(evt->get_type() == PPME_PLUGINEVENT_E)
-		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
-
-			if(ppg != NULL)
-			{
-				sinsp_evt_param *parinfo = evt->get_param(1);
-				char* estr = ppg->m_source_info.get_name();
-				RETURN_EXTRACT_CSTR(estr);
-			}
-
-			m_strstorage = "plugin ID " + to_string(pgid) + " (not loaded)";
-			RETURN_EXTRACT_STRING(m_strstorage);
-		}
-		break;
-	case TYPE_PLUGIN_INFO:
-		if(evt->get_type() == PPME_PLUGINEVENT_E)
-		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_plugin* ppg = m_inspector->get_source_plugin_by_id(pgid);
-
-			if(ppg != NULL)
-			{
-				sinsp_evt_param *parinfo = evt->get_param(1);
-				char *estr = ppg->m_source_info.event_to_string(ppg->m_source_info.state, (uint8_t *)parinfo->m_val, parinfo->m_len);
-				RETURN_EXTRACT_CSTR(estr);
-			}
-
-			parinfo = evt->get_param(1);
-			m_strstorage = string(parinfo->m_val, parinfo->m_len);
-			if(m_strstorage.size() > 100)
-			{
-				m_strstorage = m_strstorage.substr(0, 100);
-				m_strstorage += "...";
-			}
-			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 		break;
 	default:
@@ -6636,21 +6584,7 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 {
-	if(val >= 3600 * ONE_SECOND_IN_NS)
-	{
-		snprintf(m_getpropertystr_storage,
-					sizeof(m_getpropertystr_storage),
-					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)), 
-					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ), 
-					(unsigned int)((val / ONE_SECOND_IN_NS) % 60));
-	}
-	else if(val >= 60 * ONE_SECOND_IN_NS)
-	{
-		snprintf(m_getpropertystr_storage,
-					sizeof(m_getpropertystr_storage),
-					"%u:%u", (unsigned int)(val / (60 * ONE_SECOND_IN_NS)), (unsigned int)((val / ONE_SECOND_IN_NS) % 60));
-	}
-	else if(val >= ONE_SECOND_IN_NS)
+	if(val >= ONE_SECOND_IN_NS)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),

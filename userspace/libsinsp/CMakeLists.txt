@@ -78,8 +78,6 @@ set(SINSP_SOURCES
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
-	plugin.cpp
-	plugin_evt_processor.cpp
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp

@@ -527,8 +527,6 @@ VISIBILITY_PRIVATE
 	friend class protocol_manager;
 	friend class test_helpers::event_builder;
 	friend class test_helpers::sinsp_mock;
-	friend class sinsp_pep_flt_worker;
-	friend class sinsp_plugin_evt_processor;
 };
 
 /*@}*/
