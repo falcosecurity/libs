@@ -17,6 +17,11 @@ limitations under the License.
 
 #pragma once
 
+#include <atomic>
+#include <chrono>
+#include <string>
+#include <vector>
+
 class sinsp_filter_check_plugin;
 
 class sinsp_async_extractor_ctx
@@ -125,8 +130,14 @@ private:
 class sinsp_plugin_desc
 {
 public:
-	string m_name;
-	string m_description;
+	std::string m_name;
+	std::string m_description;
+	std::string m_contact;
+	uint32_t m_version_major;
+	uint32_t m_version_minor;
+	uint32_t m_version_patch;
+	std::string m_event_source;
+	std::vector<std::string> m_extract_event_sources;
 	uint32_t m_id;
 };
 
@@ -138,18 +149,23 @@ public:
 	bool configure(ss_plugin_info* plugin_info, char* config, bool avoid_async);
 	uint32_t get_id();
 	ss_plugin_type get_type();
-	static void register_plugin(sinsp* inspector, string filepath, char* config);
+	const std::string &get_name();
+	static void register_plugin(sinsp* inspector, std::string filepath, char* config);
 	static void list_plugins(sinsp* inspector);
+	static bool parse_version(const std::string &version,
+				  uint32_t& m_version_major,
+				  uint32_t& m_version_minor,
+				  uint32_t& m_version_patch);
 	static void validate_plugin_version(ss_plugin_info* plugin_info);
 
 	ss_plugin_info m_source_info;
 
 private:
 	static void* getsym(void* handle, const char* name);
-	static bool create_dynlib_source(string filepath, OUT ss_plugin_info* info, OUT string* error);
+	static bool create_dynlib_source(std::string filepath, OUT ss_plugin_info* info, OUT std::string* error);
 
 	sinsp* m_inspector;
-	uint32_t m_id;
+	sinsp_plugin_desc m_desc;
 	vector<filtercheck_field_info> m_fields;
 	sinsp_filter_check_plugin* m_filtercheck = NULL;
 	ss_plugin_type m_type;

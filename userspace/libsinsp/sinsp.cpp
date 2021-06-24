@@ -1705,7 +1705,7 @@ vector<sinsp_plugin*>* sinsp::get_plugins()
 	return &m_plugins_list;
 }
 
-sinsp_plugin* sinsp::get_source_plugin_by_id(uint32_t plugin_id)
+sinsp_plugin* sinsp::get_plugin_by_id(uint32_t plugin_id)
 {
 	for(auto it : m_plugins_list)
 	{
@@ -2089,7 +2089,7 @@ void sinsp::get_read_progress_plugin(OUT double* nres, string* sres)
 	if(m_input_plugin->m_source_info.get_progress != NULL)
 	{
 		uint32_t nplg;
-		char* splg = m_input_plugin->m_source_info.get_progress(m_input_plugin->m_source_info.state, 
+		char* splg = m_input_plugin->m_source_info.get_progress(m_input_plugin->m_source_info.state,
 			m_input_plugin->m_source_info.handle,
 			&nplg);
 

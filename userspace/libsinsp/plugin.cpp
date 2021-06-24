@@ -19,7 +19,8 @@ limitations under the License.
 #include <dlfcn.h>
 #include <inttypes.h>
 #endif
-#include <atomic>
+#include <json/json.h>
+
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "filter.h"
@@ -28,6 +29,8 @@ limitations under the License.
 #include "plugin_evt_processor.h"
 
 #include <third-party/tinydir.h>
+
+using namespace std;
 
 extern sinsp_filter_check_list g_filterlist;
 
@@ -88,6 +91,7 @@ public:
 		np->set_fields((filtercheck_field_info*)m_info.m_fields, m_info.m_nfields);
 		np->set_name(m_info.m_name);
 		np->m_id = m_id;
+		np->m_name = m_name;
 		np->m_type = m_type;
 		ss_plugin_info* isi = m_inspector->get_plugin_evt_processor()->get_plugin_source_info(m_id);
 		if(isi != NULL)
@@ -144,7 +148,7 @@ public:
 
 				if(m_psource_info->register_async_extractor(m_psource_info->state, &(m_psource_info->async_extractor_info)) != SCAP_SUCCESS)
 				{
-					throw sinsp_exception(string("error in plugin ") + m_psource_info->get_name() + ": " + m_psource_info->get_last_error(m_psource_info->state));
+					throw sinsp_exception(string("error in plugin ") + m_name + ": " + m_psource_info->get_last_error(m_psource_info->state));
 				}
 
 				m_psource_info->is_async_extractor_present = true;
@@ -181,7 +185,7 @@ public:
 		{
 			if(m_psource_info->extract_str == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + " is missing the extract_str export");
+				throw sinsp_exception(string("plugin ") + m_name + " is missing the extract_str export");
 			}
 
 			char* pret;
@@ -228,7 +232,7 @@ public:
 		{
 			if(m_psource_info->extract_u64 == NULL)
 			{
-				throw sinsp_exception(string("plugin ") + m_psource_info->get_name() + " is missing the extract_u64 export");
+				throw sinsp_exception(string("plugin ") + m_name + " is missing the extract_u64 export");
 			}
 
 			uint32_t present;
@@ -291,12 +295,31 @@ public:
 
 	uint64_t m_cnt;
 	uint32_t m_id;
+	std::string m_name;
 	string m_argstr;
 	char* m_arg = NULL;
 	ss_plugin_type m_type;
 	uint64_t m_u64_res;
+
+	// Might replace this with sinsp_plugin, moving async vars up
+	// into sinsp_plugin. Would also get rid of separately held
+	// m_type/m_name.
 	ss_plugin_info* m_psource_info = NULL;
 };
+
+// Used below--set a std::string from the provided allocated charbuf and free() the charbuf.
+static std::string string_alloc_charbuf(char *charbuf)
+{
+	std::string str;
+
+	if(charbuf != NULL)
+	{
+		str = charbuf;
+		free(charbuf);
+	}
+
+	return str;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_plugin implementation
@@ -322,24 +345,34 @@ sinsp_plugin::~sinsp_plugin()
 	}
 }
 
+bool sinsp_plugin::parse_version(const std::string &version,
+				 uint32_t& m_version_major,
+				 uint32_t& m_version_minor,
+				 uint32_t& m_version_patch)
+{
+	return (sscanf(version.c_str(), "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
+		       &m_version_major, &m_version_minor, &m_version_patch) == 3);
+}
+
 void sinsp_plugin::validate_plugin_version(ss_plugin_info* plugin_info)
 {
 	uint32_t pv_maj, pv_min, pv_patch;
-	char* avstr = plugin_info->get_required_api_version();
+	std::string name = string_alloc_charbuf(plugin_info->get_name());
+	std::string avstr = string_alloc_charbuf(plugin_info->get_required_api_version());
 
-	if(sscanf(avstr, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &pv_maj, &pv_min, &pv_patch) != 3)
-	{
-		throw sinsp_exception(string("unable to load plugin ") + 
-			plugin_info->get_name() +
+	if (!sinsp_plugin::parse_version(avstr,
+					 pv_maj, pv_min, pv_patch)) {
+		throw sinsp_exception(string("unable to load plugin ") +
+			name +
 			": plugin's get_api_version() is returning invalid data. Required format is \"<major>.<minor>.<patch>\", e.g. \"1.2.3\"");
 	}
 
 	if(!(pv_maj == PLUGIN_API_VERSION_MAJOR && pv_min <= PLUGIN_API_VERSION_MINOR))
 	{
-		throw sinsp_exception(string("unable to initialize plugin ") + 
-			plugin_info->get_name() +
-			": plugin is requesting API version " + string(avstr) +
-			" which is not supported by this engine (version " + 
+		throw sinsp_exception(string("unable to initialize plugin ") +
+			name +
+			": plugin is requesting API version " + avstr +
+			" which is not supported by this engine (version " +
 			to_string(PLUGIN_API_VERSION_MAJOR) + "." +
 			to_string(PLUGIN_API_VERSION_MINOR) + "." +
 			to_string(PLUGIN_API_VERSION_PATCH) + ")");
@@ -363,12 +396,15 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 	ENSURE_PLUGIN_EXPORT(get_id);
 	ENSURE_PLUGIN_EXPORT(get_name);
 	ENSURE_PLUGIN_EXPORT(get_description);
+	ENSURE_PLUGIN_EXPORT(get_contact);
+	ENSURE_PLUGIN_EXPORT(get_version);
 	ENSURE_PLUGIN_EXPORT(get_required_api_version);
 
 	m_type = (ss_plugin_type)m_source_info.get_type();
 
 	if(m_type == TYPE_SOURCE_PLUGIN)
 	{
+		ENSURE_PLUGIN_EXPORT(get_event_source);
 		ENSURE_PLUGIN_EXPORT(open);
 		ENSURE_PLUGIN_EXPORT(close);
 		ENSURE_PLUGIN_EXPORT(next);
@@ -376,6 +412,8 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 	}
 	else if(m_type == TYPE_EXTRACTOR_PLUGIN)
 	{
+		// get_extract_event_sources is optional, so not
+		// requiring it here
 		ENSURE_PLUGIN_EXPORT(get_fields);
 	}
 	else
@@ -388,20 +426,50 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 	//
 	validate_plugin_version(&m_source_info);
 
-	//
-	// Initialize the plugin
-	//
-	if(m_source_info.init != NULL)
-	{
-		m_source_info.state = m_source_info.init(config, &init_res);
-		if(init_res != SCAP_SUCCESS)
-		{
-			throw sinsp_exception(string("unable to initialize plugin ") + m_source_info.get_name());
-		}
+	m_desc.m_id = m_source_info.get_id();
+	m_source_info.id = m_desc.m_id;
+	m_desc.m_name = string_alloc_charbuf(m_source_info.get_name());
+	m_desc.m_description = string_alloc_charbuf(m_source_info.get_description());
+	m_desc.m_contact = string_alloc_charbuf(m_source_info.get_contact());
+	if (!sinsp_plugin::parse_version(string_alloc_charbuf(m_source_info.get_version()),
+					 m_desc.m_version_major,
+					 m_desc.m_version_minor,
+					 m_desc.m_version_patch)) {
+		throw sinsp_exception(string("unable to load plugin ") +
+			m_desc.m_name +
+			": plugin's get_version() is returning invalid data. Required format is \"<major>.<minor>.<patch>\", e.g. \"1.2.3\"");
 	}
 
-	m_id = m_source_info.get_id();
-	m_source_info.id = m_id;
+	if(m_type == TYPE_SOURCE_PLUGIN)
+	{
+		m_desc.m_event_source = string_alloc_charbuf(m_source_info.get_event_source());
+	}
+
+	if(m_type == TYPE_EXTRACTOR_PLUGIN && m_source_info.get_extract_event_sources != NULL)
+	{
+		std::string esources = string_alloc_charbuf(m_source_info.get_extract_event_sources());
+
+		if (esources.length() == 0)
+		{
+			throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": get_extract_event_sources returned an empty string");
+		}
+
+		Json::Value root;
+		if(Json::Reader().parse(esources, root) == false || root.type() != Json::arrayValue)
+		{
+			throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": get_extract_event_sources did not return a json array");
+		}
+
+		for(Json::Value::ArrayIndex j = 0; j < root.size(); j++)
+		{
+			if(! root[j].isConvertibleTo(Json::stringValue))
+			{
+				throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": get_extract_event_sources did not return a json array");
+			}
+
+			m_desc.m_extract_event_sources.push_back(root[j].asString());
+		}
+	}
 
 	//
 	// If filter fields are exported by the plugin, the json from get_fields(), 
@@ -413,14 +481,14 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 		char* sfields = m_source_info.get_fields();
 		if(sfields == NULL)
 		{
-			throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": get_fields returned a null string");
+			throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": get_fields returned a null string");
 		}
 		string json(sfields);
-		SINSP_DEBUG("Parsing Container JSON=%s", json.c_str());
+		SINSP_DEBUG("Parsing Fields JSON=%s", json.c_str());
 		Json::Value root;
-		if(Json::Reader().parse(json, root) == false)
+		if(Json::Reader().parse(json, root) == false || root.type() != Json::arrayValue)
 		{
-			throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": get_fields returned an invalid JSON");
+			throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": get_fields returned an invalid JSON");
 		}
 
 		for(Json::Value::ArrayIndex j = 0; j < root.size(); j++)
@@ -432,19 +500,19 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 			string ftype = jvtype.asString();
 			if(ftype == "")
 			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": field JSON entry has no type");
+				throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": field JSON entry has no type");
 			}
 			const Json::Value &jvname = root[j]["name"];
 			string fname = jvname.asString();
 			if(fname == "")
 			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": field JSON entry has no name");
+				throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": field JSON entry has no name");
 			}
 			const Json::Value &jvdesc = root[j]["desc"];
 			string fdesc = jvdesc.asString();
 			if(fdesc == "")
 			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": field JSON entry has no desc");
+				throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": field JSON entry has no desc");
 			}
 
 			strncpy(tf.m_name, fname.c_str(), sizeof(tf.m_name));
@@ -468,7 +536,7 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 			}
 			else
 			{
-				throw sinsp_exception(string("error in plugin ") + m_source_info.get_name() + ": invalid field type " + ftype);
+				throw sinsp_exception(string("error in plugin ") + m_desc.m_name + ": invalid field type " + ftype);
 			}
 
 			m_fields.push_back(tf);
@@ -478,10 +546,11 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 		// Create and register the filter check associated to this plugin
 		//
 		m_filtercheck = new sinsp_filter_check_plugin();
-		m_filtercheck->set_name(m_source_info.get_name() + string(" (plugin)"));
-		m_filtercheck->set_fields((filtercheck_field_info*)&m_fields[0], 
+		m_filtercheck->set_name(m_desc.m_name + string(" (plugin)"));
+		m_filtercheck->set_fields((filtercheck_field_info*)&m_fields[0],
 			m_fields.size());
-		m_filtercheck->m_id = m_id;
+		m_filtercheck->m_id = m_desc.m_id;
+		m_filtercheck->m_name = m_desc.m_name;
 		m_filtercheck->m_type = m_type;
 		m_filtercheck->m_psource_info = &m_source_info;
 
@@ -495,17 +564,34 @@ bool sinsp_plugin::configure(ss_plugin_info* plugin_info, char* config, bool avo
 		return (m_source_info.register_async_extractor != NULL);
 	}
 
+	//
+	// Initialize the plugin
+	//
+	if(m_source_info.init != NULL)
+	{
+		m_source_info.state = m_source_info.init(config, &init_res);
+		if(init_res != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(string("unable to initialize plugin ") + m_desc.m_name);
+		}
+	}
+
 	return false;
 }
 
 uint32_t sinsp_plugin::get_id()
 {
-	return m_id;
+	return m_desc.m_id;
 }
 
 ss_plugin_type sinsp_plugin::get_type()
 {
 	return m_type;
+}
+
+const std::string &sinsp_plugin::get_name()
+{
+	return m_desc.m_name;
 }
 
 void sinsp_plugin::list_plugins(sinsp* inspector)
@@ -519,7 +605,7 @@ void sinsp_plugin::list_plugins(sinsp* inspector)
 	{
 		auto p = plist->at(j);
 
-		printf("Name: %s\n", p->m_source_info.get_name());
+		printf("Name: %s\n", p->m_desc.m_name.c_str());
 		printf("Description: %s\n", p->m_source_info.get_description());
 
 		if(p->get_type() == TYPE_SOURCE_PLUGIN)
@@ -529,7 +615,7 @@ void sinsp_plugin::list_plugins(sinsp* inspector)
 		}
 		else
 		{
-			printf("Name: %s\n", p->m_source_info.get_name());
+			printf("Name: %s\n", p->m_desc.m_name.c_str());
 			printf("Description: %s\n", p->m_source_info.get_description());
 		}
 	}

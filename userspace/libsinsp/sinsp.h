@@ -904,7 +904,7 @@ public:
 	void set_input_plugin(string plugin_name);
 	void set_input_plugin_open_params(string params);
 	vector<sinsp_plugin*>* get_plugins();
-	sinsp_plugin* get_source_plugin_by_id(uint32_t plugin_id);
+	sinsp_plugin* get_plugin_by_id(uint32_t plugin_id);
 	sinsp_plugin_evt_processor* get_plugin_evt_processor()
 	{
 		return m_plugin_evt_processor;

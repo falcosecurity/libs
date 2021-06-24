@@ -193,7 +193,7 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 			//
 			// Locate the sinsp_plugin object correspondng to this plugin ID
 			//
-			sinsp_plugin* pplg = m_inspector->get_source_plugin_by_id(id);
+			sinsp_plugin* pplg = m_inspector->get_plugin_by_id(id);
 			if(!pplg)
 			{
 				//
