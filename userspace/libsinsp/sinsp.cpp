@@ -129,6 +129,9 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_sysdig_pid = getpid();
 #endif
 
+	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
+	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
+
 	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
@@ -485,6 +488,10 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	}
 
 	add_suppressed_comms(oargs);
+
+	oargs.debug_log_fn = &sinsp_scap_debug_log_fn;
+	oargs.proc_scan_timeout_ms = m_proc_scan_timeout_ms;
+	oargs.proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
