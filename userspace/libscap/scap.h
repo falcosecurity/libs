@@ -84,6 +84,19 @@ struct iovec;
 //
 #define SCAP_LASTERR_SIZE 256
 
+//
+// Value for proc_scan_timeout_ms field in scap_open_args, to specify
+// that scan should run to completion without any timeout imposed
+//
+#define SCAP_PROC_SCAN_TIMEOUT_NONE 0
+
+//
+// Value for proc_scan_log_interval_ms field in scap_open_args, to specify
+// that no progress logging should be performed
+//
+#define SCAP_PROC_SCAN_LOG_NONE 0
+
+
 /*!
   \brief Statistics about an in progress capture
 */
@@ -305,6 +318,9 @@ typedef struct scap_open_args
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
+	void(*debug_log_fn)(const char* msg); // Function which SCAP may use to log a debug message
+	uint64_t proc_scan_timeout_ms; // Timeout in msec, after which so-far-successful scan of /proc should be cut short with success return
+	uint64_t proc_scan_log_interval_ms; // Interval for logging progress messages from /proc scan
 }scap_open_args;
 
 
