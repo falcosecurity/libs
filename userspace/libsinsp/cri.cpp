@@ -310,6 +310,19 @@ bool cri_interface::parse_cri_runtime_spec(const Json::Value &info, sinsp_contai
 	return true;
 }
 
+
+bool cri_interface::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
+{
+	const Json::Value *uid = nullptr;
+	if(!walk_down_json(info, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
+	{
+		return false;
+	}
+
+	container.m_container_user = std::to_string(uid->asInt());
+	return true;
+}
+
 bool cri_interface::is_pod_sandbox(const std::string &container_id)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;

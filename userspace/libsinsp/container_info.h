@@ -195,6 +195,7 @@ public:
 		m_cpu_period(100000),
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
+		m_container_user("<NA>"),
 		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
@@ -245,6 +246,8 @@ public:
 	std::list<container_health_probe> m_health_probes;
 
 	bool m_is_pod_sandbox;
+
+	std::string m_container_user;
 
 	sinsp_container_lookup_state m_lookup_state;
 #ifdef HAS_ANALYZER
