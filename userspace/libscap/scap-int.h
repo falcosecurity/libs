@@ -178,7 +178,7 @@ struct scap
 	//
 	// Plugin-related state
 	//
-	ss_plugin_info* m_input_plugin;
+	source_plugin_info* m_input_plugin;
 	uint8_t* m_input_plugin_evt_storage;
 	uint32_t m_input_plugin_evt_storage_len;
 	uint8_t* m_input_plugin_batch_data;

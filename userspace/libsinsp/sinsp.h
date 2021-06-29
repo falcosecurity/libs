@@ -763,14 +763,14 @@ public:
 	void unset_eventmask(uint32_t event_id);
 
 	/*!
-	  \brief When reading events from a trace file or a plugin, this function 
+	  \brief When reading events from a trace file or a plugin, this function
 	   returns the read progress as a number between 0 and 100.
 	*/
 	double get_read_progress();
 
 	/*!
-	  \brief When reading events from a trace file or a plugin, this function 
-	   returns the read progress as a number and as a string, giving the plugins 
+	  \brief When reading events from a trace file or a plugin, this function
+	   returns the read progress as a number and as a string, giving the plugins
 	   flexibility on the format.
 	*/
 	double get_read_progress_with_str(OUT string* progress_str);
@@ -900,10 +900,10 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	sinsp_plugin* add_plugin(ss_plugin_info* src_plugin, char* config);
+	void add_plugin(std::shared_ptr<sinsp_plugin> plugin);
 	void set_input_plugin(string plugin_name);
 	void set_input_plugin_open_params(string params);
-	vector<sinsp_plugin*>* get_plugins();
+	const std::vector<std::shared_ptr<sinsp_plugin>>& get_plugins();
 	sinsp_plugin* get_plugin_by_id(uint32_t plugin_id);
 	sinsp_plugin_evt_processor* get_plugin_evt_processor()
 	{
@@ -911,7 +911,7 @@ public:
 	}
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
-	
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1197,12 +1197,11 @@ public:
 	std::set<std::string> m_suppressed_comms;
 
 	//
-	// List of the sinsp/scap plugins configured by the user, indexed by
-	// plugin id.
+	// List of the sinsp/scap plugins configured by the user.
 	//
-	vector<sinsp_plugin*> m_plugins_list;
+	std::vector<std::shared_ptr<sinsp_plugin>> m_plugins_list;
 	//
-	// Count of plugins that are using a full CPU to accelerate field 
+	// Count of plugins that are using a full CPU to accelerate field
 	// extraction. We want this to be lower than the number of available CPUs.
 	//
 	uint32_t m_n_async_plugin_extractors;

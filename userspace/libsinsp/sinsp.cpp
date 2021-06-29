@@ -1647,33 +1647,22 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_plugin* sinsp::add_plugin(ss_plugin_info* src_plugin, char* config)
+sinsp_plugin* sinsp::add_plugin(std::shared_ptr<sinsp_plugin> plugin)
 {
-	sinsp_plugin* nsp = new sinsp_plugin(this);
 	uint32_t ncpus = thread::hardware_concurrency();
 	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
-	if(nsp->configure(src_plugin, config, avoid_async))
-	{
-		m_n_async_plugin_extractors++;
-	}
-	uint32_t id = nsp->get_id();
-	string name = nsp->m_source_info.get_name();
+
+	plugin->toggle_async_extract(!avoid_async);
 
 	for(auto& it : m_plugins_list)
 	{
-		if(id != 0 && it->get_id() == id)
-		{
-			throw sinsp_exception("found multiple plugins with ID " + to_string(id) + ". Aborting.");
-		}
-
-		if(it->m_source_info.get_name() == name)
+		if(it->get_name() == plugin->get_name())
 		{
 			throw sinsp_exception("found multiple plugins with name " + name + ". Aborting.");
 		}
 	}
 
-	m_plugins_list.push_back(nsp);
-	return nsp;
+	m_plugins_list.push_back(plugin)
 }
 
 void sinsp::set_input_plugin(string plugin_name)
