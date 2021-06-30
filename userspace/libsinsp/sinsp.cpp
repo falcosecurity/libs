@@ -1689,22 +1689,26 @@ void sinsp::set_input_plugin_open_params(string params)
 	m_input_plugin_open_params = params;
 }
 
-vector<sinsp_plugin*>* sinsp::get_plugins()
+const std::vector<std::shared_ptr<sinsp_plugin>>>& sinsp::get_plugins()
 {
-	return &m_plugins_list;
+	return m_plugins_list;
 }
 
-sinsp_plugin* sinsp::get_plugin_by_id(uint32_t plugin_id)
+std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_id(uint32_t plugin_id)
 {
 	for(auto it : m_plugins_list)
 	{
-		if(it->get_id() == plugin_id)
+		if(it->get_type() == TYPE_SOURCE_PLUGIN)
 		{
-			return it;
+			sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(it.get());
+			if(splugin->get_id() == plugin_id)
+			{
+				return it;
+			}
 		}
 	}
 
-	return NULL;
+	return std::shared_ptr<sinsp_plugin>();
 }
 
 void sinsp::stop_capture()

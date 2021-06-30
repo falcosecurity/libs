@@ -20,6 +20,7 @@ limitations under the License.
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -27,13 +28,64 @@ limitations under the License.
 
 class sinsp_filter_check_plugin;
 
-class sinsp_async_extractor_ctx
+class sinsp_async_extractor
 {
 public:
-	sinsp_async_extractor_ctx()
+	sinsp_async_extractor()
 	{
 		m_lock = state::INIT;
+
+		m_async_extractor_info.cb_wait = [](void *wait_ctx)
+		{
+			return static_cast<sinsp_async_extractor *>(wait_ctx)->wait();
+		};
+
+		m_async_extractor_info.wait_ctx = this;
 	}
+
+	~sinsp_async_extractor()
+	{
+		shutdown();
+	}
+
+	struct async_extractor_info *extractor_info()
+	{
+		return &m_async_extractor_info;
+	}
+
+	bool extract_str(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, std::string &ret)
+	{
+		if (!extract(evtnum, field_id, ftype, arg, data, datalen))
+		{
+			return false;
+		}
+
+		// The string value is now in res_str, and is an allocated string.
+		// XXX/mstemm consider changing struct to have a fixed-width string.
+		if(m_async_extractor_info.res_str == NULL)
+		{
+			return false;
+		}
+		ret = m_async_extractor_info.res_str;
+		free(m_async_extractor_info.res_str);
+
+		return true;
+	}
+
+	bool extract_u64(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
+	{
+		if (!extract(evtnum, field_id, ftype, arg, data, datalen))
+		{
+			return false;
+		}
+
+		// The uint64 info is now in field_present/res_u64
+		field_present = m_async_extractor_info.field_present;
+		ret = m_async_extractor_info.res_u64;
+		return true;
+	}
+
+private:
 
 	enum state
 	{
@@ -45,8 +97,15 @@ public:
 		SHUTDOWN_DONE = 5,
 	};
 
-	inline void notify()
+	inline bool extract(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen)
 	{
+		m_async_extractor_info.evtnum = evtnum;
+		m_async_extractor_info.field_id = field_id;
+		m_async_extractor_info.ftype = ftype;
+		m_async_extractor_info.arg = arg;
+		m_async_extractor_info.data = data;
+		m_async_extractor_info.datalen = datalen;
+
 		int old_val = state::DONE;
 
 		while(!m_lock.compare_exchange_strong(old_val, state::INPUT_READY))
@@ -58,6 +117,10 @@ public:
 		// Once INPUT_READY state has been aquired, wait for worker completition
 		//
 		while(m_lock != state::DONE);
+
+		// rc now contains the error code for the extraction.
+		int32_t rc = m_async_extractor_info.rc;
+		return (rc == SCAP_SUCCESS);
 	}
 
 	inline bool wait()
@@ -122,11 +185,15 @@ public:
 		}
 
 		// await shutdown
+		// XXX/mstemm add a timeout to this
 		while (m_lock != state::SHUTDOWN_DONE)
 			;
 	}
 
 private:
+	// The shared struct to communicate with the plugin side
+	struct async_extractor_info m_async_extractor_info;
+
 	atomic<int> m_lock;
 };
 
@@ -165,17 +232,16 @@ public:
 		std::unique_ptr<uint8_t> m_data;
 		uint32_t m_datalen;
 		uint64_t m_ts;
-	}
-
+	};
 
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
-	static void register_plugin(sinsp* inspector, std::string filepath);
+	static void register_plugin(sinsp* inspector, std::string filepath, char *config, bool avoid_async);
 
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is
 	// set with an error.
-	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, std::string &errstr);
+	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, char *config, bool avoid_async, std::string &errstr);
 
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
 	static std::string plugin_infos(sinsp *inspector);
@@ -184,7 +250,6 @@ public:
 	virtual ~sinsp_plugin();
 
 	bool init(char *config, int32_t &rc);
-	void destroy();
 
 	virtual ss_plugin_type type() = 0;
 
@@ -197,17 +262,17 @@ public:
 	const filtercheck_field_info *fields();
 	uint32_t nfields();
 
-	std::string extract_str(uint64_t evtnum, uint32_t id, char *arg, event &evt);
-	uint64_t exctract_u64(uint64_t evtnum, uint32_t id, char *arg, event &evt, uint32_t *field_present);
-
-	// If enable_async is false, async functions to fetch events will not be used, even if provided by the plugin.
-	void toggle_async_extract(bool enable_async);
-
-	int32_t register_async_extractor(async_extractor_info &info);
+	// Will either use the the async extractor interface or direct C calls to extract the values
+	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, char *data, uint32_t datalen, std::string &ret);
+	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 protected:
 	// Helper function to resolve symbols
 	void* getsym(void* handle, const char* name, bool avoid_async);
+
+	// Might be called by extract_str/extract_u64
+	bool async_extract_str(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, std::string &ret);
+        bool async_extract_u64(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	std::string str_from_alloc_charbuf(char *charbuf);
@@ -248,9 +313,7 @@ private:
 	std::unique_ptr<filtercheck_field_info[]> m_fields;
 	int32_t m_nfields;
 
-	async_extractor_info m_async_extractor_info;
-	bool m_is_async_extractor_configured;
-	bool m_is_async_extractor_present;
+	std::unique_ptr<sinsp_async_extractor> m_async_extractor;
 
 	common_plugin_info m_plugin_info;
 };
@@ -273,7 +336,7 @@ public:
 	int32_t next_batch(std::vector<sinsp_plugin::event> &events, std::string &errbuf);
 	std::string get_progress(uint32_t &progress_pct);
 
-	std::string event_to_string(sinsp_plugin::event &evt);
+	std::string event_to_string(const uint8_t *data, uint32_t datalen);
 
 protected:
 	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
@@ -296,9 +359,15 @@ public:
 
 	ss_plugin_type type() override { return TYPE_EXTRACTOR_PLUGIN; };
 
-	const std::vector<std::string> &extract_event_sources();
+	const std::set<std::string> &extract_event_sources();
+
+	// Return true if the provided source is compatible with this
+	// extractor plugin, either because the extractor plugin does
+	// not name any extract sources, or if the provided source is
+	// in the set of extract sources.
+	bool source_compatible(const std::string &source);
 
 private:
 	extractor_plugin_info m_extractor_plugin_info;
-	std::vector<std::string> m_extract_event_sources;
+	std::set<std::string> m_extract_event_sources;
 };

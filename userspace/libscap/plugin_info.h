@@ -53,7 +53,7 @@ typedef bool (*cb_wait_t)(void* wait_ctx);
 typedef struct async_extractor_info
 {
 	uint64_t evtnum;
-	uint32_t id;
+	uint32_t field_id;
 	uint32_t ftype;
 	char* arg;
 	char* data;
@@ -120,6 +120,7 @@ typedef struct
 	//   as a SCAP_* value (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//               by the engine and passed to the other plugin functions.
+	//               If rc is SCAP_FAILURE, this function should return NULL.
 	//
 	ss_plugin_t* (*init)(char* config, int32_t* rc);
 	//

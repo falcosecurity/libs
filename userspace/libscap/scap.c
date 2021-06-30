@@ -86,6 +86,26 @@ static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
 	return SCAP_SUCCESS;
 }
 
+static void scap_free_plugin_batch_state(scap_t* handle)
+{
+	for(uint32_t i = 0; i < handle->m_input_plugin_batch_nevts; i++)
+	{
+		free(handle->m_input_plugin_batch_datav[i]);
+	}
+
+	handle->m_input_plugin_batch_nevts = 0;
+	handle->m_input_plugin_batch_idx = 0;
+
+	free(handle->m_input_plugin_batch_datav);
+	handle->m_input_plugin_batch_datav = NULL;
+
+	free(handle->m_input_plugin_batch_datalenv);
+	handle->m_input_plugin_batch_datalenv = NULL;
+
+	free(handle->m_input_plugin_batch_tsv);
+	handle->m_input_plugin_batch_tsv = NULL;
+}
+
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
@@ -972,9 +992,11 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
 		input_plugin_params,
 		rc);
-	handle->m_input_plugin_batch_data = NULL;
-	handle->m_input_plugin_batch_data_pos = 0;
-	handle->m_input_plugin_batch_data_len = 0;
+	handle->m_input_plugin_batch_nevts = 0;
+	handle->m_input_plugin_batch_datav = NULL;
+	handle->m_input_plugin_batch_datalenv = NULL;
+	handle->m_input_plugin_batch_tsv = NULL;
+	handle->m_input_plugin_batch_idx = 0;
 	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
 
 	if(*rc != SCAP_SUCCESS)
@@ -1155,6 +1177,9 @@ void scap_close(scap_t* handle)
 	else if(handle->m_mode == SCAP_MODE_PLUGIN)
 	{
 		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
+		scap_free_plugin_batch_state(handle);
+		// name was allocated
+		free(handle->m_input_plugin->name);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1682,8 +1707,10 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 	if(handle->m_input_plugin->next_batch != NULL)
 	{
-		if(handle->m_input_plugin_batch_data_pos >= handle->m_input_plugin_batch_data_len)
+		if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 		{
+			scap_free_plugin_batch_state(handle);
+
 			if(handle->m_input_plugin_last_batch_res != SCAP_SUCCESS)
 			{
 				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
@@ -1698,11 +1725,13 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			}
 
 			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-				handle->m_input_plugin->handle,
-				&(handle->m_input_plugin_batch_data),
-				&(handle->m_input_plugin_batch_data_len));
+												   handle->m_input_plugin->handle,
+												   &(handle->m_input_plugin_batch_nevts),
+												   &(handle->m_input_plugin_batch_datav),
+												   &(handle->m_input_plugin_batch_datalenv),
+												   &(handle->m_input_plugin_batch_tsv));
 
-			if(handle->m_input_plugin_batch_data_len == 0)
+			if(handle->m_input_plugin_batch_nevts == 0)
 			{
 				if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
 				{
@@ -1722,17 +1751,18 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 				}
 			}
 
-			handle->m_input_plugin_batch_data_pos = 0;
+			handle->m_input_plugin_batch_idx = 0;
 		}
 
-		uint32_t pos = handle->m_input_plugin_batch_data_pos;
-		ts = *(uint64_t*)(handle->m_input_plugin_batch_data + pos);
-		pos += sizeof(uint64_t);
-		datalen = *(uint32_t*)(handle->m_input_plugin_batch_data + pos);
-		pos += sizeof(uint32_t);
-		data = handle->m_input_plugin_batch_data + pos;
-		pos += datalen;
-		handle->m_input_plugin_batch_data_pos = pos;
+		uint32_t pos = handle->m_input_plugin_batch_idx;
+		ts = handle->m_input_plugin_batch_tsv[pos];
+
+		datalen = handle->m_input_plugin_batch_datalenv[pos];
+
+		data = handle->m_input_plugin_batch_datav[pos];
+
+		handle->m_input_plugin_batch_idx++;
+
 		res = SCAP_SUCCESS;
 	}
 	else

@@ -181,9 +181,31 @@ struct scap
 	source_plugin_info* m_input_plugin;
 	uint8_t* m_input_plugin_evt_storage;
 	uint32_t m_input_plugin_evt_storage_len;
-	uint8_t* m_input_plugin_batch_data;
-	uint32_t m_input_plugin_batch_data_pos;
-	uint32_t m_input_plugin_batch_data_len;
+
+	// The number of items in the below arrays.
+	uint32_t m_input_plugin_batch_nevts;
+
+	// A set of events returned from next_batch. The array is
+	// allocated and must be free()d when done. Every item in the
+	// array is also allocated and must be free()d when done.
+	uint8_t** m_input_plugin_batch_datav;
+
+	// A set of lengths reflecting the size of the corresponding
+	// item in batch_data. The array is allocated and must be
+	// free()d when done.
+	uint32_t *m_input_plugin_batch_datalenv;
+
+	// A set of timestamps reflecting the timestamps of the
+	// corresponding item in batch_data. The array is allocated
+	// and must be free()d when done.
+	uint64_t* m_input_plugin_batch_tsv;
+
+	// The current position into the above arrays (0-indexed),
+	// reflecting how many of the above items have been returned
+	// via a call to next().
+	uint32_t m_input_plugin_batch_idx;
+
+	// The return value from the last call to batch_next().
 	int32_t m_input_plugin_last_batch_res;
 };
 

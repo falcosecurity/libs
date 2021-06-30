@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <time.h>
 #include <math.h>
+#include <memory>
 #ifndef _WIN32
 #include <algorithm>
 #endif
@@ -2859,7 +2860,6 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, the name of the plugin that generated it."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3306,7 +3306,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	}
 
 	char fullname[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(), 
+	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
 		(uint32_t)sdir.length(), path, pathlen, m_inspector->m_is_windows);
 
 	m_strstorage = fullname;
@@ -4428,7 +4428,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					m_u32val = 1;
 				}
-				
+
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT)))
 				{
 					parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 4 : 3);
@@ -4528,41 +4528,16 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			sinsp_evt_param *parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_plugin* ppg = m_inspector->get_plugin_by_id(pgid);
+			std::shared_ptr<sinsp_plugin> ppg = m_inspector->get_plugin_by_id(pgid);
 
-			if(ppg != NULL)
+			if(ppg)
 			{
 				sinsp_evt_param *parinfo = evt->get_param(1);
-				const char* estr = ppg->get_name().c_str();
+				const char* estr = ppg->name().c_str();
 				RETURN_EXTRACT_CSTR(estr);
 			}
 
 			m_strstorage = "plugin ID " + to_string(pgid) + " (not loaded)";
-			RETURN_EXTRACT_STRING(m_strstorage);
-		}
-		break;
-	case TYPE_PLUGIN_INFO:
-		if(evt->get_type() == PPME_PLUGINEVENT_E)
-		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			uint32_t pgid = *(int32_t *)parinfo->m_val;
-			sinsp_plugin* ppg = m_inspector->get_plugin_by_id(pgid);
-
-			if(ppg != NULL)
-			{
-				sinsp_evt_param *parinfo = evt->get_param(1);
-				char *estr = ppg->m_source_info.event_to_string(ppg->m_source_info.state, (uint8_t *)parinfo->m_val, parinfo->m_len);
-				RETURN_EXTRACT_CSTR(estr);
-			}
-
-			parinfo = evt->get_param(1);
-			m_strstorage = string(parinfo->m_val, parinfo->m_len);
-			if(m_strstorage.size() > 100)
-			{
-				m_strstorage = m_strstorage.substr(0, 100);
-				m_strstorage += "...";
-			}
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 		break;
@@ -6640,8 +6615,8 @@ char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
-					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)), 
-					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ), 
+					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)),
+					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ),
 					(unsigned int)((val / ONE_SECOND_IN_NS) % 60));
 	}
 	else if(val >= 60 * ONE_SECOND_IN_NS)
