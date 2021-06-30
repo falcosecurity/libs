@@ -56,7 +56,7 @@ typedef struct async_extractor_info
 	uint32_t field_id;
 	uint32_t ftype;
 	char* arg;
-	char* data;
+	uint8_t* data;
 	uint32_t datalen;
 	uint32_t field_present;
 	char* res_str;
@@ -264,7 +264,7 @@ typedef struct
 	// Return value: the text representation of the event. This is used, for example,
 	// by sysdig to print a line for the given event.
 	//
-	char *(*event_to_string)(ss_plugin_t *s, uint8_t *data, uint32_t datalen);
+	char *(*event_to_string)(ss_plugin_t *s, const uint8_t *data, uint32_t datalen);
 	//
 	// Extract a filter field value from an event.
 	// We offer multiple versions of extract(), differing from each other only in
@@ -285,8 +285,8 @@ typedef struct
 	// Return value: the produced value of the filter field. For extract_str(), a
 	// NULL return value means that the field is missing for the given event.
 	//
-	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
-	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen);
+	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 	//
 	// This is an optional, internal, function used to speed up event capture by
 	// batching the calls to next().

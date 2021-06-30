@@ -17,6 +17,9 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
+#include <vector>
+
 class sinsp_pep_flt_worker
 {
 public:
@@ -57,20 +60,20 @@ public:
 	void compile(string filter);
 	sinsp_evt* process_event(sinsp_evt *evt);
 	sinsp_evt* get_event_from_backlog();
-	ss_plugin_info* get_plugin_source_info(uint32_t id);
+	std::shared_ptr<sinsp_plugin> get_plugin_source_info(uint32_t id);
 
 private:
-	void prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt);
+	void prepare_worker(sinsp_pep_flt_worker& w, sinsp_evt* evt);
 	bool is_worker_available();
 
 	sinsp* m_inspector;
 	uint32_t m_nworkers = 1;
-	vector<sinsp_pep_flt_worker*> m_workers;
-	sinsp_pep_flt_worker* m_sync_worker = NULL;
-	vector<ss_plugin_info*> m_source_info_list;
+	std::vector<std::shared_ptr<sinsp_pep_flt_worker>> m_workers;
+	std::shared_ptr<sinsp_pep_flt_worker> m_sync_worker;
+	std::vector<std::shared_ptr<sinsp_plugin>> m_source_info_list;
 	bool m_inprogress = false;
-	map<uint32_t, ss_plugin_info*> m_inprogress_infos;
-	ss_plugin_info* m_cur_source_info = NULL;
+	map<uint32_t, std::shared_ptr<sinsp_plugin>> m_inprogress_infos;
+	std::shared_ptr<sinsp_plugin> m_cur_source_info;
 
 friend class sinsp_pep_flt_worker;
 };

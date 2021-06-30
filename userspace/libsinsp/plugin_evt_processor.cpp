@@ -104,35 +104,6 @@ sinsp_plugin_evt_processor::sinsp_plugin_evt_processor(sinsp* inspector)
 
 sinsp_plugin_evt_processor::~sinsp_plugin_evt_processor()
 {
-	for(auto it : m_source_info_list)
-	{
-		if(it->register_async_extractor)
-		{
-			if(it->is_async_extractor_present == true)
-			{
-				static_cast<sinsp_async_extractor_ctx *>(it->async_extractor_info.wait_ctx)->shutdown();
-			}
-		}
-
-		if(it->destroy != NULL)
-		{
-			it->destroy(it->state);
-		}
-
-		delete it;
-	}
-
-	for(auto it : m_workers)
-	{
-		//printf("T>%d\n", it->m_cnt);
-		delete it;
-	}
-
-	if(m_sync_worker)
-	{
-		//printf("S>%d\n", m_sync_worker->m_cnt);
-		delete m_sync_worker;
-	}
 }
 
 void sinsp_plugin_evt_processor::init()
@@ -142,12 +113,11 @@ void sinsp_plugin_evt_processor::init()
 #ifdef PARALLEL_PLUGIN_EVT_FILTERING_ENABLED
 	for(uint32_t j = 0; j < m_nworkers; j++)
 	{
-		sinsp_pep_flt_worker* w = new sinsp_pep_flt_worker(m_inspector, this, true);
-		m_workers.push_back(w);
+		m_workers.emplace_back(std::make_shared<sinsp_pep_flt_worker>(m_inspector, this, true));
 	}
 #endif
 
-	m_sync_worker = new sinsp_pep_flt_worker(m_inspector, this, false);
+	m_sync_worker = std::make_shared<sinsp_pep_flt_worker>(m_inspector, this, false);
 }
 
 void sinsp_plugin_evt_processor::compile(string filter)
@@ -163,8 +133,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 		cf = wcompiler.compile();
 		m_inprogress = false;
 
-		sinsp_pep_flt_worker* w = m_workers[j];
-		w->set_filter(cf);
+		m_workers[j]->set_filter(cf);
 	}
 #endif
 
@@ -176,7 +145,7 @@ void sinsp_plugin_evt_processor::compile(string filter)
 	m_sync_worker->set_filter(cf);
 }
 
-ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
+std::shared_ptr<sinsp_plugin> sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 {
 	if(m_inprogress)
 	{
@@ -193,7 +162,7 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 			//
 			// Locate the sinsp_plugin object correspondng to this plugin ID
 			//
-			sinsp_plugin* pplg = m_inspector->get_plugin_by_id(id);
+			std::shared_ptr<sinsp_plugin> pplg = m_inspector->get_plugin_by_id(id);
 			if(!pplg)
 			{
 				//
@@ -203,27 +172,28 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 				throw sinsp_exception("cannot find plugin with ID " + to_string(id));
 			}
 
-			ss_plugin_info* newpsi = new ss_plugin_info;
-			*newpsi = pplg->m_source_info;
+			// XXX/mstemm can we use the existing plugin directly that has already been initialized?
+			// ss_plugin_info* newpsi = new ss_plugin_info;
+			// *newpsi = pplg->m_source_info;
 
-			//
-			// Initialize the new plugin instance
-			//
-			newpsi->is_async_extractor_configured = false;
-			newpsi->is_async_extractor_present = false;
+			// //
+			// // Initialize the new plugin instance
+			// //
+			// newpsi->is_async_extractor_configured = false;
+			// newpsi->is_async_extractor_present = false;
 
-			if(newpsi->init != NULL)
-			{
-				int32_t init_res;
-				newpsi->state = newpsi->init(NULL, &init_res);
-				if(init_res != SCAP_SUCCESS)
-				{
-					throw sinsp_exception(string("unable to initialize plugin ") + newpsi->get_name());
-				}
-			}
+			// if(newpsi->init != NULL)
+			// {
+			// 	int32_t init_res;
+			// 	newpsi->state = newpsi->init(NULL, &init_res);
+			// 	if(init_res != SCAP_SUCCESS)
+			// 	{
+			// 		throw sinsp_exception(string("unable to initialize plugin ") + newpsi->get_name());
+			// 	}
+			// }
 
-			m_inprogress_infos[id] = newpsi;
-			return newpsi;
+			m_inprogress_infos[id] = pplg;
+			return pplg;
 		}
 		else
 		{
@@ -235,30 +205,30 @@ ss_plugin_info* sinsp_plugin_evt_processor::get_plugin_source_info(uint32_t id)
 	}
 	else
 	{
-		return NULL;
+		return std::shared_ptr<sinsp_plugin>();
 	}
 }
 
 #ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt)
+void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker &w, sinsp_evt* evt)
 {
 	uint32_t pelen = evt->m_pevt->len;
 
-	if(pelen > w->m_evt_storage.size())
+	if(pelen > w.m_evt_storage.size())
 	{
-		w->m_evt_storage.resize(pelen);
+		w.m_evt_storage.resize(pelen);
 	}
 
-	memcpy(&(w->m_evt_storage[0]), evt->m_pevt, evt->m_pevt->len);
-	w->m_evt.m_pevt = (scap_evt*)&(w->m_evt_storage[0]);
-	w->m_evt.m_evtnum = evt->m_evtnum;
+	memcpy(&(w.m_evt_storage[0]), evt->m_pevt, evt->m_pevt->len);
+	w.m_evt.m_pevt = (scap_evt*)&(w.m_evt_storage[0]);
+	w.m_evt.m_evtnum = evt->m_evtnum;
 }
 #else
-void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker* w, sinsp_evt* evt)
+void sinsp_plugin_evt_processor::prepare_worker(sinsp_pep_flt_worker &w, sinsp_evt* evt)
 {
 	uint32_t pelen = evt->m_pevt->len;
-	w->m_evt.m_pevt = evt->m_pevt;
-	w->m_evt.m_evtnum = evt->m_evtnum;
+	w.m_evt.m_pevt = evt->m_pevt;
+	w.m_evt.m_evtnum = evt->m_evtnum;
 }
 #endif
 
@@ -271,7 +241,7 @@ sinsp_evt* sinsp_plugin_evt_processor::process_event(sinsp_evt* evt)
 		{
 			if(w->m_state == sinsp_pep_flt_worker::WS_READY)
 			{
-				prepare_worker(w, evt);
+				prepare_worker(*(w.get()), evt);
 				w->m_state = sinsp_pep_flt_worker::WS_WORKING;
 				return NULL;
 			}
@@ -279,7 +249,7 @@ sinsp_evt* sinsp_plugin_evt_processor::process_event(sinsp_evt* evt)
 	}
 #endif
 
-	prepare_worker(m_sync_worker, evt);
+	prepare_worker(*(m_sync_worker.get()), evt);
 	m_sync_worker->process_event();
 	sinsp_evt* res = m_sync_worker->get_evt();
 	return res;

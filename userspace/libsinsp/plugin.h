@@ -53,9 +53,9 @@ public:
 		return &m_async_extractor_info;
 	}
 
-	bool extract_str(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, std::string &ret)
+	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 	{
-		if (!extract(evtnum, field_id, ftype, arg, data, datalen))
+		if (!extract(evtnum, field_id, PT_CHARBUF, arg, data, datalen))
 		{
 			return false;
 		}
@@ -72,9 +72,9 @@ public:
 		return true;
 	}
 
-	bool extract_u64(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
+	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 	{
-		if (!extract(evtnum, field_id, ftype, arg, data, datalen))
+		if (!extract(evtnum, field_id, PT_UINT64, arg, data, datalen))
 		{
 			return false;
 		}
@@ -97,7 +97,7 @@ private:
 		SHUTDOWN_DONE = 5,
 	};
 
-	inline bool extract(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen)
+	inline bool extract(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, uint8_t *data, uint32_t datalen)
 	{
 		m_async_extractor_info.evtnum = evtnum;
 		m_async_extractor_info.field_id = field_id;
@@ -203,6 +203,7 @@ class sinsp_plugin
 public:
 	class version {
 	public:
+		version();
 		version(const char *version_str);
 		virtual ~version();
 
@@ -229,7 +230,7 @@ public:
 
 	private:
 
-		std::unique_ptr<uint8_t> m_data;
+		std::shared_ptr<uint8_t> m_data;
 		uint32_t m_datalen;
 		uint64_t m_ts;
 	};
@@ -249,7 +250,16 @@ public:
 	sinsp_plugin();
 	virtual ~sinsp_plugin();
 
-	bool init(char *config, int32_t &rc);
+	// Given a dynamic library handle, fill in common properties
+	// (name/desc/etc) and required functions
+	// (init/destroy/extract/etc).
+	// Returns true on success, false + sets errstr on error.
+	virtual bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr);
+
+	void disable_async_extract();
+
+	bool init(char *config);
+	void destroy();
 
 	virtual ss_plugin_type type() = 0;
 
@@ -263,25 +273,19 @@ public:
 	uint32_t nfields();
 
 	// Will either use the the async extractor interface or direct C calls to extract the values
-	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, char *data, uint32_t datalen, std::string &ret);
-	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
+	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
+	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 protected:
 	// Helper function to resolve symbols
-	void* getsym(void* handle, const char* name, bool avoid_async);
+	static void* getsym(void* handle, const char* name, std::string &errstr);
 
 	// Might be called by extract_str/extract_u64
-	bool async_extract_str(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, std::string &ret);
-        bool async_extract_u64(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, char *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
+	bool async_extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
+        bool async_extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	std::string str_from_alloc_charbuf(char *charbuf);
-
-	// Given a dynamic library handle, fill in common properties
-	// (name/desc/etc) and required functions
-	// (init/destroy/extract/etc).
-	// Returns true on success, false + sets errstr on error.
-	virtual bool resolve_dylib_symbols(void *handle, std::string &errstr);
 
 	// Derived classes might need to access the return value from init().
 	ss_plugin_t *m_plugin_handle;
@@ -307,7 +311,7 @@ private:
 	std::string m_name;
 	std::string m_description;
 	std::string m_contact;
-	version m_version;
+	version m_plugin_version;
 
 	// Allocated instead of vector to match how it will be held in filter_check_info
 	std::unique_ptr<filtercheck_field_info[]> m_fields;
@@ -324,9 +328,14 @@ public:
 	sinsp_source_plugin();
 	virtual ~sinsp_source_plugin();
 
+	bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr) override;
+
 	ss_plugin_type type() override { return TYPE_SOURCE_PLUGIN; };
 	uint32_t id();
 	const std::string &event_source();
+
+	// For libscap that only works with struct of functions.
+	source_plugin_info *plugin_info();
 
 	// Note that embedding ss_instance_t in the object means that
 	// a plugin can only have one open active at a time.
@@ -337,9 +346,6 @@ public:
 	std::string get_progress(uint32_t &progress_pct);
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
-
-protected:
-	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
 
 private:
 	uint32_t m_id;
@@ -356,6 +362,8 @@ class sinsp_extractor_plugin : public sinsp_plugin
 public:
 	sinsp_extractor_plugin();
 	virtual ~sinsp_extractor_plugin();
+
+	bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_EXTRACTOR_PLUGIN; };
 

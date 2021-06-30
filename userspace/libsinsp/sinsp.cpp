@@ -168,7 +168,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 
 	m_filter_proc_table_when_saving = false;
 
-	m_input_plugin = NULL;
 	m_n_async_plugin_extractors = 0;
 }
 
@@ -223,11 +222,7 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
-
-	for(auto it : m_plugins_list)
-	{
-		delete it;
-	}
+	m_plugins_list.clear();
 }
 
 void sinsp::add_protodecoders()
@@ -506,9 +501,10 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	// If a plugin was configured, pass it to scap and set the capture mode to
 	// SCAP_MODE_PLUGIN.
 	//
-	if(m_input_plugin != NULL)
+	if(m_input_plugin)
 	{
-		oargs.input_plugin = &(m_input_plugin->m_source_info);
+		sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(m_input_plugin.get());
+		oargs.input_plugin = splugin->plugin_info();
 		oargs.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
@@ -1647,31 +1643,34 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-sinsp_plugin* sinsp::add_plugin(std::shared_ptr<sinsp_plugin> plugin)
+void sinsp::add_plugin(std::shared_ptr<sinsp_plugin> plugin)
 {
 	uint32_t ncpus = thread::hardware_concurrency();
 	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
 
-	plugin->toggle_async_extract(!avoid_async);
+	if(avoid_async)
+	{
+		plugin->disable_async_extract();
+	}
 
 	for(auto& it : m_plugins_list)
 	{
-		if(it->get_name() == plugin->get_name())
+		if(it->name() == plugin->name())
 		{
-			throw sinsp_exception("found multiple plugins with name " + name + ". Aborting.");
+			throw sinsp_exception("found multiple plugins with name " + it->name() + ". Aborting.");
 		}
 	}
 
-	m_plugins_list.push_back(plugin)
+	m_plugins_list.push_back(plugin);
 }
 
 void sinsp::set_input_plugin(string plugin_name)
 {
 	for(auto& it : m_plugins_list)
 	{
-		if(it->m_source_info.get_name() == plugin_name)
+		if(it->name() == plugin_name)
 		{
-			if(it->get_type() != TYPE_SOURCE_PLUGIN)
+			if(it->type() != TYPE_SOURCE_PLUGIN)
 			{
 				throw sinsp_exception("plugin " + plugin_name + " is not a source plugin and cannot be used as input.");
 			}
@@ -1689,7 +1688,7 @@ void sinsp::set_input_plugin_open_params(string params)
 	m_input_plugin_open_params = params;
 }
 
-const std::vector<std::shared_ptr<sinsp_plugin>>>& sinsp::get_plugins()
+const std::vector<std::shared_ptr<sinsp_plugin>>& sinsp::get_plugins()
 {
 	return m_plugins_list;
 }
@@ -1698,10 +1697,10 @@ std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_id(uint32_t plugin_id)
 {
 	for(auto it : m_plugins_list)
 	{
-		if(it->get_type() == TYPE_SOURCE_PLUGIN)
+		if(it->type() == TYPE_SOURCE_PLUGIN)
 		{
 			sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(it.get());
-			if(splugin->get_id() == plugin_id)
+			if(splugin->id() == plugin_id)
 			{
 				return it;
 			}
@@ -2077,27 +2076,27 @@ double sinsp::get_read_progress_file()
 
 void sinsp::get_read_progress_plugin(OUT double* nres, string* sres)
 {
-	ASSERT(m_input_plugin != NULL);
 	ASSERT(nres != NULL);
-	if(m_input_plugin->m_source_info.get_progress != NULL)
+	ASSERT(sres != NULL);
+	if(!nres || !sres)
 	{
-		uint32_t nplg;
-		char* splg = m_input_plugin->m_source_info.get_progress(m_input_plugin->m_source_info.state,
-			m_input_plugin->m_source_info.handle,
-			&nplg);
-
-		*nres = ((double)nplg) / 100;
-
-		if(splg != NULL && sres != NULL)
-		{
-			*sres = splg;
-		}
+		return;
 	}
-	else
+
+	if (!m_input_plugin)
 	{
-		*nres = 0;
-		*sres = "";
+		*nres = -1;
+		*sres = "No Input Plugin";
+
+		return;
 	}
+
+	sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(m_input_plugin.get());
+
+	uint32_t nplg;
+	*sres = splugin->get_progress(nplg);
+
+	*nres = ((double)nplg) / 100;
 }
 
 double sinsp::get_read_progress()

@@ -1209,7 +1209,7 @@ public:
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
-	sinsp_plugin* m_input_plugin;
+	std::shared_ptr<sinsp_plugin> m_input_plugin;
 	//
 	// String with the parameters for the plugin to be used as input.
 	// These parameters will be passed to the open function of the plugin.
