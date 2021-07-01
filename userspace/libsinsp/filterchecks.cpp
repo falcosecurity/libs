@@ -2860,6 +2860,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, a summary of the event as formatted by the plugin."},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -4539,6 +4540,34 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			m_strstorage = "plugin ID " + to_string(pgid) + " (not loaded)";
 			RETURN_EXTRACT_STRING(m_strstorage);
+		}
+		break;
+        case TYPE_PLUGIN_INFO:
+		if(evt->get_type() == PPME_PLUGINEVENT_E)
+		{
+			sinsp_evt_param *parinfo = evt->get_param(0);
+			ASSERT(parinfo->m_len == sizeof(int32_t));
+			uint32_t pgid = *(int32_t *)parinfo->m_val;
+			std::shared_ptr<sinsp_plugin> ppg = m_inspector->get_plugin_by_id(pgid);
+
+			if(ppg)
+			{
+				sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(ppg.get());
+				sinsp_evt_param *parinfo = evt->get_param(1);
+				m_strstorage = splugin->event_to_string((uint8_t *)parinfo->m_val, parinfo->m_len);
+
+				if(m_strstorage.size() > 100)
+				{
+					m_strstorage = m_strstorage.substr(0, 100);
+					m_strstorage += "...";
+				}
+				RETURN_EXTRACT_STRING(m_strstorage);
+			}
+			else
+			{
+				m_strstorage = "plugin ID " + to_string(pgid) + " (not loaded)";
+				RETURN_EXTRACT_STRING(m_strstorage);
+			}
 		}
 		break;
 	default:

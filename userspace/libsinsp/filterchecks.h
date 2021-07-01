@@ -471,6 +471,7 @@ public:
 		TYPE_INFRA_DOCKER_CONTAINER_IMAGE = 67,
 		TYPE_ISOPEN_EXEC = 68,
 		TYPE_PLUGIN_NAME = 69,
+		TYPE_PLUGIN_INFO = 70,
 	};
 
 	sinsp_filter_check_event();
