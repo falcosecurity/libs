@@ -45,6 +45,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${PROBE_NAME}")
 	add_definitions(-DSCAP_PROBE_MODULE_NAME="${SCAP_PROBE_MODULE_NAME}")
 
+	if(NOT DEFINED SCAP_PROBE_BPF_FILEPATH)
+		# note that the home folder is prepended by scap at runtime
+		set(SCAP_PROBE_BPF_FILEPATH ".${PROBE_NAME}/${PROBE_NAME}-bpf.o")
+	endif()
+	add_definitions(-DSCAP_PROBE_BPF_FILEPATH="${SCAP_PROBE_BPF_FILEPATH}")
 endif()
 
 if(NOT DEFINED SCAP_BPF_PROBE_ENV_VAR_NAME)

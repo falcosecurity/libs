@@ -218,7 +218,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				return NULL;
 			}
 
-			snprintf(buf, sizeof(buf), "%s/.%s/%s-bpf.o", home, PROBE_DEVICE_NAME, PROBE_NAME);
+			snprintf(buf, sizeof(buf), "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
 			bpf_probe = buf;
 		}
 	}
