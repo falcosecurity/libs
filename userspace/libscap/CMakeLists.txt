@@ -33,13 +33,18 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     if(NOT DEFINED PROBE_VERSION)
         set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
     endif()
+
     if(NOT DEFINED PROBE_NAME)
         set(PROBE_NAME "scap")
     endif()
-
+	
     if(NOT DEFINED PROBE_DEVICE_NAME)
-        set(PROBE_DEVICE_NAME "scap")
+        set(PROBE_DEVICE_NAME "${PROBE_NAME}")
     endif()
+
+	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${PROBE_NAME}")
+	add_definitions(-DSCAP_PROBE_MODULE_NAME="${SCAP_PROBE_MODULE_NAME}")
+
 endif()
 
 if(NOT DEFINED SCAP_BPF_PROBE_ENV_VAR_NAME)
