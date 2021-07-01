@@ -2708,7 +2708,7 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 
 const char *scap_get_bpf_probe_from_env()
 {
-	return getenv(PROBE_ENV_VAR_NAME);
+	return getenv(SCAP_BPF_PROBE_ENV_VAR_NAME);
 }
 
 bool scap_get_bpf_enabled(scap_t *handle)
