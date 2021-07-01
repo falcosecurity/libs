@@ -17,6 +17,7 @@ endif()
 include(jsoncpp)
 if(NOT MINIMAL_BUILD)
 	include(cares)
+	include(openssl)
 endif()
 
 if(NOT WIN32)
