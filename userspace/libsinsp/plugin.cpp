@@ -335,7 +335,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	// strictly allow casting void * to a function pointer. (See
 	// http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#195).
 	char * (*get_required_api_version)();
-	*(void **) (&get_required_api_version) = getsym(handle, "get_required_api_version", errstr);
+	*(void **) (&get_required_api_version) = getsym(handle, "plugin_get_required_api_version", errstr);
 	if(get_required_api_version == NULL)
 	{
 		return ret;
@@ -356,7 +356,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	}
 
 	uint32_t (*get_type)();
-	*(void **) (&get_type) = getsym(handle, "get_type", errstr);
+	*(void **) (&get_type) = getsym(handle, "plugin_get_type", errstr);
 	if(get_type == NULL)
 	{
 		return ret;
