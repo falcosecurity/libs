@@ -53,9 +53,8 @@ typedef bool (*cb_wait_t)(void* wait_ctx);
 typedef struct async_extractor_info
 {
 	uint64_t evtnum;
-	uint32_t field_id;
-	uint32_t ftype;
-	char* arg;
+	const char *field;
+	const char* arg;
 	uint8_t* data;
 	uint32_t datalen;
 	uint32_t field_present;
@@ -219,7 +218,7 @@ typedef struct
 	// - rc: pointer to an integer that will contain the open result, as a SCAP_* value
 	//   (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
 	// Return value: a pointer to the open context that will be passed to next(),
-	//   close(), event_to_string() and extract_as_*.
+	//   close(), event_to_string() and extract_*.
 	//
 	ss_instance_t* (*open)(ss_plugin_t* s, char* params, int32_t* rc);
 	//
@@ -293,8 +292,8 @@ typedef struct
 	// Return value: the produced value of the filter field. For extract_str(), a
 	//   NULL return value means that the field is missing for the given event.
 	//
-	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen);
-	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char * field, const char *arg, uint8_t *data, uint32_t datalen);
+	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 	//
 	// This is an optional, internal, function used to speed up event capture by
 	// batching the calls to next().
@@ -452,6 +451,6 @@ typedef struct
 	// Return value: the produced value of the filter field. For extract_str(), a
 	// NULL return value means that the field is missing for the given event.
 	//
-	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
-	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen);
+	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 } extractor_plugin_info;

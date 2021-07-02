@@ -53,9 +53,9 @@ public:
 		return &m_async_extractor_info;
 	}
 
-	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
+	bool extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 	{
-		if (!extract(evtnum, field_id, PT_CHARBUF, arg, data, datalen))
+		if (!extract(evtnum, field, arg, data, datalen))
 		{
 			return false;
 		}
@@ -72,9 +72,9 @@ public:
 		return true;
 	}
 
-	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
+	bool extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 	{
-		if (!extract(evtnum, field_id, PT_UINT64, arg, data, datalen))
+		if (!extract(evtnum, field,arg, data, datalen))
 		{
 			return false;
 		}
@@ -97,11 +97,10 @@ private:
 		SHUTDOWN_DONE = 5,
 	};
 
-	inline bool extract(uint64_t evtnum, uint32_t field_id, uint32_t ftype, char *arg, uint8_t *data, uint32_t datalen)
+	inline bool extract(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen)
 	{
 		m_async_extractor_info.evtnum = evtnum;
-		m_async_extractor_info.field_id = field_id;
-		m_async_extractor_info.ftype = ftype;
+		m_async_extractor_info.field = field;
 		m_async_extractor_info.arg = arg;
 		m_async_extractor_info.data = data;
 		m_async_extractor_info.datalen = datalen;
@@ -273,16 +272,16 @@ public:
 	uint32_t nfields();
 
 	// Will either use the the async extractor interface or direct C calls to extract the values
-	bool extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
-	bool extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
+	bool extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
+	bool extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 protected:
 	// Helper function to resolve symbols
 	static void* getsym(void* handle, const char* name, std::string &errstr);
 
 	// Might be called by extract_str/extract_u64
-	bool async_extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
-        bool async_extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
+	bool async_extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
+        bool async_extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	std::string str_from_alloc_charbuf(char *charbuf);
@@ -303,8 +302,8 @@ private:
 		char* (*get_contact)();
 		char* (*get_version)();
 		char* (*get_fields)();
-		char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen);
-		uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, uint32_t id, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+		char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen);
+		uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 		int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 	} common_plugin_info;
 

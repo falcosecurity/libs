@@ -177,7 +177,7 @@ public:
 		{
 		case PT_CHARBUF:
 		{
-			if (!m_plugin->extract_str(evt->get_num(), m_field_id, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, m_strstorage))
+			if (!m_plugin->extract_str(evt->get_num(), m_info.m_fields[m_field_id].m_name, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, m_strstorage))
 			{
 				return NULL;
 			}
@@ -189,7 +189,7 @@ public:
 		{
 			uint32_t field_present;
 
-			if (!m_plugin->extract_u64(evt->get_num(), m_field_id, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, field_present, m_u64_res))
+			if (!m_plugin->extract_u64(evt->get_num(), m_info.m_fields[m_field_id].m_name, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, field_present, m_u64_res))
 			{
 				return NULL;
 			}
@@ -509,7 +509,7 @@ uint32_t sinsp_plugin::nfields()
 	return m_nfields;
 }
 
-bool sinsp_plugin::extract_str(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
+bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 {
 	if(!m_plugin_info.extract_str || !m_plugin_handle)
 	{
@@ -518,10 +518,10 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, uint32_t field_id, char *arg, ui
 
 	if(m_async_extractor)
 	{
-		return m_async_extractor->extract_str(evtnum, field_id, arg, data, datalen, ret);
+		return m_async_extractor->extract_str(evtnum, field, arg, data, datalen, ret);
 	}
 
-	char *str = m_plugin_info.extract_str(m_plugin_handle, evtnum, field_id, arg, data, datalen);
+	char *str = m_plugin_info.extract_str(m_plugin_handle, evtnum, field, arg, data, datalen);
 
 	if (str == NULL)
 	{
@@ -533,7 +533,7 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, uint32_t field_id, char *arg, ui
 	return true;
 }
 
-bool sinsp_plugin::extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
+bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 {
 	if(!m_plugin_info.extract_str || !m_plugin_handle)
 	{
@@ -542,12 +542,12 @@ bool sinsp_plugin::extract_u64(uint64_t evtnum, uint32_t field_id, char *arg, ui
 
 	if(m_async_extractor)
 	{
-		return m_async_extractor->extract_u64(evtnum, field_id, arg, data, datalen, field_present, ret);
+		return m_async_extractor->extract_u64(evtnum, field, arg, data, datalen, field_present, ret);
 	}
 
 	uint32_t fp;
 
-	ret = m_plugin_info.extract_u64(m_plugin_handle, evtnum, field_id, arg, data, datalen, &fp);
+	ret = m_plugin_info.extract_u64(m_plugin_handle, evtnum, field, arg, data, datalen, &fp);
 
 	field_present = fp;
 
