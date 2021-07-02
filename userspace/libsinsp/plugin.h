@@ -55,7 +55,7 @@ public:
 
 	bool extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 	{
-		if (!extract(evtnum, field, arg, data, datalen))
+		if (!extract(evtnum, PT_CHARBUF, field, arg, data, datalen))
 		{
 			return false;
 		}
@@ -74,7 +74,7 @@ public:
 
 	bool extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 	{
-		if (!extract(evtnum, field,arg, data, datalen))
+		if (!extract(evtnum, PT_UINT64, field, arg, data, datalen))
 		{
 			return false;
 		}
@@ -97,9 +97,10 @@ private:
 		SHUTDOWN_DONE = 5,
 	};
 
-	inline bool extract(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen)
+	inline bool extract(uint64_t evtnum, uint32_t ftype, const char *field, char *arg, uint8_t *data, uint32_t datalen)
 	{
 		m_async_extractor_info.evtnum = evtnum;
+		m_async_extractor_info.ftype = ftype;
 		m_async_extractor_info.field = field;
 		m_async_extractor_info.arg = arg;
 		m_async_extractor_info.data = data;
@@ -302,8 +303,8 @@ private:
 		char* (*get_contact)();
 		char* (*get_version)();
 		char* (*get_fields)();
-		char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen);
-		uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+		char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen);
+		uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
 		int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 	} common_plugin_info;
 
