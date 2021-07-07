@@ -1947,6 +1947,15 @@ double sinsp::get_read_progress()
 	return (double)fpos * 100 / m_filesize;
 }
 
+void sinsp::set_metadata_download_params(uint32_t data_max_b,
+	uint32_t data_chunk_wait_us,
+	uint32_t data_watch_freq_sec)
+{
+	m_metadata_download_params.m_data_max_b = data_max_b;
+	m_metadata_download_params.m_data_chunk_wait_us = data_chunk_wait_us;
+	m_metadata_download_params.m_data_watch_freq_sec = data_watch_freq_sec;
+}
+
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
