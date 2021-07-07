@@ -782,6 +782,14 @@ public:
 		}
 	}
 
+	/*!
+	  \brief Set the parameters that control metadata fetching from orchestrators
+	  like Kuberneted and mesos.
+	*/
+	void set_metadata_download_params(uint32_t data_max_b,
+		uint32_t data_chunk_wait_us,
+		uint32_t data_watch_freq_sec);
+
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void init_k8s_ssl(const std::string *ssl_cert);
