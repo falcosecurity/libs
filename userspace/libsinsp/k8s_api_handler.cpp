@@ -37,7 +37,7 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 	,ssl_ptr_t ssl
 	,bt_ptr_t bt
 	,bool blocking_socket
-	,uint32_t data_max_mb
+	,uint32_t data_max_b
 	,uint32_t data_chunk_wait_us
 #endif // HAS_CAPTURE
 ):
@@ -46,7 +46,7 @@ k8s_api_handler::k8s_api_handler(collector_ptr_t collector,
 					url, path, filter, ".", "", collector, http_version, 1000L, ssl, bt,
 					false, true, std::make_shared<k8s_dummy_handler>(), blocking_socket,
 #endif // HAS_CAPTURE
-					 ~0, nullptr, data_max_mb, data_chunk_wait_us)
+					 ~0, nullptr, data_max_b, data_chunk_wait_us)
 {
 }
 
