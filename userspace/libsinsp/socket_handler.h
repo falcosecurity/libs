@@ -57,6 +57,8 @@ limitations under the License.
 #define SOCK_NONBLOCK 0
 #endif
 
+#define SOCKET_HANDLER_DATA_LIMIT 524288u
+
 template <typename T>
 class socket_data_handler
 {
@@ -81,9 +83,9 @@ public:
 		bt_ptr_t bt = nullptr,
 		bool keep_alive = true,
 		bool blocking = false,
-		unsigned data_limit = 524288u,
+		unsigned data_limit = SOCKET_HANDLER_DATA_LIMIT,
 		bool fetching_state = true,
-		uint32_t data_max_mb = K8S_DATA_MAX_MB,
+		uint32_t data_max_b = K8S_DATA_MAX_B,
 		uint32_t data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US): m_obj(obj),
 			m_id(id),
 			m_url(url),
@@ -97,7 +99,7 @@ public:
 			m_http_version(http_version),
 			m_data_limit(data_limit),
 			m_fetching_state(fetching_state),
-			m_data_max_mb(data_max_mb),
+			m_data_max_b(data_max_b),
 			m_data_chunk_wait_us(data_chunk_wait_us)
 
 	{
@@ -392,13 +394,13 @@ public:
 				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
 			}
 
-			// To prevent reads from entirely stalling (like in gigantic k8s
-			// environments), give up after reading 30mb.
+			// To prevent reads from entirely stalling (like in gigantic k8s environments), 
+			// give up after reading a certain size (by default, 100MB, but configurable).
 			++counter;
-			if(processed > m_data_max_mb)
+			if(processed > m_data_max_b)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
-						      "read more than " + to_string(m_data_max_mb / 1024 / 1024) + " MB of data from " +
+						      "read more than " + to_string(m_data_max_b / 1024 / 1024) + " MB of data from " +
 						      m_url.to_string(false) + m_path + " (" + std::to_string(processed) +
 						      " bytes, " + std::to_string(counter) + " reads). Giving up");
 			}
@@ -1617,7 +1619,7 @@ private:
 	http_parser_settings     m_http_parser_settings;
 	http_parser*             m_http_parser = nullptr;
 	http_parser_data         m_http_parser_data;
-	unsigned                 m_data_limit = 524288; // bytes
+	unsigned                 m_data_limit = SOCKET_HANDLER_DATA_LIMIT; // bytes
 
 	ares_channel             m_ares_channel = nullptr;
 	ares_options             m_ares_opts;
@@ -1634,7 +1636,7 @@ private:
 	// from the string and the purged buffer is posted for further processing
 	bool                     m_fetching_state = true;
 
-	uint32_t m_data_max_mb;
+	uint32_t m_data_max_b;
 	uint32_t m_data_chunk_wait_us;
 
 };

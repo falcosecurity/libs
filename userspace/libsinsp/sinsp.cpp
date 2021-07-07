@@ -1947,15 +1947,6 @@ double sinsp::get_read_progress()
 	return (double)fpos * 100 / m_filesize;
 }
 
-void sinsp::set_metadata_download_params(uint32_t data_max_mb,
-	uint32_t data_chunk_wait_us,
-	uint32_t data_watch_freq_sec)
-{
-	m_metadata_download_params.m_data_max_mb = data_max_mb;
-	m_metadata_download_params.m_data_chunk_wait_us = data_chunk_wait_us;
-	m_metadata_download_params.m_data_watch_freq_sec = data_watch_freq_sec;
-}
-
 bool sinsp::remove_inactive_threads()
 {
 	return m_thread_manager->remove_inactive_threads();
@@ -2221,7 +2212,7 @@ void sinsp::update_k8s_state()
 					m_k8s_api_handler.reset(new k8s_api_handler(m_k8s_collector, *m_k8s_api_server,
 										    "/api", ".versions", "1.1",
 										    m_k8s_ssl, m_k8s_bt, true,
-										    m_metadata_download_params.m_data_max_mb,
+										    m_metadata_download_params.m_data_max_b,
 										    m_metadata_download_params.m_data_chunk_wait_us));
 				}
 				else

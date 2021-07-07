@@ -151,7 +151,7 @@ public:
 class metadata_download_params
 {
 public:
-	uint32_t m_data_max_mb = K8S_DATA_MAX_MB;
+	uint32_t m_data_max_b = K8S_DATA_MAX_B;
 	uint32_t m_data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US;
 	uint32_t m_data_watch_freq_sec = METADATA_DATA_WATCH_FREQ_SEC;
 };
@@ -781,14 +781,6 @@ public:
 			return scap_disable_dynamic_snaplen(m_h);
 		}
 	}
-
-	/*!
-	  \brief Se the parameters that control metadata fetching from orchestrators
-	  like Kuberneted and mesos.
-	*/
-	void set_metadata_download_params(uint32_t data_max_mb,
-		uint32_t data_chunk_wait_us,
-		uint32_t data_watch_freq_sec);
 
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)

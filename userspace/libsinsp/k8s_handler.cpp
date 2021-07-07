@@ -97,7 +97,7 @@ k8s_handler::k8s_handler(const std::string& id,
 							 uri(m_url).to_string(false) + m_path), sinsp_logger::SEV_DEBUG);
 		m_handler = std::make_shared<handler_t>(*this, m_id, m_url, m_path, m_http_version,
 											 m_timeout_ms, m_ssl, m_bt, !m_blocking_socket, m_blocking_socket,
-											 524288u, true, data_max_mb, data_chunk_wait_us);
+											 SOCKET_HANDLER_DATA_LIMIT, true, data_max_mb, data_chunk_wait_us);
 		m_handler->set_json_callback(&k8s_handler::set_event_json);
 
 		// filter order is important; there are four kinds of filters:

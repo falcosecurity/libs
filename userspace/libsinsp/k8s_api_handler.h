@@ -38,7 +38,7 @@ public:
 		ssl_ptr_t ssl = 0,
 		bt_ptr_t bt = 0,
 		bool blocking_socket = false,
-		uint32_t data_max_mb = K8S_DATA_MAX_MB,
+		uint32_t data_max_mb = K8S_DATA_MAX_B,
 		uint32_t data_chunk_wait_us = K8S_DATA_CHUNK_WAIT_US
 		);
 
