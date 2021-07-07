@@ -1040,7 +1040,18 @@ void sinsp::restart_capture_at_filepos(uint64_t filepos)
 	// Close and reopen the capture
 	//
 	m_file_start_offset = filepos;
+	int fd = m_input_fd;
+	if(fd > 0)
+	{
+		fd = dup(fd);
+		if(fd < 0)
+		{
+			throw sinsp_exception("Failed to copy fd " + std::to_string(m_input_fd) + ": " + strerror(errno));
+		}
+	}
 	close();
+	m_input_fd = fd;
+	lseek(fd, 0, SEEK_SET);
 	open_int();
 
 	//
