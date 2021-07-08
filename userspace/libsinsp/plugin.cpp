@@ -443,7 +443,7 @@ bool sinsp_plugin::init(char *config)
 
 	int32_t rc;
 
-	m_plugin_handle = m_plugin_info.init(config, &rc);
+	m_plugin_state = m_plugin_info.init(config, &rc);
 	if(rc != SCAP_SUCCESS)
 	{
 		// Not calling get_last_error here because there was
@@ -456,10 +456,10 @@ bool sinsp_plugin::init(char *config)
 
 void sinsp_plugin::destroy()
 {
-	if(m_plugin_handle && m_plugin_info.destroy)
+	if(m_plugin_state && m_plugin_info.destroy)
 	{
-		m_plugin_info.destroy(m_plugin_handle);
-		m_plugin_handle = NULL;
+		m_plugin_info.destroy(m_plugin_state);
+		m_plugin_state = NULL;
 	}
 }
 
@@ -467,9 +467,9 @@ std::string sinsp_plugin::get_last_error()
 {
 	std::string ret;
 
-	if(m_plugin_handle && m_plugin_info.get_last_error)
+	if(m_plugin_state && m_plugin_info.get_last_error)
 	{
-		ret = str_from_alloc_charbuf(m_plugin_info.get_last_error(m_plugin_handle));
+		ret = str_from_alloc_charbuf(m_plugin_info.get_last_error(m_plugin_state));
 	}
 	else
 	{
@@ -511,7 +511,7 @@ uint32_t sinsp_plugin::nfields()
 
 bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 {
-	if(!m_plugin_info.extract_str || !m_plugin_handle)
+	if(!m_plugin_info.extract_str || !m_plugin_state)
 	{
 		return false;
 	}
@@ -521,7 +521,7 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, ui
 		return m_async_extractor->extract_str(evtnum, field, arg, data, datalen, ret);
 	}
 
-	char *str = m_plugin_info.extract_str(m_plugin_handle, evtnum, field, arg, data, datalen);
+	char *str = m_plugin_info.extract_str(m_plugin_state, evtnum, field, arg, data, datalen);
 
 	if (str == NULL)
 	{
@@ -535,7 +535,7 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, ui
 
 bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 {
-	if(!m_plugin_info.extract_str || !m_plugin_handle)
+	if(!m_plugin_info.extract_str || !m_plugin_state)
 	{
 		return false;
 	}
@@ -547,7 +547,7 @@ bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, ui
 
 	uint32_t fp;
 
-	ret = m_plugin_info.extract_u64(m_plugin_handle, evtnum, field, arg, data, datalen, &fp);
+	ret = m_plugin_info.extract_u64(m_plugin_state, evtnum, field, arg, data, datalen, &fp);
 
 	field_present = fp;
 
@@ -700,7 +700,7 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::st
 		{
 			m_async_extractor.reset(new sinsp_async_extractor());
 
-			if(m_plugin_info.register_async_extractor(m_plugin_handle, m_async_extractor->extractor_info()) != SCAP_SUCCESS)
+			if(m_plugin_info.register_async_extractor(m_plugin_state, m_async_extractor->extractor_info()) != SCAP_SUCCESS)
 			{
 				throw sinsp_exception(string("error in plugin ") + m_name + ": " + get_last_error());
 			}
@@ -737,6 +737,9 @@ const std::string &sinsp_source_plugin::event_source()
 
 source_plugin_info *sinsp_source_plugin::plugin_info()
 {
+	// Make sure the state/handle fields in the returned struct are filled in.
+	m_source_plugin_info.state = m_plugin_state;
+	m_source_plugin_info.handle = m_instance_handle;
 	return &m_source_plugin_info;
 }
 
@@ -744,12 +747,12 @@ bool sinsp_source_plugin::open(char *params, int32_t &rc)
 {
 	int32_t orc;
 
-	if(!m_plugin_handle)
+	if(!m_plugin_state)
 	{
 		return false;
 	}
 
-	m_instance_handle = m_source_plugin_info.open(m_plugin_handle, params, &orc);
+	m_instance_handle = m_source_plugin_info.open(m_plugin_state, params, &orc);
 
 	rc = orc;
 
@@ -758,19 +761,17 @@ bool sinsp_source_plugin::open(char *params, int32_t &rc)
 
 void sinsp_source_plugin::close()
 {
-	if(!m_plugin_handle || !m_instance_handle)
+	if(!m_plugin_state || !m_instance_handle)
 	{
 		return;
 	}
 
-	m_source_plugin_info.close(m_plugin_handle, m_instance_handle);
+	m_source_plugin_info.close(m_plugin_state, m_instance_handle);
 }
 
 int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 {
-	uint8_t *data;
-	uint32_t datalen;
-	uint64_t ts;
+	ss_plugin_event *plugin_evt;
 
 	if(!m_instance_handle)
 	{
@@ -778,7 +779,7 @@ int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 		return SCAP_FAILURE;
 	}
 
-	int32_t rc = m_source_plugin_info.next(m_plugin_handle, m_instance_handle, &data, &datalen, &ts);
+	int32_t rc = m_source_plugin_info.next(m_plugin_state, m_instance_handle, &plugin_evt);
 
 	if(rc == SCAP_FAILURE)
 	{
@@ -788,7 +789,8 @@ int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 
 	if(rc == SCAP_SUCCESS)
 	{
-		evt.set(data, datalen, ts);
+		evt.set(plugin_evt->data, plugin_evt->datalen, plugin_evt->ts);
+		free(plugin_evt);
 	}
 
 	return rc;
@@ -797,9 +799,7 @@ int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 int32_t sinsp_source_plugin::next_batch(std::vector<sinsp_plugin::event> &events, std::string &errbuf)
 {
 	uint32_t nevts;
-	uint8_t **datav;
-	uint32_t *datalenv;
-	uint64_t *tsv;
+	ss_plugin_event *evts;
 
 	if(!m_instance_handle)
 	{
@@ -807,7 +807,7 @@ int32_t sinsp_source_plugin::next_batch(std::vector<sinsp_plugin::event> &events
 		return SCAP_FAILURE;
 	}
 
-	int32_t rc = m_source_plugin_info.next_batch(m_plugin_handle, m_instance_handle, &nevts, &datav, &datalenv, &tsv);
+	int32_t rc = m_source_plugin_info.next_batch(m_plugin_state, m_instance_handle, &nevts, &evts);
 
 	if(rc == SCAP_FAILURE)
 	{
@@ -821,9 +821,10 @@ int32_t sinsp_source_plugin::next_batch(std::vector<sinsp_plugin::event> &events
 
 		for(uint32_t i = 0; i < nevts; i++)
 		{
-			sinsp_plugin::event evt(datav[i], datalenv[i], tsv[i]);
+			sinsp_plugin::event evt(evts[i].data, evts[i].datalen, evts[i].ts);
 			events.push_back(evt);
 		}
+		free(evts);
 	}
 
 	return rc;
@@ -840,7 +841,7 @@ std::string sinsp_source_plugin::get_progress(uint32_t &progress_pct)
 	}
 
 	uint32_t ppct;
-	ret = str_from_alloc_charbuf(m_source_plugin_info.get_progress(m_plugin_handle, m_instance_handle, &ppct));
+	ret = str_from_alloc_charbuf(m_source_plugin_info.get_progress(m_plugin_state, m_instance_handle, &ppct));
 
 	progress_pct = ppct;
 
@@ -856,7 +857,7 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 		return ret;
 	}
 
-	ret = str_from_alloc_charbuf(m_source_plugin_info.event_to_string(m_plugin_handle, data, datalen));
+	ret = str_from_alloc_charbuf(m_source_plugin_info.event_to_string(m_plugin_state, data, datalen));
 
 	return ret;
 }

@@ -90,20 +90,14 @@ static void scap_free_plugin_batch_state(scap_t* handle)
 {
 	for(uint32_t i = 0; i < handle->m_input_plugin_batch_nevts; i++)
 	{
-		free(handle->m_input_plugin_batch_datav[i]);
+		free(handle->m_input_plugin_batch_evts[i].data);
 	}
 
 	handle->m_input_plugin_batch_nevts = 0;
 	handle->m_input_plugin_batch_idx = 0;
 
-	free(handle->m_input_plugin_batch_datav);
-	handle->m_input_plugin_batch_datav = NULL;
-
-	free(handle->m_input_plugin_batch_datalenv);
-	handle->m_input_plugin_batch_datalenv = NULL;
-
-	free(handle->m_input_plugin_batch_tsv);
-	handle->m_input_plugin_batch_tsv = NULL;
+	free(handle->m_input_plugin_batch_evts);
+	handle->m_input_plugin_batch_evts = NULL;
 }
 
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
@@ -989,13 +983,12 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 
 	handle->m_input_plugin = input_plugin;
 	handle->m_input_plugin->name = handle->m_input_plugin->get_name();
+	handle->m_input_plugin->id = handle->m_input_plugin->get_id();
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
 		input_plugin_params,
 		rc);
 	handle->m_input_plugin_batch_nevts = 0;
-	handle->m_input_plugin_batch_datav = NULL;
-	handle->m_input_plugin_batch_datalenv = NULL;
-	handle->m_input_plugin_batch_tsv = NULL;
+	handle->m_input_plugin_batch_evts = NULL;
 	handle->m_input_plugin_batch_idx = 0;
 	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
 
@@ -1700,10 +1693,9 @@ inline uint64_t get_windows_timestamp()
 
 static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	uint8_t* data;
-	uint32_t datalen;
-	uint64_t* ts = UINT64_MAX;
+	ss_plugin_event *plugin_evt;
 	int32_t res;
+	bool should_free_plugin_evt = false;
 
 	if(handle->m_input_plugin->next_batch != NULL)
 	{
@@ -1727,9 +1719,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
 												   handle->m_input_plugin->handle,
 												   &(handle->m_input_plugin_batch_nevts),
-												   &(handle->m_input_plugin_batch_datav),
-												   &(handle->m_input_plugin_batch_datalenv),
-												   &(handle->m_input_plugin_batch_tsv));
+												   &(handle->m_input_plugin_batch_evts));
 
 			if(handle->m_input_plugin_batch_nevts == 0)
 			{
@@ -1755,11 +1745,8 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		}
 
 		uint32_t pos = handle->m_input_plugin_batch_idx;
-		ts = handle->m_input_plugin_batch_tsv[pos];
 
-		datalen = handle->m_input_plugin_batch_datalenv[pos];
-
-		data = handle->m_input_plugin_batch_datav[pos];
+		plugin_evt = &(handle->m_input_plugin_batch_evts[pos]);
 
 		handle->m_input_plugin_batch_idx++;
 
@@ -1767,8 +1754,10 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	}
 	else
 	{
+		should_free_plugin_evt = true;
+
 		res = handle->m_input_plugin->next(handle->m_input_plugin->state,
-			handle->m_input_plugin->handle, &data, &datalen, &ts);
+						   handle->m_input_plugin->handle, &plugin_evt);
 		if(res != SCAP_SUCCESS)
 		{
 			if(res != SCAP_TIMEOUT && res != SCAP_EOF)
@@ -1781,7 +1770,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		}
 	}
 
-	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + datalen;
+	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + plugin_evt->datalen;
 	if(handle->m_input_plugin_evt_storage_len < reqsize)
 	{
 		handle->m_input_plugin_evt_storage = (uint8_t*)malloc(reqsize);
@@ -1797,15 +1786,22 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
 	*(uint16_t*)buf = 4;
 	buf += 2;
-	*(uint16_t*)buf = datalen;
+	*(uint16_t*)buf = plugin_evt->datalen;
 	buf += 2;
 	*(uint32_t*)buf = handle->m_input_plugin->id;
 	buf += 4;
-	memcpy(buf, data, datalen);
+	memcpy(buf, plugin_evt->data, plugin_evt->datalen);
 
-	if(ts != UINT64_MAX)
+	if(should_free_plugin_evt)
 	{
-		evt->ts = ts;
+		free(plugin_evt->data);
+		plugin_evt->data = NULL;
+		free(plugin_evt);
+	}
+
+	if(plugin_evt->ts != UINT64_MAX)
+	{
+		evt->ts = plugin_evt->ts;
 	}
 	else
 	{

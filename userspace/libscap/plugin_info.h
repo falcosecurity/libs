@@ -66,6 +66,23 @@ typedef struct async_extractor_info
 	void* wait_ctx;
 } async_extractor_info;
 
+// This struct represents an event returned by the plugin, and is used
+// below in next()/next_batch().
+// - data: pointer to a memory buffer pointer. The plugin will set it
+//   to point to the memory containing the next event. Once returned,
+//   the memory is owned by the plugin framework and will be freed via
+//   a call to free().
+// - datalen: pointer to a 32bit integer. The plugin will set it the size of the
+//   buffer pointed by data.
+// - ts: the event timestamp. Can be (uint64_t)-1, in which case the engine will
+//   automatically fill the event time with the current time.
+typedef struct ss_plugin_event
+{
+	uint8_t *data;
+	uint32_t datalen;
+	uint64_t ts;
+} ss_plugin_event;
+
 //
 // This is the opaque pointer to the state of a plugin.
 // It points to any data that might be needed plugin-wise. It is
@@ -236,16 +253,17 @@ typedef struct
 	// Arguments:
 	// - s: the plugin context, returned by init(). Can be NULL.
 	// - h: the capture context, returned by open(). Can be NULL.
-	// - data: pointer to a memory buffer pointer. The plugin will set it to point to
-	//   the memory containing the next event.
-	// - datalen: pointer to a 32bit integer. The plugin will set it the size of the
-	//   buffer pointed by data
-	// - ts: the event timestamp. Can be (uint64_t)-1, in which case the engine will
-	//   automatically fill the event time with the current time.
+	//
+        // - evt: pointer to a ss_plugin_event pointer. The plugin should
+        //   allocate a ss_plugin_event struct using malloc(), as well as
+	//   allocate the data buffer within the ss_plugin_event struct.
+	//   Both the struct and data buffer are owned by the plugin framework
+	//   and will free them using free().
+	//
 	// Return value: the status of the operation (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1,
 	//   SCAP_TIMEOUT=-1)
 	//
-	int32_t (*next)(ss_plugin_t* s, ss_instance_t* h, uint8_t** data, uint32_t* datalen, uint64_t* ts);
+	int32_t (*next)(ss_plugin_t* s, ss_instance_t* h, ss_plugin_event **evt);
 	//
 	// Return the read progress.
 	// Required: no
@@ -300,16 +318,14 @@ typedef struct
 	// batching the calls to next().
 	// On success:
 	//   - nevts will be filled in with the number of events.
-	//   - datav will be an allocated array pointer.
-	//     Each item in the array will be an allocated data buffer.
-	//   - datalenv will be an allocated array pointer.
-	//     Each item in the array will hold the length of the corresponding event from datav.
-	//   - tsv will be an allocated data buffer
-	//     Each item in the array will hold the timestamp of the corresponding event from datav.
-	//
+        //   - evts: pointer to an ss_plugin_event pointer. The plugin should
+        //     allocate an array of contiguous ss_plugin_event structs using malloc(),
+	//     as well as allocate each data buffer within each ss_plugin_event
+	//     struct using malloc(). Both the array of structs and each data buffer are
+	//     owned by the plugin framework and will free them using free().
 	// Required: no
 	//
-	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, uint8_t*** datav, uint32_t** datalenv, uint64_t **tsv);
+	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
 	//
 	// This is an optional, internal, function used to speed up value extraction
 	// Required: no

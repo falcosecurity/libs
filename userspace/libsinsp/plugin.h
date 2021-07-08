@@ -288,7 +288,7 @@ protected:
 	std::string str_from_alloc_charbuf(char *charbuf);
 
 	// Derived classes might need to access the return value from init().
-	ss_plugin_t *m_plugin_handle;
+	ss_plugin_t *m_plugin_state;
 
 private:
 	// Functions common to all derived plugin
