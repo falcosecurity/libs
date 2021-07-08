@@ -905,6 +905,7 @@ public:
 	void set_input_plugin_open_params(string params);
 	const std::vector<std::shared_ptr<sinsp_plugin>>& get_plugins();
 	std::shared_ptr<sinsp_plugin> get_plugin_by_id(uint32_t plugin_id);
+	std::shared_ptr<sinsp_plugin> get_source_plugin_by_source(const std::string &source);
 	sinsp_plugin_evt_processor* get_plugin_evt_processor()
 	{
 		return m_plugin_evt_processor;

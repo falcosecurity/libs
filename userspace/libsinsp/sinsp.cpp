@@ -1710,6 +1710,23 @@ std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_id(uint32_t plugin_id)
 	return std::shared_ptr<sinsp_plugin>();
 }
 
+std::shared_ptr<sinsp_plugin> sinsp::get_source_plugin_by_source(const std::string &source)
+{
+	for(auto it : m_plugins_list)
+	{
+		if(it->type() == TYPE_SOURCE_PLUGIN)
+		{
+			sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(it.get());
+			if(splugin->event_source() == source)
+			{
+				return it;
+			}
+		}
+	}
+
+	return std::shared_ptr<sinsp_plugin>();
+}
+
 void sinsp::stop_capture()
 {
 	if(scap_stop_capture(m_h) != SCAP_SUCCESS)
