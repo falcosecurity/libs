@@ -22,8 +22,8 @@ else()
 
 		ExternalProject_Add(tbb
 			PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
-			URL "https://github.com/oneapi-src/oneTBB/archive/2018_U5.tar.gz"
-			URL_HASH "SHA256=b8dbab5aea2b70cf07844f86fa413e549e099aa3205b6a04059ca92ead93a372"
+			URL "https://github.com/oneapi-src/oneTBB/archive/2020_U3.tar.gz"
+			URL_HASH "SHA256=2103cc6238c935664f87680618f6684d57501d4a2fa8ea8f6c97ad6ff7dc722a"
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE} tbb_build_dir=${TBB_SRC}/build tbb_build_prefix=lib extra_inc=big_iron.inc
 			BUILD_IN_SOURCE 1
