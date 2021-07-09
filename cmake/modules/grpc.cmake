@@ -48,47 +48,49 @@ else()
 
 		# fixme(leogr): this workaround is required to inject the missing deps (built by gRCP cmakefiles)
 		# into target_link_libraries later
+		# note: the list below is manually generated starting from the output of pkg-config --libs grpc++
 		set(GRPC_LIBRARIES "")
 		list(APPEND GRPC_LIBRARIES
 			"${GRPC_SRC}/libaddress_sorting.a"
 			"${GRPC_SRC}/third_party/re2/libre2.a"
 			"${GRPC_SRC}/libupb.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_wyhash.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_raw_hash_set.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_hashtablez_sampler.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_exponential_biased.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_variant_access.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_statusor.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_status.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_optional_access.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_variant_access.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_str_format_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_synchronization.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_graphcycles_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_symbolize.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_demangle_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_stacktrace.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_symbolize.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_debugging_internal.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_demangle_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_malloc_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_civil_time.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_throw_delegate.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/libabsl_int128.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_base.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_spinlock_wait.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/libabsl_int128.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_throw_delegate.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_raw_logging_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_log_severity.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_dynamic_annotations.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
 		)
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
-			GIT_TAG v1.32.0
+			GIT_TAG v1.38.1
 			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
