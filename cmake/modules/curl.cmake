@@ -27,10 +27,10 @@ else()
 		ExternalProject_Add(
 			curl
 			PREFIX "${PROJECT_BINARY_DIR}/curl-prefix"
-			DEPENDS openssl
+			DEPENDS openssl zlib
 			# START CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
-			URL "https://github.com/curl/curl/releases/download/curl-7_61_0/curl-7.61.0.tar.bz2"
-			URL_HASH "SHA256=5f6f336921cf5b84de56afbd08dfb70adeef2303751ffb3e570c936c6d656c9c"
+			URL "https://github.com/curl/curl/releases/download/curl-7_77_0/curl-7.77.0.tar.bz2"
+			URL_HASH "SHA256=6c0c28868cb82593859fc43b9c8fdb769314c855c05cf1b56b023acf855df8ea"
 			# END CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
 			CONFIGURE_COMMAND
 			./configure
@@ -72,6 +72,7 @@ else()
 			--without-libssh2
 			--disable-threaded-resolver
 			--without-brotli
+			--without-zstd
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
