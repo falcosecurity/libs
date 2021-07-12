@@ -129,6 +129,9 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_sysdig_pid = getpid();
 #endif
 
+	m_proc_scan_timeout_ms = SCAP_PROC_SCAN_TIMEOUT_NONE;
+	m_proc_scan_log_interval_ms = SCAP_PROC_SCAN_LOG_NONE;
+
 	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;
@@ -462,6 +465,9 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.udig = m_udig;
+	oargs.debug_log_fn = &sinsp_scap_debug_log_fn;
+	oargs.proc_scan_timeout_ms = m_proc_scan_timeout_ms;
+	oargs.proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -533,6 +539,9 @@ void sinsp::open_nodriver()
 		oargs.proc_callback_context = this;
 	}
 	oargs.import_users = m_import_users;
+	oargs.debug_log_fn = &sinsp_scap_debug_log_fn;
+	oargs.proc_scan_timeout_ms = m_proc_scan_timeout_ms;
+	oargs.proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -674,6 +683,10 @@ void sinsp::open_int()
 	}
 
 	add_suppressed_comms(oargs);
+
+	oargs.debug_log_fn = &sinsp_scap_debug_log_fn;
+	oargs.proc_scan_timeout_ms = m_proc_scan_timeout_ms;
+	oargs.proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -2352,6 +2365,16 @@ void sinsp::set_thread_purge_interval_s(uint32_t val)
 void sinsp::set_thread_timeout_s(uint32_t val)
 {
 	m_thread_timeout_ns = (uint64_t)val * ONE_SECOND_IN_NS;
+}
+
+void sinsp::set_proc_scan_timeout_ms(uint64_t val)
+{
+	m_proc_scan_timeout_ms = val;
+}
+
+void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
+{
+	m_proc_scan_log_interval_ms = val;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

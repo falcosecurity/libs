@@ -228,10 +228,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FORK_20_X] = {FILLER_REF(proc_startupdate)},
 	[PPME_SYSCALL_VFORK_20_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_VFORK_20_X] = {FILLER_REF(proc_startupdate)},
- #ifdef CAPTURE_SIGNAL_DELIVERIES
+#ifdef CAPTURE_SIGNAL_DELIVERIES
 	[PPME_SIGNALDELIVER_E] = {FILLER_REF(sys_signaldeliver_e)},
 	[PPME_SIGNALDELIVER_X] = {FILLER_REF(sys_empty)},
- #endif
+#endif
 	[PPME_SYSCALL_GETDENTS_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_GETDENTS_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_GETDENTS64_E] = {FILLER_REF(sys_single)},
@@ -277,10 +277,10 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_EXECVE_19_E] = {FILLER_REF(sys_execve_e)},
 	[PPME_SYSCALL_EXECVE_19_X] = {FILLER_REF(proc_startupdate)},
 #ifndef WDIG
- #ifdef CAPTURE_PAGE_FAULTS
+#ifdef CAPTURE_PAGE_FAULTS
 	[PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
 	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)},
- #endif
+#endif
 	[PPME_SYSCALL_BPF_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BPF_X] = {FILLER_REF(sys_bpf_x)},
 	[PPME_SYSCALL_SECCOMP_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0}, {1} } },
@@ -304,6 +304,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHMOD_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_FCHMOD_X] = {FILLER_REF(sys_fchmod_x)},
 	[PPME_SYSCALL_RENAMEAT2_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)}
+	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)},
+	[PPME_SYSCALL_USERFAULTFD_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_USERFAULTFD_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
 #endif /* WDIG */
 };

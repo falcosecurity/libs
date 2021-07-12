@@ -58,7 +58,7 @@ or GPL2.txt for full copies of the license.
 const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open
 	[__NR_open - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
-#endif	
+#endif
 #ifdef __NR_creat
 	[__NR_creat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
 #endif
@@ -327,7 +327,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_unshare
 	[__NR_unshare - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_UNSHARE_E, PPME_SYSCALL_UNSHARE_X},
 #endif
-	[__NR_flock - SYSCALL_TABLE_ID0] =			{UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FLOCK_E, PPME_SYSCALL_FLOCK_X},
+	[__NR_flock - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_FLOCK_E, PPME_SYSCALL_FLOCK_X},
 #ifdef __NR_semop
 	[__NR_semop - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_SEMOP_E, PPME_SYSCALL_SEMOP_X},
 #endif
@@ -353,7 +353,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_seccomp - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SECCOMP_E, PPME_SYSCALL_SECCOMP_X},
 #endif
 #ifdef __NR_renameat2
-	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
+	[__NR_renameat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
+#endif
+#ifdef __NR_userfaultfd
+	[__NR_userfaultfd - SYSCALL_TABLE_ID0] =                {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_USERFAULTFD_E, PPME_SYSCALL_USERFAULTFD_X},
 #endif
 };
 
@@ -971,6 +974,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_renameat2
 	[__NR_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
 #endif
+#ifdef __NR_userfaultfd
+	[__NR_userfaultfd - SYSCALL_TABLE_ID0] = PPM_SC_USERFAULTFD,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1206,6 +1212,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_RENAMEAT2_E, PPME_SYSCALL_RENAMEAT2_X},
+#endif
+#ifdef __NR_ia32_userfaultfd
+	[__NR_ia32_userfaultfd - SYSCALL_TABLE_ID0] =                {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_USERFAULTFD_E, PPME_SYSCALL_USERFAULTFD_X},
 #endif
 };
 
@@ -1762,6 +1771,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_renameat2
 	[__NR_ia32_renameat2 - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT2,
+#endif
+#ifdef __NR_ia32_userfaultfd
+	[__NR_ia32_userfaultfd - SYSCALL_TABLE_ID0] = PPM_SC_USERFAULTFD,
 #endif
 };
 

@@ -34,6 +34,8 @@ limitations under the License.
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
+#include "clock_helpers.h"
+#include "debug_log_helpers.h"
 
 #if defined(CYGWING_AGENT) || defined(_WIN32)
 #include <io.h>
@@ -534,10 +536,11 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	FILE* f = fopen(loginuid_path, "r");
 	if(f == NULL)
 	{
-		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Open loginuid file %s failed (%s)",
-			 loginuid_path, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		// If Linux kernel is built with CONFIG_AUDIT=n, loginuid management
+		// (and associated /proc file) is not implemented.
+		// Record default loginuid value of -1 in this case.
+		tinfo->loginuid = (uint32_t)-1;
+		return SCAP_SUCCESS;
 	}
 	if (fgets(line, sizeof(line), f) == NULL)
 	{
@@ -567,7 +570,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, uint64_t* num_fds_ret, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -898,7 +901,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(tinfo->pid == tinfo->tid)
 	{
-		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
+		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
 	}
 
 	if(free_tinfo)
@@ -924,7 +927,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, add_error);
+	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -950,6 +953,9 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	int32_t res = SCAP_SUCCESS;
 	char childdir[SCAP_MAX_PATH_SIZE];
 
+	uint64_t num_procs_processed = 0;
+	uint64_t total_num_fds = 0;
+	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	dir_p = opendir(procdirname);
@@ -961,8 +967,36 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		return SCAP_NOTFOUND;
 	}
 
-	while((dir_entry_p = readdir(dir_p)) != NULL)
+	// Do timing tracking only if:
+	// - this is the top-level call (parenttid == -1)
+	// - one or both of the timing parameters is configured to non-zero
+	bool do_timing = (parenttid == -1) &&
+	                 ((handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
+	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
+	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
+	uint64_t start_ts_ms = 0;
+	uint64_t last_log_ts_ms = 0;
+	uint64_t last_proc_ts_ms = 0;
+	uint64_t cur_ts_ms = 0;
+	uint64_t min_proc_time_ms = UINT64_MAX;
+	uint64_t max_proc_time_ms = 0;
+
+	if (do_timing)
 	{
+		start_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		last_log_ts_ms = start_ts_ms;
+		last_proc_ts_ms = start_ts_ms;
+	}
+
+	bool timeout_expired = false;
+	while (!timeout_expired)
+	{
+		dir_entry_p = readdir(dir_p);
+		if (dir_entry_p == NULL)
+		{
+			break;
+		}
+
 		if(strspn(dir_entry_p->d_name, "0123456789") != strlen(dir_entry_p->d_name))
 		{
 			continue;
@@ -974,7 +1008,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		tid = atoi(dir_entry_p->d_name);
 
 		//
-		// Skip the main thread entry
+		// If this is a recursive call for tasks of a parent process,
+		// skip the main thread entry
 		//
 		if(parenttid != -1 && tid == parenttid)
 		{
@@ -1000,7 +1035,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		//
 		// We have a process that needs to be explored
 		//
-		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, add_error);
+		uint64_t num_fds_this_proc;
+		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
@@ -1031,6 +1067,92 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				res = SCAP_FAILURE;
 				break;
 			}
+		}
+
+		// TID successfully processed.
+		last_tid_processed = tid;
+		num_procs_processed++;
+		total_num_fds += num_fds_this_proc;
+		
+		// After successful processing of a process at the top level,
+		// perform timing processing if configured.
+		if (do_timing)
+		{
+			cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+			uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+
+			uint64_t this_proc_elapsed_time_ms = cur_ts_ms - last_proc_ts_ms;
+			last_proc_ts_ms = cur_ts_ms;
+
+			if (this_proc_elapsed_time_ms < min_proc_time_ms)
+			{
+				min_proc_time_ms = this_proc_elapsed_time_ms;
+			}
+			if (this_proc_elapsed_time_ms > max_proc_time_ms)
+			{
+				max_proc_time_ms = this_proc_elapsed_time_ms;
+			}
+
+			if (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
+			{
+				uint64_t log_elapsed_time_ms = cur_ts_ms - last_log_ts_ms;
+				if (log_elapsed_time_ms >= handle->m_proc_scan_log_interval_ms)
+				{
+					scap_debug_log(handle,
+					               "scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
+					               num_procs_processed,
+					               total_elapsed_time_ms,
+					               (total_elapsed_time_ms / (uint64_t)num_procs_processed),
+					               min_proc_time_ms,
+					               max_proc_time_ms,
+					               last_tid_processed,
+					               total_num_fds);
+					last_log_ts_ms = cur_ts_ms;
+				}
+			}
+
+			if (handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
+			{
+				if (total_elapsed_time_ms >= handle->m_proc_scan_timeout_ms)
+				{
+					timeout_expired = true;
+				}
+			}
+		}
+	}
+
+	if (do_timing)
+	{
+		cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+		uint64_t avg_proc_time_ms = (num_procs_processed != 0) ?
+		                               (total_elapsed_time_ms / num_procs_processed) : 0;
+
+		if (timeout_expired)
+		{
+			scap_debug_log(handle,
+			               "scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
+			               handle->m_proc_scan_timeout_ms,
+			               num_procs_processed,
+			               total_elapsed_time_ms,
+			               avg_proc_time_ms,
+			               min_proc_time_ms,
+			               max_proc_time_ms,
+			               last_tid_processed,
+			               total_num_fds);
+		}
+		else if ((handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
+		         (num_procs_processed != 0))
+		{
+			scap_debug_log(handle,
+			               "scap_proc_scan DONE: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
+			               num_procs_processed,
+			               total_elapsed_time_ms,
+			               avg_proc_time_ms,
+			               min_proc_time_ms,
+			               max_proc_time_ms,
+			               last_tid_processed,
+			               total_num_fds);
 		}
 	}
 
@@ -1406,7 +1528,7 @@ int32_t scap_update_suppressed(scap_t *handle,
 
 	if(*suppressed && stid == NULL)
 	{
-		stid = (scap_tid *) malloc(sizeof(scap_tid));
+		stid = (scap_tid *) calloc(sizeof(scap_tid), 1);
 		stid->tid = tid;
 		int32_t uth_status = SCAP_SUCCESS;
 
