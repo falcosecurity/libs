@@ -35,7 +35,9 @@ else()
 	include(openssl)
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INSTALL_DIR "${GRPC_SRC}/target")
-	set(GRPC_INCLUDE "${GRPC_INSTALL_DIR}/include")
+	set(GRPC_INCLUDE 
+		"${GRPC_INSTALL_DIR}/include"
+		"${GRPC_SRC}/third_party/abseil-cpp")
 	set(GPR_LIB "${GRPC_SRC}/libgpr.a")
 	set(GRPC_LIB "${GRPC_SRC}/libgrpc.a")
 	set(GRPCPP_LIB "${GRPC_SRC}/libgrpc++.a")
