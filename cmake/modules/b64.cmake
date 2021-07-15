@@ -20,10 +20,10 @@ else()
 	set(B64_LIB "${B64_SRC}/src/libb64.a")
 	ExternalProject_Add(b64
 		PREFIX "${PROJECT_BINARY_DIR}/b64-prefix"
-		URL "https://github.com/libb64/libb64/archive/v1.2.1.tar.gz"
-		URL_HASH "SHA256=d620e7caf3ed5f9c28d727fa799918ad3ef69c80975905646bb549a6019cdcbd"
+		URL "https://github.com/libb64/libb64/archive/v1.4.1.tar.gz"
+		URL_HASH "SHA256=0fa93fb9c4fb72cac5a21533e6d611521e4326f42c19cc23f8ded814b0eca071"
 		CONFIGURE_COMMAND ""
-		BUILD_COMMAND ${CMD_MAKE}
+		BUILD_COMMAND ${CMD_MAKE} all_base64 # do not build examples (see https://github.com/falcosecurity/libs/issues/57)
 		BUILD_IN_SOURCE 1
 		BUILD_BYPRODUCTS ${B64_LIB}
 		INSTALL_COMMAND "")
