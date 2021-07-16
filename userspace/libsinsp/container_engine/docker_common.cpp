@@ -484,7 +484,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 			"docker_async (%s): Looking up info for container",
 			request.container_id.c_str());
 
-	std::string api_request = m_connection.build_request("/containers/" + request.container_id + "/json");
+	std::string api_request = "/containers/" + request.container_id + "/json";
 	if(request.request_rw_size)
 	{
 		api_request += "?size=true";
@@ -500,7 +500,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 
 			m_connection.set_api_version("");
 			json = "";
-			resp = m_connection.get_docker(request, m_connection.build_request("/containers/" + request.container_id + "/json"), json);
+			resp = m_connection.get_docker(request, "/containers/" + request.container_id + "/json", json);
 			if (resp == docker_connection::docker_response::RESP_OK)
 			{
 				break;
@@ -591,7 +591,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 				"docker_async url: %s",
 				url.c_str());
 
-		if(m_connection.get_docker(request, m_connection.build_request(url), img_json) == docker_connection::docker_response::RESP_OK)
+		if(m_connection.get_docker(request, url, img_json) == docker_connection::docker_response::RESP_OK)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
