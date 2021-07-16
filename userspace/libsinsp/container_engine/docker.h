@@ -61,9 +61,9 @@ struct docker_lookup_request
 
 	bool operator<(const docker_lookup_request& rhs) const
 	{
-		if(container_id < rhs.container_id)
+		if(container_id != rhs.container_id)
 		{
-			return true;
+			return container_id < rhs.container_id;
 		}
 
 		return request_rw_size < rhs.request_rw_size;
