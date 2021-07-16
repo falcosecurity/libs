@@ -29,16 +29,13 @@ docker_connection::~docker_connection()
 {
 }
 
-std::string docker_connection::build_request(const std::string &url)
+docker_connection::docker_response docker_connection::get_docker(const docker_lookup_request& request, const std::string& req_url, std::string &json)
 {
-	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
-}
+	std::string req = "GET " + m_api_version + req_url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
 
-docker_connection::docker_response docker_connection::get_docker(const docker_lookup_request& request, const std::string& url, std::string &json)
-{
 	const char* response = NULL;
 	bool qdres = wh_query_docker(m_inspector->get_wmi_handle(),
-				     (char*)url.c_str(),
+				     (char*)req.c_str(),
 				     &response);
 	if(qdres == false)
 	{
