@@ -72,7 +72,7 @@ public:
 #endif
 
 protected:
-	void parse_docker_async(const std::string& container_id, container_cache_interface *cache);
+	void parse_docker_async(const docker_lookup_request& request, container_cache_interface *cache);
 
 	std::unique_ptr<docker_async_source> m_docker_info_source;
 
