@@ -23,13 +23,13 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-docker::docker(container_cache_interface& cache, const wmi_handle_source& wmi_source) :
+docker_win::docker_win(container_cache_interface& cache, const wmi_handle_source& wmi_source) :
    container_engine_base(cache),
    m_wmi_handle_source(wmi_source)
 {
 }
 
-bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
+bool docker_win::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_wmi_handle_source.get_wmi_handle(), tinfo->m_pid);
 	if(!wcinfo.m_res)
@@ -37,10 +37,17 @@ bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, s
 		return false;
 	}
 
-	container_id = wcinfo.m_container_id;
-	container_name = wcinfo.m_container_name;
+	std::string container_id = wcinfo.m_container_id;
 
-	return true;
+	return resolve_impl(tinfo, docker_async_instruction(
+		container_id,
+		"",
+		false), query_os_for_missing_info);
+}
+
+void docker_win::update_with_size(const std::string &container_id)
+{
+	// not supported
 }
 
 #endif // CYGWING_AGENT

@@ -21,7 +21,11 @@ limitations under the License.
 #ifdef HAS_CAPTURE
 #include "container_engine/cri.h"
 #endif // HAS_CAPTURE
-#include "container_engine/docker.h"
+#ifdef _WIN32
+#include "container_engine/docker/docker_win.h"
+#else
+#include "container_engine/docker/docker_linux.h"
+#endif
 #include "container_engine/rkt.h"
 #include "container_engine/libvirt_lxc.h"
 #include "container_engine/lxc.h"
@@ -526,14 +530,14 @@ void sinsp_container_manager::create_engines()
 #ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
 	{
-		auto docker_engine = std::make_shared<container_engine::docker>(*this, m_inspector /*wmi source*/);
+		auto docker_engine = std::make_shared<container_engine::docker_win>(*this, m_inspector /*wmi source*/);
 		m_container_engines.push_back(docker_engine);
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 #else
 #ifndef _WIN32
 	{
-		auto docker_engine = std::make_shared<container_engine::docker>(*this);
+		auto docker_engine = std::make_shared<container_engine::docker_linux>(*this);
 		m_container_engines.push_back(docker_engine);
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
@@ -606,8 +610,8 @@ void sinsp_container_manager::cleanup()
 
 void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
-	libsinsp::container_engine::docker::set_docker_sock(std::move(socket_path));
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(_WIN32)
+	libsinsp::container_engine::docker_linux::set_docker_sock(std::move(socket_path));
 #endif
 }
 
