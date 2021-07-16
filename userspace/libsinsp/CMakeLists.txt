@@ -138,7 +138,8 @@ if(NOT MINIMAL_BUILD)
 		mesos_state.cpp
 		sinsp_curl.cpp
 		container_engine/docker_common.cpp
-		container_engine/docker/async_source.cpp)
+		container_engine/docker/async_source.cpp
+		container_engine/docker/base.cpp)
 	if(WIN32)
 	list(APPEND SINSP_SOURCES
 		container_engine/docker_win.cpp
