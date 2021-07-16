@@ -4735,7 +4735,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		}
 
 #if !defined(MINIMAL_BUILD) && !defined(_WIN32)
-		libsinsp::container_engine::docker::parse_json_mounts(container["Mounts"], container_info->m_mounts);
+		libsinsp::container_engine::docker_async_source::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 #endif
 
 		const Json::Value& user = container["User"];
