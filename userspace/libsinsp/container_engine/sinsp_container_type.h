@@ -30,4 +30,5 @@ enum sinsp_container_type
 	CT_CRIO = 8,
 	CT_BPM = 9,
 	CT_STATIC = 10,
+	CT_PODMAN = 11,
 };
