@@ -14,43 +14,46 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#include "container_engine/docker/docker_linux.h"
 
-#ifndef _WIN32
-
-#include "container_engine/docker.h"
-#include "cgroup_list_counter.h"
-#include "sinsp.h"
+#include "runc.h"
 #include "sinsp_int.h"
-#include "container.h"
-#include "utils.h"
-#include <unordered_set>
 
 using namespace libsinsp::container_engine;
+using namespace libsinsp::runc;
 
+namespace {
 
-std::string docker::s_incomplete_info_name = "incomplete";
+constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
+	{"/", ""}, // non-systemd docker
+	{"/docker-", ".scope"}, // systemd docker
+	{nullptr, nullptr}
+};
+}
 
-bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
+std::string docker_linux::m_docker_sock = "/var/run/docker.sock";
+
+bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
-	std::string container_id, container_name;
+	std::string container_id;
 
-	if(!detect_docker(tinfo, container_id, container_name))
+	if(!matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
 	{
 		return false;
 	}
 
-	docker_lookup_request request(container_id, m_docker_sock, false /*don't request size*/);
-
-	return resolve_impl(tinfo, request, query_os_for_missing_info);
-
+	return resolve_impl(tinfo, docker_lookup_request(
+		container_id,
+		m_docker_sock,
+		false), query_os_for_missing_info);
 }
 
-void docker::update_with_size(const std::string &container_id)
+void docker_linux::update_with_size(const std::string &container_id)
 {
-	auto cb = [this](const docker_lookup_request& request, const sinsp_container_info& res) {
+	auto cb = [this](const docker_lookup_request& instruction, const sinsp_container_info& res) {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
-				request.container_id.c_str(),
+				instruction.container_id.c_str(),
 				res.m_lookup_state);
 
 		sinsp_container_info::ptr_t updated = make_shared<sinsp_container_info>(res);
@@ -62,8 +65,6 @@ void docker::update_with_size(const std::string &container_id)
 			container_id.c_str());
 
 	sinsp_container_info result;
-	docker_lookup_request request(container_id, m_docker_sock, true /*request rw size*/);
-	(void)m_docker_info_source->lookup(request, result, cb);
+	docker_lookup_request instruction(container_id, m_docker_sock, true /*request rw size*/);
+	(void)m_docker_info_source->lookup(instruction, result, cb);
 }
-
-#endif // _WIN32
