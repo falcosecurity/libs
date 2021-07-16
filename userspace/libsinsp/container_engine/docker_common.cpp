@@ -41,8 +41,7 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms,
 #else
 	  m_api_version("/v1.24"),
 	  m_docker_unix_socket_path(std::move(socket_path)),
-	  m_curlm(NULL),
-	  m_curl(NULL)
+	  m_curlm(NULL)
 #endif
 {
 	init_docker_conn();
@@ -482,7 +481,7 @@ void docker::parse_docker_async(const string& container_id, container_cache_inte
 
         sinsp_container_info result;
 
-	docker_lookup_request request(container_id, false /*don't request size*/);
+	docker_lookup_request request(container_id, m_docker_sock, false /*don't request size*/);
 	if(m_docker_info_source->lookup(request, result, cb))
 	{
 		// if a previous lookup call already found the metadata, process it now
@@ -509,7 +508,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 		api_request += "?size=true";
 	}
 
-	docker_response resp = get_docker(api_request, json);
+	docker_response resp = get_docker(request, api_request, json);
 
 	switch(resp) {
 		case docker_response::RESP_BAD_REQUEST:
@@ -519,7 +518,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 
 			m_api_version = "";
 			json = "";
-			resp = get_docker(build_request("/containers/" + request.container_id + "/json"), json);
+			resp = get_docker(request, build_request("/containers/" + request.container_id + "/json"), json);
 			if (resp == docker_response::RESP_OK)
 			{
 				break;
@@ -610,7 +609,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 				"docker_async url: %s",
 				url.c_str());
 
-		if(get_docker(build_request(url), img_json) == docker_response::RESP_OK)
+		if(get_docker(request, build_request(url), img_json) == docker_response::RESP_OK)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
@@ -731,6 +730,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 					secondary_container_id.c_str());
 
 			if(parse_docker(docker_lookup_request(secondary_container_id,
+							      request.docker_socket,
 							      false /*don't request size since we just need the IP*/),
 					pcnt))
 			{
@@ -892,7 +892,7 @@ void docker::update_with_size(const std::string &container_id)
 			container_id.c_str());
 
 	sinsp_container_info result;
-	docker_lookup_request request(container_id, true /*request rw size*/);
+	docker_lookup_request request(container_id, m_docker_sock, true /*request rw size*/);
 	(void)m_docker_info_source->lookup(request, result, cb);
 }
 

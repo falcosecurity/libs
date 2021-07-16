@@ -52,33 +52,17 @@ void docker_async_source::init_docker_conn()
 {
 	if(!m_curlm)
 	{
-		m_curl = curl_easy_init();
 		m_curlm = curl_multi_init();
 
 		if(m_curlm)
 		{
 			curl_multi_setopt(m_curlm, CURLMOPT_PIPELINING, CURLPIPE_HTTP1|CURLPIPE_MULTIPLEX);
 		}
-
-		if(m_curl)
-		{
-			auto docker_path = scap_get_host_root() + m_docker_unix_socket_path;
-			curl_easy_setopt(m_curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
-			curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1);
-			curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
-			curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
-		}
 	}
 }
 
 void docker_async_source::free_docker_conn()
 {
-	if(m_curl)
-	{
-		curl_easy_cleanup(m_curl);
-		m_curl = NULL;
-	}
-
 	if(m_curlm)
 	{
 		curl_multi_cleanup(m_curlm);
@@ -91,36 +75,55 @@ std::string docker_async_source::build_request(const std::string &url)
 	return "http://localhost" + m_api_version + url;
 }
 
-docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
+docker_async_source::docker_response docker_async_source::get_docker(const docker_lookup_request& request, const std::string& url, std::string &json)
 {
+	CURL* curl = curl_easy_init();
+	if(!curl)
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING,
+				"docker_async (%s): Failed to initialize curl handle",
+                request.container_id.c_str());
+		return docker_response::RESP_ERROR;
+	}
+
+	auto docker_path = scap_get_host_root() + request.docker_socket;
+	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+	curl_easy_setopt(curl, CURLOPT_HTTPGET, 1);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Fetching url",
 			url.c_str());
 
-	if(curl_easy_setopt(m_curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
+	if(curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) != CURLE_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_setopt(CURLOPT_URL) failed",
 				url.c_str());
+		curl_easy_cleanup(curl);
 
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
-	if(curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
+	if(curl_easy_setopt(curl, CURLOPT_WRITEDATA, &json) != CURLE_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_setopt(CURLOPT_WRITEDATA) failed",
 				url.c_str());
+		curl_easy_cleanup(curl);
+
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
-	if(curl_multi_add_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_multi_add_handle(m_curlm, curl) != CURLM_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_multi_add_handle() failed",
 				url.c_str());
+		curl_easy_cleanup(curl);
+
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
@@ -134,6 +137,9 @@ docker_async_source::docker_response docker_async_source::get_docker(const std::
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): curl_multi_perform() failed",
 					url.c_str());
+
+			curl_multi_remove_handle(m_curlm, curl);
+			curl_easy_cleanup(curl);
 
 			ASSERT(false);
 			return docker_response::RESP_ERROR;
@@ -151,30 +157,39 @@ docker_async_source::docker_response docker_async_source::get_docker(const std::
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): curl_multi_wait() failed",
 					url.c_str());
+			curl_multi_remove_handle(m_curlm, curl);
+			curl_easy_cleanup(curl);
+
 			ASSERT(false);
 			return docker_response::RESP_ERROR;
 		}
 	}
 
-	if(curl_multi_remove_handle(m_curlm, m_curl) != CURLM_OK)
+	if(curl_multi_remove_handle(m_curlm, curl) != CURLM_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_multi_remove_handle() failed",
 				url.c_str());
+
+		curl_easy_cleanup(curl);
 
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
 
 	long http_code = 0;
-	if(curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
+	if(curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code) != CURLE_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): curl_easy_getinfo(CURLINFO_RESPONSE_CODE) failed",
 				url.c_str());
+		curl_easy_cleanup(curl);
+
 		ASSERT(false);
 		return docker_response::RESP_ERROR;
 	}
+
+	curl_easy_cleanup(curl);
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): http_code=%ld",
