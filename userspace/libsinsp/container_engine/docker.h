@@ -53,7 +53,7 @@ struct docker_lookup_request
 		request_rw_size(false)
 	{}
 
-	docker_lookup_request(const std::string container_id_value,
+	docker_lookup_request(const std::string& container_id_value,
 			      bool rw_size_value) :
 		container_id(container_id_value),
 		request_rw_size(rw_size_value)
