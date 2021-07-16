@@ -38,6 +38,7 @@ limitations under the License.
 #include "container_info.h"
 
 #include "container_engine/docker/async_source.h"
+#include "container_engine/docker/base.h"
 #include "container_engine/docker/connection.h"
 #include "container_engine/docker/lookup_request.h"
 #include "container_engine/container_engine_base.h"
@@ -50,17 +51,16 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-class docker : public container_engine_base
+class docker : public docker_base
 {
 public:
 
 #ifdef _WIN32
 	docker(container_cache_interface &cache, const wmi_handle_source&);
 #else
-	docker(container_cache_interface &cache) : container_engine_base(cache)
+	docker(container_cache_interface &cache) : docker_base(cache)
 	{}
 #endif
-	void cleanup() override;
 
 	// Container name only set for windows. For linux name must be fetched via lookup
 	static bool detect_docker(const sinsp_threadinfo* tinfo, std::string& container_id, std::string &container_name);
@@ -72,10 +72,6 @@ public:
 #endif
 
 protected:
-	void parse_docker_async(const docker_lookup_request& request, container_cache_interface *cache);
-
-	std::unique_ptr<docker_async_source> m_docker_info_source;
-
 	static std::string s_incomplete_info_name;
 #ifdef _WIN32
 	const wmi_handle_source& m_wmi_handle_source;
@@ -87,9 +83,6 @@ private:
 	// implement container_engine_base
 	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void update_with_size(const std::string& container_id) override;
-
-	bool
-	resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& request, bool query_os_for_missing_info);
 };
 }
 }
