@@ -75,7 +75,7 @@ private:
 	void init_docker_conn();
 	void free_docker_conn();
 	std::string build_request(const std::string& url);
-	docker_response get_docker(const std::string& url, std::string &json);
+	docker_response get_docker(const docker_lookup_request& request, const std::string& url, std::string &json);
 
 	bool parse_docker(const docker_lookup_request& request, sinsp_container_info& container);
 
@@ -122,7 +122,6 @@ private:
 #ifndef _WIN32
 	std::string m_docker_unix_socket_path;
 	CURLM *m_curlm;
-	CURL *m_curl;
 #endif
 
 	static bool m_query_image_info;
