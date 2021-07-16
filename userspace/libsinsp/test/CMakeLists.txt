@@ -24,12 +24,18 @@ endif() # MINIMAL_BUILD
 include_directories("..")
 include_directories(${LIBSCAP_INCLUDE_DIR})
 
-add_executable(unit-test-libsinsp
+set(LIBSINSP_UNIT_TESTS_SOURCES
 	cgroup_list_counter.ut.cpp
 	sinsp.ut.cpp
 	evttype_filter.ut.cpp
 	token_bucket.ut.cpp
 )
+
+if(NOT MINIMAL_BUILD)
+	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
+endif()
+
+add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
 
 target_link_libraries(unit-test-libsinsp
 	"${GTEST_LIB}"
