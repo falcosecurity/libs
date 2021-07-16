@@ -53,19 +53,14 @@ docker_connection::~docker_connection()
 	}
 }
 
-std::string docker_connection::build_request(const std::string &url)
-{
-	return "http://localhost" + m_api_version + url;
-}
-
-docker_connection::docker_response docker_connection::get_docker(const docker_lookup_request& request, const std::string& url, std::string &json)
+docker_connection::docker_response docker_connection::get_docker(const docker_lookup_request& request, const std::string& req_url, std::string &json)
 {
 	CURL* curl = curl_easy_init();
 	if(!curl)
 	{
 		g_logger.format(sinsp_logger::SEV_WARNING,
 				"docker_async (%s): Failed to initialize curl handle",
-				url.c_str());
+				req_url.c_str());
 		return docker_response::RESP_ERROR;
 	}
 
@@ -74,6 +69,8 @@ docker_connection::docker_response docker_connection::get_docker(const docker_lo
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, docker_curl_write_callback);
 	curl_easy_setopt(curl, CURLOPT_UNIX_SOCKET_PATH, docker_path.c_str());
+
+	std::string url = "http://localhost" + m_api_version + req_url;
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Fetching url",

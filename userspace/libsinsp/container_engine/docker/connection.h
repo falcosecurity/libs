@@ -24,10 +24,8 @@ public:
 	docker_connection();
 	~docker_connection();
 
-	std::string build_request(const std::string& url);
-
 	docker_response
-	get_docker(const docker_lookup_request& request, const std::string& url, std::string& json);
+	get_docker(const docker_lookup_request& request, const std::string& req_url, std::string& json);
 
 	void set_api_version(const std::string& api_version)
 	{
