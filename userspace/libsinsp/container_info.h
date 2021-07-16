@@ -45,7 +45,8 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 	return t == CT_DOCKER ||
 		t == CT_CRI ||
 		t == CT_CONTAINERD ||
-		t == CT_CRIO;
+		t == CT_CRIO ||
+		t == CT_PODMAN;
 }
 
 /**

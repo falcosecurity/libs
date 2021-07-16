@@ -42,6 +42,8 @@ bool docker_win::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info
 	return resolve_impl(tinfo, docker_async_instruction(
 		container_id,
 		"",
+		CT_DOCKER,
+		0,
 		false), query_os_for_missing_info);
 }
 

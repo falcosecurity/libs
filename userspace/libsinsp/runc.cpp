@@ -30,6 +30,11 @@ const char* CONTAINER_ID_VALID_CHARACTERS = "0123456789abcdefABCDEF";
 
 static_assert(REPORTED_CONTAINER_ID_LENGTH <= CONTAINER_ID_LENGTH, "Reported container ID length cannot be longer than actual length");
 
+}
+
+namespace libsinsp {
+namespace runc {
+
 // check if cgroup ends with <prefix><container_id><suffix>
 // If true, set <container_id> to a truncated version of the id and return true.
 // Otherwise return false and leave container_id unchanged
@@ -76,11 +81,6 @@ bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_
 
 	return false;
 }
-}
-
-namespace libsinsp {
-namespace runc {
-
 bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id)
 {
 	for(const auto &it : tinfo->m_cgroups)

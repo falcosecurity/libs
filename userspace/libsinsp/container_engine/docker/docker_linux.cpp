@@ -45,6 +45,8 @@ bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_in
 	return resolve_impl(tinfo, docker_lookup_request(
 		container_id,
 		m_docker_sock,
+		CT_DOCKER,
+		0,
 		false), query_os_for_missing_info);
 }
 
@@ -65,6 +67,6 @@ void docker_linux::update_with_size(const std::string &container_id)
 			container_id.c_str());
 
 	sinsp_container_info result;
-	docker_lookup_request instruction(container_id, m_docker_sock, true /*request rw size*/);
+	docker_lookup_request instruction(container_id, m_docker_sock, CT_DOCKER, 0, true /*request rw size*/);
 	(void)m_docker_info_source->lookup(instruction, result, cb);
 }

@@ -55,7 +55,7 @@ void docker_async_source::run_impl()
 		sinsp_container_info res;
 
 		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
-		res.m_type = CT_DOCKER;
+		res.m_type = request.container_type;
 		res.m_id = request.container_id;
 
 		if(!parse_docker(request, res))
@@ -745,6 +745,8 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 
 			if(parse_docker(docker_lookup_request(secondary_container_id,
 							      request.docker_socket,
+							      request.container_type,
+							      request.uid,
 							      false /*don't request size since we just need the IP*/),
 					pcnt))
 			{
