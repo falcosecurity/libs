@@ -140,10 +140,12 @@ if(NOT MINIMAL_BUILD)
 		container_engine/docker_common.cpp)
 	if(WIN32)
 	list(APPEND SINSP_SOURCES
-		container_engine/docker_win.cpp)
+		container_engine/docker_win.cpp
+		container_engine/docker/connection_win.cpp)
 	else()
 	list(APPEND SINSP_SOURCES
 		container_engine/docker_linux.cpp
+		container_engine/docker/connection_linux.cpp
 		container_engine/libvirt_lxc.cpp
 		container_engine/lxc.cpp
 		container_engine/mesos.cpp
