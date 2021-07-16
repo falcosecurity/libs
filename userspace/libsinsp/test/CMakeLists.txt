@@ -33,6 +33,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
 	cgroup_list_counter.ut.cpp
+	procfs_utils.ut.cpp
 	sinsp.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
