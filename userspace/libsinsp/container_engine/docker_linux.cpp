@@ -36,11 +36,6 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 
 std::string docker::m_docker_sock = "/var/run/docker.sock";
 
-void docker::cleanup()
-{
-	m_docker_info_source.reset(NULL);
-}
-
 bool docker::detect_docker(const sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
 {
 	if(matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))

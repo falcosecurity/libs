@@ -29,11 +29,6 @@ docker::docker(container_cache_interface& cache, const wmi_handle_source& wmi_so
 {
 }
 
-void docker::cleanup()
-{
-	g_docker_info_source.reset(NULL);
-}
-
 bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
 {
 	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_wmi_handle_source.get_wmi_handle(), tinfo->m_pid);
