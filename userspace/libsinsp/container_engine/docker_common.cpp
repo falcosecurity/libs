@@ -29,22 +29,10 @@ using namespace libsinsp::container_engine;
 
 docker_async_source::docker_async_source(uint64_t max_wait_ms,
 					 uint64_t ttl_ms,
-					 container_cache_interface *cache
-#ifndef _WIN32
-	, std::string socket_path
-#endif
-	)
+					 container_cache_interface *cache)
 	: async_key_value_source(max_wait_ms, ttl_ms),
-	  m_cache(cache),
-#ifdef _WIN32
-	  m_api_version("/v1.30")
-#else
-	  m_api_version("/v1.24"),
-	  m_docker_unix_socket_path(std::move(socket_path)),
-	  m_curlm(NULL)
-#endif
+	  m_cache(cache)
 {
-	init_docker_conn();
 }
 
 docker_async_source::~docker_async_source()
@@ -52,8 +40,6 @@ docker_async_source::~docker_async_source()
 	this->stop();
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Source destructor");
-
-	free_docker_conn();
 }
 
 void docker_async_source::run_impl()
@@ -423,11 +409,7 @@ bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		g_logger.log("docker_async: Creating docker async source",
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
-#ifdef _WIN32
 		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache);
-#else
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache, m_docker_sock);
-#endif
 		m_docker_info_source.reset(src);
 	}
 
@@ -502,36 +484,36 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 			"docker_async (%s): Looking up info for container",
 			request.container_id.c_str());
 
-	std::string api_request = build_request("/containers/" + request.container_id + "/json");
+	std::string api_request = m_connection.build_request("/containers/" + request.container_id + "/json");
 	if(request.request_rw_size)
 	{
 		api_request += "?size=true";
 	}
 
-	docker_response resp = get_docker(request, api_request, json);
+	docker_connection::docker_response resp = m_connection.get_docker(request, api_request, json);
 
 	switch(resp) {
-		case docker_response::RESP_BAD_REQUEST:
+	case docker_connection::docker_response::RESP_BAD_REQUEST:
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Initial url fetch failed, trying w/o api version",
 					request.container_id.c_str());
 
-			m_api_version = "";
+			m_connection.set_api_version("");
 			json = "";
-			resp = get_docker(request, build_request("/containers/" + request.container_id + "/json"), json);
-			if (resp == docker_response::RESP_OK)
+			resp = m_connection.get_docker(request, m_connection.build_request("/containers/" + request.container_id + "/json"), json);
+			if (resp == docker_connection::docker_response::RESP_OK)
 			{
 				break;
 			}
 			/* FALLTHRU */
-		case docker_response::RESP_ERROR:
+	case docker_connection::docker_response::RESP_ERROR:
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Url fetch failed, returning false",
 					request.container_id.c_str());
 
 			return false;
 
-		case docker_response::RESP_OK:
+	case docker_connection::docker_response::RESP_OK:
 			break;
 	}
 
@@ -609,7 +591,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 				"docker_async url: %s",
 				url.c_str());
 
-		if(get_docker(request, build_request(url), img_json) == docker_response::RESP_OK)
+		if(m_connection.get_docker(request, m_connection.build_request(url), img_json) == docker_connection::docker_response::RESP_OK)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",

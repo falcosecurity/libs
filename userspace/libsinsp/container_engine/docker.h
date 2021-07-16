@@ -37,6 +37,7 @@ limitations under the License.
 #include "container.h"
 #include "container_info.h"
 
+#include "container_engine/docker/connection.h"
 #include "container_engine/docker/lookup_request.h"
 #include "container_engine/container_engine_base.h"
 #include "container_engine/sinsp_container_type.h"
@@ -50,19 +51,8 @@ namespace container_engine {
 
 class docker_async_source : public sysdig::async_key_value_source<docker_lookup_request, sinsp_container_info>
 {
-	enum docker_response
-	{
-		RESP_OK = 0,
-		RESP_BAD_REQUEST = 1,
-		RESP_ERROR = 2
-	};
-
 public:
-#ifdef _WIN32
 	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache);
-#else
-	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache, std::string socket_path);
-#endif
 	virtual ~docker_async_source();
 
 	static void set_query_image_info(bool query_image_info);
@@ -71,12 +61,6 @@ protected:
 	void run_impl();
 
 private:
-	// These 4 methods are OS-dependent and defined in docker_{linux,win}.cpp
-	void init_docker_conn();
-	void free_docker_conn();
-	std::string build_request(const std::string& url);
-	docker_response get_docker(const docker_lookup_request& request, const std::string& url, std::string &json);
-
 	bool parse_docker(const docker_lookup_request& request, sinsp_container_info& container);
 
 	// Look for a pod specification in this container's labels and
@@ -116,14 +100,7 @@ private:
 				 sinsp_container_info &container);
 
 	container_cache_interface *m_cache;
-
-	std::string m_api_version;
-
-#ifndef _WIN32
-	std::string m_docker_unix_socket_path;
-	CURLM *m_curlm;
-#endif
-
+	docker_connection m_connection;
 	static bool m_query_image_info;
 };
 
