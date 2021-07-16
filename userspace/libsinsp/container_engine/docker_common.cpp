@@ -59,22 +59,22 @@ docker_async_source::~docker_async_source()
 
 void docker_async_source::run_impl()
 {
-	docker_async_instruction instruction;
+	docker_lookup_request request;
 
-	while (dequeue_next_key(instruction))
+	while (dequeue_next_key(request))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s : %s): Source dequeued key",
-				instruction.container_id.c_str(),
-				instruction.request_rw_size ? "true" : "false");
+				request.container_id.c_str(),
+				request.request_rw_size ? "true" : "false");
 
 		sinsp_container_info res;
 
 		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
 		res.m_type = CT_DOCKER;
-		res.m_id = instruction.container_id;
+		res.m_id = request.container_id;
 
-		if(!parse_docker(instruction, res))
+		if(!parse_docker(request, res))
 		{
 			// This is not always an error e.g. when using
 			// containerd as the runtime. Since the cgroup
@@ -83,17 +83,17 @@ void docker_async_source::run_impl()
 			// fetch both.
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
-					instruction.container_id.c_str());
+					request.container_id.c_str());
 			res.m_lookup_state = sinsp_container_lookup_state::FAILED;
 		}
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Parse successful, storing value",
-				instruction.container_id.c_str());
+				request.container_id.c_str());
 
 		// Return a result object either way, to ensure any
 		// new container callbacks are called.
-		store_value(instruction, res);
+		store_value(request, res);
 	}
 }
 
@@ -470,11 +470,11 @@ bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 void docker::parse_docker_async(const string& container_id, container_cache_interface *cache)
 {
-	auto cb = [cache](const docker_async_instruction& instruction, const sinsp_container_info& res)
+	auto cb = [cache](const docker_lookup_request& request, const sinsp_container_info& res)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Source callback result=%d",
-				instruction.container_id.c_str(),
+				request.container_id.c_str(),
 				res.m_lookup_state);
 
 		cache->notify_new_container(res);
@@ -482,11 +482,11 @@ void docker::parse_docker_async(const string& container_id, container_cache_inte
 
         sinsp_container_info result;
 
-	docker_async_instruction instruction(container_id, false /*don't request size*/);
-	if(m_docker_info_source->lookup(instruction, result, cb))
+	docker_lookup_request request(container_id, false /*don't request size*/);
+	if(m_docker_info_source->lookup(request, result, cb))
 	{
 		// if a previous lookup call already found the metadata, process it now
-		cb(instruction, result);
+		cb(request, result);
 
 		// This should *never* happen, as ttl is 0 (never wait)
 		g_logger.format(sinsp_logger::SEV_ERROR,
@@ -495,31 +495,31 @@ void docker::parse_docker_async(const string& container_id, container_cache_inte
 	}
 }
 
-bool docker_async_source::parse_docker(const docker_async_instruction& instruction, sinsp_container_info& container)
+bool docker_async_source::parse_docker(const docker_lookup_request& request, sinsp_container_info& container)
 {
 	string json;
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Looking up info for container",
-			instruction.container_id.c_str());
+			request.container_id.c_str());
 
-	std::string request = build_request("/containers/" + instruction.container_id + "/json");
-	if(instruction.request_rw_size)
+	std::string api_request = build_request("/containers/" + request.container_id + "/json");
+	if(request.request_rw_size)
 	{
-		request += "?size=true";
+		api_request += "?size=true";
 	}
 
-	docker_response resp = get_docker(request, json);
+	docker_response resp = get_docker(api_request, json);
 
 	switch(resp) {
 		case docker_response::RESP_BAD_REQUEST:
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Initial url fetch failed, trying w/o api version",
-					instruction.container_id.c_str());
+					request.container_id.c_str());
 
 			m_api_version = "";
 			json = "";
-			resp = get_docker(build_request("/containers/" + instruction.container_id + "/json"), json);
+			resp = get_docker(build_request("/containers/" + request.container_id + "/json"), json);
 			if (resp == docker_response::RESP_OK)
 			{
 				break;
@@ -528,7 +528,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		case docker_response::RESP_ERROR:
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): Url fetch failed, returning false",
-					instruction.container_id.c_str());
+					request.container_id.c_str());
 
 			return false;
 
@@ -538,7 +538,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): Parsing containers response \"%s\"",
-			instruction.container_id.c_str(),
+			request.container_id.c_str(),
 			json.c_str());
 
 	Json::Value root;
@@ -548,7 +548,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 	{
 		g_logger.format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s): Could not parse json \"%s\", returning false",
-				instruction.container_id.c_str(),
+				request.container_id.c_str(),
 				json.c_str());
 
 		ASSERT(false);
@@ -600,7 +600,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s) image (%s): Fetching image info",
-				instruction.container_id.c_str(),
+				request.container_id.c_str(),
 				container.m_imageid.c_str());
 
 		string img_json;
@@ -614,7 +614,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
-					instruction.container_id.c_str(),
+					request.container_id.c_str(),
 					container.m_imageid.c_str(),
 					img_json.c_str());
 
@@ -671,7 +671,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 			{
 				g_logger.format(sinsp_logger::SEV_ERROR,
 						"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
-						instruction.container_id.c_str(),
+						request.container_id.c_str(),
 						container.m_imageid.c_str(),
 						img_json.c_str());
 			}
@@ -680,7 +680,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 		{
 			g_logger.format(sinsp_logger::SEV_ERROR,
 					"docker_async (%s) image (%s): Could not fetch image info",
-					instruction.container_id.c_str(),
+					request.container_id.c_str(),
 					container.m_imageid.c_str());
 		}
 
@@ -727,16 +727,16 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 			// separate thread so this is ok.
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s), secondary (%s): Doing blocking fetch of secondary container",
-					instruction.container_id.c_str(),
+					request.container_id.c_str(),
 					secondary_container_id.c_str());
 
-			if(parse_docker(docker_async_instruction(secondary_container_id,
-								 false /*don't request size since we just need the IP*/),
+			if(parse_docker(docker_lookup_request(secondary_container_id,
+							      false /*don't request size since we just need the IP*/),
 					pcnt))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 						"docker_async (%s), secondary (%s): Secondary fetch successful",
-						instruction.container_id.c_str(),
+						request.container_id.c_str(),
 						secondary_container_id.c_str());
 				container.m_container_ip = pcnt.m_container_ip;
 			}
@@ -744,7 +744,7 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 			{
 				g_logger.format(sinsp_logger::SEV_ERROR,
 						"docker_async (%s), secondary (%s): Secondary fetch failed",
-						instruction.container_id.c_str(),
+						request.container_id.c_str(),
 						secondary_container_id.c_str());
 			}
 		}
@@ -871,16 +871,16 @@ bool docker_async_source::parse_docker(const docker_async_instruction& instructi
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): parse_docker returning true",
-			instruction.container_id.c_str());
+			request.container_id.c_str());
 	return true;
 }
 
 void docker::update_with_size(const std::string &container_id)
 {
-	auto cb = [this](const docker_async_instruction& instruction, const sinsp_container_info& res) {
+	auto cb = [this](const docker_lookup_request& request, const sinsp_container_info& res) {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
-				instruction.container_id.c_str(),
+				request.container_id.c_str(),
 				res.m_lookup_state);
 
 		sinsp_container_info::ptr_t updated = make_shared<sinsp_container_info>(res);
@@ -892,8 +892,8 @@ void docker::update_with_size(const std::string &container_id)
 			container_id.c_str());
 
 	sinsp_container_info result;
-	docker_async_instruction instruction(container_id, true /*request rw size*/);
-	(void)m_docker_info_source->lookup(instruction, result, cb);
+	docker_lookup_request request(container_id, true /*request rw size*/);
+	(void)m_docker_info_source->lookup(request, result, cb);
 }
 
 #endif // _WIN32

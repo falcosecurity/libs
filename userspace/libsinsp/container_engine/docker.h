@@ -47,19 +47,19 @@ class sinsp_threadinfo;
 namespace libsinsp {
 namespace container_engine {
 
-struct docker_async_instruction
+struct docker_lookup_request
 {
-	docker_async_instruction() :
+	docker_lookup_request() :
 		request_rw_size(false)
 	{}
 
-	docker_async_instruction(const std::string container_id_value,
-				 bool rw_size_value) :
+	docker_lookup_request(const std::string container_id_value,
+			      bool rw_size_value) :
 		container_id(container_id_value),
 		request_rw_size(rw_size_value)
 	{}
 
-	bool operator<(const docker_async_instruction& rhs) const
+	bool operator<(const docker_lookup_request& rhs) const
 	{
 		if(container_id < rhs.container_id)
 		{
@@ -69,7 +69,7 @@ struct docker_async_instruction
 		return request_rw_size < rhs.request_rw_size;
 	}
 
-	bool operator==(const docker_async_instruction& rhs) const
+	bool operator==(const docker_lookup_request& rhs) const
 	{
 		return container_id == rhs.container_id &&
 		       request_rw_size == rhs.request_rw_size;
@@ -79,7 +79,7 @@ struct docker_async_instruction
 	bool request_rw_size;
 };
 
-class docker_async_source : public sysdig::async_key_value_source<docker_async_instruction, sinsp_container_info>
+class docker_async_source : public sysdig::async_key_value_source<docker_lookup_request, sinsp_container_info>
 {
 	enum docker_response
 	{
@@ -108,7 +108,7 @@ private:
 	std::string build_request(const std::string& url);
 	docker_response get_docker(const std::string& url, std::string &json);
 
-	bool parse_docker(const docker_async_instruction& instruction, sinsp_container_info& container);
+	bool parse_docker(const docker_lookup_request& request, sinsp_container_info& container);
 
 	// Look for a pod specification in this container's labels and
 	// if found set spec to the pod spec.
