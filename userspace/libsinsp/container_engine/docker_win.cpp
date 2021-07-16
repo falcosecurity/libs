@@ -34,19 +34,6 @@ void docker::cleanup()
 	g_docker_info_source.reset(NULL);
 }
 
-void docker_async_source::init_docker_conn()
-{
-}
-
-void docker_async_source::free_docker_conn()
-{
-}
-
-std::string docker_async_source::build_request(const std::string &url)
-{
-	return "GET " + m_api_version + url + " HTTP/1.1\r\nHost: docker\r\n\r\n";
-}
-
 bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, std::string &container_name)
 {
 	wh_docker_container_info wcinfo = wh_docker_resolve_pid(m_wmi_handle_source.get_wmi_handle(), tinfo->m_pid);
@@ -59,35 +46,6 @@ bool docker::detect_docker(sinsp_threadinfo *tinfo, std::string &container_id, s
 	container_name = wcinfo.m_container_name;
 
 	return true;
-}
-
-docker_async_source::docker_response docker_async_source::get_docker(const std::string& url, std::string &json)
-{
-	const char* response = NULL;
-	bool qdres = wh_query_docker(m_inspector->get_wmi_handle(),
-				     (char*)url.c_str(),
-				     &response);
-	if(qdres == false)
-	{
-		ASSERT(false);
-		return docker_response::RESP_ERROR;
-	}
-
-	json = response;
-	if(strncmp(json.c_str(), "HTTP/1.0 200 OK", sizeof("HTTP/1.0 200 OK") -1))
-	{
-		return docker_response::RESP_BAD_REQUEST;
-	}
-
-	size_t pos = json.find("{");
-	if(pos == string::npos)
-	{
-		ASSERT(false);
-		return docker_response::RESP_ERROR;
-	}
-	json = json.substr(pos);
-
-	return docker_response::RESP_OK;
 }
 
 #endif // CYGWING_AGENT
