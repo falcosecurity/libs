@@ -26,6 +26,7 @@ include_directories(${LIBSCAP_INCLUDE_DIR})
 
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
+	procfs_utils.ut.cpp
 	sinsp.ut.cpp
 )
 

@@ -147,11 +147,13 @@ if(NOT MINIMAL_BUILD)
 	list(APPEND SINSP_SOURCES
 		container_engine/docker/docker_linux.cpp
 		container_engine/docker/connection_linux.cpp
+		container_engine/docker/podman.cpp
 		container_engine/libvirt_lxc.cpp
 		container_engine/lxc.cpp
 		container_engine/mesos.cpp
 		container_engine/rkt.cpp
 		container_engine/bpm.cpp
+		procfs_utils.cpp
 		runc.cpp)
 	endif()
 
