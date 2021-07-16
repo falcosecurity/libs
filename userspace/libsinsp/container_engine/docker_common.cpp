@@ -33,7 +33,6 @@ std::string docker::s_incomplete_info_name = "incomplete";
 bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name;
-	container_cache_interface *cache = &container_cache();
 
 	if(!detect_docker(tinfo, container_id, container_name))
 	{
@@ -42,6 +41,14 @@ bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 	docker_lookup_request request(container_id, m_docker_sock, false /*don't request size*/);
 
+	return resolve_impl(tinfo, request, query_os_for_missing_info);
+
+}
+
+bool
+docker::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& request, bool query_os_for_missing_info)
+{
+	container_cache_interface *cache = &container_cache();
 	if(!m_docker_info_source)
 	{
 		g_logger.log("docker_async: Creating docker async source",
@@ -51,9 +58,9 @@ bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		m_docker_info_source.reset(src);
 	}
 
-	tinfo->m_container_id = container_id;
+	tinfo->m_container_id = request.container_id;
 
-	sinsp_container_info::ptr_t container_info = cache->get_container(container_id);
+	sinsp_container_info::ptr_t container_info = cache->get_container(request.container_id);
 
 	if(!container_info)
 	{
@@ -61,20 +68,20 @@ bool docker::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		{
 			auto container = std::make_shared<sinsp_container_info>();
 			container->m_type = CT_DOCKER;
-			container->m_id = container_id;
+			container->m_id = request.container_id;
 			cache->notify_new_container(*container);
 			return true;
 		}
 
 #ifdef HAS_CAPTURE
-		if(cache->should_lookup(container_id, CT_DOCKER))
+		if(cache->should_lookup(request.container_id, CT_DOCKER))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): No existing container info",
-					container_id.c_str());
+					request.container_id.c_str());
 
 			// give docker a chance to return metadata for this container
-			cache->set_lookup_status(container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
+			cache->set_lookup_status(request.container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
 			parse_docker_async(request, cache);
 		}
 #endif
