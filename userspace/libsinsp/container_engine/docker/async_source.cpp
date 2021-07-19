@@ -420,44 +420,121 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 	parse_image_info(container, img_root);
 }
 
-void docker_async_source::parse_image_info(sinsp_container_info& container, const Json::Value& img)
+void docker_async_source::fetch_image_info_from_list(const docker_lookup_request& request, sinsp_container_info& container)
 {
-	// img_root["RepoDigests"] contains only digests for images pulled from registries.
-	// If an image gets retagged and is never pushed to any registry, we will not find
-	// that entry in container.m_imagerepo. Also, for locally built images we have the
-	// same issue. This leads to container.m_imagedigest being empty as well.
-	//
-	// Each individual digest looks like e.g.
-	// "docker.io/library/redis@sha256:b6a9fc3535388a6fc04f3bdb83fb4d9d0b4ffd85e7609a6ff2f0f731427823e3"
-	// so we need to split it at the `@` (the part before is the repo,
-	// the part after is the digest)
-	std::unordered_set<std::string> imageDigestSet;
-	for(const auto& rdig : img["RepoDigests"])
+	Json::Reader reader;
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async (%s): Fetching image list",
+			request.container_id.c_str());
+
+	std::string img_json;
+	std::string url = "/images/json?digests=1";
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async url: %s",
+			url.c_str());
+
+	if(!(m_connection.get_docker(request, url, img_json) == docker_connection::RESP_OK))
 	{
-		if(rdig.isString())
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s): Could not fetch image list",
+				request.container_id.c_str());
+		return;
+	}
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async (%s): Image list fetch returned \"%s\"",
+			request.container_id.c_str(),
+			img_json.c_str());
+
+	Json::Value img_root;
+	if(!reader.parse(img_json, img_root))
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s): Could not parse json image list \"%s\"",
+				request.container_id.c_str(),
+				img_json.c_str());
+		return;
+	}
+
+	for(const auto& img : img_root)
+	{
+		// the "Names" field is podman specific. we could parse repotags
+		// twice but this is less effort and we only call this function
+		// for podman anyway
+		const auto& names = img["Names"];
+		if(!names.isArray())
 		{
-			std::string repodigest = rdig.asString();
-			std::string digest = repodigest.substr(repodigest.find('@')+1);
-			imageDigestSet.insert(digest);
-			if(container.m_imagerepo.empty())
+			return;
+		}
+
+		for(const auto& name : names)
+		{
+			if(name == container.m_image)
 			{
-				container.m_imagerepo = repodigest.substr(0, repodigest.find('@'));
-			}
-			if(repodigest.find(container.m_imagerepo) != std::string::npos)
-			{
-				container.m_imagedigest = digest;
-				break;
+				std::string imgstr = img["Id"].asString();
+				size_t cpos = imgstr.find(':');
+				if(cpos != std::string::npos)
+				{
+					imgstr = imgstr.substr(cpos + 1);
+				}
+				container.m_imageid = std::move(imgstr);
+
+				parse_image_info(container, img);
+				return;
 			}
 		}
 	}
+}
 
-	// fix image digest for locally tagged images or multiple repo digests.
-	// Case 1: One repo digest with many tags.
-	// Case 2: Many repo digests with the same digest value.
-	if(container.m_imagedigest.empty() && imageDigestSet.size() == 1) {
-		container.m_imagedigest = *imageDigestSet.begin();
+void docker_async_source::parse_image_info(sinsp_container_info& container, const Json::Value& img)
+{
+	const auto& podman_digest = img["Digest"];
+	if(podman_digest.isString())
+	{
+		// img["Digest"] if present is the digest in the form we need it
+		// e.g. "sha256:b6a9fc3535388a6fc04f3bdb83fb4d9d0b4ffd85e7609a6ff2f0f731427823e3"
+		// so just use it directly
+		container.m_imagedigest = podman_digest.asString();
 	}
-
+	else
+	{
+		// img_root["RepoDigests"] contains only digests for images pulled from registries.
+		// If an image gets retagged and is never pushed to any registry, we will not find
+		// that entry in container.m_imagerepo. Also, for locally built images we have the
+		// same issue. This leads to container.m_imagedigest being empty as well.
+		//
+		// Each individual digest looks like e.g.
+		// "docker.io/library/redis@sha256:b6a9fc3535388a6fc04f3bdb83fb4d9d0b4ffd85e7609a6ff2f0f731427823e3"
+		// so we need to split it at the `@` (the part before is the repo,
+		// the part after is the digest)
+		std::unordered_set<std::string> imageDigestSet;
+		for(const auto& rdig : img["RepoDigests"])
+		{
+			if(rdig.isString())
+			{
+				std::string repodigest = rdig.asString();
+				std::string digest = repodigest.substr(repodigest.find('@')+1);
+				imageDigestSet.insert(digest);
+				if(container.m_imagerepo.empty())
+				{
+					container.m_imagerepo = repodigest.substr(0, repodigest.find('@'));
+				}
+				if(repodigest.find(container.m_imagerepo) != std::string::npos)
+				{
+					container.m_imagedigest = digest;
+					break;
+				}
+			}
+		}
+		// fix image digest for locally tagged images or multiple repo digests.
+		// Case 1: One repo digest with many tags.
+		// Case 2: Many repo digests with the same digest value.
+		if(container.m_imagedigest.empty() && imageDigestSet.size() == 1) {
+			container.m_imagedigest = *imageDigestSet.begin();
+		}
+	}
 	for(const auto& rtag : img["RepoTags"])
 	{
 		if(rtag.isString())
@@ -480,20 +557,44 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 {
 	container.m_image = root["Config"]["Image"].asString();
 
+	// podman has the image *name*, not the *id* in the Image field
+	// detect that with the presence of '/' in the field
 	std::string imgstr = root["Image"].asString();
-	size_t cpos = imgstr.find(':');
-	if(cpos != std::string::npos)
+	if(imgstr.find('/') == std::string::npos)
 	{
-		container.m_imageid = imgstr.substr(cpos + 1);
+		// no '/' in the Image field, assume it's a Docker image id
+		size_t cpos = imgstr.find(':');
+		if(cpos != std::string::npos)
+		{
+			container.m_imageid = imgstr.substr(cpos + 1);
+		}
+
+		// containers can be spawned using just the imageID as image name,
+		// with or without the hash prefix (e.g. sha256:)
+		bool no_name = !sinsp_utils::startswith(container.m_image, container.m_imageid) &&
+			       !sinsp_utils::startswith(container.m_image, imgstr);
+
+		if(!no_name || !m_query_image_info)
+		{
+			std::string hostname, port;
+			sinsp_utils::split_container_image(container.m_image,
+							   hostname,
+							   port,
+							   container.m_imagerepo,
+							   container.m_imagetag,
+							   container.m_imagedigest,
+							   false);
+		}
+
+		if(m_query_image_info && !container.m_imageid.empty() &&
+		   (no_name || container.m_imagedigest.empty() || container.m_imagetag.empty()))
+		{
+			fetch_image_info(request, container);
+		}
 	}
-
-	// containers can be spawned using just the imageID as image name,
-	// with or without the hash prefix (e.g. sha256:)
-	bool no_name = !sinsp_utils::startswith(container.m_image, container.m_imageid) &&
-		       !sinsp_utils::startswith(container.m_image, imgstr);
-
-	if(!no_name || !m_query_image_info)
+	else
 	{
+		// a '/' is present in the Image field. Parse it into parts
 		std::string hostname, port;
 		sinsp_utils::split_container_image(container.m_image,
 						   hostname,
@@ -502,12 +603,13 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 						   container.m_imagetag,
 						   container.m_imagedigest,
 						   false);
-	}
 
-	if(m_query_image_info && !container.m_imageid.empty() &&
-	   (no_name || container.m_imagedigest.empty() || container.m_imagetag.empty()))
-	{
-		fetch_image_info(request, container);
+		// we don't have the image id so we need to list all images
+		// and find the matching one by comparing the repo names
+		if(m_query_image_info)
+		{
+			fetch_image_info_from_list(request, container);
+		}
 	}
 
 	if(container.m_imagetag.empty())
