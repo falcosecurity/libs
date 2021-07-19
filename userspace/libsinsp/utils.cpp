@@ -1516,6 +1516,22 @@ bool sinsp_utils::endswith(const char *str, const char *ending, uint32_t lstr, u
 	return 0;
 }
 
+bool sinsp_utils::startswith(const std::string& s, const std::string& prefix)
+{
+	if(prefix.empty())
+	{
+		return false;
+	}
+
+	size_t prefix_len = prefix.length();
+	if(s.length() < prefix_len)
+	{
+		return false;
+	}
+
+	return strncmp(s.c_str(), prefix.c_str(), prefix_len) == 0;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation

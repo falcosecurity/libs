@@ -375,6 +375,146 @@ void docker_async_source::set_query_image_info(bool query_image_info)
 	m_query_image_info = query_image_info;
 }
 
+void docker_async_source::fetch_image_info(const docker_lookup_request& request, sinsp_container_info& container)
+{
+	Json::Reader reader;
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async (%s) image (%s): Fetching image info",
+			request.container_id.c_str(),
+			container.m_imageid.c_str());
+
+	std::string img_json;
+	std::string url = "/images/" + container.m_imageid + "/json?digests=1";
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async url: %s",
+			url.c_str());
+
+	if(!(m_connection.get_docker(request, url, img_json) == docker_connection::RESP_OK))
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s) image (%s): Could not fetch image info",
+				request.container_id.c_str(),
+				container.m_imageid.c_str());
+		return;
+	}
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
+			request.container_id.c_str(),
+			container.m_imageid.c_str(),
+			img_json.c_str());
+
+	Json::Value img_root;
+	if(!reader.parse(img_json, img_root))
+	{
+		g_logger.format(sinsp_logger::SEV_ERROR,
+				"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
+				request.container_id.c_str(),
+				container.m_imageid.c_str(),
+				img_json.c_str());
+		return;
+	}
+
+	parse_image_info(container, img_root);
+}
+
+void docker_async_source::parse_image_info(sinsp_container_info& container, const Json::Value& img)
+{
+	// img_root["RepoDigests"] contains only digests for images pulled from registries.
+	// If an image gets retagged and is never pushed to any registry, we will not find
+	// that entry in container.m_imagerepo. Also, for locally built images we have the
+	// same issue. This leads to container.m_imagedigest being empty as well.
+	//
+	// Each individual digest looks like e.g.
+	// "docker.io/library/redis@sha256:b6a9fc3535388a6fc04f3bdb83fb4d9d0b4ffd85e7609a6ff2f0f731427823e3"
+	// so we need to split it at the `@` (the part before is the repo,
+	// the part after is the digest)
+	std::unordered_set<std::string> imageDigestSet;
+	for(const auto& rdig : img["RepoDigests"])
+	{
+		if(rdig.isString())
+		{
+			std::string repodigest = rdig.asString();
+			std::string digest = repodigest.substr(repodigest.find('@')+1);
+			imageDigestSet.insert(digest);
+			if(container.m_imagerepo.empty())
+			{
+				container.m_imagerepo = repodigest.substr(0, repodigest.find('@'));
+			}
+			if(repodigest.find(container.m_imagerepo) != std::string::npos)
+			{
+				container.m_imagedigest = digest;
+				break;
+			}
+		}
+	}
+
+	// fix image digest for locally tagged images or multiple repo digests.
+	// Case 1: One repo digest with many tags.
+	// Case 2: Many repo digests with the same digest value.
+	if(container.m_imagedigest.empty() && imageDigestSet.size() == 1) {
+		container.m_imagedigest = *imageDigestSet.begin();
+	}
+
+	for(const auto& rtag : img["RepoTags"])
+	{
+		if(rtag.isString())
+		{
+			std::string repotag = rtag.asString();
+			if(container.m_imagerepo.empty())
+			{
+				container.m_imagerepo = repotag.substr(0, repotag.rfind(':'));
+			}
+			if(repotag.find(container.m_imagerepo) != std::string::npos)
+			{
+				container.m_imagetag = repotag.substr(repotag.rfind(':')+1);
+				break;
+			}
+		}
+	}
+}
+
+void docker_async_source::get_image_info(const docker_lookup_request& request, sinsp_container_info& container, const Json::Value& root)
+{
+	container.m_image = root["Config"]["Image"].asString();
+
+	std::string imgstr = root["Image"].asString();
+	size_t cpos = imgstr.find(':');
+	if(cpos != std::string::npos)
+	{
+		container.m_imageid = imgstr.substr(cpos + 1);
+	}
+
+	// containers can be spawned using just the imageID as image name,
+	// with or without the hash prefix (e.g. sha256:)
+	bool no_name = !sinsp_utils::startswith(container.m_image, container.m_imageid) &&
+		       !sinsp_utils::startswith(container.m_image, imgstr);
+
+	if(!no_name || !m_query_image_info)
+	{
+		std::string hostname, port;
+		sinsp_utils::split_container_image(container.m_image,
+						   hostname,
+						   port,
+						   container.m_imagerepo,
+						   container.m_imagetag,
+						   container.m_imagedigest,
+						   false);
+	}
+
+	if(m_query_image_info && !container.m_imageid.empty() &&
+	   (no_name || container.m_imagedigest.empty() || container.m_imagetag.empty()))
+	{
+		fetch_image_info(request, container);
+	}
+
+	if(container.m_imagetag.empty())
+	{
+		container.m_imagetag = "latest";
+	}
+}
 void docker_async_source::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
 	if(!mnt_obj.isNull() && mnt_obj.isArray())
@@ -450,140 +590,16 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 		return false;
 	}
 
+	get_image_info(request, container, root);
+
 	const Json::Value& config_obj = root["Config"];
-
-	container.m_image = config_obj["Image"].asString();
-
-	string imgstr = root["Image"].asString();
-	size_t cpos = imgstr.find(":");
-	if(cpos != string::npos)
-	{
-		container.m_imageid = imgstr.substr(cpos + 1);
-	}
-
 	const Json::Value& user = config_obj["User"];
 	if(!user.isNull())
 	{
-		container.m_container_user = config_obj["User"].asString();
+		container.m_container_user = user.asString();
 	}
 
 	parse_health_probes(config_obj, container);
-
-	// containers can be spawned using just the imageID as image name,
-	// with or without the hash prefix (e.g. sha256:)
-	bool no_name = !container.m_imageid.empty() &&
-		       strncmp(container.m_image.c_str(), container.m_imageid.c_str(),
-			       MIN(container.m_image.length(), container.m_imageid.length())) == 0;
-	no_name |= !imgstr.empty() &&
-		   strncmp(container.m_image.c_str(), imgstr.c_str(),
-			   MIN(container.m_image.length(), imgstr.length())) == 0;
-
-	if(!no_name || !m_query_image_info)
-	{
-		string hostname, port;
-		sinsp_utils::split_container_image(container.m_image,
-						   hostname,
-						   port,
-						   container.m_imagerepo,
-						   container.m_imagetag,
-						   container.m_imagedigest,
-						   false);
-	}
-
-	if(m_query_image_info && !container.m_imageid.empty() &&
-	   (no_name || container.m_imagedigest.empty() || (!container.m_imagedigest.empty() && container.m_imagetag.empty())))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s) image (%s): Fetching image info",
-				request.container_id.c_str(),
-				container.m_imageid.c_str());
-
-		string img_json;
-		std::string url = "/images/" + container.m_imageid + "/json?digests=1";
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async url: %s",
-				url.c_str());
-
-		if(m_connection.get_docker(request, url, img_json) == docker_connection::docker_response::RESP_OK)
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"docker_async (%s) image (%s): Image info fetch returned \"%s\"",
-					request.container_id.c_str(),
-					container.m_imageid.c_str(),
-					img_json.c_str());
-
-			Json::Value img_root;
-			if(reader.parse(img_json, img_root))
-			{
-				// img_root["RepoDigests"] contains only digests for images pulled from registries.
-				// If an image gets retagged and is never pushed to any registry, we will not find
-				// that entry in container.m_imagerepo. Also, for locally built images we have the
-				// same issue. This leads to container.m_imagedigest being empty as well.
-				unordered_set<std::string> imageDigestSet;
-				for(const auto& rdig : img_root["RepoDigests"])
-				{
-					if(rdig.isString())
-					{
-						string repodigest = rdig.asString();
-						string digest = repodigest.substr(repodigest.find('@')+1);
-						imageDigestSet.insert(digest);
-						if(container.m_imagerepo.empty())
-						{
-							container.m_imagerepo = repodigest.substr(0, repodigest.find('@'));
-						}
-						if(repodigest.find(container.m_imagerepo) != string::npos)
-						{
-							container.m_imagedigest = digest;
-							break;
-						}
-					}
-				}
-				for(const auto& rtag : img_root["RepoTags"])
-				{
-					if(rtag.isString())
-					{
-						string repotag = rtag.asString();
-						if(container.m_imagerepo.empty())
-						{
-							container.m_imagerepo = repotag.substr(0, repotag.rfind(":"));
-						}
-						if(repotag.find(container.m_imagerepo) != string::npos)
-						{
-							container.m_imagetag = repotag.substr(repotag.rfind(":")+1);
-							break;
-						}
-					}
-				}
-				// fix image digest for locally tagged images or multiple repo digests.
-				// Case 1: One repo digest with many tags.
-				// Case 2: Many repo digests with the same digest value.
-				if(container.m_imagedigest.empty() && imageDigestSet.size() == 1) {
-					container.m_imagedigest = *imageDigestSet.begin();
-				}
-			}
-			else
-			{
-				g_logger.format(sinsp_logger::SEV_ERROR,
-						"docker_async (%s) image (%s): Could not parse json image info \"%s\"",
-						request.container_id.c_str(),
-						container.m_imageid.c_str(),
-						img_json.c_str());
-			}
-		}
-		else
-		{
-			g_logger.format(sinsp_logger::SEV_ERROR,
-					"docker_async (%s) image (%s): Could not fetch image info",
-					request.container_id.c_str(),
-					container.m_imageid.c_str());
-		}
-
-	}
-	if(container.m_imagetag.empty())
-	{
-		container.m_imagetag = "latest";
-	}
 
 	container.m_full_id = root["Id"].asString();
 	container.m_name = root["Name"].asString();
