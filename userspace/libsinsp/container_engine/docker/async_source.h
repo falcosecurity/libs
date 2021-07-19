@@ -62,6 +62,18 @@ private:
 	void parse_health_probes(const Json::Value &config_obj,
 				 sinsp_container_info &container);
 
+	// Analyze the container JSON response and get the details about
+	// the image, possibly executing extra API calls
+	void get_image_info(const docker_lookup_request& request, sinsp_container_info& container, const Json::Value& root);
+
+	// Given the image info (either the result of /images/<image-id>/json,
+	// or one of the items from the result of /images/json), find
+	// the image digest, repo and repo tag
+	static void parse_image_info(sinsp_container_info& container, const Json::Value& img);
+
+	// Fetch the image info for the current container's m_imageid
+	void fetch_image_info(const docker_lookup_request& request, sinsp_container_info& container);
+
 	container_cache_interface *m_cache;
 	docker_connection m_connection;
 	static bool m_query_image_info;
