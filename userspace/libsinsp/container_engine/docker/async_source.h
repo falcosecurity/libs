@@ -74,6 +74,11 @@ private:
 	// Fetch the image info for the current container's m_imageid
 	void fetch_image_info(const docker_lookup_request& request, sinsp_container_info& container);
 
+	// Podman reports image repository/tag instead of the image id,
+	// so to fetch the image digest we need to list all the images,
+	// find one with matching repository/tag and get the digest from there
+	void fetch_image_info_from_list(const docker_lookup_request& request, sinsp_container_info& container);
+
 	container_cache_interface *m_cache;
 	docker_connection m_connection;
 	static bool m_query_image_info;
