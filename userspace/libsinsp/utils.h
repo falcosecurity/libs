@@ -76,6 +76,11 @@ public:
 	static bool endswith(const char *str, const char *ending, uint32_t lstr, uint32_t lend);
 
 	//
+	// Check if string starts with another
+	//
+	static bool startswith(const std::string& s, const std::string& prefix);
+
+	//
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.
