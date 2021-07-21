@@ -5,7 +5,9 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-always += probe.o
+always-y += probe.o
+# kept for compatibility with kernels < 5.11
+always = $(always-y)
 
 LLC ?= llc
 CLANG ?= clang
