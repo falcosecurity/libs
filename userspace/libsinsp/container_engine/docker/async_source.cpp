@@ -818,6 +818,18 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 		}
 	}
 
+	if(request.container_type == sinsp_container_type::CT_PODMAN)
+	{
+		if(request.uid == 0)
+		{
+			container.m_labels.erase("podman_owner_uid");
+		}
+		else
+		{
+			container.m_labels["podman_owner_uid"] = to_string(request.uid);
+		}
+	}
+
 	const Json::Value& env_vars = config_obj["Env"];
 
 	for(const auto& env_var : env_vars)
