@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 #include <string>
 
-// This class allows the caller to output sysdig tracers
+// This class allows the caller to output tracers
 // to /dev/null.
 class tracer_emitter
 {

@@ -39,7 +39,7 @@ typedef struct lua_State lua_State;
  */
 
 /*!
-  \brief This is the class that compiles and runs sysdig-type filters.
+  \brief This is the class that compiles and runs filters.
 */
 typedef struct chiseldir_info
 {

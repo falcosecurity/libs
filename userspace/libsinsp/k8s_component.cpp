@@ -917,7 +917,6 @@ bool k8s_event_t::update(const Json::Value& item, k8s_state_t& state)
 
 	user_event_logger::log(evt, severity);
 
-	// TODO: sysdig capture?
 #endif // _WIN32
 
 	return true;
