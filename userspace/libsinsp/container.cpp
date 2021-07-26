@@ -25,6 +25,7 @@ limitations under the License.
 #include "container_engine/docker/docker_win.h"
 #else
 #include "container_engine/docker/docker_linux.h"
+#include "container_engine/docker/podman.h"
 #endif
 #include "container_engine/rkt.h"
 #include "container_engine/libvirt_lxc.h"
@@ -536,6 +537,11 @@ void sinsp_container_manager::create_engines()
 	}
 #else
 #ifndef _WIN32
+	{
+		auto podman_engine = std::make_shared<container_engine::podman>(*this);
+		m_container_engines.push_back(podman_engine);
+		m_container_engine_by_type[CT_PODMAN] = podman_engine;
+	}
 	{
 		auto docker_engine = std::make_shared<container_engine::docker_linux>(*this);
 		m_container_engines.push_back(docker_engine);
