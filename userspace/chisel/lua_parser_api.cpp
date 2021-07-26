@@ -264,7 +264,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 					string err = "Got non-table as in-expression operand for field " + string(fld);
 					throw sinsp_exception(err);
 				}
-				int n = luaL_getn(ls, 4);  /* get size of table */
+				int n = (int)lua_objlen(ls, 4);  /* get size of table */
 				for (i=1; i<=n; i++)
 				{
 					lua_rawgeti(ls, 4, i);
