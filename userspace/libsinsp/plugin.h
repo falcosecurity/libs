@@ -204,7 +204,7 @@ public:
 	class version {
 	public:
 		version();
-		version(const char *version_str);
+		version(const std::string &version_str);
 		virtual ~version();
 
 		std::string as_string() const;
@@ -213,6 +213,20 @@ public:
 		uint32_t m_version_major;
 		uint32_t m_version_minor;
 		uint32_t m_version_patch;
+	};
+
+	// Contains important info about a plugin, suitable for
+	// printing or other checks like compatibility.
+	struct info {
+		ss_plugin_type type;
+		std::string name;
+		std::string description;
+		std::string contact;
+		version plugin_version;
+		version required_api_version;
+
+		// Only filled in for source plugins
+		uint32_t id;
 	};
 
 	class event {
@@ -245,7 +259,7 @@ public:
 	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, char *config, bool avoid_async, std::string &errstr);
 
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
-	static std::string plugin_infos(sinsp *inspector);
+	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);
 
 	sinsp_plugin();
 	virtual ~sinsp_plugin();
@@ -269,6 +283,7 @@ public:
 	const std::string &description();
 	const std::string &contact();
 	const version &plugin_version();
+	const version &required_api_version();
 	const filtercheck_field_info *fields();
 	uint32_t nfields();
 
@@ -285,7 +300,7 @@ protected:
         bool async_extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
-	std::string str_from_alloc_charbuf(char *charbuf);
+	static std::string str_from_alloc_charbuf(char *charbuf);
 
 	// Derived classes might need to access the return value from init().
 	ss_plugin_t *m_plugin_state;
@@ -295,6 +310,7 @@ private:
 	// types. get_required_api_version/get_type are common but not
 	// included here as they are called in create_plugin()
 	typedef struct {
+		char* (*get_required_api_version)();
 		ss_plugin_t* (*init)(char* config, int32_t* rc);
 		void (*destroy)(ss_plugin_t* s);
 		char* (*get_last_error)(ss_plugin_t* s);
@@ -312,6 +328,7 @@ private:
 	std::string m_description;
 	std::string m_contact;
 	version m_plugin_version;
+	version m_required_api_version;
 
 	// Allocated instead of vector to match how it will be held in filter_check_info
 	std::unique_ptr<filtercheck_field_info[]> m_fields;

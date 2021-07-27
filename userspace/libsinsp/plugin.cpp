@@ -229,14 +229,11 @@ sinsp_plugin::version::version()
 {
 }
 
-sinsp_plugin::version::version(const char *version_str)
+sinsp_plugin::version::version(const std::string &version_str)
 	: m_valid(false)
 {
-	if(version_str)
-	{
-		m_valid = (sscanf(version_str, "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
-				  &m_version_major, &m_version_minor, &m_version_patch) == 3);
-	}
+	m_valid = (sscanf(version_str.c_str(), "%" PRIu32 ".%" PRIu32 ".%" PRIu32,
+			  &m_version_major, &m_version_minor, &m_version_patch) == 3);
 }
 
 sinsp_plugin::version::~version()
@@ -341,7 +338,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
-	char *version_str = get_required_api_version();
+	std::string version_str = str_from_alloc_charbuf(get_required_api_version());
 	version v(version_str);
 	if(!v.m_valid)
 	{
@@ -349,9 +346,9 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
-	if(!(v.m_version_major == PLUGIN_API_VERSION_MAJOR && v.m_version_minor <= PLUGIN_API_VERSION_MINOR))
+	if(v.m_version_major != PLUGIN_API_VERSION_MAJOR)
 	{
-		errstr = string("Unsupported plugin api version ") + std::to_string(v.m_version_major);
+		errstr = string("Unsupported plugin required api version ") + version_str;
 		return ret;
 	}
 
@@ -398,30 +395,28 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	return ret;
 }
 
-std::string sinsp_plugin::plugin_infos(sinsp* inspector)
+std::list<sinsp_plugin::info> sinsp_plugin::plugin_infos(sinsp* inspector)
 {
-	std::ostringstream os;
+	std::list<sinsp_plugin::info> ret;
 
 	for(auto p : inspector->get_plugins())
 	{
-		os << "Name: " << p->name() << std::endl;
-		os << "Description: " << p->description() << std::endl;
-		os << "Contact: " << p->contact() << std::endl;
-		os << "Version: " << p->plugin_version().as_string() << std::endl;
+		sinsp_plugin::info info;
+		info.name = p->name();
+		info.description = p->description();
+		info.contact = p->contact();
+		info.plugin_version = p->plugin_version();
+		info.required_api_version = p->required_api_version();
 
 		if(p->type() == TYPE_SOURCE_PLUGIN)
 		{
 			sinsp_source_plugin *sp = static_cast<sinsp_source_plugin *>(p.get());
-			os << "Type: source plugin" << std::endl;
-			os << "ID: " << sp->id() << std::endl;
+			info.id = sp->id();
 		}
-		else
-		{
-			os << "Type: extractor plugin" << std::endl;
-		}
+		ret.push_back(info);
 	}
 
-	return os.str();
+	return ret;
 }
 
 sinsp_plugin::sinsp_plugin()
@@ -497,6 +492,11 @@ const std::string &sinsp_plugin::contact()
 const sinsp_plugin::version &sinsp_plugin::plugin_version()
 {
 	return m_plugin_version;
+}
+
+const sinsp_plugin::version &sinsp_plugin::required_api_version()
+{
+	return m_required_api_version;
 }
 
 const filtercheck_field_info *sinsp_plugin::fields()
@@ -589,7 +589,8 @@ std::string sinsp_plugin::str_from_alloc_charbuf(char *charbuf)
 bool sinsp_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
 {
 	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
+	if((*(void **) (&(m_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
@@ -609,13 +610,18 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::st
 	m_name = str_from_alloc_charbuf(m_plugin_info.get_name());
 	m_description = str_from_alloc_charbuf(m_plugin_info.get_description());
 	m_contact = str_from_alloc_charbuf(m_plugin_info.get_contact());
-	char *version_str = m_plugin_info.get_version();
+	std::string version_str = str_from_alloc_charbuf(m_plugin_info.get_version());
 	m_plugin_version = sinsp_plugin::version(version_str);
 	if(!m_plugin_version.m_valid)
 	{
 		errstr = string("Could not parse version string from ") + version_str;
 		return false;
 	}
+
+	// The required api version was already checked in
+	// create_plugin to be valid and compatible. This just saves it for info/debugging.
+	version_str = str_from_alloc_charbuf(m_plugin_info.get_required_api_version());
+	m_required_api_version = sinsp_plugin::version(version_str);
 
 	//
 	// If filter fields are exported by the plugin, get the json from get_fields(),
