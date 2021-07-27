@@ -169,7 +169,7 @@ typedef struct
 	// Return the unique ID of the plugin.
 	// Required: yes
 	// EVERY SOURCE PLUGIN (see get_type()) MUST OBTAIN AN OFFICIAL ID FROM THE
-	// FALCO ORGANIZATION, OTHERWISE IT WON'T PROPERLY COEXIST WITH OTHER PLUGINS.
+	// FALCOSECURITY ORGANIZATION, OTHERWISE IT WON'T PROPERLY COEXIST WITH OTHER PLUGINS.
 	//
 	uint32_t (*get_id)();
 	//
@@ -212,7 +212,7 @@ typedef struct
 	char* (*get_event_source)();
 	//
 	// Return the list of extractor fields exported by this plugin. Extractor
-	// fields can be used in falco rule conditions and sysdig filters.
+	// fields can be used in Falco rule conditions and sysdig filters.
 	// Required: no
 	// Return value: a string with the list of fields encoded as a json
 	//   array.
@@ -442,7 +442,7 @@ typedef struct
 	char* (*get_extract_event_sources)();
 	//
 	// Return the list of extractor fields exported by this plugin. Extractor
-	// fields can be used in falco rules and sysdig filters.
+	// fields can be used in Falco rules and sysdig filters.
 	// Required: yes
 	// Return value: a string with the list of fields encoded as a json
 	//   array.
