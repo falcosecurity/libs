@@ -567,6 +567,8 @@ void* sinsp_plugin::getsym(void* handle, const char* name, std::string &errstr)
 	if(ret == NULL)
 	{
 		errstr = string("Dynamic library symbol ") + name + " not present";
+	} else {
+		errstr = "";
 	}
 
 	return ret;
