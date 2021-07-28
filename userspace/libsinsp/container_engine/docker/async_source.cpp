@@ -646,8 +646,8 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 	string json;
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"docker_async (%s): Looking up info for container",
-			request.container_id.c_str());
+			"docker_async (%s): Looking up info for container via socket %s",
+			request.container_id.c_str(), request.docker_socket.c_str());
 
 	std::string api_request = "/containers/" + request.container_id + "/json";
 	if(request.request_rw_size)
