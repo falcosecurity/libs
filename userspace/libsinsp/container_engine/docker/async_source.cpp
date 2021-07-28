@@ -458,6 +458,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 		return;
 	}
 
+	const std::string match_name = container.m_imagerepo + ':' + container.m_imagetag;
 	for(const auto& img : img_root)
 	{
 		// the "Names" field is podman specific. we could parse repotags
@@ -471,7 +472,7 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 
 		for(const auto& name : names)
 		{
-			if(name == container.m_image)
+			if(name == match_name)
 			{
 				std::string imgstr = img["Id"].asString();
 				size_t cpos = imgstr.find(':');
@@ -591,6 +592,11 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 		{
 			fetch_image_info(request, container);
 		}
+
+		if(container.m_imagetag.empty())
+		{
+			container.m_imagetag = "latest";
+		}
 	}
 	else
 	{
@@ -604,6 +610,13 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 						   container.m_imagedigest,
 						   false);
 
+		// we need the tag set in the call to `fetch_image_from_list`
+		// so set it here instead of after the if/else
+		if(container.m_imagetag.empty())
+		{
+			container.m_imagetag = "latest";
+		}
+
 		// we don't have the image id so we need to list all images
 		// and find the matching one by comparing the repo names
 		if(m_query_image_info)
@@ -612,10 +625,6 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 		}
 	}
 
-	if(container.m_imagetag.empty())
-	{
-		container.m_imagetag = "latest";
-	}
 }
 void docker_async_source::parse_json_mounts(const Json::Value &mnt_obj, vector<sinsp_container_info::container_mount_info> &mounts)
 {
