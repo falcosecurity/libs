@@ -408,8 +408,8 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 			continue;
 		}
 
-		// cgroup
-		cgroup = strtok_r(NULL, ":", &scratch);
+		// cgroup should be the only thing remaining so use newline as the delimiter.
+		cgroup = strtok_r(NULL, "\n", &scratch);
 		if(cgroup == NULL)
 		{
 			ASSERT(false);
@@ -418,9 +418,6 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 				 filename);
 			return SCAP_FAILURE;
 		}
-
-		// remove the \n
-		cgroup[strlen(cgroup) - 1] = 0;
 
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{

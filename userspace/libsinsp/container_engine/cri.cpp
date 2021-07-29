@@ -48,6 +48,7 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 	{"/crio-", ""}, // non-systemd cri-o
 	{"/cri-containerd-", ".scope"}, // systemd containerd
 	{"/crio-", ".scope"}, // systemd cri-o
+	{":cri-containerd:", ""}, // containerd without "SystemdCgroup = true"
 	{nullptr, nullptr}
 };
 }
