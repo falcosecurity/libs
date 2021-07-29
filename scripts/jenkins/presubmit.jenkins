@@ -1,0 +1,147 @@
+/* vim:expandtab:sw=4:ts=4:sts=4
+*/
+
+
+def getAgentCommitSha() {
+    sh "git rev-parse HEAD > current-commit"
+    return readFile("current-commit").trim()
+}
+
+void setBuildStatus(String context, String message, String state) {
+
+  // There are issues with the GitHubCommitStatusSetter where it gets
+  // confused when multiple repos are checked out. To get around this,
+  // we explicitly grab the commit sha for the agent repo.
+  commitSha = getAgentCommitSha()
+
+  step([
+      $class: "GitHubCommitStatusSetter",
+      reposSource: [$class: "ManuallyEnteredRepositorySource", url: "https://github.com/draios/agent-libs"],
+      commitShaSource: [$class: "ManuallyEnteredShaSource", sha: commitSha],
+      contextSource: [$class: "ManuallyEnteredCommitContextSource", context: context],
+      errorHandlers: [[$class: "ChangingBuildStatusErrorHandler", result: "UNSTABLE"]],
+      statusResultSource: [ $class: "ConditionalStatusResultSource", results: [[$class: "AnyBuildResult", message: message, state: state]] ]
+  ]);
+}
+
+pipeline {
+    agent { label 'agent-builder-parallel' }
+    options {
+        timeout(time: 180, unit: 'MINUTES')
+    }
+    parameters {
+        booleanParam(name: 'BUILD_BUILDER', defaultValue: false, description: "set to true to build the builder for this branch. name will be same as agent branch")
+        string(name: 'BUILDER_VERSION', defaultValue: "latest", description: "build container to use for building the agent")
+        string(name: 'LIBSCAP_BRANCH', defaultValue: "dev")
+        string(name: 'FALCO_BRANCH', defaultValue: "master-sync")
+        string(name: 'PROTOREPO_BRANCH', defaultValue: "master")
+        string(name: 'LIBSCAP_HAYABUSA_BRANCH', defaultValue: "dev")
+        string(name: 'AGENT_BRANCH', defaultValue: "dev")
+    }
+    stages {
+        stage('Update PR') {
+            steps {
+                // First set the statuses on github
+                setBuildStatus('Unit Test', 'Waiting for resources', 'PENDING')
+                setBuildStatus('System Test', 'Waiting for resources', 'PENDING')
+            }
+        }
+        stage('Run Tests') {
+            parallel {
+                stage('Unit Test') {
+                    steps {
+                        setBuildStatus('Unit Test', 'In Progress', 'PENDING')
+                        build job:'agent-presubmit-ut',parameters:[
+                            string(name:'AGENT_BRANCH', value:"${params.AGENT_BRANCH}"),
+                            string(name:'FALCO_BRANCH', value:"${params.FALCO_BRANCH}"),
+                            string(name:'PROTOREPO_BRANCH', value:"${params.PROTOREPO_BRANCH}"),
+                            string(name:'LIBSCAP_BRANCH', value:"${params.LIBSCAP_BRANCH}"),
+                            string(name:'BUILDER_VERSION', value:"${params.BUILDER_VERSION}"),
+                            string(name:'LIBS_BRANCH', value:"${env.BRANCH_NAME}")
+                        ]
+                    }
+                    post {
+                        success {
+                            setBuildStatus('Unit Test', 'Zero problems found', 'SUCCESS')
+                        }
+                        failure {
+                            setBuildStatus('Unit Test', 'FAILED! See Jenkins console output for more info.', 'FAILURE')
+                        }
+                    }
+                }
+                stage('System Test') {
+                    steps {
+                        setBuildStatus('System Test', 'In Progress', 'PENDING')
+                        build job:'agent-presubmit-system',parameters:[
+                            string(name:'AGENT_BRANCH', value:"${params.AGENT_BRANCH}"),
+                            string(name:'FALCO_BRANCH', value:"${params.FALCO_BRANCH}"),
+                            string(name:'PROTOREPO_BRANCH', value:"${params.PROTOREPO_BRANCH}"),
+                            string(name:'LIBSCAP_BRANCH', value:"${params.LIBSCAP_BRANCH}"),
+                            string(name:'BUILDER_VERSION', value:"${params.BUILDER_VERSION}"),
+                            string(name:'LIBS_BRANCH', value:"${env.BRANCH_NAME}")
+                        ]
+                    }
+                    post {
+                        success {
+                            setBuildStatus('System Test', 'Zero problems found', 'SUCCESS')
+                        }
+                        failure {
+                            setBuildStatus('System Test', 'FAILED! See Jenkins console output for more info.', 'FAILURE')
+                        }
+                    }
+                }
+                stage('Systemic Regression Test') {
+                    stages {
+                        stage('Build Container') {
+                            steps {
+                                setBuildStatus('QA Test', 'Building Container', 'PENDING')
+                                build job:'agent-build-container',parameters:[
+                                    string(name:'AGENT_BRANCH', value:"${params.AGENT_BRANCH}"),
+                                    string(name:'FALCO_BRANCH', value:"${params.FALCO_BRANCH}"),
+                                    string(name:'PROTOREPO_BRANCH', value:"${params.PROTOREPO_BRANCH}"),
+                                    string(name:'LIBSCAP_BRANCH', value:"${params.LIBSCAP_BRANCH}"),
+                                    string(name:'BUILDER_VERSION', value:"${params.BUILDER_VERSION}"),
+                                    string(name:'LIBS_BRANCH', value:"${env.BRANCH_NAME}")
+                                ]
+                            }
+                        }
+                        stage('Run Test') {
+                            steps {
+                                echo "Running QA test...someday."
+                            }
+                        }
+                    }
+                    post {
+                        success {
+                            setBuildStatus('QA Test', 'Zero problems found', 'SUCCESS')
+                        }
+                        failure {
+                            setBuildStatus('QA Test', 'FAILED! see Jenkins console output for more info.', 'FAILURE')
+                        }
+                    }
+                }
+                stage('Agentino Build') {
+                    steps {
+                        setBuildStatus('Agentino Build', 'Building Container', 'PENDING')
+                        build job:'agent-build-agentino',parameters:[
+                            string(name:'AGENT_BRANCH', value:"${params.AGENT_BRANCH}"),
+                            string(name:'FALCO_BRANCH', value:"${params.FALCO_BRANCH}"),
+                            string(name:'LIBSCAP_HAYABUSA_BRANCH', value:"${params.LIBSCAP_HAYABUSA_BRANCH}"),
+                            string(name:'PROTOREPO_BRANCH', value:"${params.PROTOREPO_BRANCH}"),
+                            string(name:'LIBS_BRANCH', value:"${env.BRANCH_NAME}"),
+                            string(name:'BUILDER_VERSION', value:"${params.BUILDER_VERSION}")
+                        ]
+                    }
+                    post {
+                        success {
+                            setBuildStatus('Agentino Build', 'Zero problems found', 'SUCCESS')
+                        }
+                        failure {
+                            setBuildStatus('Agentino Build', 'FAILED! see Jenkins console output for more info.', 'FAILURE')
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
