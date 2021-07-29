@@ -30,7 +30,6 @@ pipeline {
         timeout(time: 180, unit: 'MINUTES')
     }
     parameters {
-        booleanParam(name: 'BUILD_BUILDER', defaultValue: false, description: "set to true to build the builder for this branch. name will be same as agent branch")
         string(name: 'BUILDER_VERSION', defaultValue: "latest", description: "build container to use for building the agent")
         string(name: 'LIBSCAP_BRANCH', defaultValue: "dev")
         string(name: 'FALCO_BRANCH', defaultValue: "master-sync")
