@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#include <stdbool.h>
+
 //
 // This file contains the prototype and type definitions of sinsp/scap plugins
 //
