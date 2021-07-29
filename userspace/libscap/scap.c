@@ -1756,8 +1756,28 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	{
 		should_free_plugin_evt = true;
 
-		res = handle->m_input_plugin->next(handle->m_input_plugin->state,
-						   handle->m_input_plugin->handle, &plugin_evt);
+		if (handle->m_input_plugin->use_dispatcher)
+		{
+			handle->m_input_plugin->disp.op = OP_NEXT;
+
+			// This tells the plugin to return the next event
+			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
+			pthread_cond_signal(&handle->m_input_plugin->disp.condition_cond);
+			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
+
+			// Wait for the plugin to return the event
+			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
+			pthread_cond_wait(&handle->m_input_plugin->disp.condition_cond, &handle->m_input_plugin->disp.condition_mutex);
+			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
+
+			plugin_evt = handle->m_input_plugin->disp.next_ctx.evt;
+			res = handle->m_input_plugin->disp.next_ctx.evt;
+		}
+		else
+		{
+			res = handle->m_input_plugin->next(handle->m_input_plugin->state,
+							   handle->m_input_plugin->handle, &plugin_evt);
+		}
 		if(res != SCAP_SUCCESS)
 		{
 			if(res != SCAP_TIMEOUT && res != SCAP_EOF)

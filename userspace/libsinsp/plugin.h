@@ -364,7 +364,11 @@ public:
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
 
+	bool register_dispatcher(std::string &errstr);
+
 private:
+
+	int32_t dispatch_next(ss_plugin_event **plugin_evt);
 	uint32_t m_id;
 	std::string m_event_source;
 

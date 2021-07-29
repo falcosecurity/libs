@@ -782,6 +782,7 @@ void sinsp_source_plugin::close()
 int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 {
 	ss_plugin_event *plugin_evt;
+	int32_t rc;
 
 	if(!m_instance_handle)
 	{
@@ -789,7 +790,14 @@ int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 		return SCAP_FAILURE;
 	}
 
-	int32_t rc = m_source_plugin_info.next(m_plugin_state, m_instance_handle, &plugin_evt);
+	if(m_source_plugin_info.use_dispatcher)
+	{
+		rc = dispatch_next(&plugin_evt);
+	}
+	else
+	{
+		rc = m_source_plugin_info.next(m_plugin_state, m_instance_handle, &plugin_evt);
+	}
 
 	if(rc == SCAP_FAILURE)
 	{
@@ -872,6 +880,45 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 	return ret;
 }
 
+bool sinsp_source_plugin::register_dispatcher(std::string &errstr)
+{
+	m_source_plugin_info.disp.condition_mutex = PTHREAD_MUTEX_INITIALIZER;
+	m_source_plugin_info.disp.condition_cond = PTHREAD_COND_INITIALIZER;
+
+	if(!m_instance_handle)
+	{
+		errstr = "Plugin not open()ed";
+		return false;
+	}
+
+	m_source_plugin_info.register_dispatcher(m_plugin_state, m_instance_handle, &m_source_plugin_info.disp);
+
+	// Used by libscap
+	m_source_plugin_info.use_dispatcher = true;
+
+	errstr = "";
+	return true;
+}
+
+int32_t sinsp_source_plugin::dispatch_next(ss_plugin_event **plugin_evt)
+{
+	m_source_plugin_info.disp.op = OP_NEXT;
+
+	// This tells the plugin to return the next event
+	pthread_mutex_lock(&m_source_plugin_info.disp.condition_mutex);
+	pthread_cond_signal(&m_source_plugin_info.disp.condition_cond);
+	pthread_mutex_unlock(&m_source_plugin_info.disp.condition_mutex);
+
+	// Wait for the plugin to return the event
+	pthread_mutex_lock(&m_source_plugin_info.disp.condition_mutex);
+	pthread_cond_wait(&m_source_plugin_info.disp.condition_cond, &m_source_plugin_info.disp.condition_mutex);
+	pthread_mutex_unlock(&m_source_plugin_info.disp.condition_mutex);
+
+	*plugin_evt = m_source_plugin_info.disp.next_ctx.evt;
+
+	return m_source_plugin_info.disp.next_ctx.rc;
+}
+
 bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
 {
 	if (!sinsp_plugin::resolve_dylib_symbols(handle, avoid_async, errstr))
@@ -912,6 +959,8 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, 
 	(*(void **) (&m_source_plugin_info.extract_u64)) = getsym(handle, "plugin_extract_u64", errstr);
 	(*(void **) (&m_source_plugin_info.next_batch)) = getsym(handle, "plugin_next_batch", errstr);
 	(*(void **) (&m_source_plugin_info.register_async_extractor)) = getsym(handle, "plugin_register_async_extractor", errstr);
+	(*(void **) (&m_source_plugin_info.register_dispatcher)) = getsym(handle, "plugin_register_dispatcher", errstr);
+
 
 	m_id = m_source_plugin_info.get_id();
 	m_event_source = str_from_alloc_charbuf(m_source_plugin_info.get_event_source());

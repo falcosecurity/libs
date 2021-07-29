@@ -83,6 +83,62 @@ typedef struct ss_plugin_event
 	uint64_t ts;
 } ss_plugin_event;
 
+// Interface for a message-based source plugin. This requires the plugin spawn a thread that can act on the provided semaphore
+
+typedef enum ss_plugin_op
+{
+	OP_NEXT = 1,
+	OP_EVENT_TO_STRING = 2,
+	OP_EXTRACT_STR = 3,
+	OP_EXTRACT_U64 = 4
+} ss_plugin_op;
+
+typedef struct plugin_dispatch_next {
+	int32_t rc;
+	ss_plugin_event *evt;
+} plugin_dispatch_next;
+
+typedef struct plugin_dispatch_event_to_string {
+	const uint8_t *data;
+	uint32_t datalen;
+	char *event_str;
+} plugin_dispatch_event_to_string;
+
+typedef struct plugin_dispatch_extract_str {
+	uint64_t evtnum;
+	const char *field;
+	const char *arg;
+	uint8_t *data;
+	uint32_t datalen;
+
+	char *extract_str;
+} plugin_dispatch_extract_str;
+
+typedef struct plugin_dispatch_extract_u64 {
+	uint64_t evtnum;
+	const char *field;
+	const char *arg;
+	uint8_t *data;
+	uint32_t datalen;
+
+	uint64_t extract_u64;
+	uint32_t field_present;
+} plugin_dispatch_extract_u64;
+
+typedef struct plugin_dispatch {
+
+	pthread_mutex_t condition_mutex;
+	pthread_cond_t  condition_cond;
+
+	ss_plugin_op op;
+
+	// One of the following will be used, based on op
+	struct plugin_dispatch_next next_ctx;
+	struct plugin_dispatch_event_to_string etos_ctx;
+	struct plugin_dispatch_extract_str estr_ctx;
+	struct plugin_dispatch_extract_u64 eu64_ctx;
+} plugin_dispatch;
+
 //
 // This is the opaque pointer to the state of a plugin.
 // It points to any data that might be needed plugin-wise. It is
@@ -332,9 +388,14 @@ typedef struct
 	//
 	int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 
+	void (*register_dispatcher)(ss_plugin_t *s, ss_instance_t *h, struct plugin_dispatch *disp);
+
 	//
 	// The following members are PRIVATE for the engine and should not be touched.
 	//
+	bool use_dispatcher;
+	plugin_dispatch disp;
+
 	ss_plugin_t* state;
 	ss_instance_t* handle;
 	uint32_t id;
