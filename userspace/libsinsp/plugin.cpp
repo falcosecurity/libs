@@ -790,7 +790,7 @@ int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 		return SCAP_FAILURE;
 	}
 
-	if(m_source_plugin_info.use_dispatcher)
+	if(should_use_dispatcher())
 	{
 		rc = dispatch_next(&plugin_evt);
 	}
@@ -882,14 +882,21 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 
 bool sinsp_source_plugin::register_dispatcher(std::string &errstr)
 {
-	m_source_plugin_info.disp.condition_mutex = PTHREAD_MUTEX_INITIALIZER;
-	m_source_plugin_info.disp.condition_cond = PTHREAD_COND_INITIALIZER;
-
 	if(!m_instance_handle)
 	{
 		errstr = "Plugin not open()ed";
 		return false;
 	}
+
+	if(!should_use_dispatcher())
+	{
+		// Success and do nothing
+		return true;
+	}
+
+	m_source_plugin_info.disp.condition_mutex = PTHREAD_MUTEX_INITIALIZER;
+	m_source_plugin_info.disp.condition_cond = PTHREAD_COND_INITIALIZER;
+	m_source_plugin_info.disp.op = OP_INIT;
 
 	m_source_plugin_info.register_dispatcher(m_plugin_state, m_instance_handle, &m_source_plugin_info.disp);
 
@@ -900,18 +907,31 @@ bool sinsp_source_plugin::register_dispatcher(std::string &errstr)
 	return true;
 }
 
+void sinsp_source_plugin::disable_dispatcher()
+{
+	m_source_plugin_info.use_dispatcher = false;
+}
+
+bool sinsp_source_plugin::should_use_dispatcher()
+{
+	return (m_source_plugin_info.register_dispatcher &&
+		m_source_plugin_info.use_dispatcher);
+}
+
 int32_t sinsp_source_plugin::dispatch_next(ss_plugin_event **plugin_evt)
 {
-	m_source_plugin_info.disp.op = OP_NEXT;
-
 	// This tells the plugin to return the next event
 	pthread_mutex_lock(&m_source_plugin_info.disp.condition_mutex);
+	m_source_plugin_info.disp.op = OP_NEXT;
 	pthread_cond_signal(&m_source_plugin_info.disp.condition_cond);
 	pthread_mutex_unlock(&m_source_plugin_info.disp.condition_mutex);
 
 	// Wait for the plugin to return the event
 	pthread_mutex_lock(&m_source_plugin_info.disp.condition_mutex);
-	pthread_cond_wait(&m_source_plugin_info.disp.condition_cond, &m_source_plugin_info.disp.condition_mutex);
+	while(m_source_plugin_info.disp.op != OP_INIT)
+	{
+		pthread_cond_wait(&m_source_plugin_info.disp.condition_cond, &m_source_plugin_info.disp.condition_mutex);
+	}
 	pthread_mutex_unlock(&m_source_plugin_info.disp.condition_mutex);
 
 	*plugin_evt = m_source_plugin_info.disp.next_ctx.evt;

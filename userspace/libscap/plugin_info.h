@@ -89,10 +89,12 @@ typedef struct ss_plugin_event
 
 typedef enum ss_plugin_op
 {
+	OP_INIT = 0,
 	OP_NEXT = 1,
 	OP_EVENT_TO_STRING = 2,
 	OP_EXTRACT_STR = 3,
-	OP_EXTRACT_U64 = 4
+	OP_EXTRACT_U64 = 4,
+	OP_DONE = 5
 } ss_plugin_op;
 
 typedef struct plugin_dispatch_next {

@@ -366,6 +366,9 @@ public:
 
 	bool register_dispatcher(std::string &errstr);
 
+	void disable_dispatcher();
+	bool should_use_dispatcher();
+
 private:
 
 	int32_t dispatch_next(ss_plugin_event **plugin_evt);
@@ -375,7 +378,6 @@ private:
 	source_plugin_info m_source_plugin_info;
 
 	ss_instance_t *m_instance_handle;
-
 };
 
 class sinsp_extractor_plugin : public sinsp_plugin

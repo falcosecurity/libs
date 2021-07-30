@@ -27,6 +27,7 @@ limitations under the License.
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <pthread.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <sys/mman.h>
@@ -1758,20 +1759,22 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 		if (handle->m_input_plugin->use_dispatcher)
 		{
-			handle->m_input_plugin->disp.op = OP_NEXT;
-
 			// This tells the plugin to return the next event
 			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
+			handle->m_input_plugin->disp.op = OP_NEXT;
 			pthread_cond_signal(&handle->m_input_plugin->disp.condition_cond);
 			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
 
 			// Wait for the plugin to return the event
 			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
-			pthread_cond_wait(&handle->m_input_plugin->disp.condition_cond, &handle->m_input_plugin->disp.condition_mutex);
+			while(handle->m_input_plugin->disp.op != OP_INIT)
+			{
+				pthread_cond_wait(&handle->m_input_plugin->disp.condition_cond, &handle->m_input_plugin->disp.condition_mutex);
+			}
 			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
 
 			plugin_evt = handle->m_input_plugin->disp.next_ctx.evt;
-			res = handle->m_input_plugin->disp.next_ctx.evt;
+			res = handle->m_input_plugin->disp.next_ctx.rc;
 		}
 		else
 		{
