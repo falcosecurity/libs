@@ -364,6 +364,7 @@ public:
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
 
+	void set_instance(ss_instance_t *handle);
 	bool register_dispatcher(std::string &errstr);
 
 	void disable_dispatcher();

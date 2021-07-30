@@ -881,6 +881,11 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 	return ret;
 }
 
+void sinsp_source_plugin::set_instance(ss_instance_t *handle)
+{
+	m_instance_handle = handle;
+}
+
 bool sinsp_source_plugin::register_dispatcher(std::string &errstr)
 {
 	if(!m_instance_handle)
