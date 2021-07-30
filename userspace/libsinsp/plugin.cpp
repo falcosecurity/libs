@@ -726,7 +726,8 @@ void sinsp_plugin::disable_async_extract()
 }
 
 sinsp_source_plugin::sinsp_source_plugin()
-	: m_instance_handle(NULL)
+	: m_instance_handle(NULL),
+	  m_should_use_dispatcher(true)
 {
 }
 
@@ -909,13 +910,14 @@ bool sinsp_source_plugin::register_dispatcher(std::string &errstr)
 
 void sinsp_source_plugin::disable_dispatcher()
 {
+	m_should_use_dispatcher = false;
 	m_source_plugin_info.use_dispatcher = false;
 }
 
 bool sinsp_source_plugin::should_use_dispatcher()
 {
 	return (m_source_plugin_info.register_dispatcher &&
-		m_source_plugin_info.use_dispatcher);
+		m_should_use_dispatcher);
 }
 
 int32_t sinsp_source_plugin::dispatch_next(ss_plugin_event **plugin_evt)

@@ -378,6 +378,7 @@ private:
 	source_plugin_info m_source_plugin_info;
 
 	ss_instance_t *m_instance_handle;
+	bool m_should_use_dispatcher;
 };
 
 class sinsp_extractor_plugin : public sinsp_plugin
