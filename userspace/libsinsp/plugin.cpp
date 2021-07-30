@@ -872,6 +872,11 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 	return ret;
 }
 
+void sinsp_source_plugin::set_instance(ss_instance_t *handle)
+{
+	m_instance_handle = handle;
+}
+
 bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
 {
 	if (!sinsp_plugin::resolve_dylib_symbols(handle, avoid_async, errstr))

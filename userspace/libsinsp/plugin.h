@@ -364,6 +364,8 @@ public:
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
 
+	void set_instance(ss_instance_t *handle);
+
 private:
 	uint32_t m_id;
 	std::string m_event_source;
