@@ -1766,12 +1766,21 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
 
 			// Wait for the plugin to return the event
-			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
-			while(handle->m_input_plugin->disp.op != OP_INIT)
+//			pthread_mutex_lock(&handle->m_input_plugin->disp.condition_mutex);
+//			fprintf(stderr, "1\n");
+
+//			while(handle->m_input_plugin->disp.op != OP_INIT)
+//			{
+//				fprintf(stderr, "2\n");
+//				pthread_cond_wait(&handle->m_input_plugin->disp.condition_cond, &handle->m_input_plugin->disp.condition_mutex);
+//			}
+////				fprintf(stderr, "3\n");
+//			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
+			uint32_t op = __atomic_load_n(&(handle->m_input_plugin->disp.op), __ATOMIC_RELAXED);
+			while(op != OP_INIT)
 			{
-				pthread_cond_wait(&handle->m_input_plugin->disp.condition_cond, &handle->m_input_plugin->disp.condition_mutex);
+				op = __atomic_load_n(&(handle->m_input_plugin->disp.op), __ATOMIC_RELAXED);
 			}
-			pthread_mutex_unlock(&handle->m_input_plugin->disp.condition_mutex);
 
 			plugin_evt = handle->m_input_plugin->disp.next_ctx.evt;
 			res = handle->m_input_plugin->disp.next_ctx.rc;
