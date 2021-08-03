@@ -221,6 +221,9 @@ typedef struct
 	//   Each field entry is a json object with the following properties:
 	//     "type": one of "string", "uint64"
 	//     "name": a string with a name for the field
+	//     "display": (optional) If present, a string that will be used to
+	//                display the field instead of the name. Used in tools
+	//                like wireshark.
 	//     "desc": a string with a description of the field
 	// Example return value:
 	// [
