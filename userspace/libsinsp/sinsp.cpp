@@ -518,16 +518,6 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 		throw scap_open_exception(error, scap_rc);
 	}
 
-	if(m_input_plugin)
-	{
-		sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(m_input_plugin.get());
-
-		// scap_open set oargs.input_plugin.handle to the
-		// value from the plugin. Copy it back to the plugin
-		// object
-		splugin->set_instance(oargs.input_plugin->handle);
-	}
-
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
 
 	init();

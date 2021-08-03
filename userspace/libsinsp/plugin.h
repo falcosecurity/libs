@@ -302,8 +302,9 @@ protected:
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	static std::string str_from_alloc_charbuf(char *charbuf);
 
-	// Derived classes might need to access the return value from init().
-	ss_plugin_t *m_plugin_state;
+	// init() will call this to save the resulting state struct
+	virtual void set_plugin_state(ss_plugin_t *state) = 0;
+	virtual ss_plugin_t *plugin_state() = 0;
 
 private:
 	// Functions common to all derived plugin
@@ -364,16 +365,15 @@ public:
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
 
-	void set_instance(ss_instance_t *handle);
+protected:
+	void set_plugin_state(ss_plugin_t *state) override;
+	virtual ss_plugin_t *plugin_state() override;
 
 private:
 	uint32_t m_id;
 	std::string m_event_source;
 
 	source_plugin_info m_source_plugin_info;
-
-	ss_instance_t *m_instance_handle;
-
 };
 
 class sinsp_extractor_plugin : public sinsp_plugin
@@ -393,6 +393,10 @@ public:
 	// not name any extract sources, or if the provided source is
 	// in the set of extract sources.
 	bool source_compatible(const std::string &source);
+
+protected:
+	void set_plugin_state(ss_plugin_t *state) override;
+	virtual ss_plugin_t *plugin_state() override;
 
 private:
 	extractor_plugin_info m_extractor_plugin_info;

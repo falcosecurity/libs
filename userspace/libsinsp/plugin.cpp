@@ -428,7 +428,6 @@ sinsp_plugin::sinsp_plugin()
 
 sinsp_plugin::~sinsp_plugin()
 {
-	destroy();
 }
 
 bool sinsp_plugin::init(char *config, bool avoid_async)
@@ -440,7 +439,7 @@ bool sinsp_plugin::init(char *config, bool avoid_async)
 
 	int32_t rc;
 
-	m_plugin_state = m_plugin_info.init(config, &rc);
+	ss_plugin_t *state = m_plugin_info.init(config, &rc);
 	if(rc != SCAP_SUCCESS)
 	{
 		// Not calling get_last_error here because there was
@@ -448,11 +447,13 @@ bool sinsp_plugin::init(char *config, bool avoid_async)
 		return false;
 	}
 
+	set_plugin_state(state);
+
 	if(m_plugin_info.register_async_extractor && !avoid_async)
 	{
 		m_async_extractor.reset(new sinsp_async_extractor());
 
-		if(m_plugin_info.register_async_extractor(m_plugin_state, m_async_extractor->extractor_info()) != SCAP_SUCCESS)
+		if(m_plugin_info.register_async_extractor(plugin_state(), m_async_extractor->extractor_info()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception(string("error in plugin ") + m_name + ": " + get_last_error());
 		}
@@ -463,10 +464,10 @@ bool sinsp_plugin::init(char *config, bool avoid_async)
 
 void sinsp_plugin::destroy()
 {
-	if(m_plugin_state && m_plugin_info.destroy)
+	if(plugin_state() && m_plugin_info.destroy)
 	{
-		m_plugin_info.destroy(m_plugin_state);
-		m_plugin_state = NULL;
+		m_plugin_info.destroy(plugin_state());
+		set_plugin_state(NULL);
 	}
 }
 
@@ -474,9 +475,9 @@ std::string sinsp_plugin::get_last_error()
 {
 	std::string ret;
 
-	if(m_plugin_state && m_plugin_info.get_last_error)
+	if(plugin_state() && m_plugin_info.get_last_error)
 	{
-		ret = str_from_alloc_charbuf(m_plugin_info.get_last_error(m_plugin_state));
+		ret = str_from_alloc_charbuf(m_plugin_info.get_last_error(plugin_state()));
 	}
 	else
 	{
@@ -523,7 +524,7 @@ uint32_t sinsp_plugin::nfields()
 
 bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
 {
-	if(!m_plugin_info.extract_str || !m_plugin_state)
+	if(!m_plugin_info.extract_str || !plugin_state())
 	{
 		return false;
 	}
@@ -533,7 +534,7 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, ui
 		return m_async_extractor->extract_str(evtnum, field, arg, data, datalen, ret);
 	}
 
-	char *str = m_plugin_info.extract_str(m_plugin_state, evtnum, field, arg, data, datalen);
+	char *str = m_plugin_info.extract_str(plugin_state(), evtnum, field, arg, data, datalen);
 
 	if (str == NULL)
 	{
@@ -547,7 +548,7 @@ bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, ui
 
 bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
 {
-	if(!m_plugin_info.extract_str || !m_plugin_state)
+	if(!m_plugin_info.extract_str || !plugin_state())
 	{
 		return false;
 	}
@@ -559,7 +560,7 @@ bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, ui
 
 	uint32_t fp;
 
-	ret = m_plugin_info.extract_u64(m_plugin_state, evtnum, field, arg, data, datalen, &fp);
+	ret = m_plugin_info.extract_u64(plugin_state(), evtnum, field, arg, data, datalen, &fp);
 
 	field_present = fp;
 
@@ -727,13 +728,13 @@ void sinsp_plugin::disable_async_extract()
 }
 
 sinsp_source_plugin::sinsp_source_plugin()
-	: m_instance_handle(NULL)
 {
 }
 
 sinsp_source_plugin::~sinsp_source_plugin()
 {
 	close();
+	destroy();
 }
 
 uint32_t sinsp_source_plugin::id()
@@ -748,9 +749,6 @@ const std::string &sinsp_source_plugin::event_source()
 
 source_plugin_info *sinsp_source_plugin::plugin_info()
 {
-	// Make sure the state/handle fields in the returned struct are filled in.
-	m_source_plugin_info.state = m_plugin_state;
-	m_source_plugin_info.handle = m_instance_handle;
 	return &m_source_plugin_info;
 }
 
@@ -758,39 +756,39 @@ bool sinsp_source_plugin::open(char *params, int32_t &rc)
 {
 	int32_t orc;
 
-	if(!m_plugin_state)
+	if(!plugin_state())
 	{
 		return false;
 	}
 
-	m_instance_handle = m_source_plugin_info.open(m_plugin_state, params, &orc);
+	m_source_plugin_info.handle = m_source_plugin_info.open(plugin_state(), params, &orc);
 
 	rc = orc;
 
-	return (m_instance_handle != NULL);
+	return (m_source_plugin_info.handle != NULL);
 }
 
 void sinsp_source_plugin::close()
 {
-	if(!m_plugin_state || !m_instance_handle)
+	if(!plugin_state() || !m_source_plugin_info.handle)
 	{
 		return;
 	}
 
-	m_source_plugin_info.close(m_plugin_state, m_instance_handle);
+	m_source_plugin_info.close(plugin_state(), m_source_plugin_info.handle);
 }
 
 int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
 {
 	ss_plugin_event *plugin_evt;
 
-	if(!m_instance_handle)
+	if(!m_source_plugin_info.handle)
 	{
 		errbuf = "Plugin not open()ed";
 		return SCAP_FAILURE;
 	}
 
-	int32_t rc = m_source_plugin_info.next(m_plugin_state, m_instance_handle, &plugin_evt);
+	int32_t rc = m_source_plugin_info.next(plugin_state(), m_source_plugin_info.handle, &plugin_evt);
 
 	if(rc == SCAP_FAILURE)
 	{
@@ -812,13 +810,13 @@ int32_t sinsp_source_plugin::next_batch(std::vector<sinsp_plugin::event> &events
 	uint32_t nevts;
 	ss_plugin_event *evts;
 
-	if(!m_instance_handle)
+	if(!m_source_plugin_info.handle)
 	{
 		errbuf = "Plugin not open()ed";
 		return SCAP_FAILURE;
 	}
 
-	int32_t rc = m_source_plugin_info.next_batch(m_plugin_state, m_instance_handle, &nevts, &evts);
+	int32_t rc = m_source_plugin_info.next_batch(plugin_state(), m_source_plugin_info.handle, &nevts, &evts);
 
 	if(rc == SCAP_FAILURE)
 	{
@@ -846,13 +844,13 @@ std::string sinsp_source_plugin::get_progress(uint32_t &progress_pct)
 	std::string ret;
 	progress_pct = 0;
 
-	if(!m_source_plugin_info.get_progress || !m_instance_handle)
+	if(!m_source_plugin_info.get_progress || !m_source_plugin_info.handle)
 	{
 		return ret;
 	}
 
 	uint32_t ppct;
-	ret = str_from_alloc_charbuf(m_source_plugin_info.get_progress(m_plugin_state, m_instance_handle, &ppct));
+	ret = str_from_alloc_charbuf(m_source_plugin_info.get_progress(plugin_state(), m_source_plugin_info.handle, &ppct));
 
 	progress_pct = ppct;
 
@@ -868,14 +866,19 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 		return ret;
 	}
 
-	ret = str_from_alloc_charbuf(m_source_plugin_info.event_to_string(m_plugin_state, data, datalen));
+	ret = str_from_alloc_charbuf(m_source_plugin_info.event_to_string(plugin_state(), data, datalen));
 
 	return ret;
 }
 
-void sinsp_source_plugin::set_instance(ss_instance_t *handle)
+void sinsp_source_plugin::set_plugin_state(ss_plugin_t *state)
 {
-	m_instance_handle = handle;
+	m_source_plugin_info.state = state;
+}
+
+ss_plugin_t *sinsp_source_plugin::plugin_state()
+{
+	return m_source_plugin_info.state;
 }
 
 bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
@@ -931,6 +934,7 @@ sinsp_extractor_plugin::sinsp_extractor_plugin()
 
 sinsp_extractor_plugin::~sinsp_extractor_plugin()
 {
+	destroy();
 }
 
 const std::set<std::string> &sinsp_extractor_plugin::extract_event_sources()
@@ -941,6 +945,16 @@ const std::set<std::string> &sinsp_extractor_plugin::extract_event_sources()
 bool sinsp_extractor_plugin::source_compatible(const std::string &source)
 {
 	return(m_extract_event_sources.find(source) != m_extract_event_sources.end());
+}
+
+void sinsp_extractor_plugin::set_plugin_state(ss_plugin_t *state)
+{
+	m_extractor_plugin_info.state = state;
+}
+
+ss_plugin_t *sinsp_extractor_plugin::plugin_state()
+{
+	return m_extractor_plugin_info.state;
 }
 
 bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)

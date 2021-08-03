@@ -475,4 +475,9 @@ typedef struct
 	//
 	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen);
 	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+
+	//
+	// The following members are PRIVATE for the engine and should not be touched.
+	//
+	ss_plugin_t* state;
 } extractor_plugin_info;
