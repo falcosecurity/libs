@@ -268,11 +268,11 @@ public:
 	// (name/desc/etc) and required functions
 	// (init/destroy/extract/etc).
 	// Returns true on success, false + sets errstr on error.
-	virtual bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr);
+	virtual bool resolve_dylib_symbols(void *handle, std::string &errstr);
 
 	void disable_async_extract();
 
-	bool init(char *config);
+	bool init(char *config, bool avoid_async);
 	void destroy();
 
 	virtual ss_plugin_type type() = 0;
@@ -345,7 +345,7 @@ public:
 	sinsp_source_plugin();
 	virtual ~sinsp_source_plugin();
 
-	bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr) override;
+	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_SOURCE_PLUGIN; };
 	uint32_t id();
@@ -382,7 +382,7 @@ public:
 	sinsp_extractor_plugin();
 	virtual ~sinsp_extractor_plugin();
 
-	bool resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr) override;
+	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_EXTRACTOR_PLUGIN; };
 

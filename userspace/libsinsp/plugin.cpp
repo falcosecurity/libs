@@ -368,7 +368,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	{
 	case TYPE_SOURCE_PLUGIN:
 		splugin = new sinsp_source_plugin();
-		if(!splugin->resolve_dylib_symbols(handle, avoid_async, errstr))
+		if(!splugin->resolve_dylib_symbols(handle, errstr))
 		{
 			delete splugin;
 			return ret;
@@ -377,7 +377,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		break;
 	case TYPE_EXTRACTOR_PLUGIN:
 		eplugin = new sinsp_extractor_plugin();
-		if(!eplugin->resolve_dylib_symbols(handle, avoid_async, errstr))
+		if(!eplugin->resolve_dylib_symbols(handle, errstr))
 		{
 			delete eplugin;
 			return ret;
@@ -389,7 +389,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	errstr = "";
 
 	// Initialize the plugin
-	if (!ret->init(config))
+	if (!ret->init(config, avoid_async))
 	{
 		ret = NULL;
 	}
@@ -431,7 +431,7 @@ sinsp_plugin::~sinsp_plugin()
 	destroy();
 }
 
-bool sinsp_plugin::init(char *config)
+bool sinsp_plugin::init(char *config, bool avoid_async)
 {
 	if (!m_plugin_info.init)
 	{
@@ -446,6 +446,16 @@ bool sinsp_plugin::init(char *config)
 		// Not calling get_last_error here because there was
 		// no valid ss_plugin_t struct returned from init.
 		return false;
+	}
+
+	if(m_plugin_info.register_async_extractor && !avoid_async)
+	{
+		m_async_extractor.reset(new sinsp_async_extractor());
+
+		if(m_plugin_info.register_async_extractor(m_plugin_state, m_async_extractor->extractor_info()) != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(string("error in plugin ") + m_name + ": " + get_last_error());
+		}
 	}
 
 	return true;
@@ -590,7 +600,7 @@ std::string sinsp_plugin::str_from_alloc_charbuf(char *charbuf)
 	return str;
 }
 
-bool sinsp_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
+bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 {
 	// Some functions are required and return false if not found.
 	if((*(void **) (&(m_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
@@ -706,15 +716,6 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::st
 			}
 		}
 
-		if(m_plugin_info.register_async_extractor && !avoid_async)
-		{
-			m_async_extractor.reset(new sinsp_async_extractor());
-
-			if(m_plugin_info.register_async_extractor(m_plugin_state, m_async_extractor->extractor_info()) != SCAP_SUCCESS)
-			{
-				throw sinsp_exception(string("error in plugin ") + m_name + ": " + get_last_error());
-			}
-		}
 	}
 
 	return true;
@@ -877,9 +878,9 @@ void sinsp_source_plugin::set_instance(ss_instance_t *handle)
 	m_instance_handle = handle;
 }
 
-bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
+bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 {
-	if (!sinsp_plugin::resolve_dylib_symbols(handle, avoid_async, errstr))
+	if (!sinsp_plugin::resolve_dylib_symbols(handle, errstr))
 	{
 		return false;
 	}
@@ -942,9 +943,9 @@ bool sinsp_extractor_plugin::source_compatible(const std::string &source)
 	return(m_extract_event_sources.find(source) != m_extract_event_sources.end());
 }
 
-bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, bool avoid_async, std::string &errstr)
+bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 {
-	if (!sinsp_plugin::resolve_dylib_symbols(handle, avoid_async, errstr))
+	if (!sinsp_plugin::resolve_dylib_symbols(handle, errstr))
 	{
 		return false;
 	}
