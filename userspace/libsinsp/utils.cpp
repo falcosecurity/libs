@@ -1373,6 +1373,10 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "BOOL";
 	case PT_IPV4ADDR:
 		return "IPV4ADDR";
+	case PT_IPADDR:
+		return "IPADDR";
+	case PT_IPNET:
+		return "IPNET";
 	case PT_DYN:
 		return "DYNAMIC";
 	case PT_FLAGS8:
