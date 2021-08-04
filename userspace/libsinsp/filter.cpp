@@ -1055,9 +1055,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			{
 				ASSERT(len < 1024 * 1024);
 
-				if(len >= filter_value().size())
+				if(len >= filter_value()->size())
 				{
-					filter_value().resize(len + 1);
+					filter_value()->resize(len + 1);
 				}
 
 				memcpy(filter_value_p(), rawval, len);
@@ -1209,7 +1209,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 		m_val_storages.push_back(vector<uint8_t>(256));
 	}
 
-	parsed_len = parse_filter_value(str, len, filter_value_p(i), filter_value(i).size());
+	parsed_len = parse_filter_value(str, len, filter_value_p(i), filter_value(i)->size());
 
 	// XXX/mstemm this doesn't work if someone called
 	// add_filter_value more than once for a given index.
@@ -1287,7 +1287,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 						  operand1,
 						  filter_value_p(i),
 						  op1_len,
-						  filter_value(i).size()))
+						  filter_value(i)->size()))
 				{
 					return true;
 				}

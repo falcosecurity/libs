@@ -3082,7 +3082,7 @@ size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t le
 	if(m_field_id == sinsp_filter_check_event::TYPE_ARGRAW)
 	{
 		ASSERT(m_arginfo != NULL);
-		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value().size(), m_arginfo->type);
+		parsed_len = sinsp_filter_value_parser::string_to_rawval(str, len, filter_value_p(), filter_value()->size(), m_arginfo->type);
 	}
 	else
 	{

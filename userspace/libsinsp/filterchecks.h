@@ -173,7 +173,7 @@ protected:
 	char m_getpropertystr_storage[1024];
 	vector<vector<uint8_t>> m_val_storages;
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
-	inline vector<uint8_t> filter_value(uint16_t i = 0) { return m_val_storages[i]; }
+	inline vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
 
 	unordered_set<filter_value_t,
 		g_hash_membuf,
