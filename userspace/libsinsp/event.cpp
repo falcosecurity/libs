@@ -2701,3 +2701,81 @@ uint64_t sinsp_evt::get_lastevent_ts() const
 {
 	return m_tinfo->m_lastevent_ts;
 }
+
+bool evtcpy(sinsp_evt& dest, const sinsp_evt& src)
+{
+	dest.m_inspector = src.m_inspector;
+
+	if (src.m_pevt != nullptr)
+	{
+		dest.m_pevt_storage = new char[src.m_pevt->len];
+		memcpy(dest.m_pevt_storage, src.m_pevt, src.m_pevt->len);
+		dest.m_pevt = (scap_evt*)dest.m_pevt_storage;
+	}
+	else
+	{
+		dest.m_pevt_storage = nullptr;
+		dest.m_pevt = nullptr;
+	}
+
+	dest.m_poriginal_evt = nullptr;
+
+	// tinfo
+	if (src.m_tinfo_ref && src.m_tinfo && src.m_tinfo_ref.get() != src.m_tinfo)
+	{
+		// bad data
+		return false;
+	}
+
+	dest.m_tinfo_ref = src.m_tinfo_ref;
+	dest.m_tinfo = src.m_tinfo;
+	if(src.m_tinfo_ref)
+	{
+		dest.m_tinfo_ref = src.m_tinfo_ref;
+		dest.m_tinfo = dest.m_tinfo_ref.get();
+	}
+	else if (src.m_tinfo)
+	{
+		dest.m_tinfo_ref = dest.m_inspector->get_thread_ref(src.m_tinfo->m_tid , false, false)		;
+		if (dest.m_tinfo_ref == nullptr)
+		{
+			// no tinfo
+			return false;
+		}
+		dest.m_tinfo = dest.m_tinfo_ref.get();
+	}
+
+	dest.m_tinfo_ref = src.m_tinfo_ref;
+	dest.m_tinfo = src.m_tinfo;
+
+	// scalars
+	dest.m_cpuid = src.m_cpuid;
+	dest.m_evtnum = src.m_evtnum;
+	dest.m_flags = src.m_flags;
+	dest.m_params_loaded = src.m_params_loaded;
+
+	dest.m_iosize = src.m_iosize;
+	dest.m_errorcode = src.m_errorcode;
+	dest.m_rawbuf_str_len = src.m_rawbuf_str_len;
+	dest.m_filtered_out = src.m_filtered_out;
+
+	// vectors
+	dest.m_params = src.m_params;
+	dest.m_paramstr_storage = src.m_paramstr_storage;
+	dest.m_resolved_paramstr_storage = src.m_resolved_paramstr_storage;
+
+	// global table
+	dest.m_event_info_table = src.m_event_info_table;
+	dest.m_info = src.m_info;
+
+	// fd info
+	dest.m_fdinfo = nullptr;
+	if (src.m_fdinfo != nullptr)
+	{
+		dest.m_fdinfo_ref.reset(new sinsp_fdinfo_t(*src.m_fdinfo));
+		dest.m_fdinfo = dest.m_fdinfo_ref.get();
+	}
+	dest.m_fdinfo_name_changed = src.m_fdinfo_name_changed;
+
+	return true;
+}

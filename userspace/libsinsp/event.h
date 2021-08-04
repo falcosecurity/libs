@@ -486,6 +486,8 @@ private:
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
 
+	friend bool evtcpy(sinsp_evt& dest, const sinsp_evt& src);
+
 VISIBILITY_PRIVATE
 	enum flags
 	{
@@ -525,6 +527,8 @@ VISIBILITY_PRIVATE
 	bool m_filtered_out;
 #endif
 	const struct ppm_event_info* m_event_info_table;
+
+	std::shared_ptr<sinsp_fdinfo_t> m_fdinfo_ref;
 
 	friend class sinsp;
 	friend class sinsp_parser;
