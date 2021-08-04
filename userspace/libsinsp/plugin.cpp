@@ -85,7 +85,14 @@ public:
 
 		if(res != -1)
 		{
+			// Read from str to the end-of-string, or first space
 			string val(str);
+			size_t val_end = val.find_first_of(' ', 0);
+			if(val_end != string::npos)
+			{
+				val = val.substr(0, val_end-1);
+			}
+
 			size_t pos1 = val.find_first_of('[', 0);
 			if(pos1 != string::npos)
 			{
@@ -731,6 +738,7 @@ void sinsp_plugin::disable_async_extract()
 
 sinsp_source_plugin::sinsp_source_plugin()
 {
+	memset(&m_source_plugin_info, 0, sizeof(m_source_plugin_info));
 }
 
 sinsp_source_plugin::~sinsp_source_plugin()
@@ -932,6 +940,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 
 sinsp_extractor_plugin::sinsp_extractor_plugin()
 {
+	memset(&m_extractor_plugin_info, 0, sizeof(m_extractor_plugin_info));
 }
 
 sinsp_extractor_plugin::~sinsp_extractor_plugin()
@@ -946,7 +955,8 @@ const std::set<std::string> &sinsp_extractor_plugin::extract_event_sources()
 
 bool sinsp_extractor_plugin::source_compatible(const std::string &source)
 {
-	return(m_extract_event_sources.find(source) != m_extract_event_sources.end());
+	return(m_extract_event_sources.size() == 0 ||
+	       m_extract_event_sources.find(source) != m_extract_event_sources.end());
 }
 
 void sinsp_extractor_plugin::set_plugin_state(ss_plugin_t *state)
