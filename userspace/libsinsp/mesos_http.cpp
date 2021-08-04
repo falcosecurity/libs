@@ -391,7 +391,7 @@ std::string mesos_http::make_request(uri url, curl_version_info_data* curl_versi
 	{
 		request << '?' << query;
 	}
-	request << " HTTP/1.1\r\nConnection: Keep-Alive\r\nUser-Agent: sysdig";
+	request << " HTTP/1.1\r\nConnection: Keep-Alive\r\nUser-Agent: " LIBSINSP_USER_AGENT;
 	if(curl_version && curl_version->version)
 	{
 		request << " (curl " << curl_version->version << ')';

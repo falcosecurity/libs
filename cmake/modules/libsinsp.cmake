@@ -9,6 +9,10 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 option(WITH_CHISEL "Include chisel implementation" OFF)
 
+if(DEFINED LIBSINSP_USER_AGENT)
+	add_definitions(-DLIBSINSP_USER_AGENT="${LIBSINSP_USER_AGENT}")
+endif()
+
 include(ExternalProject)
 include(libscap)
 if(NOT WIN32)

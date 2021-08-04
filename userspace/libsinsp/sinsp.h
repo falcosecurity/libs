@@ -157,6 +157,14 @@ public:
 };
 
 /*!
+  \brief The user agent string to use for any libsinsp connection, can be changed at compile time
+*/
+
+#if !defined(LIBSINSP_USER_AGENT)
+#define LIBSINSP_USER_AGENT "falcosecurity-libs"
+#endif // LIBSINSP_USER_AGENT
+
+/*!
   \brief The default way an event is converted to string by the library
 */
 #define DEFAULT_OUTPUT_STR "*%evt.num %evt.time %evt.cpu %proc.name (%thread.tid) %evt.dir %evt.type %evt.args"
