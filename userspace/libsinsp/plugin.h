@@ -251,7 +251,8 @@ public:
 
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
-	static void register_plugin(sinsp* inspector, std::string filepath, char *config, bool avoid_async);
+	// The created sinsp_plugin is returned.
+	static std::shared_ptr<sinsp_plugin> register_plugin(sinsp* inspector, std::string filepath, char *config, bool avoid_async);
 
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is

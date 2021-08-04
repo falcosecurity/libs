@@ -283,7 +283,7 @@ uint64_t sinsp_plugin::event::ts()
 	return m_ts;
 }
 
-void sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* config, bool avoid_async)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* config, bool avoid_async)
 {
 	string errstr;
 	std::shared_ptr<sinsp_plugin> plugin = create_plugin(filepath, config, avoid_async, errstr);
@@ -308,6 +308,8 @@ void sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* conf
 	auto filtercheck = new sinsp_filter_check_plugin(plugin);
 
 	g_filterlist.add_filter_check(filtercheck);
+
+	return plugin;
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char* config, bool avoid_async, std::string &errstr)
