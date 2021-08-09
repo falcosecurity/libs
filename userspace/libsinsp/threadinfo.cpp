@@ -949,7 +949,7 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-void sinsp_threadinfo::populate_cmdline(string &cmdline, sinsp_threadinfo *tinfo)
+void sinsp_threadinfo::populate_cmdline(string &cmdline, const sinsp_threadinfo *tinfo)
 {
 	cmdline = tinfo->get_comm();
 
