@@ -229,7 +229,7 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
-	static void populate_cmdline(std::string &cmdline, sinsp_threadinfo *tinfo);
+	static void populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo);
 
 	// Return true if this thread is a part of a healthcheck,
 	// readiness probe, or liveness probe.
