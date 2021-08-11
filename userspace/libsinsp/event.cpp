@@ -2698,7 +2698,7 @@ uint64_t sinsp_evt::get_lastevent_ts() const
 	return m_tinfo->m_lastevent_ts;
 }
 
-bool evtcpy(sinsp_evt& dest, const sinsp_evt& src)
+bool sinsp_evt::evtcpy(sinsp_evt& dest, const sinsp_evt& src)
 {
 	dest.m_inspector = src.m_inspector;
 
@@ -2725,6 +2725,8 @@ bool evtcpy(sinsp_evt& dest, const sinsp_evt& src)
 
 	dest.m_tinfo_ref = src.m_tinfo_ref;
 	dest.m_tinfo = src.m_tinfo;
+	// safely copy tinfo only if it's available as shared_ptr
+	// otherwise no guaranty to have it alive when the event replayed
 	if(src.m_tinfo_ref)
 	{
 		dest.m_tinfo_ref = src.m_tinfo_ref;
@@ -2743,6 +2745,7 @@ bool evtcpy(sinsp_evt& dest, const sinsp_evt& src)
 
 	// scalars
 	dest.m_cpuid = src.m_cpuid;
+	// m_evtnum is used in cached filters and that is safe for reuse
 	dest.m_evtnum = src.m_evtnum;
 	dest.m_flags = src.m_flags;
 	dest.m_params_loaded = src.m_params_loaded;
@@ -2757,14 +2760,16 @@ bool evtcpy(sinsp_evt& dest, const sinsp_evt& src)
 	dest.m_paramstr_storage = src.m_paramstr_storage;
 	dest.m_resolved_paramstr_storage = src.m_resolved_paramstr_storage;
 
-	// global table
-	dest.m_event_info_table = src.m_event_info_table;
+	// pointer to an entry in global static table
+	// safe to copy naked ptr
 	dest.m_info = src.m_info;
 
 	// fd info
 	dest.m_fdinfo = nullptr;
 	if (src.m_fdinfo != nullptr)
 	{
+		//m_fdinfo_ref is only used to keep a handle to this
+		// copy of the fdinfo which was copied from the global fdinfo table
 		dest.m_fdinfo_ref.reset(new sinsp_fdinfo_t(*src.m_fdinfo));
 		dest.m_fdinfo = dest.m_fdinfo_ref.get();
 	}
