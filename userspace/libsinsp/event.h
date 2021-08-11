@@ -486,7 +486,7 @@ private:
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
 
-	friend bool evtcpy(sinsp_evt& dest, const sinsp_evt& src);
+	static bool evtcpy(sinsp_evt& dest, const sinsp_evt& src);
 
 VISIBILITY_PRIVATE
 	enum flags
