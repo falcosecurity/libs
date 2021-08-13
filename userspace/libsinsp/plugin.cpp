@@ -724,6 +724,19 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 			{
 				throw sinsp_exception(string("error in plugin ") + m_name + ": invalid field type " + ftype);
 			}
+			const Json::Value &jvargRequired = root[j].get("argRequired", Json::Value::null);
+			if (!jvargRequired.isNull())
+			{
+				if (!jvargRequired.isBool())
+				{
+					throw sinsp_exception(string("error in plugin ") + m_name + ": field " + fname + " argRequired property is not boolean ");
+				}
+
+				if (jvargRequired.asBool() == true)
+				{
+					tf.m_flags = filtercheck_field_flags::EPF_REQUIRES_ARGUMENT;
+				}
+			}
 		}
 
 	}
