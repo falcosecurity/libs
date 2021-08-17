@@ -90,7 +90,7 @@ public:
 			size_t val_end = val.find_first_of(' ', 0);
 			if(val_end != string::npos)
 			{
-				val = val.substr(0, val_end-1);
+				val = val.substr(0, val_end);
 			}
 
 			size_t pos1 = val.find_first_of('[', 0);
@@ -180,32 +180,37 @@ public:
 
 		ppm_param_type type = m_info.m_fields[m_field_id].m_type;
 
+		ss_plugin_event pevt;
+		pevt.evtnum = evt->get_num();
+		pevt.data = (uint8_t *) parinfo->m_val;
+		pevt.datalen = parinfo->m_len;
+		pevt.ts = evt->get_ts();
+
+		sinsp_plugin::ext_field field;
+		field.field = m_info.m_fields[m_field_id].m_name;
+		if(m_arg != NULL)
+		{
+			field.arg = m_arg;
+		}
+		field.ftype = type;
+
+		if (!m_plugin->extract_field(pevt, field) ||
+		    ! field.field_present)
+		{
+			return NULL;
+		}
+
 		switch(type)
 		{
 		case PT_CHARBUF:
 		{
-			if (!m_plugin->extract_str(evt->get_num(), m_info.m_fields[m_field_id].m_name, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, m_strstorage))
-			{
-				return NULL;
-			}
-
+			m_strstorage = field.res_str;
 			*len = m_strstorage.size();
 			return (uint8_t*) m_strstorage.c_str();
 		}
 		case PT_UINT64:
 		{
-			uint32_t field_present;
-
-			if (!m_plugin->extract_u64(evt->get_num(), m_info.m_fields[m_field_id].m_name, m_arg, (uint8_t *) parinfo->m_val, parinfo->m_len, field_present, m_u64_res))
-			{
-				return NULL;
-			}
-
-			if(!field_present)
-			{
-				return NULL;
-			}
-
+			m_u64_res = field.res_u64;
 			return (uint8_t *)&m_u64_res;
 		}
 		default:
@@ -252,42 +257,6 @@ std::string sinsp_plugin::version::as_string() const
 	return std::to_string(m_version_major) + "." +
 		std::to_string(m_version_minor) + "." +
 		std::to_string(m_version_patch);
-}
-
-sinsp_plugin::event::event()
-	: m_datalen(0), m_ts(0)
-{
-}
-
-sinsp_plugin::event::event(uint8_t *data, uint32_t datalen, uint64_t ts)
-{
-	set(data, datalen, ts);
-}
-
-sinsp_plugin::event::~event()
-{
-}
-
-void sinsp_plugin::event::set(uint8_t *data, uint32_t datalen, uint64_t ts)
-{
-	m_data.reset(data);
-	m_datalen = datalen;
-	m_ts = ts;
-}
-
-const uint8_t *sinsp_plugin::event::data()
-{
-	return m_data.get();
-}
-
-uint32_t sinsp_plugin::event::datalen()
-{
-	return m_datalen;
-}
-
-uint64_t sinsp_plugin::event::ts()
-{
-	return m_ts;
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* config, bool avoid_async)
@@ -344,6 +313,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	*(void **) (&get_required_api_version) = getsym(handle, "plugin_get_required_api_version", errstr);
 	if(get_required_api_version == NULL)
 	{
+		errstr = string("Could not resolve plugin_get_required_api_version function");
 		return ret;
 	}
 
@@ -365,6 +335,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	*(void **) (&get_type) = getsym(handle, "plugin_get_type", errstr);
 	if(get_type == NULL)
 	{
+		errstr = string("Could not resolve plugin_get_type function");
 		return ret;
 	}
 
@@ -531,47 +502,49 @@ uint32_t sinsp_plugin::nfields()
 	return m_nfields;
 }
 
-bool sinsp_plugin::extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
+bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &field)
 {
-	if(!m_plugin_info.extract_str || !plugin_state())
+	if(!m_plugin_info.extract_fields || !plugin_state())
 	{
 		return false;
 	}
+
+	uint32_t num_fields = 1;
+	ss_plugin_extract_field efield;
+	efield.field = field.field.c_str();
+	efield.arg = field.arg.c_str();
+	efield.ftype = field.ftype;
+
+	int32_t rc;
 
 	if(m_async_extractor)
 	{
-		return m_async_extractor->extract_str(evtnum, field, arg, data, datalen, ret);
+		rc = m_async_extractor->extract_field(evt, efield);
+	}
+	else
+	{
+		rc = m_plugin_info.extract_fields(plugin_state(), &evt, num_fields, &efield);
 	}
 
-	char *str = m_plugin_info.extract_str(plugin_state(), evtnum, field, arg, data, datalen);
-
-	if (str == NULL)
+	if (rc != SCAP_SUCCESS)
 	{
 		return false;
 	}
 
-	ret = str_from_alloc_charbuf(str);
-
-	return true;
-}
-
-bool sinsp_plugin::extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
-{
-	if(!m_plugin_info.extract_str || !plugin_state())
+	field.field_present = efield.field_present;
+	switch(field.ftype)
 	{
-		return false;
+	case PT_CHARBUF:
+		field.res_str = str_from_alloc_charbuf(efield.res_str);
+		break;
+	case PT_UINT64:
+		field.res_u64 = efield.res_u64;
+		break;
+	default:
+		ASSERT(false);
+		throw sinsp_exception("plugin extract error: unsupported field type " + to_string(field.ftype));
+		break;
 	}
-
-	if(m_async_extractor)
-	{
-		return m_async_extractor->extract_u64(evtnum, field, arg, data, datalen, field_present, ret);
-	}
-
-	uint32_t fp;
-
-	ret = m_plugin_info.extract_u64(plugin_state(), evtnum, field, arg, data, datalen, &fp);
-
-	field_present = fp;
 
 	return true;
 }
@@ -627,8 +600,7 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 	(*(void **) (&m_plugin_info.init)) = getsym(handle, "plugin_init", errstr);
 	(*(void **) (&m_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr);
 	(*(void **) (&m_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
-	(*(void **) (&m_plugin_info.extract_str)) = getsym(handle, "plugin_extract_str", errstr);
-	(*(void **) (&m_plugin_info.extract_u64)) = getsym(handle, "plugin_extract_u64", errstr);
+	(*(void **) (&m_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
 	(*(void **) (&m_plugin_info.register_async_extractor)) = getsym(handle, "plugin_register_async_extractor", errstr);
 
 	m_name = str_from_alloc_charbuf(m_plugin_info.get_name());
@@ -801,67 +773,6 @@ void sinsp_source_plugin::close()
 	m_source_plugin_info.close(plugin_state(), m_source_plugin_info.handle);
 }
 
-int32_t sinsp_source_plugin::next(sinsp_plugin::event &evt, std::string &errbuf)
-{
-	ss_plugin_event *plugin_evt;
-
-	if(!m_source_plugin_info.handle)
-	{
-		errbuf = "Plugin not open()ed";
-		return SCAP_FAILURE;
-	}
-
-	int32_t rc = m_source_plugin_info.next(plugin_state(), m_source_plugin_info.handle, &plugin_evt);
-
-	if(rc == SCAP_FAILURE)
-	{
-		errbuf = get_last_error();
-		return rc;
-	}
-
-	if(rc == SCAP_SUCCESS)
-	{
-		evt.set(plugin_evt->data, plugin_evt->datalen, plugin_evt->ts);
-		free(plugin_evt);
-	}
-
-	return rc;
-}
-
-int32_t sinsp_source_plugin::next_batch(std::vector<sinsp_plugin::event> &events, std::string &errbuf)
-{
-	uint32_t nevts;
-	ss_plugin_event *evts;
-
-	if(!m_source_plugin_info.handle)
-	{
-		errbuf = "Plugin not open()ed";
-		return SCAP_FAILURE;
-	}
-
-	int32_t rc = m_source_plugin_info.next_batch(plugin_state(), m_source_plugin_info.handle, &nevts, &evts);
-
-	if(rc == SCAP_FAILURE)
-	{
-		errbuf = get_last_error();
-		return rc;
-	}
-
-	if(rc == SCAP_SUCCESS)
-	{
-		events.clear();
-
-		for(uint32_t i = 0; i < nevts; i++)
-		{
-			sinsp_plugin::event evt(evts[i].data, evts[i].datalen, evts[i].ts);
-			events.push_back(evt);
-		}
-		free(evts);
-	}
-
-	return rc;
-}
-
 std::string sinsp_source_plugin::get_progress(uint32_t &progress_pct)
 {
 	std::string ret;
@@ -940,8 +851,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	(*(void **) (&m_source_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
 	(*(void **) (&m_source_plugin_info.get_progress)) = getsym(handle, "plugin_get_progress", errstr);
 	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr);
-	(*(void **) (&m_source_plugin_info.extract_str)) = getsym(handle, "plugin_extract_str", errstr);
-	(*(void **) (&m_source_plugin_info.extract_u64)) = getsym(handle, "plugin_extract_u64", errstr);
+	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
 	(*(void **) (&m_source_plugin_info.next_batch)) = getsym(handle, "plugin_next_batch", errstr);
 	(*(void **) (&m_source_plugin_info.register_async_extractor)) = getsym(handle, "plugin_register_async_extractor", errstr);
 
@@ -1005,8 +915,7 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 	   (*(void **) (&(m_extractor_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
 	   (*(void **) (&(m_extractor_plugin_info.get_version)) = getsym(handle, "plugin_get_version", errstr)) == NULL ||
 	   (*(void **) (&(m_extractor_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.extract_str)) = getsym(handle, "plugin_extract_str", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.extract_u64)) = getsym(handle, "plugin_extract_u64", errstr)) == NULL)
+	   (*(void **) (&(m_extractor_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr)) == NULL)
 	{
 		return false;
 	}

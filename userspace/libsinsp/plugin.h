@@ -53,36 +53,9 @@ public:
 		return &m_async_extractor_info;
 	}
 
-	bool extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret)
+	int32_t extract_field(ss_plugin_event &evt, ss_plugin_extract_field &field)
 	{
-		if (!extract(evtnum, PT_CHARBUF, field, arg, data, datalen))
-		{
-			return false;
-		}
-
-		// The string value is now in res_str, and is an allocated string.
-		// XXX/mstemm consider changing struct to have a fixed-width string.
-		if(m_async_extractor_info.res_str == NULL)
-		{
-			return false;
-		}
-		ret = m_async_extractor_info.res_str;
-		free(m_async_extractor_info.res_str);
-
-		return true;
-	}
-
-	bool extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret)
-	{
-		if (!extract(evtnum, PT_UINT64, field, arg, data, datalen))
-		{
-			return false;
-		}
-
-		// The uint64 info is now in field_present/res_u64
-		field_present = m_async_extractor_info.field_present;
-		ret = m_async_extractor_info.res_u64;
-		return true;
+		return extract(evt, field);
 	}
 
 private:
@@ -97,14 +70,12 @@ private:
 		SHUTDOWN_DONE = 5,
 	};
 
-	inline bool extract(uint64_t evtnum, uint32_t ftype, const char *field, char *arg, uint8_t *data, uint32_t datalen)
+	// On success the caller is responsible for free() in res_str
+	// when ftype == PT_CHARBUF.
+	inline int32_t extract(ss_plugin_event &evt, ss_plugin_extract_field &field)
 	{
-		m_async_extractor_info.evtnum = evtnum;
-		m_async_extractor_info.ftype = ftype;
-		m_async_extractor_info.field = field;
-		m_async_extractor_info.arg = arg;
-		m_async_extractor_info.data = data;
-		m_async_extractor_info.datalen = datalen;
+		m_async_extractor_info.evt = &evt;
+		m_async_extractor_info.field = &field;
 
 		int old_val = state::DONE;
 
@@ -119,8 +90,7 @@ private:
 		while(m_lock != state::DONE);
 
 		// rc now contains the error code for the extraction.
-		int32_t rc = m_async_extractor_info.rc;
-		return (rc == SCAP_SUCCESS);
+		return m_async_extractor_info.rc;
 	}
 
 	inline bool wait()
@@ -229,24 +199,16 @@ public:
 		uint32_t id;
 	};
 
-	class event {
-	public:
-		// Assumes data is allocated and ownership transfers to this object.
-		event();
-		event(uint8_t *data, uint32_t datalen, uint64_t ts);
-		~event();
+	// Similar to struct ss_plugin_extract_field, but with c++
+	// types to avoid having to track memory allocations.
+	struct ext_field {
+		std::string field;
+		std::string arg;
+		uint32_t ftype;
 
-		void set(uint8_t *data, uint32_t datalen, uint64_t ts);
-
-		const uint8_t *data();
-		uint32_t datalen();
-		uint64_t ts();
-
-	private:
-
-		std::shared_ptr<uint8_t> m_data;
-		uint32_t m_datalen;
-		uint64_t m_ts;
+		bool field_present;
+		std::string res_str;
+		uint64_t res_u64;
 	};
 
 	// Create and register a plugin from a shared library pointed
@@ -289,16 +251,11 @@ public:
 	uint32_t nfields();
 
 	// Will either use the the async extractor interface or direct C calls to extract the values
-	bool extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
-	bool extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
+	bool extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &field);
 
 protected:
 	// Helper function to resolve symbols
 	static void* getsym(void* handle, const char* name, std::string &errstr);
-
-	// Might be called by extract_str/extract_u64
-	bool async_extract_str(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, std::string &ret);
-        bool async_extract_u64(uint64_t evtnum, const char *field, char *arg, uint8_t *data, uint32_t datalen, uint32_t &field_present, uint64_t &ret);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	static std::string str_from_alloc_charbuf(char *charbuf);
@@ -321,8 +278,7 @@ private:
 		char* (*get_contact)();
 		char* (*get_version)();
 		char* (*get_fields)();
-		char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen);
-		uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+		int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 		int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 	} common_plugin_info;
 
@@ -341,6 +297,8 @@ private:
 	common_plugin_info m_plugin_info;
 };
 
+// Note that this doesn't have a next() method, as event generation is
+// handled at the libscap level.
 class sinsp_source_plugin : public sinsp_plugin
 {
 public:
@@ -360,8 +318,6 @@ public:
 	// a plugin can only have one open active at a time.
 	bool open(char *params, int32_t &rc);
 	void close();
-	int32_t next(event &evt, std::string &errbuf);
-	int32_t next_batch(std::vector<sinsp_plugin::event> &events, std::string &errbuf);
 	std::string get_progress(uint32_t &progress_pct);
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);

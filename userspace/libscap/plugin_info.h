@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
+#include <inttypes.h>
 
 //
 // This file contains the prototype and type definitions of sinsp/scap plugins
@@ -50,26 +51,17 @@ typedef enum ss_plugin_type
 	TYPE_EXTRACTOR_PLUGIN = 2
 }ss_plugin_type;
 
-typedef bool (*cb_wait_t)(void* wait_ctx);
-
-typedef struct async_extractor_info
+// The noncontinguous numbers are to maintain equality with underlying
+// falcosecurity libs types.
+typedef enum ss_plugin_field_type
 {
-	uint64_t evtnum;
-	uint32_t ftype;
-	const char *field;
-	const char* arg;
-	uint8_t* data;
-	uint32_t datalen;
-	uint32_t field_present;
-	char* res_str;
-	uint64_t res_u64;
-	int32_t rc;
-	cb_wait_t cb_wait;
-	void* wait_ctx;
-} async_extractor_info;
+	FTYPE_UINT64 = 8,
+	FTYPE_STRING = 9
+}ss_plugin_field_type;
 
 // This struct represents an event returned by the plugin, and is used
 // below in next()/next_batch().
+// - evtnum: incremented for each event returned. Might not be contiguous.
 // - data: pointer to a memory buffer pointer. The plugin will set it
 //   to point to the memory containing the next event. Once returned,
 //   the memory is owned by the plugin framework and will be freed via
@@ -80,10 +72,56 @@ typedef struct async_extractor_info
 //   automatically fill the event time with the current time.
 typedef struct ss_plugin_event
 {
+	uint64_t evtnum;
 	uint8_t *data;
 	uint32_t datalen;
 	uint64_t ts;
 } ss_plugin_event;
+
+// Used in extract_fields functions below to receive a field/arg
+// pair and return an extracted value.
+// field: the field name.
+// arg: the field argument, if an argument has been specified
+//      for the field, otherwise it's NULL.
+//      For example:
+//         * if the field specified by the user is foo.bar[pippo], arg will be the
+//           string "pippo"
+//         * if the field specified by the user is foo.bar, arg will be NULL
+// ftype: the type of the field. Could be derived from the field name alone,
+//   but including here can prevent a second lookup of field names.
+// The following should be filled in by the extraction function:
+// - field_present: set to true if the event has a meaningful
+//   extracted value for the provided field, false otherwise
+// - res_str: if the corresponding field was type==string, this should be
+//   filled in with the string value. The string should be allocated by
+//   the plugin using malloc() and will be free()d by the plugin framework.
+// - res_u64: if the corresponding field was type==uint64, this should be
+//   filled in with the uint64 value.
+
+typedef struct ss_plugin_extract_field
+{
+	const char *field;
+	const char *arg;
+	uint32_t ftype;
+
+	bool field_present;
+	char *res_str;
+	uint64_t res_u64;
+} ss_plugin_extract_field;
+
+// Used by the async extraction interface
+typedef bool (*cb_wait_t)(void* wait_ctx);
+
+typedef struct async_extractor_info
+{
+	// Pointer as this allows swapping out events from other
+	// structs.
+	const ss_plugin_event *evt;
+	ss_plugin_extract_field *field;
+	int32_t rc;
+	cb_wait_t cb_wait;
+	void* wait_ctx;
+} async_extractor_info;
 
 //
 // This is the opaque pointer to the state of a plugin.
@@ -243,7 +281,7 @@ typedef struct
 	// - rc: pointer to an integer that will contain the open result, as a SCAP_* value
 	//   (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
 	// Return value: a pointer to the open context that will be passed to next(),
-	//   close(), event_to_string() and extract_*.
+	//   close(), event_to_string() and extract_fields.
 	//
 	ss_instance_t* (*open)(ss_plugin_t* s, char* params, int32_t* rc);
 	//
@@ -299,27 +337,17 @@ typedef struct
 	//
 	char *(*event_to_string)(ss_plugin_t *s, const uint8_t *data, uint32_t datalen);
 	//
-	// Extract a filter field value from an event.
-	// We offer multiple versions of extract(), differing from each other only in
-	// the type of the value they return (string, integer...).
+	// Extract one or more a filter field values from an event.
 	// Required: no
 	// Arguments:
-	// - evtnum: the number of the event that is bein processed
-	// - id: the numeric identifier of the field to extract. It corresponds to the
-	//   position of the field in the array returned by get_fields().
-	// - arg: the field argument, if an argument has been specified for the field,
-	//   otherwise it's NULL. For example:
-	//    * if the field specified by the user is foo.bar[pippo], arg will be the
-	//      string "pippo"
-	//    * if the field specified by the user is foo.bar, arg will be NULL
-	// - data: the buffer produced by next().
-	// - datalen: the length of the buffer produced by next().
-	// - field_present: nonzero if the field is present for the given event.
-	// Return value: the produced value of the filter field. For extract_str(), a
-	//   NULL return value means that the field is missing for the given event.
+	// - evt: an event struct returned by a call to next()/batch_next().
+	// - num_fields: the length of the fields array.
+	// - fields: an array of ss_plugin_extract_field structs. Each element contains
+	//   a single field + optional arg, and the corresponding extracted value should
+	//   be in the same struct.
+	// Return value: An integer with values SCAP_SUCCESS or SCAP_FAILURE.
 	//
-	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char * field, const char *arg, uint8_t *data, uint32_t datalen);
-	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+	int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	//
 	// This is an optional, internal, function used to speed up event capture by
 	// batching the calls to next().
@@ -455,28 +483,19 @@ typedef struct
 	//   array.
 	//
 	char* (*get_fields)();
+
 	//
-	// Extract a filter field value from an event.
-	// We offer multiple versions of extract(), differing from each other only in
-	// the type of the value they return (string, integer...).
-	// Required: for plugins of type TYPE_EXTRACTOR_PLUGIN only
+	// Extract one or more a filter field values from an event.
+	// Required: no
 	// Arguments:
-	// - evtnum: the number of the event that is being processed
-	// - id: the numeric identifier of the field to extract. It corresponds to the
-	//   position of the field in the array returned by get_fields().
-	// - arg: the field argument, if an argument has been specified for the field,
-	//   otherwise it's NULL. For example:
-	//    * if the field specified by the user is foo.bar[pippo], arg will be the
-	//      string "pippo"
-	//    * if the field specified by the user is foo.bar, arg will be NULL
-	// - data: the buffer produced by next().
-	// - datalen: the length of the buffer produced by next().
-	// - field_present: nonzero if the field is present for the given event.
-	// Return value: the produced value of the filter field. For extract_str(), a
-	// NULL return value means that the field is missing for the given event.
+	// - evt: an event struct returned by a call to next()/batch_next().
+	// - num_fields: the length of the fields array.
+	// - fields: an array of ss_plugin_extract_field structs. Each element contains
+	//   a single field + optional arg, and the corresponding extracted value should
+	//   be in the same struct.
+	// Return value: An integer with values SCAP_SUCCESS or SCAP_FAILURE.
 	//
-	char *(*extract_str)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen);
-	uint64_t (*extract_u64)(ss_plugin_t *s, uint64_t evtnum, const char *field, const char *arg, uint8_t *data, uint32_t datalen, uint32_t *field_present);
+	int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.
