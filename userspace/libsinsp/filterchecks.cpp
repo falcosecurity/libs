@@ -3093,6 +3093,8 @@ size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t le
 		parsed_len = sinsp_filter_check::parse_filter_value(str, len, storage, storage_len);
 	}
 
+	validate_filter_value(str, parsed_len);
+
 	return parsed_len;
 }
 
