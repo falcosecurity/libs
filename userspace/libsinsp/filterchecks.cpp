@@ -4522,6 +4522,61 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	return NULL;
 }
 
+std::set<uint16_t> sinsp_filter_check_event::evttypes()
+{
+	// For TYPE_TYPE (evt.type)/TYPE_TYPE_IS (evt.type.is) return
+	// the filtercheck values.
+	std::set<uint16_t> ret;
+
+	bool should_match = true;
+	// If the comparison operator is a not equals operator
+	// (e.g. !=, "not in", etc), we need to invert the set.
+	if(m_cmpop == CO_NE ||
+	   (m_boolop == BO_NOT && (m_cmpop == CO_EQ || m_cmpop == CO_IN)))
+	{
+		should_match = false;
+	}
+
+	sinsp_evttables* einfo = m_inspector->get_event_info_tables();
+	const struct ppm_event_info* etable = einfo->m_event_info;
+
+	for(uint32_t i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if(m_field_id == TYPE_TYPE_IS)
+		{
+			if ((should_match ? (m_evtid == i) : (m_evtid != i)))
+			{
+				ret.insert(m_evtid);
+			}
+
+			if ((should_match ? (m_evtid1 == i) : (m_evtid1 != i)))
+			{
+				ret.insert(m_evtid1);
+			}
+		}
+		else if (m_field_id == TYPE_TYPE)
+		{
+			// The values are held as strings, so we need to
+			// convert them back to numbers.
+			for (uint16_t i=0; i < m_val_storages.size(); i++)
+			{
+				std::string evttype_str((char *) filter_value_p(i));
+
+				if((should_match ? (etable[i].name == evttype_str) : (etable[i].name != evttype_str)))
+				{
+					ret.insert(etable[i]. i);
+				}
+			}
+		}
+	}
+
+	// Also, always add PPME_GENERIC_{E,X} to account for
+	// the case where it's a syscall and the event name
+	// should also match/not match the syscall of the same name.
+	ret.insert(PPME_GENERIC_E);
+	ret.insert(PPME_GENERIC_X);
+}
+
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 {
 	bool res;

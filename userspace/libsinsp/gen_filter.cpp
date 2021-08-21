@@ -48,6 +48,11 @@ gen_event_filter_check::~gen_event_filter_check()
 {
 }
 
+std::set<uint16_t> gen_event_filter_check::evttypes()
+{
+	return std::set<uint16_t>();
+}
+
 void gen_event_filter_check::set_check_id(int32_t id)
 {
 	m_check_id = id;
@@ -166,6 +171,20 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 	return res;
 }
 
+std::set<uint16_t> gen_event_filter_expression::evttypes()
+{
+	std::set<uint16_t> ret;
+
+	for(uint32_t i = 0; i < m_checks.size(); i++)
+	{
+		std::set<uint16_t> cevttypes = m_checks[i]->evttypes();
+
+		ret.insert(cevttypes.begin(), cevttypes.end());
+	}
+
+	return ret;
+}
+
 uint8_t *gen_event_filter_expression::extract(gen_event *evt, uint32_t *len, bool sanitize_strings)
 {
 	return NULL;
@@ -248,3 +267,9 @@ void gen_event_filter::add_check(gen_event_filter_check* chk)
 {
 	m_curexpr->add_check((gen_event_filter_check *) chk);
 }
+
+std::set<uint16_t> gen_event_filter::evttypes()
+{
+	return m_filter->evttypes();
+}
+

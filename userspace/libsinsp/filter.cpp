@@ -2418,5 +2418,48 @@ gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldnam
 							  true);
 }
 
+std::list<filter_fieldclass_info> sinsp_filter_factory::get_fields()
+{
+	std::list<gen_event_filter_factory::filter_fieldclass_info> ret;
+
+	vector<const filter_check_info*> fc_plugins;
+	sinsp::get_filtercheck_fields_info(&fc_plugins);
+
+	for(uint32_t j = 0; j < fc_plugins.size(); j++)
+	{
+		const filter_check_info* fci = fc_plugins[j];
+
+		if(fci->m_flags & filter_check_info::FL_HIDDEN)
+		{
+			continue;
+		}
+
+		gen_event_filter_factory::filter_fieldclass_info cinfo;
+		cinfo.name = fci.m_name;
+		cinfo.desc = "";
+		cinfo.class_info = "";
+
+		for(int32_t k = 0; k < fci->m_nfields; k++)
+		{
+			const filtercheck_field_info* fld = &fci->m_fields[k];
+
+			if(fld->m_flags & EPF_TABLE_ONLY ||
+			   fld->m_flags & EPF_PRINT_ONLY)
+			{
+				continue;
+			}
+
+			gen_event_filter_factory::filter_field_info info;
+			info.name = fld->m_name;
+			info.desc = fld->m_description;
+
+			cinfo.fields.emplace_back(std::move(info));
+		}
+
+		ret.emplace_back(std::move(cinfo));
+	}
+
+	return ret;
+}
 
 #endif // HAS_FILTERING
