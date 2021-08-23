@@ -63,6 +63,10 @@ prevent it.
 1. Introduce an API version embedded in the userspace and kernel code
   * The version number will be a single 64-bit number that can be decomposed
     to the three semantic versioning components (major, minor, patch)
+  * As long as the API version is kept separate from any preexisting
+    consumer version numbers, the API version can start at 1.0.0.
+    The easiest way to accomplish this would be to rename the driver
+    (step 4).
 
 2. Extend the review process to ensure the API version is incremented when needed.
   Note that e.g. adding support for a new kernel should not result in an API
@@ -77,9 +81,11 @@ prevent it.
     a warning (the driver is compatible but has known bugs, fixed in later
     versions)
 
-4. Remove consumer name and version from the libscap build process
-  * The probe should always be named `scap_probe` and use the API version to identify
+4. Deemphasize consumer name and version from the libscap build process
+  * The driver should be named `scap` by default and use the API version to identify
     itself
+  * An option may remain to override the driver name (and supply a version)
+    but it should not be used without good reason
 
 ## The non-plan
 
