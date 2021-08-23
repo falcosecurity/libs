@@ -482,6 +482,8 @@ public:
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 
+	std::set<uint16_t> evttypes() override;
+
 	uint64_t m_u64val;
 	uint64_t m_tsdelta;
 	uint32_t m_u32val;

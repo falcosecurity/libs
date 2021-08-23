@@ -4558,13 +4558,13 @@ std::set<uint16_t> sinsp_filter_check_event::evttypes()
 		{
 			// The values are held as strings, so we need to
 			// convert them back to numbers.
-			for (uint16_t i=0; i < m_val_storages.size(); i++)
+			for (uint16_t j=0; j < m_val_storages.size(); j++)
 			{
-				std::string evttype_str((char *) filter_value_p(i));
+				std::string evttype_str((char *) filter_value_p(j));
 
 				if((should_match ? (etable[i].name == evttype_str) : (etable[i].name != evttype_str)))
 				{
-					ret.insert(etable[i]. i);
+					ret.insert(i);
 				}
 			}
 		}

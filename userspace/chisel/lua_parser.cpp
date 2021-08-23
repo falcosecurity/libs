@@ -42,14 +42,14 @@ lua_parser::lua_parser(std::shared_ptr<gen_event_filter_factory> factory)
 	: m_factory(factory), m_last_boolop(BO_NONE),
 	  m_have_rel_expr(false), m_nest_level(0)
 {
-	m_filter = m_factory->new_filter();
+	m_filter.reset(m_factory->new_filter());
 }
 
 lua_parser::~lua_parser()
 {
 }
 
-lua_parser::register_callbacks(lua_State *ls, const char *lua_library_name)
+void lua_parser::register_callbacks(lua_State *ls, const char *lua_library_name)
 {
 	// Register our c++ defined functions
 	luaL_openlib(ls, lua_library_name, ll_filter, 0);

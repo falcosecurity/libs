@@ -2418,7 +2418,7 @@ gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldnam
 							  true);
 }
 
-std::list<filter_fieldclass_info> sinsp_filter_factory::get_fields()
+std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields()
 {
 	std::list<gen_event_filter_factory::filter_fieldclass_info> ret;
 
@@ -2435,7 +2435,7 @@ std::list<filter_fieldclass_info> sinsp_filter_factory::get_fields()
 		}
 
 		gen_event_filter_factory::filter_fieldclass_info cinfo;
-		cinfo.name = fci.m_name;
+		cinfo.name = fci->m_name;
 		cinfo.desc = "";
 		cinfo.class_info = "";
 

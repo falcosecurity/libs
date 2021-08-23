@@ -16,6 +16,9 @@ along with Falco.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <list>
+#include <set>
+#include <string>
 #include <vector>
 
 /*
