@@ -25,36 +25,36 @@ Again, what is versioned is the libscap consumer, not actual libscap.
 
 Introducing a machine-usable API versioning scheme will let us:
 
-1. Cut down the number of probes needed to be built. Instead of a probe for each
+1. Cut down the number of drivers needed to be built. Instead of a driver for each
 (kernel version, consumer name, consumer version) tuple, we would only need one
 for each (kernel version, driver API version). Given the relatively slow development
 on the kernel side, a single driver API version might live for a long time
 
-2. Make upgrades easier. Currently, the probe has to be unloaded and a new one loaded
+2. Make upgrades easier. Currently, the driver has to be unloaded and a new one loaded
 in its place. With the API versioning scheme in place, usually there won't even
-be a different probe. If there is one, it will usually be forwards-compatible,
+be a different driver. If there is one, it will usually be forwards-compatible,
 even though it might miss some bug fixes. Only if the versions are truly incompatible,
 an unload/reload will be required. Note that the API version can live in the module
 *name* itself, which would let us have multiple versions loaded at the same time,
 if we decide to go that way.
 
-3. Ship the probes in Linux distributions. With a single consumer-agnostic probe
-per kernel, it becomes realistic for Linux distributions to ship a prebuilt probe
+3. Ship the drivers in Linux distributions. With a single consumer-agnostic driver
+per kernel, it becomes realistic for Linux distributions to ship a prebuilt driver
 for their kernels. That would make all libscap consumers work out of the box,
-without worrying about shipping the probe.
+without worrying about shipping the driver.
 
 4. Support older consumer versions with new kernels. Whenever a new kernel comes out,
-probes need to be built to support it. These probes currently cannot be used
+drivers need to be built to support it. These drivers currently cannot be used
 for older consumer releases, even though there are no technical issues that would
 prevent it.
 
 ## Goals
 
-* Make the probes reusable across libscap consumers and their versions
+* Make the drivers reusable across libscap consumers and their versions
 
 ## Non-goals
 
-* Make the probes reusable across kernel versions (this is probably impossible
+* Make the drivers reusable across kernel versions (this is probably impossible
   in a general way for the kernel module, but BTF/CO-RE may help for the eBPF
   probe).
 
@@ -66,7 +66,7 @@ prevent it.
 
 2. Extend the review process to ensure the API version is incremented when needed.
   Note that e.g. adding support for a new kernel should not result in an API
-  version increase (if the probe failed to build for that particular kernel
+  version increase (if the driver failed to build for that particular kernel
   before).
 
 3. Verify the API version of the kernel module/eBPF probe when starting
@@ -74,7 +74,7 @@ prevent it.
   * different major versions cause a hard error
   * kernel minor < userspace minor causes a hard error
   * kernel minor == userspace minor and kernel patch < userspace patch causes
-    a warning (the probe is compatible but has known bugs, fixed in later
+    a warning (the driver is compatible but has known bugs, fixed in later
     versions)
 
 4. Remove consumer name and version from the libscap build process
@@ -84,7 +84,7 @@ prevent it.
 ## The non-plan
 
 This proposal does not address changes to the infrastructure that consumer
-projects may have to build and distribute probes. To fully realize the benefits
+projects may have to build and distribute drivers. To fully realize the benefits
 of this proposal, such infrastructure would have to be adapted to use e.g.
 `scap_probe-<API_VERSION>-<KERNEL_VERSION>` as the identifier for a particular
 probe, instead of `<CONSUMER>_probe-<CONSUMER_VERSION>-<KERNEL_VERSION>`.
@@ -92,4 +92,4 @@ probe, instead of `<CONSUMER>_probe-<CONSUMER_VERSION>-<KERNEL_VERSION>`.
 Since the last point of the plan changes the module name, consumers having
 said infrastructure will have to make these changes before upgrading
 to a libscap version implementing that point. We might devise a plan to smooth
-the transition (e.g. allow building the probe under both names for a while).
+the transition (e.g. allow building the driver under both names for a while).
