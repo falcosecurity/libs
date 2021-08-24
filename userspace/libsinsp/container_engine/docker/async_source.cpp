@@ -610,7 +610,7 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 	{
 		// a '/' is present in the Image field. Parse it into parts
 		std::string hostname, port;
-		sinsp_utils::split_container_image(container.m_image,
+		sinsp_utils::split_container_image(imgstr,
 						   hostname,
 						   port,
 						   container.m_imagerepo,
