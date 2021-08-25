@@ -572,6 +572,20 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 
 		// containers can be spawned using just the imageID as image name,
 		// with or without the hash prefix (e.g. sha256:)
+		//
+		// e.g. an image with the id `sha256:ddcca4b8a6f0367b5de2764dfe76b0a4bfa6d75237932185923705da47004347`
+		// can be used to run a container as:
+		// - docker run sha256:ddcca4b8a6f0367b5de2764dfe76b0a4bfa6d75237932185923705da47004347
+		// - docker run ddcca4b8a6f0367b5de2764dfe76b0a4bfa6d75237932185923705da47004347
+		// - docker run sha256:ddcca4
+		// - docker run ddcca4
+		//
+		// in all these cases we need to determine the image repo/tag
+		// via the API (in `fetch_image_info()`)
+		//
+		// otherwise we assume the name passed to `docker run`
+		// (available in container.m_image) is the repo name like `redis`
+		// and use that to determine the name and tag
 		bool no_name = sinsp_utils::startswith(container.m_imageid, container.m_image) ||
 			       sinsp_utils::startswith(imgstr, container.m_image);
 
