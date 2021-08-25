@@ -27,10 +27,27 @@ limitations under the License.
 #ifdef HAS_FILTERING
 extern sinsp_filter_check_list g_filterlist;
 
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector)
+{
+	m_inspector = inspector;
+}
+
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
 {
 	m_inspector = inspector;
-	set_format(fmt);
+
+	gen_event_formatter::output_format of = gen_event_formatter::OF_NORMAL;
+
+	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
+	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
+	{
+		of = gen_event_formatter::OF_JSON;
+	}
+
+	set_format(of, fmt);
 }
 
 sinsp_evt_formatter::~sinsp_evt_formatter()
@@ -43,11 +60,13 @@ sinsp_evt_formatter::~sinsp_evt_formatter()
 	}
 }
 
-void sinsp_evt_formatter::set_format(const string& fmt)
+void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const string& fmt)
 {
 	uint32_t j;
 	uint32_t last_nontoken_str_start = 0;
 	string lfmt(fmt);
+
+	m_output_format = of;
 
 	if(lfmt == "")
 	{
@@ -200,25 +219,34 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& val
 	return retval;
 }
 
+bool sinsp_evt_formatter::get_field_values(gen_event *gevt, std::map<std::string, std::string> &fields)
+{
+	sinsp_evt *evt = static_cast<sinsp_evt *>(gevt);
 
-bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
+	return resolve_tokens(evt, fields);
+}
+
+gen_event_formatter::output_format sinsp_evt_formatter::get_output_format()
+{
+	return m_output_format;
+}
+
+bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &output, gen_event_formatter::output_format of)
 {
 	bool retval = true;
 	const filtercheck_field_info* fi;
 
+	sinsp_evt *evt = static_cast<sinsp_evt *>(gevt);
+
 	uint32_t j = 0;
 	vector<sinsp_filter_check*>::iterator it;
-	res->clear();
+	output.clear();
 
 	ASSERT(m_tokenlens.size() == m_tokens.size());
 
 	for(j = 0; j < m_tokens.size(); j++)
 	{
-		if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
-		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
-		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
-		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
-		   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
+		if(of == OF_JSON)
 		{
 			Json::Value json_value = m_tokens[j].second->tojson(evt);
 
@@ -268,35 +296,41 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 			{
 				string sstr(str);
 				sstr.resize(tks, ' ');
-				(*res) += sstr;
+				output += sstr;
 			}
 			else
 			{
-				(*res) += str;
+				output += str;
 			}
 		}
 	}
 
-	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONEOLS
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEX
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONHEXASCII
-	   || m_inspector->get_buffer_format() == sinsp_evt::PF_JSONBASE64)
+	if(of == OF_JSON)
 	{
-		(*res) = m_writer.write(m_root);
-		(*res) = res->substr(0, res->size() - 1);
+		output = m_writer.write(m_root);
+		output = output.substr(0, output.size() - 1);
 	}
 
 	return retval;
 }
 
+bool sinsp_evt_formatter::tostring(gen_event* gevt, std::string &output)
+{
+	return tostring_withformat(gevt, output, m_output_format);
+}
+
+bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
+{
+	return tostring_withformat(evt, *res, m_output_format);
+}
+
 #else  // HAS_FILTERING
 
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector)
 {
 }
 
-void sinsp_evt_formatter::set_format(const string& fmt)
+void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const std::string &format) = 0;
 {
 	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
@@ -306,7 +340,12 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& val
 	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
 
-bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
+bool sinsp_evt_formatter::tostring(gen_event* gevt, std::string &output)
+{
+	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
+}
+
+bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &output, gen_event_formatter::output_format of)
 {
 	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
 }
@@ -342,5 +381,40 @@ bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, string &format, m
 
 bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
 {
-	return get_cached_formatter(format)->tostring(evt, res);
+	return get_cached_formatter(format)->tostring(evt, *res);
+}
+
+sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector)
+	: m_inspector(inspector), m_output_format(gen_event_formatter::OF_NORMAL)
+{
+}
+
+sinsp_evt_formatter_factory::~sinsp_evt_formatter_factory()
+{
+}
+
+void sinsp_evt_formatter_factory::set_output_format(gen_event_formatter::output_format of)
+{
+	m_formatters.clear();
+
+	m_output_format = of;
+}
+
+std::shared_ptr<gen_event_formatter> sinsp_evt_formatter_factory::create_formatter(const std::string &format)
+{
+	auto it = m_formatters.find(format);
+
+	if (it != m_formatters.end())
+	{
+		return it->second;
+	}
+
+	std::shared_ptr<gen_event_formatter> ret;
+
+	ret.reset(new sinsp_evt_formatter(m_inspector));
+
+	ret->set_format(m_output_format, format);
+	m_formatters[format] = ret;
+
+	return ret;
 }

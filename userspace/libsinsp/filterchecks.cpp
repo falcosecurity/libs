@@ -3302,7 +3302,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	}
 
 	char fullname[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(), 
+	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
 		(uint32_t)sdir.length(), path, pathlen, m_inspector->m_is_windows);
 
 	m_strstorage = fullname;
@@ -4420,7 +4420,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					m_u32val = 1;
 				}
-				
+
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT)))
 				{
 					parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 4 : 3);
@@ -4575,6 +4575,8 @@ std::set<uint16_t> sinsp_filter_check_event::evttypes()
 	// should also match/not match the syscall of the same name.
 	ret.insert(PPME_GENERIC_E);
 	ret.insert(PPME_GENERIC_X);
+
+	return ret;
 }
 
 bool sinsp_filter_check_event::compare(sinsp_evt *evt)
