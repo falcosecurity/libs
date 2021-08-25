@@ -108,14 +108,13 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////
-	add_filter_check(new sinsp_filter_check_fd());
-	add_filter_check(new sinsp_filter_check_thread());
-	add_filter_check(new sinsp_filter_check_gen_event());
 	add_filter_check(new sinsp_filter_check_event());
+	add_filter_check(new sinsp_filter_check_thread());
 	add_filter_check(new sinsp_filter_check_user());
 	add_filter_check(new sinsp_filter_check_group());
-	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_container());
+	add_filter_check(new sinsp_filter_check_fd());
+	add_filter_check(new sinsp_filter_check_syslog());
 	add_filter_check(new sinsp_filter_check_utils());
 	add_filter_check(new sinsp_filter_check_fdlist());
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
@@ -124,6 +123,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
+	add_filter_check(new sinsp_filter_check_gen_event());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
