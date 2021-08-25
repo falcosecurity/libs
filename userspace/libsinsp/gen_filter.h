@@ -16,6 +16,7 @@ along with Falco.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
+#include <set>
 #include <vector>
 
 /*
@@ -115,6 +116,16 @@ public:
 	void set_check_id(int32_t id);
 	virtual int32_t get_check_id();
 
+	// Return all event types used by this filtercheck. It's used in
+	// programs like falco to speed up rule evaluation.
+	virtual const std::set<uint16_t> &evttypes();
+
+	// Return all possible event types. Used for "not" operators
+	// where a set of events must be inverted.
+	virtual const std::set<uint16_t> &possible_evttypes();
+
+	static std::set<uint16_t> s_default_evttypes;
+
 private:
 	int32_t m_check_id = 0;
 
@@ -160,8 +171,30 @@ public:
 	//
 	int32_t get_expr_boolop();
 
+	// Return all event types used by this expression. It's used in
+	// programs like falco to speed up rule evaluation.
+	const std::set<uint16_t> &evttypes() override;
+
+	// An expression does not directly have a set of possible
+	// event types, but it can determine them from the m_checks
+	// vector.
+	const std::set<uint16_t> &possible_evttypes() override;
+
 	gen_event_filter_expression* m_parent;
 	std::vector<gen_event_filter_check*> m_checks;
+
+private:
+
+	std::set<uint16_t> m_expr_event_types;
+	std::set<uint16_t> m_expr_possible_evttypes;
+
+	// Return the "inverse" of the provided set of event types, using the
+	// provided full possible set of event types as a hint.
+	std::set<uint16_t> inverse(const std::set<uint16_t> &evttypes);
+
+	// Given a boolean op and a set of event types from a
+	// filtercheck in the expression, update m_expr_event_types appropriately.
+	void combine_evttypes(boolop op, const std::set<uint16_t> &evttypes);
 };
 
 
@@ -183,6 +216,10 @@ public:
 	void push_expression(boolop op);
 	void pop_expression();
 	void add_check(gen_event_filter_check* chk);
+
+	// Return all event types used by this filter. It's used in
+	// programs like falco to speed up rule evaluation.
+	std::set<uint16_t> evttypes();
 
 	gen_event_filter_expression* m_filter;
 

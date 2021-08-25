@@ -27,6 +27,7 @@ include_directories(${LIBSCAP_INCLUDE_DIR})
 add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
 	sinsp.ut.cpp
+	evttype_filter.ut.cpp
 )
 
 target_link_libraries(unit-test-libsinsp

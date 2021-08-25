@@ -15,10 +15,13 @@ along with Falco.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cstddef>
+#include <algorithm>
 #include "stdint.h"
 #include "gen_filter.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+
+std::set<uint16_t> gen_event_filter_check::s_default_evttypes{1};
 
 gen_event::gen_event()
 {
@@ -56,6 +59,16 @@ void gen_event_filter_check::set_check_id(int32_t id)
 int32_t gen_event_filter_check::get_check_id()
 {
 	return m_check_id;
+}
+
+const std::set<uint16_t> &gen_event_filter_check::evttypes()
+{
+	return s_default_evttypes;
+}
+
+const std::set<uint16_t> &gen_event_filter_check::possible_evttypes()
+{
+	return s_default_evttypes;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -199,6 +212,101 @@ int32_t gen_event_filter_expression::get_expr_boolop()
 	return b0;
 }
 
+std::set<uint16_t> gen_event_filter_expression::inverse(const std::set<uint16_t> &evttypes)
+{
+	std::set<uint16_t> ret;
+
+	// The inverse of "all events" is still "all events". This
+	// ensures that when no specific set of event types are named
+	// in the filter that the filter still runs for all event
+	// types.
+	if(evttypes == m_expr_possible_evttypes)
+	{
+		ret = evttypes;
+		return ret;
+	}
+
+	std::set_difference(m_expr_possible_evttypes.begin(), m_expr_possible_evttypes.end(),
+			    evttypes.begin(), evttypes.end(),
+			    std::inserter(ret, ret.begin()));
+
+	return ret;
+}
+
+void gen_event_filter_expression::combine_evttypes(boolop op,
+						   const std::set<uint16_t> &chk_evttypes)
+{
+	switch(op)
+	{
+	case BO_NONE:
+		// Overwrite with contents of set
+		// Should only occur for the first check in a list
+		m_expr_event_types = chk_evttypes;
+		break;
+	case BO_NOT:
+		m_expr_event_types = inverse(chk_evttypes);
+		break;
+	case BO_ORNOT:
+		combine_evttypes(BO_OR, inverse(chk_evttypes));
+		break;
+	case BO_ANDNOT:
+		combine_evttypes(BO_AND, inverse(chk_evttypes));
+		break;
+	case BO_OR:
+		// Merge the event types from the
+		// other set into this one.
+		m_expr_event_types.insert(chk_evttypes.begin(), chk_evttypes.end());
+		break;
+	case BO_AND:
+		// Set to the intersection of event types between this
+		// set and the provided set.
+
+		std::set<uint16_t> intersect;
+		std::set_intersection(m_expr_event_types.begin(), m_expr_event_types.end(),
+				      chk_evttypes.begin(), chk_evttypes.end(),
+				      std::inserter(intersect, intersect.begin()));
+		m_expr_event_types = intersect;
+		break;
+	}
+}
+
+const std::set<uint16_t> &gen_event_filter_expression::evttypes()
+{
+	m_expr_event_types.clear();
+
+	m_expr_possible_evttypes = possible_evttypes();
+
+	for(uint32_t i = 0; i < m_checks.size(); i++)
+	{
+		gen_event_filter_check *chk = m_checks[i];
+		ASSERT(chk != NULL);
+
+		const std::set<uint16_t> &chk_evttypes = m_checks[i]->evttypes();
+
+		combine_evttypes(chk->m_boolop, chk_evttypes);
+	}
+
+	return m_expr_event_types;
+}
+
+const std::set<uint16_t> &gen_event_filter_expression::possible_evttypes()
+{
+	// Return the set of possible event types from the first filtercheck.
+	if(m_checks.size() == 0)
+	{
+		// Shouldn't happen--every filter expression should have a
+		// real filtercheck somewhere below it.
+		ASSERT(false);
+		m_expr_possible_evttypes = s_default_evttypes;
+	}
+	else
+	{
+		m_expr_possible_evttypes = m_checks[0]->possible_evttypes();
+	}
+
+	return m_expr_possible_evttypes;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -247,4 +355,9 @@ bool gen_event_filter::run(gen_event *evt)
 void gen_event_filter::add_check(gen_event_filter_check* chk)
 {
 	m_curexpr->add_check((gen_event_filter_check *) chk);
+}
+
+std::set<uint16_t> gen_event_filter::evttypes()
+{
+	return m_filter->evttypes();
 }
