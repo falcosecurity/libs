@@ -24,22 +24,21 @@ typedef struct lua_State lua_State;
 class lua_parser
 {
 public:
-	lua_parser(gen_event_filter_factory &factory, lua_State *ls, const char *lua_library_name);
+	lua_parser(std::shared_ptr<gen_event_filter_factory> factory);
 	virtual ~lua_parser();
-	gen_event_filter* get_filter(bool reset_filter = false);
+
+	std::shared_ptr<gen_event_filter> filter();
+	std::shared_ptr<gen_event_filter_factory> factory();
+
+	static void register_callbacks(lua_State *ls, const char *lua_library_name);
 
  private:
-
-	void reset();
-	gen_event_filter_factory &m_factory;
-
-	gen_event_filter* m_filter;
+	std::shared_ptr<gen_event_filter_factory> m_factory;
+	std::shared_ptr<gen_event_filter> m_filter;
 
 	boolop m_last_boolop;
 	bool m_have_rel_expr;
 	int32_t m_nest_level;
-
-	lua_State* m_ls;
 
 	friend class lua_parser_cbacks;
 };
