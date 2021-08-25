@@ -213,6 +213,8 @@ public:
 
 	gen_event_filter_check *new_filtercheck(const char *fldname);
 
+	std::list<gen_event_filter_factory::filter_fieldclass_info> get_fields() override;
+
 protected:
 	sinsp *m_inspector;
 };
