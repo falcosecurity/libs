@@ -61,12 +61,16 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 		{
 			if(markdown)
 			{
-				printf("## Filter Class: %s\n\n", fci->m_name.c_str());
+				printf("\n## Field Class: %s\n\n", fci->m_name.c_str());
+				printf("%s\n\n", fci->m_desc.c_str());
+				printf("Name | Type | Description\n");
+				printf(":----|:-----|:-----------\n");
 			}
 			else
 			{
 				printf("\n----------------------\n");
 				printf("Field Class: %s\n\n", fci->m_name.c_str());
+				printf("%s\n\n", fci->m_desc.c_str());
 			}
 		}
 
@@ -85,9 +89,7 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 			}
 			else if(markdown)
 			{
-				printf("**Name**: %s  \n", fld->m_name);
-				printf("**Description**: %s  \n", fld->m_description);
-				printf("**Type**: %s  \n\n", param_type_to_string(fld->m_type));
+				printf("`%s` | %s | %s\n", fld->m_name, param_type_to_string(fld->m_type), fld->m_description);
 			}
 			else
 			{
@@ -140,13 +142,19 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 	}
 }
 
-void list_events(sinsp* inspector)
+void list_events(sinsp* inspector, bool markdown)
 {
 	uint32_t j, k;
 	string tstr;
 
 	sinsp_evttables* einfo = inspector->get_event_info_tables();
 	const struct ppm_event_info* etable = einfo->m_event_info;
+
+	if(markdown)
+	{
+		printf("Falco | Dir | Event\n");
+		printf(":-----|:----|:-----\n");
+	}
 
 	for(j = 0; j < PPM_EVENT_MAX; j++)
 	{
@@ -158,19 +166,45 @@ void list_events(sinsp* inspector)
 			continue;
 		}
 
-		printf("%c %s(", dir, ei.name);
-
-		for(k = 0; k < ei.nparams; k++)
+		if(markdown)
 		{
-			if(k != 0)
+			if(sinsp::simple_consumer_consider_evtnum(j))
 			{
-				printf(", ");
+				printf("Yes");
+			} else {
+				printf("No");
 			}
 
-			printf("%s %s", param_type_to_string(ei.params[k].type),
-				ei.params[k].name);
-		}
+			printf(" | %c | **%s**(", dir, ei.name);
 
-		printf(")\n");
+			for(k = 0; k < ei.nparams; k++)
+			{
+				if(k != 0)
+				{
+					printf(", ");
+				}
+
+				printf("%s %s", param_type_to_string(ei.params[k].type),
+					ei.params[k].name);
+			}
+
+			printf(")\n");
+		} else
+		{
+			printf("%c %s(", dir, ei.name);
+
+			for(k = 0; k < ei.nparams; k++)
+			{
+				if(k != 0)
+				{
+					printf(", ");
+				}
+
+				printf("%s %s", param_type_to_string(ei.params[k].type),
+					ei.params[k].name);
+			}
+
+			printf(")\n");
+		}
 	}
 }
