@@ -143,6 +143,7 @@ sinsp_filter_check_fd::sinsp_filter_check_fd()
 	m_fdinfo = NULL;
 
 	m_info.m_name = "fd";
+	m_info.m_desc = "Every syscall that has a file descriptor in its arguments has these fields set with information related to the file.";
 	m_info.m_fields = sinsp_filter_check_fd_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_fd_fields) / sizeof(sinsp_filter_check_fd_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -1862,6 +1863,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 sinsp_filter_check_thread::sinsp_filter_check_thread()
 {
 	m_info.m_name = "process";
+	m_info.m_desc = "Additional information about the process and thread executing the syscall event.";
 	m_info.m_fields = sinsp_filter_check_thread_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_thread_fields) / sizeof(sinsp_filter_check_thread_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -2968,6 +2970,7 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 {
 	m_is_compare = false;
 	m_info.m_name = "evt";
+	m_info.m_desc = "Generic event fields. Note that for syscall events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
@@ -4726,6 +4729,7 @@ const filtercheck_field_info sinsp_filter_check_user_fields[] =
 sinsp_filter_check_user::sinsp_filter_check_user()
 {
 	m_info.m_name = "user";
+	m_info.m_desc = "Information about the user executing the specific event.";
 	m_info.m_fields = sinsp_filter_check_user_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_user_fields) / sizeof(sinsp_filter_check_user_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -4798,6 +4802,7 @@ const filtercheck_field_info sinsp_filter_check_group_fields[] =
 sinsp_filter_check_group::sinsp_filter_check_group()
 {
 	m_info.m_name = "group";
+	m_info.m_desc = "Information about the user group.";
 	m_info.m_fields = sinsp_filter_check_group_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_group_fields) / sizeof(sinsp_filter_check_group_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -4887,6 +4892,7 @@ sinsp_filter_check_tracer::sinsp_filter_check_tracer()
 {
 	m_storage = NULL;
 	m_info.m_name = "span";
+	m_info.m_desc = "Fields used if information about distributed tracing is available.";
 	m_info.m_fields = sinsp_filter_check_tracer_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_tracer_fields) / sizeof(sinsp_filter_check_tracer_fields[0]);
 	m_converter = new sinsp_filter_check_reference();
@@ -5489,6 +5495,7 @@ sinsp_filter_check_evtin::sinsp_filter_check_evtin()
 {
 	m_is_compare = false;
 	m_info.m_name = "evtin";
+	m_info.m_desc = "Fields used if information about distributed tracing is available.";
 	m_info.m_fields = sinsp_filter_check_evtin_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_evtin_fields) / sizeof(sinsp_filter_check_evtin_fields[0]);
 	m_u64val = 0;
@@ -6058,6 +6065,7 @@ const filtercheck_field_info sinsp_filter_check_syslog_fields[] =
 sinsp_filter_check_syslog::sinsp_filter_check_syslog()
 {
 	m_info.m_name = "syslog";
+	m_info.m_desc = "Content of Syslog messages.";
 	m_info.m_fields = sinsp_filter_check_syslog_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_syslog_fields) / sizeof(sinsp_filter_check_syslog_fields[0]);
 	m_decoder = NULL;
@@ -6138,6 +6146,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 sinsp_filter_check_container::sinsp_filter_check_container()
 {
 	m_info.m_name = "container";
+	m_info.m_desc = "Container information. If the event is not happening inside a container, both id and name will be set to 'host'.";
 	m_info.m_fields = sinsp_filter_check_container_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_container_fields) / sizeof(sinsp_filter_check_container_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -6621,6 +6630,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 sinsp_filter_check_reference::sinsp_filter_check_reference()
 {
 	m_info.m_name = "<NA>";
+	m_info.m_desc = "";
 	m_info.m_fields = &m_finfo;
 	m_info.m_nfields = 1;
 	m_info.m_flags = 0;
@@ -7015,6 +7025,7 @@ const filtercheck_field_info sinsp_filter_check_utils_fields[] =
 sinsp_filter_check_utils::sinsp_filter_check_utils()
 {
 	m_info.m_name = "util";
+	m_info.m_desc = "";
 	m_info.m_fields = sinsp_filter_check_utils_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_utils_fields) / sizeof(sinsp_filter_check_utils_fields[0]);
 	m_info.m_flags = filter_check_info::FL_HIDDEN;
@@ -7058,6 +7069,7 @@ const filtercheck_field_info sinsp_filter_check_fdlist_fields[] =
 sinsp_filter_check_fdlist::sinsp_filter_check_fdlist()
 {
 	m_info.m_name = "fdlist";
+	m_info.m_desc = "Poll event related fields.";
 	m_info.m_fields = sinsp_filter_check_fdlist_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_fdlist_fields) / sizeof(sinsp_filter_check_fdlist_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -7284,6 +7296,7 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 {
 	m_info.m_name = "k8s";
+	m_info.m_desc = "Kubernetes related context.";
 	m_info.m_fields = sinsp_filter_check_k8s_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
@@ -7937,6 +7950,7 @@ const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 sinsp_filter_check_mesos::sinsp_filter_check_mesos()
 {
 	m_info.m_name = "mesos";
+	m_info.m_desc = "Mesos related context.";
 	m_info.m_fields = sinsp_filter_check_mesos_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_mesos_fields) / sizeof(sinsp_filter_check_mesos_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
