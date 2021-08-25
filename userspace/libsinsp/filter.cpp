@@ -651,6 +651,18 @@ sinsp_filter_check::sinsp_filter_check()
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
+
+	// Do this once
+	if(s_all_event_types.size() == 0)
+	{
+		//
+		// Fill in from 2 to PPM_EVENT_MAX-1. 0 and 1 are excluded as
+		// those are PPM_GENERIC_E/PPME_GENERIC_X.
+		for(uint16_t i = 2; i < PPM_EVENT_MAX; i++)
+		{
+			s_all_event_types.insert(i);
+		}
+	}
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -1363,6 +1375,18 @@ uint8_t* sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT uint32_t* len, b
 	{
 		return extract(evt, len, sanitize_strings);
 	}
+}
+
+const std::set<uint16_t> &sinsp_filter_check::evttypes()
+{
+	// By default a check should be considered for all event types
+	// so use the default.
+	return s_all_event_types;
+}
+
+const std::set<uint16_t> &sinsp_filter_check::possible_evttypes()
+{
+	return s_all_event_types;
 }
 
 bool sinsp_filter_check::compare(gen_event *evt)
