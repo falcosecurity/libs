@@ -572,8 +572,8 @@ void docker_async_source::get_image_info(const docker_lookup_request& request, s
 
 		// containers can be spawned using just the imageID as image name,
 		// with or without the hash prefix (e.g. sha256:)
-		bool no_name = sinsp_utils::startswith(container.m_image, container.m_imageid) ||
-			       sinsp_utils::startswith(container.m_image, imgstr);
+		bool no_name = sinsp_utils::startswith(container.m_imageid, container.m_image) ||
+			       sinsp_utils::startswith(imgstr, container.m_image);
 
 		if(!no_name || !m_query_image_info)
 		{
