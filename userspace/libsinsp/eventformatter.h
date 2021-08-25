@@ -16,6 +16,9 @@ limitations under the License.
 */
 
 #pragma once
+#include <map>
+#include <utility>
+#include <string>
 #include <json/json.h>
 
 class sinsp_filter_check;
@@ -29,7 +32,7 @@ class sinsp_filter_check;
   This class can be used to format an event into a string, based on an arbitrary
   format.
 */
-class SINSP_PUBLIC sinsp_evt_formatter
+class SINSP_PUBLIC sinsp_evt_formatter : public gen_event_formatter
 {
 public:
 	/*!
@@ -41,7 +44,11 @@ public:
 	   as the one of the sysdig '-p' command line flag, so refer to the sysdig
 	   manual for details.
 	*/
+	sinsp_evt_formatter(sinsp* inspector);
+
 	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
+
+	void set_format(gen_event_formatter::output_format of, const string& fmt) override;
 
 	~sinsp_evt_formatter();
 
@@ -57,6 +64,12 @@ public:
 	*/
 	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
 
+	// For compatibility with gen_event_filter_factory
+	// interface. It just calls resolve_tokens().
+	bool get_field_values(gen_event *evt, std::map<std::string, std::string> &fields) override;
+
+	gen_event_formatter::output_format get_output_format() override;
+
 	/*!
 	  \brief Fills res with the string rendering of the event.
 
@@ -68,6 +81,11 @@ public:
 	*/
 	bool tostring(sinsp_evt* evt, OUT string* res);
 
+	// For compatibility with gen_event_formatter
+	bool tostring(gen_event* evt, std::string &output) override;
+
+	bool tostring_withformat(gen_event* evt, std::string &output, gen_event_formatter::output_format of) override;
+
 	/*!
 	  \brief Fills res with end of capture string rendering of the event.
 	  \param res Pointer to the string that will be filled with the result.
@@ -78,7 +96,7 @@ public:
 	bool on_capture_end(OUT string* res);
 
 private:
-	void set_format(const string& fmt);
+	gen_event_formatter::output_format m_output_format;
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
@@ -123,3 +141,22 @@ private:
 	sinsp *m_inspector;
 };
 /*@}*/
+
+class sinsp_evt_formatter_factory : public gen_event_formatter_factory
+{
+public:
+	sinsp_evt_formatter_factory(sinsp *inspector);
+	virtual ~sinsp_evt_formatter_factory();
+
+	void set_output_format(gen_event_formatter::output_format of) override;
+
+	std::shared_ptr<gen_event_formatter> create_formatter(const std::string &format) override;
+
+protected:
+
+	// Maps from output string to formatter
+	std::map<std::string, std::shared_ptr<gen_event_formatter>> m_formatters;
+
+	sinsp *m_inspector;
+	gen_event_formatter::output_format m_output_format;
+};

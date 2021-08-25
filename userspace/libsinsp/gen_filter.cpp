@@ -361,3 +361,18 @@ std::set<uint16_t> gen_event_filter::evttypes()
 {
 	return m_filter->evttypes();
 }
+gen_event_formatter::gen_event_formatter()
+{
+}
+
+gen_event_formatter::~gen_event_formatter()
+{
+}
+
+gen_event_formatter_factory::gen_event_formatter_factory()
+{
+}
+
+gen_event_formatter_factory::~gen_event_formatter_factory()
+{
+}
