@@ -39,12 +39,6 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 {
 	uint32_t j, l, m;
 	int32_t k;
-
-	if(markdown && !names_only)
-	{
-		printf("# Filter Fields List\n\n");
-	}
-
 	vector<const filter_check_info*> fc_plugins;
 	sinsp::get_filtercheck_fields_info(fc_plugins);
 

@@ -2919,7 +2919,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_DIR, "evt.dir", "event direction can be either '>' for enter events or '<' for exit events."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.type", "The name of the event (e.g. 'open')."},
 	{PT_UINT32, EPF_REQUIRES_ARGUMENT, PF_NA, "evt.type.is", "allows one to specify an event type, and returns 1 for events that are of that type. For example, evt.type.is.open returns 1 for open events, 0 for any other event."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or sysdig internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "syscall.type", "For system call events, the name of the system call (e.g. 'open'). Unset for other events (e.g. switch or internal events). Use this field instead of evt.type if you need to make sure that the filtered/printed value is actually a system call."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.category", "The event category. Example values are 'file' (for file operations like open and close), 'net' (for network operations like socket and bind), memory (for things like brk or mmap), and so on."},
 	{PT_INT16, EPF_NONE, PF_ID, "evt.cpu", "number of the CPU where this event happened."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.args", "all the event arguments, aggregated into a single string."},
@@ -4883,9 +4883,9 @@ const filtercheck_field_info sinsp_filter_check_tracer_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "span.count", "1 for span exit events."},
 	{PT_UINT64, (filtercheck_field_flags) (EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT), PF_DEC, "span.count.fortag", "1 if the span's number of tags matches the field argument, and zero for all the other ones."},
 	{PT_UINT64, (filtercheck_field_flags) (EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT), PF_DEC, "span.childcount.fortag", "1 if the span's number of tags is greater than the field argument, and zero for all the other ones."},
-	{PT_CHARBUF, (filtercheck_field_flags) (EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT), PF_NA, "span.idtag", "id used by the span list csysdig view."},
-	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawtime", "id used by the span list csysdig view."},
-	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawparenttime", "id used by the span list csysdig view."},
+	{PT_CHARBUF, (filtercheck_field_flags) (EPF_TABLE_ONLY | EPF_REQUIRES_ARGUMENT), PF_NA, "span.idtag", "id used by the span list view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawtime", "id used by the span list view."},
+	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "span.rawparenttime", "id used by the span list view."},
 };
 
 sinsp_filter_check_tracer::sinsp_filter_check_tracer()
@@ -6124,7 +6124,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 {
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.id", "the container id."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.name", "the container name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image name (e.g. sysdig/sysdig:latest for docker, )."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image", "the container image name (e.g. falcosecurity/falco:latest for docker)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "the container image id (e.g. 6f7e2741b66b)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
@@ -6135,7 +6135,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.mode", "the mount mode, specified by number (e.g. container.mount.mode[0]) or mount source (container.mount.mode[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.rdwr", "the mount rdwr value, specified by number (e.g. container.mount.rdwr[0]) or mount source (container.mount.rdwr[/usr/local]). The pathname can be a glob."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.propagation", "the mount propagation value, specified by number (e.g. container.mount.propagation[0]) or mount source (container.mount.propagation[/usr/local]). The pathname can be a glob."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "the container image repository (e.g. sysdig/sysdig)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.repository", "the container image repository (e.g. falcosecurity/falco)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.tag", "the container image tag (e.g. stable, latest)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
