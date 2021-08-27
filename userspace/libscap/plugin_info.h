@@ -143,16 +143,22 @@ typedef void ss_plugin_t;
 typedef void ss_instance_t;
 
 //
-// Interface for a sinsp/scap source plugin
+// The structs below define the functions and arguments for source and
+// exctractor plugins. The structs are used by the plugin framework to
+// load and interface with plugins.
 //
+// From the perspective of the plugin, each function below should be
+// exported from the dynamic library as a C calling convention
+// function, adding a prefix "plugin_" to the function name
+// (e.g. plugin_get_required_api_version, plugin_init, etc.)
 //
-// NOTE: For all functions below that return a char *, the memory
-// pointed to by the char * must be allocated by the plugin using
+// NOTE: For all functions below that return a char */struct *, the memory
+// pointed to by the char */struct * must be allocated by the plugin using
 // malloc() and should be freed by the caller using free().
 //
-// For each function below, the exported symbol from the dynamic
-// library should have a prefix of "plugin_"
-// (e.g. plugin_get_required_api_version, plugin_init, etc.)
+
+//
+// Interface for a sinsp/scap source plugin.
 //
 typedef struct
 {
@@ -272,7 +278,7 @@ typedef struct
 	// ]
 	char* (*get_fields)();
 	//
-	// Open the source and start a capture.
+	// Open the source and start a capture (e.g. stream of events)
 	// Required: yes
 	// Arguments:
 	// - s: the plugin state returned by init()
@@ -378,11 +384,6 @@ typedef struct
 
 //
 // Interface for a sinsp/scap extractor plugin
-//
-//
-// NOTE: For all functions below that return a char *, the memory
-// pointed to by the char * must be allocated by the plugin using
-// malloc() and should be freed by the caller using free().
 //
 typedef struct
 {
