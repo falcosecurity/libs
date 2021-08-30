@@ -68,8 +68,9 @@ typedef enum ss_plugin_field_type
 //   a call to free().
 // - datalen: pointer to a 32bit integer. The plugin will set it the size of the
 //   buffer pointed by data.
-// - ts: the event timestamp. Can be (uint64_t)-1, in which case the engine will
-//   automatically fill the event time with the current time.
+// - ts: the event timestamp, in nanoseconds since the epoch.
+//   Can be (uint64_t)-1, in which case the engine will automatically
+//   fill the event time with the current time.
 typedef struct ss_plugin_event
 {
 	uint64_t evtnum;
