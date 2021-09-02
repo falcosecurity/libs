@@ -277,7 +277,7 @@ bool cri_interface::parse_cri_json_image(const Json::Value &info, sinsp_containe
 	return true;
 }
 
-bool cri_interface::parse_cri_runtime_spec(const Json::Value &info, sinsp_container_info &container)
+bool cri_interface::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -301,10 +301,25 @@ bool cri_interface::parse_cri_runtime_spec(const Json::Value &info, sinsp_contai
 		set_numeric_32(*cpu, "cpuset_cpu_count", container.m_cpuset_cpu_count);
 	}
 
+	bool priv_found = false;
 	const Json::Value *privileged;
+	// old containerd?
 	if(walk_down_json(*linux, &privileged, "security_context", "privileged") && privileged->isBool())
 	{
 		container.m_privileged = privileged->asBool();
+		priv_found = true;
+	}
+
+	// containerd
+	if(!priv_found && walk_down_json(info, &privileged, "config", "linux", "security_context", "privileged") && privileged->isBool()) {
+		container.m_privileged = privileged->asBool();
+		priv_found = true;
+	}
+
+	// cri-o
+	if(!priv_found && walk_down_json(info, &privileged, "privileged") && privileged->isBool()) {
+		container.m_privileged = privileged->asBool();
+		priv_found = true;
 	}
 
 	return true;
