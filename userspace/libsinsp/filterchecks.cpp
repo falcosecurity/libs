@@ -4755,7 +4755,6 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	{
 		ASSERT(m_inspector != NULL);
 		uinfo = m_inspector->get_user(tinfo->m_uid);
-		ASSERT(uinfo != NULL);
 		if(uinfo == NULL)
 		{
 			return NULL;
@@ -4832,23 +4831,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			unordered_map<uint32_t, scap_groupinfo*>::iterator it;
 
 			ASSERT(m_inspector != NULL);
-			unordered_map<uint32_t, scap_groupinfo*>* grouplist =
-				(unordered_map<uint32_t, scap_groupinfo*>*)m_inspector->get_grouplist();
-			ASSERT(grouplist->size() != 0);
-
-			if(tinfo->m_gid == 0xffffffff)
-			{
-				return NULL;
-			}
-
-			it = grouplist->find(tinfo->m_gid);
-			if(it == grouplist->end())
-			{
-				ASSERT(false);
-				return NULL;
-			}
-
-			scap_groupinfo* ginfo = it->second;
+			auto ginfo = m_inspector->get_group(tinfo->m_gid);
 			ASSERT(ginfo != NULL);
 
 			RETURN_EXTRACT_CSTR(ginfo->name);
