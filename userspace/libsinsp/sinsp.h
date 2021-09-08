@@ -491,7 +491,7 @@ public:
 	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false);
 
 	/*!
-	  \brief Return the table with all the machine users.
+  	  \brief Return the table with all the machine users.
 
 	  \return a hash table with the user ID (UID) as the key and the user
 	   information as the data.
@@ -525,6 +525,18 @@ public:
 	   user table is the one of the machine where the capture happened.
 	*/
 	const unordered_map<uint32_t, scap_groupinfo*>* get_grouplist();
+
+	/*!
+	  \brief Lookup for group in the group table.
+
+	  \return the \ref scap_groupinfo object containing full group information,
+	   if group not found, returns NULL.
+
+ 	  \note this call works with file captures as well, because the group
+	   table is stored in the trace files. In that case, the returned
+	   group list is the one of the machine where the capture happened.
+	*/
+	scap_groupinfo* get_group(uint32_t gid);
 
 	/*!
 	  \brief Fill the given structure with statistics about the currently
