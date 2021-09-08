@@ -23,3 +23,4 @@ driver/driver_config.h
 .vscode
 .cache.mk
 build*
+.idea
