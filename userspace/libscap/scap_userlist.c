@@ -31,8 +31,8 @@ limitations under the License.
 //
 int32_t scap_create_userlist(scap_t* handle)
 {
-	uint32_t usercnt;
-	uint32_t grpcnt;
+	uint32_t usercnt, useridx;
+	uint32_t grpcnt, grpidx;
 	struct passwd *p;
 	struct group *g;
 
@@ -97,73 +97,99 @@ int32_t scap_create_userlist(scap_t* handle)
 	setpwent();
 	p = getpwent();
 
-	for(usercnt = 0; p; p = getpwent(), usercnt++)
+	for(useridx = 0; useridx < usercnt && p; p = getpwent(), useridx++)
 	{
-		handle->m_userlist->users[usercnt].uid = p->pw_uid;
-		handle->m_userlist->users[usercnt].gid = p->pw_gid;
+		scap_userinfo *user = &handle->m_userlist->users[useridx];
+		user->uid = p->pw_uid;
+		user->gid = p->pw_gid;
 		
 		if(p->pw_name)
 		{
-			strlcpy(handle->m_userlist->users[usercnt].name, p->pw_name, sizeof(handle->m_userlist->users[usercnt].name));
+			strlcpy(user->name, p->pw_name, sizeof(user->name));
 		}
 		else
 		{
-			*handle->m_userlist->users[usercnt].name = '\0';
+			*user->name = '\0';
 		}
 
 		if(p->pw_dir)
 		{
-			strlcpy(handle->m_userlist->users[usercnt].homedir, p->pw_dir, sizeof(handle->m_userlist->users[usercnt].homedir));
+			strlcpy(user->homedir, p->pw_dir, sizeof(user->homedir));
 		}
 		else
 		{
-			*handle->m_userlist->users[usercnt].homedir = '\0';	
+			*user->homedir = '\0';
 		}
 
 		if(p->pw_shell)
 		{
-			strlcpy(handle->m_userlist->users[usercnt].shell, p->pw_shell, sizeof(handle->m_userlist->users[usercnt].shell));
+			strlcpy(user->shell, p->pw_shell, sizeof(user->shell));
 		}
 		else
 		{
-			*handle->m_userlist->users[usercnt].shell = '\0';	
+			*user->shell = '\0';
 		}
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
-			sizeof(uint32_t) + // uid
-			sizeof(uint32_t) +  // gid
-			strlen(handle->m_userlist->users[usercnt].name) + 2 + 
-			strlen(handle->m_userlist->users[usercnt].homedir) + 2 +
-			strlen(handle->m_userlist->users[usercnt].shell) + 2; 
+			sizeof(user->uid) +
+			sizeof(user->gid) +
+			strlen(user->name) + 2 +
+			strlen(user->homedir) + 2 +
+			strlen(user->shell) + 2;
 	}
 
 	endpwent();
+
+	/*
+	 * Check that no user was removed between the 2 iterations of users;
+	 * we don't really care if any user was added instead;
+	 * we will just miss the last user returned in that case.
+	 */
+	if (useridx < usercnt) {
+		// Any user was removed while we were cycling
+		handle->m_userlist->nusers = useridx;
+		// we are reducing the allocated area; no need to check that realloc is fine
+		handle->m_userlist->users = realloc(handle->m_userlist->users, useridx * sizeof(scap_userinfo));
+	}
 
 	// groups
 	setgrent();
 	g = getgrent();
 
-	for(grpcnt = 0; g; g = getgrent(), grpcnt++)
+	for(grpidx = 0; grpidx < grpcnt && g; g = getgrent(), grpidx++)
 	{
-		handle->m_userlist->groups[grpcnt].gid = g->gr_gid;
+		scap_groupinfo *group = &handle->m_userlist->groups[grpidx];
+		group->gid = g->gr_gid;
 
 		if(g->gr_name)
 		{
-			strlcpy(handle->m_userlist->groups[grpcnt].name, g->gr_name, sizeof(handle->m_userlist->groups[grpcnt].name));
+			strlcpy(group->name, g->gr_name, sizeof(group->name));
 		}
 		else
 		{
-			*handle->m_userlist->groups[grpcnt].name = '\0';
+			*group->name = '\0';
 		}
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
-			sizeof(uint32_t) +  // gid
-			strlen(handle->m_userlist->groups[grpcnt].name) + 2;
+			sizeof(group->gid) +
+			strlen(group->name) + 2;
 	}
 
 	endgrent();
+
+	/*
+	 * Check that no group was removed between the 2 iterations of groups;
+	 * we don't really care if any group was added instead;
+	 * we will just miss the last group returned in that case.
+	 */
+	if (grpidx < grpcnt) {
+		// Any group was removed while we were cycling
+		handle->m_userlist->ngroups = grpidx;
+		// we are reducing the allocated area; no need to check that realloc is fine
+		handle->m_userlist->groups = realloc(handle->m_userlist->groups, grpidx * sizeof(scap_groupinfo));
+	}
 
 	return SCAP_SUCCESS;
 }
