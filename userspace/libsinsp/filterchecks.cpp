@@ -4755,6 +4755,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	{
 		ASSERT(m_inspector != NULL);
 		uinfo = m_inspector->get_user(tinfo->m_uid);
+		ASSERT(uinfo != NULL);
 		if(uinfo == NULL)
 		{
 			return NULL;
@@ -4776,6 +4777,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_LOGINNAME:
 		ASSERT(m_inspector != NULL);
 		uinfo = m_inspector->get_user(tinfo->m_loginuid);
+		ASSERT(uinfo != NULL);
 		if(uinfo == NULL)
 		{
 			return NULL;
