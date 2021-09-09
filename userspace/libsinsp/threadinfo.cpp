@@ -56,6 +56,7 @@ void sinsp_threadinfo::init()
 {
 	m_pid = (uint64_t) - 1LL;
 	m_sid = (uint64_t) - 1LL;
+	m_ptid = (uint64_t) - 1LL;
 	m_vpgid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
 	m_lastevent_type = -1;
