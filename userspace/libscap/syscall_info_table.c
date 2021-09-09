@@ -351,6 +351,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_FADVISE64*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "fadvise64" },
 	/*PPM_SC_RENAMEAT2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "renameat2" },
 	/*PPM_SC_USERFAULTFD*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "userfaultfd" },
+	/*PPM_SC_OPENAT2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "openat2" },
 };
 
 bool validate_info_table_size()
