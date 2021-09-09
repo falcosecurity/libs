@@ -59,6 +59,22 @@ typedef enum ss_plugin_field_type
 	FTYPE_STRING = 9
 }ss_plugin_field_type;
 
+// Values to return from init() / open() / next() / next_batch() /
+// extract_fields() / register_async_extractor(). Note that these
+// values map exactly to the corresponding SCAP_XXX values in scap.h,
+// and should be kept in sync.
+#define SS_PLUGIN_SUCCESS 0
+#define SS_PLUGIN_FAILURE 1
+#define SS_PLUGIN_TIMEOUT -1
+#define SS_PLUGIN_ILLEGAL_INPUT 3
+#define SS_PLUGIN_NOTFOUND 4
+#define SS_PLUGIN_INPUT_TOO_SMALL 5
+#define SS_PLUGIN_EOF 6
+#define SS_PLUGIN_UNEXPECTED_BLOCK 7
+#define SS_PLUGIN_VERSION_MISMATCH 8
+#define SS_PLUGIN_NOT_SUPPORTED 9
+
+
 // This struct represents an event returned by the plugin, and is used
 // below in next()/next_batch().
 // - evtnum: incremented for each event returned. Might not be contiguous.
@@ -190,10 +206,10 @@ typedef struct
 	// - config: a string with the plugin configuration. The format of the
 	//   string is chosen by the plugin itself.
 	// - rc: pointer to an integer that will contain the initialization result,
-	//   as a SCAP_* value (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
+	//   as a SS_PLUGIN_* value (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the engine and passed to the other plugin functions.
-	//   If rc is SCAP_FAILURE, this function should return NULL.
+	//   If rc is SS_PLUGIN_FAILURE, this function should return NULL.
 	//
 	ss_plugin_t* (*init)(char* config, int32_t* rc);
 	//
@@ -285,8 +301,8 @@ typedef struct
 	// - s: the plugin state returned by init()
 	// - params: the open parameters, as a string. The format is defined by the plugin
 	//   itsef
-	// - rc: pointer to an integer that will contain the open result, as a SCAP_* value
-	//   (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
+	// - rc: pointer to an integer that will contain the open result, as a SS_PLUGIN_* value
+	//   (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
 	// Return value: a pointer to the open context that will be passed to next(),
 	//   close(), event_to_string() and extract_fields.
 	//
@@ -312,8 +328,8 @@ typedef struct
 	//   Both the struct and data buffer are owned by the plugin framework
 	//   and will free them using free().
 	//
-	// Return value: the status of the operation (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1,
-	//   SCAP_TIMEOUT=-1)
+	// Return value: the status of the operation (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1,
+	//   SS_PLUGIN_TIMEOUT=-1)
 	//
 	int32_t (*next)(ss_plugin_t* s, ss_instance_t* h, ss_plugin_event **evt);
 	//
@@ -352,7 +368,7 @@ typedef struct
 	// - fields: an array of ss_plugin_extract_field structs. Each element contains
 	//   a single field + optional arg, and the corresponding extracted value should
 	//   be in the same struct.
-	// Return value: An integer with values SCAP_SUCCESS or SCAP_FAILURE.
+	// Return value: An integer with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
 	int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	//
@@ -415,7 +431,7 @@ typedef struct
 	// - config: a string with the plugin configuration. The format of the
 	//   string is chosen by the plugin itself.
 	// - rc: pointer to an integer that will contain the initialization result,
-	//   as a SCAP_* value (e.g. SCAP_SUCCESS=0, SCAP_FAILURE=1)
+	//   as a SS_PLUGIN_* value (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the engine and passed to the other plugin functions.
 	//
@@ -495,7 +511,7 @@ typedef struct
 	// - fields: an array of ss_plugin_extract_field structs. Each element contains
 	//   a single field + optional arg, and the corresponding extracted value should
 	//   be in the same struct.
-	// Return value: An integer with values SCAP_SUCCESS or SCAP_FAILURE.
+	// Return value: An integer with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
 	int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 
