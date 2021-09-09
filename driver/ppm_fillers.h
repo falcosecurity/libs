@@ -114,6 +114,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_fchmod_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
+	FN(sys_openat2_x)			\
 	FN(sys_linkat_x)			\
 	FN(terminate_filler)
 

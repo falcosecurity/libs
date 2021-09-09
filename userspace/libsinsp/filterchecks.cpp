@@ -204,6 +204,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 		}
 	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
+	case PPME_SYSCALL_OPENAT2_X:
 		{
 			sinsp_evt enter_evt;
 			sinsp_evt_param *parinfo;
@@ -328,7 +329,8 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	case TYPE_FILENAME:
 	{
 		if(evt->get_type() != PPME_SYSCALL_OPEN_E && evt->get_type() != PPME_SYSCALL_OPENAT_E &&
-			evt->get_type() != PPME_SYSCALL_OPENAT_2_E && evt->get_type() != PPME_SYSCALL_CREAT_E)
+			evt->get_type() != PPME_SYSCALL_OPENAT_2_E && evt->get_type() != PPME_SYSCALL_OPENAT2_E &&
+			evt->get_type() != PPME_SYSCALL_CREAT_E)
 		{
 			return NULL;
 		}
@@ -363,6 +365,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		case PPME_SYSCALL_OPEN_E:
 		case PPME_SYSCALL_OPENAT_E:
 		case PPME_SYSCALL_OPENAT_2_E:
+		case PPME_SYSCALL_OPENAT2_E:
 		case PPME_SYSCALL_CREAT_E:
 			m_tcstr[0] = CHAR_FD_FILE;
 			m_tcstr[1] = 0;
@@ -2952,13 +2955,13 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "the length of the binary data buffer, but only for output network I/O events."},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat events where the path was opened for reading"},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat events where the path was opened for writing"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "'true' for open/openat/openat2 events where the path was opened for reading"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "'true' for open/openat/openat2 events where the path was opened for writing"},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.name", "for docker infrastructure events, the name of the event."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "for docker infrastructure events, the id of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "for docker infrastructure events, the name of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.image", "for docker infrastructure events, the image name of the impacted container."},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat or creat events where a file is created with execute permissions"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_exec", "'true' for open/openat/openat2 or creat events where a file is created with execute permissions"},
 };
 
 sinsp_filter_check_event::sinsp_filter_check_event()
@@ -3301,7 +3304,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 		dirfdarg = "linkdirfd";
 		patharg = "linkpath";
 	}
-	else if(etype == PPME_SYSCALL_OPENAT_E || etype == PPME_SYSCALL_OPENAT_2_X)
+	else if(etype == PPME_SYSCALL_OPENAT_E || etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X)
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
@@ -4231,7 +4234,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				if(etype == PPME_SYSCALL_OPEN_X ||
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
-					etype == PPME_SYSCALL_OPENAT_2_X)
+					etype == PPME_SYSCALL_OPENAT_2_X ||
+					etype == PPME_SYSCALL_OPENAT2_X)
 				{
 					return extract_error_count(evt, len);
 				}
@@ -4307,6 +4311,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SYSCALL_OPENAT_2_X ||
+					etype == PPME_SYSCALL_OPENAT2_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
 					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
@@ -4454,11 +4459,13 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if(etype == PPME_SYSCALL_OPEN_X ||
 			   etype == PPME_SYSCALL_OPENAT_E ||
-			   etype == PPME_SYSCALL_OPENAT_2_X)
+			   etype == PPME_SYSCALL_OPENAT_2_X ||
+			   etype == PPME_SYSCALL_OPENAT2_X)
 			{
+				bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
 				// For both OPEN_X and OPENAT_E,
 				// flags is the 3rd argument.
-				parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 3 : 2);
+				parinfo = evt->get_param(is_new_version ? 3 : 2);
 				ASSERT(parinfo->m_len == sizeof(uint32_t));
 				uint32_t flags = *(uint32_t *)parinfo->m_val;
 
@@ -4479,7 +4486,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				
 				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT)))
 				{
-					parinfo = evt->get_param(etype == PPME_SYSCALL_OPENAT_2_X ? 4 : 3);
+					parinfo = evt->get_param(is_new_version ? 4 : 3);
 					ASSERT(parinfo->m_len == sizeof(uint32_t));
 					uint32_t mode_bits = *(uint32_t *)parinfo->m_val;
 					m_u32val = (mode_bits & is_exec_mask)? 1 : 0;

@@ -4186,6 +4186,68 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_openat2_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	/*
+	 * how: we get the data structure, and put its fields in the buffer one by one
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	struct open_how *how = (struct open_how*) val;
+	
+	/*
+	 * flags (extracted form how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = val_to_ring(args, open_flags_to_scap(how->flags), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode (extracted form how structure)
+	 */
+	res = val_to_ring(args, open_modes_to_scap(how->flags, how->mode), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * resolve (extracted form how structure)
+	 */
+	res = val_to_ring(args, openat2_resolve_to_scap(how->resolve), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
 #endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)

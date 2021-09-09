@@ -2312,6 +2312,70 @@ FILLER(sys_openat_x, true)
 	return res;
 }
 
+FILLER(sys_openat2_x, true)
+{
+	unsigned long resolve;
+	unsigned long flags;
+	unsigned long val;
+	unsigned long mode;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * how: we get the data structure, and put its fields in the buffer one by one
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	struct open_how *how = (struct open_how*) val;
+
+	/*
+	 * flags (extracted form how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	flags = open_flags_to_scap(how->flags);
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode (extracted form how structure)
+	 */
+	mode = open_modes_to_scap(how->flags, how->mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * resolve (extracted form how structure)
+	 */
+	resolve = openat2_resolve_to_scap(how->resolve);
+	res = bpf_val_to_ring(data, resolve);
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;

@@ -309,6 +309,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CREAT_X:
 	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
+	case PPME_SYSCALL_OPENAT2_X:
 		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
@@ -2037,7 +2038,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	}
 
 
-	if(etype != PPME_SYSCALL_OPENAT_2_X)
+	if(etype != PPME_SYSCALL_OPENAT_2_X && etype != PPME_SYSCALL_OPENAT2_X)
 	{
 		//
 		// Load the enter event so we can access its arguments
@@ -2110,7 +2111,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		parse_openat_dir(evt, name, dirfd, &sdir);
 	}
-	else if(etype == PPME_SYSCALL_OPENAT_2_X)
+	else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X)
 	{
 		parinfo = evt->get_param(2);
 		name = parinfo->m_val;
@@ -2124,7 +2125,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
-		if(evt->get_num_params() > 5)
+		if(etype == PPME_SYSCALL_OPENAT_2_X && evt->get_num_params() > 5)
 		{
 			parinfo = evt->get_param(5);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));

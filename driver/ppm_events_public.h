@@ -596,6 +596,16 @@ or GPL2.txt for full copies of the license.
 #define PPM_RENAME_WHITEOUT		(1 << 2)	/* Whiteout source */
 
 /*
+ * Openat2 resolve flags
+ */
+#define PPM_RESOLVE_BENEATH			(1 << 0)
+#define PPM_RESOLVE_IN_ROOT			(1 << 1)
+#define PPM_RESOLVE_NO_MAGICLINKS	(1 << 2)
+#define PPM_RESOLVE_NO_SYMLINKS		(1 << 3)
+#define PPM_RESOLVE_NO_XDEV			(1 << 4)
+#define PPM_RESOLVE_CACHED			(1 << 5)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -965,7 +975,9 @@ enum ppm_event_type {
 	PPME_PLUGINEVENT_X = 323,
 	PPME_CONTAINER_JSON_2_E = 324,
 	PPME_CONTAINER_JSON_2_X = 325,
-	PPM_EVENT_MAX = 326
+	PPME_SYSCALL_OPENAT2_E = 326,
+	PPME_SYSCALL_OPENAT2_X = 327,
+	PPM_EVENT_MAX = 328
 };
 /*@}*/
 
@@ -1295,7 +1307,8 @@ enum ppm_syscall_code {
 	PPM_SC_FADVISE64 = 319,
 	PPM_SC_RENAMEAT2 = 320,
 	PPM_SC_USERFAULTFD = 321,
-	PPM_SC_MAX = 322,
+	PPM_SC_OPENAT2 = 322,
+	PPM_SC_MAX = 323,
 };
 
 /*
@@ -1523,6 +1536,7 @@ extern const struct ppm_name_value unlinkat_flags[];
 extern const struct ppm_name_value linkat_flags[];
 extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
+extern const struct ppm_name_value openat2_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
