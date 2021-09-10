@@ -166,25 +166,35 @@ static __always_inline u32 open_modes_to_scap(unsigned long flags,
 static __always_inline u32 openat2_resolve_to_scap(unsigned long flags)
 {
 	u32 res = 0;
-	#ifdef _LINUX_OPENAT2_H
-		if (flags & RESOLVE_NO_XDEV)
-			res |= PPM_RESOLVE_NO_XDEV;
+#ifdef RESOLVE_NO_XDEV
+	if (flags & RESOLVE_NO_XDEV)
+		res |= PPM_RESOLVE_NO_XDEV;
+#endif
 
-		if (flags & RESOLVE_NO_MAGICLINKS)
-			res |= PPM_RESOLVE_NO_MAGICLINKS;
+#ifdef RESOLVE_NO_MAGICLINKS
+	if (flags & RESOLVE_NO_MAGICLINKS)
+		res |= PPM_RESOLVE_NO_MAGICLINKS;
+#endif
 
-		if (flags & RESOLVE_NO_SYMLINKS)
-			res |= PPM_RESOLVE_NO_SYMLINKS;
+#ifdef RESOLVE_NO_SYMLINKS
+	if (flags & RESOLVE_NO_SYMLINKS)
+		res |= PPM_RESOLVE_NO_SYMLINKS;
+#endif
 
-		if (flags & RESOLVE_BENEATH)
-			res |= PPM_RESOLVE_BENEATH;
+#ifdef RESOLVE_BENEATH
+	if (flags & RESOLVE_BENEATH)
+		res |= PPM_RESOLVE_BENEATH;
+#endif
 
-		if (flags & RESOLVE_IN_ROOT)
-			res |= PPM_RESOLVE_IN_ROOT;
-		
-		if (flags & RESOLVE_CACHED)
-			res |= PPM_RESOLVE_CACHED;
-	#endif
+#ifdef RESOLVE_IN_ROOT
+	if (flags & RESOLVE_IN_ROOT)
+		res |= PPM_RESOLVE_IN_ROOT;
+#endif
+
+#ifdef RESOLVE_CACHED
+	if (flags & RESOLVE_CACHED)
+		res |= PPM_RESOLVE_CACHED;
+#endif
 	return res;
 #endif // WDIG
 }
