@@ -2320,6 +2320,9 @@ FILLER(sys_openat2_x, true)
 	unsigned long mode;
 	long retval;
 	int res;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	struct open_how how;
+#endif
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_val_to_ring(data, retval);
@@ -2345,33 +2348,43 @@ FILLER(sys_openat2_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
 	val = bpf_syscall_get_argument(data, 2);
-	struct open_how *how = (struct open_how*) val;
+	if (bpf_probe_read(&how, sizeof(struct open_how), (void *)val)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+	flags = open_flags_to_scap(how.flags);
+	mode = open_modes_to_scap(how.flags, how.mode);
+	resolve = openat2_resolve_to_scap(how.resolve);
+#else
+	flags = 0;
+	mode = 0;
+	resolve = 0;
+#endif
 
 	/*
-	 * flags (extracted form how structure)
+	 * flags (extracted from open_how structure)
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	flags = open_flags_to_scap(how->flags);
 	res = bpf_val_to_ring(data, flags);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	/*
-	 * mode (extracted form how structure)
+	 * mode (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	mode = open_modes_to_scap(how->flags, how->mode);
 	res = bpf_val_to_ring(data, mode);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	/*
-	 * resolve (extracted form how structure)
+	 * resolve (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	resolve = openat2_resolve_to_scap(how->resolve);
 	res = bpf_val_to_ring(data, resolve);
 	return res;
 }
