@@ -308,26 +308,21 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 
 	#pragma unroll
 	for (j = 0; j < POLL_MAXFDS; ++j) {
-		u16 flags;
+		if (off > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
 
 		if (j == nfds)
 			break;
 
+		u16 flags;
 		if (enter_event) {
 			flags = poll_events_to_scap(fds[j].events);
 		} else {
-			if (!fds[j].revents)
-				continue;
-
 			flags = poll_events_to_scap(fds[j].revents);
 		}
 
-		if (off > SCRATCH_SIZE_HALF)
-			return PPM_FAILURE_BUFFER_FULL;
-
 		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
 		off += sizeof(s64);
-
 		if (off > SCRATCH_SIZE_HALF)
 			return PPM_FAILURE_BUFFER_FULL;
 
@@ -415,9 +410,13 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 #endif
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
+
 	#pragma unroll
 	for (j = 0; j < MAX_IOVCNT; ++j) {
 		if (j == iovcnt)
+			break;
+		// BPF seems to require an hard limit to avoid overflows
+		if (size == LONG_MAX)
 			break;
 
 		size += iov[j].iov_len;
