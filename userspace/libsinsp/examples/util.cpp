@@ -132,8 +132,8 @@ std::string get_event_type(uint16_t type)
         case PPME_SYSCALL_OPENAT_E:
         case PPME_SYSCALL_OPENAT_2_E:
         case PPME_SYSCALL_OPENAT_X:
-        case PPME_SYSCALL_OPENAT_2_X:
-        case PPME_SYSCALL_OPENAT2_X: return "openat";
+        case PPME_SYSCALL_OPENAT_2_X: return "openat";
+        case PPME_SYSCALL_OPENAT2_X: return "openat2";
         case PPME_SYSCALL_PIPE_E:
         case PPME_SYSCALL_PIPE_X: return "pipe";
         case PPME_SYSCALL_POLL_E:
