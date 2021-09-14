@@ -4193,7 +4193,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	unsigned long mode;
 	int res;
 	int64_t retval;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#ifdef __NR_openat2
 	struct open_how how;
 #endif
 
@@ -4223,7 +4223,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 		return res;
 	
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+#ifdef __NR_openat2
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
