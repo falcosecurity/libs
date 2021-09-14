@@ -415,7 +415,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	for (j = 0; j < MAX_IOVCNT; ++j) {
 		if (j == iovcnt)
 			break;
-		// BPF seems to require an hard limit to avoid overflows
+		// BPF seems to require a hard limit to avoid overflows
 		if (size == LONG_MAX)
 			break;
 
