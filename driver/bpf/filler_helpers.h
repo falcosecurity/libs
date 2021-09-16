@@ -719,17 +719,20 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 {
 	unsigned int len_dyn = 0;
 	unsigned int len;
+	unsigned long curoff_bounded;
 
+	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
-
+	
 	if (dyn_idx != (u8)-1) {
-		*((u8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = dyn_idx;
+		*((u8 *)&data->buf[curoff_bounded]) = dyn_idx;
 		len_dyn = sizeof(u8);
 		data->state->tail_ctx.curoff += len_dyn;
 		data->state->tail_ctx.len += len_dyn;
 	}
 
+	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
 
@@ -740,7 +743,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) {
 			int res;
 
-			res = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+			res = bpf_probe_read_str(&data->buf[curoff_bounded],
 						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
 			if (res == -EFAULT)
@@ -763,15 +766,15 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					dpi_lookahead_size = len;
 
 				if (!data->curarg_already_on_frame) {
-					volatile unsigned long read_size = dpi_lookahead_size;
+					volatile u16 read_size = dpi_lookahead_size;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
-						if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						if (bpf_probe_read(&data->buf[curoff],
 								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 								   (void *)val))
 #else
-					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					if (bpf_probe_read(&data->buf[curoff_bounded],
 							   read_size & SCRATCH_SIZE_HALF,
 							   (void *)val))
 #endif
@@ -787,15 +790,15 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 				len = PPM_MAX_ARG_SIZE;
 
 			if (!data->curarg_already_on_frame) {
-				volatile unsigned long read_size = len;
+				volatile u16 read_size = len;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
-					if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					if (bpf_probe_read(&data->buf[curoff],
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
-				if (bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				if (bpf_probe_read(&data->buf[curoff_bounded],
 						   read_size & SCRATCH_SIZE_HALF,
 						   (void *)val))
 #endif
@@ -821,13 +824,13 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
-		*((u8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u8 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u8);
 		break;
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
-		*((u16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u16 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u16);
 		break;
 	case PT_FLAGS32:
@@ -836,32 +839,32 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
-		*((u32 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u32 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u32);
 		break;
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
-		*((u64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((u64 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u64);
 		break;
 	case PT_INT8:
-		*((s8 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s8 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(s8);
 		break;
 	case PT_INT16:
-		*((s16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s16 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(s16);
 		break;
 	case PT_INT32:
-		*((s32 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s32 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(s32);
 		break;
 	case PT_INT64:
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
-		*((s64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+		*((s64 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(s64);
 		break;
 	default: {
@@ -871,7 +874,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		return PPM_FAILURE_BUG;
 	}
 	}
-
+	
 	if (len_dyn + len > PPM_MAX_ARG_SIZE)
 		return PPM_FAILURE_BUFFER_FULL;
 
