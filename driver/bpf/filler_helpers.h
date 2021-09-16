@@ -724,7 +724,6 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
-	
 	if (dyn_idx != (u8)-1) {
 		*((u8 *)&data->buf[curoff_bounded]) = dyn_idx;
 		len_dyn = sizeof(u8);
@@ -874,7 +873,6 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		return PPM_FAILURE_BUG;
 	}
 	}
-	
 	if (len_dyn + len > PPM_MAX_ARG_SIZE)
 		return PPM_FAILURE_BUFFER_FULL;
 
