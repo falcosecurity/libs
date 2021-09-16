@@ -770,7 +770,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
-						if (bpf_probe_read(&data->buf[curoff],
+						if (bpf_probe_read(&data->buf[curoff_bounded],
 								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 								   (void *)val))
 #else
@@ -794,7 +794,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
-					if (bpf_probe_read(&data->buf[curoff],
+					if (bpf_probe_read(&data->buf[curoff_bounded],
 							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							   (void *)val))
 #else
