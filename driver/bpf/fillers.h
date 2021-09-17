@@ -435,6 +435,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (size > 0) {
 			unsigned long off = _READ(data->state->tail_ctx.curoff);
+			unsigned long off_bounded;
 			unsigned long remaining = size;
 			int j;
 
@@ -445,6 +446,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (j == iovcnt)
 					break;
 
+				off_bounded = off & SCRATCH_SIZE_HALF;
 				if (off > SCRATCH_SIZE_HALF)
 					break;
 
@@ -458,11 +460,11 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
-					if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+					if (bpf_probe_read(&data->buf[off_bounded],
 							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
 							   iov[j].iov_base))
 #else
-				if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
+				if (bpf_probe_read(&data->buf[off_bounded],
 						   to_read & SCRATCH_SIZE_HALF,
 						   iov[j].iov_base))
 #endif
