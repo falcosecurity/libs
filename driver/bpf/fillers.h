@@ -268,7 +268,6 @@ FILLER(sys_write_x, true)
 
 	return res;
 }
-
 #define POLL_MAXFDS 16
 
 static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
@@ -280,7 +279,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	unsigned long nfds;
 	struct pollfd *fds;
 	unsigned long val;
-	unsigned long off;
+	volatile unsigned long off;
 	int j;
 
 	nfds = bpf_syscall_get_argument(data, 1);
@@ -338,6 +337,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 
 	*((u16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = fds_count;
 	data->curarg_already_on_frame = true;
+
 	return __bpf_val_to_ring(data, 0, off - data->state->tail_ctx.curoff, PT_FDLIST, -1, false);
 }
 
@@ -435,7 +435,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (size > 0) {
-			unsigned long off = _READ(data->state->tail_ctx.curoff);
+			volatile unsigned long off = _READ(data->state->tail_ctx.curoff);
 			unsigned long remaining = size;
 			int j;
 
@@ -456,9 +456,9 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 				if (to_read > SCRATCH_SIZE_HALF)
 					to_read = SCRATCH_SIZE_HALF;
-
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
+					to_read &= SCRATCH_SIZE_HALF;
 					if (bpf_probe_read(&data->buf[off & SCRATCH_SIZE_HALF],
 							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
 							   iov[j].iov_base))
@@ -4282,6 +4282,7 @@ FILLER(sys_autofill, true)
 
 	return res;
 }
+
 
 FILLER(sys_fchmodat_x, true)
 {
