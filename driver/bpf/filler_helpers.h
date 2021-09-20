@@ -16,6 +16,8 @@ or GPL2.txt for full copies of the license.
 #include <linux/in.h>
 #include <linux/fdtable.h>
 #include <linux/net.h>
+/* SYSDIG -- Fix Little-Endian assumptions */
+#include <endian.h>
 
 #include "../ppm_flag_helpers.h"
 #include "builtins.h"
@@ -390,6 +392,8 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);
 
+/* SYSDIG -- Fix Little-Endian assumptions */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 			if (buf == 0x20544547 || // "GET "
 			    buf == 0x54534F50 || // "POST"
 			    buf == 0x20545550 || // "PUT "
@@ -400,6 +404,20 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    (buf == 0x50545448 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
 				return 2000;
 			}
+#elif __BYTE_ORDER == __BIG_ENDIAN
+			if (buf == 0x47455420 || // "GET "
+			    buf == 0x504F5354 || // "POST"
+			    buf == 0x50555420 || // "PUT "
+			    buf == 0x44454C45 || // "DELE"
+			    buf == 0x54524143 || // "TRAC"
+			    buf == 0x434F4E4E || // "CONN"
+			    buf == 0x4F505449 || // "OPTI"
+			    (buf == 0x48545450 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
+				return 2000;
+			}
+#else
+#error UNDEFINED __BYTE_ORDER
+#endif
 		}
 	}
 
@@ -959,9 +977,8 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 
 static __always_inline bool bpf_in_ia32_syscall()
 {
-#ifdef __ppc64__
-	return 0;
-#else
+/* SYSDIG -- Support non-x86 architectures */
+#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
 	struct task_struct *task;
 	u32 status;
 
@@ -978,7 +995,9 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
-#endif // #ifdef __ppc64__
+#else /* X86 */
+	return 0;
+#endif /* X86 */
 }
 
 #endif

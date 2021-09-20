@@ -43,6 +43,7 @@ limitations under the License.
 #ifdef HAS_LUA_CHISELS
 
 extern "C" {
+#define LUA_COMPAT_ALL
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -960,7 +961,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 // Initializes a lua chisel
 bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 {
-	lua_State* ls = lua_open();
+	lua_State* ls = luaL_newstate();
 	if(ls == NULL)
 	{
 		return false;
@@ -1201,7 +1202,7 @@ void sinsp_chisel::load(string cmdstr)
 	//
 	// Open the script
 	//
-	m_ls = lua_open();
+	m_ls = luaL_newstate();
 
 	luaL_openlibs(m_ls);
 

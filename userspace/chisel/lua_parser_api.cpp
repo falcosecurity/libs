@@ -25,6 +25,7 @@ limitations under the License.
 #include "lua_parser.h"
 
 extern "C" {
+#define LUA_COMPAT_ALL
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -266,7 +267,7 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 					string err = "Got non-table as in-expression operand for field " + string(fld);
 					throw sinsp_exception(err);
 				}
-				int n = lua_objlen(ls, 4);  /* get size of table */
+				int n = (int)lua_objlen(ls, 4);  /* get size of table */
 				for (i=1; i<=n; i++)
 				{
 					lua_rawgeti(ls, 4, i);
