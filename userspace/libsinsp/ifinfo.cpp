@@ -37,13 +37,14 @@ sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t b
 
 void sinsp_ipv4_ifinfo::convert_to_string(char * dest, const uint32_t addr)
 {
+	uint32_t addr_network_byte_order = htonl(addr);
 	sprintf(
 		dest,
 		"%d.%d.%d.%d",
-		(addr & 0xFF),
-		((addr & 0xFF00) >> 8),
-		((addr & 0xFF0000) >> 16),
-		((addr & 0xFF000000) >> 24));
+		((addr_network_byte_order & 0xFF000000) >> 24),
+		((addr_network_byte_order & 0xFF0000) >> 16),
+		((addr_network_byte_order & 0xFF00) >> 8),
+		(addr_network_byte_order & 0xFF));
 }
 
 string sinsp_ipv4_ifinfo::address() const
@@ -92,7 +93,7 @@ uint32_t sinsp_network_interfaces::infer_ipv4_address(uint32_t destination_addre
 	// otherwise take the first non loopback interface
 	for(it = m_ipv4_interfaces.begin(); it != m_ipv4_interfaces.end(); it++)
 	{
-		if(it->m_addr != LOOPBACK_ADDR)
+		if(it->m_addr != ntohl(INADDR_LOOPBACK))
 		{
 			return it->m_addr;
 		}
@@ -198,11 +199,15 @@ bool sinsp_network_interfaces::is_ipv4addr_in_subnet(uint32_t addr)
 	vector<sinsp_ipv4_ifinfo>::iterator it;
 
 	//
-	// Accept everything that comes from 192.168.0.0/16 or 10.0.0.0/8
+	// Accept everything that comes from private internets:
+	// - 10.0.0.0/8
+	// - 192.168.0.0/16
+	// - 172.16.0.0/12
 	//
-	if((addr & 0x000000ff) == 0x0000000a ||
-		(addr & 0x0000ffff) == 0x0000a8c0 ||
-		(addr & 0x00003fff) == 0x000010ac)
+	uint32_t addr_network_byte_order = htonl(addr);
+	if((addr_network_byte_order & 0xff000000) == 0x0a000000 ||
+	   (addr_network_byte_order & 0xffff0000) == 0xc0a80000 ||
+	   (addr_network_byte_order & 0xff3f0000) == 0xac100000)
 	{
 		return true;
 	}
