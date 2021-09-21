@@ -186,7 +186,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 		mounts.append(mount);
 	}
-
 	container["Mounts"] = mounts;
 
 	sinsp_container_info::container_health_probe::add_health_probes(container_info.m_health_probes, container);
@@ -197,7 +196,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["ip"] = addrbuff;
 
 	Json::Value port_mappings = Json::arrayValue;
-
 	for(auto &mapping : container_info.m_port_mappings)
 	{
 		Json::Value jmap;
@@ -207,7 +205,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 		port_mappings.append(jmap);
 	}
-
 	container["port_mappings"] = port_mappings;
 
 	Json::Value labels;
@@ -218,7 +215,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["labels"] = labels;
 
 	Json::Value env_vars = Json::arrayValue;
-
 	for (auto &var : container_info.m_env)
 	{
 		// Only append a limited set of mesos/marathon-related
@@ -248,7 +244,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 	string json = Json::FastWriter().write(obj);
 	// Best effor approach: we got a limit of 64kiB on payload size, see container_to_sinsp_event() lens
-	if (json.length() > UINT16_MAX)
+	if (json.length() >= UINT16_MAX)
 	{
 		// remove all array data (plus labels) that can grow too much, except for mounts that are a filter
 		container.removeMember("port_mappings");
@@ -256,7 +252,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 		container.removeMember("env");
 		json = Json::FastWriter().write(obj);
 
-		if (json.length() > UINT16_MAX)
+		if (json.length() >= UINT16_MAX)
 		{
 			// Eventually kill mounts too
 			container.removeMember("Mounts");
