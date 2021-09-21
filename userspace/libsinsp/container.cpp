@@ -157,6 +157,8 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 {
 	Json::Value obj;
 	Json::Value& container = obj["container"];
+
+	/* Main container info, never cut */
 	container["id"] = container_info.m_id;
 	container["full_id"] = container_info.m_full_id;
 	container["type"] = container_info.m_type;
@@ -172,7 +174,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
 
 	Json::Value mounts = Json::arrayValue;
-
 	for (auto &mntinfo : container_info.m_mounts)
 	{
 		Json::Value mount;
@@ -244,7 +245,26 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	}
 
 	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
-	return Json::FastWriter().write(obj);
+
+	string json = Json::FastWriter().write(obj);
+	// Best effor approach: we got a limit of 64kiB on payload size, see container_to_sinsp_event() lens
+	if (json.length() > UINT16_MAX)
+	{
+		// remove all array data (plus labels) that can grow too much, except for mounts that are a filter
+		container.removeMember("port_mappings");
+		container.removeMember("labels");
+		container.removeMember("env");
+		json = Json::FastWriter().write(obj);
+
+		if (json.length() > UINT16_MAX)
+		{
+			// Eventually kill mounts too
+			container.removeMember("Mounts");
+			json = Json::FastWriter().write(obj);
+		}
+	}
+
+	return json;
 }
 
 bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
@@ -277,7 +297,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scapevt->type = PPME_CONTAINER_JSON_2_E;
 	scapevt->nparams = 1;
 
-	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	uint32_t* lens = (uint32_t*)scapevt->payload;
 	char* valptr = (char*)lens + sizeof(uint32_t);
 
 	*lens = (uint32_t)json.length() + 1;

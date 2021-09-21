@@ -446,23 +446,24 @@ private:
 		// new parameters. If instead we're reading an older version, the current
 		// event table entry may contain new parameters.
 		// Use the minimum between the two values.
-		nparams = m_info->nparams < m_pevt->nparams ? m_info->nparams : m_pevt->nparams;
+		nparams = std::min(m_info->nparams, m_pevt->nparams);
 
 		char *valptr;
 		union {
 			uint16_t* lens16;
 			uint32_t* lens32;
-		} lens;
+		} lens{};
 
 		const bool large_payload = get_info_flags() & EF_LARGE_PAYLOAD;
 
 		if (large_payload) {
-			lens.lens32 = (uint32_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
+			lens.lens32 = (uint32_t *)m_pevt->payload;
 			// The offset in the block is instead always based on the capture value.
 			valptr = (char *)lens.lens32 + m_pevt->nparams * sizeof(uint32_t);
-		} else
+		}
+		else
 		{
-			lens.lens16 = (uint16_t*)((char*)m_pevt + sizeof(struct ppm_evt_hdr));
+			lens.lens16 = (uint16_t*)m_pevt->payload;
 			// The offset in the block is instead always based on the capture value.
 			valptr = (char *)lens.lens16 + m_pevt->nparams * sizeof(uint16_t);
 		}

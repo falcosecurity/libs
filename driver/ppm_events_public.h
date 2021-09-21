@@ -1454,6 +1454,9 @@ struct ppm_evt_hdr {
 	uint32_t len; /* the event len, including the header */
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
+	char payload[]; /* Flexible array member for payload data;
+                        * first nparams * uint16_t are used for nparams size header (ie: the size of each param)
+                        * then there is real params values memory */
 };
 #if defined __sun
 #pragma pack()
