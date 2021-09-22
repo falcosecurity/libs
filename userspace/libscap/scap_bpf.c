@@ -426,6 +426,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	if(*event == 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event name cannot be empty");
+		free(error);
 		return SCAP_FAILURE;
 	}
 
