@@ -243,24 +243,27 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["metadata_deadline"] = (Json::Value::UInt64) container_info.m_metadata_deadline;
 
 	string json = Json::FastWriter().write(obj);
-	// Best effor approach: we got a limit of 64kiB on payload size, see container_to_sinsp_event() lens
-	if (json.length() >= UINT16_MAX)
-	{
-		// remove all array data (plus labels) that can grow too much, except for mounts that are a filter
-		container.removeMember("port_mappings");
-		container.removeMember("labels");
-		container.removeMember("env");
-		json = Json::FastWriter().write(obj);
 
-		if (json.length() >= UINT16_MAX)
-		{
-			// Eventually kill mounts too
-			container.removeMember("Mounts");
-			json = Json::FastWriter().write(obj);
-		}
+	/*
+	 * Best effort approach: we got a limit of 64kiB on payload size, see container_to_sinsp_event() lens.
+	 * Try our best to respect it by removing possibly unlimited metadata
+	 */
+	string removableMembers[] = {"port_mappings", "env", "labels", "Mounts" };
+	int idx = 0;
+	Json::Value trimmed_vars = Json::arrayValue;
+	while (json.length() >= UINT16_MAX && idx < 4)
+	{
+		container.removeMember(removableMembers[idx]);
+		trimmed_vars.append(removableMembers[idx]);
+		json = Json::FastWriter().write(obj);
+		idx++;
+	}
+	if (idx > 0)
+	{
+		container["REDACTED"] = trimmed_vars;
 	}
 
-	return json;
+	return Json::FastWriter().write(obj);
 }
 
 bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)

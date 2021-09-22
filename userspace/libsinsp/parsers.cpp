@@ -4857,6 +4857,15 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 		}
 
+		const Json::Value& redacted_vars = container["REDACTED"];
+		for(unsigned int i = 0; i < redacted_vars.size(); i++)
+		{
+			if(redacted_vars[i].isString())
+			{
+				container_info->m_redacted_state |= (1 << i);
+			}
+		}
+
 		if(!container_info->is_successful())
 		{
 			SINSP_DEBUG("Filtering container event for failed lookup of %s (but calling callbacks anyway)", container_info->m_id.c_str());

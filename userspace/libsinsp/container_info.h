@@ -185,6 +185,18 @@ public:
 		std::vector<std::string> m_health_probe_args;
 	};
 
+	/*
+ 	 * Metadata above 64kiB is truncated to fit in a single event.
+ 	 * Report back truncated json info to external world.
+	 */
+	enum sinsp_container_redacted_state {
+		NO_REDACTED,
+		REDACTED_PORT_MAPPINGS = 	1 << 0,
+		REDACTED_ENV = 			1 << 1,
+		REDACTED_LABELS = 		1 << 2,
+		REDACTED_MOUNTS = 		1 << 3,
+	};
+
 	sinsp_container_info():
 		m_container_ip(0),
 		m_privileged(false),
@@ -196,6 +208,7 @@ public:
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
 		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
+		m_redacted_state(sinsp_container_redacted_state::NO_REDACTED),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
 	{
@@ -209,6 +222,10 @@ public:
 
 	bool is_pod_sandbox() const {
 		return m_is_pod_sandbox;
+	}
+
+	bool is_redacted() const {
+		return m_redacted_state != sinsp_container_redacted_state::NO_REDACTED;
 	}
 
 	bool is_successful() const {
@@ -250,6 +267,8 @@ public:
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif
+	int m_redacted_state;
+
 	uint64_t m_metadata_deadline;
 
 	/**
