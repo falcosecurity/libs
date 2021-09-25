@@ -87,6 +87,10 @@ typedef enum ss_plugin_field_type
 // - ts: the event timestamp, in nanoseconds since the epoch.
 //   Can be (uint64_t)-1, in which case the engine will automatically
 //   fill the event time with the current time.
+//
+// Note: event numbers are assigned by the plugin
+// framework. Therefore, there isn't any need to fill in evtnum when
+// returning an event via plugin_next/plugin_next_batch. It will be ignored.
 typedef struct ss_plugin_event
 {
 	uint64_t evtnum;
