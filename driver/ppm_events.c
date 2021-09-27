@@ -885,7 +885,7 @@ static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed
 }
 */
 
-static void unix_socket_path(char *dest, const char *path)
+static void unix_socket_path(char *dest, const char *path, size_t size)
 {
 	if (path[0] == '\0') {
 		/*
@@ -897,13 +897,14 @@ static void unix_socket_path(char *dest, const char *path)
 		 * specified length of the address structure.
 		 */
 		snprintf(dest,
-			 UNIX_PATH_MAX,
+			 size,
 			 "@%s",
 			 path + 1);
 	} else {
 		dest = strncpy(dest,
 			       path,
-			       UNIX_PATH_MAX); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+			       size - 1); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+		dest[size - 1] = 0;
 	}
 }
 
@@ -998,9 +999,8 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		*targetbuf = socket_family_to_scap((u8)family);
 
 		dest = targetbuf + 1;
-		unix_socket_path(dest, usrsockaddr_un->sun_path);
+		unix_socket_path(dest, usrsockaddr_un->sun_path, UNIX_PATH_MAX);
 
-		dest[UNIX_PATH_MAX - 1] = 0;
 		size += (u16)strlen(dest) + 1;
 
 		break;
@@ -1257,9 +1257,8 @@ u16 fd_to_socktuple(int fd,
 		ASSERT(us_name);
 
 		dest = targetbuf + 1 + 8 + 8;
-		unix_socket_path(dest, us_name);
+		unix_socket_path(dest, us_name, UNIX_PATH_MAX);
 
-		dest[UNIX_PATH_MAX - 1] = 0;
 		size += strlen(dest) + 1;
 	#endif /* UDIG */
 		break;
