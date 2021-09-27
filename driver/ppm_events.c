@@ -885,6 +885,28 @@ static struct socket *ppm_sockfd_lookup_light(int fd, int *err, int *fput_needed
 }
 */
 
+static void unix_socket_path(char *dest, const char *path)
+{
+	if (path[0] == '\0') {
+		/*
+		 * Extract from: https://man7.org/linux/man-pages/man7/unix.7.html
+		 * an abstract socket address is distinguished (from a
+		 * pathname socket) by the fact that sun_path[0] is a null byte
+		 * ('\0').  The socket's address in this namespace is given by
+		 * the additional bytes in sun_path that are covered by the
+		 * specified length of the address structure.
+		 */
+		snprintf(dest,
+			 UNIX_PATH_MAX,
+			 "@%s",
+			 path + 1);
+	} else {
+		dest = strncpy(dest,
+			       path,
+			       UNIX_PATH_MAX); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+	}
+}
+
 /*
  * Convert a sockaddr into our address representation and copy it to
  * targetbuf
@@ -974,9 +996,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		size = 1;
 
 		*targetbuf = socket_family_to_scap((u8)family);
-		dest = strncpy(targetbuf + 1,
-					usrsockaddr_un->sun_path,
-					UNIX_PATH_MAX);	/* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+		unix_socket_path(targetbuf + 1, usrsockaddr_un->sun_path);
 
 		dest[UNIX_PATH_MAX - 1] = 0;
 		size += (u16)strlen(dest) + 1;
@@ -1233,9 +1253,8 @@ u16 fd_to_socktuple(int fd,
 		}
 
 		ASSERT(us_name);
-		dest = strncpy(targetbuf + 1 + 8 + 8,
-					(char *)us_name,
-					UNIX_PATH_MAX);	/* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
+		dest = targetbuf + 1 + 8 + 8;
+		unix_socket_path(dest, us_name);
 
 		dest[UNIX_PATH_MAX - 1] = 0;
 		size += strlen(dest) + 1;

@@ -406,6 +406,28 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 	return res;
 }
 
+static __always_inline int unix_socket_path(char *dest, const char *user_ptr) {
+	int res = bpf_probe_read_str(dest,
+				     UNIX_PATH_MAX,
+				     user_ptr);
+	/*
+  	 * Extract from: https://man7.org/linux/man-pages/man7/unix.7.html
+	 * an abstract socket address is distinguished (from a
+	 * pathname socket) by the fact that sun_path[0] is a null byte
+	 * ('\0').  The socket's address in this namespace is given by
+	 * the additional bytes in sun_path that are covered by the
+	 * specified length of the address structure.
+	 */
+	if (res == 1) {
+		dest[0] = '@';
+		res = bpf_probe_read_str(dest + 1,
+					 UNIX_PATH_MAX,
+					 user_ptr + 1);
+		res++; // account for '@'
+	}
+	return res;
+}
+
 static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 					 struct sockaddr *usrsockaddr,
 					 int ulen)
@@ -487,9 +509,7 @@ static __always_inline u16 bpf_pack_addr(struct filler_data *data,
 
 		data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
 
-		res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF],
-					 UNIX_PATH_MAX,
-					 usrsockaddr_un->sun_path);
+		res = unix_socket_path(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], usrsockaddr_un->sun_path);
 
 		size += res;
 
@@ -697,9 +717,7 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 				us_name = usrsockaddr_un->sun_path;
 		}
 
-		int res = bpf_probe_read_str(&data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF],
-					     UNIX_PATH_MAX,
-					     us_name);
+		int res = unix_socket_path(&data->buf[(data->state->tail_ctx.curoff + 1 + 8 + 8) & SCRATCH_SIZE_HALF], us_name);
 
 		size += res;
 
