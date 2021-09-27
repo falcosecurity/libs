@@ -996,7 +996,9 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 		size = 1;
 
 		*targetbuf = socket_family_to_scap((u8)family);
-		unix_socket_path(targetbuf + 1, usrsockaddr_un->sun_path);
+
+		dest = targetbuf + 1;
+		unix_socket_path(dest, usrsockaddr_un->sun_path);
 
 		dest[UNIX_PATH_MAX - 1] = 0;
 		size += (u16)strlen(dest) + 1;
@@ -1253,6 +1255,7 @@ u16 fd_to_socktuple(int fd,
 		}
 
 		ASSERT(us_name);
+
 		dest = targetbuf + 1 + 8 + 8;
 		unix_socket_path(dest, us_name);
 
