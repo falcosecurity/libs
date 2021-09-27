@@ -901,10 +901,10 @@ static void unix_socket_path(char *dest, const char *path, size_t size)
 			 "@%s",
 			 path + 1);
 	} else {
-		dest = strncpy(dest,
-			       path,
-			       size - 1); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
-		dest[size - 1] = 0;
+		snprintf(dest,
+			size,
+			 "%s",
+			 path); /* we assume this will be smaller than (targetbufsize - (1 + 8 + 8)) */
 	}
 }
 
