@@ -984,6 +984,12 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	handle->m_input_plugin = input_plugin;
 	handle->m_input_plugin->name = handle->m_input_plugin->get_name();
 	handle->m_input_plugin->id = handle->m_input_plugin->get_id();
+
+	// Set the rc to SCAP_FAILURE now, so in the unlikely event
+	// that a plugin doesn't not actually set a rc, that it gets
+	// treated as a failure.
+	*rc = SCAP_FAILURE;
+
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
 		input_plugin_params,
 		rc);
