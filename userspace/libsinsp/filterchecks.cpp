@@ -2793,6 +2793,7 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.s", "event timestamp as a time string with no nanoseconds."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.time.iso8601", "event timestamp in ISO 8601 format, including nanoseconds and time zone offset (in UTC)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime", "event timestamp as a time string that includes the date."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.datetime.s", "event timestamp as a datetime string with no nanoseconds."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime", "absolute event timestamp, i.e. nanoseconds from epoch."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "evt.rawtime.s", "integer part of the event timestamp (e.g. seconds since epoch)."},
 	{PT_ABSTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.rawtime.ns", "fractional part of the absolute event timestamp."},
@@ -3343,6 +3344,7 @@ Json::Value sinsp_filter_check_event::extract_as_js(sinsp_evt *evt, OUT uint32_t
 	case TYPE_TIME_S:
 	case TYPE_TIME_ISO8601:
 	case TYPE_DATETIME:
+	case TYPE_DATETIME_S:
 	case TYPE_RUNTIME_TIME_OUTPUT_FORMAT:
 		return (Json::Value::Int64)evt->get_ts();
 
@@ -3434,6 +3436,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_DATETIME:
 		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, true);
+		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_DATETIME_S:
+		sinsp_utils::ts_to_string(evt->get_ts(), &m_strstorage, true, false);
 		RETURN_EXTRACT_STRING(m_strstorage);
 	case TYPE_RAWTS:
 		RETURN_EXTRACT_VAR(evt->m_pevt->ts);
@@ -6660,7 +6665,21 @@ char* sinsp_filter_check_reference::format_bytes(double val, uint32_t str_len, b
 
 char* sinsp_filter_check_reference::format_time(uint64_t val, uint32_t str_len)
 {
-	if(val >= ONE_SECOND_IN_NS)
+	if(val >= 3600 * ONE_SECOND_IN_NS)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%.2u:%.2u:%.2u", (unsigned int)(val / (3600 * ONE_SECOND_IN_NS)),
+					(unsigned int)((val / (60 * ONE_SECOND_IN_NS)) % 60 ),
+					(unsigned int)((val / ONE_SECOND_IN_NS) % 60));
+	}
+	else if(val >= 60 * ONE_SECOND_IN_NS)
+	{
+		snprintf(m_getpropertystr_storage,
+					sizeof(m_getpropertystr_storage),
+					"%u:%u", (unsigned int)(val / (60 * ONE_SECOND_IN_NS)), (unsigned int)((val / ONE_SECOND_IN_NS) % 60));
+	}
+	else if(val >= ONE_SECOND_IN_NS)
 	{
 		snprintf(m_getpropertystr_storage,
 					sizeof(m_getpropertystr_storage),
