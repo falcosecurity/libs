@@ -143,10 +143,11 @@ int lua_parser_cbacks::nest(lua_State *ls)
 	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
-		lua_error(ls);
+		return 1;
 	}
 
-	return 0;
+	lua_pushnil(ls);
+	return 1;
 }
 
 int lua_parser_cbacks::unnest(lua_State *ls)
@@ -167,10 +168,11 @@ int lua_parser_cbacks::unnest(lua_State *ls)
 	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
-		lua_error(ls);
+		return 1;
 	}
 
-	return 0;
+	lua_pushnil(ls);
+	return 1;
 }
 
 int lua_parser_cbacks::bool_op(lua_State *ls)
@@ -211,9 +213,11 @@ int lua_parser_cbacks::bool_op(lua_State *ls)
 	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
-		lua_error(ls);
+		return 1;
 	}
-	return 0;
+
+	lua_pushnil(ls);
+	return 1;
 
 }
 
@@ -301,9 +305,10 @@ int lua_parser_cbacks::rel_expr(lua_State *ls)
 	catch (const std::exception& e)
 	{
 		lua_pushstring(ls, e.what());
-		lua_error(ls);
+		return 1;
 	}
 
-	return 0;
+	lua_pushnil(ls);
+	return 1;
 }
 
