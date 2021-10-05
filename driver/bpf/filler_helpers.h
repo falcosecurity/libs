@@ -16,6 +16,10 @@ or GPL2.txt for full copies of the license.
 #include <linux/in.h>
 #include <linux/fdtable.h>
 #include <linux/net.h>
+#if 1
+/* SYSDIG -- Fix Little-Endian assumptions */
+#include <endian.h>
+#endif /* SYSDIG */
 
 #include "../ppm_flag_helpers.h"
 #include "builtins.h"
@@ -390,6 +394,8 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);
 
+/* SYSDIG -- Fix Little-Endian assumptions */
+#if __BYTE_ORDER == __LITTLE_ENDIAN
 			if (buf == 0x20544547 || // "GET "
 			    buf == 0x54534F50 || // "POST"
 			    buf == 0x20545550 || // "PUT "
@@ -400,6 +406,20 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    (buf == 0x50545448 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
 				return 2000;
 			}
+#elif __BYTE_ORDER == __BIG_ENDIAN
+			if (buf == 0x47455420 || // "GET "
+			    buf == 0x504F5354 || // "POST"
+			    buf == 0x50555420 || // "PUT "
+			    buf == 0x44454C45 || // "DELE"
+			    buf == 0x54524143 || // "TRAC"
+			    buf == 0x434F4E4E || // "CONN"
+			    buf == 0x4F505449 || // "OPTI"
+			    (buf == 0x48545450 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
+				return 2000;
+			}
+#else
+#error UNDEFINED __BYTE_ORDER
+#endif
 		}
 	}
 
@@ -719,21 +739,44 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 {
 	unsigned int len_dyn = 0;
 	unsigned int len;
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Declare parameter as volatile to force re-evaluation
+ */
+	volatile unsigned long curoff_bounded;
+#else /* SYSDIG */
 	unsigned long curoff_bounded;
+#endif /* SYSDIG */
 
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
 	if (dyn_idx != (u8)-1) {
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Add gratuitous mask to satisfy verifier
+ */
+		*((u8 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = dyn_idx;
+#else /* SYSDIG */
 		*((u8 *)&data->buf[curoff_bounded]) = dyn_idx;
+#endif /* SYSDIG */
 		len_dyn = sizeof(u8);
 		data->state->tail_ctx.curoff += len_dyn;
 		data->state->tail_ctx.len += len_dyn;
 	}
 
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment of curoff_bounded to near its usage
+ */
+#else /* SYSDIG */
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 		return PPM_FAILURE_BUFFER_FULL;
+#endif /* SYSDIG */
 
 	switch (type) {
 	case PT_CHARBUF:
@@ -742,9 +785,22 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) {
 			int res;
 
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+			curoff_bounded = data->state->tail_ctx.curoff;
+			if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+				return PPM_FAILURE_BUFFER_FULL;
+			res = bpf_probe_read_str(&data->buf[curoff_bounded & SCRATCH_SIZE_HALF],
+						 PPM_MAX_ARG_SIZE,
+						 (const void *)val);
+#else /* SYSDIG */
 			res = bpf_probe_read_str(&data->buf[curoff_bounded],
 						 PPM_MAX_ARG_SIZE,
 						 (const void *)val);
+#endif /* SYSDIG */
 			if (res == -EFAULT)
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 			len = res;
@@ -767,6 +823,28 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 				if (!data->curarg_already_on_frame) {
 					volatile u16 read_size = dpi_lookahead_size;
 
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+					curoff_bounded = data->state->tail_ctx.curoff;
+					if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+						return PPM_FAILURE_BUFFER_FULL;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+					if (read_size)
+						if (bpf_probe_read(&data->buf[curoff_bounded & SCRATCH_SIZE_HALF],
+								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+								   (void *)val))
+#else
+					if (bpf_probe_read(&data->buf[curoff_bounded & SCRATCH_SIZE_HALF],
+							   read_size & SCRATCH_SIZE_HALF,
+							   (void *)val))
+#endif
+						return PPM_FAILURE_INVALID_USER_MEMORY;
+#else /* SYSDIG */
+
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
 						if (bpf_probe_read(&data->buf[curoff_bounded],
@@ -778,6 +856,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 							   (void *)val))
 #endif
 						return PPM_FAILURE_INVALID_USER_MEMORY;
+#endif /* SYSDIG */
 				}
 
 				sl = bpf_compute_snaplen(data, dpi_lookahead_size);
@@ -791,6 +870,28 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 			if (!data->curarg_already_on_frame) {
 				volatile u16 read_size = len;
 
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+				curoff_bounded = data->state->tail_ctx.curoff;
+				if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+					return PPM_FAILURE_BUFFER_FULL;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (read_size)
+					if (bpf_probe_read(&data->buf[curoff_bounded & SCRATCH_SIZE_HALF],
+							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+							   (void *)val))
+#else
+				if (bpf_probe_read(&data->buf[curoff_bounded & SCRATCH_SIZE_HALF],
+						   read_size & SCRATCH_SIZE_HALF,
+						   (void *)val))
+#endif
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+#else /* SYSDIG */
+
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
 					if (bpf_probe_read(&data->buf[curoff_bounded],
@@ -802,6 +903,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 						   (void *)val))
 #endif
 					return PPM_FAILURE_INVALID_USER_MEMORY;
+#endif /* SYSDIG */
 			}
 		} else {
 			len = 0;
@@ -823,13 +925,35 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_FLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((u8 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((u8 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(u8);
 		break;
 	case PT_FLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((u16 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((u16 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(u16);
 		break;
 	case PT_FLAGS32:
@@ -838,32 +962,98 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((u32 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((u32 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(u32);
 		break;
 	case PT_RELTIME:
 	case PT_ABSTIME:
 	case PT_UINT64:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((u64 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((u64 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(u64);
 		break;
 	case PT_INT8:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((s8 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((s8 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(s8);
 		break;
 	case PT_INT16:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((s16 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((s16 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(s16);
 		break;
 	case PT_INT32:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((s32 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((s32 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(s32);
 		break;
 	case PT_INT64:
 	case PT_ERRNO:
 	case PT_FD:
 	case PT_PID:
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment/check of curoff_bounded to near its usage
+ */
+		curoff_bounded = data->state->tail_ctx.curoff;
+		if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+		*((s64 *)&data->buf[curoff_bounded & SCRATCH_SIZE_HALF]) = val;
+#else /* SYSDIG */
 		*((s64 *)&data->buf[curoff_bounded]) = val;
+#endif /* SYSDIG */
 		len = sizeof(s64);
 		break;
 	default: {
@@ -933,9 +1123,8 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 
 static __always_inline bool bpf_in_ia32_syscall()
 {
-#ifdef __ppc64__
-	return 0;
-#else
+/* SYSDIG -- Support non-x86 architectures */
+#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
 	struct task_struct *task;
 	u32 status;
 
@@ -952,7 +1141,9 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
-#endif // #ifdef __ppc64__
+#else /* X86 */
+	return 0;
+#endif /* X86 */
 }
 
 #endif

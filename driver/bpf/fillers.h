@@ -280,7 +280,15 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	unsigned long nfds;
 	struct pollfd *fds;
 	unsigned long val;
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Declare parameter as volatile to force re-evaluation
+ */
+	volatile unsigned long off;
+#else /* SYSDIG */
 	unsigned long off;
+#endif /* SYSDIG */
 	int j;
 
 	nfds = bpf_syscall_get_argument(data, 1);
@@ -435,7 +443,15 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (size > 0) {
 			unsigned long off = _READ(data->state->tail_ctx.curoff);
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Declare parameter as volatile to force re-evaluation
+ */
+			volatile unsigned long off_bounded;
+#else /* SYSDIG */
 			unsigned long off_bounded;
+#endif /* SYSDIG */
 			unsigned long remaining = size;
 			int j;
 
@@ -446,7 +462,14 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (j == iovcnt)
 					break;
 
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment of curoff_bounded to near its usage
+ */
+#else /* SYSDIG */
 				off_bounded = off & SCRATCH_SIZE_HALF;
+#endif /* SYSDIG */
 				if (off > SCRATCH_SIZE_HALF)
 					break;
 
@@ -457,6 +480,37 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 
 				if (to_read > SCRATCH_SIZE_HALF)
 					to_read = SCRATCH_SIZE_HALF;
+
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Use volatile local variable to gratuitously calculate bounded amount to read, near usage
+ * - Move assignment/check of off_bounded to near its usage
+ * - Add gratuitous mask to satisfy verifier
+ */
+				{
+					volatile unsigned int to_read_bounded;
+					to_read_bounded = to_read;
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+					if (to_read_bounded) {
+						off_bounded = off;
+						if (bpf_probe_read(&data->buf[off_bounded & SCRATCH_SIZE_HALF],
+								   ((to_read_bounded - 1) & SCRATCH_SIZE_HALF) + 1,
+								   iov[j].iov_base))  {
+							return PPM_FAILURE_INVALID_USER_MEMORY;
+						}
+					}
+#else
+					off_bounded = off;
+					if (bpf_probe_read(&data->buf[off_bounded & SCRATCH_SIZE_HALF],
+							   to_read_bounded & SCRATCH_SIZE_HALF,
+							   iov[j].iov_base)) {
+						return PPM_FAILURE_INVALID_USER_MEMORY;
+					}
+#endif
+				}
+
+#else /* SYSDIG */
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (to_read)
@@ -469,6 +523,8 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 						   iov[j].iov_base))
 #endif
 					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+#endif /* SYSDIG */
 
 				remaining -= to_read;
 				off += to_read;
