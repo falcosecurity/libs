@@ -65,6 +65,8 @@ struct iovec;
 #define MAP_FAILED (void*)-1
 #endif
 
+#include "plugin_info.h"
+
 //
 // Return types
 //
@@ -288,6 +290,10 @@ typedef enum {
 	 * returned.
 	 */
 	SCAP_MODE_NODRIVER,
+	/*!
+	 * Do not read system call data. Events come from the configured input plugin.
+	 */
+	SCAP_MODE_PLUGIN,
 } scap_mode_t;
 
 typedef struct scap_open_args
@@ -305,6 +311,8 @@ typedef struct scap_open_args
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
+	source_plugin_info* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
+	char* input_plugin_params; ///< optional parameters string for the source plugin pointed by src_plugin
 }scap_open_args;
 
 
