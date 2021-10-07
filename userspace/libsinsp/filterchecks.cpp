@@ -4564,6 +4564,13 @@ const std::set<uint16_t> &sinsp_filter_check_event::evttypes()
 	// operators/inverse don't work for these values.
 	for(uint32_t i = 2; i < PPM_EVENT_MAX; i++)
 	{
+		// Skip "old" event versions that have been replaced
+		// by newer event versions, or events that are unused.
+		if(etable[i].flags & (EF_OLD_VERSION | EF_UNUSED))
+		{
+			continue;
+		}
+
 		// The values are held as strings, so we need to
 		// convert them back to numbers.
 		bool found = false;
