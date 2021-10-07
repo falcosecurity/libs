@@ -929,7 +929,7 @@ VISIBILITY_PRIVATE
 
         static inline ppm_event_flags simple_consumer_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS);
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS | EF_OLD_VERSION);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
