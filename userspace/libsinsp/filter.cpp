@@ -655,11 +655,21 @@ sinsp_filter_check::sinsp_filter_check()
 	// Do this once
 	if(s_all_event_types.size() == 0)
 	{
+		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
+		const struct ppm_event_info* etable = einfo->m_event_info;
+
 		//
 		// Fill in from 2 to PPM_EVENT_MAX-1. 0 and 1 are excluded as
 		// those are PPM_GENERIC_E/PPME_GENERIC_X.
 		for(uint16_t i = 2; i < PPM_EVENT_MAX; i++)
 		{
+			// Skip "old" event versions that have been replaced
+			// by newer event versions, or events that are unused.
+			if(etable[i].flags & (EF_OLD_VERSION | EF_UNUSED))
+			{
+				continue;
+			}
+
 			s_all_event_types.insert(i);
 		}
 	}
