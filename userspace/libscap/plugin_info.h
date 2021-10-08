@@ -60,9 +60,9 @@ typedef enum ss_plugin_field_type
 }ss_plugin_field_type;
 
 // Values to return from init() / open() / next() / next_batch() /
-// extract_fields() / register_async_extractor(). Note that these
-// values map exactly to the corresponding SCAP_XXX values in scap.h,
-// and should be kept in sync.
+// extract_fields(). Note that these values map exactly to the
+// corresponding SCAP_XXX values in scap.h, and should be kept in
+// sync.
 #define SS_PLUGIN_SUCCESS 0
 #define SS_PLUGIN_FAILURE 1
 #define SS_PLUGIN_TIMEOUT -1
@@ -130,20 +130,6 @@ typedef struct ss_plugin_extract_field
 	char *res_str;
 	uint64_t res_u64;
 } ss_plugin_extract_field;
-
-// Used by the async extraction interface
-typedef bool (*cb_wait_t)(void* wait_ctx);
-
-typedef struct async_extractor_info
-{
-	// Pointer as this allows swapping out events from other
-	// structs.
-	const ss_plugin_event *evt;
-	ss_plugin_extract_field *field;
-	int32_t rc;
-	cb_wait_t cb_wait;
-	void* wait_ctx;
-} async_extractor_info;
 
 //
 // This is the opaque pointer to the state of a plugin.
@@ -395,11 +381,6 @@ typedef struct
 	// Required: no
 	//
 	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
-	//
-	// This is an optional, internal, function used to speed up value extraction
-	// Required: no
-	//
-	int32_t (*register_async_extractor)(ss_plugin_t *s, async_extractor_info *info);
 
 	//
 	// The following members are PRIVATE for the engine and should not be touched.

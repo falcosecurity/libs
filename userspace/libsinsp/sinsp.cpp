@@ -164,8 +164,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
-
-	m_n_async_plugin_extractors = 0;
 }
 
 sinsp::~sinsp()
@@ -1605,14 +1603,6 @@ void sinsp::set_statsd_port(const uint16_t port)
 
 void sinsp::add_plugin(std::shared_ptr<sinsp_plugin> plugin)
 {
-	uint32_t ncpus = thread::hardware_concurrency();
-	bool avoid_async = ncpus == 0 || (m_n_async_plugin_extractors >= (ncpus - 1));
-
-	if(avoid_async)
-	{
-		plugin->disable_async_extract();
-	}
-
 	for(auto& it : m_plugins_list)
 	{
 		if(it->name() == plugin->name())
