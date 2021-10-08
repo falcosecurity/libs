@@ -79,7 +79,6 @@ set(SINSP_SOURCES
 	logger.cpp
 	parsers.cpp
 	plugin.cpp
-	plugin_evt_processor.cpp
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp

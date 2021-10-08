@@ -36,7 +36,6 @@ limitations under the License.
 #include "protodecoder.h"
 #include "dns_manager.h"
 #include "plugin.h"
-#include "plugin_evt_processor.h"
 
 
 #ifndef CYGWING_AGENT
@@ -78,14 +77,12 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif
 	m_h = NULL;
 	m_parser = NULL;
-	m_plugin_evt_processor = NULL;
 	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_meinfo.m_piscapevt = NULL;
 	m_network_interfaces = NULL;
 	m_parser = new sinsp_parser(this);
-	m_plugin_evt_processor = new sinsp_plugin_evt_processor(this);
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
@@ -184,12 +181,6 @@ sinsp::~sinsp()
 	{
 		delete m_parser;
 		m_parser = NULL;
-	}
-
-	if(m_plugin_evt_processor)
-	{
-		delete m_plugin_evt_processor;
-		m_plugin_evt_processor = NULL;
 	}
 
 	if(m_thread_manager)
@@ -1126,9 +1117,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 {
 	sinsp_evt* evt;
 	int32_t res;
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-	bool from_plugin_proc_backlog = false;
-#endif
 
 	//
 	// Check if there are fake cpu events to  events
@@ -1153,69 +1141,58 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #endif
 	else
 	{
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		evt = m_plugin_evt_processor->get_event_from_backlog();
-		if(evt != NULL)
-		{
-			res = SCAP_SUCCESS;
-			from_plugin_proc_backlog = true;
-		}
-		else
-#endif
-		{
-			evt = &m_evt;
+		evt = &m_evt;
 
-			//
-			// Reset previous event's decoders if required
-			//
-			if(m_decoders_reset_list.size() != 0)
+		//
+		// Reset previous event's decoders if required
+		//
+		if(m_decoders_reset_list.size() != 0)
+		{
+			vector<sinsp_protodecoder*>::iterator it;
+			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
 			{
-				vector<sinsp_protodecoder*>::iterator it;
-				for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
-				{
-					(*it)->on_reset(evt);
-				}
-
-				m_decoders_reset_list.clear();
+				(*it)->on_reset(evt);
 			}
 
-			//
-			// Get the event from libscap
-			//
-			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+			m_decoders_reset_list.clear();
+		}
 
-			if(res != SCAP_SUCCESS)
+		//
+		// Get the event from libscap
+		//
+		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+
+		if(res != SCAP_SUCCESS)
+		{
+			if(res == SCAP_TIMEOUT)
 			{
-				if(res == SCAP_TIMEOUT)
+				if (m_external_event_processor)
 				{
-					if (m_external_event_processor)
-					{
-						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
-					}
-					*puevt = NULL;
-					return res;
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_TIMEOUT);
 				}
-				else if(res == SCAP_EOF)
-				{
-					if (m_external_event_processor)
-					{
-						m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
-					}
-				}
-				else if(res == SCAP_UNEXPECTED_BLOCK)
-				{
-					uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-					restart_capture_at_filepos(filepos);
-					return SCAP_TIMEOUT;
-
-				}
-				else
-				{
-					m_lasterr = scap_getlasterr(m_h);
-				}
-
+				*puevt = NULL;
 				return res;
 			}
+			else if(res == SCAP_EOF)
+			{
+				if (m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_EOF);
+				}
+			}
+			else if(res == SCAP_UNEXPECTED_BLOCK)
+			{
+				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
+				restart_capture_at_filepos(filepos);
+				return SCAP_TIMEOUT;
+
+			}
+			else
+			{
+				m_lasterr = scap_getlasterr(m_h);
+			}
+
+			return res;
 		}
 	}
 
@@ -1355,24 +1332,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		return SCAP_TIMEOUT;
 	}
 #else
-	if(evt->get_type() == PPME_PLUGINEVENT_E)
-	{
-#ifdef MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		if(!from_plugin_proc_backlog)
-#endif // MULTITHREAD_PLUGIN_EVT_PROCESSOR_ENABLED
-		{
-			evt = m_plugin_evt_processor->process_event(evt);
-			if(evt == NULL)
-			{
-				*puevt = evt;
-				return SCAP_TIMEOUT;
-			}
-		}
-	}
-	else
-	{
-		m_parser->process_event(evt);
-	}
+	m_parser->process_event(evt);
 #endif
 
 	//
@@ -1794,8 +1754,6 @@ void sinsp::set_filter(const string& filter)
 	sinsp_filter_compiler compiler(this, filter);
 	m_filter = compiler.compile();
 	m_filterstring = filter;
-
-	m_plugin_evt_processor->compile(filter);
 }
 
 const string sinsp::get_filter()
