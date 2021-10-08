@@ -113,7 +113,6 @@ class k8s;
 class sinsp_partial_tracer;
 class mesos;
 class sinsp_plugin;
-class sinsp_plugin_evt_processor;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -943,10 +942,6 @@ public:
 	const std::vector<std::shared_ptr<sinsp_plugin>>& get_plugins();
 	std::shared_ptr<sinsp_plugin> get_plugin_by_id(uint32_t plugin_id);
 	std::shared_ptr<sinsp_plugin> get_source_plugin_by_source(const std::string &source);
-	sinsp_plugin_evt_processor* get_plugin_evt_processor()
-	{
-		return m_plugin_evt_processor;
-	}
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
@@ -1053,7 +1048,6 @@ private:
 	uint64_t m_lastevent_ts;
 	// the parsing engine
 	sinsp_parser* m_parser;
-	sinsp_plugin_evt_processor* m_plugin_evt_processor;
 	// the statistics analysis engine
 	scap_dumper_t* m_dumper;
 	bool m_is_dumping;

@@ -29,7 +29,6 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "plugin.h"
-#include "plugin_evt_processor.h"
 
 #include <third-party/tinydir.h>
 
