@@ -81,7 +81,7 @@ typedef enum ss_plugin_field_type
 // - data: pointer to a memory buffer pointer. The plugin will set it
 //   to point to the memory containing the next event. Once returned,
 //   the memory is owned by the plugin framework and will be freed via
-//   a call to free().
+//   a call to plugin_free_mem().
 // - datalen: pointer to a 32bit integer. The plugin will set it the size of the
 //   buffer pointed by data.
 // - ts: the event timestamp, in nanoseconds since the epoch.
@@ -115,7 +115,8 @@ typedef struct ss_plugin_event
 //   extracted value for the provided field, false otherwise
 // - res_str: if the corresponding field was type==string, this should be
 //   filled in with the string value. The string should be allocated by
-//   the plugin using malloc() and will be free()d by the plugin framework.
+//   the plugin using malloc()/similar and will be free()d by the plugin
+//   framework by calling plugin_free_mem().
 // - res_u64: if the corresponding field was type==uint64, this should be
 //   filled in with the uint64 value.
 
@@ -175,7 +176,7 @@ typedef void ss_instance_t;
 //
 // NOTE: For all functions below that return a char */struct *, the memory
 // pointed to by the char */struct * must be allocated by the plugin using
-// malloc() and should be freed by the caller using free().
+// malloc()/similar and should be freed by the caller using plugin_free_mem().
 //
 
 //
@@ -194,6 +195,12 @@ typedef struct
 	//       and enforcing compatibility.
 	//
 	char* (*get_required_api_version)();
+	//
+	// The plugin framework will call this function to free any
+	// memory allocated by the plugin and returned to the
+	// framework. This includes return values from get_type()/get_name()/...,
+	// get_last_error(), event structs returned in next_batch(), etc.
+	void (*free_mem)(void *ptr);
 	//
 	// Return the plugin type.
 	// Required: yes
@@ -330,7 +337,7 @@ typedef struct
 	//   allocate a ss_plugin_event struct using malloc(), as well as
 	//   allocate the data buffer within the ss_plugin_event struct.
 	//   Both the struct and data buffer are owned by the plugin framework
-	//   and will free them using free().
+	//   and will free them using plugin_free_mem().
 	//
 	// Return value: the status of the operation (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1,
 	//   SS_PLUGIN_TIMEOUT=-1)
@@ -384,7 +391,7 @@ typedef struct
 	//     allocate an array of contiguous ss_plugin_event structs using malloc(),
 	//     as well as allocate each data buffer within each ss_plugin_event
 	//     struct using malloc(). Both the array of structs and each data buffer are
-	//     owned by the plugin framework and will free them using free().
+	//     owned by the plugin framework and will free them using plugin_free_mem().
 	// Required: no
 	//
 	int32_t (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
@@ -419,6 +426,12 @@ typedef struct
 	//       and enforcing compatibility.
 	//
 	char* (*get_required_api_version)();
+	//
+	// The plugin framework will call this function to free any
+	// memory allocated by the plugin and returned to the
+	// framework. This includes return values from get_type()/get_name()/...,
+	// get_last_error(), strings in extract_fields(), etc.
+	void (*free_mem)(void *ptr);
 	//
 	// Return the plugin type.
 	// Required: yes

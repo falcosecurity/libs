@@ -90,13 +90,13 @@ static void scap_free_plugin_batch_state(scap_t* handle)
 {
 	for(uint32_t i = 0; i < handle->m_input_plugin_batch_nevts; i++)
 	{
-		free(handle->m_input_plugin_batch_evts[i].data);
+		handle->m_input_plugin->free_mem(handle->m_input_plugin_batch_evts[i].data);
 	}
 
 	handle->m_input_plugin_batch_nevts = 0;
 	handle->m_input_plugin_batch_idx = 0;
 
-	free(handle->m_input_plugin_batch_evts);
+	handle->m_input_plugin->free_mem(handle->m_input_plugin_batch_evts);
 	handle->m_input_plugin_batch_evts = NULL;
 }
 
@@ -1002,7 +1002,7 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	{
 		char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", errstr);
-		free(errstr);
+		handle->m_input_plugin->free_mem(errstr);
 		scap_close(handle);
 		return NULL;
 	}
@@ -1178,7 +1178,7 @@ void scap_close(scap_t* handle)
 		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
 		scap_free_plugin_batch_state(handle);
 		// name was allocated
-		free(handle->m_input_plugin->name);
+		handle->m_input_plugin->free_mem(handle->m_input_plugin->name);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1723,7 +1723,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 				{
 					char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-					free(errstr);
+					handle->m_input_plugin->free_mem(errstr);
 				}
 				int32_t tres = handle->m_input_plugin_last_batch_res;
 				handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
@@ -1749,7 +1749,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 					{
 						char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-						free(errstr);
+						handle->m_input_plugin->free_mem(errstr);
 					}
 					return handle->m_input_plugin_last_batch_res;
 				}
@@ -1778,7 +1778,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			{
 				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-				free(errstr);
+				handle->m_input_plugin->free_mem(errstr);
 			}
 			return res;
 		}
@@ -1815,9 +1815,9 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 	if(should_free_plugin_evt)
 	{
-		free(plugin_evt->data);
+		handle->m_input_plugin->free_mem(plugin_evt->data);
 		plugin_evt->data = NULL;
-		free(plugin_evt);
+		handle->m_input_plugin->free_mem(plugin_evt);
 	}
 
 	if(plugin_evt->ts != UINT64_MAX)
