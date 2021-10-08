@@ -70,7 +70,7 @@ private:
 		SHUTDOWN_DONE = 5,
 	};
 
-	// On success the caller is responsible for free() in res_str
+	// On success the caller is responsible for plugin_free() in res_str
 	// when ftype == PT_CHARBUF.
 	inline int32_t extract(ss_plugin_event &evt, ss_plugin_extract_field &field)
 	{
@@ -258,7 +258,7 @@ protected:
 	static void* getsym(void* handle, const char* name, std::string &errstr);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
-	static std::string str_from_alloc_charbuf(char *charbuf);
+	std::string str_from_alloc_charbuf(char *charbuf);
 
 	// init() will call this to save the resulting state struct
 	virtual void set_plugin_state(ss_plugin_t *state) = 0;
@@ -270,6 +270,7 @@ private:
 	// included here as they are called in create_plugin()
 	typedef struct {
 		char* (*get_required_api_version)();
+		void (*free_mem)(void *ptr);
 		ss_plugin_t* (*init)(char* config, int32_t* rc);
 		void (*destroy)(ss_plugin_t* s);
 		char* (*get_last_error)(ss_plugin_t* s);

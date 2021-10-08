@@ -397,6 +397,16 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
+	// Get the plugin's free() function, and return an error if it
+	// doesn't exist.
+	void (*free_mem)(void *ptr);
+	*(void **) (&free_mem) = getsym(handle, "plugin_free_mem", errstr);
+	if(free_mem == NULL)
+	{
+		errstr = string("Could not resolve plugin_free_mem function");
+		return ret;
+	}
+
 	// Before doing anything else, check the required api
 	// version. If it doesn't match, return an error.
 
@@ -411,7 +421,9 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
-	std::string version_str = str_from_alloc_charbuf(get_required_api_version());
+	char *version_cstr = get_required_api_version();
+	std::string version_str = version_cstr;
+	free_mem(version_cstr);
 	version v(version_str);
 	if(!v.m_valid)
 	{
@@ -671,7 +683,7 @@ std::string sinsp_plugin::str_from_alloc_charbuf(char *charbuf)
 	if(charbuf != NULL)
 	{
 		str = charbuf;
-		free(charbuf);
+		m_plugin_info.free_mem(charbuf);
 	}
 
 	return str;
@@ -681,6 +693,7 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 {
 	// Some functions are required and return false if not found.
 	if((*(void **) (&(m_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.free_mem)) = getsym(handle, "plugin_free_mem", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
 	   (*(void **) (&(m_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
@@ -923,6 +936,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	//
 	// Some functions are required and return false if not found.
 	if((*(void **) (&(m_source_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.free_mem)) = getsym(handle, "plugin_free_mem", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.init)) = getsym(handle, "plugin_init", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
@@ -1000,6 +1014,7 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 	//
 	// Some functions are required and return false if not found.
 	if((*(void **) (&(m_extractor_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.free_mem)) = getsym(handle, "plugin_free_mem", errstr)) == NULL ||
 	   (*(void **) (&(m_extractor_plugin_info.init)) = getsym(handle, "plugin_init", errstr)) == NULL ||
 	   (*(void **) (&(m_extractor_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr)) == NULL ||
 	   (*(void **) (&(m_extractor_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
