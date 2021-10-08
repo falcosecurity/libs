@@ -19,6 +19,8 @@ limitations under the License.
 #include <sinsp.h>
 #include <filter.h>
 
+extern sinsp_evttables g_infotables;
+
 std::stringstream & operator<<(std::stringstream &out, set<uint16_t> s)
 {
 	out << "[ ";
@@ -41,6 +43,13 @@ protected:
 	{
 		for(uint32_t i = 2; i < PPM_EVENT_MAX; i++)
 		{
+			// Skip "old" event versions that have been replaced
+			// by newer event versions, or events that are unused.
+			if(g_infotables.m_event_info[i].flags & (EF_OLD_VERSION | EF_UNUSED))
+			{
+				continue;
+			}
+
 			all_events.insert(i);
 
 			if(openat_only.find(i) == openat_only.end())
@@ -102,7 +111,6 @@ protected:
 	}
 
 	std::set<uint16_t> openat_only{
-		PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
 		PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X
 	};
 
@@ -111,7 +119,6 @@ protected:
 	};
 
 	std::set<uint16_t> openat_close{
-		PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
 		 PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
 		 PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X
 	};
