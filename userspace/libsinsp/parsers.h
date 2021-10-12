@@ -79,6 +79,7 @@ public:
 	//
 	static void init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
 
+	void set_track_connection_status(bool enabled);
 private:
 	//
 	// Initializers

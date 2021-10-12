@@ -109,6 +109,11 @@ void sinsp_parser::init_metaevt(metaevents_state& evt_state, uint16_t evt_type, 
 	evt_state.m_metaevt.m_fdinfo = NULL;
 }
 
+void sinsp_parser::set_track_connection_status(bool enabled)
+{
+	m_track_connection_status = enabled;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PROCESSING ENTRY POINT
 ///////////////////////////////////////////////////////////////////////////////
