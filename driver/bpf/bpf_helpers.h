@@ -18,8 +18,17 @@ static int (*bpf_map_delete_elem)(void *map, void *key) =
 	(void *)BPF_FUNC_map_delete_elem;
 static int (*bpf_probe_read)(void *dst, int size, void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read;
-static unsigned long long (*bpf_ktime_get_ns)(void) =
+
+/* Introduced in linux 5.8, see https://github.com/torvalds/linux/commit/71d19214776e61b33da48f7c1b46e522c7f78221 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,8,0)
+static unsigned long long (*bpf_ktime_get_boot_ns)(void) =
+	(void *)BPF_FUNC_ktime_get_boot_ns;
+#else
+/* fallback at using old, non suspend-time aware, helper */
+static unsigned long long (*bpf_ktime_get_boot_ns)(void) =
 	(void *)BPF_FUNC_ktime_get_ns;
+#endif
+
 static int (*bpf_trace_printk)(const char *fmt, int fmt_size, ...) =
 	(void *)BPF_FUNC_trace_printk;
 static void (*bpf_tail_call)(void *ctx, void *map, int index) =

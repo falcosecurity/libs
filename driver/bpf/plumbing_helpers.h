@@ -460,7 +460,7 @@ static __always_inline void call_filler(void *ctx,
 		drop_flags = UF_NEVER_DROP;
 	}
 
-	ts = settings->boot_time + bpf_ktime_get_ns();
+	ts = settings->boot_time + bpf_ktime_get_boot_ns();
 	reset_tail_ctx(state, evt_type, ts);
 
 	/* drop_event can change state->tail_ctx.evt_type */
