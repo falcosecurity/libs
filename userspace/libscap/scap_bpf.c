@@ -140,6 +140,19 @@ static int bpf_map_create(enum bpf_map_type map_type,
 	return sys_bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
+static int bpf_map_freeze(int fd)
+{
+	union bpf_attr attr;
+
+	bzero(&attr, sizeof(attr));
+
+	attr.map_fd = fd;
+
+	/* Do not check for errors as BPF_MAP_FREEZE was introduced in kernel 5.2 */
+	sys_bpf(BPF_MAP_FREEZE, &attr, sizeof(attr));
+	return SCAP_SUCCESS;
+}
+
 static int bpf_load_program(const struct bpf_insn *insns,
 			    enum bpf_prog_type type,
 			    size_t insns_cnt,
@@ -750,7 +763,7 @@ static int32_t populate_syscall_routing_table_map(scap_t *handle)
 		}
 	}
 
-	return SCAP_SUCCESS;
+	return bpf_map_freeze(handle->m_bpf_map_fds[SYSDIG_SYSCALL_CODE_ROUTING_TABLE]);
 }
 
 static int32_t populate_syscall_table_map(scap_t *handle)
@@ -767,7 +780,7 @@ static int32_t populate_syscall_table_map(scap_t *handle)
 		}
 	}
 
-	return SCAP_SUCCESS;
+	return bpf_map_freeze(handle->m_bpf_map_fds[SYSDIG_SYSCALL_TABLE]);
 }
 
 static int32_t populate_event_table_map(scap_t *handle)
@@ -784,7 +797,7 @@ static int32_t populate_event_table_map(scap_t *handle)
 		}
 	}
 
-	return SCAP_SUCCESS;
+	return bpf_map_freeze(handle->m_bpf_map_fds[SYSDIG_EVENT_INFO_TABLE]);
 }
 
 static int32_t populate_fillers_table_map(scap_t *handle)
@@ -810,7 +823,7 @@ static int32_t populate_fillers_table_map(scap_t *handle)
 		}
 	}
 
-	return SCAP_SUCCESS;
+	return bpf_map_freeze(handle->m_bpf_map_fds[SYSDIG_FILLERS_TABLE]);
 }
 
 //
