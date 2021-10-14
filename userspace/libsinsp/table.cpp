@@ -21,10 +21,10 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "filter.h"
+#include "filter_check_list.h"
 #include "filterchecks.h"
 #include "table.h"
 
-extern sinsp_filter_check_list g_filterlist;
 extern sinsp_evttables g_infotables;
 
 //

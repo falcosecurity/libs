@@ -34,8 +34,6 @@ limitations under the License.
 
 using namespace std;
 
-extern sinsp_filter_check_list g_filterlist;
-
 ///////////////////////////////////////////////////////////////////////////////
 // source_plugin filter check implementation
 // This class implements a dynamic filter check that acts as a bridge to the
@@ -351,7 +349,10 @@ std::string sinsp_plugin::version::as_string() const
 		std::to_string(m_version_patch);
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector, string filepath, char* config)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
+							    string filepath,
+							    char* config,
+							    filter_check_list &available_checks)
 {
 	string errstr;
 	std::shared_ptr<sinsp_plugin> plugin = create_plugin(filepath, config, errstr);
@@ -374,10 +375,10 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector, st
 	// Create and register the filter checks associated to this plugin
 	//
 	auto info_filtercheck = new sinsp_filter_check_plugininfo(plugin);
-	g_filterlist.add_filter_check(info_filtercheck);
+	available_checks.add_filter_check(info_filtercheck);
 
 	auto filtercheck = new sinsp_filter_check_plugin(plugin);
-	g_filterlist.add_filter_check(filtercheck);
+	available_checks.add_filter_check(filtercheck);
 
 	return plugin;
 }

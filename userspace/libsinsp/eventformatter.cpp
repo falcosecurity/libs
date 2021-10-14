@@ -25,17 +25,20 @@ limitations under the License.
 // rawstring_check implementation
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_FILTERING
-extern sinsp_filter_check_list g_filterlist;
 
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector)
-	: m_inspector(inspector)
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
+					 filter_check_list &available_checks)
+	: m_inspector(inspector),
+	  m_available_checks(available_checks)
 {
 }
 
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector, const string& fmt)
+sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
+					 const string& fmt,
+					 filter_check_list &available_checks)
+	: m_inspector(inspector),
+	  m_available_checks(available_checks)
 {
-	m_inspector = inspector;
-
 	gen_event_formatter::output_format of = gen_event_formatter::OF_NORMAL;
 
 	if(m_inspector->get_buffer_format() == sinsp_evt::PF_JSON
@@ -145,7 +148,7 @@ void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, cons
 				}
 			}
 
-			sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(string(cfmt + j + 1),
+			sinsp_filter_check* chk = m_available_checks.new_filter_check_from_fldname(string(cfmt + j + 1),
 				m_inspector,
 				false);
 
@@ -383,8 +386,10 @@ bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT str
 	return get_cached_formatter(format)->tostring(evt, *res);
 }
 
-sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector)
-	: m_inspector(inspector), m_output_format(gen_event_formatter::OF_NORMAL)
+sinsp_evt_formatter_factory::sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks)
+	: m_inspector(inspector),
+	  m_available_checks(available_checks),
+	  m_output_format(gen_event_formatter::OF_NORMAL)
 {
 }
 
@@ -410,7 +415,7 @@ std::shared_ptr<gen_event_formatter> sinsp_evt_formatter_factory::create_formatt
 
 	std::shared_ptr<gen_event_formatter> ret;
 
-	ret.reset(new sinsp_evt_formatter(m_inspector));
+	ret.reset(new sinsp_evt_formatter(m_inspector, m_available_checks));
 
 	ret->set_format(m_output_format, format);
 	m_formatters[format] = ret;

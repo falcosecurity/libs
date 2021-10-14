@@ -198,27 +198,9 @@ private:
 
 	std::set<uint16_t> s_all_event_types;
 
-friend class sinsp_filter_check_list;
+friend class filter_check_list;
 friend class sinsp_filter_optimizer;
 friend class chk_compare_helper;
-};
-
-//
-// Global class that stores the list of filtercheck plugins and offers
-// functions to work with it.
-//
-class sinsp_filter_check_list
-{
-public:
-	sinsp_filter_check_list();
-	~sinsp_filter_check_list();
-	void add_filter_check(sinsp_filter_check* filter_check);
-	void get_all_fields(vector<const filter_check_info*>* list);
-	sinsp_filter_check* new_filter_check_from_another(sinsp_filter_check *chk);
-	sinsp_filter_check* new_filter_check_from_fldname(const string& name, sinsp* inspector, bool do_exact_check);
-
-private:
-	vector<sinsp_filter_check*> m_check_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

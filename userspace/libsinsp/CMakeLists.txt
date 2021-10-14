@@ -66,6 +66,7 @@ set(SINSP_SOURCES
 	filter.cpp
 	fields_info.cpp
 	filterchecks.cpp
+	filter_check_list.cpp
 	gen_filter.cpp
 	http_parser.c
 	http_reason.cpp

@@ -26,6 +26,8 @@ limitations under the License.
 
 #include <plugin_info.h>
 
+#include "filter_check_list.h"
+
 class sinsp_filter_check_plugin;
 
 // Base class for source/extractor plugins. Can not be created directly.
@@ -74,8 +76,13 @@ public:
 
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
+	// Also create filterchecks for fields supported by the plugin
+	// and add them to the provided filter check list.
 	// The created sinsp_plugin is returned.
-	static std::shared_ptr<sinsp_plugin> register_plugin(sinsp* inspector, std::string filepath, char *config);
+	static std::shared_ptr<sinsp_plugin> register_plugin(sinsp* inspector,
+							     std::string filepath,
+							     char *config,
+							     filter_check_list &available_checks = g_filterlist);
 
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is

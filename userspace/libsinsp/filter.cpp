@@ -59,110 +59,6 @@ void *memmem(const void *haystack, size_t haystacklen, const void *needle, size_
 #endif
 
 
-extern sinsp_filter_check_list g_filterlist;
-
-///////////////////////////////////////////////////////////////////////////////
-// sinsp_filter_check_list implementation
-///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_check_list::sinsp_filter_check_list()
-{
-	//////////////////////////////////////////////////////////////////////////////
-	// ADD NEW FILTER CHECK CLASSES HERE
-	//////////////////////////////////////////////////////////////////////////////
-	add_filter_check(new sinsp_filter_check_fd());
-	add_filter_check(new sinsp_filter_check_thread());
-	add_filter_check(new sinsp_filter_check_event());
-	add_filter_check(new sinsp_filter_check_user());
-	add_filter_check(new sinsp_filter_check_group());
-	add_filter_check(new sinsp_filter_check_syslog());
-	add_filter_check(new sinsp_filter_check_container());
-	add_filter_check(new sinsp_filter_check_utils());
-	add_filter_check(new sinsp_filter_check_fdlist());
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-	add_filter_check(new sinsp_filter_check_k8s());
-	add_filter_check(new sinsp_filter_check_mesos());
-#endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-	add_filter_check(new sinsp_filter_check_tracer());
-	add_filter_check(new sinsp_filter_check_evtin());
-}
-
-sinsp_filter_check_list::~sinsp_filter_check_list()
-{
-	uint32_t j;
-
-	for(j = 0; j < m_check_list.size(); j++)
-	{
-		delete m_check_list[j];
-	}
-}
-
-void sinsp_filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
-{
-	m_check_list.push_back(filter_check);
-}
-
-void sinsp_filter_check_list::get_all_fields(OUT vector<const filter_check_info*>* list)
-{
-	uint32_t j;
-
-	for(j = 0; j < m_check_list.size(); j++)
-	{
-		list->push_back((const filter_check_info*)&(m_check_list[j]->m_info));
-	}
-}
-
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_fldname(const string& name,
-																		   sinsp* inspector,
-																		   bool do_exact_check)
-{
-	uint32_t j;
-
-	for(j = 0; j < m_check_list.size(); j++)
-	{
-		m_check_list[j]->m_inspector = inspector;
-
-		int32_t fldnamelen = m_check_list[j]->parse_field_name(name.c_str(), false, true);
-
-		if(fldnamelen != -1)
-		{
-			if(do_exact_check)
-			{
-				if((int32_t)name.size() != fldnamelen)
-				{
-					goto field_not_found;
-				}
-			}
-
-			sinsp_filter_check* newchk = m_check_list[j]->allocate_new();
-			newchk->set_inspector(inspector);
-			return newchk;
-		}
-	}
-
-field_not_found:
-
-	//
-	// If you are implementing a new filter check and this point is reached,
-	// it's very likely that you've forgotten to add your filter to the list in
-	// the constructor
-	//
-	return NULL;
-}
-
-sinsp_filter_check* sinsp_filter_check_list::new_filter_check_from_another(sinsp_filter_check *chk)
-{
-	sinsp_filter_check *newchk = chk->allocate_new();
-
-	newchk->m_inspector = chk->m_inspector;
-	newchk->m_field_id = chk->m_field_id;
-	newchk->m_field = &chk->m_info.m_fields[chk->m_field_id];
-
-	newchk->m_boolop = chk->m_boolop;
-	newchk->m_cmpop = chk->m_cmpop;
-
-	return newchk;
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 // type-based comparison functions
 ///////////////////////////////////////////////////////////////////////////////
@@ -2430,8 +2326,9 @@ void sinsp_evttype_filter::syscalls_for_ruleset(std::vector<bool> &syscalls, uin
 	return m_rulesets[ruleset]->syscalls_for_ruleset(syscalls);
 }
 
-sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector)
-	: m_inspector(inspector)
+sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
+					   filter_check_list &available_checks)
+	: m_inspector(inspector), m_available_checks(available_checks)
 {
 }
 
@@ -2447,9 +2344,9 @@ gen_event_filter *sinsp_filter_factory::new_filter()
 
 gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldname)
 {
-	return g_filterlist.new_filter_check_from_fldname(fldname,
-							  m_inspector,
-							  true);
+	return m_available_checks.new_filter_check_from_fldname(fldname,
+								m_inspector,
+								true);
 }
 
 std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields()
@@ -2457,7 +2354,7 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 	std::list<gen_event_filter_factory::filter_fieldclass_info> ret;
 
 	vector<const filter_check_info*> fc_plugins;
-	sinsp::get_filtercheck_fields_info(&fc_plugins);
+	m_available_checks.get_all_fields(fc_plugins);
 
 	for(auto &fci : fc_plugins)
 	{

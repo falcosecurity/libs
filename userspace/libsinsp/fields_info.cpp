@@ -46,7 +46,7 @@ void list_fields(bool verbose, bool markdown, bool names_only)
 	}
 
 	vector<const filter_check_info*> fc_plugins;
-	sinsp::get_filtercheck_fields_info(&fc_plugins);
+	sinsp::get_filtercheck_fields_info(fc_plugins);
 
 	for(j = 0; j < fc_plugins.size(); j++)
 	{
