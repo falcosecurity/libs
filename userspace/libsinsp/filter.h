@@ -22,6 +22,7 @@ limitations under the License.
 
 #ifdef HAS_FILTERING
 
+#include "filter_check_list.h"
 #include "gen_filter.h"
 
 /** @defgroup filter Filtering events
@@ -206,7 +207,8 @@ private:
 class sinsp_filter_factory : public gen_event_filter_factory
 {
 public:
-	sinsp_filter_factory(sinsp *inspector);
+	sinsp_filter_factory(sinsp *inspector, filter_check_list &available_checks=g_filterlist);
+
 	virtual ~sinsp_filter_factory();
 
 	gen_event_filter *new_filter();
@@ -217,6 +219,7 @@ public:
 
 protected:
 	sinsp *m_inspector;
+	filter_check_list &m_available_checks;
 };
 
 #endif // HAS_FILTERING

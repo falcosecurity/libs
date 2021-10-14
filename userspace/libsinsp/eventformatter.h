@@ -21,6 +21,9 @@ limitations under the License.
 #include <string>
 #include <json/json.h>
 
+#include "filter_check_list.h"
+#include "gen_filter.h"
+
 class sinsp_filter_check;
 
 /** @defgroup event Event manipulation
@@ -44,9 +47,9 @@ public:
 	   as the one of the sysdig '-p' command line flag, so refer to the sysdig
 	   manual for details.
 	*/
-	sinsp_evt_formatter(sinsp* inspector);
+	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks = g_filterlist);
 
-	sinsp_evt_formatter(sinsp* inspector, const string& fmt);
+	sinsp_evt_formatter(sinsp* inspector, const string& fmt, filter_check_list &available_checks = g_filterlist);
 
 	void set_format(gen_event_formatter::output_format of, const string& fmt) override;
 
@@ -103,6 +106,7 @@ private:
 	vector<pair<string, sinsp_filter_check*>> m_tokens;
 	vector<uint32_t> m_tokenlens;
 	sinsp* m_inspector;
+	filter_check_list &m_available_checks;
 	bool m_require_all_values;
 	vector<sinsp_filter_check*> m_chks_to_free;
 
@@ -145,7 +149,7 @@ private:
 class sinsp_evt_formatter_factory : public gen_event_formatter_factory
 {
 public:
-	sinsp_evt_formatter_factory(sinsp *inspector);
+	sinsp_evt_formatter_factory(sinsp *inspector, filter_check_list &available_checks=g_filterlist);
 	virtual ~sinsp_evt_formatter_factory();
 
 	void set_output_format(gen_event_formatter::output_format of) override;
@@ -158,5 +162,6 @@ protected:
 	std::map<std::string, std::shared_ptr<gen_event_formatter>> m_formatters;
 
 	sinsp *m_inspector;
+	filter_check_list &m_available_checks;
 	gen_event_formatter::output_format m_output_format;
 };

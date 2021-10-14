@@ -455,7 +455,7 @@ public:
 	  \brief Populate the given vector with the full list of filter check fields
 	   that this version of the library supports.
 	*/
-	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>* list);
+	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
 
 	bool has_metrics();
 
