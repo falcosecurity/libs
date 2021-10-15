@@ -374,6 +374,9 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 	//
 	// Create and register the filter checks associated to this plugin
 	//
+	auto evt_filtercheck = new sinsp_filter_check_gen_event();
+	available_checks.add_filter_check(evt_filtercheck);
+
 	auto info_filtercheck = new sinsp_filter_check_plugininfo(plugin);
 	available_checks.add_filter_check(info_filtercheck);
 
