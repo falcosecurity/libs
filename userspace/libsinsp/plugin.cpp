@@ -441,7 +441,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
-	uint32_t (*get_type)();
+	ss_plugin_type (*get_type)();
 	*(void **) (&get_type) = getsym(handle, "plugin_get_type", errstr);
 	if(get_type == NULL)
 	{
@@ -449,7 +449,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 		return ret;
 	}
 
-	uint32_t plugin_type = get_type();
+	ss_plugin_type plugin_type = get_type();
 
 	sinsp_source_plugin *splugin;
 	sinsp_extractor_plugin *eplugin;
@@ -527,10 +527,10 @@ bool sinsp_plugin::init(char *config)
 		return false;
 	}
 
-	int32_t rc;
+	ss_plugin_rc rc;
 
 	ss_plugin_t *state = m_plugin_info.init(config, &rc);
-	if(rc != SCAP_SUCCESS)
+	if(rc != SS_PLUGIN_SUCCESS)
 	{
 		// Not calling get_last_error here because there was
 		// no valid ss_plugin_t struct returned from init.
@@ -615,11 +615,11 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 	efield.arg = field.arg.c_str();
 	efield.ftype = field.ftype;
 
-	int32_t rc;
+	ss_plugin_rc rc;
 
 	rc = m_plugin_info.extract_fields(plugin_state(), &evt, num_fields, &efield);
 
-	if (rc != SCAP_SUCCESS)
+	if (rc != SS_PLUGIN_SUCCESS)
 	{
 		return false;
 	}
@@ -835,9 +835,9 @@ source_plugin_info *sinsp_source_plugin::plugin_info()
 	return &m_source_plugin_info;
 }
 
-bool sinsp_source_plugin::open(char *params, int32_t &rc)
+bool sinsp_source_plugin::open(char *params, ss_plugin_rc &rc)
 {
-	int32_t orc;
+	ss_plugin_rc orc;
 
 	if(!plugin_state())
 	{
