@@ -20,6 +20,7 @@ limitations under the License.
 ////////////////////////////////////////////////////////////////////////////
 
 #include "settings.h"
+#include "plugin_info.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -195,7 +196,7 @@ struct scap
 	uint32_t m_input_plugin_batch_idx;
 
 	// The return value from the last call to batch_next().
-	int32_t m_input_plugin_last_batch_res;
+	ss_plugin_rc m_input_plugin_last_batch_res;
 };
 
 typedef enum ppm_dumper_type

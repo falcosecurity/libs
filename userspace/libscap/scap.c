@@ -62,6 +62,34 @@ static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
 //
 #define SCAP_PROBE_VERSION_SIZE 32
 
+static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)
+{
+	switch(plugin_rc)
+	{
+	case SS_PLUGIN_SUCCESS:
+		return SCAP_SUCCESS;
+		break;
+	case SS_PLUGIN_FAILURE:
+		return SCAP_FAILURE;
+		break;
+	case SS_PLUGIN_TIMEOUT:
+		return SCAP_TIMEOUT;
+		break;
+	case SS_PLUGIN_EOF:
+		return SCAP_EOF;
+		break;
+	case SS_PLUGIN_NOT_SUPPORTED:
+		return SCAP_NOT_SUPPORTED;
+		break;
+	default:
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	ASSERT(false);
+	return SCAP_FAILURE;
+}
+
 const char* scap_getlasterr(scap_t* handle)
 {
 	return handle ? handle->m_lasterr : "null scap handle";
@@ -988,11 +1016,13 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	// Set the rc to SCAP_FAILURE now, so in the unlikely event
 	// that a plugin doesn't not actually set a rc, that it gets
 	// treated as a failure.
-	*rc = SCAP_FAILURE;
+	ss_plugin_rc plugin_rc = SCAP_FAILURE;
 
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
 		input_plugin_params,
-		rc);
+		&plugin_rc);
+
+	*rc = plugin_rc_to_scap_rc(plugin_rc);
 	handle->m_input_plugin_batch_nevts = 0;
 	handle->m_input_plugin_batch_evts = NULL;
 	handle->m_input_plugin_batch_idx = 0;
@@ -1717,7 +1747,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		{
 			scap_free_plugin_batch_state(handle);
 
-			if(handle->m_input_plugin_last_batch_res != SCAP_SUCCESS)
+			if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
 			{
 				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
 				{
@@ -1770,17 +1800,17 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	{
 		should_free_plugin_evt = true;
 
-		res = handle->m_input_plugin->next(handle->m_input_plugin->state,
-						   handle->m_input_plugin->handle, &plugin_evt);
-		if(res != SCAP_SUCCESS)
+		ss_plugin_rc plugin_res = handle->m_input_plugin->next(handle->m_input_plugin->state,
+								       handle->m_input_plugin->handle, &plugin_evt);
+		if(plugin_res != SS_PLUGIN_SUCCESS)
 		{
-			if(res != SCAP_TIMEOUT && res != SCAP_EOF)
+			if(plugin_res != SS_PLUGIN_TIMEOUT && res != SS_PLUGIN_EOF)
 			{
 				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
 				handle->m_input_plugin->free_mem(errstr);
 			}
-			return res;
+			return plugin_rc_to_scap_rc(plugin_res);
 		}
 
 		res = SCAP_SUCCESS;

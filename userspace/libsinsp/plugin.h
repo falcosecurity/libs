@@ -136,7 +136,7 @@ private:
 	typedef struct {
 		char* (*get_required_api_version)();
 		void (*free_mem)(void *ptr);
-		ss_plugin_t* (*init)(char* config, int32_t* rc);
+		ss_plugin_t* (*init)(char* config, ss_plugin_rc* rc);
 		void (*destroy)(ss_plugin_t* s);
 		char* (*get_last_error)(ss_plugin_t* s);
 		char* (*get_name)();
@@ -144,7 +144,7 @@ private:
 		char* (*get_contact)();
 		char* (*get_version)();
 		char* (*get_fields)();
-		int32_t (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
+		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	} common_plugin_info;
 
 	std::string m_name;
@@ -179,7 +179,7 @@ public:
 
 	// Note that embedding ss_instance_t in the object means that
 	// a plugin can only have one open active at a time.
-	bool open(char *params, int32_t &rc);
+	bool open(char *params, ss_plugin_rc &rc);
 	void close();
 	std::string get_progress(uint32_t &progress_pct);
 
