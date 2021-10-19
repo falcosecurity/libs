@@ -14,6 +14,11 @@ CLANG ?= clang
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
+# Filter out -fmacro-prefix-map from KBUILD_CPPFLAGS, because that option
+# is specified in some kernel versions, but not supported on the version
+# of clang (7) that we use in the agent image.
+FILTERED_KBUILD_CPPFLAGS=$(shell echo " ${KBUILD_CPPFLAGS} " | sed 's/ -fmacro-prefix-map[^ ]* / /')
+
 # DEBUG = -DBPF_DEBUG
 
 all:
@@ -33,7 +38,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(src)/ring_helpers.h \
 		$(src)/types.h
 	$(CLANG) $(LINUXINCLUDE) \
-		$(KBUILD_CPPFLAGS) \
+		$(FILTERED_KBUILD_CPPFLAGS) \
 		$(KBUILD_EXTRA_CPPFLAGS) \
 		$(DEBUG) \
 		-D__KERNEL__ \
