@@ -765,8 +765,8 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 				throw sinsp_exception(string("error in plugin ") + m_name + ": field JSON entry has no desc");
 			}
 
-			strncpy(tf.m_name, fname.c_str(), sizeof(tf.m_name));
-			strncpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
+			strlcpy(tf.m_name, fname.c_str(), sizeof(tf.m_name));
+			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
 			tf.m_print_format = PF_DEC;
 			if(ftype == "string")
 			{

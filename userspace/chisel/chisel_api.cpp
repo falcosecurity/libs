@@ -171,7 +171,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 					strcpy(address, "<NA>");
 				}
 
-				strncpy(ch->m_lua_fld_storage,
+				strlcpy(ch->m_lua_fld_storage,
 					address,
 					sizeof(ch->m_lua_fld_storage));
 
