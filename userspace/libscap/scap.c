@@ -1816,7 +1816,11 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		res = SCAP_SUCCESS;
 	}
 
-	uint32_t reqsize = sizeof(scap_evt) + 2 + 4 + 2 + plugin_evt->datalen;
+	// The numbers are:
+	//  - size of plugin id param length (16 bits), holding the value 4
+	//  - size of event size param (16 bits), holding the event length
+	//  - plugin id (32 bits)
+	uint32_t reqsize = sizeof(scap_evt) + 2 + 2 + 4 + plugin_evt->datalen;
 	if(handle->m_input_plugin_evt_storage_len < reqsize)
 	{
 		handle->m_input_plugin_evt_storage = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
@@ -1831,12 +1835,14 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
 
-	const uint16_t four = 4;
-	memcpy(buf, &four, sizeof(four));
-	buf += sizeof(four);
+	const uint16_t plugin_id_size = 4;
+	memcpy(buf, &plugin_id_size, sizeof(plugin_id_size));
+	buf += sizeof(plugin_id_size);
 
-	memcpy(buf, &(plugin_evt->datalen), sizeof(plugin_evt->datalen));
-	buf += sizeof(plugin_evt->datalen);
+	// Plugin event sizes are 32 bits but param sizes are 16 bits
+	uint16_t datalen = plugin_evt->datalen;
+	memcpy(buf, &(datalen), sizeof(datalen));
+	buf += sizeof(datalen);
 
 	memcpy(buf, &(handle->m_input_plugin->id), sizeof(handle->m_input_plugin->id));
 	buf += sizeof(handle->m_input_plugin->id);
