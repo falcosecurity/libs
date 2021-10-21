@@ -28,6 +28,7 @@ limitations under the License.
 #include <tuples.h>
 #include <scap.h>
 #include "json/json.h"
+#include "../common/strlcpy.h"
 
 class sinsp_evttables;
 typedef union _sinsp_sockinfo sinsp_sockinfo;

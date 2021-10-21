@@ -35,6 +35,7 @@ limitations under the License.
 #endif // _WIN32
 
 #include "scap.h"
+#include "../common/strlcpy.h"
 #ifdef HAS_CAPTURE
 #if !defined(_WIN32) && !defined(CYGWING_AGENT)
 #include "driver_config.h"
@@ -2553,7 +2554,7 @@ const char* scap_get_host_root()
 	static char env_str[SCAP_MAX_PATH_SIZE + 1];
 	static bool inited = false;
 	if (! inited) {
-		strncpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
+		strlcpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
 		env_str[SCAP_MAX_PATH_SIZE] = '\0';
 		inited = true;
 	}

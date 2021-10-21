@@ -18,6 +18,7 @@ limitations under the License.
 #include <stdio.h>
 #include "scap.h"
 #include "scap-int.h"
+#include "../common/strlcpy.h"
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
@@ -103,7 +104,7 @@ int32_t scap_create_userlist(scap_t* handle)
 		
 		if(p->pw_name)
 		{
-			strncpy(handle->m_userlist->users[usercnt].name, p->pw_name, sizeof(handle->m_userlist->users[usercnt].name));
+			strlcpy(handle->m_userlist->users[usercnt].name, p->pw_name, sizeof(handle->m_userlist->users[usercnt].name));
 		}
 		else
 		{
@@ -112,7 +113,7 @@ int32_t scap_create_userlist(scap_t* handle)
 
 		if(p->pw_dir)
 		{
-			strncpy(handle->m_userlist->users[usercnt].homedir, p->pw_dir, sizeof(handle->m_userlist->users[usercnt].homedir));
+			strlcpy(handle->m_userlist->users[usercnt].homedir, p->pw_dir, sizeof(handle->m_userlist->users[usercnt].homedir));
 		}
 		else
 		{
@@ -121,7 +122,7 @@ int32_t scap_create_userlist(scap_t* handle)
 
 		if(p->pw_shell)
 		{
-			strncpy(handle->m_userlist->users[usercnt].shell, p->pw_shell, sizeof(handle->m_userlist->users[usercnt].shell));
+			strlcpy(handle->m_userlist->users[usercnt].shell, p->pw_shell, sizeof(handle->m_userlist->users[usercnt].shell));
 		}
 		else
 		{
@@ -149,7 +150,7 @@ int32_t scap_create_userlist(scap_t* handle)
 
 		if(g->gr_name)
 		{
-			strncpy(handle->m_userlist->groups[grpcnt].name, g->gr_name, sizeof(handle->m_userlist->groups[grpcnt].name));
+			strlcpy(handle->m_userlist->groups[grpcnt].name, g->gr_name, sizeof(handle->m_userlist->groups[grpcnt].name));
 		}
 		else
 		{

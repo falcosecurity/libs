@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "../common/strlcpy.h"
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
@@ -168,7 +169,7 @@ int32_t scap_create_iflist(scap_t* handle)
 #else
 			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
 #endif
-			strncpy(handle->m_addrlist->v4list[ifcnt4].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
+			strlcpy(handle->m_addrlist->v4list[ifcnt4].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v4list[ifcnt4].ifnamelen = strlen(tempIfAddr->ifa_name);
 
 			handle->m_addrlist->v4list[ifcnt4].linkspeed = 0;
@@ -210,7 +211,7 @@ int32_t scap_create_iflist(scap_t* handle)
 			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
 #endif
 
-			strncpy(handle->m_addrlist->v6list[ifcnt6].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
+			strlcpy(handle->m_addrlist->v6list[ifcnt6].ifname, tempIfAddr->ifa_name, SCAP_MAX_PATH_SIZE);
 			handle->m_addrlist->v6list[ifcnt6].ifnamelen = strlen(tempIfAddr->ifa_name);
 
 			handle->m_addrlist->v6list[ifcnt6].linkspeed = 0;

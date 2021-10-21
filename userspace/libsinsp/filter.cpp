@@ -1015,7 +1015,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 				strcpy(address, "<NA>");
 			}
 
-			strncpy(m_getpropertystr_storage,
+			strlcpy(m_getpropertystr_storage,
 				address,
 				100);
 
