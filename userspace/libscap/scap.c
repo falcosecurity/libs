@@ -1761,10 +1761,11 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 				return tres;
 			}
 
-			handle->m_input_plugin_last_batch_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-												   handle->m_input_plugin->handle,
-												   &(handle->m_input_plugin_batch_nevts),
-												   &(handle->m_input_plugin_batch_evts));
+			int32_t plugin_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
+										handle->m_input_plugin->handle,
+										&(handle->m_input_plugin_batch_nevts),
+										&(handle->m_input_plugin_batch_evts));
+			handle->m_input_plugin_last_batch_res = plugin_rc_to_scap_rc(plugin_res);
 
 			if(handle->m_input_plugin_batch_nevts == 0)
 			{
