@@ -742,7 +742,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 {
 	const ppm_param_info* param_info;
 	char* payload;
-	uint16_t payload_len;
+	uint32_t payload_len;
 	Json::Value ret;
 
 	//
@@ -1457,7 +1457,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	const ppm_param_info* param_info;
 	char* payload;
 	uint32_t j;
-	uint16_t payload_len;
+	uint32_t payload_len;
 
 	//
 	// Make sure the params are actually loaded
@@ -2628,6 +2628,11 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 	if(m_flags & sinsp_evt::SINSP_EF_IS_TRACER)
 	{
 		dflags |= SCAP_DF_TRACER;
+	}
+
+	if(get_info_flags() & EF_LARGE_PAYLOAD)
+	{
+		dflags |= SCAP_DF_LARGE;
 	}
 
 	return (scap_dump_flags)dflags;

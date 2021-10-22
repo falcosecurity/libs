@@ -124,6 +124,8 @@ struct scap
 	FILE* m_file;
 #endif
 	char* m_file_evt_buf;
+	size_t m_file_evt_buf_size;
+
 	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
@@ -225,7 +227,7 @@ struct scap_ns_socket_list
 // Misc stuff
 //
 #define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
-#define FILE_READ_BUF_SIZE 65536
+#define FILE_READ_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
 
 //
 // Internal library functions

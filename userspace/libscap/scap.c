@@ -747,6 +747,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
+	handle->m_file_evt_buf_size = FILE_READ_BUF_SIZE;
 
 	handle->m_file = gzfile;
 
@@ -1774,15 +1775,26 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 	res = SCAP_SUCCESS;
 
-	// The numbers are:
-	//  - size of plugin id param length (16 bits), holding the value 4
-	//  - size of event size param (16 bits), holding the event length
-	//  - plugin id (32 bits)
-	uint32_t reqsize = sizeof(scap_evt) + 2 + 2 + 4 + plugin_evt->datalen;
+	/*
+	 * | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
+	 * Note: we need to use 4B for len_id too because the PPME_PLUGINEVENT_E has
+	 * EF_LARGE_PAYLOAD flag!
+	 */
+	uint32_t reqsize = sizeof(scap_evt) + 4 + 4 + 4 + plugin_evt->datalen;
 	if(handle->m_input_plugin_evt_storage_len < reqsize)
 	{
-		handle->m_input_plugin_evt_storage = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
-		handle->m_input_plugin_evt_storage_len = reqsize;
+		uint8_t *tmp = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
+		if (tmp)
+		{
+			handle->m_input_plugin_evt_storage = tmp;
+			handle->m_input_plugin_evt_storage_len = reqsize;
+		}
+		else
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", "failed to alloc space for plugin storage");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 
 	scap_evt* evt = (scap_evt*)handle->m_input_plugin_evt_storage;
@@ -1793,12 +1805,11 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
 
-	const uint16_t plugin_id_size = 4;
+	const uint32_t plugin_id_size = 4;
 	memcpy(buf, &plugin_id_size, sizeof(plugin_id_size));
 	buf += sizeof(plugin_id_size);
 
-	// Plugin event sizes are 32 bits but param sizes are 16 bits
-	uint16_t datalen = plugin_evt->datalen;
+	uint32_t datalen = plugin_evt->datalen;
 	memcpy(buf, &(datalen), sizeof(datalen));
 	buf += sizeof(datalen);
 
