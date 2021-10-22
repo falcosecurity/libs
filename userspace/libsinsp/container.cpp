@@ -245,7 +245,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
 {
-	size_t totlen = sizeof(scap_evt) +  sizeof(uint16_t) + json.length() + 1;
+	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json.length() + 1;
 
 	ASSERT(evt->m_pevt_storage == nullptr);
 	evt->m_pevt_storage = new char[totlen];
@@ -273,10 +273,10 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scapevt->type = PPME_CONTAINER_JSON_E;
 	scapevt->nparams = 1;
 
-	uint16_t* lens = (uint16_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
-	char* valptr = (char*)lens + sizeof(uint16_t);
+	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	char* valptr = (char*)lens + sizeof(uint32_t);
 
-	*lens = (uint16_t)json.length() + 1;
+	*lens = (uint32_t)json.length() + 1;
 	memcpy(valptr, json.c_str(), *lens);
 
 	evt->init();
@@ -345,7 +345,7 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
-			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
+			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, SCAP_DF_LARGE);
 			if(res != SCAP_SUCCESS)
 			{
 				throw sinsp_exception(scap_getlasterr(m_inspector->m_h));

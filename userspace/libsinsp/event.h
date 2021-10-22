@@ -85,9 +85,9 @@ class SINSP_PUBLIC sinsp_evt_param
 {
 public:
 	char* m_val;	///< Pointer to the event parameter data.
-	uint16_t m_len; ///< Length of the parameter pointed by m_val.
+	uint32_t m_len; ///< Length of the parameter pointed by m_val.
 private:
-	inline void init(char* valptr, uint16_t len)
+	inline void init(char* valptr, uint32_t len)
 	{
 		m_val = valptr;
 		m_len = len;
@@ -447,16 +447,37 @@ private:
 		// event table entry may contain new parameters.
 		// Use the minimum between the two values.
 		nparams = m_info->nparams < m_pevt->nparams ? m_info->nparams : m_pevt->nparams;
-		uint16_t *lens = (uint16_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
-		// The offset in the block is instead always based on the capture value.
-		char *valptr = (char *)lens + m_pevt->nparams * sizeof(uint16_t);
+
+		char *valptr;
+		union {
+			uint16_t* lens16;
+			uint32_t* lens32;
+		} lens;
+
+		const bool large_payload = get_info_flags() & EF_LARGE_PAYLOAD;
+
+		if (large_payload) {
+			lens.lens32 = (uint32_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
+			// The offset in the block is instead always based on the capture value.
+			valptr = (char *)lens.lens32 + m_pevt->nparams * sizeof(uint32_t);
+		} else
+		{
+			lens.lens16 = (uint16_t*)((char*)m_pevt + sizeof(struct ppm_evt_hdr));
+			// The offset in the block is instead always based on the capture value.
+			valptr = (char *)lens.lens16 + m_pevt->nparams * sizeof(uint16_t);
+		}
 		m_params.clear();
 
 		for(j = 0; j < nparams; j++)
 		{
-			par.init(valptr, lens[j]);
+			if (large_payload) {
+				par.init(valptr, lens.lens32[j]);
+				valptr += lens.lens32[j];
+			} else {
+				par.init(valptr, lens.lens16[j]);
+				valptr += lens.lens16[j];
+			}
 			m_params.push_back(par);
-			valptr += lens[j];
 		}
 	}
 	std::string get_param_value_str(uint32_t id, bool resolved);

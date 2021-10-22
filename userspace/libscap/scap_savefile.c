@@ -1151,13 +1151,15 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 {
 	block_header bh;
 	uint32_t bt;
+	bool large_payload = flags & SCAP_DF_LARGE;
 
+	flags &= ~SCAP_DF_LARGE;
 	if(flags == 0)
 	{
 		//
 		// Write the section header
 		//
-		bh.block_type = EV_BLOCK_TYPE_V2;
+		bh.block_type = large_payload ? EV_BLOCK_TYPE_V2_LARGE : EV_BLOCK_TYPE_V2;
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
 		bt = bh.block_total_length;
 
@@ -1176,7 +1178,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 		//
 		// Write the section header
 		//
-		bh.block_type = EVF_BLOCK_TYPE_V2;
+		bh.block_type = large_payload ? EVF_BLOCK_TYPE_V2_LARGE : EVF_BLOCK_TYPE_V2;
 		bh.block_total_length = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + sizeof(flags) + e->len + 4);
 		bt = bh.block_total_length;
 
@@ -2650,6 +2652,8 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case EV_BLOCK_TYPE_V2:
 		case EVF_BLOCK_TYPE:
 		case EVF_BLOCK_TYPE_V2:
+		case EV_BLOCK_TYPE_V2_LARGE:
+		case EVF_BLOCK_TYPE_V2_LARGE:
 			found_ev = 1;
 
 			//
@@ -2802,9 +2806,11 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 
 		if(bh.block_type != EV_BLOCK_TYPE &&
 		   bh.block_type != EV_BLOCK_TYPE_V2 &&
+		   bh.block_type != EV_BLOCK_TYPE_V2_LARGE &&
 		   bh.block_type != EV_BLOCK_TYPE_INT &&
 		   bh.block_type != EVF_BLOCK_TYPE &&
-		   bh.block_type != EVF_BLOCK_TYPE_V2)
+		   bh.block_type != EVF_BLOCK_TYPE_V2 &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
 			handle->m_unexpected_block_readsize = readsize;
@@ -2812,7 +2818,10 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		}
 
 		hdr_len = sizeof(struct ppm_evt_hdr);
-		if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+		if(bh.block_type != EV_BLOCK_TYPE_V2 &&
+		   bh.block_type != EV_BLOCK_TYPE_V2_LARGE &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2 &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			hdr_len -= 4;
 		}
@@ -2827,11 +2836,25 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		// Read the event
 		//
 		readlen = bh.block_total_length - sizeof(bh);
-		if (readlen > FILE_READ_BUF_SIZE) {
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %u",
-				 readlen,
-				 FILE_READ_BUF_SIZE);
-			return SCAP_FAILURE;
+		// Non-large block types have an uint16_max maximum size
+		if (bh.block_type != EV_BLOCK_TYPE_V2_LARGE && bh.block_type != EVF_BLOCK_TYPE_V2_LARGE) {
+			if(readlen > FILE_READ_BUF_SIZE) {
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than NON-LARGE read buffer size %u",
+					 readlen,
+					 FILE_READ_BUF_SIZE);
+				return SCAP_FAILURE;
+			}
+		} else if (readlen > handle->m_file_evt_buf_size) {
+			// Try to allocate a buffer large enough
+			char *tmp = realloc(handle->m_file_evt_buf, readlen);
+			if (!tmp) {
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %zu",
+					 readlen,
+					 handle->m_file_evt_buf_size);
+				return SCAP_FAILURE;
+			}
+			handle->m_file_evt_buf = tmp;
+			handle->m_file_evt_buf_size = readlen;
 		}
 
 		readsize = gzread(f, handle->m_file_evt_buf, readlen);
@@ -2842,7 +2865,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		//
 		*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
 
-		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2)
+		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
 			*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
@@ -2862,10 +2885,13 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			continue;
 		}
 
-		if(bh.block_type != EV_BLOCK_TYPE_V2 && bh.block_type != EVF_BLOCK_TYPE_V2)
+		if(bh.block_type != EV_BLOCK_TYPE_V2 &&
+		   bh.block_type != EV_BLOCK_TYPE_V2_LARGE &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2 &&
+		   bh.block_type != EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			//
-			// We're reading a old capture which events don't have nparams in the header.
+			// We're reading an old capture whose events don't have nparams in the header.
 			// Convert it to the current version.
 			//
 			if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)

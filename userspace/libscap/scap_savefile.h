@@ -123,6 +123,8 @@ typedef struct _section_header_block
 											// backward compatibility
 #define EV_BLOCK_TYPE_V2		0x216
 
+#define EV_BLOCK_TYPE_V2_LARGE		0x221
+
 ///////////////////////////////////////////////////////////////////////////////
 // INTERFACE LIST BLOCK
 ///////////////////////////////////////////////////////////////////////////////
@@ -147,6 +149,8 @@ typedef struct _section_header_block
 #define EVF_BLOCK_TYPE		0x208
 
 #define EVF_BLOCK_TYPE_V2	0x217
+
+#define EVF_BLOCK_TYPE_V2_LARGE		0x222
 
 #if defined __sun
 #pragma pack()
