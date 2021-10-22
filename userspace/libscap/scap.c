@@ -1207,7 +1207,7 @@ void scap_close(scap_t* handle)
 	{
 		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
 		scap_free_plugin_batch_state(handle);
-		handle->m_input_plugin->state = NULL;
+		handle->m_input_plugin->handle = NULL;
 		// name was allocated
 		handle->m_input_plugin->free_mem(handle->m_input_plugin->name);
 	}
