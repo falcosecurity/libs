@@ -923,7 +923,7 @@ private:
 			std::memset(buf, 0, size);
 			int pass_len = static_cast<int>(strlen((char*)pass));
 			if(size < (pass_len) + 1) { return 0; }
-			strlcpy(buf, (const char*)pass, pass_len);
+			strlcpy(buf, (const char*)pass, size);
 			return pass_len;
 		}
 		return 0;
@@ -1382,8 +1382,7 @@ private:
 					throw sinsp_exception("Invalid address (too long): [" + m_url.get_path() + ']');
 				}
 				m_file_addr.sun_family = AF_UNIX;
-				strlcpy(m_file_addr.sun_path, m_url.get_path().c_str(), m_url.get_path().length());
-				m_file_addr.sun_path[sizeof(m_file_addr.sun_path) - 1]= '\0';
+				strlcpy(m_file_addr.sun_path, m_url.get_path().c_str(), sizeof(m_file_addr.sun_path));
 				m_sa = (sockaddr*)&m_file_addr;
 				m_sa_len = sizeof(struct sockaddr_un);
 			}

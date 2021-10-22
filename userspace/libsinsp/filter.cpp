@@ -1008,16 +1008,14 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		case PT_IPV6ADDR:
 		{
-			char address[100];
+			char address[INET6_ADDRSTRLEN];
 
-			if(NULL == inet_ntop(AF_INET6, rawval, address, 100))
+			if(NULL == inet_ntop(AF_INET6, rawval, address, INET6_ADDRSTRLEN))
 			{
 				strcpy(address, "<NA>");
 			}
 
-			strlcpy(m_getpropertystr_storage,
-				address,
-				100);
+			strlcpy(m_getpropertystr_storage, address, sizeof(m_getpropertystr_storage));
 
 			return m_getpropertystr_storage;
 		}

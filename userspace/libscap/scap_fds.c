@@ -751,7 +751,7 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 		}
 		ino = sb.st_ino;
 	}
-	strlcpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);
+	strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 
 	fdi->ino = ino;
 	return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
@@ -977,11 +977,11 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	else if(fdi->type == SCAP_FD_FILE_V2)
 	{
 		scap_fd_flags_file(handle, fdi, procdir);
-		strlcpy(fdi->info.regularinfo.fname, link_name, SCAP_MAX_PATH_SIZE);
+		strlcpy(fdi->info.regularinfo.fname, link_name, sizeof(fdi->info.regularinfo.fname));
 	}
 	else
 	{
-		strlcpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);
+		strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 	}
 
 	return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
@@ -1035,7 +1035,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 
 	link_name[r] = '\0';
 
-	strlcpy(fdi->info.fname, link_name, SCAP_MAX_PATH_SIZE);
+	strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 
 	// link name for sockets should be of the format socket:[ino]
 	if(1 != sscanf(link_name, "socket:[%"PRIi64"]", &ino))
@@ -1169,7 +1169,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		token = strtok_r(NULL, delimiters, &scratch);
 		if(NULL != token)
 		{
-			strlcpy(fdinfo->info.unix_socket_info.fname, token, SCAP_MAX_PATH_SIZE);
+			strlcpy(fdinfo->info.unix_socket_info.fname, token, sizeof(fdinfo->info.unix_socket_info.fname));
 		}
 		else
 		{
