@@ -2554,8 +2554,7 @@ const char* scap_get_host_root()
 	static char env_str[SCAP_MAX_PATH_SIZE + 1];
 	static bool inited = false;
 	if (! inited) {
-		strlcpy(env_str, p ? p : "", SCAP_MAX_PATH_SIZE);
-		env_str[SCAP_MAX_PATH_SIZE] = '\0';
+		strlcpy(env_str, p ? p : "", sizeof(env_str));
 		inited = true;
 	}
 

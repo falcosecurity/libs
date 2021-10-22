@@ -239,8 +239,7 @@ size_t sinsp_curl::header_callback(char *buffer, size_t size, size_t nitems, voi
 		if(sz < CURL_MAX_HTTP_HEADER)
 		{
 			g_logger.log("HTTP redirect Location: (" + buf + ')', sinsp_logger::SEV_TRACE);
-			strlcpy((char*) userdata, buf.data(), sz);
-			((char*) userdata)[sz] = 0;
+			strlcpy((char*) userdata, buf.c_str(), CURL_MAX_HTTP_HEADER);
 		}
 	}
 	return nitems * size;

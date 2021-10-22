@@ -589,7 +589,7 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 	}
 #endif
 	if(errdesc.empty()) errdesc = get_error_desc(err_str);
-	strlcpy(error, errdesc.c_str(), errdesc.size() > SCAP_LASTERR_SIZE ? SCAP_LASTERR_SIZE : errdesc.size());
+	strlcpy(error, errdesc.c_str(), SCAP_LASTERR_SIZE);
 	return -1;
 }
 
