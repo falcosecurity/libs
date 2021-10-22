@@ -859,7 +859,7 @@ void sinsp_source_plugin::close()
 	}
 
 	m_source_plugin_info.close(plugin_state(), m_source_plugin_info.handle);
-	m_source_plugin_info.state = NULL;
+	m_source_plugin_info.handle = NULL;
 }
 
 std::string sinsp_source_plugin::get_progress(uint32_t &progress_pct)
