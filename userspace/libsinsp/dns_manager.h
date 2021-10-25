@@ -33,10 +33,6 @@ limitations under the License.
 #include "sinsp.h"
 
 
-struct sinsp_dns_resolver
-{
-	static void refresh(uint64_t erase_timeout, uint64_t base_refresh_timeout, uint64_t max_refresh_timeout, std::future<void> f_exit);
-};
 
 class sinsp_dns_manager
 {
@@ -65,6 +61,11 @@ public:
 	{
 		m_max_refresh_timeout = ns;
 	};
+	void clear_cache()
+	{
+		std::lock_guard<std::mutex> lk(m_erase_mutex);
+		m_cache.clear();
+	}
 
 	size_t size()
 	{
@@ -77,6 +78,8 @@ public:
 
 private:
 
+	static void refresh(std::future<void> f_exit);
+
 	sinsp_dns_manager() :
 		m_erase_timeout(3600 * ONE_SECOND_IN_NS),
 		m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
@@ -86,27 +89,32 @@ private:
         void operator=(sinsp_dns_manager const&) = delete;
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
-	struct dns_info
+	class dns_info
 	{
-		bool operator==(const dns_info &other) const
-		{
-			return m_v4_addrs == other.m_v4_addrs && m_v6_addrs == other.m_v6_addrs;
-		};
-		bool operator!=(const dns_info &other) const
-		{
-			return !operator==(other);
-		};
-
+	public:
 		uint64_t m_timeout;
-		uint64_t m_last_resolve_ts;
-		uint64_t m_last_used_ts;
+		uint64_t m_last_resolve_ts =0;
+		uint64_t m_last_used_ts = 0;
+		bool refresh (const std::string &name);
+
+		bool contains(const ipv6addr& v6)
+		{
+			std::lock_guard<std::mutex> lk(m_mtx);
+			return m_v6_addrs.find(v6) != m_v6_addrs.end();
+		}
+
+		bool contains(const uint32_t & v4)
+		{
+			std::lock_guard<std::mutex> lk(m_mtx);
+			return m_v4_addrs.find(v4) != m_v4_addrs.end();
+		}
+	private:
+		std::mutex m_mtx;
 		std::set<uint32_t> m_v4_addrs;
 		std::set<ipv6addr> m_v6_addrs;
 	};
 
-	static inline dns_info resolve(const std::string &name, uint64_t ts);
-
-	typedef tbb::concurrent_unordered_map<std::string, dns_info> c_dns_table;
+	typedef tbb::concurrent_unordered_map<std::string, std::shared_ptr<dns_info>> c_dns_table;
 	c_dns_table m_cache;
 #endif
 
@@ -123,6 +131,4 @@ private:
 	uint64_t m_erase_timeout;
 	uint64_t m_base_refresh_timeout;
 	uint64_t m_max_refresh_timeout;
-
-	friend sinsp_dns_resolver;
 };
