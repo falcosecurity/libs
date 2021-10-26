@@ -113,7 +113,7 @@ bool sinsp_dns_manager::dns_info::refresh(const string &name)
 	}
 
 	std::lock_guard<std::mutex> lk(m_mtx);
-	if (m_v4_addrs == v4_addrs && m_v6_addrs == m_v6_addrs)
+	if (m_v4_addrs == v4_addrs && m_v6_addrs == v6_addrs)
 	{
 		return false;
 	}
