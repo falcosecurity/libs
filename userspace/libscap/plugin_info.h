@@ -28,7 +28,7 @@ limitations under the License.
 // API versions of this plugin engine
 //
 #define PLUGIN_API_VERSION_MAJOR 0
-#define PLUGIN_API_VERSION_MINOR 1
+#define PLUGIN_API_VERSION_MINOR 2
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
