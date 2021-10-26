@@ -919,7 +919,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	   (*(void **) (&(m_source_plugin_info.get_event_source)) = getsym(handle, "plugin_get_event_source", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.open)) = getsym(handle, "plugin_open", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.close)) = getsym(handle, "plugin_close", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.next)) = getsym(handle, "plugin_next", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.next_batch)) = getsym(handle, "plugin_next_batch", errstr)) == NULL ||
 	   (*(void **) (&(m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr)) == NULL)
 	{
 		return false;
@@ -930,7 +930,6 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	(*(void **) (&m_source_plugin_info.get_progress)) = getsym(handle, "plugin_get_progress", errstr);
 	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr);
 	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
-	(*(void **) (&m_source_plugin_info.next_batch)) = getsym(handle, "plugin_next_batch", errstr);
 
 	m_id = m_source_plugin_info.get_id();
 	m_event_source = str_from_alloc_charbuf(m_source_plugin_info.get_event_source());

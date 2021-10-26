@@ -1723,78 +1723,56 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 {
 	ss_plugin_event *plugin_evt;
 	int32_t res = SCAP_FAILURE;
-	bool should_free_plugin_evt = false;
 
-	if(handle->m_input_plugin->next_batch != NULL)
+	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 	{
-		if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
+		if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
 		{
-			if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
+			if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
+			{
+				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
+			}
+			int32_t tres = handle->m_input_plugin_last_batch_res;
+			handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
+			return tres;
+		}
+
+		int32_t plugin_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
+									handle->m_input_plugin->handle,
+									&(handle->m_input_plugin_batch_nevts),
+									&(handle->m_input_plugin_batch_evts));
+		handle->m_input_plugin_last_batch_res = plugin_rc_to_scap_rc(plugin_res);
+		
+		if(handle->m_input_plugin_batch_nevts == 0)
+		{
+			if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->name);
+				ASSERT(false);
+				return SCAP_FAILURE;
+			}
+			else
 			{
 				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
 				{
 					char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
 				}
-				int32_t tres = handle->m_input_plugin_last_batch_res;
-				handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
-				return tres;
+				return handle->m_input_plugin_last_batch_res;
 			}
-
-			int32_t plugin_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-										handle->m_input_plugin->handle,
-										&(handle->m_input_plugin_batch_nevts),
-										&(handle->m_input_plugin_batch_evts));
-			handle->m_input_plugin_last_batch_res = plugin_rc_to_scap_rc(plugin_res);
-
-			if(handle->m_input_plugin_batch_nevts == 0)
-			{
-				if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
-				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->name);
-					ASSERT(false);
-					return SCAP_FAILURE;
-				}
-				else
-				{
-					if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
-					{
-						char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-					}
-					return handle->m_input_plugin_last_batch_res;
-				}
-			}
-
-			handle->m_input_plugin_batch_idx = 0;
 		}
 
-		uint32_t pos = handle->m_input_plugin_batch_idx;
-
-		plugin_evt = &(handle->m_input_plugin_batch_evts[pos]);
-
-		handle->m_input_plugin_batch_idx++;
-
-		res = SCAP_SUCCESS;
+		handle->m_input_plugin_batch_idx = 0;
 	}
-	else
-	{
-		should_free_plugin_evt = true;
 
-		ss_plugin_rc plugin_res = handle->m_input_plugin->next(handle->m_input_plugin->state,
-								       handle->m_input_plugin->handle, &plugin_evt);
-		if(plugin_res != SS_PLUGIN_SUCCESS)
-		{
-			if(plugin_res != SS_PLUGIN_TIMEOUT && res != SS_PLUGIN_EOF)
-			{
-				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-			}
-			return plugin_rc_to_scap_rc(plugin_res);
-		}
+	uint32_t pos = handle->m_input_plugin_batch_idx;
 
-		res = SCAP_SUCCESS;
-	}
+	plugin_evt = &(handle->m_input_plugin_batch_evts[pos]);
+
+	handle->m_input_plugin_batch_idx++;
+
+	res = SCAP_SUCCESS;
 
 	// The numbers are:
 	//  - size of plugin id param length (16 bits), holding the value 4
