@@ -136,7 +136,6 @@ private:
 	// included here as they are called in create_plugin()
 	typedef struct {
 		char* (*get_required_api_version)();
-		void (*free_mem)(void *ptr);
 		ss_plugin_t* (*init)(char* config, ss_plugin_rc* rc);
 		void (*destroy)(ss_plugin_t* s);
 		char* (*get_last_error)(ss_plugin_t* s);

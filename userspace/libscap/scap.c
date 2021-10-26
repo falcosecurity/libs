@@ -114,20 +114,6 @@ static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
 	return SCAP_SUCCESS;
 }
 
-static void scap_free_plugin_batch_state(scap_t* handle)
-{
-	for(uint32_t i = 0; i < handle->m_input_plugin_batch_nevts; i++)
-	{
-		handle->m_input_plugin->free_mem(handle->m_input_plugin_batch_evts[i].data);
-	}
-
-	handle->m_input_plugin_batch_nevts = 0;
-	handle->m_input_plugin_batch_idx = 0;
-
-	handle->m_input_plugin->free_mem(handle->m_input_plugin_batch_evts);
-	handle->m_input_plugin_batch_evts = NULL;
-}
-
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
@@ -1032,7 +1018,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	{
 		char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", errstr);
-		handle->m_input_plugin->free_mem(errstr);
 		scap_close(handle);
 		return NULL;
 	}
@@ -1206,10 +1191,7 @@ void scap_close(scap_t* handle)
 	else if(handle->m_mode == SCAP_MODE_PLUGIN)
 	{
 		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
-		scap_free_plugin_batch_state(handle);
 		handle->m_input_plugin->handle = NULL;
-		// name was allocated
-		handle->m_input_plugin->free_mem(handle->m_input_plugin->name);
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1746,15 +1728,12 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	{
 		if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 		{
-			scap_free_plugin_batch_state(handle);
-
 			if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
 			{
 				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
 				{
 					char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-					handle->m_input_plugin->free_mem(errstr);
 				}
 				int32_t tres = handle->m_input_plugin_last_batch_res;
 				handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
@@ -1781,7 +1760,6 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 					{
 						char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-						handle->m_input_plugin->free_mem(errstr);
 					}
 					return handle->m_input_plugin_last_batch_res;
 				}
@@ -1810,7 +1788,6 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			{
 				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-				handle->m_input_plugin->free_mem(errstr);
 			}
 			return plugin_rc_to_scap_rc(plugin_res);
 		}
@@ -1850,13 +1827,6 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 	buf += sizeof(handle->m_input_plugin->id);
 
 	memcpy(buf, plugin_evt->data, plugin_evt->datalen);
-
-	if(should_free_plugin_evt)
-	{
-		handle->m_input_plugin->free_mem(plugin_evt->data);
-		plugin_evt->data = NULL;
-		handle->m_input_plugin->free_mem(plugin_evt);
-	}
 
 	if(plugin_evt->ts != UINT64_MAX)
 	{
