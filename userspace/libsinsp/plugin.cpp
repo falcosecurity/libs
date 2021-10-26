@@ -513,8 +513,9 @@ std::list<sinsp_plugin::info> sinsp_plugin::plugin_infos(sinsp* inspector)
 		info.contact = p->contact();
 		info.plugin_version = p->plugin_version();
 		info.required_api_version = p->required_api_version();
+		info.type = p->type();
 
-		if(p->type() == TYPE_SOURCE_PLUGIN)
+		if(info.type == TYPE_SOURCE_PLUGIN)
 		{
 			sinsp_source_plugin *sp = static_cast<sinsp_source_plugin *>(p.get());
 			info.id = sp->id();
