@@ -484,6 +484,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char
 	// Initialize the plugin
 	if (!ret->init(config))
 	{
+		errstr = string("Could not initialize plugin");
 		ret = NULL;
 	}
 
