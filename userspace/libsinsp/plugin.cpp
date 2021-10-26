@@ -277,6 +277,7 @@ public:
 		pevt.ts = evt->get_ts();
 
 		sinsp_plugin::ext_field field;
+		field.field_id = m_field_id;
 		field.field = m_info.m_fields[m_field_id].m_name;
 		if(m_arg != NULL)
 		{
@@ -611,6 +612,7 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 
 	uint32_t num_fields = 1;
 	ss_plugin_extract_field efield;
+	efield.field_id = field.field_id;
 	efield.field = field.field.c_str();
 	efield.arg = field.arg.c_str();
 	efield.ftype = field.ftype;
