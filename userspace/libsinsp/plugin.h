@@ -65,6 +65,7 @@ public:
 	// Similar to struct ss_plugin_extract_field, but with c++
 	// types to avoid having to track memory allocations.
 	struct ext_field {
+		uint32_t field_id;
 		std::string field;
 		std::string arg;
 		uint32_t ftype;
