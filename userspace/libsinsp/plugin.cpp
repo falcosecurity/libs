@@ -20,6 +20,7 @@ limitations under the License.
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
+#include <set>
 #include <sstream>
 #endif
 #include <json/json.h>
@@ -45,6 +46,8 @@ const filtercheck_field_info sinsp_filter_check_plugininfo_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, a summary of the event as formatted by the plugin."},
 };
+
+static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
 
 class sinsp_filter_check_plugininfo : public sinsp_filter_check
 {
@@ -85,6 +88,11 @@ public:
 	sinsp_filter_check* allocate_new()
 	{
 		return new sinsp_filter_check_plugininfo(*this);
+	}
+
+	const std::set<uint16_t> &evttypes()
+	{
+		return s_all_plugin_event_types;
 	}
 
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
@@ -167,6 +175,11 @@ public:
 
 	virtual ~sinsp_filter_check_plugin()
 	{
+	}
+
+	const std::set<uint16_t> &evttypes()
+	{
+		return s_all_plugin_event_types;
 	}
 
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
