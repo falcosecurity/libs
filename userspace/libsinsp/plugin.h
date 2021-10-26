@@ -160,7 +160,7 @@ private:
 	common_plugin_info m_plugin_info;
 };
 
-// Note that this doesn't have a next() method, as event generation is
+// Note that this doesn't have a next_batch() method, as event generation is
 // handled at the libscap level.
 class sinsp_source_plugin : public sinsp_plugin
 {
