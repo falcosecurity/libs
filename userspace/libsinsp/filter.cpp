@@ -1895,7 +1895,6 @@ sinsp_filter* sinsp_filter_compiler::compile()
 sinsp_filter* sinsp_filter_compiler::compile_()
 {
 	m_scansize = (uint32_t)m_fltstr.size();
-
 	while(true)
 	{
 		char a = next();
@@ -2027,8 +2026,6 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 			break;
 		}
 	}
-
-	vector<string> components = sinsp_split(m_fltstr, ' ');
 	return m_filter;
 }
 
