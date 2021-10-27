@@ -17,12 +17,15 @@ limitations under the License.
 #include <sys/types.h>
 #include <string.h>
 
+#pragma once
 
 /*!
   \brief Copy up to size - 1 characters from the NUL-terminated string src to dst, NUL-terminating the result.
 
   \return The length of the source string.
 */
+
+#ifndef HAVE_STRLCPY
 static inline size_t strlcpy(char *dst, const char *src, size_t size) {
     size_t srcsize = strlen(src);
     if (size == 0) {
@@ -40,3 +43,4 @@ static inline size_t strlcpy(char *dst, const char *src, size_t size) {
 
     return srcsize;
 }
+#endif

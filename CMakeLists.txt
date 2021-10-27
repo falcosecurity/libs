@@ -69,3 +69,9 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
 		)
 endif()
+
+include(CheckSymbolExists)
+check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+if(HAVE_STRLCPY)
+	add_definitions(-DHAVE_STRLCPY)
+endif()
