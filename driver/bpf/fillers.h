@@ -100,19 +100,25 @@ FILLER_RAW(terminate_filler)
 		bpf_printk("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
-		++state->n_drops_buffer;
+		if (state->n_drops_buffer != ULLONG_MAX) {
+			++state->n_drops_buffer;
+		}
 		break;
 	case PPM_FAILURE_INVALID_USER_MEMORY:
 		bpf_printk("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
-		++state->n_drops_pf;
+		if (state->n_drops_pf != ULLONG_MAX) {
+			++state->n_drops_pf;
+		}
 		break;
 	case PPM_FAILURE_BUG:
 		bpf_printk("PPM_FAILURE_BUG event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
-		++state->n_drops_bug;
+		if (state->n_drops_bug != ULLONG_MAX) {
+			++state->n_drops_bug;
+		}
 		break;
 	case PPM_SKIP_EVENT:
 		break;
@@ -435,7 +441,6 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	if (flags & PRB_FLAG_PUSH_DATA) {
 		if (size > 0) {
 			unsigned long off = _READ(data->state->tail_ctx.curoff);
-			unsigned long off_bounded;
 			unsigned long remaining = size;
 			int j;
 
@@ -446,7 +451,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 				if (j == iovcnt)
 					break;
 
-				off_bounded = off & SCRATCH_SIZE_HALF;
+				unsigned long off_bounded = off & SCRATCH_SIZE_HALF;
 				if (off > SCRATCH_SIZE_HALF)
 					break;
 
