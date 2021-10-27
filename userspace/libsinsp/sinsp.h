@@ -61,7 +61,7 @@ limitations under the License.
 #include <map>
 #include <queue>
 #include <vector>
-#include <set>
+#include <unordered_set>
 #include <list>
 #include <memory>
 
@@ -880,6 +880,13 @@ public:
 
 	sinsp_parser* get_parser();
 
+	/*!
+	  \brief Enables simple_consumer mode on sinsp, at driver level.
+	  This will avoid tracing syscalls flagged with EF_DROP_SIMPLE_CONS.
+	  Must be called before sinsp opening.
+	*/
+	void set_simple_consumer();
+
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
@@ -984,7 +991,7 @@ private:
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
-
+	void fill_syscalls_of_interest(scap_open_args *oargs);
 	void remove_thread(int64_t tid, bool force);
 
 	//
@@ -1036,6 +1043,8 @@ private:
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
+
+	bool m_simpleconsumer;
 
 	scap_mode_t m_mode = SCAP_MODE_NONE;
 
@@ -1128,8 +1137,8 @@ public:
 	sinsp_filter* m_filter;
 	sinsp_evttype_filter *m_evttype_filter;
 	std::string m_filterstring;
-
 #endif
+	unordered_set<uint32_t> m_ppm_sc_of_interest;
 
 	//
 	// Internal stats

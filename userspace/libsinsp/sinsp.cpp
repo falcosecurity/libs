@@ -37,7 +37,6 @@ limitations under the License.
 #include "dns_manager.h"
 #include "plugin.h"
 
-
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
 #include "k8s_api_handler.h"
@@ -66,9 +65,11 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 sinsp::sinsp(bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
 	m_external_event_processor(),
+	m_simpleconsumer(false),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
+	m_ppm_sc_of_interest(),
 	m_suppressed_comms()
 {
 #if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
@@ -438,6 +439,39 @@ void sinsp::set_import_users(bool import_users)
 	m_import_users = import_users;
 }
 
+void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
+{
+	// Fallback to set all events as interesting
+	if (m_mode != SCAP_MODE_LIVE  || m_ppm_sc_of_interest.empty())
+	{
+		for(int i = 0; i < PPM_SC_MAX; i++)
+		{
+			m_ppm_sc_of_interest.insert(i);
+		}
+	}
+
+	/*
+	 * in case of simple consumer (driver side)
+	 * set all droppable events as non interesting (if they are syscall driven)
+	 */
+	if (m_simpleconsumer)
+	{
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			if (g_infotables.m_syscall_info_table[i].flags & EF_DROP_SIMPLE_CONS)
+			{
+				m_ppm_sc_of_interest.erase(i);
+			}
+		}
+	}
+
+	// Finally, set scap_open_args syscalls_of_interest
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		oargs->ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+	}
+}
+
 void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 {
 	char error[SCAP_LASTERR_SIZE];
@@ -454,11 +488,14 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	//
 	m_mode = mode;
 	scap_open_args oargs;
+
 	oargs.mode = mode;
 	oargs.fname = NULL;
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.udig = m_udig;
+
+	fill_syscalls_of_interest(&oargs);
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -543,6 +580,7 @@ void sinsp::open_nodriver()
 		oargs.proc_callback_context = this;
 	}
 	oargs.import_users = m_import_users;
+	fill_syscalls_of_interest(&oargs);
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -555,6 +593,11 @@ void sinsp::open_nodriver()
 	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
 
 	init();
+}
+
+void sinsp::set_simple_consumer()
+{
+	m_simpleconsumer = true;
 }
 
 int64_t sinsp::get_file_size(const std::string& fname, char *error)
@@ -675,10 +718,12 @@ void sinsp::open_int()
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_import_users;
 	oargs.start_offset = 0;
+	fill_syscalls_of_interest(&oargs);
 
 	add_suppressed_comms(oargs);
 
 	int32_t scap_rc;
+
 	m_h = scap_open(oargs, error, &scap_rc);
 
 	if(m_h == NULL)
@@ -759,6 +804,8 @@ void sinsp::close()
 		m_evttype_filter = NULL;
 	}
 #endif
+
+	m_ppm_sc_of_interest.clear();
 }
 
 //

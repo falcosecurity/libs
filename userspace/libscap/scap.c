@@ -119,7 +119,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   void* proc_callback_context,
 			   bool import_users,
 			   const char *bpf_probe,
-			   const char **suppressed_comms)
+			   const char **suppressed_comms,
+			   interesting_ppm_sc_set *ppm_sc_of_interest)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
@@ -167,7 +168,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   void* proc_callback_context,
 			   bool import_users,
 			   const char *bpf_probe,
-			   const char **suppressed_comms)
+			   const char **suppressed_comms,
+			   interesting_ppm_sc_set *ppm_sc_of_interest)
 {
 	uint32_t j;
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -283,6 +285,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
+
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
 	handle->m_win_buf_handle = NULL;
@@ -336,6 +339,37 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
 		return NULL;
 	}
+
+	if (ppm_sc_of_interest)
+	{
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
+			for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+			{
+				// Find the match between the ppm_sc and the syscall_nr
+				if(g_syscall_code_routing_table[syscall_nr] == i)
+				{
+					// UF_NEVER_DROP syscalls must be always traced
+					if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+					{
+						handle->syscalls_of_interest[syscall_nr] = true;
+					}
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		// fallback to trace all syscalls
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			handle->syscalls_of_interest[i] = true;
+		}
+	}
+
+
 
 	//
 	// Open and initialize all the devices
@@ -443,6 +477,22 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			}
 
 			++j;
+		}
+
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			if (!handle->syscalls_of_interest[i])
+			{
+				// Kmod driver event_mask check uses event_types instead of syscall nr
+				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
+				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
+				// Filter unmapped syscalls (that have a g_syscall_table entry with both enter_ev and exit_ev 0ed)
+				if (enter_ev != 0 && exit_ev != 0)
+				{
+					scap_unset_eventmask(handle, enter_ev);
+					scap_unset_eventmask(handle, exit_ev);
+				}
+			}
 		}
 	}
 
@@ -829,7 +879,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 
 scap_t* scap_open_live(char *error, int32_t *rc)
 {
-	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL);
+	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL, NULL);
 }
 
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
@@ -1079,7 +1129,8 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.proc_callback_context,
 						args.import_users,
 						args.bpf_probe,
-						args.suppressed_comms);
+						args.suppressed_comms,
+						&args.ppm_sc_of_interest);
 		}
 #else
 		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on Windows.");

@@ -296,6 +296,15 @@ typedef enum {
 	SCAP_MODE_PLUGIN,
 } scap_mode_t;
 
+/*!
+  \brief Argument for scap_open
+  Set any PPM_SC syscall idx to true to enable its tracing at driver level,
+  otherwise syscalls are not traced (so called "uninteresting syscalls").
+*/
+typedef struct {
+	bool ppm_sc[PPM_SC_MAX];
+} interesting_ppm_sc_set;
+
 typedef struct scap_open_args
 {
 	scap_mode_t mode;
@@ -311,6 +320,8 @@ typedef struct scap_open_args
 	                                                         // You can provide additional comm
 	                                                         // values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture. Otherwise, the kernel driver will be used.
+	interesting_ppm_sc_set ppm_sc_of_interest;
+	
 	source_plugin_info* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
 	char* input_plugin_params; ///< optional parameters string for the source plugin pointed by src_plugin
 }scap_open_args;
