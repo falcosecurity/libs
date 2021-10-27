@@ -195,7 +195,7 @@ struct scap
 	// via a call to next().
 	uint32_t m_input_plugin_batch_idx;
 
-	// The return value from the last call to batch_next().
+	// The return value from the last call to next_batch().
 	ss_plugin_rc m_input_plugin_last_batch_res;
 };
 

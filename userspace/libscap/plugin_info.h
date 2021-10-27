@@ -323,6 +323,9 @@ typedef struct
 	//   progress. This might include the progress percentage
 	//   combined with additional context added by the plugin. If
 	//   NULL, progress_pct should be used.
+    //   The returned memory pointer must be allocated by the plugin
+	//   and must not be deallocated or modified until the next call to
+	//   get_progress().
 	// NOTE: reporting progress is optional and in some case could be impossible. However,
 	//       when possible, it's recommended as it provides valuable information to the
 	//       user.
@@ -336,21 +339,25 @@ typedef struct
 	// - datalen: the length of the buffer from an event produced by next_batch().
 	// Return value: the text representation of the event. This is used, for example,
 	//   by sysdig to print a line for the given event.
+	//   The returned memory pointer must be allocated by the plugin
+	//   and must not be deallocated or modified until the next call to
+	//   event_to_string().
 	//
 	char *(*event_to_string)(ss_plugin_t *s, const uint8_t *data, uint32_t datalen);
 	//
 	// Extract one or more a filter field values from an event.
 	// Required: no
 	// Arguments:
-	// - evt: an event struct produced by a call to batch_next().
+	// - evt: an event struct produced by a call to next_batch().
 	//   This is allocated by the framework, and it is not guaranteed
 	//   that the event struct pointer is the same returned by the last
-	//   batch_next() call.
+	//   next_batch() call.
 	// - num_fields: the length of the fields array.
 	// - fields: an array of ss_plugin_extract_field structs. Each entry
 	//   contains a single field + optional argument as input, and the corresponding
 	//   extracted value as output. Memory pointers set as output must be allocated
-	//   by the plugin. 
+	//   by the plugin and must not be deallocated or modified until the next
+	//   extract_fields() call.
 	// 
 	// Return value: An ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
@@ -362,8 +369,9 @@ typedef struct
 	//   - evts: pointer to an ss_plugin_event pointer. The plugin must
 	//     allocate an array of contiguous ss_plugin_event structs
 	//     and each data buffer within each ss_plugin_event struct.
-	//     Both the array of structs and each data buffer are owned by
-	//     the framework until the next call to next_batch() or close().
+	//     Memory pointers set as output must be allocated by the plugin
+	//     and must not be deallocated or modified until the next call to
+	//     next_batch() or close().
 	// Required: yes
 	//
 	ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
@@ -487,7 +495,8 @@ typedef struct
 	// - fields: an array of ss_plugin_extract_field structs. Each entry
 	//   contains a single field + optional argument as input, and the corresponding
 	//   extracted value as output. Memory pointers set as output must be allocated
-	//   by the plugin. 
+	//   by the plugin and must not be deallocated or modified until the next
+	//   extract_fields() call.
 	// 
 	// Return value: An integer with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
