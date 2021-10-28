@@ -833,8 +833,14 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 #endif
 		case INT_MAX:
 			// forcefully disable switch jump table (clang-5 bug?)
+			// Basically, when labels values are similar AND the switch has many labels,
+			// compiler tends to build a jump table as optimization.
+			// This breaks with eBPF, and in our Makefile we already have the -fno-jump-tables;
+			// most probably clang5 had some kind of bug that caused -O2 mode to still use jump tables.
+			// Let's add a "very distant" label value to forcefully disable jump table.
+			//
 			// DO NOT merge with below default case
-			// otherwise this label will be skipped by compiler
+			// otherwise this label will be skipped by compiler.
 			ASSERT(false);
 			return PPM_SOCKOPT_UNKNOWN;
 		default:
@@ -1218,7 +1224,8 @@ static __always_inline u32 semctl_cmd_to_scap(unsigned cmd)
 	case GETZCNT: return PPM_GETZCNT;
 	case SETALL: return PPM_SETALL;
 	case SETVAL: return PPM_SETVAL;
-	case INT_MAX: return 0; // forcefully disable switch jump table (clang-5 bug?)
+	// forcefully disable switch jump table, see sockopt_optname_to_scap() for more info
+	case INT_MAX: return 0;
 	}
 	return 0;
 }
