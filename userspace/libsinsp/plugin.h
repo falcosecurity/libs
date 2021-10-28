@@ -82,13 +82,13 @@ public:
 	// The created sinsp_plugin is returned.
 	static std::shared_ptr<sinsp_plugin> register_plugin(sinsp* inspector,
 							     std::string filepath,
-							     char *config,
+							     const char* config,
 							     filter_check_list &available_checks = g_filterlist);
 
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is
 	// set with an error.
-	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, char *config, std::string &errstr);
+	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, const char* config, std::string &errstr);
 
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
 	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);
@@ -102,7 +102,7 @@ public:
 	// Returns true on success, false + sets errstr on error.
 	virtual bool resolve_dylib_symbols(void *handle, std::string &errstr);
 
-	bool init(char *config);
+	bool init(const char* config);
 	void destroy();
 
 	virtual ss_plugin_type type() = 0;
@@ -124,7 +124,7 @@ protected:
 	static void* getsym(void* handle, const char* name, std::string &errstr);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
-	std::string str_from_alloc_charbuf(char *charbuf);
+	std::string str_from_alloc_charbuf(const char* charbuf);
 
 	// init() will call this to save the resulting state struct
 	virtual void set_plugin_state(ss_plugin_t *state) = 0;
@@ -135,15 +135,15 @@ private:
 	// types. get_required_api_version/get_type are common but not
 	// included here as they are called in create_plugin()
 	typedef struct {
-		char* (*get_required_api_version)();
-		ss_plugin_t* (*init)(char* config, ss_plugin_rc* rc);
+		const char* (*get_required_api_version)();
+		ss_plugin_t* (*init)(const char* config, ss_plugin_rc* rc);
 		void (*destroy)(ss_plugin_t* s);
-		char* (*get_last_error)(ss_plugin_t* s);
-		char* (*get_name)();
-		char* (*get_description)();
-		char* (*get_contact)();
-		char* (*get_version)();
-		char* (*get_fields)();
+		const char* (*get_last_error)(ss_plugin_t* s);
+		const char* (*get_name)();
+		const char* (*get_description)();
+		const char* (*get_contact)();
+		const char* (*get_version)();
+		const char* (*get_fields)();
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	} common_plugin_info;
 
@@ -179,7 +179,7 @@ public:
 
 	// Note that embedding ss_instance_t in the object means that
 	// a plugin can only have one open active at a time.
-	bool open(char *params, ss_plugin_rc &rc);
+	bool open(const char* params, ss_plugin_rc &rc);
 	void close();
 	std::string get_progress(uint32_t &progress_pct);
 
