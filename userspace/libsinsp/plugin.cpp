@@ -365,7 +365,7 @@ std::string sinsp_plugin::version::as_string() const
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 							    string filepath,
-							    char* config,
+							    const char* config,
 							    filter_check_list &available_checks)
 {
 	string errstr;
@@ -400,7 +400,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 	return plugin;
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, char* config, std::string &errstr)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, const char* config, std::string &errstr)
 {
 	std::shared_ptr<sinsp_plugin> ret;
 
@@ -525,7 +525,7 @@ sinsp_plugin::~sinsp_plugin()
 {
 }
 
-bool sinsp_plugin::init(char *config)
+bool sinsp_plugin::init(const char *config)
 {
 	if (!m_plugin_info.init)
 	{
@@ -669,7 +669,7 @@ void* sinsp_plugin::getsym(void* handle, const char* name, std::string &errstr)
 }
 
 // Used below--set a std::string from the provided allocated charbuf and free() the charbuf.
-std::string sinsp_plugin::str_from_alloc_charbuf(char *charbuf)
+std::string sinsp_plugin::str_from_alloc_charbuf(const char* charbuf)
 {
 	std::string str;
 
@@ -722,7 +722,7 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 	//
 	if(m_plugin_info.get_fields)
 	{
-		char* sfields = m_plugin_info.get_fields();
+		const char* sfields = m_plugin_info.get_fields();
 		if(sfields == NULL)
 		{
 			throw sinsp_exception(string("error in plugin ") + m_name + ": get_fields returned a null string");
@@ -839,7 +839,7 @@ source_plugin_info *sinsp_source_plugin::plugin_info()
 	return &m_source_plugin_info;
 }
 
-bool sinsp_source_plugin::open(char *params, ss_plugin_rc &rc)
+bool sinsp_source_plugin::open(const char *params, ss_plugin_rc &rc)
 {
 	ss_plugin_rc orc;
 
