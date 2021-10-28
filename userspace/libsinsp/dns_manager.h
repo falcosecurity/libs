@@ -27,27 +27,23 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
+#include <utility>
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
-#include "tbb/concurrent_unordered_map.h"
+#include <tbb/concurrent_unordered_map.h>
+#include <tbb/concurrent_vector.h>
+#include <tbb/queuing_rw_mutex.h>
 #endif
 #include "sinsp.h"
-
-
 
 class sinsp_dns_manager
 {
 public:
-
 	bool match(const char *name, int af, void *addr, uint64_t ts);
 	string name_of(int af, void *addr, uint64_t ts);
 
 	void cleanup();
 
-        static sinsp_dns_manager& get()
-        {
-            static sinsp_dns_manager instance;
-            return instance;
-        };
+	static sinsp_dns_manager &get();
 
 	void set_erase_timeout(uint64_t ns)
 	{
@@ -61,72 +57,23 @@ public:
 	{
 		m_max_refresh_timeout = ns;
 	};
-	void clear_cache()
-	{
-		std::lock_guard<std::mutex> lk(m_erase_mutex);
-		m_cache.clear();
-	}
 
-	size_t size()
-	{
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
-		return m_cache.size();
-#else
-		return 0;
-#endif
-	};
+	void clear_cache();
+	size_t size();
+
+	sinsp_dns_manager(sinsp_dns_manager const &) = delete;
+	void operator=(sinsp_dns_manager const &) = delete;
 
 private:
-
-	static void refresh(std::future<void> f_exit);
-
-	sinsp_dns_manager() :
-		m_erase_timeout(3600 * ONE_SECOND_IN_NS),
-		m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
-		m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
-	{};
-        sinsp_dns_manager(sinsp_dns_manager const&) = delete;
-        void operator=(sinsp_dns_manager const&) = delete;
+	sinsp_dns_manager();
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
-	class dns_info
-	{
-	public:
-		uint64_t m_timeout;
-		uint64_t m_last_resolve_ts =0;
-		uint64_t m_last_used_ts = 0;
-		bool refresh (const std::string &name);
-
-		bool contains(const ipv6addr& v6)
-		{
-			std::lock_guard<std::mutex> lk(m_mtx);
-			return m_v6_addrs.find(v6) != m_v6_addrs.end();
-		}
-
-		bool contains(const uint32_t & v4)
-		{
-			std::lock_guard<std::mutex> lk(m_mtx);
-			return m_v4_addrs.find(v4) != m_v4_addrs.end();
-		}
-	private:
-		std::mutex m_mtx;
-		std::set<uint32_t> m_v4_addrs;
-		std::set<ipv6addr> m_v6_addrs;
-	};
-
-	typedef tbb::concurrent_unordered_map<std::string, std::shared_ptr<dns_info>> c_dns_table;
-	c_dns_table m_cache;
-#endif
-
-	// tbb concurrent unordered map is not thread-safe for deletions,
-	// so we still need a mutex, but the chances of waiting are really
-	// low, since we will almost never do an erase.
-	std::mutex m_erase_mutex;
-
-	// used to let m_resolver know when to terminate
+	class dns_cache;
+	std::unique_ptr<dns_cache> m_dns_cache;
+	static void refresh(std::future<void> f_exit);
 	std::promise<void> m_exit_signal;
-
-	std::thread *m_resolver;
+	std::thread *m_resolver{};
+#endif
 
 	uint64_t m_erase_timeout;
 	uint64_t m_base_refresh_timeout;
