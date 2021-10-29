@@ -15,25 +15,38 @@ limitations under the License.
 
 */
 
-#include <iostream>
 #include "dns_manager.h"
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#include <tbb/concurrent_unordered_map.h>
+
+#include <tbb/concurrent_vector.h>
+#include <tbb/concurrent_unordered_set.h>
+#include <tbb/queuing_rw_mutex.h>
+#include <tbb/queuing_mutex.h>
+#endif
+
+#include <iostream>
+#include <memory>
+#include <utility>
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 
+// template helpers to convert AF INET/INET6 into map keys
 template <int> class af_converter{};
 
+// ipv4
 template <> class af_converter<AF_INET>
 {
 public:
 	typedef int32_t type;
-
 	static type value(void *addr){ return *(uint32_t *)addr; }
 };
 
+// ipv6
 template <> class af_converter<AF_INET6>
 {
 public:
-	typedef std::string type;
+	typedef std::string type; // convert to string to use default hash
 	static type value(void *addr)
 	{
 		char str[INET6_ADDRSTRLEN];
@@ -45,25 +58,87 @@ public:
 	}
 };
 
-struct dns_info
+// dns info to hold timestamps amd resolution results.
+// results are intermediate to be inserted into map containers
+
+
+class dns_info
 {
+private:
+	template <typename T>
+	using set_t = std::set<T>;
+
+	template <typename T>
+	using set_ptr_t=std::shared_ptr<set_t<T>>;
+
+	set_ptr_t<uint32_t> m_v4_addrs = std::make_shared<set_t<uint32_t>>();
+	set_ptr_t<ipv6addr> m_v6_addrs = std::make_shared<set_t<ipv6addr>>();
+
+	uint64_t m_max_refresh_timeout;
+
+	uint64_t m_refresh_timeout = 0;
+	uint64_t m_last_resolve_ts = 0;
+
 public:
-	uint64_t m_timeout=0;
-	uint64_t m_last_resolve_ts =0;
-	uint64_t m_last_used_ts = 0;
 
-	std::set<uint32_t> m_v4_addrs;
-	std::set<ipv6addr> m_v6_addrs;
+	volatile mutable uint64_t m_last_used_ts = 0;
 
-	bool operator==(const dns_info &other) const
+	dns_info(const std::string &name, uint64_t base_timeout, uint64_t max_timeout, uint64_t ts):
+		m_max_refresh_timeout(max_timeout),
+		m_refresh_timeout(base_timeout),
+		m_last_resolve_ts(ts),
+		m_last_used_ts(ts)
 	{
-		return m_v4_addrs == other.m_v4_addrs && m_v6_addrs == other.m_v6_addrs;
-	};
-	bool operator!=(const dns_info &other) const
-	{
-		return !operator==(other);
-	};
+		refresh(name);
+	}
 
+	dns_info(const std::string &name, const dns_info &other, uint64_t max_timeout, uint64_t ts)
+	{
+		m_max_refresh_timeout = max_timeout;
+
+		m_last_used_ts    = other.m_last_used_ts;
+		m_last_resolve_ts = other.m_last_resolve_ts;
+		m_refresh_timeout = other.m_refresh_timeout;
+
+		if (ts > m_last_resolve_ts + m_refresh_timeout)
+		{
+			m_last_resolve_ts = ts;
+			refresh(name);
+		}
+		else
+		{
+			*m_v4_addrs = *other.m_v4_addrs;
+			*m_v6_addrs = *other.m_v6_addrs;
+
+			if(m_refresh_timeout < m_max_refresh_timeout)
+			{
+				m_refresh_timeout <<= 1;
+			}
+		}
+	}
+
+	dns_info(dns_info&& rh) = delete;
+	dns_info(const dns_info& rh) = delete;
+	dns_info &operator=(dns_info&&) = delete;
+	dns_info &operator=(dns_info) = delete;
+
+	bool is_expired(uint64_t erase_timeout, uint64_t ts) const
+	{
+		return (ts > m_last_used_ts) &&
+		       (ts - m_last_used_ts) > erase_timeout;
+	}
+
+	const set_t<uint32_t>& getv4_addrs () const
+	{
+		return *m_v4_addrs;
+	}
+
+	const set_t<ipv6addr>& getv6_addrs () const
+	{
+		return *m_v6_addrs;
+	}
+
+private:
 	void refresh(const string &name)
 	{
 		addrinfo hints{}, *result, *rp;
@@ -72,9 +147,6 @@ public:
 		// Allow IPv4 or IPv6, all socket types, all protocols
 		hints.ai_family = AF_UNSPEC;
 
-		m_v4_addrs.clear();
-		m_v6_addrs.clear();
-
 		int s = getaddrinfo(name.c_str(), nullptr, &hints, &result);
 		if (!s && result)
 		{
@@ -82,13 +154,13 @@ public:
 			{
 				if(rp->ai_family == AF_INET)
 				{
-					m_v4_addrs.insert(((struct sockaddr_in*)rp->ai_addr)->sin_addr.s_addr);
+					m_v4_addrs->insert(((struct sockaddr_in*)rp->ai_addr)->sin_addr.s_addr);
 				}
 				else // AF_INET6
 				{
 					ipv6addr v6;
 					memcpy(v6.m_b, ((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr, sizeof(ipv6addr));
-					m_v6_addrs.insert(v6);
+					m_v6_addrs->insert(v6);
 				}
 			}
 			freeaddrinfo(result);
@@ -98,73 +170,67 @@ public:
 
 using dns_info_table_t = tbb::concurrent_unordered_map<std::string, std::shared_ptr<dns_info>>;
 
+// Generic name <-> address
 template<typename First, typename Second>
 class dns_map
 {
 private:
-	typedef tbb::concurrent_unordered_map<Second, dns_info *> inner_map_t;
-	typedef tbb::concurrent_unordered_map<First, inner_map_t> outer_map_t;
-	outer_map_t m_map;
+	template<typename T, typename U>
+	using match_map_t = std::map<std::pair<T, U>,  dns_info *>; //tbb::concurrent_unordered_map<std::pair<T, U>,  dns_info *>;
+	match_map_t<First, Second> m_match_map;
 public:
-	Second get_sindex(First fidx, uint64_t ts)
-	{
-		const auto fit = m_map.find(fidx);
-		if(fit == m_map.end() || fit->second.empty())
-		{
-			return {};
-		}
 
-		auto sit = fit->second.begin();
-		sit->second->m_last_used_ts = ts;
-		return sit->first;
-	}
-
-	bool has_value(First fidx, Second sidx, uint64_t ts)
+	bool match(First fidx, Second sidx, uint64_t ts)
 	{
-		const auto fit = m_map.find(fidx);
-		if(fit == m_map.end() || fit->second.empty())
-		{
+		auto it = m_match_map.find( std::make_pair(fidx, sidx)) ;
+		if (it == m_match_map.end()){
 			return false;
 		}
-
-		auto sit = fit->second.find(sidx);
-		if(sit == fit->second.end())
-		{
-			return false;
-		}
-
-		sit->second->m_last_used_ts = ts;
+		it-> second->m_last_used_ts = ts;
 		return true;
 	}
 
-	void insert (First fidx, Second sidx, dns_info * info, uint64_t ts)
+	Second name_of(First fidx, uint64_t ts)
 	{
-		//info->m_last_used_ts = ts;
-		m_map[fidx][sidx] = info;
+		auto it = m_match_map.lower_bound( std::make_pair(fidx, Second())) ;
+		if (it == m_match_map.end() || it->first.first != fidx){
+			return {};
+		}
+		it-> second->m_last_used_ts = ts;
+		return it->first.second;
+	}
+
+	void insert (First fidx, Second sidx, dns_info * info)
+	{
+		// lookup is blocked during insertion
+		m_match_map[std::make_pair(fidx, sidx)] = info;
 	}
 };
 
-template <int AF> class dns_addr_map
+// Generic AF address converter -> name map
+template <int AF>
+class dns_addr_map
 {
 private:
 	typedef af_converter<AF> af_converter_t;
 	typedef typename af_converter_t::type addr_t;
 	dns_map<addr_t, std::string> m_addr_to_name_map;
 public:
-	void insert (std::string name, addr_t addr, dns_info * info, uint64_t ts)
+	void insert (std::string name, addr_t addr, dns_info * info)
 	{
-		m_addr_to_name_map.insert(addr, name, info, ts);
+		m_addr_to_name_map.insert(addr, name, info);
 	}
 	std::string name_of(void *addr, uint64_t ts)
 	{
-		return m_addr_to_name_map.get_sindex(af_converter_t::value(addr), ts);
+		return m_addr_to_name_map.name_of(af_converter_t::value(addr), ts);
 	}
 	bool match(std::string name, void* addr, uint64_t ts)
 	{
-		return m_addr_to_name_map.has_value(af_converter_t::value(addr), name, ts);
+		return m_addr_to_name_map.match(af_converter_t::value(addr), name, ts);
 	}
 };
 
+// combined v4, v6 maps
 class dns_af_cache
 {
 private:
@@ -172,11 +238,6 @@ private:
 	dns_addr_map<AF_INET6> m_v6_cache;
 public:
 	dns_info_table_t m_info_table;
-
-	void print_stats()
-	{
-		//SINSP_DEBUG("v4_size=%lu, v6_size=%lu", m_v4_cache.size(), m_v6_cache.size() );
-	}
 
 	std::string name_of(int af, void *addr, uint64_t ts)
 	{
@@ -204,27 +265,35 @@ public:
 		return false;
 	}
 
-	void insert(std::string name, std::shared_ptr<dns_info> info, uint64_t ts)
+	bool has_name(std::string name) const
 	{
-		for (auto addr : info->m_v4_addrs)
+		return m_info_table.count(name) > 0;
+	}
+
+	void insert(std::string name, std::shared_ptr<dns_info> info)
+	{
+		for (auto& addr : info->getv4_addrs())
 		{
-			m_v4_cache.insert(name, addr, info.get(), ts);
+			m_v4_cache.insert(name, addr, info.get());
 		}
 
-		for (auto addr : info->m_v6_addrs)
+		for (auto addr : info->getv6_addrs())
 		{
-			m_v6_cache.insert(name, af_converter<AF_INET6>::value(&addr.m_b[0]), info.get(), ts);
+			m_v6_cache.insert(name, af_converter<AF_INET6>::value(&addr.m_b[0]), info.get());
 		}
 		m_info_table[name] = info;
 	}
 };
 
+// cache class to provide work/shadow caches for fast switching
 class sinsp_dns_manager::dns_cache
 {
 private:
-	tbb::concurrent_vector<std::shared_ptr<dns_af_cache>> m_cashes;
-	tbb::queuing_rw_mutex m_cache_swap_mtx;
-	using scoped_lock = typename tbb::queuing_rw_mutex::scoped_lock;
+	std::vector<std::shared_ptr<dns_af_cache>> m_cashes;
+	//tbb::queuing_rw_mutex
+	std::mutex m_cache_swap_mtx;
+	using scoped_lock = typename  std::lock_guard<std::mutex>;
+	//tbb::queuing_rw_mutex::scoped_lock;
 public:
 	dns_cache()
 	{
@@ -234,31 +303,29 @@ public:
 
 	std::shared_ptr<dns_af_cache> get_work()
 	{
-		scoped_lock lk(m_cache_swap_mtx, false);
+		scoped_lock lk(m_cache_swap_mtx);
 		return m_cashes[0];
 	}
 
 	std::shared_ptr<dns_af_cache> get_shadow()
 	{
-		scoped_lock lk(m_cache_swap_mtx, false);
+		scoped_lock lk(m_cache_swap_mtx);
 		m_cashes[1] = std::make_shared<dns_af_cache>();
 		return m_cashes[1];
 	}
 
 	void swap()
 	{
-		//std::cout << "swap\n";
-
 		scoped_lock lk(m_cache_swap_mtx);
 		m_cashes[0] = m_cashes[1];
 		m_cashes[1] = std::make_shared<dns_af_cache>();
 	}
 
-	void insert(std::string name, std::shared_ptr<dns_info> info, uint64_t ts)
+	void insert(std::string name, std::shared_ptr<dns_info> info)
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		m_cashes[0]->insert(name, info, ts);
-		m_cashes[1]->insert(name, info, ts);
+		m_cashes[0]->insert(name, info);
+		m_cashes[1]->insert(name, info);
 	}
 
 	void clear()
@@ -269,6 +336,7 @@ public:
 	}
 };
 
+// threaded refresh method that populates shadow copy and "atomically" swaps it with work one
 void sinsp_dns_manager::refresh(std::future<void> f_exit)
 {
 	sinsp_dns_manager &manager = sinsp_dns_manager::get();
@@ -289,45 +357,11 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 			{
 				const std::string &name = it.first;
 				auto info = it.second;
-//				auto prt= [&](const std::string& act, dns_info *i) {
-//					std::cout << "\nacction: " << act << " info{ name:" << name
-//						  << " last_used:" << i->m_last_used_ts/ONE_SECOND_IN_NS
-//						  << " last_resolved:" << i->m_last_resolve_ts/ONE_SECOND_IN_NS
-//						  << " timeout:" << i->m_timeout/ONE_SECOND_IN_NS
-//						  << "\n";
-//				};
 
-				if((ts > info->m_last_used_ts) &&
-				   (ts - info->m_last_used_ts) > erase_timeout)
+				if(!info->is_expired(erase_timeout, ts))
 				{
-					//prt("erase", info.get());
-					// remove the entry if it's hasn't been used for a whole hour
-				}
-				else
-				{
-					auto n_info = new dns_info();
-					n_info->m_last_used_ts = info->m_last_used_ts;
-					n_info->m_last_resolve_ts = info->m_last_resolve_ts;
-					n_info->m_timeout = info->m_timeout;
-
-					if(ts > n_info->m_last_resolve_ts + n_info->m_timeout && *n_info != *info)
-					{
-						n_info->refresh(name);
-						n_info->m_timeout = base_refresh_timeout;
-						n_info->m_last_resolve_ts  = ts;
-						//prt("refresh", n_info);
-					}
-					else if(n_info->m_timeout < max_refresh_timeout)
-					{
-						// double the timeout until 320 secs
-						n_info->m_timeout <<= 1;
-						//prt("copy timeout", n_info);
-					}
-					else
-					{
-						//prt("copy", n_info);
-					}
-					shadow_cache->insert(name, std::shared_ptr<dns_info>(n_info), ts);
+					shadow_cache->insert(name,
+							     std::make_shared<dns_info>(name, *info, max_refresh_timeout, ts));
 				}
 			}
 			manager.m_dns_cache->swap();
@@ -340,33 +374,32 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 	}
 }
 
+// match name with address
 bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 {
-	if(!m_resolver)
-	{
-		m_resolver = new thread(sinsp_dns_manager::refresh, m_exit_signal.get_future());
-	}
-
-	if( m_dns_cache->get_work()->match(af, name, addr, ts))
+	if(m_dns_cache->get_work()->match(af, name, addr, ts))
 	{
 		return true;
 	}
 
+	if (m_dns_cache->get_work()->has_name(name))
+	{
+		return false;
+	}
+
 	string sname = string(name);
-	auto dinfo = make_shared<dns_info>();
-	dinfo->refresh(sname);
-	dinfo->m_last_used_ts = ts;
-	dinfo->m_timeout = sinsp_dns_manager::get().m_base_refresh_timeout;
-	dinfo->m_last_resolve_ts = ts;
-	m_dns_cache->insert(sname, dinfo, ts);
+	const auto& m = sinsp_dns_manager::get();
+	m_dns_cache->insert(sname, make_shared<dns_info>(name, m.m_base_refresh_timeout, m.m_max_refresh_timeout, ts));
 	return m_dns_cache->get_work()->match(af, name, addr, ts);
 }
 
+// resolve name by address
 string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 {
 	return m_dns_cache->get_work()->name_of(af, addr, ts);
 }
 
+// clean up on terminate
 void sinsp_dns_manager::cleanup()
 {
 	if(m_resolver)
@@ -376,19 +409,22 @@ void sinsp_dns_manager::cleanup()
 		m_resolver = nullptr;
 		m_exit_signal = std::promise<void>();
 	}
+
 }
 
-
+// get cache names size
 size_t sinsp_dns_manager::size()
 {
 	return m_dns_cache->get_work()-> m_info_table.size();
 }
 
+// client call to clear cache
 void sinsp_dns_manager::clear_cache()
 {
 	m_dns_cache->clear();
 }
 
+// ctor
 sinsp_dns_manager::sinsp_dns_manager():
 	m_dns_cache(new sinsp_dns_manager::dns_cache()),
 	m_resolver(nullptr),
@@ -396,6 +432,7 @@ sinsp_dns_manager::sinsp_dns_manager():
 	m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
 	m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
 {
+	m_resolver = new thread(sinsp_dns_manager::refresh, m_exit_signal.get_future());
 }
 
 #else
@@ -439,7 +476,10 @@ void sinsp_dns_manager::cleanup()
 
 sinsp_dns_manager &sinsp_dns_manager::get()
 {
-	static sinsp_dns_manager instance;
-	return instance;
+	static std::shared_ptr<sinsp_dns_manager> instance( new sinsp_dns_manager());
+	if (instance->m_resolver == nullptr) {
+		instance.reset( new sinsp_dns_manager());
+	}
+	return *instance;
 }
 
