@@ -28,11 +28,6 @@ limitations under the License.
 #include <future>
 #include <mutex>
 #include <utility>
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
-#include <tbb/concurrent_unordered_map.h>
-#include <tbb/concurrent_vector.h>
-#include <tbb/queuing_rw_mutex.h>
-#endif
 #include "sinsp.h"
 
 class sinsp_dns_manager
@@ -64,8 +59,10 @@ public:
 	sinsp_dns_manager(sinsp_dns_manager const &) = delete;
 	void operator=(sinsp_dns_manager const &) = delete;
 
+
 private:
 	sinsp_dns_manager();
+	friend class dns_manager_test;
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 	class dns_cache;
