@@ -251,7 +251,9 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	string removableMembers[] = {"port_mappings", "env", "labels", "Mounts" };
 	int idx = 0;
 	Json::Value trimmed_vars = Json::arrayValue;
-	while (json.length() >= UINT16_MAX && idx < 4)
+	// PPME_CONTAINER_JSON_E now uses EF_LARGE_PAYLOAD flag,
+	// thus its payload can handle up to 4GB of data.
+	while (json.length() >= UINT32_MAX && idx < 4)
 	{
 		container.removeMember(removableMembers[idx]);
 		trimmed_vars.append(removableMembers[idx]);
