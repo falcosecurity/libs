@@ -160,7 +160,10 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 		{
 			container.m_container_ip = m_cri->get_container_ip(container.m_id);
 		}
-		container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
+		if(container.m_imageid.empty())
+		{
+			container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
+		}
 	}
 
 	return true;
