@@ -6126,7 +6126,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
-	{PT_BOOL, EPF_NONE, PF_NA, "container.redacted", "true for containers whose metadata's json exceeded 64kiB thus was redacted."},
+	{PT_BOOL, EPF_NONE, PF_NA, "container.redacted", "true for containers whose metadata's json exceeded size limit (4GB) thus was redacted."},
 
 };
 
