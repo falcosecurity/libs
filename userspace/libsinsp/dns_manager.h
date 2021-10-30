@@ -59,7 +59,6 @@ public:
 	sinsp_dns_manager(sinsp_dns_manager const &) = delete;
 	void operator=(sinsp_dns_manager const &) = delete;
 
-
 private:
 	sinsp_dns_manager();
 	friend class dns_manager_test;
@@ -69,7 +68,9 @@ private:
 	std::unique_ptr<dns_cache> m_dns_cache;
 	static void refresh(std::future<void> f_exit);
 	std::promise<void> m_exit_signal;
-	std::thread *m_resolver{};
+	std::atomic<bool> m_resolver_flag;
+	std::thread *m_resolver = nullptr;
+
 #endif
 
 	uint64_t m_erase_timeout;

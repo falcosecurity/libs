@@ -377,6 +377,12 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 // match name with address
 bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 {
+	bool expect = false;
+	if (m_resolver_flag.compare_exchange_strong(expect, true))
+	{
+		m_resolver = new thread(sinsp_dns_manager::refresh, m_exit_signal.get_future());
+	}
+
 	if(m_dns_cache->get_work()->match(af, name, addr, ts))
 	{
 		return true;
@@ -396,17 +402,28 @@ bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 // resolve name by address
 string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 {
+	bool expect = false;
+	if (m_resolver_flag.compare_exchange_strong(expect, true))
+	{
+		m_resolver = new thread(sinsp_dns_manager::refresh, m_exit_signal.get_future());
+	}
+
 	return m_dns_cache->get_work()->name_of(af, addr, ts);
 }
 
 // clean up on terminate
 void sinsp_dns_manager::cleanup()
 {
-	if(m_resolver)
+	bool expect = true;
+	if (m_resolver_flag.compare_exchange_strong(expect, false))
 	{
+		// this is not thread safe.
+		// problem with this singleton implementation
+		// not introducing a mutex for the performance's sake
 		m_exit_signal.set_value();
 		m_resolver->join();
 		m_resolver = nullptr;
+		m_dns_cache.reset(new sinsp_dns_manager::dns_cache());
 		m_exit_signal = std::promise<void>();
 	}
 
@@ -432,7 +449,7 @@ sinsp_dns_manager::sinsp_dns_manager():
 	m_base_refresh_timeout(10 * ONE_SECOND_IN_NS),
 	m_max_refresh_timeout(320 * ONE_SECOND_IN_NS)
 {
-	m_resolver = new thread(sinsp_dns_manager::refresh, m_exit_signal.get_future());
+	m_resolver_flag.store(false);
 }
 
 #else
@@ -476,10 +493,7 @@ void sinsp_dns_manager::cleanup()
 
 sinsp_dns_manager &sinsp_dns_manager::get()
 {
-	static std::shared_ptr<sinsp_dns_manager> instance( new sinsp_dns_manager());
-	if (instance->m_resolver == nullptr) {
-		instance.reset( new sinsp_dns_manager());
-	}
-	return *instance;
+	static sinsp_dns_manager instance;
+	return instance;
 }
 
