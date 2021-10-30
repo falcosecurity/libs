@@ -61,7 +61,6 @@ public:
 
 private:
 	sinsp_dns_manager();
-	friend class dns_manager_test;
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 	class dns_cache;
@@ -70,7 +69,6 @@ private:
 	std::promise<void> m_exit_signal;
 	std::atomic<bool> m_resolver_flag;
 	std::thread *m_resolver = nullptr;
-
 #endif
 
 	uint64_t m_erase_timeout;
