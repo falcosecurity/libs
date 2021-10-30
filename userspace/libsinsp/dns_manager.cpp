@@ -16,20 +16,10 @@ limitations under the License.
 */
 
 #include "dns_manager.h"
+
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 #include <tbb/concurrent_unordered_map.h>
-
-#include <tbb/concurrent_vector.h>
-#include <tbb/concurrent_unordered_set.h>
 #include <tbb/queuing_rw_mutex.h>
-#include <tbb/queuing_mutex.h>
-#endif
-
-#include <iostream>
-#include <memory>
-#include <utility>
-
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 
 // template helpers to convert AF INET/INET6 into map keys
 template <int> class af_converter{};
@@ -60,8 +50,6 @@ public:
 
 // dns info to hold timestamps amd resolution results.
 // results are intermediate to be inserted into map containers
-
-
 class dns_info
 {
 private:
@@ -80,7 +68,6 @@ private:
 	uint64_t m_last_resolve_ts = 0;
 
 public:
-
 	volatile mutable uint64_t m_last_used_ts = 0;
 
 	dns_info(const std::string &name, uint64_t base_timeout, uint64_t max_timeout, uint64_t ts):
@@ -290,30 +277,29 @@ class sinsp_dns_manager::dns_cache
 {
 private:
 	std::vector<std::shared_ptr<dns_af_cache>> m_cashes;
-	//tbb::queuing_rw_mutex
 	std::mutex m_cache_swap_mtx;
 	using scoped_lock = typename  std::lock_guard<std::mutex>;
-	//tbb::queuing_rw_mutex::scoped_lock;
 public:
 	dns_cache()
 	{
-		m_cashes.emplace_back(new dns_af_cache());
-		m_cashes.emplace_back(new dns_af_cache());
+		m_cashes.emplace_back(new dns_af_cache()); // work
+		m_cashes.emplace_back(new dns_af_cache()); // shadow
 	}
 
 	std::shared_ptr<dns_af_cache> get_work()
 	{
-		scoped_lock lk(m_cache_swap_mtx);
+		scoped_lock lk(m_cache_swap_mtx); // can use reader lock when available
 		return m_cashes[0];
 	}
 
 	std::shared_ptr<dns_af_cache> get_shadow()
 	{
-		scoped_lock lk(m_cache_swap_mtx);
+		scoped_lock lk(m_cache_swap_mtx); // can use reader lock when available
 		m_cashes[1] = std::make_shared<dns_af_cache>();
 		return m_cashes[1];
 	}
 
+	// swap work <- shadow <- new
 	void swap()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
@@ -321,6 +307,7 @@ public:
 		m_cashes[1] = std::make_shared<dns_af_cache>();
 	}
 
+	// insert dns record
 	void insert(std::string name, std::shared_ptr<dns_info> info)
 	{
 		scoped_lock lk(m_cache_swap_mtx);
@@ -328,6 +315,7 @@ public:
 		m_cashes[1]->insert(name, info);
 	}
 
+	// clear caches
 	void clear()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
@@ -411,7 +399,7 @@ string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 	return m_dns_cache->get_work()->name_of(af, addr, ts);
 }
 
-// clean up on terminate
+// cleanup on terminate
 void sinsp_dns_manager::cleanup()
 {
 	bool expect = true;
@@ -426,7 +414,6 @@ void sinsp_dns_manager::cleanup()
 		m_dns_cache.reset(new sinsp_dns_manager::dns_cache());
 		m_exit_signal = std::promise<void>();
 	}
-
 }
 
 // get cache names size
@@ -496,4 +483,3 @@ sinsp_dns_manager &sinsp_dns_manager::get()
 	static sinsp_dns_manager instance;
 	return instance;
 }
-
