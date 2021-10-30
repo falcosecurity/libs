@@ -155,7 +155,7 @@ private:
 	}
 };
 
-using dns_info_table_t = tbb::concurrent_unordered_map<std::string, std::shared_ptr<dns_info>>;
+using dns_info_table_t = tbb::concurrent_unordered_map<std::string, std::shared_ptr<const dns_info>>;
 
 // Generic name <-> address
 template<typename First, typename Second>
@@ -163,11 +163,11 @@ class dns_map
 {
 private:
 	template<typename T, typename U>
-	using match_map_t = std::map<std::pair<T, U>,  dns_info *>; //tbb::concurrent_unordered_map<std::pair<T, U>,  dns_info *>;
+	using match_map_t = std::map<std::pair<T, U>,  const dns_info *>; //tbb::concurrent_unordered_map<std::pair<T, U>,  dns_info *>;
 	match_map_t<First, Second> m_match_map;
 public:
 
-	bool match(First fidx, Second sidx, uint64_t ts)
+	bool match(First fidx, Second sidx, uint64_t ts) const
 	{
 		auto it = m_match_map.find( std::make_pair(fidx, sidx)) ;
 		if (it == m_match_map.end()){
@@ -177,7 +177,7 @@ public:
 		return true;
 	}
 
-	Second name_of(First fidx, uint64_t ts)
+	Second name_of(First fidx, uint64_t ts) const
 	{
 		auto it = m_match_map.lower_bound( std::make_pair(fidx, Second())) ;
 		if (it == m_match_map.end() || it->first.first != fidx){
@@ -187,7 +187,7 @@ public:
 		return it->first.second;
 	}
 
-	void insert (First fidx, Second sidx, dns_info * info)
+	void insert (First fidx, Second sidx, const dns_info * info)
 	{
 		// lookup is blocked during insertion
 		m_match_map[std::make_pair(fidx, sidx)] = info;
@@ -203,15 +203,15 @@ private:
 	typedef typename af_converter_t::type addr_t;
 	dns_map<addr_t, std::string> m_addr_to_name_map;
 public:
-	void insert (std::string name, addr_t addr, dns_info * info)
+	void insert (std::string name, addr_t addr, const dns_info * info)
 	{
 		m_addr_to_name_map.insert(addr, name, info);
 	}
-	std::string name_of(void *addr, uint64_t ts)
+	std::string name_of(void *addr, uint64_t ts) const
 	{
 		return m_addr_to_name_map.name_of(af_converter_t::value(addr), ts);
 	}
-	bool match(std::string name, void* addr, uint64_t ts)
+	bool match(std::string name, void* addr, uint64_t ts) const
 	{
 		return m_addr_to_name_map.match(af_converter_t::value(addr), name, ts);
 	}
@@ -226,7 +226,7 @@ private:
 public:
 	dns_info_table_t m_info_table;
 
-	std::string name_of(int af, void *addr, uint64_t ts)
+	std::string name_of(int af, void *addr, uint64_t ts) const
 	{
 		if (af == AF_INET)
 		{
@@ -239,7 +239,7 @@ public:
 		return {};
 	}
 
-	bool match(int af, std::string name, void* addr, uint64_t ts)
+	bool match(int af, std::string name, void* addr, uint64_t ts) const
 	{
 		if (af == AF_INET)
 		{
@@ -257,7 +257,7 @@ public:
 		return m_info_table.count(name) > 0;
 	}
 
-	void insert(std::string name, std::shared_ptr<dns_info> info)
+	void insert(std::string name, std::shared_ptr<const dns_info> info)
 	{
 		for (auto& addr : info->getv4_addrs())
 		{
@@ -308,7 +308,7 @@ public:
 	}
 
 	// insert dns record
-	void insert(std::string name, std::shared_ptr<dns_info> info)
+	void insert(std::string name, std::shared_ptr<const dns_info> info)
 	{
 		scoped_lock lk(m_cache_swap_mtx);
 		m_cashes[0]->insert(name, info);
