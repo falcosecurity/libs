@@ -1018,7 +1018,7 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 
 	if(*rc != SCAP_SUCCESS)
 	{
-		char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
+		const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", errstr);
 		scap_close(handle);
 		return NULL;
@@ -1731,7 +1731,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		{
 			if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
 			{
-				char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
+				const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
 			}
 			int32_t tres = handle->m_input_plugin_last_batch_res;
@@ -1757,7 +1757,7 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 			{
 				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
 				{
-					char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
+					const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
 				}
 				return handle->m_input_plugin_last_batch_res;
