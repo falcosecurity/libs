@@ -111,6 +111,8 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 		case PT_CHARBUF:
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
+		case PT_FSPATH:
+		case PT_FSRELPATH:
 			{
 				len = (uint32_t)strlen(str);
 				if(len >= max_len)
