@@ -631,18 +631,20 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 	}
 
 	field.field_present = efield.field_present;
-	switch(field.ftype)
-	{
-	case PT_CHARBUF:
-		field.res_str = str_from_alloc_charbuf(efield.res_str);
-		break;
-	case PT_UINT64:
-		field.res_u64 = efield.res_u64;
-		break;
-	default:
-		ASSERT(false);
-		throw sinsp_exception("plugin extract error: unsupported field type " + to_string(field.ftype));
-		break;
+	if (field.field_present) {
+		switch(field.ftype)
+		{
+		case PT_CHARBUF:
+			field.res_str = str_from_alloc_charbuf(efield.res_str);
+			break;
+		case PT_UINT64:
+			field.res_u64 = efield.res_u64;
+			break;
+		default:
+			ASSERT(false);
+			throw sinsp_exception("plugin extract error: unsupported field type " + to_string(field.ftype));
+			break;
+		}
 	}
 
 	return true;
