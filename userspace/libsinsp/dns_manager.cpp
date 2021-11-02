@@ -45,7 +45,7 @@ public:
 	typedef typename tbb::tbb_hash_compare<ipv6addr> hash_t;
 };
 
-// dns info to hold timestamps amd resolution results.
+// dns info to hold timestamps and resolution results.
 // results are intermediate to be inserted into map containers
 class dns_info
 {
@@ -133,7 +133,7 @@ public:
 			if (!resolve(name) && m_refresh_timeout < m_max_refresh_timeout)
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG, "dns_info refresh skipped  %s", name.c_str());
-				m_refresh_timeout <<= 1;
+				m_refresh_timeout <<= 1; // double the timeout until 320 secs
 			}
 			else
 			{
@@ -193,7 +193,7 @@ private:
 				}
 				else // AF_INET6
 				{
-					v6_addrs->insert(  ((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr) ;
+					v6_addrs->insert(((struct sockaddr_in6*)rp->ai_addr)->sin6_addr.s6_addr) ;
 				}
 			}
 			freeaddrinfo(result);
@@ -320,51 +320,56 @@ public:
 class sinsp_dns_manager::dns_cache
 {
 private:
-	std::vector<std::shared_ptr<dns_af_cache>> m_cashes;
+	std::vector<std::shared_ptr<dns_af_cache>> m_caches;
 	std::mutex m_cache_swap_mtx;
 	using scoped_lock = typename  std::lock_guard<std::mutex>;
 public:
 	dns_cache()
 	{
-		m_cashes.emplace_back(new dns_af_cache()); // work
-		m_cashes.emplace_back(new dns_af_cache()); // shadow
+		m_caches.emplace_back(new dns_af_cache()); // work
+		m_caches.emplace_back(new dns_af_cache()); // shadow
 	}
 
 	std::shared_ptr<dns_af_cache> get_work()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		return m_cashes[0];
+		return m_caches[0];
 	}
 
-	std::shared_ptr<dns_af_cache> get_shadow()
+	// create and get
+	// new shadow is requested only once in the refresher thread.
+	// we create new to discard entries possibly duplicated by the insert
+	std::shared_ptr<dns_af_cache> create_shadow()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		m_cashes[1] = std::make_shared<dns_af_cache>();
-		return m_cashes[1];
+		m_caches[1] = std::make_shared<dns_af_cache>();
+		return m_caches[1];
 	}
 
 	// swap work <- shadow <- new
 	void swap()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		m_cashes[0] = m_cashes[1];
-		m_cashes[1] = std::make_shared<dns_af_cache>();
+		m_caches[0] = m_caches[1];
+		m_caches[1] = std::make_shared<dns_af_cache>();
 	}
 
-	// insert dns record
+	// inserting synchronized into two caches to keep in sync with the refresher thread
+	// if it's currently running, otherwise the shadow entries will be discarded
+	// on create_shadow request - a small overhead we pay for not locking individual entries
 	void insert(const std::string& name, std::shared_ptr<const dns_info> info)
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		m_cashes[0]->insert(name, info);
-		m_cashes[1]->insert(name, info);
+		m_caches[0]->insert(name, info);
+		m_caches[1]->insert(name, info);
 	}
 
 	// clear caches
 	void clear()
 	{
 		scoped_lock lk(m_cache_swap_mtx);
-		m_cashes[0] = std::make_shared<dns_af_cache>();
-		m_cashes[1] = std::make_shared<dns_af_cache>();
+		m_caches[0] = std::make_shared<dns_af_cache>();
+		m_caches[1] = std::make_shared<dns_af_cache>();
 	}
 };
 
@@ -378,7 +383,8 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 		uint64_t max_refresh_timeout = manager.m_max_refresh_timeout;
 		uint64_t erase_timeout = manager.m_erase_timeout;
 
-		auto shadow_cache = manager.m_dns_cache->get_shadow();
+		// create and fill shadow cache in the background
+		auto shadow_cache = manager.m_dns_cache->create_shadow();
 		auto work_cache = manager.m_dns_cache->get_work();
 
 		auto n_names = work_cache->m_info_table.size();
@@ -393,10 +399,13 @@ void sinsp_dns_manager::refresh(std::future<void> f_exit)
 
 				if(!info->is_expired(erase_timeout, ts))
 				{
+					// add shadow entries
 					shadow_cache->insert(name,
 							     std::make_shared<dns_info>(name, *info, max_refresh_timeout, ts));
 				}
 			}
+			// set shadow as work cache
+			// work is auto deleted by shared_ptr
 			manager.m_dns_cache->swap();
 		}
 		auto new_size = shadow_cache->m_info_table.size();
