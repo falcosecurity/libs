@@ -408,6 +408,8 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_ABSTIME:
 		return flt_compare_uint64(op, *(uint64_t*)operand1, *(uint64_t*)operand2);
 	case PT_CHARBUF:
+	case PT_FSPATH:
+	case PT_FSRELPATH:
 		return flt_compare_string(op, (char*)operand1, (char*)operand2);
 	case PT_BYTEBUF:
 		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
@@ -416,9 +418,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
-	case PT_FSPATH:
 	case PT_SIGSET:
-	case PT_FSRELPATH:
 	default:
 		ASSERT(false);
 		return false;
