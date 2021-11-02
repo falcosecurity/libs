@@ -52,6 +52,15 @@ endif()
 
 set(PACKAGE_NAME "sysdig")
 
+include(CheckSymbolExists)
+check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+if(HAVE_STRLCPY)
+	message(STATUS "Existing strlcpy found, will *not* use local definition by setting -DHAVE_STRLCPY.")
+	add_definitions(-DHAVE_STRLCPY)
+else()
+	message(STATUS "No strlcpy found, will use local definition")
+endif()
+
 include(CompilerFlags)
 
 option(WITH_CHISEL "Include chisel implementation" OFF)
@@ -70,8 +79,3 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 		)
 endif()
 
-include(CheckSymbolExists)
-check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
-if(HAVE_STRLCPY)
-	add_definitions(-DHAVE_STRLCPY)
-endif()
