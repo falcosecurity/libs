@@ -284,7 +284,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_TRACER_X */{ "tracer", EC_OTHER, EF_NONE, 3, { { "id", PT_INT64, PF_DEC }, { "tags", PT_CHARBUFARRAY, PF_NA }, { "args", PT_CHARBUF_PAIR_ARRAY, PF_NA } } },
 	/* PPME_MESOS_E */{"mesos", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_MESOS_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0},
-	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_CONTAINER_JSON_X */{"container", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SETSID_E */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
@@ -335,7 +335,9 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_USERFAULTFD_E */{"userfaultfd", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_USERFAULTFD_X */{"userfaultfd", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* PPME_PLUGINEVENT_E */{"pluginevent", EC_OTHER, EF_LARGE_PAYLOAD, 2, {{"plugin ID", PT_UINT32, PF_DEC}, {"event_data", PT_BYTEBUF, PF_NA} } },
-	/* PPME_NA1 */{"pluginevent", EC_OTHER, EF_UNUSED, 0}
+	/* PPME_NA1 */{"pluginevent", EC_OTHER, EF_UNUSED, 0},
+	/* PPME_CONTAINER_JSON_2_E */{"container", EC_PROCESS, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_2_X */{"container", EC_PROCESS, EF_UNUSED, 0},
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

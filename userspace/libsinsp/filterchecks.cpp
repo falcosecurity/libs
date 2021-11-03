@@ -1238,7 +1238,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_UID:
 		{
-			if(evt->get_type() == PPME_CONTAINER_JSON_E)
+			if(evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E)
 			{
 				return NULL;
 			}
