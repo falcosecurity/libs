@@ -345,7 +345,7 @@ void sinsp::init()
 
 			if(res == SCAP_SUCCESS)
 			{
-				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E))
+				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E) && (pevent->type != PPME_CONTAINER_JSON_2_E))
 				{
 					break;
 				}
@@ -1196,7 +1196,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E)
+	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E)
 	{
 		m_firstevent_ts = ts;
 	}
