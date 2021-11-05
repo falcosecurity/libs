@@ -2726,9 +2726,12 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on bpf");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		if (scap_bpf_set_simple_mode(handle))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 	else
 	{

@@ -778,6 +778,7 @@ static int32_t populate_syscall_table_map(scap_t *handle)
 		{
 			p = &uninterested_pair;
 		}
+
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SYSCALL_TABLE], &j, p, BPF_ANY) != 0)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SYSCALL_TABLE bpf_map_update_elem < 0");
@@ -1491,4 +1492,18 @@ int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	}
 
 	return SCAP_SUCCESS;
+}
+
+int32_t scap_bpf_set_simple_mode(scap_t* handle)
+{
+	int j;
+	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		const struct syscall_evt_pair *p = &g_syscall_table[j];
+		if(!(p->flags & UF_SIMPLEDRIVER_KEEP))
+		{
+			handle->syscalls_of_interest[j] = false;
+		}
+	}
+	return populate_syscall_table_map(handle);
 }
