@@ -411,7 +411,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 #endif
 	if(handle == NULL)
 	{
-		errstr = "error loading plugin " + filepath + ": " + strerror(errno);
+		errstr = "error loading plugin " + filepath + ": " + dlerror();
 		return ret;
 	}
 
