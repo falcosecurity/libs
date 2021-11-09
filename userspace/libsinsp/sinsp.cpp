@@ -541,14 +541,6 @@ void sinsp::open_nodriver()
 	scap_open_args oargs;
 	oargs.mode = SCAP_MODE_NODRIVER;
 	oargs.fname = NULL;
-	oargs.proc_callback = NULL;
-	oargs.proc_callback_context = NULL;
-	if(!m_filter_proc_table_when_saving)
-	{
-		oargs.proc_callback = ::on_new_entry_from_proc;
-		oargs.proc_callback_context = this;
-	}
-	oargs.import_users = m_import_users;
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -558,7 +550,7 @@ void sinsp::open_nodriver()
 		throw scap_open_exception(error, scap_rc);
 	}
 
-	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
+	m_filter_proc_table_when_saving = false;
 
 	init();
 }

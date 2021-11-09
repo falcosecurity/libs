@@ -832,10 +832,7 @@ scap_t* scap_open_live(char *error, int32_t *rc)
 	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL);
 }
 
-scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
-			       proc_entry_callback proc_callback,
-			       void* proc_callback_context,
-			       bool import_users)
+scap_t* scap_open_nodriver_int(char *error, int32_t *rc)
 {
 #if !defined(HAS_CAPTURE)
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
@@ -865,8 +862,8 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Extract machine information
 	//
-	handle->m_proc_callback = proc_callback;
-	handle->m_proc_callback_context = proc_callback_context;
+	handle->m_proc_callback = NULL;
+	handle->m_proc_callback_context = NULL;
 #ifdef _WIN32
 	handle->m_machine_info.num_cpus = 0;
 	handle->m_machine_info.memory_size_bytes = 0;
@@ -898,32 +895,8 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	handle->m_win_descs_handle = NULL;
 #endif
 
-	//
-	// Create the interface list
-	//
-	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return NULL;
-	}
-
-	//
-	// Create the user list
-	//
-	if(import_users)
-	{
-		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
-		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-			return NULL;
-		}
-	}
-	else
-	{
-		handle->m_userlist = NULL;
-	}
+	handle->m_userlist = NULL;
+	handle->m_proclist = NULL;
 
 	handle->m_fake_kernel_proc.tid = -1;
 	handle->m_fake_kernel_proc.pid = -1;
@@ -931,19 +904,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
 	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
 	handle->m_fake_kernel_proc.args[0] = 0;
-	handle->refresh_proc_table_when_saving = true;
-
-	//
-	// Create the process list
-	//
-	error[0] = '\0';
-	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, error)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live() error creating the process list. Make sure you have root credentials.");
-		return NULL;
-	}
+	handle->refresh_proc_table_when_saving = false;
 
 	return handle;
 #endif // HAS_CAPTURE
@@ -1086,9 +1047,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		return NULL;
 #endif
 	case SCAP_MODE_NODRIVER:
-		return scap_open_nodriver_int(error, rc, args.proc_callback,
-					      args.proc_callback_context,
-					      args.import_users);
+		return scap_open_nodriver_int(error, rc);
 	case SCAP_MODE_PLUGIN:
 		return scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
 	case SCAP_MODE_NONE:
