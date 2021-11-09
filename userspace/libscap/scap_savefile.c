@@ -2563,7 +2563,6 @@ int32_t scap_read_section_header(scap_t *handle, gzFile f)
 int32_t scap_read_init(scap_t *handle, gzFile f)
 {
 	block_header bh;
-	section_header_block sh;
 	uint32_t bt;
 	size_t readsize;
 	size_t toread;
