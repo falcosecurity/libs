@@ -353,106 +353,86 @@ public:
 		}
 	}
 
-	int get_all_data_secure()
+	int get_all_data_secure(std::vector<char> &buf)
 	{
-		int rec = 0;
 		int processed = 0;
-		int counter = 0;
-		std::vector<char> buf(1024, 0);
-		do {
-			rec = SSL_read(m_ssl_connection, &buf[0], buf.size());
-			counter++;
-			if (rec > 0)
-			{
-				processed += rec;
-			}
-			int err = SSL_get_error(m_ssl_connection, rec);
-			switch (err) {
-			case SSL_ERROR_NONE:
-				process(&buf[0], rec, false);
-				break;
-			case SSL_ERROR_ZERO_RETURN:
-				throw sinsp_exception("Socket handler (" + m_id + "): Connection closed.");
-				break;
-			case SSL_ERROR_WANT_READ:
-			case SSL_ERROR_WANT_WRITE:
-				break;
-			default:
-				g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(err) + " SSL error.",  sinsp_logger::SEV_TRACE);
-				break;
-			}
-
-			// To prevent reads from entirely stalling (like in gigantic k8s environments),
-			// give up after reading a certain size (by default, 100MB, but configurable).
-			if(processed > m_data_max_b)
-			{
-				throw sinsp_exception("Socket handler (" + m_id + "): "
-						      "read more than " + to_string(m_data_max_b / 1024 / 1024) + " MB of data from " +
-						      m_url.to_string(false) + m_path + " (" + std::to_string(processed) +
-						      " bytes, " + std::to_string(counter) + " reads). Giving up");
-			} else {
-				usleep(m_data_chunk_wait_us);
-			}
-		} while (!m_msg_completed);
+		int rec = SSL_read(m_ssl_connection, &buf[0], buf.size());
+		if (rec > 0)
+		{
+			processed += rec;
+		}
+		int err = SSL_get_error(m_ssl_connection, rec);
+		switch (err) {
+		case SSL_ERROR_NONE:
+			process(&buf[0], rec, false);
+			break;
+		case SSL_ERROR_ZERO_RETURN:
+			throw sinsp_exception("SSL Socket handler (" + m_id + "): Connection closed.");
+			break;
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+			break;
+		default:
+			g_logger.log("SSL Socket handler (" + m_id + ") received=" + std::to_string(err) + " SSL error.",  sinsp_logger::SEV_TRACE);
+			break;
+		}
 		return processed;
 	}
 
-	int get_all_data_unsecure() {
-		int rec = 0;
-		std::vector<char> buf(1024, 0);
-		int counter = 0;
+	int get_all_data_unsecure(std::vector<char> &buf) {
+		int rec;
 		int processed = 0;
+		int count = 0;
+		int ioret = ioctl(m_socket, FIONREAD, &count);
+		if(ioret >= 0 && count > 0)
+		{
+			buf.resize(count);
+			rec = recv(m_socket, &buf[0], count, 0);
+			switch (rec) {
+			case 0:
+				throw sinsp_exception("Socket handler (" + m_id + "): Connection closed.");
+				break;
+			case -1:
+				throw sinsp_exception("Socket handler (" + m_id + "): " + strerror(errno));
+				break;
+			default:
+				process(&buf[0], rec, false);
+				processed = rec;
+				break;
+			}
+		}
+		return processed;
+	}
+
+	int get_all_data()
+	{
+		int processed = 0;
+		int counter = 0;
+		std::vector<char> buf(1024, 0);
+
+		g_logger.log("Socket handler (" + m_id + ") Retrieving all data in blocking mode ...",
+					 sinsp_logger::SEV_TRACE);
+		init_http_parser();
 		do
 		{
-			int count = 0;
-			int ioret = ioctl(m_socket, FIONREAD, &count);
-			if(ioret >= 0 && count > 0)
-			{
-				buf.resize(count);
-				rec = recv(m_socket, &buf[0], count, 0);
-				if(rec > 0)
-				{
-					process(&buf[0], rec, false);
-					processed += rec;
-				}
-				else if(rec == 0)
-				{
-					throw sinsp_exception("Socket handler (" + m_id + "): Connection closed.");
-				}
-				else if(rec < 0)
-				{
-					throw sinsp_exception("Socket handler (" + m_id + "): " + strerror(errno));
-				}
-				//g_logger.log("Socket handler (" + m_id + ") received=" + std::to_string(rec) +
-				//			 "\n\n" + data + "\n\n", sinsp_logger::SEV_TRACE);
+			if (m_url.is_secure()) {
+				processed += get_all_data_secure(buf);
+			} else {
+				processed += get_all_data_unsecure(buf);
 			}
-
 			// To prevent reads from entirely stalling (like in gigantic k8s environments),
 			// give up after reading a certain size (by default, 100MB, but configurable).
 			++counter;
 			if(processed > m_data_max_b)
 			{
 				throw sinsp_exception("Socket handler (" + m_id + "): "
-						      "read more than " + to_string(m_data_max_b / 1024 / 1024) + " MB of data from " +
+										  "read more than " + to_string(m_data_max_b / 1024 / 1024) + " MB of data from " +
 						      m_url.to_string(false) + m_path + " (" + std::to_string(processed) +
 						      " bytes, " + std::to_string(counter) + " reads). Giving up");
+			} else {
+				usleep(m_data_chunk_wait_us);
 			}
-			else { usleep(m_data_chunk_wait_us); }
 		} while(!m_msg_completed);
-		return processed;
-	}
-
-	int get_all_data()
-	{
-		g_logger.log("Socket handler (" + m_id + ") Retrieving all data in blocking mode ...",
-					 sinsp_logger::SEV_TRACE);
-		int processed = 0;
-		init_http_parser();
-		if (m_url.is_secure()) {
-			processed = get_all_data_secure();
-		} else {
-			processed = get_all_data_unsecure();
-		}
 		init_http_parser();
 		return processed;
 	}
