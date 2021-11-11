@@ -14,6 +14,7 @@ else()
 	set(OPENSSL_INCLUDE_DIR "${PROJECT_BINARY_DIR}/openssl-prefix/src/openssl/include")
 	set(OPENSSL_LIBRARY_SSL "${OPENSSL_INSTALL_DIR}/lib/libssl.a")
 	set(OPENSSL_LIBRARY_CRYPTO "${OPENSSL_INSTALL_DIR}/lib/libcrypto.a")
+ 	set(OPENSSL_LIBRARIES "${OPENSSL_LIBRARY_SSL} ${OPENSSL_LIBRARY_CRYPTO}")
 
 	if(NOT TARGET openssl)
 		message(STATUS "Using bundled openssl in '${OPENSSL_BUNDLE_DIR}'")

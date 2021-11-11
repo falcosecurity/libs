@@ -249,23 +249,17 @@ if(NOT WIN32)
 		endif()
 	endif() # NOT APPLE
 
-        if(USE_BUNDLED_OPENSSL AND NOT MINIMAL_BUILD)
-		list(APPEND SINSP_LIBRARIES
-			"${OPENSSL_LIBRARY_SSL}"
-			"${OPENSSL_LIBRARY_CRYPTO}")
-        else()
-		list(APPEND SINSP_LIBRARIES
-                    "${OPENSSL_LIBRARIES}")
-        endif()
+	list(APPEND SINSP_LIBRARIES
+        	"${OPENSSL_LIBRARIES}")
 
-		if(WITH_CHISEL)
+	if(WITH_CHISEL)
 		list(APPEND SINSP_LIBRARIES
 			"${LUAJIT_LIB}")
-		endif()
+	endif()
 
-		list(APPEND SINSP_LIBRARIES
-			dl
-			pthread)
+	list(APPEND SINSP_LIBRARIES
+		dl
+		pthread)
 else()
 	if(WITH_CHISEL)
 		list(APPEND SINSP_LIBRARIES
