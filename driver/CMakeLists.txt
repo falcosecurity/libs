@@ -60,6 +60,7 @@ set(DRIVER_SOURCES
 	ppm_cputime.c
 	ppm_compat_unistd_32.h
 	ppm_version.h
+	systype_compat.h
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)

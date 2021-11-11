@@ -95,6 +95,8 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #include "kernel_hacks.h"
+#include "systype_compat.h"
+
 #endif /* UDIG */
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
@@ -4201,8 +4203,30 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	 * status
 	 */
 #ifndef UDIG
-	res = val_to_ring(args, args->sched_prev->exit_code, 0, false, 0);
+	/* Exit status */
+	res = val_to_ring(args, __WEXITSTATUS(args->sched_prev->exit_code), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* If signaled -> signum, else 0 */
+	if (__WIFSIGNALED(args->sched_prev->exit_code))
+	{
+		res = val_to_ring(args, __WTERMSIG(args->sched_prev->exit_code), 0, false, 0);
+	} else {
+		res = val_to_ring(args, 0, 0, false, 0);
+	}
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* Did it produce a core? */
+	res = val_to_ring(args, __WCOREDUMP(args->sched_prev->exit_code) != 0, 0, false, 0);
 #else	
+	res = val_to_ring(args, 0, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	res = val_to_ring(args, 0, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 	res = val_to_ring(args, 0, 0, false, 0);
 #endif
 	if (unlikely(res != PPM_SUCCESS))
