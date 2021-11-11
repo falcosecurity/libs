@@ -18,7 +18,7 @@ or GPL2.txt for full copies of the license.
  * probe to build.
  */
 //#define COS_73_WORKAROUND
-
+#include "../systype_compat.h"
 #include "../ppm_flag_helpers.h"
 #include "../ppm_version.h"
 
@@ -3498,7 +3498,23 @@ FILLER(sys_procexit_e, false)
 
 	exit_code = _READ(task->exit_code);
 
-	res = bpf_val_to_ring(data, exit_code);
+	/* Real exit code */
+	res = bpf_val_to_ring(data, __WEXITSTATUS(exit_code));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* If signaled -> signum, else 0 */
+	if (__WIFSIGNALED(exit_code))
+	{
+		res = bpf_val_to_ring(data, __WTERMSIG(exit_code));
+	} else {
+		res = bpf_val_to_ring(data, 0);
+	}
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* Did it produce a core? */
+	res = bpf_val_to_ring(data, __WCOREDUMP(exit_code) != 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
