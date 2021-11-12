@@ -4204,6 +4204,11 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	 */
 #ifndef UDIG
 	/* Exit status */
+	res = val_to_ring(args, args->sched_prev->exit_code, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/* Ret code */
 	res = val_to_ring(args, __WEXITSTATUS(args->sched_prev->exit_code), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
