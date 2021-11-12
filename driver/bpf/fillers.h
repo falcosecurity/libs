@@ -3498,7 +3498,12 @@ FILLER(sys_procexit_e, false)
 
 	exit_code = _READ(task->exit_code);
 
-	/* Real exit code */
+	/* Exit status */
+	res = bpf_val_to_ring(data, exit_code);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/* Ret code */
 	res = bpf_val_to_ring(data, __WEXITSTATUS(exit_code));
 	if (res != PPM_SUCCESS)
 		return res;
