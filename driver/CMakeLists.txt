@@ -103,8 +103,8 @@ if(ENABLE_DKMS)
 		${CMAKE_CURRENT_BINARY_DIR}/src/dkms.conf
 		${CMAKE_CURRENT_BINARY_DIR}/src/driver_config.h
 		${DRIVER_SOURCES}
-		DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT agent-kmodule)
+		DESTINATION "src/${DRIVER_PACKAGE_NAME}-${PROBE_VERSION}"
+		COMPONENT scap-driver)
 
 endif()
 
