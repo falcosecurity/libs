@@ -29,5 +29,5 @@ install(FILES
 	quirks.h
 	ring_helpers.h
 	types.h
-	DESTINATION "src/${PACKAGE_NAME}-${PROBE_VERSION}/bpf"
-	COMPONENT agent-kmodule)
+	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${PROBE_VERSION}/bpf"
+	COMPONENT scap-driver)
