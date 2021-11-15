@@ -130,20 +130,20 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	reset(evt);
 
 	//
-	// When debug mode is not enabled, filter out events about sysdig itself
+	// When debug mode is not enabled, filter out events about itself
 	//
 #if defined(HAS_CAPTURE)
 	if(is_live && !m_inspector->is_debug_enabled())
 	{
-		if(evt->get_tid() == m_inspector->m_sysdig_pid &&
-			etype != PPME_SCHEDSWITCH_1_E &&
-			etype != PPME_SCHEDSWITCH_6_E &&
-			etype != PPME_DROP_E &&
-			etype != PPME_DROP_X &&
-			etype != PPME_SYSDIGEVENT_E &&
-			etype != PPME_PROCINFO_E &&
-			etype != PPME_CPU_HOTPLUG_E &&
-			m_inspector->m_sysdig_pid)
+		if(evt->get_tid() == m_inspector->m_self_pid &&
+		   etype != PPME_SCHEDSWITCH_1_E &&
+		   etype != PPME_SCHEDSWITCH_6_E &&
+		   etype != PPME_DROP_E &&
+		   etype != PPME_DROP_X &&
+		   etype != PPME_SYSDIGEVENT_E &&
+		   etype != PPME_PROCINFO_E &&
+		   etype != PPME_CPU_HOTPLUG_E &&
+		   m_inspector->m_self_pid)
 		{
 			evt->m_filtered_out = true;
 			return;

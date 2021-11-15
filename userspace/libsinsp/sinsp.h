@@ -1225,7 +1225,7 @@ public:
 
 	static unsigned int m_num_possible_cpus;
 #if defined(HAS_CAPTURE)
-	int64_t m_sysdig_pid;
+	int64_t m_self_pid;
 #endif
 
 	// Any thread with a comm in this set will not have its events

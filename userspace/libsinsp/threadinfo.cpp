@@ -1263,11 +1263,11 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 
 	m_last_tinfo.reset();
 
-	if (m_threadtable.size() >= m_max_thread_table_size
+	if(m_threadtable.size() >= m_max_thread_table_size
 #if defined(HAS_CAPTURE)
-		&& threadinfo->m_pid != m_inspector->m_sysdig_pid
+	   && threadinfo->m_pid != m_inspector->m_self_pid
 #endif
-		)
+	)
 	{
 		// rate limit messages to avoid spamming the logs
 		if (m_n_drops % m_max_thread_table_size == 0)
@@ -1668,9 +1668,9 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
     if(!sinsp_proc && query_os_if_not_found &&
        (m_threadtable.size() < m_max_thread_table_size
 #if defined(HAS_CAPTURE)
-           || tid == m_inspector->m_sysdig_pid
+	|| tid == m_inspector->m_self_pid
 #endif
-        ))
+	))
     {
         // Certain code paths can lead to this point from scap_open() (incomplete example:
         // scap_proc_scan_proc_dir() -> resolve_container() -> get_env()). Adding a
