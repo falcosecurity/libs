@@ -2253,6 +2253,10 @@ FILLER(proc_startupdate_3, true)
 	long retval;
 	int res;
 
+#ifdef __NR_clone3
+	struct clone_args cl_args;
+#endif
+
 	retval = bpf_syscall_get_retval(data->ctx);
 
 	task = (struct task_struct *)bpf_get_current_task();
@@ -2262,7 +2266,9 @@ FILLER(proc_startupdate_3, true)
 
 	if (data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X ||
 	    data->state->tail_ctx.evt_type == PPME_SYSCALL_FORK_20_X ||
-	    data->state->tail_ctx.evt_type == PPME_SYSCALL_VFORK_20_X) {
+	    data->state->tail_ctx.evt_type == PPME_SYSCALL_VFORK_20_X ||
+		data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE3_X) 
+		{
 		/*
 		 * clone-only parameters
 		 */
@@ -2278,10 +2284,29 @@ FILLER(proc_startupdate_3, true)
 		/*
 		 * flags
 		 */
-		if (data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X)
+		switch (data->state->tail_ctx.evt_type)
+		{
+		case PPME_SYSCALL_CLONE_20_X:
 			flags = bpf_syscall_get_argument(data, 0);
-		else
+			break;
+		
+        case PPME_SYSCALL_CLONE3_X:
+#ifdef __NR_clone3
+			flags = bpf_syscall_get_argument(data, 0);
+			if (bpf_probe_read(&cl_args, sizeof(struct clone_args), (void *)flags)) 
+			{
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
+			flags = cl_args.flags;
+#else
+            flags = 0;			
+#endif
+			break;
+
+		default:
 			flags = 0;
+			break;
+		}
 
 		flags = clone_flags_to_scap(flags);
 
