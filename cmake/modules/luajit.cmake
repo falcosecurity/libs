@@ -38,7 +38,6 @@ else()
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/moonjit/moonjit"
 					GIT_TAG "2.1.2"
-					PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
@@ -49,7 +48,6 @@ else()
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
 					GIT_REPOSITORY "https://github.com/linux-on-ibm-z/LuaJIT.git"
 					GIT_TAG "v2.1"
-					PATCH_COMMAND sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/chisel.cpp && sed -i "s/luaL_reg/luaL_Reg/g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser.cpp && sed -i "s/luaL_getn/lua_objlen /g" ${PROJECT_SOURCE_DIR}/userspace/libsinsp/lua_parser_api.cpp
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
@@ -58,8 +56,8 @@ else()
 			else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-					URL "https://github.com/LuaJIT/LuaJIT/archive/v2.0.3.tar.gz"
-					URL_HASH "SHA256=8da3d984495a11ba1bce9a833ba60e18b532ca0641e7d90d97fafe85ff014baa"
+					URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
+					URL_HASH "SHA256=409f7fe570d3c16558e594421c47bdd130238323c9d6fd6c83dedd2aaeb082a8"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
@@ -69,8 +67,8 @@ else()
 		else()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-				URL "https://github.com/LuaJIT/LuaJIT/archive/v2.0.3.tar.gz"
-				URL_HASH "SHA256=8da3d984495a11ba1bce9a833ba60e18b532ca0641e7d90d97fafe85ff014baa"
+				URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
+				URL_HASH "SHA256=409f7fe570d3c16558e594421c47bdd130238323c9d6fd6c83dedd2aaeb082a8"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND msvcbuild.bat
 				BUILD_BYPRODUCTS ${LUAJIT_LIB}
