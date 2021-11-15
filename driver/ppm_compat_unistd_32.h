@@ -359,10 +359,11 @@
 #define __NR_ia32_openat2 351
 #define __NR_ia32_execveat 352
 #define __NR_ia32_copy_file_range 353
+#define __NR_ia32_clone3 354
 
 #ifdef __KERNEL__
 
-#define NR_ia32_syscalls 354
+#define NR_ia32_syscalls 355
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR

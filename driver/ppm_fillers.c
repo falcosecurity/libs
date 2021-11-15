@@ -759,6 +759,10 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 
+#ifdef __NR_clone3
+	struct clone_args cl_args;
+#endif
+
 	/*
 	 * Make sure the operation was successful
 	 */
@@ -993,7 +997,9 @@ cgroups_error:
 
 	if (args->event_type == PPME_SYSCALL_CLONE_20_X ||
 		args->event_type == PPME_SYSCALL_FORK_20_X ||
-		args->event_type == PPME_SYSCALL_VFORK_20_X) {
+		args->event_type == PPME_SYSCALL_VFORK_20_X ||
+		args->event_type == PPME_SYSCALL_CLONE3_X) 
+		{
 		/*
 		 * clone-only parameters
 		 */
@@ -1015,14 +1021,34 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-		if (args->event_type == PPME_SYSCALL_CLONE_20_X) {
+		switch (args->event_type)
+		{
+		case PPME_SYSCALL_CLONE_20_X:
 #ifdef CONFIG_S390
 			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 #else
 			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 #endif
-		} else
+			break;
+
+		case PPME_SYSCALL_CLONE3_X:
+#ifdef __NR_clone3
+		    syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+			res = ppm_copy_from_user(&cl_args, (void *)val, sizeof(struct clone_args));
+	        if (unlikely(res != 0))
+			{
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
+			val = cl_args.flags;
+#else
 			val = 0;
+#endif
+			break;	
+		
+		default:
+		    val = 0;
+			break;
+		}
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		if(pidns != &init_pid_ns || pid_ns_for_children(current) != pidns)
