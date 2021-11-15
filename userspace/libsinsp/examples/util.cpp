@@ -218,6 +218,8 @@ std::string get_event_type(uint16_t type)
         case PPME_SYSCALL_CLONE_16_X:
         case PPME_SYSCALL_CLONE_17_X:
         case PPME_SYSCALL_CLONE_20_X: return "clone";
+        case PPME_SYSCALL_CLONE3_E:
+        case PPME_SYSCALL_CLONE3_X: return "clone3";
         case PPME_SYSCALL_EXECVE_8_E:
         case PPME_SYSCALL_EXECVE_13_E:
         case PPME_SYSCALL_EXECVE_14_E:
