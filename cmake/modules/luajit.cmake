@@ -56,8 +56,8 @@ else()
 			else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
-					URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
-					URL_HASH "SHA256=409f7fe570d3c16558e594421c47bdd130238323c9d6fd6c83dedd2aaeb082a8"
+					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
+					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
 					CONFIGURE_COMMAND ""
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
