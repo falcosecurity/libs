@@ -12,7 +12,7 @@ elseif(NOT USE_BUNDLED_GTEST)
 		message(FATAL_ERROR "Couldn't find system gtest")
 	endif()
 else()
-	# https://github.com/google/googletest/tree/master/googletest#incorporating-into-an-existing-cmake-project
+	# https://github.com/google/googletest/tree/main/googletest#incorporating-into-an-existing-cmake-project
 	# Download and unpack googletest at configure time
 	configure_file(CMakeListsGtestInclude.cmake ${PROJECT_BINARY_DIR}/googletest-download/CMakeLists.txt)
 	execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
