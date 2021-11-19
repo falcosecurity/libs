@@ -813,6 +813,10 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 			if (!data->curarg_already_on_frame) {
 				volatile u16 read_size = len;
 
+				curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
+				if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+					return PPM_FAILURE_BUFFER_FULL;
+
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
 					if (bpf_probe_read(&data->buf[curoff_bounded],
