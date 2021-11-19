@@ -786,7 +786,7 @@ static int32_t populate_syscall_table_map(scap_t *handle)
 		}
 	}
 
-	return bpf_map_freeze(handle->m_bpf_map_fds[SYSDIG_SYSCALL_TABLE]);
+	return SCAP_SUCCESS;
 }
 
 static int32_t populate_event_table_map(scap_t *handle)
@@ -1503,6 +1503,41 @@ int32_t scap_bpf_set_simple_mode(scap_t* handle)
 		if(!(p->flags & UF_SIMPLEDRIVER_KEEP))
 		{
 			handle->syscalls_of_interest[j] = false;
+		}
+	}
+	return populate_syscall_table_map(handle);
+}
+
+int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_id) {
+	int j;
+	bool quit = false;
+	for(j = 0; j < SYSCALL_TABLE_SIZE && !quit; ++j)
+	{
+		/*
+		 * In case PPM_IOCTL_MASK_ZERO_EVENTS is called, event_id will be 0. Set every syscall to false in that case.
+		 * Otherwise, check {enter,exit} event for each syscall to see if it matches the requested event_id.
+		 */
+		if (event_id == 0 || g_syscall_table[j].enter_event_type == event_id || g_syscall_table[j].exit_event_type == event_id)
+		{
+			switch(op)
+			{
+			case PPM_IOCTL_MASK_ZERO_EVENTS:
+				handle->syscalls_of_interest[j] = false;
+				break;
+			case PPM_IOCTL_MASK_SET_EVENT:
+				handle->syscalls_of_interest[j] = true;
+				quit = true;
+				break;
+			case PPM_IOCTL_MASK_UNSET_EVENT:
+				handle->syscalls_of_interest[j] = false;
+				quit = true;
+				break;
+			default:
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+				ASSERT(false);
+				return SCAP_FAILURE;
+				break;
+			}
 		}
 	}
 	return populate_syscall_table_map(handle);
