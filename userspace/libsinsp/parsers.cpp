@@ -269,6 +269,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
+	case PPME_SYSCALL_EXECVEAT_E:
 	case PPME_SYSCALL_SETPGID_E:
 		store_event(evt);
 		break;
@@ -338,6 +339,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+    case PPME_SYSCALL_EXECVEAT_X:
 		parse_execve_exit(evt);
 		break;
 	case PPME_PROCEXIT_E:
@@ -1578,7 +1580,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	}
 
 	//
-	// We get here when execve returns. The thread has already been added by a previous fork or clone,
+	// We get here when execve or execveat return. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
 	//
 	if(!evt->m_tinfo)
@@ -1609,6 +1611,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+    case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1654,6 +1657,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+    case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1702,6 +1706,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+    case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1739,6 +1744,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+    case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1777,6 +1783,57 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			}
 		}
 		break;
+	case PPME_SYSCALL_EXECVEAT_X:
+		// Get exepath
+		if (retrieve_enter_event(enter_evt, evt))
+		{
+			/*
+	         * Get dirfd
+	         */
+			parinfo = enter_evt->get_param(0);
+		    ASSERT(parinfo->m_len == sizeof(int64_t));
+		    int64_t dirfd = *(int64_t *)parinfo->m_val;
+
+			/*
+	         * Get pathname
+	         */
+            parinfo = enter_evt->get_param(1);
+			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
+			{
+				evt->m_tinfo->m_exepath = "<NA>";
+				break;
+			}
+			char *pathname = parinfo->m_val;
+			uint32_t namelen = parinfo->m_len;
+
+			/*
+	         * Get flags
+	         */
+			parinfo = enter_evt->get_param(2);
+			ASSERT(parinfo->m_len == sizeof(int32_t));
+			uint32_t flags = *(int32_t *)parinfo->m_val;
+
+			string sdir;
+			parse_dirfd(enter_evt, pathname, dirfd, &sdir);
+
+			/*
+	         *  If pathname is an empty string and the AT_EMPTY_PATH flag is specified then the file descriptor dirfd specifies the file to be executed (i.e., dirfd refers to an executable file, rather than a directory).
+	         */
+			if(flags & PPM_EXVAT_AT_EMPTY_PATH && strlen(pathname)==0)
+			{
+				// In this way, the pathname becomes an absolute path and in the 'concatenate_paths' function the dirfd value is not considered.
+				strcpy(pathname, sdir.c_str());
+			}			
+      		char fullpath[SCAP_MAX_PATH_SIZE];
+			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+										   sdir.c_str(), 
+										   (uint32_t)sdir.length(),
+										   pathname, 
+										   namelen, 
+										   m_inspector->m_is_windows);
+			evt->m_tinfo->m_exepath = fullpath;      
+		}
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -1792,6 +1849,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1874,7 +1932,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	return;
 }
 
-void sinsp_parser::parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir)
+void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir)
 {
 	bool is_absolute = (name[0] == '/');
 	string tdirstr;
@@ -2122,7 +2180,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
 
-		parse_openat_dir(evt, name, dirfd, &sdir);
+		parse_dirfd(evt, name, dirfd, &sdir);
 	}
 	else if(etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X)
 	{
@@ -2145,7 +2203,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			dev = *(uint32_t *)parinfo->m_val;
 		}
 
-		parse_openat_dir(evt, name, dirfd, &sdir);
+		parse_dirfd(evt, name, dirfd, &sdir);
 	}
 	else
 	{
