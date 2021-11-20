@@ -1519,6 +1519,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 
 		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
 		valptr = (char *)lens + pevent->nparams * sizeof(uint16_t);
