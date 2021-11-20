@@ -609,6 +609,12 @@ or GPL2.txt for full copies of the license.
  * Execve additional flags
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
+  
+/*
+ * Execveat flags
+ */
+#define PPM_EXVAT_AT_EMPTY_PATH			(1 << 0)	/* If pathname is an empty string, operate on the file referred to by dirfd */
+#define PPM_EXVAT_AT_SYMLINK_NOFOLLOW	(1 << 1)	/* If the file is a symbolic link, then the call fails */
 
 /*
  * SuS says limits have to be unsigned.
@@ -984,7 +990,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_OPENAT2_X = 327,
 	PPME_SYSCALL_MPROTECT_E = 328,
 	PPME_SYSCALL_MPROTECT_X = 329,
-	PPM_EVENT_MAX = 330
+	PPME_SYSCALL_EXECVEAT_E = 330,
+	PPME_SYSCALL_EXECVEAT_X = 331,
+	PPM_EVENT_MAX = 332
 };
 /*@}*/
 
@@ -1547,6 +1555,7 @@ extern const struct ppm_name_value chmod_mode[];
 extern const struct ppm_name_value renameat2_flags[];
 extern const struct ppm_name_value openat2_flags[];
 extern const struct ppm_name_value execve_flags[];
+extern const struct ppm_name_value execveat_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

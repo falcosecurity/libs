@@ -540,3 +540,9 @@ const struct ppm_name_value execve_flags[] = {
 	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
 	{0, 0},
 };
+
+const struct ppm_name_value execveat_flags[] = {
+	{"AT_EMPTY_PATH", PPM_EXVAT_AT_EMPTY_PATH},
+	{"AT_SYMLINK_NOFOLLOW", PPM_EXVAT_AT_SYMLINK_NOFOLLOW},
+	{0, 0},
+};
