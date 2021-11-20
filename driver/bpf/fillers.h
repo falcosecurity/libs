@@ -1412,6 +1412,59 @@ FILLER(sys_execve_e, true)
 	return res;
 }
 
+FILLER(sys_execveat_e, true)
+{
+	unsigned long val;
+	unsigned long flags;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	
+	if ((int)val == AT_FDCWD)
+	{
+		val = PPM_AT_FDCWD;
+	}
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/*
+	 * pathname
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+
+	res = bpf_val_to_ring(data, val);
+	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		char na[] = "<NA>";
+		res = bpf_val_to_ring(data, (unsigned long)na);
+	}
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+    /*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 4);
+	flags = execveat_flags_to_scap(val);
+
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	return res;
+}
+
 static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 {
 	struct signal_struct *sig;
@@ -1978,11 +2031,25 @@ FILLER(proc_startupdate, true)
 			else
 				data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
 		}
-	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
+	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X ) {
 		unsigned long val;
 		char **argv;
 
-		val = bpf_syscall_get_argument(data, 1);
+		switch (data->state->tail_ctx.evt_type)
+		{
+		case PPME_SYSCALL_EXECVE_19_X:
+			val = bpf_syscall_get_argument(data, 1);
+			break;
+		
+		case PPME_SYSCALL_EXECVEAT_X:
+			val = bpf_syscall_get_argument(data, 2);
+			break;
+
+		default:
+			val = 0;
+			break;
+		}
 		argv = (char **)val;
 
 		res = bpf_accumulate_argv_or_env(data, argv, &args_len);
@@ -2260,7 +2327,8 @@ FILLER(proc_startupdate_3, true)
 		vpid = bpf_task_tgid_vnr(task);
 		res = bpf_val_to_ring_type(data, vpid, PT_PID);
 
-	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
+	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -2304,7 +2372,21 @@ FILLER(proc_startupdate_3, true)
 			unsigned long val;
 			char **envp;
 
-			val = bpf_syscall_get_argument(data, 2);
+			switch (data->state->tail_ctx.evt_type)
+			{
+			case PPME_SYSCALL_EXECVE_19_X:
+				val = bpf_syscall_get_argument(data, 2);
+				break;
+
+			case PPME_SYSCALL_EXECVEAT_X:
+				val = bpf_syscall_get_argument(data, 3);
+				break;	
+			
+			default:
+				val = 0;
+				break;
+			}
+
 			envp = (char **)val;
 
 			res = bpf_accumulate_argv_or_env(data, envp, &env_len);
