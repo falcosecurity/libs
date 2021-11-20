@@ -235,7 +235,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t dirfd = *(int64_t *)parinfo->m_val;
 
-			sinsp_parser::parse_openat_dir(evt, name, dirfd, &sdir);
+			sinsp_parser::parse_dirfd(evt, name, dirfd, &sdir);
 
 			char fullpath[SCAP_MAX_PATH_SIZE];
 

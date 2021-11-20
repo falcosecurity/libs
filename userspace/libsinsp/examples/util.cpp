@@ -234,6 +234,8 @@ std::string get_event_type(uint16_t type)
         case PPME_SYSCALL_EXECVE_17_X:
         case PPME_SYSCALL_EXECVE_18_X:
         case PPME_SYSCALL_EXECVE_19_X: return "execve";
+        case PPME_SYSCALL_EXECVEAT_E:
+        case PPME_SYSCALL_EXECVEAT_X: return "execveat";
         case PPME_SYSCALL_FCHDIR_E:
         case PPME_SYSCALL_FCHDIR_X: return "fchdir";
         case PPME_SYSCALL_FORK_E:

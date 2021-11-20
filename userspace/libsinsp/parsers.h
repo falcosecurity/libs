@@ -55,7 +55,7 @@ public:
 	//
 	// Combine the openat arguments into a full file name
 	//
-	static void parse_openat_dir(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
+	static void parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
 
 	//
 	// Protocol decoder infrastructure methods
