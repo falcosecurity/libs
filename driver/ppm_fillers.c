@@ -768,7 +768,8 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		return res;
 
 	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X)) {
+		     args->event_type != PPME_SYSCALL_EXECVE_19_X &&
+			 args->event_type != PPME_SYSCALL_EXECVEAT_X)) {
 
 		/* The call failed, but this syscall has no exe, args
 		 * anyway, so I report empty ones */
@@ -822,13 +823,25 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 		} else {
 
 			/*
-			 * The execve call failed. I get exe, args from the
+			 * The execve or execveat call failed. I get exe, args from the
 			 * input args; put one \0-separated exe-args string into
 			 * str_storage
 			 */
 			args->str_storage[0] = 0;
 
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+			switch (args->event_type)
+			{
+			case PPME_SYSCALL_EXECVE_19_X:
+				syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+				break;
+			
+			case PPME_SYSCALL_EXECVEAT_X:
+				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+
+			default:
+				val = 0;
+				break;
+			}
 #ifdef CONFIG_COMPAT
 			if (unlikely(args->compat))
 				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
@@ -1057,7 +1070,8 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X) {
+	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X || 
+			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
 		 * execve-only parameters
 		 */
@@ -1086,7 +1100,20 @@ cgroups_error:
 			/*
 			 * The call failed, so get the env from the arguments
 			 */
-			syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+			switch (args->event_type)
+			{
+			case PPME_SYSCALL_EXECVE_19_X:
+				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+				break;
+			
+			case PPME_SYSCALL_EXECVEAT_X:
+				syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+				break;
+
+			default:
+				val = 0;
+				break;
+			} 
 #ifdef CONFIG_COMPAT
 			if (unlikely(args->compat))
 				env_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
@@ -1195,6 +1222,58 @@ int f_sys_execve_e(struct event_filler_arguments *args)
 
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_execveat_e(struct event_filler_arguments *args)
+{
+	int res;
+	syscall_arg_t val;
+	unsigned long flags;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+	{
+		val = PPM_AT_FDCWD;
+	}
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	/*
+	 * pathname
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res == PPM_FAILURE_INVALID_USER_MEMORY))
+	{
+		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
+	}
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+    /*
+	 * flags
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	flags = execveat_flags_to_scap(val);
+
+	res = val_to_ring(args, flags, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
 
 	return add_sentinel(args);
 }

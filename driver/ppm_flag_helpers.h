@@ -1400,6 +1400,23 @@ static __always_inline u16 ptrace_requests_to_scap(unsigned long req)
 	}
 }
 
+static __always_inline u32 execveat_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+#ifdef AT_EMPTY_PATH
+	if (flags & AT_EMPTY_PATH)
+		res |= PPM_EXVAT_AT_EMPTY_PATH;
+#endif
+
+#ifdef AT_SYMLINK_NOFOLLOW
+	if (flags & AT_SYMLINK_NOFOLLOW)
+		res |= PPM_EXVAT_AT_SYMLINK_NOFOLLOW;
+#endif
+
+	return res;
+}
+
 static __always_inline u32 unlinkat_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
