@@ -53,6 +53,16 @@ else()
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
 					INSTALL_COMMAND "")
+			elseif(APPLE)
+				ExternalProject_Add(luajit
+					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
+					URL "https://github.com/LuaJIT/LuaJIT/archive/v2.1.0-beta3.tar.gz"
+					URL_HASH "SHA256=409f7fe570d3c16558e594421c47bdd130238323c9d6fd6c83dedd2aaeb082a8"
+					CONFIGURE_COMMAND ""
+					BUILD_COMMAND make MACOSX_DEPLOYMENT_TARGET=10.14
+					BUILD_IN_SOURCE 1
+					BUILD_BYPRODUCTS ${LUAJIT_LIB}
+					INSTALL_COMMAND "")
 			else()
 				ExternalProject_Add(luajit
 					PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"
