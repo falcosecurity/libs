@@ -3,31 +3,27 @@ option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS
 if(GRPC_INCLUDE)
 	# we already have grpc
 elseif(NOT USE_BUNDLED_GRPC)
-	find_library(GPR_LIB NAMES gpr)
-	if(GPR_LIB)
-		message(STATUS "Found gpr lib: ${GPR_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find system gpr")
-	endif()
-	find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
-	if(GRPCXX_INCLUDE)
-		set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
-	else()
-		find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
-		set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
+	# Fetch gRPC++ dependencies (gpr and grpc are deps of gRPC++)
+	find_package(PkgConfig REQUIRED)
+	# This will internally set GRPC_LIBRARIES
+	pkg_check_modules(GRPC REQUIRED grpc++ QUIET)
+
+	# handle /usr/include/grpc{++,pp}/
+	find_path(GRPCPP_INCLUDE NAMES ${GRPC_INCLUDEDIR}/grpcpp/grpcpp.h)
+	if (GRPCPP_INCLUDE)
 		add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
 	endif()
-	find_library(GRPC_LIB NAMES grpc)
-	find_library(GRPCPP_LIB NAMES grpc++)
-	if(GRPC_INCLUDE AND GRPC_LIB AND GRPCPP_LIB)
-		message(STATUS "Found grpc: include: ${GRPC_INCLUDE}, C lib: ${GRPC_LIB}, C++ lib: ${GRPCPP_LIB}")
-	else()
-		message(FATAL_ERROR "Couldn't find system grpc")
-	endif()
+
+	message(STATUS "Found grpc: include: ${GRPC_INCLUDEDIR}")
+
+	# Check cpp plugin
 	find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
 	if(NOT GRPC_CPP_PLUGIN)
 		message(FATAL_ERROR "System grpc_cpp_plugin not found")
 	endif()
+
+	# This var is required by build system, see below usage
+	set(GRPC_INCLUDE "${GRPC_INCLUDEDIR}")
 else()
 	include(cares)
 	include(protobuf)
@@ -53,6 +49,9 @@ else()
 		# note: the list below is manually generated starting from the output of pkg-config --libs grpc++
 		set(GRPC_LIBRARIES "")
 		list(APPEND GRPC_LIBRARIES
+			"${GRPCPP_LIB}"
+			"${GRPC_LIB}"
+			"${GPR_LIB}"
 			"${GRPC_SRC}/libaddress_sorting.a"
 			"${GRPC_SRC}/third_party/re2/libre2.a"
 			"${GRPC_SRC}/libupb.a"
