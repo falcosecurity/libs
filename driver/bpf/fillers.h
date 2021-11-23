@@ -4872,4 +4872,67 @@ FILLER(sys_fchmod_x, true)
 	return res;
 }
 
+FILLER(sys_copy_file_range_e, true)
+{
+	int fdin;
+	unsigned long offin;
+	unsigned long len;
+	int res;
+
+	/*
+	* fdin
+	*/
+	fdin = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, fdin);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* offin
+	*/
+	offin = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, offin);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* len
+	*/
+	len = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, len);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	return res;
+}
+
+FILLER(sys_copy_file_range_x, true)
+{
+	int fdout;
+	unsigned long offout;
+	long retval;
+	int res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	
+	/*
+	* fdout
+	*/
+	fdout = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, fdout);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* offout
+	*/
+	offout = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, offout);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	return res;
+}
+
 #endif
