@@ -120,6 +120,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mprotect_x)			\
 	FN(sys_execveat_e)			\
 	FN(execve_family_flags)		\
+	FN(sys_copy_file_range_e)	\
+	FN(sys_copy_file_range_x)	\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

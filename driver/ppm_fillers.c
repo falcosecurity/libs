@@ -4454,6 +4454,71 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_copy_file_range_e(struct event_filler_arguments *args)
+{
+	unsigned long fdin;
+	unsigned long offin;
+	unsigned long len;
+	int res;
+
+	/*
+	* fdin
+	*/
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &fdin);
+	res = val_to_ring(args, fdin, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* offin
+	*/
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &offin);
+	res = val_to_ring(args, offin, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* len
+	*/
+	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &len);
+	res = val_to_ring(args, len, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	return add_sentinel(args);
+}
+
+int f_sys_copy_file_range_x(struct event_filler_arguments *args)
+{
+	unsigned long fdout;
+	unsigned long offout;
+	int64_t retval;
+	int res;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* fdout
+	*/
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &fdout);
+	res = val_to_ring(args, fdout, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	* offout
+	*/
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &offout);
+	res = val_to_ring(args, offout, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
 #endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)

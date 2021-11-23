@@ -313,5 +313,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MPROTECT_X] = {FILLER_REF(sys_mprotect_x)}, 
 	[PPME_SYSCALL_EXECVEAT_E] = {FILLER_REF(sys_execveat_e)},
 	[PPME_SYSCALL_EXECVEAT_X] = {FILLER_REF(proc_startupdate)},
+	[PPME_SYSCALL_COPY_FILE_RANGE_E] = {FILLER_REF(sys_copy_file_range_e)},
+	[PPME_SYSCALL_COPY_FILE_RANGE_X] = {FILLER_REF(sys_copy_file_range_x)},
 #endif /* WDIG */
 };
