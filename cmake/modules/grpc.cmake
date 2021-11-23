@@ -2,28 +2,86 @@ option(USE_BUNDLED_GRPC "Enable building of the bundled grpc" ${USE_BUNDLED_DEPS
 
 if(GRPC_INCLUDE)
 	# we already have grpc
-elseif(NOT USE_BUNDLED_GRPC)
-	# Fetch gRPC++ dependencies (gpr and grpc are deps of gRPC++)
-	find_package(PkgConfig REQUIRED)
-	# This will internally set GRPC_LIBRARIES
-	pkg_check_modules(GRPC REQUIRED grpc++ QUIET)
+	return()
+endif()
 
-	# handle /usr/include/grpc{++,pp}/
-	find_path(GRPCPP_INCLUDE NAMES ${GRPC_INCLUDEDIR}/grpcpp/grpcpp.h)
-	if (GRPCPP_INCLUDE)
+# fixme(leogr,fededp): this workaround is required to inject the missing deps (built by gRCP cmakefiles)
+# into target_link_libraries later
+# note: the list below is manually generated starting from the output of pkg-config --libs grpc++
+# note2: we don't want to depend upon pkg-config
+set(GRPC_LIBRARIES "")
+macro(push_grpc_dep module path)
+	if(${GRPC_FROM_SYSTEM})
+		find_library(GRPC_DEP NAMES ${module})
+		if(NOT GRPC_DEP)
+			message(FATAL_ERROR "Couldn't find ${module}")
+		endif()
+	else()
+		# We are building the library ourselves during ExternalProject_Add evaluation
+		set(GRPC_DEP ${path}/lib${module}.a)
+	endif()
+	list(APPEND GRPC_LIBRARIES "${GRPC_DEP}")
+endmacro()
+
+function(fill_grpc_deps GRPC_FROM_SYSTEM)
+	push_grpc_dep(gpr "${GRPC_SRC}")
+	push_grpc_dep(grpc "${GRPC_SRC}")
+	push_grpc_dep(grpc++ "${GRPC_SRC}")
+	push_grpc_dep(address_sorting "${GRPC_SRC}")
+	push_grpc_dep(re2 "${GRPC_SRC}/third_party/re2/")
+	push_grpc_dep(upb "${GRPC_SRC}")
+	push_grpc_dep(absl_hash "${GRPC_SRC}/third_party/abseil-cpp/absl/hash/")
+	push_grpc_dep(absl_city "${GRPC_SRC}/third_party/abseil-cpp/absl/hash/")
+	push_grpc_dep(absl_wyhash "${GRPC_SRC}/third_party/abseil-cpp/absl/hash/")
+	push_grpc_dep(absl_raw_hash_set "${GRPC_SRC}/third_party/abseil-cpp/absl/container/")
+	push_grpc_dep(absl_hashtablez_sampler "${GRPC_SRC}/third_party/abseil-cpp/absl/container/")
+	push_grpc_dep(absl_exponential_biased "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_statusor "${GRPC_SRC}/third_party/abseil-cpp/absl/status/")
+	push_grpc_dep(absl_status "${GRPC_SRC}/third_party/abseil-cpp/absl/status/")
+	push_grpc_dep(absl_cord "${GRPC_SRC}/third_party/abseil-cpp/absl/strings/")
+	push_grpc_dep(absl_bad_optional_access "${GRPC_SRC}/third_party/abseil-cpp/absl/types/")
+	push_grpc_dep(absl_bad_variant_access "${GRPC_SRC}/third_party/abseil-cpp/absl/types/")
+	push_grpc_dep(absl_str_format_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/strings/")
+	push_grpc_dep(absl_synchronization "${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/")
+	push_grpc_dep(absl_graphcycles_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/")
+	push_grpc_dep(absl_stacktrace "${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/")
+	push_grpc_dep(absl_symbolize "${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/")
+	push_grpc_dep(absl_debugging_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/")
+	push_grpc_dep(absl_demangle_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/")
+	push_grpc_dep(absl_malloc_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_time "${GRPC_SRC}/third_party/abseil-cpp/absl/time/")
+	push_grpc_dep(absl_civil_time "${GRPC_SRC}/third_party/abseil-cpp/absl/time/")
+	push_grpc_dep(absl_strings "${GRPC_SRC}/third_party/abseil-cpp/absl/strings/")
+	push_grpc_dep(absl_strings_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/strings/")
+	push_grpc_dep(absl_base "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_spinlock_wait "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_int128 "${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/")
+	push_grpc_dep(absl_throw_delegate "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_raw_logging_internal "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_log_severity "${GRPC_SRC}/third_party/abseil-cpp/absl/base/")
+	push_grpc_dep(absl_time_zone "${GRPC_SRC}/third_party/abseil-cpp/absl/time/")
+endfunction()
+
+if(NOT USE_BUNDLED_GRPC)
+	find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
+	if(GRPCXX_INCLUDE)
+		set(GRPC_INCLUDE ${GRPCXX_INCLUDE})
+	else()
+		find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
+		set(GRPC_INCLUDE ${GRPCPP_INCLUDE})
 		add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
 	endif()
-
-	message(STATUS "Found grpc: include: ${GRPC_INCLUDEDIR}")
-
-	# Check cpp plugin
 	find_program(GRPC_CPP_PLUGIN grpc_cpp_plugin)
 	if(NOT GRPC_CPP_PLUGIN)
 		message(FATAL_ERROR "System grpc_cpp_plugin not found")
 	endif()
 
-	# This var is required by build system, see below usage
-	set(GRPC_INCLUDE "${GRPC_INCLUDEDIR}")
+	fill_grpc_deps(TRUE)
+	if(GRPC_INCLUDE)
+		message(STATUS "Found grpc: include: ${GRPC_INCLUDE}")
+	else()
+		message(FATAL_ERROR "Couldn't find system grpc")
+	endif()
 else()
 	include(cares)
 	include(protobuf)
@@ -38,54 +96,12 @@ else()
 	set(GRPC_LIB "${GRPC_SRC}/libgrpc.a")
 	set(GRPCPP_LIB "${GRPC_SRC}/libgrpc++.a")
 	set(GRPC_CPP_PLUGIN "${GRPC_SRC}/grpc_cpp_plugin")
-
 	get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
 	if(NOT TARGET grpc)
 		message(STATUS "Using bundled grpc in '${GRPC_SRC}'")
 
-		# fixme(leogr): this workaround is required to inject the missing deps (built by gRCP cmakefiles)
-		# into target_link_libraries later
-		# note: the list below is manually generated starting from the output of pkg-config --libs grpc++
-		set(GRPC_LIBRARIES "")
-		list(APPEND GRPC_LIBRARIES
-			"${GRPCPP_LIB}"
-			"${GRPC_LIB}"
-			"${GPR_LIB}"
-			"${GRPC_SRC}/libaddress_sorting.a"
-			"${GRPC_SRC}/third_party/re2/libre2.a"
-			"${GRPC_SRC}/libupb.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_wyhash.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_raw_hash_set.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_hashtablez_sampler.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_exponential_biased.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_statusor.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_status.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_optional_access.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_variant_access.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_str_format_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_synchronization.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/synchronization/libabsl_graphcycles_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_stacktrace.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_symbolize.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_debugging_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/debugging/libabsl_demangle_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_malloc_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_civil_time.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_strings_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_base.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_spinlock_wait.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/numeric/libabsl_int128.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_throw_delegate.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_raw_logging_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_log_severity.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
-		)
+		fill_grpc_deps(FALSE)
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
