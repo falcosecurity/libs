@@ -367,6 +367,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_execveat
 	[__NR_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
 #endif
+#ifdef __NR_copy_file_range
+	[__NR_copy_file_range - SYSCALL_TABLE_ID0] =            {UF_USED, PPME_SYSCALL_COPY_FILE_RANGE_E, PPME_SYSCALL_COPY_FILE_RANGE_X},
+#endif
 };
 
 /*
@@ -994,6 +997,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_execveat
 	[__NR_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,
 #endif
+#ifdef __NR_copy_file_range
+	[__NR_copy_file_range - SYSCALL_TABLE_ID0] = PPM_SC_COPY_FILE_RANGE,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1241,6 +1247,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif	
 #ifdef __NR_ia32_execveat
 	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
+#endif
+#ifdef __NR_ia32_copy_file_range
+	[__NR_ia32_copy_file_range - SYSCALL_TABLE_ID0] =            {UF_USED, PPME_SYSCALL_COPY_FILE_RANGE_E, PPME_SYSCALL_COPY_FILE_RANGE_X},
 #endif
 };
 
@@ -1803,6 +1812,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_execveat
 	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,
+#endif
+#ifdef __NR_ia32_copy_file_range
+	[__NR_ia32_copy_file_range - SYSCALL_TABLE_ID0] = PPM_SC_COPY_FILE_RANGE,
 #endif
 };
 
