@@ -740,6 +740,19 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		//
 		if(eflags & EF_USES_FD)
 		{
+			//
+			// The copy_file_range syscall has the peculiarity of using two fds
+			// Set as m_lastevent_fd the output fd
+			// 
+			if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X)
+			{
+				sinsp_evt_param *parinfo;
+				
+				parinfo = evt->get_param(1);
+				ASSERT(parinfo->m_len == sizeof(int64_t));
+				tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			}
+
 			evt->m_fdinfo = tinfo->get_fd(tinfo->m_lastevent_fd);
 
 			if(evt->m_fdinfo == NULL)
