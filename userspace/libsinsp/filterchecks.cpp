@@ -2125,7 +2125,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			// Relying on the convention that a session id is the process id of the session leader
 			//
 			sinsp_threadinfo* sinfo =
-				&*m_inspector->get_thread_ref(tinfo->m_sid, false, true);
+				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
 
 			if(sinfo != NULL)
 			{
@@ -2312,7 +2312,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_PNAME:
 		{
 			sinsp_threadinfo* ptinfo =
-				&*m_inspector->get_thread_ref(tinfo->m_ptid, false, true);
+				m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
 
 			if(ptinfo != NULL)
 			{
@@ -2327,7 +2327,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_PCMDLINE:
 		{
 			sinsp_threadinfo* ptinfo =
-				&*m_inspector->get_thread_ref(tinfo->m_ptid, false, true);
+				m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
 
 			if(ptinfo != NULL)
 			{
@@ -5672,7 +5672,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 		//
 		// If this is a *.p.* field, reject anything that doesn't come from the same process
 		//
-		sinsp_threadinfo* tinfo = &*m_inspector->get_thread_ref(pae->m_tid);
+		sinsp_threadinfo* tinfo = m_inspector->get_thread_ref(pae->m_tid).get();
 
 		if(tinfo)
 		{
@@ -5693,7 +5693,7 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 		//
 		// If this is a *.p.* field, reject anything that doesn't share the same parent
 		//
-		sinsp_threadinfo* tinfo = &*m_inspector->get_thread_ref(pae->m_tid);
+		sinsp_threadinfo* tinfo = m_inspector->get_thread_ref(pae->m_tid).get();
 
 		if(tinfo)
 		{
