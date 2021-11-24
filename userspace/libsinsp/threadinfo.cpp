@@ -665,7 +665,7 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 {
-	return &*m_inspector->get_thread_ref(m_ptid, false, true);
+	return m_inspector->get_thread_ref(m_ptid, false, true).get();
 }
 
 sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
@@ -1243,7 +1243,7 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 		//
 		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
 
-		sinsp_threadinfo* main_thread = &*m_inspector->get_thread_ref(threadinfo->m_pid, true, true);
+		sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(threadinfo->m_pid, true, true).get();
 		if(main_thread)
 		{
 			++main_thread->m_nchilds;
@@ -1318,7 +1318,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		if(tinfo->m_flags & PPM_CL_CLONE_THREAD)
 		{
 			ASSERT(tinfo->m_pid != tinfo->m_tid);
-			sinsp_threadinfo* main_thread = &*m_inspector->get_thread_ref(tinfo->m_pid, false, true);
+			sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(tinfo->m_pid, false, true).get();
 			if(main_thread)
 			{
 				if(main_thread->m_nchilds > 0)

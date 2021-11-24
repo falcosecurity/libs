@@ -1288,7 +1288,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(nfdr != 0)
 	{
-		sinsp_threadinfo* ptinfo = &*get_thread_ref(m_tid_of_fd_to_remove, true, true);
+		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, true, true).get();
 		if(!ptinfo)
 		{
 			ASSERT(false);
