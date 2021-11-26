@@ -21,6 +21,8 @@ endif()
 if(NOT WIN32 AND NOT APPLE)
 	include(b64)
 	include(jq)
+endif()
+if(NOT WIN32 AND NOT APPLE AND NOT MINIMAL_BUILD)
 	include(curl)
 endif()
 include(jsoncpp)
@@ -53,7 +55,6 @@ if(NOT WIN32 AND NOT APPLE)
 	get_filename_component(CURL_ABSOLUTE_INCLUDE_DIR ${CURL_INCLUDE_DIR} ABSOLUTE)
 	list(APPEND LIBSINSP_INCLUDE_DIRS ${CURL_ABSOLUTE_INCLUDE_DIR})
 endif()
-
 
 add_subdirectory(${LIBSINSP_DIR}/userspace/libsinsp ${CMAKE_BINARY_DIR}/libsinsp)
 
