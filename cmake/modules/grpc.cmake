@@ -11,7 +11,7 @@ elseif(NOT USE_BUNDLED_GRPC)
 		set(GRPC_LIB gRPC::grpc)
 		set(GRPCPP_LIB gRPC::grpc++)
 
-		# # gRPC C++ plugin
+		# gRPC C++ plugin
 		get_target_property(GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 		if(NOT GRPC_CPP_PLUGIN)
 			message(FATAL_ERROR "System grpc_cpp_plugin not found")
