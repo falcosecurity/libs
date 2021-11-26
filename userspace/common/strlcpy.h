@@ -26,7 +26,6 @@ limitations under the License.
 */
 
 #ifndef HAVE_STRLCPY
-#ifndef __APPLE__
 static inline size_t strlcpy(char *dst, const char *src, size_t size) {
     size_t srcsize = strlen(src);
     if (size == 0) {
@@ -44,5 +43,4 @@ static inline size_t strlcpy(char *dst, const char *src, size_t size) {
 
     return srcsize;
 }
-#endif
 #endif
