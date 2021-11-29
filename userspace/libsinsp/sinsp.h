@@ -491,7 +491,7 @@ public:
 	threadinfo_map_t::ptr_t get_thread_ref(int64_t tid, bool query_os_if_not_found = false, bool lookup_only = true, bool main_thread = false);
 
 	/*!
-  	  \brief Return the table with all the machine users.
+	  \brief Return the table with all the machine users.
 
 	  \return a hash table with the user ID (UID) as the key and the user
 	   information as the data.
