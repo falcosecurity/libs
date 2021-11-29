@@ -4777,7 +4777,6 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	case TYPE_LOGINNAME:
 		ASSERT(m_inspector != NULL);
 		uinfo = m_inspector->get_user(tinfo->m_loginuid);
-		ASSERT(uinfo != NULL);
 		if(uinfo == NULL)
 		{
 			return NULL;
@@ -4834,8 +4833,10 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			ASSERT(m_inspector != NULL);
 			auto ginfo = m_inspector->get_group(tinfo->m_gid);
-			ASSERT(ginfo != NULL);
-
+			if (ginfo == NULL)
+			{
+				return NULL;
+			}
 			RETURN_EXTRACT_CSTR(ginfo->name);
 		}
 	default:

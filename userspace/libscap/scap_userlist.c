@@ -47,19 +47,6 @@ int32_t scap_create_userlist(scap_t* handle)
 	}
 
 	//
-	// First pass: count the number of users and the number of groups
-	//
-	setpwent();
-	p = getpwent();
-	for(usercnt = 0; p; p = getpwent(), usercnt++); 
-	endpwent();
-
-	setgrent();
-	g = getgrent();
-	for(grpcnt = 0; g; g = getgrent(), grpcnt++);
-	endgrent();
-
-	//
 	// Memory allocations
 	//
 	handle->m_userlist = (scap_userlist*)malloc(sizeof(scap_userlist));
@@ -69,9 +56,8 @@ int32_t scap_create_userlist(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-	handle->m_userlist->nusers = usercnt;
-	handle->m_userlist->ngroups = grpcnt;
 	handle->m_userlist->totsavelen = 0;
+	usercnt = 32; // initial user count; will be realloc'd if needed
 	handle->m_userlist->users = (scap_userinfo*)malloc(usercnt * sizeof(scap_userinfo));
 	if(handle->m_userlist->users == NULL)
 	{
@@ -80,6 +66,7 @@ int32_t scap_create_userlist(scap_t* handle)
 		return SCAP_FAILURE;		
 	}
 
+	grpcnt = 32; // initial group count; will be realloc'd if needed
 	handle->m_userlist->groups = (scap_groupinfo*)malloc(grpcnt * sizeof(scap_groupinfo));
 	if(handle->m_userlist->groups == NULL)
 	{
@@ -89,16 +76,30 @@ int32_t scap_create_userlist(scap_t* handle)
 		return SCAP_FAILURE;		
 	}
 
-	//
-	// Second pass: copy the data
-	//
-
-	//users
+	// users
 	setpwent();
 	p = getpwent();
 
-	for(useridx = 0; useridx < usercnt && p; p = getpwent(), useridx++)
+	for(useridx = 0; p; p = getpwent(), useridx++)
 	{
+		if (useridx == usercnt)
+		{
+			usercnt<<=1;
+			void *tmp = realloc(handle->m_userlist->users, usercnt * sizeof(scap_userinfo));
+			if (tmp)
+			{
+				handle->m_userlist->users = tmp;
+			}
+			else
+			{
+				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
+				free(handle->m_userlist->users);
+				free(handle->m_userlist->groups);
+				free(handle->m_userlist);
+				return SCAP_FAILURE;
+			}
+		}
+
 		scap_userinfo *user = &handle->m_userlist->users[useridx];
 		user->uid = p->pw_uid;
 		user->gid = p->pw_gid;
@@ -132,24 +133,18 @@ int32_t scap_create_userlist(scap_t* handle)
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
-			sizeof(user->uid) +
-			sizeof(user->gid) +
+			sizeof(uint32_t) +  // uid
+			sizeof(uint32_t) +  // gid
 			strlen(user->name) + 2 +
 			strlen(user->homedir) + 2 +
 			strlen(user->shell) + 2;
 	}
 
 	endpwent();
-
-	/*
-	 * Check that no user was removed between the 2 iterations of users;
-	 * we don't really care if any user was added instead;
-	 * we will just miss the last user returned in that case.
-	 */
-	if (useridx < usercnt) {
-		// Any user was removed while we were cycling
-		handle->m_userlist->nusers = useridx;
-		// we are reducing the allocated area; no need to check that realloc is fine
+	handle->m_userlist->nusers = useridx;
+	if (useridx < usercnt)
+	{
+		// Reduce array size
 		handle->m_userlist->users = realloc(handle->m_userlist->users, useridx * sizeof(scap_userinfo));
 	}
 
@@ -157,8 +152,25 @@ int32_t scap_create_userlist(scap_t* handle)
 	setgrent();
 	g = getgrent();
 
-	for(grpidx = 0; grpidx < grpcnt && g; g = getgrent(), grpidx++)
+	for(grpidx = 0; g; g = getgrent(), grpidx++)
 	{
+		if (grpidx == grpcnt)
+		{
+			grpcnt<<=1;
+			void *tmp = realloc(handle->m_userlist->groups, grpcnt * sizeof(scap_groupinfo));
+			if (tmp)
+			{
+				handle->m_userlist->groups = tmp;
+			}
+			else
+			{
+				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
+				free(handle->m_userlist->users);
+				free(handle->m_userlist->groups);
+				free(handle->m_userlist);
+				return SCAP_FAILURE;
+			}
+		}
 		scap_groupinfo *group = &handle->m_userlist->groups[grpidx];
 		group->gid = g->gr_gid;
 
@@ -173,24 +185,17 @@ int32_t scap_create_userlist(scap_t* handle)
 
 		handle->m_userlist->totsavelen += 
 			sizeof(uint8_t) + // type
-			sizeof(group->gid) +
+			sizeof(uint32_t) +  // gid
 			strlen(group->name) + 2;
 	}
 
 	endgrent();
-
-	/*
-	 * Check that no group was removed between the 2 iterations of groups;
-	 * we don't really care if any group was added instead;
-	 * we will just miss the last group returned in that case.
-	 */
-	if (grpidx < grpcnt) {
-		// Any group was removed while we were cycling
-		handle->m_userlist->ngroups = grpidx;
-		// we are reducing the allocated area; no need to check that realloc is fine
+	handle->m_userlist->ngroups = grpidx;
+	if (grpidx < grpcnt)
+	{
+		// Reduce array size
 		handle->m_userlist->groups = realloc(handle->m_userlist->groups, grpidx * sizeof(scap_groupinfo));
 	}
-
 	return SCAP_SUCCESS;
 }
 #else // HAS_CAPTURE
