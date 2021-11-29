@@ -19,9 +19,9 @@ elseif(NOT USE_BUNDLED_GRPC)
 
 		# gRPC include dir + properly handle grpc{++,pp}
 		get_target_property(GRPC_INCLUDE gRPC::grpc++ INTERFACE_INCLUDE_DIRECTORIES)
-		find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h)
+		find_path(GRPCXX_INCLUDE NAMES grpc++/grpc++.h PATHS ${GRPC_INCLUDE})
 		if(NOT GRPCXX_INCLUDE)
-			find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h)
+			find_path(GRPCPP_INCLUDE NAMES grpcpp/grpcpp.h PATHS ${GRPC_INCLUDE})
 			add_definitions(-DGRPC_INCLUDE_IS_GRPCPP=1)
 		endif()
 	else()
