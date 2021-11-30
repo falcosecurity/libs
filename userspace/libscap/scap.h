@@ -1095,6 +1095,22 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
  */
 int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 
+/* extract components from an API version number */
+#define PPM_PLUGIN_VERSION_MAJOR(ver) ((((ver) >> 44)) & (((1 << 19) - 1)))
+#define PPM_PLUGIN_VERSION_MINOR(ver) (((ver) >> 24) & (((1 << 20) - 1)))
+#define PPM_PLUGIN_VERSION_PATCH(ver) (((ver) & ((1 << 24) - 1)))
+
+/* build an API version number from components */
+#define PPM_PLUGIN_VERSION(major, minor, patch) \
+	(((major) & (((1ULL << 19) - 1) << 44)) | \
+	((minor) & (((1ULL << 20) - 1) << 24)) | \
+	((major) & (((1ULL << 24) - 1))))
+
+/**
+ * Get plugin API version supported by the framework
+ */
+uint64_t scap_get_plugin_api_version(scap_t* handle);
+
 #ifdef __cplusplus
 }
 #endif
