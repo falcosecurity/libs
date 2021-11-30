@@ -646,6 +646,29 @@ public:
 	}
 
 	/*!
+	  \brief Returns the framework plugin api version
+	*/
+	inline uint64_t get_plugin_api_version() const
+	{
+		return scap_get_plugin_api_version(m_h);
+	}
+
+	/*!
+	  \brief Returns the framework plugin api version as a string with static storage
+	*/
+	inline const char *get_plugin_api_version_str() const
+	{
+		static char vers_str[32];
+
+		uint64_t vers = scap_get_plugin_api_version(m_h);
+		snprintf(vers_str, sizeof(vers_str), "%lu.%lu.%lu",
+					PPM_PLUGIN_VERSION_MAJOR(vers),
+					PPM_PLUGIN_VERSION_MINOR(vers),
+					PPM_PLUGIN_VERSION_PATCH(vers));
+		return vers_str;
+	}
+
+	/*!
 	  \brief Returns true if truncated environments should be loaded from /proc
 	*/
 	inline bool large_envs_enabled()
