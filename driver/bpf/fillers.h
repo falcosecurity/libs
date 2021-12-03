@@ -3025,6 +3025,67 @@ FILLER(sys_openat2_x, true)
 	return res;
 }
 
+FILLER(sys_open_by_handle_at_x, true)
+{
+	unsigned long flags;
+	unsigned long val;
+	int res;
+	int64_t retval = 0;
+
+	/*
+	 * fd
+	 */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/*
+	 * mountfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+	{
+		val = PPM_AT_FDCWD;
+	}
+	
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+    /*
+	 * flags
+	 */
+    val = bpf_syscall_get_argument(data, 2);
+	flags = open_flags_to_scap(val);
+
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+	
+	/*
+	 * filepath
+	 */
+	if (retval > 0)
+	{
+		char* filepath = bpf_get_path(data, retval);
+		if (filepath != NULL)
+		{
+			res = bpf_val_to_ring(data,(unsigned long)filepath);
+			return res;	
+		}
+	} 
+
+	res = bpf_val_to_ring(data, (unsigned long)"<NA>");
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;

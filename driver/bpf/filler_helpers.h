@@ -21,6 +21,9 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 #include "builtins.h"
 
+#define MAX_PATH_COMPONENTS 32
+#define MAX_PATH_LENGTH 4096
+
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
 	return port >= min && port <= max;
@@ -55,6 +58,57 @@ static __always_inline struct file *bpf_fget(int fd)
 	fil = _READ(fds[fd]);
 
 	return fil;
+}
+
+// Kernel 5.10 introduced a new bpf_helper called `bpf_d_path` to extract a file path starting from a file descriptor.
+// Libscap loads our bpf programs as `BPF_PROG_TYPE_RAW_TRACEPOINT` programs. This type of program doesn't seem able to call this new helper because it is out of its scope. For more details see here https://github.com/torvalds/linux/blob/58e1100fdc5990b0cc0d4beaf2562a92e621ac7d/kernel/trace/bpf_trace.c#L1574
+static __always_inline char *bpf_get_path(struct filler_data *data, int fd)
+{
+	struct file *f = bpf_fget(fd);
+	const unsigned char** pointers_buf = (const unsigned char**)data->tmp_scratch;
+	char *filepath = (char *)&data->tmp_scratch[(MAX_PATH_COMPONENTS* sizeof(const unsigned char*)) & SCRATCH_SIZE_HALF];
+
+    struct dentry *de_p = _READ(f->f_path.dentry); 
+	if (!de_p)
+	{
+		return NULL;
+	}
+	struct dentry de = _READ(*de_p); 
+	uint16_t i = 0;
+	pointers_buf[i & (MAX_PATH_COMPONENTS-1)] = de.d_name.name;
+	uint16_t nreads = 1;
+
+	# pragma unroll MAX_PATH_COMPONENTS
+	for(i = 1; i < MAX_PATH_COMPONENTS && de.d_parent != de_p; i++)
+	{
+		de_p = de.d_parent;
+		de = _READ(*de.d_parent);
+		pointers_buf[i & (MAX_PATH_COMPONENTS-1)] = de.d_name.name;
+		nreads++;
+	}
+
+	uint32_t curoff_bounded = 0;
+	uint16_t path_level = 0;
+	int res = 0;
+
+	# pragma unroll MAX_PATH_COMPONENTS
+	for(i = 1; i < MAX_PATH_COMPONENTS && i <= nreads && res >= 0; i++)
+	{
+		path_level = (nreads-i) & (MAX_PATH_COMPONENTS-1);	
+		res = bpf_probe_read_str(&filepath[curoff_bounded], MAX_PATH_LENGTH,
+				(const void*)pointers_buf[path_level]);	
+		curoff_bounded = (curoff_bounded+res-1) & SCRATCH_SIZE_HALF;
+		if(i>1 && i<nreads && res>0)
+		{
+			filepath[curoff_bounded] = '/';
+			curoff_bounded = (curoff_bounded+1) & SCRATCH_SIZE_HALF;
+		}
+	}
+	if(res<0)
+	{
+		return NULL;
+	}
+	return filepath;
 }
 
 static __always_inline struct socket *bpf_sockfd_lookup(struct filler_data *data,
