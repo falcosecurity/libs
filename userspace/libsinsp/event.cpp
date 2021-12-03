@@ -2668,7 +2668,8 @@ bool sinsp_evt::is_file_open_error() const
 		(m_pevt->type == PPME_SYSCALL_CREAT_X) ||
 		(m_pevt->type == PPME_SYSCALL_OPENAT_X) ||
 		(m_pevt->type == PPME_SYSCALL_OPENAT_2_X) ||
-		(m_pevt->type == PPME_SYSCALL_OPENAT2_X));
+		(m_pevt->type == PPME_SYSCALL_OPENAT2_X) ||
+		(m_pevt->type == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X));
 }
 
 bool sinsp_evt::is_file_error() const

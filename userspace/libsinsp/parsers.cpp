@@ -313,6 +313,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
 	case PPME_SYSCALL_OPENAT2_X:
+	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
@@ -2138,10 +2139,17 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		return;
 	}
 
-	//
-	// Load the enter event so we can access its arguments
-	//
-	lastevent_retrieved = retrieve_enter_event(enter_evt, evt);
+
+	if(etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
+	{
+		//
+		// Load the enter event so we can access its arguments
+		//
+		if(!retrieve_enter_event(enter_evt, evt))
+		{
+			return;
+		}
+	}
 
 	//
 	// Check the return value
@@ -2291,6 +2299,21 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 		parse_dirfd(evt, name, dirfd, &sdir);
 	}
+	else if (etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
+	{
+		/*
+		 * Flags
+		 */
+		parinfo = evt->get_param(2);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		flags = *(uint32_t *)parinfo->m_val;
+
+		/*
+		 * Path
+		 */
+		parinfo = evt->get_param(3);
+		name = parinfo->m_val;
+	}
 	else
 	{
 		ASSERT(false);
@@ -2303,8 +2326,15 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//mode = *(uint32_t*)parinfo->m_val;
 
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
-		name, namelen, m_inspector->m_is_windows);
+	if (etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
+	{
+		sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
+			name, namelen, m_inspector->m_is_windows);
+	}
+    else 
+	{
+		strcpy(fullpath, name);
+	}
 
 	if(fd >= 0)
 	{
