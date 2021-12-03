@@ -4832,6 +4832,92 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+
+int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
+{
+	unsigned long flags;
+	unsigned long val;
+	int res;
+	int64_t retval;
+
+	/*
+	 * fd
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	/*
+	 * mountfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	if ((int)val == AT_FDCWD)
+	{
+		val = PPM_AT_FDCWD;	
+	}
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+    /*
+	 * flags
+	 */
+    syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	flags = open_flags_to_scap(val);
+
+	res = val_to_ring(args, flags, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+    /*
+	 * filepath
+	 */
+	if (retval > 0)
+	{
+		char *pathname;
+		// String storage size is exactly one page. PAGE_SIZE = 4096 byte like PATH_MAX in unix conventions. 
+		char* buf = (char*)args->str_storage;
+
+		struct file *file;
+		file = fget(retval);
+		if (unlikely(!file))
+		{
+			goto empty_pathname;
+		}
+		
+		// `pathname` will be a pointer inside the the buffer `buf`, where the file path effectively starts.
+		pathname = d_path(&file->f_path, buf, PAGE_SIZE);
+		if (unlikely(!pathname))
+		{
+			goto empty_pathname;
+		}
+
+		res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
+		if (likely(res == PPM_SUCCESS))
+		{
+			return add_sentinel(args);
+		}		
+	}
+
+
+empty_pathname:
+	res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		return res;
+	}
+
+	return add_sentinel(args);
+}
+
 #endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
