@@ -41,6 +41,7 @@ public:
 		virtual ~version();
 
 		std::string as_string() const;
+		bool check(version &requested) const;
 
 		bool m_valid;
 		uint32_t m_version_major;
@@ -88,7 +89,7 @@ public:
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is
 	// set with an error.
-	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, const char* config, std::string &errstr);
+	static std::shared_ptr<sinsp_plugin> create_plugin(sinsp* inspector, std::string &filepath, const char* config, std::string &errstr);
 
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
 	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);
