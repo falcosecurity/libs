@@ -348,6 +348,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_COPY_FILE_RANGE_X */{"copy_file_range", EC_FILE, EF_USES_FD | EF_READS_FROM_FD | EF_WRITES_TO_FD, 3, {{"res", PT_ERRNO, PF_DEC}, {"fdout", PT_FD, PF_DEC}, {"offout", PT_UINT64, PF_DEC} } },
 	/* PPME_SYSCALL_CLONE3_E */{"clone3", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_CLONE3_X */{"clone3", EC_PROCESS, EF_MODIFIES_STATE, 20, {{"res", PT_PID, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_INT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, clone_flags}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"vtid", PT_PID, PF_DEC}, {"vpid", PT_PID, PF_DEC} } },
+	/* PPME_SYSCALL_OPEN_BY_HANDLE_AT_E */{"open_by_handle_at", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
+	/* PPME_SYSCALL_OPEN_BY_HANDLE_AT_X */{"open_by_handle_at", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"fd", PT_FD, PF_DEC}, {"mountfd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"path", PT_FSPATH, PF_NA} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
