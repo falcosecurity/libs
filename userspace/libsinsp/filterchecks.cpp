@@ -253,6 +253,22 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 
 			return true;
 		}
+	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
+		{
+			sinsp_evt_param *parinfo;
+			char *fullpath;
+
+			parinfo = evt->get_param(3);
+	        fullpath = parinfo->m_val;
+			m_tstr = fullpath;
+
+			if(sanitize_strings)
+			{
+				sanitize_string(m_tstr);
+			}
+
+			return true;
+		}	
 	default:
 		m_tstr = "";
 		return true;
@@ -2958,8 +2974,8 @@ const filtercheck_field_info sinsp_filter_check_event_fields[] =
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net", "Network Buffer Length", "the length of the binary data buffer, but only for network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.in", "Network Input Buffer Length", "the length of the binary data buffer, but only for input network I/O events."},
 	{PT_UINT64, EPF_TABLE_ONLY, PF_DEC, "evt.buflen.net.out", "Network Output Buffer Length", "the length of the binary data buffer, but only for output network I/O events."},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "Is Opened For Reading", "'true' for open/openat/openat2 events where the path was opened for reading"},
-	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "Is Opened For Writing", "'true' for open/openat/openat2 events where the path was opened for writing"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_read", "Is Opened For Reading", "'true' for open/openat/openat2/open_by_handle_at events where the path was opened for reading"},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_open_write", "Is Opened For Writing", "'true' for open/openat/openat2/open_by_handle_at events where the path was opened for writing"},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.name", "Docker Name", "for docker infrastructure events, the name of the event."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.id", "Docker ID", "for docker infrastructure events, the id of the impacted container."},
 	{PT_CHARBUF, EPF_TABLE_ONLY, PF_NA, "evt.infra.docker.container.name", "Container Name", "for docker infrastructure events, the name of the impacted container."},
@@ -3313,6 +3329,29 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 	{
 		dirfdarg = "dirfd";
 		patharg = "name";
+	}
+	else if(etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
+	{
+		int fd = 0;
+		char fullname[SCAP_MAX_PATH_SIZE];
+
+		//
+		// We can extract the file path only in case of a successful file opening (fd>0).
+		//
+		parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		fd = *(int64_t *)parinfo->m_val;
+
+		if(fd>0)
+		{
+			//
+			// Get the file path directly from the ring buffer.
+			//
+			parinfo = evt->get_param(3);
+	        strcpy(fullname, parinfo->m_val);
+			m_strstorage = fullname;
+            RETURN_EXTRACT_STRING(m_strstorage);
+		}
 	}
 	else if(etype == PPME_SYSCALL_LINKAT_E || etype == PPME_SYSCALL_LINKAT_2_X)
 	{
@@ -4240,7 +4279,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SYSCALL_CREAT_X ||
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SYSCALL_OPENAT_2_X ||
-					etype == PPME_SYSCALL_OPENAT2_X)
+					etype == PPME_SYSCALL_OPENAT2_X ||
+					etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 				{
 					return extract_error_count(evt, len);
 				}
@@ -4317,6 +4357,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SYSCALL_OPENAT_X ||
 					etype == PPME_SYSCALL_OPENAT_2_X ||
 					etype == PPME_SYSCALL_OPENAT2_X ||
+					etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X ||
 					etype == PPME_SOCKET_ACCEPT_X ||
 					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
@@ -4465,7 +4506,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			if(etype == PPME_SYSCALL_OPEN_X ||
 			   etype == PPME_SYSCALL_OPENAT_E ||
 			   etype == PPME_SYSCALL_OPENAT_2_X ||
-			   etype == PPME_SYSCALL_OPENAT2_X)
+			   etype == PPME_SYSCALL_OPENAT2_X ||
+			   etype == PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 			{
 				bool is_new_version = etype == PPME_SYSCALL_OPENAT_2_X || etype == PPME_SYSCALL_OPENAT2_X;
 				// For both OPEN_X and OPENAT_E,
@@ -4488,8 +4530,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					m_u32val = 1;
 				}
-
-				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT)))
+				
+				/* `open_by_handle_at` exit event has no `mode` parameter. */
+				if(m_field_id == TYPE_ISOPEN_EXEC && (flags & (PPM_O_TMPFILE | PPM_O_CREAT) && etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X))
 				{
 					parinfo = evt->get_param(is_new_version ? 4 : 3);
 					ASSERT(parinfo->m_len == sizeof(uint32_t));
