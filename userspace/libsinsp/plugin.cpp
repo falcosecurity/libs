@@ -365,13 +365,34 @@ std::string sinsp_plugin::version::as_string() const
 		std::to_string(m_version_patch);
 }
 
+bool sinsp_plugin::version::check(version &requested) const
+{
+	if(this->m_version_major != requested.m_version_major)
+	{
+		// major numbers disagree
+		return false;
+	}
+
+	if(this->m_version_minor < requested.m_version_minor)
+	{
+		// framework's minor version is < requested one
+		return false;
+	}
+	if(this->m_version_minor == requested.m_version_minor && this->m_version_patch < requested.m_version_patch)
+	{
+		// framework's patch level is < requested one
+		return false;
+	}
+	return true;
+}
+
 std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 							    string filepath,
 							    const char* config,
 							    filter_check_list &available_checks)
 {
 	string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = create_plugin(filepath, config, errstr);
+	std::shared_ptr<sinsp_plugin> plugin = create_plugin(inspector, filepath, config, errstr);
 
 	if (!plugin)
 	{
@@ -402,7 +423,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 	return plugin;
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, const char* config, std::string &errstr)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(sinsp* inspector, string &filepath, const char* config, std::string &errstr)
 {
 	std::shared_ptr<sinsp_plugin> ret;
 
@@ -433,14 +454,15 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 
 	char *version_cstr = get_required_api_version();
 	std::string version_str = version_cstr;
-	version v(version_str);
-	if(!v.m_valid)
+	version requestedVers(version_str);
+	if(!requestedVers.m_valid)
 	{
 		errstr = string("Could not parse version string from ") + version_str;
 		return ret;
 	}
-
-	if(v.m_version_major != PLUGIN_API_VERSION_MAJOR)
+	// This is always valid
+	version frameworkVers(inspector->get_plugin_api_version_str());
+	if(!frameworkVers.check(requestedVers))
 	{
 		errstr = string("Unsupported plugin required api version ") + version_str;
 		return ret;
