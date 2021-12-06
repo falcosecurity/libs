@@ -27,6 +27,7 @@ limitations under the License.
 #ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
+#include "plugin.h"
 #include "protodecoder.h"
 #include "tracers.h"
 #include "value_parser.h"
@@ -2805,6 +2806,8 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime", "number of nanoseconds from the beginning of the capture."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "evt.reltime.s", "number of seconds from the beginning of the capture."},
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime.ns", "fractional part (in ns) of the time from the beginning of the capture."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it. The plugin must be currently loaded."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, a summary of the event as formatted by the plugin. The plugin must be currently loaded."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
@@ -2851,6 +2854,11 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint
 
 uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
+
+	std::shared_ptr<sinsp_plugin> plugin;
+	sinsp_source_plugin *splugin;
+	sinsp_evt_param *parinfo;
+
 	*len = 0;
 	switch(m_field_id)
 	{
@@ -2897,6 +2905,26 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 	case TYPE_NUMBER:
 		m_u64val = evt->get_num();
 		RETURN_EXTRACT_VAR(m_u64val);
+	case TYPE_PLUGINNAME:
+	case TYPE_PLUGININFO:
+		plugin = m_inspector->get_plugin_by_evt(*evt);
+		if (plugin == nullptr)
+		{
+			return NULL;
+		}
+
+		if(m_field_id == TYPE_PLUGINNAME)
+		{
+			m_strstorage = plugin->name();
+		}
+		else
+		{
+			parinfo = evt->get_param(1);
+			splugin = static_cast<sinsp_source_plugin *>(plugin.get());
+			m_strstorage = splugin->event_to_string((const uint8_t *) parinfo->m_val, parinfo->m_len);
+		}
+
+		RETURN_EXTRACT_STRING(m_strstorage);
 	default:
 		ASSERT(false);
 		return NULL;

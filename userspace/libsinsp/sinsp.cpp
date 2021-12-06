@@ -1708,6 +1708,24 @@ const std::vector<std::shared_ptr<sinsp_plugin>>& sinsp::get_plugins()
 	return m_plugins_list;
 }
 
+std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_evt(sinsp_evt &evt)
+{
+	//
+	// Only extract if the event is a plugin event.
+	//
+	if(evt.get_type() != PPME_PLUGINEVENT_E)
+	{
+		return std::shared_ptr<sinsp_plugin>();
+	}
+
+	sinsp_evt_param *parinfo;
+	parinfo = evt.get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int32_t));
+	uint32_t pgid = *(int32_t *)parinfo->m_val;
+
+	return get_plugin_by_id(pgid);
+}
+
 std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_id(uint32_t plugin_id)
 {
 	for(auto &it : m_plugins_list)

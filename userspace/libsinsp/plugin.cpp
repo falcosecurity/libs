@@ -43,109 +43,7 @@ using namespace std;
 // plugin simplified field extraction implementations
 ///////////////////////////////////////////////////////////////////////////////
 
-const filtercheck_field_info sinsp_filter_check_plugininfo_fields[] =
-{
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "if the event comes from a plugin, the name of the plugin that generated it."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "if the event comes from a plugin, a summary of the event as formatted by the plugin."},
-};
-
 static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
-
-class sinsp_filter_check_plugininfo : public sinsp_filter_check
-{
-public:
-	enum check_type
-	{
-		TYPE_PLUGINNAME = 0,
-		TYPE_PLUGININFO = 1,
-	};
-
-	sinsp_filter_check_plugininfo()
-	{
-		m_info.m_name = "plugininfo";
-		m_info.m_fields = sinsp_filter_check_plugininfo_fields;
-		m_info.m_nfields = sizeof(sinsp_filter_check_plugininfo_fields) / sizeof(sinsp_filter_check_plugininfo_fields[0]);
-		m_info.m_flags = filter_check_info::FL_NONE;
-	}
-
-	sinsp_filter_check_plugininfo(std::shared_ptr<sinsp_plugin> plugin)
-		: m_plugin(plugin)
-	{
-		m_info.m_name = plugin->name() + string(" (plugininfo)");
-		m_info.m_fields = sinsp_filter_check_plugininfo_fields;
-		m_info.m_nfields = sizeof(sinsp_filter_check_plugininfo_fields) / sizeof(sinsp_filter_check_plugininfo_fields[0]);
-		m_info.m_flags = filter_check_info::FL_NONE;
-	}
-
-	sinsp_filter_check_plugininfo(const sinsp_filter_check_plugininfo &p)
-	{
-		m_plugin = p.m_plugin;
-		m_info = p.m_info;
-	}
-
-	virtual ~sinsp_filter_check_plugininfo()
-	{
-	}
-
-	sinsp_filter_check* allocate_new()
-	{
-		return new sinsp_filter_check_plugininfo(*this);
-	}
-
-	const std::set<uint16_t> &evttypes()
-	{
-		return s_all_plugin_event_types;
-	}
-
-	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
-	{
-		//
-		// Only extract if the event is a plugin event and if
-		// this plugin is a source plugin.
-		//
-		if(!(evt->get_type() == PPME_PLUGINEVENT_E &&
-		     m_plugin->type() == TYPE_SOURCE_PLUGIN))
-		{
-			return NULL;
-		}
-
-		//
-		// Only extract if the event plugin id matches this plugin's id.
-		//
-		sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(m_plugin.get());
-
-		sinsp_evt_param *parinfo;
-		parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int32_t));
-		uint32_t pgid = *(int32_t *)parinfo->m_val;
-		if(pgid != splugin->id())
-		{
-			return NULL;
-		}
-
-		switch(m_field_id)
-		{
-		case TYPE_PLUGINNAME:
-			m_strstorage = splugin->name();
-			*len = m_strstorage.size();
-			return (uint8_t*) m_strstorage.c_str();
-			break;
-		case TYPE_PLUGININFO:
-			parinfo = evt->get_param(1);
-			m_strstorage = splugin->event_to_string((const uint8_t *) parinfo->m_val, parinfo->m_len);
-			*len = m_strstorage.size();
-			return (uint8_t*) m_strstorage.c_str();
-		default:
-			return NULL;
-		}
-
-		return NULL;
-	}
-
-	std::string m_strstorage;
-
-	std::shared_ptr<sinsp_plugin> m_plugin;
-};
 
 class sinsp_filter_check_plugin : public sinsp_filter_check
 {
@@ -390,11 +288,16 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 	//
 	// Create and register the filter checks associated to this plugin
 	//
-	auto evt_filtercheck = new sinsp_filter_check_gen_event();
-	available_checks.add_filter_check(evt_filtercheck);
 
-	auto info_filtercheck = new sinsp_filter_check_plugininfo(plugin);
-	available_checks.add_filter_check(info_filtercheck);
+	// Only add the gen_event filter checks for source
+	// plugins. Extractor plugins don't deal with event
+	// timestamps/etc and don't need these checks (They were
+	// probably added by the associated source plugins anyway).
+	if(plugin->type() == TYPE_SOURCE_PLUGIN)
+	{
+		auto evt_filtercheck = new sinsp_filter_check_gen_event();
+		available_checks.add_filter_check(evt_filtercheck);
+	}
 
 	auto filtercheck = new sinsp_filter_check_plugin(plugin);
 	available_checks.add_filter_check(filtercheck);
