@@ -201,8 +201,7 @@ typedef struct
 	// Arguments:
 	// - config: a string with the plugin configuration. The format of the
 	//   string is chosen by the plugin itself.
-	// - rc: pointer to a ss_plugin_rc that will contain the initialization result,
-	//   as a SS_PLUGIN_* value (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
+	// - rc: pointer to a ss_plugin_rc that will contain the initialization result
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the engine and passed to the other plugin functions.
 	//   If rc is SS_PLUGIN_FAILURE, this function should return NULL.
@@ -297,8 +296,7 @@ typedef struct
 	// - s: the plugin state returned by init()
 	// - params: the open parameters, as a string. The format is defined by the plugin
 	//   itsef
-	// - rc: pointer to a ss_plugin_rc that will contain the open result,
-	//   as a SS_PLUGIN_* value (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
+	// - rc: pointer to a ss_plugin_rc that will contain the open result
 	// Return value: a pointer to the open context that will be passed to next_batch(),
 	//   close(), event_to_string() and extract_fields.
 	//
@@ -359,7 +357,7 @@ typedef struct
 	//   by the plugin and must not be deallocated or modified until the next
 	//   extract_fields() call.
 	//
-	// Return value: An ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+	// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
 	ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	//
@@ -415,12 +413,11 @@ typedef struct
 	// Arguments:
 	// - config: a string with the plugin configuration. The format of the
 	//   string is chosen by the plugin itself.
-	// - rc: pointer to an integer that will contain the initialization result,
-	//   as a SS_PLUGIN_* value (e.g. SS_PLUGIN_SUCCESS=0, SS_PLUGIN_FAILURE=1)
+	// - rc: pointer to a ss_plugin_rc that will contain the initialization result
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the engine and passed to the other plugin functions.
 	//
-	ss_plugin_t* (*init)(const char* config, int32_t* rc);
+	ss_plugin_t* (*init)(const char* config, ss_plugin_rc* rc);
 	//
 	// Destroy the plugin and, if plugin state was allocated, free it.
 	// Required: yes
@@ -498,7 +495,7 @@ typedef struct
 	//   by the plugin and must not be deallocated or modified until the next
 	//   extract_fields() call.
 	//
-	// Return value: An integer with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+	// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 	//
 	ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	//
