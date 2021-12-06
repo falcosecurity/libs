@@ -401,6 +401,8 @@ public:
 		TYPE_RELTS = 9,
 		TYPE_RELTS_S = 10,
 		TYPE_RELTS_NS = 11,
+		TYPE_PLUGINNAME = 12,
+		TYPE_PLUGININFO = 13,
 	};
 
 	sinsp_filter_check_gen_event();
