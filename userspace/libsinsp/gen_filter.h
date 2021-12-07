@@ -246,6 +246,15 @@ public:
 
 		// A description of the field
 		std::string desc;
+
+		// The data type for the field
+		std::string data_type;
+
+		// A set of free-form tags for the field. Examples include:
+		// FILTER ONLY: for fields that can only be used in filters, not outputs.
+		// IDX_REQUIRED: for fields that can take an optional index
+		// etc
+		std::set<std::string> tags;
 	};
 
 	// A struct describing a group of filtercheck fields ("ka")
@@ -254,11 +263,11 @@ public:
 		// The name of the group of fields
 		std::string name;
 
-		// A short description for the fields
+		// A description for the fields
 		std::string desc;
 
-		// Additional information about proper use of the fields
-		std::string class_info;
+		// A short (< 10 words) description of the fields. Can be blank.
+		std::string shortdesc;
 
 		std::list<filter_field_info> fields;
 	};

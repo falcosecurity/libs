@@ -2813,6 +2813,8 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
 {
 	m_info.m_name = "evt";
+	m_info.m_shortdesc = "All event types";
+	m_info.m_desc = "These fields can be used for all event types";
 	m_info.m_fields = sinsp_filter_check_gen_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_gen_event_fields) / sizeof(sinsp_filter_check_gen_event_fields[0]);
 	m_u64val = 0;
@@ -2998,7 +3000,8 @@ sinsp_filter_check_event::sinsp_filter_check_event()
 {
 	m_is_compare = false;
 	m_info.m_name = "evt";
-	m_info.m_desc = "Generic event fields. Note that for syscall events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.";
+	m_info.m_shortdesc = "Syscall events only";
+	m_info.m_desc = "Event fields applicable to syscall events. Note that for most events you can access the individual arguments/parameters of each syscall via evt.arg, e.g. evt.arg.filename.";
 	m_info.m_fields = sinsp_filter_check_event_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_event_fields) / sizeof(sinsp_filter_check_event_fields[0]);
 	m_u64val = 0;
@@ -7310,7 +7313,7 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 {
 	m_info.m_name = "k8s";
-	m_info.m_desc = "Kubernetes related context.";
+	m_info.m_desc = "Kubernetes related context. Available when configured to fetch k8s meta-data from API Server.";
 	m_info.m_fields = sinsp_filter_check_k8s_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
