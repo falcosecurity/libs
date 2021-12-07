@@ -2360,8 +2360,8 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 
 		gen_event_filter_factory::filter_fieldclass_info cinfo;
 		cinfo.name = fci->m_name;
-		cinfo.desc = "";
-		cinfo.class_info = "";
+		cinfo.desc = fci->m_desc;
+		cinfo.shortdesc = fci->m_shortdesc;
 
 		for(int32_t k = 0; k < fci->m_nfields; k++)
 		{
@@ -2380,6 +2380,12 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 			gen_event_filter_factory::filter_field_info info;
 			info.name = fld->m_name;
 			info.desc = fld->m_description;
+			info.data_type =  param_type_to_string(fld->m_type);
+
+			if(fld->m_flags & EPF_FILTER_ONLY)
+			{
+				info.tags.insert("FILTER ONLY");
+			}
 
 			cinfo.fields.emplace_back(std::move(info));
 		}
