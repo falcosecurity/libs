@@ -15,7 +15,9 @@ along with Falco.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <cstddef>
+#include <iomanip>
 #include <algorithm>
+#include <sstream>
 #include "stdint.h"
 #include "gen_filter.h"
 #include "sinsp.h"
@@ -361,6 +363,117 @@ std::set<uint16_t> gen_event_filter::evttypes()
 {
 	return m_filter->evttypes();
 }
+
+
+uint32_t gen_event_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
+uint32_t gen_event_filter_factory::filter_fieldclass_info::s_width = 120;
+
+void gen_event_filter_factory::filter_fieldclass_info::wrapstring(const std::string &in, std::ostringstream &os)
+{
+	std::istringstream is(in);
+	std::string word;
+	uint32_t len = 0;
+
+	while (is >> word)
+	{
+		// + 1 is trailing space.
+		uint32_t wordlen = word.length() + 1;
+
+		if((len + wordlen) <= (s_width-s_rightblock_start))
+		{
+			len += wordlen;
+		}
+		else
+		{
+			os << std::endl;
+			os << std::left << std::setw(s_rightblock_start) << " ";
+			len = wordlen;
+		}
+
+		os << word << " ";
+	}
+}
+
+std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources)
+{
+	std::ostringstream os;
+
+	os << "-------------------------------" << std::endl;
+
+	os << std::left << std::setw(s_rightblock_start) << "Field Class:" << name;
+	if(shortdesc != "")
+	{
+		os << " (" << shortdesc << ")";
+	}
+	os << std::endl;
+
+	if(desc != "")
+	{
+		os << std::left << std::setw(s_rightblock_start) << "Description:";
+
+		wrapstring(desc, os);
+		os << std::endl;
+	}
+
+	if(!event_sources.empty())
+	{
+		os << std::left << std::setw(s_rightblock_start) << "Event Sources:";
+
+		for(const auto &src : event_sources)
+		{
+			os << src << " ";
+		}
+
+		os << std::endl;
+	}
+
+	os << std::endl;
+
+	for(auto &fld_info : fields)
+	{
+		if(fld_info.name.length() > s_rightblock_start)
+		{
+			os << fld_info.name << std::endl;
+			os << std::left << std::setw(s_rightblock_start) << " ";
+		}
+		else
+		{
+			os << std::left << std::setw(s_rightblock_start) << fld_info.name;
+		}
+
+		// Append any tags, and if verbose, add the type, to the description.
+		std::string desc = fld_info.desc;
+
+		if(!fld_info.tags.empty())
+		{
+			std::string tagsstr = "(";
+			for(const auto &tag : fld_info.tags)
+			{
+				if(tagsstr != "(")
+				{
+					tagsstr += ",";
+				}
+
+				tagsstr += tag;
+			}
+
+			tagsstr += ")";
+
+			desc = tagsstr + " " + desc;
+		}
+
+		if(verbose)
+		{
+			desc = "(Type: " + fld_info.data_type + ") " + desc;
+		}
+
+		wrapstring(desc, os);
+		os << std::endl;
+	}
+
+	return os.str();
+}
+
 gen_event_formatter::gen_event_formatter()
 {
 }
