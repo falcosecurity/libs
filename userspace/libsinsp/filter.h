@@ -217,6 +217,13 @@ public:
 
 	std::list<gen_event_filter_factory::filter_fieldclass_info> get_fields() override;
 
+	// Convienence method to convert a vector of
+	// filter_check_infos into a list of
+	// filter_fieldclass_infos. This is useful for programs that
+	// use filterchecks but not factories.
+	static std::list<filter_fieldclass_info> check_infos_to_fieldclass_infos(
+		const vector<const filter_check_info*> &fc_plugins);
+
 protected:
 	sinsp *m_inspector;
 	filter_check_list &m_available_checks;
