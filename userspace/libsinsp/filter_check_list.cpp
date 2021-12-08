@@ -42,6 +42,21 @@ filter_check_list::~filter_check_list()
 
 void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
 {
+	// If a filtercheck already exists with this name and
+	// shortdesc, don't add it--this can occur when plugins are
+	// loaded and set up gen_event_filter_checks to handle plugin
+	// events.
+
+	for(auto *chk : m_check_list)
+	{
+		if(chk->m_info.m_name == filter_check->m_info.m_name &&
+		   chk->m_info.m_shortdesc == filter_check->m_info.m_shortdesc)
+		{
+			delete filter_check;
+			return;
+		}
+	}
+
 	m_check_list.push_back(filter_check);
 }
 
