@@ -257,9 +257,10 @@ public:
 		std::set<std::string> tags;
 	};
 
-	// A struct describing a group of filtercheck fields ("ka")
-	struct filter_fieldclass_info
+	// Describes a group of filtercheck fields ("ka")
+	class filter_fieldclass_info
 	{
+	public:
 		// The name of the group of fields
 		std::string name;
 
@@ -270,6 +271,20 @@ public:
 		std::string shortdesc;
 
 		std::list<filter_field_info> fields;
+
+		// Print a terminal-friendly representation of this
+		// field class, including name, description, supported
+		// event sources, and the name and description of each field.
+		std::string as_string(bool verbose, const std::set<std::string>& event_sources = std::set<std::string>());
+
+		// How far to right-justify the name/description/etc block.
+		static uint32_t s_rightblock_start;
+
+		// How wide the overall output should be.
+		static uint32_t s_width;
+
+	private:
+		void wrapstring(const std::string &in, std::ostringstream &os);
 	};
 
 	gen_event_filter_factory() {};
