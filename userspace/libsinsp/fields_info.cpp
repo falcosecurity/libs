@@ -18,7 +18,6 @@ limitations under the License.
 //
 // Various helper functions to render stuff on the screen
 //
-#define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>
@@ -27,111 +26,40 @@ limitations under the License.
 #include <sinsp.h>
 #include "fields_info.h"
 
-// Must match the value in the zsh tab completion
-#define DESCRIPTION_TEXT_START 16
-
-
-#define CONSOLE_LINE_LEN 79
-#define PRINTF_WRAP_CPROC(x)  #x
-#define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
-
-void list_fields(bool verbose, bool markdown, bool names_only)
+static void list_fields_markdown(std::list<gen_event_filter_factory::filter_fieldclass_info> &fld_classes)
 {
-	uint32_t j, l, m;
-	int32_t k;
+	for(auto &fld_class : fld_classes)
+	{
+		printf("\n## Field Class: %s\n\n", fld_class.name.c_str());
+		printf("%s\n\n", fld_class.desc.c_str());
+		printf("Name | Type | Description\n");
+		printf(":----|:-----|:-----------\n");
+
+		for(auto &fld_info : fld_class.fields)
+		{
+			printf("`%s` | %s | %s\n", fld_info.name.c_str(), fld_info.data_type.c_str(), fld_info.desc.c_str());
+		}
+	}
+}
+
+void list_fields(bool verbose, bool markdown)
+{
 	vector<const filter_check_info*> fc_plugins;
+	std::list<gen_event_filter_factory::filter_fieldclass_info> fld_classes;
+
 	sinsp::get_filtercheck_fields_info(fc_plugins);
 
-	for(j = 0; j < fc_plugins.size(); j++)
+	fld_classes = sinsp_filter_factory::check_infos_to_fieldclass_infos(fc_plugins);
+
+	if(markdown)
 	{
-		const filter_check_info* fci = fc_plugins[j];
-
-		if(fci->m_flags & filter_check_info::FL_HIDDEN)
+		list_fields_markdown(fld_classes);
+	}
+	else
+	{
+		for(auto &fld_class : fld_classes)
 		{
-			continue;
-		}
-
-		if(!names_only)
-		{
-			if(markdown)
-			{
-				printf("\n## Field Class: %s\n\n", fci->m_name.c_str());
-				printf("%s\n\n", fci->m_desc.c_str());
-				printf("Name | Type | Description\n");
-				printf(":----|:-----|:-----------\n");
-			}
-			else
-			{
-				printf("\n----------------------\n");
-				printf("Field Class: %s\n\n", fci->m_name.c_str());
-				printf("%s\n\n", fci->m_desc.c_str());
-			}
-		}
-
-		for(k = 0; k < fci->m_nfields; k++)
-		{
-			const filtercheck_field_info* fld = &fci->m_fields[k];
-
-			if(fld->m_flags & EPF_TABLE_ONLY)
-			{
-				continue;
-			}
-
-			if(names_only)
-			{
-				printf("%s\n", fld->m_name);
-			}
-			else if(markdown)
-			{
-				printf("`%s` | %s | %s\n", fld->m_name, param_type_to_string(fld->m_type), fld->m_description);
-			}
-			else
-			{
-				printf("%s", fld->m_name);
-				uint32_t namelen = (uint32_t)strlen(fld->m_name);
-
-				if(namelen >= DESCRIPTION_TEXT_START)
-				{
-					printf("\n");
-					namelen = 0;
-				}
-
-				for(l = 0; l < DESCRIPTION_TEXT_START - namelen; l++)
-				{
-					printf(" ");
-				}
-
-				string desc(fld->m_description);
-
-				if(fld->m_flags & EPF_FILTER_ONLY)
-				{
-					desc = "(FILTER ONLY) " + desc;
-				}
-
-				if(verbose)
-				{
-					desc += string(" Type:") + param_type_to_string(fld->m_type) + ".";
-				}
-
-				size_t desclen = desc.size();
-
-				for(l = 0; l < desclen; l++)
-				{
-					if(l % (CONSOLE_LINE_LEN - DESCRIPTION_TEXT_START) == 0 && l != 0)
-					{
-						printf("\n");
-
-						for(m = 0; m < DESCRIPTION_TEXT_START; m++)
-						{
-							printf(" ");
-						}
-					}
-
-					printf("%c", desc[l]);
-				}
-
-				printf("\n");
-			}
+			printf("%s\n", fld_class.as_string(verbose).c_str());
 		}
 	}
 }
