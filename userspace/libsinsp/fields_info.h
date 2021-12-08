@@ -24,5 +24,5 @@ class sinsp;
 //
 // Printer functions
 //
-void list_fields(bool verbose, bool markdown, bool names_only=false);
+void list_fields(bool verbose, bool markdown=false);
 void list_events(sinsp* inspector, bool markdown=false);
