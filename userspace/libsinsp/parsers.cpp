@@ -1611,7 +1611,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-    case PPME_SYSCALL_EXECVEAT_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1657,7 +1657,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-    case PPME_SYSCALL_EXECVEAT_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1706,7 +1706,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-    case PPME_SYSCALL_EXECVEAT_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1744,7 +1744,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-    case PPME_SYSCALL_EXECVEAT_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1788,16 +1788,16 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		if (retrieve_enter_event(enter_evt, evt))
 		{
 			/*
-	         * Get dirfd
-	         */
+			 * Get dirfd
+			 */
 			parinfo = enter_evt->get_param(0);
-		    ASSERT(parinfo->m_len == sizeof(int64_t));
-		    int64_t dirfd = *(int64_t *)parinfo->m_val;
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			int64_t dirfd = *(int64_t *)parinfo->m_val;
 
 			/*
-	         * Get pathname
-	         */
-            parinfo = enter_evt->get_param(1);
+			 * Get pathname
+			 */
+			parinfo = enter_evt->get_param(1);
 			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
 			{
 				evt->m_tinfo->m_exepath = "<NA>";
@@ -1807,8 +1807,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			uint32_t namelen = parinfo->m_len;
 
 			/*
-	         * Get flags
-	         */
+			 * Get flags
+			 */
 			parinfo = enter_evt->get_param(2);
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t flags = *(int32_t *)parinfo->m_val;
@@ -1817,21 +1817,21 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parse_dirfd(enter_evt, pathname, dirfd, &sdir);
 
 			/*
-	         *  If pathname is an empty string and the AT_EMPTY_PATH flag is specified then the file descriptor dirfd specifies the file to be executed (i.e., dirfd refers to an executable file, rather than a directory).
-	         */
+			 *  If pathname is an empty string and the AT_EMPTY_PATH flag is specified then the file descriptor dirfd specifies the file to be executed (i.e., dirfd refers to an executable file, rather than a directory).
+			 */
 			if(flags & PPM_EXVAT_AT_EMPTY_PATH && strlen(pathname)==0)
 			{
 				// In this way, the pathname becomes an absolute path and in the 'concatenate_paths' function the dirfd value is not considered.
 				strcpy(pathname, sdir.c_str());
-			}			
-      		char fullpath[SCAP_MAX_PATH_SIZE];
+			}
+			char fullpath[SCAP_MAX_PATH_SIZE];
 			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
 										   sdir.c_str(), 
 										   (uint32_t)sdir.length(),
 										   pathname, 
 										   namelen, 
 										   m_inspector->m_is_windows);
-			evt->m_tinfo->m_exepath = fullpath;      
+			evt->m_tinfo->m_exepath = fullpath;
 		}
 		break;
 	default:

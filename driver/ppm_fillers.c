@@ -1263,7 +1263,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 		return res;
 	}
 
-    /*
+	/*
 	 * flags
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
