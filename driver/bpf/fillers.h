@@ -1450,7 +1450,7 @@ FILLER(sys_execveat_e, true)
 		return res;
 	}
 
-    /*
+	/*
 	 * flags
 	 */
 	val = bpf_syscall_get_argument(data, 4);
