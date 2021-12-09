@@ -28,6 +28,7 @@ add_executable(unit-test-libsinsp
 	cgroup_list_counter.ut.cpp
 	sinsp.ut.cpp
 	evttype_filter.ut.cpp
+	token_bucket.ut.cpp
 )
 
 target_link_libraries(unit-test-libsinsp
