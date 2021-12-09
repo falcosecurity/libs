@@ -3057,10 +3057,10 @@ FILLER(sys_open_by_handle_at_x, true)
 		return res;
 	}
 
-    /*
+	/*
 	 * flags
 	 */
-    val = bpf_syscall_get_argument(data, 2);
+	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
 
 	res = bpf_val_to_ring(data, flags);
