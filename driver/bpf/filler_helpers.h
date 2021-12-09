@@ -68,8 +68,8 @@ static __always_inline char *bpf_get_path(struct filler_data *data, int fd)
 	const unsigned char** pointers_buf = (const unsigned char**)data->tmp_scratch;
 	char *filepath = (char *)&data->tmp_scratch[(MAX_PATH_COMPONENTS* sizeof(const unsigned char*)) & SCRATCH_SIZE_HALF];
 
-    struct dentry *de_p = _READ(f->f_path.dentry); 
-	if (!de_p)
+	struct dentry *de_p = _READ(f->f_path.dentry); 
+	if(!de_p)
 	{
 		return NULL;
 	}

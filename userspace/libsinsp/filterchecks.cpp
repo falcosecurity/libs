@@ -259,7 +259,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			char *fullpath;
 
 			parinfo = evt->get_param(3);
-	        fullpath = parinfo->m_val;
+			fullpath = parinfo->m_val;
 			m_tstr = fullpath;
 
 			if(sanitize_strings)
@@ -268,7 +268,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 			}
 
 			return true;
-		}	
+		}
 	default:
 		m_tstr = "";
 		return true;
@@ -3348,9 +3348,9 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 			// Get the file path directly from the ring buffer.
 			//
 			parinfo = evt->get_param(3);
-	        strcpy(fullname, parinfo->m_val);
+			strcpy(fullname, parinfo->m_val);
 			m_strstorage = fullname;
-            RETURN_EXTRACT_STRING(m_strstorage);
+			RETURN_EXTRACT_STRING(m_strstorage);
 		}
 	}
 	else if(etype == PPME_SYSCALL_LINKAT_E || etype == PPME_SYSCALL_LINKAT_2_X)

@@ -4865,10 +4865,10 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 		return res;
 	}
 
-    /*
+	/*
 	 * flags
 	 */
-    syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 	flags = open_flags_to_scap(val);
 
 	res = val_to_ring(args, flags, 0, false, 0);
@@ -4877,7 +4877,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 		return res;
 	}
 
-    /*
+	/*
 	 * filepath
 	 */
 	if (retval > 0)
