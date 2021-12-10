@@ -117,7 +117,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
 	m_is_tracers_capture_enabled = false;
-	m_file_start_offset = 0;
 	m_flush_memory_dump = false;
 	m_next_stats_print_time_ns = 0;
 	m_large_envs_enabled = false;
@@ -164,6 +163,8 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
 	m_filter_proc_table_when_saving = false;
+
+	m_replay_scap_evt = NULL;
 }
 
 sinsp::~sinsp()
@@ -331,35 +332,9 @@ void sinsp::init()
 	//
 	if(is_capture())
 	{
-		uint64_t off = scap_ftell(m_h);
 		scap_evt* pevent;
 		uint16_t pcpuid;
-		uint32_t ncnt = 0;
-
-		//
-		// Count how many container events we have
-		//
-		while(true)
-		{
-			int32_t res = scap_next(m_h, &pevent, &pcpuid);
-
-			if(res == SCAP_SUCCESS)
-			{
-				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E) && (pevent->type != PPME_CONTAINER_JSON_2_E))
-				{
-					break;
-				}
-				else
-				{
-					ncnt++;
-					continue;
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
+		sinsp_evt* tevt;
 
 		if (m_external_event_processor)
 		{
@@ -367,14 +342,33 @@ void sinsp::init()
 		}
 
 		//
-		// Rewind, reset the event count, and consume the exact number of events
+		// Consume every container event we have
 		//
-		scap_fseek(m_h, off);
-		scap_event_reset_count(m_h);
-		for(uint32_t j = 0; j < ncnt; j++)
+		while(true)
 		{
-			sinsp_evt* tevt;
-			next(&tevt);
+			int32_t res = scap_next(m_h, &pevent, &pcpuid);
+
+			if(res == SCAP_SUCCESS)
+			{
+				// Setting these to non-null will make sinsp::next use them as a scap event
+				// to avoid a call to scap_next. In this way, we can avoid the state parsing phase
+				// once we reach a container-unrelated event.
+				m_replay_scap_evt = pevent;
+				m_replay_scap_cpuid = pcpuid;
+				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E) && (pevent->type != PPME_CONTAINER_JSON_2_E))
+				{
+					break;
+				}
+				else
+				{
+					next(&tevt);
+					continue;
+				}
+			}
+			else
+			{
+				break;
+			}
 		}
 	}
 
@@ -680,14 +674,7 @@ void sinsp::open_int()
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_import_users;
-	if(m_file_start_offset != 0)
-	{
-		oargs.start_offset = m_file_start_offset;
-	}
-	else
-	{
-		oargs.start_offset = 0;
-	}
+	oargs.start_offset = 0;
 
 	add_suppressed_comms(oargs);
 
@@ -757,11 +744,7 @@ void sinsp::close()
 
 	m_is_dumping = false;
 
-	if(NULL != m_network_interfaces)
-	{
-		delete m_network_interfaces;
-		m_network_interfaces = NULL;
-	}
+	deinit_state();
 
 #ifdef HAS_FILTERING
 	if(m_filter != NULL)
@@ -776,6 +759,21 @@ void sinsp::close()
 		m_evttype_filter = NULL;
 	}
 #endif
+}
+
+//
+// This deinitializes the sinsp internal state, and it's used
+// internally while closing or restarting the capture.
+//
+void sinsp::deinit_state()
+{
+	if(NULL != m_network_interfaces)
+	{
+		delete m_network_interfaces;
+		m_network_interfaces = NULL;
+	}
+
+	m_thread_manager->clear();
 }
 
 void sinsp::autodump_start(const string& dump_filename, bool compress)
@@ -1031,30 +1029,34 @@ void schedule_next_threadinfo_evt(sinsp* _this, void* data)
 	}
 }
 
-void sinsp::restart_capture_at_filepos(uint64_t filepos)
+//
+// This restarts the current event capture. This de-initializes and
+// re-initializes the internal state of both sinsp and scap, and is
+// supported only for opened captures with mode SCAP_MODE_CAPTURE.
+// This resets the internal states on-the-fly, which is ideally equivalent
+// to closing and then re-opening the capture, but avoids losing the passed
+// configurations and reuses the same underlying scap event source.
+//
+void sinsp::restart_capture()
 {
-	//
-	// Backup a couple of settings
-	//
-	uint64_t evtnum = m_nevts;
-	string filterstring = m_filterstring;
+	// Save state info that could be lost during de-initialization
+	uint64_t nevts = m_nevts;
 
-	//
-	// Close and reopen the capture
-	//
-	m_file_start_offset = filepos;
-	close();
-	open_int();
+	// De-initialize the insternal state
+	deinit_state();
 
-	//
-	// Set again the backuped settings
-	//
-	m_evt.m_evtnum = evtnum;
-	m_nevts = evtnum;
-	if(filterstring != "")
+	// Restart the scap capture, which also trigger a re-initialization of
+	// scap's internal state.
+	if (scap_restart_capture(m_h) != SCAP_SUCCESS)
 	{
-		set_filter(filterstring);
+		throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
 	}
+
+	// Re-initialize the internal state
+	init();
+
+	// Restore the saved state info
+	m_nevts = nevts;
 }
 
 uint64_t sinsp::max_buf_used()
@@ -1158,7 +1160,20 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		//
 		// Get the event from libscap
 		//
-		res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+		if (m_replay_scap_evt != NULL)
+		{
+			// Replay the last event, if we saved one
+			res = SCAP_SUCCESS;
+			evt->m_pevt = m_replay_scap_evt;
+			evt->m_cpuid = m_replay_scap_cpuid;
+			m_replay_scap_evt = NULL;
+		}
+		else 
+		{
+			// If no last event was saved, invoke
+			// the actual scap_next
+			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid));
+		}
 
 		if(res != SCAP_SUCCESS)
 		{
@@ -1180,8 +1195,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			}
 			else if(res == SCAP_UNEXPECTED_BLOCK)
 			{
-				uint64_t filepos = scap_ftell(m_h) - scap_get_unexpected_block_readsize(m_h);
-				restart_capture_at_filepos(filepos);
+				// This mostly happens in concatenated scap files, where an unexpected block
+				// represents the end of a file and the start of the next appended one.
+				// In this case, we restart the capture so that the internal states gets reset
+				// and the blocks coming from the next appended file get consumed.
+				restart_capture();
 				return SCAP_TIMEOUT;
 
 			}
