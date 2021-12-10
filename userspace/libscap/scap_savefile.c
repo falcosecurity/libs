@@ -859,7 +859,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	// between opening the handle and starting the dump
 	//
 #if defined(HAS_CAPTURE) && !defined(WIN32)
-	if(handle->m_file == NULL && handle->refresh_proc_table_when_saving)
+	if(handle->m_reader == NULL && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proc_callback;
 		handle->m_proc_callback = NULL;
@@ -1213,12 +1213,12 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 //
 // Load the machine info block
 //
-static int32_t scap_read_machine_info(scap_t *handle, gzFile f, uint32_t block_length)
+static int32_t scap_read_machine_info(scap_t *handle, scap_reader_t* r, uint32_t block_length)
 {
 	//
 	// Read the section header block
 	//
-	if(gzread(f, &handle->m_machine_info, sizeof(handle->m_machine_info)) !=
+	if(scap_reader_read(r, &handle->m_machine_info, sizeof(handle->m_machine_info)) !=
 		sizeof(handle->m_machine_info))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
@@ -1231,7 +1231,7 @@ static int32_t scap_read_machine_info(scap_t *handle, gzFile f, uint32_t block_l
 //
 // Parse a process list block
 //
-static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t subreadsize = 0;
@@ -1286,7 +1286,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V8:
 			break;
 		case PL_BLOCK_TYPE_V9:
-			readsize = gzread(f, &(sub_len), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -1300,7 +1300,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// tid
 		//
-		readsize = gzread(f, &(tinfo.tid), sizeof(uint64_t));
+		readsize = scap_reader_read(r, &(tinfo.tid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 		subreadsize += readsize;
@@ -1308,7 +1308,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// pid
 		//
-		readsize = gzread(f, &(tinfo.pid), sizeof(uint64_t));
+		readsize = scap_reader_read(r, &(tinfo.pid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 		subreadsize += readsize;
@@ -1316,7 +1316,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// ptid
 		//
-		readsize = gzread(f, &(tinfo.ptid), sizeof(uint64_t));
+		readsize = scap_reader_read(r, &(tinfo.ptid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 		subreadsize += readsize;
@@ -1336,7 +1336,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
-			readsize = gzread(f, &(tinfo.sid), sizeof(uint64_t));
+			readsize = scap_reader_read(r, &(tinfo.sid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			subreadsize += readsize;
@@ -1365,7 +1365,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			break;
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
-			readsize = gzread(f, &(tinfo.vpgid), sizeof(uint64_t));
+			readsize = scap_reader_read(r, &(tinfo.vpgid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			subreadsize += readsize;
@@ -1379,7 +1379,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// comm
 		//
-		readsize = gzread(f, &(stlen), sizeof(uint16_t));
+		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -1390,7 +1390,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		subreadsize += readsize;
 
-		readsize = gzread(f, tinfo.comm, stlen);
+		readsize = scap_reader_read(r, tinfo.comm, stlen);
 		CHECK_READ_SIZE(readsize, stlen);
 
 		// the string is not null-terminated on file
@@ -1401,7 +1401,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// exe
 		//
-		readsize = gzread(f, &(stlen), sizeof(uint16_t));
+		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -1412,7 +1412,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		subreadsize += readsize;
 
-		readsize = gzread(f, tinfo.exe, stlen);
+		readsize = scap_reader_read(r, tinfo.exe, stlen);
 		CHECK_READ_SIZE(readsize, stlen);
 
 		// the string is not null-terminated on file
@@ -1438,7 +1438,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// exepath
 			//
-			readsize = gzread(f, &(stlen), sizeof(uint16_t));
+			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 			if(stlen > SCAP_MAX_PATH_SIZE)
@@ -1449,7 +1449,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			subreadsize += readsize;
 
-			readsize = gzread(f, tinfo.exepath, stlen);
+			readsize = scap_reader_read(r, tinfo.exepath, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
 
 			// the string is not null-terminated on file
@@ -1467,7 +1467,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// args
 		//
-		readsize = gzread(f, &(stlen), sizeof(uint16_t));
+		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 		if(stlen > SCAP_MAX_ARGS_SIZE)
@@ -1478,7 +1478,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		subreadsize += readsize;
 
-		readsize = gzread(f, tinfo.args, stlen);
+		readsize = scap_reader_read(r, tinfo.args, stlen);
 		CHECK_READ_SIZE(readsize, stlen);
 
 		// the string is not null-terminated on file
@@ -1490,7 +1490,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// cwd
 		//
-		readsize = gzread(f, &(stlen), sizeof(uint16_t));
+		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -1501,7 +1501,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 		subreadsize += readsize;
 
-		readsize = gzread(f, tinfo.cwd, stlen);
+		readsize = scap_reader_read(r, tinfo.cwd, stlen);
 		CHECK_READ_SIZE(readsize, stlen);
 
 		// the string is not null-terminated on file
@@ -1512,7 +1512,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// fdlimit
 		//
-		readsize = gzread(f, &(tinfo.fdlimit), sizeof(uint64_t));
+		readsize = scap_reader_read(r, &(tinfo.fdlimit), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 		subreadsize += readsize;
@@ -1520,7 +1520,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// flags
 		//
-		readsize = gzread(f, &(tinfo.flags), sizeof(uint32_t));
+		readsize = scap_reader_read(r, &(tinfo.flags), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 		subreadsize += readsize;
@@ -1528,7 +1528,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// uid
 		//
-		readsize = gzread(f, &(tinfo.uid), sizeof(uint32_t));
+		readsize = scap_reader_read(r, &(tinfo.uid), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 		subreadsize += readsize;
@@ -1536,7 +1536,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// gid
 		//
-		readsize = gzread(f, &(tinfo.gid), sizeof(uint32_t));
+		readsize = scap_reader_read(r, &(tinfo.gid), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 		subreadsize += readsize;
@@ -1559,7 +1559,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// vmsize_kb
 			//
-			readsize = gzread(f, &(tinfo.vmsize_kb), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(tinfo.vmsize_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -1567,7 +1567,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// vmrss_kb
 			//
-			readsize = gzread(f, &(tinfo.vmrss_kb), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(tinfo.vmrss_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -1575,7 +1575,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// vmswap_kb
 			//
-			readsize = gzread(f, &(tinfo.vmswap_kb), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(tinfo.vmswap_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -1583,7 +1583,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// pfmajor
 			//
-			readsize = gzread(f, &(tinfo.pfmajor), sizeof(uint64_t));
+			readsize = scap_reader_read(r, &(tinfo.pfmajor), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			subreadsize += readsize;
@@ -1591,7 +1591,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// pfminor
 			//
-			readsize = gzread(f, &(tinfo.pfminor), sizeof(uint64_t));
+			readsize = scap_reader_read(r, &(tinfo.pfminor), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 			subreadsize += readsize;
@@ -1608,7 +1608,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				//
 				// env
 				//
-				readsize = gzread(f, &(stlen), sizeof(uint16_t));
+				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 				if(stlen > SCAP_MAX_ENV_SIZE)
@@ -1619,7 +1619,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 				subreadsize += readsize;
 
-				readsize = gzread(f, tinfo.env, stlen);
+				readsize = scap_reader_read(r, tinfo.env, stlen);
 				CHECK_READ_SIZE(readsize, stlen);
 
 				// the string is not null-terminated on file
@@ -1639,7 +1639,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				//
 				// vtid
 				//
-				readsize = gzread(f, &(tinfo.vtid), sizeof(int64_t));
+				readsize = scap_reader_read(r, &(tinfo.vtid), sizeof(int64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 				subreadsize += readsize;
@@ -1647,7 +1647,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				//
 				// vpid
 				//
-				readsize = gzread(f, &(tinfo.vpid), sizeof(int64_t));
+				readsize = scap_reader_read(r, &(tinfo.vpid), sizeof(int64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 
 				subreadsize += readsize;
@@ -1655,7 +1655,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				//
 				// cgroups
 				//
-				readsize = gzread(f, &(stlen), sizeof(uint16_t));
+				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 				if(stlen > SCAP_MAX_CGROUPS_SIZE)
@@ -1667,7 +1667,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 				subreadsize += readsize;
 
-				readsize = gzread(f, tinfo.cgroups, stlen);
+				readsize = scap_reader_read(r, tinfo.cgroups, stlen);
 				CHECK_READ_SIZE(readsize, stlen);
 
 				subreadsize += readsize;
@@ -1678,7 +1678,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				   block_type == PL_BLOCK_TYPE_V8 ||
 				   block_type == PL_BLOCK_TYPE_V9)
 				{
-					readsize = gzread(f, &(stlen), sizeof(uint16_t));
+					readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 					if(stlen > SCAP_MAX_PATH_SIZE)
@@ -1689,7 +1689,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 					subreadsize += readsize;
 
-					readsize = gzread(f, tinfo.root, stlen);
+					readsize = scap_reader_read(r, tinfo.root, stlen);
 					CHECK_READ_SIZE(readsize, stlen);
 
 					// the string is not null-terminated on file
@@ -1719,7 +1719,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
 		{
-			readsize = gzread(f, &(tinfo.loginuid), sizeof(int32_t));
+			readsize = scap_reader_read(r, &(tinfo.loginuid), sizeof(int32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 			subreadsize += readsize;
 		}
@@ -1765,7 +1765,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 			toread = sub_len - subreadsize;
-			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
+			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
@@ -1790,7 +1790,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = (size_t)gzread(f, &padding, (unsigned int)padding_len);
+	readsize = (size_t)scap_reader_read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
@@ -1799,7 +1799,7 @@ static int32_t scap_read_proclist(scap_t *handle, gzFile f, uint32_t block_lengt
 //
 // Parse an interface list block
 //
-static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
 {
 	int32_t res = SCAP_SUCCESS;
 	size_t readsize;
@@ -1834,7 +1834,7 @@ static int32_t scap_read_iflist(scap_t *handle, gzFile f, uint32_t block_length,
 		return SCAP_FAILURE;
 	}
 
-	readsize = gzread(f, readbuf, block_length);
+	readsize = scap_reader_read(r, readbuf, block_length);
 	CHECK_READ_SIZE_WITH_FREE(readbuf, readsize, block_length);
 
 	//
@@ -2162,7 +2162,7 @@ scap_read_iflist_error:
 //
 // Parse a user list block
 //
-static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -2211,7 +2211,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// len
 			//
-			readsize = gzread(f, &(sub_len), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -2220,7 +2220,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 		//
 		// type
 		//
-		readsize = gzread(f, &(type), sizeof(type));
+		readsize = scap_reader_read(r, &(type), sizeof(type));
 		CHECK_READ_SIZE(readsize, sizeof(type));
 
 		subreadsize += readsize;
@@ -2242,7 +2242,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// uid
 			//
-			readsize = gzread(f, &(puser->uid), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(puser->uid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -2250,7 +2250,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// gid
 			//
-			readsize = gzread(f, &(puser->gid), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(puser->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -2258,7 +2258,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// name
 			//
-			readsize = gzread(f, &(stlen), sizeof(uint16_t));
+			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -2269,7 +2269,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			subreadsize += readsize;
 
-			readsize = gzread(f, puser->name, stlen);
+			readsize = scap_reader_read(r, puser->name, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
 
 			// the string is not null-terminated on file
@@ -2280,7 +2280,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// homedir
 			//
-			readsize = gzread(f, &(stlen), sizeof(uint16_t));
+			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -2291,7 +2291,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			subreadsize += readsize;
 
-			readsize = gzread(f, puser->homedir, stlen);
+			readsize = scap_reader_read(r, puser->homedir, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
 
 			// the string is not null-terminated on file
@@ -2302,7 +2302,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// shell
 			//
-			readsize = gzread(f, &(stlen), sizeof(uint16_t));
+			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -2313,7 +2313,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			subreadsize += readsize;
 
-			readsize = gzread(f, puser->shell, stlen);
+			readsize = scap_reader_read(r, puser->shell, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
 
 			// the string is not null-terminated on file
@@ -2347,7 +2347,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// gid
 			//
-			readsize = gzread(f, &(pgroup->gid), sizeof(uint32_t));
+			readsize = scap_reader_read(r, &(pgroup->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
 
 			subreadsize += readsize;
@@ -2355,7 +2355,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 			//
 			// name
 			//
-			readsize = gzread(f, &(stlen), sizeof(uint16_t));
+			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -2366,7 +2366,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 
 			subreadsize += readsize;
 
-			readsize = gzread(f, pgroup->name, stlen);
+			readsize = scap_reader_read(r, pgroup->name, stlen);
 			CHECK_READ_SIZE(readsize, stlen);
 
 			// the string is not null-terminated on file
@@ -2393,7 +2393,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 				return SCAP_FAILURE;
 			}
 			toread = sub_len - subreadsize;
-			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
+			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
@@ -2418,7 +2418,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = gzread(f, &padding, (unsigned int)padding_len);
+	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
@@ -2427,7 +2427,7 @@ static int32_t scap_read_userlist(scap_t *handle, gzFile f, uint32_t block_lengt
 //
 // Parse a process list block
 //
-static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -2443,7 +2443,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length,
 	//
 	// Read the tid
 	//
-	readsize = gzread(f, &tid, sizeof(tid));
+	readsize = scap_reader_read(r, &tid, sizeof(tid));
 	CHECK_READ_SIZE(readsize, sizeof(tid));
 	totreadsize += readsize;
 
@@ -2467,7 +2467,7 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length,
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
-		if(scap_fd_read_from_disk(handle, &fdi, &readsize, block_type, f) != SCAP_SUCCESS)
+		if(scap_fd_read_from_disk(handle, &fdi, &readsize, block_type, r) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -2520,13 +2520,13 @@ static int32_t scap_read_fdlist(scap_t *handle, gzFile f, uint32_t block_length,
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = gzread(f, &padding, (unsigned int)padding_len);
+	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE(readsize, padding_len);
 
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_read_section_header(scap_t *handle, gzFile f)
+int32_t scap_read_section_header(scap_t *handle, scap_reader_t* r)
 {
 	section_header_block sh;
 	uint32_t bt;
@@ -2534,8 +2534,8 @@ int32_t scap_read_section_header(scap_t *handle, gzFile f)
 	//
 	// Read the section header block
 	//
-	if(gzread(f, &sh, sizeof(sh)) != sizeof(sh) ||
-	   gzread(f, &bt, sizeof(bt)) != sizeof(bt))
+	if(scap_reader_read(r, &sh, sizeof(sh)) != sizeof(sh) ||
+	   scap_reader_read(r, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
@@ -2560,7 +2560,7 @@ int32_t scap_read_section_header(scap_t *handle, gzFile f)
 //
 // Parse the headers of a trace file and load the tables
 //
-int32_t scap_read_init(scap_t *handle, gzFile f)
+int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 {
 	block_header bh;
 	uint32_t bt;
@@ -2573,7 +2573,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	//
 	// Read the section header block
 	//
-	if(gzread(f, &bh, sizeof(bh)) != sizeof(bh))
+	if(scap_reader_read(r, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
@@ -2585,7 +2585,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_read_section_header(handle, f)) != SCAP_SUCCESS)
+	if((rc = scap_read_section_header(handle, r)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -2595,7 +2595,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 	//
 	while(true)
 	{
-		readsize = gzread(f, &bh, sizeof(bh));
+		readsize = scap_reader_read(r, &bh, sizeof(bh));
 
 		//
 		// If we don't find the event block header,
@@ -2614,7 +2614,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case MI_BLOCK_TYPE:
 		case MI_BLOCK_TYPE_INT:
 
-			if(scap_read_machine_info(handle, f, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+			if(scap_read_machine_info(handle, r, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -2632,7 +2632,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:
 
-			if(scap_read_proclist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_proclist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -2641,7 +2641,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case FDL_BLOCK_TYPE_INT:
 		case FDL_BLOCK_TYPE_V2:
 
-			if(scap_read_fdlist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_fdlist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -2658,7 +2658,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			//
 			// We're done with the metadata headers. Rewind the file position so we are aligned to start reading the events.
 			//
-			fseekres = gzseek(f, (long)0 - sizeof(bh), SEEK_CUR);
+			fseekres = scap_reader_seek(r, (long)0 - sizeof(bh), SEEK_CUR);
 			if(fseekres != -1)
 			{
 				break;
@@ -2672,7 +2672,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case IL_BLOCK_TYPE_INT:
 		case IL_BLOCK_TYPE_V2:
 
-			if(scap_read_iflist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_iflist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -2681,7 +2681,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		case UL_BLOCK_TYPE_INT:
 		case UL_BLOCK_TYPE_V2:
 
-			if(scap_read_userlist(handle, f, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_userlist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -2691,7 +2691,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 			// Unknown block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
-			fseekres = (int)gzseek(f, (long)toread, SEEK_CUR);
+			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",
@@ -2710,7 +2710,7 @@ int32_t scap_read_init(scap_t *handle, gzFile f)
 		//
 		// Read and validate the trailer
 		//
-		readsize = gzread(f, &bt, sizeof(bt));
+		readsize = scap_reader_read(r, &bt, sizeof(bt));
 		CHECK_READ_SIZE(readsize, sizeof(bt));
 
 		if(bt != bh.block_total_length)
@@ -2740,9 +2740,9 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	size_t readsize;
 	uint32_t readlen;
 	size_t hdr_len;
-	gzFile f = handle->m_file;
+	scap_reader_t* r = handle->m_reader;
 
-	ASSERT(f != NULL);
+	ASSERT(r != NULL);
 
 	//
 	// We may have to repeat the whole process
@@ -2753,7 +2753,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		//
 		// Read the block header
 		//
-		readsize = gzread(f, &bh, sizeof(bh));
+		readsize = scap_reader_read(r, &bh, sizeof(bh));
 
 		if(readsize != sizeof(bh))
 		{
@@ -2761,7 +2761,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 #ifdef WIN32
 			const char* err_str = "read error";
 #else
-			const char* err_str = gzerror(f, &err_no);
+			const char* err_str = scap_reader_error(r, &err_no);
 #endif
 			if(err_no)
 			{
@@ -2795,7 +2795,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		{
 			int32_t rc;
 
-			if((rc = scap_read_section_header(handle, f)) != SCAP_SUCCESS)
+			if((rc = scap_read_section_header(handle, r)) != SCAP_SUCCESS)
 			{
 				return rc;
 			}
@@ -2837,42 +2837,42 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		readlen = bh.block_total_length - sizeof(bh);
 		// Non-large block types have an uint16_max maximum size
 		if (bh.block_type != EV_BLOCK_TYPE_V2_LARGE && bh.block_type != EVF_BLOCK_TYPE_V2_LARGE) {
-			if(readlen > FILE_READ_BUF_SIZE) {
+			if(readlen > READER_BUF_SIZE) {
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than NON-LARGE read buffer size %u",
 					 readlen,
-					 FILE_READ_BUF_SIZE);
+					 READER_BUF_SIZE);
 				return SCAP_FAILURE;
 			}
-		} else if (readlen > handle->m_file_evt_buf_size) {
+		} else if (readlen > handle->m_reader_evt_buf_size) {
 			// Try to allocate a buffer large enough
-			char *tmp = realloc(handle->m_file_evt_buf, readlen);
+			char *tmp = realloc(handle->m_reader_evt_buf, readlen);
 			if (!tmp) {
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %zu",
 					 readlen,
-					 handle->m_file_evt_buf_size);
+					 handle->m_reader_evt_buf_size);
 				return SCAP_FAILURE;
 			}
-			handle->m_file_evt_buf = tmp;
-			handle->m_file_evt_buf_size = readlen;
+			handle->m_reader_evt_buf = tmp;
+			handle->m_reader_evt_buf_size = readlen;
 		}
 
-		readsize = gzread(f, handle->m_file_evt_buf, readlen);
+		readsize = scap_reader_read(r, handle->m_reader_evt_buf, readlen);
 		CHECK_READ_SIZE(readsize, readlen);
 
 		//
 		// EVF_BLOCK_TYPE has 32 bits of flags
 		//
-		*pcpuid = *(uint16_t *)handle->m_file_evt_buf;
+		*pcpuid = *(uint16_t *)handle->m_reader_evt_buf;
 
 		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
-			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_file_evt_buf + sizeof(uint16_t));
-			*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
+			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_reader_evt_buf + sizeof(uint16_t));
+			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
 		}
 		else
 		{
 			handle->m_last_evt_dump_flags = 0;
-			*pevent = (struct ppm_evt_hdr *)(handle->m_file_evt_buf + sizeof(uint16_t));
+			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t));
 		}
 
 		if((*pevent)->type >= PPM_EVENT_MAX)
@@ -2893,17 +2893,17 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			// We're reading an old capture whose events don't have nparams in the header.
 			// Convert it to the current version.
 			//
-			if((readlen + sizeof(uint32_t)) > FILE_READ_BUF_SIZE)
+			if((readlen + sizeof(uint32_t)) > READER_BUF_SIZE)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "cannot convert v1 event block to v2 (%lu greater than read buffer size %u)",
 					 readlen + sizeof(uint32_t),
-					 FILE_READ_BUF_SIZE);
+					 READER_BUF_SIZE);
 				return SCAP_FAILURE;
 			}
 
 			memmove((char *)*pevent + sizeof(struct ppm_evt_hdr),
 				(char *)*pevent + sizeof(struct ppm_evt_hdr) - sizeof(uint32_t),
-				readlen - ((char *)*pevent - handle->m_file_evt_buf) - (sizeof(struct ppm_evt_hdr) - sizeof(uint32_t)));
+				readlen - ((char *)*pevent - handle->m_reader_evt_buf) - (sizeof(struct ppm_evt_hdr) - sizeof(uint32_t)));
 			(*pevent)->len += sizeof(uint32_t);
 
 			// In old captures, the length of PPME_NOTIFICATION_E and PPME_INFRASTRUCTURE_EVENT_E
@@ -2960,18 +2960,116 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	return SCAP_SUCCESS;
 }
 
+scap_reader_t *scap_reader_open_gzfile(gzFile file)
+{
+	if (file == NULL)
+	{
+		return NULL;
+	}
+	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
+	r->m_type = RT_FILE;
+	r->m_file = file;
+	return r;
+}
+
+ppm_reader_type scap_reader_type(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	return r->m_type;
+}
+
+int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzread(r->m_file, buf, len);
+		default:
+			ASSERT(false);
+			return 0;
+	}
+}
+
+int64_t scap_reader_offset(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzoffset(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+int64_t scap_reader_tell(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gztell(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzseek(r->m_file, offset, whence);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+const char *scap_reader_error(scap_reader_t *r, int *errnum)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzerror(r->m_file, errnum);
+		default:
+			ASSERT(false);
+			*errnum = -1;
+			return "unknown scap_reader type";
+	}
+}
+
+int scap_reader_close(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzclose(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
 uint64_t scap_ftell(scap_t *handle)
 {
-	gzFile f = handle->m_file;
-	ASSERT(f != NULL);
-
-	return gztell(f);
+	return scap_reader_tell(handle->m_reader);
 }
 
 void scap_fseek(scap_t *handle, uint64_t off)
 {
-	gzFile f = handle->m_file;
-	ASSERT(f != NULL);
-
-	gzseek(f, off, SEEK_SET);
+	switch (handle->m_reader->m_type)
+	{
+		case RT_FILE:
+			return scap_reader_seek(handle->m_reader, off, SEEK_SET);
+		default:
+			ASSERT(false);
+			return;
+	}
 }
