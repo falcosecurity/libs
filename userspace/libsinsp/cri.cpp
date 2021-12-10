@@ -322,6 +322,16 @@ bool cri_interface::parse_cri_ext_container_info(const Json::Value &info, sinsp_
 		priv_found = true;
 	}
 
+	const Json::Value *permitted_capabilities;
+	if(walk_down_json(info, &permitted_capabilities, "runtimeSpec", "process", "capabilities", "permitted") && permitted_capabilities->isArray())
+	{
+		Json::Value caps = *permitted_capabilities;
+		for(const auto &cap : caps)
+		{
+			container.m_capabilities.push_back(cap.asString());
+		}
+	}
+
 	return true;
 }
 
