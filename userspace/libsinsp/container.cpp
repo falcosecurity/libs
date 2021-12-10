@@ -171,6 +171,17 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
 
+	
+	if(!container_info.m_capabilities.empty())
+	{
+		Json::Value capabilities = Json::arrayValue;
+		for(const auto& cap : container_info.m_capabilities)
+		{
+			capabilities.append(cap);
+		}
+		container["capabilities"] = capabilities;
+	}
+
 	Json::Value mounts = Json::arrayValue;
 
 	for (auto &mntinfo : container_info.m_mounts)

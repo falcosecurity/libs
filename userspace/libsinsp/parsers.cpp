@@ -4743,6 +4743,15 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info->m_created_time = created_time.asInt64();
 		}
 
+		const Json::Value& capabilities = container["capabilities"];
+		if(capabilities.isArray())
+		{
+			for(auto& cap : capabilities)
+			{
+				container_info->m_capabilities.push_back(cap.asString());
+			}
+		}
+
 #if !defined(MINIMAL_BUILD) && !defined(_WIN32)
 		libsinsp::container_engine::docker_async_source::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 #endif
