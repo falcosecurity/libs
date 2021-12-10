@@ -231,6 +231,7 @@ public:
 	std::string m_imagedigest;
 	uint32_t m_container_ip;
 	bool m_privileged;
+	std::vector<std::string> m_capabilities;
 	std::vector<container_mount_info> m_mounts;
 	std::vector<container_port_mapping> m_port_mappings;
 	std::map<std::string, std::string> m_labels;

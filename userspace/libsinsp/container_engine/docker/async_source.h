@@ -20,6 +20,8 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 	static void set_query_image_info(bool query_image_info);
 
+	static const std::vector<std::string> default_capabilities;
+	static const std::vector<std::string> all_capabilities;
 protected:
 	void run_impl();
 
@@ -73,6 +75,11 @@ private:
 
 	// Fetch the image info for the current container's m_imageid
 	void fetch_image_info(const docker_lookup_request& request, sinsp_container_info& container);
+
+	// Compute the set of capabilities granted to docker container
+	void compute_capabilities(sinsp_container_info& container, const Json::Value& add, const Json::Value& drop);
+	// Normalize a capability: each one must be uppercase and start with the "CAP_" prefix. Returns true if the string "ALL" was passed.
+	bool parse_capability(std::string& capability);
 
 	container_cache_interface *m_cache;
 	docker_connection m_connection;

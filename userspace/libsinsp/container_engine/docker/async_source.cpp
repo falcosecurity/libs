@@ -21,6 +21,9 @@ limitations under the License.
 #include "container.h"
 #include "utils.h"
 #include <unordered_set>
+#include <vector>
+#include <string>
+#include <algorithm>
 
 using namespace libsinsp::container_engine;
 
@@ -33,6 +36,69 @@ docker_async_source::docker_async_source(uint64_t max_wait_ms,
 	  m_cache(cache)
 {
 }
+
+const std::vector<std::string> docker_async_source::default_capabilities = 
+{
+	"CAP_CHOWN",
+	"CAP_DAC_OVERRIDE",
+	"CAP_FSETID",
+	"CAP_FOWNER",
+	"CAP_MKNOD",
+	"CAP_NET_RAW",
+	"CAP_SETGID",
+	"CAP_SETUID",
+	"CAP_SETFCAP",
+	"CAP_SETPCAP",
+	"CAP_NET_BIND_SERVICE",
+	"CAP_SYS_CHROOT",
+	"CAP_KILL",
+	"CAP_AUDIT_WRITE",
+};
+
+const std::vector<std::string> docker_async_source::all_capabilities = 
+{
+       "CAP_AUDIT_CONTROL",
+       "CAP_AUDIT_READ",
+       "CAP_AUDIT_WRITE",
+       "CAP_BLOCK_SUSPEND",
+       "CAP_BPF",
+       "CAP_CHECKPOINT_RESTORE",
+       "CAP_CHOWN",
+       "CAP_DAC_OVERRIDE",
+       "CAP_DAC_READ_SEARCH",
+       "CAP_FOWNER",
+       "CAP_FSETID",
+       "CAP_IPC_LOCK",
+       "CAP_IPC_OWNER",
+       "CAP_KILL",
+       "CAP_LEASE",
+       "CAP_LINUX_IMMUTABLE",
+       "CAP_MAC_ADMIN",
+       "CAP_MAC_OVERRIDE",
+       "CAP_MKNOD",
+       "CAP_NET_ADMIN",
+       "CAP_NET_BIND_SERVICE",
+       "CAP_NET_BROADCAST",
+       "CAP_NET_RAW",
+       "CAP_PERFMON",
+       "CAP_SETGID",
+       "CAP_SETFCAP",
+       "CAP_SETPCAP",
+       "CAP_SETUID",
+       "CAP_SYS_ADMIN",
+       "CAP_SYS_BOOT",
+       "CAP_SYS_CHROOT",
+       "CAP_SYS_MODULE",
+       "CAP_SYS_NICE",
+       "CAP_SYS_PACCT",
+       "CAP_SYS_PTRACE",
+       "CAP_SYS_RAWIO",
+       "CAP_SYS_RESOURCE",
+       "CAP_SYS_TIME",
+       "CAP_SYS_TTY_CONFIG",
+       "CAP_SYSLOG",
+       "CAP_WAKE_ALARM"
+};
 
 docker_async_source::~docker_async_source()
 {
@@ -733,6 +799,12 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 	}
 
 	const auto& host_config_obj = root["HostConfig"];
+
+	const Json::Value& added_caps = host_config_obj["CapAdd"];
+	const Json::Value& dropped_caps = host_config_obj["CapDrop"];
+	
+	compute_capabilities(container, added_caps, dropped_caps);
+
 	container.m_memory_limit = host_config_obj["Memory"].asInt64();
 	container.m_swap_limit = host_config_obj["MemorySwap"].asInt64();
 	const auto cpu_shares = host_config_obj["CpuShares"].asInt64();
@@ -795,3 +867,82 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 	return true;
 }
 
+
+void docker_async_source::compute_capabilities(sinsp_container_info& container, const Json::Value& add, const Json::Value& drop)
+{
+	vector<string> added_capabilities;
+	vector<string> dropped_capabilities;
+	bool all_added = false;
+	bool all_dropped = false;
+
+	for(const auto& cap : add)
+	{
+		string c = cap.asString();
+		if(parse_capability(c))
+		{
+			all_added = true;
+			break;
+		}
+		added_capabilities.push_back(c);
+	}
+	for(const auto& cap : drop)
+	{
+		string c = cap.asString();
+		if(parse_capability(c))
+		{
+			all_dropped = true;
+			break;
+		}
+		dropped_capabilities.push_back(c);
+	}
+
+	//
+	// Compute the capabilities granted to the container as (default - dropped) U added
+	//
+	if(!all_dropped)
+	{
+		container.m_capabilities = default_capabilities;
+		
+		// Remove all the capabilities in m_capabilities that also belong to dropped_capabilities (erase-remove idiom)
+		container.m_capabilities.erase(
+			remove_if( 
+				container.m_capabilities.begin(), 
+				container.m_capabilities.end(),
+				[&dropped_capabilities](string& s) -> bool {
+					return find(dropped_capabilities.begin(), dropped_capabilities.end(), s) != dropped_capabilities.end();
+				}
+			), 
+			container.m_capabilities.end()
+		);
+	}
+
+	// Insert in m_capabilities the added capabilities
+	if(!all_added)
+	{
+		container.m_capabilities.insert(container.m_capabilities.end(), added_capabilities.begin(), added_capabilities.end());
+	}
+	else
+	{
+		container.m_capabilities.insert(container.m_capabilities.end(), all_capabilities.begin(), all_capabilities.end());
+	}
+}
+
+bool docker_async_source::parse_capability(string& capability)
+{
+	const string prefix = "CAP_";
+	
+	transform(capability.begin(), capability.end(), capability.begin(), ::toupper);
+	
+	if(!capability.compare("ALL"))
+	{
+		return true;
+	}
+
+	if(capability.compare(0, prefix.size(), prefix))
+	{
+		capability = prefix + capability;
+		return false;
+	}
+
+	return false;
+}
