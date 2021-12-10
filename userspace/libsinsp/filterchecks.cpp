@@ -6128,6 +6128,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.id", "the container image id (e.g. 6f7e2741b66b)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.capabilities", "A space-separated list of capabilities granted to the container."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format <source>:<dest>:<mode>:<rdrw>:<propagation>. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.source[0]) or mount destination (container.mount.source[/host/lib/modules]). The pathname can be a glob."},
@@ -6434,6 +6435,40 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 
 		RETURN_EXTRACT_VAR(m_u32val);
+		break;
+	case TYPE_CONTAINER_CAPABILITIES:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else 
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			m_tstr = "";
+			bool first = true;
+			for(auto &cap : container_info->m_capabilities)
+			{
+				if(first)
+				{
+					first = false;
+				}
+				else
+				{
+					m_tstr += " ";
+				}
+
+				m_tstr += cap;
+			}
+
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
+		
 		break;
 	case TYPE_CONTAINER_MOUNTS:
 		if(tinfo->m_container_id.empty())
