@@ -979,6 +979,7 @@ private:
 	void open_int();
 	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
 	void init();
+	void deinit_state();
 	void import_thread_table();
 	void import_ifaddr_list();
 	void import_user_list();
@@ -1012,7 +1013,7 @@ private:
 	static int64_t get_file_size(const std::string& fname, char *error);
 	static std::string get_error_desc(const std::string& msg = "");
 
-	void restart_capture_at_filepos(uint64_t filepos);
+	void restart_capture();
 
 	void fseek(uint64_t filepos)
 	{
@@ -1069,9 +1070,6 @@ private:
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
-	// This is used to support reading merged files, where the capture needs to
-	// restart in the middle of the file.
-	uint64_t m_file_start_offset;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
 
@@ -1258,6 +1256,16 @@ public:
 	// These parameters will be passed to the open function of the plugin.
 	//
 	string m_input_plugin_open_params;
+	//
+	// An instance of scap_evt to be used during the next call to sinsp::next().
+	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().
+	// After using this event, sinsp::next() will set this back to NULL.
+	// This is used internally during the state initialization phase.
+	scap_evt *m_replay_scap_evt;
+	//
+	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
+	// information of the replayed scap event.
+	uint16_t m_replay_scap_cpuid;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

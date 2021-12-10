@@ -747,6 +747,7 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
 
 	handle->m_reader = reader;
+	handle->m_unexpected_block_readsize = 0;
 
 	//
 	// If this is a merged file, we might have to move the read offset to the next section
@@ -1135,11 +1136,78 @@ void scap_close_udig(scap_t* handle)
 }
 #endif
 
+static inline void scap_deinit_state(scap_t* handle)
+{
+	// Free the process table
+	if(handle->m_proclist != NULL)
+	{
+		scap_proc_free_table(handle);
+		handle->m_proclist = NULL;
+	}
+
+	// Free the device table
+	if(handle->m_dev_list != NULL)
+	{
+		scap_free_device_table(handle);
+		handle->m_dev_list = NULL;
+	}
+
+	// Free the interface list
+	if(handle->m_addrlist)
+	{
+		scap_free_iflist(handle->m_addrlist);
+		handle->m_addrlist = NULL;
+	}
+
+	// Free the user list
+	if(handle->m_userlist)
+	{
+		scap_free_userlist(handle->m_userlist);
+		handle->m_userlist = NULL;
+	}
+
+	if(handle->m_driver_procinfo)
+	{
+		free(handle->m_driver_procinfo);
+		handle->m_driver_procinfo = NULL;
+	}
+}
+
+uint32_t scap_restart_capture(scap_t* handle)
+{
+	uint32_t res;
+	if (handle->m_mode != SCAP_MODE_CAPTURE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart supported only in capture mode");
+		res = SCAP_FAILURE;
+	}
+	else
+	{
+		scap_deinit_state(handle);
+		if (handle->m_unexpected_block_readsize > 0)
+		{
+			scap_reader_seek(handle->m_reader, (int64_t)0 - (int64_t)handle->m_unexpected_block_readsize, SEEK_CUR);
+			handle->m_unexpected_block_readsize = 0;
+		}
+		if((res = scap_read_init(handle, handle->m_reader)) != SCAP_SUCCESS)
+		{
+			char error[SCAP_LASTERR_SIZE];
+			snprintf(error, SCAP_LASTERR_SIZE, "could not restart capture: %s", scap_getlasterr(handle));
+			strncpy(handle->m_lasterr, error, SCAP_LASTERR_SIZE);
+		}
+	}
+	return res;
+}
+
 void scap_close(scap_t* handle)
 {
-	if(handle->m_reader)
+	if(handle->m_mode == SCAP_MODE_CAPTURE)
 	{
-		scap_reader_close(handle->m_reader);
+		if (handle->m_reader)
+		{
+			scap_reader_close(handle->m_reader);
+			handle->m_reader = NULL;
+		}
 	}
 	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
@@ -1206,37 +1274,10 @@ void scap_close(scap_t* handle)
 	if(handle->m_reader_evt_buf)
 	{
 		free(handle->m_reader_evt_buf);
+		handle->m_reader_evt_buf = NULL;
 	}
 
-	// Free the process table
-	if(handle->m_proclist != NULL)
-	{
-		scap_proc_free_table(handle);
-	}
-
-	// Free the device table
-	if(handle->m_dev_list != NULL)
-	{
-		scap_free_device_table(handle);
-	}
-
-	// Free the interface list
-	if(handle->m_addrlist)
-	{
-		scap_free_iflist(handle->m_addrlist);
-	}
-
-	// Free the user list
-	if(handle->m_userlist)
-	{
-		scap_free_userlist(handle->m_userlist);
-	}
-
-	if(handle->m_driver_procinfo)
-	{
-		free(handle->m_driver_procinfo);
-		handle->m_driver_procinfo = NULL;
-	}
+	scap_deinit_state(handle);
 
 	if(handle->m_suppressed_comms)
 	{
