@@ -686,7 +686,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 }
 #endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
-scap_t* scap_open_offline_int(gzFile gzfile,
+scap_t* scap_open_offline_int(scap_reader_t* reader,
 			      char *error,
 			      int32_t *rc,
 			      proc_entry_callback proc_callback,
@@ -719,7 +719,6 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_proclist = NULL;
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
-	handle->m_file = NULL;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
@@ -737,17 +736,17 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
 
-	handle->m_file_evt_buf = (char*)malloc(FILE_READ_BUF_SIZE);
-	if(!handle->m_file_evt_buf)
+	handle->m_reader_evt_buf = (char*)malloc(READER_BUF_SIZE);
+	if(!handle->m_reader_evt_buf)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the read buffer");
 		scap_close(handle);
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-	handle->m_file_evt_buf_size = FILE_READ_BUF_SIZE;
+	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
 
-	handle->m_file = gzfile;
+	handle->m_reader = reader;
 
 	//
 	// If this is a merged file, we might have to move the read offset to the next section
@@ -760,7 +759,7 @@ scap_t* scap_open_offline_int(gzFile gzfile,
 	//
 	// Validate the file and load the non-event blocks
 	//
-	if((*rc = scap_read_init(handle, handle->m_file)) != SCAP_SUCCESS)
+	if((*rc = scap_read_init(handle, handle->m_reader)) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not initialize reader: %s", scap_getlasterr(handle));
 		scap_close(handle);
@@ -808,8 +807,9 @@ scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
+	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
 
-	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0, NULL);
+	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
 }
 
 scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
@@ -821,8 +821,9 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
+	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
 
-	return scap_open_offline_int(gzfile, error, rc, NULL, NULL, true, 0, NULL);
+	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
 }
 
 scap_t* scap_open_live(char *error, int32_t *rc)
@@ -1056,7 +1057,8 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 			return NULL;
 		}
 
-		return scap_open_offline_int(gzfile, error, rc,
+		scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
+		return scap_open_offline_int(reader, error, rc,
 					     args.proc_callback, args.proc_callback_context,
 					     args.import_users, args.start_offset,
 					     args.suppressed_comms);
@@ -1135,15 +1137,15 @@ void scap_close_udig(scap_t* handle)
 
 void scap_close(scap_t* handle)
 {
-	if(handle->m_file)
+	if(handle->m_reader)
 	{
-		gzclose(handle->m_file);
+		scap_reader_close(handle->m_reader);
 	}
 	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 
-		ASSERT(handle->m_file == NULL);
+		ASSERT(handle->m_reader == NULL);
 
 		if(handle->m_devs != NULL)
 		{
@@ -1201,9 +1203,9 @@ void scap_close(scap_t* handle)
 	}
 #endif
 
-	if(handle->m_file_evt_buf)
+	if(handle->m_reader_evt_buf)
 	{
-		free(handle->m_file_evt_buf);
+		free(handle->m_reader_evt_buf);
 	}
 
 	// Free the process table
@@ -2309,7 +2311,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 		return -1;
 	}
 
-	return gzoffset(handle->m_file);
+	return scap_reader_offset(handle->m_reader);
 }
 
 #ifndef CYGWING_AGENT

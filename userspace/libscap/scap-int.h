@@ -110,6 +110,17 @@ typedef struct scap_tid
 	UT_hash_handle hh; ///< makes this structure hashable
 } scap_tid;
 
+typedef enum ppm_reader_type
+{
+	RT_FILE = 0
+} ppm_reader_type;
+
+struct scap_reader
+{
+	ppm_reader_type m_type;
+	gzFile m_file;
+};
+
 //
 // The open instance handle
 //
@@ -118,13 +129,9 @@ struct scap
 	scap_mode_t m_mode;
 	scap_device* m_devs;
 	uint32_t m_ndevs;
-#ifdef USE_ZLIB
-	gzFile m_file;
-#else
-	FILE* m_file;
-#endif
-	char* m_file_evt_buf;
-	size_t m_file_evt_buf_size;
+	scap_reader_t* m_reader;
+	char* m_reader_evt_buf;
+	size_t m_reader_evt_buf_size;
 
 	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
@@ -227,7 +234,7 @@ struct scap_ns_socket_list
 // Misc stuff
 //
 #define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
-#define FILE_READ_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
+#define READER_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
 
 //
 // Internal library functions
@@ -272,9 +279,9 @@ uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
 int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper, uint32_t len);
 // Populate the given fd by reading the info from disk
-uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, gzFile f);
+uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, scap_reader_t* r);
 // Parse the headers of a trace file and load the tables
-int32_t scap_read_init(scap_t* handle, gzFile f);
+int32_t scap_read_init(scap_t* handle, scap_reader_t* r);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
@@ -339,6 +346,23 @@ int32_t scap_update_suppressed(scap_t *handle,
 const char *scap_strerror(scap_t *handle, int errnum);
 
 struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
+
+
+scap_reader_t *scap_reader_open_gzfile(gzFile file);
+
+ppm_reader_type scap_reader_type(scap_reader_t *r);
+
+int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len);
+
+int64_t scap_reader_offset(scap_reader_t *r);
+
+int64_t scap_reader_tell(scap_reader_t *r);
+
+int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence);
+
+const char *scap_reader_error(scap_reader_t *r, int *errnum);
+
+int scap_reader_close(scap_reader_t *r);
 
 //
 // ASSERT implementation
