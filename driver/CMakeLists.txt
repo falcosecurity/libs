@@ -7,6 +7,9 @@
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
+if(NOT DEFINED DRIVER_COMPONENT_NAME)
+    set(DRIVER_COMPONENT_NAME "scap-driver")
+endif()
 
 # The driver build process is somewhat involved because we use the same
 # sources for building the driver locally and for shipping as a DKMS module.
@@ -104,7 +107,7 @@ if(ENABLE_DKMS)
 		${CMAKE_CURRENT_BINARY_DIR}/src/driver_config.h
 		${DRIVER_SOURCES}
 		DESTINATION "src/${DRIVER_PACKAGE_NAME}-${PROBE_VERSION}"
-		COMPONENT scap-driver)
+		COMPONENT ${DRIVER_COMPONENT_NAME})
 
 endif()
 
