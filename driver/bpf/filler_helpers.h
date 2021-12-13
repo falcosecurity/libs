@@ -21,7 +21,8 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 #include "builtins.h"
 
-#define MAX_PATH_COMPONENTS 32
+// Old kernels (like 4.14) have too strict limits on the bpf program length to support 32 path components. For the moment we decrease the limit to 16.
+#define MAX_PATH_COMPONENTS 16
 #define MAX_PATH_LENGTH 4096
 
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
