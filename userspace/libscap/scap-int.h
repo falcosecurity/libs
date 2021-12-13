@@ -347,23 +347,6 @@ const char *scap_strerror(scap_t *handle, int errnum);
 
 struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
 
-
-scap_reader_t *scap_reader_open_gzfile(gzFile file);
-
-ppm_reader_type scap_reader_type(scap_reader_t *r);
-
-int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len);
-
-int64_t scap_reader_offset(scap_reader_t *r);
-
-int64_t scap_reader_tell(scap_reader_t *r);
-
-int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence);
-
-const char *scap_reader_error(scap_reader_t *r, int *errnum);
-
-int scap_reader_close(scap_reader_t *r);
-
 //
 // ASSERT implementation
 //
@@ -430,6 +413,107 @@ void udig_end_capture(scap_t* handle);
 uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
 int32_t udig_stop_dropping_mode(scap_t* handle);
 int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
+
+//
+// scap_reader functions implementation
+//
+
+static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
+{
+	if (file == NULL)
+	{
+		return NULL;
+	}
+	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
+	r->m_type = RT_FILE;
+	r->m_file = file;
+	return r;
+}
+
+static inline ppm_reader_type scap_reader_type(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	return r->m_type;
+}
+
+static inline int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzread(r->m_file, buf, len);
+		default:
+			ASSERT(false);
+			return 0;
+	}
+}
+
+static inline int64_t scap_reader_offset(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzoffset(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+static inline int64_t scap_reader_tell(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gztell(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+static inline int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzseek(r->m_file, offset, whence);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
+
+static inline const char *scap_reader_error(scap_reader_t *r, int *errnum)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzerror(r->m_file, errnum);
+		default:
+			ASSERT(false);
+			*errnum = -1;
+			return "unknown scap_reader type";
+	}
+}
+
+static inline int scap_reader_close(scap_reader_t *r)
+{
+	ASSERT(r != NULL);
+	switch (r->m_type)
+	{
+		case RT_FILE:
+			return gzclose(r->m_file);
+		default:
+			ASSERT(false);
+			return -1;
+	}
+}
 
 #ifdef __cplusplus
 }

@@ -2939,103 +2939,6 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	return SCAP_SUCCESS;
 }
 
-scap_reader_t *scap_reader_open_gzfile(gzFile file)
-{
-	if (file == NULL)
-	{
-		return NULL;
-	}
-	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
-	r->m_type = RT_FILE;
-	r->m_file = file;
-	return r;
-}
-
-ppm_reader_type scap_reader_type(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	return r->m_type;
-}
-
-int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzread(r->m_file, buf, len);
-		default:
-			ASSERT(false);
-			return 0;
-	}
-}
-
-int64_t scap_reader_offset(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzoffset(r->m_file);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-int64_t scap_reader_tell(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gztell(r->m_file);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzseek(r->m_file, offset, whence);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-const char *scap_reader_error(scap_reader_t *r, int *errnum)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzerror(r->m_file, errnum);
-		default:
-			ASSERT(false);
-			*errnum = -1;
-			return "unknown scap_reader type";
-	}
-}
-
-int scap_reader_close(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzclose(r->m_file);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
 uint64_t scap_ftell(scap_t *handle)
 {
 	return scap_reader_tell(handle->m_reader);
@@ -3043,7 +2946,7 @@ uint64_t scap_ftell(scap_t *handle)
 
 void scap_fseek(scap_t *handle, uint64_t off)
 {
-	switch (handle->m_reader->m_type)
+	switch (scap_reader_type(handle->m_reader))
 	{
 		case RT_FILE:
 			return scap_reader_seek(handle->m_reader, off, SEEK_SET);
