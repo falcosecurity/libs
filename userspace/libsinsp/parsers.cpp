@@ -2069,7 +2069,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 
 	state->m_piscapevt->len = tot_len;
 	state->m_piscapevt->nparams = 1;
-	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
+	uint16_t* plen = (uint16_t*)state->m_piscapevt->payload;
 	plen[0] = (uint16_t)payload.size() + 1;
 	uint8_t* edata = (uint8_t*)plen + sizeof(uint16_t);
 	memcpy(edata, payload.c_str(), plen[0]);
@@ -3687,7 +3687,6 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 	//
 	// Populate the user event that we will send up the stack instead of the write
 	//
-	uint8_t* fakeevt_storage = (uint8_t*)m_fake_userevt;
 	m_fake_userevt->ts = evt->m_pevt->ts;
 	m_fake_userevt->tid = evt->m_pevt->tid;
 	m_fake_userevt->nparams = 3;
@@ -3703,14 +3702,14 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 			m_fake_userevt->type = PPME_TRACER_X;
 		}
 
-		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		uint16_t *lens = (uint16_t *)m_fake_userevt->payload;
 		lens[0] = 8;
 		lens[1] = 8;
 		lens[2] = 8;
 
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = p->m_id;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+		*(uint64_t *)(m_fake_userevt->payload + 6) = p->m_id;
+		*(uint64_t *)(m_fake_userevt->payload + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(m_fake_userevt->payload + 22) = (uint64_t)&p->m_args;
 	}
 	else
 	{
@@ -3730,7 +3729,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 
 		m_fake_userevt->type = PPME_TRACER_E;
 
-		uint16_t *lens = (uint16_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr));
+		uint16_t *lens = (uint16_t *)m_fake_userevt->payload;
 		lens[0] = 8;
 		lens[1] = 8;
 		lens[2] = 8;
@@ -3738,9 +3737,9 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 		p->m_tags.clear();
 		m_tracer_error_string = "invalid tracer " + string(data, datalen) + ", len" + to_string(datalen);
 		p->m_tags.push_back((char*)m_tracer_error_string.c_str());
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
-		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 22) = (uint64_t)&p->m_args;
+		*(uint64_t *)(m_fake_userevt->payload + 6) = 0;
+		*(uint64_t *)(m_fake_userevt->payload + 14) = (uint64_t)&p->m_tags;
+		*(uint64_t *)(m_fake_userevt->payload + 22) = (uint64_t)&p->m_args;
 	}
 
 	scap_evt* tevt = evt->m_pevt;

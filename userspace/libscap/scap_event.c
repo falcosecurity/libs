@@ -84,7 +84,7 @@ uint32_t scap_event_has_large_payload(const scap_evt* e)
 
 uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params)
 {
-	char *len_buf = (char*)e + sizeof(struct ppm_evt_hdr);
+	char *len_buf = (char *)e->payload;
 	char *param_buf = len_buf;
 	uint32_t is_large = scap_event_has_large_payload(e);
 	uint32_t param_size_32;

@@ -278,7 +278,7 @@ bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp
 	scapevt->type = PPME_CONTAINER_JSON_2_E;
 	scapevt->nparams = 1;
 
-	uint32_t* lens = (uint32_t*)((char *)scapevt + sizeof(struct ppm_evt_hdr));
+	uint32_t* lens = (uint32_t*)scapevt->payload;
 	char* valptr = (char*)lens + sizeof(uint32_t);
 
 	*lens = (uint32_t)json.length() + 1;

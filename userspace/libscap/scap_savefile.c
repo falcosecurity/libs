@@ -2940,7 +2940,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			// until size matches.
 			//
 			char *end = (char *)*pevent + (*pevent)->len;
-			uint16_t *lens = (uint16_t *)((char *)*pevent + sizeof(struct ppm_evt_hdr));
+			uint16_t *lens = (uint16_t *)(*pevent)->payload;
 			uint32_t nparams;
 			bool done = false;
 			for(nparams = g_event_info[(*pevent)->type].nparams; (int)nparams >= 0; nparams--)
