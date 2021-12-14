@@ -52,6 +52,7 @@ limitations under the License.
 #define DRAGENT_WIN_HAL_C_ONLY
 #include "windows_hal.h"
 #endif
+#include "plugin_info.h"
 
 //#define NDEBUG
 #include <assert.h>
@@ -999,7 +1000,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input_plugin, char* input_plugin_params)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args args)
 {
 	scap_t* handle = NULL;
 
@@ -1047,29 +1048,68 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
-	handle->m_input_plugin = input_plugin;
-	handle->m_input_plugin->name = handle->m_input_plugin->get_name();
-	handle->m_input_plugin->id = handle->m_input_plugin->get_id();
-
 	// Set the rc to SCAP_FAILURE now, so in the unlikely event
 	// that a plugin doesn't not actually set a rc, that it gets
 	// treated as a failure.
 	ss_plugin_rc plugin_rc = SCAP_FAILURE;
 
-	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
-		input_plugin_params,
-		&plugin_rc);
+	const char *errstr = NULL;
+	handle->m_plugin_type = args.plugin_type;
+	switch(args.plugin_type)
+	{
+		default:
+			ASSERT(false);
+			break;
+		case TYPE_SOURCE_PLUGIN:
+			handle->m_input_plugin = args.input_plugin;
+			handle->m_input_plugin->name = handle->m_input_plugin->get_name();
+			handle->m_input_plugin->id = handle->m_input_plugin->get_id();
+			handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
+				args.plugin_params,
+				&plugin_rc);
 
-	*rc = plugin_rc_to_scap_rc(plugin_rc);
-	handle->m_input_plugin_batch_nevts = 0;
-	handle->m_input_plugin_batch_evts = NULL;
-	handle->m_input_plugin_batch_idx = 0;
-	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
+			*rc = plugin_rc_to_scap_rc(plugin_rc);
+			handle->m_input_plugin_batch_nevts = 0;
+			handle->m_input_plugin_batch_evts = NULL;
+			handle->m_input_plugin_batch_idx = 0;
+			handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
+			if(*rc != SCAP_SUCCESS)
+			{
+				errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
+			}
+			break;
+		case TYPE_CAPTURE_PLUGIN:
+			handle->m_capture_plugin = args.capture_plugin;
+			handle->m_capture_plugin->name = handle->m_capture_plugin->get_name();
+			handle->m_capture_plugin->handle = handle->m_capture_plugin->open(handle->m_capture_plugin->state,
+				args.plugin_params,
+				&plugin_rc);
+			*rc = plugin_rc_to_scap_rc(plugin_rc);
+			if(*rc != SCAP_SUCCESS)
+			{
+				errstr = handle->m_capture_plugin->get_last_error(handle->m_capture_plugin->state);
+				break;
+			}
+			handle->m_reader = scap_reader_open_capture_plugin(handle->m_capture_plugin);
+			handle->m_reader_evt_buf = (char*)malloc(READER_BUF_SIZE);
+			if(!handle->m_reader_evt_buf)
+			{
+				errstr = "error allocating the read buffer";
+				*rc = SCAP_FAILURE;
+				break;
+			}
+			handle->m_reader_evt_buf_size = READER_BUF_SIZE;
+			handle->m_unexpected_block_readsize = 0;
+			if((*rc = scap_read_init(handle, handle->m_reader)) != SCAP_SUCCESS)
+			{
+				errstr = scap_getlasterr(handle);
+			}
+			break;
+	}
 
 	if(*rc != SCAP_SUCCESS)
 	{
-		const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", errstr);
+		snprintf(error, SCAP_LASTERR_SIZE, "scap open plugin error: %s", errstr);
 		scap_close(handle);
 		return NULL;
 	}
@@ -1142,7 +1182,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 					      args.proc_callback_context,
 					      args.import_users);
 	case SCAP_MODE_PLUGIN:
-		return scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
+		return scap_open_plugin_int(error, rc, args);
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -1227,9 +1267,10 @@ static inline void scap_deinit_state(scap_t* handle)
 uint32_t scap_restart_capture(scap_t* handle)
 {
 	uint32_t res;
-	if (handle->m_mode != SCAP_MODE_CAPTURE)
+	if (handle->m_mode != SCAP_MODE_CAPTURE &&
+		!(handle->m_mode == SCAP_MODE_PLUGIN && handle->m_plugin_type == TYPE_CAPTURE_PLUGIN))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart supported only in capture mode");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart is not supported for this open mode");
 		res = SCAP_FAILURE;
 	}
 	else
@@ -1311,8 +1352,25 @@ void scap_close(scap_t* handle)
 	}
 	else if(handle->m_mode == SCAP_MODE_PLUGIN)
 	{
-		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
-		handle->m_input_plugin->handle = NULL;
+		switch(handle->m_plugin_type)
+		{
+			default:
+				ASSERT(false);
+				break;
+			case TYPE_SOURCE_PLUGIN:
+				handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
+				handle->m_input_plugin->handle = NULL;
+				break;
+			case TYPE_CAPTURE_PLUGIN:
+				if (handle->m_reader)
+				{
+					scap_reader_close(handle->m_reader);
+					handle->m_reader = NULL;
+				}
+				handle->m_capture_plugin->close(handle->m_capture_plugin->state, handle->m_capture_plugin->handle);
+				handle->m_capture_plugin->handle = NULL;
+				break;
+		}
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1814,9 +1872,14 @@ static inline uint64_t get_timestamp_ns()
 
 static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	ss_plugin_event *plugin_evt;
 	int32_t res = SCAP_FAILURE;
 
+	if (handle->m_plugin_type == TYPE_CAPTURE_PLUGIN)
+	{
+		return scap_next_offline(handle, pevent, pcpuid);
+	}
+
+	ss_plugin_event *plugin_evt;
 	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 	{
 		if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
