@@ -392,7 +392,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 							    filter_check_list &available_checks)
 {
 	string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = create_plugin(inspector, filepath, config, errstr);
+	std::shared_ptr<sinsp_plugin> plugin = create_plugin(filepath, config, errstr);
 
 	if (!plugin)
 	{
@@ -423,7 +423,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::register_plugin(sinsp* inspector,
 	return plugin;
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(sinsp* inspector, string &filepath, const char* config, std::string &errstr)
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, const char* config, std::string &errstr)
 {
 	std::shared_ptr<sinsp_plugin> ret;
 
@@ -461,7 +461,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(sinsp* inspector, stri
 		return ret;
 	}
 	// This is always valid
-	version frameworkVers(inspector->get_plugin_api_version_str());
+	version frameworkVers(PLUGIN_API_VERSION_STR);
 	if(!frameworkVers.check(requestedVers))
 	{
 		errstr = string("Unsupported plugin required api version ") + version_str;

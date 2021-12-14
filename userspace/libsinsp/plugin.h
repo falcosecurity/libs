@@ -28,6 +28,21 @@ limitations under the License.
 
 #include "filter_check_list.h"
 
+//
+// API versions of this plugin engine
+//
+#define PLUGIN_API_VERSION_MAJOR 0
+#define PLUGIN_API_VERSION_MINOR 2
+#define PLUGIN_API_VERSION_PATCH 0
+
+//
+// Just some not so smart defines to retrieve plugin api version as string
+//
+#define QUOTE(str) 			#str
+#define EXPAND_AND_QUOTE(str) 		QUOTE(str)
+#define PLUGIN_API_VERSION		PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
+#define PLUGIN_API_VERSION_STR		EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
+
 class sinsp_filter_check_plugin;
 
 // Base class for source/extractor plugins. Can not be created directly.
@@ -89,7 +104,7 @@ public:
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is
 	// set with an error.
-	static std::shared_ptr<sinsp_plugin> create_plugin(sinsp* inspector, std::string &filepath, const char* config, std::string &errstr);
+	static std::shared_ptr<sinsp_plugin> create_plugin(std::string &filepath, const char* config, std::string &errstr);
 
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
 	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);

@@ -1020,8 +1020,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_PLUGIN;
 
-	handle->plugin_api_vers = PPM_PLUGIN_VERSION(PLUGIN_API_VERSION_MAJOR, PLUGIN_API_VERSION_MINOR, PLUGIN_API_VERSION_PATCH);
-
 	//
 	// Extract machine information
 	//
@@ -2970,12 +2968,4 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 
 	return SCAP_SUCCESS;
 #endif
-}
-
-/*!
-  \brief Returns the framework API version
-*/
-uint64_t scap_get_plugin_api_version(scap_t* handle)
-{
-	return handle->plugin_api_vers;
 }
