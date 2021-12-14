@@ -523,9 +523,20 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	//
 	if(m_input_plugin)
 	{
-		sinsp_source_plugin *splugin = static_cast<sinsp_source_plugin *>(m_input_plugin.get());
-		oargs.input_plugin = splugin->plugin_info();
-		oargs.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
+		switch (m_input_plugin.get()->type())
+		{
+			case TYPE_CAPTURE_PLUGIN:
+				oargs.capture_plugin = static_cast<sinsp_capture_plugin *>(m_input_plugin.get())->plugin_info();
+				break;
+			case TYPE_SOURCE_PLUGIN:
+				oargs.input_plugin = static_cast<sinsp_source_plugin *>(m_input_plugin.get())->plugin_info();
+				break;
+			default:
+				ASSERT(false);
+				break;
+		}
+		oargs.plugin_type = m_input_plugin.get()->type();
+		oargs.plugin_params = (char*)m_input_plugin_open_params.c_str();
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
 	}
@@ -1685,13 +1696,20 @@ void sinsp::set_input_plugin(string plugin_name)
 	{
 		if(it->name() == plugin_name)
 		{
-			if(it->type() != TYPE_SOURCE_PLUGIN)
+			switch (it->type())
 			{
-				throw sinsp_exception("plugin " + plugin_name + " is not a source plugin and cannot be used as input.");
+				case TYPE_SOURCE_PLUGIN:
+				case TYPE_CAPTURE_PLUGIN:
+					m_input_plugin = it;
+					return;
+				case TYPE_EXTRACTOR_PLUGIN:
+				default:
+					throw sinsp_exception(
+						"plugin " + 
+						plugin_name + 
+						" is not a source nor capture plugin and cannot be used as input."
+					);
 			}
-
-			m_input_plugin = it;
-			return;
 		}
 	}
 

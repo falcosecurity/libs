@@ -222,3 +222,29 @@ private:
 	extractor_plugin_info m_extractor_plugin_info;
 	std::set<std::string> m_extract_event_sources;
 };
+
+class sinsp_capture_plugin : public sinsp_plugin
+{
+public:
+	sinsp_capture_plugin();
+	virtual ~sinsp_capture_plugin();
+
+	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
+
+	ss_plugin_type type() override { return TYPE_CAPTURE_PLUGIN; };
+
+	// For libscap that only works with struct of functions.
+	capture_plugin_info *plugin_info();
+
+	// Note that embedding ss_instance_t in the object means that
+	// a plugin can only have one open active at a time.
+	bool open(const char* params, ss_plugin_rc &rc);
+	void close();
+
+protected:
+	void set_plugin_state(ss_plugin_t *state) override;
+	virtual ss_plugin_t *plugin_state() override;
+
+private:
+	capture_plugin_info m_capture_plugin_info;
+}; 

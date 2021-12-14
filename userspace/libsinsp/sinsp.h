@@ -101,6 +101,7 @@ using namespace std;
 #include "sinsp_pd_callback_type.h"
 
 #include "include/sinsp_external_processor.h"
+#include "plugin.h"
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
@@ -112,7 +113,6 @@ class k8s;
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 class sinsp_partial_tracer;
 class mesos;
-class sinsp_plugin;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -618,7 +618,8 @@ public:
 	*/
 	inline bool is_capture()
 	{
-		return m_mode == SCAP_MODE_CAPTURE;
+		return m_mode == SCAP_MODE_CAPTURE || 
+			(m_mode == SCAP_MODE_PLUGIN && m_input_plugin.get()->type() == TYPE_CAPTURE_PLUGIN);
 	}
 
 	/*!

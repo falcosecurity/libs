@@ -458,6 +458,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 
 	sinsp_source_plugin *splugin;
 	sinsp_extractor_plugin *eplugin;
+	sinsp_capture_plugin *cplugin;
 
 	switch(plugin_type)
 	{
@@ -478,6 +479,15 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 			return ret;
 		}
 		ret.reset(eplugin);
+		break;
+	case TYPE_CAPTURE_PLUGIN:
+		cplugin = new sinsp_capture_plugin();
+		if(!cplugin->resolve_dylib_symbols(handle, errstr))
+		{
+			delete cplugin;
+			return ret;
+		}
+		ret.reset(cplugin);
 		break;
 	}
 
@@ -701,8 +711,19 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 	// Others are not and the values will be checked when needed.
 	(*(void **) (&m_plugin_info.init)) = getsym(handle, "plugin_init", errstr);
 	(*(void **) (&m_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr);
-	(*(void **) (&m_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
-	(*(void **) (&m_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
+	switch (type())
+	{
+		case TYPE_SOURCE_PLUGIN:
+		case TYPE_EXTRACTOR_PLUGIN:
+			(*(void **) (&m_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
+			(*(void **) (&m_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
+			break;
+		case TYPE_CAPTURE_PLUGIN:
+		default:
+			(*(void **) (&m_plugin_info.get_fields)) = NULL;
+			(*(void **) (&m_plugin_info.extract_fields)) = NULL;
+			break;
+	}
 
 	m_name = str_from_alloc_charbuf(m_plugin_info.get_name());
 	m_description = str_from_alloc_charbuf(m_plugin_info.get_description());
@@ -1047,4 +1068,81 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 	return true;
 }
 
+sinsp_capture_plugin::sinsp_capture_plugin()
+{
+	memset(&m_capture_plugin_info, 0, sizeof(m_capture_plugin_info));
+}
 
+sinsp_capture_plugin::~sinsp_capture_plugin()
+{
+	close();
+	destroy();
+}
+
+capture_plugin_info *sinsp_capture_plugin::plugin_info()
+{
+	return &m_capture_plugin_info;
+}
+
+bool sinsp_capture_plugin::open(const char *param, ss_plugin_rc &rc)
+{
+	if(!plugin_state())
+	{
+		return false;
+	}
+	m_capture_plugin_info.handle = m_capture_plugin_info.open(plugin_state(), param, &rc);
+	return (m_capture_plugin_info.handle != NULL);
+}
+
+void sinsp_capture_plugin::close()
+{
+	if(!plugin_state() || !m_capture_plugin_info.handle)
+	{
+		return;
+	}
+
+	m_capture_plugin_info.close(plugin_state(), m_capture_plugin_info.handle);
+	m_capture_plugin_info.handle = NULL;
+}
+
+void sinsp_capture_plugin::set_plugin_state(ss_plugin_t *state)
+{
+	m_capture_plugin_info.state = state;
+}
+
+ss_plugin_t *sinsp_capture_plugin::plugin_state()
+{
+	return m_capture_plugin_info.state;
+}
+
+bool sinsp_capture_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
+{
+	if (!sinsp_plugin::resolve_dylib_symbols(handle, errstr))
+	{
+		return false;
+	}
+
+	// We resolve every symbol, even those that are not actually
+	// used by this derived class, just to ensure that
+	// m_capture_plugin_info is complete. (The struct can be passed
+	// down to libscap when reading/writing capture files).
+	//
+	// Some functions are required and return false if not found.
+	if((*(void **) (&(m_capture_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.init)) = getsym(handle, "plugin_init", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_type)) = getsym(handle, "plugin_get_type", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.get_version)) = getsym(handle, "plugin_get_version", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.open)) = getsym(handle, "plugin_open", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.close)) = getsym(handle, "plugin_close", errstr)) == NULL ||
+	   (*(void **) (&(m_capture_plugin_info.read)) = getsym(handle, "plugin_read", errstr)) == NULL)
+	{
+		return false;
+	}
+
+	return true;
+}
