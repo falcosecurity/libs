@@ -1638,6 +1638,7 @@ struct ppm_evt_hdr {
 	uint32_t len; /* the event len, including the header */
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
+	uint8_t payload[]; /* Flexible array member for event payload, ie: both len headers + event data */
 };
 #if defined __sun
 #pragma pack()

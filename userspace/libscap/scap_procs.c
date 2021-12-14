@@ -1638,7 +1638,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	case PPME_SYSCALL_EXECVEAT_X:
 	case PPME_SYSCALL_CLONE3_X:
 
-		lens = (uint16_t *)((char *)pevent + sizeof(struct ppm_evt_hdr));
+		lens = (uint16_t *)pevent->payload;
 		valptr = (char *)lens + pevent->nparams * sizeof(uint16_t);
 
 		if(pevent->nparams < 14)
