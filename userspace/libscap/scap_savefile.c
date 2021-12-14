@@ -2744,7 +2744,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 }
 
 //
-// Read an event from disk
+// Read an event from the internal scap_reader
 //
 int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *pcpuid)
 {
@@ -2762,6 +2762,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	//
 	while(true)
 	{
+		int err_no = 0;
 		//
 		// Read the block header
 		//
@@ -2769,7 +2770,6 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 
 		if(readsize != sizeof(bh))
 		{
-			int err_no = 0;
 #ifdef WIN32
 			const char* err_str = "read error";
 #else
@@ -2777,7 +2777,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 #endif
 			if(err_no)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "reading error: %s, ernum=%d", err_str, err_no);
 				return SCAP_FAILURE;
 			}
 
@@ -2848,7 +2848,16 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		}
 
 		readsize = scap_reader_read(r, handle->m_reader_evt_buf, readlen);
-		CHECK_READ_SIZE(readsize, readlen);
+		if (readsize != readlen)
+		{
+			const char* err_str = scap_reader_error(r, &err_no);
+			if(err_no)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "reading error: %s, ernum=%d", err_str, err_no);
+				return SCAP_FAILURE;
+			}
+			CHECK_READ_SIZE(readsize, readlen);
+		}
 
 		//
 		// EVF_BLOCK_TYPE has 32 bits of flags
@@ -2967,4 +2976,108 @@ void scap_fseek(scap_t *handle, uint64_t off)
 			ASSERT(false);
 			return;
 	}
+}
+
+int scap_reader_read_capture_plugin(scap_reader_t *r, uint8_t* buf, uint32_t len)
+{
+	uint32_t nread = 0;
+	ss_plugin_rc rc;
+
+	// If seek has legitimately been used backward, we first
+	// replay the last bytes of the previous read in the buffer.
+	if (r->m_seek_buffer_ptr != NULL && r->m_seek_buffer_len > 0)
+	{
+		nread = MIN(len, r->m_seek_buffer_len);
+		memcpy(buf, r->m_seek_buffer_ptr, nread);
+		r->m_seek_buffer_len -= nread;
+		r->m_seek_buffer_ptr += nread;
+		r->m_total_bytes_read += nread;
+		buf += nread;
+		len -= nread;
+	}
+	
+	// We want to loop on the plugin_read function because the plugin
+	// could return an SS_PLUGIN_TIMEOUT rc, which does not make sense
+	// for capture plugins. In that case, we sleep for a little and then
+	// resume the loop on plugin_read(). This still ensures that the read
+	// conceretly happens only once.
+	// This also skips the plugin_read() call if len is zero at this point.
+	while (len > 0) 
+	{
+		rc = r->m_capture_plugin->read(
+			r->m_capture_plugin->state,
+			r->m_capture_plugin->handle,
+			buf,
+			len,
+			&nread
+		);
+
+		switch (rc)
+		{
+			case SS_PLUGIN_SUCCESS:
+			case SS_PLUGIN_EOF:
+				// Update the total bytes read for tell/offset purposes
+				r->m_total_bytes_read += nread;
+
+				// Store the last few bytes of this read in our seek buffer,
+				// so that they can be re-used for seeking backwards.
+				r->m_seek_buffer_len = MIN(nread, READER_SEEK_BUF_SIZE);
+				memcpy(&r->m_seek_buffer[0], buf + nread - r->m_seek_buffer_len, r->m_seek_buffer_len);
+				r->m_seek_buffer_ptr = NULL;
+
+				return (int) nread;
+			case SS_PLUGIN_TIMEOUT:
+#ifdef _WIN32
+				Sleep((DWORD) BUFFER_EMPTY_WAIT_TIME_US_START / 1000);
+#else
+				usleep(BUFFER_EMPTY_WAIT_TIME_US_START);
+#endif
+				continue;
+			default:
+				// In the bottom line, something went wrong and we set the last error,
+				// which will then be retrieved through scap_reader_error().
+				r->m_last_error = r->m_capture_plugin->get_last_error(r->m_capture_plugin->state);
+				return 0;
+		}
+	}
+
+	return (int) nread;
+}
+
+int scap_reader_seek_capture_plugin(scap_reader_t *r, int64_t offset, int whence)
+{
+	int nread;
+	if (whence != SEEK_CUR)
+	{
+		r->m_last_error = "unsupported seek whence";
+		return -1;
+	}
+	if (offset < 0)
+	{
+		// We support backward seeking only until a certain
+		// limit only for convenience.
+		if ((int64_t)0 - offset > r->m_seek_buffer_len)
+		{
+			r->m_last_error = "negative seek offset overflows buffer";
+			return -1;
+		}
+		r->m_total_bytes_read += offset;
+		r->m_seek_buffer_ptr = &r->m_seek_buffer[0] + r->m_seek_buffer_len + offset;
+	}
+	else 
+	{
+		// We support forward seeking by consuming the readable byte stream
+		// This does seem to be ever invoked currently in the general case.
+		uint8_t buf[READER_SEEK_SKIP_SIZE];
+		while (offset > 0)
+		{
+			nread = scap_reader_read(r, &buf[0], MIN(READER_SEEK_SKIP_SIZE, offset));
+			if (nread <= 0)
+			{
+				return nread;
+			}
+			offset -= nread;
+		}
+	}
+	return r->m_total_bytes_read;
 }

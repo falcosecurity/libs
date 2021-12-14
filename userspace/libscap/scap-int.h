@@ -112,13 +112,32 @@ typedef struct scap_tid
 
 typedef enum ppm_reader_type
 {
-	RT_FILE = 0
+	RT_FILE = 0,
+	RT_CAPTURE_PLUGIN = 1
 } ppm_reader_type;
+
+#define READER_SEEK_BUF_SIZE    16      ///< threshold for seeking backwards for non-file readers
+#define READER_SEEK_SKIP_SIZE   2048    ///< size of the buffer used to seek forward for non-file readers
 
 struct scap_reader
 {
 	ppm_reader_type m_type;
-	gzFile m_file;
+	union {
+		// RT_FILE
+		struct {
+			gzFile m_file;
+		};
+
+		// RT_CAPTURE_PLUGIN
+		struct {
+			const char* m_last_error;
+			uint64_t m_total_bytes_read;
+			uint8_t m_seek_buffer[READER_SEEK_BUF_SIZE];
+			uint8_t* m_seek_buffer_ptr;
+			uint32_t m_seek_buffer_len;
+			capture_plugin_info* m_capture_plugin;
+		};
+	};
 };
 
 //
@@ -432,19 +451,40 @@ static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
 	return r;
 }
 
+static inline scap_reader_t *scap_reader_open_capture_plugin(capture_plugin_info* info)
+{
+	if (info == NULL)
+	{
+		return NULL;
+	}
+	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
+	r->m_type = RT_CAPTURE_PLUGIN;
+	r->m_capture_plugin = info;
+	r->m_total_bytes_read = 0;
+	r->m_seek_buffer_len = 0;
+	r->m_seek_buffer_ptr = NULL;
+	r->m_last_error = NULL;
+	return r;
+}
+
 static inline ppm_reader_type scap_reader_type(scap_reader_t *r)
 {
 	ASSERT(r != NULL);
 	return r->m_type;
 }
 
+int scap_reader_read_capture_plugin(scap_reader_t *r, uint8_t* buf, uint32_t len);
+
 static inline int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
 {
+
 	ASSERT(r != NULL);
 	switch (r->m_type)
 	{
 		case RT_FILE:
 			return gzread(r->m_file, buf, len);
+		case RT_CAPTURE_PLUGIN:
+			return scap_reader_read_capture_plugin(r, (uint8_t*) buf, len);
 		default:
 			ASSERT(false);
 			return 0;
@@ -458,6 +498,8 @@ static inline int64_t scap_reader_offset(scap_reader_t *r)
 	{
 		case RT_FILE:
 			return gzoffset(r->m_file);
+		case RT_CAPTURE_PLUGIN:
+			return r->m_total_bytes_read;
 		default:
 			ASSERT(false);
 			return -1;
@@ -471,12 +513,20 @@ static inline int64_t scap_reader_tell(scap_reader_t *r)
 	{
 		case RT_FILE:
 			return gztell(r->m_file);
+		case RT_CAPTURE_PLUGIN:
+			return r->m_total_bytes_read;
 		default:
 			ASSERT(false);
 			return -1;
 	}
 }
 
+int scap_reader_seek_capture_plugin(scap_reader_t *r, int64_t offset, int whence);
+
+//
+// As a contract, on success this must return the resulting offset.
+// On error, this must return -1.
+//
 static inline int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
 {
 	ASSERT(r != NULL);
@@ -484,12 +534,20 @@ static inline int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whe
 	{
 		case RT_FILE:
 			return gzseek(r->m_file, offset, whence);
+		case RT_CAPTURE_PLUGIN:
+			return scap_reader_seek_capture_plugin(r, offset, whence);
 		default:
 			ASSERT(false);
 			return -1;
 	}
 }
 
+//
+// Since scap_reader can have multiple internal implementations, we can't
+// agree on an uniform error enumeration. For contract, we state that
+// errnum = 0 represents a non-error, whereas any other value represents
+// an implementation-specific error code.
+//
 static inline const char *scap_reader_error(scap_reader_t *r, int *errnum)
 {
 	ASSERT(r != NULL);
@@ -497,6 +555,9 @@ static inline const char *scap_reader_error(scap_reader_t *r, int *errnum)
 	{
 		case RT_FILE:
 			return gzerror(r->m_file, errnum);
+		case RT_CAPTURE_PLUGIN:
+			*errnum = r->m_last_error != NULL ? 1 : 0;
+			return r->m_last_error;
 		default:
 			ASSERT(false);
 			*errnum = -1;
@@ -511,6 +572,8 @@ static inline int scap_reader_close(scap_reader_t *r)
 	{
 		case RT_FILE:
 			return gzclose(r->m_file);
+		case RT_CAPTURE_PLUGIN:
+			return 0;
 		default:
 			ASSERT(false);
 			return -1;
