@@ -25,13 +25,6 @@ limitations under the License.
 //
 
 //
-// API versions of this plugin engine
-//
-#define PLUGIN_API_VERSION_MAJOR 0
-#define PLUGIN_API_VERSION_MINOR 2
-#define PLUGIN_API_VERSION_PATCH 0
-
-//
 // There are two plugin types: source plugins and extractor plugins.
 //
 // Source plugins implement a new sinsp/scap event source and have the
