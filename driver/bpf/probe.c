@@ -59,6 +59,9 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	if (!sc_evt)
 		return 0;
 
+	if (sc_evt->flags & UF_UNINTERESTING)
+		return 0;
+
 	if (sc_evt->flags & UF_USED) {
 		evt_type = sc_evt->enter_event_type;
 		drop_flags = sc_evt->flags;
@@ -106,6 +109,9 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	sc_evt = get_syscall_info(id);
 	if (!sc_evt)
+		return 0;
+
+	if (sc_evt->flags & UF_UNINTERESTING)
 		return 0;
 
 	if (sc_evt->flags & UF_USED) {

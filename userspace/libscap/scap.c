@@ -120,6 +120,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   bool import_users,
 			   const char *bpf_probe,
 			   const char **suppressed_comms,
+			   interesting_ppm_sc_set *ppm_sc_of_interest,
 			   void(*debug_log_fn)(const char* msg),
 			   uint64_t proc_scan_timeout_ms,
 			   uint64_t proc_scan_log_interval_ms)
@@ -174,6 +175,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   bool import_users,
 			   const char *bpf_probe,
 			   const char **suppressed_comms,
+			   interesting_ppm_sc_set *ppm_sc_of_interest,
 			   void(*debug_log_fn)(const char* msg),
 			   uint64_t proc_scan_timeout_ms,
 			   uint64_t proc_scan_log_interval_ms)
@@ -295,6 +297,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
+
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
 	handle->m_win_buf_handle = NULL;
@@ -348,6 +351,37 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
 		return NULL;
 	}
+
+	if (ppm_sc_of_interest)
+	{
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
+			for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+			{
+				// Find the match between the ppm_sc and the syscall_nr
+				if(g_syscall_code_routing_table[syscall_nr] == i)
+				{
+					// UF_NEVER_DROP syscalls must be always traced
+					if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+					{
+						handle->syscalls_of_interest[syscall_nr] = true;
+					}
+					break;
+				}
+			}
+		}
+	}
+	else
+	{
+		// fallback to trace all syscalls
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			handle->syscalls_of_interest[i] = true;
+		}
+	}
+
+
 
 	//
 	// Open and initialize all the devices
@@ -455,6 +489,22 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			}
 
 			++j;
+		}
+
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			if (!handle->syscalls_of_interest[i])
+			{
+				// Kmod driver event_mask check uses event_types instead of syscall nr
+				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
+				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
+				// Filter unmapped syscalls (that have a g_syscall_table entry with both enter_ev and exit_ev 0ed)
+				if (enter_ev != 0 && exit_ev != 0)
+				{
+					scap_unset_eventmask(handle, enter_ev);
+					scap_unset_eventmask(handle, exit_ev);
+				}
+			}
 		}
 	}
 
@@ -845,7 +895,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 
 scap_t* scap_open_live(char *error, int32_t *rc)
 {
-	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL, NULL, SCAP_PROC_SCAN_TIMEOUT_NONE, SCAP_PROC_SCAN_LOG_NONE);
+	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL, NULL, NULL, SCAP_PROC_SCAN_TIMEOUT_NONE, SCAP_PROC_SCAN_LOG_NONE);
 }
 
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
@@ -1104,6 +1154,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.import_users,
 						args.bpf_probe,
 						args.suppressed_comms,
+						&args.ppm_sc_of_interest,
 						args.debug_log_fn,
 						args.proc_scan_timeout_ms,
 						args.proc_scan_log_interval_ms);
@@ -2385,9 +2436,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 
 	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on bpf");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		return scap_bpf_handle_event_mask(handle, op, event_id);
 	}
 	else
 	{
@@ -2665,9 +2714,12 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting simpledriver mode not supported on bpf");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		if (scap_bpf_set_simple_mode(handle))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
 	else
 	{

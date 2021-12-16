@@ -154,7 +154,6 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
-DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
 static unsigned int g_ppm_numdevs;
@@ -452,7 +451,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->fullcapture_port_range_start = 0;
 	consumer->fullcapture_port_range_end = 0;
 	consumer->statsd_port = PPM_PORT_STATSD;
-	bitmap_fill(g_events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
+	bitmap_fill(consumer->events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
 	reset_ring_buffer(ring);
 	ring->open = true;
 
@@ -941,11 +940,11 @@ cleanup_ioctl_procinfo:
 	{
 		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS, consumer %p\n", consumer_id);
 
-		bitmap_zero(g_events_mask, PPM_EVENT_MAX);
+		bitmap_zero(consumer->events_mask, PPM_EVENT_MAX);
 
 		/* Used for dropping events so they must stay on */
-		set_bit(PPME_DROP_E, g_events_mask);
-		set_bit(PPME_DROP_X, g_events_mask);
+		set_bit(PPME_DROP_E, consumer->events_mask);
+		set_bit(PPME_DROP_X, consumer->events_mask);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -962,7 +961,7 @@ cleanup_ioctl_procinfo:
 			goto cleanup_ioctl;
 		}
 
-		set_bit(syscall_to_set, g_events_mask);
+		set_bit(syscall_to_set, consumer->events_mask);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -979,7 +978,7 @@ cleanup_ioctl_procinfo:
 			goto cleanup_ioctl;
 		}
 
-		clear_bit(syscall_to_unset, g_events_mask);
+		clear_bit(syscall_to_unset, consumer->events_mask);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1585,7 +1584,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
 
-	if (!test_bit(event_type, g_events_mask))
+	if (!test_bit(event_type, consumer->events_mask))
 		return res;
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
