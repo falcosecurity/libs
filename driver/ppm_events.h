@@ -41,7 +41,7 @@ struct event_filler_arguments {
 	char *buffer; /* the buffer that will be filled with the data */
 	u32 buffer_size; /* the space in the ring buffer available for this event */
 	u32 syscall_id; /* the system call ID */
-	const enum ppm_syscall_code *cur_g_syscall_code_routing_table;
+	const struct syscall_evt_pair *cur_g_syscall_table;
 #ifdef PPM_ENABLE_SENTINEL
 	u32 sentinel;
 #endif

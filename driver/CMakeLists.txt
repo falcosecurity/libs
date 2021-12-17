@@ -60,6 +60,15 @@ configure_file(dkms.conf.in src/dkms.conf)
 configure_file(Makefile.in src/Makefile)
 configure_file(driver_config.h.in src/driver_config.h)
 
+# Find m4 executable to compile our syscall_table.m4 script into syscall_table.c
+find_program(M4_EXECUTABLE m4 DOC "The M4 macro processor" )
+if(NOT M4_EXECUTABLE)
+	message(FATAL_ERROR "Failed to find the M4 macro processor." )
+endif()
+execute_process(COMMAND ${M4_EXECUTABLE} syscall_table.m4
+		OUTPUT_FILE syscall_table.c
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
 set(DRIVER_SOURCES
 	dynamic_params_table.c
 	event_table.c
@@ -77,7 +86,6 @@ set(DRIVER_SOURCES
 	ppm_flag_helpers.h
 	ppm_ringbuffer.h
 	ppm_syscall.h
-	syscall_table.c
 	ppm_cputime.c
 	ppm_compat_unistd_32.h
 	ppm_version.h

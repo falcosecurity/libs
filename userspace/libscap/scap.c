@@ -343,7 +343,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 			{
 				// Find the match between the ppm_sc and the syscall_nr
-				if(g_syscall_code_routing_table[syscall_nr] == i)
+				if(g_syscall_table[syscall_nr].ppm_code == i)
 				{
 					// UF_NEVER_DROP syscalls must be always traced
 					if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
