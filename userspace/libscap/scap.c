@@ -352,6 +352,29 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
+	// Special case -- force fallback path if all syscalls are enabled.
+	// This works around the following situation:
+	// - g_syscall_code_routing_table[] is incomplete
+	// - It does not contain an entry for execve or umount2 (and possibly others)
+	// - so, syscalls_of_interest builder below fails to enable those system calls
+	if (ppm_sc_of_interest)
+	{
+		bool all_set = true;
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			if (!ppm_sc_of_interest->ppm_sc[i])
+			{
+				all_set = false;
+				break;
+			}
+		}
+
+		if (all_set)
+		{
+			ppm_sc_of_interest = NULL;
+		}
+	}
+
 	if (ppm_sc_of_interest)
 	{
 		for (int i = 0; i < PPM_SC_MAX; i++)
