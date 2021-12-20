@@ -123,6 +123,7 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 	//////////////////////////////////////////////////////////////////////////////
 	// ADD NEW FILTER CHECK CLASSES HERE
 	//////////////////////////////////////////////////////////////////////////////
+	add_filter_check(new sinsp_filter_check_gen_event());
 	add_filter_check(new sinsp_filter_check_event());
 	add_filter_check(new sinsp_filter_check_thread());
 	add_filter_check(new sinsp_filter_check_user());
@@ -138,7 +139,6 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	add_filter_check(new sinsp_filter_check_tracer());
 	add_filter_check(new sinsp_filter_check_evtin());
-	add_filter_check(new sinsp_filter_check_gen_event());
 }
 
 sinsp_filter_check_list::~sinsp_filter_check_list()
