@@ -87,6 +87,7 @@ struct ppm_consumer_t {
 	uint16_t fullcapture_port_range_start;
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
+	DECLARE_BITMAP(events_mask, PPM_EVENT_MAX);
 };
 #endif // UDIG
 

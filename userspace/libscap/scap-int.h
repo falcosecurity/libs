@@ -178,6 +178,8 @@ struct scap
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
 
+	bool syscalls_of_interest[SYSCALL_TABLE_SIZE];
+
 	//
 	// Plugin-related state
 	//
