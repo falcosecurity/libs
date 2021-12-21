@@ -2949,7 +2949,8 @@ void scap_fseek(scap_t *handle, uint64_t off)
 	switch (scap_reader_type(handle->m_reader))
 	{
 		case RT_FILE:
-			return scap_reader_seek(handle->m_reader, off, SEEK_SET);
+			scap_reader_seek(handle->m_reader, off, SEEK_SET);
+			return;
 		default:
 			ASSERT(false);
 			return;
