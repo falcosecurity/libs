@@ -25,6 +25,21 @@ limitations under the License.
 //
 
 //
+// API versions of this plugin engine
+//
+#define PLUGIN_API_VERSION_MAJOR 0
+#define PLUGIN_API_VERSION_MINOR 2
+#define PLUGIN_API_VERSION_PATCH 0
+
+//
+// Just some not so smart defines to retrieve plugin api version as string
+//
+#define QUOTE(str) 			#str
+#define EXPAND_AND_QUOTE(str) 		QUOTE(str)
+#define PLUGIN_API_VERSION		PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
+#define PLUGIN_API_VERSION_STR		EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
+
+//
 // There are two plugin types: source plugins and extractor plugins.
 //
 // Source plugins implement a new sinsp/scap event source and have the
