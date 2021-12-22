@@ -28,7 +28,6 @@ limitations under the License.
 #include <sys/syscall.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
-#include <sys/fsuid.h>
 #include <sys/types.h>
 #include <fcntl.h>
 #endif // CYGWING_AGENT
@@ -587,7 +586,7 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 	uid_t orig_gid = getgid();
 
 	if(seteuid(uid) != -1 && setegid(gid) != -1) {
-		if(euidaccess(proc_exe_path, W_OK) == 0) {
+		if(faccessat(0, proc_exe_path, W_OK, AT_EACCESS) == 0) {
 			tinfo->exe_writable = true;
 		}
 	}
