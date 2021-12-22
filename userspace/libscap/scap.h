@@ -645,7 +645,7 @@ void scap_close(scap_t* handle);
 
 /*!
   \brief Restart the current event capture.
-    Only supported for captures in SCAP_MODE_CAPTURE mode.
+    Only supported for captures in which scap_is_capture() returns true.
 	This deinitializes the scap internal state, and then re-initializes
 	it by trying to read the scap header section. The underlying instance
 	of scap_reader_t is preserved, and the header section is read starting
@@ -654,6 +654,15 @@ void scap_close(scap_t* handle);
   \param handle Handle to the capture instance.
 */
 uint32_t scap_restart_capture(scap_t* handle);
+
+/*!
+  \brief Returns true if the capture instance handle is either in
+  	SCAP_MODE_CAPTURE mode, or in SCAP_MODE_PLUGIN mode with a plugin of
+	type TYPE_CAPTURE_PLUGIN.
+
+  \param handle Handle to the capture instance.
+*/
+bool scap_is_capture(scap_t* handle);
 
 /*!
   \brief Retrieve the OS platform for the given capture handle.

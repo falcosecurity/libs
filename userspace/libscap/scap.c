@@ -1264,11 +1264,16 @@ static inline void scap_deinit_state(scap_t* handle)
 	}
 }
 
+bool scap_is_capture(scap_t* handle)
+{
+	return handle->m_mode == SCAP_MODE_CAPTURE || 
+		(handle->m_mode == SCAP_MODE_PLUGIN && handle->m_plugin_type == TYPE_CAPTURE_PLUGIN);
+}
+
 uint32_t scap_restart_capture(scap_t* handle)
 {
 	uint32_t res;
-	if (handle->m_mode != SCAP_MODE_CAPTURE &&
-		!(handle->m_mode == SCAP_MODE_PLUGIN && handle->m_plugin_type == TYPE_CAPTURE_PLUGIN))
+	if (!scap_is_capture(handle))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart is not supported for this open mode");
 		res = SCAP_FAILURE;
