@@ -24,8 +24,11 @@ or GPL2.txt for full copies of the license.
 #define BPF_FORBIDS_ZERO_ACCESS
 #endif
 
+/* RAW_TRACEPOINTS logic is x86-specific */
+#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
+#endif
 #endif
 
 /* Redefine asm_volatile_goto to work around clang not supporting it
