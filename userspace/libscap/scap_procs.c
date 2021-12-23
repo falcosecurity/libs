@@ -30,6 +30,7 @@ limitations under the License.
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
+#include "unixid.h"
 #endif // CYGWING_AGENT
 #endif // HAS_CAPTURE
 
@@ -585,20 +586,34 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 	uid_t orig_uid = getuid();
 	uid_t orig_gid = getgid();
 
-	if(seteuid(uid) != -1 && setegid(gid) != -1) {
+	//
+	// In order to check whether the current user can access the file we need to temporarily
+	// set the effective uid and gid of our thread to the target ones and then check access,
+	// but keep in mind that:
+	//  - seteuid()/setegid() libc functions change the euid/egid of the whole process, not just
+	//    the current thread
+	//  - setfsuid()/setfsgid() operate on threads but cannot be paired with access(),
+	//    so we would need to open() the file, but opening executable files in use may result
+	//    in "text file busy" errors
+	//
+	// Therefore we need to directly call the appropriate setresuid syscall that operate on threads,
+	// implemented in the thread_seteuid() and thread_setegid() functions.
+	//
+
+	if(thread_seteuid(uid) != -1 && thread_setegid(gid) != -1) {
 		if(faccessat(0, proc_exe_path, W_OK, AT_EACCESS) == 0) {
 			tinfo->exe_writable = true;
 		}
 	}
 
-	if(seteuid(orig_uid) == -1)
+	if(thread_seteuid(orig_uid) == -1)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original euid from %d to %d",
 			uid, orig_uid);
 		return SCAP_FAILURE;
 	}
 
-	if(setegid(orig_gid) == -1)
+	if(thread_setegid(orig_gid) == -1)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original egid from %d to %d",
 			gid, orig_gid);
