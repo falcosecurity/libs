@@ -6129,6 +6129,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.type", "the container type, eg: docker or rkt"},
 	{PT_BOOL, EPF_NONE, PF_NA, "container.privileged", "true for containers running as privileged, false otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.capabilities", "A space-separated list of capabilities granted to the container."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.capability", "Information about a single capability. It resolves to the capability name if the capability was granted to the container, null value (\"N/A\") otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.mounts", "A space-separated list of mount information. Each item in the list has the format <source>:<dest>:<mode>:<rdrw>:<propagation>"},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount", "Information about a single mount, specified by number (e.g. container.mount[0]) or mount source (container.mount[/usr/local]). The pathname can be a glob (container.mount[/usr/local/*]), in which case the first matching mount will be returned. The information has the format <source>:<dest>:<mode>:<rdrw>:<propagation>. If there is no mount with the specified index or matching the provided source, returns the string \"none\" instead of a NULL value."},
 	{PT_CHARBUF, EPF_REQUIRES_ARGUMENT, PF_NA, "container.mount.source", "the mount source, specified by number (e.g. container.mount.source[0]) or mount destination (container.mount.source[/host/lib/modules]). The pathname can be a glob."},
@@ -6198,8 +6199,14 @@ int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool all
 
 	size_t basepos = sizeof("container.mount");
 
+	if(val.find("container.capability") == 0)
+	{
+		m_field_id = TYPE_CONTAINER_CAPABILITY;
+		m_field = &m_info.m_fields[m_field_id];
+		res = extract_arg(val, sizeof("container.capability")-1);
+	}
 	// container.mount. fields allow for indexing by number or source/dest mount path.
-	if(val.find("container.mount.") == 0)
+	else if(val.find("container.mount.") == 0)
 	{
 		// Note--basepos includes the trailing null, which is
 		// equivalent to the trailing '.' here.
@@ -6469,6 +6476,32 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 		
+		break;
+	case TYPE_CONTAINER_CAPABILITY:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else 
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+
+			const auto& capabilities = container_info->m_capabilities;
+			if(find(capabilities.begin(), capabilities.end(), m_argstr) != capabilities.end())
+			{
+				RETURN_EXTRACT_STRING(m_argstr);
+			}
+			else 
+			{
+				m_tstr = "NONE";
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+		}
 		break;
 	case TYPE_CONTAINER_MOUNTS:
 		if(tinfo->m_container_id.empty())
