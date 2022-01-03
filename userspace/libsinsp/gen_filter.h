@@ -256,6 +256,8 @@ public:
 		// EPF_TABLE_ONLY: for fields with the EPF_TABLE_ONLY (e.g. hidden) flag set
 		// etc
 		std::set<std::string> tags;
+
+		bool is_skippable();
 	};
 
 	// Describes a group of filtercheck fields ("ka")

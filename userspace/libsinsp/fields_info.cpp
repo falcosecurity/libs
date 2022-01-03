@@ -37,6 +37,12 @@ static void list_fields_markdown(std::list<gen_event_filter_factory::filter_fiel
 
 		for(auto &fld_info : fld_class.fields)
 		{
+			// Skip fields with the EPF_TABLE_ONLY flag.
+			if(fld_info.is_skippable())
+			{
+				continue;
+			}
+
 			printf("`%s` | %s | %s\n", fld_info.name.c_str(), fld_info.data_type.c_str(), fld_info.desc.c_str());
 		}
 	}

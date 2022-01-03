@@ -364,6 +364,11 @@ std::set<uint16_t> gen_event_filter::evttypes()
 	return m_filter->evttypes();
 }
 
+bool gen_event_filter_factory::filter_field_info::is_skippable()
+{
+	// Skip fields with the EPF_TABLE_ONLY flag.
+	return (tags.find("EPF_TABLE_ONLY") != tags.end());
+}
 
 uint32_t gen_event_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
 uint32_t gen_event_filter_factory::filter_fieldclass_info::s_width = 120;
@@ -431,6 +436,13 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 
 	for(auto &fld_info : fields)
 	{
+		// Skip fields that should not be included
+		// (e.g. hidden fields)
+		if(fld_info.is_skippable())
+		{
+			continue;
+		}
+
 		if(fld_info.name.length() > s_rightblock_start)
 		{
 			os << fld_info.name << std::endl;
