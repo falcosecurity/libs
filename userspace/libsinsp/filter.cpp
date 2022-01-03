@@ -2373,12 +2373,10 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 		{
 			const filtercheck_field_info* fld = &fci->m_fields[k];
 
-			// If a field can't be used to filter events,
-			// or if a field is only used for stuff like
+			// If a field is only used for stuff like
 			// chisels to organize events, we don't want
 			// to print it and don't return it here.
-			if(fld->m_flags & EPF_TABLE_ONLY ||
-			   fld->m_flags & EPF_PRINT_ONLY)
+			if(fld->m_flags & EPF_PRINT_ONLY)
 			{
 				continue;
 			}
@@ -2391,6 +2389,11 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 			if(fld->m_flags & EPF_FILTER_ONLY)
 			{
 				info.tags.insert("FILTER ONLY");
+			}
+
+			if(fld->m_flags & EPF_TABLE_ONLY)
+			{
+				info.tags.insert("EPF_TABLE_ONLY");
 			}
 
 			cinfo.fields.emplace_back(std::move(info));

@@ -253,6 +253,7 @@ public:
 		// A set of free-form tags for the field. Examples include:
 		// FILTER ONLY: for fields that can only be used in filters, not outputs.
 		// IDX_REQUIRED: for fields that can take an optional index
+		// EPF_TABLE_ONLY: for fields with the EPF_TABLE_ONLY (e.g. hidden) flag set
 		// etc
 		std::set<std::string> tags;
 	};
