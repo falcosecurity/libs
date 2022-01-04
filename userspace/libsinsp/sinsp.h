@@ -811,6 +811,23 @@ public:
 		uint32_t data_chunk_wait_us,
 		uint32_t data_watch_freq_sec);
 
+	/*!
+	  \brief Control the packet capture. The ifname is used to filter out
+	   target nic with the same name, normally for loopback interface.
+	   Default value is "lo"
+	*/
+	virtual int /*SCAP_X*/ set_skb_capture(bool enable)
+	{
+		if(enable)
+		{
+			return scap_enable_skb_capture(m_h);
+		}
+		else
+		{
+			return scap_disable_skb_capture(m_h);
+		}
+	}
+
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void init_k8s_ssl(const std::string *ssl_cert);

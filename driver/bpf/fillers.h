@@ -4520,4 +4520,70 @@ FILLER(sys_fchmod_x, true)
 	return res;
 }
 
+FILLER(net_dev_start_xmit_e, false)
+{
+	struct net_dev_start_xmit_args *ctx;
+	ctx = (struct net_dev_start_xmit_args*) data->ctx;
+	struct sk_buff *skb;
+	char dev_name[16] = {0};
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	skb = args->skb;
+	bpf_probe_read((void *)dev_name, 16, args->dev->name);
+#else
+	skb = (struct sk_buff*) ctx->skbaddr;
+	TP_DATA_LOC_READ(dev_name, name, 16);
+#endif
+	int res;
+
+	res = bpf_val_to_ring_type(data, (unsigned long long)dev_name, PT_CHARBUF);
+
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring_type(data, (unsigned long long)skb, PT_UINT64);
+
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = parse_tuple(data, skb);
+
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
+FILLER(netif_receive_skb_e, false)
+{
+	struct netif_receive_skb_args *ctx;
+	ctx = (struct netif_receive_skb_args*) data->ctx;
+	struct sk_buff *skb;
+	char dev_name[16] = {0};
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	skb = args->skb;
+	struct net_device *dev;
+	dev = _READ(skb->dev);
+	bpf_probe_read((void *)dev_name, 16, dev->name);
+#else
+	skb = (struct sk_buff*) ctx->skbaddr;
+	TP_DATA_LOC_READ(dev_name, name, 16);
+#endif
+	int res;
+
+	res = bpf_val_to_ring_type(data, (unsigned long long)dev_name, PT_CHARBUF);
+
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring_type(data, (unsigned long long)skb, PT_UINT64);
+
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = parse_tuple(data, skb);
+
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
 #endif

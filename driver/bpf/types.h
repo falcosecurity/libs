@@ -11,6 +11,9 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 
+#include <linux/skbuff.h>
+#include <linux/netdevice.h>
+
 #define __bpf_section(NAME) __attribute__((section(NAME), used))
 
 #ifndef __always_inline
@@ -132,6 +135,49 @@ struct sys_stash_args {
 };
 #endif
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct net_dev_start_xmit_args {
+	struct sk_buff *skb;
+	struct net_device *dev;
+};
+#else
+struct net_dev_start_xmit_args {
+	__u64 			pad;
+	u32 			__data_loc_name;
+	u16				queue_mapping;
+	const void * 	skbaddr;
+	bool			vlan_tagged;
+	u16				vlan_proto;
+	u16				vlan_tci;
+	u16				protocol;
+	u8				ip_summed;
+	unsigned int	len;
+	unsigned int	data_len;
+	int				network_offset;
+	bool			transport_offset_valid;
+	int				transport_offset;
+	u8				tx_flags;
+	u16				gso_size;
+	u16				gso_segs;
+	u16				gso_type;
+	char 			__data[0];
+};
+#endif
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct netif_receive_skb_args {
+	struct sk_buff *skb;
+};
+#else
+struct netif_receive_skb_args {
+	__u64 pad;
+	void *skbaddr;
+	unsigned int len;
+	u32 __data_loc_name;
+	char __data[0];
+};
+#endif
+
 struct filler_data {
 	void *ctx;
 	struct sysdig_bpf_settings *settings;
@@ -201,9 +247,11 @@ struct sysdig_bpf_settings {
 	bool dropping_mode;
 	bool is_dropping;
 	bool tracers_enabled;
+	bool skb_capture;
 	uint16_t fullcapture_port_range_start;
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
+	char ifname[16];
 } __attribute__((packed));
 
 struct tail_context {

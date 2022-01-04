@@ -59,6 +59,7 @@ limitations under the License.
 void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo);
 
+static const char *KINDLING_SKB_CAPTURE_ENV = "KINDLING_SKB_CAPTURE";
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -408,6 +409,10 @@ void sinsp::init()
 	{
 		set_snaplen(m_snaplen);
 	}
+	// If env was set, open the skb capture
+	const char *skb_capture = getenv(KINDLING_SKB_CAPTURE_ENV);
+	if(skb_capture != nullptr)
+		set_skb_capture(true);
 
 	//
 	// If the port range for increased snaplen was modified, set it now

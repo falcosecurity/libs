@@ -25,6 +25,7 @@ or GPL2.txt for full copies of the license.
 	#define _HAS_SOCKETCALL
 #endif
 
+#include <linux/skbuff.h>
 #include "ppm_events_public.h"
 
 /*
@@ -78,7 +79,10 @@ struct event_filler_arguments {
 	__kernel_pid_t spid; /* PID of source process */
 	__kernel_pid_t dpid; /* PID of destination process */
 	struct fault_data_t fault_data; /* For page faults */
-#endif	
+#endif
+	// skb capture args
+	struct sk_buff *skb;
+	struct net_device *dev;
 };
 
 #ifndef WDIG_CBACK

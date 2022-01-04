@@ -30,6 +30,7 @@ or GPL2.txt for full copies of the license.
  * Global defines
  */
 #define CAPTURE_CONTEXT_SWITCHES
+#define CAPTURE_SKB
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 32))
 #define CAPTURE_SIGNAL_DELIVERIES
 #endif

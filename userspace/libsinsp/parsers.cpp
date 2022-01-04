@@ -614,7 +614,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		evt->m_tinfo = &*m_inspector->get_thread_ref(evt->m_pevt->tid, query_os, false);
 	}
 
-	if(etype == PPME_SCHEDSWITCH_6_E)
+	if(etype == PPME_SCHEDSWITCH_6_E || etype == PPME_NET_DEV_START_XMIT_E || etype == PPME_NETIF_RECEIVE_SKB_E)
 	{
 		return false;
 	}

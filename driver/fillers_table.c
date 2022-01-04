@@ -306,6 +306,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_RENAMEAT2_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_RENAMEAT2_X] = {FILLER_REF(sys_renameat2_x)},
 	[PPME_SYSCALL_USERFAULTFD_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_USERFAULTFD_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } }
+	[PPME_SYSCALL_USERFAULTFD_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
+	[PPME_NETIF_RECEIVE_SKB_E] = {FILLER_REF(netif_receive_skb_e)},
+	[PPME_NET_DEV_START_XMIT_E] = {FILLER_REF(net_dev_start_xmit_e)}
 #endif /* WDIG */
 };

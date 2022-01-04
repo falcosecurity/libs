@@ -10,6 +10,9 @@ or GPL2.txt for full copies of the license.
 
 #include <generated/utsrelease.h>
 #include <uapi/linux/bpf.h>
+#include <uapi/linux/ip.h>
+#include <uapi/linux/tcp.h>
+#include <uapi/linux/udp.h>
 #include <linux/sched.h>
 
 #include "../driver_config.h"
@@ -248,6 +251,73 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 	return 0;
 }
 #endif
+
+BPF_PROBE("net/", net_dev_start_xmit, net_dev_start_xmit_args)
+{
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+	if (!settings->capture_enabled)
+		return 0;
+	if (!settings->skb_capture)
+		return 0;
+
+	struct sk_buff *skb;
+	char dev_name[16] = {0};
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	skb = ctx->skb;
+	bpf_probe_read((void *)dev_name, 16, ctx->dev->name);
+#else
+	skb = (struct sk_buff*) ctx->skbaddr;
+	TP_DATA_LOC_READ(dev_name, name, 16);
+#endif
+
+	if(check_skb(skb, dev_name, settings->ifname) < 0)
+		return 0;
+
+	evt_type = PPME_NET_DEV_START_XMIT_E;
+
+	call_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP);
+	return 0;
+}
+/*
+BPF_PROBE("net/", netif_receive_skb, netif_receive_skb_args)
+{
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+	if (!settings->capture_enabled)
+		return 0;
+	if (!settings->skb_capture)
+		return 0;
+
+	struct sk_buff *skb;
+	char dev_name[16] = {0};
+
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+	skb = ctx->skb;
+	struct net_device *dev;
+	dev = _READ(skb->dev);
+	bpf_probe_read((void *)dev_name, 16, dev->name);
+#else
+	skb = (struct sk_buff*) ctx->skbaddr;
+	TP_DATA_LOC_READ(dev_name, name, 16);
+#endif
+
+	if(check_skb(skb, dev_name, settings->ifname) < 0)
+		return 0;
+
+	evt_type = PPME_NETIF_RECEIVE_SKB_E;
+
+	call_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP);
+	return 0;
+}
+*/
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 

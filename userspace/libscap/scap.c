@@ -56,6 +56,7 @@ limitations under the License.
 #include <assert.h>
 
 static const char *SYSDIG_BPF_PROBE_ENV = "SYSDIG_BPF_PROBE";
+static const char *KINDLING_FILTER_IFNAME_ENV = "KINDLING_FILTER_IFNAME";
 
 //
 // Probe version string size
@@ -2655,5 +2656,64 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 	}
 
 	return SCAP_SUCCESS;
+#endif
+}
+
+int32_t scap_enable_skb_capture(scap_t *handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "skb capture not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(handle->m_bpf)
+	{
+		const char *ifname = getenv(KINDLING_FILTER_IFNAME_ENV);
+		if(ifname == NULL)
+			ifname = "lo";
+		return scap_bpf_enable_skb_capture(handle, ifname);
+	}
+	else
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "skb capture not supported on kernel module");
+		return SCAP_FAILURE;
+	}
+#endif
+}
+
+int32_t scap_disable_skb_capture(scap_t *handle)
+{
+	//
+	// Not supported on files
+	//
+	if(handle->m_mode != SCAP_MODE_LIVE)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "skb capture not supported on this scap mode");
+		return SCAP_FAILURE;
+	}
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+
+	if(handle->m_bpf)
+	{
+		return scap_bpf_disable_skb_capture(handle);
+	}
+	else
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "skb capture not supported on kernel module");
+		return SCAP_FAILURE;
+	}
 #endif
 }

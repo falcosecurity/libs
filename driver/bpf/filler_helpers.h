@@ -16,6 +16,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/in.h>
 #include <linux/fdtable.h>
 #include <linux/net.h>
+#include <linux/skbuff.h>
 #if 1
 /* SYSDIG -- Fix Little-Endian assumptions */
 #include <endian.h>
@@ -23,6 +24,8 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 #include "builtins.h"
+
+#define VXLAN_HLEN 16
 
 static __always_inline bool in_port_range(uint16_t port, uint16_t min, uint16_t max)
 {
@@ -1144,6 +1147,245 @@ static __always_inline bool bpf_in_ia32_syscall()
 #else /* X86 */
 	return 0;
 #endif /* X86 */
+}
+
+static __always_inline int iphdr_to_ring(struct filler_data *data,
+					 struct iphdr *iph)
+{
+
+	int res;
+	u32 sip;
+	u32 dip;
+
+	// get ip
+	sip = _READ(iph->saddr);
+	dip = _READ(iph->daddr);
+
+	u16 sport;
+	u16 dport;
+
+	u8 ipp;
+	ipp = _READ(iph->protocol);
+	// parse l4
+	switch (ipp) {
+	case IPPROTO_TCP:{
+		struct tcphdr *tcph = (struct tcphdr *)((__u64)iph + sizeof(*iph));
+		// get ports
+		sport = ntohs(_READ(tcph->source));
+		dport = ntohs(_READ(tcph->dest));
+		break;
+	}
+	case IPPROTO_IPIP:{
+		sport = 0;
+		dport = 0;
+		break;
+	}
+	case IPPROTO_UDP:{
+		struct udphdr *udph = (struct udphdr *)((__u64)iph + sizeof(*iph));
+		// get ports
+		sport = ntohs(_READ(udph->source));
+		dport = ntohs(_READ(udph->dest));
+		break;
+	}
+	default:
+		return 0;
+	}
+
+	int size = 1 + 4 + 4 + 2 + 2;
+
+	data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(AF_INET);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &sip, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 5) & SCRATCH_SIZE_HALF], &sport, 2);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 7) & SCRATCH_SIZE_HALF], &dip, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 11) & SCRATCH_SIZE_HALF], &dport, 2);
+
+	data->curarg_already_on_frame = true;
+	res = bpf_val_to_ring_len(data, 0, size);
+	return res;
+}
+
+static __always_inline int parse_inner_tuple(struct filler_data *data, struct sk_buff* skb)
+{
+	void *head;
+	__u16 ip_offset;
+
+	head = _READ(skb->head);
+	ip_offset = _READ(skb->network_header);
+	// parse l3
+	struct iphdr *iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
+
+	int res;
+	u8 ipp;
+	ipp = _READ(iph->protocol);
+
+	switch (ipp) {
+	case IPPROTO_TCP:
+		// parse l4
+		res = iphdr_to_ring(data, iph);
+		break;
+	case IPPROTO_IPIP:{
+		// parse inner ip
+		struct iphdr *iph2 = (struct iphdr *)((__u64)iph + sizeof(*iph));
+		// parse inner l4
+		res = iphdr_to_ring(data, iph2);
+		break;
+	}
+	case IPPROTO_UDP:{
+		// parse l4
+		struct udphdr *udph = (struct udphdr *)((__u64)iph + sizeof(*iph));
+		// VXLAN
+		__u16 vxlan_port;
+		vxlan_port = ntohs(_READ(udph->dest));
+		if (vxlan_port == 4789 || vxlan_port == 8472) {
+			// parse inner l3
+			struct iphdr *iph2 = (struct iphdr *) ((__u64) udph + VXLAN_HLEN + sizeof(struct ethhdr));
+			// parse inner l4
+			res = iphdr_to_ring(data, iph2);
+			break;
+		}
+	}
+	default:
+		// can't go here
+		return -1;
+	}
+	return res;
+}
+
+static __always_inline int parse_tuple(struct filler_data *data, struct sk_buff* skb)
+{
+	void *head;
+	__u16 ip_offset;
+	__u16 mac_offset;
+
+	head = _READ(skb->head);
+	// parse l2
+	mac_offset = _READ(skb->mac_header);
+
+	if (mac_offset != (__u16)~0U) {
+		struct ethhdr *ethh = (struct ethhdr *)((__u64)head + (__u64)mac_offset);
+
+		int res = bpf_val_to_ring_len(data, (unsigned long)ethh->h_source, 6);
+		if (res != 0)
+			return res;
+
+		res = bpf_val_to_ring_len(data, (unsigned long)ethh->h_dest, 6);
+		if (res != 0)
+			return res;
+	}
+
+	// parse l3
+	ip_offset = _READ(skb->network_header);
+	struct iphdr *iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
+
+	int res = iphdr_to_ring(data, iph);
+	return res;
+}
+
+static __always_inline int check_skb(struct sk_buff *skb, const char *dev_name, const char *setting_name)
+{
+	void *pkt_data;
+	void *head;
+	u32 data_len;
+
+	// check interface name
+	/*
+	for(int i = 0; i < 16; i++) {
+		if(setting_name[i] == 0)
+			break;
+		if(dev_name[i] != setting_name[i]) {
+			return -1;
+		}
+	}
+	*/
+	// filter out lo
+	for(int i = 0; i < 16; i++) {
+		if(dev_name[i] != setting_name[i]) {
+			break;
+		}
+		if (setting_name[i] == 0)
+			return -1;
+	}
+
+	pkt_data = _READ(skb->data);
+	head = _READ(skb->head);
+	data_len = _READ(skb->len);
+	void *data_end = (void *)(data_len + (long)pkt_data);
+
+	// check l3
+	__u16 ip_offset;
+	ip_offset = _READ(skb->network_header);
+	struct iphdr *iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
+	if ((__u64)iph + 1 > (__u64)data_end) {
+		return -1;
+	}
+
+	u8 ipp;
+	ipp = _READ(iph->protocol);
+	switch (ipp) {
+	case IPPROTO_TCP: {
+		// check l4
+		struct tcphdr *tcph = (struct tcphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64) tcph + 1 > (__u64) data_end) {
+			return -1;
+		}
+		break;
+	}
+	case IPPROTO_IPIP:{
+		// check inner ip
+		struct iphdr *iph2 = (struct iphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64)iph2 + 1 > (__u64)data_end) {
+			return -1;
+		}
+		// check inner l4
+		struct tcphdr *tcph = (struct tcphdr *)((__u64)iph2 + sizeof(*iph2));
+		if ((__u64) tcph + 1 > (__u64) data_end) {
+			return -1;
+		}
+		break;
+	}
+	case IPPROTO_UDP:{
+		// check l4
+		struct udphdr *udph = (struct udphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64)udph + 1 > (__u64)data_end) {
+			return -1;
+		}
+
+		// VXLAN
+		__u16 vxlan_port;
+		vxlan_port = ntohs(_READ(udph->dest));
+		if (vxlan_port == 4789 || vxlan_port == 8472) {
+			// check inner l2
+			struct ethhdr *eth2 = (struct ethhdr *)((__u64)udph + VXLAN_HLEN);
+
+			__u64 nh_off2 = -1;
+			nh_off2 = sizeof(*eth2);
+			if ((__u64)eth2 + nh_off2 > (__u64)data_end) {
+				return 0;
+			}
+
+			// check inner l3
+			__u16 h_proto2;
+			h_proto2 = _READ(eth2->h_proto);
+			if (h_proto2 != htons(ETH_P_IP))
+				return -1;
+
+			struct iphdr *iph2 = (struct iphdr *)((__u64)eth2 + nh_off2);
+			if ((__u64)iph2 + 1 > (__u64)data_end) {
+				return -1;
+			}
+
+			// check inner l4
+			struct tcphdr *tcph = (struct tcphdr *)((__u64)iph2 + sizeof(*iph2));
+			if ((__u64) tcph + 1 > (__u64) data_end) {
+				return -1;
+			}
+			break;
+		}
+	}
+	default:
+		return -1;
+	}
+	return 0;
 }
 
 #endif

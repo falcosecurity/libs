@@ -12,6 +12,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/ptrace.h>
 #include <linux/version.h>
 #include <linux/fdtable.h>
+#include <bits/types.h>
 
 #include "types.h"
 #include "builtins.h"
@@ -21,6 +22,13 @@ or GPL2.txt for full copies of the license.
 		    bpf_probe_read(&_val, sizeof(_val), &P);	\
 		    _val;					\
 		 })
+
+#define TP_DATA_LOC_READ(dst, field, size)					\
+        do {									\
+            unsigned short __offset = ctx->__data_loc_##field & 0xFFFF;		\
+            bpf_probe_read((void *)dst, size, (char *)ctx + __offset);		\
+        } while (0);
+
 
 #ifdef BPF_DEBUG
 #define bpf_printk(fmt, ...)					\

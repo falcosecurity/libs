@@ -104,6 +104,12 @@ struct event_data_t {
 		} signal_data;
 
 		struct fault_data_t fault_data;
+
+		// skb capture
+		struct {
+			struct sk_buff *skb;
+			struct net_device *dev;
+		} net_dev_xmit_data;
 	} event_info;
 };
 
@@ -154,6 +160,10 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
+#ifdef CAPTURE_SKB
+TRACEPOINT_PROBE(net_dev_xmit_probe, struct sk_buff *skb, int rc, struct net_device *dev, unsigned int skb_len);
+#endif
+
 DECLARE_BITMAP(g_events_mask, PPM_EVENT_MAX);
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
@@ -196,6 +206,9 @@ static struct tracepoint *tp_page_fault_user;
 static struct tracepoint *tp_page_fault_kernel;
 static bool g_fault_tracepoint_registered;
 static bool g_fault_tracepoint_disabled;
+#endif
+#ifdef CAPTURE_SKB
+static struct tracepoint *tp_net_dev_xmit;
 #endif
 
 #ifdef _DEBUG
@@ -503,13 +516,23 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_signal_deliver;
 		}
 #endif
+#ifdef CAPTURE_SKB
+		ret = compat_register_trace(net_dev_xmit_probe, "net_dev_xmit", tp_net_dev_xmit);
+		if (ret) {
+			pr_err("can't create the net_dev_xmit tracepoint\n");
+			goto err_net_dev_xmit;
+		}
+#endif
 		g_tracepoint_registered = true;
 	}
 
 	ret = 0;
 
 	goto cleanup_open;
-
+#ifdef CAPTURE_SKB
+	err_net_dev_xmit:
+	compat_unregister_trace(net_dev_xmit_probe, "net_dev_xmit", tp_net_dev_xmit);
+#endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 err_signal_deliver:
 	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
@@ -620,6 +643,9 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #endif
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
+#endif
+#ifdef CAPTURE_SKB
+			compat_unregister_trace(net_dev_xmit_probe, "net_dev_xmit", tp_net_dev_xmit);
 #endif
 			g_tracepoint_registered = false;
 
@@ -1065,6 +1091,7 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 	}
 #endif
+	// TODO: add skb capture control func
 	case PPM_IOCTL_SET_TRACERS_CAPTURE:
 	{
 		vpr_info("PPM_IOCTL_SET_TRACERS_CAPTURE, consumer %p\n", consumer_id);
@@ -1781,6 +1808,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			args.signo = 0;
 			args.spid = (__kernel_pid_t) 0;
 		}
+		// skb capture
+		if (event_datap->category == PPMC_SKB_CAPTURE) {
+			args.skb = event_datap->event_info.net_dev_xmit_data.skb;
+			args.dev = event_datap->event_info.net_dev_xmit_data.dev;
+		}
 		args.dpid = current->pid;
 
 		if (event_datap->category == PPMC_PAGE_FAULT)
@@ -2168,6 +2200,133 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 }
 #endif
 
+#ifdef CAPTURE_SKB
+#define VXLAN_HLEN 16
+static __always_inline int check_skb(struct sk_buff *skb, const char *dev_name, const char *setting_name)
+{
+	int i;
+	void *pkt_data;
+	void *head;
+	u32 data_len;
+	void *data_end;
+	__u16 ip_offset;
+	struct iphdr *iph;
+	u8 ipp;
+	struct tcphdr *tcph;
+	struct iphdr *iph2;
+	struct udphdr *udph;
+	__u16 vxlan_port;
+	struct ethhdr *eth2;
+	__u64 nh_off2;
+	__u16 h_proto2;
+
+	// filter out lo
+	for(i = 0; i < 16; i++) {
+		if(dev_name[i] != setting_name[i]) {
+			break;
+		}
+		if (setting_name[i] == 0)
+			return -1;
+	}
+
+	pkt_data = skb->data;
+	head = skb->head;
+	if (head == NULL)
+		return -1;
+	data_len = skb->len;
+	data_end = (void *)(data_len + (long)pkt_data);
+
+	// check l3
+	ip_offset = skb->network_header;
+	iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
+	if ((__u64)iph + 1 > (__u64)data_end) {
+		return -1;
+	}
+
+	ipp = iph->protocol;
+	switch (ipp) {
+	case IPPROTO_TCP: {
+		// check l4
+		tcph = (struct tcphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64) tcph + 1 > (__u64) data_end) {
+			return -1;
+		}
+		break;
+	}
+	case IPPROTO_IPIP:{
+		// check inner ip
+		iph2 = (struct iphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64)iph2 + 1 > (__u64)data_end) {
+			return -1;
+		}
+		// check inner l4
+		tcph = (struct tcphdr *)((__u64)iph2 + sizeof(*iph2));
+		if ((__u64) tcph + 1 > (__u64) data_end) {
+			return -1;
+		}
+		break;
+	}
+	case IPPROTO_UDP:{
+		// check l4
+		udph = (struct udphdr *)((__u64)iph + sizeof(*iph));
+		if ((__u64)udph + 1 > (__u64)data_end) {
+			return -1;
+		}
+
+		// VXLAN
+		vxlan_port = ntohs(udph->dest);
+		if (vxlan_port == 4789 || vxlan_port == 8472) {
+			// check inner l2
+			eth2 = (struct ethhdr *)((__u64)udph + VXLAN_HLEN);
+
+			nh_off2 = sizeof(*eth2);
+			if ((__u64)eth2 + nh_off2 > (__u64)data_end) {
+				return 0;
+			}
+
+			// check inner l3
+			h_proto2 = eth2->h_proto;
+			if (h_proto2 != htons(ETH_P_IP))
+				return -1;
+
+			iph2 = (struct iphdr *)((__u64)eth2 + nh_off2);
+			if ((__u64)iph2 + 1 > (__u64)data_end) {
+				return -1;
+			}
+
+			// check inner l4
+			tcph = (struct tcphdr *)((__u64)iph2 + sizeof(*iph2));
+			if ((__u64) tcph + 1 > (__u64) data_end) {
+				return -1;
+			}
+			break;
+		} else {
+			return -1;
+		}
+	}
+	default:
+		return -1;
+	}
+	return 0;
+}
+
+TRACEPOINT_PROBE(net_dev_xmit_probe, struct sk_buff *skb, int rc, struct net_device *dev, unsigned int skb_len)
+{
+	struct event_data_t event_data;
+
+	g_n_tracepoint_hit_inc();
+
+	if (check_skb(skb, dev->name, "lo") == 0)
+	{
+		event_data.category = PPMC_SKB_CAPTURE;
+		event_data.event_info.net_dev_xmit_data.skb = skb;
+		event_data.event_info.net_dev_xmit_data.dev = dev;
+
+		record_event_all_consumers(PPME_NET_DEV_START_XMIT_E, UF_USED | UF_NEVER_DROP, &event_data);
+	}
+}
+#endif
+
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
 {
 	unsigned int j;
@@ -2279,6 +2438,10 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 	else if (!strcmp(tp->name, "page_fault_kernel"))
 		tp_page_fault_kernel = tp;
 #endif
+#ifdef CAPTURE_SKB
+	else if(!strcmp(tp->name, "net_dev_xmit"))
+		tp_net_dev_xmit = tp;
+#endif
 }
 
 static int get_tracepoint_handles(void)
@@ -2319,7 +2482,12 @@ static int get_tracepoint_handles(void)
 		g_fault_tracepoint_disabled = true;
 	}
 #endif
-
+#ifdef CAPTURE_SKB
+	if (!tp_net_dev_xmit) {
+		pr_err("failed to find net_dev_xmit tracepoint\n");
+		return -ENOENT;
+	}
+#endif
 	return 0;
 }
 #else
