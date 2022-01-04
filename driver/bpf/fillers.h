@@ -85,7 +85,82 @@ static __always_inline int bpf_##x(void *ctx)				\
 									\
 static __always_inline int __bpf_##x(struct filler_data *data)		\
 
+#define KP_FILLER_RAW(x)						\
+static __always_inline int __bpf_##x(struct filler_data *data);		\
+									\
+static __always_inline int bpf_##x(void *ctx)				\
+
+#define KP_FILLER(x)							\
+static __always_inline int __bpf_##x(struct filler_data *data);		\
+									\
+static __always_inline int bpf_##x(void *ctx)				\
+{									\
+	struct filler_data data;					\
+	int res;							\
+									\
+	res = init_filler_data(ctx, &data, false);			\
+	if (res == PPM_SUCCESS) {					\
+		if (!data.state->tail_ctx.len)				\
+			write_evt_hdr(&data);				\
+		res = __bpf_##x(&data);					\
+	}								\
+									\
+	if (res == PPM_SUCCESS)						\
+		res = push_evt_frame(ctx, &data);			\
+									\
+	if (data.state)							\
+		data.state->tail_ctx.prev_res = res;			\
+									\
+	bpf_kp_terminate_filler(&data);	\
+	return 0;							\
+}									\
+									\
+static __always_inline int __bpf_##x(struct filler_data *data)		\
+
 FILLER_RAW(terminate_filler)
+{
+	struct sysdig_bpf_per_cpu_state *state;
+
+	state = get_local_state(bpf_get_smp_processor_id());
+	if (!state)
+		return 0;
+
+	switch (state->tail_ctx.prev_res) {
+	case PPM_SUCCESS:
+		break;
+	case PPM_FAILURE_BUFFER_FULL:
+		bpf_printk("PPM_FAILURE_BUFFER_FULL event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
+		++state->n_drops_buffer;
+		break;
+	case PPM_FAILURE_INVALID_USER_MEMORY:
+		bpf_printk("PPM_FAILURE_INVALID_USER_MEMORY event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
+		++state->n_drops_pf;
+		break;
+	case PPM_FAILURE_BUG:
+		bpf_printk("PPM_FAILURE_BUG event=%d curarg=%d\n",
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
+		++state->n_drops_bug;
+		break;
+	case PPM_SKIP_EVENT:
+		break;
+	default:
+		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
+			   state->tail_ctx.prev_res,
+			   state->tail_ctx.evt_type,
+			   state->tail_ctx.curarg);
+		break;
+	}
+
+	release_local_state(state);
+	return 0;
+}
+
+KP_FILLER_RAW(kp_terminate_filler)
 {
 	struct sysdig_bpf_per_cpu_state *state;
 

@@ -482,4 +482,49 @@ cleanup:
 	release_local_state(state);
 }
 
+static __always_inline bool prepare_filler(void *ctx,
+					   void *stack_ctx,
+					   enum ppm_event_type evt_type,
+					   struct sysdig_bpf_settings *settings,
+					   enum syscall_flags drop_flags)
+{
+	const struct ppm_event_entry *filler_info;
+	struct sysdig_bpf_per_cpu_state *state;
+	unsigned long long pid;
+	unsigned long long ts;
+	unsigned int cpu;
+
+	cpu = bpf_get_smp_processor_id();
+
+	state = get_local_state(cpu);
+	if (!state)
+		return false;
+
+	if (!acquire_local_state(state))
+		return false;
+
+	if (cpu == 0 && state->hotplug_cpu != 0) {
+		evt_type = PPME_CPU_HOTPLUG_E;
+		drop_flags = UF_NEVER_DROP;
+	}
+
+	ts = settings->boot_time + bpf_ktime_get_ns();
+	reset_tail_ctx(state, evt_type, ts);
+
+	/* drop_event can change state->tail_ctx.evt_type */
+	if (drop_event(stack_ctx, state, evt_type, settings, drop_flags))
+		goto cleanup;
+
+	++state->n_evts;
+
+	filler_info = get_event_filler_info(state->tail_ctx.evt_type);
+	if (!filler_info)
+		goto cleanup;
+	return true;
+
+	cleanup:
+	release_local_state(state);
+	return false;
+}
+
 #endif

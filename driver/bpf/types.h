@@ -23,6 +23,9 @@ or GPL2.txt for full copies of the license.
 #define TP_NAME "tracepoint/"
 #endif
 
+#define KP_NAME "kprobe/"
+#define KRET_NAME "kretprobe/"
+
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct sys_enter_args {
 	unsigned long regs;

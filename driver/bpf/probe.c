@@ -33,6 +33,14 @@ __bpf_section(TP_NAME prefix #event)			\
 int bpf_##event(struct type *ctx)
 #endif
 
+#define BPF_KPROBE(event)				\
+__bpf_section(KP_NAME #event)				\
+int bpf_kp_##event(struct pt_regs *ctx)
+
+#define BPF_KRET_PROBE(event)				\
+__bpf_section(KRET_NAME #event)				\
+int bpf_kret_##event(struct pt_regs *ctx)
+
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
 	const struct syscall_evt_pair *sc_evt;

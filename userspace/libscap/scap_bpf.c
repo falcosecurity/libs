@@ -384,17 +384,37 @@ static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbo
 }
 #endif // MINIMAL_BUILD
 
+static int write_kprobe_events(const char *val)
+{
+	int fd, ret;
+
+	if(val == NULL)
+		return -1;
+
+	fd = open("/sys/kernel/debug/tracing/kprobe_events",  O_APPEND | O_WRONLY);
+
+	ret = write(fd, val, strlen(val));
+	close(fd);
+
+	return ret;
+}
+
 static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_insn *prog, int size)
 {
 	struct perf_event_attr attr = {};
-	enum bpf_prog_type program_type;
+	enum bpf_prog_type program_type = BPF_PROG_TYPE_UNSPEC;
 	size_t insns_cnt;
 	char buf[256];
-	bool raw_tp;
+	bool raw_tp = false;
 	int efd;
 	int err;
 	int fd;
 	int id;
+
+	bool is_kprobe = strncmp(event, "kprobe/", 7) == 0;
+	bool is_kretprobe = strncmp(event, "kretprobe/", 10) == 0;
+	bool is_tracepoint = strncmp(event, "tracepoint/", 11) == 0;
+	bool is_raw_tracepoint = strncmp(event, "raw_tracepoint/", 15) == 0;
 
 	insns_cnt = size / sizeof(struct bpf_insn);
 
@@ -410,17 +430,44 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		return SCAP_FAILURE;
 	}
 
-	if(memcmp(event, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
+	if(is_raw_tracepoint)
 	{
 		raw_tp = true;
 		program_type = BPF_PROG_TYPE_RAW_TRACEPOINT;
 		event += sizeof("raw_tracepoint/") - 1;
 	}
-	else
+	else if(is_tracepoint)
 	{
 		raw_tp = false;
 		program_type = BPF_PROG_TYPE_TRACEPOINT;
 		event += sizeof("tracepoint/") - 1;
+		strcpy(buf, "/sys/kernel/debug/tracing/events/");
+		strcat(buf, event);
+		strcat(buf, "/id");
+	}
+	else if(is_kprobe || is_kretprobe)
+	{
+		program_type = BPF_PROG_TYPE_KPROBE;
+		if(is_kprobe)
+			event += 7;
+		else
+			event += 10;
+
+		if(memcmp(event, "filler/", sizeof("filler/") - 1) != 0)
+		{
+			snprintf(buf, sizeof(buf), "%c:%s %s",
+				 is_kprobe ? 'p' : 'r', event, event);
+			err = write_kprobe_events(buf);
+			if(err < 0 && errno != 17)
+			{
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to create kprobe '%s' error '%s'\n", event, strerror(errno));
+				return SCAP_FAILURE;
+			}
+
+			strcpy(buf, "/sys/kernel/debug/tracing/events/kprobes/");
+			strcat(buf, event);
+			strcat(buf, "/id");
+		}
 	}
 
 	if(*event == 0)
@@ -483,10 +530,6 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	}
 	else
 	{
-		strcpy(buf, "/sys/kernel/debug/tracing/events/");
-		strcat(buf, event);
-		strcat(buf, "/id");
-
 		efd = open(buf, O_RDONLY, 0);
 		if(efd < 0)
 		{
@@ -520,7 +563,11 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, scap_strerror(handle, errno));
 			return SCAP_FAILURE;
 		}
-
+		if(ioctl(efd, PERF_EVENT_IOC_ENABLE, 0))
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_ENABLE: %s", scap_strerror(handle, errno));
+			return SCAP_FAILURE;
+		}
 		if(ioctl(efd, PERF_EVENT_IOC_SET_BPF, fd))
 		{
 			close(efd);
@@ -676,7 +723,9 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 		}
 
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
-		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
+		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0 ||
+		   memcmp(shname, "kprobe/", sizeof("kprobe/") - 1) == 0 ||
+		   memcmp(shname, "kretprobe/", sizeof("kretprobe/") - 1) == 0)
 		{
 			if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
 			{
