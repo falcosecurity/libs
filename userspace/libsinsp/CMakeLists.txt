@@ -177,6 +177,8 @@ set(SINSP_LIBRARIES
 	"${JSONCPP_LIB}"
 	"${CARES_LIB}")
 
+add_dependencies(sinsp valijson)
+
 if(WITH_CHISEL AND USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
 endif()
