@@ -5246,7 +5246,7 @@ int f_tcp_rcv_established_e(struct event_filler_arguments *args){
 		return res;
 
 	res = val_to_ring(args, srtt, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS)
+	if (unlikely(res != PPM_SUCCESS))
 		   return res;
 	return 0;
 }
