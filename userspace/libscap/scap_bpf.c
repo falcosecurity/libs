@@ -32,6 +32,7 @@ limitations under the License.
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
+#include <linux/version.h>
 
 #include "scap.h"
 #include "scap-int.h"
@@ -158,6 +159,14 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	attr.log_buf = (unsigned long) NULL;
 	attr.log_size = 0;
 	attr.log_level = 0;
+
+	if (type == BPF_PROG_TYPE_KPROBE) {
+		struct utsname utsname;
+		uname(&utsname);
+		unsigned x, y, z;
+		sscanf(utsname.release, "%d.%d.%d", &x, &y, &z);
+		attr.kern_version = KERNEL_VERSION(x, y, z);
+	}
 
 	fd = sys_bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
 	if(fd >= 0 || !log_buf || !log_buf_sz)
