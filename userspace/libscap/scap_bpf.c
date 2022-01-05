@@ -1324,7 +1324,7 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 	settings.statsd_port = 8125;
-	memset(settings.ifname, 0, 16);
+	memset(settings.if_name, 0, 16);
 
 	int k = 0;
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
@@ -1526,7 +1526,7 @@ int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_enable_skb_capture(scap_t *handle, const char *ifname)
+int32_t scap_bpf_enable_skb_capture(scap_t *handle, const char *if_name)
 {
 	struct sysdig_bpf_settings settings;
 	int k = 0;
@@ -1538,7 +1538,7 @@ int32_t scap_bpf_enable_skb_capture(scap_t *handle, const char *ifname)
 	}
 
 	settings.skb_capture = true;
-	memcpy(settings.ifname, ifname, 16);
+	memcpy(settings.if_name, if_name, 16);
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");
@@ -1560,7 +1560,7 @@ int32_t scap_bpf_disable_skb_capture(scap_t *handle)
 	}
 
 	settings.skb_capture = false;
-	memset(settings.ifname, 0, 16);
+	memset(settings.if_name, 0, 16);
 	if(bpf_map_update_elem(handle->m_bpf_map_fds[SYSDIG_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SYSDIG_SETTINGS_MAP bpf_map_update_elem < 0");

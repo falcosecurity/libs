@@ -251,7 +251,7 @@ struct sysdig_bpf_settings {
 	uint16_t fullcapture_port_range_start;
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
-	char ifname[16];
+	char if_name[16];
 } __attribute__((packed));
 
 struct tail_context {

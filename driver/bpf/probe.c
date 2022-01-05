@@ -275,7 +275,7 @@ BPF_PROBE("net/", net_dev_start_xmit, net_dev_start_xmit_args)
 	TP_DATA_LOC_READ(dev_name, name, 16);
 #endif
 
-	if(check_skb(skb, dev_name, settings->ifname) < 0)
+	if(check_skb(skb, dev_name, settings->if_name) < 0)
 		return 0;
 
 	evt_type = PPME_NET_DEV_START_XMIT_E;
@@ -309,7 +309,7 @@ BPF_PROBE("net/", netif_receive_skb, netif_receive_skb_args)
 	TP_DATA_LOC_READ(dev_name, name, 16);
 #endif
 
-	if(check_skb(skb, dev_name, settings->ifname) < 0)
+	if(check_skb(skb, dev_name, settings->if_name) < 0)
 		return 0;
 
 	evt_type = PPME_NETIF_RECEIVE_SKB_E;
