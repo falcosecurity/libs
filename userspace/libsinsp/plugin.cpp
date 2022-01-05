@@ -25,7 +25,12 @@ limitations under the License.
 #include <set>
 #include <sstream>
 #endif
+#include <numeric>
 #include <json/json.h>
+#include <valijson/adapters/jsoncpp_adapter.hpp>
+#include <valijson/schema.hpp>
+#include <valijson/schema_parser.hpp>
+#include <valijson/validator.hpp>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -409,6 +414,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 	errstr = "";
 
 	// Initialize the plugin
+	ret->validate_init_config(config);
 	if (!ret->init(config))
 	{
 		errstr = string("Could not initialize plugin: " + ret->get_last_error());
@@ -627,6 +633,7 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 	(*(void **) (&m_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr);
 	(*(void **) (&m_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
 	(*(void **) (&m_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
+	(*(void **) (&m_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
 
 	m_name = str_from_alloc_charbuf(m_plugin_info.get_name());
 	m_description = str_from_alloc_charbuf(m_plugin_info.get_description());
@@ -739,6 +746,89 @@ bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
 	}
 
 	return true;
+}
+
+std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type)
+{
+	schema_type = SS_PLUGIN_SCHEMA_NONE;
+	if (m_plugin_info.get_init_schema != NULL)
+	{
+		return str_from_alloc_charbuf(m_plugin_info.get_init_schema(&schema_type));
+	}
+	return std::string("");
+}
+
+void sinsp_plugin::validate_init_config(const char* config)
+{
+	ss_plugin_schema_type schema_type;
+	std::string conf = str_from_alloc_charbuf(config);
+	std::string schema = get_init_schema(schema_type);
+	if (schema.size() > 0 && schema_type != SS_PLUGIN_SCHEMA_NONE)
+	{
+		switch (schema_type)
+		{
+			case SS_PLUGIN_SCHEMA_JSON:
+				validate_init_config_json_schema(conf, schema);
+				break;
+			default:
+				ASSERT(false);
+				throw sinsp_exception(
+					string("error in plugin ")
+					+ name()
+					+ ": get_init_schema returned an unknown schema type "
+					+ to_string(schema_type));
+		}
+	}
+}
+
+void sinsp_plugin::validate_init_config_json_schema(std::string &config, std::string &schema)
+{
+	Json::Value configJson;
+	if(!Json::Reader().parse(config, configJson))
+	{
+		throw sinsp_exception(
+			string("error in plugin ")
+			+ name()
+			+ ": init config is not a valid json");
+	}
+
+	Json::Value schemaJson;
+	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
+	{
+		throw sinsp_exception(
+			string("error in plugin ")
+			+ name()
+			+ ": get_init_schema did not return a json object");
+	}
+	
+	// validate config with json schema
+	valijson::Schema schemaDef;
+	valijson::SchemaParser schemaParser;
+	valijson::Validator validator;
+	valijson::ValidationResults validationResults;
+	valijson::adapters::JsonCppAdapter configAdapter(configJson);
+	valijson::adapters::JsonCppAdapter schemaAdapter(schemaJson);
+	schemaParser.populateSchema(schemaAdapter, schemaDef);
+	if (!validator.validate(schemaDef, configAdapter, &validationResults))
+	{
+		valijson::ValidationResults::Error error;
+		// report only the top-most error
+		if (validationResults.popError(error))
+		{
+			throw sinsp_exception(
+				string("error in plugin ")
+				+ name()
+				+ " init config: In "
+				+ std::accumulate(error.context.begin(), error.context.end(), std::string(""))
+				+ ", "
+				+ error.description);
+		}
+		// validation failed with no specific error
+		throw sinsp_exception(
+			string("error in plugin ")
+			+ name()
+			+ " init config: failed parsing with provided schema");
+	}
 }
 
 sinsp_source_plugin::sinsp_source_plugin()
@@ -910,6 +1000,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr);
 	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
 	(*(void **) (&m_source_plugin_info.list_open_params)) = getsym(handle, "plugin_list_open_params", errstr);
+	(*(void **) (&m_source_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
 
 	m_id = m_source_plugin_info.get_id();
 	m_event_source = str_from_alloc_charbuf(m_source_plugin_info.get_event_source());
@@ -978,6 +1069,8 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 
 	// Others are not.
 	(*(void **) (&m_extractor_plugin_info.get_extract_event_sources)) = getsym(handle, "plugin_get_extract_event_sources", errstr);
+	(*(void **) (&m_extractor_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
+
 
 	if (m_extractor_plugin_info.get_extract_event_sources != NULL)
 	{

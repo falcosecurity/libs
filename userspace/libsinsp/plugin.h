@@ -120,6 +120,9 @@ public:
 
 	bool extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &field);
 
+	std::string get_init_schema(ss_plugin_schema_type& schema_type);
+	void validate_init_config(const char* config);
+
 protected:
 	// Helper function to resolve symbols
 	static void* getsym(void* handle, const char* name, std::string &errstr);
@@ -137,6 +140,7 @@ private:
 	// included here as they are called in create_plugin()
 	typedef struct {
 		const char* (*get_required_api_version)();
+		const char* (*get_init_schema)(ss_plugin_schema_type* schema_type);
 		ss_plugin_t* (*init)(const char* config, ss_plugin_rc* rc);
 		void (*destroy)(ss_plugin_t* s);
 		const char* (*get_last_error)(ss_plugin_t* s);
@@ -159,6 +163,8 @@ private:
 	int32_t m_nfields;
 
 	common_plugin_info m_plugin_info;
+
+	void validate_init_config_json_schema(std::string &config, std::string &schema);
 };
 
 // Note that this doesn't have a next_batch() method, as event generation is
