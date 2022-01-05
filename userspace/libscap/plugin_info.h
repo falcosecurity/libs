@@ -78,6 +78,19 @@ typedef enum ss_plugin_rc
 	SS_PLUGIN_NOT_SUPPORTED = 3,
 } ss_plugin_rc;
 
+// The supported schema formats for the init configuration.
+typedef enum ss_plugin_schema_type
+{
+	// The schema is undefined and the init configuration
+	// is an opaque string.
+	SS_PLUGIN_SCHEMA_NONE = 0,
+	//
+	// The schema follows the JSON Schema specific, and the
+	// init configuration must be represented as a json.
+	// see: https://json-schema.org/
+	SS_PLUGIN_SCHEMA_JSON = 1,
+} ss_plugin_schema_type;
+
 // This struct represents an event returned by the plugin, and is used
 // below in next_batch().
 // - evtnum: incremented for each event returned. Might not be contiguous.
@@ -203,6 +216,26 @@ typedef struct
 	// inspect any C struct type.
 	//
 	uint32_t (*get_type)();
+	//
+	// Return a string representation of a schema describing the data expected
+	// to be passed as a configuration during the plugin initialization.
+	// Required: no
+	// Arguments:
+	// - schema_type: The schema format type of the returned value among the
+	//   list of the supported ones according to the ss_plugin_config_schema
+	//   enumeration.
+	// Return value: a string representation of the schema for the config
+	//   to be passed to init().
+	//
+	// Plugins can optionally export this symbol to specify the expected
+	// format for the configuration string passed to init(). If specified, 
+	// the init() function can assume the config string to always be
+	// well-formed. The framework will take care of automatically parsing it
+	// against the provided schema and generating ad-hoc errors accordingly.
+	// This also serves as a piece of documentation for users about how the
+	// plugin needs to be configured.
+	//
+	const char* (*get_init_schema)(ss_plugin_schema_type* schema_type);
 	//
 	// Initialize the plugin and, if needed, allocate its state.
 	// Required: yes
@@ -430,6 +463,26 @@ typedef struct
 	// inspect any C struct type.
 	//
 	uint32_t (*get_type)();
+	//
+	// Return a string representation of a schema describing the data expected
+	// to be passed as a configuration during the plugin initialization.
+	// Required: no
+	// Arguments:
+	// - schema_type: The schema format type of the returned value among the
+	//   list of the supported ones according to the ss_plugin_config_schema
+	//   enumeration.
+	// Return value: a string representation of the schema for the config
+	//   to be passed to init().
+	//
+	// Plugins can optionally export this symbol to specify the expected
+	// format for the configuration string passed to init(). If specified, 
+	// the init() function can assume the config string to always be
+	// well-formed. The framework will take care of automatically parsing it
+	// against the provided schema and generating ad-hoc errors accordingly.
+	// This also serves as a piece of documentation for users about how the
+	// plugin needs to be configured.
+	//
+	const char* (*get_init_schema)(ss_plugin_schema_type* schema_type);
 	//
 	// Initialize the plugin and, if needed, allocate its state.
 	// Required: yes
