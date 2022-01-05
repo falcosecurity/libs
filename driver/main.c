@@ -277,26 +277,26 @@ inline void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *
 #ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
 static int handler_pre_tcp_drop(struct kprobe *p, struct pt_regs *regs)
 {
-    u16 sport = 0;
-    u16 dport = 0;
+	u16 sport = 0;
+	u16 dport = 0;
 #ifdef CONFIG_ARM64
-    struct sock *sk = (struct sock*)regs->regs[0];
+	struct sock *sk = (struct sock*)regs->regs[0];
 #endif
 
 #ifdef CONFIG_X86
-    struct sock *sk = (struct sock*)regs->di;
+	struct sock *sk = (struct sock*)regs->di;
 #endif
-    const struct inet_sock *inet = inet_sk(sk);
-    sport = ntohs(inet->inet_sport);
-    dport = ntohs(inet->inet_dport);
-    if(sport==22||dport==22||sport==0||dport==0){
-        return 0;
-    }
-    struct event_data_t event_data;
-    event_data.category = PPMC_TCP_DROP;
-    event_data.event_info.net_data.sk = sk;
-    record_event_all_consumers(PPME_TCP_DROP_E, UF_USED | UF_NEVER_DROP, &event_data);
-    return 0;
+	const struct inet_sock *inet = inet_sk(sk);
+	sport = ntohs(inet->inet_sport);
+	dport = ntohs(inet->inet_dport);
+	if(sport==22||dport==22||sport==0||dport==0){
+		return 0;
+	}
+	struct event_data_t event_data;
+	event_data.category = PPMC_TCP_DROP;
+	event_data.event_info.net_data.sk = sk;
+	record_event_all_consumers(PPME_TCP_DROP_E, UF_USED | UF_NEVER_DROP, &event_data);
+	return 0;
 }
 #endif
 
@@ -359,8 +359,8 @@ static int register_tcp_rcv_established_kprobe(void)
 #ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
 static int register_tcp_drop_kprobe(void)
 {
-    printk("register tcp rcv esta kprobe\n");
-    return register_kprobe(&kp_tcp_drop);
+	printk("register tcp rcv esta kprobe\n");
+	return register_kprobe(&kp_tcp_drop);
 }
 #endif
 
