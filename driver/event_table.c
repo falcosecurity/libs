@@ -337,7 +337,15 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_NETIF_RECEIVE_SKB_E */{"ingress", EC_NET, EF_DROP_SIMPLE_CONS, 5, {{"dev", PT_CHARBUF, PF_NA}, {"skb_addr", PT_UINT64, PF_HEX}, {"src_mac", PT_BYTEBUF, PF_NA}, {"dst_mac", PT_BYTEBUF, PF_NA}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
 	/* PPME_NETIF_RECEIVE_SKB_X */{"ingress", EC_NET, EF_UNUSED, 0},
 	/* PPME_NET_DEV_START_XMIT_E */{"egress", EC_NET, EF_DROP_SIMPLE_CONS, 5, {{"dev", PT_CHARBUF, PF_NA}, {"skb_addr", PT_UINT64, PF_HEX}, {"src_mac", PT_BYTEBUF, PF_NA}, {"dst_mac", PT_BYTEBUF, PF_NA}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
-	/* PPME_NET_DEV_START_XMIT_X */{"egress", EC_NET, EF_UNUSED, 0}
+	/* PPME_NET_DEV_START_XMIT_X */{"egress", EC_NET, EF_UNUSED, 0},
+	/* PPME_TCP_RCV_ESTABLISHED_E */{"tcp_rcv_established", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 2, {{"tuple", PT_SOCKTUPLE, PF_NA}, {"srtt", PT_UINT32, PF_DEC}  } },
+	/* PPME_TCP_RCV_ESTABLISHED_X */{"tcp_rcv_established", EC_NET, EF_UNUSED, 0},
+	/* PPME_TCP_CLOSE_E */{"tcp_close", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 2, {{"tuple", PT_SOCKTUPLE, PF_NA}, {"srtt", PT_UINT32, PF_DEC}  } },
+	/* PPME_TCP_CLOSE_X */{"tcp_close", EC_NET, EF_UNUSED, 0},
+	/* PPME_TCP_DROP_E */{"tcp_drop", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 1, {{"tuple", PT_SOCKTUPLE, PF_NA}} },
+	/* PPME_TCP_DROP_X */{"tcp_drop", EC_NET, EF_UNUSED, 0},
+	/* PPME_TCP_DROP_E */{"tcp_retransmit_skb", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 1, {{"tuple", PT_SOCKTUPLE, PF_NA}} },
+	/* PPME_TCP_DROP_X */{"tcp_retransmit_skb", EC_NET, EF_UNUSED, 0}
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

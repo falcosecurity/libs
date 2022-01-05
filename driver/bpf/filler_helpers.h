@@ -11,6 +11,9 @@ or GPL2.txt for full copies of the license.
 
 #include <net/compat.h>
 #include <net/sock.h>
+#include <uapi/linux/ip.h>
+#include <uapi/linux/tcp.h>
+#include <uapi/linux/udp.h>
 #include <net/inet_sock.h>
 #include <net/af_unix.h>
 #include <linux/in.h>
@@ -1387,5 +1390,32 @@ static __always_inline int check_skb(struct sk_buff *skb, const char *dev_name, 
 	}
 	return 0;
 }
+
+static __always_inline int sock_to_ring(struct filler_data *data, struct sock *sk){
+	u16 sport = 0;
+	u16 dport = 0;
+	u32 saddr = 0;
+	u32 daddr = 0;
+	u16 family = 0;
+	const struct inet_sock *inet = inet_sk(sk);
+	bpf_probe_read(&sport, sizeof(sport), (void *)&inet->inet_sport);
+	bpf_probe_read(&dport, sizeof(dport), (void *)&inet->inet_dport);
+	bpf_probe_read(&saddr, sizeof(saddr), (void *)&inet->inet_saddr);
+	bpf_probe_read(&daddr, sizeof(daddr), (void *)&inet->inet_daddr);
+	bpf_probe_read(&family, sizeof(family), (void *)&sk->__sk_common.skc_family);
+	sport = ntohs(sport);
+	dport = ntohs(dport);
+
+	int size = 1 + 4 + 4 + 2 + 2;
+
+	data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &saddr, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 5) & SCRATCH_SIZE_HALF], &sport, 2);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 7) & SCRATCH_SIZE_HALF], &daddr, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 11) & SCRATCH_SIZE_HALF], &dport, 2);
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, size);
+}
+
 
 #endif

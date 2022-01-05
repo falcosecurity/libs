@@ -308,6 +308,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_USERFAULTFD_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_USERFAULTFD_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_NETIF_RECEIVE_SKB_E] = {FILLER_REF(netif_receive_skb_e)},
-	[PPME_NET_DEV_START_XMIT_E] = {FILLER_REF(net_dev_start_xmit_e)}
+	[PPME_NET_DEV_START_XMIT_E] = {FILLER_REF(net_dev_start_xmit_e)},
+	[PPME_TCP_RCV_ESTABLISHED_E] = {FILLER_REF(tcp_rcv_established_e)},
+	[PPME_TCP_DROP_E] = {FILLER_REF(tcp_drop_e)},
+	[PPME_TCP_RETRANCESMIT_SKB_E] = {FILLER_REF(tcp_retransmit_skb_e)}
 #endif /* WDIG */
 };

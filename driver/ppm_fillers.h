@@ -114,7 +114,10 @@ or GPL2.txt for full copies of the license.
 	FN(sys_fchmod_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
-	FN(sys_linkat_x)			\
+	FN(sys_linkat_x)                \
+		FN(tcp_rcv_established_e)          		        \
+	FN(tcp_drop_e)				\
+    	FN(tcp_retransmit_skb_e)   	        \
 	FN(netif_receive_skb_e)			\
 	FN(net_dev_start_xmit_e)		\
 	FN(terminate_filler)

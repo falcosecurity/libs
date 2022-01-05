@@ -220,6 +220,19 @@ struct perf_event_sample {
 
 #endif /* __KERNEL__ */
 
+struct statistics {
+	uint64_t last_time;
+};
+
+struct tuple {
+	__u16 sport;
+	__u16 dport;
+	__u32 saddr;
+	__u32 daddr;
+	__u16 family;
+	__u16 pad;
+};
+
 enum sysdig_map_types {
 	SYSDIG_PERF_MAP = 0,
 	SYSDIG_TAIL_MAP = 1,
@@ -233,6 +246,7 @@ enum sysdig_map_types {
 	SYSDIG_LOCAL_STATE_MAP = 9,
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 	SYSDIG_STASH_MAP = 10,
+	SYSDIG_RTT_STATISTICS = 11,
 #endif
 };
 

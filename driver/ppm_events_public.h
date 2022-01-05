@@ -633,6 +633,9 @@ enum ppm_capture_category {
 	PPMC_SIGNAL = 3,
 	PPMC_PAGE_FAULT = 4,
 	PPMC_SKB_CAPTURE = 5,
+	PPMC_TCP_RCV_ESTABLISHED = 6,
+	PPMC_TCP_DROP = 7,
+	PPMC_TCP_RETRANSMIT_SKB = 8,
 };
 
 /** @defgroup etypes Event Types
@@ -966,7 +969,15 @@ enum ppm_event_type {
 	PPME_NETIF_RECEIVE_SKB_X = 323,
 	PPME_NET_DEV_START_XMIT_E = 324,
 	PPME_NET_DEV_START_XMIT_X = 325,
-	PPM_EVENT_MAX = 326
+	PPME_TCP_RCV_ESTABLISHED_E = 326,
+	PPME_TCP_RCV_ESTABLISHED_x = 327,
+	PPME_TCP_CLOSE_E = 328,
+	PPME_TCP_CLOSE_X = 329,
+	PPME_TCP_DROP_E = 330,
+	PPME_TCP_DROP_X = 331,
+	PPME_TCP_RETRANCESMIT_SKB_E = 332,
+	PPME_TCP_RETRANCESMIT_SKB_X = 333,
+	PPM_EVENT_MAX = 334
 };
 /*@}*/
 
@@ -1337,7 +1348,8 @@ enum ppm_event_flags {
 	EF_WAITS = (1 << 7), /* This event reads data from an FD. */
 	EF_SKIPPARSERESET = (1 << 8), /* This event shouldn't pollute the parser lastevent state tracker. */
 	EF_OLD_VERSION = (1 << 9), /* This event is kept for backward compatibility */
-	EF_DROP_SIMPLE_CONS = (1 << 10) /* This event can be skipped by consumers that privilege low overhead to full event capture */
+	EF_DROP_SIMPLE_CONS = (1 << 10), /* This event can be skipped by consumers that privilege low overhead to full event capture */
+	EF_NONE_PARSE = ( 1<<11 ) /* This event can not be parse,because passe this event will destroy fd info */
 };
 
 /*

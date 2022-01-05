@@ -82,6 +82,7 @@ struct event_filler_arguments {
 #endif
 	// skb capture args
 	struct sk_buff *skb;
+	struct sock *sk;
 	struct net_device *dev;
 };
 

@@ -24,6 +24,7 @@ or GPL2.txt for full copies of the license.
 
 #include <linux/tty.h>
 #include <linux/audit.h>
+#include <linux/tcp.h>
 
 
 /*
@@ -4519,6 +4520,68 @@ FILLER(sys_fchmod_x, true)
 
 	return res;
 }
+
+KP_FILLER(tcp_drop_kprobe_e)
+{
+
+	struct pt_regs *args = (struct pt_regs*)data->ctx;
+	struct sock *sk = (struct sock *)_READ(args->di);
+
+	int res;
+	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
+KP_FILLER(rtt_kprobe_e)
+{
+	struct pt_regs *args = (struct pt_regs*)data->ctx;
+	struct sock *sk = (struct sock *)_READ(args->di);
+	struct sk_buff *skb = (struct sk_buff *)_READ(args->si);
+	struct tcp_sock *ts = tcp_sk(sk);
+
+	u32 srtt = _READ(ts->srtt_us) >> 3;
+
+	int res;
+	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+	res = bpf_val_to_ring(data, srtt);
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
+
+KP_FILLER(tcp_retransmit_skb_kprobe_e)
+{
+	struct pt_regs *args = (struct pt_regs*)data->ctx;
+	struct sock *sk = (struct sock *)_READ(args->di);
+
+	int res;
+	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
+FILLER(tcp_retransmit_skb_e, false)
+{
+
+}
+
+FILLER(tcp_rcv_established_e, false)
+{
+
+}
+
+
+FILLER(tcp_drop_e, false)
+{
+
+}
+
 
 FILLER(net_dev_start_xmit_e, false)
 {

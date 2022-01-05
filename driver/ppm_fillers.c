@@ -5206,4 +5206,222 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+
+int f_tcp_rcv_established_e(struct event_filler_arguments *args){
+    u16 sport = 0;
+    u16 dport = 0;
+    u32 saddr = 0;
+    u32 daddr = 0;
+    u16 family = 0;
+
+    int res;
+    int size;
+    char *targetbuf = args->str_storage;
+
+    struct sock *sk = args->sk;
+    const struct inet_sock *inet = inet_sk(sk);
+    struct tcp_sock *ts = tcp_sk(sk);
+    u32 srtt = ts->srtt_us >> 3;
+
+    sport = ntohs(inet->inet_sport);
+    dport = ntohs(inet->inet_dport);
+    saddr = inet->inet_saddr;
+    daddr = inet->inet_daddr;
+    family = sk->__sk_common.skc_family;
+
+
+    size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
+
+    *targetbuf = socket_family_to_scap(family);
+    *(uint32_t *)(targetbuf + 1) = saddr;
+    *(uint16_t *)(targetbuf + 5) = sport;
+    *(uint32_t *)(targetbuf + 7) = daddr;
+    *(uint16_t *)(targetbuf + 11) = dport;
+
+    res = val_to_ring(args,
+                      (uint64_t)(unsigned long)targetbuf,
+            size,
+            false,
+            0);
+    if (unlikely(res != PPM_SUCCESS))
+        return res;
+
+    res = val_to_ring(args, srtt, 0, false, 0);
+    if (unlikely(res != PPM_SUCCESS))
+        return res;
+    return 0;
+}
+
+int f_tcp_drop_e(struct event_filler_arguments *args){
+    u16 sport = 0;
+    u16 dport = 0;
+    u32 saddr = 0;
+    u32 daddr = 0;
+    u16 family = 0;
+
+    int res;
+    int size;
+    char *targetbuf = args->str_storage;
+
+    struct sock *sk = args->sk;
+    const struct inet_sock *inet = inet_sk(sk);
+
+    sport = ntohs(inet->inet_sport);
+    dport = ntohs(inet->inet_dport);
+    saddr = inet->inet_saddr;
+    daddr = inet->inet_daddr;
+    family = sk->__sk_common.skc_family;
+
+
+    size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
+
+    *targetbuf = socket_family_to_scap(family);
+    *(uint32_t *)(targetbuf + 1) = saddr;
+    *(uint16_t *)(targetbuf + 5) = sport;
+    *(uint32_t *)(targetbuf + 7) = daddr;
+    *(uint16_t *)(targetbuf + 11) = dport;
+
+    res = val_to_ring(args,
+                      (uint64_t)(unsigned long)targetbuf,
+            size,
+            false,
+            0);
+    if (unlikely(res != PPM_SUCCESS))
+        return res;
+
+    return 0;
+}
+
+int f_tcp_retransmit_skb_e(struct event_filler_arguments *args){
+    u16 sport = 0;
+    u16 dport = 0;
+    u32 saddr = 0;
+    u32 daddr = 0;
+    u16 family = 0;
+
+    int res;
+    int size;
+    char *targetbuf = args->str_storage;
+
+    struct sock *sk = args->sk;
+    const struct inet_sock *inet = inet_sk(sk);
+
+    sport = ntohs(inet->inet_sport);
+    dport = ntohs(inet->inet_dport);
+    saddr = inet->inet_saddr;
+    daddr = inet->inet_daddr;
+    family = sk->__sk_common.skc_family;
+
+
+    size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
+
+    *targetbuf = socket_family_to_scap(family);
+    *(uint32_t *)(targetbuf + 1) = saddr;
+    *(uint16_t *)(targetbuf + 5) = sport;
+    *(uint32_t *)(targetbuf + 7) = daddr;
+    *(uint16_t *)(targetbuf + 11) = dport;
+
+    res = val_to_ring(args,
+                      (uint64_t)(unsigned long)targetbuf,
+            size,
+            false,
+            0);
+    if (unlikely(res != PPM_SUCCESS))
+        return res;
+
+    return 0;
+}
+
+int f_net_dev_xmit_e(struct event_filler_arguments *args)
+{
+	int res;
+	void *head = args->skb->head;
+	__u16 mac_offset;
+	__u16 ip_offset;
+	struct iphdr *iph;
+	uint32_t sip;
+	uint32_t dip;
+	uint16_t sport;
+	uint16_t dport;
+	uint8_t ipp;
+	char *targetbuf = args->str_storage;
+	int size;
+
+    if (head == NULL)
+        return -1;
+
+    mac_offset = args->skb->mac_header;
+	if (mac_offset == (__u16)~0U)
+		return -1;
+
+	res = val_to_ring(args, (unsigned long)args->dev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	res = val_to_ring(args, (unsigned long)args->skb, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// parse l2
+	struct ethhdr *ethh = (struct ethhdr *)((__u64)head + (__u64)mac_offset);
+
+	res = val_to_ring(args, (unsigned long)ethh->h_source, 6, false, 0);
+	if (res != 0)
+		return res;
+
+	res = val_to_ring(args, (unsigned long)ethh->h_dest, 6, false, 0);
+	if (res != 0)
+		return res;
+
+    // parse l3
+	ip_offset = args->skb->network_header;
+	iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
+	sip = iph->saddr;
+	dip = iph->daddr;
+    ipp = iph->protocol;
+	switch (ipp) {
+		case IPPROTO_TCP:{
+			struct tcphdr *tcph = (struct tcphdr *)((__u64)iph + sizeof(*iph));
+			// get ports
+			sport = ntohs(tcph->source);
+			dport = ntohs(tcph->dest);
+			break;
+		}
+		case IPPROTO_IPIP:{
+			sport = 0;
+			dport = 0;
+			break;
+		}
+		case IPPROTO_UDP:{
+			struct udphdr *udph = (struct udphdr *)((__u64)iph + sizeof(*iph));
+			// get ports
+			sport = ntohs(udph->source);
+			dport = ntohs(udph->dest);
+			break;
+		}
+		default: {
+			sport = 0;
+			dport = 0;
+			break;
+		}
+	}
+
+	size = 1 + 4 + 4 + 2 + 2; /* family + sip + dip + sport + dport */
+
+	*targetbuf = socket_family_to_scap(AF_INET);
+	*(uint32_t *)(targetbuf + 1) = sip;
+	*(uint16_t *)(targetbuf + 5) = sport;
+	*(uint32_t *)(targetbuf + 7) = dip;
+	*(uint16_t *)(targetbuf + 11) = dport;
+
+	res = val_to_ring(args,
+					  (uint64_t)(unsigned long)targetbuf,
+					  size,
+					  false,
+					  0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	return 0;
+}
+
 #endif /* WDIG */

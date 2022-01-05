@@ -10,6 +10,7 @@ or GPL2.txt for full copies of the license.
 #define pr_fmt(fmt)	KBUILD_MODNAME ": " fmt
 
 #include <linux/version.h>
+#include <linux/kprobes.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include <linux/kobject.h>
 #include <trace/sched.h>
@@ -46,6 +47,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/fdtable.h>
 #endif
 #include <net/sock.h>
+#include <net/inet_sock.h>
 #include <asm/unistd.h>
 
 #include "driver_config.h"
@@ -60,6 +62,10 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
+#define KERNEL_CONSTRAINT_FOR_TCP_DROP
+#endif
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
     #define TRACEPOINT_PROBE_REGISTER(p1, p2) tracepoint_probe_register(p1, p2)
     #define TRACEPOINT_PROBE_UNREGISTER(p1, p2) tracepoint_probe_unregister(p1, p2)
@@ -73,6 +79,20 @@ MODULE_AUTHOR("the Falco authors");
 #ifndef pgprot_encrypted
 #define pgprot_encrypted(x) (x)
 #endif
+
+static struct kprobe kp_tcp_rcv_established = {
+	.symbol_name    = "tcp_rcv_established",
+};
+
+#ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
+static struct kprobe kp_tcp_drop = {
+        .symbol_name    = "tcp_drop",
+};
+#endif
+
+static struct kprobe kp_tcp_retransmit_skb = {
+	.symbol_name    = "tcp_retransmit_skb",
+};
 
 struct ppm_device {
 	dev_t dev;
@@ -110,6 +130,9 @@ struct event_data_t {
 			struct sk_buff *skb;
 			struct net_device *dev;
 		} net_dev_xmit_data;
+		struct {
+			struct sock *sk;
+		} net_data;
 	} event_info;
 };
 
@@ -186,6 +209,7 @@ static const struct file_operations g_ppm_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static bool g_tracepoint_registered;
+static bool g_kprobe_registered = false;
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -248,6 +272,102 @@ inline void ppm_syscall_get_arguments(struct task_struct *task, struct pt_regs *
 #else
     syscall_get_arguments(task, regs, args);
 #endif
+}
+
+#ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
+static int handler_pre_tcp_drop(struct kprobe *p, struct pt_regs *regs)
+{
+    u16 sport = 0;
+    u16 dport = 0;
+#ifdef CONFIG_ARM64
+    struct sock *sk = (struct sock*)regs->regs[0];
+#endif
+
+#ifdef CONFIG_X86
+    struct sock *sk = (struct sock*)regs->di;
+#endif
+    const struct inet_sock *inet = inet_sk(sk);
+    sport = ntohs(inet->inet_sport);
+    dport = ntohs(inet->inet_dport);
+    if(sport==22||dport==22||sport==0||dport==0){
+        return 0;
+    }
+    struct event_data_t event_data;
+    event_data.category = PPMC_TCP_DROP;
+    event_data.event_info.net_data.sk = sk;
+    record_event_all_consumers(PPME_TCP_DROP_E, UF_USED | UF_NEVER_DROP, &event_data);
+    return 0;
+}
+#endif
+
+static int handler_pre_tcp_rcv_established(struct kprobe *p, struct pt_regs *regs)
+{
+	u16 sport = 0;
+	u16 dport = 0;
+#ifdef CONFIG_ARM64
+	struct sock *sk = (struct sock*)regs->regs[0];
+#endif
+
+#ifdef CONFIG_X86
+	struct sock *sk = (struct sock*)regs->di;
+#endif
+	const struct inet_sock *inet = inet_sk(sk);
+	sport = ntohs(inet->inet_sport);
+	dport = ntohs(inet->inet_dport);
+	if(sport==22||dport==22||sport==0||dport==0){
+		return 0;
+	}
+	struct event_data_t event_data;
+	event_data.category = PPMC_TCP_RCV_ESTABLISHED;
+	event_data.event_info.net_data.sk = sk;
+	record_event_all_consumers(PPME_TCP_RCV_ESTABLISHED_E, UF_USED | UF_NEVER_DROP, &event_data);
+	return 0;
+}
+
+
+static int handler_pre_tcp_retransmit_skb(struct kprobe *p, struct pt_regs *regs)
+{
+	u16 sport = 0;
+	u16 dport = 0;
+#ifdef CONFIG_ARM64
+	struct sock *sk = (struct sock*)regs->regs[0];
+#endif
+
+#ifdef CONFIG_X86
+	struct sock *sk = (struct sock*)regs->di;
+#endif
+	const struct inet_sock *inet = inet_sk(sk);
+	sport = ntohs(inet->inet_sport);
+	dport = ntohs(inet->inet_dport);
+	if(sport==0||dport==0){
+		return 0;
+	}
+	struct event_data_t event_data;
+	event_data.category = PPMC_TCP_RETRANSMIT_SKB;
+	event_data.event_info.net_data.sk = sk;
+	record_event_all_consumers(PPME_TCP_RETRANCESMIT_SKB_E, UF_USED | UF_NEVER_DROP, &event_data);
+	return 0;
+}
+
+/* compat kprobe functions */
+static int register_tcp_rcv_established_kprobe(void)
+{
+	printk("register tcp rcv esta kprobe\n");
+	return register_kprobe(&kp_tcp_rcv_established);
+}
+
+#ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
+static int register_tcp_drop_kprobe(void)
+{
+    printk("register tcp rcv esta kprobe\n");
+    return register_kprobe(&kp_tcp_drop);
+}
+#endif
+
+static int register_tcp_retransmit_skb_kprobe(void)
+{
+	printk("register tcp retransmit skb kprobe\n");
+	return register_kprobe(&kp_tcp_retransmit_skb);
 }
 
 /* compat tracepoint functions */
@@ -516,6 +636,28 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_signal_deliver;
 		}
 #endif
+		if(!g_kprobe_registered) {
+			kp_tcp_rcv_established.pre_handler = handler_pre_tcp_rcv_established;
+			ret = register_tcp_rcv_established_kprobe();
+			if (ret) {
+				pr_err("can't create the tcp_rcv_established kprobe\n");
+			}
+
+			kp_tcp_retransmit_skb.pre_handler = handler_pre_tcp_retransmit_skb;
+			ret = register_tcp_retransmit_skb_kprobe();
+			if (ret) {
+				pr_err("can't create the tcp_retransmit_skb kprobe\n");
+			}
+#ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
+			kp_tcp_drop.pre_handler = handler_pre_tcp_drop;
+			ret = register_tcp_drop_kprobe();
+			if (ret) {
+				pr_err("can't create the tcp_drop kprobe\n");
+			}
+#endif
+			g_kprobe_registered = true;
+		}
+
 #ifdef CAPTURE_SKB
 		ret = compat_register_trace(net_dev_xmit_probe, "net_dev_xmit", tp_net_dev_xmit);
 		if (ret) {
@@ -1813,6 +1955,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			args.skb = event_datap->event_info.net_dev_xmit_data.skb;
 			args.dev = event_datap->event_info.net_dev_xmit_data.dev;
 		}
+
+
+		if (event_datap->category == PPMC_TCP_RCV_ESTABLISHED || event_datap->category == PPMC_TCP_DROP || event_datap->category == PPMC_TCP_RETRANSMIT_SKB) {
+			args.sk = event_datap->event_info.net_data.sk;
+		}
+
 		args.dpid = current->pid;
 
 		if (event_datap->category == PPMC_PAGE_FAULT)
@@ -2783,6 +2931,13 @@ void sysdig_exit(void)
 	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs + 1);
 
 	kfree(g_ppm_devs);
+	if(g_kprobe_registered == true) {
+		unregister_kprobe(&kp_tcp_rcv_established);
+		unregister_kprobe(&kp_tcp_retransmit_skb);
+#ifdef KERNEL_CONSTRAINT_FOR_TCP_DROP
+		unregister_kprobe(&kp_tcp_drop);
+#endif
+	}
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	tracepoint_synchronize_unregister();

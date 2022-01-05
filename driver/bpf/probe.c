@@ -25,6 +25,9 @@ or GPL2.txt for full copies of the license.
 #include "filler_helpers.h"
 #include "fillers.h"
 #include "builtins.h"
+#include <uapi/linux/ip.h>
+#include <uapi/linux/tcp.h>
+#include <uapi/linux/udp.h>
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 #define BPF_PROBE(prefix, event, type)			\
@@ -318,6 +321,135 @@ BPF_PROBE("net/", netif_receive_skb, netif_receive_skb_args)
 	return 0;
 }
 */
+
+BPF_KPROBE(tcp_drop)
+{
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	evt_type = PPME_TCP_DROP_E;
+	if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)) {
+		bpf_tcp_drop_kprobe_e(ctx);
+	}
+
+	return 0;
+}
+
+BPF_KPROBE(tcp_rcv_established)
+{
+	u16 sport = 0;
+	u16 dport = 0;
+	u32 saddr = 0;
+	u32 daddr = 0;
+	u16 family = 0;
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct tcp_sock *ts = tcp_sk(sk);
+	const struct inet_sock *inet = inet_sk(sk);
+
+	bpf_probe_read(&sport, sizeof(sport), (void *)&inet->inet_sport);
+	bpf_probe_read(&dport, sizeof(dport), (void *)&inet->inet_dport);
+	bpf_probe_read(&saddr, sizeof(saddr), (void *)&inet->inet_saddr);
+	bpf_probe_read(&daddr, sizeof(daddr), (void *)&inet->inet_daddr);
+	bpf_probe_read(&family, sizeof(family), (void *)&sk->__sk_common.skc_family);
+
+	struct tuple tp = {0};
+	tp.daddr = daddr;
+	tp.dport = dport;
+	tp.saddr = saddr;
+	tp.sport = sport;
+	tp.family = family;
+	tp.pad = 1;
+	if(ntohs(sport) == 22 || ntohs(dport) == 22 || ntohs(sport) == 0 || ntohs(dport) == 0) {
+		return 0;
+	}
+
+	struct statistics *st = bpf_map_lookup_elem(&rtt_static_map, &tp);
+	if (!st) {
+		struct statistics new_st = {0};
+		new_st.last_time = bpf_ktime_get_ns();
+		int ret = bpf_map_update_elem(&rtt_static_map, &tp, &new_st, BPF_NOEXIST);
+	} else {
+		if (bpf_ktime_get_ns() - st->last_time > 5000000000) {
+			st->last_time = bpf_ktime_get_ns();
+			evt_type = PPME_TCP_RCV_ESTABLISHED_E;
+			if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)) {
+				bpf_rtt_kprobe_e(ctx);
+			}
+		}
+	}
+	return 0;
+}
+
+
+BPF_KPROBE(tcp_close)
+{
+	u16 sport = 0;
+	u16 dport = 0;
+	u32 saddr = 0;
+	u32 daddr = 0;
+	u16 family = 0;
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct tcp_sock *ts = tcp_sk(sk);
+	const struct inet_sock *inet = inet_sk(sk);
+
+	bpf_probe_read(&sport, sizeof(sport), (void *)&inet->inet_sport);
+	bpf_probe_read(&dport, sizeof(dport), (void *)&inet->inet_dport);
+	bpf_probe_read(&saddr, sizeof(saddr), (void *)&inet->inet_saddr);
+	bpf_probe_read(&daddr, sizeof(daddr), (void *)&inet->inet_daddr);
+	bpf_probe_read(&family, sizeof(family), (void *)&sk->__sk_common.skc_family);
+
+	struct tuple tp = {0};
+	tp.daddr = daddr;
+	tp.dport = dport;
+	tp.saddr = saddr;
+	tp.sport = sport;
+	tp.family = family;
+	tp.pad = 1;
+
+	int res = bpf_map_delete_elem(&rtt_static_map, &tp);
+
+	if(ntohs(sport)==22||ntohs(dport)==22||ntohs(sport)==0||ntohs(dport)==0){
+		return 0;
+	}
+	evt_type = PPME_TCP_CLOSE_E;
+	if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)){
+		bpf_rtt_kprobe_e(ctx);
+	}
+
+	return 0;
+}
+
+
+BPF_KPROBE(tcp_retransmit_skb)
+{
+	struct sysdig_bpf_settings *settings;
+	enum ppm_event_type evt_type;
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	evt_type = PPME_TCP_RETRANCESMIT_SKB_E;
+	if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)){
+		bpf_tcp_retransmit_skb_kprobe_e(ctx);
+	}
+
+	return 0;
+}
+
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 
