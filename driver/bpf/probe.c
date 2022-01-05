@@ -281,7 +281,7 @@ BPF_PROBE("net/", net_dev_start_xmit, net_dev_start_xmit_args)
 	if(check_skb(skb, dev_name, settings->if_name) < 0)
 		return 0;
 
-	evt_type = PPME_NET_DEV_START_XMIT_E;
+	evt_type = PPME_NET_DEV_XMIT_E;
 
 	call_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP);
 	return 0;

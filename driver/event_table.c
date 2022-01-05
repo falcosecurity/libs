@@ -336,7 +336,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_USERFAULTFD_X */{"userfaultfd", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* PPME_NETIF_RECEIVE_SKB_E */{"ingress", EC_NET, EF_DROP_SIMPLE_CONS, 5, {{"dev", PT_CHARBUF, PF_NA}, {"skb_addr", PT_UINT64, PF_HEX}, {"src_mac", PT_BYTEBUF, PF_NA}, {"dst_mac", PT_BYTEBUF, PF_NA}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
 	/* PPME_NETIF_RECEIVE_SKB_X */{"ingress", EC_NET, EF_UNUSED, 0},
-	/* PPME_NET_DEV_START_XMIT_E */{"egress", EC_NET, EF_DROP_SIMPLE_CONS, 5, {{"dev", PT_CHARBUF, PF_NA}, {"skb_addr", PT_UINT64, PF_HEX}, {"src_mac", PT_BYTEBUF, PF_NA}, {"dst_mac", PT_BYTEBUF, PF_NA}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
+	/* PPME_NET_DEV_XMIT_E */{"egress", EC_NET, EF_DROP_SIMPLE_CONS, 5, {{"dev", PT_CHARBUF, PF_NA}, {"skb_addr", PT_UINT64, PF_HEX}, {"src_mac", PT_BYTEBUF, PF_NA}, {"dst_mac", PT_BYTEBUF, PF_NA}, {"tuple", PT_SOCKTUPLE, PF_NA} } },
 	/* PPME_NET_DEV_START_XMIT_X */{"egress", EC_NET, EF_UNUSED, 0},
 	/* PPME_TCP_RCV_ESTABLISHED_E */{"tcp_rcv_established", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 2, {{"tuple", PT_SOCKTUPLE, PF_NA}, {"srtt", PT_UINT32, PF_DEC}  } },
 	/* PPME_TCP_RCV_ESTABLISHED_X */{"tcp_rcv_established", EC_NET, EF_UNUSED, 0},

@@ -2470,7 +2470,7 @@ TRACEPOINT_PROBE(net_dev_xmit_probe, struct sk_buff *skb, int rc, struct net_dev
 		event_data.event_info.net_dev_xmit_data.skb = skb;
 		event_data.event_info.net_dev_xmit_data.dev = dev;
 
-		record_event_all_consumers(PPME_NET_DEV_START_XMIT_E, UF_USED | UF_NEVER_DROP, &event_data);
+		record_event_all_consumers(PPME_NET_DEV_XMIT_E, UF_USED | UF_NEVER_DROP, &event_data);
 	}
 }
 #endif
