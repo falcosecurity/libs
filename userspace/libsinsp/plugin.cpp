@@ -411,7 +411,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 	// Initialize the plugin
 	if (!ret->init(config))
 	{
-		errstr = string("Could not initialize plugin");
+		errstr = string("Could not initialize plugin: " + ret->get_last_error());
 		ret = NULL;
 	}
 
@@ -462,16 +462,15 @@ bool sinsp_plugin::init(const char *config)
 	ss_plugin_rc rc;
 
 	ss_plugin_t *state = m_plugin_info.init(config, &rc);
-	if(rc != SS_PLUGIN_SUCCESS)
+	if (state != NULL)
 	{
-		// Not calling get_last_error here because there was
-		// no valid ss_plugin_t struct returned from init.
-		return false;
+		// Plugins can return a state even if the result code is
+		// SS_PLUGIN_FAILURE, which can be useful to set an init
+		// error that can later be retrieved through get_last_error().
+		set_plugin_state(state);
 	}
 
-	set_plugin_state(state);
-
-	return true;
+	return rc == SS_PLUGIN_SUCCESS;
 }
 
 void sinsp_plugin::destroy()
