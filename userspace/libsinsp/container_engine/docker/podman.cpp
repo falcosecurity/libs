@@ -133,8 +133,3 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	docker_lookup_request request(container_id, api_sock, CT_PODMAN, uid, false);
 	return resolve_impl(tinfo, request, query_os_for_missing_info);
 }
-
-void podman::update_with_size(const std::string& container_id)
-{
-	// not supported
-}
