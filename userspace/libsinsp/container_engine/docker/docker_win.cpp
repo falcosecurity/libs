@@ -47,9 +47,4 @@ bool docker_win::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info
 		false), query_os_for_missing_info);
 }
 
-void docker_win::update_with_size(const std::string &container_id)
-{
-	// not supported
-}
-
 #endif // CYGWING_AGENT
