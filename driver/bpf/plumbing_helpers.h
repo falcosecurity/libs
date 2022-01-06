@@ -454,6 +454,10 @@ static __always_inline void call_filler(void *ctx,
 	unsigned long long ts;
 	unsigned int cpu;
 
+	if (evt_type < PPM_EVENT_MAX && !settings->events_mask[evt_type]) {
+	    return;
+	}
+
 	cpu = bpf_get_smp_processor_id();
 
 	state = get_local_state(cpu);

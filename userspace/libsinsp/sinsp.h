@@ -760,6 +760,10 @@ public:
 	}
 
 	/*!
+	  \brief If this is an online capture, unset all event_ids.
+	*/
+	void clear_eventmask();
+	/*!
 	  \brief If this is an online capture, set event_id.
 	  \param event type to set
 	  \return SCAP_SUCCESS if the call is successful

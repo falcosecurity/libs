@@ -2135,9 +2135,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 
 	if(handle->m_bpf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on bpf");
-		ASSERT(false);
-		return SCAP_FAILURE;
+		return scap_bpf_handle_eventmask(handle, op, event_id);
 	}
 	else
 	{

@@ -48,6 +48,7 @@ int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats);
 int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret);
 int32_t scap_bpf_enable_skb_capture(scap_t *handle, const char *ifname);
 int32_t scap_bpf_disable_skb_capture(scap_t *handle);
+int32_t scap_bpf_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id);
 
 static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
 {

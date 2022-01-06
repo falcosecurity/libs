@@ -266,6 +266,7 @@ struct sysdig_bpf_settings {
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
 	char if_name[16];
+	bool events_mask[PPM_EVENT_MAX];
 } __attribute__((packed));
 
 struct tail_context {
