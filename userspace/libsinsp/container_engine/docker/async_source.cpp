@@ -391,7 +391,7 @@ void docker_async_source::fetch_image_info(const docker_lookup_request& request,
 			"docker_async url: %s",
 			url.c_str());
 
-	if(!(m_connection.get_docker(request, url, img_json) == docker_connection::RESP_OK))
+	if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK)
 	{
 		g_logger.format(sinsp_logger::SEV_ERROR,
 				"docker_async (%s) image (%s): Could not fetch image info",
