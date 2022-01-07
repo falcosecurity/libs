@@ -1295,8 +1295,11 @@ static int32_t set_runtime_params(scap_t *handle)
 	f = fopen("/proc/sys/net/core/bpf_jit_kallsyms", "w");
 	if(!f)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_kallsyms");
-		return SCAP_FAILURE;
+
+		// snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_kallsyms");
+		// return SCAP_FAILURE;
+		// compatibility for centos 7.6
+        	return SCAP_SUCCESS;
 	}
 
 	if(fprintf(f, "1") != 1)

@@ -10,9 +10,13 @@ or GPL2.txt for full copies of the license.
 #define __QUIRKS_H
 
 #include <linux/version.h>
+#include "../ppm_version.h"
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 0)
+#if (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(7, 6) && PPM_RHEL_RELEASE_CODE < PPM_RHEL_RELEASE_VERSION(8, 0))
+#else
 #error Kernel version must be >= 4.14 with eBPF enabled
+#endif
 #endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 13, 0) && LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 4)
