@@ -583,8 +583,8 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 		return SCAP_SUCCESS;
 	}
 
-	uid_t orig_uid = getuid();
-	uid_t orig_gid = getgid();
+	uid_t orig_uid = geteuid();
+	uid_t orig_gid = getegid();
 
 	//
 	// In order to check whether the current user can access the file we need to temporarily
