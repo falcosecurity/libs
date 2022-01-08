@@ -752,6 +752,52 @@ FILLER(sys_mmap_e, true)
 	return res;
 }
 
+FILLER(sys_mprotect_e, true)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * addr
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * length
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * prot
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, prot_flags_to_scap(val));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	return res;
+}
+
+FILLER(sys_mprotect_x, true)
+{
+	long retval;
+	int res;
+
+	/*
+	 * res
+	 */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	
+	return res;
+}
+
 FILLER(sys_fcntl_e, true)
 {
 	unsigned long val;
