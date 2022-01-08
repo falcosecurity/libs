@@ -891,6 +891,11 @@ sinsp_extractor_plugin::~sinsp_extractor_plugin()
 	destroy();
 }
 
+uint32_t sinsp_extractor_plugin::id()
+{
+	return m_id;
+}
+
 const std::set<std::string> &sinsp_extractor_plugin::extract_event_sources()
 {
 	return m_extract_event_sources;
@@ -942,6 +947,7 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 
 	// Others are not.
 	(*(void **) (&m_extractor_plugin_info.get_extract_event_sources)) = getsym(handle, "plugin_get_extract_event_sources", errstr);
+	(*(void **) (&(m_extractor_plugin_info.get_id)) = getsym(handle, "plugin_get_id", errstr);
 
 	if (m_extractor_plugin_info.get_extract_event_sources != NULL)
 	{
@@ -967,6 +973,15 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 
 			m_extract_event_sources.insert(root[j].asString());
 		}
+	}
+
+	if (m_extractor_plugin_info.get_id != NULL)
+	{
+		m_id = m_extractor_plugin_info.get_id();
+	}
+	else
+	{
+		m_id = 0;
 	}
 
 	return true;

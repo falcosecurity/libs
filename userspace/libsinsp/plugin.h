@@ -206,7 +206,7 @@ public:
 	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_EXTRACTOR_PLUGIN; };
-
+	uint32_t id();
 	const std::set<std::string> &extract_event_sources();
 
 	// Return true if the provided source is compatible with this
@@ -222,4 +222,5 @@ protected:
 private:
 	extractor_plugin_info m_extractor_plugin_info;
 	std::set<std::string> m_extract_event_sources;
+	uint32_t m_id;
 };
