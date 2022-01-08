@@ -340,6 +340,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_CONTAINER_JSON_2_X */{"container", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_OPENAT2_E */{"openat2", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_OPENAT2_X */{"openat2", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 6, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"resolve", PT_FLAGS32, PF_HEX, openat2_flags} } },
+	/* PPME_SYSCALL_MPROTECT_E */{"mprotect", EC_MEMORY, EF_DROP_SIMPLE_CONS, 3, {{"addr", PT_UINT64, PF_HEX}, {"length", PT_UINT64, PF_DEC}, {"prot", PT_FLAGS32, PF_HEX, prot_flags} } }, 
+	/* PPME_SYSCALL_MPROTECT_X */{"mprotect", EC_MEMORY, EF_DROP_SIMPLE_CONS, 1, {{"res", PT_ERRNO, PF_DEC} } },	
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

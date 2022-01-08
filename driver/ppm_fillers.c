@@ -4061,6 +4061,51 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_mprotect_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+
+	/*
+	 * addr
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * length
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * prot
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_mprotect_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+	
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	return add_sentinel(args);
+}
+
 int f_sys_renameat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
