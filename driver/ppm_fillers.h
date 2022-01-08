@@ -116,6 +116,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_openat_x)			\
 	FN(sys_openat2_x)			\
 	FN(sys_linkat_x)			\
+	FN(sys_mprotect_e)			\
+	FN(sys_mprotect_x)			\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
