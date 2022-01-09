@@ -82,6 +82,11 @@ public:
 	static bool startswith(const std::string& s, const std::string& prefix);
 
 	//
+	// Transform a hex string into bytes 
+	//
+	static bool unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes);
+
+	//
 	// Concatenate two paths and puts the result in "target".
 	// If path2 is relative, the concatenation happens and the result is true.
 	// If path2 is absolute, the concatenation does not happen, target contains path2 and the result is false.

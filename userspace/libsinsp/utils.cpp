@@ -1537,6 +1537,27 @@ bool sinsp_utils::startswith(const std::string& s, const std::string& prefix)
 	return strncmp(s.c_str(), prefix.c_str(), prefix_len) == 0;
 }
 
+bool sinsp_utils::unhex(const std::vector<char> &hex_chars, std::vector<char> &hex_bytes)
+{
+	if(hex_chars.size() % 2 != 0 || 
+		!std::all_of(hex_chars.begin(), hex_chars.end(), [](unsigned char c){ return std::isxdigit(c); }))
+	{
+		return false;
+	}
+
+	std::stringstream ss;
+	for(size_t i = 0; i < hex_chars.size(); i += 2)
+	{
+		int byte;
+		ss << std::hex << hex_chars.at(i) << hex_chars.at(i + 1);
+		ss >> byte;
+		hex_bytes.push_back(byte & 0xff);
+		ss.str(std::string());
+		ss.clear();
+	}
+	
+	return true;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
