@@ -68,6 +68,10 @@ static cmpop string_to_cmpop(const char* str)
 	{
 		return CO_ICONTAINS;
 	}
+	else if(strcmp(str, "bcontains") == 0)
+	{
+		return CO_BCONTAINS;
+	}
 	else if(strcmp(str, "startswith") == 0)
 	{
 		return CO_STARTSWITH;
