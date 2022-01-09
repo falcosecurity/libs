@@ -84,6 +84,9 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for numeric filters");
 		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for numeric filters");
+		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
@@ -120,6 +123,9 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 		return false;
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for numeric filters");
+		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for numeric filters");
 		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
@@ -158,6 +164,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 #else
 		return (strcasestr(operand1, operand2) != NULL);
 #endif
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for string filters");
 	case CO_STARTSWITH:
 		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
 	case CO_ENDSWITH: 
@@ -191,6 +199,16 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for buffer filters");
+	case CO_BCONTAINS:
+	{
+		std::vector<char> hex_chars(operand2, operand2 + op2_len);
+		std::vector<char> hex_bytes;
+		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
+		{
+			return false;
+		}
+		return (memmem(operand1, op1_len, &hex_bytes[0], hex_bytes.size()) != NULL);
+	}
 	case CO_STARTSWITH:
 		return (memcmp(operand1, operand2, op2_len) == 0);
 	case CO_ENDSWITH: 
@@ -234,6 +252,9 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for numeric filters");
 		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for numeric filters");
+		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
@@ -266,6 +287,9 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2)
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for numeric filters");
 		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for numeric filters");
+		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
@@ -295,6 +319,9 @@ bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for ipv6 addresses");
 		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for ipv6 addresses");
+		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for ipv6 addresses");
 		return false;
@@ -320,6 +347,9 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *oper
 		return false;
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for ipv6 networks");
+		return false;
+	case CO_BCONTAINS:
+		throw sinsp_exception("'bcontains' not supported for ipv6 networks");
 		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for ipv6 networks");
@@ -1604,6 +1634,7 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 	//
 	start = m_scanpos;
 
+	// Maybe you can use sizeof - 1 here 
 	if(compare_no_consume("="))
 	{
 		m_scanpos += 1;
@@ -1643,6 +1674,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 	{
 		m_scanpos += 9;
 		return CO_ICONTAINS;
+	}
+	else if(compare_no_consume("bcontains"))
+	{
+		m_scanpos += 9;
+		return CO_BCONTAINS;
 	}
 	else if(compare_no_consume("startswith"))
 	{

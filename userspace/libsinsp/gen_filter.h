@@ -43,6 +43,7 @@ enum cmpop {
 	CO_PMATCH = 13,
 	CO_ENDSWITH = 14,
 	CO_INTERSECTS = 15,
+	CO_BCONTAINS = 16,
 };
 
 enum boolop
