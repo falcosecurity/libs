@@ -827,6 +827,42 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 	return ret;
 }
 
+std::vector<sinsp_source_plugin::open_param> sinsp_source_plugin::list_open_params() 
+{
+	std::vector<sinsp_source_plugin::open_param> list;
+	if(plugin_state() && m_source_plugin_info.list_open_params)
+	{
+		ss_plugin_rc rc;
+		string jsonString = str_from_alloc_charbuf(m_source_plugin_info.list_open_params(plugin_state(), &rc));
+		if (rc != SS_PLUGIN_SUCCESS)
+		{
+			throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params has error " + get_last_error());
+		}
+
+		if (jsonString.size() > 0)
+		{
+			Json::Value root;
+			if(Json::Reader().parse(jsonString, root) == false || root.type() != Json::arrayValue)
+			{
+				throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params returned a non-array JSON");
+			}
+			for(Json::Value::ArrayIndex i = 0; i < root.size(); i++)
+			{
+				sinsp_source_plugin::open_param param;
+				param.value = root[i]["value"].asString();
+				if(param.value == "")
+				{
+					throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params has entry with no value");
+				}
+				param.desc = root[i]["desc"].asString();
+				list.push_back(param);
+			}
+		}
+	}
+
+	return list;
+}
+
 void sinsp_source_plugin::set_plugin_state(ss_plugin_t *state)
 {
 	m_source_plugin_info.state = state;
@@ -874,6 +910,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	(*(void **) (&m_source_plugin_info.get_progress)) = getsym(handle, "plugin_get_progress", errstr);
 	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr);
 	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
+	(*(void **) (&m_source_plugin_info.list_open_params)) = getsym(handle, "plugin_list_open_params", errstr);
 
 	m_id = m_source_plugin_info.get_id();
 	m_event_source = str_from_alloc_charbuf(m_source_plugin_info.get_event_source());
