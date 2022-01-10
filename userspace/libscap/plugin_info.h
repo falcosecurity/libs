@@ -318,6 +318,21 @@ typedef struct
 	//
 	void (*close)(ss_plugin_t* s, ss_instance_t* h);
 	//
+	// Return a list of suggested open parameters supported by this plugin.
+	// Any of the values in the returned list are valid parameters for open().
+	// Required: no
+	// Return value: a string with the list of open params encoded as
+	//   a json array.
+	//   Each field entry is a json object with the following properties:
+	//     "value": a string usable as an open() parameter.
+	//     "desc": (optional) a string with a description of the parameter.
+	//   Example return value:
+	//   [
+	//      {"value": "resource1", "desc": "An example of openable resource"},
+	//      {"value": "resource2", "desc": "Another example of openable resource"}
+	//   ]
+	const char* (*list_open_params)(ss_plugin_t* s, ss_plugin_rc* rc);
+	//
 	// Return the read progress.
 	// Required: no
 	// Arguments:
