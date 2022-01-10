@@ -166,6 +166,12 @@ private:
 class sinsp_source_plugin : public sinsp_plugin
 {
 public:
+	// Describes a valid parameter for the open() function.
+	struct open_param {
+		std::string value;
+		std::string desc;
+	};
+
 	sinsp_source_plugin();
 	virtual ~sinsp_source_plugin();
 
@@ -185,6 +191,8 @@ public:
 	std::string get_progress(uint32_t &progress_pct);
 
 	std::string event_to_string(const uint8_t *data, uint32_t datalen);
+
+	std::vector<open_param> list_open_params();
 
 protected:
 	void set_plugin_state(ss_plugin_t *state) override;
