@@ -382,6 +382,33 @@ int f_sys_write_x(struct event_filler_arguments *args)
 #ifndef UDIG
 
 /*
+ * get_mm_exe_file is only exported in some kernel versions
+ */
+
+struct file *ppm_get_mm_exe_file(struct mm_struct *mm)
+{
+	struct file *exe_file;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0)
+	rcu_read_lock();
+	exe_file = rcu_dereference(mm->exe_file);
+	if (exe_file && !get_file_rcu(exe_file))
+		exe_file = NULL;
+	rcu_read_unlock();
+#else
+	/* We need mmap_sem to protect against races with removal of
+	 * VM_EXECUTABLE vmas */
+	down_read(&mm->mmap_sem);
+	exe_file = mm->exe_file;
+	if (exe_file)
+		get_file(exe_file);
+	up_read(&mm->mmap_sem);
+#endif
+
+	return exe_file;
+}
+
+/*
  * get_mm_counter was not inline and exported between 3.0 and 3.4
  * https://github.com/torvalds/linux/commit/69c978232aaa99476f9bd002c2a29a84fa3779b5
  * Hence the crap in these two functions
@@ -1120,7 +1147,7 @@ cgroups_error:
 		 * exe_writable flag
 		 */
 
-		exe_file = get_mm_exe_file(mm);
+		exe_file = ppm_get_mm_exe_file(mm);
 
 		if (exe_file != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
