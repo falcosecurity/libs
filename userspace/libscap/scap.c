@@ -355,7 +355,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 					{
 						handle->syscalls_of_interest[syscall_nr] = true;
 					}
-					break;
+					// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
 				}
 			}
 		}

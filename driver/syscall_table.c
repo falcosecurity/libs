@@ -371,6 +371,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_exit - SYSCALL_TABLE_ID0] = PPM_SC_EXIT,
 	[__NR_read - SYSCALL_TABLE_ID0] = PPM_SC_READ,
 	[__NR_write - SYSCALL_TABLE_ID0] = PPM_SC_WRITE,
+	[__NR_execve - SYSCALL_TABLE_ID0] = PPM_SC_EXECVE,
 #ifdef __NR_open
 	[__NR_open - SYSCALL_TABLE_ID0] = PPM_SC_OPEN,
 #endif
@@ -401,6 +402,7 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_lseek - SYSCALL_TABLE_ID0] = PPM_SC_LSEEK,
 	[__NR_getpid - SYSCALL_TABLE_ID0] = PPM_SC_GETPID,
 	[__NR_mount - SYSCALL_TABLE_ID0] = PPM_SC_MOUNT,
+	[__NR_umount2 - SYSCALL_TABLE_ID0] = PPM_SC_UMOUNT2,
 /* [__NR_oldumount - SYSCALL_TABLE_ID0] = PPM_SC_NR_OLDUMOUNT, */
 /* [__NR_setuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETUID16, */
 /* [__NR_getuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_GETUID16, */
@@ -1235,6 +1237,7 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_exit - SYSCALL_TABLE_ID0] = PPM_SC_EXIT,
 	[__NR_ia32_read - SYSCALL_TABLE_ID0] = PPM_SC_READ,
 	[__NR_ia32_write - SYSCALL_TABLE_ID0] = PPM_SC_WRITE,
+	[__NR_ia32_execve - SYSCALL_TABLE_ID0] = PPM_SC_EXECVE,
 	[__NR_ia32_open - SYSCALL_TABLE_ID0] = PPM_SC_OPEN,
 	[__NR_ia32_close - SYSCALL_TABLE_ID0] = PPM_SC_CLOSE,
 	[__NR_ia32_creat - SYSCALL_TABLE_ID0] = PPM_SC_CREAT,
@@ -1249,6 +1252,7 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_lseek - SYSCALL_TABLE_ID0] = PPM_SC_LSEEK,
 	[__NR_ia32_getpid - SYSCALL_TABLE_ID0] = PPM_SC_GETPID,
 	[__NR_ia32_mount - SYSCALL_TABLE_ID0] = PPM_SC_MOUNT,
+	[__NR_ia32_umount2 - SYSCALL_TABLE_ID0] = PPM_SC_UMOUNT2,
 /* [__NR_ia32_oldumount - SYSCALL_TABLE_ID0] = PPM_SC_NR_OLDUMOUNT, */
 /* [__NR_ia32_setuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_SETUID16, */
 /* [__NR_ia32_getuid16 - SYSCALL_TABLE_ID0] = PPM_SC_NR_GETUID16, */
@@ -1397,8 +1401,6 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_setresgid - SYSCALL_TABLE_ID0] = PPM_SC_SETRESGID,
 	[__NR_ia32_getresgid - SYSCALL_TABLE_ID0] = PPM_SC_GETRESGID,
 	[__NR_ia32_chown - SYSCALL_TABLE_ID0] = PPM_SC_CHOWN,
-	[__NR_ia32_setuid - SYSCALL_TABLE_ID0] = PPM_SC_SETUID,
-	[__NR_ia32_setgid - SYSCALL_TABLE_ID0] = PPM_SC_SETGID,
 	[__NR_ia32_setfsuid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSUID,
 	[__NR_ia32_setfsgid - SYSCALL_TABLE_ID0] = PPM_SC_SETFSGID,
 	[__NR_ia32_pivot_root - SYSCALL_TABLE_ID0] = PPM_SC_PIVOT_ROOT,
@@ -1565,9 +1567,6 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_semctl
 	[__NR_ia32_semctl - SYSCALL_TABLE_ID0] =  PPM_SC_SEMCTL,
-#endif
-#ifdef __NR_ia32_semget
-	[__NR_ia32_semget - SYSCALL_TABLE_ID0] =  PPM_SC_SEMGET,
 #endif
 #ifdef __NR_ia32_msgsnd
 	[__NR_ia32_msgsnd - SYSCALL_TABLE_ID0] =  PPM_SC_MSGSND,

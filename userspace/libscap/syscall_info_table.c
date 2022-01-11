@@ -352,6 +352,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_RENAMEAT2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "renameat2" },
 	/*PPM_SC_USERFAULTFD*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "userfaultfd" },
 	/*PPM_SC_OPENAT2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "openat2" },
+	/*PPM_SC_UMOUNT2*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "umount2" },
+	/*PPM_SC_EXECVE*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "execve" },
 };
 
 bool validate_info_table_size()
