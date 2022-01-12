@@ -76,6 +76,10 @@ static cmpop string_to_cmpop(const char* str)
 	{
 		return CO_STARTSWITH;
 	}
+	else if(strcmp(str, "bstartswith") == 0)
+	{
+		return CO_BSTARTSWITH;
+	}
 	else if(strcmp(str, "endswith") == 0)
 	{
 		return CO_ENDSWITH;
