@@ -90,6 +90,9 @@ bool flt_compare_uint64(cmpop op, uint64_t operand1, uint64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for numeric filters");
+		return false;
 	case CO_ENDSWITH:
 		throw sinsp_exception("'endswith' not supported for numeric filters");
 		return false;
@@ -130,9 +133,12 @@ bool flt_compare_int64(cmpop op, int64_t operand1, int64_t operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
-        case CO_ENDSWITH:
-                throw sinsp_exception("'endswith' not supported for numeric filters");
-                return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for numeric filters");
+		return false;
+	case CO_ENDSWITH:
+		throw sinsp_exception("'endswith' not supported for numeric filters");
+		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for numeric filters");
 		return false;
@@ -168,6 +174,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
 		throw sinsp_exception("'bcontains' not supported for string filters");
 	case CO_STARTSWITH:
 		return (strncmp(operand1, operand2, strlen(operand2)) == 0);
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for string filters");
 	case CO_ENDSWITH: 
 		return (sinsp_utils::endswith(operand1, operand2));
 	case CO_GLOB:
@@ -210,7 +218,17 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		return (memmem(operand1, op1_len, &hex_bytes[0], hex_bytes.size()) != NULL);
 	}
 	case CO_STARTSWITH:
-		return (memcmp(operand1, operand2, op2_len) == 0);
+		return op2_len <= op1_len && (memcmp(operand1, operand2, op2_len) == 0);
+	case CO_BSTARTSWITH:
+	{
+		std::vector<char> hex_chars(operand2, operand2 + op2_len);
+		std::vector<char> hex_bytes;
+		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
+		{
+			return false;
+		}
+		return hex_bytes.size() <= op1_len && (memcmp(operand1, &hex_bytes[0], hex_bytes.size()) == 0);
+	}
 	case CO_ENDSWITH: 
 		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	case CO_GLOB:
@@ -258,6 +276,9 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for numeric filters");
+		return false;
 	case CO_ENDSWITH:
 		throw sinsp_exception("'endswith' not supported for numeric filters");
 		return false;
@@ -293,6 +314,9 @@ bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for numeric filters");
 		return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for numeric filters");
+		return false;
 	case CO_ENDSWITH:
 		throw sinsp_exception("'endswith' not supported for numeric filters");
 		return false;
@@ -325,6 +349,9 @@ bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for ipv6 addresses");
 		return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for ipv6 addresses");
+		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for ipv6 addresses");
 		return false;
@@ -353,6 +380,9 @@ bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *oper
 		return false;
 	case CO_STARTSWITH:
 		throw sinsp_exception("'startswith' not supported for ipv6 networks");
+		return false;
+	case CO_BSTARTSWITH:
+		throw sinsp_exception("'bstartswith' not supported for ipv6 networks");
 		return false;
 	case CO_GLOB:
 		throw sinsp_exception("'glob' not supported for ipv6 networks");
@@ -1684,6 +1714,11 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 	{
 		m_scanpos += 10;
 		return CO_STARTSWITH;
+	}
+	else if(compare_no_consume("bstartswith"))
+	{
+		m_scanpos += 11;
+		return CO_BSTARTSWITH;
 	}
 	else if(compare_no_consume("endswith"))
 	{
