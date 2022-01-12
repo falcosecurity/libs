@@ -1736,14 +1736,12 @@ bpf_map_id_up_base(unsigned extents, struct uid_gid_map *map, u32 id)
 
 	#pragma unroll UID_GID_MAP_MAX_BASE_EXTENTS
 	for (idx = 0; idx < UID_GID_MAP_MAX_BASE_EXTENTS; idx++) {
-		if (idx >= extents) {
-			break;
+		if (idx < extents) {
+			first = _READ(map->extent[idx].lower_first);
+			last = first + _READ(map->extent[idx].count) - 1;
+			if (id >= first && id <= last)
+				return &map->extent[idx];
 		}
-
-		first = _READ(map->extent[idx].lower_first);
-		last = first + _READ(map->extent[idx].count) - 1;
-		if (id >= first && id <= last)
-			return &map->extent[idx];
 	}
 	return NULL;
 }
