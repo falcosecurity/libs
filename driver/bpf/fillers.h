@@ -177,6 +177,43 @@ FILLER(sys_single_x, true)
 	return res;
 }
 
+FILLER(sys_open_e, true)
+{
+	unsigned long flags;
+	unsigned long val;
+	unsigned long mode;
+	int res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	flags = open_flags_to_scap(val);
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 2);
+	mode = open_modes_to_scap(val, mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	return res;
+}
+
 FILLER(sys_open_x, true)
 {
 	unsigned int flags;
@@ -921,6 +958,51 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 	 * max
 	 */
 	res = bpf_val_to_ring(data, max);
+
+	return res;
+}
+
+FILLER(sys_connect_e, true)
+{
+	struct sockaddr *usrsockaddr;
+	unsigned long val;
+	long size = 0;
+	long retval;
+	int err;
+	int res;
+	int fd;
+
+	fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	if (fd >= 0) {
+		usrsockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 1);
+		val = bpf_syscall_get_argument(data, 2);
+
+		if (usrsockaddr && val != 0) {
+			/*
+			 * Copy the address
+			 */
+			err = bpf_addr_to_kernel(usrsockaddr, val,
+						 (struct sockaddr *)data->tmp_scratch);
+			if (err >= 0) {
+				/*
+				 * Convert the fd into socket endpoint information
+				 */
+				size = bpf_pack_addr(data,
+					(struct sockaddr *)data->tmp_scratch,
+					val);
+			}
+		}
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	data->curarg_already_on_frame = true;
+	res = bpf_val_to_ring_len(data, 0, size);
 
 	return res;
 }
@@ -2684,6 +2766,54 @@ FILLER(sys_generic, true)
 	return res;
 }
 
+FILLER(sys_openat_e, true)
+{
+	unsigned long flags;
+	unsigned long val;
+	unsigned long mode;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	flags = open_flags_to_scap(val);
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 3);
+	mode = open_modes_to_scap(val, mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	return res;
+}
+
 FILLER(sys_openat_x, true)
 {
 	unsigned long dev;
@@ -2746,6 +2876,77 @@ FILLER(sys_openat_x, true)
 	res = bpf_val_to_ring(data, dev);
 	return res;
 }
+
+FILLER(sys_openat2_e, true)
+{
+	unsigned long resolve;
+	unsigned long flags;
+	unsigned long val;
+	unsigned long mode;
+	int res;
+#ifdef __NR_openat2
+	struct open_how how;
+#endif
+	/*
+	 * dirfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+#ifdef __NR_openat2
+	/*
+	 * how: we get the data structure, and put its fields in the buffer one by one
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	if (bpf_probe_read(&how, sizeof(struct open_how), (void *)val)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+	flags = open_flags_to_scap(how.flags);
+	mode = open_modes_to_scap(how.flags, how.mode);
+	resolve = openat2_resolve_to_scap(how.resolve);
+#else
+	flags = 0;
+	mode = 0;
+	resolve = 0;
+#endif
+
+	/*
+	 * flags (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * resolve (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = bpf_val_to_ring(data, resolve);
+	return res;
+}
+
 
 FILLER(sys_openat2_x, true)
 {
@@ -3455,6 +3656,32 @@ FILLER(sys_sendmsg_x, true)
 
 	res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval,
 					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
+
+	return res;
+}
+
+FILLER(sys_creat_e, true)
+{
+	unsigned long val;
+	unsigned long mode;
+	int res;
+
+	/*
+	 * name
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * mode
+	 */
+	mode = bpf_syscall_get_argument(data, 1);
+	mode = open_modes_to_scap(O_CREAT, mode);
+	res = bpf_val_to_ring(data, mode);
+	if (res != PPM_SUCCESS)
+		return res;
 
 	return res;
 }

@@ -236,6 +236,47 @@ out_unlock:
 #endif /* UDIG */
 }
 
+int f_sys_open_e(struct event_filler_arguments *args)
+{
+	syscall_arg_t val;
+	syscall_arg_t flags;
+	syscall_arg_t modes;
+	char *name = NULL;
+	int res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
+	{
+		name = args->str_storage;
+		name[PPM_MAX_PATH_SIZE - 1] = '\0';
+	}
+	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  mode
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_open_x(struct event_filler_arguments *args)
 {
 	syscall_arg_t val;
@@ -1358,6 +1399,84 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 				val,
 				targetbuf,
 				STR_STORAGE_SIZE);
+		}
+	}
+
+	/*
+	 * Copy the endpoint info into the ring
+	 */
+	res = val_to_ring(args,
+			    (uint64_t)targetbuf,
+			    size,
+			    false,
+			    0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_connect_e(struct event_filler_arguments *args)
+{
+	int res;
+	int err = 0;
+	int fd;
+	struct sockaddr __user *usrsockaddr;
+	u16 size = 0;
+	char *targetbuf = args->str_storage;
+	struct sockaddr_storage address;
+	syscall_arg_t val;
+
+	if (!args->is_socketcall) {
+		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+		fd = (int)val;
+	}
+#ifndef UDIG
+	else
+		fd = (int)args->socketcall_args[0];
+#endif
+
+	res = val_to_ring(args, fd, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	if (fd >= 0) {
+		/*
+		 * Get the address
+		 */
+		if (!args->is_socketcall)
+			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
+		else
+			val = args->socketcall_args[1];
+#endif
+
+		usrsockaddr = (struct sockaddr __user *)val;
+
+		/*
+		 * Get the address len
+		 */
+		if (!args->is_socketcall)
+			syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+#ifndef UDIG
+		else
+			val = args->socketcall_args[2];
+#endif
+
+		if (usrsockaddr != NULL && val != 0) {
+			/*
+			* Copy the address
+			*/
+			err = addr_to_kernel(usrsockaddr, val, (struct sockaddr *)&address);
+			if (likely(err >= 0)) {
+				/*
+				* Convert the fd into socket endpoint information
+				*/
+				size = pack_addr((struct sockaddr *)&address,
+					val,
+					targetbuf,
+					STR_STORAGE_SIZE);
+			}
 		}
 	}
 
@@ -2613,6 +2732,37 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_creat_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	unsigned long modes;
+	char *name = NULL;
+	int res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
+	{
+		name = args->str_storage;
+		name[PPM_MAX_PATH_SIZE - 1] = '\0';
+	}
+	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  mode
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(O_CREAT, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_creat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3085,6 +3235,59 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 }
 
 #ifndef WDIG
+int f_sys_openat_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	unsigned long flags;
+	unsigned long modes;
+	char *name = NULL;
+	int res;
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
+	{
+		name = args->str_storage;
+		name[PPM_MAX_PATH_SIZE - 1] = '\0';
+	}
+	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Flags
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &flags);
+	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  mode
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &modes);
+	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_openat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -4395,6 +4598,88 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_openat2_e(struct event_filler_arguments *args)
+{
+	unsigned long resolve;
+	unsigned long flags;
+	unsigned long val;
+	unsigned long mode;
+	char *name = NULL;
+	int res;
+#ifdef __NR_openat2
+	struct open_how how;
+#endif
+
+	/*
+	 * dirfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+	if ((int)val == AT_FDCWD)
+		val = PPM_AT_FDCWD;
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * name
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
+	{
+		name = args->str_storage;
+		name[PPM_MAX_PATH_SIZE - 1] = '\0';
+	}
+	res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+	
+
+#ifdef __NR_openat2
+	/*
+	 * how: we get the data structure, and put its fields in the buffer one by one
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	res = ppm_copy_from_user(&how, (void *)val, sizeof(struct open_how));
+	if (unlikely(res != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	flags = open_flags_to_scap(how.flags);
+	mode = open_modes_to_scap(how.flags, how.mode);
+	resolve = openat2_resolve_to_scap(how.resolve);
+#else
+	flags = 0;
+	mode = 0;
+	resolve = 0;
+#endif
+	/*
+	 * flags (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = val_to_ring(args, flags, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * mode (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = val_to_ring(args, mode, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * resolve (extracted from open_how structure)
+	 * Note that we convert them into the ppm portable representation before pushing them to the ring
+	 */
+	res = val_to_ring(args, resolve, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
