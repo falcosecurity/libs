@@ -1149,14 +1149,16 @@ cgroups_error:
 
 		exe_file = ppm_get_mm_exe_file(mm);
 
-		if (exe_file != NULL && exe_file->f_inode != NULL) {
+		if (exe_file != NULL) {
+			if (file_inode(exe_file) != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
-			exe_writable |= (inode_permission(current_user_ns(), exe_file->f_inode, MAY_WRITE) == 0);
-			exe_writable |= inode_owner_or_capable(current_user_ns(), exe_file->f_inode);
+				exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE) == 0);
+				exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
 #else
-			exe_writable |= (inode_permission(exe_file->f_inode, MAY_WRITE) == 0);
-			exe_writable |= inode_owner_or_capable(exe_file->f_inode);
+				exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
+				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+			}
 			fput(exe_file);
 		}
 
