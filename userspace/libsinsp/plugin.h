@@ -28,6 +28,10 @@ limitations under the License.
 
 #include "filter_check_list.h"
 
+#ifndef _WIN32
+#define HINSTANCE void*
+#endif
+
 class sinsp_filter_check_plugin;
 
 // Base class for source/extractor plugins. Can not be created directly.
@@ -94,14 +98,17 @@ public:
 	// Return a string with names/descriptions/etc of all plugins used by this inspector
 	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);
 
-	sinsp_plugin();
+	// Return whether a filesystem object is loaded
+	static bool is_plugin_loaded(sinsp* inspector, std::string &filepath);
+
+	sinsp_plugin(HINSTANCE handle);
 	virtual ~sinsp_plugin();
 
 	// Given a dynamic library handle, fill in common properties
 	// (name/desc/etc) and required functions
 	// (init/destroy/extract/etc).
 	// Returns true on success, false + sets errstr on error.
-	virtual bool resolve_dylib_symbols(void *handle, std::string &errstr);
+	virtual bool resolve_dylib_symbols(std::string &errstr);
 
 	bool init(const char* config);
 	void destroy();
@@ -123,9 +130,11 @@ public:
 	std::string get_init_schema(ss_plugin_schema_type& schema_type);
 	void validate_init_config(const char* config);
 
+	HINSTANCE m_handle;
+
 protected:
 	// Helper function to resolve symbols
-	static void* getsym(void* handle, const char* name, std::string &errstr);
+	static void* getsym(HINSTANCE handle, const char* name, std::string &errstr);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	std::string str_from_alloc_charbuf(const char* charbuf);
@@ -178,10 +187,10 @@ public:
 		std::string desc;
 	};
 
-	sinsp_source_plugin();
+	sinsp_source_plugin(HINSTANCE handle);
 	virtual ~sinsp_source_plugin();
 
-	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
+	bool resolve_dylib_symbols(std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_SOURCE_PLUGIN; };
 	uint32_t id();
@@ -214,10 +223,10 @@ private:
 class sinsp_extractor_plugin : public sinsp_plugin
 {
 public:
-	sinsp_extractor_plugin();
+	sinsp_extractor_plugin(HINSTANCE handle);
 	virtual ~sinsp_extractor_plugin();
 
-	bool resolve_dylib_symbols(void *handle, std::string &errstr) override;
+	bool resolve_dylib_symbols(std::string &errstr) override;
 
 	ss_plugin_type type() override { return TYPE_EXTRACTOR_PLUGIN; };
 

@@ -392,8 +392,8 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 	switch(plugin_type)
 	{
 	case TYPE_SOURCE_PLUGIN:
-		splugin = new sinsp_source_plugin();
-		if(!splugin->resolve_dylib_symbols(handle, errstr))
+		splugin = new sinsp_source_plugin(handle);
+		if(!splugin->resolve_dylib_symbols(errstr))
 		{
 			delete splugin;
 			return ret;
@@ -401,8 +401,8 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 		ret.reset(splugin);
 		break;
 	case TYPE_EXTRACTOR_PLUGIN:
-		eplugin = new sinsp_extractor_plugin();
-		if(!eplugin->resolve_dylib_symbols(handle, errstr))
+		eplugin = new sinsp_extractor_plugin(handle);
+		if(!eplugin->resolve_dylib_symbols(errstr))
 		{
 			delete eplugin;
 			return ret;
@@ -449,13 +449,39 @@ std::list<sinsp_plugin::info> sinsp_plugin::plugin_infos(sinsp* inspector)
 	return ret;
 }
 
-sinsp_plugin::sinsp_plugin()
-	: m_nfields(0)
+bool sinsp_plugin::is_plugin_loaded(sinsp* inspector, std::string &filepath)
+{
+#ifdef _WIN32
+	// This returns an HMODULE indeed, but they are the same thing
+	HINSTANCE handle = (HINSTANCE)GetModuleHandle(filepath.c_str());
+#else
+	void* handle = dlopen(filepath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
+#endif
+	if (!handle)
+	{
+		return false;
+	}
+	for(auto p : inspector->get_plugins())
+	{
+		if (p->m_handle == handle) {
+			return true;
+		}
+	}
+	return false;
+}
+
+sinsp_plugin::sinsp_plugin(HINSTANCE handle)
+	: m_nfields(0), m_handle(handle)
 {
 }
 
 sinsp_plugin::~sinsp_plugin()
 {
+#ifdef _WIN32
+	FreeLibrary(m_handle);
+#else
+	dlclose(m_handle);
+#endif
 }
 
 bool sinsp_plugin::init(const char *config)
@@ -582,12 +608,12 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 	return true;
 }
 
-void* sinsp_plugin::getsym(void* handle, const char* name, std::string &errstr)
+void* sinsp_plugin::getsym(HINSTANCE handle, const char* name, std::string &errstr)
 {
 	void *ret;
 
 #ifdef _WIN32
-	ret = GetProcAddress((HINSTANCE)handle, name);
+	ret = GetProcAddress(handle, name);
 #else
 	ret = dlsym(handle, name);
 #endif
@@ -615,25 +641,25 @@ std::string sinsp_plugin::str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-bool sinsp_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
+bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 {
 	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
-	   (*(void **) (&(m_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
-	   (*(void **) (&(m_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
-	   (*(void **) (&(m_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
-	   (*(void **) (&(m_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
-	   (*(void **) (&(m_plugin_info.get_version)) = getsym(handle, "plugin_get_version", errstr)) == NULL)
+	if((*(void **) (&(m_plugin_info.get_required_api_version)) = getsym(m_handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_last_error)) = getsym(m_handle, "plugin_get_last_error", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_name)) = getsym(m_handle, "plugin_get_name", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_description)) = getsym(m_handle, "plugin_get_description", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_contact)) = getsym(m_handle, "plugin_get_contact", errstr)) == NULL ||
+	   (*(void **) (&(m_plugin_info.get_version)) = getsym(m_handle, "plugin_get_version", errstr)) == NULL)
 	{
 		return false;
 	}
 
 	// Others are not and the values will be checked when needed.
-	(*(void **) (&m_plugin_info.init)) = getsym(handle, "plugin_init", errstr);
-	(*(void **) (&m_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr);
-	(*(void **) (&m_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
-	(*(void **) (&m_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
-	(*(void **) (&m_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
+	(*(void **) (&m_plugin_info.init)) = getsym(m_handle, "plugin_init", errstr);
+	(*(void **) (&m_plugin_info.destroy)) = getsym(m_handle, "plugin_destroy", errstr);
+	(*(void **) (&m_plugin_info.get_fields)) = getsym(m_handle, "plugin_get_fields", errstr);
+	(*(void **) (&m_plugin_info.extract_fields)) = getsym(m_handle, "plugin_extract_fields", errstr);
+	(*(void **) (&m_plugin_info.get_init_schema)) = getsym(m_handle, "plugin_get_init_schema", errstr);
 
 	m_name = str_from_alloc_charbuf(m_plugin_info.get_name());
 	m_description = str_from_alloc_charbuf(m_plugin_info.get_description());
@@ -866,7 +892,8 @@ void sinsp_plugin::validate_init_config_json_schema(std::string config, std::str
 	}
 }
 
-sinsp_source_plugin::sinsp_source_plugin()
+sinsp_source_plugin::sinsp_source_plugin(HINSTANCE handle) :
+	sinsp_plugin(handle)
 {
 	memset(&m_source_plugin_info, 0, sizeof(m_source_plugin_info));
 }
@@ -997,9 +1024,9 @@ ss_plugin_t *sinsp_source_plugin::plugin_state()
 	return m_source_plugin_info.state;
 }
 
-bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
+bool sinsp_source_plugin::resolve_dylib_symbols(std::string &errstr)
 {
-	if (!sinsp_plugin::resolve_dylib_symbols(handle, errstr))
+	if (!sinsp_plugin::resolve_dylib_symbols(errstr))
 	{
 		return false;
 	}
@@ -1010,32 +1037,32 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	// down to libscap when reading/writing capture files).
 	//
 	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_source_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.init)) = getsym(handle, "plugin_init", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_type)) = getsym(handle, "plugin_get_type", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_id)) = getsym(handle, "plugin_get_id", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_version)) = getsym(handle, "plugin_get_version", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.get_event_source)) = getsym(handle, "plugin_get_event_source", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.open)) = getsym(handle, "plugin_open", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.close)) = getsym(handle, "plugin_close", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.next_batch)) = getsym(handle, "plugin_next_batch", errstr)) == NULL ||
-	   (*(void **) (&(m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr)) == NULL)
+	if((*(void **) (&(m_source_plugin_info.get_required_api_version)) = getsym(m_handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.init)) = getsym(m_handle, "plugin_init", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.destroy)) = getsym(m_handle, "plugin_destroy", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_last_error)) = getsym(m_handle, "plugin_get_last_error", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_type)) = getsym(m_handle, "plugin_get_type", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_id)) = getsym(m_handle, "plugin_get_id", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_name)) = getsym(m_handle, "plugin_get_name", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_description)) = getsym(m_handle, "plugin_get_description", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_contact)) = getsym(m_handle, "plugin_get_contact", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_version)) = getsym(m_handle, "plugin_get_version", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.get_event_source)) = getsym(m_handle, "plugin_get_event_source", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.open)) = getsym(m_handle, "plugin_open", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.close)) = getsym(m_handle, "plugin_close", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.next_batch)) = getsym(m_handle, "plugin_next_batch", errstr)) == NULL ||
+	   (*(void **) (&(m_source_plugin_info.event_to_string)) = getsym(m_handle, "plugin_event_to_string", errstr)) == NULL)
 	{
 		return false;
 	}
 
 	// Others are not.
-	(*(void **) (&m_source_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr);
-	(*(void **) (&m_source_plugin_info.get_progress)) = getsym(handle, "plugin_get_progress", errstr);
-	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(handle, "plugin_event_to_string", errstr);
-	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr);
-	(*(void **) (&m_source_plugin_info.list_open_params)) = getsym(handle, "plugin_list_open_params", errstr);
-	(*(void **) (&m_source_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
+	(*(void **) (&m_source_plugin_info.get_fields)) = getsym(m_handle, "plugin_get_fields", errstr);
+	(*(void **) (&m_source_plugin_info.get_progress)) = getsym(m_handle, "plugin_get_progress", errstr);
+	(*(void **) (&m_source_plugin_info.event_to_string)) = getsym(m_handle, "plugin_event_to_string", errstr);
+	(*(void **) (&m_source_plugin_info.extract_fields)) = getsym(m_handle, "plugin_extract_fields", errstr);
+	(*(void **) (&m_source_plugin_info.list_open_params)) = getsym(m_handle, "plugin_list_open_params", errstr);
+	(*(void **) (&m_source_plugin_info.get_init_schema)) = getsym(m_handle, "plugin_get_init_schema", errstr);
 
 	m_id = m_source_plugin_info.get_id();
 	m_event_source = str_from_alloc_charbuf(m_source_plugin_info.get_event_source());
@@ -1043,7 +1070,8 @@ bool sinsp_source_plugin::resolve_dylib_symbols(void *handle, std::string &errst
 	return true;
 }
 
-sinsp_extractor_plugin::sinsp_extractor_plugin()
+sinsp_extractor_plugin::sinsp_extractor_plugin(HINSTANCE handle) :
+	sinsp_plugin(handle)
 {
 	memset(&m_extractor_plugin_info, 0, sizeof(m_extractor_plugin_info));
 }
@@ -1074,9 +1102,9 @@ ss_plugin_t *sinsp_extractor_plugin::plugin_state()
 	return m_extractor_plugin_info.state;
 }
 
-bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &errstr)
+bool sinsp_extractor_plugin::resolve_dylib_symbols(std::string &errstr)
 {
-	if (!sinsp_plugin::resolve_dylib_symbols(handle, errstr))
+	if (!sinsp_plugin::resolve_dylib_symbols(errstr))
 	{
 		return false;
 	}
@@ -1087,24 +1115,24 @@ bool sinsp_extractor_plugin::resolve_dylib_symbols(void *handle, std::string &er
 	// down to libscap when reading/writing capture files).
 	//
 	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_extractor_plugin_info.get_required_api_version)) = getsym(handle, "plugin_get_required_api_version", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.init)) = getsym(handle, "plugin_init", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.destroy)) = getsym(handle, "plugin_destroy", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_last_error)) = getsym(handle, "plugin_get_last_error", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_type)) = getsym(handle, "plugin_get_type", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_name)) = getsym(handle, "plugin_get_name", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_description)) = getsym(handle, "plugin_get_description", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_contact)) = getsym(handle, "plugin_get_contact", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_version)) = getsym(handle, "plugin_get_version", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.get_fields)) = getsym(handle, "plugin_get_fields", errstr)) == NULL ||
-	   (*(void **) (&(m_extractor_plugin_info.extract_fields)) = getsym(handle, "plugin_extract_fields", errstr)) == NULL)
+	if((*(void **) (&(m_extractor_plugin_info.get_required_api_version)) = getsym(m_handle, "plugin_get_required_api_version", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.init)) = getsym(m_handle, "plugin_init", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.destroy)) = getsym(m_handle, "plugin_destroy", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_last_error)) = getsym(m_handle, "plugin_get_last_error", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_type)) = getsym(m_handle, "plugin_get_type", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_name)) = getsym(m_handle, "plugin_get_name", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_description)) = getsym(m_handle, "plugin_get_description", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_contact)) = getsym(m_handle, "plugin_get_contact", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_version)) = getsym(m_handle, "plugin_get_version", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.get_fields)) = getsym(m_handle, "plugin_get_fields", errstr)) == NULL ||
+	   (*(void **) (&(m_extractor_plugin_info.extract_fields)) = getsym(m_handle, "plugin_extract_fields", errstr)) == NULL)
 	{
 		return false;
 	}
 
 	// Others are not.
-	(*(void **) (&m_extractor_plugin_info.get_extract_event_sources)) = getsym(handle, "plugin_get_extract_event_sources", errstr);
-	(*(void **) (&m_extractor_plugin_info.get_init_schema)) = getsym(handle, "plugin_get_init_schema", errstr);
+	(*(void **) (&m_extractor_plugin_info.get_extract_event_sources)) = getsym(m_handle, "plugin_get_extract_event_sources", errstr);
+	(*(void **) (&m_extractor_plugin_info.get_init_schema)) = getsym(m_handle, "plugin_get_init_schema", errstr);
 
 
 	if (m_extractor_plugin_info.get_extract_event_sources != NULL)
