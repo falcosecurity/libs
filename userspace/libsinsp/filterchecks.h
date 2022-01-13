@@ -32,8 +32,8 @@ class sinsp_filter_check_reference;
 
 bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len = 0, uint32_t op2_len = 0);
 bool flt_compare_avg(cmpop op, ppm_param_type type, void* operand1, void* operand2, uint32_t op1_len, uint32_t op2_len, uint32_t cnt1, uint32_t cnt2);
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2);
-bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr* operand2);
+bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2);
+bool flt_compare_ipv6net(cmpop op, const ipv6addr  *operand1, const ipv6net *operand2);
 
 char* flt_to_string(uint8_t* rawval, filtercheck_field_info* finfo);
 int32_t gmt2local(time_t t);

@@ -160,7 +160,6 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			parsed_len = sizeof(struct in_addr);
 			break;
 	        case PT_IPV6ADDR:
-	        case PT_IPV6NET:
 		{
 			ipv6addr *addr = (ipv6addr*) storage;
 			if(inet_pton(AF_INET6, str, addr->m_b) != 1)
@@ -218,6 +217,12 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			net->m_netmask = htonl(net->m_netmask);
 
 			parsed_len = sizeof(ipv4net);
+			break;
+		}
+		case PT_IPV6NET:
+		{
+			new (storage) ipv6net(str);
+			parsed_len = sizeof(ipv6net);
 			break;
 		}
 		default:

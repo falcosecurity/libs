@@ -249,7 +249,7 @@ bool flt_compare_double(cmpop op, double operand1, double operand2)
 	}
 }
 
-bool flt_compare_ipv4net(cmpop op, uint64_t operand1, ipv4net* operand2)
+bool flt_compare_ipv4net(cmpop op, uint64_t operand1, const ipv4net* operand2)
 {
 	switch(op)
 	{
@@ -306,15 +306,15 @@ bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	}
 }
 
-bool flt_compare_ipv6net(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
+bool flt_compare_ipv6net(cmpop op, const ipv6addr  *operand1, const ipv6net *operand2)
 {
 	switch(op)
 	{
 	case CO_EQ:
 	case CO_IN:
-		return operand1->in_subnet(*operand2);
+		return operand2->in_cidr(*operand1);
 	case CO_NE:
-		return !operand1->in_subnet(*operand2);
+		return !operand2->in_cidr(*operand1);
 	case CO_CONTAINS:
 		throw sinsp_exception("'contains' not supported for ipv6 networks");
 		return false;
@@ -376,7 +376,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_IPV6ADDR:
 		return flt_compare_ipv6addr(op, (ipv6addr *)operand1, (ipv6addr *)operand2);
 	case PT_IPV6NET:
-		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6addr*)operand2);
+		return flt_compare_ipv6net(op, (ipv6addr *)operand1, (ipv6net*)operand2);
 	case PT_IPADDR:
 		if(op1_len == sizeof(struct in_addr))
 		{

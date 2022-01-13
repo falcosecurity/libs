@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <stdint.h>
+#include <string>
 
 /** @defgroup state State management
  *  @{
@@ -48,18 +49,28 @@ typedef struct ipv4net
 	uint32_t m_netmask; ///< Subnet mask
 }ipv4net;
 
-typedef struct _ipv6addr
+struct ipv6addr
 {
 	uint32_t m_b[4];
 
-	bool operator==(const _ipv6addr &other) const;
-	bool operator!=(const _ipv6addr &other) const;
-	bool operator<(const _ipv6addr &other) const;
-	bool in_subnet(const _ipv6addr &other) const;
+	bool operator==(const ipv6addr &other) const;
+	bool operator!=(const ipv6addr &other) const;
+	bool operator<(const ipv6addr &other) const;
+	bool in_subnet(const ipv6addr &other) const;
 
-	static struct _ipv6addr empty_address;
-}ipv6addr;
+	static struct ipv6addr empty_address;
+};
 
+class ipv6net
+{
+private:
+	ipv6addr m_addr;
+	uint32_t m_mask_len_ints;
+	uint32_t m_mask_tail_bits;
+public:
+	ipv6net(const std::string &str);
+	bool in_cidr(const ipv6addr &other) const;
+};
 
 /*!
 	\brief An IPv6 tuple. 

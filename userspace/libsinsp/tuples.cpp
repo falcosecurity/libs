@@ -16,6 +16,11 @@ limitations under the License.
 */
 
 #include <tuples.h>
+#include <string>
+#include <cstring>
+#include <arpa/inet.h>
+#include "utils.h"
+#include "sinsp_exception.h"
 
 ipv6addr ipv6addr::empty_address = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
 
@@ -49,4 +54,52 @@ bool ipv6addr::in_subnet(const ipv6addr &other) const
 	// bits for subnet).
 	return (m_b[0] == other.m_b[0] &&
 		m_b[1] == other.m_b[1]);
+}
+
+ipv6net::ipv6net(const std::string &str)
+{
+	std::stringstream ss(str);
+	std::string ip, mask;
+
+	if (strchr(str.c_str(), '/') == nullptr)
+	{
+		throw sinsp_exception("unrecognized IP network " + std::string(str));
+	}
+
+	getline(ss, ip, '/');
+	getline(ss, mask);
+
+	if(inet_pton(AF_INET6, ip.c_str(), m_addr.m_b) != 1)
+	{
+		throw sinsp_exception("unrecognized IPv6 address " + std::string(str));
+	}
+
+	uint32_t prefix_len = sinsp_numparser::parseu8(mask);
+
+	if (prefix_len == 0 || prefix_len > 128)
+	{
+		throw sinsp_exception("invalid v6 netmask " + mask);
+	}
+
+	m_mask_len_ints  = prefix_len / 32;
+	m_mask_tail_bits = 32 - prefix_len % 32;
+
+	if (m_mask_tail_bits == 32)
+	{
+		--m_mask_len_ints;
+		m_mask_tail_bits = 0;
+	}
+}
+
+bool ipv6net::in_cidr(const ipv6addr &other) const
+{
+	int i = 0;
+	for (; i < m_mask_len_ints; i++)
+	{
+		if(m_addr.m_b[i] != other.m_b[i])
+		{
+			return false;
+		}
+	}
+	return (m_addr.m_b[i] >> m_mask_tail_bits) == (other.m_b[i] >> m_mask_tail_bits);
 }
