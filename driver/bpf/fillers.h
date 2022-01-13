@@ -26,6 +26,14 @@ or GPL2.txt for full copies of the license.
 #include <linux/audit.h>
 
 
+/* Linux kernel 4.15 introduced the new const `UID_GID_MAP_MAX_BASE_EXTENTS` in place of 
+ * the old `UID_GID_MAP_MAX_EXTENTS`, which instead has changed its meaning. 
+ * For more info see https://github.com/torvalds/linux/commit/6397fac4915ab3002dc15aae751455da1a852f25
+ */
+#ifndef UID_GID_MAP_MAX_BASE_EXTENTS
+#define UID_GID_MAP_MAX_BASE_EXTENTS 5
+#endif
+
 /*
  * Linux 5.6 kernels no longer include the old 32-bit timeval
  * structures. But the syscalls (might) still use them.
@@ -1853,9 +1861,12 @@ static __always_inline u32 bpf_map_id_up(struct uid_gid_map *map, u32 id)
 
 	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS) {
 		extent = bpf_map_id_up_base(extents, map, id);
-	} else {
+	} 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))			
+	else {
 		extent = bpf_map_id_up_max(extents, map, id);
 	}
+#endif 
 
 	/* Map the id or note failure */
 	if (extent) {
@@ -2335,8 +2346,6 @@ FILLER(proc_startupdate_3, true)
 		long env_len = 0;
 		kuid_t loginuid;
 		int tty;
-		bool exe_writable = false;
-		uint32_t flags = 0;
 		struct file *exe_file;
 
 		/*
@@ -2436,23 +2445,42 @@ FILLER(proc_startupdate_3, true)
 		if (res != PPM_SUCCESS)
 			return res;
 
-		/*
-		 * exe_writable
-		 */
+		bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_execve_family_flags);
+		bpf_printk("Can't tail call execve_family_flags filler\n");
+		return PPM_FAILURE_BUG;	
+	}
 
-		exe_writable = get_exe_writable(task);
-		if (exe_writable) {
-			flags |= PPM_EXE_WRITABLE;
-		}
+	return res;
+}
 
-		/*
-		 * flags
-		 * Write all the additional flags for execve
-		 */
+/* This filler avoids a bpf stack overflow on old kernels (like 4.14). */
+FILLER(execve_family_flags, true)
+{
+	struct task_struct *task = NULL;
+	uint32_t flags = 0;
+	int res = 0;
+	bool exe_writable = false;
 
-		res = bpf_val_to_ring_type(data, flags, PT_UINT32);
-		if (res != PPM_SUCCESS)
-			return res;
+	task = (struct task_struct *)bpf_get_current_task();
+
+	/*
+	 * exe_writable
+	 */
+	exe_writable = get_exe_writable(task);
+	if (exe_writable) 
+	{
+		flags |= PPM_EXE_WRITABLE;
+	}
+
+	// write all additional flags for execve family here...
+
+	/*
+	 * flags
+	 */
+	res = bpf_val_to_ring_type(data, flags, PT_UINT32);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
 	}
 
 	return res;
