@@ -409,6 +409,10 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 		}
 		ret.reset(eplugin);
 		break;
+	default:
+		errstr = string("Wrong plugin type.");
+		destroy_handle(handle);
+		return ret;
 	}
 
 	errstr = "";
@@ -477,11 +481,7 @@ sinsp_plugin::sinsp_plugin(HINSTANCE handle)
 
 sinsp_plugin::~sinsp_plugin()
 {
-#ifdef _WIN32
-	FreeLibrary(m_handle);
-#else
-	dlclose(m_handle);
-#endif
+	destroy_handle(m_handle);
 }
 
 bool sinsp_plugin::init(const char *config)
@@ -890,6 +890,14 @@ void sinsp_plugin::validate_init_config_json_schema(std::string config, std::str
 			+ name()
 			+ " init config: failed parsing with provided schema");
 	}
+}
+
+void sinsp_plugin::destroy_handle(HINSTANCE handle) {
+#ifdef _WIN32
+	FreeLibrary(handle);
+#else
+	dlclose(handle);
+#endif
 }
 
 sinsp_source_plugin::sinsp_source_plugin(HINSTANCE handle) :
