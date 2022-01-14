@@ -164,7 +164,7 @@ private:
 
 	common_plugin_info m_plugin_info;
 
-	void validate_init_config_json_schema(std::string &config, std::string &schema);
+	void validate_init_config_json_schema(std::string config, std::string &schema);
 };
 
 // Note that this doesn't have a next_batch() method, as event generation is
