@@ -286,13 +286,13 @@ static int handler_pre_tcp_drop(struct kprobe *p, struct pt_regs *regs)
 #ifdef CONFIG_X86
 	struct sock *sk = (struct sock*)regs->di;
 #endif
+	struct event_data_t event_data;
 	const struct inet_sock *inet = inet_sk(sk);
 	sport = ntohs(inet->inet_sport);
 	dport = ntohs(inet->inet_dport);
 	if(sport==22||dport==22||sport==0||dport==0){
 		return 0;
 	}
-	struct event_data_t event_data;
 	event_data.category = PPMC_TCP_DROP;
 	event_data.event_info.net_data.sk = sk;
 	record_event_all_consumers(PPME_TCP_DROP_E, UF_USED | UF_NEVER_DROP, &event_data);
@@ -311,13 +311,13 @@ static int handler_pre_tcp_rcv_established(struct kprobe *p, struct pt_regs *reg
 #ifdef CONFIG_X86
 	struct sock *sk = (struct sock*)regs->di;
 #endif
+	struct event_data_t event_data;
 	const struct inet_sock *inet = inet_sk(sk);
 	sport = ntohs(inet->inet_sport);
 	dport = ntohs(inet->inet_dport);
 	if(sport==22||dport==22||sport==0||dport==0){
 		return 0;
 	}
-	struct event_data_t event_data;
 	event_data.category = PPMC_TCP_RCV_ESTABLISHED;
 	event_data.event_info.net_data.sk = sk;
 	record_event_all_consumers(PPME_TCP_RCV_ESTABLISHED_E, UF_USED | UF_NEVER_DROP, &event_data);
@@ -336,13 +336,13 @@ static int handler_pre_tcp_retransmit_skb(struct kprobe *p, struct pt_regs *regs
 #ifdef CONFIG_X86
 	struct sock *sk = (struct sock*)regs->di;
 #endif
+	struct event_data_t event_data;
 	const struct inet_sock *inet = inet_sk(sk);
 	sport = ntohs(inet->inet_sport);
 	dport = ntohs(inet->inet_dport);
 	if(sport==0||dport==0){
 		return 0;
 	}
-	struct event_data_t event_data;
 	event_data.category = PPMC_TCP_RETRANSMIT_SKB;
 	event_data.event_info.net_data.sk = sk;
 	record_event_all_consumers(PPME_TCP_RETRANCESMIT_SKB_E, UF_USED | UF_NEVER_DROP, &event_data);
@@ -819,6 +819,7 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int cpu;
 	int ret;
+	int j;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -1114,7 +1115,7 @@ cleanup_ioctl_procinfo:
 		/* Used for dropping events so they must stay on */
 		set_bit(PPME_DROP_E, g_events_mask);
 		set_bit(PPME_DROP_X, g_events_mask);
-		int j;
+
 		/* event with flag EF_MODIFIES_STATE cannot be dropped, so we preserve. */
 		for (j = 0; j < PPM_EVENT_MAX; j++)
 		{

@@ -5335,6 +5335,7 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 	void *head = args->skb->head;
 	__u16 mac_offset;
 	__u16 ip_offset;
+	struct ethhdr *ethh;
 	struct iphdr *iph;
 	uint32_t sip;
 	uint32_t dip;
@@ -5344,10 +5345,10 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 	char *targetbuf = args->str_storage;
 	int size;
 
-    if (head == NULL)
-        return -1;
+	if (head == NULL)
+		return -1;
 
-    mac_offset = args->skb->mac_header;
+	mac_offset = args->skb->mac_header;
 	if (mac_offset == (__u16)~0U)
 		return -1;
 
@@ -5360,7 +5361,7 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 		return res;
 
 	// parse l2
-	struct ethhdr *ethh = (struct ethhdr *)((__u64)head + (__u64)mac_offset);
+	ethh = (struct ethhdr *)((__u64)head + (__u64)mac_offset);
 
 	res = val_to_ring(args, (unsigned long)ethh->h_source, 6, false, 0);
 	if (res != 0)
@@ -5370,12 +5371,12 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 	if (res != 0)
 		return res;
 
-    // parse l3
+	// parse l3
 	ip_offset = args->skb->network_header;
 	iph = (struct iphdr *)((__u64)head + (__u64)ip_offset);
 	sip = iph->saddr;
 	dip = iph->daddr;
-    ipp = iph->protocol;
+	ipp = iph->protocol;
 	switch (ipp) {
 		case IPPROTO_TCP:{
 			struct tcphdr *tcph = (struct tcphdr *)((__u64)iph + sizeof(*iph));
@@ -5412,10 +5413,10 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 	*(uint16_t *)(targetbuf + 11) = dport;
 
 	res = val_to_ring(args,
-					  (uint64_t)(unsigned long)targetbuf,
-					  size,
-					  false,
-					  0);
+					(uint64_t)(unsigned long)targetbuf,
+					size,
+					false,
+					0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	return 0;
