@@ -811,17 +811,8 @@ void sinsp_plugin::validate_init_config(const char* config)
 	}
 }
 
-void sinsp_plugin::validate_init_config_json_schema(std::string &config, std::string &schema)
+void sinsp_plugin::validate_init_config_json_schema(std::string config, std::string &schema)
 {
-	Json::Value configJson;
-	if(!Json::Reader().parse(config, configJson))
-	{
-		throw sinsp_exception(
-			string("error in plugin ")
-			+ name()
-			+ ": init config is not a valid json");
-	}
-
 	Json::Value schemaJson;
 	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
 	{
@@ -829,6 +820,20 @@ void sinsp_plugin::validate_init_config_json_schema(std::string &config, std::st
 			string("error in plugin ")
 			+ name()
 			+ ": get_init_schema did not return a json object");
+	}
+
+	// stub empty configs to an empty json object
+	if (config.size() == 0)
+	{
+		config = "{}";
+	}
+	Json::Value configJson;
+	if(!Json::Reader().parse(config, configJson))
+	{
+		throw sinsp_exception(
+			string("error in plugin ")
+			+ name()
+			+ ": init config is not a valid json");
 	}
 	
 	// validate config with json schema
