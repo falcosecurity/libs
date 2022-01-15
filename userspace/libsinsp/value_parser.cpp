@@ -161,11 +161,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			break;
 	        case PT_IPV6ADDR:
 		{
-			ipv6addr *addr = (ipv6addr*) storage;
-			if(inet_pton(AF_INET6, str, addr->m_b) != 1)
-			{
-				throw sinsp_exception("unrecognized IPv6 address " + string(str));
-			}
+			new (storage) ipv6addr(str);
 			parsed_len = sizeof(ipv6addr);
 			break;
 		}

@@ -21,8 +21,17 @@ limitations under the License.
 #include <arpa/inet.h>
 #include "utils.h"
 #include "sinsp_exception.h"
+#include "logger.h"
 
-ipv6addr ipv6addr::empty_address = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
+ipv6addr ipv6addr::empty_address ("0::");//= {0x00000000, 0x00000000, 0x00000000, 0x00000000};
+
+ipv6addr::ipv6addr(const std::string &str_addr)
+{
+	if(inet_pton(AF_INET6, str_addr.c_str(), m_b) != 1)
+	{
+		throw sinsp_exception("unrecognized IPv6 address " + str_addr);
+	}
+}
 
 bool ipv6addr::operator==(const ipv6addr &other) const
 {
@@ -58,13 +67,14 @@ bool ipv6addr::in_subnet(const ipv6addr &other) const
 
 ipv6net::ipv6net(const std::string &str)
 {
-	std::stringstream ss(str);
-	std::string ip, mask;
-
 	if (strchr(str.c_str(), '/') == nullptr)
 	{
-		throw sinsp_exception("unrecognized IP network " + std::string(str));
+		g_logger.format(sinsp_logger::SEV_INFO, "using legacy netV6 formatting with '/64' bit prefix for '%'", str.c_str());
+		ipv6net(str + "/64");
 	}
+
+	std::stringstream ss(str);
+	std::string ip, mask;
 
 	getline(ss, ip, '/');
 	getline(ss, mask);
@@ -81,25 +91,28 @@ ipv6net::ipv6net(const std::string &str)
 		throw sinsp_exception("invalid v6 netmask " + mask);
 	}
 
-	m_mask_len_ints  = prefix_len / 32;
-	m_mask_tail_bits = 32 - prefix_len % 32;
+	m_mask_len_bytes = prefix_len / 8;
+	m_mask_tail_bits = 8 - prefix_len % 8;
 
-	if (m_mask_tail_bits == 32)
+	if (m_mask_tail_bits == 8)
 	{
-		--m_mask_len_ints;
+		--m_mask_len_bytes;
 		m_mask_tail_bits = 0;
 	}
 }
 
 bool ipv6net::in_cidr(const ipv6addr &other) const
 {
+	auto this_bytes  = (const uint8_t*)(&m_addr.m_b);
+	auto other_bytes = (const uint8_t*)(&other.m_b);
+
 	int i = 0;
-	for (; i < m_mask_len_ints; i++)
+	for (; i < m_mask_len_bytes; i++)
 	{
-		if(m_addr.m_b[i] != other.m_b[i])
+		if(this_bytes[i] != other_bytes[i])
 		{
 			return false;
 		}
 	}
-	return (m_addr.m_b[i] >> m_mask_tail_bits) == (other.m_b[i] >> m_mask_tail_bits);
+	return (this_bytes[i] >> m_mask_tail_bits) == (other_bytes[i] >> m_mask_tail_bits);
 }

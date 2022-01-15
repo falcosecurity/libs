@@ -51,6 +51,8 @@ typedef struct ipv4net
 
 struct ipv6addr
 {
+	ipv6addr() = default;
+	ipv6addr(const std::string& str_addr);
 	uint32_t m_b[4];
 
 	bool operator==(const ipv6addr &other) const;
@@ -65,7 +67,7 @@ class ipv6net
 {
 private:
 	ipv6addr m_addr;
-	uint32_t m_mask_len_ints;
+	uint32_t m_mask_len_bytes;
 	uint32_t m_mask_tail_bits;
 public:
 	ipv6net(const std::string &str);

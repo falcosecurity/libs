@@ -1410,36 +1410,23 @@ bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 		return false;
 	}
 
-	auto check_fld_type = [this](ppm_param_type fld_type)
-	{
-		if(m_field->m_type != fld_type)
-		{
-			throw sinsp_exception("filter error: invalid field type, expected: "
-					      + std::to_string(m_field->m_type) + ", got: " + std::to_string(fld_type));
-		}
-	};
-
 	bool sip_cmp = false;
 	bool dip_cmp = false;
 
 	switch (m_fdinfo->m_type)
 	{
 	case SCAP_FD_IPV4_SERVSOCK:
-		check_fld_type(PT_IPV4NET);
 		return flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, (ipv4net*)filter_value_p());
 
 	case SCAP_FD_IPV6_SERVSOCK:
-		check_fld_type(PT_IPV6NET);
 		return flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv6net*)filter_value_p());
 
 	case SCAP_FD_IPV4_SOCK:
-		check_fld_type(PT_IPV4NET);
 		sip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p());
 		dip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p());
 		break;
 
 	case SCAP_FD_IPV6_SOCK:
-		check_fld_type(PT_IPV6NET);
 		sip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6net*)filter_value_p());
 		dip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6net*)filter_value_p());
 		break;
