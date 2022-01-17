@@ -1538,7 +1538,8 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			sizeof(int64_t) +  // vpid
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
-			sizeof(uint32_t);  // loginuid
+			sizeof(int32_t) + // loginuid;
+			sizeof(uint8_t); // exe_writable
 
 		lengths.push_back(il);
 		totlen += il;
