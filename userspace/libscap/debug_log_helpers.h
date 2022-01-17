@@ -19,9 +19,10 @@ static void scap_debug_log(scap_t* handle, const char* fmt, ...)
 	{
 		char buf[256];
 		va_list ap;
-		va_start(ap, fmt);
+		//todo: change way to solve this problem
+		//va_start(ap, fmt);
 		vsnprintf(buf, sizeof(buf), fmt, ap);
-		va_end(ap);
+		//va_end(ap);
 
 		(*handle->m_debug_log_fn)(buf);
 	}
