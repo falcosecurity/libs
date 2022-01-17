@@ -4377,6 +4377,9 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	res = val_to_ring(args, 0, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	res = val_to_ring(args, 0, 0, false, 0);
 #endif
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
