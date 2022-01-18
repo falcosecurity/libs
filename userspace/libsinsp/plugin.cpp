@@ -336,9 +336,9 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 	std::shared_ptr<sinsp_plugin> ret;
 
 #ifdef _WIN32
-	HINSTANCE handle = LoadLibrary(filepath.c_str());
+	sinsp_plugin_handle handle = LoadLibrary(filepath.c_str());
 #else
-	void* handle = dlopen(filepath.c_str(), RTLD_LAZY);
+	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY);
 #endif
 	if(handle == NULL)
 	{
@@ -457,15 +457,15 @@ bool sinsp_plugin::is_plugin_loaded(sinsp* inspector, std::string &filepath)
 {
 #ifdef _WIN32
 	// This returns an HMODULE indeed, but they are the same thing
-	HINSTANCE handle = (HINSTANCE)GetModuleHandle(filepath.c_str());
+	sinsp_plugin_handle handle = (HINSTANCE)GetModuleHandle(filepath.c_str());
 #else
-	void* handle = dlopen(filepath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
+	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
 #endif
 	if (!handle)
 	{
 		return false;
 	}
-	for(auto p : inspector->get_plugins())
+	for(const auto &p : inspector->get_plugins())
 	{
 		if (p->m_handle == handle) {
 			return true;
@@ -474,7 +474,7 @@ bool sinsp_plugin::is_plugin_loaded(sinsp* inspector, std::string &filepath)
 	return false;
 }
 
-sinsp_plugin::sinsp_plugin(HINSTANCE handle)
+sinsp_plugin::sinsp_plugin(sinsp_plugin_handle handle)
 	: m_nfields(0), m_handle(handle)
 {
 }
@@ -608,7 +608,7 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 	return true;
 }
 
-void* sinsp_plugin::getsym(HINSTANCE handle, const char* name, std::string &errstr)
+void* sinsp_plugin::getsym(sinsp_plugin_handle handle, const char* name, std::string &errstr)
 {
 	void *ret;
 
@@ -892,7 +892,7 @@ void sinsp_plugin::validate_init_config_json_schema(std::string config, std::str
 	}
 }
 
-void sinsp_plugin::destroy_handle(HINSTANCE handle) {
+void sinsp_plugin::destroy_handle(sinsp_plugin_handle handle) {
 #ifdef _WIN32
 	FreeLibrary(handle);
 #else
@@ -900,7 +900,7 @@ void sinsp_plugin::destroy_handle(HINSTANCE handle) {
 #endif
 }
 
-sinsp_source_plugin::sinsp_source_plugin(HINSTANCE handle) :
+sinsp_source_plugin::sinsp_source_plugin(sinsp_plugin_handle handle) :
 	sinsp_plugin(handle)
 {
 	memset(&m_source_plugin_info, 0, sizeof(m_source_plugin_info));
@@ -1078,7 +1078,7 @@ bool sinsp_source_plugin::resolve_dylib_symbols(std::string &errstr)
 	return true;
 }
 
-sinsp_extractor_plugin::sinsp_extractor_plugin(HINSTANCE handle) :
+sinsp_extractor_plugin::sinsp_extractor_plugin(sinsp_plugin_handle handle) :
 	sinsp_plugin(handle)
 {
 	memset(&m_extractor_plugin_info, 0, sizeof(m_extractor_plugin_info));

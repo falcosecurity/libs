@@ -28,9 +28,12 @@ limitations under the License.
 
 #include "filter_check_list.h"
 
-#ifndef _WIN32
-#define HINSTANCE void*
+#ifdef _WIN32
+typedef HINSTANCE sinsp_plugin_handle;
+#else
+typedef void* sinsp_plugin_handle;
 #endif
+
 
 class sinsp_filter_check_plugin;
 
@@ -101,7 +104,7 @@ public:
 	// Return whether a filesystem object is loaded
 	static bool is_plugin_loaded(sinsp* inspector, std::string &filepath);
 
-	sinsp_plugin(HINSTANCE handle);
+	sinsp_plugin(sinsp_plugin_handle handle);
 	virtual ~sinsp_plugin();
 
 	// Given a dynamic library handle, fill in common properties
@@ -130,11 +133,11 @@ public:
 	std::string get_init_schema(ss_plugin_schema_type& schema_type);
 	void validate_init_config(const char* config);
 
-	HINSTANCE m_handle;
+	sinsp_plugin_handle m_handle;
 
 protected:
 	// Helper function to resolve symbols
-	static void* getsym(HINSTANCE handle, const char* name, std::string &errstr);
+	static void* getsym(sinsp_plugin_handle handle, const char* name, std::string &errstr);
 
 	// Helper function to set a string from an allocated charbuf and free the charbuf.
 	std::string str_from_alloc_charbuf(const char* charbuf);
@@ -175,7 +178,7 @@ private:
 
 	void validate_init_config_json_schema(std::string config, std::string &schema);
 
-	static void destroy_handle(HINSTANCE handle);
+	static void destroy_handle(sinsp_plugin_handle handle);
 };
 
 // Note that this doesn't have a next_batch() method, as event generation is
@@ -189,7 +192,7 @@ public:
 		std::string desc;
 	};
 
-	sinsp_source_plugin(HINSTANCE handle);
+	sinsp_source_plugin(sinsp_plugin_handle handle);
 	virtual ~sinsp_source_plugin();
 
 	bool resolve_dylib_symbols(std::string &errstr) override;
@@ -225,7 +228,7 @@ private:
 class sinsp_extractor_plugin : public sinsp_plugin
 {
 public:
-	sinsp_extractor_plugin(HINSTANCE handle);
+	sinsp_extractor_plugin(sinsp_plugin_handle handle);
 	virtual ~sinsp_extractor_plugin();
 
 	bool resolve_dylib_symbols(std::string &errstr) override;
