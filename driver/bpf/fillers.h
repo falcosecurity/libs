@@ -1861,7 +1861,10 @@ static __always_inline u32 bpf_map_id_up(struct uid_gid_map *map, u32 id)
 
 	if (extents <= UID_GID_MAP_MAX_BASE_EXTENTS) {
 		extent = bpf_map_id_up_base(extents, map, id);
-	} 
+	}
+	/* Kernel 4.15 increased the number of extents to `340` while all the previous kernels have 
+	 * the limit set to `5`. So the `if` case should be enough.
+	 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0))			
 	else {
 		extent = bpf_map_id_up_max(extents, map, id);
