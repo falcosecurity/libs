@@ -991,6 +991,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_openat2
 	[__NR_openat2 - SYSCALL_TABLE_ID0] = PPM_SC_OPENAT2,
 #endif
+#ifdef __NR_execveat
+	[__NR_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1797,6 +1800,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_openat2
 	[__NR_ia32_openat2 - SYSCALL_TABLE_ID0] = PPM_SC_OPENAT2,
+#endif
+#ifdef __NR_ia32_execveat
+	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,
 #endif
 };
 
