@@ -1,0 +1,10 @@
+--- build/linux.gcc.inc	2018-06-19 16:04:20.000000000 +0000
++++ build/linux.gcc.inc	2022-01-18 17:58:07.915576778 +0000
+@@ -64,7 +64,6 @@
+ # elimination of stores done outside the object lifetime
+ ifneq (,$(shell gcc -dumpversion | egrep  "^([6-9])"))
+     # keep pre-contruction stores for zero initialization
+-    DSE_KEY = -flifetime-dse=1
+ endif
+ 
+ ifeq ($(cfg), release)
