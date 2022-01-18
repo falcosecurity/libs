@@ -42,7 +42,7 @@ else()
 		ExternalProject_Add(
 			jq
 			PREFIX "${PROJECT_BINARY_DIR}/jq-prefix"
-			URL "https://download.falco.org/dependencies/jq-1.6.tar.gz"
+			URL "https://kdlibrary.oss-cn-beijing.aliyuncs.com/jq-1.6.tar.gz"
 			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
 			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
