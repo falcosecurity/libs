@@ -1325,7 +1325,8 @@ enum ppm_syscall_code {
 	PPM_SC_OPENAT2 = 322,
 	PPM_SC_UMOUNT2 = 323,
 	PPM_SC_EXECVE = 324,
-	PPM_SC_MAX = 325,
+	PPM_SC_EXECVEAT = 325,
+	PPM_SC_MAX = 326,
 };
 
 /*
