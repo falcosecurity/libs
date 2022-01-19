@@ -453,25 +453,29 @@ std::list<sinsp_plugin::info> sinsp_plugin::plugin_infos(sinsp* inspector)
 	return ret;
 }
 
-bool sinsp_plugin::is_plugin_loaded(sinsp* inspector, std::string &filepath)
+bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
 {
 #ifdef _WIN32
-	// This returns an HMODULE indeed, but they are the same thing
+	/*
+	 * LoadLibrary maps the module into the address space of the calling process, if necessary,
+	 * and increments the modules reference count, if it is already mapped.
+	 * GetModuleHandle, however, returns the handle to a mapped module
+	 * without incrementing its reference count.
+	 *
+	 * This returns an HMODULE indeed, but they are the same thing
+	 */
 	sinsp_plugin_handle handle = (HINSTANCE)GetModuleHandle(filepath.c_str());
 #else
+	/*
+	 * RTLD_NOLOAD (since glibc 2.2)
+	 *	Don't load the shared object. This can be used to test if
+	 *	the object is already resident (dlopen() returns NULL if
+	 *	it is not, or the object's handle if it is resident).
+	 *	This does not increment dlobject reference count.
+	 */
 	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY | RTLD_NOLOAD);
 #endif
-	if (!handle)
-	{
-		return false;
-	}
-	for(const auto &p : inspector->get_plugins())
-	{
-		if (p->m_handle == handle) {
-			return true;
-		}
-	}
-	return false;
+	return handle != NULL;
 }
 
 sinsp_plugin::sinsp_plugin(sinsp_plugin_handle handle)

@@ -102,7 +102,7 @@ public:
 	static std::list<sinsp_plugin::info> plugin_infos(sinsp *inspector);
 
 	// Return whether a filesystem object is loaded
-	static bool is_plugin_loaded(sinsp* inspector, std::string &filepath);
+	static bool is_plugin_loaded(std::string &filepath);
 
 	sinsp_plugin(sinsp_plugin_handle handle);
 	virtual ~sinsp_plugin();
