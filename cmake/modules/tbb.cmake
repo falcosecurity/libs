@@ -24,7 +24,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
 			URL "https://kdlibrary.oss-cn-beijing.aliyuncs.com/2020_U3.tar.gz"
 			URL_HASH "SHA256=2103cc6238c935664f87680618f6684d57501d4a2fa8ea8f6c97ad6ff7dc722a"
-			PATCH_COMMAND wget https://gist.githubusercontent.com/Kindling-project/d95c8e972e65952f42fbcce4424da005/raw/c68753c1da52b3e775d414b04ee4ccfcf98ff558/tbb.patch && patch -p0 -i tbb.patch
+			PATCH_COMMAND curl -O https://gist.githubusercontent.com/Kindling-project/d95c8e972e65952f42fbcce4424da005/raw/c68753c1da52b3e775d414b04ee4ccfcf98ff558/tbb.patch && patch -p0 -i tbb.patch
 			CONFIGURE_COMMAND ""
 			BUILD_COMMAND ${CMD_MAKE} tbb_build_dir=${TBB_SRC}/build tbb_build_prefix=lib extra_inc=big_iron.inc
 			BUILD_IN_SOURCE 1
