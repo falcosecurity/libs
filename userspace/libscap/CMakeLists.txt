@@ -34,11 +34,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(PROBE_VERSION "${SYSDIG_VERSION}")
     endif()
     if(NOT DEFINED PROBE_NAME)
-        set(PROBE_NAME "sysdig-probe")
+        set(PROBE_NAME "kindling-falcolib-probe")
     endif()
 
     if(NOT DEFINED PROBE_DEVICE_NAME)
-        set(PROBE_DEVICE_NAME "sysdig")
+        set(PROBE_DEVICE_NAME "kindling-falcolib")
     endif()
 endif()
 
