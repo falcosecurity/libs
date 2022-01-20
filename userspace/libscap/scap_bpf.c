@@ -24,9 +24,7 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
-#ifndef MINIMAL_BUILD
 #include <gelf.h>
-#endif // MINIMAL_BUILD
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
@@ -43,6 +41,10 @@ limitations under the License.
 #include "compat/misc.h"
 #include "compat/bpf.h"
 
+
+#ifdef MINIMAL_BUILD
+#undef MINIMAL_BUILD
+#endif
 //
 // Some of this code is taken from the kernel samples under samples/bpf,
 // namely the parsing of the ELF objects, which is very tedious and not
