@@ -306,7 +306,7 @@ bool flt_compare_ipv6addr(cmpop op, ipv6addr *operand1, ipv6addr *operand2)
 	}
 }
 
-bool flt_compare_ipv6net(cmpop op, const ipv6addr  *operand1, const ipv6net *operand2)
+bool flt_compare_ipv6net(cmpop op, const ipv6addr *operand1, const ipv6net *operand2)
 {
 	switch(op)
 	{
