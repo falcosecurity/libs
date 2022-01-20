@@ -4,14 +4,16 @@ As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/fa
 
 ## Project Layout
 
-* _driver/_ folder contains kernel module and eBPF source code.     
+* _driver/_ folder contains kernel module and eBPF probe source code, so called **drivers**.       
 * _userspace/_ folder contains libscap and libsinsp libraries code, plus chisels related code and common utilities.
 * * **libscap** (aka: lib for System CAPture) is the userspace library that directly communicates with the drivers,  
 reading syscall events from the ring buffer (where they are placed by drivers), and forwarding them up to libsinsp.  
 Moreover, libscap implements OS state collection and supports reading/writing to scap files.  
 * * **libsinsp** (aka: lib for System INSPection) receives events from libscap and enriches them with machine state;  
 moreover, it performs events filtering with rule evaluation through its internal rule engine.  
-Finally, it manages outputs.  
+Finally, it manages outputs. 
+* * **chisels** are just little lua scripts to analyze an event stream and perform useful actions.  
+In this subfolder, backend code for chisels support can be found.  
 * _proposals/_ folder unexpectedly contains the list of proposals
 * _cmake/modules_ contains the list of cmake modules used during the build for external dep,  
 plus the libscap and libsinsp ones that are used by Falco when building libs.  
