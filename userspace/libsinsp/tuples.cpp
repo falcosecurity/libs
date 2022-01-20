@@ -65,14 +65,8 @@ bool ipv6addr::in_subnet(const ipv6addr &other) const
 		m_b[1] == other.m_b[1]);
 }
 
-ipv6net::ipv6net(const std::string &str)
+void ipv6net::init(const std::string &str)
 {
-	if (strchr(str.c_str(), '/') == nullptr)
-	{
-		g_logger.format(sinsp_logger::SEV_INFO, "using legacy netV6 formatting with '/64' bit prefix for '%'", str.c_str());
-		ipv6net(str + "/64");
-	}
-
 	std::stringstream ss(str);
 	std::string ip, mask;
 
@@ -98,6 +92,19 @@ ipv6net::ipv6net(const std::string &str)
 	{
 		--m_mask_len_bytes;
 		m_mask_tail_bits = 0;
+	}
+}
+
+ipv6net::ipv6net(const std::string &str)
+{
+	if(strchr(str.c_str(), '/') != nullptr)
+	{
+		init(str);
+	}
+	else
+	{
+		g_logger.format(sinsp_logger::SEV_INFO, "using legacy netV6 formatting with '/64' bit prefix for '%'", str.c_str());
+		init(str + "/64");
 	}
 }
 
