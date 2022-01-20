@@ -86,7 +86,7 @@ void ipv6net::init(const std::string &str)
 	}
 
 	m_mask_len_bytes = prefix_len / 8;
-	m_mask_tail_bits = 8 - prefix_len % 8;
+	m_mask_tail_bits = 8 - (prefix_len % 8);
 
 	if (m_mask_tail_bits == 8)
 	{
