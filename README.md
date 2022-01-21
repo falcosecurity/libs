@@ -98,7 +98,4 @@ Luckily enough, a Falco blog post explains the process very thoroughly: https://
 
 ## License
 
-You can find libs license in [NOTICES](https://github.com/falcosecurity/libs/blob/master/NOTICES) file.  
-TL;DR is that libs are released under the _Apache License 2.0_, except for:
-* _common/inttypes_win.h_, _userspace/libsinsp/third-party/jsoncpp_ -> licensed separately
-* _driver/_ code -> dual licensed under the MIT or GNU GPL2 licenses
+This project is licensed to you under the [Apache 2.0](./COPYING) open source license. Some subcomponents might be licensed separately. You can find licensing notices [here](./NOTICES).  
