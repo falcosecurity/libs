@@ -7,19 +7,26 @@ These components are at the foundation of [Falco](https://github.com/falcosecuri
 This component stack mainly operates on a data source: system calls. This data source is collected using either a kernel module or an eBPF probe, which we call *drivers*. On top of the drivers, libscap manages the data capture process, libsinsp enriches the data, and provides a rich set of API to consume the data. Furthermore, these two libraries also implement a [plugin](https://github.com/falcosecurity/plugins) framework that extends this stack to potentially any other data sources.
 ## Project Layout
 
-* _driver/_ folder contains kernel module and eBPF probe source code, so called **drivers**.       
-* _userspace/_ folder contains libscap and libsinsp libraries code, plus chisels related code and common utilities.
-* * **libscap** (aka: lib for System CAPture) is the userspace library that directly communicates with the drivers,  
-reading syscall events from the ring buffer (where they are placed by drivers), and forwarding them up to libsinsp.  
-Moreover, libscap implements OS state collection and supports reading/writing to scap files.  
-* * **libsinsp** (aka: lib for System INSPection) receives events from libscap and enriches them with machine state;  
-moreover, it performs events filtering with rule evaluation through its internal rule engine.  
-Finally, it manages outputs. 
-* * **chisels** are just little lua scripts to analyze an event stream and perform useful actions.  
-In this subfolder, backend code for chisels support can be found.  
-* _proposals/_ folder unexpectedly contains the list of proposals
-* _cmake/modules_ contains the list of cmake modules used during the build for external dep,  
-plus the libscap and libsinsp ones that are used by Falco when building libs.  
+* [_driver/_](./driver) contains kernel module and eBPF probe source code,
+so-called **drivers**.       
+* [_userspace/_](./userspace) contains libscap and libsinsp libraries code,
+plus chisels related code and common utilities.
+  * **libscap** (aka lib for *System CAPture*) is the userspace library
+  that directly communicates with the drivers, reading syscall events from
+  the ring buffer (where drivers place them), and forwarding them
+  up to libsinsp. Moreover, libscap implements OS state collection and
+  supports reading/writing to scap files.  
+  * **libsinsp** (aka lib for *System INSPection*) receives events from
+  libscap and enriches them with machine state: moreover, it performs
+  events filtering with rule evaluation through its internal rule engine.
+  Finally, it manages outputs. 
+  * **chisels** are just little Lua scripts to analyze an event stream
+  and perform useful actions. In this subfolder, the backend code for
+  chisels support can be found.  
+* [_proposals/_](./proposals) unexpectedly contains the list of proposals.
+* [_cmake/modules/_](./cmake/modules) contains modules to build
+external dependencies, plus the libscap and libsinsp ones; consumers
+(like Falco) use those modules to build the libs in their projects.
 
 ## Build
 
