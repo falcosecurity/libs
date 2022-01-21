@@ -2,6 +2,9 @@
 
 As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module driver** and the **eBPF driver sources**.
 
+These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
+
+This component stack mainly operates on a data source: system calls. This data source is collected using either a kernel module or an eBPF probe, which we call *drivers*. On top of the drivers, libscap manages the data capture process, libsinsp enriches the data, and provides a rich set of API to consume the data. Furthermore, these two libraries also implement a [plugin](https://github.com/falcosecurity/plugins) framework that extends this stack to potentially any other data sources.
 ## Project Layout
 
 * _driver/_ folder contains kernel module and eBPF probe source code, so called **drivers**.       
