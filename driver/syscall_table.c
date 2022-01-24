@@ -364,9 +364,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_clone3
 	[__NR_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
 #endif
+#ifdef __NR_io_uring_setup
+	[__NR_io_uring_setup - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_IO_URING_SETUP_E, PPME_SYSCALL_IO_URING_SETUP_X},
+#endif
 #ifdef __NR_mprotect
-	[__NR_mprotect - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_MPROTECT_E, PPME_SYSCALL_MPROTECT_X},	
-#endif					
+	[__NR_mprotect - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_MPROTECT_E, PPME_SYSCALL_MPROTECT_X},
+#endif
 #ifdef __NR_execveat
 	[__NR_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
 #endif
@@ -1000,6 +1003,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_openat2
 	[__NR_openat2 - SYSCALL_TABLE_ID0] = PPM_SC_OPENAT2,
 #endif
+#ifdef __NR_io_uring_setup
+	[__NR_io_uring_setup - SYSCALL_TABLE_ID0] = PPM_SC_IO_URING_SETUP,
+#endif
 #ifdef __NR_execveat
 	[__NR_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,
 #endif
@@ -1258,9 +1264,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_clone3
 	[__NR_ia32_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
 #endif
+#ifdef __NR_ia32_io_uring_setup
+	[__NR_ia32_io_uring_setup - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_IO_URING_SETUP_E, PPME_SYSCALL_IO_URING_SETUP_X},
+#endif
 #ifdef __NR_ia32_mprotect
 	[__NR_ia32_mprotect - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_MPROTECT_E, PPME_SYSCALL_MPROTECT_X},
-#endif	
+#endif
 #ifdef __NR_ia32_execveat
 	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
 #endif
@@ -1828,6 +1837,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif
 #ifdef __NR_ia32_openat2
 	[__NR_ia32_openat2 - SYSCALL_TABLE_ID0] = PPM_SC_OPENAT2,
+#endif
+#ifdef __NR_ia32_io_uring_setup
+	[__NR_ia32_io_uring_setup - SYSCALL_TABLE_ID0] = PPM_SC_IO_URING_SETUP,
 #endif
 #ifdef __NR_ia32_execveat
 	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] = PPM_SC_EXECVEAT,

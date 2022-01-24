@@ -617,6 +617,33 @@ or GPL2.txt for full copies of the license.
 #define PPM_EXVAT_AT_SYMLINK_NOFOLLOW	(1 << 1)	/* If the file is a symbolic link, then the call fails */
 
 /*
+ * Io_uring_setup flags
+ */
+#define PPM_IORING_SETUP_IOPOLL		(1<<0)
+#define PPM_IORING_SETUP_SQPOLL		(1<<1)
+#define PPM_IORING_SQ_NEED_WAKEUP	(1<<2)
+#define PPM_IORING_SETUP_SQ_AFF		(1<<3)
+#define PPM_IORING_SETUP_CQSIZE		(1<<4)
+#define PPM_IORING_SETUP_CLAMP		(1<<5)
+#define PPM_IORING_SETUP_ATTACH_WQ	(1<<6)
+#define PPM_IORING_SETUP_R_DISABLED	(1<<7)
+
+/*
+ * Io_uring_setup feats
+ */
+#define PPM_IORING_FEAT_SINGLE_MMAP	(1<<0)
+#define PPM_IORING_FEAT_NODROP		(1<<1)
+#define PPM_IORING_FEAT_SUBMIT_STABLE	(1<<2)
+#define PPM_IORING_FEAT_RW_CUR_POS	(1<<3)
+#define PPM_IORING_FEAT_CUR_PERSONALITY	(1<<4)
+#define PPM_IORING_FEAT_FAST_POLL	(1<<5)
+#define PPM_IORING_FEAT_POLL_32BITS	(1<<6)
+#define PPM_IORING_FEAT_SQPOLL_NONFIXED	(1<<7)
+#define PPM_IORING_FEAT_ENTER_EXT_ARG	(1<<8)
+#define PPM_IORING_FEAT_NATIVE_WORKERS	(1<<9)
+#define PPM_IORING_FEAT_RSRC_TAGS	(1<<10)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -998,7 +1025,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_CLONE3_X = 335,
 	PPME_SYSCALL_OPEN_BY_HANDLE_AT_E = 336,
 	PPME_SYSCALL_OPEN_BY_HANDLE_AT_X = 337,
-	PPM_EVENT_MAX = 338
+	PPME_SYSCALL_IO_URING_SETUP_E = 338,
+	PPME_SYSCALL_IO_URING_SETUP_X = 339,
+	PPM_EVENT_MAX = 340
 };
 /*@}*/
 
@@ -1336,7 +1365,8 @@ enum ppm_syscall_code {
 	PPM_SC_CLONE = 327,
 	PPM_SC_CLONE3 = 328,
 	PPM_SC_OPEN_BY_HANDLE_AT = 329,
-	PPM_SC_MAX = 330,
+	PPM_SC_IO_URING_SETUP = 330,
+	PPM_SC_MAX = 331,
 };
 
 /*
@@ -1569,7 +1599,8 @@ extern const struct ppm_name_value renameat2_flags[];
 extern const struct ppm_name_value openat2_flags[];
 extern const struct ppm_name_value execve_flags[];
 extern const struct ppm_name_value execveat_flags[];
-
+extern const struct ppm_name_value io_uring_setup_flags[];
+extern const struct ppm_name_value io_uring_setup_feats[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
