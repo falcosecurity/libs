@@ -309,8 +309,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_USERFAULTFD_X] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_RETVAL}, {0} } },
 	[PPME_SYSCALL_OPENAT2_E] = {FILLER_REF(sys_openat2_e)},
 	[PPME_SYSCALL_OPENAT2_X] = {FILLER_REF(sys_openat2_x)},
-	[PPME_SYSCALL_IO_URING_SETUP_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_IO_URING_SETUP_X] = {FILLER_REF(sys_io_uring_setup_x)},
 	[PPME_SYSCALL_MPROTECT_E] = {FILLER_REF(sys_mprotect_e)},
 	[PPME_SYSCALL_MPROTECT_X] = {FILLER_REF(sys_mprotect_x)},
 	[PPME_SYSCALL_EXECVEAT_E] = {FILLER_REF(sys_execveat_e)},
@@ -321,5 +319,11 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CLONE3_X] = {FILLER_REF(proc_startupdate)},
 	[PPME_SYSCALL_OPEN_BY_HANDLE_AT_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_OPEN_BY_HANDLE_AT_X] = {FILLER_REF(sys_open_by_handle_at_x)},
+	[PPME_SYSCALL_IO_URING_SETUP_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_IO_URING_SETUP_X] = {FILLER_REF(sys_io_uring_setup_x)},
+	[PPME_SYSCALL_IO_URING_ENTER_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_IO_URING_ENTER_X] = {FILLER_REF(sys_io_uring_enter_x)},
+	[PPME_SYSCALL_IO_URING_REGISTER_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_IO_URING_REGISTER_X] = {FILLER_REF(sys_io_uring_register_x)},
 #endif /* WDIG */
 };

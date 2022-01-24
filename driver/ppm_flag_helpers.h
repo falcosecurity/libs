@@ -18,6 +18,9 @@ or GPL2.txt for full copies of the license.
 #ifdef WDIG
 #include <fcntl.h>
 #endif
+#ifdef __NR_io_uring_register
+#include <uapi/linux/io_uring.h>
+#endif
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
 
@@ -302,6 +305,72 @@ static __always_inline u32 io_uring_setup_feats_to_scap(unsigned long flags){
 		res |= PPM_IORING_FEAT_RSRC_TAGS;
 #endif
 	return res;
+}
+
+static __always_inline u32 io_uring_enter_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+#ifdef IORING_ENTER_GETEVENTS
+	if (flags & IORING_ENTER_GETEVENTS)
+		res |= PPM_IORING_ENTER_GETEVENTS;
+#endif
+
+#ifdef IORING_ENTER_SQ_WAKEUP
+	if (flags & IORING_ENTER_SQ_WAKEUP)
+		res |= PPM_IORING_ENTER_SQ_WAKEUP;
+#endif
+
+#ifdef IORING_ENTER_SQ_WAIT
+	if (flags & IORING_ENTER_SQ_WAIT)
+		res |= PPM_IORING_ENTER_SQ_WAIT;
+#endif
+
+#ifdef IORING_ENTER_EXT_ARG
+	if (flags & IORING_ENTER_EXT_ARG)
+		res |= PPM_IORING_ENTER_EXT_ARG;
+#endif
+	return res;
+}
+
+static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags)
+{
+	/*
+	 * io_uring_register opcodes are defined via enum
+	 */
+	switch(flags)
+	{
+#ifdef __NR_io_uring_register
+	case IORING_REGISTER_BUFFERS:
+		return PPM_IORING_REGISTER_BUFFERS;
+	case IORING_UNREGISTER_BUFFERS:
+		return PPM_IORING_UNREGISTER_BUFFERS;
+	case IORING_REGISTER_FILES:
+		return PPM_IORING_REGISTER_FILES;
+	case IORING_UNREGISTER_FILES:
+		return PPM_IORING_UNREGISTER_FILES;
+	case IORING_REGISTER_EVENTFD:
+		return PPM_IORING_REGISTER_EVENTFD;
+	case IORING_UNREGISTER_EVENTFD:
+		return PPM_IORING_UNREGISTER_EVENTFD;
+	case IORING_REGISTER_FILES_UPDATE:
+		return PPM_IORING_REGISTER_FILES_UPDATE;
+	case IORING_REGISTER_EVENTFD_ASYNC:
+		return PPM_IORING_REGISTER_EVENTFD_ASYNC;
+	case IORING_REGISTER_PROBE:
+		return PPM_IORING_REGISTER_PROBE;
+	case IORING_REGISTER_PERSONALITY:
+		return PPM_IORING_REGISTER_PERSONALITY;
+	case IORING_UNREGISTER_PERSONALITY:
+		return PPM_IORING_UNREGISTER_PERSONALITY;
+	case IORING_REGISTER_RESTRICTIONS:
+		return PPM_IORING_REGISTER_RESTRICTIONS;
+	case IORING_REGISTER_ENABLE_RINGS:
+		return PPM_IORING_REGISTER_ENABLE_RINGS;
+#endif
+	default:
+		return PPM_IORING_REGISTER_UNKNOWN;
+	}
 }
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)

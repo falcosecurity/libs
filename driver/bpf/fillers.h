@@ -3176,6 +3176,102 @@ FILLER(sys_io_uring_setup_x, true)
 	return res;
 }
 
+FILLER(sys_io_uring_enter_x, true)
+{
+	long retval;
+	int res;
+	unsigned long val;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * to_submit
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * min_complete
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, io_uring_enter_flags_to_scap(val));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * min_complete
+	 */
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
+FILLER(sys_io_uring_register_x, true)
+{
+	long retval;
+	int res;
+	unsigned long val;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * opcode
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, io_uring_register_opcodes_to_scap(val));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * args
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * nr_args
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;

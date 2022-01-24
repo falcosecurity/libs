@@ -644,6 +644,32 @@ or GPL2.txt for full copies of the license.
 #define PPM_IORING_FEAT_RSRC_TAGS	(1<<10)
 
 /*
+ * Io_uring_enter flags
+ */
+#define PPM_IORING_ENTER_GETEVENTS	(1<<0)
+#define PPM_IORING_ENTER_SQ_WAKEUP	(1<<1)
+#define PPM_IORING_ENTER_SQ_WAIT	(1<<2)
+#define PPM_IORING_ENTER_EXT_ARG	(1<<3)
+
+/*
+ *  Io_uring_register opcodes
+ */
+#define PPM_IORING_REGISTER_UNKNOWN		0
+#define PPM_IORING_REGISTER_BUFFERS		1
+#define PPM_IORING_UNREGISTER_BUFFERS		2
+#define PPM_IORING_REGISTER_FILES		3
+#define PPM_IORING_UNREGISTER_FILES		4
+#define PPM_IORING_REGISTER_EVENTFD		5
+#define PPM_IORING_UNREGISTER_EVENTFD		6
+#define PPM_IORING_REGISTER_FILES_UPDATE	7
+#define PPM_IORING_REGISTER_EVENTFD_ASYNC	8
+#define PPM_IORING_REGISTER_PROBE		9
+#define PPM_IORING_REGISTER_PERSONALITY		10
+#define PPM_IORING_UNREGISTER_PERSONALITY	11
+#define PPM_IORING_REGISTER_RESTRICTIONS	12
+#define PPM_IORING_REGISTER_ENABLE_RINGS	13
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -1027,7 +1053,11 @@ enum ppm_event_type {
 	PPME_SYSCALL_OPEN_BY_HANDLE_AT_X = 337,
 	PPME_SYSCALL_IO_URING_SETUP_E = 338,
 	PPME_SYSCALL_IO_URING_SETUP_X = 339,
-	PPM_EVENT_MAX = 340
+	PPME_SYSCALL_IO_URING_ENTER_E = 340,
+	PPME_SYSCALL_IO_URING_ENTER_X = 341,
+	PPME_SYSCALL_IO_URING_REGISTER_E = 342,
+	PPME_SYSCALL_IO_URING_REGISTER_X = 343,
+	PPM_EVENT_MAX = 344
 };
 /*@}*/
 
@@ -1366,7 +1396,9 @@ enum ppm_syscall_code {
 	PPM_SC_CLONE3 = 328,
 	PPM_SC_OPEN_BY_HANDLE_AT = 329,
 	PPM_SC_IO_URING_SETUP = 330,
-	PPM_SC_MAX = 331,
+	PPM_SC_IO_URING_ENTER = 331,
+	PPM_SC_IO_URING_REGISTER = 332,
+	PPM_SC_MAX = 333,
 };
 
 /*
@@ -1601,6 +1633,8 @@ extern const struct ppm_name_value execve_flags[];
 extern const struct ppm_name_value execveat_flags[];
 extern const struct ppm_name_value io_uring_setup_flags[];
 extern const struct ppm_name_value io_uring_setup_feats[];
+extern const struct ppm_name_value io_uring_enter_flags[];
+extern const struct ppm_name_value io_uring_register_opcodes[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];

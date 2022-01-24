@@ -360,6 +360,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_CLONE3*/ {EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "clone3" },
 	/*PPM_SC_OPEN_BY_HANDLE_AT*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "open_by_handle_at" },
 	/*PPM_SC_IO_URING_SETUP*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "io_uring_setup" },
+	/*PPM_SC_IO_URING_ENTER*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "io_uring_enter" },
+	/*PPM_SC_IO_URING_REGISTER*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "io_uring_register" },
 };
 
 bool validate_info_table_size()
