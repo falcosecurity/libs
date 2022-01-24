@@ -399,6 +399,47 @@ void gen_event_filter_factory::filter_fieldclass_info::wrapstring(const std::str
 	}
 }
 
+std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const std::set<std::string>& event_sources)
+{
+	std::ostringstream os;
+
+	os << "## Field Class: " << name << std::endl << std::endl;
+
+	if(desc != "")
+	{
+		os << desc << std::endl << std::endl;
+	}
+
+	if(!event_sources.empty())
+	{
+		os << "Event Sources: ";
+
+		for(const auto &src : event_sources)
+		{
+			os << src << " ";
+		}
+
+		os << std::endl << std::endl;
+	}
+
+	os << "Name | Type | Description" << std::endl;
+	os << ":----|:-----|:-----------" << std::endl;
+
+	for(auto &fld_info : fields)
+	{
+		// Skip fields that should not be included
+		// (e.g. hidden fields)
+		if(fld_info.is_skippable())
+		{
+			continue;
+		}
+
+		os << "`" << fld_info.name << "` | " << fld_info.data_type << " | " << fld_info.desc << std::endl;
+	}
+
+	return os.str();
+}
+
 std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources)
 {
 	std::ostringstream os;

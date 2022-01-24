@@ -280,6 +280,11 @@ public:
 		// event sources, and the name and description of each field.
 		std::string as_string(bool verbose, const std::set<std::string>& event_sources = std::set<std::string>());
 
+		// Print a markdown representation of this
+		// field class, suitable for publication on the documentation
+		// website.
+		std::string as_markdown(const std::set<std::string>& event_sources = std::set<std::string>());
+
 		// How far to right-justify the name/description/etc block.
 		static uint32_t s_rightblock_start;
 
