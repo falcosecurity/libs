@@ -18,7 +18,6 @@ or GPL2.txt for full copies of the license.
 #ifdef WDIG
 #include <fcntl.h>
 #endif
-
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
 
@@ -197,6 +196,112 @@ static __always_inline u32 openat2_resolve_to_scap(unsigned long flags)
 #endif
 	return res;
 #endif // WDIG
+}
+
+static __always_inline u32 io_uring_setup_flags_to_scap(unsigned long flags){
+	u32 res = 0;
+
+#ifdef IORING_SETUP_IOPOLL
+	if (flags & IORING_SETUP_IOPOLL)
+		res |= PPM_IORING_SETUP_IOPOLL;
+#endif
+
+#ifdef IORING_SETUP_SQPOLL
+	if (flags & IORING_SETUP_SQPOLL)
+		res |= PPM_IORING_SETUP_SQPOLL;
+#endif
+
+#ifdef IORING_SQ_NEED_WAKEUP
+	if (flags & IORING_SQ_NEED_WAKEUP)
+		res |= PPM_IORING_SQ_NEED_WAKEUP;
+#endif
+
+#ifdef IORING_SETUP_SQ_AFF
+	if (flags & IORING_SETUP_SQ_AFF)
+		res |= PPM_IORING_SETUP_SQ_AFF;
+#endif
+
+#ifdef IORING_SETUP_CQSIZE
+	if (flags & IORING_SETUP_CQSIZE)
+		res |= PPM_IORING_SETUP_CQSIZE;
+#endif
+
+#ifdef IORING_SETUP_CLAMP
+	if (flags & IORING_SETUP_CLAMP)
+		res |= PPM_IORING_SETUP_CLAMP;
+#endif
+
+#ifdef IORING_SETUP_ATTACH_WQ
+	if (flags & IORING_SETUP_ATTACH_WQ)
+		res |= PPM_IORING_SETUP_ATTACH_WQ;
+#endif
+
+#ifdef IORING_SETUP_R_DISABLED
+	if (flags & IORING_SETUP_R_DISABLED)
+		res |= PPM_IORING_SETUP_R_DISABLED;
+#endif
+	return res;
+}
+
+static __always_inline u32 io_uring_setup_feats_to_scap(unsigned long flags){
+	u32 res = 0;
+
+#ifdef IORING_FEAT_SINGLE_MMAP
+	if (flags & IORING_FEAT_SINGLE_MMAP)
+		res |= PPM_IORING_FEAT_SINGLE_MMAP;
+#endif
+
+#ifdef IORING_FEAT_NODROP
+	if (flags & IORING_FEAT_NODROP)
+		res |= PPM_IORING_FEAT_NODROP;
+#endif
+
+#ifdef IORING_FEAT_SUBMIT_STABLE
+	if (flags & IORING_FEAT_SUBMIT_STABLE)
+		res |= PPM_IORING_FEAT_SUBMIT_STABLE;
+#endif
+
+#ifdef IORING_FEAT_RW_CUR_POS
+	if (flags & IORING_FEAT_RW_CUR_POS)
+		res |= PPM_IORING_FEAT_RW_CUR_POS;
+#endif
+
+#ifdef IORING_FEAT_CUR_PERSONALITY
+	if (flags & IORING_FEAT_CUR_PERSONALITY)
+		res |= PPM_IORING_FEAT_CUR_PERSONALITY;
+#endif
+
+
+#ifdef IORING_FEAT_FAST_POLL
+	if (flags & IORING_FEAT_FAST_POLL)
+		res |= PPM_IORING_FEAT_FAST_POLL;
+#endif
+
+#ifdef IORING_FEAT_POLL_32BITS
+	if (flags & IORING_FEAT_POLL_32BITS)
+		res |= PPM_IORING_FEAT_POLL_32BITS;
+#endif
+
+#ifdef IORING_FEAT_SQPOLL_NONFIXED
+	if (flags & IORING_FEAT_SQPOLL_NONFIXED)
+		res |= PPM_IORING_FEAT_SQPOLL_NONFIXED;
+#endif
+
+#ifdef IORING_FEAT_ENTER_EXT_ARG
+	if (flags & IORING_FEAT_ENTER_EXT_ARG)
+		res |= PPM_IORING_FEAT_ENTER_EXT_ARG;
+#endif
+
+#ifdef IORING_FEAT_NATIVE_WORKERS
+	if (flags & IORING_FEAT_NATIVE_WORKERS)
+		res |= PPM_IORING_FEAT_NATIVE_WORKERS;
+#endif
+
+#ifdef IORING_FEAT_RSRC_TAGS
+	if (flags & IORING_FEAT_RSRC_TAGS)
+		res |= PPM_IORING_FEAT_RSRC_TAGS;
+#endif
+	return res;
 }
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)

@@ -3086,6 +3086,96 @@ FILLER(sys_open_by_handle_at_x, true)
 	return res;
 }
 
+FILLER(sys_io_uring_setup_x, true)
+{
+	long retval;
+	int res;
+	unsigned long val;
+	unsigned long sq_entries;
+	unsigned long cq_entries;
+	unsigned long flags;
+	unsigned long sq_thread_cpu;
+	unsigned long sq_thread_idle;
+	unsigned long features;
+
+#ifdef __NR_io_uring_setup
+	struct io_uring_params params;
+#endif
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * entries
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+#ifdef __NR_io_uring_setup
+	/*
+	 * io_uring_params: we get the data structure, and put its fields in the buffer one by one
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	if (bpf_probe_read(&params, sizeof(struct io_uring_params), (void *)val)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	sq_entries = params.sq_entries;
+	cq_entries = params.cq_entries;
+	flags = io_uring_setup_flags_to_scap(params.flags);
+	sq_thread_cpu = params.sq_thread_cpu;
+	sq_thread_idle = params.sq_thread_idle;
+	features = io_uring_setup_feats_to_scap(params.features);
+#else
+	sq_entries = 0;
+	cq_entries = 0;
+	flags = 0;
+	sq_thread_cpu = 0;
+	sq_thread_idle = 0;
+	features = 0;
+#endif
+
+	/*
+	 * sq_entries (extracted from io_uring_params structure)
+	 */
+	res = bpf_val_to_ring(data, sq_entries);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * cq_entries (extracted from io_uring_params structure)
+	 */
+	res = bpf_val_to_ring(data, cq_entries);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * flags (extracted from io_uring_params structure)
+	 * Already converted in ppm portable representation
+	 */
+	res = bpf_val_to_ring(data, flags);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * sq_thread_cpu (extracted from io_uring_params structure)
+	 */
+	res = bpf_val_to_ring(data, sq_thread_cpu);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * sq_thread_idle (extracted from io_uring_params structure)
+	 */
+	res = bpf_val_to_ring(data, sq_thread_idle);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * features (extracted from io_uring_params structure)
+	 * Already converted in ppm portable representation
+	 */
+	res = bpf_val_to_ring(data, features);
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;

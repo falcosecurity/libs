@@ -4811,7 +4811,6 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
-
 	/*
 	* fdout
 	*/
@@ -4819,7 +4818,6 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, fdout, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
-
 	/*
 	* offout
 	*/
@@ -4916,6 +4914,93 @@ empty_pathname:
 	return add_sentinel(args);
 }
 
+int f_sys_io_uring_setup_x (struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+	unsigned long sq_entries;
+	unsigned long cq_entries;
+	unsigned long flags;
+	unsigned long sq_thread_cpu;
+	unsigned long sq_thread_idle;
+	unsigned long features;
+
+#ifdef __NR_io_uring_setup
+	struct io_uring_params params;
+#endif
+
+	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
+
+	/* entries */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+#ifdef __NR_io_uring_setup
+	/*
+	 * io_uring_params: we get the data structure, and put its fields in the buffer one by one
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = ppm_copy_from_user(&params, (void *)val, sizeof(struct io_uring_params));
+	if (unlikely(res != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	sq_entries = params.sq_entries;
+	cq_entries = params.cq_entries;
+	flags = io_uring_setup_flags_to_scap(params.flags);
+	sq_thread_cpu = params.sq_thread_cpu;
+	sq_thread_idle = params.sq_thread_idle;
+	features = io_uring_setup_feats_to_scap(params.features);
+#else
+	sq_entries = 0;
+	cq_entries = 0;
+	flags = 0;
+	sq_thread_cpu = 0;
+	sq_thread_idle = 0;
+	features = 0;
+#endif
+	/*
+	 * sq_entries (extracted from io_uring_params structure)
+	 */
+	res = val_to_ring(args, sq_entries, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	/*
+	 * cq_entries (extracted from io_uring_params structure)
+	 */
+	res = val_to_ring(args, cq_entries, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	/*
+	 * flags (extracted from io_uring_params structure)
+	 * Already converted in ppm portable representation
+	 */
+	res = val_to_ring(args, flags, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	/*
+	 * sq_thread_cpu (extracted from io_uring_params structure)
+	 */
+	res = val_to_ring(args, sq_thread_cpu, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	/*
+	 * sq_thread_idle (extracted from io_uring_params structure)
+	 */
+	res = val_to_ring(args, sq_thread_idle, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	/*
+	 * features (extracted from io_uring_params structure)
+	 * Already converted in ppm portable representation
+	 */
+	res = val_to_ring(args, features, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
 #endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
