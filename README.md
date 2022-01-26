@@ -1,10 +1,16 @@
 # falcosecurity/libs
 
-As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.
+As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
+Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more informations.  
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
 This component stack mainly operates on a data source: system calls. This data source is collected using either a kernel module or an eBPF probe, which we call *drivers*. On top of the drivers, libscap manages the data capture process, libsinsp enriches the data, and provides a rich set of API to consume the data. Furthermore, these two libraries also implement a [plugin](https://github.com/falcosecurity/plugins) framework that extends this stack to potentially any other data sources.
+
+An image is worth a thousand words, they say:
+
+![diagram](https://falco.org/img/falco-diagram-blog-contribution.png)
+
 ## Project Layout
 
 * [_driver/_](./driver) contains kernel module and eBPF probe source code,
@@ -31,12 +37,23 @@ external dependencies, plus the libscap and libsinsp ones; consumers
 ## Build
 
 Libs relies upon `cmake` build system.  
+Lots of `make` targets will be available; the most important ones are:
+* `driver` -> to build the kmod
+* `bpf` -> to build the eBPF probe
+* `scap` -> to build libscap
+* `sinsp` -> to build libsinsp (depends upon `scap` target)
+* `scap-open` -> to build a small libscap example to quickly test drivers (depends upon `scap`)
+
+To start, first create and move inside `build/` folder:
+```bash
+mkdir build && cd build
+```
 
 ### Bundled deps
 
-Easiest way to build the project is to use BUNDLED_DEPS option, ie:
+Easiest way to build the project is to use BUNDLED_DEPS option, 
+meaning that most of the dependencies will be fetched and compiled during the process:
 ```bash
-mkdir build && cd build
 cmake -DUSE_BUNDLED_DEPS=true ../
 make sinsp
 ```
@@ -110,6 +127,7 @@ therefore confirming that the drivers are indeed working fine!
 ## Contribute
 
 Any contribution is incredibly helpful and **warmly** accepted; be it code, documentation, or just ideas, please feel free to share it!  
+For a contribution guideline, refer to: https://github.com/falcosecurity/.github/blob/master/CONTRIBUTING.md.
 
 ### Adding syscalls
 
