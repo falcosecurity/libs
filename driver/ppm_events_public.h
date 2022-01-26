@@ -606,7 +606,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_RESOLVE_CACHED			(1 << 5)
 
 /*
- * Execve additional flags
+ * Execve family additional flags.
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
   
