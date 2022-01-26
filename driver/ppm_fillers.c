@@ -837,6 +837,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 			
 			case PPME_SYSCALL_EXECVEAT_X:
 				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+				break;
 
 			default:
 				val = 0;
@@ -1073,7 +1074,7 @@ cgroups_error:
 	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X || 
 			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
-		 * execve-only parameters
+		 * execve family parameters.
 		 */
 		long env_len = 0;
 		int tty_nr = 0;
@@ -1193,9 +1194,10 @@ cgroups_error:
 			flags |= PPM_EXE_WRITABLE;
 		}
 
+		// write all the additional flags for execve family here...
+
 		/*
 		 * flags
-		 * Write all the additional flags for execve
 		 */
 
 		res = val_to_ring(args, flags, 0, false, 0);

@@ -2344,7 +2344,7 @@ FILLER(proc_startupdate_3, true)
 	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
 	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X) {
 		/*
-		 * execve-only parameters
+		 * execve family parameters.
 		 */
 		long env_len = 0;
 		kuid_t loginuid;
