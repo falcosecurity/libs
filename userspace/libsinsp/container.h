@@ -138,6 +138,22 @@ public:
 	void subscribe_on_new_container(new_container_cb callback);
 	void subscribe_on_remove_container(remove_container_cb callback);
 
+	/**
+	 * @brief Selectively enable/disable container engines
+	 * @param mask the bit mask of sinsp_container_type values
+	 *             for the engines to be enabled
+	 *
+	 *  Note: the CRI engine handles multiple container types which can only
+	 *  be enabled or disabled together.
+	 *
+	 *  This method *must* be called before the first container detection,
+	 *  i.e. before inspector->open()
+	 */
+	inline void set_container_engine_mask(uint64_t mask)
+	{
+		m_container_engine_mask = mask;
+	}
+
 	void create_engines();
 
 	/**
@@ -217,6 +233,7 @@ private:
 	std::string m_static_id;
 	std::string m_static_name;
 	std::string m_static_image;
+	uint64_t m_container_engine_mask;
 
 	friend class test_helper;
 };
