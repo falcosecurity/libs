@@ -1102,6 +1102,11 @@ public:
 
 	static unsigned num_possible_cpus();
 
+	inline void set_container_engine_mask(uint64_t mask)
+	{
+		m_container_manager.set_container_engine_mask(mask);
+	}
+
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
 #endif
