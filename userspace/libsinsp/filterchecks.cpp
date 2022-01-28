@@ -1405,76 +1405,44 @@ bool sinsp_filter_check_fd::compare_ip(sinsp_evt *evt)
 
 bool sinsp_filter_check_fd::compare_net(sinsp_evt *evt)
 {
-	if(!extract_fd(evt))
+	if(!extract_fd(evt) || m_fdinfo == nullptr)
 	{
 		return false;
 	}
 
-	if(m_fdinfo != NULL)
+	bool sip_cmp = false;
+	bool dip_cmp = false;
+
+	switch (m_fdinfo->m_type)
 	{
-		scap_fd_type evt_type = m_fdinfo->m_type;
+	case SCAP_FD_IPV4_SERVSOCK:
+		return flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, (ipv4net*)filter_value_p());
 
-		if(evt_type == SCAP_FD_IPV4_SOCK)
-		{
-			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
-			{
-				if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) ||
-				   flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
-				{
-					return true;
-				}
-			}
-			else if(m_cmpop == CO_NE)
-			{
-				if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p()) &&
-				   flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p()))
-				{
-					return true;
-				}
-			}
-			else
-			{
-				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
-			}
-		}
-		else if(evt_type == SCAP_FD_IPV4_SERVSOCK)
-		{
+	case SCAP_FD_IPV6_SERVSOCK:
+		return flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv6net*)filter_value_p());
 
-			if(flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4serverinfo.m_ip, (ipv4net*)filter_value_p()))
-			{
-				return true;
-			}
-		}
-		else if(evt_type == SCAP_FD_IPV6_SOCK)
-		{
-			if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
-			{
-				if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6addr*)filter_value_p()) ||
-				   flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6addr*)filter_value_p()))
-				{
-					return true;
-				}
-			}
-			else if(m_cmpop == CO_NE)
-			{
-				if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6addr*)filter_value_p()) &&
-				   flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6addr*)filter_value_p()))
-				{
-					return true;
-				}
-			}
-			else
-			{
-				throw sinsp_exception("filter error: IP filter only supports '=' and '!=' operators");
-			}
-		}
-		else if(evt_type == SCAP_FD_IPV6_SERVSOCK)
-		{
-			if(flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip, (ipv6addr*)filter_value_p()))
-			{
-				return true;
-			}
-		}
+	case SCAP_FD_IPV4_SOCK:
+		sip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sip, (ipv4net*)filter_value_p());
+		dip_cmp = flt_compare_ipv4net(m_cmpop, m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip, (ipv4net*)filter_value_p());
+		break;
+
+	case SCAP_FD_IPV6_SOCK:
+		sip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, (ipv6net*)filter_value_p());
+		dip_cmp = flt_compare_ipv6net(m_cmpop, &m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip, (ipv6net*)filter_value_p());
+		break;
+
+	default:
+		return false;
+	}
+
+	if(m_cmpop == CO_EQ || m_cmpop == CO_IN)
+	{
+		return sip_cmp || dip_cmp;
+	}
+
+	if(m_cmpop == CO_NE)
+	{
+		return sip_cmp && dip_cmp;
 	}
 
 	return false;
