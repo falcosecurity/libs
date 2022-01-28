@@ -796,11 +796,18 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 
 					const std::string &str = prop.asString();
 
-					// There might be other properties (e.g. "conversation" and "info", which are used by wireshark),
-					// but the only one that is relevant to libs is "hidden".
+					// "hidden" is used inside and outside libs. "info" and "conversation" are used outside libs.
 					if(str == "hidden")
 					{
 						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_TABLE_ONLY);
+					}
+					else if(str == "info")
+					{
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_INFO);
+					}
+					else if(str == "conversation")
+					{
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_CONVERSATION);
 					}
 				}
 			}
