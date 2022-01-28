@@ -727,6 +727,12 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			{
 				throw sinsp_exception(string("error in plugin ") + m_name + ": field JSON entry has no name");
 			}
+			const Json::Value &jvdisplay = root[j]["display"];
+			string fdisplay = jvdisplay.asString();
+			if(fdisplay == "")
+			{
+				throw sinsp_exception(string("error in plugin ") + m_name + ": field JSON entry has no display");
+			}
 			const Json::Value &jvdesc = root[j]["desc"];
 			string fdesc = jvdesc.asString();
 			if(fdesc == "")
@@ -735,6 +741,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			}
 
 			strlcpy(tf.m_name, fname.c_str(), sizeof(tf.m_name));
+			strlcpy(tf.m_display, fdisplay.c_str(), sizeof(tf.m_display));
 			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
 			tf.m_print_format = PF_DEC;
 			if(ftype == "string")
@@ -865,7 +872,7 @@ void sinsp_plugin::validate_init_config_json_schema(std::string config, std::str
 			+ name()
 			+ ": init config is not a valid json");
 	}
-	
+
 	// validate config with json schema
 	valijson::Schema schemaDef;
 	valijson::SchemaParser schemaParser;
@@ -990,7 +997,7 @@ std::string sinsp_source_plugin::event_to_string(const uint8_t *data, uint32_t d
 	return ret;
 }
 
-std::vector<sinsp_source_plugin::open_param> sinsp_source_plugin::list_open_params() 
+std::vector<sinsp_source_plugin::open_param> sinsp_source_plugin::list_open_params()
 {
 	std::vector<sinsp_source_plugin::open_param> list;
 	if(plugin_state() && m_source_plugin_info.list_open_params)
