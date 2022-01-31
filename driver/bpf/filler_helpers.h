@@ -9,6 +9,7 @@ or GPL2.txt for full copies of the license.
 #ifndef __SYSDIGBPF_HELPERS_H
 #define __SYSDIGBPF_HELPERS_H
 
+#include <linux/compat.h>
 #include <net/compat.h>
 #include <net/sock.h>
 #include <net/inet_sock.h>
