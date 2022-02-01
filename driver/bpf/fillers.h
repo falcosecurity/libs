@@ -95,7 +95,7 @@ static __always_inline int __bpf_##x(struct filler_data *data)		\
 
 FILLER_RAW(terminate_filler)
 {
-	struct sysdig_bpf_per_cpu_state *state;
+	struct scap_bpf_per_cpu_state *state;
 
 	state = get_local_state(bpf_get_smp_processor_id());
 	if (!state)
@@ -2598,24 +2598,24 @@ FILLER(sys_unshare_e, true)
 
 FILLER(sys_generic, true)
 {
-	long *sysdig_id;
+	long *scap_id;
 	int native_id;
 	int res;
 
 	native_id = bpf_syscall_get_nr(data->ctx);
-	sysdig_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
-	if (!sysdig_id) {
+	scap_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
+	if (!scap_id) {
 		bpf_printk("no routing for syscall %d\n", native_id);
 		return PPM_FAILURE_BUG;
 	}
 
-	if (*sysdig_id == PPM_SC_UNKNOWN)
+	if (*scap_id == PPM_SC_UNKNOWN)
 		bpf_printk("no syscall for id %d\n", native_id);
 
 	/*
 	 * id
 	 */
-	res = bpf_val_to_ring(data, *sysdig_id);
+	res = bpf_val_to_ring(data, *scap_id);
 	if (res != PPM_SUCCESS)
 		return res;
 

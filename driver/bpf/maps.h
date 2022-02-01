@@ -79,14 +79,14 @@ struct bpf_map_def __bpf_section("maps") tmp_scratch_map = {
 struct bpf_map_def __bpf_section("maps") settings_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),
-	.value_size = sizeof(struct sysdig_bpf_settings),
+	.value_size = sizeof(struct scap_bpf_settings),
 	.max_entries = 1,
 };
 
 struct bpf_map_def __bpf_section("maps") local_state_map = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),
-	.value_size = sizeof(struct sysdig_bpf_per_cpu_state),
+	.value_size = sizeof(struct scap_bpf_per_cpu_state),
 	.max_entries = 0,
 };
 

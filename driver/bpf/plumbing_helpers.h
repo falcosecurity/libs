@@ -228,9 +228,9 @@ static __always_inline const struct ppm_event_entry *get_event_filler_info(enum 
 	return e;
 }
 
-static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
+static __always_inline struct scap_bpf_settings *get_bpf_settings(void)
 {
-	struct sysdig_bpf_settings *settings;
+	struct scap_bpf_settings *settings;
 	int id = 0;
 
 	settings = bpf_map_lookup_elem(&settings_map, &id);
@@ -240,9 +240,9 @@ static __always_inline struct sysdig_bpf_settings *get_bpf_settings(void)
 	return settings;
 }
 
-static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(unsigned int cpu)
+static __always_inline struct scap_bpf_per_cpu_state *get_local_state(unsigned int cpu)
 {
-	struct sysdig_bpf_per_cpu_state *state;
+	struct scap_bpf_per_cpu_state *state;
 
 	state = bpf_map_lookup_elem(&local_state_map, &cpu);
 	if (!state)
@@ -251,7 +251,7 @@ static __always_inline struct sysdig_bpf_per_cpu_state *get_local_state(unsigned
 	return state;
 }
 
-static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state *state)
+static __always_inline bool acquire_local_state(struct scap_bpf_per_cpu_state *state)
 {
 	if (state->in_use) {
 		bpf_printk("acquire_local_state: already in use\n");
@@ -262,7 +262,7 @@ static __always_inline bool acquire_local_state(struct sysdig_bpf_per_cpu_state 
 	return true;
 }
 
-static __always_inline bool release_local_state(struct sysdig_bpf_per_cpu_state *state)
+static __always_inline bool release_local_state(struct scap_bpf_per_cpu_state *state)
 {
 	if (!state->in_use) {
 		bpf_printk("release_local_state: already not in use\n");
@@ -327,9 +327,9 @@ static __always_inline int bpf_test_bit(int nr, unsigned long *addr)
 }
 
 static __always_inline bool drop_event(void *ctx,
-				       struct sysdig_bpf_per_cpu_state *state,
+				       struct scap_bpf_per_cpu_state *state,
 				       enum ppm_event_type evt_type,
-				       struct sysdig_bpf_settings *settings,
+				       struct scap_bpf_settings *settings,
 				       enum syscall_flags drop_flags)
 {
 	if (!settings->dropping_mode)
@@ -422,7 +422,7 @@ static __always_inline bool drop_event(void *ctx,
 	return false;
 }
 
-static __always_inline void reset_tail_ctx(struct sysdig_bpf_per_cpu_state *state,
+static __always_inline void reset_tail_ctx(struct scap_bpf_per_cpu_state *state,
 					   enum ppm_event_type evt_type,
 					   unsigned long long ts)
 {
@@ -437,11 +437,11 @@ static __always_inline void reset_tail_ctx(struct sysdig_bpf_per_cpu_state *stat
 static __always_inline void call_filler(void *ctx,
 					void *stack_ctx,
 					enum ppm_event_type evt_type,
-					struct sysdig_bpf_settings *settings,
+					struct scap_bpf_settings *settings,
 					enum syscall_flags drop_flags)
 {
 	const struct ppm_event_entry *filler_info;
-	struct sysdig_bpf_per_cpu_state *state;
+	struct scap_bpf_per_cpu_state *state;
 	unsigned long long pid;
 	unsigned long long ts;
 	unsigned int cpu;
