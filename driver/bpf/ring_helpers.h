@@ -81,7 +81,7 @@ static __always_inline int push_evt_frame(void *ctx,
 		 *
 		 * Schedule a hotplug event on CPU 0
 		 */
-		struct sysdig_bpf_per_cpu_state *state = get_local_state(0);
+		struct scap_bpf_per_cpu_state *state = get_local_state(0);
 
 		if (!state)
 			return PPM_FAILURE_BUG;

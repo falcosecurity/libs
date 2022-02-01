@@ -131,8 +131,8 @@ struct sys_stash_args {
 
 struct filler_data {
 	void *ctx;
-	struct sysdig_bpf_settings *settings;
-	struct sysdig_bpf_per_cpu_state *state;
+	struct scap_bpf_settings *settings;
+	struct scap_bpf_per_cpu_state *state;
 	char *tmp_scratch;
 	const struct ppm_event_info *evt;
 	const struct ppm_event_entry *filler_info;
@@ -171,23 +171,23 @@ struct perf_event_sample {
 
 #endif /* __KERNEL__ */
 
-enum sysdig_map_types {
-	SYSDIG_PERF_MAP = 0,
-	SYSDIG_TAIL_MAP = 1,
-	SYSDIG_SYSCALL_CODE_ROUTING_TABLE = 2,
-	SYSDIG_SYSCALL_TABLE = 3,
-	SYSDIG_EVENT_INFO_TABLE = 4,
-	SYSDIG_FILLERS_TABLE = 5,
-	SYSDIG_FRAME_SCRATCH_MAP = 6,
-	SYSDIG_TMP_SCRATCH_MAP = 7,
-	SYSDIG_SETTINGS_MAP = 8,
-	SYSDIG_LOCAL_STATE_MAP = 9,
+enum scap_map_types {
+	SCAP_PERF_MAP = 0,
+	SCAP_TAIL_MAP = 1,
+	SCAP_SYSCALL_CODE_ROUTING_TABLE = 2,
+	SCAP_SYSCALL_TABLE = 3,
+	SCAP_EVENT_INFO_TABLE = 4,
+	SCAP_FILLERS_TABLE = 5,
+	SCAP_FRAME_SCRATCH_MAP = 6,
+	SCAP_TMP_SCRATCH_MAP = 7,
+	SCAP_SETTINGS_MAP = 8,
+	SCAP_LOCAL_STATE_MAP = 9,
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
-	SYSDIG_STASH_MAP = 10,
+	SCAP_STASH_MAP = 10,
 #endif
 };
 
-struct sysdig_bpf_settings {
+struct scap_bpf_settings {
 	uint64_t boot_time;
 	void *socket_file_ops;
 	uint32_t snaplen;
@@ -212,7 +212,7 @@ struct tail_context {
 	int prev_res;
 } __attribute__((packed));
 
-struct sysdig_bpf_per_cpu_state {
+struct scap_bpf_per_cpu_state {
 	struct tail_context tail_ctx;
 	unsigned long long n_evts;
 	unsigned long long n_drops_buffer;
