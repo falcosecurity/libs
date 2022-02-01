@@ -329,5 +329,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MLOCK_X] = {FILLER_REF(sys_mlock_x)},
 	[PPME_SYSCALL_MUNLOCK_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_MUNLOCK_X] = {FILLER_REF(sys_munlock_x)},
+	[PPME_SYSCALL_MLOCKALL_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_MLOCKALL_X] = {FILLER_REF(sys_mlockall_x)},
 #endif /* WDIG */
 };

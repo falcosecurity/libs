@@ -134,7 +134,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mlock_e)				\
 	FN(sys_mlock_x)                 	\
 	FN(sys_munlock_e)			\
-	FN(sys_munlock_x)			\
+	FN(sys_munlock_x)              		\
+	FN(sys_mlockall_e)			\
+	FN(sys_mlockall_x)			\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
