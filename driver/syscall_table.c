@@ -388,6 +388,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mlock
 	[__NR_mlock - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SYSCALL_MLOCK_E, PPME_SYSCALL_MLOCK_X},
 #endif
+#ifdef __NR_munlock
+	[__NR_munlock - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SYSCALL_MUNLOCK_E, PPME_SYSCALL_MUNLOCK_X},
+#endif
 };
 
 /*
