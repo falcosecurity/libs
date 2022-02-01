@@ -3272,6 +3272,32 @@ FILLER(sys_io_uring_register_x, true)
 	return res;
 }
 
+FILLER(sys_mlock_x, true)
+{
+	unsigned long val;
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * addr
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * len
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;
