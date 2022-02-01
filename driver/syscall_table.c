@@ -394,6 +394,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mlockall
 	[__NR_mlockall - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SYSCALL_MLOCKALL_E, PPME_SYSCALL_MLOCKALL_X},
 #endif
+#ifdef __NR_munlockall
+	[__NR_munlockall - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SYSCALL_MUNLOCKALL_E, PPME_SYSCALL_MUNLOCKALL_X},
+#endif
 };
 
 /*
@@ -1314,6 +1317,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_mlockall
 	[__NR_ia32_mlockall - SYSCALL_TABLE_ID0] = 			{UF_USED, PPME_SYSCALL_MLOCKALL_E, PPME_SYSCALL_MLOCKALL_X},
+#endif
+#ifdef __NR_ia32_munlockall
+	[__NR_ia32_munlockall - SYSCALL_TABLE_ID0] = 			{UF_USED, PPME_SYSCALL_MUNLOCKALL_E, PPME_SYSCALL_MUNLOCKALL_X},
 #endif
 };
 
