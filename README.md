@@ -59,9 +59,9 @@ make sinsp
 ```
 > **NOTE:** take a break as this will take quite a bit of time (around 15 mins, dependent on the hardware obviously).
 
-### Use system deps
+### System deps
 
-To install using the system deps, first make sure to have all the needed packages installed.  
+To build using the system deps instead, first make sure to have all the needed packages installed.  
 Refer to https://falco.org/docs/getting-started/source/ for the list of dependencies.  
 
 Then, simply issue:
