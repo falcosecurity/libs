@@ -1591,6 +1591,24 @@ static __always_inline u32 execveat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 mlockall_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+#ifdef MCL_CURRENT
+	if (flags & MCL_CURRENT)
+		res |= PPM_MLOCKALL_MCL_CURRENT;
+#endif
+#ifdef MCL_FUTURE
+	if (flags & MCL_FUTURE)
+		res |= PPM_MLOCKALL_MCL_FUTURE;
+#endif
+#ifdef MCL_ONFAULT
+	if (flags & MCL_ONFAULT)
+		res |= PPM_MLOCKALL_MCL_ONFAULT;
+#endif
+	return res;
+}
+
 static __always_inline u32 unlinkat_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;

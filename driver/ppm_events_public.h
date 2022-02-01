@@ -668,6 +668,12 @@ or GPL2.txt for full copies of the license.
 #define PPM_IORING_UNREGISTER_PERSONALITY	11
 #define PPM_IORING_REGISTER_RESTRICTIONS	12
 #define PPM_IORING_REGISTER_ENABLE_RINGS	13
+/*
+ * MlocKall flags
+ */
+#define PPM_MLOCKALL_MCL_CURRENT		(1<<0)
+#define PPM_MLOCKALL_MCL_FUTURE			(1<<1)
+#define PPM_MLOCKALL_MCL_ONFAULT		(1<<2)
 
 /*
  * SuS says limits have to be unsigned.
@@ -1061,7 +1067,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_MLOCK_X = 345,
 	PPME_SYSCALL_MUNLOCK_E = 346,
 	PPME_SYSCALL_MUNLOCK_X = 347,
-	PPM_EVENT_MAX = 348,
+	PPME_SYSCALL_MLOCKALL_E = 348,
+	PPME_SYSCALL_MLOCKALL_X = 349,
+	PPM_EVENT_MAX = 350,
 };
 /*@}*/
 
@@ -1639,6 +1647,7 @@ extern const struct ppm_name_value io_uring_setup_flags[];
 extern const struct ppm_name_value io_uring_setup_feats[];
 extern const struct ppm_name_value io_uring_enter_flags[];
 extern const struct ppm_name_value io_uring_register_opcodes[];
+extern const struct ppm_name_value mlockall_flags[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];

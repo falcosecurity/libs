@@ -3324,6 +3324,25 @@ FILLER(sys_munlock_x, true)
 	return res;
 }
 
+FILLER(sys_mlockall_x, true)
+{
+	unsigned long val;
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * flags
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, mlockall_flags_to_scap(val));
+
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;
