@@ -362,6 +362,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MUNLOCK_X */ {"munlock", EC_MEMORY, EF_DROP_SIMPLE_CONS, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_UINT64, PF_HEX}, {"len", PT_UINT64, PF_DEC}}},
 	/* PPME_SYSCALL_MLOCKALL_E */ {"mlockall", EC_MEMORY, EF_DROP_SIMPLE_CONS, 0},
 	/* PPME_SYSCALL_MLOCKALL_X */ {"mlockall", EC_MEMORY, EF_DROP_SIMPLE_CONS, 2, {{"res", PT_ERRNO, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, mlockall_flags}}},
+	/* PPME_SYSCALL_MUNLOCKALL_E */ {"munlockall", EC_MEMORY, EF_DROP_SIMPLE_CONS, 0},
+	/* PPME_SYSCALL_MUNLOCKALL_X */ {"munlockall", EC_MEMORY, EF_DROP_SIMPLE_CONS, 1, {{"res", PT_ERRNO, PF_DEC}}},
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
