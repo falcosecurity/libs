@@ -429,6 +429,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			// Set close-on-exec for the fd
 			if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
 				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
+				close(handle->m_devs[j].m_fd);
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
