@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
@@ -102,13 +102,13 @@ endif()
 if(BUILD_DRIVER)
 	add_custom_target(driver ALL
 		COMMAND ${MAKE_COMMAND}
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${DRIVER_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY src
 		VERBATIM)
 else()
 	add_custom_target(driver
 		COMMAND ${MAKE_COMMAND}
-		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${PROBE_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
+		COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${DRIVER_NAME}.ko "${CMAKE_CURRENT_BINARY_DIR}"
 		WORKING_DIRECTORY src
 		VERBATIM)
 endif()

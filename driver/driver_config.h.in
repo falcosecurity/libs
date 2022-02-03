@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -22,12 +22,12 @@ or GPL2.txt for full copies of the license.
 
 #define PROBE_VERSION "${PROBE_VERSION}"
 
-#define PROBE_NAME "${PROBE_NAME}"
+#define DRIVER_NAME "${DRIVER_NAME}"
 
 #define PROBE_DEVICE_NAME "${PROBE_DEVICE_NAME}"
 
 #define PROBE_COMMIT "${GIT_COMMIT}"
 
 #ifndef KBUILD_MODNAME
-#define KBUILD_MODNAME PROBE_NAME
+#define KBUILD_MODNAME DRIVER_NAME
 #endif

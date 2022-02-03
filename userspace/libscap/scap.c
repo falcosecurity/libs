@@ -418,7 +418,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				}
 				else
 				{
-					snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the " PROBE_NAME " module is loaded.", filename);
+					snprintf(error, SCAP_LASTERR_SIZE, "error opening device %s. Make sure you have root credentials and that the " DRIVER_NAME " module is loaded.", filename);
 				}
 
 				scap_close(handle);

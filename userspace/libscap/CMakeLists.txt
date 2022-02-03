@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,20 +34,20 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(PROBE_VERSION "${FALCOSECURITY_LIBS_VERSION}")
     endif()
 
-    if(NOT DEFINED PROBE_NAME)
-        set(PROBE_NAME "scap")
+    if(NOT DEFINED DRIVER_NAME)
+        set(DRIVER_NAME "scap")
     endif()
 	
     if(NOT DEFINED PROBE_DEVICE_NAME)
-        set(PROBE_DEVICE_NAME "${PROBE_NAME}")
+        set(PROBE_DEVICE_NAME "${DRIVER_NAME}")
     endif()
 
-	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${PROBE_NAME}")
+	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${DRIVER_NAME}")
 	add_definitions(-DSCAP_PROBE_MODULE_NAME="${SCAP_PROBE_MODULE_NAME}")
 
 	if(NOT DEFINED SCAP_PROBE_BPF_FILEPATH)
 		# note that the home folder is prepended by scap at runtime
-		set(SCAP_PROBE_BPF_FILEPATH ".${PROBE_NAME}/${PROBE_NAME}-bpf.o")
+		set(SCAP_PROBE_BPF_FILEPATH ".${DRIVER_NAME}/${DRIVER_NAME}-bpf.o")
 	endif()
 	add_definitions(-DSCAP_PROBE_BPF_FILEPATH="${SCAP_PROBE_BPF_FILEPATH}")
 endif()

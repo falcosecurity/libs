@@ -2458,7 +2458,7 @@ int scap_init(void)
 #else
 	struct class_device *device = NULL;
 #endif
-	pr_info("driver loading, " PROBE_NAME " " PROBE_VERSION "\n");
+	pr_info("driver loading, " DRIVER_NAME " " PROBE_VERSION "\n");
 
 	ret = get_tracepoint_handles();
 	if (ret < 0)
