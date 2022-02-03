@@ -2556,7 +2556,7 @@ int scap_init(void)
 	 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0))
 	hp_ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
-					   "scap/probe:online",
+					   DRIVER_NAME "/driver:online",
 					   scap_cpu_online,
 					   scap_cpu_offline);
 	if (hp_ret <= 0) {
