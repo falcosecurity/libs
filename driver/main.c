@@ -776,7 +776,7 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl_nolock;
 	} else if (cmd == PPM_IOCTL_GET_PROBE_VERSION) {
-		if (copy_to_user((void *)arg, PROBE_VERSION, sizeof(PROBE_VERSION))) {
+		if (copy_to_user((void *)arg, DRIVER_VERSION, sizeof(DRIVER_VERSION))) {
 			ret = -EINVAL;
 			goto cleanup_ioctl_nolock;
 		}
@@ -2458,7 +2458,7 @@ int scap_init(void)
 #else
 	struct class_device *device = NULL;
 #endif
-	pr_info("driver loading, " DRIVER_NAME " " PROBE_VERSION "\n");
+	pr_info("driver loading, " DRIVER_NAME " " DRIVER_VERSION "\n");
 
 	ret = get_tracepoint_handles();
 	if (ret < 0)
@@ -2637,7 +2637,7 @@ void scap_exit(void)
 
 module_init(scap_init);
 module_exit(scap_exit);
-MODULE_VERSION(PROBE_VERSION);
+MODULE_VERSION(DRIVER_VERSION);
 MODULE_INFO(build_commit, PROBE_COMMIT);
 MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);

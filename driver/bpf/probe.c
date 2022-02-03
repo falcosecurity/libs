@@ -251,7 +251,7 @@ char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 
 char __license[] __bpf_section("license") = "GPL";
 
-char probe_ver[] __bpf_section("probe_version") = PROBE_VERSION;
+char probe_ver[] __bpf_section("probe_version") = DRIVER_VERSION;
 
 char probe_commit[] __bpf_section("build_commit") = PROBE_COMMIT;
 

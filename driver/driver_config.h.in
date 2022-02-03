@@ -20,7 +20,7 @@ or GPL2.txt for full copies of the license.
 
 #include "ppm_api_version.h"
 
-#define PROBE_VERSION "${PROBE_VERSION}"
+#define DRIVER_VERSION "${DRIVER_VERSION}"
 
 #define DRIVER_NAME "${DRIVER_NAME}"
 
