@@ -4,7 +4,7 @@ The file API_VERSION must contain a semver-like version number of the userspace<
 
 ## When to increment
 
-**major version**: increment when the probe API becomes incompatible with previous userspace versions
+**major version**: increment when the driver API becomes incompatible with previous userspace versions
 
 **minor version**: increment when new features are added but existing features remain compatible
 
