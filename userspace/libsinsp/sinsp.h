@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -668,7 +668,7 @@ public:
 	*/
 	inline uint64_t get_scap_api_version() const
 	{
-		return SCAP_MINIMUM_PROBE_API_VERSION;
+		return SCAP_MINIMUM_DRIVER_API_VERSION;
 	}
 
 	/*!
@@ -684,7 +684,7 @@ public:
 	*/
 	inline uint64_t get_scap_schema_version() const
 	{
-		return SCAP_MINIMUM_PROBE_SCHEMA_VERSION;
+		return SCAP_MINIMUM_DRIVER_SCHEMA_VERSION;
 	}
 
 	/*!

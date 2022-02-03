@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -82,8 +82,8 @@ struct iovec;
 // call `scap_get_probe_api_version()` and/or `scap_get_probe_schema_version()`
 // and handle the result
 //
-#define SCAP_MINIMUM_PROBE_API_VERSION PPM_API_VERSION(1, 0, 0)
-#define SCAP_MINIMUM_PROBE_SCHEMA_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(1, 0, 0)
 
 //
 // Return types
