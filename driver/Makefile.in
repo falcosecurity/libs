@@ -1,12 +1,12 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-@PROBE_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o ppm_cputime.o
-obj-m += @PROBE_NAME@.o
+@DRIVER_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table.o ppm_cputime.o
+obj-m += @DRIVER_NAME@.o
 ccflags-y := @KBUILD_FLAGS@
 
 KERNELDIR 		?= /lib/modules/$(shell uname -r)/build
