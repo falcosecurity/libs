@@ -24,7 +24,7 @@ or GPL2.txt for full copies of the license.
 
 #define DRIVER_NAME "${DRIVER_NAME}"
 
-#define PROBE_DEVICE_NAME "${PROBE_DEVICE_NAME}"
+#define DRIVER_DEVICE_NAME "${DRIVER_DEVICE_NAME}"
 
 #define PROBE_COMMIT "${GIT_COMMIT}"
 

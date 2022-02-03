@@ -38,8 +38,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(DRIVER_NAME "scap")
     endif()
 	
-    if(NOT DEFINED PROBE_DEVICE_NAME)
-        set(PROBE_DEVICE_NAME "${DRIVER_NAME}")
+    if(NOT DEFINED DRIVER_DEVICE_NAME)
+        set(DRIVER_DEVICE_NAME "${DRIVER_NAME}")
     endif()
 
 	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${DRIVER_NAME}")
