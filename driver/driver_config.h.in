@@ -26,7 +26,7 @@ or GPL2.txt for full copies of the license.
 
 #define DRIVER_DEVICE_NAME "${DRIVER_DEVICE_NAME}"
 
-#define PROBE_COMMIT "${GIT_COMMIT}"
+#define DRIVER_COMMIT "${GIT_COMMIT}"
 
 #ifndef KBUILD_MODNAME
 #define KBUILD_MODNAME DRIVER_NAME

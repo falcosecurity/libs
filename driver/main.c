@@ -2638,7 +2638,7 @@ void scap_exit(void)
 module_init(scap_init);
 module_exit(scap_exit);
 MODULE_VERSION(DRIVER_VERSION);
-MODULE_INFO(build_commit, PROBE_COMMIT);
+MODULE_INFO(build_commit, DRIVER_COMMIT);
 MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
