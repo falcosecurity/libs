@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 # This file is dual licensed under either the MIT or GPL 2. See
 # MIT.txt or GPL.txt for full copies of the license.
@@ -29,5 +29,5 @@ install(FILES
 	quirks.h
 	ring_helpers.h
 	types.h
-	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${PROBE_VERSION}/bpf"
+	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf"
 	COMPONENT ${DRIVER_COMPONENT_NAME})
