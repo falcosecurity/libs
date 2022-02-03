@@ -775,7 +775,7 @@ cleanup_ioctl_procinfo:
 		}
 		ret = 0;
 		goto cleanup_ioctl_nolock;
-	} else if (cmd == PPM_IOCTL_GET_PROBE_VERSION) {
+	} else if (cmd == PPM_IOCTL_GET_DRIVER_VERSION) {
 		if (copy_to_user((void *)arg, DRIVER_VERSION, sizeof(DRIVER_VERSION))) {
 			ret = -EINVAL;
 			goto cleanup_ioctl_nolock;
