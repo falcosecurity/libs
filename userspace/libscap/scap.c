@@ -140,7 +140,7 @@ static uint32_t get_max_consumers()
 {
 #ifndef _WIN32
 	uint32_t max;
-	FILE *pfile = fopen("/sys/module/" SCAP_PROBE_MODULE_NAME "/parameters/max_consumers", "r");
+	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/max_consumers", "r");
 	if(pfile != NULL)
 	{
 		int w = fscanf(pfile, "%"PRIu32, &max);
@@ -409,7 +409,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 				else if(errno == EBUSY)
 				{
 					uint32_t curr_max_consumers = get_max_consumers();
-					snprintf(error, SCAP_LASTERR_SIZE, "Too many consumers attached to device %s. Current value for /sys/module/" SCAP_PROBE_MODULE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+					snprintf(error, SCAP_LASTERR_SIZE, "Too many consumers attached to device %s. Current value for /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
 				}
 				else
 				{
