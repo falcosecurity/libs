@@ -656,11 +656,11 @@ public:
 	}
 
 	/*!
-	  \brief Returns the API version supported by the probe
+	  \brief Returns the API version supported by the driver
 	*/
-	inline uint64_t get_probe_api_version() const
+	inline uint64_t get_driver_api_version() const
 	{
-		return scap_get_probe_api_version(m_h);
+		return scap_get_driver_api_version(m_h);
 	}
 
 	/*!
@@ -672,11 +672,11 @@ public:
 	}
 
 	/*!
-	  \brief Returns the schema version supported by the probe
+	  \brief Returns the schema version supported by the driver
 	*/
-	inline uint64_t get_probe_schema_version() const
+	inline uint64_t get_driver_schema_version() const
 	{
-		return scap_get_probe_schema_version(m_h);
+		return scap_get_driver_schema_version(m_h);
 	}
 
 	/*!
