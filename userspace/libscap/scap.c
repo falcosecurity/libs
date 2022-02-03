@@ -3057,41 +3057,41 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 #endif
 }
 
-bool scap_is_api_compatible(unsigned long probe_api_version, unsigned long required_api_version)
+bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version)
 {
-	unsigned long probe_major = PPM_API_VERSION_MAJOR(probe_api_version);
-	unsigned long probe_minor = PPM_API_VERSION_MINOR(probe_api_version);
-	unsigned long probe_patch = PPM_API_VERSION_PATCH(probe_api_version);
+	unsigned long driver_major = PPM_API_VERSION_MAJOR(driver_api_version);
+	unsigned long driver_minor = PPM_API_VERSION_MINOR(driver_api_version);
+	unsigned long driver_patch = PPM_API_VERSION_PATCH(driver_api_version);
 	unsigned long required_major = PPM_API_VERSION_MAJOR(required_api_version);
 	unsigned long required_minor = PPM_API_VERSION_MINOR(required_api_version);
 	unsigned long required_patch = PPM_API_VERSION_PATCH(required_api_version);
 
-	if(probe_major != required_major)
+	if(driver_major != required_major)
 	{
 		// major numbers disagree
 		return false;
 	}
 
-	if(probe_minor < required_minor)
+	if(driver_minor < required_minor)
 	{
-		// probe's minor version is < ours
+		// driver's minor version is < ours
 		return false;
 	}
-	if(probe_minor == required_minor && probe_patch < required_patch)
+	if(driver_minor == required_minor && driver_patch < required_patch)
 	{
-		// probe's minor versions match and patch level is < ours
+		// driver's minor versions match and patch level is < ours
 		return false;
 	}
 
 	return true;
 }
 
-uint64_t scap_get_probe_api_version(scap_t* handle)
+uint64_t scap_get_driver_api_version(scap_t* handle)
 {
 	return handle->m_api_version;
 }
 
-uint64_t scap_get_probe_schema_version(scap_t* handle)
+uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
 	return handle->m_schema_version;
 }
