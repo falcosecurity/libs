@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -2473,14 +2473,14 @@ int scap_init(void)
 	 * Initialize the user I/O
 	 * ( + 1 for sysdig-events)
 	 */
-	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, PROBE_DEVICE_NAME);
+	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, DRIVER_DEVICE_NAME);
 	if (acrret < 0) {
-		pr_err("could not allocate major number for %s\n", PROBE_DEVICE_NAME);
+		pr_err("could not allocate major number for %s\n", DRIVER_DEVICE_NAME);
 		ret = -ENOMEM;
 		goto init_module_err;
 	}
 
-	g_ppm_class = class_create(THIS_MODULE, PROBE_DEVICE_NAME);
+	g_ppm_class = class_create(THIS_MODULE, DRIVER_DEVICE_NAME);
 	if (IS_ERR(g_ppm_class)) {
 		pr_err("can't allocate device class\n");
 		ret = -EFAULT;
@@ -2512,7 +2512,7 @@ int scap_init(void)
 		g_ppm_devs[j].dev = MKDEV(g_ppm_major, j);
 
 		if (cdev_add(&g_ppm_devs[j].cdev, g_ppm_devs[j].dev, 1) < 0) {
-			pr_err("could not allocate chrdev for %s\n", PROBE_DEVICE_NAME);
+			pr_err("could not allocate chrdev for %s\n", DRIVER_DEVICE_NAME);
 			ret = -EFAULT;
 			goto init_module_err;
 		}
@@ -2525,11 +2525,11 @@ int scap_init(void)
 						g_ppm_class, NULL, /* no parent device */
 						g_ppm_devs[j].dev,
 						NULL, /* no additional data */
-						PROBE_DEVICE_NAME "%d",
+						DRIVER_DEVICE_NAME "%d",
 						j);
 
 		if (IS_ERR(device)) {
-			pr_err("error creating the device for  %s\n", PROBE_DEVICE_NAME);
+			pr_err("error creating the device for  %s\n", DRIVER_DEVICE_NAME);
 			cdev_del(&g_ppm_devs[j].cdev);
 			ret = -EFAULT;
 			goto init_module_err;
