@@ -41,9 +41,28 @@ option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
+include(GetGitRevisionDescription)
+
 if(NOT DEFINED FALCOSECURITY_LIBS_VERSION)
-	set(FALCOSECURITY_LIBS_VERSION "0.1.1dev")
+	# Try to obtain the exact git tag
+	git_get_exact_tag(LIBS_TAG)
+	if(NOT LIBS_TAG)
+		# Obtain the closest tag
+		git_describe(FALCOSECURITY_LIBS_VERSION "--always" "--tags" "--abbrev=7")
+		# Fallback version
+		if(FALCOSECURITY_LIBS_VERSION MATCHES "NOTFOUND$")
+			set(FALCOSECURITY_LIBS_VERSION "0.1.1dev")
+		endif()
+		# Format FALCOSECURITY_LIBS_VERSION to be semver with prerelease and build part
+		string(REPLACE "-g" "+" FALCOSECURITY_LIBS_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+	else()
+		# A tag has been found: use it as the Falco version
+		set(FALCOSECURITY_LIBS_VERSION "${LIBS_TAG}")
+	endif()
 endif()
+
+# Remove the starting "v" in case there is one
+string(REGEX REPLACE "^v(.*)" "\\1" FALCOSECURITY_LIBS_VERSION "${FALCOSECURITY_LIBS_VERSION}")
 
 if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
