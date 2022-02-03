@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -253,7 +253,7 @@ char __license[] __bpf_section("license") = "GPL";
 
 char probe_ver[] __bpf_section("probe_version") = DRIVER_VERSION;
 
-char probe_commit[] __bpf_section("build_commit") = PROBE_COMMIT;
+char probe_commit[] __bpf_section("build_commit") = DRIVER_COMMIT;
 
 uint64_t probe_api_ver __bpf_section("api_version") = PPM_API_CURRENT_VERSION;
 
