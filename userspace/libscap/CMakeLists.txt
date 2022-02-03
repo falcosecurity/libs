@@ -42,8 +42,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(DRIVER_DEVICE_NAME "${DRIVER_NAME}")
     endif()
 
-	string(REPLACE "-" "_" SCAP_PROBE_MODULE_NAME "${DRIVER_NAME}")
-	add_definitions(-DSCAP_PROBE_MODULE_NAME="${SCAP_PROBE_MODULE_NAME}")
+	string(REPLACE "-" "_" SCAP_KERNEL_MODULE_NAME "${DRIVER_NAME}")
+	add_definitions(-DSCAP_KERNEL_MODULE_NAME="${SCAP_KERNEL_MODULE_NAME}")
 
 	if(NOT DEFINED SCAP_PROBE_BPF_FILEPATH)
 		# note that the home folder is prepended by scap at runtime
