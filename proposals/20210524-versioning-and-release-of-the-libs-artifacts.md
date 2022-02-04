@@ -40,6 +40,8 @@ This proposal intends to extend on points 10-12 for the libsinsp and libscap pla
 
 ### Versioning Scheme
 
+**Superseeded by**: [versioning-schema-amendment proposal](20220203-versioning-schema-amendment.md).
+
 This document proposes to version libscap, libsinsp, and the Falco drivers - all residing in `falcosecurity/libs` - with a single [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string.
 
 While libscap and libsinsp - to do not mention the drivers - have different API surfaces, this document proposes to version them as one single machinery to avoid further maintenance burdens and version compatibility matrices (read dependency hell) between all the floating pieces.

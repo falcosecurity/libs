@@ -1,6 +1,6 @@
 # Versioning schema
 
-Supersedes: [20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme](20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme)
+**Supersedes**: [20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme](20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme)
 
 ## Summary
 
@@ -54,3 +54,8 @@ For that purpose, this document proposes to use `1.0.0` as the starting point fo
 - *patch* increases either when `API_VERSION`’s patch or `SCHEMA_VERSION`’s patch number has been increased or when any other code changes have been introduced (for example, the support for a new kernel)
 
 Note that no backward-incompatible changes can be introduced without bumping the *major* number of `API_VERSION` or `SCHEMA_VERSION` first. Similar logic applies for the *minor* and *patch* numbers. Since both `API_VERSION` and `SCHEMA_VERSION` follow the SemVer scheme, with this method also, the resulting driver version is guaranteed to respect what the SemVer specification mandates.
+
+### Other considerations
+
+Steps described in the 
+[20210524-versioning-and-release-of-the-libs-artifacts.md#steps](20210524-versioning-and-release-of-the-libs-artifacts.md#steps) section will need to be adapted to accommodate the two different release processes (one for the libs and another for the drivers).
