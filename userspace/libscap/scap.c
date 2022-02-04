@@ -557,7 +557,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 	if(!scap_is_api_compatible(handle->m_api_version, SCAP_MINIMUM_DRIVER_API_VERSION))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Probe supports API version %lu.%lu.%lu, but running version needs %d.%d.%d",
+		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports API version %lu.%lu.%lu, but running version needs %d.%d.%d",
 			PPM_API_VERSION_MAJOR(handle->m_api_version),
 			PPM_API_VERSION_MINOR(handle->m_api_version),
 			PPM_API_VERSION_PATCH(handle->m_api_version),
@@ -571,7 +571,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 	if(!scap_is_api_compatible(handle->m_schema_version, SCAP_MINIMUM_DRIVER_SCHEMA_VERSION))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Probe supports schema version %lu.%lu.%lu, but running version needs %d.%d.%d",
+		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports schema version %lu.%lu.%lu, but running version needs %d.%d.%d",
 			PPM_API_VERSION_MAJOR(handle->m_schema_version),
 			PPM_API_VERSION_MINOR(handle->m_schema_version),
 			PPM_API_VERSION_PATCH(handle->m_schema_version),
