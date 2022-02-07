@@ -41,7 +41,7 @@ Libscap and libsinsp are two distinct artifacts. They will be released with the 
 
 ### Drivers artifacts
 
-The kernel model and the eBPF probe are two components that can be built for any supported Kernel version. The source code of both drivers will be released with the same version number (a single [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string).
+The kernel module and the eBPF probe are two components that can be built for any supported Kernel version. The source code of both drivers will be released with the same version number (a single [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string).
 
 However, a few considerations need to be taken into account. The public API is composed of two different characteristics in the driver context: the API functions (exposed to the consumer) and the data schema (delivered to the consumer). Our implementation versions those two characteristics directly in the source code (you can find the current versions respectively in [/driver/API_VERSION](/driver/API_VERSION) and [/driver/SCHEMA_VERSION](/driver/SCHEMA_VERSION)). Those versions use a SemVer compatible scheme.
 
