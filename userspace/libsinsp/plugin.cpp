@@ -479,7 +479,7 @@ bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
 }
 
 sinsp_plugin::sinsp_plugin(sinsp_plugin_handle handle)
-	: m_nfields(0), m_handle(handle)
+	: m_handle(handle), m_nfields(0)
 {
 }
 
