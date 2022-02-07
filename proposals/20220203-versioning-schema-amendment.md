@@ -36,7 +36,7 @@ This amendment is required to fill the gap between the two proposals and allow o
 
 ### Userspace libs artifacts
 
-Libscap and libsinsp are two distinct artifacts. They will be released with the same version number (a single [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string). This proposal does not aims to change what already proposed by [20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme](20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme) with respect to the user-space components residing in `falcosecurity/libs`.
+Libscap and libsinsp are two distinct artifacts. They will be released with the same version number (a single [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string). This proposal does not aim to change what already proposed by [20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme](20210524-versioning-and-release-of-the-libs-artifacts.md#versioning-scheme) with respect to the user-space components residing in `falcosecurity/libs`.
 
 
 ### Drivers artifacts
