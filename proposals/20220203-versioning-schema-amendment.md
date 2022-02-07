@@ -57,5 +57,8 @@ Note that no backward-incompatible changes can be introduced without bumping the
 
 ### Other considerations
 
+When releasing the artifacts, maintainers will use these versioning schemes (i.e., when git tagging libs or drivers).
+However, consumers are free to use any versioning scheme they want by overriding those values at build time (e.g., via cmake options).
+
 Steps described in the 
 [20210524-versioning-and-release-of-the-libs-artifacts.md#steps](20210524-versioning-and-release-of-the-libs-artifacts.md#steps) section will need to be adapted to accommodate the two different release processes (one for the libs and another for the drivers).
