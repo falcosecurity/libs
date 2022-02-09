@@ -51,7 +51,7 @@ class check_extraction_cache_entry
 {
 public:
 	uint64_t m_evtnum = UINT64_MAX;
-	uint8_t* m_res;
+	vector<extract_value_t> m_res;
 };
 
 class check_eval_cache_entry
@@ -118,14 +118,20 @@ public:
 	// Extract the field from the event. In sanitize_strings is true, any
 	// string values are sanitized to remove nonprintable characters.
 	//
-	uint8_t* extract(gen_event *evt, OUT uint32_t* len, bool sanitize_strings = true);
-	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true) = 0;
+	bool extract(gen_event *evt, OUT vector<extract_value_t>& values, bool sanitize_strings = true);
+
+	// Alias of extract that uses the sinsp_evt type.
+	// By default, this fills the vector with only one value, retireved by calling the single-result
+	// extract method.
+	// If a NULL value is returned by extract, the vector is emptied.
+	// Subclasses are meant to either override this, or the single-valued extract method.
+	virtual bool extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// Wrapper for extract() that implements caching to speed up multiple extractions of the same value,
 	// which are common in Falco.
 	//
-	uint8_t* extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+	bool extract_cached(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// Extract the field as json from the event (by default, fall
@@ -164,7 +170,13 @@ public:
 	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
 
 protected:
+	// This is a single-value version of extract for subclasses non supporting extracting
+	// multiple values. By default, this returns NULL.
+	// Subclasses are meant to either override this, or the multi-valued extract method.
+	virtual uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
+	
 	bool flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len = 0, uint32_t op2_len = 0);
+	bool flt_compare(cmpop op, ppm_param_type type, vector<extract_value_t>& values, uint32_t op2_len = 0);
 
 	char* rawval_to_string(uint8_t* rawval,
 			       ppm_param_type ptype,
