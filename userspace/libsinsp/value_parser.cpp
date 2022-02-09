@@ -109,6 +109,9 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			parsed_len = sizeof(uint64_t);
 			break;
 		case PT_CHARBUF:
+		// this function is invoked for each element of a list,
+		// so this is the same as a charbuf
+		case PT_CHARBUFARRAY:
 		case PT_SOCKADDR:
 		case PT_SOCKFAMILY:
 		case PT_FSPATH:

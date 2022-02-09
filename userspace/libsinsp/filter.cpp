@@ -415,6 +415,8 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		return flt_compare_buffer(op, (char*)operand1, (char*)operand2, op1_len, op2_len);
 	case PT_DOUBLE:
 		return flt_compare_double(op, *(double*)operand1, *(double*)operand2);
+	case PT_CHARBUFARRAY:
+		throw sinsp_exception("charbuf-array type can't be compared to single values");
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
@@ -581,6 +583,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 					       ppm_print_format print_format,
 					       uint32_t len)
 {
+	Json::Value ret;
+	vector<char*>* strvect;
 	ASSERT(rawval != NULL);
 
 	switch(ptype)
@@ -738,6 +742,13 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_IPADDR:
 		case PT_FSRELPATH:
 			return rawval_to_string(rawval, ptype, print_format, len);
+		case PT_CHARBUFARRAY:
+			strvect = (vector<char*>*)*(uint64_t *)rawval;
+			for (auto it = strvect->begin(); it != strvect->end(); ++it)
+			{
+				ret.append(std::string(*it));
+			}
+			return ret;
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
@@ -750,6 +761,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 					   uint32_t len)
 {
 	char* prfmt;
+	string getpropertystr;
+	vector<char*>* strvect;
 
 	ASSERT(rawval != NULL);
 
@@ -1038,6 +1051,22 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 					 sizeof(m_getpropertystr_storage),
 					 "%.1lf", *(double*)rawval);
 			return m_getpropertystr_storage;
+		case PT_CHARBUFARRAY:
+			getpropertystr = "(";
+			strvect = (vector<char*>*)*(uint64_t *)rawval;
+			for (auto it = strvect->begin(); it != strvect->end(); ++it)
+			{
+				if (it != strvect->begin())
+				{
+					getpropertystr += ",";
+				}
+				getpropertystr += *it;
+			}
+			getpropertystr += ")";
+			strncpy(m_getpropertystr_storage,
+				getpropertystr.c_str(),
+				sizeof(m_getpropertystr_storage) - 1);
+			return m_getpropertystr_storage;			
 		default:
 			ASSERT(false);
 			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
@@ -1182,6 +1211,8 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 {
 	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
 	{
+		vector<char*>* strvect;
+		
 		// Certain filterchecks can't be done as a set
 		// membership test/group match. For these, just loop over the
 		// values and see if any value is equal.
@@ -1207,6 +1238,50 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 				{
 					return true;
 				}
+			}
+			return false;
+		case PT_CHARBUFARRAY:
+			strvect = (vector<char*>*)*(uint64_t *)operand1;
+			if (op == CO_IN)
+			{
+				for (auto it = strvect->begin(); it != strvect->end(); ++it)
+				{
+					size_t len = strlen(*it);
+					filter_value_t item((uint8_t *) *it, len);
+					if(len < m_val_storages_min_size ||
+						len > m_val_storages_max_size ||
+						m_val_storages_members.find(item) == m_val_storages_members.end())
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			else if (op == CO_INTERSECTS)
+			{
+				for (auto it = strvect->begin(); it != strvect->end(); ++it)
+				{
+					size_t len = strlen(*it);
+					filter_value_t item((uint8_t *) *it, len);
+					if(len >= m_val_storages_min_size &&
+						len <= m_val_storages_max_size &&
+						m_val_storages_members.find(item) != m_val_storages_members.end())
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			else if (op == CO_PMATCH)
+			{
+				for (auto it = strvect->begin(); it != strvect->end(); ++it)
+				{
+					if(!m_val_storages_paths.match(*it))
+					{
+						return false;
+					}
+				}
+				return true;
 			}
 			return false;
 		default:
@@ -1743,7 +1818,7 @@ void sinsp_filter_compiler::parse_check()
 		//
 		m_scanpos++;
 
-		if(chk->get_field_info()->m_type == PT_CHARBUF)
+		if(chk->get_field_info()->m_type == PT_CHARBUF || chk->get_field_info()->m_type == PT_CHARBUFARRAY)
 		{
 			//
 			// For character buffers, we can check all

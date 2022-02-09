@@ -1410,7 +1410,7 @@ enum ppm_param_type {
 	PT_GID = 32, /* this is an UINT32, MAX_UINT32 will be interpreted as no value. */
 	PT_DOUBLE = 33, /* this is a double precision floating point number. */
 	PT_SIGSET = 34, /* sigset_t. I only store the lower UINT32 of it */
-	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
+	PT_CHARBUFARRAY = 35,	/* Pointer to an array of strings. 64bit. Used internally and in plugins filterchecks. */
 	PT_CHARBUF_PAIR_ARRAY = 36,	/* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */
 	PT_IPV4NET = 37, /* An IPv4 network. */
 	PT_IPV6ADDR = 38, /* A 16 byte raw IPv6 address. */
