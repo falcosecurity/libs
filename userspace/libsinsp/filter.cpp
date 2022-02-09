@@ -1659,15 +1659,15 @@ cmpop sinsp_filter_compiler::next_comparison_operator()
 		m_scanpos += 4;
 		return CO_GLOB;
 	}
-	else if(compare_no_consume("in"))
-	{
-		m_scanpos += 2;
-		return CO_IN;
-	}
 	else if(compare_no_consume("intersects"))
 	{
 		m_scanpos += 10;
 		return CO_INTERSECTS;
+	}
+	else if(compare_no_consume("in"))
+	{
+		m_scanpos += 2;
+		return CO_IN;
 	}
 	else if(compare_no_consume("pmatch"))
 	{
