@@ -70,19 +70,6 @@ public:
 		uint32_t id;
 	};
 
-	// Similar to struct ss_plugin_extract_field, but with c++
-	// types to avoid having to track memory allocations.
-	struct ext_field {
-		uint32_t field_id;
-		std::string field;
-		std::string arg;
-		uint32_t ftype;
-
-		bool field_present;
-		std::string res_str;
-		uint64_t res_u64;
-	};
-
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
 	// Also create filterchecks for fields supported by the plugin
@@ -128,7 +115,7 @@ public:
 	const filtercheck_field_info *fields();
 	uint32_t nfields();
 
-	bool extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &field);
+	bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 
 	std::string get_init_schema(ss_plugin_schema_type& schema_type);
 	void validate_init_config(const char* config);
