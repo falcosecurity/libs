@@ -27,8 +27,8 @@ limitations under the License.
 //
 // API versions of this plugin engine
 //
-#define PLUGIN_API_VERSION_MAJOR 0
-#define PLUGIN_API_VERSION_MINOR 3
+#define PLUGIN_API_VERSION_MAJOR 1
+#define PLUGIN_API_VERSION_MINOR 0
 #define PLUGIN_API_VERSION_PATCH 0
 
 //
@@ -127,24 +127,32 @@ typedef struct ss_plugin_event
 // ftype: the type of the field. Could be derived from the field name alone,
 //   but including here can prevent a second lookup of field names.
 // The following should be filled in by the extraction function:
-// - field_present: set to true if the event has a meaningful
-//   extracted value for the provided field, false otherwise
-// - res_str: if the corresponding field was type==string, this should be
-//   filled in with the string value. The string must be allocated and set
-//   by the plugin.
-// - res_u64: if the corresponding field was type==uint64, this should be
-//   filled in with the uint64 value.
+// - res: this should be filled with a pointer to an array of ss_plugin_extract_res_t.
+//   The array represent the list of extracted values for this field from a given event.
+//   Each array element is a union, and should be filled with a char* string if
+//   the corresponding field was type==string, and with a uint64 value if the
+//   corresponding field was type==uint64.
+// - res_len: the length of the array of ss_plugin_extract_res_t pointed by res.
+//   If the field is not a list type, then res_len must be either 0 or 1.
+//   If the field is a list type, then res_len can must be any value from 0 to N, depending
+//   on how many values can be extracted from a given event.
+//   Setting res_len to 0 means that no value of this field can be extracted from a given event.
+
+
+typedef union ss_plugin_extract_res {
+	const char* str;
+	uint64_t u64;
+} ss_plugin_extract_res_t;
 
 typedef struct ss_plugin_extract_field
 {
+	ss_plugin_extract_res_t* res;
+	uint32_t res_len;
+
 	uint32_t field_id;
 	const char* field;
 	const char* arg;
-	uint32_t ftype;
-
-	bool field_present;
-	const char* res_str;
-	uint64_t res_u64;
+	uint32_t ftype;	
 } ss_plugin_extract_field;
 
 //
