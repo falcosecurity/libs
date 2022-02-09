@@ -1105,15 +1105,28 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 
 char* sinsp_filter_check::tostring(sinsp_evt* evt)
 {
-	uint32_t len;
-	uint8_t* rawval = extract(evt, &len);
-
-	if(rawval == NULL)
+	vector<extract_value_t> raw_values;
+	if(!extract_cached(evt, raw_values))
 	{
 		return NULL;
 	}
 
-	return rawval_to_string(rawval, m_field->m_type, m_field->m_print_format, len);
+	char* str = rawval_to_string(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
+	if (raw_values.size() == 1)
+	{
+		return str;
+	}
+
+	std::string res = "(";
+	res += str;
+	for (auto it = raw_values.begin() + 1; it != raw_values.end(); ++it)
+	{
+		res += ",";
+		res += rawval_to_string((*it).ptr, m_field->m_type, m_field->m_print_format, (*it).len);
+	}
+	res += ")";
+	strncpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage) - 1);
+	return m_getpropertystr_storage;
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1123,12 +1136,17 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 
 	if(jsonval == Json::nullValue)
 	{
-		uint8_t* rawval = extract(evt, &len);
-		if(rawval == NULL)
+		vector<extract_value_t> raw_values;
+		if(!extract_cached(evt, raw_values))
 		{
 			return Json::nullValue;
 		}
-		return rawval_to_json(rawval, m_field->m_type, m_field->m_print_format, len);
+
+		jsonval = rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
+		for (auto it = raw_values.begin() + 1; it != raw_values.end(); ++it)
+		{
+			jsonval.append(rawval_to_json((*it).ptr, m_field->m_type, m_field->m_print_format, (*it).len));
+		}
 	}
 
 	return jsonval;
@@ -1237,6 +1255,57 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 	return &m_info.m_fields[m_field_id];
 }
 
+bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extract_value_t>& values, uint32_t op2_len)
+{
+	if (values.size() > 1)
+	{
+		switch (op)
+		{
+			case CO_IN:
+				for (auto it = values.begin(); it != values.end(); ++it)
+				{
+					filter_value_t item((*it).ptr, (*it).len);
+					if((*it).len < m_val_storages_min_size ||
+						(*it).len > m_val_storages_max_size ||
+						m_val_storages_members.find(item) == m_val_storages_members.end())
+					{
+						return false;
+					}
+				}
+				return true;
+			case CO_INTERSECTS:
+				for (auto it = values.begin(); it != values.end(); ++it)
+				{
+					filter_value_t item((*it).ptr, (*it).len);
+					if((*it).len >= m_val_storages_min_size &&
+						(*it).len <= m_val_storages_max_size &&
+						m_val_storages_members.find(item) != m_val_storages_members.end())
+					{
+						return true;
+					}
+				}
+				return false;
+			case CO_PMATCH:
+				for (auto it = values.begin(); it != values.end(); ++it)
+				{
+					if(!m_val_storages_paths.match((char*)(*it).ptr))
+					{
+						return false;
+					}
+				}
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	return flt_compare(m_cmpop,
+		m_info.m_fields[m_field_id].m_type,
+		values[0].ptr,
+		values[0].len,
+		op2_len);
+}
+
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operand1, uint32_t op1_len, uint32_t op2_len)
 {
 	if (op == CO_IN || op == CO_PMATCH || op == CO_INTERSECTS)
@@ -1315,12 +1384,30 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 	}
 }
 
-uint8_t* sinsp_filter_check::extract(gen_event *evt, OUT uint32_t* len, bool sanitize_strings)
+bool sinsp_filter_check::extract(gen_event *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
 {
-	return extract((sinsp_evt *) evt, len, sanitize_strings);
+	return extract((sinsp_evt *) evt, values, sanitize_strings);
 }
 
-uint8_t* sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+bool sinsp_filter_check::extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
+{
+	values.clear();
+	extract_value_t val;
+	val.ptr = extract(evt, &val.len, sanitize_string);
+	if (val.ptr != NULL)
+	{
+		values.push_back(val);
+		return true;
+	}
+	return false;
+}
+
+uint8_t* sinsp_filter_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+{
+	return NULL;
+}
+
+bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
 {
 	if(m_extraction_cache_entry != NULL)
 	{
@@ -1329,14 +1416,14 @@ uint8_t* sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT uint32_t* len, b
 		if(en != m_extraction_cache_entry->m_evtnum)
 		{
 			m_extraction_cache_entry->m_evtnum = en;
-			m_extraction_cache_entry->m_res = extract(evt, len, sanitize_strings);
+			extract(evt, m_extraction_cache_entry->m_res, sanitize_strings);
 		}
 
-		return m_extraction_cache_entry->m_res;
+		return !m_extraction_cache_entry->m_res.empty();
 	}
 	else
 	{
-		return extract(evt, len, sanitize_strings);
+		return extract(evt, values, sanitize_strings);
 	}
 }
 
@@ -1374,20 +1461,16 @@ bool sinsp_filter_check::compare(gen_event *evt)
 
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
-	uint32_t evt_val_len=0;
 	bool sanitize_strings = false;
-	uint8_t* extracted_val = extract_cached(evt, &evt_val_len, sanitize_strings);
-
-	if(extracted_val == NULL)
+	vector<extract_value_t> extracted_values;
+	if(!extract_cached(evt, extracted_values, sanitize_strings))
 	{
 		return false;
 	}
 
 	return flt_compare(m_cmpop,
-			   m_info.m_fields[m_field_id].m_type,
-			   extracted_val,
-			   evt_val_len,
-			   m_val_storage_len);
+		m_info.m_fields[m_field_id].m_type,
+		extracted_values);
 }
 
 sinsp_filter::sinsp_filter(sinsp *inspector)

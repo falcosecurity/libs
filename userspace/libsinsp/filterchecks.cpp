@@ -1764,6 +1764,8 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	//
 	uint32_t len = 0;
 	bool sanitize_strings = false;
+	// note: this uses the single-value extract because this filtercheck
+	// class does not support multi-valued extraction
 	uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 	if(extracted_val == NULL)
@@ -4717,6 +4719,8 @@ bool sinsp_filter_check_event::compare(sinsp_evt *evt)
 	{
 		uint32_t len;
 		bool sanitize_strings = false;
+		// note: this uses the single-value extract because this filtercheck
+		// class does not support multi-valued extraction
 		uint8_t* extracted_val = extract(evt, &len, sanitize_strings);
 
 		if(extracted_val == NULL)
@@ -6946,6 +6950,8 @@ char* sinsp_filter_check_reference::tostring_nice(sinsp_evt* evt,
 	uint64_t time_delta)
 {
 	uint32_t len;
+	// note: this uses the single-value extract because this filtercheck
+	// class does not support multi-valued extraction
 	uint8_t* rawval = extract(evt, &len);
 
 	if(rawval == NULL)
@@ -7005,6 +7011,8 @@ Json::Value sinsp_filter_check_reference::tojson(sinsp_evt* evt,
 	uint64_t time_delta)
 {
 	uint32_t len;
+	// note: this uses the single-value extract because this filtercheck
+	// class does not support multi-valued extraction
 	uint8_t* rawval = extract(evt, &len);
 
 	if(rawval == NULL)
