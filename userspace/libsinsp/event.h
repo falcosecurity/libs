@@ -59,7 +59,7 @@ typedef struct filtercheck_field_info
 	filtercheck_field_flags m_flags;  ///< Field flags.
 	ppm_print_format m_print_format;  ///< If this is a numeric field, this flag specifies if it should be rendered as octal, decimal or hex.
 	char m_name[64];  ///< Field name.
-	char m_display[64];  ///< Field display name (short description).
+	char m_display[64];  ///< Field display name (short description). May be empty.
 	char m_description[1024];  ///< Field description.
 }filtercheck_field_info;
 

@@ -729,10 +729,6 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			}
 			const Json::Value &jvdisplay = root[j]["display"];
 			string fdisplay = jvdisplay.asString();
-			if(fdisplay == "")
-			{
-				throw sinsp_exception(string("error in plugin ") + m_name + ": field JSON entry has no display");
-			}
 			const Json::Value &jvdesc = root[j]["desc"];
 			string fdesc = jvdesc.asString();
 			if(fdesc == "")
