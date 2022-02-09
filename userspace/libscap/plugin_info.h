@@ -134,7 +134,12 @@ typedef struct ss_plugin_event
 //   by the plugin.
 // - res_u64: if the corresponding field was type==uint64, this should be
 //   filled in with the uint64 value.
-
+// - res_str_list/res_str_list_len: if the corresponding field was
+//   type==string[], res_str_list should be filled with a pointer to an array
+//   of char pointers, each of them containing a string value.
+//   res_str_list_len sould be filled with the length of the array.
+//   The memory referenced by the pointers must be allocated and owned by
+//   the plugin.
 typedef struct ss_plugin_extract_field
 {
 	uint32_t field_id;
@@ -145,6 +150,8 @@ typedef struct ss_plugin_extract_field
 	bool field_present;
 	const char* res_str;
 	uint64_t res_u64;
+	const char** res_str_list;
+	uint32_t res_str_list_len;
 } ss_plugin_extract_field;
 
 //

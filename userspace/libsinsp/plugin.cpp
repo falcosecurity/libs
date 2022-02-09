@@ -222,6 +222,18 @@ public:
 			m_u64_res = field.res_u64;
 			return (uint8_t *)&m_u64_res;
 		}
+		case PT_CHARBUFARRAY:
+			m_str_list_storage.clear();
+			for (uint32_t i = 0; i < field.res_str_list_len; i++)
+			{
+				if (field.res_str_list[i] != NULL)
+				{
+					m_str_list_storage.push_back((char*) field.res_str_list[i]);
+				}
+			}
+			*len = m_str_list_storage.size();
+			m_u64_res = (uint64_t)((vector<char*>*) &m_str_list_storage);
+			return (uint8_t*) &m_u64_res;
 		default:
 			ASSERT(false);
 			throw sinsp_exception("plugin extract error: unsupported field type " + to_string(type));
@@ -237,6 +249,7 @@ public:
 	char* m_arg = NULL;
 
 	std::string m_strstorage;
+	std::vector<char*> m_str_list_storage;
 	uint64_t m_u64_res;
 
 	std::shared_ptr<sinsp_plugin> m_plugin;
@@ -602,6 +615,10 @@ bool sinsp_plugin::extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &
 		case PT_UINT64:
 			field.res_u64 = efield.res_u64;
 			break;
+		case PT_CHARBUFARRAY:
+			field.res_str_list = efield.res_str_list;
+			field.res_str_list_len = efield.res_str_list_len;
+			break;
 		default:
 			ASSERT(false);
 			throw sinsp_exception("plugin extract error: unsupported field type " + to_string(field.ftype));
@@ -745,14 +762,9 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			{
 				tf.m_type = PT_UINT64;
 			}
-			// XXX/mstemm are these actually supported?
-			else if(ftype == "int64")
+			else if(ftype== "string[]")
 			{
-				tf.m_type = PT_INT64;
-			}
-			else if(ftype == "float")
-			{
-				tf.m_type = PT_DOUBLE;
+				tf.m_type = PT_CHARBUFARRAY;
 			}
 			else
 			{

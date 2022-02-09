@@ -81,6 +81,8 @@ public:
 		bool field_present;
 		std::string res_str;
 		uint64_t res_u64;
+		const char** res_str_list;
+		uint32_t res_str_list_len;
 	};
 
 	// Create and register a plugin from a shared library pointed
