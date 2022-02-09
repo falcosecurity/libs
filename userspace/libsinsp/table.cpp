@@ -447,11 +447,9 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	//
 	// Extract the values and create the row to add
 	//
+	vector<extract_value_t> extracted_values;
 	for(j = 0; j < m_n_premerge_fields; j++)
 	{
-		uint32_t len;
-		uint8_t* val = m_premerge_extractors[j]->extract(evt, &len);
-
 		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
 
 		//
@@ -459,7 +457,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		// At a certain point we will want to introduce the concept of zero
 		// for other fields too.
 		//
-		if(val == NULL)
+		if(!m_premerge_extractors[j]->extract(evt, extracted_values))
 		{
 			if(m_use_defaults)
 			{
@@ -480,9 +478,10 @@ void sinsp_table::process_event(sinsp_evt* evt)
 		}
 		else
 		{
-			pfld->m_val = val;
+			// todo: Do something better here. For now, only support single-value extracted fields
+			pfld->m_val = extracted_values[0].ptr;
 			pfld->m_len = get_field_len(j);
-			pfld->m_val = m_buffer->copy(val, pfld->m_len);
+			pfld->m_val = m_buffer->copy(extracted_values[0].ptr, pfld->m_len);
 			pfld->m_cnt = 1;
 		}
 	}
