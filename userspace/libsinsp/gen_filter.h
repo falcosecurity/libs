@@ -101,6 +101,10 @@ private:
 
 };
 
+typedef struct extract_value {
+	uint8_t* ptr;
+	uint32_t len;
+} extract_value_t;
 
 class gen_event_filter_check
 {
@@ -114,7 +118,7 @@ public:
 	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) = 0;
 	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 ) = 0;
 	virtual bool compare(gen_event *evt) = 0;
-	virtual uint8_t* extract(gen_event *evt, uint32_t* len, bool sanitize_strings = true) = 0;
+	virtual bool extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true) = 0;
 
 	//
 	// Configure numeric id to be set on events that match this filter
@@ -167,7 +171,7 @@ public:
 
 	bool compare(gen_event *evt);
 
-	uint8_t* extract(gen_event *evt, uint32_t* len, bool sanitize_strings = true);
+	bool extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true);
 
 	//
 	// An expression is consistent if all its checks are of the same type (or/and).

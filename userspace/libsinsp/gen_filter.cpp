@@ -181,9 +181,9 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 	return res;
 }
 
-uint8_t *gen_event_filter_expression::extract(gen_event *evt, uint32_t *len, bool sanitize_strings)
+bool gen_event_filter_expression::extract(gen_event *evt, vector<extract_value_t>& values, bool sanitize_strings)
 {
-	return NULL;
+	return false;
 }
 
 int32_t gen_event_filter_expression::get_expr_boolop()
