@@ -194,6 +194,9 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 				}
 			}
 			break;
+		case PT_CHARBUFARRAY:
+			ASSERT(false);
+			return 0;
 		default:
 			ASSERT(false);
 			string err = "wrong event type " + to_string((long long) ptype);
