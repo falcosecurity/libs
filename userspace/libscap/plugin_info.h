@@ -130,28 +130,33 @@ typedef struct ss_plugin_event
 //   Could be derived from the field name alone, but including it
 //   here can prevent a second lookup of field names.
 // The following should be filled in by the extraction function:
-// - res: this should be filled with a pointer to an array of ss_plugin_extract_res_t.
+// - res: this union should be filled with a pointer to an array of values.
 //   The array represent the list of extracted values for this field from a given event.
-//   Each array element is a union, and should be filled with a char* string if
-//   the corresponding field was type==string, and with a uint64 value if the
-//   corresponding field was type==uint64.
-// - res_len: the length of the array of ss_plugin_extract_res_t pointed by res.
+//   Each array element should be filled with a char* string if the corresponding
+//   field was type==string, and with a uint64 value if the corresponding field was
+//   type==uint64.
+// - res_len: the length of the array of pointed by res.
 //   If the field is not a list type, then res_len must be either 0 or 1.
 //   If the field is a list type, then res_len can must be any value from 0 to N, depending
 //   on how many values can be extracted from a given event.
 //   Setting res_len to 0 means that no value of this field can be extracted from a given event.
 
 
-typedef union ss_plugin_extract_res {
-	const char* str;
-	uint64_t u64;
-} ss_plugin_extract_res_t;
-
 typedef struct ss_plugin_extract_field
 {
-	ss_plugin_extract_res_t* res;
-	uint32_t res_len;
+	// NOTE: For a given architecture, this has always the same size which
+	// is sizeof(uintptr_t). Adding new value types will not create breaking
+	// changes in the plugin API. However, we must make sure that each added
+	// type is always a pointer.
+	union {
+		const char** str;
+		uint64_t* u64;
+	} res;
+	uint64_t res_len;
 
+	// NOTE: When/if adding new input fields, make sure of appending them
+	// at the end of the struct to avoid introducing breaking changes in the
+	// plugin API.
 	uint32_t field_id;
 	const char* field;
 	const char* arg;
