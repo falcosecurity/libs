@@ -431,8 +431,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			}
 
 			// Check the API version reported
-			api_version = ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_API_VERSION, 0);
-			if ((int64_t)api_version < 0)
+			if (ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_API_VERSION, &api_version) < 0)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_API_VERSION");
 				close(handle->m_devs[j].m_fd);
@@ -462,8 +461,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			handle->m_api_version = api_version;
 
 			// Check the schema version reported
-			schema_version = ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, 0);
-			if ((int64_t)schema_version < 0)
+			if (ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, &schema_version) < 0)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_SCHEMA_VERSION");
 				close(handle->m_devs[j].m_fd);
