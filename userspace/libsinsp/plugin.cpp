@@ -234,14 +234,14 @@ public:
 			{
 				case PT_CHARBUF:
 				{
-					m_res_str_storage[i] = efield.res[i].str;
+					m_res_str_storage[i] = efield.res.str[i];
 					res.len = m_res_str_storage[i].size();
 					res.ptr = (uint8_t*) m_res_str_storage[i].c_str();
 					break;
 				}
 				case PT_UINT64:
 				{
-					m_res_u64_storage[i] = efield.res[i].u64;
+					m_res_u64_storage[i] = efield.res.u64[i];
 					res.len = sizeof(uint64_t);
 					res.ptr = (uint8_t*) &m_res_u64_storage[i];
 					break;
