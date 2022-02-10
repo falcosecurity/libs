@@ -37,8 +37,10 @@ namespace libsinsp {
 namespace cri {
 
 // these shouldn't be globals but we still need references to *the* CRI runtime
-extern std::string s_cri_unix_socket_path;
+extern std::vector<std::string> s_cri_unix_socket_paths;
 extern int64_t s_cri_timeout;
+// TODO: drop these 2 below
+extern std::string s_cri_unix_socket_path;
 extern sinsp_container_type s_cri_runtime_type;
 extern bool s_cri_extra_queries;
 

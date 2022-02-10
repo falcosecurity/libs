@@ -151,6 +151,7 @@ public:
 	void set_query_docker_image_info(bool query_image_info);
 	void set_cri_extra_queries(bool extra_queries);
 	void set_cri_socket_path(const std::string& path);
+	void add_cri_socket_path(const std::string &path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);

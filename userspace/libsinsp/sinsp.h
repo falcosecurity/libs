@@ -992,7 +992,14 @@ public:
 
 	void set_statsd_port(uint16_t port);
 
+	/*!
+	  \brief Reset list of crio socket paths currently stored, and set path as the only path.
+	*/
 	void set_cri_socket_path(const std::string& path);
+	/*!
+	  \brief Pushed a new path to the list of crio socket paths
+	*/
+	void add_cri_socket_path(const std::string &path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);

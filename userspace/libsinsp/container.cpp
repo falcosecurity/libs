@@ -640,6 +640,13 @@ void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 #endif
 }
 
+void sinsp_container_manager::add_cri_socket_path(const std::string &path)
+{
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+	libsinsp::container_engine::cri::add_cri_socket_path(path);
+#endif
+}
+
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
 #if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
