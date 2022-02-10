@@ -783,10 +783,16 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl_nolock;
 	} else if (cmd == PPM_IOCTL_GET_API_VERSION) {
-		ret = PPM_API_CURRENT_VERSION;
+		unsigned long long __user *out = (unsigned long long __user *) arg;
+		ret = 0;
+		if(put_user(PPM_API_CURRENT_VERSION, out))
+			ret = -EINVAL;
 		goto cleanup_ioctl_nolock;
 	} else if (cmd == PPM_IOCTL_GET_SCHEMA_VERSION) {
-		ret = PPM_SCHEMA_CURRENT_VERSION;
+		unsigned long long __user *out = (unsigned long long __user *) arg;
+		ret = 0;
+		if(put_user(PPM_SCHEMA_CURRENT_VERSION, out))
+			ret = -EINVAL;
 		goto cleanup_ioctl_nolock;
 	}
 
