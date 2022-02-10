@@ -126,6 +126,9 @@ typedef struct ss_plugin_event
 //         * if the field specified by the user is foo.bar, arg will be NULL
 // ftype: the type of the field. Could be derived from the field name alone,
 //   but including here can prevent a second lookup of field names.
+// flist: whether the field can extract lists of values or not.
+//   Could be derived from the field name alone, but including it
+//   here can prevent a second lookup of field names.
 // The following should be filled in by the extraction function:
 // - res: this should be filled with a pointer to an array of ss_plugin_extract_res_t.
 //   The array represent the list of extracted values for this field from a given event.
@@ -153,6 +156,7 @@ typedef struct ss_plugin_extract_field
 	const char* field;
 	const char* arg;
 	uint32_t ftype;	
+	bool flist;
 } ss_plugin_extract_field;
 
 //
