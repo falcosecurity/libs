@@ -50,6 +50,7 @@ typedef enum filtercheck_field_flags
 	EPF_TABLE_ONLY        = 1 << 3, ///< this field is designed to be used in a table and won't appear in the field listing.
 	EPF_INFO              = 1 << 4, ///< this field contains summary information about the event.
 	EPF_CONVERSATION      = 1 << 5, ///< this field can be used to identify conversations.
+	EPF_IS_LIST           = 1 << 6, ///< this field is a list of values.
 }filtercheck_field_flags;
 
 /*!

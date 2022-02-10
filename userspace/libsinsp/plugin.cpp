@@ -199,14 +199,34 @@ public:
 		efield.field = m_info.m_fields[m_field_id].m_name;
 		efield.arg = m_arg != NULL ? m_arg : "";
 		efield.ftype = type;
+		efield.flist = m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST;
 		if (!m_plugin->extract_fields(pevt, num_fields, &efield) || efield.res_len == 0)
 		{
 			return false;
 		}
 
 		values.clear();
-		m_res_str_storage.resize(efield.res_len);
-		m_res_u64_storage.resize(efield.res_len);
+		switch(type)
+		{
+			case PT_CHARBUF:
+			{
+				if (m_res_str_storage.size() < efield.res_len)
+				{
+					m_res_str_storage.resize(efield.res_len);
+				}
+				break;
+			}
+			case PT_UINT64:
+			{
+				if (m_res_u64_storage.size() < efield.res_len)
+				{
+					m_res_u64_storage.resize(efield.res_len);
+				}
+				break;
+			}
+			default:
+				break;
+		}
 		for (uint32_t i = 0; i < efield.res_len; ++i)
 		{
 			extract_value_t res;
@@ -728,6 +748,11 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			strlcpy(tf.m_display, fdisplay.c_str(), sizeof(tf.m_display));
 			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
 			tf.m_print_format = PF_DEC;
+			if (ftype.size() > 2 && ftype[0] == '[' && ftype[1] == ']')
+			{
+				tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_IS_LIST);
+				ftype = ftype.substr(2);
+			}
 			if(ftype == "string")
 			{
 				tf.m_type = PT_CHARBUF;
@@ -735,15 +760,6 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			else if(ftype == "uint64")
 			{
 				tf.m_type = PT_UINT64;
-			}
-			// XXX/mstemm are these actually supported?
-			else if(ftype == "int64")
-			{
-				tf.m_type = PT_INT64;
-			}
-			else if(ftype == "float")
-			{
-				tf.m_type = PT_DOUBLE;
 			}
 			else
 			{

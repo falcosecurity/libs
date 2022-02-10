@@ -1257,7 +1257,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 
 bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extract_value_t>& values, uint32_t op2_len)
 {
-	if (values.size() > 1)
+	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
 	{
 		switch (op)
 		{
@@ -1285,18 +1285,15 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 					}
 				}
 				return false;
-			case CO_PMATCH:
-				for (auto it = values.begin(); it != values.end(); ++it)
-				{
-					if(!m_val_storages_paths.match((char*)(*it).ptr))
-					{
-						return false;
-					}
-				}
-				return true;
 			default:
-				return false;
+				ASSERT(false);
+				throw sinsp_exception("filters with flag EPF_IS_LIST only support operators in and intersects");
 		}
+	}
+	else if (values.size() > 1)
+	{
+		ASSERT(false);
+		throw sinsp_exception("filters without flag EPF_IS_LIST must extract a single extracted value");
 	}
 
 	return flt_compare(m_cmpop,
@@ -1896,7 +1893,7 @@ void sinsp_filter_compiler::parse_check()
 		//
 		m_scanpos++;
 
-		if(chk->get_field_info()->m_type == PT_CHARBUF)
+		if(chk->get_field_info()->m_flags & filtercheck_field_flags::EPF_IS_LIST)
 		{
 			//
 			// For character buffers, we can check all
