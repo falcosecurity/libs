@@ -11,16 +11,19 @@
  * bits 0-23: patch version
  */
 
+#define PPM_VERSION_PACK(val, bits, shift) ((((unsigned long long)(val)) & ((1ULL << (bits)) - 1)) << (shift))
+#define PPM_VERSION_UNPACK(val, bits, shift) ((((unsigned long long)(val)) >> (shift)) & ((1ULL << (bits)) - 1))
+
 /* extract components from an API version number */
-#define PPM_API_VERSION_MAJOR(ver) ((((ver) >> 44)) & (((1 << 19) - 1)))
-#define PPM_API_VERSION_MINOR(ver) (((ver) >> 24) & (((1 << 20) - 1)))
-#define PPM_API_VERSION_PATCH(ver) (((ver) & ((1 << 24) - 1)))
+#define PPM_API_VERSION_MAJOR(ver) PPM_VERSION_UNPACK(ver, 19, 44)
+#define PPM_API_VERSION_MINOR(ver) PPM_VERSION_UNPACK(ver, 20, 24)
+#define PPM_API_VERSION_PATCH(ver) PPM_VERSION_UNPACK(ver, 24, 0)
 
 /* build an API version number from components */
 #define PPM_API_VERSION(major, minor, patch) \
-	(((major) & (((1ULL << 19) - 1) << 44)) | \
-	((minor) & (((1ULL << 20) - 1) << 24)) | \
-	((major) & (((1ULL << 24) - 1))))
+	PPM_VERSION_PACK(major, 19, 44) | \
+	PPM_VERSION_PACK(minor, 20, 24) | \
+	PPM_VERSION_PACK(patch, 24, 0)
 
 #define PPM_API_CURRENT_VERSION PPM_API_VERSION( \
 	PPM_API_CURRENT_VERSION_MAJOR, \
