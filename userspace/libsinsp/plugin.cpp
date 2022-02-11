@@ -732,11 +732,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			strlcpy(tf.m_display, fdisplay.c_str(), sizeof(tf.m_display));
 			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
 			tf.m_print_format = PF_DEC;
-			if (ftype.size() > 2 && ftype[0] == '[' && ftype[1] == ']')
-			{
-				tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_IS_LIST);
-				ftype = ftype.substr(2);
-			}
+
 			if(ftype == "string")
 			{
 				tf.m_type = PT_CHARBUF;
@@ -749,6 +745,21 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			{
 				throw sinsp_exception(string("error in plugin ") + m_name + ": invalid field type " + ftype);
 			}
+
+			const Json::Value &jvIsList = root[j].get("isList", Json::Value::null);
+			if (!jvIsList.isNull())
+			{
+				if (!jvIsList.isBool())
+				{
+					throw sinsp_exception(string("error in plugin ") + m_name + ": field " + fname + " isList property is not boolean ");
+				}
+
+				if (jvIsList.asBool() == true)
+				{
+					tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_IS_LIST);
+				}
+			}
+
 			const Json::Value &jvargRequired = root[j].get("argRequired", Json::Value::null);
 			if (!jvargRequired.isNull())
 			{
