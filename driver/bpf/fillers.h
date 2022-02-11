@@ -2265,8 +2265,8 @@ FILLER(proc_startupdate_3, true)
 		return PPM_FAILURE_BUG;
 
 	if (data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE_20_X ||
-	    data->state->tail_ctx.evt_type == PPME_SYSCALL_FORK_20_X ||
-	    data->state->tail_ctx.evt_type == PPME_SYSCALL_VFORK_20_X ||
+		data->state->tail_ctx.evt_type == PPME_SYSCALL_FORK_20_X ||
+		data->state->tail_ctx.evt_type == PPME_SYSCALL_VFORK_20_X ||
 		data->state->tail_ctx.evt_type == PPME_SYSCALL_CLONE3_X) 
 		{
 		/*
@@ -2290,7 +2290,7 @@ FILLER(proc_startupdate_3, true)
 			flags = bpf_syscall_get_argument(data, 0);
 			break;
 		
-        case PPME_SYSCALL_CLONE3_X:
+		case PPME_SYSCALL_CLONE3_X:
 #ifdef __NR_clone3
 			flags = bpf_syscall_get_argument(data, 0);
 			if (bpf_probe_read(&cl_args, sizeof(struct clone_args), (void *)flags)) 
@@ -2299,7 +2299,7 @@ FILLER(proc_startupdate_3, true)
 			}
 			flags = cl_args.flags;
 #else
-            flags = 0;			
+		flags = 0;
 #endif
 			break;
 
