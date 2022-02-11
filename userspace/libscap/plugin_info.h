@@ -333,8 +333,10 @@ typedef struct
 	// Return value: a string with the list of fields encoded as a json
 	//   array.
 	//   Each field entry is a json object with the following properties:
-	//     "type": one of "string", "uint64"
 	//     "name": a string with a name for the field
+	//     "type": one of "string", "uint64"
+	//     "isList: (optional) If present and set to true, notes
+	//              that the field extracts a list of values.
 	//     "argRequired: (optional) If present and set to true, notes
 	//                   that the field requires an argument e.g. field[arg].
 	//     "display": (optional) If present, a string that will be used to
