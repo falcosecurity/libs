@@ -404,7 +404,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_fdtable.clear();
 	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
-	m_uid = pi->uid;
+	set_uid(pi->uid);
 	m_gid = pi->gid;
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
@@ -486,6 +486,19 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 			pi->filtered_out = 1;
 		}
 	}
+}
+
+// Set uid checking whether it is an unknown (thus new) user.
+// If it is a new user, notify it.
+void sinsp_threadinfo::set_uid(uint32_t uid) {
+	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(uid);
+	if (!user)
+	{
+		m_inspector->refresh_user_list();
+		user = m_inspector->m_usergroup_manager.get_user(uid);
+		m_inspector->m_usergroup_manager.notify_user_changed(user, m_tid);
+	}
+	m_uid = uid;
 }
 
 std::string sinsp_threadinfo::get_comm() const

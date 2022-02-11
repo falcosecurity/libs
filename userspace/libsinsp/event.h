@@ -522,6 +522,7 @@ VISIBILITY_PRIVATE
 	friend class protocol_manager;
 	friend class test_helpers::event_builder;
 	friend class test_helpers::sinsp_mock;
+	friend class sinsp_usergroup_manager;
 };
 
 /*@}*/

@@ -69,6 +69,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
+	m_usergroup_manager(this),
 	m_ppm_sc_of_interest(),
 	m_suppressed_comms(),
 	m_inited(false)
@@ -88,6 +89,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_thread_manager = new sinsp_thread_manager(this);
 	m_max_fdtable_size = MAX_FD_TABLE_SIZE;
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
+	m_deleted_users_groups_scan_time_ns = DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
 	m_filter = NULL;
@@ -374,7 +376,7 @@ void sinsp::init()
 
 	import_ifaddr_list();
 
-	import_user_list();
+	m_usergroup_manager.import_users_groups_list();
 
 	//
 	// Scan the list to create the proper parent/child dependencies
@@ -974,25 +976,6 @@ sinsp_network_interfaces* sinsp::get_ifaddr_list()
 	return m_network_interfaces;
 }
 
-void sinsp::import_user_list()
-{
-	uint32_t j;
-	scap_userlist* ul = scap_get_user_list(m_h);
-
-	if(ul)
-	{
-		for(j = 0; j < ul->nusers; j++)
-		{
-			m_userlist[ul->users[j].uid] = &(ul->users[j]);
-		}
-
-		for(j = 0; j < ul->ngroups; j++)
-		{
-			m_grouplist[ul->groups[j].gid] = &(ul->groups[j]);
-		}
-	}
-}
-
 void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
 	ASSERT(m_network_interfaces);
@@ -1167,10 +1150,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 #ifndef _WIN32
-	else if (m_pending_container_evts.try_pop(m_container_evt))
+	else if (m_pending_state_evts.try_pop(m_state_evt))
 	{
 		res = SCAP_SUCCESS;
-		evt = m_container_evt.get();
+		evt = m_state_evt.get();
 	}
 #endif
 	else
@@ -1248,7 +1231,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E)
+	if(m_firstevent_ts == 0 && !(evt->get_info_flags() & EF_INTERNAL))
 	{
 		m_firstevent_ts = ts;
 	}
@@ -1317,7 +1300,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 
 	//
-	// Run the periodic connection and thread table cleanup
+	// Run the periodic connection, thread and users/groups table cleanup
 	//
 	if(!is_capture())
 	{
@@ -1330,6 +1313,8 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		{
 			update_mesos_state();
 		}
+
+		m_usergroup_manager.cleanup_deleted_users_groups();
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
 #endif // HAS_ANALYZER
@@ -1838,48 +1823,6 @@ bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 const scap_machine_info* sinsp::get_machine_info()
 {
 	return m_machine_info;
-}
-
-const unordered_map<uint32_t, scap_userinfo*>* sinsp::get_userlist()
-{
-	return &m_userlist;
-}
-
-scap_userinfo* sinsp::get_user(uint32_t uid)
-{
-	if(uid == 0xffffffff)
-	{
-		return NULL;
-	}
-
-	auto it = m_userlist.find(uid);
-	if(it == m_userlist.end())
-	{
-		return NULL;
-	}
-
-	return it->second;
-}
-
-const unordered_map<uint32_t, scap_groupinfo*>* sinsp::get_grouplist()
-{
-	return &m_grouplist;
-}
-
-scap_groupinfo* sinsp::get_group(uint32_t gid)
-{
-	if(gid == 0xffffffff)
-	{
-		return NULL;
-	}
-
-	auto it = m_grouplist.find(gid);
-	if(it == m_grouplist.end())
-	{
-		return NULL;
-	}
-
-	return it->second;
 }
 
 void sinsp::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)

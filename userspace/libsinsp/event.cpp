@@ -2162,7 +2162,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
-			auto user_info = m_inspector->get_user(val);
+			auto user_info = m_inspector->m_usergroup_manager.get_user(val);
 			if (user_info != NULL)
 			{
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], user_info->name,
@@ -2194,7 +2194,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
-			auto group_info = m_inspector->get_group(val);
+			auto group_info = m_inspector->m_usergroup_manager.get_group(val);
 			if (group_info != NULL)
 			{
 				strcpy_sanitized(&m_resolved_paramstr_storage[0], group_info->name,

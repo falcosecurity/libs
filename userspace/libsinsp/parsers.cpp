@@ -488,6 +488,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CAPSET_X:
 		parse_capset_exit(evt);
 		break;
+	case PPME_USERADDED_E:
+	case PPME_USERDELETED_E:
+		m_inspector->m_usergroup_manager.import_users_groups_list();
+		break;
 	default:
 		break;
 	}
