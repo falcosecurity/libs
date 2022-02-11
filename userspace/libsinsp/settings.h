@@ -55,6 +55,11 @@ limitations under the License.
 #define DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S 30
 
 //
+// How often the users/groups tables are scanned for deleted users/groups
+//
+#define DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S 60
+
+//
 // Default snaplen
 //
 #define DEFAULT_SNAPLEN 80

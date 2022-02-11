@@ -284,7 +284,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_TRACER_X */{ "tracer", EC_OTHER, EF_NONE, 3, { { "id", PT_INT64, PF_DEC }, { "tags", PT_CHARBUFARRAY, PF_NA }, { "args", PT_CHARBUF_PAIR_ARRAY, PF_NA } } },
 	/* PPME_MESOS_E */{"mesos", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_MESOS_X */{"NA4", EC_SYSTEM, EF_UNUSED, 0},
-	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS, EF_MODIFIES_STATE | EF_INTERNAL, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_CONTAINER_JSON_X */{"container", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SETSID_E */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
@@ -336,7 +336,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_USERFAULTFD_X */{"userfaultfd", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* PPME_PLUGINEVENT_E */{"pluginevent", EC_OTHER, EF_LARGE_PAYLOAD, 2, {{"plugin ID", PT_UINT32, PF_DEC}, {"event_data", PT_BYTEBUF, PF_NA} } },
 	/* PPME_NA1 */{"pluginevent", EC_OTHER, EF_UNUSED, 0},
-	/* PPME_CONTAINER_JSON_2_E */{"container", EC_PROCESS, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_2_E */{"container", EC_PROCESS, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD | EF_INTERNAL, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_CONTAINER_JSON_2_X */{"container", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_OPENAT2_E */{"openat2", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"resolve", PT_FLAGS32, PF_HEX, openat2_flags} } },
 	/* PPME_SYSCALL_OPENAT2_X */{"openat2", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 6, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"resolve", PT_FLAGS32, PF_HEX, openat2_flags} } },
@@ -366,6 +366,10 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MUNLOCKALL_X */ {"munlockall", EC_MEMORY, EF_DROP_SIMPLE_CONS, 1, {{"res", PT_ERRNO, PF_DEC}}},
 	/* PPME_SYSCALL_CAPSET_E */{"capset", EC_PROCESS, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_CAPSET_X */{"capset", EC_PROCESS, EF_MODIFIES_STATE, 4, {{"res", PT_ERRNO, PF_DEC}, {"cap_inheritable", PT_UINT64, PF_HEX}, {"cap_permitted", PT_UINT64, PF_HEX}, {"cap_effective", PT_UINT64, PF_HEX} } },
+	/* PPME_USER_ADDED_E */{"useradded", EC_PROCESS, EF_MODIFIES_STATE | EF_INTERNAL, 5, {{"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"home", PT_CHARBUF, PF_NA}, {"shell", PT_CHARBUF, PF_NA} } },
+	/* PPME_USER_ADDED_X */{"useradded", EC_PROCESS, EF_UNUSED, 0},
+	/* PPME_USER_DELETED_E */{"userdeleted", EC_PROCESS, EF_MODIFIES_STATE | EF_INTERNAL, 5, {{"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"home", PT_CHARBUF, PF_NA}, {"shell", PT_CHARBUF, PF_NA} } },
+	/* PPME_USER_DELETED_X */{"userdeleted", EC_PROCESS, EF_UNUSED, 0},
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
