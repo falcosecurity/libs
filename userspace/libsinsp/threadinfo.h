@@ -389,7 +389,8 @@ VISIBILITY_PRIVATE
 	void add_fd_from_scap(scap_fdinfo *fdinfo, OUT sinsp_fdinfo_t *res);
 	void remove_fd(int64_t fd);
 	void set_cwd(const char *cwd, uint32_t cwdlen);
-	void set_uid(uint32_t uid);
+	void set_uid(uint32_t uid, bool &updated);
+	void set_gid(uint32_t gid, bool updated);
 	sinsp_threadinfo* get_cwd_root();
 	void set_args(const char* args, size_t len);
 	void set_env(const char* env, size_t len);
