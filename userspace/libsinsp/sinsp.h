@@ -888,9 +888,6 @@ public:
 	void refresh_proc_list() {
 		scap_refresh_proc_table(m_h);
 	}
-	void refresh_user_list() {
-		scap_refresh_userlist(m_h);
-	}
 
 	void set_simpledriver_mode();
 	std::vector<long> get_n_tracepoint_hit();
