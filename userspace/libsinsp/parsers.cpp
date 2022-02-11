@@ -488,9 +488,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CAPSET_X:
 		parse_capset_exit(evt);
 		break;
-	case PPME_USERADDED_E:
-	case PPME_USERDELETED_E:
-		m_inspector->m_usergroup_manager.import_users_groups_list();
+	case PPME_USER_ADDED_E:
+	case PPME_USER_DELETED_E:
+		parse_user_evt(evt);
+		break;
+	case PPME_GROUP_ADDED_E:
+	case PPME_GROUP_DELETED_E:
+		parse_group_evt(evt);
 		break;
 	default:
 		break;
@@ -5197,6 +5201,57 @@ void sinsp_parser::parse_container_evt(sinsp_evt *evt)
 	container->m_image = parinfo->m_val;
 
 	m_inspector->m_container_manager.add_container(container, evt->get_thread_info(true));
+}
+
+void sinsp_parser::parse_user_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	uint32_t uid, gid;
+	const char *name, *home, *shell;
+
+	parinfo = evt->get_param(0);
+	uid = atoi(parinfo->m_val);
+
+	parinfo = evt->get_param(1);
+	gid = atoi(parinfo->m_val);
+
+	parinfo = evt->get_param(2);
+	name = parinfo->m_val;
+
+	parinfo = evt->get_param(3);
+	home = parinfo->m_val;
+
+	parinfo = evt->get_param(4);
+	shell = parinfo->m_val;
+
+	if ( evt->m_pevt->type == PPME_USER_ADDED_E)
+	{
+		m_inspector->m_usergroup_manager.add_user(uid, gid, name, home, shell);
+	} else
+	{
+		m_inspector->m_usergroup_manager.rm_user(uid);
+	}
+}
+
+void sinsp_parser::parse_group_evt(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	uint32_t gid;
+	const char *name;
+
+	parinfo = evt->get_param(0);
+	gid = atoi(parinfo->m_val);
+
+	parinfo = evt->get_param(1);
+	name = parinfo->m_val;
+
+	if ( evt->m_pevt->type == PPME_GROUP_ADDED_E)
+	{
+		m_inspector->m_usergroup_manager.add_group(gid, name);
+	} else
+	{
+		m_inspector->m_usergroup_manager.rm_group(gid);
+	}
 }
 
 void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
