@@ -1083,7 +1083,7 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 			return Json::nullValue;
 		}
 
-		jsonval = rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
+		jsonval.append(rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len));
 		for (auto it = raw_values.begin() + 1; it != raw_values.end(); ++it)
 		{
 			jsonval.append(rawval_to_json((*it).ptr, m_field->m_type, m_field->m_print_format, (*it).len));
@@ -1200,12 +1200,31 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 {
 	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
 	{
+		// NOTE: using m_val_storages_members.find(item) relies on memcmp to
+		// compare filter_value_t values, and not the base-level flt_compare.
+		// This has two main consequences. First, this only works for equality
+		// comparison, which luckily is what we want for 'in' and 'intersects'.
+		// Second, the comparison happens between the value parsed data, which
+		// means it may not work for all the supported data types, since
+		// flt_compare uses some additional logic for certain data types (e.g. ipv6).
+		// However, for now we only support lists of types PT_CHARBUF and
+		// PT_UINT64, that is what the plugin system is able to use. None of the
+		// libsinsp internal filterchecks use list type fields for now.
+		//
+		// todo(jasondellaluce): once we support list fields for more types,
+		// refactor filter_value_t to actually use flt_compare instead of memcmp.
+		if (type != PT_CHARBUF && type != PT_UINT64)
+		{
+			throw sinsp_exception("list filters are only supported for CHARBUF and UINT64 types");
+		}
+		filter_value_t item(NULL, 0);
 		switch (op)
 		{
 			case CO_IN:
 				for (auto it = values.begin(); it != values.end(); ++it)
 				{
-					filter_value_t item((*it).ptr, (*it).len);
+					item.first = (*it).ptr;
+					item.second = (*it).len;
 					if((*it).len < m_val_storages_min_size ||
 						(*it).len > m_val_storages_max_size ||
 						m_val_storages_members.find(item) == m_val_storages_members.end())
@@ -1217,7 +1236,8 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 			case CO_INTERSECTS:
 				for (auto it = values.begin(); it != values.end(); ++it)
 				{
-					filter_value_t item((*it).ptr, (*it).len);
+					item.first = (*it).ptr;
+					item.second = (*it).len;
 					if((*it).len >= m_val_storages_min_size &&
 						(*it).len <= m_val_storages_max_size &&
 						m_val_storages_members.find(item) != m_val_storages_members.end())
@@ -1228,13 +1248,18 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 				return false;
 			default:
 				ASSERT(false);
-				throw sinsp_exception("filters with flag EPF_IS_LIST only support operators in and intersects");
+				throw sinsp_exception("list filter '"
+					+ string(m_info.m_fields[m_field_id].m_name)
+					+ "' only support operators 'in' and 'intersects'");
 		}
 	}
 	else if (values.size() > 1)
 	{
 		ASSERT(false);
-		throw sinsp_exception("filters without flag EPF_IS_LIST must extract a single extracted value");
+		throw sinsp_exception("non-list filter '"
+			+ string(m_info.m_fields[m_field_id].m_name)
+			+ "' expected to extract a single value, but "
+			+ to_string(values.size()) + " were found");
 	}
 
 	return flt_compare(m_cmpop,
