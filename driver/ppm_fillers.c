@@ -1033,9 +1033,9 @@ cgroups_error:
 
 		case PPME_SYSCALL_CLONE3_X:
 #ifdef __NR_clone3
-		    syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 			res = ppm_copy_from_user(&cl_args, (void *)val, sizeof(struct clone_args));
-	        if (unlikely(res != 0))
+			if (unlikely(res != 0))
 			{
 				return PPM_FAILURE_INVALID_USER_MEMORY;
 			}
@@ -1043,10 +1043,10 @@ cgroups_error:
 #else
 			val = 0;
 #endif
-			break;	
+			break;
 		
 		default:
-		    val = 0;
+			val = 0;
 			break;
 		}
 
