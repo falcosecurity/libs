@@ -5207,13 +5207,15 @@ void sinsp_parser::parse_user_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	uint32_t uid, gid;
-	const char *name, *home, *shell;
+	const char *name, *home, *shell, *container_id;
 
 	parinfo = evt->get_param(0);
-	uid = atoi(parinfo->m_val);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	uid = *(uint32_t *)parinfo->m_val;
 
 	parinfo = evt->get_param(1);
-	gid = atoi(parinfo->m_val);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	gid = *(uint32_t *)parinfo->m_val;
 
 	parinfo = evt->get_param(2);
 	name = parinfo->m_val;
@@ -5224,12 +5226,15 @@ void sinsp_parser::parse_user_evt(sinsp_evt *evt)
 	parinfo = evt->get_param(4);
 	shell = parinfo->m_val;
 
-	if ( evt->m_pevt->type == PPME_USER_ADDED_E)
+	parinfo = evt->get_param(5);
+	container_id = parinfo->m_val;
+
+	if (evt->m_pevt->type == PPME_USER_ADDED_E)
 	{
-		m_inspector->m_usergroup_manager.add_user(uid, gid, name, home, shell);
+		m_inspector->m_usergroup_manager.add_user(container_id, uid, gid, name, home, shell);
 	} else
 	{
-		m_inspector->m_usergroup_manager.rm_user(uid);
+		m_inspector->m_usergroup_manager.rm_user(container_id, uid);
 	}
 }
 
@@ -5237,20 +5242,23 @@ void sinsp_parser::parse_group_evt(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	uint32_t gid;
-	const char *name;
+	const char *name, *container_id;
 
 	parinfo = evt->get_param(0);
-	gid = atoi(parinfo->m_val);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	gid = *(uint32_t *)parinfo->m_val;
 
 	parinfo = evt->get_param(1);
 	name = parinfo->m_val;
+	parinfo = evt->get_param(2);
+	container_id = parinfo->m_val;
 
 	if ( evt->m_pevt->type == PPME_GROUP_ADDED_E)
 	{
-		m_inspector->m_usergroup_manager.add_group(gid, name);
+		m_inspector->m_usergroup_manager.add_group(container_id, gid, name);
 	} else
 	{
-		m_inspector->m_usergroup_manager.rm_group(gid);
+		m_inspector->m_usergroup_manager.rm_group(container_id, gid);
 	}
 }
 

@@ -164,6 +164,11 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_filter_proc_table_when_saving = false;
 
 	m_replay_scap_evt = NULL;
+
+	// Emplace container manager listener
+	m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {
+		m_usergroup_manager.delete_container_users_groups(cinfo);
+	});
 }
 
 sinsp::~sinsp()
@@ -375,8 +380,6 @@ void sinsp::init()
 	}
 
 	import_ifaddr_list();
-
-	m_usergroup_manager.import_users_groups_list();
 
 	//
 	// Scan the list to create the proper parent/child dependencies
@@ -1231,7 +1234,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0 && !(evt->get_info_flags() & EF_INTERNAL))
+	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E)
 	{
 		m_firstevent_ts = ts;
 	}
@@ -1314,7 +1317,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			update_mesos_state();
 		}
 
-		m_usergroup_manager.cleanup_deleted_users_groups();
+		m_usergroup_manager.sync_host_users_groups();
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
 #endif // HAS_ANALYZER

@@ -201,6 +201,7 @@ int32_t scap_create_userlist(scap_t* handle)
 
 void scap_refresh_userlist(scap_t* handle) {
 	scap_free_userlist(handle->m_userlist);
+	handle->m_userlist = NULL;
 	scap_create_userlist(handle);
 }
 
@@ -231,6 +232,5 @@ void scap_free_userlist(scap_userlist* uhandle)
 		free(uhandle->users);
 		free(uhandle->groups);
 		free(uhandle);
-		uhandle = NULL;
 	}
 }
