@@ -404,13 +404,12 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_fdtable.clear();
 	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
+	m_uid = pi->uid;
+	m_gid = pi->gid;
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
 	m_cap_inheritable = pi->cap_inheritable;
 
-	bool updated_user_group = false;
-	set_uid(pi->uid, updated_user_group);
-	set_gid(pi->gid, updated_user_group);
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;
 	m_vmswap_kb = pi->vmswap_kb;
@@ -428,6 +427,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_root = pi->root;
 	ASSERT(m_inspector);
 	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
+
 	//
 	// Prepare for filtering
 	//
@@ -488,39 +488,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 			pi->filtered_out = 1;
 		}
 	}
-}
-
-// Set uid checking whether it is an unknown (thus new) user.
-// If it is a new user, notify it.
-// Updated will be set to true if user_groups list has been refreshed,
-// to avoid a double refresh in set_gid()
-void sinsp_threadinfo::set_uid(uint32_t uid, bool &updated) {
-	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(uid);
-	if (!user)
-	{
-		m_inspector->m_usergroup_manager.refresh_user_list();
-		user = m_inspector->m_usergroup_manager.get_user(uid);
-		if (user)
-		{
-			m_inspector->m_usergroup_manager.notify_user_changed(user, m_tid);
-		}
-		updated = true;
-	}
-	m_uid = uid;
-}
-
-void sinsp_threadinfo::set_gid(uint32_t gid, bool updated) {
-	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(gid);
-	if (!group && !updated) // avoid a double update
-	{
-		m_inspector->m_usergroup_manager.refresh_user_list();
-		group = m_inspector->m_usergroup_manager.get_group(gid);
-		if (group)
-		{
-			m_inspector->m_usergroup_manager.notify_group_changed(group, m_tid);
-		}
-	}
-	m_gid = gid;
 }
 
 std::string sinsp_threadinfo::get_comm() const
