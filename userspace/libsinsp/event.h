@@ -51,6 +51,9 @@ typedef enum filtercheck_field_flags
 	EPF_INFO              = 1 << 4, ///< this field contains summary information about the event.
 	EPF_CONVERSATION      = 1 << 5, ///< this field can be used to identify conversations.
 	EPF_IS_LIST           = 1 << 6, ///< this field is a list of values.
+	EPF_ARG_ALLOWED       = 1 << 7, ///< this field optionally includes an argument.
+	EPF_ARG_NUMERIC       = 1 << 8, ///< this field accepts numeric arguments.
+	EPF_ARG_STRING        = 1 << 9, ///< this field accepts string arguments. 
 }filtercheck_field_flags;
 
 /*!
