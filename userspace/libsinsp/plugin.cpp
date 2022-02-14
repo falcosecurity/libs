@@ -25,10 +25,6 @@ limitations under the License.
 #include <sstream>
 #include <numeric>
 #include <json/json.h>
-#include <valijson/adapters/jsoncpp_adapter.hpp>
-#include <valijson/schema.hpp>
-#include <valijson/schema_parser.hpp>
-#include <valijson/validator.hpp>
 
 #include "sinsp_int.h"
 #include "sinsp_exception.h"
@@ -479,35 +475,6 @@ void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::st
 			string("error in plugin ")
 			+ name()
 			+ ": init config is not a valid json");
-	}
-
-	// validate config with json schema
-	valijson::Schema schemaDef;
-	valijson::SchemaParser schemaParser;
-	valijson::Validator validator;
-	valijson::ValidationResults validationResults;
-	valijson::adapters::JsonCppAdapter configAdapter(configJson);
-	valijson::adapters::JsonCppAdapter schemaAdapter(schemaJson);
-	schemaParser.populateSchema(schemaAdapter, schemaDef);
-	if (!validator.validate(schemaDef, configAdapter, &validationResults))
-	{
-		valijson::ValidationResults::Error error;
-		// report only the top-most error
-		if (validationResults.popError(error))
-		{
-			throw sinsp_exception(
-				string("error in plugin ")
-				+ name()
-				+ " init config: In "
-				+ std::accumulate(error.context.begin(), error.context.end(), std::string(""))
-				+ ", "
-				+ error.description);
-		}
-		// validation failed with no specific error
-		throw sinsp_exception(
-			string("error in plugin ")
-			+ name()
-			+ " init config: failed parsing with provided schema");
 	}
 }
 
