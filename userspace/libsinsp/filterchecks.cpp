@@ -1258,7 +1258,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_UID:
 		{
-			if(evt->get_info_flags() & EF_INTERNAL)
+			if(evt->get_type() == PPME_CONTAINER_JSON_E || evt->get_type() == PPME_CONTAINER_JSON_2_E)
 			{
 				return NULL;
 			}
@@ -4741,7 +4741,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 	if(m_field_id != TYPE_UID && m_field_id != TYPE_LOGINUID && m_field_id != TYPE_LOGINNAME)
 	{
 		ASSERT(m_inspector != NULL);
-		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_uid);
+		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_uid);
 		ASSERT(uinfo != NULL);
 		if(uinfo == NULL)
 		{
@@ -4763,7 +4763,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 		RETURN_EXTRACT_VAR(tinfo->m_loginuid);
 	case TYPE_LOGINNAME:
 		ASSERT(m_inspector != NULL);
-		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_loginuid);
+		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_loginuid);
 		if(uinfo == NULL)
 		{
 			return NULL;
@@ -4819,7 +4819,7 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			unordered_map<uint32_t, scap_groupinfo*>::iterator it;
 
 			ASSERT(m_inspector != NULL);
-			auto ginfo = m_inspector->m_usergroup_manager.get_group(tinfo->m_gid);
+			auto ginfo = m_inspector->m_usergroup_manager.get_group(tinfo->m_container_id, tinfo->m_gid);
 			if (ginfo == NULL)
 			{
 				return NULL;

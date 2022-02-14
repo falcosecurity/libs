@@ -854,9 +854,9 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			// Extract the user name
 			//
 			string username;
-			unordered_map<uint32_t, scap_userinfo*>::const_iterator uit;
+			unordered_map<uint32_t, scap_userinfo>::const_iterator uit;
 
-			const unordered_map<uint32_t, scap_userinfo*>* userlist = ch->m_inspector->get_userlist();
+			const unordered_map<uint32_t, scap_userinfo>* userlist = ch->m_inspector->m_usergroup_manager.get_userlist("");
 			ASSERT(userlist->size() != 0);
 
 			if(tinfo.m_uid == 0xffffffff)
@@ -872,8 +872,7 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 				}
 				else
 				{
-					ASSERT(uit->second != NULL);
-					username = uit->second->name;
+					username = uit->second.name;
 				}
 			}
 

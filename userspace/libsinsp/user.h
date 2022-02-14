@@ -19,23 +19,32 @@ limitations under the License.
 #define FALCOSECURITY_LIBS_USER_H
 
 #include <unordered_map>
+#include <string>
+#include "container_info.h"
 #include "scap.h"
 
 class sinsp;
+class sinsp_evt;
 
 using namespace std;
 
 /*
  * Basic idea:
- * * threadinfo will notice if a new thread comes from an unknown uid/gid,
- * * in case calling refresh_user_list::refresh_user_list, that will refresh scap user list and reimport users groups in this class.
- * * then, a PPME_{USER,GROUP}_ADDED event is emitted, to allow capture files to rebuild the state.
- * * on PPME_{USER,GROUP}_ADDED, the new user/group is stored in the m_{user,group}_list, if not present.
- * NOTE: in live mode, it will be always already present as the list has already been refreshed.
- * In capture mode, it won't be present and the state will be correctly built.
+ * * when container_manager tries to resolve a threadinfo container, it will update
+ * * its user/group informations, using following algorithm:
+ * * if the thread itself is on the HOST, it will call refresh_host_users_groups_list,
+ * 		that will refresh scap host user/group list and reimport host users groups in this class,
+ * 		eventually notifying any change in users and groups
+ * * if the thread is on a container, the new user/group will be stored using the container id as key,
+ * 		without additional info (ie: username, homedir etc etc will be left "<NA>")
+ * 		because they cannot be retrieved from a container.
+ * 		Then, a PPME_{USER,GROUP}_ADDED event is emitted, to allow capture files to rebuild the state.
  *
- * * users and groups are checked once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1 min by default), see sinsp::m_deleted_users_groups_scan_time_ns.
- * When any user/group was removed, a PPME_{USER,GROUP}_DELETED is sent, then the same journey as _ADDED events applies.
+ * * on PPME_{USER,GROUP}_ADDED, the new user/group is stored in the m_{user,group}_list<container_id>, if not present.
+ *
+ * * HOST users and groups are checked once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1 min by default),
+ * 		see sinsp::m_deleted_users_groups_scan_time_ns.
+ * * Containers users and groups gets bulk deleted once the container is cleaned up.
  */
 class sinsp_usergroup_manager
 {
@@ -43,16 +52,15 @@ public:
 	explicit sinsp_usergroup_manager(sinsp* inspector);
 
 	/*!
-  	\brief Return the table with all the machine users.
+  	  \brief Return the table with all the machine users.
 
-	\return a hash table with the user ID (UID) as the key and the user
-									  information as the data.
+	  \return a hash table with the user ID (UID) as the key and the user information as the data.
 
 	  \note this call works with file captures as well, because the user
-			table is stored in the trace files. In that case, the returned
-				user list is the one of the machine where the capture happened.
+	   table is stored in the trace files. In that case, the returned
+	   user list is the one of the machine where the capture happened.
 	*/
-	const unordered_map<uint32_t, scap_userinfo>* get_userlist();
+	const unordered_map<uint32_t, scap_userinfo>* get_userlist(const string &container_id);
 
 	/*!
 	  \brief Lookup for user in the user table.
@@ -64,7 +72,7 @@ public:
 	   table is stored in the trace files. In that case, the returned
 	   user list is the one of the machine where the capture happened.
 	*/
-	scap_userinfo* get_user(uint32_t uid);
+	scap_userinfo* get_user(const string &container_id, uint32_t uid);
 
 	/*!
 	  \brief Return the table with all the machine user groups.
@@ -76,10 +84,10 @@ public:
 	   table is stored in the trace files. In that case, the returned
 	   user table is the one of the machine where the capture happened.
 	*/
-	const unordered_map<uint32_t, scap_groupinfo>* get_grouplist();
+	const unordered_map<uint32_t, scap_groupinfo>* get_grouplist(const string &container_id);
 
 	/*!
-	  \brief Lookup for group in the group table.
+	  \brief Lookup for group in the group table for a container.
 
 	  \return the \ref scap_groupinfo object containing full group information,
 	   if group not found, returns NULL.
@@ -88,24 +96,32 @@ public:
 	   table is stored in the trace files. In that case, the returned
 	   group list is the one of the machine where the capture happened.
 	*/
-	scap_groupinfo* get_group(uint32_t gid);
+	scap_groupinfo* get_group(const string &container_id, uint32_t gid);
 
-	void import_users_groups_list();
-	void refresh_user_list();
+	void import_host_users_groups_list();
+	void refresh_host_users_groups_list();
 
-	void notify_user_changed(scap_userinfo *user, uint64_t tid, bool added = true);
-	void notify_group_changed(scap_groupinfo *group, uint64_t tid, bool added = true);
+	void delete_container_users_groups(const sinsp_container_info &cinfo);
 
-	bool add_user(uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell);
-	bool add_group(uint32_t gid, const char *name);
-	bool rm_user(uint32_t uid);
-	bool rm_group(uint32_t gid);
+	void notify_user_changed(const scap_userinfo *user, const string &container_id, bool added = true);
+	void notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added = true);
 
-	bool cleanup_deleted_users_groups();
+	bool add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell);
+	bool add_group(const string &container_id, uint32_t gid, const char *name);
+	bool rm_user(const string &container_id, uint32_t uid);
+	bool rm_group(const string &container_id, uint32_t gid);
+
+	bool sync_host_users_groups();
 
 private:
-	unordered_map<uint32_t, scap_userinfo> m_userlist;
-	unordered_map<uint32_t, scap_groupinfo> m_grouplist;
+	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const string &container_id, uint16_t ev_type);
+	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const string &container_id, uint16_t ev_type);
+
+	void notify_host_diff(const unordered_map<uint32_t, scap_userinfo> &old_host_userlist,
+			      const unordered_map<uint32_t, scap_groupinfo> &old_host_grplist);
+
+	unordered_map<string, unordered_map<uint32_t, scap_userinfo>> m_userlist;
+	unordered_map<string, unordered_map<uint32_t, scap_groupinfo>> m_grouplist;
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
 };
