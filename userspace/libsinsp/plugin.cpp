@@ -788,7 +788,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 				{
 					// All the extra casting is because this is the one flags value
 					// that is strongly typed and not just an int.
-					tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_REQUIRES_ARGUMENT);
+					tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
 				}
 			}
 
