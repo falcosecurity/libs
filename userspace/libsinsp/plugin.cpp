@@ -653,6 +653,64 @@ std::string sinsp_plugin::str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
+bool sinsp_plugin::resolve_dylib_field_arg(Json::Value &root, filtercheck_field_info &tf)
+{
+	if (!root.isNull())
+	{
+		return false;
+	}
+
+	const Json::Value &isRequired = root.get("isRequired", Json::Value::null);
+	if (!isRequired.isNull())
+	{
+		if (!isRequired.isBool())
+		{
+			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isRequired property is not boolean");
+		}
+
+		if (isRequired.asBool() == true)
+		{
+			// All the extra casting is because this is the one flags value
+			// that is strongly typed and not just an int.
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
+		}
+	}
+
+	const Json::Value &isNumeric = root.get("isNumeric", Json::Value::null);
+	if (!isNumeric.isNull())
+	{
+		if (!isNumeric.isBool())
+		{
+			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isNumeric property is not boolean");
+		}
+
+		if (isNumeric.asBool() == true)
+		{
+			// We set `EPF_ARG_ALLOWED` implicitly.
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_NUMERIC);
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_ALLOWED);
+		}
+	}
+
+	const Json::Value &isString = root.get("isString", Json::Value::null);
+	if (!isString.isNull())
+	{
+		if (!isString.isBool())
+		{
+			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isString property is not boolean");
+		}
+
+		if (isString.asBool() == true)
+		{
+			// We set `EPF_ARG_ALLOWED` implicitly.
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_STRING);
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_ALLOWED);
+		}
+	}
+
+	return true;
+}
+
 bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 {
 	// Some functions are required and return false if not found.
@@ -776,19 +834,24 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 				}
 			}
 
-			const Json::Value &jvargRequired = root[j].get("argRequired", Json::Value::null);
-			if (!jvargRequired.isNull())
+			if(!resolve_dylib_field_arg(root[j].get("arg", Json::Value::null), tf))
 			{
-				if (!jvargRequired.isBool())
+				// This is used for backward compatibility.
+				const Json::Value &jvargRequired = root[j].get("argRequired", Json::Value::null);
+				if (!jvargRequired.isNull())
 				{
-					throw sinsp_exception(string("error in plugin ") + m_name + ": field " + fname + " argRequired property is not boolean ");
-				}
+					g_logger.format(sinsp_logger::SEV_WARNING, "usage of argRequired for fields returned by plugin_get_fields is deprecated");
+					if (!jvargRequired.isBool())
+					{
+						throw sinsp_exception(string("error in plugin ") + m_name + ": field " + fname + " argRequired property is not boolean");
+					}
 
-				if (jvargRequired.asBool() == true)
-				{
-					// All the extra casting is because this is the one flags value
-					// that is strongly typed and not just an int.
-					tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
+					if (jvargRequired.asBool() == true)
+					{
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_NUMERIC);
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_STRING);
+					}
 				}
 			}
 
