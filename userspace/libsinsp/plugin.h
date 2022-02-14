@@ -165,6 +165,8 @@ private:
 
 	void validate_init_config_json_schema(std::string& config, std::string &schema);
 
+	bool resolve_dylib_field_arg(Json::Value &root, filtercheck_field_info &tf);
+
 	static void destroy_handle(sinsp_plugin_handle handle);
 };
 
