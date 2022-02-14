@@ -109,10 +109,25 @@ public:
 				{
 					m_argstr = val.substr(argstart);
 					size_t pos2 = m_argstr.find_first_of(']', 0);
-					m_argstr = m_argstr.substr(0, pos2);
-					m_arg = (char*)m_argstr.c_str();
-					return pos1 + pos2 + 2;
+					if(pos2 != string::npos)
+					{
+						m_argstr = m_argstr.substr(0, pos2);
+						if (!(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED
+								|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
+						{
+							throw sinsp_exception(string("filter ") + string(str) + string(" ")
+								+ m_field + string(" does not allow nor require an argument but one is provided: " + m_argstr));
+						}
+						m_arg = (char*)m_argstr.c_str();
+						return pos1 + pos2 + 2;
+					}
 				}
+				throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field + string(" has a badly-formatted argument"));
+			}
+			if (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED)
+			{
+				throw sinsp_exception(string("filter ") + string(str) + string(" ")
+					+ m_field + string(" requires an argument but none provided"));
 			}
 		}
 
