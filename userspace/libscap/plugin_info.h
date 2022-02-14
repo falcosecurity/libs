@@ -337,8 +337,20 @@ typedef struct
 	//     "type": one of "string", "uint64"
 	//     "isList: (optional) If present and set to true, notes
 	//              that the field extracts a list of values.
-	//     "argRequired: (optional) If present and set to true, notes
+	//     "argRequired": [DEPRECATED, use "arg" property instead] 
+	//                   (optional) If present and set to true, notes
 	//                   that the field requires an argument e.g. field[arg].
+	//     "arg": (optional) if present, notes that the field can accept
+	//             an argument e.g. field[arg]. More precisely, the following
+	//             flags could be specified:
+	//             "isRequired": if true, the argument is required.
+	//             "isNumeric": if true, the field is numeric. 
+	//             "isString": if true, the field is a string.
+	//             If "isRequired" is true, one between "isNumeric" and
+	//             "isString" must be true, to specify the argument type.
+	//             If "isRequired" is false, but one between "isNumeric"
+	//             and "isString" is true, the argument is allowed but
+	//             not required.
 	//     "display": (optional) If present, a string that will be used to
 	//                display the field instead of the name. Used in tools
 	//                like wireshark.
