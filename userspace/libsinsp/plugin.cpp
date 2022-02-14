@@ -116,18 +116,17 @@ public:
 								|| m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED))
 						{
 							throw sinsp_exception(string("filter ") + string(str) + string(" ")
-								+ m_field + string(" does not allow nor require an argument but one is provided: " + m_argstr));
+								+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
 						}
 						m_arg = (char*)m_argstr.c_str();
 						return pos1 + pos2 + 2;
 					}
 				}
-				throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field + string(" has a badly-formatted argument"));
+				throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field->m_name + string(" has a badly-formatted argument"));
 			}
 			if (m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED)
 			{
-				throw sinsp_exception(string("filter ") + string(str) + string(" ")
-					+ m_field + string(" requires an argument but none provided"));
+				throw sinsp_exception(string("filter ") + string(str) + string(" ") + m_field->m_name + string(" requires an argument but none provided"));
 			}
 		}
 
@@ -668,9 +667,9 @@ std::string sinsp_plugin::str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-bool sinsp_plugin::resolve_dylib_field_arg(Json::Value &root, filtercheck_field_info &tf)
+bool sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf)
 {
-	if (!root.isNull())
+	if (root.isNull())
 	{
 		return false;
 	}
@@ -723,6 +722,13 @@ bool sinsp_plugin::resolve_dylib_field_arg(Json::Value &root, filtercheck_field_
 		}
 	}
 
+	if((tf.m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED 
+			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED) 
+		&& !(tf.m_flags & filtercheck_field_flags::EPF_ARG_NUMERIC 
+			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_STRING))
+	{
+		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " arg has isRequired true, but none of isString nor isNumeric is true");
+	}
 	return true;
 }
 
