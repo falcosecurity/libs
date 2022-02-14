@@ -357,8 +357,9 @@ typedef struct
 	//     "desc": a string with a description of the field
 	// Example return value:
 	// [
-	//    {"type": "string", "name": "field1", "argRequired": true, "desc": "Describing field 1"},
-	//    {"type": "uint64", "name": "field2", "desc": "Describing field 2"}
+	//    {"type": "string", "name": "field1", "argRequired": true, "desc": "Describing field 1"}, [DEPRECATED 'argRequired' property]
+	//    {"type": "uint64", "name": "field2", "desc": "Describing field 2"},
+	//    {"type": "string", "name": "field3", "arg": {"isRequired": true, "isNumeric": true,}, "desc": "Describing field 3"},
 	// ]
 	const char* (*get_fields)();
 	//
