@@ -46,7 +46,7 @@ typedef enum filtercheck_field_flags
 	EPF_NONE              = 0,
 	EPF_FILTER_ONLY       = 1 << 0, ///< this field can only be used as a filter.
 	EPF_PRINT_ONLY        = 1 << 1, ///< this field can only be printed.
-	EPF_REQUIRES_ARGUMENT = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
+	EPF_ARG_REQUIRED      = 1 << 2, ///< this field includes an argument, under the form 'property.argument'.
 	EPF_TABLE_ONLY        = 1 << 3, ///< this field is designed to be used in a table and won't appear in the field listing.
 	EPF_INFO              = 1 << 4, ///< this field contains summary information about the event.
 	EPF_CONVERSATION      = 1 << 5, ///< this field can be used to identify conversations.
