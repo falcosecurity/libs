@@ -20,6 +20,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <algorithm>
+#include "../sinsp_public.h"
 
 namespace libsinsp {
 namespace filter {
@@ -40,7 +41,7 @@ struct binary_check_expr;
 /*!
     \brief Base interface of AST visitors
 */
-struct expr_visitor
+struct SINSP_PUBLIC expr_visitor
 {
     virtual void visit(and_expr&) = 0;
     virtual void visit(or_expr&) = 0;
@@ -54,8 +55,9 @@ struct expr_visitor
 /*!
     \brief Base interface of AST hierarchy
 */
-struct expr
+struct SINSP_PUBLIC expr
 {
+    virtual ~expr() { }
     virtual void accept(expr_visitor&) = 0;
     virtual bool is_equal(const expr* other) const = 0;
 };
@@ -68,7 +70,7 @@ inline bool compare(const expr* left, const expr* right)
     return left->is_equal(right);
 };
 
-struct and_expr: expr
+struct SINSP_PUBLIC and_expr: expr
 {
     inline and_expr() { }
 
@@ -98,7 +100,7 @@ struct and_expr: expr
     vector<expr*> children;
 };
 
-struct or_expr: expr
+struct SINSP_PUBLIC or_expr: expr
 {
     inline or_expr() { }
 
@@ -128,7 +130,7 @@ struct or_expr: expr
     vector<expr*> children;
 };
 
-struct not_expr: expr
+struct SINSP_PUBLIC not_expr: expr
 {
     inline not_expr() { }
 
@@ -153,7 +155,7 @@ struct not_expr: expr
     expr* child;
 };
 
-struct value_expr: expr
+struct SINSP_PUBLIC value_expr: expr
 {
     inline value_expr() { }
 
@@ -173,7 +175,7 @@ struct value_expr: expr
     string value;
 };
 
-struct list_expr: expr
+struct SINSP_PUBLIC list_expr: expr
 {
     inline list_expr() { }
 
@@ -193,7 +195,7 @@ struct list_expr: expr
     vector<string> values;
 };
 
-struct unary_check_expr: expr
+struct SINSP_PUBLIC unary_check_expr: expr
 {
     inline unary_check_expr() { }
 
@@ -219,7 +221,7 @@ struct unary_check_expr: expr
     string op;
 };
 
-struct binary_check_expr: expr
+struct SINSP_PUBLIC binary_check_expr: expr
 {
     inline binary_check_expr() { }
 
