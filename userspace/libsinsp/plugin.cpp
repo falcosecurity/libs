@@ -722,8 +722,7 @@ bool sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 		}
 	}
 
-	if((tf.m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED 
-			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_ALLOWED) 
+	if((tf.m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED) 
 		&& !(tf.m_flags & filtercheck_field_flags::EPF_ARG_NUMERIC 
 			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_STRING))
 	{
