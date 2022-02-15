@@ -119,7 +119,7 @@ const static struct luaL_Reg ll_sysdig [] =
 	{"make_ts", &lua_cbacks::make_ts},
 	{"add_ts", &lua_cbacks::add_ts},
 	{"subtract_ts", &lua_cbacks::subtract_ts},
-	{"run_sysdig", &lua_cbacks::run_sysdig},
+	{"run_app", &lua_cbacks::run_app},
 	{"end_capture", &lua_cbacks::end_capture},
 	{"log", &lua_cbacks::log},
 	{"udp_setpeername", &lua_cbacks::udp_setpeername},
