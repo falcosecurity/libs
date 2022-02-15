@@ -61,5 +61,6 @@ $(obj)/probe.o: $(src)/probe.c \
 		-fno-jump-tables \
 		-fno-stack-protector \
 		-Wno-tautological-compare \
+		-Wno-unknown-attributes \
 		-O2 -g -emit-llvm -c $< -o $(patsubst %.o,%.ll,$@)
 	$(LLC) -march=bpf -filetype=obj -o $@ $(patsubst %.o,%.ll,$@)
