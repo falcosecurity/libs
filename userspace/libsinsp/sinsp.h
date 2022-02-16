@@ -881,6 +881,7 @@ public:
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string *node_name, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
+	void validate_k8s_node_name();
 
 	void init_mesos_client(std::string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
@@ -1135,6 +1136,7 @@ public:
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
 	std::string* m_k8s_node_name;
+	bool m_k8s_node_name_validated = false;
 #ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
