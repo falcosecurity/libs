@@ -488,7 +488,9 @@ void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
 	 */
 	if (m_simpleconsumer)
 	{
-		for (int i = 0; i < PPM_SC_MAX; i++)
+		m_ppm_sc_of_interest.erase(PPM_SC_UNKNOWN);
+
+		for (int i = 1; i < PPM_SC_MAX; i++)
 		{
 			if (g_infotables.m_syscall_info_table[i].flags & EF_DROP_SIMPLE_CONS)
 			{
