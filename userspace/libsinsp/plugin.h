@@ -66,6 +66,9 @@ public:
 		version plugin_version;
 		version required_api_version;
 
+		ss_plugin_schema_type init_schema_type;
+		std::string init_schema;
+
 		// Only filled in for source plugins
 		uint32_t id;
 	};
@@ -169,6 +172,9 @@ private:
 	std::string m_contact;
 	version m_plugin_version;
 	version m_required_api_version;
+
+	ss_plugin_schema_type m_init_schema_type;
+	std::string m_init_schema;
 
 	// Allocated instead of vector to match how it will be held in filter_check_info
 	std::unique_ptr<filtercheck_field_info[]> m_fields;

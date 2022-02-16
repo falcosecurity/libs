@@ -441,6 +441,8 @@ std::list<sinsp_plugin::info> sinsp_plugin::plugin_infos(sinsp* inspector)
 		info.plugin_version = p->plugin_version();
 		info.required_api_version = p->required_api_version();
 		info.type = p->type();
+		info.init_schema = p->m_init_schema;
+		info.init_schema_type = p->m_init_schema_type;
 
 		if(info.type == TYPE_SOURCE_PLUGIN)
 		{
@@ -830,15 +832,14 @@ std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type)
 
 void sinsp_plugin::validate_init_config(const char* config)
 {
-	ss_plugin_schema_type schema_type;
 	std::string conf = str_from_alloc_charbuf(config);
-	std::string schema = get_init_schema(schema_type);
-	if (schema.size() > 0 && schema_type != SS_PLUGIN_SCHEMA_NONE)
+	m_init_schema = get_init_schema(m_init_schema_type);
+	if (!m_init_schema.empty() && m_init_schema_type != SS_PLUGIN_SCHEMA_NONE)
 	{
-		switch (schema_type)
+		switch (m_init_schema_type)
 		{
 			case SS_PLUGIN_SCHEMA_JSON:
-				validate_init_config_json_schema(conf, schema);
+				validate_init_config_json_schema(conf, m_init_schema);
 				break;
 			default:
 				ASSERT(false);
@@ -846,7 +847,7 @@ void sinsp_plugin::validate_init_config(const char* config)
 					string("error in plugin ")
 					+ name()
 					+ ": get_init_schema returned an unknown schema type "
-					+ to_string(schema_type));
+					+ to_string(m_init_schema_type));
 		}
 	}
 }
