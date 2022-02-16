@@ -2341,6 +2341,37 @@ void sinsp::init_k8s_client(string* api_server, string* ssl_cert, string* node_n
 	}
 }
 
+void sinsp::validate_k8s_node_name()
+{
+	if(!m_k8s_node_name || m_k8s_node_name->size() == 0)
+	{
+		g_logger.log("No k8s node name passed as argument. "
+			"This may result in performance penalty on large clusters", sinsp_logger::SEV_WARNING);
+	}
+	else 
+	{
+		bool found = false;
+		const auto& state = m_k8s_client->get_state();
+
+		for(const auto& node : state.get_nodes())
+		{
+			if(!node.get_node_name().compare(*m_k8s_node_name))
+			{
+				found = true;
+				break;
+			} 
+		}
+
+		if(!found)
+		{
+			throw sinsp_exception("Failing to enrich events with Kubernetes metadata:"
+				"node name does not correspond to a node in the cluster");
+		}
+	}
+
+	m_k8s_node_name_validated = true;
+}
+
 void sinsp::collect_k8s()
 {
 	if(m_parser)
@@ -2371,6 +2402,11 @@ void sinsp::collect_k8s()
 					m_parser->schedule_k8s_events();
 					delta = sinsp_utils::get_current_time_ns() - delta;
 					g_logger.format(sinsp_logger::SEV_DEBUG, "Updating Kubernetes state took %" PRIu64 " ms", delta / 1000000LL);
+				}
+
+				if(!m_k8s_node_name_validated)
+				{
+					validate_k8s_node_name();
 				}
 			}
 		}
