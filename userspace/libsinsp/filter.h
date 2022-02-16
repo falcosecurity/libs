@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "filter_check_list.h"
 #include "gen_filter.h"
+#include "filter/parser.h"
 
 /** @defgroup filter Filtering events
  * Filtering infrastructure.
@@ -48,56 +49,85 @@ private:
 /*!
   \brief This is the class that compiles the filters.
 */
-class SINSP_PUBLIC sinsp_filter_compiler
+class SINSP_PUBLIC sinsp_filter_compiler: 
+	private libsinsp::filter::ast::expr_visitor
 {
 public:
 	/*!
-	  \brief Constructs the compiler.
+		\brief Constructs the compiler
 
-	  \param inspector Pointer to the inspector instance that will generate the
-	   events to be filtered.
-	  \param fltstr the filter string to compile.
-	  \param ttable_only for internal use only.
+		\param inspector Pointer to the inspector instance that will generate
+		the events to be filtered
+		\param fltstr The filter string to compile
+		\param ttable_only For internal use only
 
-	 \note Throws a sinsp_exception if the filter syntax is not valid.
+		\note This is not the primary constructor, and is only maintained for
+		backward compatibility
 	*/
-	sinsp_filter_compiler(sinsp* inspector/* xxx needed? */, const string& fltstr, bool ttable_only=false);
+	sinsp_filter_compiler(
+		sinsp* inspector,
+		const string& fltstr,
+		bool ttable_only=false);
+
+	/*!
+		\brief Constructs the compiler
+
+		\param factory Pointer to a filter factory to be used to build
+		the filtercheck tree
+		\param fltstr The filter string to compile
+		\param ttable_only For internal use only
+	*/
+	sinsp_filter_compiler(
+		std::shared_ptr<gen_event_filter_factory> factory,
+		const string& fltstr,
+		bool ttable_only=false);
+
+	/*!
+		\brief Constructs the compiler
+
+		\param factory Pointer to a filter factory to be used to build
+		the filtercheck tree
+		\param fltast AST of a parsed filter, used to build the filtercheck
+		tree
+		\param ttable_only For internal use only
+	*/
+	sinsp_filter_compiler(
+		std::shared_ptr<gen_event_filter_factory> factory,
+		libsinsp::filter::ast::expr* fltast,
+		bool ttable_only=false);
 
 	~sinsp_filter_compiler();
 
+	/*!
+		\brief Builds a filtercheck tree and bundles it in sinsp_filter
+		\return The resulting pointer is owned by the caller and must be deleted
+		by it. The pointer is automatically deleted in case of exception.
+		\note Throws a sinsp_exception if the filter syntax is not valid
+	*/
 	sinsp_filter* compile();
 
 private:
-	enum state
-	{
-		ST_EXPRESSION_DONE,
-		ST_NEED_EXPRESSION,
-	};
+	void visit(libsinsp::filter::ast::and_expr&) override;
+	void visit(libsinsp::filter::ast::or_expr&) override;
+	void visit(libsinsp::filter::ast::not_expr&) override;
+	void visit(libsinsp::filter::ast::value_expr&) override;
+	void visit(libsinsp::filter::ast::list_expr&) override;
+	void visit(libsinsp::filter::ast::unary_check_expr&) override;
+	void visit(libsinsp::filter::ast::binary_check_expr&) override;
+	void check_ttable_only(string& field, gen_event_filter_check *check);
+	cmpop str_to_cmpop(string& str);
+	string create_filtercheck_name(string& name, string& arg);
+	gen_event_filter_check* create_filtercheck(string& field);
 
-	sinsp_filter* compile_();
-
-	char next();
-	bool compare_no_consume(const string& str);
-
-	vector<char> next_operand(bool expecting_first_operand, bool in_clause);
-	cmpop next_comparison_operator();
-	void parse_check();
-
-	static bool isblank(char c);
-	static bool is_special_char(char c);
-	static bool is_bracket(char c);
-
-	sinsp* m_inspector;
 	bool m_ttable_only;
-
-	string m_fltstr;
-	int32_t m_scanpos;
-	int32_t m_scansize;
-	state m_state;
+	bool m_internal_parsing;
+	bool m_expect_values;
 	boolop m_last_boolop;
-	int32_t m_nest_level;
-
+	string m_flt_str;
 	sinsp_filter* m_filter;
+	vector<string> m_field_values;
+	libsinsp::filter::ast::expr* m_flt_ast;
+	std::shared_ptr<gen_event_filter_factory> m_factory;
 
 	friend class sinsp_evt_formatter;
 };

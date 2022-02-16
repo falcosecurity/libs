@@ -39,6 +39,7 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "value_parser.h"
+#include "filter/parser.h"
 #ifndef _WIN32
 #include "arpa/inet.h"
 #endif
@@ -1507,702 +1508,318 @@ sinsp_filter::~sinsp_filter()
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_compiler implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_filter_compiler::sinsp_filter_compiler(sinsp* inspector, const string& fltstr, bool ttable_only)
+sinsp_filter_compiler::sinsp_filter_compiler(
+		sinsp* inspector,
+		const string& fltstr,
+		bool ttable_only)
 {
-	m_inspector = inspector;
+	m_factory.reset(new sinsp_filter_factory(inspector));
+	m_filter = NULL;
+	m_flt_str = fltstr;
+	m_flt_ast = NULL;
 	m_ttable_only = ttable_only;
-	m_scanpos = -1;
-	m_scansize = 0;
-	m_state = ST_NEED_EXPRESSION;
-	m_filter = new sinsp_filter(m_inspector);
-	m_last_boolop = BO_NONE;
-	m_nest_level = 0;
-	m_fltstr = fltstr;
+	m_internal_parsing = true;
+}
+
+sinsp_filter_compiler::sinsp_filter_compiler(
+		std::shared_ptr<gen_event_filter_factory> factory,
+		const string& fltstr,
+		bool ttable_only)
+{
+	m_factory = factory;
+	m_filter = NULL;
+	m_flt_str = fltstr;
+	m_flt_ast = NULL;
+	m_ttable_only = ttable_only;
+	m_internal_parsing = true;
+}
+
+sinsp_filter_compiler::sinsp_filter_compiler(
+		std::shared_ptr<gen_event_filter_factory> factory,
+		libsinsp::filter::ast::expr* fltast,
+		bool ttable_only)
+{
+	m_factory = factory;
+	m_filter = NULL;
+	m_flt_ast = fltast;
+	m_ttable_only = ttable_only;
+	m_internal_parsing = false;
 }
 
 sinsp_filter_compiler::~sinsp_filter_compiler()
 {
-}
-
-bool sinsp_filter_compiler::isblank(char c)
-{
-	if(c == ' ' || c == '\t' || c == '\n' || c == '\r')
+	// we delete the AST only if it was parsed internally
+	if (m_internal_parsing && m_flt_ast != NULL)
 	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-bool sinsp_filter_compiler::is_special_char(char c)
-{
-	if(c == '(' || c == ')' || c == '!' || c == '=' || c == '<' || c == '>')
-	{
-		return true;
-	}
-
-	return false;
-}
-
-bool sinsp_filter_compiler::is_bracket(char c)
-{
-	if(c == '(' || c == ')')
-	{
-		return true;
-	}
-
-	return false;
-}
-
-char sinsp_filter_compiler::next()
-{
-	while(true)
-	{
-		m_scanpos++;
-
-		if(m_scanpos >= m_scansize)
-		{
-			return 0;
-		}
-
-		if(!isblank(m_fltstr[m_scanpos]))
-		{
-			return m_fltstr[m_scanpos];
-		}
-	}
-}
-
-vector<char> sinsp_filter_compiler::next_operand(bool expecting_first_operand, bool in_or_pmatch_clause)
-{
-	vector<char> res;
-	bool is_quoted = false;
-	int32_t start;
-	int32_t nums[2];
-	uint32_t num_pos;
-	enum ppm_escape_state
-	{
-		PES_NORMAL,
-		PES_SLASH,
-		PES_NUMBER,
-		PES_ERROR,
-	} escape_state;
-
-	//
-	// Skip spaces
-	//
-	if(isblank(m_fltstr[m_scanpos]))
-	{
-		next();
-	}
-
-	//
-	// If there are quotes, don't stop on blank
-	//
-	if(m_scanpos < m_scansize &&
-		(m_fltstr[m_scanpos] == '"' || m_fltstr[m_scanpos] == '\''))
-	{
-		is_quoted = true;
-		m_scanpos++;
-	}
-
-	//
-	// Mark the beginning of the word
-	//
-	start = m_scanpos;
-	escape_state = PES_NORMAL;
-	num_pos = 0;
-
-	while(m_scanpos < m_scansize && escape_state != PES_ERROR)
-	{
-		char curchar = m_fltstr[m_scanpos];
-		bool is_end_of_word;
-
-		if(expecting_first_operand)
-		{
-			is_end_of_word = (isblank(curchar) || is_special_char(curchar));
-		}
-		else
-		{
-			is_end_of_word = (!is_quoted && (isblank(curchar) || is_bracket(curchar) || (in_or_pmatch_clause && curchar == ','))) ||
-				(is_quoted && escape_state != PES_SLASH && (curchar == '"' || curchar == '\''));
-		}
-
-		if(is_end_of_word)
-		{
-			if(escape_state != PES_NORMAL)
-			{
-				escape_state = PES_ERROR;
-				break;
-			}
-
-			//
-			// End of word
-			//
-			ASSERT(m_scanpos >= start);
-
-			if(curchar == '(' || curchar == ')' || (in_or_pmatch_clause && curchar == ','))
-			{
-				m_scanpos--;
-			}
-
-			res.push_back('\0');
-			return res;
-		}
-
-		switch(escape_state)
-		{
-		case PES_NORMAL:
-			if(curchar == '\\' && !expecting_first_operand)
-			{
-				escape_state = PES_SLASH;
-			}
-			else
-			{
-				res.push_back(curchar);
-			}
-			break;
-		case PES_SLASH:
-			switch(curchar)
-			{
-			case '\\':
-			case '"':
-				escape_state = PES_NORMAL;
-				res.push_back(curchar);
-				break;
-			case 'x':
-				escape_state = PES_NUMBER;
-				break;
-			default:
-				escape_state = PES_NORMAL;
-				res.push_back('\\');
-				res.push_back(curchar);
-				break;
-			}
-			break;
-		case PES_NUMBER:
-			if(isdigit((int)curchar))
-			{
-				nums[num_pos++] = curchar - '0';
-			}
-			else if((curchar >= 'a' && curchar <= 'f') || (curchar >= 'A' && curchar <= 'F'))
-			{
-				nums[num_pos++] = tolower((int)curchar) - 'a' + 10;
-			}
-			else
-			{
-				escape_state = PES_ERROR;
-			}
-
-			if(num_pos == 2 && escape_state != PES_ERROR)
-			{
-				res.push_back((char)(nums[0] * 16 + nums[1]));
-
-				num_pos = 0;
-				escape_state = PES_NORMAL;
-			}
-			break;
-		default:
-			ASSERT(false);
-			escape_state = PES_ERROR;
-			break;
-		}
-
-		m_scanpos++;
-	}
-
-	if(escape_state == PES_ERROR)
-	{
-		throw sinsp_exception("filter error: unrecognized escape sequence at " + m_fltstr.substr(start, m_scanpos));
-	}
-	else if(is_quoted)
-	{
-		throw sinsp_exception("filter error: unclosed quotes");
-	}
-
-	//
-	// End of filter
-	//
-	res.push_back('\0');
-	return res;
-}
-
-bool sinsp_filter_compiler::compare_no_consume(const string& str)
-{
-	//
-	// If the rest of the filter cannot contain the operand we may return
-	// The filter may finish with the operand itself though (e.g. "proc.name exists")
-	//
-	if(m_scanpos + (int32_t)str.size() > m_scansize)
-	{
-		return false;
-	}
-
-	string tstr = m_fltstr.substr(m_scanpos, str.size());
-
-	if(tstr == str)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-cmpop sinsp_filter_compiler::next_comparison_operator()
-{
-	int32_t start;
-
-	//
-	// Skip spaces
-	//
-	if(isblank(m_fltstr[m_scanpos]))
-	{
-		next();
-	}
-
-	//
-	// Mark the beginning of the word
-	//
-	start = m_scanpos;
-
-	// Maybe you can use sizeof - 1 here 
-	if(compare_no_consume("="))
-	{
-		m_scanpos += 1;
-		return CO_EQ;
-	}
-	else if(compare_no_consume("!="))
-	{
-		m_scanpos += 2;
-		return CO_NE;
-	}
-	else if(compare_no_consume("<="))
-	{
-		m_scanpos += 2;
-		return CO_LE;
-	}
-	else if(compare_no_consume("<"))
-	{
-		m_scanpos += 1;
-		return CO_LT;
-	}
-	else if(compare_no_consume(">="))
-	{
-		m_scanpos += 2;
-		return CO_GE;
-	}
-	else if(compare_no_consume(">"))
-	{
-		m_scanpos += 1;
-		return CO_GT;
-	}
-	else if(compare_no_consume("contains"))
-	{
-		m_scanpos += 8;
-		return CO_CONTAINS;
-	}
-	else if(compare_no_consume("icontains"))
-	{
-		m_scanpos += 9;
-		return CO_ICONTAINS;
-	}
-	else if(compare_no_consume("bcontains"))
-	{
-		m_scanpos += 9;
-		return CO_BCONTAINS;
-	}
-	else if(compare_no_consume("startswith"))
-	{
-		m_scanpos += 10;
-		return CO_STARTSWITH;
-	}
-	else if(compare_no_consume("bstartswith"))
-	{
-		m_scanpos += 11;
-		return CO_BSTARTSWITH;
-	}
-	else if(compare_no_consume("endswith"))
-	{
-		m_scanpos += 8;
-		return CO_ENDSWITH;
-	}
-	else if(compare_no_consume("glob"))
-	{
-		m_scanpos += 4;
-		return CO_GLOB;
-	}
-	else if(compare_no_consume("intersects"))
-	{
-		m_scanpos += 10;
-		return CO_INTERSECTS;
-	}
-	else if(compare_no_consume("in"))
-	{
-		m_scanpos += 2;
-		return CO_IN;
-	}
-	else if(compare_no_consume("pmatch"))
-	{
-		m_scanpos += 6;
-		return CO_PMATCH;
-	}
-	else if(compare_no_consume("exists"))
-	{
-		m_scanpos += 6;
-		return CO_EXISTS;
-	}
-	else
-	{
-		throw sinsp_exception("filter error: unrecognized comparison operator after " + m_fltstr.substr(0, start));
-	}
-}
-
-void sinsp_filter_compiler::parse_check()
-{
-	uint32_t startpos = m_scanpos;
-	vector<char> operand1 = next_operand(true, false);
-	string str_operand1 = string((char *)&operand1[0]);
-	sinsp_filter_check* chk = g_filterlist.new_filter_check_from_fldname(str_operand1, m_inspector, true);
-	boolop op = m_last_boolop;
-
-	if(chk == NULL)
-	{
-		throw sinsp_exception("filter error: unrecognized field " +
-			str_operand1 + " at pos " + to_string((long long) startpos));
-	}
-
-	if(m_ttable_only)
-	{
-		if(!(chk->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
-		{
-			if(str_operand1 != "evt.rawtime" &&
-				str_operand1 != "evt.rawtime.s" &&
-				str_operand1 != "evt.rawtime.ns" &&
-				str_operand1 != "evt.time" &&
-				str_operand1 != "evt.time.s" &&
-				str_operand1 != "evt.datetime" &&
-				str_operand1 != "evt.reltime")
-			{
-				throw sinsp_exception("the given filter is not supported for thread table filtering");
-			}
-		}
-	}
-
-	cmpop co = next_comparison_operator();
-
-	chk->m_boolop = op;
-	chk->m_cmpop = co;
-
-	chk->parse_field_name((char *)&operand1[0], true, true);
-
-	if(co == CO_IN || co == CO_INTERSECTS || co == CO_PMATCH)
-	{
-		//
-		// Skip spaces
-		//
-		if(isblank(m_fltstr[m_scanpos]))
-		{
-			next();
-		}
-
-		if(m_fltstr[m_scanpos] != '(')
-		{
-			throw sinsp_exception("expected '(' after 'in/intersects/pmatch' operand");
-		}
-
-		//
-		// Skip '('
-		//
-		m_scanpos++;
-
-		if(chk->get_field_info()->m_flags & filtercheck_field_flags::EPF_IS_LIST)
-		{
-			//
-			// For character buffers, we can check all
-			// values at once by putting them in a set and
-			// checking for set membership.
-			//
-
-			//
-			// Create the 'or' sequence
-			//
-			uint32_t num_values = 0;
-			while(true)
-			{
-				// 'in' clause aware
-				vector<char> operand2 = next_operand(false, true);
-
-				chk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1, num_values);
-				num_values++;
-				next();
-
-				if(m_fltstr[m_scanpos] == ')')
-				{
-					break;
-				}
-				else if(m_fltstr[m_scanpos] == ',')
-				{
-					m_scanpos++;
-				}
-				else
-				{
-					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in/pmatch' clause");
-				}
-			}
-			m_filter->add_check(chk);
-		}
-		else if (co == CO_PMATCH)
-		{
-			// the pmatch operator can only work on charbufs
-			throw sinsp_exception("pmatch requires all charbuf arguments");
-		}
-		else
-		{
-			//
-			// In this case we need to create '(field=value1 or field=value2 ...)'
-			//
-
-			//
-			// Separate the 'or's from the
-			// rest of the conditions
-			//
-			m_filter->push_expression(op);
-			m_last_boolop = BO_NONE;
-			m_nest_level++;
-
-			//
-			// The first boolean operand will be BO_NONE
-			// Then we will start putting BO_ORs
-			//
-			op = BO_NONE;
-
-			//
-			// Create the 'or' sequence
-			//
-			while(true)
-			{
-				// 'in' clause aware
-				vector<char> operand2 = next_operand(false, true);
-
-				//
-				// Append every sinsp_filter_check creating the 'or' sequence
-				//
-				sinsp_filter_check* newchk = g_filterlist.new_filter_check_from_another(chk);
-				newchk->m_boolop = op;
-				newchk->m_cmpop = CO_EQ;
-				newchk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
-
-				m_filter->add_check(newchk);
-
-				next();
-
-				if(m_fltstr[m_scanpos] == ')')
-				{
-					break;
-				}
-				else if(m_fltstr[m_scanpos] == ',')
-				{
-					m_scanpos++;
-				}
-				else
-				{
-					throw sinsp_exception("expected either ')' or ',' after a value inside the 'in' clause");
-				}
-
-				//
-				// From now on we 'or' every newchk
-				//
-				op = BO_OR;
-			}
-
-			//
-			// Come back to the rest of the filter
-			//
-			m_filter->pop_expression();
-			m_nest_level--;
-		}
-	}
-	else
-	{
-		//
-		// In this case we want next() to return the very next character
-		// At this moment m_scanpos is already at it
-		// e.g. "(field exists) and ..."
-		//
-		if(co == CO_EXISTS)
-		{
-			m_scanpos--;
-		}
-		//
-		// Otherwise we need a value for the operand
-		//
-		else
-		{
-			vector<char> operand2 = next_operand(false, false);
-			chk->add_filter_value((char *)&operand2[0], (uint32_t)operand2.size() - 1);
-		}
-
-		m_filter->add_check(chk);
+		delete m_flt_ast;
 	}
 }
 
 sinsp_filter* sinsp_filter_compiler::compile()
 {
-	try
+	// parse filter string on-the-fly if not pre-parsed AST is provided
+	if (m_internal_parsing && m_flt_ast == NULL)
 	{
-		return compile_();
-	}
-	catch(const sinsp_exception& e)
-	{
-		delete m_filter;
-		throw sinsp_exception(string("filter error at position ") + to_string(m_scanpos) + ": " + e.what());
-	}
-	catch(...)
-	{
-		delete m_filter;
-		throw sinsp_exception("error parsing the filter string");
-	}
-}
-
-sinsp_filter* sinsp_filter_compiler::compile_()
-{
-	m_scansize = (uint32_t)m_fltstr.size();
-	while(true)
-	{
-		char a = next();
-
-		switch(a)
+		libsinsp::filter::parser parser(m_flt_str);
+		try
 		{
-		case 0:
-			//
-			// Finished parsing the filter string
-			//
-			if(m_nest_level != 0)
-			{
-				throw sinsp_exception("filter error: unexpected end of filter");
-			}
-
-			if(m_state != ST_EXPRESSION_DONE)
-			{
-				throw sinsp_exception("filter error: unexpected end of filter");
-			}
-
-			if(m_filter->m_filter->get_expr_boolop() == -1)
-			{
-				throw sinsp_exception("expression mixes 'and' and 'or' in an ambiguous way. Please use brackets.");
-			}
-
-			//
-			// Good filter
-			//
-			return m_filter;
-
-			break;
-		case '(':
-			if(m_state != ST_NEED_EXPRESSION)
-			{
-				throw sinsp_exception("unexpected '(' after " + m_fltstr.substr(0, m_scanpos));
-			}
-
-			m_filter->push_expression(m_last_boolop);
-			m_last_boolop = BO_NONE;
-			m_nest_level++;
-
-			break;
-		case ')':
-			m_filter->pop_expression();
-			m_nest_level--;
-			break;
-		case 'o':
-			if(m_scanpos != 0 && m_state != ST_NEED_EXPRESSION)
-			{
-				if(next() == 'r')
-				{
-					m_last_boolop = BO_OR;
-				}
-				else
-				{
-					throw sinsp_exception("syntax error in filter");
-				}
-
-				if(m_state != ST_EXPRESSION_DONE)
-				{
-					throw sinsp_exception("unexpected 'or' after " + m_fltstr.substr(0, m_scanpos));
-				}
-
-				m_state = ST_NEED_EXPRESSION;
-			}
-			else
-			{
-				parse_check();
-				m_state = ST_EXPRESSION_DONE;
-			}
-
-			break;
-		case 'a':
-			if(m_scanpos != 0 && m_state != ST_NEED_EXPRESSION)
-			{
-
-				if(next() == 'n' && next() == 'd')
-				{
-					m_last_boolop = BO_AND;
-				}
-				else
-				{
-					throw sinsp_exception("syntax error in filter");
-				}
-
-				if(m_state != ST_EXPRESSION_DONE)
-				{
-					throw sinsp_exception("unexpected 'and' after " + m_fltstr.substr(0, m_scanpos));
-				}
-
-				m_state = ST_NEED_EXPRESSION;
-			}
-			else
-			{
-				parse_check();
-				m_state = ST_EXPRESSION_DONE;
-			}
-
-			break;
-		case 'n':
-			if(next() == 'o' && next() == 't')
-			{
-				m_last_boolop = (boolop)((uint32_t)m_last_boolop | BO_NOT);
-			}
-			else
-			{
-				throw sinsp_exception("syntax error in filter");
-			}
-
-			if(m_state != ST_EXPRESSION_DONE && m_state != ST_NEED_EXPRESSION)
-			{
-				throw sinsp_exception("unexpected 'not' after " + m_fltstr.substr(0, m_scanpos));
-			}
-
-			m_state = ST_NEED_EXPRESSION;
-
-			break;
-		default:
-			if(m_state == ST_NEED_EXPRESSION)
-			{
-				parse_check();
-
-				m_state = ST_EXPRESSION_DONE;
-			}
-			else
-			{
-				throw sinsp_exception("syntax error in filter");
-			}
-			break;
+			m_flt_ast = parser.parse();
+		}
+		catch (const sinsp_exception& e)
+		{
+			throw sinsp_exception("filter error at " 
+				+ parser.get_pos().as_string() + ": " + e.what());
 		}
 	}
-	return m_filter;
+
+	// create new filter using factory
+	auto new_filter = m_factory->new_filter();
+	auto new_sinsp_filter = dynamic_cast<sinsp_filter*>(new_filter);
+	if (new_sinsp_filter == nullptr)
+	{
+		ASSERT(false);
+		delete new_filter;
+		throw sinsp_exception("filter error: factory did not create a sinsp_filter");
+	}
+
+	// setup compiler state and start compilation
+	m_filter = new_sinsp_filter;
+	m_last_boolop = BO_NONE;
+	m_expect_values = false;
+	try 
+	{
+		m_flt_ast->accept(*this);
+	}
+	catch (const sinsp_exception& e)
+	{
+		delete new_sinsp_filter;
+		m_filter = NULL;
+		throw e;
+	}
+
+	// return compiled filter
+	m_filter = NULL;
+	return new_sinsp_filter;
 }
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr& e)
+{
+	bool nested = m_last_boolop != BO_AND;
+	if (nested)
+	{
+		m_filter->push_expression(m_last_boolop);
+		m_last_boolop = BO_NONE;
+	}
+	for (auto &c : e.children)
+	{
+		c->accept(*this);
+		m_last_boolop = BO_AND;
+	}
+	if (nested)
+	{
+		m_filter->pop_expression();
+	}
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr& e)
+{
+	bool nested = m_last_boolop != BO_OR;
+	if (nested)
+	{
+		m_filter->push_expression(m_last_boolop);
+		m_last_boolop = BO_NONE;
+	}
+	for (auto &c : e.children)
+	{
+		c->accept(*this);
+		m_last_boolop = BO_OR;
+	}
+	if (nested)
+	{
+		m_filter->pop_expression();
+	}
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr& e)
+{
+	m_last_boolop = (boolop)((uint32_t)m_last_boolop | BO_NOT);
+	m_filter->push_expression(m_last_boolop);
+	m_last_boolop = BO_NONE;
+	e.child->accept(*this);
+	m_filter->pop_expression();
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr& e)
+{
+	string field = create_filtercheck_name(e.field, e.arg);
+	gen_event_filter_check *check = create_filtercheck(field);
+	m_filter->add_check(check);
+	check_ttable_only(field, check);
+	check->m_cmpop = str_to_cmpop(e.op);
+	check->m_boolop = m_last_boolop;
+	check->parse_field_name(field.c_str(), true, true);
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
+{
+	string field = create_filtercheck_name(e.field, e.arg);
+	gen_event_filter_check *check = create_filtercheck(field);
+	m_filter->add_check(check);
+	check_ttable_only(field, check);
+	check->m_cmpop = str_to_cmpop(e.op);
+	check->m_boolop = m_last_boolop;
+	check->parse_field_name(field.c_str(), true, true);
+
+	// Read the the the right-hand values of the filtercheck. 
+	// For list-related operators ('in', 'intersects', 'pmatch'), the vector
+	// can be filled with more than 1 value, whereas in all other cases we
+	// expect the vector to only have 1 value. We don't check this here, as
+	// the parser is trusted to apply proper grammar checks on this constraint.
+	m_expect_values = true;
+	e.value->accept(*this);
+	m_expect_values = false;
+	for (size_t i = 0; i < m_field_values.size(); i++)
+	{
+		check->add_filter_value(m_field_values[i].c_str(), m_field_values[i].size(), i);
+	}
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr& e)
+{
+	if (!m_expect_values)
+	{
+		// this ensures that identifiers, such as Falco macros, are not left
+		// unresolved at filter compilation time
+		throw sinsp_exception("filter error: unexpected identifier '" + e.value + "'");
+	}
+	m_field_values.clear();
+	m_field_values.push_back(e.value);
+}
+
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr& e)
+{
+	if (!m_expect_values)
+	{
+		ASSERT(false);
+		// this is not expected, as it should not be allowed by the parser
+		throw sinsp_exception("filter error: unexpected value list");
+	}
+	m_field_values.clear();
+	m_field_values = e.values;
+}
+
+string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
+{
+	// The filtercheck factories parse the name + arg as a whole.
+	// We keep this for now, but we may want to change this in the future.
+	// todo(jasondellaluce): handle field arg parsing at compilation time
+	string fld = name;
+	if (arg.size() > 0)
+	{
+		fld += "[" + arg + "]";
+	}
+	return fld;
+}
+
+gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(string& field)
+{
+	gen_event_filter_check *chk = m_factory->new_filtercheck(field.c_str());
+	if(chk == NULL)
+	{
+		throw sinsp_exception("filter error: unrecognized field '" + field + "'");
+	}
+	return chk;
+}
+
+void sinsp_filter_compiler::check_ttable_only(string& field, gen_event_filter_check *check)
+{
+	if(m_ttable_only)
+	{
+		sinsp_filter_check* sinsp_check = dynamic_cast<sinsp_filter_check*>(check);
+		if (sinsp_check != nullptr
+			&& !(sinsp_check->get_fields()->m_flags & filter_check_info::FL_WORKS_ON_THREAD_TABLE))
+		{
+			if(field != "evt.rawtime" &&
+				field != "evt.rawtime.s" &&
+				field != "evt.rawtime.ns" &&
+				field != "evt.time" &&
+				field != "evt.time.s" &&
+				field != "evt.datetime" &&
+				field != "evt.reltime")
+			{
+				throw sinsp_exception("filter error: '" + field + "' is not supported for thread table filtering");
+			}
+		}
+	}
+}
+
+cmpop sinsp_filter_compiler::str_to_cmpop(string& str)
+{
+	if(str == "=" || str == "==")
+	{
+		return CO_EQ;
+	}
+	else if(str == "!=")
+	{
+		return CO_NE;
+	}
+	else if(str == "<=")
+	{
+		return CO_LE;
+	}
+	else if(str == "<")
+	{
+		return CO_LT;
+	}
+	else if(str == ">=")
+	{
+		return CO_GE;
+	}
+	else if(str == ">")
+	{
+		return CO_GT;
+	}
+	else if(str == "contains")
+	{
+		return CO_CONTAINS;
+	}
+	else if(str == "icontains")
+	{
+		return CO_ICONTAINS;
+	}
+	else if(str == "startswith")
+	{
+		return CO_STARTSWITH;
+	}
+	else if(str == "endswith")
+	{
+		return CO_ENDSWITH;
+	}
+	else if(str == "in")
+	{
+		return CO_IN;
+	}
+	else if(str == "intersects")
+	{
+		return CO_INTERSECTS;
+	}
+	else if(str == "pmatch")
+	{
+		return CO_PMATCH;
+	}
+	else if(str == "exists")
+	{
+		return CO_EXISTS;
+	}
+	else if(str == "glob")
+	{
+		return CO_GLOB;
+	}
+	// we are not supposed to get here, as the parser pre-checks this
+	ASSERT(false);
+	throw sinsp_exception("filter error: unrecognized comparison operator '" + string(str) + "'");
+}
+
 
 sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 					   filter_check_list &available_checks)
