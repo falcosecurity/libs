@@ -1172,7 +1172,6 @@ public:
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
-	sinsp_evttype_filter *m_evttype_filter;
 	std::string m_filterstring;
 #endif
 	unordered_set<uint32_t> m_ppm_sc_of_interest;
