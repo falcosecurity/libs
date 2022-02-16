@@ -92,7 +92,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 
 #ifdef HAS_FILTERING
 	m_filter = NULL;
-	m_evttype_filter = NULL;
 #endif
 
 	m_fds_to_remove = new vector<int64_t>;
@@ -798,11 +797,6 @@ void sinsp::close()
 		m_filter = NULL;
 	}
 
-	if(m_evttype_filter != NULL)
-	{
-		delete m_evttype_filter;
-		m_evttype_filter = NULL;
-	}
 #endif
 
 	m_ppm_sc_of_interest.clear();
@@ -1840,13 +1834,6 @@ bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 	// First run the global filter, if there is one.
 	//
 	if(m_filter && m_filter->run(evt) == true)
-	{
-		return true;
-	}
-
-	//
-	// Then run the evttype filter, if there is one.
-	if(m_evttype_filter && m_evttype_filter->run(evt) == true)
 	{
 		return true;
 	}
