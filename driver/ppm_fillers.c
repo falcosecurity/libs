@@ -2160,10 +2160,8 @@ int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 
 	args->enforce_snaplen = true;
 	res = val_to_ring(args, val, bufsize, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
-	return PPM_SUCCESS;
+	return res;
 }
 
 int f_sys_recv_x(struct event_filler_arguments *args)
