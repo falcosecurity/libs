@@ -31,6 +31,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
 	filter_parser.ut.cpp
+	filter_compiler.ut.cpp
 )
 
 if(NOT MINIMAL_BUILD)
