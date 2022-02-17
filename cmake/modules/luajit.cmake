@@ -42,6 +42,7 @@ else()
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
+					UPDATE_COMMAND ""
 					INSTALL_COMMAND "")
 			elseif("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "s390x")
 				ExternalProject_Add(luajit
@@ -52,6 +53,7 @@ else()
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
+					UPDATE_COMMAND ""
 					INSTALL_COMMAND "")
 			elseif(APPLE)
 				ExternalProject_Add(luajit
@@ -72,6 +74,7 @@ else()
 					BUILD_COMMAND ${CMD_MAKE}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
+					UPDATE_COMMAND ""
 					INSTALL_COMMAND "")
 			endif()
 		else()
