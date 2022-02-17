@@ -777,7 +777,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		break;
 	}
 	case PT_BYTEBUF: {
-		if (val_len) {
+		if (val!=0) {
 			len = val_len;
 
 			if (enforce_snaplen) {
@@ -830,7 +830,12 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 #endif
 					return PPM_FAILURE_INVALID_USER_MEMORY;
 			}
-		} else {
+		} 
+		else 
+		{
+			/*
+			 * Handle NULL pointers
+			 */
 			len = 0;
 		}
 		break;
