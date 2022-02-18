@@ -80,6 +80,8 @@ void sinsp_dumper::open(const string& filename, bool compress, bool threads_from
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);
 
+	m_inspector->m_usergroup_manager.dump_users_groups(m_dumper);
+
 	m_nevts = 0;
 }
 
@@ -110,6 +112,8 @@ void sinsp_dumper::fdopen(int fd, bool compress, bool threads_from_sinsp)
 	}
 
 	m_inspector->m_container_manager.dump_containers(m_dumper);
+
+	m_inspector->m_usergroup_manager.dump_users_groups(m_dumper);
 
 	m_nevts = 0;
 }

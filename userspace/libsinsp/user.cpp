@@ -22,9 +22,62 @@ limitations under the License.
 #include "sinsp.h"
 #include "../common/strlcpy.h"
 
-sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) : m_last_flush_time_ns(0)
+sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
+	m_import_users(true),
+	m_last_flush_time_ns(0),
+	m_inited(false)
 {
 	m_inspector = inspector;
+}
+
+void sinsp_usergroup_manager::init() {
+	m_inited = true;
+	if (m_import_users)
+	{
+		// Emplace container manager listener to delete container users upon container deletion
+		m_inspector->m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {
+			delete_container_users_groups(cinfo);
+		});
+	}
+}
+
+void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper)
+{
+	for(const auto& it : m_userlist)
+	{
+		std::string container_id = it.first;
+		auto usrlist = m_userlist[container_id];
+		for(auto &user : usrlist)
+		{
+			sinsp_evt evt;
+			if(user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E))
+			{
+				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
+				if(res != SCAP_SUCCESS)
+				{
+					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+				}
+			}
+		}
+	}
+
+	for(const auto& it : m_grouplist)
+	{
+		std::string container_id = it.first;
+		auto grplist = m_grouplist[container_id];
+		for(auto &group : grplist)
+		{
+			sinsp_evt evt;
+			if(group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E))
+			{
+				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
+				if(res != SCAP_SUCCESS)
+				{
+					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+				}
+			}
+		}
+	}
 }
 
 void sinsp_usergroup_manager::import_host_users_groups_list()
@@ -60,6 +113,11 @@ void sinsp_usergroup_manager::import_host_users_groups_list()
 
 void sinsp_usergroup_manager::refresh_host_users_groups_list()
 {
+	if (!m_import_users)
+	{
+		return;
+	}
+
 	// Avoid re-running refresh_host_users_groups_list too soon
 	m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
@@ -97,6 +155,11 @@ void sinsp_usergroup_manager::delete_container_users_groups(const sinsp_containe
 
 bool sinsp_usergroup_manager::sync_host_users_groups()
 {
+	if (!m_import_users)
+	{
+		return false;
+	}
+
 	bool res = false;
 
 	if(m_last_flush_time_ns == 0)
@@ -128,35 +191,49 @@ void sinsp_usergroup_manager::notify_host_diff(const unordered_map<uint32_t, sca
 	auto &host_grplist = m_grouplist[""];
 
 	// Find any user/group added
-	for (auto &u : host_userlist) {
-		if (old_host_userlist.find(u.first) == old_host_userlist.end()) {
+	for (auto &u : host_userlist)
+	{
+		if (old_host_userlist.find(u.first) == old_host_userlist.end())
+		{
 			notify_user_changed(&u.second, "");
 		}
 	}
-	for (auto &g : host_grplist) {
-		if (old_host_grplist.find(g.first) == old_host_grplist.end()) {
+	for (auto &g : host_grplist)
+	{
+		if (old_host_grplist.find(g.first) == old_host_grplist.end())
+		{
 			notify_group_changed(&g.second, "");
 		}
 	}
 
 	// Find any user/group deleted
-	for (auto &u : old_host_userlist) {
-		if (host_userlist.find(u.first) == host_userlist.end()) {
+	for (auto &u : old_host_userlist)
+	{
+		if (host_userlist.find(u.first) == host_userlist.end())
+		{
 			notify_user_changed(&u.second, "", false);
 		}
 	}
-	for (auto &g : old_host_grplist) {
-		if (host_grplist.find(g.first) == host_grplist.end()) {
+	for (auto &g : old_host_grplist)
+	{
+		if (host_grplist.find(g.first) == host_grplist.end())
+		{
 			notify_group_changed(&g.second, "", false);
 		}
 	}
 }
 
-bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell)
+bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
+	if (!m_import_users)
+	{
+		return false;
+	}
+
 	bool res = false;
 	scap_userinfo *usr = get_user(container_id, uid);
-	if (!usr) {
+	if (!usr)
+	{
 		auto &userlist = m_userlist[container_id];
 		userlist[uid].uid = uid;
 		userlist[uid].gid = gid;
@@ -165,40 +242,64 @@ bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid,
 		strlcpy(userlist[uid].shell, shell, SCAP_MAX_PATH_SIZE);
 
 		res = true;
+		if (notify)
+		{
+			notify_user_changed(&userlist[uid], container_id);
+		}
 	}
 	return res;
 }
 
-bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid)
+bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
 {
 	bool res = false;
 	scap_userinfo *usr = get_user(container_id, uid);
-	if (usr) {
+	if (usr)
+	{
+		if (notify)
+		{
+			notify_user_changed(usr, container_id, false);
+		}
 		m_userlist[container_id].erase(uid);
 		res = true;
 	}
 	return res;
 }
 
-bool sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name)
+bool sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
 {
+	if (!m_import_users)
+	{
+		return false;
+	}
+
 	bool res = false;
 	scap_groupinfo *gr = get_group(container_id, gid);
-	if (!gr) {
+	if (!gr)
+	{
 		auto &grplist = m_grouplist[container_id];
 		grplist[gid].gid = gid;
 		strlcpy(grplist[gid].name, name, MAX_CREDENTIALS_STR_LEN);
 
 		res = true;
+		if (notify)
+		{
+			notify_group_changed(&grplist[gid], container_id, true);
+		}
 	}
 	return res;
 }
 
-bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid)
+bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
 {
 	bool res = false;
 	scap_groupinfo *gr = get_group(container_id, gid);
-	if (gr) {
+	if (gr)
+	{
+		if (notify)
+		{
+			notify_group_changed(gr, container_id, false);
+		}
 		m_grouplist[container_id].erase(gid);
 		res = true;
 	}
@@ -380,12 +481,18 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 
 void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, const string &container_id, bool added)
 {
+	if (!m_inited || !m_import_users)
+	{
+		return;
+	}
+
 	auto *evt = new sinsp_evt();
 
 	if (added)
 	{
 		user_to_sinsp_event(user, evt, container_id, PPME_USER_ADDED_E);
-	} else
+	}
+	else
 	{
 		user_to_sinsp_event(user, evt, container_id, PPME_USER_DELETED_E);
 	}
@@ -403,11 +510,17 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, con
 
 void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added)
 {
+	if (!m_inited || !m_import_users)
+	{
+		return;
+	}
+
 	auto *evt = new sinsp_evt();
 	if (added)
 	{
 		group_to_sinsp_event(group, evt, container_id, PPME_GROUP_ADDED_E);
-	} else
+	}
+	else
 	{
 		group_to_sinsp_event(group, evt, container_id, PPME_GROUP_DELETED_E);
 	}

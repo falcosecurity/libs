@@ -172,12 +172,7 @@ void sinsp_container_manager::check_user_group(sinsp_threadinfo* tinfo) {
 		} else
 		{
 			// container: add it right away
-			m_inspector->m_usergroup_manager.add_user(tinfo->m_container_id, tinfo->m_uid, -1, "<NA>", "<NA>", "<NA>");
-			user = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_uid);
-			if (user)
-			{
-				m_inspector->m_usergroup_manager.notify_user_changed(user, tinfo->m_container_id);
-			}
+			m_inspector->m_usergroup_manager.add_user(tinfo->m_container_id, tinfo->m_uid, -1, "<NA>", "<NA>", "<NA>", m_inspector->is_live());
 		}
 	}
 
@@ -190,12 +185,7 @@ void sinsp_container_manager::check_user_group(sinsp_threadinfo* tinfo) {
 			m_inspector->m_usergroup_manager.refresh_host_users_groups_list();
 		} else {
 			// container: add it right away
-			m_inspector->m_usergroup_manager.add_group(tinfo->m_container_id, tinfo->m_gid, "<NA>");
-			group = m_inspector->m_usergroup_manager.get_group(tinfo->m_container_id, tinfo->m_gid);
-			if (group)
-			{
-				m_inspector->m_usergroup_manager.notify_group_changed(group, tinfo->m_container_id);
-			}
+			m_inspector->m_usergroup_manager.add_group(tinfo->m_container_id, tinfo->m_gid, "<NA>", m_inspector->is_live());
 		}
 	}
 }
