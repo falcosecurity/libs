@@ -650,7 +650,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_BYTEBUF:
-		if (likely(val != 0)) {
+		if (likely(val != 0 && val_len)) {
 			if (fromuser) {
 				/*
 				 * Copy the lookahead portion of the buffer that we will use DPI-based

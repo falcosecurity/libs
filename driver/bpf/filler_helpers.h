@@ -837,7 +837,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		break;
 	}
 	case PT_BYTEBUF: {
-		if (val!=0) {
+		if (val!=0 && val_len) {
 			len = val_len;
 
 			if (enforce_snaplen) {
