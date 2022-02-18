@@ -51,6 +51,12 @@ class sinsp_usergroup_manager
 public:
 	explicit sinsp_usergroup_manager(sinsp* inspector);
 
+	// Do not call init() in capture mode, because
+	// events shall not be sent as they will be loaded from capture file.
+	void init();
+
+	void dump_users_groups(scap_dumper_t* dumper);
+
 	/*!
   	  \brief Return the table with all the machine users.
 
@@ -98,32 +104,38 @@ public:
 	*/
 	scap_groupinfo* get_group(const string &container_id, uint32_t gid);
 
-	void import_host_users_groups_list();
 	void refresh_host_users_groups_list();
 
-	void delete_container_users_groups(const sinsp_container_info &cinfo);
-
-	void notify_user_changed(const scap_userinfo *user, const string &container_id, bool added = true);
-	void notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added = true);
-
-	bool add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell);
-	bool add_group(const string &container_id, uint32_t gid, const char *name);
-	bool rm_user(const string &container_id, uint32_t uid);
-	bool rm_group(const string &container_id, uint32_t gid);
+	bool add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
+	bool add_group(const string &container_id, uint32_t gid, const char *name, bool notify = false);
+	bool rm_user(const string &container_id, uint32_t uid, bool notify = false);
+	bool rm_group(const string &container_id, uint32_t gid, bool notify = false);
 
 	bool sync_host_users_groups();
+
+	//
+	// User and group tables
+	//
+	bool m_import_users;
 
 private:
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const string &container_id, uint16_t ev_type);
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const string &container_id, uint16_t ev_type);
 
+	void delete_container_users_groups(const sinsp_container_info &cinfo);
+	void import_host_users_groups_list();
 	void notify_host_diff(const unordered_map<uint32_t, scap_userinfo> &old_host_userlist,
 			      const unordered_map<uint32_t, scap_groupinfo> &old_host_grplist);
+
+	void notify_user_changed(const scap_userinfo *user, const string &container_id, bool added = true);
+	void notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added = true);
 
 	unordered_map<string, unordered_map<uint32_t, scap_userinfo>> m_userlist;
 	unordered_map<string, unordered_map<uint32_t, scap_groupinfo>> m_grouplist;
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
+	// this is used as a flag to avoid sending events before next() loop is started in live mode.
+	bool m_inited;
 };
 
 #endif // FALCOSECURITY_LIBS_USER_H
