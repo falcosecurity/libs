@@ -111,7 +111,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_max_evt_output_len = 0;
 	m_filesize = -1;
 	m_track_tracers_state = false;
-	m_import_users = true;
 	m_next_flush_time_ns = 0;
 	m_last_procrequest_tod = 0;
 	m_get_procs_cpu_from_driver = false;
@@ -164,11 +163,6 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_filter_proc_table_when_saving = false;
 
 	m_replay_scap_evt = NULL;
-
-	// Emplace container manager listener
-	m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {
-		m_usergroup_manager.delete_container_users_groups(cinfo);
-	});
 }
 
 sinsp::~sinsp()
@@ -357,7 +351,8 @@ void sinsp::init()
 				// once we reach a container-unrelated event.
 				m_replay_scap_evt = pevent;
 				m_replay_scap_cpuid = pcpuid;
-				if((pevent->type != PPME_CONTAINER_E) && (pevent->type != PPME_CONTAINER_JSON_E) && (pevent->type != PPME_CONTAINER_JSON_2_E))
+				if(pevent->type != PPME_CONTAINER_E && pevent->type != PPME_CONTAINER_JSON_E && pevent->type != PPME_CONTAINER_JSON_2_E
+				   && pevent->type != PPME_USER_ADDED_E && pevent->type != PPME_GROUP_ADDED_E)
 				{
 					break;
 				}
@@ -391,10 +386,13 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
+	m_usergroup_manager.init();
+
 	if (m_external_event_processor)
 	{
 		m_external_event_processor->on_capture_start();
 	}
+
 	//
 	// If m_snaplen was modified, we set snaplen now
 	//
@@ -436,7 +434,7 @@ void sinsp::init()
 
 void sinsp::set_import_users(bool import_users)
 {
-	m_import_users = import_users;
+	m_usergroup_manager.m_import_users = import_users;
 }
 
 void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
@@ -502,7 +500,7 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 		oargs.proc_callback = ::on_new_entry_from_proc;
 		oargs.proc_callback_context = this;
 	}
-	oargs.import_users = m_import_users;
+	oargs.import_users = m_usergroup_manager.m_import_users;
 
 	add_suppressed_comms(oargs);
 
@@ -579,7 +577,7 @@ void sinsp::open_nodriver()
 		oargs.proc_callback = ::on_new_entry_from_proc;
 		oargs.proc_callback_context = this;
 	}
-	oargs.import_users = m_import_users;
+	oargs.import_users = m_usergroup_manager.m_import_users;
 	fill_syscalls_of_interest(&oargs);
 
 	int32_t scap_rc;
@@ -716,7 +714,7 @@ void sinsp::open_int()
 	}
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
-	oargs.import_users = m_import_users;
+	oargs.import_users = m_usergroup_manager.m_import_users;
 	oargs.start_offset = 0;
 	fill_syscalls_of_interest(&oargs);
 
@@ -839,6 +837,8 @@ void sinsp::autodump_start(const string& dump_filename, bool compress)
 	}
 
 	m_container_manager.dump_containers(m_dumper);
+
+	m_usergroup_manager.dump_users_groups(m_dumper);
 }
 
 void sinsp::autodump_next_file()
@@ -1234,7 +1234,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	uint64_t ts = evt->get_ts();
 
-	if(m_firstevent_ts == 0 && evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E)
+	if(m_firstevent_ts == 0 &&
+	   evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E &&
+	   evt->m_pevt->type != PPME_USER_ADDED_E && evt->m_pevt->type != PPME_GROUP_ADDED_E)
 	{
 		m_firstevent_ts = ts;
 	}

@@ -406,6 +406,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
+
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
 	m_cap_inheritable = pi->cap_inheritable;
@@ -427,7 +428,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_root = pi->root;
 	ASSERT(m_inspector);
 	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
-
 	//
 	// Prepare for filtering
 	//
