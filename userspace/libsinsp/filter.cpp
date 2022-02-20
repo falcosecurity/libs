@@ -1519,6 +1519,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_ast = NULL;
 	m_ttable_only = ttable_only;
 	m_internal_parsing = true;
+	m_check_id = 0;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
@@ -1532,6 +1533,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_ast = NULL;
 	m_ttable_only = ttable_only;
 	m_internal_parsing = true;
+	m_check_id = 0;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
@@ -1544,6 +1546,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_ast = fltast;
 	m_ttable_only = ttable_only;
 	m_internal_parsing = false;
+	m_check_id = 0;
 }
 
 sinsp_filter_compiler::~sinsp_filter_compiler()
@@ -1553,6 +1556,11 @@ sinsp_filter_compiler::~sinsp_filter_compiler()
 	{
 		delete m_flt_ast;
 	}
+}
+
+void sinsp_filter_compiler::set_check_id(int32_t id)
+{
+	m_check_id = id;
 }
 
 sinsp_filter* sinsp_filter_compiler::compile()
@@ -1658,6 +1666,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr& e)
 	check->m_cmpop = str_to_cmpop(e.op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
+	check->set_check_id(m_check_id);
 }
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
@@ -1669,6 +1678,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
 	check->m_cmpop = str_to_cmpop(e.op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
+	check->set_check_id(m_check_id);
 
 	// Read the the the right-hand values of the filtercheck. 
 	// For list-related operators ('in', 'intersects', 'pmatch'), the vector
@@ -1726,7 +1736,7 @@ gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(string& field)
 	gen_event_filter_check *chk = m_factory->new_filtercheck(field.c_str());
 	if(chk == NULL)
 	{
-		throw sinsp_exception("filter error: unrecognized field '" + field + "'");
+		throw sinsp_exception("filter_check called with nonexistent field " + field);
 	}
 	return chk;
 }
