@@ -53,6 +53,7 @@ if(NOT WIN32)
 endif()
 
 set(SINSP_SOURCES
+	filter/ast.cpp
 	filter/parser.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp

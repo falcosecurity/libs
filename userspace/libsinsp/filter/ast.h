@@ -39,7 +39,7 @@ struct unary_check_expr;
 struct binary_check_expr;
 
 /*!
-    \brief Base interface of AST visitors
+    \brief Interface of AST visitors
 */
 struct SINSP_PUBLIC expr_visitor
 {
@@ -53,6 +53,32 @@ struct SINSP_PUBLIC expr_visitor
 };
 
 /*!
+    \brief Base implementation for AST visitors, that traverses
+    the tree without doing anything. This way, subclasses can
+    avoid overriding empty methods if they are not interested
+    in a specific type of AST node
+*/
+struct SINSP_PUBLIC base_expr_visitor: public expr_visitor
+{
+public:
+    virtual void visit(and_expr&) override;
+    virtual void visit(or_expr&) override;
+    virtual void visit(not_expr&) override;
+    virtual void visit(value_expr&) override;
+    virtual void visit(list_expr&) override;
+    virtual void visit(unary_check_expr&) override;
+    virtual void visit(binary_check_expr&) override;
+
+    /*!
+        \brief Can be set to true by subclasses to instruct the
+        visitor that the exploration can be stopped, so
+        that the recursion gets rewinded and no more nodes
+        are explored.
+    */
+    bool m_should_stop_visit = false;
+};
+
+/*!
     \brief Base interface of AST hierarchy
 */
 struct SINSP_PUBLIC expr
@@ -63,7 +89,7 @@ struct SINSP_PUBLIC expr
 };
 
 /*!
-    \brief Comparator for AST hierarchy
+    \brief Compares two ASTs, returns true if they are deep equal
 */
 inline bool compare(const expr* left, const expr* right)
 {
@@ -253,6 +279,13 @@ struct SINSP_PUBLIC binary_check_expr: expr
     string op;
     expr* value;
 };
+
+/*!
+	\brief Creates a deep clone of a filter AST
+	\return The newly created cloned AST. Comparing the return value
+    with the input parameter returns true
+*/
+expr* clone(expr* e);
 
 }
 }
