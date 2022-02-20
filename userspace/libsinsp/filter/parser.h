@@ -34,7 +34,7 @@ limitations under the License.
 //                             | NumOperator NumValue
 //                             | StrOperator StrValue
 //                             | ListOperator ListValue
-//     ListValue           ::= '(' StrValue (',' StrValue)* ')'
+//     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
 //     CheckField          ::= FieldName('[' FieldArg ']')?
 //     FieldArg            ::= Number | QuotedStr | FieldArgBareStr 

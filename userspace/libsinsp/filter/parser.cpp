@@ -54,8 +54,8 @@ parser::parser(const string& input)
 
 void parser::get_pos(pos_info& pos)
 {
-	pos.idx = m_pos.idx - m_last_token.size();
-	pos.col = m_pos.col - m_last_token.size();
+	pos.idx = m_pos.idx;
+	pos.col = m_pos.col;
 	pos.line = m_pos.line;
 }
 
@@ -93,7 +93,7 @@ ast::expr* parser::parse()
 	}
 	if (!m_parse_partial && m_pos.idx != m_input.size())
 	{
-		throw sinsp_exception("filter input was parsed partially");
+		throw sinsp_exception("unexpected token after '" + m_last_token + "', expecting 'or', 'and'");
 	}
 	return res;
 }
@@ -301,20 +301,36 @@ ast::expr* parser::parse_list_value()
 	lex_blank();
 	if (lex_helper_str("("))
 	{
+		bool should_be_empty = false;
+		ast::value_expr* child = NULL;
 		vector<string> values;
+
 		lex_blank();
-		auto child = parse_str_value();
-		values.push_back(child->value);
-		delete child;
-		lex_blank();
-		while (lex_helper_str(","))
+		try
 		{
-			lex_blank();
 			child = parse_str_value();
+		}
+		catch(const sinsp_exception& e)
+		{
+			depth_pop();
+			should_be_empty = true;
+		}
+		
+		if (!should_be_empty)
+		{
 			values.push_back(child->value);
 			delete child;
 			lex_blank();
+			while (lex_helper_str(","))
+			{
+				lex_blank();
+				child = parse_str_value();
+				values.push_back(child->value);
+				delete child;
+				lex_blank();
+			}
 		}
+
 		if (!lex_helper_str(")"))
 		{
 			throw sinsp_exception("expected a ')' token");
