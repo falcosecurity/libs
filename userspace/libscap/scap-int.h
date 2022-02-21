@@ -154,6 +154,8 @@ struct scap
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
 	uint32_t m_ncpus;
+	uint8_t m_cgroup_version;
+
 	// Abstraction layer for windows
 #if CYGWING_AGENT || _WIN32
 	wh_t* m_whh;
