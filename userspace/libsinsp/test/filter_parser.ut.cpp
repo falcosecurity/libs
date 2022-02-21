@@ -44,7 +44,7 @@ static void test_reject(string in)
 	try
 	{
 		delete parser.parse();
-		FAIL() << "error expected but not received";
+		FAIL() << "error expected but not received -> " << in;
 	}
 	catch (runtime_error& e)
 	{
@@ -54,7 +54,7 @@ static void test_reject(string in)
 
 // Inspired by Falco's parser smoke tests:
 // https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/userspace/engine/lua/parser-smoke.sh#L41
-TEST(parser, smoke_accept_reject)
+TEST(parser, parse_smoke_test)
 {
 	// good
 	test_accept("  a");
@@ -94,6 +94,7 @@ TEST(parser, smoke_accept_reject)
 	test_reject("a.b = b = 1");
 	test_reject("(a.b = 1");
 	test_reject("a.a invalidoperator xxx");
+	test_reject("macro > 12");
 
 	// marked as good in Falco smoke checks, but they should be bad instead
 	test_reject("a.g in ( 1 ,, , b)");
@@ -102,6 +103,141 @@ TEST(parser, smoke_accept_reject)
 	test_reject("evt.dir=> and fd.name=/var/lo);g/httpd.log");
 	test_reject("notz and a and b");
 }
+
+TEST(parser, parse_str)
+{
+	// valid bare strings
+	test_accept("test.str = testval");
+	test_accept("test.str = 0a!@#456:/\\.;!$%^&*[]{}|");
+
+	// valid quoted strings
+	test_accept("test.str = \"\"");
+	test_accept("test.str = ''");
+	test_accept("test.str = \"0a!@#456:/.; !$%^&*[]{}|\"");
+	test_accept("test.str = \"test value\"");
+	test_accept("test.str = 'test value'");
+
+	// valid string escaping
+	test_accept("test.str = \"escape double quote \\\" \"");
+	test_accept("test.str = \"escape double quote \\\" \"");
+	test_accept("test.str = 'escape single quote \\' '");
+	test_accept("test.str = 'multiple escape single quote \\' \\\\''");
+	test_accept("test.str = 'mixed \"'");
+	test_accept("test.str = \"mixed '\"");
+	test_accept("test.str = \"bad escape \\ \" "); // todo(jasondellaluce): reject this case in the future
+
+	// invalid bare strings
+	test_reject("test.str = a,");
+	test_reject("test.str = a=");
+	test_reject("test.str = a('\")");
+
+	// invalid quoted strings
+	test_reject("test.str = '");
+	test_reject("test.str = \"");
+	test_reject("test.str = '\"");
+	test_reject("test.str = \"'");
+
+	// invalid string escaping
+	test_reject("test.str = missing start quote");
+	test_reject("test.str = 'missing end quote");
+	test_reject("test.str = \"broken escape double quote\"\"");
+	test_reject("test.str = 'broken escape single quote''");
+	test_reject("test.str = \"mixed \\\'\"");
+	test_reject("test.str = 'mixed \\\"'");
+}
+
+TEST(parser, parse_numbers)
+{
+	// valid numbers
+	test_accept("test.num > 1000");
+	test_accept("test.num < +1");
+	test_accept("test.num >= -1");
+	test_accept("test.num <= 0x12345");
+	test_accept("test.num <= 0XaB00AB");
+	test_accept("test.num > 1.2");
+	test_accept("test.num < -1.2");
+	test_accept("test.num > -0.1222e+10");
+
+	// treat numbers as strings
+	// (the operator does not restrict the scope to only numbers)
+	test_accept("test.str = !0.1222e+10");
+	test_accept("test.str = 0xAAA.1");
+	test_accept("test.str = 0aaaaa");
+	test_accept("test.str = a");
+
+	// invalid numbers
+	test_reject("test.num > !0.1222e+10");
+	test_reject("test.num < 0xAAA.1");
+	test_reject("test.num >= 0aaaaa");
+	test_reject("test.num <= a");
+}
+
+TEST(parser, parse_lists)
+{
+	// valid list
+	test_accept("test.list in ()");
+	test_accept("test.list in (a)");
+	test_accept("test.list in ('single-quoted')");
+	test_accept("test.list in (\"double-quoted\")");
+	test_accept("test.list in (0a!@#456:/\\.;!$%^&*[]{}|)");
+	test_accept("test.list in (0a!@#456:/\\.;!$%^&*[]{}|, value)");
+	test_accept("test.list in (value, \"value\", 'value')");
+
+	// valid list operators
+	test_accept("test.list in (value)");
+	test_accept("test.list intersects (value)");
+	test_accept("test.list pmatch (value)");
+
+	// invalid list
+	test_reject("test.list in (");
+	test_reject("test.list in )");
+	test_reject("test.list in (value,)");
+	test_reject("test.list in (value,,)");
+	test_reject("test.list in (,)");
+	test_reject("test.list in (,   ,)");
+
+	// invalid list operators
+	test_reject("test.list > (value)");
+	test_reject("test.list = (value)");
+	test_reject("test.list < (value)");
+	test_reject("test.list startswith (value)");
+	test_reject("test.list contains (value)");
+}
+
+TEST(parser, parse_operators)
+{
+	// valid operators
+	test_accept("test.op exists and macro");
+	test_accept("test.op exists");
+	test_accept("test.op = value");
+	test_accept("test.op == value");
+	test_accept("test.op != value");
+	test_accept("test.op glob value");
+	test_accept("test.op contains value");
+	test_accept("test.op icontains value");
+	test_accept("test.op startswith value");
+	test_accept("test.op endswith value");
+	test_accept("test.op > 1");
+	test_accept("test.op < 1");
+	test_accept("test.op >= 1");
+	test_accept("test.op <= 1");
+	test_accept("test.op in ()");
+	test_accept("test.op intersects ()");
+	test_accept("test.op pmatch ()");
+	test_accept("test.op in()");
+
+	// invalid operators
+	test_accept("test.op existsand macro");
+	test_reject("test.op ExIsTs");
+	test_reject("test.op exists something");
+	test_reject("test.op ===");
+	test_reject("test.op !==");
+	test_reject("test.op startswithvalue");
+	test_reject("test.op endswithvalue");
+	test_reject("test.op containsvalue");
+	test_reject("test.op globvalue");
+}
+
 
 // complex test case with all supported node types
 TEST(parser, expr_all_node_types)

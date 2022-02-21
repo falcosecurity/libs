@@ -44,8 +44,8 @@ limitations under the License.
 // Supported Check Operators (EBNF Syntax):
 //     UnaryOperator       ::= 'exists'
 //     NumOperator         ::= '<=' | '<' | '>=' | '>' 
-//     StrOperator         ::= '==' | '=' | '!=' | 'glob' | 'contains'
-//                             | 'icontains' | 'startswith' | 'endswith'
+//     StrOperator         ::= '==' | '=' | '!=' | 'glob ' | 'contains '
+//                             | 'icontains ' | 'startswith ' | 'endswith '
 //     ListOperator        ::= 'intersects' | 'in' | 'pmatch' 
 // 
 // Tokens (Regular Expressions):
@@ -164,6 +164,7 @@ private:
 	void depth_pop();
 	const char* cursor();
 	string escape_str(string& str);
+	string trim_str(const string& str);
 
 	bool m_parse_partial;
 	uint32_t m_depth;

@@ -18,6 +18,7 @@ limitations under the License.
 #include <cstring>
 #include <regex>
 #include "parser.h"
+#include "../utils.h"
 #include "../sinsp_exception.h"
 
 using namespace libsinsp::filter;
@@ -34,8 +35,8 @@ static const vector<string> binary_num_ops =
 
 static const vector<string> binary_str_ops =
 {
-	"==", "=", "!=", "glob", "contains", "icontains",
-	"startswith", "endswith",
+	"==", "=", "!=", "glob ", "contains ", "icontains ",
+	"startswith ", "endswith ",
 };
 
 static const vector<string> binary_list_ops =
@@ -210,7 +211,7 @@ ast::expr* parser::parse_check()
 		{
 			lex_blank();
 			depth_pop();
-			return new ast::unary_check_expr(field, field_arg, m_last_token);
+			return new ast::unary_check_expr(field, field_arg, trim_str(m_last_token));
 		}
 
 		string op = "";
@@ -238,25 +239,25 @@ ast::expr* parser::parse_check()
 			string ops = "";
 			for (auto &o: unary_ops)
 			{
-				ops += "'" + o + "', ";
+				ops += "'" + trim_str(o) + "', ";
 			}
 			for (auto &o: binary_num_ops)
 			{
-				ops += "'" + o + "', ";
+				ops += "'" + trim_str(o) + "', ";
 			}
 			for (auto &o: binary_str_ops)
 			{
-				ops += "'" + o + "', ";
+				ops += "'" + trim_str(o) + "', ";
 			}
 			for (auto &o: binary_list_ops)
 			{
-				ops += "'" + o + "', ";
+				ops += "'" + trim_str(o) + "', ";
 			}
 			ops.erase(ops.size() - 2, 2);
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
-		return new ast::binary_check_expr(field, field_arg, op, value);
+		return new ast::binary_check_expr(field, field_arg, trim_str(op), value);
 	}
 
 	if (lex_identifier())
@@ -547,6 +548,13 @@ string parser::escape_str(string& str)
 		}
 	}
 	return res;
+}
+
+inline string parser::trim_str(const string& str)
+{
+	string val = str;
+	trim(val);
+	return val;
 }
 
 inline void parser::depth_push()
