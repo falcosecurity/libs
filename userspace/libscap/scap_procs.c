@@ -378,6 +378,8 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		char* subsys_list;
 		char* cgroup;
 		char* scratch;
+		// Default subsys list for cgroups v2 unified hierarchy.
+		// These are the ones we actually use in cri container engine.
 		char default_subsys_list[] = "cpu,memory,cpuset";
 
 		// id
@@ -684,6 +686,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		{
 			while(fgets(line, sizeof(line), f) != NULL)
 			{
+				// NOTE: we do not support mixing cgroups v1 v2 controllers.
+				// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
 				if (strstr(line, "cgroup2"))
 				{
 					handle->m_cgroup_version = 2;
