@@ -134,6 +134,9 @@ FILLER_RAW(terminate_filler)
 		bpf_printk("PPM_FAILURE_FRAME_SCRATCH_MAP_FULL event=%d curarg=%d\n",
 			   state->tail_ctx.evt_type,
 			   state->tail_ctx.curarg);
+		if (state->n_drops_scratch_map != ULLONG_MAX) {
+			++state->n_drops_scratch_map;
+		}
 		break;	
 	default:
 		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
