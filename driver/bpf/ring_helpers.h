@@ -90,6 +90,9 @@ static __always_inline int push_evt_frame(void *ctx,
 
 		state->hotplug_cpu = bpf_get_smp_processor_id();
 		bpf_printk("detected hotplug event, cpu=%d\n", state->hotplug_cpu);
+	} else if (res == -ENOSPC) {
+		bpf_printk("bpf_perf_buffer full\n");
+		return PPM_FAILURE_BUFFER_FULL;
 	} else if (res) {
 		bpf_printk("bpf_perf_event_output failed, res=%d\n", res);
 		return PPM_FAILURE_BUG;
