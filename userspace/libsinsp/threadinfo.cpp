@@ -953,12 +953,10 @@ void sinsp_threadinfo::populate_cmdline(string &cmdline, const sinsp_threadinfo 
 {
 	cmdline = tinfo->get_comm();
 
-	uint32_t j;
-	uint32_t nargs = (uint32_t)tinfo->m_args.size();
-
-	for(j = 0; j < nargs; j++)
+	for (const auto& arg : tinfo->m_args)
 	{
-		cmdline += " " + tinfo->m_args[j];
+		cmdline += " ";
+		cmdline += arg;
 	}
 }
 
