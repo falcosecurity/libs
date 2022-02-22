@@ -746,7 +746,10 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
-		return PPM_FAILURE_BUFFER_FULL;
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+
 	if (dyn_idx != (u8)-1) {
 		*((u8 *)&data->buf[curoff_bounded]) = dyn_idx;
 		len_dyn = sizeof(u8);
@@ -756,7 +759,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
-		return PPM_FAILURE_BUFFER_FULL;
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
 
 	switch (type) {
 	case PT_CHARBUF:
@@ -816,7 +821,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 				curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 				if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
-					return PPM_FAILURE_BUFFER_FULL;
+				{
+					return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+				}
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
@@ -901,7 +908,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	}
 	}
 	if (len_dyn + len > PPM_MAX_ARG_SIZE)
-		return PPM_FAILURE_BUFFER_FULL;
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
 
 	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len_dyn + len);
 	data->state->tail_ctx.curoff += len;
