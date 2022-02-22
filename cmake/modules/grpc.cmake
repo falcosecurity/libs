@@ -117,7 +117,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
-			GIT_TAG v1.38.1
+			GIT_TAG v1.44.0
 			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
