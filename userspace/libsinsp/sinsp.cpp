@@ -1308,11 +1308,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 					"n_evts:%" PRIu64
 					" n_drops:%" PRIu64
 					" n_drops_buffer:%" PRIu64
+					" n_drops_scratch_map:%" PRIu64
 					" n_drops_pf:%" PRIu64
 					" n_drops_bug:%" PRIu64,
 					stats.n_evts,
 					stats.n_drops,
 					stats.n_drops_buffer,
+					stats.n_drops_scratch_map,
 					stats.n_drops_pf,
 					stats.n_drops_bug);
 			}
