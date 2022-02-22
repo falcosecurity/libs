@@ -124,13 +124,7 @@ static inline int32_t scap_bpf_advance_to_evt(scap_t *handle, uint16_t cpuid, bo
 				break;
 			}
 		}
-		else if(e->type == PERF_RECORD_LOST)
-		{
-			struct perf_lost_sample *lost = (struct perf_lost_sample *) e;
-			ASSERT(*len >= sizeof(*lost));
-			dev->m_evt_lost += lost->lost;
-		}
-		else
+		else if(e->type != PERF_RECORD_LOST)
 		{
 			printf("Unknown event type=%d size=%d\n",
 			       e->type, e->size);

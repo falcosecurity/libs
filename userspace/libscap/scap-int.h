@@ -94,11 +94,6 @@ typedef struct scap_device
 			struct ppm_ring_buffer_info* m_bufinfo;
 			struct udig_ring_buffer_status* m_bufstatus; // used by udig
 		};
-		// Anonymous struct with bpf stuff
-		struct
-		{
-			uint64_t m_evt_lost;
-		};
 	};
 }scap_device;
 
