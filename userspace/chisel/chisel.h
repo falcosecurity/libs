@@ -110,11 +110,11 @@ private:
 class SINSP_PUBLIC sinsp_chisel
 {
 public:
-	sinsp_chisel(sinsp* inspector, string filename);
+	sinsp_chisel(sinsp* inspector, string filename, bool is_file = true);
 	~sinsp_chisel();
 	static void add_lua_package_path(lua_State* ls, const char* path);
 	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
-	void load(string cmdstr);
+	void load(string cmdstr, bool is_file = true);
 	string get_name()
 	{
 		return m_filename;
