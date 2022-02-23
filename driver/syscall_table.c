@@ -1003,6 +1003,10 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_copy_file_range
 	[__NR_copy_file_range - SYSCALL_TABLE_ID0] = PPM_SC_COPY_FILE_RANGE,
 #endif
+	[__NR_clone - SYSCALL_TABLE_ID0] = PPM_SC_CLONE,
+#ifdef __NR_clone3
+	[__NR_clone3 - SYSCALL_TABLE_ID0] = PPM_SC_CLONE3,
+#endif	
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1822,6 +1826,10 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #ifdef __NR_ia32_copy_file_range
 	[__NR_ia32_copy_file_range - SYSCALL_TABLE_ID0] = PPM_SC_COPY_FILE_RANGE,
 #endif
+	[__NR_ia32_clone - SYSCALL_TABLE_ID0] = PPM_SC_CLONE,
+#ifdef __NR_ia32_clone3
+	[__NR_ia32_clone3 - SYSCALL_TABLE_ID0] = PPM_SC_CLONE3,
+#endif	
 };
 
 #endif /* CONFIG_IA32_EMULATION */
