@@ -1331,7 +1331,9 @@ enum ppm_syscall_code {
 	PPM_SC_EXECVE = 324,
 	PPM_SC_EXECVEAT = 325,
 	PPM_SC_COPY_FILE_RANGE = 326,
-	PPM_SC_MAX = 327,
+	PPM_SC_CLONE = 327,
+	PPM_SC_CLONE3 = 328,
+	PPM_SC_MAX = 329,
 };
 
 /*
