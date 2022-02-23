@@ -1,5 +1,6 @@
 #include "token_bucket.h"
 #include <gtest.h>
+#include <memory>
 
 // token bucket default ctor
 TEST(token_bucket, constructor)
