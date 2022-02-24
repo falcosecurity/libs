@@ -16,10 +16,46 @@ limitations under the License.
 */
 
 #include <cstring>
-#include <regex>
 #include "parser.h"
 #include "../utils.h"
 #include "../sinsp_exception.h"
+
+// todo: this is very gross, but we have to deal with this due to old
+// compilers (e.g. GCC 4.8) not fully supporting C++ <regex>.
+// By falling back to the POSIX regex format, we need to change some
+// regex a little bit, but they are equivalent towards our grammar.
+// This is mixed to the fact that we indirectly depend on Oniguruma
+// due to the JQ dependency. When we bundle Oniguruma, we need to use
+// its headers.
+//
+// We should definitely remove all this once we don't have to support
+// older compilers anymore.
+#ifndef _WIN32
+	#ifdef USE_BUNDLED_ONIGURUMA
+		#include <onigposix.h>
+	#else
+		#define USE_POSIX_REGEX
+		#include <regex.h>
+	#endif
+#else   // _WIN32
+	#include <regex>
+#endif  // _WIN32
+
+#ifdef USE_POSIX_REGEX
+	#define RGX_IDENTIFIER          "[a-zA-Z]+[a-zA-Z0-9_]*"
+	#define RGX_FIELDNAME           "[a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+"
+	#define RGX_FIELDARGBARESTR     "[^][\"'[:space:]]+"
+	#define RGX_HEXNUM              "0[xX][0-9a-zA-Z]+"
+	#define RGX_NUMBER              "[+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?"
+	#define RGX_BARESTR             "[^()\"'[:space:]=,]+"
+#else   // USE_POSIX_REGEX
+	#define RGX_IDENTIFIER          "[a-zA-Z]+[a-zA-Z0-9_]*"
+	#define RGX_FIELDNAME           "[a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+"
+	#define RGX_FIELDARGBARESTR     "[^ \\b\\t\\n\\r\\[\\]\"']+"
+	#define RGX_HEXNUM              "0[xX][0-9a-zA-Z]+"
+	#define RGX_NUMBER              "[+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?"
+	#define RGX_BARESTR             "[^ \\b\\t\\n\\r\\(\\),=\"']+"
+#endif  // USE_POSIX_REGEX
 
 using namespace std;
 using namespace libsinsp::filter;
@@ -373,42 +409,60 @@ bool parser::lex_blank()
 
 inline bool parser::lex_identifier()
 {
-	return lex_helper_rgx("[a-zA-Z]+[a-zA-Z0-9_]*");
+	return lex_helper_rgx(RGX_IDENTIFIER);
 }
 
 inline bool parser::lex_field_name()
 {
-	return lex_helper_rgx("[a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+");
+	return lex_helper_rgx(RGX_FIELDNAME);
 }
 
 inline bool parser::lex_field_arg_bare_str()
 {
-	return lex_helper_rgx("[^ \\b\\t\\n\\r\\[\\]\"']+");
+	return lex_helper_rgx(RGX_FIELDARGBARESTR);
 }
 
 inline bool parser::lex_hex_num()
 {
-	return lex_helper_rgx("0[xX][0-9a-zA-Z]+");
+	return lex_helper_rgx(RGX_HEXNUM);
 }
 
 inline bool parser::lex_num()
 {
-	return lex_helper_rgx("[+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?");
+	return lex_helper_rgx(RGX_NUMBER);
 }
 
 inline bool parser::lex_quoted_str()
 {
-	if(lex_helper_rgx("\"(?:\\\\\"|.)*?\"|'(?:\\\\'|.)*?'"))
+	if (*cursor() == '\'' || *cursor() == '\"')
 	{
-		m_last_token = escape_str(m_last_token);
-		return true;
+		char prev = '\\';
+		char delimiter = *cursor();
+		pos_info pos = m_pos;
+		m_last_token = "";
+		while(*cursor() != '\0')
+		{
+			if (*cursor() == delimiter && prev != '\\')
+			{
+				m_pos.idx++;
+				m_pos.col++;
+				m_last_token += delimiter;
+				m_last_token = escape_str(m_last_token);
+				return true;
+			}
+			prev = *cursor();
+			m_last_token += prev;
+			m_pos.idx++;
+			m_pos.col++;
+		}
+		m_pos = pos;
 	}
 	return false;
 }
 
 inline bool parser::lex_bare_str()
 {
-	return lex_helper_rgx("[^ \\b\\t\\n\\r\\(\\),=\"']+");
+	return lex_helper_rgx(RGX_BARESTR);
 }
 
 inline bool parser::lex_unary_op()
@@ -433,6 +487,25 @@ inline bool parser::lex_list_op()
 
 bool parser::lex_helper_rgx(string rgx)
 {
+#ifndef _WIN32
+	regex_t re;
+	regmatch_t re_match;
+	rgx = "^(" + rgx + ")";
+    if (regcomp(&re, rgx.c_str(), REG_EXTENDED) != 0)
+	{
+        ASSERT(false);
+		return false;
+    }
+    if (regexec(&re, cursor(), 1, &re_match, 0) == 0)
+	{
+		m_last_token = string(cursor(), re_match.rm_eo);
+		m_pos.idx += m_last_token.size();
+		m_pos.col += m_last_token.size();
+		regfree(&re);
+		return true;
+	}
+	regfree(&re);
+#else   // _WIN32
 	cmatch match;
 	auto r = regex("^(" + rgx + ")");
 	if (regex_search (cursor(), match, r))
@@ -446,6 +519,8 @@ bool parser::lex_helper_rgx(string rgx)
 			return true;
 		}
 	}
+#endif  // _WIN32
+
 	return false;
 }
 

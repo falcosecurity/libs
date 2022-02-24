@@ -248,6 +248,7 @@ if(NOT WIN32)
 			list(APPEND SINSP_LIBRARIES
 			"${ONIGURUMA_LIB}")
 			add_dependencies(sinsp jq)
+			add_definitions(-DUSE_BUNDLED_ONIGURUMA)
 		endif()
 
 		if(USE_BUNDLED_B64)
