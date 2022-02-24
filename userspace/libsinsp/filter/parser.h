@@ -82,11 +82,11 @@ public:
 			col = 1;
 		}
 		
-		inline string as_string()
+		inline std::string as_string()
 		{
-			return "index " + to_string(idx) 
-				+ ", line " + to_string(line) 
-				+ ", column " + to_string(col);
+			return "index " + std::to_string(idx) 
+				+ ", line " + std::to_string(line) 
+				+ ", column " + std::to_string(col);
 		}
 
 		uint32_t idx;
@@ -98,7 +98,7 @@ public:
 		\brief Constructs the parser with a given filter string input
 		\param input The filter string to parse.
 	*/
-	parser(const string& input);
+	parser(const std::string& input);
 
 	/*!
 		\brief Retrieves the parser position info.
@@ -157,21 +157,21 @@ private:
 	bool lex_num_op();
 	bool lex_str_op();
 	bool lex_list_op();
-	bool lex_helper_rgx(string rgx);
-	bool lex_helper_str(string str);
-	bool lex_helper_str_list(vector<string> list);
+	bool lex_helper_rgx(std::string rgx);
+	bool lex_helper_str(std::string str);
+	bool lex_helper_str_list(std::vector<std::string> list);
 	void depth_push();
 	void depth_pop();
 	const char* cursor();
-	string escape_str(string& str);
-	string trim_str(const string& str);
+	std::string escape_str(std::string& str);
+	std::string trim_str(const std::string& str);
 
 	bool m_parse_partial;
 	uint32_t m_depth;
 	uint32_t m_max_depth;
 	pos_info m_pos;
-	string m_input;
-	string m_last_token;
+	std::string m_input;
+	std::string m_last_token;
 };
 
 }
