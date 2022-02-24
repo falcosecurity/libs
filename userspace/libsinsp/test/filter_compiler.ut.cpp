@@ -93,10 +93,17 @@ void test_filter_run(bool result, string filter_str)
 	}
 }
 
-void test_filter_compile(string filter_str)
+void test_filter_compile(string filter_str, bool use_mock=true)
 {
 	std::shared_ptr<gen_event_filter_factory> factory;
-	factory.reset(new mock_compiler_filter_factory());
+	if (use_mock)
+	{
+		factory.reset(new mock_compiler_filter_factory());
+	}
+	else
+	{
+		factory.reset(new sinsp_filter_factory(NULL));
+	}
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
 	{
@@ -178,4 +185,37 @@ TEST(sinsp_filter_compiler, supported_operators)
 	test_filter_compile("c.true intersects ()");
 	test_filter_compile("c.true pmatch ()");
 	test_filter_compile("c.true in()");
+}
+
+TEST(sinsp_filter_compiler, complex_filter)
+{
+	// This is derived from the Falco default rule
+	// "Unexpected outbound connection destination" coming from here:
+	// https://github.com/falcosecurity/falco/blob/167c5bc6910ba9e48fbd1548686146c9dad850fd/rules/falco_rules.yaml#L381
+	// The rule has been expanded with all its Falco macros, lists,
+	// and exceptions, so it makes a good integration test case.
+	string filter_str =
+		"("
+		"	(evt.type = open or evt.type = openat)"
+		"	and evt.is_open_write = true"
+		"	and fd.typechar = f"
+		"	and fd.num >= 0"
+		")"
+		"and ("
+		"	fd.filename in ("
+		"		.bashrc, .bash_profile, .bash_history, .bash_login,"
+		"		.bash_logout, .inputrc, .profile, .cshrc, .login, .logout,"
+		"		.history, .tcshrc, .cshdirs, .zshenv, .zprofile, .zshrc,"
+		"		.zlogin, .zlogout"
+		"	)"
+		"	or fd.name in (/etc/profile, /etc/bashrc, /etc/csh.cshrc, /etc/csh.login)"
+		"	or fd.directory in (/etc/zsh)"
+		")"
+		"and not proc.name in (ash, bash, csh, ksh, sh, tcsh, zsh, dash)"
+		"and not ("
+		"	proc.name = exe"
+		"	and (proc.cmdline contains \"/var/lib/docker\" or proc.cmdline contains '/var/run/docker')"
+		"	and proc.pname in (dockerd, docker, dockerd-current, docker-current)"
+		")";
+	test_filter_compile(filter_str, false);
 }
