@@ -91,8 +91,8 @@ protected:
 				FAIL() << "Expected event type "
 				       << etype
 				       << " not found in actual set. "
-				       << "Expected: " << expected << " "
-				       << " Actual: " << actual;
+				       << "Expected: " << testing::PrintToString(expected) << " "
+				       << " Actual: " << testing::PrintToString(actual);
 
 			}
 		}
@@ -104,8 +104,8 @@ protected:
 				FAIL() << "Actual evttypes had additional event type "
 				       << etype
 				       << " not found in expected set. "
-				       << "Expected: " << expected << " "
-				       << " Actual: " << actual;
+				       << "Expected: " << testing::PrintToString(expected) << " "
+				       << " Actual: " << testing::PrintToString(actual);
 			}
 		}
 	}
