@@ -491,6 +491,8 @@ VISIBILITY_PRIVATE
 	bool m_parent_loop_detected;
 	blprogram* m_blprogram;
 
+	std::string m_cmd_line;
+
 	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
