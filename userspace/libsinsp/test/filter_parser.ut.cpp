@@ -1,6 +1,7 @@
 #include <filter/parser.h>
 #include <gtest.h>
 
+using namespace std;
 using namespace libsinsp::filter;
 using namespace libsinsp::filter::ast;
 

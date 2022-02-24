@@ -24,9 +24,6 @@ limitations under the License.
 
 namespace libsinsp {
 namespace filter {
-
-using namespace std;
-
 namespace ast {
 
 struct expr;
@@ -100,7 +97,7 @@ struct SINSP_PUBLIC and_expr: expr
 {
     inline and_expr() { }
 
-    inline and_expr(vector<expr*> c): children(c) { }
+    inline and_expr(std::vector<expr*> c): children(c) { }
 
     inline ~and_expr()
     {
@@ -118,19 +115,19 @@ struct SINSP_PUBLIC and_expr: expr
     inline bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const and_expr*>(other);
-        return o != nullptr && equal(
+        return o != nullptr && std::equal(
             children.begin(), children.end(), 
             o->children.begin(), compare);
     }
 
-    vector<expr*> children;
+    std::vector<expr*> children;
 };
 
 struct SINSP_PUBLIC or_expr: expr
 {
     inline or_expr() { }
 
-    inline or_expr(vector<expr*> c): children(c) { }
+    inline or_expr(std::vector<expr*> c): children(c) { }
 
     inline ~or_expr()
     {
@@ -148,12 +145,12 @@ struct SINSP_PUBLIC or_expr: expr
     inline bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const or_expr*>(other);
-        return o != nullptr && equal(
+        return o != nullptr && std::equal(
             children.begin(), children.end(), 
             o->children.begin(), compare);
     }
 
-    vector<expr*> children;
+    std::vector<expr*> children;
 };
 
 struct SINSP_PUBLIC not_expr: expr
@@ -185,7 +182,7 @@ struct SINSP_PUBLIC value_expr: expr
 {
     inline value_expr() { }
 
-    inline value_expr(string v): value(v) { }
+    inline value_expr(std::string v): value(v) { }
 
     inline void accept(expr_visitor& v) override
     {
@@ -198,14 +195,14 @@ struct SINSP_PUBLIC value_expr: expr
         return o != nullptr && value == o->value;
     }
 
-    string value;
+    std::string value;
 };
 
 struct SINSP_PUBLIC list_expr: expr
 {
     inline list_expr() { }
 
-    inline list_expr(vector<string>v): values(v) { }
+    inline list_expr(std::vector<std::string>v): values(v) { }
 
     inline void accept(expr_visitor& v) override
     {
@@ -218,7 +215,7 @@ struct SINSP_PUBLIC list_expr: expr
         return o != nullptr && values == o->values;
     }
 
-    vector<string> values;
+    std::vector<std::string> values;
 };
 
 struct SINSP_PUBLIC unary_check_expr: expr
@@ -226,9 +223,9 @@ struct SINSP_PUBLIC unary_check_expr: expr
     inline unary_check_expr() { }
 
     inline unary_check_expr(
-        string f,
-        string a,
-        string o): field(f), arg(a), op(o) { }
+        std::string f,
+        std::string a,
+        std::string o): field(f), arg(a), op(o) { }
 
     inline void accept(expr_visitor& v) override
     {
@@ -242,9 +239,9 @@ struct SINSP_PUBLIC unary_check_expr: expr
             && arg == o->arg && op == o->op;
     }
 
-    string field;
-    string arg;
-    string op;
+    std::string field;
+    std::string arg;
+    std::string op;
 };
 
 struct SINSP_PUBLIC binary_check_expr: expr
@@ -252,9 +249,9 @@ struct SINSP_PUBLIC binary_check_expr: expr
     inline binary_check_expr() { }
 
     inline binary_check_expr(
-        string f,
-        string a,
-        string o,
+        std::string f,
+        std::string a,
+        std::string o,
         expr* v): field(f), arg(a), op(o), value(v) { }
 
     inline ~binary_check_expr()
@@ -274,9 +271,9 @@ struct SINSP_PUBLIC binary_check_expr: expr
             && arg == o->arg && op == o->op && value->is_equal(o->value);
     }
 
-    string field;
-    string arg;
-    string op;
+    std::string field;
+    std::string arg;
+    std::string op;
     expr* value;
 };
 

@@ -21,6 +21,7 @@ limitations under the License.
 #include "../utils.h"
 #include "../sinsp_exception.h"
 
+using namespace std;
 using namespace libsinsp::filter;
 
 static const vector<string> unary_ops =
