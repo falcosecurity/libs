@@ -6,7 +6,7 @@ option(USE_BUNDLED_LUAJIT "Enable building of the bundled LuaJIT" ${USE_BUNDLED_
 if(LUAJIT_INCLUDE)
 	# we already have luajit
 elseif(NOT USE_BUNDLED_LUAJIT)
-	find_path(LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit)
+	find_path(LUAJIT_INCLUDE luajit.h PATH_SUFFIXES luajit-2.0 luajit-2.1 luajit)
 	find_library(LUAJIT_LIB NAMES luajit luajit-5.1)
 	if(LUAJIT_INCLUDE AND LUAJIT_LIB)
 		message(STATUS "Found LuaJIT: include: ${LUAJIT_INCLUDE}, lib: ${LUAJIT_LIB}")
