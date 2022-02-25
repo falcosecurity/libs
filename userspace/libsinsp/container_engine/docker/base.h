@@ -19,7 +19,7 @@ public:
 	void cleanup() override;
 
 protected:
-	void parse_docker_async(const docker_lookup_request& request, container_cache_interface *cache);
+	void parse_docker(const docker_lookup_request& request, container_cache_interface *cache);
 
 	bool resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& request,
 			  bool query_os_for_missing_info);

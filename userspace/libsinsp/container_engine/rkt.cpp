@@ -167,30 +167,29 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
 	container_cache_interface *cache = &container_cache();
 
-	auto container = std::make_shared<sinsp_container_info>();
+	auto container = sinsp_container_info();
 	string rkt_podid, rkt_appname;
 
-	if (!match(cache, tinfo, *container, rkt_podid, rkt_appname, query_os_for_missing_info))
+	if (!match(cache, tinfo, container, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
 		return false;
 	}
 
-	tinfo->m_container_id = container->m_id;
-	if (!query_os_for_missing_info || !cache->should_lookup(container->m_id, CT_RKT))
+	tinfo->m_container_id = container.m_id;
+	if (!query_os_for_missing_info || !cache->should_lookup(container.m_id, CT_RKT))
 	{
 		return true;
 	}
 
 #ifndef _WIN32
-	bool have_rkt = parse_rkt(*container, rkt_podid, rkt_appname);
+	bool have_rkt = parse_rkt(container, rkt_podid, rkt_appname);
 #else
 	bool have_rkt = true;
 #endif
 
 	if (have_rkt)
 	{
-		cache->add_container(container, tinfo);
-		cache->notify_new_container(*container);
+		cache->notify_new_container(container, tinfo);
 		return true;
 	}
 	else

@@ -100,7 +100,9 @@ public:
 	 * Note: this is unrelated to on_new_container callbacks even though
 	 * both happen during container creation
 	 */
-	void notify_new_container(const sinsp_container_info& container_info) override;
+	void notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo = nullptr) override;
+
+	bool async_allowed() const override;
 
 	/**
 	 * @brief Detect container engine for a thread

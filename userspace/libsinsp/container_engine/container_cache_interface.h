@@ -32,7 +32,7 @@ class container_cache_interface
 public:
 	virtual ~container_cache_interface() = default;
 
-	virtual void notify_new_container(const sinsp_container_info& container_info) = 0;
+	virtual void notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo = nullptr) = 0;
 
 	virtual bool should_lookup(const std::string& container_id, sinsp_container_type ctype) = 0;
 
@@ -57,6 +57,9 @@ public:
 	 * Return whether the container exists in the cache.
 	 */
 	virtual bool container_exists(const std::string& container_id) const = 0;
+
+
+	virtual bool async_allowed() const = 0;
 };
 
 }

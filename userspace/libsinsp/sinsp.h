@@ -1321,6 +1321,8 @@ public:
 	// information of the replayed scap event.
 	uint16_t m_replay_scap_cpuid;
 
+	bool m_inited;
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;
