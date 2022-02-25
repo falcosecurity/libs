@@ -1173,8 +1173,8 @@ bool sinsp_chisel::openfile(string filename, OUT ifstream* is)
 void sinsp_chisel::load(string cmdstr, bool is_file)
 {
 	if (is_file) {
-		m_filename = cmdstr;
 		trim(cmdstr);
+		m_filename = cmdstr;
 	} else {
 		m_filename = "<in-memory-string>";
 	}
@@ -1201,7 +1201,7 @@ void sinsp_chisel::load(string cmdstr, bool is_file)
 		// Load the file
 		//
 		std::istreambuf_iterator<char> eos;
-		std::string scriptstr(std::istreambuf_iterator<char>(is), eos);
+		scriptstr.assign(std::istreambuf_iterator<char>(is), eos);
 	} else {
 		scriptstr = cmdstr;
 	}
