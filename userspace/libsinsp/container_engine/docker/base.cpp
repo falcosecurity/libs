@@ -30,10 +30,10 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 	{
 		if(!query_os_for_missing_info)
 		{
-			auto container = std::make_shared<sinsp_container_info>();
-			container->m_type = request.container_type;
-			container->m_id = request.container_id;
-			cache->notify_new_container(*container);
+			auto container = sinsp_container_info();
+			container.m_type = request.container_type;
+			container.m_id = request.container_id;
+			cache->notify_new_container(container, tinfo);
 			return true;
 		}
 
@@ -46,7 +46,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 
 			// give docker a chance to return metadata for this container
 			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup_state::STARTED);
-			parse_docker_async(request, cache);
+			parse_docker(request, cache);
 		}
 #endif
 		return false;
@@ -58,12 +58,12 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 	return container_info->is_successful();
 }
 
-void docker_base::parse_docker_async(const docker_lookup_request& request, container_cache_interface *cache)
+void docker_base::parse_docker(const docker_lookup_request& request, container_cache_interface *cache)
 {
 	auto cb = [cache](const docker_lookup_request& request, const sinsp_container_info& res)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): Source callback result=%d",
+				"docker (%s): Source callback result=%d",
 				request.container_id.c_str(),
 				res.m_lookup_state);
 
@@ -72,15 +72,28 @@ void docker_base::parse_docker_async(const docker_lookup_request& request, conta
 
 	sinsp_container_info result;
 
-	if(m_docker_info_source->lookup(request, result, cb))
+	bool done;
+	if (cache->async_allowed())
+	{
+		done = m_docker_info_source->lookup(request, result, cb);
+	}
+	else
+	{
+		done = m_docker_info_source->lookup_sync(request, result);
+	}
+	if (done)
 	{
 		// if a previous lookup call already found the metadata, process it now
 		cb(request, result);
 
-		// This should *never* happen, as ttl is 0 (never wait)
-		g_logger.format(sinsp_logger::SEV_ERROR,
-				"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
-				request.container_id.c_str());
+		if(cache->async_allowed())
+		{
+			// This should *never* happen, in async mode as ttl is 0 (never wait)
+			g_logger.format(sinsp_logger::SEV_ERROR,
+					"docker_async (%s): Unexpected immediate return from docker_info_source.lookup()",
+					request.container_id.c_str());
+
+		}
 	}
 }
 

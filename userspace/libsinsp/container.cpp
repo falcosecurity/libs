@@ -304,7 +304,7 @@ void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& c
 		(*containers)[container_info->m_id] = container_info;
 	}
 
-	for(const auto &new_cb : m_new_callbacks)
+	for(const auto& new_cb : m_new_callbacks)
 	{
 		new_cb(*container_info, thread);
 	}
@@ -317,8 +317,25 @@ void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_
 	(*containers)[container_info->m_id] = container_info;
 }
 
-void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info)
+void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo)
 {
+	if (!m_inspector->m_inited || m_inspector->is_capture())
+	{
+		// This is either:
+		// * being called from a threadinfo->resolve_container
+		// 	before sinsp is actually started (ie: while parsing proc),
+		//     	We should not send any event in this phase, as these containers
+		//	will be part of "initial state" (dumped by dump_containers())
+		// * being called in capture mode (no need to send any event as we will read it)
+		//
+		// Fallback at just storing the new container.
+		add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+		return;
+	}
+
+	// In all other cases, containers will be stored after the proper
+	// PPME_CONTAINER_JSON_2_E event is received by the engine and processed.
+
 	sinsp_evt *evt = new sinsp_evt();
 
 	if(container_to_sinsp_event(container_to_json(container_info), evt, container_info.get_tinfo(m_inspector)))
@@ -341,6 +358,12 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 				container_info.m_id.c_str());
 		delete evt;
 	}
+}
+
+bool sinsp_container_manager::async_allowed() const
+{
+	// Until sinsp is not started, force-run synchronously
+	return m_inspector->m_inited;
 }
 
 void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)

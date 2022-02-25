@@ -20,6 +20,8 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 	static void set_query_image_info(bool query_image_info);
 
+	bool lookup_sync(const docker_lookup_request& request, sinsp_container_info& value);
+
 protected:
 	void run_impl();
 
