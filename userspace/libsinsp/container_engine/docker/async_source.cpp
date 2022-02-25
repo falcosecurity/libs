@@ -41,6 +41,28 @@ docker_async_source::~docker_async_source()
 			"docker_async: Source destructor");
 }
 
+bool docker_async_source::lookup_sync(const docker_lookup_request& request, sinsp_container_info& value)
+{
+	value.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+	value.m_type = request.container_type;
+	value.m_id = request.container_id;
+
+	if(!parse_docker(request, value))
+	{
+		// This is not always an error e.g. when using
+		// containerd as the runtime. Since the cgroup
+		// names are often identical between
+		// containerd and docker, we have to try to
+		// fetch both.
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Failed to get Docker metadata, returning successful=false",
+				request.container_id.c_str());
+		value.m_lookup_state = sinsp_container_lookup_state::FAILED;
+	}
+
+	return true;
+}
+
 void docker_async_source::run_impl()
 {
 	docker_lookup_request request;
@@ -54,22 +76,7 @@ void docker_async_source::run_impl()
 
 		sinsp_container_info res;
 
-		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
-		res.m_type = request.container_type;
-		res.m_id = request.container_id;
-
-		if(!parse_docker(request, res))
-		{
-			// This is not always an error e.g. when using
-			// containerd as the runtime. Since the cgroup
-			// names are often identical between
-			// containerd and docker, we have to try to
-			// fetch both.
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"docker_async (%s): Failed to get Docker metadata, returning successful=false",
-					request.container_id.c_str());
-			res.m_lookup_state = sinsp_container_lookup_state::FAILED;
-		}
+		lookup_sync(request, res);
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Parse successful, storing value",

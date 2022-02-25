@@ -165,18 +165,7 @@ void cri_async_source::run_impl()
 				key.m_container_id.c_str());
 
 		sinsp_container_info res;
-
-		res.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
-		res.m_type = m_cri->get_cri_runtime_type();
-		res.m_id = key.m_container_id;
-
-		if(!parse_cri(res, key))
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri_async (%s): Failed to get CRI metadata, returning successful=false",
-					key.m_container_id.c_str());
-			res.m_lookup_state = sinsp_container_lookup_state::FAILED;
-		}
+		lookup_sync(key, res);
 
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"cri_async (%s): Parse successful, storing value",
@@ -197,7 +186,7 @@ bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_
 	if(!parse_cri(value, key))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Failed to get CRI metadata, returning successful=false",
+				"cri (%s): Failed to get CRI metadata, returning successful=false",
 				key.m_container_id.c_str());
 		value.m_lookup_state = sinsp_container_lookup_state::FAILED;
 	}
@@ -313,14 +302,14 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		return true;
 	}
 
-	auto container = std::make_shared<sinsp_container_info>();
-	container->m_id = container_id;
-	container->m_type = m_cri->get_cri_runtime_type();
-	if (mesos::set_mesos_task_id(*container, tinfo))
+	auto container = sinsp_container_info();
+	container.m_id = container_id;
+	container.m_type = m_cri->get_cri_runtime_type();
+	if (mesos::set_mesos_task_id(container, tinfo))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"cri (%s) Mesos CRI container, Mesos task ID: [%s]",
-				container_id.c_str(), container->m_mesos_task_id.c_str());
+				container_id.c_str(), container.m_mesos_task_id.c_str());
 	}
 
 	if (query_os_for_missing_info)
@@ -329,9 +318,9 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				"cri (%s): Performing lookup",
 				container_id.c_str());
 
-		container->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+		container.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
 		libsinsp::cgroup_limits::cgroup_limits_key key(
-			container->m_id,
+			container.m_id,
 			tinfo->get_cgroup("cpu"),
 			tinfo->get_cgroup("memory"),
 			tinfo->get_cgroup("cpuset"));
@@ -356,7 +345,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		sinsp_container_info result;
 
 		bool done;
-		if(s_async)
+		if(s_async && cache->async_allowed())
 		{
 			done = m_async_source->lookup_delayed(key, result, chrono::milliseconds(s_cri_lookup_delay_ms), cb);
 		}
@@ -382,7 +371,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	}
 	else
 	{
-		cache->notify_new_container(*container);
+		cache->notify_new_container(container, tinfo);
 	}
 	return true;
 }

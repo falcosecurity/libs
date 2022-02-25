@@ -70,7 +70,8 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_ppm_sc_of_interest(),
-	m_suppressed_comms()
+	m_suppressed_comms(),
+	m_inited(false)
 {
 #if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
@@ -431,6 +432,7 @@ void sinsp::init()
 		}
 	}
 #endif
+	m_inited = true;
 }
 
 void sinsp::set_import_users(bool import_users)

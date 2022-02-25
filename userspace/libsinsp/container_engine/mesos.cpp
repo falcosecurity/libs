@@ -52,17 +52,16 @@ bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_con
 
 bool libsinsp::container_engine::mesos::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 {
-	auto container = std::make_shared<sinsp_container_info>();
+	auto container = sinsp_container_info();
 
-	if (!match(tinfo, *container))
+	if (!match(tinfo, container))
 		return false;
 
-	tinfo->m_container_id = container->m_id;
-	if(container_cache().should_lookup(container->m_id, CT_MESOS))
+	tinfo->m_container_id = container.m_id;
+	if(container_cache().should_lookup(container.m_id, CT_MESOS))
 	{
-		container->m_name = container->m_id;
-		container_cache().add_container(container, tinfo);
-		container_cache().notify_new_container(*container);
+		container.m_name = container.m_id;
+		container_cache().notify_new_container(container, tinfo);
 	}
 	return true;
 }
