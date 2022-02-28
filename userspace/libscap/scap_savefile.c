@@ -410,7 +410,10 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 		    scap_dump_write(d, &rootlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
                     scap_dump_write(d, (char *) root, rootlen) != rootlen ||
             scap_dump_write(d, &(tinfo->loginuid), sizeof(uint32_t)) != sizeof(uint32_t) ||
-			scap_dump_write(d, &(tinfo->exe_writable), sizeof(uint8_t)) != sizeof(uint8_t))
+			scap_dump_write(d, &(tinfo->exe_writable), sizeof(uint8_t)) != sizeof(uint8_t) ||
+			scap_dump_write(d, &(tinfo->cap_inheritable), sizeof(uint64_t)) != sizeof(uint64_t) ||
+			scap_dump_write(d, &(tinfo->cap_permitted), sizeof(uint64_t)) != sizeof(uint64_t) ||
+			scap_dump_write(d, &(tinfo->cap_effective), sizeof(uint64_t)) != sizeof(uint64_t))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
@@ -481,7 +484,10 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 				2 + tinfo->cgroups_len +
 				2 + strnlen(tinfo->root, SCAP_MAX_PATH_SIZE) +
 				sizeof(int32_t) + // loginuid;
-				sizeof(uint8_t)); // exe_writable
+				sizeof(uint8_t) + // exe_writable
+				sizeof(uint64_t) + // cap_inheritable
+				sizeof(uint64_t) + // cap_permitted
+				sizeof(uint64_t)); // cap_effective
 
 			lengths[idx++] = il;
 			totlen += il;
@@ -1266,6 +1272,9 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		tinfo.exepath[0] = 0;
 		tinfo.loginuid = -1;
 		tinfo.exe_writable = false;
+		tinfo.cap_inheritable = 0;
+		tinfo.cap_permitted = 0;
+		tinfo.cap_effective = 0;
 
 		//
 		// len
@@ -1731,6 +1740,30 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			readsize = scap_reader_read(r, &(tinfo.exe_writable), sizeof(uint8_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint8_t));
+			subreadsize += readsize;
+		}
+
+		//
+		// Capabilities
+		//
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = scap_reader_read(r, &(tinfo.cap_inheritable), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			subreadsize += readsize;
+		}
+
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = scap_reader_read(r, &(tinfo.cap_permitted), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			subreadsize += readsize;
+		}
+
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = scap_reader_read(r, &(tinfo.cap_effective), sizeof(uint64_t));
+			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
 			subreadsize += readsize;
 		}
 
