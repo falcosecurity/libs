@@ -1461,7 +1461,9 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 		consumer->need_to_insert_drop_e = 1;
 	} else {
 		if (consumer->need_to_insert_drop_e == 1 && !(drop_flags & UF_ATOMIC)) {
-			pr_err("drop enter event delayed insert\n");
+			if (verbose) {
+				pr_err("consumer:%p drop enter event delayed insert\n", consumer->consumer_id);
+			}
 		}
 
 		consumer->need_to_insert_drop_e = 0;
@@ -1619,7 +1621,9 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer,
 		consumer->need_to_insert_drop_x = 1;
 	} else {
 		if (consumer->need_to_insert_drop_x == 1 && !(drop_flags & UF_ATOMIC)) {
-			pr_err("drop exit event delayed insert\n");
+			if (verbose) {
+				pr_err("consumer:%p drop exit event delayed insert\n", consumer->consumer_id);
+			}
 		}
 
 		consumer->need_to_insert_drop_x = 0;
