@@ -86,6 +86,9 @@ void sinsp_threadinfo::init()
 	m_category = CAT_NONE;
 	m_blprogram = NULL;
 	m_loginuid = 0;
+	m_cap_inheritable = 0;
+	m_cap_permitted = 0;
+	m_cap_effective = 0;
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -403,6 +406,9 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_fdlimit = pi->fdlimit;
 	m_uid = pi->uid;
 	m_gid = pi->gid;
+	m_cap_permitted = pi->cap_permitted;
+	m_cap_effective = pi->cap_effective;
+	m_cap_inheritable = pi->cap_inheritable;
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;
 	m_vmswap_kb = pi->vmswap_kb;
@@ -1535,6 +1541,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
                         2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
 			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
 			sizeof(int32_t) + // loginuid;
+			sizeof(uint64_t) + // cap_inheritable
+			sizeof(uint64_t) + // cap_permitted
+			sizeof(uint64_t) + //cap_effective
 			sizeof(uint8_t); // exe_writable
 
 		lengths.push_back(il);
