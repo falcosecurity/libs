@@ -83,14 +83,13 @@ else()
 			"${GRPC_SRC}/libupb.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_low_level_hash.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_wyhash.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_raw_hash_set.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/container/libabsl_hashtablez_sampler.a"
+			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_exponential_biased.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_statusor.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/status/libabsl_status.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_functions.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/profiling/libabsl_exponential_biased.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_optional_access.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/types/libabsl_bad_variant_access.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_str_format_internal.a"
@@ -112,24 +111,13 @@ else()
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_raw_logging_internal.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/base/libabsl_log_severity.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/time/libabsl_time_zone.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cord_internal.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_info.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/strings/libabsl_cordz_handle.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_pool_urbg.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_hwaes.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_hwaes_impl.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_platform.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_randen_slow.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_internal_seed_material.a"
-			"${GRPC_SRC}/third_party/abseil-cpp/absl/random/libabsl_random_seed_gen_exception.a"
 		)
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
-			GIT_TAG v1.44.0
+			GIT_TAG v1.38.1
 			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
@@ -168,7 +156,6 @@ else()
 			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GPR_LIB} ${GRPC_LIBRARIES}
 			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
 			# since here is the case when we are embedding gRPC
-			UPDATE_COMMAND ""
 			INSTALL_COMMAND DESTDIR= ${CMD_MAKE} install
 		)
 	endif()

@@ -378,9 +378,6 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		char* subsys_list;
 		char* cgroup;
 		char* scratch;
-		// Default subsys list for cgroups v2 unified hierarchy.
-		// These are the ones we actually use in cri container engine.
-		char default_subsys_list[] = "cpu,memory,cpuset";
 
 		// id
 		token = strtok_r(line, ":", &scratch);
@@ -409,52 +406,20 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		// on CentOS 6 (has been added from Glibc 2.19)
 		if(subsys_list-token-strlen(token) > 1)
 		{
-			// Subsys list empty (ie: it contains cgroup path instead)!
-			//
-			// See https://man7.org/linux/man-pages/man7/cgroups.7.html:
-			// 5:cpuacct,cpu,cpuset:/daemons
-			//
-			//              The colon-separated fields are, from left to right:
-			//
-			//              1. For cgroups version 1 hierarchies, this field contains
-			//                 a unique hierarchy ID number that can be matched to a
-			//                 hierarchy ID in /proc/cgroups.  For the cgroups version
-			//                 2 hierarchy, this field contains the value 0.
-			//
-			//              2. For cgroups version 1 hierarchies, this field contains
-			//                 a comma-separated list of the controllers bound to the
-			//                 hierarchy.  For the cgroups version 2 hierarchy, this
-			//                 field is empty.
-			//
-			//              3. This field contains the pathname of the control group
-			//                 in the hierarchy to which the process belongs.  This
-			//                 pathname is relative to the mount point of the
-			//                 hierarchy.
-			//
-			// -> for cgroup2: id is always 0 and subsys list is always empty (single unified hierarchy)
-			// -> for cgroup1: skip subsys empty because it means controller is not mounted on any hierarchy
-			if (handle->m_cgroup_version == 2 && strcmp(token, "0") == 0)
-			{
-				cgroup = subsys_list;
-				subsys_list = default_subsys_list; // force-set a default subsys list
-			} else
-			{
-				// skip cgroups like this:
-				// 0::/init.scope
-				continue;
-			}
-		} else
+			// skip cgroups like this:
+			// 0::/init.scope
+			continue;
+		}
+
+		// cgroup should be the only thing remaining so use newline as the delimiter.
+		cgroup = strtok_r(NULL, "\n", &scratch);
+		if(cgroup == NULL)
 		{
-			// cgroup should be the only thing remaining so use newline as the delimiter.
-			cgroup = strtok_r(NULL, "\n", &scratch);
-			if(cgroup == NULL)
-			{
-				ASSERT(false);
-				fclose(f);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Did not find cgroup in cgroup file %s",
-					 filename);
-				return SCAP_FAILURE;
-			}
+			ASSERT(false);
+			fclose(f);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Did not find cgroup in cgroup file %s",
+				 filename);
+			return SCAP_FAILURE;
 		}
 
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
@@ -676,36 +641,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	bool free_tinfo = false;
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
-
-
-	if (handle->m_cgroup_version == 0)
-	{
-		snprintf(dir_name, sizeof(dir_name), "%s/filesystems", procdirname);
-		f = fopen(dir_name, "r");
-		if (f)
-		{
-			while(fgets(line, sizeof(line), f) != NULL)
-			{
-				// NOTE: we do not support mixing cgroups v1 v2 controllers.
-				// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
-				if (strstr(line, "cgroup2"))
-				{
-					handle->m_cgroup_version = 2;
-					break;
-				}
-				if (strstr(line, "cgroup"))
-				{
-					handle->m_cgroup_version = 1;
-				}
-			}
-			fclose(f);
-		} else
-		{
-			ASSERT(false);
-			snprintf(error, SCAP_LASTERR_SIZE, "failed to fetch cgroup version information");
-			return SCAP_FAILURE;
-		}
-	}
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -1136,16 +1071,16 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if(res != SCAP_SUCCESS)
 		{
 			//
-			// When a /proc lookup fails (while scanning the whole directory,
-			// not just while looking up a single tid),
-			// we should drop this thread/process completely.
-			// We will fill the gap later, when the first event
+			// When a /proc lookup fails (while scanning the whole directory, 
+			// not just while looking up a single tid), 
+			// we should drop this thread/process completely. 
+			// We will fill the gap later, when the first event 
 			// for that process arrives.
 			//
 			//
 			res = SCAP_SUCCESS;
 			//
-			// Continue because if we failed to read details of pid=1234,
+			// Continue because if we failed to read details of pid=1234, 
 			// it doesn’t say anything about pid=1235
 			//
 			continue;

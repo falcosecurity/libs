@@ -112,12 +112,11 @@ typedef struct scap_stats
 	uint64_t n_evts; ///< Total number of events that were received by the driver.
 	uint64_t n_drops; ///< Number of dropped events.
 	uint64_t n_drops_buffer; ///< Number of dropped events caused by full buffer.
-	uint64_t n_drops_scratch_map; ///< Number of dropped events caused by full frame scratch map.
 	uint64_t n_drops_pf; ///< Number of dropped events caused by invalid memory access.
 	uint64_t n_drops_bug; ///< Number of dropped events caused by an invalid condition in the kernel instrumentation.
 	uint64_t n_preemptions; ///< Number of preemptions.
-	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids.
-	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed.
+	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids
+	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed
 }scap_stats;
 
 /*!

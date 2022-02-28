@@ -898,7 +898,7 @@ void sinsp_utils::bt(void)
 
 bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &env, const vector<std::string> &keys)
 {
-	for (const auto& key : keys)
+	for (const string key : keys)
 	{
 		for(const auto& env_var : env)
 		{

@@ -33,11 +33,10 @@ bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp
 
 namespace libsinsp {
 namespace cri {
-std::vector<std::string> s_cri_unix_socket_paths;
+std::string s_cri_unix_socket_path = "/run/containerd/containerd.sock";
 int64_t s_cri_timeout = 1000;
 int64_t s_cri_size_timeout = 10000;
 sinsp_container_type s_cri_runtime_type = CT_CRI;
-std::string s_cri_unix_socket_path;
 bool s_cri_extra_queries = true;
 
 cri_interface::cri_interface(const std::string& cri_path)
@@ -58,8 +57,9 @@ cri_interface::cri_interface(const std::string& cri_path)
 	if (!status.ok())
 	{
 		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
-				cri_path.c_str(), status.error_message().c_str());
+				s_cri_unix_socket_path.c_str(), status.error_message().c_str());
 		m_cri.reset(nullptr);
+		s_cri_unix_socket_path = "";
 		return;
 	}
 
@@ -78,6 +78,7 @@ cri_interface::cri_interface(const std::string& cri_path)
 	{
 		m_cri_runtime_type = CT_CRI;
 	}
+
 	s_cri_runtime_type = m_cri_runtime_type;
 }
 

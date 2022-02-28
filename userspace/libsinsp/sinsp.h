@@ -366,6 +366,12 @@ public:
 	*/
 	const string get_filter();
 
+	void add_evttype_filter(std::string &name,
+				std::set<uint32_t> &evttypes,
+				std::set<uint32_t> &syscalls,
+				std::set<std::string> &tags,
+				sinsp_filter* filter);
+
 	bool run_filters_on_evt(sinsp_evt *evt);
 #endif
 
@@ -881,7 +887,6 @@ public:
 	void init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string *node_name, bool verbose = false);
 	void make_k8s_client();
 	k8s* get_k8s_client() const { return m_k8s_client; }
-	void validate_k8s_node_name();
 
 	void init_mesos_client(std::string* api_server, bool verbose = false);
 	mesos* get_mesos_client() const { return m_mesos_client; }
@@ -987,14 +992,7 @@ public:
 
 	void set_statsd_port(uint16_t port);
 
-	/*!
-	  \brief Reset list of crio socket paths currently stored, and set path as the only path.
-	*/
 	void set_cri_socket_path(const std::string& path);
-	/*!
-	  \brief Pushed a new path to the list of crio socket paths
-	*/
-	void add_cri_socket_path(const std::string &path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
 	void set_cri_delay(uint64_t delay_ms);
@@ -1143,7 +1141,6 @@ public:
 	std::string* m_k8s_api_server;
 	std::string* m_k8s_api_cert;
 	std::string* m_k8s_node_name;
-	bool m_k8s_node_name_validated = false;
 #ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
@@ -1181,6 +1178,7 @@ public:
 #ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
+	sinsp_evttype_filter *m_evttype_filter;
 	std::string m_filterstring;
 #endif
 	unordered_set<uint32_t> m_ppm_sc_of_interest;

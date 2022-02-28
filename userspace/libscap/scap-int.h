@@ -94,6 +94,11 @@ typedef struct scap_device
 			struct ppm_ring_buffer_info* m_bufinfo;
 			struct udig_ring_buffer_status* m_bufstatus; // used by udig
 		};
+		// Anonymous struct with bpf stuff
+		struct
+		{
+			uint64_t m_evt_lost;
+		};
 	};
 }scap_device;
 
@@ -149,8 +154,6 @@ struct scap
 	uint32_t m_fd_lookup_limit;
 	uint64_t m_unexpected_block_readsize;
 	uint32_t m_ncpus;
-	uint8_t m_cgroup_version;
-
 	// Abstraction layer for windows
 #if CYGWING_AGENT || _WIN32
 	wh_t* m_whh;

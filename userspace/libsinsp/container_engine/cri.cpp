@@ -207,42 +207,20 @@ bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_
 
 cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
-	if (s_cri_unix_socket_paths.empty())
-	{
-		// Default value when empty
-		s_cri_unix_socket_paths.emplace_back("/run/containerd/containerd.sock");
+	if(s_cri_unix_socket_path.empty()) {
+		return;
 	}
 
-	// Try all specified unix socket paths
-	// NOTE: having multiple container runtimes on the same host is a sporadic case,
-	// so we wouldn't make things complex to support that.
-	// On the other hand, specifying multiple unix socket paths (and using only the first match)
-	// will solve the "same config, multiple hosts" use case.
-	for (auto &p : s_cri_unix_socket_paths)
+	auto cri_path = scap_get_host_root() + s_cri_unix_socket_path;
+	struct stat s = {};
+	if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK) {
+		return;
+	}
+
+	m_cri = std::unique_ptr<libsinsp::cri::cri_interface>(new libsinsp::cri::cri_interface(cri_path));
+	if(!m_cri->is_ok())
 	{
-		if(p.empty())
-		{
-			continue;
-		}
-
-		auto cri_path = scap_get_host_root() + p;
-		struct stat s = {};
-		if(stat(cri_path.c_str(), &s) != 0 || (s.st_mode & S_IFMT) != S_IFSOCK)
-		{
-			continue;
-		}
-
-		m_cri = std::unique_ptr<libsinsp::cri::cri_interface>(new libsinsp::cri::cri_interface(cri_path));
-		if(!m_cri->is_ok())
-		{
-			m_cri.reset(nullptr);
-		}
-		else
-		{
-			// Store used unix_socket_path
-			s_cri_unix_socket_path = p;
-			break;
-		}
+		m_cri.reset(nullptr);
 	}
 }
 
@@ -257,13 +235,7 @@ void cri::cleanup()
 
 void cri::set_cri_socket_path(const std::string& path)
 {
-	s_cri_unix_socket_paths.clear();
-	add_cri_socket_path(path);
-}
-
-void cri::add_cri_socket_path(const std::string& path)
-{
-	s_cri_unix_socket_paths.push_back(path);
+	s_cri_unix_socket_path = path;
 }
 
 void cri::set_cri_timeout(int64_t timeout_ms)

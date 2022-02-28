@@ -30,7 +30,6 @@ static void signal_callback(int signal)
 	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
 	printf("Number of dropped events caused by full buffer: %" PRIu64 "\n", s.n_drops_buffer);
-	printf("Number of dropped events caused by full scratch map: %" PRIu64 "\n", s.n_drops_scratch_map);
 	printf("Number of dropped events caused by invalid memory access: %" PRIu64 "\n", s.n_drops_pf);
 	printf("Number of dropped events caused by an invalid condition in the kernel instrumentation: %" PRIu64 "\n", s.n_drops_bug);
 	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);

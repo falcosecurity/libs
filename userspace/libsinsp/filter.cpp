@@ -2029,6 +2029,298 @@ sinsp_filter* sinsp_filter_compiler::compile_()
 	return m_filter;
 }
 
+sinsp_evttype_filter::sinsp_evttype_filter()
+{
+}
+
+sinsp_evttype_filter::~sinsp_evttype_filter()
+{
+	for(const auto &val : m_filters)
+	{
+		delete val.second->filter;
+		delete val.second;
+	}
+
+	for(auto &ruleset : m_rulesets)
+	{
+		delete ruleset;
+	}
+	m_filters.clear();
+}
+
+sinsp_evttype_filter::ruleset_filters::ruleset_filters()
+{
+	memset(m_filter_by_evttype, 0, PPM_EVENT_MAX * sizeof(list<filter_wrapper *> *));
+	memset(m_filter_by_syscall, 0, PPM_SC_MAX * sizeof(list<filter_wrapper *> *));
+}
+
+sinsp_evttype_filter::ruleset_filters::~ruleset_filters()
+{
+	for(int i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if(m_filter_by_evttype[i])
+		{
+			delete m_filter_by_evttype[i];
+			m_filter_by_evttype[i] = NULL;
+		}
+	}
+
+	for(int i = 0; i < PPM_SC_MAX; i++)
+	{
+		if(m_filter_by_syscall[i])
+		{
+			delete m_filter_by_syscall[i];
+			m_filter_by_syscall[i] = NULL;
+		}
+	}
+}
+
+void sinsp_evttype_filter::ruleset_filters::add_filter(filter_wrapper *wrap)
+{
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(!m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_evttype[etype]->push_back(wrap);
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(!m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall] = new std::list<filter_wrapper *>();
+			}
+
+			m_filter_by_syscall[syscall]->push_back(wrap);
+		}
+	}
+}
+
+void sinsp_evttype_filter::ruleset_filters::remove_filter(filter_wrapper *wrap)
+{
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		if(wrap->evttypes[etype])
+		{
+			if(m_filter_by_evttype[etype])
+			{
+				m_filter_by_evttype[etype]->erase(std::remove(m_filter_by_evttype[etype]->begin(),
+									      m_filter_by_evttype[etype]->end(),
+									      wrap),
+								  m_filter_by_evttype[etype]->end());
+
+				if(m_filter_by_evttype[etype]->size() == 0)
+				{
+					delete m_filter_by_evttype[etype];
+					m_filter_by_evttype[etype] = NULL;
+				}
+			}
+		}
+	}
+
+	for(uint32_t syscall = 0; syscall < PPM_SC_MAX; syscall++)
+	{
+		if(wrap->syscalls[syscall])
+		{
+			if(m_filter_by_syscall[syscall])
+			{
+				m_filter_by_syscall[syscall]->erase(std::remove(m_filter_by_syscall[syscall]->begin(),
+										m_filter_by_syscall[syscall]->end(),
+										wrap),
+								    m_filter_by_syscall[syscall]->end());
+
+				if(m_filter_by_syscall[syscall]->size() == 0)
+				{
+					delete m_filter_by_syscall[syscall];
+					m_filter_by_syscall[syscall] = NULL;
+				}
+			}
+		}
+	}
+}
+
+
+bool sinsp_evttype_filter::ruleset_filters::run(sinsp_evt *evt)
+{
+	list<filter_wrapper *> *filters;
+
+ 	uint16_t etype = evt->m_pevt->type;
+
+	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
+	{
+		sinsp_evt_param *parinfo = evt->get_param(0);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		uint16_t evid = *(uint16_t *)parinfo->m_val;
+
+		filters = m_filter_by_syscall[evid];
+	}
+	else
+	{
+		filters = m_filter_by_evttype[etype];
+	}
+
+	if (!filters) {
+		return false;
+	}
+
+	for (auto &wrap : *filters)
+	{
+		if(wrap->filter->run(evt))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void sinsp_evttype_filter::ruleset_filters::evttypes_for_ruleset(std::vector<bool> &evttypes)
+{
+	evttypes.assign(PPM_EVENT_MAX+1, false);
+
+	for(uint32_t etype = 0; etype < PPM_EVENT_MAX; etype++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_evttype[etype];
+		if(filters)
+		{
+			evttypes[etype] = true;
+		}
+	}
+}
+
+void sinsp_evttype_filter::ruleset_filters::syscalls_for_ruleset(std::vector<bool> &syscalls)
+{
+	syscalls.assign(PPM_SC_MAX+1, false);
+
+	for(uint32_t evid = 0; evid < PPM_SC_MAX; evid++)
+	{
+		list<filter_wrapper *> *filters = m_filter_by_syscall[evid];
+		if(filters)
+		{
+			syscalls[evid] = true;
+		}
+	}
+}
+
+
+void sinsp_evttype_filter::add(string &name,
+			       set<uint32_t> &evttypes,
+			       set<uint32_t> &syscalls,
+			       set<string> &tags,
+			       sinsp_filter *filter)
+{
+	filter_wrapper *wrap = new filter_wrapper();
+	wrap->filter = filter;
+
+	// If no evttypes or syscalls are specified, the filter is
+	// enabled for all evttypes/syscalls.
+	bool def = ((evttypes.size() == 0 && syscalls.size() == 0) ? true : false);
+
+	wrap->evttypes.assign(PPM_EVENT_MAX+1, def);
+	for(auto &evttype : evttypes)
+	{
+		wrap->evttypes[evttype] = true;
+	}
+
+	wrap->syscalls.assign(PPM_SC_MAX+1, def);
+	for(auto &syscall : syscalls)
+	{
+		wrap->syscalls[syscall] = true;
+	}
+
+	m_filters.insert(pair<string,filter_wrapper *>(name, wrap));
+
+	for(const auto &tag: tags)
+	{
+		auto it = m_filter_by_tag.lower_bound(tag);
+
+		if(it == m_filter_by_tag.end() ||
+		   it->first != tag)
+		{
+			it = m_filter_by_tag.emplace_hint(it,
+							  std::make_pair(tag, std::list<filter_wrapper*>()));
+		}
+
+		it->second.push_back(wrap);
+	}
+}
+
+void sinsp_evttype_filter::enable(const string &pattern, bool enabled, uint16_t ruleset)
+{
+	regex re(pattern);
+
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
+	for(const auto &val : m_filters)
+	{
+		if (regex_match(val.first, re))
+		{
+			if(enabled)
+			{
+				m_rulesets[ruleset]->add_filter(val.second);
+			}
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(val.second);
+			}
+		}
+	}
+}
+
+void sinsp_evttype_filter::enable_tags(const set<string> &tags, bool enabled, uint16_t ruleset)
+{
+	while (m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		m_rulesets.push_back(new ruleset_filters());
+	}
+
+	for(const auto &tag : tags)
+	{
+		for(const auto &wrap : m_filter_by_tag[tag])
+		{
+			if(enabled)
+			{
+				m_rulesets[ruleset]->add_filter(wrap);
+			}
+			else
+			{
+				m_rulesets[ruleset]->remove_filter(wrap);
+			}
+		}
+	}
+}
+
+bool sinsp_evttype_filter::run(sinsp_evt *evt, uint16_t ruleset)
+{
+	if(m_rulesets.size() < (size_t) ruleset + 1)
+	{
+		return false;
+	}
+
+	return m_rulesets[ruleset]->run(evt);
+}
+
+void sinsp_evttype_filter::evttypes_for_ruleset(std::vector<bool> &evttypes, uint16_t ruleset)
+{
+	return m_rulesets[ruleset]->evttypes_for_ruleset(evttypes);
+}
+
+void sinsp_evttype_filter::syscalls_for_ruleset(std::vector<bool> &syscalls, uint16_t ruleset)
+{
+	return m_rulesets[ruleset]->syscalls_for_ruleset(syscalls);
+}
+
 sinsp_filter_factory::sinsp_filter_factory(sinsp *inspector,
 					   filter_check_list &available_checks)
 	: m_inspector(inspector), m_available_checks(available_checks)

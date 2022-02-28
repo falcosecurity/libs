@@ -130,14 +130,6 @@ FILLER_RAW(terminate_filler)
 		break;
 	case PPM_SKIP_EVENT:
 		break;
-	case PPM_FAILURE_FRAME_SCRATCH_MAP_FULL:
-		bpf_printk("PPM_FAILURE_FRAME_SCRATCH_MAP_FULL event=%d curarg=%d\n",
-			   state->tail_ctx.evt_type,
-			   state->tail_ctx.curarg);
-		if (state->n_drops_scratch_map != ULLONG_MAX) {
-			++state->n_drops_scratch_map;
-		}
-		break;	
 	default:
 		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
 			   state->tail_ctx.prev_res,
@@ -309,9 +301,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	fds = (struct pollfd *)data->tmp_scratch;
 	read_size = nfds * sizeof(struct pollfd);
 	if (read_size > SCRATCH_SIZE_MAX)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 	val = bpf_syscall_get_argument(data, 0);
 #ifdef BPF_FORBIDS_ZERO_ACCESS
@@ -325,9 +315,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 	off = data->state->tail_ctx.curoff + sizeof(u16);
 	fds_count = 0;
@@ -335,9 +323,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	#pragma unroll
 	for (j = 0; j < POLL_MAXFDS; ++j) {
 		if (off > SCRATCH_SIZE_HALF)
-		{
-			return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-		}
+			return PPM_FAILURE_BUFFER_FULL;
 
 		if (j == nfds)
 			break;
@@ -352,9 +338,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
 		off += sizeof(s64);
 		if (off > SCRATCH_SIZE_HALF)
-		{
-			return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-		}
+			return PPM_FAILURE_BUFFER_FULL;
 
 		*(s16 *)&data->buf[off & SCRATCH_SIZE_HALF] = flags;
 		off += sizeof(s16);
@@ -426,9 +410,7 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	iov = (const struct iovec *)data->tmp_scratch;
 
 	if (copylen > SCRATCH_SIZE_MAX)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 	if (copylen)
@@ -1641,9 +1623,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 
 	off_bounded = off & SCRATCH_SIZE_HALF;
 	if (off > SCRATCH_SIZE_HALF)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 	int res = bpf_probe_read_str(&buf[off_bounded],
 				     SCRATCH_SIZE_HALF,
@@ -1655,9 +1635,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 
 	off_bounded = off & SCRATCH_SIZE_HALF;
 	if (off > SCRATCH_SIZE_HALF)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 	buf[off_bounded] = '=';
 	++off;
@@ -1678,9 +1656,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 		if (cgroup_path[k]) {
 			if (!prev_empty) {
 				if (off > SCRATCH_SIZE_HALF)
-				{
-					return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-				}
+					return PPM_FAILURE_BUFFER_FULL;
 
 				buf[off_bounded] = '/';
 				++off;
@@ -1690,9 +1666,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 			prev_empty = false;
 
 			if (off > SCRATCH_SIZE_HALF)
-			{
-				return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-			}
+				return PPM_FAILURE_BUFFER_FULL;
 
 			res = bpf_probe_read_str(&buf[off_bounded],
 						 SCRATCH_SIZE_HALF,
@@ -1710,9 +1684,7 @@ static __always_inline int __bpf_append_cgroup(struct css_set *cgroups,
 	}
 
 	if (off > SCRATCH_SIZE_HALF)
-	{
-		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-	}
+		return PPM_FAILURE_BUFFER_FULL;
 
 	buf[off_bounded] = 0;
 	++off;
@@ -1783,9 +1755,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 			break;
 
 		if (off > SCRATCH_SIZE_HALF)
-		{
-			return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
-		}
+			return PPM_FAILURE_BUFFER_FULL;
 
 		len = bpf_probe_read_str(&data->buf[off & SCRATCH_SIZE_HALF], SCRATCH_SIZE_HALF, arg);
 		if (len == -EFAULT)

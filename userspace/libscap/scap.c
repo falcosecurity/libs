@@ -2098,7 +2098,6 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
-	stats->n_drops_scratch_map = 0;
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;

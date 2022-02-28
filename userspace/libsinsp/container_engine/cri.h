@@ -82,7 +82,6 @@ public:
 	void update_with_size(const std::string& container_id) override;
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
-	static void add_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
 	static void set_extra_queries(bool extra_queries);
 	static void set_async(bool async_limits);

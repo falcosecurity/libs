@@ -356,8 +356,6 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_EXECVE*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "execve" },
 	/*PPM_SC_EXECVEAT*/ { EC_SYSTEM, (enum ppm_event_flags)(EF_NONE), "execveat" },
 	/*PPM_SC_COPY_FILE_RANGE*/ {EC_FILE, (enum ppm_event_flags)(EF_NONE), "copy_file_range" },
-	/*PPM_SC_CLONE*/ {EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "clone" },
-	/*PPM_SC_CLONE3*/ {EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "clone3" },
 };
 
 bool validate_info_table_size()

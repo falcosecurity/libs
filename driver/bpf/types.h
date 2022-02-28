@@ -216,7 +216,6 @@ struct scap_bpf_per_cpu_state {
 	struct tail_context tail_ctx;
 	unsigned long long n_evts;
 	unsigned long long n_drops_buffer;
-	unsigned long long n_drops_scratch_map;
 	unsigned long long n_drops_pf;
 	unsigned long long n_drops_bug;
 	unsigned int hotplug_cpu;
