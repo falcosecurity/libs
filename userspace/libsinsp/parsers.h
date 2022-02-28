@@ -144,6 +144,8 @@ private:
 	void parse_chroot_exit(sinsp_evt *evt);
 	void parse_setsid_exit(sinsp_evt *evt);
 	void parse_getsockopt_exit(sinsp_evt *evt);
+	void parse_capset_exit(sinsp_evt *evt);
+	void parse_unshare_setns_exit(sinsp_evt *evt);
 
 	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo,
 		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport);

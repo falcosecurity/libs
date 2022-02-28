@@ -320,6 +320,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EPOLLWAIT_E:
 		parse_select_poll_epollwait_enter(evt);
 		break;
+	case PPME_SYSCALL_UNSHARE_E:
+	case PPME_SYSCALL_SETNS_E:
+		store_event(evt);
+		break;
+	case PPME_SYSCALL_UNSHARE_X:
+	case PPME_SYSCALL_SETNS_X:
+		parse_unshare_setns_exit(evt);
+		break;
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
@@ -476,6 +484,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			parse_getsockopt_exit(evt);
 		}
+		break;
+	case PPME_SYSCALL_CAPSET_X:
+		parse_capset_exit(evt);
 		break;
 	default:
 		break;
@@ -1208,6 +1219,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		tinfo->m_loginuid = ptinfo->m_loginuid;
 
+		// Copy the full sets of capabilities from the parent
+		tinfo->m_cap_permitted = ptinfo->m_cap_permitted;
+
+		tinfo->m_cap_inheritable = ptinfo->m_cap_inheritable;
+
+		tinfo->m_cap_effective = ptinfo->m_cap_effective;
+
 		if(!(flags & PPM_CL_CLONE_THREAD))
 		{
 			tinfo->m_env = ptinfo->m_env;
@@ -1909,6 +1927,26 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		uint32_t flags = *(uint32_t *) parinfo->m_val;
 
 		evt->m_tinfo->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
+	}
+
+	switch(etype)
+	{
+		case PPME_SYSCALL_EXECVE_19_X:
+		case PPME_SYSCALL_EXECVEAT_X:
+			parinfo = evt->get_param(20);
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+			evt->m_tinfo->m_cap_inheritable = *(uint64_t *) parinfo->m_val;
+			
+			parinfo = evt->get_param(21);
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+			evt->m_tinfo->m_cap_permitted = *(uint64_t *) parinfo->m_val;
+			
+			parinfo = evt->get_param(22);
+			ASSERT(parinfo->m_len == sizeof(uint64_t));
+			evt->m_tinfo->m_cap_effective = *(uint64_t *) parinfo->m_val;
+			break;
+		default:
+			break;
 	}
 
 	//
@@ -5357,6 +5395,92 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 		{
 			m_fd_listener->on_socket_status_changed(evt);
 		}
+	}
+}
+
+void sinsp_parser::parse_capset_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param *parinfo;
+	sinsp_threadinfo *tinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(retval < 0)
+	{
+		return;
+	}
+
+	tinfo = evt->m_tinfo;
+
+	//
+	// Extract and update thread capabilities
+	//
+	parinfo = evt->get_param(1);
+	tinfo->m_cap_inheritable = *(uint64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+	parinfo = evt->get_param(2);
+	tinfo->m_cap_permitted = *(uint64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(uint64_t));
+
+	parinfo = evt->get_param(3);
+	tinfo->m_cap_effective = *(uint64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(uint64_t));
+}
+
+void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt)
+{
+	sinsp_evt *enter_evt = &m_tmp_evt;
+	sinsp_evt_param *parinfo;
+	sinsp_threadinfo *tinfo;
+	int64_t retval;
+	uint32_t flags = 0;
+
+	retrieve_enter_event(enter_evt, evt);
+
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(!enter_evt || retval < 0)
+	{
+		return;
+	}
+
+	uint16_t etype = evt->m_pevt->type;
+
+	//
+	// Retrieve flags from enter event
+	//
+	if(etype == PPME_SYSCALL_UNSHARE_X)
+	{
+		parinfo = enter_evt->get_param(0);
+		flags = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+	else if(etype == PPME_SYSCALL_SETNS_X)
+	{
+		parinfo = enter_evt->get_param(1);
+		flags = *(uint32_t *)parinfo->m_val;
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+	}
+
+	//
+	// Update capabilities
+	//
+	if(flags & PPM_CL_CLONE_NEWUSER)
+	{
+		tinfo = evt->m_tinfo;
+		uint64_t max_caps = sinsp_utils::get_max_caps();
+		tinfo->m_cap_inheritable = max_caps;
+		tinfo->m_cap_permitted = max_caps;
+		tinfo->m_cap_effective = max_caps;
 	}
 }
 
