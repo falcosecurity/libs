@@ -118,6 +118,15 @@ TEST(parser, parse_str)
 	test_accept("test.str = \"test value\"");
 	test_accept("test.str = 'test value'");
 
+	// valid field args
+	test_accept("test.str[0a!@#456:/\\.;!$%^&*(){}|] = testval");
+	test_accept("test.str[aaaa1] = a");
+	test_accept("test.str[1234] = a");
+	test_accept("test.str[+0.25e+10] = a");
+	test_accept("test.str[\"\"] = empty");
+	test_accept("test.str['a aa'] = a");
+	test_accept("test.str[\"test \\\"with\\\"escaping\"] = a");
+
 	// valid string escaping
 	test_accept("test.str = \"escape double quote \\\" \"");
 	test_accept("test.str = \"escape double quote \\\" \"");
@@ -145,6 +154,17 @@ TEST(parser, parse_str)
 	test_reject("test.str = 'broken escape single quote''");
 	test_reject("test.str = \"mixed \\\'\"");
 	test_reject("test.str = 'mixed \\\"'");
+
+	// invalid field args
+	test_reject("test.str[0a!@#456:/\\.;!$%^&*[]{}] = testval");
+	test_reject("test.str[] = testval");
+	test_reject("test.str[[] = testval");
+	test_reject("test.str[]] = testval");
+	test_reject("test.str['''] = a");
+	test_reject("test.str[aaa\"] = a");
+	test_reject("test.str[   test   ] = testval");
+	test_reject("test.str[ = testval");
+	test_reject("test.str] = testval");
 }
 
 TEST(parser, parse_numbers)
