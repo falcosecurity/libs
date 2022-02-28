@@ -802,6 +802,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	long total_rss = 0;
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
+	const struct cred *cred;
 
 #ifdef __NR_clone3
 	struct clone_args cl_args;
@@ -1273,9 +1274,40 @@ cgroups_error:
 		res = val_to_ring(args, flags, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
+
+		/*
+		 * capabilities
+		 */
+		if(args->event_type == PPME_SYSCALL_EXECVE_19_X ||
+		   args->event_type == PPME_SYSCALL_EXECVEAT_X)
+		{
+			cred = get_current_cred();
+
+			val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto out;
+			
+			val = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto out;
+			
+			val = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto out;
+			
+			put_cred(cred);
+		}
 	}
 
 	return add_sentinel(args);
+
+out:
+	put_cred(cred);
+	return res;
+
 #endif /* UDIG */
 }
 
@@ -6114,6 +6146,44 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 		return res;
 
 	return add_sentinel(args);
+}
+
+int f_sys_capset_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int64_t retval;
+	const struct cred *cred;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		return res;
+
+	cred = get_current_cred();
+
+	val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		goto out;
+
+	val = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		goto out;
+
+	val = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
+	if(unlikely(res != PPM_SUCCESS))
+		goto out;
+
+	put_cred(cred);
+
+	return add_sentinel(args);
+
+out: 
+	put_cred(cred);
+	return res;
 }
 
 #endif /* WDIG */
