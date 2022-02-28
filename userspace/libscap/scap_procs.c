@@ -77,6 +77,9 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	int64_t tmp;
 	uint32_t uid;
 	uint64_t tgid;
+	uint64_t cap_permitted;
+	uint64_t cap_effective;
+	uint64_t cap_inheritable;
 	uint64_t ppid;
 	uint64_t vpid;
 	uint64_t vtid;
@@ -151,6 +154,45 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			if(sscanf(line, "Gid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2)
 			{
 				tinfo->gid = uid;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		if(strstr(line, "CapInh") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "CapInh: %" PRIx64, &cap_inheritable) == 1)
+			{
+				tinfo->cap_inheritable = cap_inheritable;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		if(strstr(line, "CapPrm") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "CapPrm: %" PRIx64, &cap_permitted) == 1)
+			{
+				tinfo->cap_permitted = cap_permitted;
+			}
+			else
+			{
+				ASSERT(false);
+			}
+		}
+		if(strstr(line, "CapEff") == line)
+		{
+			nfound++;
+
+			if(sscanf(line, "CapEff: %" PRIx64, &cap_effective) == 1)
+			{
+				tinfo->cap_effective = cap_effective;
 			}
 			else
 			{
@@ -242,13 +284,13 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			}
 		}
 
-		if(nfound == 10)
+		if(nfound == 13)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 10 || nfound == 7 || nfound == 6);
+	ASSERT(nfound == 13 || nfound == 7 || nfound == 6);
 
 	fclose(f);
 
