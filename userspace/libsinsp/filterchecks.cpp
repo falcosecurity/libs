@@ -1845,6 +1845,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_liveness_probe", "Process Is Container Liveness", "true if this process is running as a part of the container's liveness probe."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_readiness_probe", "Process Is Container Readiness", "true if this process is running as a part of the container's readiness probe."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "true if this process' executable file is writable by the same user that spawned the process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_permitted", "Permitted capabilities", "The permitted capabilities set"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_inheritable", "Inheritable capabilities", "The inheritable capabilities set"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_effective", "Effective capabilities", "The effective capabilities set"},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2646,6 +2649,15 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_IS_EXE_WRITABLE:
 		m_tbool = tinfo->m_exe_writable;
 		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_CAP_PERMITTED:
+		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_permitted);
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_CAP_INHERITABLE:
+		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_inheritable);
+		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_CAP_EFFECTIVE:
+		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_effective);
+		RETURN_EXTRACT_STRING(m_tstr);
 	default:
 		ASSERT(false);
 		return NULL;
