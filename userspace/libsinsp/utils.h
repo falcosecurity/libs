@@ -147,6 +147,13 @@ public:
         // timezone of Z for UTC, but does support parsing fractional seconds,
         // unlike get_epoch_utc_seconds_* below.
 	static bool parse_iso_8601_utc_string(const std::string& time_str, uint64_t &ns);
+
+	//
+	// Convert caps from their numeric representation to a space-separated string list
+	//
+	static std::string caps_to_string(const uint64_t caps);
+	
+	static uint64_t get_max_caps();
 };
 
 ///////////////////////////////////////////////////////////////////////////////
