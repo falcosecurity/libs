@@ -37,7 +37,7 @@ limitations under the License.
 //     ListValue           ::= '(' (StrValue (',' StrValue)*)* ')'
 //                             | Identifier
 //     CheckField          ::= FieldName('[' FieldArg ']')?
-//     FieldArg            ::= Number | QuotedStr | FieldArgBareStr 
+//     FieldArg            ::= QuotedStr | FieldArgBareStr 
 //     NumValue            ::= HexNumber | Number
 //     StrValue            ::= QuotedStr | BareStr
 // 

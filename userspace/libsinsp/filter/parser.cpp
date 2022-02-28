@@ -232,9 +232,9 @@ ast::expr* parser::parse_check()
 		string field_arg = "";
 		if (lex_helper_str("["))
 		{
-			if (!lex_num() && !lex_quoted_str() && !lex_field_arg_bare_str())
+			if (!lex_quoted_str() && !lex_field_arg_bare_str())
 			{
-				throw sinsp_exception("expected a valid field argument: a number, quoted string, or a bare string");
+				throw sinsp_exception("expected a valid field argument: a quoted string or a bare string");
 			}
 			field_arg = m_last_token;
 			if (!lex_helper_str("]"))
