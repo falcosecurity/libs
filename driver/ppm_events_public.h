@@ -686,6 +686,51 @@ or GPL2.txt for full copies of the license.
 #endif
 
 /*
+ * Capabilities
+ */
+#define PPM_CAP_CHOWN               1UL << 0
+#define PPM_CAP_DAC_OVERRIDE        1UL << 1
+#define PPM_CAP_DAC_READ_SEARCH     1UL << 2
+#define PPM_CAP_FOWNER              1UL << 3
+#define PPM_CAP_FSETID              1UL << 4
+#define PPM_CAP_KILL                1UL << 5
+#define PPM_CAP_SETGID              1UL << 6
+#define PPM_CAP_SETUID              1UL << 7
+#define PPM_CAP_SETPCAP             1UL << 8
+#define PPM_CAP_LINUX_IMMUTABLE     1UL << 9
+#define PPM_CAP_NET_BIND_SERVICE    1UL << 10
+#define PPM_CAP_NET_BROADCAST       1UL << 11
+#define PPM_CAP_NET_ADMIN           1UL << 12
+#define PPM_CAP_NET_RAW             1UL << 13
+#define PPM_CAP_IPC_LOCK            1UL << 14
+#define PPM_CAP_IPC_OWNER           1UL << 15
+#define PPM_CAP_SYS_MODULE          1UL << 16
+#define PPM_CAP_SYS_RAWIO           1UL << 17
+#define PPM_CAP_SYS_CHROOT          1UL << 18
+#define PPM_CAP_SYS_PTRACE          1UL << 19
+#define PPM_CAP_SYS_PACCT           1UL << 20
+#define PPM_CAP_SYS_ADMIN           1UL << 21
+#define PPM_CAP_SYS_BOOT            1UL << 22
+#define PPM_CAP_SYS_NICE            1UL << 23
+#define PPM_CAP_SYS_RESOURCE        1UL << 24
+#define PPM_CAP_SYS_TIME            1UL << 25
+#define PPM_CAP_SYS_TTY_CONFIG      1UL << 26
+#define PPM_CAP_MKNOD               1UL << 27
+#define PPM_CAP_LEASE               1UL << 28
+#define PPM_CAP_AUDIT_WRITE         1UL << 29
+#define PPM_CAP_AUDIT_CONTROL       1UL << 30
+#define PPM_CAP_SETFCAP             1UL << 31
+#define PPM_CAP_MAC_OVERRIDE        1UL << 32
+#define PPM_CAP_MAC_ADMIN           1UL << 33
+#define PPM_CAP_SYSLOG              1UL << 34
+#define PPM_CAP_WAKE_ALARM          1UL << 35
+#define PPM_CAP_BLOCK_SUSPEND       1UL << 36
+#define PPM_CAP_AUDIT_READ          1UL << 37
+#define PPM_CAP_PERFMON             1UL << 38
+#define PPM_CAP_BPF                 1UL << 39
+#define PPM_CAP_CHECKPOINT_RESTORE  1UL << 40
+
+/*
  * RLIMIT_STACK default maximum - some architectures override it:
  */
 #ifndef _STK_LIM_MAX
@@ -1071,7 +1116,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_MLOCKALL_X = 349,
 	PPME_SYSCALL_MUNLOCKALL_E = 350,
 	PPME_SYSCALL_MUNLOCKALL_X = 351,
-	PPM_EVENT_MAX = 352,
+	PPME_SYSCALL_CAPSET_E = 352,
+	PPME_SYSCALL_CAPSET_X = 353,
+	PPM_EVENT_MAX = 354
 };
 /*@}*/
 
