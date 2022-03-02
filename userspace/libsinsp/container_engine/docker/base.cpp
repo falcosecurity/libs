@@ -18,7 +18,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 		g_logger.log("docker_async: Creating docker async source",
 			     sinsp_logger::SEV_DEBUG);
 		uint64_t max_wait_ms = 10000;
-		docker_async_source *src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache);
+		auto src = new docker_async_source(docker_async_source::NO_WAIT_LOOKUP, max_wait_ms, cache);
 		m_docker_info_source.reset(src);
 	}
 
@@ -31,21 +31,21 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 		if(!query_os_for_missing_info)
 		{
 			auto container = std::make_shared<sinsp_container_info>();
-			container->m_type = CT_DOCKER;
+			container->m_type = request.container_type;
 			container->m_id = request.container_id;
 			cache->notify_new_container(*container);
 			return true;
 		}
 
 #ifdef HAS_CAPTURE
-		if(cache->should_lookup(request.container_id, CT_DOCKER))
+		if(cache->should_lookup(request.container_id, request.container_type))
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"docker_async (%s): No existing container info",
 					request.container_id.c_str());
 
 			// give docker a chance to return metadata for this container
-			cache->set_lookup_status(request.container_id, CT_DOCKER, sinsp_container_lookup_state::STARTED);
+			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup_state::STARTED);
 			parse_docker_async(request, cache);
 		}
 #endif

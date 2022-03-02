@@ -81,12 +81,13 @@ bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_
 
 	return false;
 }
-bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id)
+bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id, std::string &matching_cgroup)
 {
 	for(const auto &it : tinfo->m_cgroups)
 	{
 		if(match_container_id(it.second, layout, container_id))
 		{
+			matching_cgroup = it.second;
 			return true;
 		}
 	}

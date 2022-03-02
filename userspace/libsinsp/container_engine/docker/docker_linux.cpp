@@ -35,9 +35,9 @@ std::string docker_linux::m_docker_sock = "/var/run/docker.sock";
 
 bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
-	std::string container_id;
+	std::string container_id, cgroup;
 
-	if(!matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id))
+	if(!matches_runc_cgroups(tinfo, DOCKER_CGROUP_LAYOUT, container_id, cgroup))
 	{
 		return false;
 	}

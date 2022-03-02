@@ -72,12 +72,13 @@ bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_
  * @brief Match all the cgroups of `tinfo` against a list of cgroup layouts
  * @param layout an array of (prefix, suffix) pairs
  * @param container_id output parameter
+ * @param matching_cgroup output parameter
  * @return true if any of `tinfo`'s cgroups match any of the patterns
  *
  * If this function returns true, `container_id` will be set to
  * the truncated hex string (first 12 digits). Otherwise, it will remain
  * unchanged.
  */
-bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id);
+bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id, std::string &matching_cgroup);
 }
 }

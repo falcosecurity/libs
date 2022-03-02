@@ -288,9 +288,9 @@ void cri::set_cri_delay(uint64_t delay_ms)
 bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	container_cache_interface *cache = &container_cache();
-	std::string container_id;
+	std::string container_id, cgroup;
 
-	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_id))
+	if(!matches_runc_cgroups(tinfo, CRI_CGROUP_LAYOUT, container_id, cgroup))
 	{
 		return false;
 	}

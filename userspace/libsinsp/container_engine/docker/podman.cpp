@@ -72,8 +72,16 @@ int get_userns_root_uid(const sinsp_threadinfo *tinfo)
 //  NO_MATCH if the process is not in a podman container
 int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 {
-	if(matches_runc_cgroups(tinfo, ROOT_PODMAN_CGROUP_LAYOUT, container_id))
+	std::string cgroup;
+	if(matches_runc_cgroups(tinfo, ROOT_PODMAN_CGROUP_LAYOUT, container_id, cgroup))
 	{
+		// User: /user.slice/user-1000.slice/user@1000.service/user.slice/libpod-$ID.scope/container
+		// Root: /machine.slice/libpod-$ID.scope/container
+		int uid;
+		if (sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
+		{
+			return uid;
+		}
 		return 0; // root
 	}
 
@@ -116,7 +124,7 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 
 bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
-	std::string container_id, container_name, api_sock;
+	std::string container_id, api_sock;
 	int uid = detect_podman(tinfo, container_id);
 
 	switch(uid)
@@ -128,6 +136,7 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		return false;
 	default: // rootless container, use the user's socket
 		api_sock = "/run/user/" + std::to_string(uid) + "/podman/podman.sock";
+		break;
 	}
 
 	docker_lookup_request request(container_id, api_sock, CT_PODMAN, uid, false);
