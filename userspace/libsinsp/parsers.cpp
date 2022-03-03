@@ -2173,7 +2173,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		// Compare with enter event parameters
 		//
-		if(lastevent_retrieved)
+		if(lastevent_retrieved && enter_evt->get_num_params() >= 2)
 		{
 			parinfo = enter_evt->get_param(0);
 			enter_evt_name = parinfo->m_val;
@@ -2208,7 +2208,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			dev = *(uint32_t *)parinfo->m_val;
 		}
 
-		if(lastevent_retrieved)
+		if(lastevent_retrieved && enter_evt->get_num_params() >= 1)
 		{
 			parinfo = enter_evt->get_param(0);
 			enter_evt_name = parinfo->m_val;
@@ -2266,7 +2266,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		// Compare with enter event parameters
 		//
-		if(lastevent_retrieved)
+		if(lastevent_retrieved && enter_evt->get_num_params() >= 3)
 		{
 			parinfo = enter_evt->get_param(1);
 			enter_evt_name = parinfo->m_val;
@@ -2703,6 +2703,11 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
 
 	if (m_track_connection_status) {
 		evt->m_fdinfo->set_socket_pending();
+	}
+
+	if(evt->get_num_params() < 2)
+	{
+		return;
 	}
 
     parinfo = evt->get_param(1);
