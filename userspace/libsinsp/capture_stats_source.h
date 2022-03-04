@@ -18,7 +18,7 @@ limitations under the License.
 
 #include "sinsp_public.h"
 
-class scap_stats;
+struct scap_stats;
 
 /**
  * Interface to an object that can provide capture statistics.
