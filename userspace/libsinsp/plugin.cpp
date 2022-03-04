@@ -337,14 +337,29 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 
 #ifdef _WIN32
 	sinsp_plugin_handle handle = LoadLibrary(filepath.c_str());
+
+	if(handle == NULL)
+	{
+		errstr = "error loading plugin " + filepath + ": ";
+		DWORD flg = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS;
+		LPTSTR msg_buf = 0;
+		if(FormatMessageA(flg, 0, GetLastError(), 0, (LPTSTR)&msg_buf, 0, NULL))
+		if(msg_buf)
+		{
+			errstr.append(msg_buf, strlen(msg_buf));
+			LocalFree(msg_buf);
+		}
+		return ret;
+	}
 #else
 	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY);
-#endif
+
 	if(handle == NULL)
 	{
 		errstr = "error loading plugin " + filepath + ": " + dlerror();
 		return ret;
 	}
+#endif
 
 	// Before doing anything else, check the required api
 	// version. If it doesn't match, return an error.
