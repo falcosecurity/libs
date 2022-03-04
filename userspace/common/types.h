@@ -17,6 +17,7 @@ limitations under the License.
 
 #ifdef _WIN32
 #define snprintf _snprintf
+#define strcasecmp _stricmp
 #endif
 
 #define __STDC_FORMAT_MACROS
