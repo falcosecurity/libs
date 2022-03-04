@@ -16,7 +16,9 @@ limitations under the License.
 
 #include <cstddef>
 #include <functional>
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
 
 #include "token_bucket.h"
 #include "utils.h"
