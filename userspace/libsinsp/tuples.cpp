@@ -23,6 +23,17 @@ limitations under the License.
 #include "sinsp_exception.h"
 #include "logger.h"
 
+
+/*
+ *  a few line below to enforce proper memory layout for ipv6addr class during compile time
+ */
+template <bool T> class mem_layout_test;
+template <> class mem_layout_test<true>{}; // empty struct take 1 byte of mem
+
+static auto check_size   = mem_layout_test<sizeof (ipv6addr) == 16>();
+static auto check_layout = mem_layout_test<std::is_pod<ipv6addr>::value>();
+// end layout checks
+
 ipv6addr ipv6addr::empty_address ("0::");//= {0x00000000, 0x00000000, 0x00000000, 0x00000000};
 
 ipv6addr::ipv6addr(const std::string &str_addr)
