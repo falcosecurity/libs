@@ -65,6 +65,9 @@ or GPL2.txt for full copies of the license.
 #include <sys/file.h>
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#ifdef __NR_openat2
+#include <linux/openat2.h>
+#endif
 #else /* WDIG */
 #include "stdint.h"
 #include <winsock2.h>
@@ -98,7 +101,6 @@ or GPL2.txt for full copies of the license.
 #include "systype_compat.h"
 
 #endif /* UDIG */
-#include <linux/openat2.h>
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
 #ifndef UDIG
