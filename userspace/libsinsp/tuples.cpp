@@ -31,7 +31,8 @@ template <bool T> class mem_layout_test;
 template <> class mem_layout_test<true>{}; // empty struct take 1 byte of mem
 
 static auto check_size   = mem_layout_test<sizeof (ipv6addr) == 16>();
-static auto check_layout = mem_layout_test<std::is_pod<ipv6addr>::value>();
+// is_pod check split into is_standard_layout && is_trivial to be C++20 future proof
+static auto check_layout = mem_layout_test<std::is_standard_layout<ipv6addr>::value && std::is_trivial<ipv6addr>::value>();
 // end layout checks
 
 ipv6addr ipv6addr::empty_address ("0::");//= {0x00000000, 0x00000000, 0x00000000, 0x00000000};
