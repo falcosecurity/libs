@@ -131,7 +131,7 @@ public:
 	bool extract_field(ss_plugin_event &evt, sinsp_plugin::ext_field &field);
 
 	std::string get_init_schema(ss_plugin_schema_type& schema_type);
-	void validate_init_config(const char* config);
+	void validate_init_config(std::string& config);
 
 	sinsp_plugin_handle m_handle;
 
@@ -176,7 +176,7 @@ private:
 
 	common_plugin_info m_plugin_info;
 
-	void validate_init_config_json_schema(std::string config, std::string &schema);
+	void validate_init_config_json_schema(std::string& config, std::string &schema);
 
 	static void destroy_handle(sinsp_plugin_handle handle);
 };
