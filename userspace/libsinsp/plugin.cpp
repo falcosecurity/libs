@@ -418,8 +418,9 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath, cons
 	errstr = "";
 
 	// Initialize the plugin
-	ret->validate_init_config(config);
-	if (!ret->init(config))
+	std::string conf = ret->str_from_alloc_charbuf(config);
+	ret->validate_init_config(conf);
+	if (!ret->init(conf.c_str()))
 	{
 		errstr = string("Could not initialize plugin: " + ret->get_last_error());
 		ret = NULL;
@@ -828,17 +829,16 @@ std::string sinsp_plugin::get_init_schema(ss_plugin_schema_type& schema_type)
 	return std::string("");
 }
 
-void sinsp_plugin::validate_init_config(const char* config)
+void sinsp_plugin::validate_init_config(std::string& config)
 {
 	ss_plugin_schema_type schema_type;
-	std::string conf = str_from_alloc_charbuf(config);
 	std::string schema = get_init_schema(schema_type);
 	if (schema.size() > 0 && schema_type != SS_PLUGIN_SCHEMA_NONE)
 	{
 		switch (schema_type)
 		{
 			case SS_PLUGIN_SCHEMA_JSON:
-				validate_init_config_json_schema(conf, schema);
+				validate_init_config_json_schema(config, schema);
 				break;
 			default:
 				ASSERT(false);
@@ -851,7 +851,7 @@ void sinsp_plugin::validate_init_config(const char* config)
 	}
 }
 
-void sinsp_plugin::validate_init_config_json_schema(std::string config, std::string &schema)
+void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::string &schema)
 {
 	Json::Value schemaJson;
 	if(!Json::Reader().parse(schema, schemaJson) || schemaJson.type() != Json::objectValue)
