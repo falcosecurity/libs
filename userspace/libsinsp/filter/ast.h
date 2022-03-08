@@ -40,13 +40,13 @@ struct binary_check_expr;
 */
 struct SINSP_PUBLIC expr_visitor
 {
-    virtual void visit(and_expr&) = 0;
-    virtual void visit(or_expr&) = 0;
-    virtual void visit(not_expr&) = 0;
-    virtual void visit(value_expr&) = 0;
-    virtual void visit(list_expr&) = 0;
-    virtual void visit(unary_check_expr&) = 0;
-    virtual void visit(binary_check_expr&) = 0;
+    virtual void visit(and_expr*) = 0;
+    virtual void visit(or_expr*) = 0;
+    virtual void visit(not_expr*) = 0;
+    virtual void visit(value_expr*) = 0;
+    virtual void visit(list_expr*) = 0;
+    virtual void visit(unary_check_expr*) = 0;
+    virtual void visit(binary_check_expr*) = 0;
 };
 
 /*!
@@ -58,13 +58,13 @@ struct SINSP_PUBLIC expr_visitor
 struct SINSP_PUBLIC base_expr_visitor: public expr_visitor
 {
 public:
-    virtual void visit(and_expr&) override;
-    virtual void visit(or_expr&) override;
-    virtual void visit(not_expr&) override;
-    virtual void visit(value_expr&) override;
-    virtual void visit(list_expr&) override;
-    virtual void visit(unary_check_expr&) override;
-    virtual void visit(binary_check_expr&) override;
+    virtual void visit(and_expr*) override;
+    virtual void visit(or_expr*) override;
+    virtual void visit(not_expr*) override;
+    virtual void visit(value_expr*) override;
+    virtual void visit(list_expr*) override;
+    virtual void visit(unary_check_expr*) override;
+    virtual void visit(binary_check_expr*) override;
 
     /*!
         \brief Can be set to true by subclasses to instruct the
@@ -81,7 +81,7 @@ public:
 struct SINSP_PUBLIC expr
 {
     virtual ~expr() { }
-    virtual void accept(expr_visitor&) = 0;
+    virtual void accept(expr_visitor*) = 0;
     virtual bool is_equal(const expr* other) const = 0;
 };
 
@@ -107,9 +107,9 @@ struct SINSP_PUBLIC and_expr: expr
         }
     }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -137,9 +137,9 @@ struct SINSP_PUBLIC or_expr: expr
         }
     }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -164,9 +164,9 @@ struct SINSP_PUBLIC not_expr: expr
         delete child;
     }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -184,9 +184,9 @@ struct SINSP_PUBLIC value_expr: expr
 
     inline value_expr(std::string v): value(v) { }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -204,9 +204,9 @@ struct SINSP_PUBLIC list_expr: expr
 
     inline list_expr(std::vector<std::string>v): values(v) { }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -227,9 +227,9 @@ struct SINSP_PUBLIC unary_check_expr: expr
         std::string a,
         std::string o): field(f), arg(a), op(o) { }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
@@ -259,9 +259,9 @@ struct SINSP_PUBLIC binary_check_expr: expr
         delete value;
     }
 
-    inline void accept(expr_visitor& v) override
+    inline void accept(expr_visitor* v) override
     {
-        v.visit(*this);
+        v->visit(this);
     };
 
     inline bool is_equal(const expr* other) const override
