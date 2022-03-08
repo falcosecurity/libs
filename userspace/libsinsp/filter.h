@@ -109,13 +109,13 @@ public:
 	void set_check_id(int32_t id);
 
 private:
-	void visit(libsinsp::filter::ast::and_expr&) override;
-	void visit(libsinsp::filter::ast::or_expr&) override;
-	void visit(libsinsp::filter::ast::not_expr&) override;
-	void visit(libsinsp::filter::ast::value_expr&) override;
-	void visit(libsinsp::filter::ast::list_expr&) override;
-	void visit(libsinsp::filter::ast::unary_check_expr&) override;
-	void visit(libsinsp::filter::ast::binary_check_expr&) override;
+	void visit(libsinsp::filter::ast::and_expr*) override;
+	void visit(libsinsp::filter::ast::or_expr*) override;
+	void visit(libsinsp::filter::ast::not_expr*) override;
+	void visit(libsinsp::filter::ast::value_expr*) override;
+	void visit(libsinsp::filter::ast::list_expr*) override;
+	void visit(libsinsp::filter::ast::unary_check_expr*) override;
+	void visit(libsinsp::filter::ast::binary_check_expr*) override;
 	void check_ttable_only(string& field, gen_event_filter_check *check);
 	cmpop str_to_cmpop(string& str);
 	string create_filtercheck_name(string& name, string& arg);

@@ -1596,7 +1596,7 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	m_expect_values = false;
 	try 
 	{
-		m_flt_ast->accept(*this);
+		m_flt_ast->accept(this);
 	}
 	catch (const sinsp_exception& e)
 	{
@@ -1610,7 +1610,7 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	return new_sinsp_filter;
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr* e)
 {
 	bool nested = m_last_boolop != BO_AND;
 	if (nested)
@@ -1618,9 +1618,9 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr& e)
 		m_filter->push_expression(m_last_boolop);
 		m_last_boolop = BO_NONE;
 	}
-	for (auto &c : e.children)
+	for (auto &c : e->children)
 	{
-		c->accept(*this);
+		c->accept(this);
 		m_last_boolop = BO_AND;
 	}
 	if (nested)
@@ -1629,7 +1629,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr& e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr* e)
 {
 	bool nested = m_last_boolop != BO_OR;
 	if (nested)
@@ -1637,9 +1637,9 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr& e)
 		m_filter->push_expression(m_last_boolop);
 		m_last_boolop = BO_NONE;
 	}
-	for (auto &c : e.children)
+	for (auto &c : e->children)
 	{
-		c->accept(*this);
+		c->accept(this);
 		m_last_boolop = BO_OR;
 	}
 	if (nested)
@@ -1648,34 +1648,34 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr& e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
 {
 	m_last_boolop = (boolop)((uint32_t)m_last_boolop | BO_NOT);
 	m_filter->push_expression(m_last_boolop);
 	m_last_boolop = BO_NONE;
-	e.child->accept(*this);
+	e->child->accept(this);
 	m_filter->pop_expression();
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr* e)
 {
-	string field = create_filtercheck_name(e.field, e.arg);
+	string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check_ttable_only(field, check);
-	check->m_cmpop = str_to_cmpop(e.op);
+	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
 	check->set_check_id(m_check_id);
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 {
-	string field = create_filtercheck_name(e.field, e.arg);
+	string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check_ttable_only(field, check);
-	check->m_cmpop = str_to_cmpop(e.op);
+	check->m_cmpop = str_to_cmpop(e->op);
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
 	check->set_check_id(m_check_id);
@@ -1686,7 +1686,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
 	// expect the vector to only have 1 value. We don't check this here, as
 	// the parser is trusted to apply proper grammar checks on this constraint.
 	m_expect_values = true;
-	e.value->accept(*this);
+	e->value->accept(this);
 	m_expect_values = false;
 	for (size_t i = 0; i < m_field_values.size(); i++)
 	{
@@ -1694,19 +1694,19 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr& e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr* e)
 {
 	if (!m_expect_values)
 	{
 		// this ensures that identifiers, such as Falco macros, are not left
 		// unresolved at filter compilation time
-		throw sinsp_exception("filter error: unexpected identifier '" + e.value + "'");
+		throw sinsp_exception("filter error: unexpected identifier '" + e->value + "'");
 	}
 	m_field_values.clear();
-	m_field_values.push_back(e.value);
+	m_field_values.push_back(e->value);
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr& e)
+void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 {
 	if (!m_expect_values)
 	{
@@ -1715,7 +1715,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr& e)
 		throw sinsp_exception("filter error: unexpected value list");
 	}
 	m_field_values.clear();
-	m_field_values = e.values;
+	m_field_values = e->values;
 }
 
 string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
