@@ -77,6 +77,9 @@ else()
 					UPDATE_COMMAND ""
 					INSTALL_COMMAND "")
 			endif()
+			install(FILES "${LUAJIT_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+			install(DIRECTORY "${LUAJIT_INCLUDE}/" DESTINATION "./include/${LIBS_PACKAGE_NAME}/"
+				FILES_MATCHING PATTERN "*.h")
 		else()
 			ExternalProject_Add(luajit
 				PREFIX "${PROJECT_BINARY_DIR}/luajit-prefix"

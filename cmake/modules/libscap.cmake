@@ -16,5 +16,14 @@ get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSO
 set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
 
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
-
+set(LIBSCAP_LIB "${PROJECT_BINARY_DIR}/libscap/libscap.a")
+install(FILES "${LIBSCAP_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+install(DIRECTORY "${LIBSCAP_INCLUDE_DIR}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/userspace/"
+			FILES_MATCHING PATTERN "*.h"
+			PATTERN "*examples*" EXCLUDE
+			PATTERN "*doxygen*" EXCLUDE)
+install(DIRECTORY "${DRIVER_CONFIG_DIR}/" DESTINATION "./include/${LIBS_PACKAGE_NAME}/driver/"
+			FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "${LIBSCAP_DIR}/userspace/common" DESTINATION "./include/${LIBS_PACKAGE_NAME}/userspace/"
+			FILES_MATCHING PATTERN "*.h")
 endif()

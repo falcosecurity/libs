@@ -12,7 +12,7 @@ elseif(NOT USE_BUNDLED_CARES)
 	endif()
 else()
 	set(CARES_SRC "${PROJECT_BINARY_DIR}/c-ares-prefix/src/c-ares")
-	set(CARES_INCLUDE "${CARES_SRC}/target/include")
+	set(CARES_INCLUDE "${CARES_SRC}/target/include/")
 	set(CARES_LIB "${CARES_SRC}/target/lib/libcares.a")
 	set(CARES_INSTALL_DIR "${CARES_SRC}/target")
 
@@ -27,7 +27,10 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}
 			INSTALL_COMMAND ${CMD_MAKE} install)
+		install(FILES "${CARES_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(DIRECTORY "${CARES_INCLUDE}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 	endif()
+	
 endif()
 
 include_directories("${CARES_INCLUDE}")

@@ -67,6 +67,19 @@ else()
 	set(GRPC_LIB "${GRPC_SRC}/libgrpc.a")
 	set(GRPCPP_LIB "${GRPC_SRC}/libgrpc++.a")
 	set(GRPC_CPP_PLUGIN "${GRPC_SRC}/grpc_cpp_plugin")
+	set(GRPC_MAIN_LIBS "")
+	list(APPEND GRPC_MAIN_LIBS
+		"${GPR_LIB}" 
+		"${GRPC_LIB}" 
+		"${GRPCPP_LIB}"
+		"${GRPC_SRC}/libgrpc++_alts.a"
+	        "${GRPC_SRC}/libgrpc++_error_details.a"
+	        "${GRPC_SRC}/libgrpc++_reflection.a"
+	        "${GRPC_SRC}/libgrpc++_unsecure.a"
+		"${GRPC_SRC}/libgrpc_plugin_support.a"
+		"${GRPC_SRC}/libgrpc_unsecure.a"
+		"${GRPC_SRC}/libgrpcpp_channelz.a"
+	)
 
 	get_filename_component(PROTOC_DIR ${PROTOC} PATH)
 
@@ -171,6 +184,10 @@ else()
 			UPDATE_COMMAND ""
 			INSTALL_COMMAND DESTDIR= ${CMD_MAKE} install
 		)
+		install(FILES ${GRPC_MAIN_LIBS} DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(FILES ${GRPC_LIBRARIES} DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(FILES "${GRPC_CPP_PLUGIN}" DESTINATION "./bin/${LIBS_PACKAGE_NAME}/")
+		install(DIRECTORY "${GRPC_SRC}/target/include/" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 	endif()
 endif()
 

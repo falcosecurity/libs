@@ -16,7 +16,7 @@ elseif(NOT USE_BUNDLED_B64)
 else()
 	set(B64_SRC "${PROJECT_BINARY_DIR}/b64-prefix/src/b64")
 	message(STATUS "Using bundled b64 in '${B64_SRC}'")
-	set(B64_INCLUDE "${B64_SRC}/include")
+	set(B64_INCLUDE "${B64_SRC}/include/")
 	set(B64_LIB "${B64_SRC}/src/libb64.a")
 	ExternalProject_Add(b64
 		PREFIX "${PROJECT_BINARY_DIR}/b64-prefix"
@@ -27,6 +27,8 @@ else()
 		BUILD_IN_SOURCE 1
 		BUILD_BYPRODUCTS ${B64_LIB}
 		INSTALL_COMMAND "")
+	install(FILES "${B64_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+	install(DIRECTORY "${B64_INCLUDE}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 endif()
 
 include_directories("${B64_INCLUDE}")
