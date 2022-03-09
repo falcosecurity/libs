@@ -65,6 +65,9 @@ or GPL2.txt for full copies of the license.
 #include <sys/file.h>
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#ifdef __NR_openat2
+#include <linux/openat2.h>
+#endif
 #else /* WDIG */
 #include "stdint.h"
 #include <winsock2.h>
