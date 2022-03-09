@@ -934,6 +934,48 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	return handle;
 }
 
+static bool stat_seekable(struct stat *st)
+{
+	// We don't need to support *every* file type. Just that FIFOs
+	// are not seekable.
+
+	return ((st->st_mode & S_IFMT) != S_IFIFO);
+}
+
+static bool file_seekable(const char *fname)
+{
+	int rc;
+	struct stat st;
+
+	rc = stat(fname, &st);
+
+	if(rc != 0)
+	{
+		// Assume seekable
+		ASSERT(false);
+		return true;
+	}
+
+	return stat_seekable(&st);
+}
+
+static bool fd_seekable(int fd)
+{
+	int rc;
+	struct stat st;
+
+	rc = fstat(fd, &st);
+
+	if(rc != 0)
+	{
+		// Assume seekable
+		ASSERT(false);
+		return true;
+	}
+
+	return stat_seekable(&st);
+}
+
 scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
 {
 	gzFile gzfile = gzopen(fname, "rb");
@@ -943,7 +985,7 @@ scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
+	scap_reader_t* reader = scap_reader_open_gzfile(gzfile, file_seekable(fname));
 
 	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
 }
@@ -957,7 +999,7 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
+	scap_reader_t* reader = scap_reader_open_gzfile(gzfile, fd_seekable(fd));
 
 	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
 }
@@ -1193,7 +1235,9 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 			return NULL;
 		}
 
-		scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
+		scap_reader_t* reader = scap_reader_open_gzfile(gzfile, (args.fd != 0 ?
+									 fd_seekable(args.fd) :
+									 file_seekable(args.fname)));
 		return scap_open_offline_int(reader, error, rc,
 					     args.proc_callback, args.proc_callback_context,
 					     args.import_users, args.start_offset,

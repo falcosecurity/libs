@@ -110,10 +110,23 @@ typedef enum ppm_reader_type
 	RT_FILE = 0
 } ppm_reader_type;
 
+#define READER_SEEK_BUF_SIZE    16      ///< threshold for seeking backwards for non-file readers
+#define READER_SEEK_SKIP_SIZE   2048    ///< size of the buffer used to seek forward for non-file readers
+
 struct scap_reader
 {
 	ppm_reader_type m_type;
 	gzFile m_file;
+
+	// Set to true when stat() reports the file is a fifo.
+	bool m_use_seek_buffer;
+
+	// Used when use_seek_buffer=true
+	const char* m_last_error;
+	uint64_t m_total_bytes_read;
+	uint8_t m_seek_buffer[READER_SEEK_BUF_SIZE];
+	uint8_t* m_seek_buffer_ptr;
+	uint32_t m_seek_buffer_len;
 };
 
 //
@@ -427,7 +440,7 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 // scap_reader functions implementation
 //
 
-static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
+static inline scap_reader_t *scap_reader_open_gzfile(gzFile file, bool seekable)
 {
 	if (file == NULL)
 	{
@@ -436,6 +449,13 @@ static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
 	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
 	r->m_type = RT_FILE;
 	r->m_file = file;
+
+	r->m_use_seek_buffer = !seekable;
+
+	r->m_total_bytes_read = 0;
+	r->m_seek_buffer_len = 0;
+	r->m_seek_buffer_ptr = NULL;
+
 	return r;
 }
 
@@ -445,13 +465,59 @@ static inline ppm_reader_type scap_reader_type(scap_reader_t *r)
 	return r->m_type;
 }
 
+static inline void scap_save_seek_buffer(scap_reader_t *r, void* buf, uint32_t len, int nread)
+{
+        // Update the total bytes read for tell/offset purposes
+	r->m_total_bytes_read += nread;
+
+	// Store the last few bytes of this read in our seek buffer,
+	// so that they can be re-used for seeking backwards.
+	r->m_seek_buffer_len = MIN(nread, READER_SEEK_BUF_SIZE);
+	memcpy(&r->m_seek_buffer[0], buf + nread - r->m_seek_buffer_len, r->m_seek_buffer_len);
+	r->m_seek_buffer_ptr = NULL;
+}
+
+static inline int scap_read_seek_buffer(scap_reader_t *r, void* buf, uint32_t len)
+{
+	int nread = 0;
+
+	if (r->m_seek_buffer_ptr != NULL && r->m_seek_buffer_len > 0)
+	{
+		nread = MIN(len, r->m_seek_buffer_len);
+		memcpy(buf, r->m_seek_buffer_ptr, nread);
+		r->m_seek_buffer_len -= nread;
+		r->m_seek_buffer_ptr += nread;
+		r->m_total_bytes_read += nread;
+		buf += nread;
+		len -= nread;
+	}
+
+	return nread;
+}
+
 static inline int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
 {
+	int nread = 0;
+
 	ASSERT(r != NULL);
 	switch (r->m_type)
 	{
 		case RT_FILE:
-			return gzread(r->m_file, buf, len);
+			if(r->m_use_seek_buffer)
+			{
+				nread = scap_read_seek_buffer(r, buf, len);
+			}
+
+			if(nread < len)
+			{
+				nread += gzread(r->m_file, buf+nread, len-nread);
+				if(r->m_use_seek_buffer && nread > 0)
+				{
+					scap_save_seek_buffer(r, buf, len, nread);
+				}
+			}
+			return nread;
+
 		default:
 			ASSERT(false);
 			return 0;
@@ -464,7 +530,14 @@ static inline int64_t scap_reader_offset(scap_reader_t *r)
 	switch (r->m_type)
 	{
 		case RT_FILE:
-			return gzoffset(r->m_file);
+			if(r->m_use_seek_buffer)
+			{
+				return r->m_total_bytes_read;
+			}
+			else
+			{
+				return gzoffset(r->m_file);
+			}
 		default:
 			ASSERT(false);
 			return -1;
@@ -484,26 +557,88 @@ static inline int64_t scap_reader_tell(scap_reader_t *r)
 	}
 }
 
+static int scap_reader_seek_buffer(scap_reader_t *r, int64_t offset, int whence)
+{
+	int nread;
+	if (whence != SEEK_CUR)
+	{
+		r->m_last_error = "unsupported seek whence";
+		return -1;
+	}
+	if (offset < 0)
+	{
+		// We support backward seeking only until a certain
+		// limit only for convenience.
+		if ((int64_t)0 - offset > r->m_seek_buffer_len)
+		{
+			r->m_last_error = "negative seek offset overflows buffer";
+			return -1;
+		}
+		r->m_total_bytes_read += offset;
+		r->m_seek_buffer_ptr = &r->m_seek_buffer[0] + r->m_seek_buffer_len + offset;
+	}
+	else
+	{
+		// We support forward seeking by consuming the readable byte stream
+		// This does seem to be ever invoked currently in the general case.
+		uint8_t buf[READER_SEEK_SKIP_SIZE];
+		while (offset > 0)
+		{
+			nread = scap_reader_read(r, &buf[0], MIN(READER_SEEK_SKIP_SIZE, offset));
+			if (nread <= 0)
+			{
+				return nread;
+			}
+			offset -= nread;
+		}
+	}
+	return r->m_total_bytes_read;
+}
+
 static inline int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
 {
 	ASSERT(r != NULL);
 	switch (r->m_type)
 	{
 		case RT_FILE:
-			return gzseek(r->m_file, offset, whence);
+			if(r->m_use_seek_buffer)
+			{
+				return scap_reader_seek_buffer(r, offset, whence);
+			}
+			else
+			{
+				return gzseek(r->m_file, offset, whence);
+			}
 		default:
 			ASSERT(false);
 			return -1;
 	}
 }
 
+//
+// Since scap_reader can have multiple internal implementations, we can't
+// agree on an uniform error enumeration. For contract, we state that
+// errnum = 0 represents a non-error, whereas any other value represents
+// an implementation-specific error code.
+//
 static inline const char *scap_reader_error(scap_reader_t *r, int *errnum)
 {
+	const char *ret;
 	ASSERT(r != NULL);
 	switch (r->m_type)
 	{
 		case RT_FILE:
-			return gzerror(r->m_file, errnum);
+			if(r->m_use_seek_buffer && r->m_last_error != NULL)
+			{
+				*errnum = 1;
+				ret = r->m_last_error;
+				r->m_last_error = NULL;
+				return ret;
+			}
+			else
+			{
+				return gzerror(r->m_file, errnum);
+			}
 		default:
 			ASSERT(false);
 			*errnum = -1;

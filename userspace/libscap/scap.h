@@ -328,6 +328,7 @@ typedef struct {
 typedef struct scap_open_args
 {
 	scap_mode_t mode;
+	bool use_seek_buffer; // For SCAP_MODE_CAPTURE, use a buffer to avoid fseek()s.
 	int fd; // If non-zero, will be used instead of fname.
 	const char* fname; ///< The name of the file to open. NULL for live captures.
 	proc_entry_callback proc_callback; ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
