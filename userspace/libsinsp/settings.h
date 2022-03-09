@@ -31,7 +31,6 @@ limitations under the License.
 //
 // If defined, the filtering system is compiled
 //
-#define HAS_FILTERING
 #define HAS_CAPTURE_FILTERING
 
 //

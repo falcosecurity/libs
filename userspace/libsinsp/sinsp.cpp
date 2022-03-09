@@ -89,11 +89,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_inactive_container_scan_time_ns = DEFAULT_INACTIVE_CONTAINER_SCAN_TIME_S * ONE_SECOND_IN_NS;
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
-
-#ifdef HAS_FILTERING
 	m_filter = NULL;
-#endif
-
 	m_fds_to_remove = new vector<int64_t>;
 	m_machine_info = NULL;
 #ifdef SIMULATE_DROP_MODE
@@ -311,9 +307,7 @@ void sinsp::init()
 	m_nevts = 0;
 	m_tid_to_remove = -1;
 	m_lastevent_ts = 0;
-#ifdef HAS_FILTERING
 	m_firstevent_ts = 0;
-#endif
 	m_fds_to_remove->clear();
 
 	//
@@ -790,14 +784,11 @@ void sinsp::close()
 
 	deinit_state();
 
-#ifdef HAS_FILTERING
 	if(m_filter != NULL)
 	{
 		delete m_filter;
 		m_filter = NULL;
 	}
-
-#endif
 
 	m_ppm_sc_of_interest.clear();
 }
@@ -1400,7 +1391,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	if(NULL != m_dumper)
 	{
 
-#if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
+#ifdef HAS_CAPTURE_FILTERING
 		scap_dump_flags dflags;
 
 		bool do_drop;
@@ -1410,7 +1401,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			*puevt = evt;
 			return SCAP_TIMEOUT;
 		}
-#endif
+#endif // HAS_CAPTURE_FILTERING
 
 		if(m_write_cycling)
 		{
@@ -1441,7 +1432,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 
-#if defined(HAS_FILTERING) && defined(HAS_CAPTURE_FILTERING)
+#ifdef HAS_CAPTURE_FILTERING
 	if(evt->m_filtered_out)
 	{
 		ppm_event_category cat = evt->get_info_category();
@@ -1805,7 +1796,6 @@ void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 }
 #endif // _WIN32
 
-#ifdef HAS_FILTERING
 void sinsp::set_filter(sinsp_filter* filter)
 {
 	if(m_filter != NULL)
@@ -1847,7 +1837,6 @@ bool sinsp::run_filters_on_evt(sinsp_evt *evt)
 
 	return false;
 }
-#endif
 
 const scap_machine_info* sinsp::get_machine_info()
 {
@@ -1896,16 +1885,10 @@ scap_groupinfo* sinsp::get_group(uint32_t gid)
 	return it->second;
 }
 
-#ifdef HAS_FILTERING
 void sinsp::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);
 }
-#else
-void sinsp::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
-{
-}
-#endif
 
 uint32_t sinsp::reserve_thread_memory(uint32_t size)
 {

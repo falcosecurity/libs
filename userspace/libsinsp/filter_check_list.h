@@ -20,7 +20,6 @@ limitations under the License.
 #include <string>
 #include <vector>
 
-#ifdef HAS_FILTERING
 class sinsp_filter_check;
 class filter_check_info;
 class sinsp;
@@ -55,4 +54,3 @@ public:
 // This is the "default" filter check list
 extern sinsp_filter_check_list g_filterlist;
 
-#endif // HAS_FILTERING

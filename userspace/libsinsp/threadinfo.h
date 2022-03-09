@@ -321,13 +321,11 @@ public:
 	void cgroups_to_iovec(struct iovec **iov, int *iovcnt,
 			      std::string &rem) const;
 
-#ifdef HAS_FILTERING
 	//
 	// State for filtering
 	//
 	uint64_t m_last_latency_entertime;
 	uint64_t m_latency;
-#endif
 
 	//
 	// Global state

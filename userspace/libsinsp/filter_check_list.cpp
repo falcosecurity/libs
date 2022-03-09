@@ -19,7 +19,6 @@ limitations under the License.
 
 #include "sinsp.h"
 
-#ifdef HAS_FILTERING
 #include "filter_check_list.h"
 #include "filterchecks.h"
 
@@ -145,4 +144,3 @@ sinsp_filter_check_list::~sinsp_filter_check_list()
 {
 }
 
-#endif // HAS_FILTERING
