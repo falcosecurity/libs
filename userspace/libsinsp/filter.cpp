@@ -36,7 +36,6 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "utils.h"
 
-#ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
 #include "value_parser.h"
@@ -2184,4 +2183,3 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 	return ret;
 }
 
-#endif // HAS_FILTERING

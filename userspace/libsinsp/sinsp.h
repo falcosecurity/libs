@@ -338,7 +338,6 @@ public:
 	*/
 	void start_capture();
 
-#ifdef HAS_FILTERING
 	/*!
 	  \brief Compiles and installs the given capture filter.
 
@@ -367,7 +366,6 @@ public:
 	const string get_filter();
 
 	bool run_filters_on_evt(sinsp_evt *evt);
-#endif
 
 	/*!
 	  \brief This method can be used to specify a function to collect the library
@@ -1178,11 +1176,9 @@ public:
 	//
 	bool m_print_container_data;
 
-#ifdef HAS_FILTERING
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
-#endif
 	unordered_set<uint32_t> m_ppm_sc_of_interest;
 
 	//

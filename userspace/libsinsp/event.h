@@ -330,13 +330,11 @@ public:
 	*/
 	void get_category(OUT sinsp_evt::category* cat);
 
-#ifdef HAS_FILTERING
 	/*!
 	  \brief Return true if the event has been rejected by the filtering system.
 	*/
 	bool is_filtered_out();
 	scap_dump_flags get_dump_flags(OUT bool* should_drop);
-#endif
 
 	/*!
 	  \brief Return whether or not a simple consumer that privileges low overhead to
@@ -524,9 +522,7 @@ VISIBILITY_PRIVATE
 	uint32_t m_iosize;
 	int32_t m_errorcode;
 	int32_t m_rawbuf_str_len;
-#ifdef HAS_FILTERING
 	bool m_filtered_out;
-#endif
 	const struct ppm_event_info* m_event_info_table;
 
 	friend class sinsp;

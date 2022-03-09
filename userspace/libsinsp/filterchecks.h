@@ -25,7 +25,6 @@ limitations under the License.
 #include "mesos.h"
 #endif
 
-#ifdef HAS_FILTERING
 #include "gen_filter.h"
 
 class sinsp_filter_check_reference;
@@ -968,4 +967,3 @@ private:
 
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
-#endif // HAS_FILTERING

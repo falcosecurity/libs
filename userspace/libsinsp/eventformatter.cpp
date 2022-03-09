@@ -24,7 +24,6 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 // rawstring_check implementation
 ///////////////////////////////////////////////////////////////////////////////
-#ifdef HAS_FILTERING
 
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
 					 filter_check_list &available_checks)
@@ -325,33 +324,6 @@ bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
 {
 	return tostring_withformat(evt, *res, m_output_format);
 }
-
-#else  // HAS_FILTERING
-
-sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector)
-{
-}
-
-void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const std::string &format) = 0;
-{
-	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
-}
-
-bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
-{
-	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
-}
-
-bool sinsp_evt_formatter::tostring(gen_event* gevt, std::string &output)
-{
-	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
-}
-
-bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &output, gen_event_formatter::output_format of)
-{
-	throw sinsp_exception("sinsp_evt_formatter unavailable because it was not compiled in the library");
-}
-#endif // HAS_FILTERING
 
 sinsp_evt_formatter_cache::sinsp_evt_formatter_cache(sinsp *inspector)
 	: m_inspector(inspector)

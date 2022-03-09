@@ -20,7 +20,6 @@ limitations under the License.
 #include <set>
 #include <vector>
 
-#ifdef HAS_FILTERING
 
 #include "filter_check_list.h"
 #include "gen_filter.h"
@@ -130,4 +129,3 @@ protected:
 	filter_check_list &m_available_checks;
 };
 
-#endif // HAS_FILTERING

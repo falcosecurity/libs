@@ -67,9 +67,7 @@ limitations under the License.
 sinsp_evttables g_infotables;
 sinsp_logger g_logger;
 sinsp_initializer g_initializer;
-#ifdef HAS_FILTERING
 sinsp_filter_check_list g_filterlist;
-#endif
 sinsp_protodecoder_list g_decoderlist;
 
 //
@@ -843,12 +841,10 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 	return res;
 }
 
-#ifdef HAS_FILTERING
 void sinsp_utils::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
 {
 	g_filterlist.get_all_fields(list);
 }
-#endif
 
 uint64_t sinsp_utils::get_current_time_ns()
 {

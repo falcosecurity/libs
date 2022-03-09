@@ -2587,7 +2587,6 @@ bool sinsp_evt::is_filtered_out()
 	return m_filtered_out;
 }
 
-#ifdef HAS_FILTERING
 scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 {
 	uint32_t dflags = SCAP_DF_NONE;
@@ -2635,7 +2634,6 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 
 	return (scap_dump_flags)dflags;
 }
-#endif
 
 bool sinsp_evt::simple_consumer_consider()
 {

@@ -24,7 +24,6 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "dns_manager.h"
 
-#ifdef HAS_FILTERING
 #include "filter.h"
 #include "filterchecks.h"
 #include "plugin.h"
@@ -8226,4 +8225,3 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 }
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
-#endif // HAS_FILTERING

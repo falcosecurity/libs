@@ -76,10 +76,8 @@ void sinsp_threadinfo::init()
 	m_vpid = -1;
 	m_main_thread.reset();
 	m_lastevent_fd = 0;
-#ifdef HAS_FILTERING
 	m_last_latency_entertime = 0;
 	m_latency = 0;
-#endif
 	m_program_hash = 0;
 	m_program_hash_scripts = 0;
 	m_lastevent_data = NULL;
