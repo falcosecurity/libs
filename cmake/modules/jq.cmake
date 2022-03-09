@@ -16,7 +16,7 @@ elseif(NOT USE_BUNDLED_JQ)
 else()
 	set(JQ_SRC "${PROJECT_BINARY_DIR}/jq-prefix/src/jq")
 	message(STATUS "Using bundled jq in '${JQ_SRC}'")
-	set(JQ_INCLUDE "${JQ_SRC}/target/include")
+	set(JQ_INCLUDE "${JQ_SRC}/target/include/")
 	set(JQ_INSTALL_DIR "${JQ_SRC}/target")
 	set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq.a")
 	set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
@@ -49,6 +49,9 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${JQ_LIB} ${ONIGURUMA_LIB}
 			INSTALL_COMMAND ${CMD_MAKE} install)
+		install(FILES "${JQ_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(FILES "${ONIGURUMA_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(DIRECTORY "${JQ_INCLUDE}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 	endif()
 endif()
 

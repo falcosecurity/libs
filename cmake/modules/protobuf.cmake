@@ -17,7 +17,7 @@ else()
 
 	set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
 	set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
-	set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include")
+	set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include/")
 	set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf.a")
 	set(PROTOC_LIB "${PROTOBUF_SRC}/target/lib/libprotoc.a")
 	set(PROTOBUF_INSTALL_DIR "${PROTOBUF_SRC}/target")
@@ -35,6 +35,10 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
 			INSTALL_COMMAND make install)
+		install(FILES "${PROTOBUF_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(FILES "${PROTOC_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(FILES "${PROTOC}" DESTINATION "./bin/${LIBS_PACKAGE_NAME}/")
+		install(DIRECTORY "${PROTOBUF_INCLUDE}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 	endif()
 endif()
 

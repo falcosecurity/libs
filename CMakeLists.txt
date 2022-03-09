@@ -49,7 +49,10 @@ if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(DRIVER_PACKAGE_NAME "scap")
+if(NOT DEFINED DRIVER_PACKAGE_NAME)
+        set(DRIVER_PACKAGE_NAME "scap")
+endif()
+set(LIBS_PACKAGE_NAME "falcosecurity")
 
 include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)

@@ -29,6 +29,8 @@ else()
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${TBB_LIB}
 			INSTALL_COMMAND "")
+		install(FILES "${TBB_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
+		install(DIRECTORY "${TBB_INCLUDE_DIR}" DESTINATION "./include/${LIBS_PACKAGE_NAME}/")
 	endif()
 endif()
 
