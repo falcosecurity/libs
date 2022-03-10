@@ -160,8 +160,6 @@ public:
 
 	sinsp* m_inspector;
 	bool m_needs_state_tracking = false;
-	sinsp_field_aggregation m_aggregation;
-	sinsp_field_aggregation m_merge_aggregation;
 	check_eval_cache_entry* m_eval_cache_entry = NULL;
 	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
 	std::vector<extract_value_t> m_extracted_values;
