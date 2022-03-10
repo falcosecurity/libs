@@ -74,7 +74,6 @@ using namespace std;
 #include "ifinfo.h"
 #include "container.h"
 #include "user.h"
-#include "viewinfo.h"
 #include "utils.h"
 
 #ifndef VISIBILITY_PRIVATE

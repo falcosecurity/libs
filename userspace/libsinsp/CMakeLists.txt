@@ -101,7 +101,6 @@ set(SINSP_SOURCES
 	tuples.cpp
 	sinsp.cpp
 	stats.cpp
-	table.cpp
 	token_bucket.cpp
 	stopwatch.cpp
 	uri_parser.c
@@ -110,7 +109,6 @@ set(SINSP_SOURCES
 	utils.cpp
 	user_event.cpp
 	value_parser.cpp
-	viewinfo.cpp
 	user.cpp
 	gvisor_config.cpp)
 
@@ -119,7 +117,9 @@ if(WITH_CHISEL)
 		../chisel/chisel_api.cpp
 		../chisel/chisel_fields_info.cpp
 		../chisel/chisel_utils.cpp
-		../chisel/chisel.cpp)
+		../chisel/chisel.cpp
+		../chisel/chisel_viewinfo.cpp
+		../chisel/chisel_table.cpp)
 endif()
 
 if(NOT MINIMAL_BUILD)
