@@ -29,11 +29,6 @@ limitations under the License.
 #define SP_EVT_BUF_SIZE 4096
 
 //
-// If defined, the filtering system is compiled
-//
-#define HAS_CAPTURE_FILTERING
-
-//
 // Controls if assertions break execution or if they are just printed to the
 // log
 //
