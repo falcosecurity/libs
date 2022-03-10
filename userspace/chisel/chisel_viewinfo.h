@@ -24,7 +24,7 @@ limitations under the License.
 //
 // Aggregation type for table fields
 //
-typedef enum sinsp_field_aggregation
+typedef enum chisel_field_aggregation
 {
 	A_NONE,
 	A_SUM,
@@ -32,10 +32,10 @@ typedef enum sinsp_field_aggregation
 	A_TIME_AVG,
 	A_MIN,
 	A_MAX,		
-}sinsp_field_aggregation;
+} chisel_field_aggregation;
 
 //
-// sinsp_view_column_info flags
+// chisel_view_column_info flags
 //
 #define TEF_NONE 0
 #define TEF_IS_KEY 1
@@ -46,20 +46,20 @@ typedef enum sinsp_field_aggregation
 ///////////////////////////////////////////////////////////////////////////////
 // Column information
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_view_column_info
+class chisel_view_column_info
 {
 public:
-	sinsp_view_column_info()
+	chisel_view_column_info()
 	{
 	}
 	
-	sinsp_view_column_info(string field,
+	chisel_view_column_info(string field,
 		string name,
 		string description,
 		uint32_t colsize,
 		uint32_t flags,
-		sinsp_field_aggregation aggregation,
-		sinsp_field_aggregation groupby_aggregation,
+		chisel_field_aggregation aggregation,
+		chisel_field_aggregation groupby_aggregation,
 		vector<string> tags,
 		string filterfield)
 	{
@@ -81,8 +81,8 @@ public:
 	string m_name;
 	string m_description;
 	uint32_t m_colsize;
-	sinsp_field_aggregation m_aggregation;
-	sinsp_field_aggregation m_groupby_aggregation;
+	chisel_field_aggregation m_aggregation;
+	chisel_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
 	vector<string> m_tags;
 	string m_filterfield;
@@ -91,10 +91,10 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // action information
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_view_action_info
+class chisel_view_action_info
 {
 public:
-	sinsp_view_action_info(char hotkey,
+	chisel_view_action_info(char hotkey,
 		string command,
 		string description,
 		bool ask_confirmation,
@@ -117,7 +117,7 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 // View information
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_view_info
+class chisel_view_info
 {
 public:
 	enum viewtype
@@ -129,26 +129,26 @@ public:
 		T_SPECTRO,
 	};
 
-	sinsp_view_info();
-	sinsp_view_info(viewtype type,
+	chisel_view_info();
+	chisel_view_info(viewtype type,
 		string id,
 		string name,
 		string description,
 		vector<string> tags,
 		vector<string> tips,
-		vector<sinsp_view_column_info> columns,
+		vector<chisel_view_column_info> columns,
 		vector<string> applies_to,
 		string filter,
 		string drilldown_target,
 		bool use_defaults,
 		bool is_root,
-		vector<sinsp_view_action_info> actions,
+		vector<chisel_view_action_info> actions,
 		bool drilldown_increase_depth,
 		string spectro_type,
 		bool propagate_filter);
 
 	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
-	sinsp_view_column_info* get_key();
+	chisel_view_column_info* get_key();
 	string get_filter(uint32_t depth);
 	viewtype get_type()
 	{
@@ -162,7 +162,7 @@ public:
 
 	void apply_tag(string tag);
 
-	void run_action(sinsp_view_action_info* action);
+	void run_action(chisel_view_action_info* action);
 	string m_id;
 	string m_name;
 	string m_description;
@@ -170,14 +170,14 @@ public:
 	vector<string> m_tips;
 	uint32_t m_sortingcol;
 	vector<string> m_applies_to;
-	vector<sinsp_view_column_info> m_columns;
+	vector<chisel_view_column_info> m_columns;
 	bool m_use_defaults;
 	bool m_does_groupby;
 	viewtype m_type;
 	bool m_valid;
 	string m_drilldown_target;
 	bool m_is_root;
-	vector<sinsp_view_action_info> m_actions;
+	vector<chisel_view_action_info> m_actions;
 	vector<char> m_col_sort_hotkeys;
 	uint32_t max_col_sort_hotkeys;
 	bool m_drilldown_increase_depth;
@@ -197,18 +197,18 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // View manager
 ///////////////////////////////////////////////////////////////////////////////
-class sinsp_view_manager
+class chisel_view_manager
 {
 public:
-	void add(sinsp_view_info* vinfo);
-	vector<sinsp_view_info>* get_views();
+	void add(chisel_view_info* vinfo);
+	vector<chisel_view_info>* get_views();
 	uint32_t get_selected_view();
 	void set_selected_view(string viewid);
 	size_t size()
 	{
 		return m_views.size();
 	}
-	sinsp_view_info* at(uint32_t viewnum)
+	chisel_view_info* at(uint32_t viewnum)
 	{
 		return &m_views[viewnum];
 	}
@@ -216,7 +216,7 @@ public:
 private:
 	void sort_views();
 
-	vector<sinsp_view_info> m_views;
+	vector<chisel_view_info> m_views;
 
 	string m_selected_view_id;
 };

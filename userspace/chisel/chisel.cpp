@@ -27,16 +27,11 @@ limitations under the License.
 #include <unistd.h>
 #endif
 #include <third-party/tinydir.h>
-#include <json/json.h>
 
-#include "sinsp.h"
-#include "sinsp_capture_interrupt_exception.h"
-#include "sinsp_int.h"
 #include "chisel.h"
 #include "chisel_api.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "table.h"
+#include "chisel_table.h"
+#include "chisel_capture_interrupt_exception.h"
 
 #define HAS_LUA_CHISELS
 
@@ -383,9 +378,9 @@ void sinsp_chisel::add_lua_package_path(lua_State* ls, const char* path)
 }
 #endif
 
-sinsp_field_aggregation sinsp_chisel::string_to_aggregation(string ag)
+chisel_field_aggregation sinsp_chisel::string_to_aggregation(string ag)
 {
-	sinsp_field_aggregation res = A_NONE;
+	chisel_field_aggregation res = A_NONE;
 
 	if(ag == "SUM")
 	{
@@ -417,7 +412,7 @@ sinsp_field_aggregation sinsp_chisel::string_to_aggregation(string ag)
 
 void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns)
 {
-	vector<sinsp_view_column_info>* cols = (vector<sinsp_view_column_info>*)columns;
+	vector<chisel_view_column_info>* cols = (vector<chisel_view_column_info>*)columns;
 
 	lua_pushnil(ls);
 
@@ -428,8 +423,8 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 	string filterfield;
 	uint32_t colsize = 0xffffffff;
 	uint32_t flags = TEF_NONE;
-	sinsp_field_aggregation aggregation = A_NONE;
-	sinsp_field_aggregation groupby_aggregation = A_NONE;
+	chisel_field_aggregation aggregation = A_NONE;
+	chisel_field_aggregation groupby_aggregation = A_NONE;
 	vector<string> tags;
 
 	while(lua_next(ls, -2) != 0)
@@ -576,7 +571,7 @@ void sinsp_chisel::parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		throw sinsp_exception("wrong view column syntax: filterfield specified for a non key column");
 	}
 
-	cols->push_back(sinsp_view_column_info(field,
+	cols->push_back(chisel_view_column_info(field,
 		name,
 		description,
 		colsize,
@@ -612,7 +607,7 @@ void sinsp_chisel::parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT vo
 
 void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions)
 {
-	vector<sinsp_view_action_info>* keys = (vector<sinsp_view_action_info>*)actions;
+	vector<chisel_view_action_info>* keys = (vector<chisel_view_action_info>*)actions;
 
 	lua_pushnil(ls);
 
@@ -679,7 +674,7 @@ void sinsp_chisel::parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT voi
 		throw sinsp_exception("action missing the 'command' value");
 	}
 
-	keys->push_back(sinsp_view_action_info(key,
+	keys->push_back(chisel_view_action_info(key,
 		command,
 		description,
 		ask_confirmation,
@@ -727,9 +722,9 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 	vector<string> applies_to;
 	string filter;
 	bool use_defaults = false;
-	sinsp_view_info::viewtype vt = sinsp_view_info::T_TABLE;
-	vector<sinsp_view_column_info> columns;
-	vector<sinsp_view_action_info> actions;
+	chisel_view_info::viewtype vt = chisel_view_info::T_TABLE;
+	vector<chisel_view_column_info> columns;
+	vector<chisel_view_action_info> actions;
 	vector<string> tags;
 	vector<string> tips;
 	string drilldown_target;
@@ -812,15 +807,15 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 
 			if(tmpstr == "table")
 			{
-				vt = sinsp_view_info::T_TABLE;
+				vt = chisel_view_info::T_TABLE;
 			}
 			else if(tmpstr == "list")
 			{
-				vt = sinsp_view_info::T_LIST;
+				vt = chisel_view_info::T_LIST;
 			}
 			else if(tmpstr == "spectrogram")
 			{
-				vt = sinsp_view_info::T_SPECTRO;
+				vt = chisel_view_info::T_SPECTRO;
 			}
 			else
 			{
@@ -935,7 +930,7 @@ bool sinsp_chisel::parse_view_info(lua_State *ls, OUT chisel_desc* cd)
 		lua_pop(ls, 1);
 	}
 
-	cd->m_viewinfo = sinsp_view_info(vt,
+	cd->m_viewinfo = chisel_view_info(vt,
 		id,
 		name,
 		description,
@@ -1605,7 +1600,7 @@ bool sinsp_chisel::run(sinsp_evt* evt)
 
 		if(m_lua_cinfo->m_end_capture == true)
 		{
-			throw sinsp_capture_interrupt_exception();
+			throw chisel_capture_interrupt_exception();
 		}
 
 		if(oeres == false)
