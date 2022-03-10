@@ -4191,9 +4191,9 @@ FILLER(sys_symlinkat_x, true)
 	return res;
 }
 
-FILLER(sys_sysdigevent_e, false)
+FILLER(sys_scapevent_e, false)
 {
-	bpf_printk("f_sys_sysdigevent_e should never be called\n");
+	bpf_printk("f_sys_scapevent_e should never be called\n");
 	return PPM_FAILURE_BUG;
 }
 
