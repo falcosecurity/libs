@@ -25,7 +25,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-namespace sysdig
+namespace libsinsp
 {
 
 template<typename key_type, typename value_type>
@@ -382,5 +382,5 @@ std::chrono::steady_clock::time_point async_key_value_source<key_type, value_typ
 	return next_request.first;
 }
 
-} // end namespace sysdig
+} // end namespace libsinsp
 
