@@ -512,7 +512,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
 	friend class sinsp_container_manager;
-	friend class sinsp_table;
+	friend class chisel_table;
 	friend class sinsp_cursesui;
 	friend class sinsp_baseliner;
 	friend class capture_job_handler;

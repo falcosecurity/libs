@@ -15,12 +15,13 @@ limitations under the License.
 
 */
 
-#define SINSP_TABLE_DEFAULT_REFRESH_INTERVAL_NS 1000000000
-#define SINSP_TABLE_BUFFER_ENTRY_SIZE 16384
+#include <sinsp.h>
+#include "filterchecks.h"
 
-class sinsp_filter_check_reference;
+#define chisel_table_DEFAULT_REFRESH_INTERVAL_NS 1000000000
+#define chisel_table_BUFFER_ENTRY_SIZE 16384
 
-typedef enum sysdig_table_action
+typedef enum chisel_table_action
 {
 	STA_NONE,
 	STA_PARENT_HANDLE,
@@ -35,24 +36,24 @@ typedef enum sysdig_table_action
 	STA_SPECTRO,
 	STA_SPECTRO_FILE,
 	STA_DESTROY_CHILD,
-}sysdig_table_action;
+} chisel_table_action;
 
-class sinsp_table_field
+class chisel_table_field
 {
 public:
-	sinsp_table_field()
+	chisel_table_field()
 	{
 		m_val = NULL;
 	}
 
-	sinsp_table_field(uint8_t* val, uint32_t len, uint32_t cnt)
+	chisel_table_field(uint8_t* val, uint32_t len, uint32_t cnt)
 	{
 		m_len = len;
 		m_val = val;
 		m_cnt = cnt;
 	}
 
-	bool operator==(const sinsp_table_field &other) const
+	bool operator==(const chisel_table_field &other) const
 	{
 		if(m_len!= other.m_len)
 		{
@@ -78,17 +79,17 @@ public:
 
 #define STF_STORAGE_BUFSIZE 512
 
-class sinsp_table_field_storage : public sinsp_table_field
+class chisel_table_field_storage : public chisel_table_field
 {
 public:
-	sinsp_table_field_storage()
+	chisel_table_field_storage()
 	{
 		m_storage_len = STF_STORAGE_BUFSIZE;
 		m_val = new uint8_t[m_storage_len];
 		m_isvalid = false;
 	}
 
-	~sinsp_table_field_storage()
+	~chisel_table_field_storage()
 	{
 		if(m_val != NULL)
 		{
@@ -96,7 +97,7 @@ public:
 		}
 	}
 
-	void copy(sinsp_table_field* other)
+	void copy(chisel_table_field* other)
 	{
 		if(other->m_len > m_storage_len)
 		{
@@ -122,9 +123,9 @@ private:
 	uint32_t m_storage_len;
 };
 
-struct sinsp_table_field_hasher
+struct chisel_table_field_hasher
 {
-  size_t operator()(const sinsp_table_field& k) const
+  size_t operator()(const chisel_table_field& k) const
   {
 	  size_t h = 0;
 	  uint8_t* s = k.m_val;
@@ -139,15 +140,15 @@ struct sinsp_table_field_hasher
   }
 };
 
-class sinsp_table_buffer
+class chisel_table_buffer
 {
 public:
-	sinsp_table_buffer()
+	chisel_table_buffer()
 	{
 		push_buffer();
 	}
 
-	~sinsp_table_buffer()
+	~chisel_table_buffer()
 	{
 		for(auto it = m_bufs.begin(); it != m_bufs.end(); ++it)
 		{
@@ -157,14 +158,14 @@ public:
 
 	void push_buffer()
 	{
-		m_curbuf = new uint8_t[SINSP_TABLE_BUFFER_ENTRY_SIZE];
+		m_curbuf = new uint8_t[chisel_table_BUFFER_ENTRY_SIZE];
 		m_bufs.push_back(m_curbuf);
 		m_pos = 0;
 	}
 
 	uint8_t* copy(uint8_t* src, uint32_t len)
 	{
-		if(m_pos + len >= SINSP_TABLE_BUFFER_ENTRY_SIZE)
+		if(m_pos + len >= chisel_table_BUFFER_ENTRY_SIZE)
 		{
 			push_buffer();
 		}
@@ -177,13 +178,13 @@ public:
 
 	uint8_t* reserve(uint32_t len)
 	{
-		if(len >= SINSP_TABLE_BUFFER_ENTRY_SIZE)
+		if(len >= chisel_table_BUFFER_ENTRY_SIZE)
 		{
 			ASSERT(false);
 			throw sinsp_exception("field value too long");
 		}
 
-		if(m_pos + len >= SINSP_TABLE_BUFFER_ENTRY_SIZE)
+		if(m_pos + len >= chisel_table_BUFFER_ENTRY_SIZE)
 		{
 			push_buffer();
 		}
@@ -210,14 +211,14 @@ public:
 	uint32_t m_pos;
 };
 
-class sinsp_sample_row
+class chisel_sample_row
 {
 public:
-	sinsp_table_field m_key;
-	vector<sinsp_table_field> m_values;
+	chisel_table_field m_key;
+	vector<chisel_table_field> m_values;
 };
 
-class sinsp_table
+class chisel_table
 {
 public:	
 	enum tabletype
@@ -234,10 +235,10 @@ public:
 		OT_JSON,
 	};
 
-	sinsp_table(sinsp* inspector, tabletype type, 
-		uint64_t refresh_interval_ns, sinsp_table::output_type output_type,
+	chisel_table(sinsp* inspector, tabletype type, 
+		uint64_t refresh_interval_ns, chisel_table::output_type output_type,
 		uint32_t json_first_row, uint32_t json_last_row);
-	~sinsp_table();
+	~chisel_table();
 	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
@@ -245,9 +246,9 @@ public:
 	//
 	// Returns the key of the first match, or NULL if no match
 	//
-	sinsp_table_field* search_in_sample(string text);
+	chisel_table_field* search_in_sample(string text);
 	void sort_sample();
-	vector<sinsp_sample_row>* get_sample(uint64_t time_delta);
+	vector<chisel_sample_row>* get_sample(uint64_t time_delta);
 	vector<filtercheck_field_info>* get_legend()
 	{
 		if(m_do_merging)
@@ -262,8 +263,8 @@ public:
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col();
 	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum, bool force);
-	sinsp_table_field* get_row_key(uint32_t rownum);
-	int32_t get_row_from_key(sinsp_table_field* key);
+	chisel_table_field* get_row_key(uint32_t rownum);
+	int32_t get_row_from_key(chisel_table_field* key);
 	void set_paused(bool paused);
 	void set_freetext_filter(string filter)
 	{
@@ -299,23 +300,23 @@ public:
 
 private:
 	inline void add_row(bool merging);
-	inline void add_fields_sum(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
-	inline void add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
-	inline void add_fields_max(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
-	inline void add_fields_min(ppm_param_type type, sinsp_table_field* dst, sinsp_table_field* src);
-	inline void add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr);
+	inline void add_fields_sum(ppm_param_type type, chisel_table_field* dst, chisel_table_field* src);
+	inline void add_fields_sum_of_avg(ppm_param_type type, chisel_table_field* dst, chisel_table_field* src);
+	inline void add_fields_max(ppm_param_type type, chisel_table_field* dst, chisel_table_field* src);
+	inline void add_fields_min(ppm_param_type type, chisel_table_field* dst, chisel_table_field* src);
+	inline void add_fields(uint32_t dst_id, chisel_table_field* src, uint32_t aggr);
 	void process_proctable(sinsp_evt* evt);
 	inline uint32_t get_field_len(uint32_t id);
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
-	void print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta);
+	void print_raw(vector<chisel_sample_row>* sample_data, uint64_t time_delta);
+	void print_json(vector<chisel_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
-	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher>* m_table;
-	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_premerge_table;
-	unordered_map<sinsp_table_field, sinsp_table_field*, sinsp_table_field_hasher> m_merge_table;
+	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher>* m_table;
+	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_premerge_table;
+	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_merge_table;
 	vector<filtercheck_field_info> m_premerge_legend;
 	vector<sinsp_filter_check*> m_premerge_extractors;
 	vector<sinsp_filter_check*> m_postmerge_extractors;
@@ -327,23 +328,23 @@ private:
 	bool m_is_groupby_key_present;
 	vector<uint32_t> m_groupby_columns;
 	vector<filtercheck_field_info> m_postmerge_legend;
-	sinsp_table_field* m_fld_pointers;
-	sinsp_table_field* m_premerge_fld_pointers;
-	sinsp_table_field* m_postmerge_fld_pointers;
+	chisel_table_field* m_fld_pointers;
+	chisel_table_field* m_premerge_fld_pointers;
+	chisel_table_field* m_postmerge_fld_pointers;
 	uint32_t m_n_fields;
 	uint32_t m_n_premerge_fields;
 	uint32_t m_n_postmerge_fields;
-	sinsp_table_buffer* m_buffer;
-	sinsp_table_buffer m_buffer1;
-	sinsp_table_buffer m_buffer2;
+	chisel_table_buffer* m_buffer;
+	chisel_table_buffer m_buffer1;
+	chisel_table_buffer m_buffer2;
 	uint32_t m_vals_array_sz;
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
 	sinsp_filter_check_reference* m_printer;
-	vector<sinsp_sample_row> m_full_sample_data;
-	vector<sinsp_sample_row> m_filtered_sample_data;
-	vector<sinsp_sample_row>* m_sample_data;
-	sinsp_table_field* m_vals;
+	vector<chisel_sample_row> m_full_sample_data;
+	vector<chisel_sample_row> m_filtered_sample_data;
+	vector<chisel_sample_row>* m_sample_data;
+	chisel_table_field* m_vals;
 	int32_t m_sorting_col;
 	bool m_just_sorted;
 	bool m_is_sorting_ascending;
