@@ -176,7 +176,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	//
 	// Filtering
 	//
-#ifdef HAS_CAPTURE_FILTERING
 	bool do_filter_later = false;
 
 	if(m_inspector->m_filter)
@@ -236,7 +235,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	}
 
 	evt->m_filtered_out = false;
-#endif // HAS_CAPTURE_FILTERING
 
 	//
 	// Route the event to the proper function
@@ -486,7 +484,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	// With some state-changing events like clone, execve and open, we do the
 	// filtering after having updated the state
 	//
-#ifdef HAS_CAPTURE_FILTERING
 	if(do_filter_later)
 	{
 		if(m_inspector->run_filters_on_evt(evt) == false)
@@ -496,7 +493,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		}
 		evt->m_filtered_out = false;
 	}
-#endif // HAS_CAPTURE_FILTERING
 	//
 	// Offline captures can produce events with the SCAP_DF_STATE_ONLY. They are
 	// supposed to go through the engine, but they must be filtered out before

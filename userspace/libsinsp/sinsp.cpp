@@ -1390,8 +1390,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	if(NULL != m_dumper)
 	{
-
-#ifdef HAS_CAPTURE_FILTERING
 		scap_dump_flags dflags;
 
 		bool do_drop;
@@ -1401,7 +1399,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			*puevt = evt;
 			return SCAP_TIMEOUT;
 		}
-#endif // HAS_CAPTURE_FILTERING
 
 		if(m_write_cycling)
 		{
@@ -1432,7 +1429,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 
-#ifdef HAS_CAPTURE_FILTERING
 	if(evt->m_filtered_out)
 	{
 		ppm_event_category cat = evt->get_info_category();
@@ -1445,7 +1441,6 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			return SCAP_TIMEOUT;
 		}
 	}
-#endif
 
 	//
 	// Run the analysis engine
