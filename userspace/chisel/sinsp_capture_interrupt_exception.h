@@ -16,15 +16,15 @@ limitations under the License.
 */
 #pragma once
 
-#include "sinsp_exception.h"
+#include <sinsp_exception.h>
 
 /*!
   \brief sinsp library exception.
 */
-class sinsp_capture_interrupt_exception : public sinsp_exception
+class chisel_capture_interrupt_exception : public sinsp_exception
 {
 public:
-	sinsp_capture_interrupt_exception():
+	chisel_capture_interrupt_exception():
 		sinsp_exception("capture interrupted")
 	{ }
 };
