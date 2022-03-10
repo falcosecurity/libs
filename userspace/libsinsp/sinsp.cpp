@@ -141,7 +141,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_meinfo.m_piscapevt_vals = (uint64_t*)(lens + 2);
 
 	m_meinfo.m_pievt.m_inspector = this;
-	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	m_meinfo.m_pievt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
 	m_meinfo.m_pievt.m_pevt = NULL;
 	m_meinfo.m_pievt.m_cpuid = 0;
 	m_meinfo.m_pievt.m_evtnum = 0;

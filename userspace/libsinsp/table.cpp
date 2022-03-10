@@ -511,12 +511,12 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	// Note: as the event type for this fake event, we pick one of the unused
 	//       numbers, so we guarantee that filter checks will not wrongly pick it up
 	//
-	tscapevt.type = PPME_SYSDIGEVENT_X;
+	tscapevt.type = PPME_SCAPEVENT_X;
 	tscapevt.len = 0;
 	tscapevt.nparams = 0;
 
 	tevt.m_inspector = m_inspector;
-	tevt.m_info = &(g_infotables.m_event_info[PPME_SYSDIGEVENT_X]);
+	tevt.m_info = &(g_infotables.m_event_info[PPME_SCAPEVENT_X]);
 	tevt.m_pevt = NULL;
 	tevt.m_cpuid = 0;
 	tevt.m_evtnum = 0;

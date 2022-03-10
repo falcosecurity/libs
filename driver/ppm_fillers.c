@@ -5223,7 +5223,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_sysdigevent_e(struct event_filler_arguments *args)
+int f_sys_scapevent_e(struct event_filler_arguments *args)
 {
 	int res;
 
