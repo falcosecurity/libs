@@ -311,7 +311,7 @@ typedef struct
 	const char* (*get_event_source)();
 	//
 	// Return the list of extractor fields exported by this plugin. Extractor
-	// fields can be used in Falco rule conditions and sysdig filters.
+	// fields can be used in Falco rule conditions.
 	// Required: no
 	// Return value: a string with the list of fields encoded as a json
 	//   array.
@@ -392,7 +392,7 @@ typedef struct
 	// - data: the buffer from an event produced by next_batch().
 	// - datalen: the length of the buffer from an event produced by next_batch().
 	// Return value: the text representation of the event. This is used, for example,
-	//   by sysdig to print a line for the given event.
+	//   to print a line for the given event.
 	//   The returned memory pointer must be allocated by the plugin
 	//   and must not be deallocated or modified until the next call to
 	//   event_to_string().
@@ -553,7 +553,7 @@ typedef struct
 	const char* (*get_extract_event_sources)();
 	//
 	// Return the list of extractor fields exported by this plugin. Extractor
-	// fields can be used in Falco rules and sysdig filters.
+	// fields can be used in Falco rules.
 	// Required: yes
 	// Return value: a string with the list of fields encoded as a json
 	//   array.

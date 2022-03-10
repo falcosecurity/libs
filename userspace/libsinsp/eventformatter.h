@@ -44,8 +44,8 @@ public:
 	  \param inspector Pointer to the inspector instance that will generate the
 	   events to be formatter.
 	  \param fmt The printf-like format to use. The accepted format is the same
-	   as the one of the sysdig '-p' command line flag, so refer to the sysdig
-	   manual for details.
+	   as the one of the output in Falco rules, so refer to the Falco
+	   documentation for details.
 	*/
 	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks = g_filterlist);
 
