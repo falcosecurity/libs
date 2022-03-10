@@ -2477,7 +2477,6 @@ int scap_init(void)
 
 	/*
 	 * Initialize the user I/O
-	 * ( + 1 for scap-events)
 	 */
 	acrret = alloc_chrdev_region(&dev, 0, num_cpus + 1, DRIVER_DEVICE_NAME);
 	if (acrret < 0) {
@@ -2624,7 +2623,6 @@ void scap_exit(void)
 	if (g_ppm_class)
 		class_destroy(g_ppm_class);
 
-	/* + 1 for scap-events */
 	unregister_chrdev_region(MKDEV(g_ppm_major, 0), g_ppm_numdevs + 1);
 
 	kfree(g_ppm_devs);

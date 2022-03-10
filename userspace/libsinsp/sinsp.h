@@ -743,8 +743,6 @@ public:
 	  \brief Set the runtime flag for resolving the timespan in a human
 	   readable mode.
 
-	  \note Moved to the inspector due to sysdig#426 issue
-
 	  \param flag Can be 'h', 'a', 'r', 'd', 'D' as documented in the manual.
 	*/
 	inline void set_time_output_mode(char flag)
@@ -1350,18 +1348,6 @@ public:
 	friend class test_helper;
 
 	template<class TKey,class THash,class TCompare> friend class sinsp_connection_manager;
-
-#ifdef SYSDIG_TEST
-protected:
-	void inject_machine_info(const scap_machine_info *value)
-	{
-		m_machine_info = value;
-	}
-	void inject_network_interfaces(sinsp_network_interfaces *value)
-	{
-		m_network_interfaces = value;
-	}
-#endif // SYSDIG_TEST
 };
 
 /*@}*/

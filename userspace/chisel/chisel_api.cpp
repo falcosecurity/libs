@@ -348,7 +348,7 @@ int lua_cbacks::field(lua_State *ls)
 	{
 		//
 		// This happens if the lua code is calling field() without invoking
-		// sysdig.request_field() before.
+		// request_field() before.
 		//
 		lua_pushnil(ls);
 		return 1;
