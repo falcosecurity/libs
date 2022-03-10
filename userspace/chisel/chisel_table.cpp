@@ -23,7 +23,7 @@ limitations under the License.
 #include "filter.h"
 #include "filter_check_list.h"
 #include "filterchecks.h"
-#include "table.h"
+#include "chisel_table.h"
 
 extern sinsp_evttables g_infotables;
 
@@ -32,7 +32,7 @@ extern sinsp_evttables g_infotables;
 // Table sorter functor
 typedef struct table_row_cmp
 {
-	bool operator()(const sinsp_sample_row& src, const sinsp_sample_row& dst)
+	bool operator()(const chisel_sample_row& src, const chisel_sample_row& dst)
 	{
 		cmpop op;
 
@@ -71,8 +71,8 @@ typedef struct table_row_cmp
 	bool m_ascending;
 }table_row_cmp;
 
-sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, 
-	sinsp_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)
+chisel_table::chisel_table(sinsp* inspector, tabletype type, uint64_t refresh_interval_ns, 
+	chisel_table::output_type output_type, uint32_t json_first_row, uint32_t json_last_row)
 {
 	m_inspector = inspector;
 	m_type = type;
@@ -107,7 +107,7 @@ sinsp_table::sinsp_table(sinsp* inspector, tabletype type, uint64_t refresh_inte
 	m_json_last_row = json_last_row;
 }
 
-sinsp_table::~sinsp_table()
+chisel_table::~chisel_table()
 {
 	uint32_t j;
 
@@ -134,7 +134,7 @@ sinsp_table::~sinsp_table()
 	delete m_printer;
 }
 
-void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, 
+void chisel_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, 
 	bool use_defaults, uint32_t view_depth)
 {
 	m_use_defaults = use_defaults;
@@ -143,7 +143,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	//
 	// If this is a list table, increase the refresh time to improve realtimyiness
 	//
-	if(m_type == sinsp_table::TT_LIST)
+	if(m_type == chisel_table::TT_LIST)
 	{
 		set_refresh_interval(200000000);
 	}
@@ -194,7 +194,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		}
 	}
 
-	if(m_type == sinsp_table::TT_TABLE)
+	if(m_type == chisel_table::TT_TABLE)
 	{
 		//
 		// Make sure this is a valid table
@@ -229,7 +229,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		m_is_key_present = true;
 	}
 
-	m_premerge_fld_pointers = new sinsp_table_field[m_premerge_extractors.size()];
+	m_premerge_fld_pointers = new chisel_table_field[m_premerge_extractors.size()];
 	m_fld_pointers = m_premerge_fld_pointers;
 	m_n_premerge_fields = (uint32_t)m_premerge_extractors.size();
 	m_n_fields = m_n_premerge_fields;
@@ -245,7 +245,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		m_premerge_legend.push_back(*(*it)->get_field_info());
 	}
 
-	m_premerge_vals_array_sz = (m_n_fields - 1) * sizeof(sinsp_table_field);
+	m_premerge_vals_array_sz = (m_n_fields - 1) * sizeof(chisel_table_field);
 	m_vals_array_sz = m_premerge_vals_array_sz;
 
 	//////////////////////////////////////////////////////////////////////////////////////
@@ -277,7 +277,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 	//
 	// Merging not supported for lists
 	//
-	if(m_type != sinsp_table::TT_TABLE)
+	if(m_type != chisel_table::TT_TABLE)
 	{
 		throw sinsp_exception("group by not supported for list tables");
 	}
@@ -319,7 +319,7 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		}
 	}
 
-	m_postmerge_fld_pointers = new sinsp_table_field[m_postmerge_extractors.size()];
+	m_postmerge_fld_pointers = new chisel_table_field[m_postmerge_extractors.size()];
 	m_n_postmerge_fields = (uint32_t)m_postmerge_extractors.size();
 
 	if(!m_is_groupby_key_present)
@@ -338,18 +338,18 @@ void sinsp_table::configure(vector<sinsp_view_column_info>* entries, const strin
 		m_postmerge_legend.push_back(*(*it)->get_field_info());
 	}
 
-	m_postmerge_vals_array_sz = (m_n_postmerge_fields - 1) * sizeof(sinsp_table_field);
+	m_postmerge_vals_array_sz = (m_n_postmerge_fields - 1) * sizeof(chisel_table_field);
 }
 
-void sinsp_table::add_row(bool merging)
+void chisel_table::add_row(bool merging)
 {
 	uint32_t j;
 
-	sinsp_table_field key(m_fld_pointers[0].m_val, 
+	chisel_table_field key(m_fld_pointers[0].m_val, 
 		m_fld_pointers[0].m_len,
 		m_fld_pointers[0].m_cnt);
 
-	if(m_type == sinsp_table::TT_TABLE)
+	if(m_type == chisel_table::TT_TABLE)
 	{
 		//
 		// This is a table. Do a proper key lookup and update the entry
@@ -363,7 +363,7 @@ void sinsp_table::add_row(bool merging)
 			//
 			key.m_val = key.m_val;
 			key.m_cnt = 1;
-			m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
+			m_vals = (chisel_table_field*)m_buffer->reserve(m_vals_array_sz);
 
 			for(j = 1; j < m_n_fields; j++)
 			{
@@ -405,7 +405,7 @@ void sinsp_table::add_row(bool merging)
 			return;
 		}
 
-		sinsp_sample_row row;
+		chisel_sample_row row;
 
 		//
 		// This is a list. Create the new entry and push it back.
@@ -414,7 +414,7 @@ void sinsp_table::add_row(bool merging)
 		key.m_cnt = 1;
 		row.m_key = key;
 
-		m_vals = (sinsp_table_field*)m_buffer->reserve(m_vals_array_sz);
+		m_vals = (chisel_table_field*)m_buffer->reserve(m_vals_array_sz);
 
 		for(j = 1; j < m_n_fields; j++)
 		{
@@ -429,7 +429,7 @@ void sinsp_table::add_row(bool merging)
 	}
 }
 
-void sinsp_table::process_event(sinsp_evt* evt)
+void chisel_table::process_event(sinsp_evt* evt)
 {
 	uint32_t j;
 
@@ -449,7 +449,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	//
 	for(j = 0; j < m_n_premerge_fields; j++)
 	{
-		sinsp_table_field* pfld = &(m_premerge_fld_pointers[j]);
+		chisel_table_field* pfld = &(m_premerge_fld_pointers[j]);
 
 		//
 		// XXX For the moment, we only support defaults for numeric fields.
@@ -494,7 +494,7 @@ void sinsp_table::process_event(sinsp_evt* evt)
 	return;
 }
 
-void sinsp_table::process_proctable(sinsp_evt* evt)
+void chisel_table::process_proctable(sinsp_evt* evt)
 {
 	sinsp_evt tevt;
 	scap_evt tscapevt;
@@ -539,7 +539,7 @@ void sinsp_table::process_proctable(sinsp_evt* evt)
 	});
 }
 
-void sinsp_table::flush(sinsp_evt* evt)
+void chisel_table::flush(sinsp_evt* evt)
 {	
 	if(!m_paused)
 	{
@@ -569,7 +569,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 			//
 			create_sample();
 
-			if(m_type == sinsp_table::TT_TABLE)
+			if(m_type == chisel_table::TT_TABLE)
 			{
 				//
 				// Switch the data storage so that the current one is still usable by the 
@@ -599,7 +599,7 @@ void sinsp_table::flush(sinsp_evt* evt)
 	return;
 }
 
-void sinsp_table::print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
+void chisel_table::print_raw(vector<chisel_sample_row>* sample_data, uint64_t time_delta)
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
@@ -632,7 +632,7 @@ void sinsp_table::print_raw(vector<sinsp_sample_row>* sample_data, uint64_t time
 	printf("----------------------\n");
 }
 
-void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t time_delta)
+void chisel_table::print_json(vector<chisel_sample_row>* sample_data, uint64_t time_delta)
 {
 	Json::FastWriter writer;
 	vector<filtercheck_field_info>* legend = get_legend();
@@ -712,7 +712,7 @@ void sinsp_table::print_json(vector<sinsp_sample_row>* sample_data, uint64_t tim
 	printf("],\n");
 }
 
-void sinsp_table::filter_sample()
+void chisel_table::filter_sample()
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
@@ -759,7 +759,7 @@ void sinsp_table::filter_sample()
 //
 // Returns the key of the first match, or NULL if no match
 //
-sinsp_table_field* sinsp_table::search_in_sample(string text)
+chisel_table_field* chisel_table::search_in_sample(string text)
 {
 	vector<filtercheck_field_info>* legend = get_legend();
 
@@ -804,9 +804,9 @@ sinsp_table_field* sinsp_table::search_in_sample(string text)
 	return NULL;
 }
 
-void sinsp_table::sort_sample()
+void chisel_table::sort_sample()
 {
-	if(m_type == sinsp_table::TT_LIST)
+	if(m_type == chisel_table::TT_LIST)
 	{
 		if(m_sorting_col == -1 || !m_just_sorted)
 		{
@@ -835,7 +835,7 @@ void sinsp_table::sort_sample()
 	}
 }
 
-vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
+vector<chisel_sample_row>* chisel_table::get_sample(uint64_t time_delta)
 {
 	//
 	// No sample generation happens when the table is paused
@@ -865,14 +865,14 @@ vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
 	// If required, emit the sample to stdout
 	//
 #ifndef _WIN32
-	if(m_output_type != sinsp_table::OT_CURSES)
+	if(m_output_type != chisel_table::OT_CURSES)
 	{
 #endif
-		if(m_output_type == sinsp_table::OT_RAW)
+		if(m_output_type == chisel_table::OT_RAW)
 		{
 			print_raw(m_sample_data, time_delta);
 		}
-		else if(m_output_type == sinsp_table::OT_JSON)
+		else if(m_output_type == chisel_table::OT_JSON)
 		{
 			print_json(m_sample_data, time_delta);
 		}
@@ -897,7 +897,7 @@ vector<sinsp_sample_row>* sinsp_table::get_sample(uint64_t time_delta)
 	return m_sample_data;
 }
 
-void sinsp_table::set_sorting_col(uint32_t col)
+void chisel_table::set_sorting_col(uint32_t col)
 {
 	uint32_t n_fields;
 	vector<ppm_param_type>* types;
@@ -915,7 +915,7 @@ void sinsp_table::set_sorting_col(uint32_t col)
 
 	if(col == 0)
 	{
-		if(m_type == sinsp_table::TT_TABLE)
+		if(m_type == chisel_table::TT_TABLE)
 		{
 			throw sinsp_exception("cannot sort by key");
 		}
@@ -963,18 +963,18 @@ void sinsp_table::set_sorting_col(uint32_t col)
 	m_sorting_col = col - 1;
 }
 
-uint32_t sinsp_table::get_sorting_col()
+uint32_t chisel_table::get_sorting_col()
 {
 	return (uint32_t)m_sorting_col + 1;
 }
 
-void sinsp_table::create_sample()
+void chisel_table::create_sample()
 {
-	if(m_type == sinsp_table::TT_TABLE)
+	if(m_type == chisel_table::TT_TABLE)
 	{
 		uint32_t j;
 		m_full_sample_data.clear();
-		sinsp_sample_row row;
+		chisel_sample_row row;
 
 		//
 		// If merging is on, perform the merge and switch to the merged table 
@@ -988,7 +988,7 @@ void sinsp_table::create_sample()
 			{
 				for(j = 0; j < m_n_postmerge_fields; j++)
 				{
-					sinsp_table_field* pfld = &(m_postmerge_fld_pointers[j]);
+					chisel_table_field* pfld = &(m_postmerge_fld_pointers[j]);
 
 					uint32_t col = m_groupby_columns[j];
 					if(col == 0)
@@ -1022,7 +1022,7 @@ void sinsp_table::create_sample()
 
 			row.m_values.clear();
 
-			sinsp_table_field* fields = it->second;
+			chisel_table_field* fields = it->second;
 			for(j = 0; j < m_n_fields - 1; j++)
 			{
 				row.m_values.push_back(fields[j]);
@@ -1041,7 +1041,7 @@ void sinsp_table::create_sample()
 	}
 }
 
-void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+void chisel_table::add_fields_sum(ppm_param_type type, chisel_table_field *dst, chisel_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
@@ -1083,7 +1083,7 @@ void sinsp_table::add_fields_sum(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
-void sinsp_table::add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+void chisel_table::add_fields_sum_of_avg(ppm_param_type type, chisel_table_field *dst, chisel_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
@@ -1175,7 +1175,7 @@ void sinsp_table::add_fields_sum_of_avg(ppm_param_type type, sinsp_table_field *
 	dst->m_cnt = 1;
 }
 
-void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+void chisel_table::add_fields_max(ppm_param_type type, chisel_table_field *dst, chisel_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
@@ -1256,7 +1256,7 @@ void sinsp_table::add_fields_max(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
-void sinsp_table::add_fields_min(ppm_param_type type, sinsp_table_field *dst, sinsp_table_field *src)
+void chisel_table::add_fields_min(ppm_param_type type, chisel_table_field *dst, chisel_table_field *src)
 {
 	uint8_t* operand1 = dst->m_val;
 	uint8_t* operand2 = src->m_val;
@@ -1338,10 +1338,10 @@ void sinsp_table::add_fields_min(ppm_param_type type, sinsp_table_field *dst, si
 	}
 }
 
-void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t aggr)
+void chisel_table::add_fields(uint32_t dst_id, chisel_table_field* src, uint32_t aggr)
 {
 	ppm_param_type type = (*m_types)[dst_id];
-	sinsp_table_field* dst = &(m_vals[dst_id - 1]);
+	chisel_table_field* dst = &(m_vals[dst_id - 1]);
 
 	switch(aggr)
 	{
@@ -1386,10 +1386,10 @@ void sinsp_table::add_fields(uint32_t dst_id, sinsp_table_field* src, uint32_t a
 	}
 }
 
-uint32_t sinsp_table::get_field_len(uint32_t id)
+uint32_t chisel_table::get_field_len(uint32_t id)
 {
 	ppm_param_type type;
-	sinsp_table_field *fld;
+	chisel_table_field *fld;
 
 	type = (*m_types)[id];
 	fld = &(m_fld_pointers[id]);
@@ -1459,7 +1459,7 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	}
 }
 
-uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
+uint8_t* chisel_table::get_default_val(filtercheck_field_info* fld)
 {
 	switch(fld->m_type)
 	{
@@ -1496,7 +1496,7 @@ uint8_t* sinsp_table::get_default_val(filtercheck_field_info* fld)
 	}
 }
 
-void sinsp_table::switch_buffers()
+void chisel_table::switch_buffers()
 {
 	if(m_buffer == &m_buffer1)
 	{
@@ -1508,7 +1508,7 @@ void sinsp_table::switch_buffers()
 	}
 }
 
-pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint32_t rownum, bool force)
+pair<filtercheck_field_info*, string> chisel_table::get_row_key_name_and_val(uint32_t rownum, bool force)
 {
 	pair<filtercheck_field_info*, string> res;
 	vector<sinsp_filter_check*>* extractors;
@@ -1557,7 +1557,7 @@ pair<filtercheck_field_info*, string> sinsp_table::get_row_key_name_and_val(uint
 	return res;
 }
 
-sinsp_table_field* sinsp_table::get_row_key(uint32_t rownum)
+chisel_table_field* chisel_table::get_row_key(uint32_t rownum)
 {
 	if(rownum >= m_sample_data->size())
 	{
@@ -1567,13 +1567,13 @@ sinsp_table_field* sinsp_table::get_row_key(uint32_t rownum)
 	return &m_sample_data->at(rownum).m_key;
 }
 
-int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
+int32_t chisel_table::get_row_from_key(chisel_table_field* key)
 {
 	uint32_t j;
 
 	for(j = 0; j < m_sample_data->size(); j++)
 	{
-		sinsp_table_field* rowkey = &(m_sample_data->at(j).m_key);
+		chisel_table_field* rowkey = &(m_sample_data->at(j).m_key);
 
 		if(rowkey->m_len == key->m_len)
 		{
@@ -1587,14 +1587,14 @@ int32_t sinsp_table::get_row_from_key(sinsp_table_field* key)
 	return -1;
 }
 
-void sinsp_table::set_paused(bool paused)
+void chisel_table::set_paused(bool paused)
 {
 	m_paused = paused;
 }
 
-void sinsp_table::clear()
+void chisel_table::clear()
 {
-	if(m_type == sinsp_table::TT_LIST)
+	if(m_type == chisel_table::TT_LIST)
 	{
 		m_full_sample_data.clear();
 		m_buffer->clear();

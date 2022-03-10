@@ -1313,7 +1313,6 @@ public:
 	friend class lua_cbacks;
 	friend class sinsp_filter_check_container;
 	friend class sinsp_worker;
-	friend class sinsp_table;
 	friend class curses_textbox;
 	friend class sinsp_filter_check_fd;
 	friend class sinsp_filter_check_k8s;
