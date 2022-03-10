@@ -27,7 +27,7 @@ limitations under the License.
 #include <unordered_map>
 #include <stdint.h>
 
-namespace sysdig
+namespace libsinsp
 {
 
 /**
@@ -338,6 +338,6 @@ private:
 };
 
 
-} // end namespace sysdig
+} // end namespace libsinsp
 
 #include "async_key_value_source.tpp"

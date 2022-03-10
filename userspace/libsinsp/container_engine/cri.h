@@ -46,7 +46,7 @@ namespace container_engine {
  * 2. Apparently CRI can fail to find a freshly created container
  * for a short while, so we should delay the query a bit.
  */
-class cri_async_source : public sysdig::async_key_value_source<
+class cri_async_source : public libsinsp::async_key_value_source<
         libsinsp::cgroup_limits::cgroup_limits_key,
         sinsp_container_info>
 {

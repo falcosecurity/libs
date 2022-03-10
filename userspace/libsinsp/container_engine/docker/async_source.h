@@ -1,6 +1,6 @@
 #pragma once
 
-#include "async_key_value_source.h"
+#include "async/async_key_value_source.h"
 #include "container_info.h"
 
 #include "container_engine/docker/connection.h"
@@ -11,7 +11,7 @@ namespace container_engine {
 
 class container_cache_interface;
 
-class docker_async_source : public sysdig::async_key_value_source<docker_lookup_request, sinsp_container_info>
+class docker_async_source : public libsinsp::async_key_value_source<docker_lookup_request, sinsp_container_info>
 {
 public:
 	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache);
