@@ -17,12 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "../../driver/ppm_ringbuffer.h"
-#include "filter.h"
-#include "filter_check_list.h"
-#include "filterchecks.h"
+#include <sinsp.h>
 #include "chisel_table.h"
 
 extern sinsp_evttables g_infotables;
@@ -134,7 +129,7 @@ chisel_table::~chisel_table()
 	delete m_printer;
 }
 
-void chisel_table::configure(vector<sinsp_view_column_info>* entries, const string& filter, 
+void chisel_table::configure(vector<chisel_view_column_info>* entries, const string& filter, 
 	bool use_defaults, uint32_t view_depth)
 {
 	m_use_defaults = use_defaults;
@@ -173,8 +168,8 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 			throw sinsp_exception("invalid field name " + vit.get_field(m_view_depth));
 		}
 
-		chk->m_aggregation = (sinsp_field_aggregation)vit.m_aggregation;
-		m_chks_to_free.push_back(chk);
+		check_wrapper* chk_wrap = new check_wrapper(chk, (chisel_field_aggregation)vit.m_aggregation);
+		m_chks_to_free.push_back(chk_wrap);
 
 		chk->parse_field_name(vit.get_field(m_view_depth).c_str(), true, false);
 
@@ -185,12 +180,12 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 				throw sinsp_exception("invalid table configuration: multiple keys specified");
 			}
 
-			m_premerge_extractors.insert(m_premerge_extractors.begin(), chk);
+			m_premerge_extractors.insert(m_premerge_extractors.begin(), chk_wrap);
 			m_is_key_present = true;
 		}
 		else
 		{
-			m_premerge_extractors.push_back(chk);
+			m_premerge_extractors.push_back(chk_wrap);
 		}
 	}
 
@@ -215,8 +210,8 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 			throw sinsp_exception("internal table error");
 		}
 
-		chk->m_aggregation = A_NONE;
-		m_chks_to_free.push_back(chk);
+		check_wrapper* chk_wrap = new check_wrapper(chk, A_NONE);
+		m_chks_to_free.push_back(chk_wrap);
 
 		chk->parse_field_name("util.cnt", true, false);
 
@@ -225,7 +220,7 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 			throw sinsp_exception("list table can't have a key");
 		}
 
-		m_premerge_extractors.insert(m_premerge_extractors.begin(), chk);
+		m_premerge_extractors.insert(m_premerge_extractors.begin(), chk_wrap);
 		m_is_key_present = true;
 	}
 
@@ -241,8 +236,8 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 
 	for(auto it = m_premerge_extractors.begin(); it != m_premerge_extractors.end(); ++it)
 	{
-		m_premerge_types.push_back((*it)->get_field_info()->m_type);
-		m_premerge_legend.push_back(*(*it)->get_field_info());
+		m_premerge_types.push_back((*it)->m_check->get_field_info()->m_type);
+		m_premerge_legend.push_back(*(*it)->m_check->get_field_info());
 	}
 
 	m_premerge_vals_array_sz = (m_n_fields - 1) * sizeof(chisel_table_field);
@@ -297,9 +292,9 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 		}
 
 
-		sinsp_filter_check* chk = m_premerge_extractors[j];
+		check_wrapper* chk_wrap = m_premerge_extractors[j];
 
-		chk->m_merge_aggregation = (sinsp_field_aggregation)vit.m_groupby_aggregation;
+		chk_wrap->m_merge_aggregation = (chisel_field_aggregation)vit.m_groupby_aggregation;
 
 		if((vit.m_flags & TEF_IS_GROUPBY_KEY) != 0)
 		{
@@ -309,12 +304,12 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 			}
 
 			m_is_groupby_key_present = true;
-			m_postmerge_extractors.insert(m_postmerge_extractors.begin(), chk);
+			m_postmerge_extractors.insert(m_postmerge_extractors.begin(), chk_wrap);
 			m_groupby_columns.insert(m_groupby_columns.begin(), j);
 		}
 		else
 		{
-			m_postmerge_extractors.push_back(chk);
+			m_postmerge_extractors.push_back(chk_wrap);
 			m_groupby_columns.push_back(j);
 		}
 	}
@@ -334,8 +329,8 @@ void chisel_table::configure(vector<sinsp_view_column_info>* entries, const stri
 
 	for(auto it = m_postmerge_extractors.begin(); it != m_postmerge_extractors.end(); ++it)
 	{
-		m_postmerge_types.push_back((*it)->get_field_info()->m_type);
-		m_postmerge_legend.push_back(*(*it)->get_field_info());
+		m_postmerge_types.push_back((*it)->m_check->get_field_info()->m_type);
+		m_postmerge_legend.push_back(*(*it)->m_check->get_field_info());
 	}
 
 	m_postmerge_vals_array_sz = (m_n_postmerge_fields - 1) * sizeof(chisel_table_field);
@@ -607,7 +602,7 @@ void chisel_table::print_raw(vector<chisel_sample_row>* sample_data, uint64_t ti
 	{
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			sinsp_filter_check* extractor = m_extractors->at(j + 1);
+			check_wrapper* extractor = m_extractors->at(j + 1);
 			uint64_t td = 0;
 
 			if(extractor->m_aggregation == A_TIME_AVG || 
@@ -666,7 +661,7 @@ void chisel_table::print_json(vector<chisel_sample_row>* sample_data, uint64_t t
 		
 		for(uint32_t j = 0; j < m_n_fields - 1; j++)
 		{
-			sinsp_filter_check* extractor = m_extractors->at(j + 1);
+			check_wrapper* extractor = m_extractors->at(j + 1);
 			uint64_t td = 0;
 
 			if(extractor->m_aggregation == A_TIME_AVG || 
@@ -1511,7 +1506,7 @@ void chisel_table::switch_buffers()
 pair<filtercheck_field_info*, string> chisel_table::get_row_key_name_and_val(uint32_t rownum, bool force)
 {
 	pair<filtercheck_field_info*, string> res;
-	vector<sinsp_filter_check*>* extractors;
+	vector<check_wrapper*>* extractors;
 	vector<ppm_param_type>* types;
 
 	if(m_do_merging)
@@ -1530,7 +1525,7 @@ pair<filtercheck_field_info*, string> chisel_table::get_row_key_name_and_val(uin
 		ASSERT(m_sample_data == NULL || m_sample_data->size() == 0);
 		if(force)
 		{
-			res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
+			res.first = (filtercheck_field_info*)((*extractors)[0])->m_check->get_field_info();
 			ASSERT(res.first != NULL);
 		}
 		else
@@ -1542,7 +1537,7 @@ pair<filtercheck_field_info*, string> chisel_table::get_row_key_name_and_val(uin
 	else
 	{
 		vector<filtercheck_field_info>* legend = get_legend();
-		res.first = (filtercheck_field_info*)((*extractors)[0])->get_field_info();
+		res.first = (filtercheck_field_info*)((*extractors)[0])->m_check->get_field_info();
 		ASSERT(res.first != NULL);
 
 		m_printer->set_val(types->at(0),

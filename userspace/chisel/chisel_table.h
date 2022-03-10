@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <sinsp.h>
 #include "filterchecks.h"
+#include "chisel_viewinfo.h"
 
 #define chisel_table_DEFAULT_REFRESH_INTERVAL_NS 1000000000
 #define chisel_table_BUFFER_ENTRY_SIZE 16384
@@ -235,11 +236,33 @@ public:
 		OT_JSON,
 	};
 
+	struct check_wrapper
+	{
+		check_wrapper(
+				sinsp_filter_check* check,
+				chisel_field_aggregation aggregation=A_NONE,
+				chisel_field_aggregation merge_aggregation=A_NONE):
+			m_check(check),
+			m_aggregation(aggregation),
+			m_merge_aggregation(merge_aggregation)
+		{
+		}
+
+		~check_wrapper()
+		{
+			delete m_check;
+		}
+	
+		sinsp_filter_check* m_check;
+		chisel_field_aggregation m_aggregation;
+		chisel_field_aggregation m_merge_aggregation;
+	};
+
 	chisel_table(sinsp* inspector, tabletype type, 
 		uint64_t refresh_interval_ns, chisel_table::output_type output_type,
 		uint32_t json_first_row, uint32_t json_last_row);
 	~chisel_table();
-	void configure(vector<sinsp_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
+	void configure(vector<chisel_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();
@@ -318,10 +341,10 @@ private:
 	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_premerge_table;
 	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_merge_table;
 	vector<filtercheck_field_info> m_premerge_legend;
-	vector<sinsp_filter_check*> m_premerge_extractors;
-	vector<sinsp_filter_check*> m_postmerge_extractors;
-	vector<sinsp_filter_check*>* m_extractors;
-	vector<sinsp_filter_check*> m_chks_to_free;
+	vector<check_wrapper*> m_premerge_extractors;
+	vector<check_wrapper*> m_postmerge_extractors;
+	vector<check_wrapper*>* m_extractors;
+	vector<check_wrapper*> m_chks_to_free;
 	vector<ppm_param_type> m_premerge_types;
 	vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;

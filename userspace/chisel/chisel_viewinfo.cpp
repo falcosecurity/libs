@@ -15,18 +15,13 @@ limitations under the License.
 
 */
 #include <algorithm>
-#include "sinsp.h"
-#include "sinsp_int.h"
-#include "sinsp_errno.h"
-#include "sinsp_signal.h"
-#include "filter.h"
-#include "filterchecks.h"
-#include "protodecoder.h"
+#include <sinsp.h>
+#include "chisel_viewinfo.h"
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_view_column_info implementation
+// chisel_view_column_info implementation
 ///////////////////////////////////////////////////////////////////////////////
-string sinsp_view_column_info::get_field(uint32_t depth)
+string chisel_view_column_info::get_field(uint32_t depth)
 {
 	// Trim the string
 	replace_in_place(m_field, " ", "");
@@ -56,7 +51,7 @@ string sinsp_view_column_info::get_field(uint32_t depth)
 	}
 }
 
-string sinsp_view_column_info::get_filter_field(uint32_t depth)
+string chisel_view_column_info::get_filter_field(uint32_t depth)
 {
 	//
 	// If m_filterfield, return it as an override to m_field
@@ -72,26 +67,26 @@ string sinsp_view_column_info::get_filter_field(uint32_t depth)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_view_info implementation
+// chisel_view_info implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_view_info::sinsp_view_info()
+chisel_view_info::chisel_view_info()
 {
 	m_valid = false;
 }
 
-sinsp_view_info::sinsp_view_info(viewtype type, 
+chisel_view_info::chisel_view_info(viewtype type, 
 	string id,
 	string name,
 	string description,
 	vector<string> tags,
 	vector<string> tips,
-	vector<sinsp_view_column_info> columns,
+	vector<chisel_view_column_info> columns,
 	vector<string> applies_to,
 	string filter,
 	string drilldown_target,
 	bool use_defaults,
 	bool is_root,
-	vector<sinsp_view_action_info> actions,
+	vector<chisel_view_action_info> actions,
 	bool drilldown_increase_depth,
 	string spectro_type,
 	bool propagate_filter)
@@ -131,7 +126,7 @@ sinsp_view_info::sinsp_view_info(viewtype type,
 	set_col_sorting_hotkeys();
 }
 
-void sinsp_view_info::set_col_sorting_hotkeys()
+void chisel_view_info::set_col_sorting_hotkeys()
 {
 	const char shift_number_keys [] = {'!', '@', '#', '$', '%', '^', '&', '*', '('};
 	uint32_t size = sizeof(shift_number_keys) / sizeof(shift_number_keys[0]);
@@ -142,7 +137,7 @@ void sinsp_view_info::set_col_sorting_hotkeys()
 	max_col_sort_hotkeys = m_col_sort_hotkeys.size();
 }
 
-void sinsp_view_info::set_sorting_col()
+void chisel_view_info::set_sorting_col()
 {
 	m_n_sorting_cols = 0;
 
@@ -188,7 +183,7 @@ void sinsp_view_info::set_sorting_col()
 	}
 }
 
-void sinsp_view_info::apply_tag(string tag)
+void chisel_view_info::apply_tag(string tag)
 {
 	for(auto it = m_columns.begin(); it != m_columns.end();)
 	{
@@ -222,7 +217,7 @@ void sinsp_view_info::apply_tag(string tag)
 	set_sorting_col();
 }
 
-void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
+void chisel_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes)
 {
 	if(m_type == viewtype::T_LIST)
 	{
@@ -252,13 +247,13 @@ void sinsp_view_info::get_col_names_and_sizes(OUT vector<string>* colnames, OUT 
 	}
 }
 
-void sinsp_view_info::move_key_to_front(uint32_t keyflag)
+void chisel_view_info::move_key_to_front(uint32_t keyflag)
 {
 	for(uint32_t j = 0; j < m_columns.size(); j++)
 	{
 		if((m_columns[j].m_flags & keyflag) != 0)
 		{
-			sinsp_view_column_info ci = m_columns[j];
+			chisel_view_column_info ci = m_columns[j];
 
 			m_columns.erase(m_columns.begin() +j);
 			m_columns.insert(m_columns.begin(), ci);
@@ -267,7 +262,7 @@ void sinsp_view_info::move_key_to_front(uint32_t keyflag)
 	}
 }
 
-sinsp_view_column_info* sinsp_view_info::get_key()
+chisel_view_column_info* chisel_view_info::get_key()
 {
 	for(uint32_t j = 0; j < m_columns.size(); j++)
 	{
@@ -289,7 +284,7 @@ sinsp_view_column_info* sinsp_view_info::get_key()
 	return NULL;
 }
 
-string sinsp_view_info::get_filter(uint32_t depth)
+string chisel_view_info::get_filter(uint32_t depth)
 {
 	if(m_filter.find("%depth+1") != string::npos)
 	{
@@ -318,22 +313,22 @@ string sinsp_view_info::get_filter(uint32_t depth)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// sinsp_view_manager implementation
+// chisel_view_manager implementation
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_view_manager::add(sinsp_view_info* vinfo)
+void chisel_view_manager::add(chisel_view_info* vinfo)
 {
 	m_views.push_back(*vinfo);
 }
 
 typedef struct view_cmp
 {
-	bool operator()(const sinsp_view_info& src, const sinsp_view_info& dst)
+	bool operator()(const chisel_view_info& src, const chisel_view_info& dst)
 	{
 		return src.m_name < dst.m_name;
 	}
 }table_row_cmp;
 
-void sinsp_view_manager::sort_views()
+void chisel_view_manager::sort_views()
 {
 	view_cmp cc;
 
@@ -353,13 +348,13 @@ void sinsp_view_manager::sort_views()
 	//}
 }
 
-vector<sinsp_view_info>* sinsp_view_manager::get_views()
+vector<chisel_view_info>* chisel_view_manager::get_views()
 {
 	sort_views();
 	return &m_views;
 }
 
-uint32_t sinsp_view_manager::get_selected_view()
+uint32_t chisel_view_manager::get_selected_view()
 {
 	sort_views();
 
@@ -397,7 +392,7 @@ uint32_t sinsp_view_manager::get_selected_view()
 	return 0;
 }
 
-void sinsp_view_manager::set_selected_view(string viewid)
+void chisel_view_manager::set_selected_view(string viewid)
 {
 	m_selected_view_id = viewid;
 }

@@ -27,7 +27,6 @@ limitations under the License.
 #include <unistd.h>
 #include <sys/ioctl.h>
 #endif
-#include <third-party/tinydir.h>
 #include <json/json.h>
 
 #include "sinsp.h"

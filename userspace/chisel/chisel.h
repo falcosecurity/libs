@@ -17,6 +17,10 @@ limitations under the License.
 
 #pragma once
 
+#include <sinsp.h>
+#include "filterchecks.h"
+#include "chisel_viewinfo.h"
+
 /*!
 	\brief Add a new directory containing chisels.
 
@@ -26,10 +30,6 @@ limitations under the License.
 	\note This function is not reentrant.
 */
 void chisel_add_dir(string dirname, bool front_add);
-
-class sinsp_filter_check;
-class sinsp_evt_formatter;
-class sinsp_view_info;
 
 typedef struct lua_State lua_State;
 
@@ -81,7 +81,7 @@ public:
 	string m_category;
 	string m_shortdesc;
 	vector<chiselarg_desc> m_args;
-	sinsp_view_info m_viewinfo;
+	chisel_view_info m_viewinfo;
 };
 
 class chiselinfo
@@ -139,7 +139,7 @@ public:
 private:
 	bool openfile(string filename, OUT ifstream* is);
 	void free_lua_chisel();
-	static sinsp_field_aggregation string_to_aggregation(string ag);
+	static chisel_field_aggregation string_to_aggregation(string ag);
 	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
