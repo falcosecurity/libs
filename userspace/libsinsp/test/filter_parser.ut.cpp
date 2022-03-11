@@ -222,7 +222,9 @@ TEST(parser, parse_lists)
 	test_reject("test.list = (value)");
 	test_reject("test.list < (value)");
 	test_reject("test.list startswith (value)");
+	test_reject("test.list bstartswith (value)");
 	test_reject("test.list contains (value)");
+	test_reject("test.list icontains (value)");
 }
 
 TEST(parser, parse_operators)
@@ -236,7 +238,9 @@ TEST(parser, parse_operators)
 	test_accept("test.op glob value");
 	test_accept("test.op contains value");
 	test_accept("test.op icontains value");
+	test_accept("test.op bcontains 48545450");
 	test_accept("test.op startswith value");
+	test_accept("test.op bstartswith 12ab001fc5");
 	test_accept("test.op endswith value");
 	test_accept("test.op > 1");
 	test_accept("test.op < 1");
@@ -254,8 +258,11 @@ TEST(parser, parse_operators)
 	test_reject("test.op ===");
 	test_reject("test.op !==");
 	test_reject("test.op startswithvalue");
+	test_reject("test.op bstartswithvalue");
 	test_reject("test.op endswithvalue");
 	test_reject("test.op containsvalue");
+	test_reject("test.op icontainsvalue");
+	test_reject("test.op bcontainsvalue");
 	test_reject("test.op globvalue");
 }
 

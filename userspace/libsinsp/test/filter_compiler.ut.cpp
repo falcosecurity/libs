@@ -93,26 +93,27 @@ void test_filter_run(bool result, string filter_str)
 	}
 }
 
-void test_filter_compile(string filter_str, bool use_mock=true)
+void test_filter_compile(
+		std::shared_ptr<gen_event_filter_factory> factory, 
+		string filter_str,
+		bool expect_fail=false)
 {
-	std::shared_ptr<gen_event_filter_factory> factory;
-	if (use_mock)
-	{
-		factory.reset(new mock_compiler_filter_factory());
-	}
-	else
-	{
-		factory.reset(new sinsp_filter_factory(NULL));
-	}
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
 	{
 		auto filter = compiler.compile();
 		delete filter;
+		if (expect_fail)
+		{
+			FAIL() << filter_str << " -> expected failure but compilation was successful";
+		}
 	}
 	catch(const sinsp_exception& e)
 	{
-		FAIL() << filter_str << " -> " << e.what();
+		if (!expect_fail)
+		{
+			FAIL() << filter_str << " -> " << e.what();
+		}
 	}
 }
 
@@ -167,28 +168,42 @@ TEST(sinsp_filter_compiler, str_escape)
 
 TEST(sinsp_filter_compiler, supported_operators)
 {
+	std::shared_ptr<gen_event_filter_factory> factory(new mock_compiler_filter_factory());
+
 	// valid operators
-	test_filter_compile("c.true exists");
-	test_filter_compile("c.true = value");
-	test_filter_compile("c.true == value");
-	test_filter_compile("c.true != value");
-	test_filter_compile("c.true glob value");
-	test_filter_compile("c.true contains value");
-	test_filter_compile("c.true icontains value");
-	test_filter_compile("c.true startswith value");
-	test_filter_compile("c.true endswith value");
-	test_filter_compile("c.true > 1");
-	test_filter_compile("c.true < 1");
-	test_filter_compile("c.true >= 1");
-	test_filter_compile("c.true <= 1");
-	test_filter_compile("c.true in ()");
-	test_filter_compile("c.true intersects ()");
-	test_filter_compile("c.true pmatch ()");
-	test_filter_compile("c.true in()");
+	test_filter_compile(factory, "c.true exists");
+	test_filter_compile(factory, "c.true = value");
+	test_filter_compile(factory, "c.true == value");
+	test_filter_compile(factory, "c.true != value");
+	test_filter_compile(factory, "c.true glob value");
+	test_filter_compile(factory, "c.true contains value");
+	test_filter_compile(factory, "c.true icontains value");
+	test_filter_compile(factory, "c.true bcontains 12ab001fc5");
+	test_filter_compile(factory, "c.true startswith value");
+	test_filter_compile(factory, "c.true bstartswith 48545450");
+	test_filter_compile(factory, "c.true endswith value");
+	test_filter_compile(factory, "c.true > 1");
+	test_filter_compile(factory, "c.true < 1");
+	test_filter_compile(factory, "c.true >= 1");
+	test_filter_compile(factory, "c.true <= 1");
+	test_filter_compile(factory, "c.true in ()");
+	test_filter_compile(factory, "c.true intersects ()");
+	test_filter_compile(factory, "c.true pmatch ()");
+	test_filter_compile(factory, "c.true in()");
+
+	// operators incompatibilites
+	test_filter_compile(factory, "c.true bstartswith g", true);
+	test_filter_compile(factory, "c.true bstartswith 123Z", true);
+	test_filter_compile(factory, "c.true bstartswith abc_1", true);
+	test_filter_compile(factory, "c.true bstartswith g", true);
+	test_filter_compile(factory, "c.true bstartswith 123Z", true);
+	test_filter_compile(factory, "c.true bstartswith abc_1", true);
 }
 
 TEST(sinsp_filter_compiler, complex_filter)
 {
+	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL));
+
 	// This is derived from the Falco default rule
 	// "Unexpected outbound connection destination" coming from here:
 	// https://github.com/falcosecurity/falco/blob/167c5bc6910ba9e48fbd1548686146c9dad850fd/rules/falco_rules.yaml#L381
@@ -217,5 +232,6 @@ TEST(sinsp_filter_compiler, complex_filter)
 		"	and (proc.cmdline contains \"/var/lib/docker\" or proc.cmdline contains '/var/run/docker')"
 		"	and proc.pname in (dockerd, docker, dockerd-current, docker-current)"
 		")";
-	test_filter_compile(filter_str, false);
+
+	test_filter_compile(factory, filter_str);
 }
