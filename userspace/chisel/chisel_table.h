@@ -19,8 +19,8 @@ limitations under the License.
 #include "filterchecks.h"
 #include "chisel_viewinfo.h"
 
-#define chisel_table_DEFAULT_REFRESH_INTERVAL_NS 1000000000
-#define chisel_table_BUFFER_ENTRY_SIZE 16384
+#define CHISEL_TABLE_DEFAULT_REFRESH_INTERVAL_NS 1000000000
+#define CHISEL_TABLE_BUFFER_ENTRY_SIZE 16384
 
 typedef enum chisel_table_action
 {
@@ -159,14 +159,14 @@ public:
 
 	void push_buffer()
 	{
-		m_curbuf = new uint8_t[chisel_table_BUFFER_ENTRY_SIZE];
+		m_curbuf = new uint8_t[CHISEL_TABLE_BUFFER_ENTRY_SIZE];
 		m_bufs.push_back(m_curbuf);
 		m_pos = 0;
 	}
 
 	uint8_t* copy(uint8_t* src, uint32_t len)
 	{
-		if(m_pos + len >= chisel_table_BUFFER_ENTRY_SIZE)
+		if(m_pos + len >= CHISEL_TABLE_BUFFER_ENTRY_SIZE)
 		{
 			push_buffer();
 		}
@@ -179,13 +179,13 @@ public:
 
 	uint8_t* reserve(uint32_t len)
 	{
-		if(len >= chisel_table_BUFFER_ENTRY_SIZE)
+		if(len >= CHISEL_TABLE_BUFFER_ENTRY_SIZE)
 		{
 			ASSERT(false);
 			throw sinsp_exception("field value too long");
 		}
 
-		if(m_pos + len >= chisel_table_BUFFER_ENTRY_SIZE)
+		if(m_pos + len >= CHISEL_TABLE_BUFFER_ENTRY_SIZE)
 		{
 			push_buffer();
 		}
