@@ -1250,7 +1250,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 				ASSERT(false);
 				throw sinsp_exception("list filter '"
 					+ string(m_info.m_fields[m_field_id].m_name)
-					+ "' only support operators 'in' and 'intersects'");
+					+ "' only supports operators 'in' and 'intersects'");
 		}
 	}
 	else if (values.size() > 1)
