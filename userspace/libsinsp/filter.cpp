@@ -213,7 +213,7 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		std::vector<char> hex_bytes;
 		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
 		{
-			return false;
+			throw sinsp_exception("filter error: bcontains operator supports hex strings only");
 		}
 		return (memmem(operand1, op1_len, &hex_bytes[0], hex_bytes.size()) != NULL);
 	}
@@ -225,7 +225,7 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 		std::vector<char> hex_bytes;
 		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
 		{
-			return false;
+			throw sinsp_exception("filter error: bstartswith operator supports hex strings only");
 		}
 		return hex_bytes.size() <= op1_len && (memcmp(operand1, &hex_bytes[0], hex_bytes.size()) == 0);
 	}
@@ -1690,6 +1690,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 	m_expect_values = false;
 	for (size_t i = 0; i < m_field_values.size(); i++)
 	{
+		check_op_value_compatibility(check->m_cmpop, m_field_values[i]);
 		check->add_filter_value(m_field_values[i].c_str(), m_field_values[i].size(), i);
 	}
 }
@@ -1716,6 +1717,24 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 	}
 	m_field_values.clear();
 	m_field_values = e->values;
+}
+
+void sinsp_filter_compiler::check_op_value_compatibility(cmpop op, std::string& value)
+{
+	std::vector<char> hex_chars(value.c_str(), value.c_str() + value.size());
+	std::vector<char> hex_bytes;
+	switch(op)
+	{
+		case CO_BCONTAINS:
+		case CO_BSTARTSWITH:
+			if(!sinsp_utils::unhex(hex_chars, hex_bytes))
+			{
+				throw sinsp_exception("filter error: bcontains and bstartswith operator support hex strings only");
+			}
+			break;
+		default:
+			break;
+	}
 }
 
 string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
@@ -1797,9 +1816,17 @@ cmpop sinsp_filter_compiler::str_to_cmpop(string& str)
 	{
 		return CO_ICONTAINS;
 	}
+	else if(str == "bcontains")
+	{
+		return CO_BCONTAINS;
+	}
 	else if(str == "startswith")
 	{
 		return CO_STARTSWITH;
+	}
+	else if(str == "bstartswith")
+	{
+		return CO_BSTARTSWITH;
 	}
 	else if(str == "endswith")
 	{

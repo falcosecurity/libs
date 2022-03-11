@@ -117,6 +117,7 @@ private:
 	void visit(libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(libsinsp::filter::ast::binary_check_expr*) override;
 	void check_ttable_only(string& field, gen_event_filter_check *check);
+	void check_op_value_compatibility(cmpop op, std::string& value);
 	cmpop str_to_cmpop(string& str);
 	string create_filtercheck_name(string& name, string& arg);
 	gen_event_filter_check* create_filtercheck(string& field);
