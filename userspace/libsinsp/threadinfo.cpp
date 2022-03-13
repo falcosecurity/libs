@@ -24,6 +24,7 @@ limitations under the License.
 #include "strlcpy.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "sinsp_cpuarch.h"
 #include "protodecoder.h"
 #include "tracers.h"
 
@@ -67,6 +68,17 @@ void sinsp_threadinfo::init()
 	m_clone_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
+#if LIBSINSP_CPUARCH_THREAD_EVENT_BUGS != 0
+	m_cpuarch_thread_event_bug_flags = 0;
+#if LIBSINSP_CPUARCH_THREAD_EVENT_BUGS & LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_CLONE_EXIT_EVENT_TO_CHILD
+	// Mark threadinfo for initial CLONE_EXIT event processing, to handle
+	// the case of a new threadinfo created after clone.
+	// process_event() will take no action if the threadinfo is already
+	// populated from /proc.
+	m_cpuarch_thread_event_bug_flags |=
+		LIBSINSP_CPUARCH_THREAD_EVENT_BUG_FLAG_INIT_CLONE_EXIT_PENDING;
+#endif /* UNRELIABLE_CLONE_EXIT_EVENT_TO_CHILD */
+#endif /* LIBSINSP_CPUARCH_THREAD_EVENT_BUGS != 0 */
 	m_nchilds = 0;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
@@ -1833,6 +1845,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             uint64_t ts = sinsp_utils::get_current_time_ns();
 #endif
             scap_proc = scap_proc_get(m_inspector->m_h, tid, scan_sockets);
+
 #ifdef HAS_ANALYZER
             m_n_proc_lookups_duration_ns += sinsp_utils::get_current_time_ns() - ts;
 #endif
@@ -1924,6 +1937,16 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 		m_failed_lookups->increment();
 #endif
 		return NULL;
+	}
+}
+
+void sinsp_thread_manager::reinit_thread_from_proc(sinsp_threadinfo* tinfo)
+{
+	scap_threadinfo* scap_proc = scap_proc_get(m_inspector->m_h, tinfo->m_tid, true);
+	if(scap_proc)
+	{
+		tinfo->init(scap_proc);
+		scap_proc_free(m_inspector->m_h, scap_proc);
 	}
 }
 
