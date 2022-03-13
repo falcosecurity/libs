@@ -92,6 +92,16 @@ private:
 	bool reset(sinsp_evt *evt);
 	inline void store_event(sinsp_evt* evt);
 
+#if LIBSINSP_CPUARCH_THREAD_EVENT_BUGS != 0
+	//
+	// CPU architecture-specific event processing helpers, related to
+	// thread event bugs.  See sinsp_cpuarch.h.
+	//
+	void cpuarch_thread_event_bug_process_event(sinsp_evt* evt);
+	void cpuarch_thread_event_bug_simulate_init_clone_exit(sinsp_evt* evt);
+	void cpuarch_thread_event_bug_simulate_execve_exit(sinsp_evt* evt);
+#endif /* LIBSINSP_CPUARCH_THREAD_EVENT_BUGS != 0 */
+
 	//
 	// Parsers
 	//
