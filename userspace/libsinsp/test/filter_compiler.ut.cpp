@@ -42,7 +42,10 @@ public:
 		m_value = string(str);
 	}
 
-	inline uint8_t* extract(gen_event *e, uint32_t* l, bool s) override { return NULL; }
+	inline bool extract(gen_event *e, OUT vector<extract_value_t>& v, bool) override
+	{
+		return false;
+	}
 
 	string m_name;
 	string m_value;
