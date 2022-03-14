@@ -30,13 +30,14 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )")
 endif()
 
-cmake_minimum_required(VERSION 2.8.2)
+cmake_minimum_required(VERSION 2.8.5)
 
 project(falcosecurity-libs)
 
 option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 
+include(GNUInstallDirs)
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -51,6 +52,9 @@ endif()
 
 if(NOT DEFINED DRIVER_PACKAGE_NAME)
         set(DRIVER_PACKAGE_NAME "scap")
+endif()
+if(NOT DEFINED DRIVER_NAME)
+        set(DRIVER_NAME "scap")
 endif()
 set(LIBS_PACKAGE_NAME "falcosecurity")
 
