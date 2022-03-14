@@ -66,20 +66,20 @@ endif()
 
 add_subdirectory(${LIBSINSP_DIR}/userspace/libsinsp ${CMAKE_BINARY_DIR}/libsinsp)
 set(LIBSINSP_LIB "${PROJECT_BINARY_DIR}/libsinsp/libsinsp.a")
-install(FILES "${LIBSINSP_LIB}" DESTINATION "./lib/${LIBS_PACKAGE_NAME}/")
-install(DIRECTORY "${LIBSINSP_DIR}/userspace/libsinsp" DESTINATION "./include/${LIBS_PACKAGE_NAME}/userspace/"
+install(FILES "${LIBSINSP_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}/")
+install(DIRECTORY "${LIBSINSP_DIR}/userspace/libsinsp" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/"
 			FILES_MATCHING PATTERN "*.h"
 			PATTERN "*third_party*" EXCLUDE
 			PATTERN "*examples*" EXCLUDE
 			PATTERN "*doxygen*" EXCLUDE
 			PATTERN "*scripts*" EXCLUDE
 			PATTERN "*test*" EXCLUDE)
-install(DIRECTORY "${LIBSINSP_DIR}/common" DESTINATION "./include/${LIBS_PACKAGE_NAME}/"
+install(DIRECTORY "${LIBSINSP_DIR}/common" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/"
 			FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "${LIBSINSP_DIR}/userspace/async" DESTINATION "./include/${LIBS_PACKAGE_NAME}/userspace/"
+install(DIRECTORY "${LIBSINSP_DIR}/userspace/async" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/"
 			FILES_MATCHING PATTERN "*.h")
 if(WITH_CHISEL)
-	install(DIRECTORY "${LIBSINSP_DIR}/userspace/chisel" DESTINATION "./include/${LIBS_PACKAGE_NAME}/userspace/"
+	install(DIRECTORY "${LIBSINSP_DIR}/userspace/chisel" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/"
 			FILES_MATCHING PATTERN "*.h")
 endif()
 
