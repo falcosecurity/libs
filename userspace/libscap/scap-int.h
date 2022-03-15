@@ -473,7 +473,7 @@ static inline void scap_save_seek_buffer(scap_reader_t *r, void* buf, uint32_t l
 	// Store the last few bytes of this read in our seek buffer,
 	// so that they can be re-used for seeking backwards.
 	r->m_seek_buffer_len = MIN(nread, READER_SEEK_BUF_SIZE);
-	memcpy(&r->m_seek_buffer[0], buf + nread - r->m_seek_buffer_len, r->m_seek_buffer_len);
+	memcpy(&r->m_seek_buffer[0], (char *) buf + nread - r->m_seek_buffer_len, r->m_seek_buffer_len);
 	r->m_seek_buffer_ptr = NULL;
 }
 
@@ -488,7 +488,7 @@ static inline int scap_read_seek_buffer(scap_reader_t *r, void* buf, uint32_t le
 		r->m_seek_buffer_len -= nread;
 		r->m_seek_buffer_ptr += nread;
 		r->m_total_bytes_read += nread;
-		buf += nread;
+		buf = (char *) buf + nread;
 		len -= nread;
 	}
 
@@ -510,7 +510,7 @@ static inline int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
 
 			if(nread < len)
 			{
-				nread += gzread(r->m_file, buf+nread, len-nread);
+				nread += gzread(r->m_file, (char *) buf+nread, len-nread);
 				if(r->m_use_seek_buffer && nread > 0)
 				{
 					scap_save_seek_buffer(r, buf, len, nread);
