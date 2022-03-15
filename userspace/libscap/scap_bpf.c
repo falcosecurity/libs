@@ -520,8 +520,8 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 
 		if(memcmp(event, "filler/", sizeof("filler/") - 1) != 0)
 		{
-			snprintf(buf, sizeof(buf), "%c:%s %s",
-				 is_kprobe ? 'p' : 'r', event, event);
+			snprintf(buf, sizeof(buf), "%s%s %s",
+				 is_kprobe ? "p:p_" : "r:r_", event, event);
 			err = write_kprobe_events(buf);
 			if(err < 0 && errno != 17)
 			{
