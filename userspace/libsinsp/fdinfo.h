@@ -332,9 +332,9 @@ public:
 	
 	/*!
 	  \brief Socket-specific state.
-	  This is uninitialized for non-socket FDs.
+	  This is uninitialized (zero) for non-socket FDs.
 	*/
-	sinsp_sockinfo m_sockinfo;
+	sinsp_sockinfo m_sockinfo = {};
 
 	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
 	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
