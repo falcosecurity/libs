@@ -19,9 +19,7 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 include(ExternalProject)
 
-if(WIN32 OR NOT MINIMAL_BUILD)
-	include(zlib)
-endif()
+include(zlib)
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
@@ -102,7 +100,7 @@ endif()
 add_library(scap STATIC
 	${targetfiles})
 
-if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
+if(USE_BUNDLED_ZLIB)
 	add_dependencies(scap zlib)
 endif()
 
@@ -122,10 +120,8 @@ elseif (CYGWIN)
 		${WIN_HAL_LIB}/dragent_win_hal.lib)
 endif()
 
-if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
 	"${ZLIB_LIB}")
-endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
