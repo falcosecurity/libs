@@ -2127,7 +2127,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	string sdir;
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
-	bool lastevent_retrieved;
+	bool lastevent_retrieved = false;
 
 	ASSERT(evt->m_tinfo);
 	if(evt->m_tinfo == nullptr)
@@ -2135,16 +2135,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		return;
 	}
 
-
 	if(etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
 	{
 		//
 		// Load the enter event so we can access its arguments
 		//
-		if(!retrieve_enter_event(enter_evt, evt))
-		{
-			return;
-		}
+		lastevent_retrieved = retrieve_enter_event(enter_evt, evt);
 	}
 
 	//
