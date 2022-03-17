@@ -1,4 +1,4 @@
-option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
+option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags" ON)
 
 if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	set(CMD_MAKE gmake)

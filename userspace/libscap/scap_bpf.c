@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+#ifndef MINIMAL_BUILD
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,9 +25,7 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
-#ifndef MINIMAL_BUILD
 #include <gelf.h>
-#endif // MINIMAL_BUILD
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
@@ -1290,11 +1289,13 @@ static int32_t set_default_settings(scap_t *handle)
 {
 	struct scap_bpf_settings settings;
 
-	if(set_boot_time(handle, &settings.boot_time) != SCAP_SUCCESS)
+	uint64_t boot_time = 0;
+	if(set_boot_time(handle, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
 
+	settings.boot_time = boot_time;
 	settings.socket_file_ops = NULL;
 	settings.snaplen = RW_SNAPLEN;
 	settings.sampling_ratio = 1;
@@ -1557,3 +1558,5 @@ int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_i
 	}
 	return populate_syscall_table_map(handle);
 }
+
+#endif // MINIMAL_BUILD
