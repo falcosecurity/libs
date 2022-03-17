@@ -18,7 +18,7 @@ limitations under the License.
 #include <tuples.h>
 #include <string>
 #include <cstring>
-#include <arpa/inet.h>
+#include "sinsp_inet.h"
 #include "utils.h"
 #include "sinsp_exception.h"
 #include "logger.h"
