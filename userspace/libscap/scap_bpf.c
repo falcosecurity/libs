@@ -1290,11 +1290,13 @@ static int32_t set_default_settings(scap_t *handle)
 {
 	struct scap_bpf_settings settings;
 
-	if(set_boot_time(handle, &settings.boot_time) != SCAP_SUCCESS)
+	uint64_t boot_time = 0;
+	if(set_boot_time(handle, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
 
+	settings.boot_time = boot_time;
 	settings.socket_file_ops = NULL;
 	settings.snaplen = RW_SNAPLEN;
 	settings.sampling_ratio = 1;
