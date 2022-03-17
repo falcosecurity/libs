@@ -57,6 +57,8 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
+#ifndef MINIMAL_BUILD
+
 static const int BUF_SIZE_PAGES = 2048;
 
 static const int BPF_LOG_SIZE = 1 << 18;
@@ -197,7 +199,6 @@ static int bpf_raw_tracepoint_open(const char *name, int prog_fd)
 	return sys_bpf(BPF_RAW_TRACEPOINT_OPEN, &attr, sizeof(attr));
 }
 
-#ifndef MINIMAL_BUILD
 static int32_t get_elf_section(Elf *elf, int i, GElf_Ehdr *ehdr, char **shname, GElf_Shdr *shdr, Elf_Data **data)
 {
 	Elf_Scn *scn = elf_getscn(elf, i);
@@ -302,7 +303,6 @@ static int32_t load_elf_maps_section(scap_t *handle, struct bpf_map_data *maps,
 	free(sym);
 	return SCAP_SUCCESS;
 }
-#endif // MINIMAL_BUILD
 
 static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 {
@@ -341,7 +341,6 @@ static int32_t load_maps(scap_t *handle, struct bpf_map_data *maps, int nr_maps)
 	return SCAP_SUCCESS;
 }
 
-#ifndef MINIMAL_BUILD
 static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbols,
 				 GElf_Shdr *shdr, struct bpf_insn *insn,
 				 struct bpf_map_data *maps, int nr_maps)
@@ -395,7 +394,6 @@ static int32_t parse_relocations(scap_t *handle, Elf_Data *data, Elf_Data *symbo
 
 	return SCAP_SUCCESS;
 }
-#endif // MINIMAL_BUILD
 
 static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_insn *prog, int size)
 {
@@ -547,7 +545,6 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	return SCAP_SUCCESS;
 }
 
-#ifndef MINIMAL_BUILD
 static int32_t load_bpf_file(scap_t *handle, const char *path)
 {
 	int j;
@@ -718,7 +715,6 @@ cleanup:
 	close(program_fd);
 	return res;
 }
-#endif // MINIMAL_BUILD
 
 static void *perf_event_mmap(scap_t *handle, int fd)
 {
@@ -863,6 +859,10 @@ static int32_t calibrate_socket_file_ops()
 	close(fd);
 	return SCAP_SUCCESS;
 }
+
+#endif // MINIMAL_BUILD
+
+#ifndef MINIMAL_BUILD
 
 int32_t scap_bpf_start_capture(scap_t *handle)
 {
@@ -1189,6 +1189,83 @@ int32_t scap_bpf_close(scap_t *handle)
 	return SCAP_SUCCESS;
 }
 
+#else // MINIMAL_BUILD
+
+int32_t scap_bpf_start_capture(scap_t *handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_stop_capture(scap_t *handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_set_statsd_port(scap_t* const handle, const uint16_t port)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_stop_dropping_mode(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_enable_dynamic_snaplen(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_enable_page_faults(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_enable_tracers_capture(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_close(scap_t *handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+#endif // MINIMAL_BUILD
+
+#ifndef MINIMAL_BUILD
 //
 // This is completely horrible, revisit this shameful code
 // with a proper solution
@@ -1319,13 +1396,11 @@ static int32_t set_default_settings(scap_t *handle)
 
 	return SCAP_SUCCESS;
 }
+#endif // MINIMAL_BUILD
 
+#ifndef MINIMAL_BUILD
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 {
-#ifdef MINIMAL_BUILD
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-#else
 	int online_cpu;
 	int j;
 
@@ -1462,7 +1537,6 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 	}
 
 	return SCAP_SUCCESS;
-#endif // MINIMAL_BUILD
 }
 
 int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats)
@@ -1559,3 +1633,38 @@ int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_i
 	}
 	return populate_syscall_table_map(handle);
 }
+
+#else // MINIMAL_BUILD
+
+int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_set_simple_mode(scap_t* handle)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_id)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
+
+#endif // MINIMAL_BUILD
+
