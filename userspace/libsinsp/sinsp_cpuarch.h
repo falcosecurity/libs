@@ -20,10 +20,13 @@ limitations under the License.
 #define LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_CLONE_EXIT_EVENT_TO_CHILD    (1 << 0)
 #define LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_EXECVE_EXIT_EVENT_ON_SUCCESS (1 << 1)
 
-#ifdef __aarch64__
+#if defined(__aarch64__)
 #define LIBSINSP_CPUARCH_THREAD_EVENT_BUGS                                               ( \
                LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_CLONE_EXIT_EVENT_TO_CHILD |    \
                LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_EXECVE_EXIT_EVENT_ON_SUCCESS )
+#elif defined(__s390x__)
+#define LIBSINSP_CPUARCH_THREAD_EVENT_BUGS                                               ( \
+               LIBSINSP_CPUARCH_THREAD_EVENT_BUG_UNRELIABLE_CLONE_EXIT_EVENT_TO_CHILD    )
 #else
 #define LIBSINSP_CPUARCH_THREAD_EVENT_BUGS 0
 #endif
