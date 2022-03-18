@@ -22,7 +22,7 @@ elseif(NOT USE_BUNDLED_LUAJIT)
 	endif()
 else()
 	set(LUAJIT_SRC "${PROJECT_BINARY_DIR}/luajit-prefix/src/luajit/src")
-	set(LUAJIT_INCLUDE "${LUAJIT_SRC}")
+	set(LUAJIT_INCLUDE "${LUAJIT_SRC}/")
 
 	if(NOT WIN32)
 		set(LUAJIT_LIB "${LUAJIT_SRC}/libluajit.a")
@@ -78,7 +78,7 @@ else()
 					INSTALL_COMMAND "")
 			endif()
 			install(FILES "${LUAJIT_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}/")
-			install(DIRECTORY "${LUAJIT_INCLUDE}/" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/"
+			install(DIRECTORY "${LUAJIT_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/"
 				FILES_MATCHING PATTERN "*.h")
 		else()
 			ExternalProject_Add(luajit
