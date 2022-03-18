@@ -19,16 +19,16 @@ else()
 	set(ZLIB_HEADERS "")
 	list(APPEND ZLIB_HEADERS
 		"${ZLIB_INCLUDE}/crc32.h"
-	        "${ZLIB_INCLUDE}/deflate.h"
-	        "${ZLIB_INCLUDE}/gzguts.h"
-	        "${ZLIB_INCLUDE}/inffast.h"
-	        "${ZLIB_INCLUDE}/inffixed.h"
-	        "${ZLIB_INCLUDE}/inflate.h"
+		"${ZLIB_INCLUDE}/deflate.h"
+		"${ZLIB_INCLUDE}/gzguts.h"
+		"${ZLIB_INCLUDE}/inffast.h"
+		"${ZLIB_INCLUDE}/inffixed.h"
+		"${ZLIB_INCLUDE}/inflate.h"
 		"${ZLIB_INCLUDE}/inftrees.h"
-	        "${ZLIB_INCLUDE}/trees.h"
-	        "${ZLIB_INCLUDE}/zconf.h"
-	        "${ZLIB_INCLUDE}/zlib.h"
-	        "${ZLIB_INCLUDE}/zutil.h"
+		"${ZLIB_INCLUDE}/trees.h"
+		"${ZLIB_INCLUDE}/zconf.h"
+		"${ZLIB_INCLUDE}/zlib.h"
+		"${ZLIB_INCLUDE}/zutil.h"
 	)
 	if(NOT TARGET zlib)
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
