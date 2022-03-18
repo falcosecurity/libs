@@ -1112,22 +1112,22 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 		return NULL;
 	}
 
-	char* str = rawval_to_string(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
-	if (raw_values.size() == 1)
+	if (m_field->m_flags & EPF_IS_LIST)
 	{
-		return str;
+		std::string res = "(";
+		for (auto &val : raw_values)
+		{
+			if (res.size() > 1)
+			{
+				res += ",";
+			}
+			res += rawval_to_string(val.ptr, m_field->m_type, m_field->m_print_format, val.len);
+		}
+		res += ")";
+		strncpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage) - 1);
+		return m_getpropertystr_storage;
 	}
-
-	std::string res = "(";
-	res += str;
-	for (auto it = raw_values.begin() + 1; it != raw_values.end(); ++it)
-	{
-		res += ",";
-		res += rawval_to_string((*it).ptr, m_field->m_type, m_field->m_print_format, (*it).len);
-	}
-	res += ")";
-	strncpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage) - 1);
-	return m_getpropertystr_storage;
+	return rawval_to_string(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1143,11 +1143,15 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 			return Json::nullValue;
 		}
 
-		jsonval.append(rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len));
-		for (auto it = raw_values.begin() + 1; it != raw_values.end(); ++it)
+		if (m_field->m_flags & EPF_IS_LIST)
 		{
-			jsonval.append(rawval_to_json((*it).ptr, m_field->m_type, m_field->m_print_format, (*it).len));
+			for (auto &val : raw_values)
+			{
+				jsonval.append(rawval_to_json(val.ptr, m_field->m_type, m_field->m_print_format, val.len));
+			}
+			return jsonval;
 		}
+		return rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
 	}
 
 	return jsonval;
