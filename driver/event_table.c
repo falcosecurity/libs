@@ -318,7 +318,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_UNLINKAT_2_X */{"unlinkat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, unlinkat_flags} } },
 	/* PPME_SYSCALL_MKDIRAT_E */{"mkdirat", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_MKDIRAT_X */{"mkdirat", EC_FILE, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"path", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"mode", PT_UINT32, PF_HEX} } },
-	/* PPME_SYSCALL_OPENAT_2_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
+	/* PPME_SYSCALL_OPENAT_2_E */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 4, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(0)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
 	/* PPME_SYSCALL_OPENAT_2_X */{"openat", EC_FILE, EF_CREATES_FD | EF_MODIFIES_STATE, 6, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"dev", PT_UINT32, PF_HEX} } },
 	/* PPME_SYSCALL_LINK_2_E */{"link", EC_FILE, EF_NONE, 0},
 	/* PPME_SYSCALL_LINK_2_X */{"link", EC_FILE, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"oldpath", PT_FSPATH, PF_NA}, {"newpath", PT_FSPATH, PF_NA} } },
