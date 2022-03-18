@@ -2767,6 +2767,14 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		//
 		readsize = scap_reader_read(r, &bh, sizeof(bh));
 
+		if(readsize == 0)
+		{
+			//
+			// We read exactly 0 bytes. This indicates a correct end of file.
+			//
+			return SCAP_EOF;
+		}
+
 		if(readsize != sizeof(bh))
 		{
 			int err_no = 0;
@@ -2779,14 +2787,6 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading file: %s, ernum=%d", err_str, err_no);
 				return SCAP_FAILURE;
-			}
-
-			if(readsize == 0)
-			{
-				//
-				// We read exactly 0 bytes. This indicates a correct end of file.
-				//
-				return SCAP_EOF;
 			}
 			else
 			{
