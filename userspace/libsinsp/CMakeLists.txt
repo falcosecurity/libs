@@ -94,6 +94,17 @@ set(SINSP_SOURCES
 	user_event.cpp
 	value_parser.cpp
 	viewinfo.cpp
+	container_engine/docker/docker_linux.cpp
+	container_engine/docker/podman.cpp
+	container_engine/libvirt_lxc.cpp
+	container_engine/lxc.cpp
+	container_engine/mesos.cpp
+	container_engine/rkt.cpp
+	container_engine/bpm.cpp
+	procfs_utils.cpp
+	runc.cpp
+	container_engine/docker/async_source.cpp
+	container_engine/docker/base.cpp
 )
 
 if(WITH_CHISEL)

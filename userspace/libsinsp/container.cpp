@@ -17,9 +17,8 @@ limitations under the License.
 
 #include <algorithm>
 
-#ifndef MINIMAL_BUILD
 #ifdef HAS_CAPTURE
-#include "container_engine/cri.h"
+//#include "container_engine/cri.h"
 #endif // HAS_CAPTURE
 #ifdef _WIN32
 #include "container_engine/docker/docker_win.h"
@@ -32,7 +31,6 @@ limitations under the License.
 #include "container_engine/lxc.h"
 #include "container_engine/mesos.h"
 #include "container_engine/bpm.h"
-#endif // MINIMAL_BUILD
 #include "container_engine/static_container.h"
 
 #include "sinsp.h"
@@ -528,7 +526,6 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_STATIC] = engine;
 		return;
 	}
-#ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
 	{
 		auto docker_engine = std::make_shared<container_engine::docker_win>(*this, m_inspector /*wmi source*/);
@@ -548,7 +545,7 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 
-#if defined(HAS_CAPTURE)
+#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD)
 	{
 		auto cri_engine = std::make_shared<container_engine::cri>(*this);
 		m_container_engines.push_back(cri_engine);
@@ -585,7 +582,6 @@ void sinsp_container_manager::create_engines()
 	}
 #endif // _WIN32
 #endif // CYGWING_AGENT
-#endif // MINIMAL_BUILD
 }
 
 void sinsp_container_manager::update_container_with_size(sinsp_container_type type,

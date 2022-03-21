@@ -118,7 +118,12 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, container_name, api_sock;
 	int uid = detect_podman(tinfo, container_id);
-
+	tinfo->m_container_id = container_id;
+	bool res = true;
+	if(container_id.size() == 0){
+		res = false;
+	}
+#ifdef CONTAINER_INFO
 	switch(uid)
 	{
 	case 0: // root, use the default socket
@@ -131,7 +136,9 @@ bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	}
 
 	docker_lookup_request request(container_id, api_sock, CT_PODMAN, uid, false);
-	return resolve_impl(tinfo, request, query_os_for_missing_info);
+	res = resolve_impl(tinfo, request, query_os_for_missing_info);
+#endif // CONTAINER_INFO
+	return res;
 }
 
 void podman::update_with_size(const std::string& container_id)
