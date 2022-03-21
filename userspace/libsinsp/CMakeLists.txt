@@ -101,6 +101,7 @@ set(SINSP_SOURCES
 	container_engine/mesos.cpp
 	container_engine/rkt.cpp
 	container_engine/bpm.cpp
+	container_engine/cri.cpp
 	procfs_utils.cpp
 	runc.cpp
 	container_engine/docker/async_source.cpp

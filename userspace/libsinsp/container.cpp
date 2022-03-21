@@ -18,7 +18,7 @@ limitations under the License.
 #include <algorithm>
 
 #ifdef HAS_CAPTURE
-//#include "container_engine/cri.h"
+#include "container_engine/cri.h"
 #endif // HAS_CAPTURE
 #ifdef _WIN32
 #include "container_engine/docker/docker_win.h"
@@ -545,7 +545,7 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_DOCKER] = docker_engine;
 	}
 
-#if defined(HAS_CAPTURE) && !defined(MINIMAL_BUILD)
+#if defined(HAS_CAPTURE)
 	{
 		auto cri_engine = std::make_shared<container_engine::cri>(*this);
 		m_container_engines.push_back(cri_engine);
