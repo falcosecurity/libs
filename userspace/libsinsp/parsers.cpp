@@ -2764,6 +2764,25 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
 
 	if(evt->get_num_params() < 2)
 	{
+		switch(evt->m_fdinfo->m_type)
+		{
+		case SCAP_FD_IPV4_SOCK:
+			evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = 0;
+			evt->m_fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = 0;
+			break;
+		case SCAP_FD_IPV6_SOCK:
+			evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip = ipv6addr::empty_address;
+			evt->m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport = 0;
+			break;
+		default:
+			break;
+		}
+		sinsp_utils::sockinfo_to_str(&evt->m_fdinfo->m_sockinfo,
+					     evt->m_fdinfo->m_type, &evt->m_paramstr_storage[0],
+					     (uint32_t)evt->m_paramstr_storage.size(),
+					     m_inspector->m_hostname_and_port_resolution_enabled);
+
+		evt->m_fdinfo->m_name = &evt->m_paramstr_storage[0];
 		return;
 	}
 
