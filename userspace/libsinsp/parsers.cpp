@@ -2860,12 +2860,12 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
             if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
             {
                 evt->m_fdinfo->m_type = SCAP_FD_IPV6_SOCK;
-                changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+                changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, false);
             }
             else
             {
                 evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
-                changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data);
+                changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, false);
             }
         }
         else
@@ -2875,7 +2875,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
             //
             // Update the FD info with this tuple
             //
-            changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data);
+            changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data, false);
         }
 
         if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
@@ -3372,7 +3372,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 }
 
 inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, 
-	uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport)
+	uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest)
 {
 	if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
 	{
@@ -3402,12 +3402,14 @@ inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo
 		changed = true;
 	}
 
-	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == 0) {
+	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == 0 || 
+		(overwrite_dest && fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip != tdip)) {
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tdip;
 		changed = true;
 	}
 
-	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport == 0) {
+	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport == 0 ||
+		(overwrite_dest && fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport != tdport)) {
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport = tdport;
 		changed = true;
 	}
@@ -3415,7 +3417,7 @@ inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo
 	return changed;
 }
 
-bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest)
 {
 	uint32_t tsip, tdip;
 	uint16_t tsport, tdport;
@@ -3425,10 +3427,10 @@ bool sinsp_parser::set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t*
 	memcpy(&tdip, packed_data + 7, sizeof(uint32_t));
 	memcpy(&tdport, packed_data + 11, sizeof(uint16_t));
 
-	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport);
+	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport, overwrite_dest);
 }
 
-bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest)
 {
 	uint32_t tsip, tdip;
 	uint16_t tsport, tdport;
@@ -3438,10 +3440,10 @@ bool sinsp_parser::set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdin
 	tdip = *(uint32_t *)(packed_data + 31);
 	tdport = *(uint16_t *)(packed_data + 35);
 
-	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport);
+	return update_ipv4_addresses_and_ports(fdinfo, tsip, tsport, tdip, tdport, overwrite_dest);
 }
 
-bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
+bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest)
 {
 	ipv6addr tsip, tdip;
 	uint16_t tsport, tdport;
@@ -3480,12 +3482,14 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t*
 		changed = true;
 	}
 
-	if(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip == ipv6addr::empty_address) {
+	if(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip == ipv6addr::empty_address ||
+		(overwrite_dest && fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip != tdip)) {
 		fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dip = tdip;
 		changed = true;
 	}
 
-	if(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport == 0) {
+	if(fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport == 0 ||
+		(overwrite_dest && fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport != tdport)) {
 		fdinfo->m_sockinfo.m_ipv6info.m_fields.m_dport = tdport;
 		changed = true;
 	}
