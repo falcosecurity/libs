@@ -544,7 +544,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
 				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+					inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
 				{
 					snprintf(targetbuf,
 								targetbuf_size,
@@ -580,7 +580,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				char srcstr[INET6_ADDRSTRLEN];
 				char dststr[INET6_ADDRSTRLEN];
 				if(inet_ntop(AF_INET6, sip6, srcstr, sizeof(srcstr)) &&
-					inet_ntop(AF_INET6, sip6, dststr, sizeof(dststr)))
+					inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
 				{
 					snprintf(targetbuf,
 						targetbuf_size,
