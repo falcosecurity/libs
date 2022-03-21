@@ -146,7 +146,7 @@ private:
 	void parse_getsockopt_exit(sinsp_evt *evt);
 
 	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo,
-		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport);
+		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest=true);
 	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data);
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void infer_sendto_fdinfo(sinsp_evt *evt);
@@ -155,9 +155,9 @@ private:
 	bool update_fd(sinsp_evt *evt, sinsp_evt_param* parinfo);
 
 	// Next 4 return false if the update didn't happen because the tuple is identical to the given address
-	bool set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
-	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
-	bool set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
+	bool set_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	bool set_ipv4_mapped_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
+	bool set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data, bool overwrite_dest=true);
 	bool set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data);
 
 	void swap_addresses(sinsp_fdinfo_t* fdinfo);
