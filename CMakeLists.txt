@@ -36,6 +36,7 @@ cmake_minimum_required(VERSION 2.8.2)
 project(sysdig)
 
 option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
+option(CONTAINER_INFO "NO CONTAINER INFO" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 
 # Add path for custom CMake modules.

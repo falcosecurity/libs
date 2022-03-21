@@ -1,9 +1,11 @@
 #pragma once
 
 #ifndef _WIN32
+#ifdef CONTAINER_INFO
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
+#endif // CONTAINER_INFO
 #endif
 
 #include <string>
@@ -34,10 +36,11 @@ public:
 
 private:
 	std::string m_api_version;
-
+#ifdef CONTAINER_INFO
 #ifndef _WIN32
 	CURLM *m_curlm;
 #endif
+#endif // CONTAINER_INFO
 };
 
 }

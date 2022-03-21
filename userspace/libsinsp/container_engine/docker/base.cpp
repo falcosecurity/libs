@@ -12,6 +12,7 @@ void docker_base::cleanup()
 bool
 docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& request, bool query_os_for_missing_info)
 {
+#ifdef CONTAINER_INFO
 	container_cache_interface *cache = &container_cache();
 	if(!m_docker_info_source)
 	{
@@ -56,6 +57,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 	// trying to resolve the container, so only return true if we
 	// have complete metadata.
 	return container_info->is_successful();
+#endif // CONTAINER_INFO
 }
 
 void docker_base::parse_docker_async(const docker_lookup_request& request, container_cache_interface *cache)

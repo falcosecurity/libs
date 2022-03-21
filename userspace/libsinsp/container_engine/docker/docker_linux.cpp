@@ -31,6 +31,7 @@ constexpr const cgroup_layout DOCKER_CGROUP_LAYOUT[] = {
 };
 }
 
+
 std::string docker_linux::m_docker_sock = "/var/run/docker.sock";
 
 bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
@@ -41,17 +42,27 @@ bool docker_linux::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_in
 	{
 		return false;
 	}
-
-	return resolve_impl(tinfo, docker_lookup_request(
+	tinfo->m_container_id = container_id;
+	bool res = true;
+	if(container_id.size() == 0){
+		res = false;
+	}
+#ifdef CONTAINER_INFO
+	res = resolve_impl(tinfo, docker_lookup_request(
 		container_id,
 		m_docker_sock,
 		CT_DOCKER,
 		0,
 		false), query_os_for_missing_info);
+#endif // CONTAINER_INFO
+	return res;
+
 }
+
 
 void docker_linux::update_with_size(const std::string &container_id)
 {
+#ifdef CONTAINER_INFO
 	auto cb = [this](const docker_lookup_request& instruction, const sinsp_container_info& res) {
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
@@ -69,4 +80,5 @@ void docker_linux::update_with_size(const std::string &container_id)
 	sinsp_container_info result;
 	docker_lookup_request instruction(container_id, m_docker_sock, CT_DOCKER, 0, true /*request rw size*/);
 	(void)m_docker_info_source->lookup(instruction, result, cb);
+#endif // CONTAINER_INFO
 }

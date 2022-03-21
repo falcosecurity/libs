@@ -26,13 +26,16 @@ class sinsp_threadinfo;
 #include "container_engine/container_engine_base.h"
 #include "container_engine/sinsp_container_type.h"
 #include "container_info.h"
+#ifdef CONTAINER_INFO
 #include <cri.h>
+
 
 namespace runtime {
 namespace v1alpha2 {
 class ContainerStatusResponse;
 }
 }
+#endif // CONTAINER_INFO
 
 namespace libsinsp {
 namespace container_engine {
@@ -46,6 +49,7 @@ namespace container_engine {
  * 2. Apparently CRI can fail to find a freshly created container
  * for a short while, so we should delay the query a bit.
  */
+#ifdef CONTAINER_INFO
 class cri_async_source : public sysdig::async_key_value_source<
         libsinsp::cgroup_limits::cgroup_limits_key,
         sinsp_container_info>
@@ -73,13 +77,21 @@ private:
 	container_cache_interface *m_cache;
 	::libsinsp::cri::cri_interface *m_cri;
 };
+#endif // CONTAINER_INFO
 
 class cri : public container_engine_base
 {
 public:
+
+#ifdef CONTAINER_INFO
 	cri(container_cache_interface &cache);
+#else
+	cri(container_cache_interface& cache) : container_engine_base(cache)
+	{}
+#endif // CONTAINER_INFO
 	bool resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info) override;
 	void update_with_size(const std::string& container_id) override;
+#ifdef CONTAINER_INFO
 	void cleanup() override;
 	static void set_cri_socket_path(const std::string& path);
 	static void set_cri_timeout(int64_t timeout_ms);
@@ -90,6 +102,7 @@ public:
 private:
 	std::unique_ptr<cri_async_source> m_async_source;
 	std::unique_ptr<::libsinsp::cri::cri_interface> m_cri;
+#endif // CONTAINER_INFO
 };
 }
 }

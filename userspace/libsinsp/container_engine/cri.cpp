@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "container_engine/cri.h"
 
+#ifdef CONTAINER_INFO
 #include <sys/stat.h>
 #ifdef GRPC_INCLUDE_IS_GRPCPP
 #	include <grpcpp/grpcpp.h>
@@ -25,15 +26,18 @@ limitations under the License.
 #endif
 #include "cri.pb.h"
 #include "cri.grpc.pb.h"
+#include <cri.h>
+#endif // CONTAINER_INFO
 
 #include "cgroup_limits.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
-#include <cri.h>
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+#ifdef CONTAINER_INFO
 using namespace libsinsp::cri;
+#endif // CONTAINER_INFO
 using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
@@ -53,6 +57,7 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 };
 }
 
+#ifdef CONTAINER_INFO
 bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
@@ -271,6 +276,7 @@ void cri::set_cri_delay(uint64_t delay_ms)
 {
 	s_cri_lookup_delay_ms = delay_ms;
 }
+#endif // CONTAINER_INFO
 
 bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
@@ -282,6 +288,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		return false;
 	}
 	tinfo->m_container_id = container_id;
+#ifdef CONTAINER_INFO
 
 	if(!m_cri)
 	{
@@ -371,11 +378,13 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	{
 		cache->notify_new_container(*container);
 	}
-	return true;
+#endif // CONTAINER_INFO
+	return container_id == "";
 }
 
 void cri::update_with_size(const std::string& container_id)
 {
+#ifdef CONTAINER_INFO
 	sinsp_container_info::ptr_t existing = container_cache().get_container(container_id);
 	if(!existing)
 	{
@@ -442,6 +451,7 @@ void cri::update_with_size(const std::string& container_id)
 	}
 
 	container_cache().replace_container(updated);
+#endif // CONTAINER_INFO
 }
 
 
