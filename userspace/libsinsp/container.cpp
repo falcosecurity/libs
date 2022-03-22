@@ -329,6 +329,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		// * being called in capture mode (no need to send any event as we will read it)
 		//
 		// Fallback at just storing the new container.
+		// NOTE: this must be kept in sync with what happens on container event parsing, in parsers.cpp.
 		add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
 		return;
 	}
