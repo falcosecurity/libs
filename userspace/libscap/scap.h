@@ -57,6 +57,7 @@ struct iovec;
 // Core types
 //
 #include <time.h>
+#include <stdarg.h>
 #include "uthash.h"
 #include "../common/types.h"
 #include "../../driver/ppm_api_version.h"
@@ -569,6 +570,16 @@ struct scap_sized_buffer {
 	void* buf;
 	size_t size;
 };
+typedef struct scap_sized_buffer scap_sized_buffer;
+
+/*!
+  \brief Structure used to pass a read-only buffer and its size.
+*/
+struct scap_const_sized_buffer {
+	const void* buf;
+	size_t size;
+};
+typedef struct scap_const_sized_buffer scap_const_sized_buffer;
 
 /*@}*/
 
@@ -763,7 +774,7 @@ void scap_event_reset_count(scap_t* handle);
 
   \return The pointer to the the event table entry for the given event.
 */
-const struct ppm_event_info* scap_event_getinfo(scap_evt* e);
+const struct ppm_event_info* scap_event_getinfo(const scap_evt* e);
 
 /*!
   \brief Return the dump flags for the last event received from this handle
@@ -1070,6 +1081,32 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
   \param params An array large enough to contain n entries.
  */
 uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params);
+
+/*!
+  \brief Create an event from the parameters given as arguments.
+
+  Create any event from the event_table passing the type, n and the parameters as variadic arguments as follows:
+   - Any integer type is passed from the correct type
+   - String types (including PT_FSPATH, PT_FSRELPATH) are passed via a null-terminated char*
+   - Buffer types, variable size types and similar, including PT_BYTEBUF, PT_SOCKTUPLE are passed with
+     a struct scap_const_sized_buffer
+  
+  If the event was written successfully, SCAP_SUCCESS is returned. If the supplied buffer is not large enough to contain
+  the event, SCAP_INPUT_TOO_SMALL is returned and event_size is set with the required size to contain the entire event.
+
+  \param event_buf The buffer where to store the encoded event.
+  \param event_size Output value that will be filled with the size of the event.
+  \param error A pointer to a scap error string to be filled in case of error.
+  \param event_type The event type (normally PPME_*)
+  \param n The number of parameters for this event. This is required as the number of parameters used for each event can change between versions.
+  \param ...
+  \return int32_t The error value. If the event was written successfully, SCAP_SUCCESS is returned.
+  If the supplied buffer is not large enough for the event SCAP_INPUT_TOO_SMALL is returned and event_size
+  is set with the required size to contain the entire event. In other error cases, SCAP_FAILURE is returned.
+
+ */
+int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, ...);
+int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, va_list args);
 
 /*@}*/
 
