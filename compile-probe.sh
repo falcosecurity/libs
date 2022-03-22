@@ -23,31 +23,35 @@ compilerBpfFun(){
 	make KERNELDIR=$src clean
 }
 
+compilerKernelModulesFun(){
+	make KERNELDIR=$src
+        mv $PROBE_NAME.ko $DIR/$DST/$version.ko
+        make KERNELDIR=$src clean
+}
+
 for version in `ls /usr/src/kernels`
 do
 	cd $DIR/driver
 	echo Compile probe for $version
 	src=/usr/src/kernels/$version/
-	# compile kernel modules
-	make KERNELDIR=$src
-	mv $PROBE_NAME.ko $DIR/$DST/$version.ko
-	make KERNELDIR=$src clean
+  compilerKernelModulesFun
 	echo "$version"
-        array=(${version//./ })
+  array=(${version//./ })
+
 	if [ ${array[0]} -ge 4 ] && [ ${array[1]} -ge 14 ]; then
-		compilerBpfFun
+    compilerBpfFun
 	fi
-        if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-957" ]; then
-                compilerBpfFun
-        fi
-        if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1062" ]; then
-                compilerBpfFun
-        fi
-        if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1127" ]; then
-                compilerBpfFun
-        fi
-        if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1160" ]; then
-                compilerBpfFun
-        fi
+  if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-957" ]; then
+    compilerBpfFun
+  fi
+  if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1062" ]; then
+    compilerBpfFun
+  fi
+  if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1127" ]; then
+    compilerBpfFun
+  fi
+  if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${array[2]} == "0-1160" ]; then
+    compilerBpfFun
+  fi
 
 done
