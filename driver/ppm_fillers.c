@@ -4933,6 +4933,9 @@ int f_sys_io_uring_setup_x (struct event_filler_arguments *args)
 #endif
 
 	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	/* entries */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
