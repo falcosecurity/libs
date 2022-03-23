@@ -29,14 +29,24 @@ compilerKernelModulesFun(){
         make KERNELDIR=$src clean
 }
 
+
 for version in `ls /usr/src/kernels`
 do
+  array=(${version//./ })
+  version3=${array[2]}
+  if [[ ${array[2]} =~ "-" ]]; then
+     versionSmall=(${version3//-/ })
+     if [ ${array[0]} -eq 3 ] && [ ${array[1]} -eq 10 ] && [ ${versionSmall[0]} == "0" ] && [ ${versionSmall[1]} -lt 327 ]; then
+       rm -rf /usr/bin/gcc && ln -s /usr/bin/gcc-4.9 /usr/bin/gcc
+     else
+       rm -rf /usr/bin/gcc && ln -s /usr/bin/gcc-5 /usr/bin/gcc
+     fi
+  fi
 	cd $DIR/driver
 	echo Compile probe for $version
 	src=/usr/src/kernels/$version/
   compilerKernelModulesFun
 	echo "$version"
-  array=(${version//./ })
 
 	if [ ${array[0]} -ge 4 ] && [ ${array[1]} -ge 14 ]; then
     compilerBpfFun
