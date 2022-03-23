@@ -690,43 +690,43 @@ bool sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 		}
 	}
 
-	const Json::Value &isNumeric = root.get("isNumeric", Json::Value::null);
-	if (!isNumeric.isNull())
+	const Json::Value &isIndex = root.get("isIndex", Json::Value::null);
+	if (!isIndex.isNull())
 	{
-		if (!isNumeric.isBool())
+		if (!isIndex.isBool())
 		{
-			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isNumeric property is not boolean");
+			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isIndex property is not boolean");
 		}
 
-		if (isNumeric.asBool() == true)
+		if (isIndex.asBool() == true)
 		{
 			// We set `EPF_ARG_ALLOWED` implicitly.
-			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_NUMERIC);
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_INDEX);
 			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_ALLOWED);
 		}
 	}
 
-	const Json::Value &isString = root.get("isString", Json::Value::null);
-	if (!isString.isNull())
+	const Json::Value &isKey = root.get("isKey", Json::Value::null);
+	if (!isKey.isNull())
 	{
-		if (!isString.isBool())
+		if (!isKey.isBool())
 		{
-			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isString property is not boolean");
+			throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " isKey property is not boolean");
 		}
 
-		if (isString.asBool() == true)
+		if (isKey.asBool() == true)
 		{
 			// We set `EPF_ARG_ALLOWED` implicitly.
-			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_STRING);
+			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_KEY);
 			tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_ALLOWED);
 		}
 	}
 
 	if((tf.m_flags & filtercheck_field_flags::EPF_ARG_REQUIRED) 
-		&& !(tf.m_flags & filtercheck_field_flags::EPF_ARG_NUMERIC 
-			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_STRING))
+		&& !(tf.m_flags & filtercheck_field_flags::EPF_ARG_INDEX 
+			|| tf.m_flags & filtercheck_field_flags::EPF_ARG_KEY))
 	{
-		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " arg has isRequired true, but none of isString nor isNumeric is true");
+		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " arg has isRequired true, but none of isKey nor isIndex is true");
 	}
 	return true;
 }
@@ -869,8 +869,8 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 					if (jvargRequired.asBool() == true)
 					{
 						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
-						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_NUMERIC);
-						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_STRING);
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_INDEX);
+						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_KEY);
 					}
 				}
 			}

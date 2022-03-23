@@ -344,12 +344,12 @@ typedef struct
 	//             an argument e.g. field[arg]. More precisely, the following
 	//             flags could be specified:
 	//             "isRequired": if true, the argument is required.
-	//             "isNumeric": if true, the field is numeric. 
-	//             "isString": if true, the field is a string.
-	//             If "isRequired" is true, one between "isNumeric" and
-	//             "isString" must be true, to specify the argument type.
-	//             If "isRequired" is false, but one between "isNumeric"
-	//             and "isString" is true, the argument is allowed but
+	//             "isIndex": if true, the field is numeric. 
+	//             "isKey": if true, the field is a string.
+	//             If "isRequired" is true, one between "isIndex" and
+	//             "isKey" must be true, to specify the argument type.
+	//             If "isRequired" is false, but one between "isIndex"
+	//             and "isKey" is true, the argument is allowed but
 	//             not required.
 	//     "display": (optional) If present, a string that will be used to
 	//                display the field instead of the name. Used in tools
@@ -359,7 +359,7 @@ typedef struct
 	// [
 	//    {"type": "string", "name": "field1", "argRequired": true, "desc": "Describing field 1"}, [DEPRECATED 'argRequired' property]
 	//    {"type": "uint64", "name": "field2", "desc": "Describing field 2"},
-	//    {"type": "string", "name": "field3", "arg": {"isRequired": true, "isNumeric": true,}, "desc": "Describing field 3"},
+	//    {"type": "string", "name": "field3", "arg": {"isRequired": true, "isIndex": true,}, "desc": "Describing field 3"},
 	// ]
 	const char* (*get_fields)();
 	//
