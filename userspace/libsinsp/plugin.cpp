@@ -145,7 +145,15 @@ public:
 						{
 							if(check_is_index(m_argstr))
 							{
-								m_arg_index = std::stoul(m_argstr);
+								try
+								{
+									m_arg_index = std::stoul(m_argstr);
+								}
+								catch(...)
+								{
+									throw sinsp_exception(string("filter ") + string(str) + string(" ")
+										+ m_field->m_name + string(" has a numeric argument not representable on 64 bit: " + m_argstr));
+								}
 							}
 							else
 							{
