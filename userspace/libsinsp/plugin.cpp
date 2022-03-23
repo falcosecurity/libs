@@ -50,6 +50,23 @@ using namespace std;
 
 static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
 
+static bool check_is_index(std::string& str)
+{
+	int length = str.length();
+	if(length == 0 || (length > 1 && str[0] == '0'))
+	{
+		return false;
+	}
+	for(int j = 0; j < length; j++)
+	{
+		if(!isdigit(str[j]))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 class sinsp_filter_check_plugin : public sinsp_filter_check
 {
 public:
@@ -93,6 +110,9 @@ public:
 
 		if(res != -1)
 		{
+			m_arg_present = false;
+			m_arg_key = NULL;
+			m_arg_index = 0;
 			// Read from str to the end-of-string, or first space
 			string val(str);
 			size_t val_end = val.find_first_of(' ', 0);
@@ -118,7 +138,27 @@ public:
 							throw sinsp_exception(string("filter ") + string(str) + string(" ")
 								+ m_field->m_name + string(" does not allow nor require an argument but one is provided: " + m_argstr));
 						}
-						m_arg = (char*)m_argstr.c_str();
+
+						m_arg_present = true;
+
+						if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
+						{
+							if(check_is_index(m_argstr))
+							{
+								m_arg_index = std::stoul(m_argstr);
+							}
+							else
+							{
+								throw sinsp_exception(string("filter ") + string(str) + string(" ")
+									+ m_field->m_name + string(" needs a numeric argument. '") + m_argstr + string("' is not numeric."));
+							}
+						}
+
+						if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
+						{
+							m_arg_key = (char*)m_argstr.c_str();
+						}
+
 						return pos1 + pos2 + 2;
 					}
 				}
@@ -211,7 +251,9 @@ public:
 		ss_plugin_extract_field efield;
 		efield.field_id = m_field_id;
 		efield.field = m_info.m_fields[m_field_id].m_name;
-		efield.arg = m_arg != NULL ? m_arg : "";
+		efield.arg_key = m_arg_key;
+		efield.arg_index = m_arg_index;
+		efield.arg_present = m_arg_present;
 		efield.ftype = type;
 		efield.flist = m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST;
 		if (!m_plugin->extract_fields(pevt, num_fields, &efield) || efield.res_len == 0)
@@ -274,7 +316,9 @@ public:
 	// XXX/mstemm m_cnt unused so far.
 	uint64_t m_cnt;
 	string m_argstr;
-	char* m_arg = NULL;
+	char* m_arg_key;
+	uint64_t m_arg_index;
+	bool m_arg_present;
 
 	vector<std::string> m_res_str_storage;
 	vector<uint64_t> m_res_u64_storage;
