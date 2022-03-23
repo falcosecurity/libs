@@ -711,11 +711,11 @@ std::string sinsp_plugin::str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-bool sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf)
+void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf)
 {
 	if (root.isNull())
 	{
-		return false;
+		return;
 	}
 
 	const Json::Value &isRequired = root.get("isRequired", Json::Value::null);
@@ -772,7 +772,7 @@ bool sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 	{
 		throw sinsp_exception(string("error in plugin ") + m_name + ": field " + tf.m_name + " arg has isRequired true, but none of isKey nor isIndex is true");
 	}
-	return true;
+	return;
 }
 
 bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
@@ -898,26 +898,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 				}
 			}
 
-			if(!resolve_dylib_field_arg(root[j].get("arg", Json::Value::null), tf))
-			{
-				// This is used for backward compatibility.
-				const Json::Value &jvargRequired = root[j].get("argRequired", Json::Value::null);
-				if (!jvargRequired.isNull())
-				{
-					g_logger.format(sinsp_logger::SEV_WARNING, "usage of argRequired for fields returned by plugin_get_fields is deprecated");
-					if (!jvargRequired.isBool())
-					{
-						throw sinsp_exception(string("error in plugin ") + m_name + ": field " + fname + " argRequired property is not boolean");
-					}
-
-					if (jvargRequired.asBool() == true)
-					{
-						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_REQUIRED);
-						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_INDEX);
-						tf.m_flags = (filtercheck_field_flags) ((int) tf.m_flags | (int) filtercheck_field_flags::EPF_ARG_KEY);
-					}
-				}
-			}
+			resolve_dylib_field_arg(root[j].get("arg", Json::Value::null), tf);
 
 			const Json::Value &jvProperties = root[j].get("properties", Json::Value::null);
 			if (!jvProperties.isNull())
