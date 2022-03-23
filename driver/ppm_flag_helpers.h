@@ -337,41 +337,14 @@ static __always_inline u32 io_uring_enter_flags_to_scap(unsigned long flags)
 static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags)
 {
 	/*
-	 * io_uring_register opcodes are defined via enum
+	 * io_uring_register opcodes are defined via enum in io_uring.h
+	 * while PPM_IORING_REGISTER_XXX starts from 1 (0 reserved for UNKNOW opcode), IORING_REGISTER_XXX starts from 0 instead
 	 */
-	switch(flags)
-	{
 #ifdef __NR_io_uring_register
-	case IORING_REGISTER_BUFFERS:
-		return PPM_IORING_REGISTER_BUFFERS;
-	case IORING_UNREGISTER_BUFFERS:
-		return PPM_IORING_UNREGISTER_BUFFERS;
-	case IORING_REGISTER_FILES:
-		return PPM_IORING_REGISTER_FILES;
-	case IORING_UNREGISTER_FILES:
-		return PPM_IORING_UNREGISTER_FILES;
-	case IORING_REGISTER_EVENTFD:
-		return PPM_IORING_REGISTER_EVENTFD;
-	case IORING_UNREGISTER_EVENTFD:
-		return PPM_IORING_UNREGISTER_EVENTFD;
-	case IORING_REGISTER_FILES_UPDATE:
-		return PPM_IORING_REGISTER_FILES_UPDATE;
-	case IORING_REGISTER_EVENTFD_ASYNC:
-		return PPM_IORING_REGISTER_EVENTFD_ASYNC;
-	case IORING_REGISTER_PROBE:
-		return PPM_IORING_REGISTER_PROBE;
-	case IORING_REGISTER_PERSONALITY:
-		return PPM_IORING_REGISTER_PERSONALITY;
-	case IORING_UNREGISTER_PERSONALITY:
-		return PPM_IORING_UNREGISTER_PERSONALITY;
-	case IORING_REGISTER_RESTRICTIONS:
-		return PPM_IORING_REGISTER_RESTRICTIONS;
-	case IORING_REGISTER_ENABLE_RINGS:
-		return PPM_IORING_REGISTER_ENABLE_RINGS;
+	if(flags + 1 < PPM_IORING_REGISTER_MAX)
+		return flags + 1;
 #endif
-	default:
-		return PPM_IORING_REGISTER_UNKNOWN;
-	}
+	return PPM_IORING_REGISTER_UNKNOWN;
 }
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
