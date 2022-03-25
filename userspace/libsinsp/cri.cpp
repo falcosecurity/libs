@@ -115,7 +115,15 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 
 	bool have_digest = false;
 	const auto &image_ref = status.image_ref();
+	std::string image_name = status.image().image();
+	bool get_tag_from_image = false;
 	auto digest_start = image_ref.find("sha256:");
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
+			container.m_id.c_str(),
+			image_ref.c_str(), digest_start);
+
 	switch (digest_start)
 	{
 	case 0: // sha256:digest
@@ -125,18 +133,46 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 		break;
 	default: // host/image@sha256:digest
 		have_digest = image_ref[digest_start - 1] == '@';
+		if(have_digest)
+		{
+			image_name = image_ref.substr(0, digest_start - 1);
+			get_tag_from_image = true;
+		}
 	}
 
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): parse_cri_image: have_digest=%d image_name=%s",
+			container.m_id.c_str(),
+			have_digest, image_name.c_str());
+
 	string hostname, port, digest;
-	sinsp_utils::split_container_image(status.image().image(),
+	sinsp_utils::split_container_image(image_name,
 					   hostname,
 					   port,
 					   container.m_imagerepo,
 					   container.m_imagetag,
 					   digest,
 					   false);
-	container.m_image = status.image().image();
 
+	if(get_tag_from_image)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
+				container.m_id.c_str(),
+				container.m_imagetag.c_str(),
+				status.image().image().c_str());
+
+		string digest2, repo;
+		sinsp_utils::split_container_image(status.image().image(),
+						   hostname,
+						   port,
+						   repo,
+						   container.m_imagetag,
+						   digest2,
+						   false);
+	}
+
+	container.m_image = image_name;
 
 	if(have_digest)
 	{
@@ -146,6 +182,15 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 	{
 		container.m_imagedigest = digest;
 	}
+
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
+			container.m_id.c_str(),
+			container.m_imagerepo.c_str(),
+			container.m_imagetag.c_str(),
+			container.m_image.c_str(),
+			container.m_imagedigest.c_str());
+
 	return true;
 }
 
