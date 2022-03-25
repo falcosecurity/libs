@@ -1,0 +1,68 @@
+name: CI Build
+on:
+  pull_request:
+    branches: [dev]
+
+jobs:
+  check-build:
+
+    strategy:
+      matrix:
+        flavor:  [ regular, bundled-deps, with-chisels, minimal ]
+        include:
+          - flavor: regular
+            build-args: '-DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False'
+          - flavor: bundled-deps
+            build-args: '-DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True'
+          - flavor: with-chisels
+            build-args: '-DBUILD_BPF=On -DWITH_CHISEL=True'
+          - flavor: minimal
+            build-args: '-DMINIMAL_BUILD=True'
+
+    runs-on: ubuntu-20.04
+    container: ubuntu:20.04
+
+    steps:
+      - name: Setup dependencies
+        run: |
+          apt-get update && apt-get install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            build-essential \
+            clang \
+            llvm \
+            git \
+            libncurses-dev \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            libelf-dev \
+            wget \
+            libb64-dev \
+            libc-ares-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libtbb-dev \
+            libjq-dev \
+            libjsoncpp-dev \
+            libgrpc++-dev \
+            protobuf-compiler-grpc \
+            libgtest-dev \
+            libprotobuf-dev \
+            linux-headers-$(uname -r) \
+            && apt-get clean
+        env:
+          DEBIAN_FRONTEND: noninteractive
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build ${{ matrix.flavor }}
+        run: |
+          rm -rf build
+          mkdir -p build
+          cd build
+          cmake ${{ matrix.build-args }} ..
+          KERNELDIR=/lib/modules/$(uname -r)/build make -j$(nproc)
+          make run-unit-tests
