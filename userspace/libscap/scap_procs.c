@@ -1604,7 +1604,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 		if((res = scap_update_suppressed(handle,
 						 comm,
-						 pevent->tid, *ptid,
+						 pevent->tid, 0,
 						 suppressed)) != SCAP_SUCCESS)
 		{
 			// scap_update_suppressed already set handle->m_lasterr on error.
