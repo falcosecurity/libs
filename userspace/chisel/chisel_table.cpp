@@ -451,8 +451,8 @@ void chisel_table::process_event(sinsp_evt* evt)
 		// At a certain point we will want to introduce the concept of zero
 		// for other fields too.
 		//
-		m_premerge_extractors[j]->m_extracted_values.clear();
-		if(!m_premerge_extractors[j]->extract(evt, m_premerge_extractors[j]->m_extracted_values))
+		m_premerge_extractors[j]->m_check->m_extracted_values.clear();
+		if(!m_premerge_extractors[j]->m_check->extract(evt, m_premerge_extractors[j]->m_check->m_extracted_values))
 		{
 			if(m_use_defaults)
 			{
