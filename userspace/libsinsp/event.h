@@ -444,44 +444,16 @@ private:
 	inline void load_params()
 	{
 		uint32_t j;
-		uint32_t nparams;
 		sinsp_evt_param par;
+		struct scap_sized_buffer params[PPM_MAX_EVENT_PARAMS];
 
-		// If we're reading a capture created with a newer version, it may contain
-		// new parameters. If instead we're reading an older version, the current
-		// event table entry may contain new parameters.
-		// Use the minimum between the two values.
-		nparams = m_info->nparams < m_pevt->nparams ? m_info->nparams : m_pevt->nparams;
-
-		char *valptr;
-		union {
-			uint16_t* lens16;
-			uint32_t* lens32;
-		} lens;
-
-		const bool large_payload = get_info_flags() & EF_LARGE_PAYLOAD;
-
-		if (large_payload) {
-			lens.lens32 = (uint32_t *)((char *)m_pevt + sizeof(struct ppm_evt_hdr));
-			// The offset in the block is instead always based on the capture value.
-			valptr = (char *)lens.lens32 + m_pevt->nparams * sizeof(uint32_t);
-		} else
-		{
-			lens.lens16 = (uint16_t*)((char*)m_pevt + sizeof(struct ppm_evt_hdr));
-			// The offset in the block is instead always based on the capture value.
-			valptr = (char *)lens.lens16 + m_pevt->nparams * sizeof(uint16_t);
-		}
 		m_params.clear();
+
+		uint32_t nparams = scap_event_decode_params(m_pevt, params);
 
 		for(j = 0; j < nparams; j++)
 		{
-			if (large_payload) {
-				par.init(valptr, lens.lens32[j]);
-				valptr += lens.lens32[j];
-			} else {
-				par.init(valptr, lens.lens16[j]);
-				valptr += lens.lens16[j];
-			}
+			par.init((char*)params[j].buf, params[j].size);
 			m_params.push_back(par);
 		}
 	}
