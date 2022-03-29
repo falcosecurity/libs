@@ -76,3 +76,52 @@ const struct ppm_event_info* scap_event_getinfo(scap_evt* e)
 {
 	return &(g_event_info[e->type]);
 }
+
+uint32_t scap_event_has_large_payload(const scap_evt* e)
+{
+	return (g_event_info[e->type].flags & EF_LARGE_PAYLOAD) != 0;
+}
+
+uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params)
+{
+	char *len_buf = (char*)e + sizeof(struct ppm_evt_hdr);
+	char *param_buf = len_buf;
+	uint32_t is_large = scap_event_has_large_payload(e);
+	uint32_t param_size_32;
+	uint16_t param_size_16;
+
+	const struct ppm_event_info* event_info = &(g_event_info[e->type]);
+	
+	// If we're reading a capture created with a newer version, it may contain
+	// new parameters. If instead we're reading an older version, the current
+	// event table entry may contain new parameters.
+	// Use the minimum between the two values.
+	uint32_t n = event_info->nparams < e->nparams ? event_info->nparams : e->nparams;
+
+	if(is_large)
+	{
+		param_buf += sizeof(uint32_t) * e->nparams;
+	} else
+	{
+		param_buf += sizeof(uint16_t) * e->nparams;
+	}
+
+	for(size_t i = 0; i < n; i++) {
+		if(is_large)
+		{
+			memcpy(&param_size_32, len_buf, sizeof(uint32_t));
+			params[i].size = param_size_32;
+			len_buf += sizeof(uint32_t);
+		} else
+		{
+			memcpy(&param_size_16, len_buf, sizeof(uint16_t));
+			params[i].size = param_size_16;
+			len_buf += sizeof(uint16_t);
+		}
+
+		params[i].buf = param_buf;
+		param_buf += params[i].size;
+	}
+
+	return n;
+}
