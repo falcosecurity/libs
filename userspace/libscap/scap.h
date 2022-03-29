@@ -562,6 +562,14 @@ struct ppm_syscall_desc {
 	char *name; /**< System call name, e.g. 'open'. */
 };
 
+/*!
+  \brief Structure used to pass a buffer and its size.
+*/
+struct scap_sized_buffer {
+	void* buf;
+	size_t size;
+};
+
 /*@}*/
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1054,6 +1062,14 @@ int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
 */
 
 bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
+
+/*!
+  \brief Get (at most) n parameters for this event.
+ 
+  \param e The scap event.
+  \param params An array large enough to contain n entries.
+ */
+uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params);
 
 /*@}*/
 
