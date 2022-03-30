@@ -9,15 +9,6 @@ or GPL2.txt for full copies of the license.
 #ifndef __FILLERS_H
 #define __FILLERS_H
 
-/*
- * https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
- * This commit diverged the ChromiumOS kernel from stock in the area of audit
- * information, which this probe accesses.
- *
- * If running on a patched version of COS, enable this #define to get the
- * probe to build.
- */
-//#define COS_73_WORKAROUND
 #include "../systype_compat.h"
 #include "../ppm_flag_helpers.h"
 #include "../ppm_version.h"
