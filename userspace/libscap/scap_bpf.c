@@ -530,6 +530,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			}
 
 			strcpy(buf, "/sys/kernel/debug/tracing/events/kprobes/");
+			strcat(buf, is_kprobe ? "p_" : "r_");
 			strcat(buf, event);
 			strcat(buf, "/id");
 		}
