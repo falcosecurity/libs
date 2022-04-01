@@ -53,6 +53,8 @@ static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
 static bool check_is_index(std::string& str)
 {
 	int length = str.length();
+	// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes. 
+	// An exception will be thrown in all these cases.
 	if(length == 0 || (length > 1 && str[0] == '0'))
 	{
 		return false;
