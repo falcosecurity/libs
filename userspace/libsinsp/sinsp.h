@@ -996,7 +996,17 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-	void add_plugin(std::shared_ptr<sinsp_plugin> plugin);
+
+	// Create and register a plugin from a shared library pointed
+	// to by filepath, and add it to the inspector.
+	// Also create filterchecks for fields supported by the plugin
+	// and add them to the provided filter check list.
+	// The created sinsp_plugin is returned.
+	std::shared_ptr<sinsp_plugin> register_plugin(std::string filepath,
+												  const char* config,
+												  filter_check_list &available_checks = g_filterlist);
+	// Return a string with names/descriptions/etc of all plugins used by this inspector
+	std::list<sinsp_plugin::info> plugin_infos();
 	void set_input_plugin(string plugin_name);
 	void set_input_plugin_open_params(string params);
 	const std::vector<std::shared_ptr<sinsp_plugin>>& get_plugins();
@@ -1080,6 +1090,8 @@ private:
 	void get_read_progress_plugin(OUT double* nres, string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
+
+	void add_plugin(std::shared_ptr<sinsp_plugin> plugin);
 
 	scap_t* m_h;
 	uint64_t m_nevts;
@@ -1298,7 +1310,7 @@ public:
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
-	std::shared_ptr<sinsp_plugin> m_input_plugin;
+	std::shared_ptr<sinsp_plugin_cap_sourcing> m_input_plugin;
 	//
 	// String with the parameters for the plugin to be used as input.
 	// These parameters will be passed to the open function of the plugin.
