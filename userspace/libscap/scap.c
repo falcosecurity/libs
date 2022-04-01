@@ -1086,7 +1086,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input_plugin, char* input_plugin_params)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * input_plugin, char* input_plugin_params)
 {
 	scap_t* handle = NULL;
 
@@ -1135,8 +1135,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_input_plugin = input_plugin;
-	handle->m_input_plugin->name = handle->m_input_plugin->get_name();
-	handle->m_input_plugin->id = handle->m_input_plugin->get_id();
 
 	// Set the rc to SCAP_FAILURE now, so in the unlikely event
 	// that a plugin doesn't not actually set a rc, that it gets
@@ -1144,8 +1142,8 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, source_plugin_info* input
 	ss_plugin_rc plugin_rc = SCAP_FAILURE;
 
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
-		input_plugin_params,
-		&plugin_rc);
+	                                                              input_plugin_params,
+	                                                              &plugin_rc);
 
 	*rc = plugin_rc_to_scap_rc(plugin_rc);
 	handle->m_input_plugin_batch_nevts = 0;
@@ -1919,9 +1917,9 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 		}
 
 		int32_t plugin_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-									handle->m_input_plugin->handle,
-									&(handle->m_input_plugin_batch_nevts),
-									&(handle->m_input_plugin_batch_evts));
+		                                                        handle->m_input_plugin->handle,
+		                                                        &(handle->m_input_plugin_batch_nevts),
+		                                                        &(handle->m_input_plugin_batch_evts));
 		handle->m_input_plugin_last_batch_res = plugin_rc_to_scap_rc(plugin_res);
 		
 		if(handle->m_input_plugin_batch_nevts == 0)
