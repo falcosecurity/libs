@@ -50,24 +50,6 @@ using namespace std;
 
 static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
 
-static bool check_is_index(std::string& str)
-{
-	int length = str.length();
-	// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes. 
-	// An exception will be thrown in all these cases.
-	if(length == 0 || (length > 1 && str[0] == '0'))
-	{
-		return false;
-	}
-	for(int j = 0; j < length; j++)
-	{
-		if(!isdigit(str[j]))
-		{
-			return false;
-		}
-	}
-	return true;
-}
 
 class sinsp_filter_check_plugin : public sinsp_filter_check
 {
@@ -145,28 +127,12 @@ public:
 
 						if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_INDEX)
 						{
-							if(check_is_index(m_argstr))
-							{
-								try
-								{
-									m_arg_index = std::stoul(m_argstr);
-								}
-								catch(...)
-								{
-									throw sinsp_exception(string("filter ") + string(str) + string(" ")
-										+ m_field->m_name + string(" has a numeric argument not representable on 64 bit: " + m_argstr));
-								}
-							}
-							else
-							{
-								throw sinsp_exception(string("filter ") + string(str) + string(" ")
-									+ m_field->m_name + string(" needs a numeric argument. '") + m_argstr + string("' is not numeric."));
-							}
+							extract_arg_index(str);
 						}
 
 						if(m_info.m_fields[m_field_id].m_flags & filtercheck_field_flags::EPF_ARG_KEY)
 						{
-							m_arg_key = (char*)m_argstr.c_str();
+							extract_arg_key();
 						}
 
 						return pos1 + pos2 + 2;
@@ -334,6 +300,63 @@ public:
 	vector<uint64_t> m_res_u64_storage;
 
 	std::shared_ptr<sinsp_plugin> m_plugin;
+
+private:
+	
+	// extract_arg_index() extracts a valid index from the argument if 
+	// format is valid, otherwise it throws an exception.
+	// `full_field_name` has the format "field[argument]" and it is necessary
+	// to throw an exception.
+	void extract_arg_index(const char* full_field_name)
+	{
+		int length = m_argstr.length();
+		bool is_valid = true;
+		std::string message = "";
+		
+		// Please note that numbers starting with `0` (`01`, `02`, `0003`, ...) are not indexes. 
+		if(length == 0 || (length > 1 && m_argstr[0] == '0'))
+		{
+			is_valid = false;
+			message = " has an invalid index argument starting with 0: ";
+		}
+		
+		// The index must be composed only by digits (0-9).
+		for(int j = 0; j < length; j++)
+		{
+			if(!isdigit(m_argstr[j]))
+			{
+				is_valid = false;
+				message = " has an invalid index argument not composed only by digits: ";
+				break;
+			}
+		}
+
+		// If the argument is valid we can convert it with `stoul`.
+		// Please note that `stoul` alone is not enough, since it also consider as valid 
+		// strings like "0123 i'm a number", converting them into '0123'. This is why in the 
+		// previous step we check that every character is a digit.
+		if(is_valid)
+		{
+			try
+			{
+				m_arg_index = std::stoul(m_argstr);
+				return;
+			} 
+			catch(...)
+			{
+				message = " has an invalid index argument not representable on 64 bit: ";
+			}
+		}
+		throw sinsp_exception(string("filter ") + string(full_field_name) + string(" ")
+										+ m_field->m_name + message + m_argstr);
+	}
+
+	// extract_arg_key() extracts a valid string from the argument. If we pass
+	// a numeric argument, it will be converted to string. 
+	void extract_arg_key()
+	{
+		m_arg_key = (char*)m_argstr.c_str();
+	}
 };
 
 ///////////////////////////////////////////////////////////////////////////////
