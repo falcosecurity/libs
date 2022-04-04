@@ -1,5 +1,10 @@
 option(BUILD_WARNINGS_AS_ERRORS "Enable building with -Wextra -Werror flags")
 
+option(ENABLE_PIC "Build position independent libraries and executables" OFF)
+if(ENABLE_PIC)
+	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	set(CMD_MAKE gmake)
 else()
