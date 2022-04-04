@@ -2754,9 +2754,11 @@ FILLER(execve_family_flags, true)
 	int res = 0;
 	unsigned long val;
 	bool exe_writable = false;
+	kuid_t euid;
 
 	task = (struct task_struct *)bpf_get_current_task();
 	cred = (struct cred *)_READ(task->cred);
+	euid = _READ(cred->euid);
 
 	/*
 	 * exe_writable
@@ -2798,6 +2800,15 @@ FILLER(execve_family_flags, true)
 	res = bpf_val_to_ring(data, capabilities_to_scap(val));
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
+
+	/*
+	 * uid
+	 */
+	res = bpf_val_to_ring_type(data, euid.val, PT_UINT32);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
 
 	return res;
 }

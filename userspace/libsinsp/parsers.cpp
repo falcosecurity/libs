@@ -2337,10 +2337,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		evt->m_tinfo->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
 	}
 
-	// Get capabilities
-	if(evt->get_num_params() > 22)
+	if(etype == PPME_SYSCALL_EXECVE_19_X)
 	{
-		if(etype == PPME_SYSCALL_EXECVE_19_X)
+		// Get capabilities
+		if(evt->get_num_params() > 22)
 		{
 			parinfo = evt->get_param(20);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -2353,6 +2353,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(22);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			evt->m_tinfo->m_cap_effective = *(uint64_t *)parinfo->m_val;
+		}
+
+		// Get uid
+		if(evt->get_num_params() > 23)
+		{
+			parinfo = evt->get_param(23);
+			evt->m_tinfo->m_user.uid = *(uint32_t *)parinfo->m_val;
 		}
 	}
 
