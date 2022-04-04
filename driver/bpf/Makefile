@@ -22,7 +22,7 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 # 
 # This enables the workaround for this divergence.
 #
-NEEDS_COS_73_WORKAROUND = $(shell expr `grep -sq "^\s*struct\s\+audit_task_info\s\+\*audit;\s*$$" $(KERNELDIR)/include/linux/sched.h` = 0)
+NEEDS_COS_73_WORKAROUND = $(shell expr `grep -sc "^\s*struct\s\+audit_task_info\s\+\*audit;\s*$$" $(KERNELDIR)/include/linux/sched.h` = 1)
 ifeq ($(NEEDS_COS_73_WORKAROUND), 1)
 	KBUILD_CPPFLAGS += -DCOS_73_WORKAROUND
 endif
