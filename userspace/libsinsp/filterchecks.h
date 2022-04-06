@@ -141,9 +141,6 @@ public:
 		return Json::nullValue;
 	}
 
-	virtual const std::set<uint16_t> &evttypes() override;
-	const std::set<uint16_t> &possible_evttypes() override;
-
 	//
 	// Compare the field with the constant value obtained from parse_filter_value()
 	//
@@ -206,8 +203,6 @@ protected:
 
 private:
 	void set_inspector(sinsp* inspector);
-
-	std::set<uint16_t> s_all_event_types;
 
 friend class filter_check_list;
 friend class sinsp_filter_optimizer;
@@ -509,8 +504,6 @@ public:
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 	bool compare(sinsp_evt *evt);
 
-	const std::set<uint16_t> &evttypes() override;
-
 	uint64_t m_u64val;
 	uint64_t m_tsdelta;
 	uint32_t m_u32val;
@@ -539,8 +532,6 @@ private:
 	uint32_t m_storage_size;
 	const char* m_cargname;
 	sinsp_filter_check_reference* m_converter;
-
-	std::set<uint16_t> m_event_types;
 };
 
 //
