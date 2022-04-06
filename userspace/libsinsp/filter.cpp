@@ -607,28 +607,6 @@ sinsp_filter_check::sinsp_filter_check()
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
-
-	// Do this once
-	if(s_all_event_types.size() == 0)
-	{
-		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
-		const struct ppm_event_info* etable = einfo->m_event_info;
-
-		//
-		// Fill in from 2 to PPM_EVENT_MAX-1. 0 and 1 are excluded as
-		// those are PPM_GENERIC_E/PPME_GENERIC_X.
-		for(uint16_t i = 2; i < PPM_EVENT_MAX; i++)
-		{
-			// Skip "old" event versions that have been replaced
-			// by newer event versions, or events that are unused.
-			if(etable[i].flags & (EF_OLD_VERSION | EF_UNUSED))
-			{
-				continue;
-			}
-
-			s_all_event_types.insert(i);
-		}
-	}
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -1452,18 +1430,6 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 	{
 		return extract(evt, values, sanitize_strings);
 	}
-}
-
-const std::set<uint16_t> &sinsp_filter_check::evttypes()
-{
-	// By default a check should be considered for all event types
-	// so use the default.
-	return s_all_event_types;
-}
-
-const std::set<uint16_t> &sinsp_filter_check::possible_evttypes()
-{
-	return s_all_event_types;
 }
 
 bool sinsp_filter_check::compare(gen_event *evt)

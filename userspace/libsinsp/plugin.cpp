@@ -48,9 +48,6 @@ using namespace std;
 // plugin simplified field extraction implementations
 ///////////////////////////////////////////////////////////////////////////////
 
-static std::set<uint16_t> s_all_plugin_event_types = {PPME_PLUGINEVENT_E};
-
-
 class sinsp_filter_check_plugin : public sinsp_filter_check
 {
 public:
@@ -81,11 +78,6 @@ public:
 
 	virtual ~sinsp_filter_check_plugin()
 	{
-	}
-
-	const std::set<uint16_t> &evttypes()
-	{
-		return s_all_plugin_event_types;
 	}
 
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
