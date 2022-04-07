@@ -83,10 +83,17 @@ static int sys_perf_event_open(struct perf_event_attr *attr,
 	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
+/* Here the filler_name is something like 'sys_open_x'.
+ * Starting from the entire section name 'raw_tracepoint/filler/sys_open_x'
+ * here we obtain just the final part 'sys_open_x'.
+ */
 static int32_t lookup_filler_id(const char *filler_name)
 {
 	int j;
 
+	/* In our table we must have a filler_name corresponding to the final 
+	 * part of the elf section.
+	 */
 	for(j = 0; j < sizeof(g_filler_names) / sizeof(g_filler_names[0]); ++j)
 	{
 		if(strcmp(filler_name, g_filler_names[j]) == 0)
@@ -471,6 +478,10 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			return SCAP_FAILURE;
 		}
 
+		/* Fill the tail table. The key is our filler internal code extracted 
+		 * from `g_filler_names` in `lookup_filler_id` function. The value
+		 * is the program fd.
+		 */
 		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd, BPF_ANY);
 		if(err < 0)
 		{
@@ -478,6 +489,11 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			return SCAP_FAILURE;
 		}
 
+		/* If there is an elf section with the bpf implmentation of the filler with id `prog_id` 
+		 * set the entry in this table to `true`. When we will populate the filler map in 
+		 * `populate_fillers_table_map` function, we will check that every filler defined by us with
+		 * an enum code has its corresponding bpf implementation through this boolean table.
+		 */
 		handle->m_bpf_fillers[prog_id] = true;
 
 		return SCAP_SUCCESS;
