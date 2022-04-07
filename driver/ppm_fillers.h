@@ -131,13 +131,9 @@ or GPL2.txt for full copies of the license.
 	FN(sys_io_uring_setup_x)		\
 	FN(sys_io_uring_enter_x)		\
 	FN(sys_io_uring_register_x)		\
-	FN(sys_mlock_e)				\
 	FN(sys_mlock_x)                 	\
-	FN(sys_munlock_e)			\
 	FN(sys_munlock_x)              		\
-	FN(sys_mlockall_e)			\
 	FN(sys_mlockall_x)			\
-	FN(sys_munlockall_e)           		\
 	FN(sys_munlockall_x)			\
 	FN(sys_capset_x)			\
 	FN(terminate_filler)
