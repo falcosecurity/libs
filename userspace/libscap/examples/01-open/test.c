@@ -22,6 +22,8 @@ limitations under the License.
 uint64_t g_nevts = 0;
 scap_t* g_h = NULL;
 
+extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
+
 static void signal_callback(int signal)
 {
 	scap_stats s;
@@ -52,13 +54,39 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	g_h = scap_open_live(error, &res);
+	scap_open_args args = {.mode = SCAP_MODE_LIVE};
+
+	/* Base configuration without simple consumer. */
+	for(int j = 0; j < PPM_SC_MAX; j++)
+	{
+		args.ppm_sc_of_interest.ppm_sc[j] = 1;
+	}
+
+	for(int i = 0; i < argc; i++)
+	{
+		if(!strcmp(argv[i], "--bpf") && ++i < argc)
+		{
+			args.bpf_probe = argv[i];
+		}
+		if(!strcmp(argv[i], "--simple_consumer"))
+		{
+			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
+
+			/* Starting from '1' since we ignore all the unknown syscalls (PPM_SC_UNKNOWN). */
+			for(int j = 1; j < PPM_SC_MAX; j++)
+			{
+				args.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
+			}
+		}
+	}
+
+	g_h = scap_open(args, error, &res);
 	if(g_h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
 		return -1;
 	}
-	
+
 	while(1)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
