@@ -1,7 +1,7 @@
 # falcosecurity/libs
 
 As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
-Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more informations.  
+Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more information.  
 
 These components are at the foundation of [Falco](https://github.com/falcosecurity/falco) and other projects that work with the same kind of data.
 
@@ -51,7 +51,7 @@ mkdir build && cd build
 
 ### Bundled deps
 
-Easiest way to build the project is to use BUNDLED_DEPS option, 
+The easiest way to build the project is to use `BUNDLED_DEPS` option, 
 meaning that most of the dependencies will be fetched and compiled during the process:
 ```bash
 cmake -DUSE_BUNDLED_DEPS=true ../
@@ -61,7 +61,7 @@ make sinsp
 
 ### System deps
 
-To build using the system deps instead, first make sure to have all the needed packages installed.  
+To build using the system deps instead, first, make sure to have all the needed packages installed.  
 Refer to https://falco.org/docs/getting-started/source/ for the list of dependencies.  
 
 Then, simply issue:
@@ -75,7 +75,7 @@ make sinsp
 
 ### Build kmod
 
-To build the kmod driver, you need your kernel headers installed. Again, checkout the Falco documentation for this step.  
+To build the kmod driver, you need your kernel headers installed. Again, check out the Falco documentation for this step.  
 Then it will be just a matter of running:
 ```bash
 make driver
@@ -103,7 +103,7 @@ Then, to execute it with the eBPF probe, issue:
 sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o
 ```
 
-To execute it with the kmod instead issue:
+To execute it with the kmod instead, issue:
 ```bash
 sudo insmod driver/scap.ko
 sudo ./libscap/examples/01-open/scap-open
@@ -116,7 +116,7 @@ sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o --simple_cons
 ```
 This option can be used both by the kernel module and the eBPF probe.
 
-As soon as you quit (ctrl-C) the scap-open program, you will be prompted with detailed informations on the capture:
+As soon as you quit (ctrl-C) the `scap-open` program, you will be prompted with detailed information on the capture:
 ```bash
 events captured: 39460
 seen by driver: 39912
@@ -128,7 +128,7 @@ Number of preemptions: 0
 Number of events skipped due to the tid being in a set of suppressed tids: 0
 Number of threads currently being suppressed: 0
 ```
-therefore confirming that the drivers are indeed working fine! 
+therefore confirming that the drivers are indeed working fine!
 
 ## Contribute
 
@@ -137,11 +137,11 @@ For a contribution guideline, refer to: https://github.com/falcosecurity/.github
 
 ### Adding syscalls
 
-Implementing new syscalls is surely one of the highest frequency request.  
+Implementing new syscalls is surely one of the highest frequency requests.  
 While it is indeed important for libs to support as many syscalls as possible, most of the time it is not a high priority task.  
 But **you** can speed up things by opening a PR for it!  
 Luckily enough, a Falco blog post explains the process very thoroughly: https://falco.org/blog/falco-monitoring-new-syscalls/.
 
 ## License
 
-This project is licensed to you under the [Apache 2.0](./COPYING) open source license. Some subcomponents might be licensed separately. You can find licensing notices [here](./NOTICES).  
+This project is licensed to you under the [Apache 2.0](./COPYING) open source license. Some subcomponents might be licensed separately. You can find licensing notices [here](./NOTICES).
