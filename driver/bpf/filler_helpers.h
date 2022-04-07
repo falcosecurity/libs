@@ -822,16 +822,24 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH: {
-		if (!data->curarg_already_on_frame) {
+		if (!data->curarg_already_on_frame) 
+		{
 			int res;
-
-			res = bpf_probe_read_str(&data->buf[curoff_bounded],
-						 PPM_MAX_ARG_SIZE,
-						 (const void *)val);
-			if (res == -EFAULT)
-				return PPM_FAILURE_INVALID_USER_MEMORY;
+			res = bpf_probe_read_str(&data->buf[curoff_bounded], 
+						PPM_MAX_ARG_SIZE,
+						(const void *)val);
+			
+			if (res <= 0)
+			{
+				char not_available[] = "<NA>";
+				res = bpf_probe_read_str(&data->buf[curoff_bounded],
+							PPM_MAX_ARG_SIZE,
+							(const void *)not_available);
+			}
 			len = res;
-		} else {
+		} 
+		else 
+		{
 			len = val_len;
 		}
 		break;
