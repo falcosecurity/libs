@@ -100,7 +100,7 @@ make scap-open
 
 Then, to execute it with the eBPF probe, issue:
 ```bash
-sudo BPF_PROBE=driver/bpf/probe.o ./libscap/examples/01-open/scap-open
+sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o
 ```
 
 To execute it with the kmod instead issue:
@@ -109,6 +109,12 @@ sudo insmod driver/scap.ko
 sudo ./libscap/examples/01-open/scap-open
 sudo rmmod scap
 ```
+
+To test the `kernel_simple_consumer` logic, use the following option:
+```bash
+sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o --simple_consumer
+```
+This option can be used both by the kernel module and the eBPF probe.
 
 As soon as you quit (ctrl-C) the scap-open program, you will be prompted with detailed informations on the capture:
 ```bash
