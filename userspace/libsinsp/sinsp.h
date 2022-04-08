@@ -981,6 +981,8 @@ private:
 	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
 	void init();
 	void deinit_state();
+	void consume_initialstate_events();
+	bool is_initialstate_event(scap_evt* pevent);
 	void import_thread_table();
 	void import_ifaddr_list();
 	void add_protodecoders();

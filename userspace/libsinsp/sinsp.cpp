@@ -259,6 +259,59 @@ void sinsp::enable_page_faults()
 #endif
 }
 
+bool sinsp::is_initialstate_event(scap_evt* pevent)
+{
+	return  pevent->type == PPME_CONTAINER_E ||
+			pevent->type == PPME_CONTAINER_JSON_E ||
+			pevent->type == PPME_CONTAINER_JSON_2_E ||
+			pevent->type == PPME_USER_ADDED_E ||
+			pevent->type == PPME_USER_DELETED_E ||
+			pevent->type != PPME_GROUP_ADDED_E ||
+			pevent->type != PPME_GROUP_DELETED_E;
+}
+
+void sinsp::consume_initialstate_events()
+{
+	scap_evt* pevent;
+	uint16_t pcpuid;
+	sinsp_evt* tevt;
+
+	if (m_external_event_processor)
+	{
+		m_external_event_processor->on_capture_start();
+	}
+
+	//
+	// Consume every state event we have
+	//
+	while(true)
+	{
+		int32_t res = scap_next(m_h, &pevent, &pcpuid);
+
+		if(res == SCAP_SUCCESS)
+		{
+			// Setting these to non-null will make sinsp::next use them as a scap event
+			// to avoid a call to scap_next. In this way, we can avoid the state parsing phase
+			// once we reach a container-unrelated event.
+			m_replay_scap_evt = pevent;
+			m_replay_scap_cpuid = pcpuid;
+			if(!is_initialstate_event(pevent))
+			{
+				break;
+			}
+			else
+			{
+				next(&tevt);
+				continue;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
 void sinsp::init()
 {
 	//
@@ -328,45 +381,7 @@ void sinsp::init()
 	//
 	if(is_capture())
 	{
-		scap_evt* pevent;
-		uint16_t pcpuid;
-		sinsp_evt* tevt;
-
-		if (m_external_event_processor)
-		{
-			m_external_event_processor->on_capture_start();
-		}
-
-		//
-		// Consume every container event we have
-		//
-		while(true)
-		{
-			int32_t res = scap_next(m_h, &pevent, &pcpuid);
-
-			if(res == SCAP_SUCCESS)
-			{
-				// Setting these to non-null will make sinsp::next use them as a scap event
-				// to avoid a call to scap_next. In this way, we can avoid the state parsing phase
-				// once we reach a container-unrelated event.
-				m_replay_scap_evt = pevent;
-				m_replay_scap_cpuid = pcpuid;
-				if(pevent->type != PPME_CONTAINER_E && pevent->type != PPME_CONTAINER_JSON_E && pevent->type != PPME_CONTAINER_JSON_2_E
-				   && pevent->type != PPME_USER_ADDED_E && pevent->type != PPME_GROUP_ADDED_E)
-				{
-					break;
-				}
-				else
-				{
-					next(&tevt);
-					continue;
-				}
-			}
-			else
-			{
-				break;
-			}
-		}
+		consume_initialstate_events();
 	}
 
 	if(is_capture() || m_filter_proc_table_when_saving == true)
@@ -388,7 +403,8 @@ void sinsp::init()
 
 	m_usergroup_manager.init();
 
-	if (m_external_event_processor)
+	// If we are in capture, this is already called by consume_initialstate_events
+	if (!is_capture() && m_external_event_processor)
 	{
 		m_external_event_processor->on_capture_start();
 	}
