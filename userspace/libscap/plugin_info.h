@@ -421,7 +421,7 @@ typedef struct
 		//
 		// Return the list of extractor fields exported by this plugin. Extractor
 		// fields can be used in Falco rule conditions.
-		// Required: no
+		// Required: yes
 		// Return value: a string with the list of fields encoded as a json
 		//   array.
 		//   Each field entry is a json object with the following properties:
