@@ -4928,14 +4928,18 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 		pathname = d_path(&file->f_path, buf, PAGE_SIZE);
 		if (unlikely(!pathname))
 		{
+			fput(file);
 			goto empty_pathname;
 		}
 
 		res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
 		if (likely(res == PPM_SUCCESS))
 		{
+			fput(file);
 			return add_sentinel(args);
-		}		
+		}
+
+		fput(file);		
 	}
 
 
