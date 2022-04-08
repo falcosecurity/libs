@@ -1895,12 +1895,21 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 
 			if(fld->m_flags & EPF_FILTER_ONLY)
 			{
-				info.tags.insert("FILTER ONLY");
+				info.tags.insert("FILTER_ONLY");
 			}
 
 			if(fld->m_flags & EPF_TABLE_ONLY)
 			{
 				info.tags.insert("EPF_TABLE_ONLY");
+			}
+
+			if(fld->m_flags & EPF_ARG_REQUIRED)
+			{
+				info.tags.insert("ARG_REQUIRED");
+			}
+			else if(fld->m_flags & EPF_ARG_ALLOWED)
+			{
+				info.tags.insert("ARG_ALLOWED");
 			}
 
 			cinfo.fields.emplace_back(std::move(info));
