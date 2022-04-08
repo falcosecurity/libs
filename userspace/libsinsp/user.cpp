@@ -21,17 +21,20 @@ limitations under the License.
 #include "logger.h"
 #include "sinsp.h"
 #include "../common/strlcpy.h"
+#include <sys/types.h>
+#include <pwd.h>
+#include <grp.h>
+
+using namespace std;
 
 sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
 	m_import_users(true),
 	m_last_flush_time_ns(0),
-	m_inited(false)
+	m_inspector(inspector)
 {
-	m_inspector = inspector;
 }
 
 void sinsp_usergroup_manager::init() {
-	m_inited = true;
 	if (m_import_users)
 	{
 		// Emplace container manager listener to delete container users upon container deletion
@@ -47,7 +50,7 @@ void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper)
 	{
 		std::string container_id = it.first;
 		auto usrlist = m_userlist[container_id];
-		for(auto &user : usrlist)
+		for(const auto &user : usrlist)
 		{
 			sinsp_evt evt;
 			if(user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E))
@@ -65,7 +68,7 @@ void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper)
 	{
 		std::string container_id = it.first;
 		auto grplist = m_grouplist[container_id];
-		for(auto &group : grplist)
+		for(const auto &group : grplist)
 		{
 			sinsp_evt evt;
 			if(group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E))
@@ -174,10 +177,6 @@ bool sinsp_usergroup_manager::sync_host_users_groups()
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
-		// Store current HOST lists
-		auto old_host_userlist = m_userlist.at("");
-		auto old_host_grplist = m_grouplist.at("");
-
 		// Refresh
 		refresh_host_users_groups_list();
 	}
@@ -234,6 +233,31 @@ bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid,
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
+		if (container_id.empty() && !name)
+		{
+			// On Host, try to load info from db
+			auto *p = getpwuid(uid);
+			if (p)
+			{
+				name = p->pw_name;
+				home = p->pw_dir;
+				shell = p->pw_shell;
+			}
+		}
+
+		if (name == NULL)
+		{
+			name = "<NA>";
+		}
+		if (home == NULL)
+		{
+			home = "<NA>";
+		}
+		if (shell == NULL)
+		{
+			shell = "<NA>";
+		}
+
 		auto &userlist = m_userlist[container_id];
 		userlist[uid].uid = uid;
 		userlist[uid].gid = gid;
@@ -277,6 +301,21 @@ bool sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
+		if (container_id.empty() && !name)
+		{
+			// On Host, try to load info from db
+			auto *p = getgrgid(gid);
+			if (p)
+			{
+				name = p->gr_name;
+			}
+		}
+
+		if (name == NULL)
+		{
+			name = "<NA>";
+		}
+
 		auto &grplist = m_grouplist[container_id];
 		grplist[gid].gid = gid;
 		strlcpy(grplist[gid].name, name, MAX_CREDENTIALS_STR_LEN);
@@ -481,7 +520,7 @@ bool sinsp_usergroup_manager::group_to_sinsp_event(const scap_groupinfo *group, 
 
 void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, const string &container_id, bool added)
 {
-	if (!m_inited || !m_import_users)
+	if (!m_inspector->m_inited || !m_import_users)
 	{
 		return;
 	}
@@ -510,7 +549,7 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, con
 
 void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added)
 {
-	if (!m_inited || !m_import_users)
+	if (!m_inspector->m_inited || !m_import_users)
 	{
 		return;
 	}

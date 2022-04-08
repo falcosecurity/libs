@@ -158,35 +158,17 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	return matches;
 }
 
-// Set uid checking whether it is an unknown (thus new) user.
-// If it is a new user on a container, notify it.
-// refresh_host_users_groups_list() automatically notifies any new/removed user/group
 void sinsp_container_manager::check_user_group(sinsp_threadinfo* tinfo) {
 	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_uid);
 	if (!user)
 	{
-		if (tinfo->m_container_id.empty())
-		{
-			// HOST: refresh list from scap; this will eventually generate notifications for any new user/group
-			m_inspector->m_usergroup_manager.refresh_host_users_groups_list();
-		} else
-		{
-			// container: add it right away
-			m_inspector->m_usergroup_manager.add_user(tinfo->m_container_id, tinfo->m_uid, -1, "<NA>", "<NA>", "<NA>", m_inspector->is_live());
-		}
+			m_inspector->m_usergroup_manager.add_user(tinfo->m_container_id, tinfo->m_uid, tinfo->m_gid, NULL, NULL, NULL, m_inspector->is_live());
 	}
 
 	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(tinfo->m_container_id, tinfo->m_gid);
 	if (!group)
 	{
-		if (tinfo->m_container_id.empty())
-		{
-			// HOST: refresh list from scap; this will eventually generate notifications for any new user/group
-			m_inspector->m_usergroup_manager.refresh_host_users_groups_list();
-		} else {
-			// container: add it right away
-			m_inspector->m_usergroup_manager.add_group(tinfo->m_container_id, tinfo->m_gid, "<NA>", m_inspector->is_live());
-		}
+			m_inspector->m_usergroup_manager.add_group(tinfo->m_container_id, tinfo->m_gid, NULL, m_inspector->is_live());
 	}
 }
 
