@@ -456,7 +456,7 @@ typedef struct
 		const char* (*get_fields)();
 		//
 		// Extract one or more a filter field values from an event.
-		// Required: no
+		// Required: yes
 		// Arguments:
 		// - evt: an event struct produced by a call to next_batch().
 		//   This is allocated by the framework, and it is not guaranteed
