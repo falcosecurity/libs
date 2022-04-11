@@ -33,9 +33,9 @@ sinsp_evt* get_event(sinsp& inspector);
 #define PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
 
 // Formatters used with JSON output
-sinsp_evt_formatter* default_formatter = nullptr;
-sinsp_evt_formatter* process_formatter = nullptr;
-sinsp_evt_formatter* net_formatter = nullptr;
+static sinsp_evt_formatter* default_formatter = nullptr;
+static sinsp_evt_formatter* process_formatter = nullptr;
+static sinsp_evt_formatter* net_formatter = nullptr;
 
 // Functions used for dumping to stdout
 void plaintext_dump(sinsp& inspector);
