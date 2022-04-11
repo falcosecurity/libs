@@ -538,6 +538,7 @@ const struct ppm_name_value openat2_flags[] = {
 
 const struct ppm_name_value execve_flags[] = {
 	{"EXE_WRITABLE", PPM_EXE_WRITABLE},
+	{"EXE_UPPER_LAYER", PPM_EXE_UPPER_LAYER},
 	{0, 0},
 };
 

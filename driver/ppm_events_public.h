@@ -613,6 +613,7 @@ or GPL2.txt for full copies of the license.
  * Execve family additional flags.
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
+#define PPM_EXE_UPPER_LAYER 	(1 << 1)
   
 /*
  * Execveat flags
