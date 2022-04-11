@@ -30,6 +30,13 @@ static const uint8_t g_backoff_timeout_secs = 2;
 
 sinsp_evt* get_event(sinsp& inspector);
 
+#define PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
+
+// Formatters used with JSON output
+sinsp_evt_formatter* default_formatter = nullptr;
+sinsp_evt_formatter* process_formatter = nullptr;
+sinsp_evt_formatter* net_formatter = nullptr;
+
 // Functions used for dumping to stdout
 void plaintext_dump(sinsp& inspector);
 void json_dump(sinsp& inspector);
@@ -84,6 +91,11 @@ int main(int argc, char **argv)
                 filter_string = optarg;
                 break;
             case 'j':
+                // Initialize JSON formatters
+                default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
+                process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
+                net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
+
                 inspector.set_buffer_format(sinsp_evt::PF_JSON);
                 dump = json_dump;
             default:
@@ -111,6 +123,11 @@ int main(int argc, char **argv)
     {
         dump(inspector);
     }
+
+    // Cleanup JSON formatters
+    delete default_formatter;
+    delete process_formatter;
+    delete net_formatter;
 
     return 0;
 }
@@ -214,7 +231,6 @@ void plaintext_dump(sinsp& inspector)
     }
 }
 
-#define PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
 void json_dump(sinsp& inspector)
 {
     // Initialize JSON formatters
