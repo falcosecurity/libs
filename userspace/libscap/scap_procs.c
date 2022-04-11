@@ -1002,6 +1002,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		return SCAP_FAILURE;
 	}
 
+	tinfo->exe_upper_layer = false;
+
 	//
 	// if procinfo is set we assume this is a runtime lookup so no
 	// need to use the table
