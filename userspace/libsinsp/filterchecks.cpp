@@ -1905,6 +1905,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdnargs", "Number of cmd args", "The number of cmd args."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Chars in cmd args", "The total count of characters / length of all cmd args combined excluding whitespaces."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.pvpid", "Parent Virtual Process ID", "the id of the parent process generating the event as seen from its current PID namespace."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "true if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2735,6 +2736,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_IS_EXE_WRITABLE:
 		m_tbool = tinfo->m_exe_writable;
+		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_IS_EXE_UPPER_LAYER:
+		m_tbool = tinfo->m_exe_upper_layer;
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_CAP_PERMITTED:
 		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_permitted);

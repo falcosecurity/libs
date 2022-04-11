@@ -384,6 +384,7 @@ public:
 		TYPE_CMDNARGS = 53,
 		TYPE_CMDLENARGS = 54,
 		TYPE_PVPID = 55,
+		TYPE_IS_EXE_UPPER_LAYER = 56,
 	};
 
 	sinsp_filter_check_thread();
