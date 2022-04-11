@@ -1259,6 +1259,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the exe writable metadata from the parent
 		tinfo->m_exe_writable = ptinfo->m_exe_writable;
 
+		// Copy the exe upper layer metadata from the parent
+		tinfo->m_exe_upper_layer = ptinfo->m_exe_upper_layer;
+
 		// Copy the command arguments from the parent
 		tinfo->m_args = ptinfo->m_args;
 
@@ -2080,6 +2083,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		uint32_t flags = *(uint32_t *) parinfo->m_val;
 
 		evt->m_tinfo->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
+		evt->m_tinfo->m_exe_upper_layer = ((flags & PPM_EXE_UPPER_LAYER) != 0);
 	}
 
 	// Get capabilities
