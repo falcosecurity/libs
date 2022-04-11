@@ -293,6 +293,7 @@ public:
 	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
 	std::string m_exepath; ///< full executable path
 	bool m_exe_writable;
+	bool m_exe_upper_layer; ///< True if the executable file belongs to upper layer in overlayfs
 	std::vector<std::string> m_args; ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env; ///< Environment variables
 	std::unique_ptr<cgroups_t> m_cgroups; ///< subsystem-cgroup pairs
