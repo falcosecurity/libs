@@ -105,9 +105,7 @@ if(WITH_CHISEL)
 		../chisel/chisel_api.cpp
 		../chisel/chisel_fields_info.cpp
 		../chisel/chisel_utils.cpp
-		../chisel/chisel.cpp
-		../chisel/lua_parser_api.cpp
-		../chisel/lua_parser.cpp)
+		../chisel/chisel.cpp)
 endif()
 
 if(NOT MINIMAL_BUILD)
