@@ -1162,6 +1162,7 @@ cgroups_error:
 		long env_len = 0;
 		int tty_nr = 0;
 		bool exe_writable = false;
+		bool exe_upper_layer = false;
 		struct file *exe_file = NULL;
 		uint32_t flags = 0; // execve additional flags
 
@@ -1255,7 +1256,7 @@ cgroups_error:
 			return res;
 
 		/*
-		 * exe_writable flag
+		 * exe_writable and exe_upper_layer flags
 		 */
 
 		exe_file = ppm_get_mm_exe_file(mm);
@@ -1270,13 +1271,40 @@ cgroups_error:
 				exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+				{
+					struct super_block *sb;
+					unsigned long sb_magic;
+
+					sb = exe_file->f_inode->i_sb;
+					sb_magic = sb->s_magic;
+					if(sb_magic == OVERLAYFS_SUPER_MAGIC)
+					{
+						struct dentry **upper_dentry;
+						struct inode **lower_inode;
+
+						upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+						lower_inode = (struct inode **)((char *)upper_dentry + sizeof(struct dentry *));
+
+						if(!*lower_inode && *upper_dentry)
+						{
+							exe_upper_layer = true;
+						}
+					}
+				}
+#endif
 			}
 #endif
+
 			fput(exe_file);
 		}
 
 		if (exe_writable) {
 			flags |= PPM_EXE_WRITABLE;
+		}
+
+		if (exe_upper_layer) {
+			flags |= PPM_EXE_UPPER_LAYER;
 		}
 
 		// write all the additional flags for execve family here...
