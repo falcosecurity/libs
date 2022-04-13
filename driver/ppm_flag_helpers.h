@@ -336,14 +336,13 @@ static __always_inline u32 io_uring_enter_flags_to_scap(unsigned long flags)
 static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags)
 {
 	/*
-	 * io_uring_register opcodes are defined via enum in io_uring.h
-	 * while PPM_IORING_REGISTER_XXX starts from 1 (0 reserved for UNKNOW opcode), IORING_REGISTER_XXX starts from 0 instead
+	 * io_uring_register opcodes are defined via enum in io_uring.h.
+	 * It is userspace API (thus stable) and arch independent.
+	 * Therefore we map them 1:1; if any unmapped flag arrives,
+	 * we will just print its value to userspace without mapping it to a string flag.
+	 * We then need to append new flags to both flags_table and ppm_events_public PPM_ flags.
 	 */
-#ifdef __NR_io_uring_register
-	if(flags + 1 < PPM_IORING_REGISTER_MAX)
-		return flags + 1;
-#endif
-	return PPM_IORING_REGISTER_UNKNOWN;
+	return flags;
 }
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
