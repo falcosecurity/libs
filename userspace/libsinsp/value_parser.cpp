@@ -52,6 +52,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_FLAGS8:
 		case PT_UINT8:
+		case PT_ENUMFLAGS8:
 			*(uint8_t*)storage = sinsp_numparser::parseu8(str);
 			parsed_len = sizeof(int8_t);
 			break;
@@ -90,12 +91,14 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 		}
 		case PT_FLAGS16:
 		case PT_UINT16:
+		case PT_ENUMFLAGS16:
 			*(uint16_t*)storage = sinsp_numparser::parseu16(str);
 			parsed_len = sizeof(uint16_t);
 			break;
 		case PT_FLAGS32:
 		case PT_UINT32:
 		case PT_MODE:
+		case PT_ENUMFLAGS32:
 			*(uint32_t*)storage = sinsp_numparser::parseu32(str);
 			parsed_len = sizeof(uint32_t);
 			break;

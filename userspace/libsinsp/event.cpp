@@ -1159,21 +1159,33 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_FLAGS8:
 	case PT_FLAGS16:
 	case PT_FLAGS32:
+	case PT_ENUMFLAGS8:
+	case PT_ENUMFLAGS16:
+	case PT_ENUMFLAGS32:
 		{
 			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
 			ret["val"] = val;
 			ret["flags"] = Json::arrayValue;
+
+			const bool exact_match = param_info->type == PT_ENUMFLAGS8 || param_info->type == PT_ENUMFLAGS16 || param_info->type == PT_ENUMFLAGS32;
 
 			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			uint32_t initial_val = val;
 
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
-				// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
-				if((flags->value == 0 && initial_val == 0) ||
-				   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
+				if ((exact_match && flags->value == initial_val) ||
+					// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
+					((flags->value == 0 && initial_val == 0) ||
+				     (flags->value != 0 && (val & flags->value) == flags->value && val != 0)))
 				{
 					ret["flags"].append(flags->name);
+
+					if (exact_match)
+					{
+						// We found the match!
+						break;
+					}
 
 					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
 					val &= ~flags->value;
@@ -1182,7 +1194,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 				flags++;
 			}
 
-			if(flags != NULL && flags->name != NULL)
+			if(!exact_match && flags != NULL && flags->name != NULL)
 			{
 				ret["flags"].append(flags->name);
 			}
@@ -2045,12 +2057,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_FLAGS8:
 	case PT_FLAGS16:
 	case PT_FLAGS32:
+	case PT_ENUMFLAGS8:
+	case PT_ENUMFLAGS16:
+	case PT_ENUMFLAGS32:
 		{
 			uint32_t val = (param_info->type == PT_FLAGS8) ? *(uint8_t *)payload :
 				(param_info->type == PT_FLAGS16) ? *(uint16_t *)payload : *(uint32_t *)payload;
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
+
+			const bool exact_match = param_info->type == PT_ENUMFLAGS8 || param_info->type == PT_ENUMFLAGS16 || param_info->type == PT_ENUMFLAGS32;
 
 			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			const char *separator = "";
@@ -2060,8 +2077,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
 			{
 				// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
-				if((flags->value == 0 && initial_val == 0) ||
-				   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
+				if ((exact_match && flags->value == initial_val) ||
+				    ((flags->value == 0 && initial_val == 0) ||
+				    (flags->value != 0 && (val & flags->value) == flags->value && val != 0)))
 				{
 					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
 					{
@@ -2074,6 +2092,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 							 	  separator,
 							 	  flags->name);
 
+					if (exact_match)
+					{
+						// We found the match!
+						break;
+					}
+
 					separator = "|";
 					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
 					val &= ~flags->value;
@@ -2082,7 +2106,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				flags++;
 			}
 
-			if(flags != NULL && flags->name != NULL)
+			if(!exact_match && flags != NULL && flags->name != NULL)
 			{
 				j += snprintf(&m_resolved_paramstr_storage[j],
 							  m_resolved_paramstr_storage.size(),

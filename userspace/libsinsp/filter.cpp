@@ -417,16 +417,19 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_ERRNO:
 		return flt_compare_int64(op, *(int64_t*)operand1, *(int64_t*)operand2);
 	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		return flt_compare_uint64(op, (uint64_t)*(uint8_t*)operand1, (uint64_t)*(uint8_t*)operand2);
 	case PT_FLAGS16:
 	case PT_UINT16:
+	case PT_ENUMFLAGS16:
 	case PT_PORT:
 	case PT_SYSCALLID:
 		return flt_compare_uint64(op, (uint64_t)*(uint16_t*)operand1, (uint64_t)*(uint16_t*)operand2);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
 	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
@@ -543,6 +546,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_int64(op, i641, i642);
 	case PT_FLAGS8:
 	case PT_UINT8:
+	case PT_ENUMFLAGS8:
 	case PT_SIGTYPE:
 		u641 = ((uint64_t)*(uint8_t*)operand1) / cnt1;
 		u642 = ((uint64_t)*(uint8_t*)operand2) / cnt2;
@@ -551,6 +555,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_uint64(op, u641, u642);
 	case PT_FLAGS16:
 	case PT_UINT16:
+	case PT_ENUMFLAGS16:
 	case PT_PORT:
 	case PT_SYSCALLID:
 		u641 = ((uint64_t)*(uint16_t*)operand1) / cnt1;
@@ -560,6 +565,7 @@ bool flt_compare_avg(cmpop op,
 		return flt_compare_uint64(op, u641, u642);
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
 	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:

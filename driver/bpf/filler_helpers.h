@@ -915,12 +915,14 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = val_len;
 		break;
 	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		*((u8 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u8);
 		break;
 	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
 		*((u16 *)&data->buf[curoff_bounded]) = val;
@@ -932,6 +934,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
+	case PT_ENUMFLAGS32:
 		*((u32 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(u32);
 		break;

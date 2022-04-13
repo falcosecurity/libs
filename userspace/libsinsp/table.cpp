@@ -1408,16 +1408,19 @@ uint32_t sinsp_table::get_field_len(uint32_t id)
 	case PT_ERRNO:
 		return 8;
 	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		return 1;
 	case PT_FLAGS16:
 	case PT_UINT16:
+	case PT_ENUMFLAGS16:
 	case PT_PORT:
 	case PT_SYSCALLID:
 		return 2;
 	case PT_UINT32:
 	case PT_FLAGS32:
+	case PT_ENUMFLAGS32:
 	case PT_MODE:
 	case PT_BOOL:
 	case PT_IPV4ADDR:
