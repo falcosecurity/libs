@@ -247,10 +247,10 @@ or GPL2.txt for full copies of the license.
 /*
  * umount() flags
  */
-#define PPM_MNT_FORCE       1
-#define PPM_MNT_DETACH      2
-#define PPM_MNT_EXPIRE      4
-#define PPM_UMOUNT_NOFOLLOW 8
+#define PPM_MNT_FORCE       (1 << 0)
+#define PPM_MNT_DETACH      (1 << 1)
+#define PPM_MNT_EXPIRE      (1 << 2)
+#define PPM_UMOUNT_NOFOLLOW (1 << 3)
 
 /*
  * shutdown() how
@@ -1569,7 +1569,10 @@ enum ppm_param_type {
 	PT_IPNET = 41,  /* Either an IPv4 or IPv6 network. The length indicates which one it is. */
 	PT_MODE = 42, /* a 32 bit bitmask to represent file modes. */
 	PT_FSRELPATH = 43, /* A path relative to a dirfd. */
-	PT_MAX = 44 /* array size */
+	PT_ENUMFLAGS8 = 44, /* this is an UINT8, but will be interpreted as an enum flag, ie: contiguous values flag. */
+	PT_ENUMFLAGS16 = 45, /* this is an UINT16, but will be interpreted as an enum flag, ie: contiguous values flag. */
+	PT_ENUMFLAGS32 = 46, /* this is an UINT32, but will be interpreted as an enum flag, ie: contiguous values flag. */
+	PT_MAX = 47 /* array size */
 };
 
 enum ppm_print_format {

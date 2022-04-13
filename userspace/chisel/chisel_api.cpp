@@ -84,11 +84,13 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 		case PT_L4PROTO: // This can be resolved in the future
 		case PT_FLAGS8:
 		case PT_UINT8:
+		case PT_ENUMFLAGS8:
 			lua_pushnumber(ls, *(uint8_t*)rawval);
 			return 1;
 		case PT_PORT: // This can be resolved in the future
 		case PT_FLAGS16:
 		case PT_UINT16:
+		case PT_ENUMFLAGS16:
 			lua_pushnumber(ls, *(uint16_t*)rawval);
 			return 1;
 		case PT_FLAGS32:
@@ -96,6 +98,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 		case PT_MODE:
 		case PT_UID:
 		case PT_GID:
+		case PT_ENUMFLAGS32:
 			lua_pushnumber(ls, *(uint32_t*)rawval);
 			return 1;
 		case PT_UINT64:

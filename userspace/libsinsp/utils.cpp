@@ -1382,6 +1382,12 @@ const char* param_type_to_string(ppm_param_type pt)
 		return "FLAGS16";
 	case PT_FLAGS32:
 		return "FLAGS32";
+	case PT_ENUMFLAGS8:
+		return "ENUMFLAGS8";
+	case PT_ENUMFLAGS16:
+		return "ENUMFLAGS16";
+	case PT_ENUMFLAGS32:
+		return "ENUMFLAGS32";
 	case PT_MODE:
 		return "MODE";
 	case PT_UID:

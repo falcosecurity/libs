@@ -760,6 +760,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_FLAGS8:
+	case PT_ENUMFLAGS8:
 	case PT_UINT8:
 	case PT_SIGTYPE:
 		if (likely(max_arg_size >= sizeof(u8)))	{
@@ -771,6 +772,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_FLAGS16:
+	case PT_ENUMFLAGS16:
 	case PT_UINT16:
 	case PT_SYSCALLID:
 		if (likely(max_arg_size >= sizeof(u16))) {
@@ -787,6 +789,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_UID:
 	case PT_GID:
 	case PT_SIGSET:
+	case PT_ENUMFLAGS32:
 		if (likely(max_arg_size >= sizeof(u32))) {
 			*(u32 *)(args->buffer + args->arg_data_offset) = (u32)val;
 			len = sizeof(u32);
