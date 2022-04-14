@@ -1156,7 +1156,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		return;
 	}
 
-	if(ptinfo->m_comm == "<NA>" && ptinfo->m_uid == 0xffffffff)
+	if(ptinfo->m_comm == "<NA>" && ptinfo->m_user.uid == 0xffffffff)
 	{
 		valid_parent = false;
 	}
@@ -1225,7 +1225,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		tinfo->m_tty = ptinfo->m_tty;
 
-		tinfo->m_loginuid = ptinfo->m_loginuid;
+		tinfo->m_loginuser = ptinfo->m_loginuser;
 
 		// Copy the full sets of capabilities from the parent
 		tinfo->m_cap_permitted = ptinfo->m_cap_permitted;
@@ -1260,7 +1260,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			return;
 		}
 
-		if(ptinfo->m_comm != "<NA>" && ptinfo->m_uid != 0xffffffff)
+		if(ptinfo->m_comm != "<NA>" && ptinfo->m_user.uid != 0xffffffff)
 		{
 			//
 			// Parent found in proc, use its data
@@ -1273,7 +1273,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			tinfo->m_sid = ptinfo->m_sid;
 			tinfo->m_vpgid = ptinfo->m_vpgid;
 			tinfo->m_tty = ptinfo->m_tty;
-			tinfo->m_loginuid = ptinfo->m_loginuid;
+			tinfo->m_loginuser = ptinfo->m_loginuser;
 			if(!(flags & PPM_CL_CLONE_THREAD))
 			{
 				tinfo->m_env = ptinfo->m_env;
@@ -1505,7 +1505,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo->m_uid = *(int32_t *)parinfo->m_val;
+	tinfo->set_user(*(int32_t *)parinfo->m_val);
 
 	// Copy the gid
 	switch(etype)
@@ -1533,7 +1533,8 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo->m_gid = *(int32_t *)parinfo->m_val;
+	tinfo->set_group(*(int32_t *)parinfo->m_val);
+	tinfo->m_user.gid = tinfo->m_group.gid;
 
 	//
 	// If we're in a container, vtid and vpid are
@@ -1924,7 +1925,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	{
 		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
-		evt->m_tinfo->m_loginuid = *(uint32_t *) parinfo->m_val;
+		evt->m_tinfo->set_loginuser(*(uint32_t *) parinfo->m_val);
 	}
 
 	// Get execve flags
@@ -4801,7 +4802,7 @@ void sinsp_parser::parse_setresuid_exit(sinsp_evt *evt)
 		if(new_euid < std::numeric_limits<uint32_t>::max())
 		{
 			if (evt->get_thread_info()) {
-				evt->get_thread_info()->m_uid = new_euid;
+				evt->get_thread_info()->set_user(new_euid);
 			}
 		}
 	}
@@ -4829,7 +4830,7 @@ void sinsp_parser::parse_setresgid_exit(sinsp_evt *evt)
 		if(new_egid < std::numeric_limits<uint32_t>::max())
 		{
 			if (evt->get_thread_info()) {
-				evt->get_thread_info()->m_gid = new_egid;
+				evt->get_thread_info()->set_group(new_egid);
 			}
 		}
 	}
@@ -4854,7 +4855,7 @@ void sinsp_parser::parse_setuid_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_euid = *(uint32_t *)parinfo->m_val;
 		if (evt->get_thread_info()) {
-			evt->get_thread_info()->m_uid = new_euid;
+			evt->get_thread_info()->set_user(new_euid);
 		}
 	}
 }
@@ -4878,7 +4879,7 @@ void sinsp_parser::parse_setgid_exit(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		uint32_t new_egid = *(uint32_t *)parinfo->m_val;
 		if (evt->get_thread_info()) {
-			evt->get_thread_info()->m_gid = new_egid;
+			evt->get_thread_info()->set_group(new_egid);
 		}
 	}
 }

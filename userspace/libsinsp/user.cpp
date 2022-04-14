@@ -34,7 +34,8 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
 {
 }
 
-void sinsp_usergroup_manager::init() {
+void sinsp_usergroup_manager::init()
+{
 	if (m_import_users)
 	{
 		// Emplace container manager listener to delete container users upon container deletion
@@ -44,88 +45,34 @@ void sinsp_usergroup_manager::init() {
 	}
 }
 
-void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper)
-{
-	for(const auto& it : m_userlist)
-	{
+void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper) {
+	for (const auto &it: m_userlist) {
 		std::string container_id = it.first;
 		auto usrlist = m_userlist[container_id];
-		for(const auto &user : usrlist)
-		{
+		for (const auto &user: usrlist) {
 			sinsp_evt evt;
-			if(user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E))
-			{
+			if (user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
 				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
-				if(res != SCAP_SUCCESS)
-				{
+				if (res != SCAP_SUCCESS) {
 					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 				}
 			}
 		}
 	}
 
-	for(const auto& it : m_grouplist)
-	{
+	for (const auto &it: m_grouplist) {
 		std::string container_id = it.first;
 		auto grplist = m_grouplist[container_id];
-		for(const auto &group : grplist)
-		{
+		for (const auto &group: grplist) {
 			sinsp_evt evt;
-			if(group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E))
-			{
+			if (group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
 				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
-				if(res != SCAP_SUCCESS)
-				{
+				if (res != SCAP_SUCCESS) {
 					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 				}
 			}
 		}
 	}
-}
-
-void sinsp_usergroup_manager::import_host_users_groups_list()
-{
-	auto &host_userlist = m_userlist[""];
-	auto &host_grplist = m_grouplist[""];
-
-	uint32_t j;
-	scap_userlist* ul = scap_get_user_list(m_inspector->m_h);
-	if(ul)
-	{
-		// Store a copy to make a diff
-		auto old_host_userlist = m_userlist[""];
-		auto old_host_grplist = m_grouplist[""];
-
-		// Only clean old tables if new one is actually recved
-		host_userlist.clear();
-		host_grplist.clear();
-
-		for(j = 0; j < ul->nusers; j++)
-		{
-			host_userlist.emplace(ul->users[j].uid, ul->users[j]);
-		}
-
-		for(j = 0; j < ul->ngroups; j++)
-		{
-			host_grplist.emplace(ul->groups[j].gid, ul->groups[j]);
-		}
-
-		notify_host_diff(old_host_userlist, old_host_grplist);
-	}
-}
-
-void sinsp_usergroup_manager::refresh_host_users_groups_list()
-{
-	if (!m_import_users)
-	{
-		return;
-	}
-
-	// Avoid re-running refresh_host_users_groups_list too soon
-	m_last_flush_time_ns = m_inspector->m_lastevent_ts;
-
-	scap_refresh_userlist(m_inspector->m_h);
-	import_host_users_groups_list();
 }
 
 void sinsp_usergroup_manager::delete_container_users_groups(const sinsp_container_info &cinfo)
@@ -156,7 +103,7 @@ void sinsp_usergroup_manager::delete_container_users_groups(const sinsp_containe
 	m_grouplist.erase(cinfo.m_id);
 }
 
-bool sinsp_usergroup_manager::sync_host_users_groups()
+bool sinsp_usergroup_manager::clear_host_users_groups()
 {
 	if (!m_import_users)
 	{
@@ -177,59 +124,21 @@ bool sinsp_usergroup_manager::sync_host_users_groups()
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
-		// Refresh
-		refresh_host_users_groups_list();
+		// Clear everything, so that new threadinfos incoming will update
+		// user and group informations
+		m_userlist[""].clear();
+		m_grouplist[""].clear();
 	}
 	return res;
 }
 
-void sinsp_usergroup_manager::notify_host_diff(const unordered_map<uint32_t, scap_userinfo> &old_host_userlist,
-					       const unordered_map<uint32_t, scap_groupinfo> &old_host_grplist)
-{
-	auto &host_userlist = m_userlist[""];
-	auto &host_grplist = m_grouplist[""];
-
-	// Find any user/group added
-	for (auto &u : host_userlist)
-	{
-		if (old_host_userlist.find(u.first) == old_host_userlist.end())
-		{
-			notify_user_changed(&u.second, "");
-		}
-	}
-	for (auto &g : host_grplist)
-	{
-		if (old_host_grplist.find(g.first) == old_host_grplist.end())
-		{
-			notify_group_changed(&g.second, "");
-		}
-	}
-
-	// Find any user/group deleted
-	for (auto &u : old_host_userlist)
-	{
-		if (host_userlist.find(u.first) == host_userlist.end())
-		{
-			notify_user_changed(&u.second, "", false);
-		}
-	}
-	for (auto &g : old_host_grplist)
-	{
-		if (host_grplist.find(g.first) == host_grplist.end())
-		{
-			notify_group_changed(&g.second, "", false);
-		}
-	}
-}
-
-bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
+scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
 	if (!m_import_users)
 	{
-		return false;
+		return nullptr;
 	}
 
-	bool res = false;
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
@@ -265,13 +174,12 @@ bool sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid,
 		strlcpy(userlist[uid].homedir, home, SCAP_MAX_PATH_SIZE);
 		strlcpy(userlist[uid].shell, shell, SCAP_MAX_PATH_SIZE);
 
-		res = true;
 		if (notify)
 		{
 			notify_user_changed(&userlist[uid], container_id);
 		}
 	}
-	return res;
+	return usr;
 }
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
@@ -290,14 +198,13 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 	return res;
 }
 
-bool sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
+scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
 {
 	if (!m_import_users)
 	{
-		return false;
+		return nullptr;
 	}
 
-	bool res = false;
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
@@ -320,13 +227,12 @@ bool sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid
 		grplist[gid].gid = gid;
 		strlcpy(grplist[gid].name, name, MAX_CREDENTIALS_STR_LEN);
 
-		res = true;
 		if (notify)
 		{
 			notify_group_changed(&grplist[gid], container_id, true);
 		}
 	}
-	return res;
+	return gr;
 }
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)

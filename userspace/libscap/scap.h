@@ -1150,7 +1150,6 @@ void scap_free_device_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
 void scap_refresh_proc_table(scap_t* handle);
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
-void scap_refresh_userlist(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);

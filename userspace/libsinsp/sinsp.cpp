@@ -1335,7 +1335,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			update_mesos_state();
 		}
 
-		m_usergroup_manager.sync_host_users_groups();
+		m_usergroup_manager.clear_host_users_groups();
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	}
 #endif // HAS_ANALYZER

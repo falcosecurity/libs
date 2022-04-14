@@ -151,25 +151,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	// Also possibly set the category for the threadinfo
 	identify_category(tinfo);
 
-	// Double check tinfo uid and gid and eventually
-	// add them to usergroup_manager
-	check_user_group(tinfo);
-
 	return matches;
-}
-
-void sinsp_container_manager::check_user_group(sinsp_threadinfo* tinfo) {
-	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_uid);
-	if (!user)
-	{
-			m_inspector->m_usergroup_manager.add_user(tinfo->m_container_id, tinfo->m_uid, tinfo->m_gid, NULL, NULL, NULL, m_inspector->is_live());
-	}
-
-	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(tinfo->m_container_id, tinfo->m_gid);
-	if (!group)
-	{
-			m_inspector->m_usergroup_manager.add_group(tinfo->m_container_id, tinfo->m_gid, NULL, m_inspector->is_live());
-	}
 }
 
 string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)

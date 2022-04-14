@@ -4731,44 +4731,26 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 {
 	*len = 0;
 	sinsp_threadinfo* tinfo = evt->get_thread_info();
-	scap_userinfo* uinfo = nullptr;
 
 	if(tinfo == NULL)
 	{
 		return NULL;
 	}
 
-	if(m_field_id != TYPE_UID && m_field_id != TYPE_LOGINUID && m_field_id != TYPE_LOGINNAME)
-	{
-		ASSERT(m_inspector != NULL);
-		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_uid);
-		ASSERT(uinfo != NULL);
-		if(uinfo == NULL)
-		{
-			return NULL;
-		}
-	}
-
 	switch(m_field_id)
 	{
 	case TYPE_UID:
-		RETURN_EXTRACT_VAR(tinfo->m_uid);
+		RETURN_EXTRACT_VAR(tinfo->m_user.uid);
 	case TYPE_NAME:
-		RETURN_EXTRACT_CSTR(uinfo->name);
+		RETURN_EXTRACT_CSTR(tinfo->m_user.name);
 	case TYPE_HOMEDIR:
-		RETURN_EXTRACT_CSTR(uinfo->homedir);
+		RETURN_EXTRACT_CSTR(tinfo->m_user.homedir);
 	case TYPE_SHELL:
-		RETURN_EXTRACT_CSTR(uinfo->shell);
+		RETURN_EXTRACT_CSTR(tinfo->m_user.shell);
 	case TYPE_LOGINUID:
-		RETURN_EXTRACT_VAR(tinfo->m_loginuid);
+		RETURN_EXTRACT_VAR(tinfo->m_loginuser.uid);
 	case TYPE_LOGINNAME:
-		ASSERT(m_inspector != NULL);
-		uinfo = m_inspector->m_usergroup_manager.get_user(tinfo->m_container_id, tinfo->m_loginuid);
-		if(uinfo == NULL)
-		{
-			return NULL;
-		}
-		RETURN_EXTRACT_CSTR(uinfo->name);
+		RETURN_EXTRACT_CSTR(tinfo->m_loginuser.name);
 	default:
 		ASSERT(false);
 		break;
@@ -4813,19 +4795,9 @@ uint8_t* sinsp_filter_check_group::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	switch(m_field_id)
 	{
 	case TYPE_GID:
-		RETURN_EXTRACT_VAR(tinfo->m_gid);
+		RETURN_EXTRACT_VAR(tinfo->m_group.gid);
 	case TYPE_NAME:
-		{
-			unordered_map<uint32_t, scap_groupinfo*>::iterator it;
-
-			ASSERT(m_inspector != NULL);
-			auto ginfo = m_inspector->m_usergroup_manager.get_group(tinfo->m_container_id, tinfo->m_gid);
-			if (ginfo == NULL)
-			{
-				return NULL;
-			}
-			RETURN_EXTRACT_CSTR(ginfo->name);
-		}
+		RETURN_EXTRACT_CSTR(tinfo->m_group.name);
 	default:
 		ASSERT(false);
 		break;

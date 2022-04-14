@@ -242,6 +242,10 @@ public:
 	 */
 	std::string get_path_for_dir_fd(int64_t dir_fd);
 
+	void set_user(uint32_t uid);
+	void set_group(uint32_t gid);
+	void set_loginuser(uint32_t loginuid);
+
 	//
 	// Core state
 	//
@@ -259,8 +263,9 @@ public:
 	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open
-	uint32_t m_uid; ///< user id
-	uint32_t m_gid; ///< group id
+	scap_userinfo m_user; ///< user infos
+	scap_userinfo m_loginuser; ///< loginuser infos (auid)
+	scap_groupinfo m_group; ///< group infos
 	uint64_t m_cap_permitted; ///< permitted capabilities
 	uint64_t m_cap_effective; ///< effective capabilities
 	uint64_t m_cap_inheritable; ///< inheritable capabilities
@@ -277,7 +282,7 @@ public:
 	size_t m_program_hash; ///< Unique hash of the current program
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
 	int32_t m_tty;
-	int32_t m_loginuid; ///< loginuid (auid)
+
 
 	// In some cases, a threadinfo has a category that identifies
 	// why it was run. Descriptions:
