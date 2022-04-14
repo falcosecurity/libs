@@ -55,6 +55,9 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
 
+      - name: "Allow agent-libs repo access, ref: https://github.com/actions/checkout/issues/760"
+        run: git config --global --add safe.directory /__w/agent-libs/agent-libs
+
       - name: Checkout
         uses: actions/checkout@v3
 
