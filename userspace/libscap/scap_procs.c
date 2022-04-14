@@ -665,6 +665,86 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 	return SCAP_SUCCESS;
 }
 
+void scap_proc_fill_exe_upper_layer(scap_t* handle, struct scap_threadinfo* tinfo, const char *procdirname)
+{
+	char buf[SCAP_MAX_PATH_SIZE];
+	char upperdir[SCAP_MAX_PATH_SIZE];
+	char exe[SCAP_MAX_PATH_SIZE];
+	char line[SCAP_MAX_ARGS_SIZE];
+	FILE *mounts_file;
+	struct stat upperdir_exe_stat;
+	int ret;
+
+	//
+	// Open mounts file
+	// 
+	snprintf(buf, sizeof(buf), "%smounts", procdirname);
+	mounts_file = fopen(buf, "r");
+	if(!mounts_file)
+	{
+		return;
+	}
+
+	//
+	// Check if there is an overlayfs mounted in root. 
+	// This is used to understand if the process is within a container.
+	// If this is the case, the first line of the mounts file contains the string "overlay / overlay" 
+	// and we can retrieve the upperdir path for this container.
+	//
+	if(!fgets(line, sizeof(line), mounts_file))
+	{
+		return;
+	}
+
+	fclose(mounts_file);
+
+	if(strstr(line, "overlay / overlay"))
+	{
+		char *start, *end;
+
+		start = strstr(line, "upperdir=") + sizeof("upperdir=") - 1;
+		if(!start)
+		{
+			return;
+		}
+
+		end = strstr(start, ",");
+		if(!end)
+		{
+			return;
+		}
+		*end = '\0';
+
+		snprintf(upperdir, sizeof(upperdir), "%s%s", scap_get_host_root(), start);
+	}
+	else
+	{
+		return;
+	}
+
+	//
+	// Read link of the executable file
+	//
+	snprintf(buf, sizeof(buf), "%sexe", procdirname);
+	ret = readlink(buf, exe, sizeof(exe));
+	if(ret < 0)
+	{
+		return;
+	}
+	*(exe + ret) = '\0';
+
+	//
+	// Check if the upperdir directory contains the executable file 
+	// and set upper_layer accordingly
+	//
+	strncat(upperdir, exe, sizeof(upperdir) - strlen(upperdir) - 1);
+	ret = stat(upperdir, &upperdir_exe_stat);
+	if(!ret)
+	{
+		tinfo->exe_upper_layer = true;
+	}
+}
+
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -1002,7 +1082,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		return SCAP_FAILURE;
 	}
 
-	tinfo->exe_upper_layer = false;
+	//
+	// Best effort attempt to fill exe_upper_layer
+	// We may not have access to directories like /var/lib/docker or /var/lib/containerd 
+	// when running in a container. 
+	//
+	scap_proc_fill_exe_upper_layer(handle, tinfo, dir_name);
 
 	//
 	// if procinfo is set we assume this is a runtime lookup so no
