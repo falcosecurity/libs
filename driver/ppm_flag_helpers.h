@@ -1891,6 +1891,12 @@ static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
 	return res;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 5, 0)
+#define PPM_OVERLAYFS_SUPER_MAGIC OVERLAYFS_SUPER_MAGIC
+#else
+#define PPM_OVERLAYFS_SUPER_MAGIC 0x794c7630
+#endif
+
 #endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */
