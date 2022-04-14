@@ -503,6 +503,7 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 		// this can fail if import_user is disabled
 		user = m_inspector->m_usergroup_manager.add_user(m_container_id, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
 	}
+
 	if (user)
 	{
 		memcpy(&m_user, user, sizeof(scap_userinfo));
@@ -525,6 +526,7 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 		// this can fail if import_user is disabled
 		group = m_inspector->m_usergroup_manager.add_group(m_container_id, gid, NULL, m_inspector->is_live());
 	}
+
 	if (group)
 	{
 		memcpy(&m_group, group, sizeof(scap_groupinfo));
@@ -544,6 +546,7 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 		// this can fail if import_user is disabled
 		login_user = m_inspector->m_usergroup_manager.add_user(m_container_id, loginuid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
 	}
+
 	if (login_user)
 	{
 		memcpy(&m_loginuser, login_user, sizeof(scap_userinfo));
