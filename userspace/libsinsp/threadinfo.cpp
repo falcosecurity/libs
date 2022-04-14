@@ -85,10 +85,13 @@ void sinsp_threadinfo::init()
 	m_tty = 0;
 	m_category = CAT_NONE;
 	m_blprogram = NULL;
-	m_loginuid = 0;
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
+
+	memset(&m_user, 0, sizeof(scap_userinfo));
+	memset(&m_group, 0, sizeof(scap_groupinfo));
+	memset(&m_loginuser, 0, sizeof(scap_userinfo));
 }
 
 sinsp_threadinfo::~sinsp_threadinfo()
@@ -404,8 +407,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_fdtable.clear();
 	m_fdtable.m_tid = m_tid;
 	m_fdlimit = pi->fdlimit;
-	m_uid = pi->uid;
-	m_gid = pi->gid;
 
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
@@ -421,13 +422,17 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
-	m_loginuid = pi->loginuid;
 	m_category = CAT_NONE;
 
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
 	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
+
+	set_user(pi->uid);
+	set_group(pi->gid);
+	set_loginuser((uint32_t)pi->loginuid);
+
 	//
 	// Prepare for filtering
 	//
@@ -487,6 +492,69 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 		{
 			pi->filtered_out = 1;
 		}
+	}
+}
+
+void sinsp_threadinfo::set_user(uint32_t uid)
+{
+	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
+	if (!user)
+	{
+		// this can fail if import_user is disabled
+		user = m_inspector->m_usergroup_manager.add_user(m_container_id, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
+	}
+	if (user)
+	{
+		memcpy(&m_user, user, sizeof(scap_userinfo));
+	}
+	else
+	{
+		m_user.uid = uid;
+		m_user.gid = m_group.gid;
+		strcpy(m_user.name, "<NA>");
+		strcpy(m_user.homedir, "<NA>");
+		strcpy(m_user.shell, "<NA>");
+	}
+}
+
+void sinsp_threadinfo::set_group(uint32_t gid)
+{
+	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
+	if (!group)
+	{
+		// this can fail if import_user is disabled
+		group = m_inspector->m_usergroup_manager.add_group(m_container_id, gid, NULL, m_inspector->is_live());
+	}
+	if (group)
+	{
+		memcpy(&m_group, group, sizeof(scap_groupinfo));
+	}
+	else
+	{
+		m_group.gid = gid;
+		strcpy(m_group.name, "<NA>");
+	}
+}
+
+void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
+{
+	scap_userinfo *login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
+	if (!login_user)
+	{
+		// this can fail if import_user is disabled
+		login_user = m_inspector->m_usergroup_manager.add_user(m_container_id, loginuid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
+	}
+	if (login_user)
+	{
+		memcpy(&m_loginuser, login_user, sizeof(scap_userinfo));
+	}
+	else
+	{
+		m_loginuser.uid =loginuid;
+		m_loginuser.gid = m_group.gid;
+		strcpy(m_loginuser.name, "<NA>");
+		strcpy(m_loginuser.homedir, "<NA>");
+		strcpy(m_loginuser.shell, "<NA>");
 	}
 }
 
@@ -1491,8 +1559,8 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 	sctinfo->flags = tinfo.m_flags ;
 	sctinfo->fdlimit = tinfo.m_fdlimit;
-	sctinfo->uid = tinfo.m_uid;
-	sctinfo->gid = tinfo.m_gid;
+	sctinfo->uid = tinfo.m_user.uid;
+	sctinfo->gid = tinfo.m_group.gid;
 	sctinfo->vmsize_kb = tinfo.m_vmsize_kb;
 	sctinfo->vmrss_kb = tinfo.m_vmrss_kb;
 	sctinfo->vmswap_kb = tinfo.m_vmswap_kb;
@@ -1501,7 +1569,7 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 	sctinfo->vtid = tinfo.m_vtid;
 	sctinfo->vpid = tinfo.m_vpid;
 	sctinfo->fdlist = NULL;
-	sctinfo->loginuid = tinfo.m_loginuid;
+	sctinfo->loginuid = tinfo.m_loginuser.uid;
 	sctinfo->filtered_out = false;
 }
 
@@ -1753,10 +1821,10 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             newti->m_ptid = -1;
             newti->m_comm = "<NA>";
             newti->m_exe = "<NA>";
-            newti->m_uid = 0xffffffff;
-            newti->m_gid = 0xffffffff;
+            newti->m_user.uid = 0xffffffff;
+            newti->m_group.gid = 0xffffffff;
             newti->m_nchilds = 0;
-            newti->m_loginuid = 0xffffffff;
+            newti->m_loginuser.uid = 0xffffffff;
         }
 
         //

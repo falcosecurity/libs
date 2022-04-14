@@ -30,9 +30,10 @@ class sinsp_evt;
  * Basic idea:
  * * when container_manager tries to resolve a threadinfo container, it will update
  * * its user/group informations, using following algorithm:
- * * if the thread itself is on the HOST, it will call refresh_host_users_groups_list,
- * 		that will refresh scap host user/group list and reimport host users groups in this class,
- * 		eventually notifying any change in users and groups
+ * * if the thread itself is on the HOST, it will call getpwuid/getgrgid,
+ * 		and store the new user/group together with informations,
+ * 		eventually notifying any change in users and groups.
+ * 		If no information can be retrieved, only uid/gid will be stored as informations, with "<NA>" for everything else.
  * * if the thread is on a container, the new user/group will be stored using the container id as key,
  * 		without additional info (ie: username, homedir etc etc will be left "<NA>")
  * 		because they cannot be retrieved from a container.
@@ -40,9 +41,20 @@ class sinsp_evt;
  *
  * * on PPME_{USER,GROUP}_ADDED, the new user/group is stored in the m_{user,group}_list<container_id>, if not present.
  *
- * * HOST users and groups are checked once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1 min by default),
+ * * Host users and groups lists are cleared once every DEFAULT_DELETED_USERS_GROUPS_SCAN_TIME_S (1 min by default),
  * 		see sinsp::m_deleted_users_groups_scan_time_ns.
- * * Containers users and groups gets bulk deleted once the container is cleaned up.
+ * 		Then, the users and groups will be refreshed as explained above, every time a threadinfo is created.
+ * 		This is needed to fetch deleted users/groups, or overwritten ones.
+ * 		Note: PPME_USER_DELETED_E is never sent for host users; we miss
+ * 		the mechanism to undestand when an user is removed (without calling scap_get_userlist
+ * 		and comparing to the already stored one; but that is an heavy operation).
+ * * Containers users and groups gets bulk deleted once the container is cleaned up and
+ *      PPME_{USER,GROUP}_DELETED_E event is sent for each of them.
+ *
+ * * Each threadinfo stores internally its user and group informations.
+ *      This is needed to avoid that eg: a threadinfo spawns on uid 1000 "foo".
+ *      Then, uid 1000 is deleted, and a new uid 1000 is created, named "bar".
+ *      We need to be able to tell that the threadinfo user is still "foo".
  */
 class sinsp_usergroup_manager
 {
@@ -102,14 +114,12 @@ public:
 	*/
 	scap_groupinfo* get_group(const std::string &container_id, uint32_t gid);
 
-	void refresh_host_users_groups_list();
-
-	bool add_user(const std::string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
-	bool add_group(const std::string &container_id, uint32_t gid, const char *name, bool notify = false);
+	scap_userinfo *add_user(const std::string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
+	scap_groupinfo *add_group(const std::string &container_id, uint32_t gid, const char *name, bool notify = false);
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
 
-	bool sync_host_users_groups();
+	bool clear_host_users_groups();
 
 	//
 	// User and group tables
@@ -121,9 +131,6 @@ private:
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 
 	void delete_container_users_groups(const sinsp_container_info &cinfo);
-	void import_host_users_groups_list();
-	void notify_host_diff(const std::unordered_map<uint32_t, scap_userinfo> &old_host_userlist,
-			      const std::unordered_map<uint32_t, scap_groupinfo> &old_host_grplist);
 
 	void notify_user_changed(const scap_userinfo *user, const std::string &container_id, bool added = true);
 	void notify_group_changed(const scap_groupinfo *group, const std::string &container_id, bool added = true);

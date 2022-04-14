@@ -198,13 +198,6 @@ int32_t scap_create_userlist(scap_t* handle)
 	}
 	return SCAP_SUCCESS;
 }
-
-void scap_refresh_userlist(scap_t* handle) {
-	scap_free_userlist(handle->m_userlist);
-	handle->m_userlist = NULL;
-	scap_create_userlist(handle);
-}
-
 #else // HAS_CAPTURE
 #ifdef WIN32
 #include "windows_hal.h"

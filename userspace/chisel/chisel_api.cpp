@@ -823,10 +823,10 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			lua_pushnumber(ls, (uint32_t)tinfo.m_fdlimit);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "uid");
-			lua_pushnumber(ls, (uint32_t)tinfo.m_uid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_user.uid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "gid");
-			lua_pushnumber(ls, (uint32_t)tinfo.m_gid);
+			lua_pushnumber(ls, (uint32_t)tinfo.m_group.gid);
 			lua_settable(ls, -3);
 			lua_pushliteral(ls, "nchilds");
 			lua_pushnumber(ls, (uint32_t)tinfo.m_nchilds);
@@ -853,31 +853,8 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			//
 			// Extract the user name
 			//
-			string username;
-			unordered_map<uint32_t, scap_userinfo>::const_iterator uit;
-
-			const unordered_map<uint32_t, scap_userinfo>* userlist = ch->m_inspector->m_usergroup_manager.get_userlist("");
-			ASSERT(userlist->size() != 0);
-
-			if(tinfo.m_uid == 0xffffffff)
-			{
-				username = "<NA>";
-			}
-			else
-			{
-				uit = userlist->find(tinfo.m_uid);
-				if(uit == userlist->end())
-				{
-					username = "<NA>";
-				}
-				else
-				{
-					username = uit->second.name;
-				}
-			}
-
 			lua_pushliteral(ls, "username");
-			lua_pushstring(ls, username.c_str());
+			lua_pushstring(ls, tinfo.m_user.name);
 			lua_settable(ls, -3);
 
 			//
