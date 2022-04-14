@@ -2252,7 +2252,7 @@ static __always_inline bool get_exe_upper_layer(struct inode *inode)
 	struct super_block *sb = _READ(inode->i_sb);
 	unsigned long sb_magic = _READ(sb->s_magic);
 
-	if(sb_magic == OVERLAYFS_SUPER_MAGIC)
+	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 	{
 		struct dentry *upper_dentry;
 		struct inode *lower_inode;
