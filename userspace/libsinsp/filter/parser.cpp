@@ -81,6 +81,21 @@ static const vector<string> binary_list_ops =
 	"intersects", "in", "pmatch"
 };
 
+vector<string> parser::supported_operators(bool list_only)
+{
+	if (list_only)
+	{
+		return binary_list_ops;
+	}
+	vector<string> ops;
+	ops.insert(ops.end(), unary_ops.begin(), unary_ops.end());
+	ops.insert(ops.end(), binary_num_ops.begin(), binary_num_ops.end());
+	ops.insert(ops.end(), binary_str_ops.begin(), binary_str_ops.end());
+	ops.insert(ops.end(), binary_list_ops.begin(), binary_list_ops.end());
+	transform(ops.begin(), ops.end(), ops.begin(), ::trim);
+	return ops;
+}
+
 parser::parser(const string& input)
 {
 	m_input = input;
