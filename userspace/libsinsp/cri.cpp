@@ -170,6 +170,9 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 						   container.m_imagetag,
 						   digest2,
 						   false);
+
+		image_name.push_back(':');
+		image_name.append(container.m_imagetag);
 	}
 
 	container.m_image = image_name;
