@@ -95,6 +95,11 @@ public:
 	};
 
 	/*!
+		\brief Returns the set of filtering operators supported by libsinsp
+	*/
+	static std::vector<std::string> supported_operators(bool list_only=false);
+
+	/*!
 		\brief Constructs the parser with a given filter string input
 		\param input The filter string to parse.
 	*/
