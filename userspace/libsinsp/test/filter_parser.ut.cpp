@@ -53,6 +53,36 @@ static void test_reject(string in)
 	}
 }
 
+TEST(parser, supported_operators)
+{
+	static vector<string> expected_all = {
+		"=", "==", "!=", "<=", ">=", "<", ">", "exists",
+		"contains", "icontains", "bcontains", "glob", "bstartswith",
+		"startswith", "endswith", "in", "intersects", "pmatch"};
+	static vector<string> expected_list_only = {
+		"in", "intersects", "pmatch"};
+	
+	auto actual_all = parser::supported_operators();
+	ASSERT_EQ(actual_all.size(), expected_all.size());
+	for (auto &op : expected_all)
+	{
+		if (count(actual_all.begin(), actual_all.end(), op) != 1)
+		{
+			FAIL() << "expected support for operator: " << op;
+		}
+	}
+
+	auto actual_list_only = parser::supported_operators(true);
+	ASSERT_EQ(actual_list_only.size(), actual_list_only.size());
+	for (auto &op : expected_list_only)
+	{
+		if (count(actual_list_only.begin(), actual_list_only.end(), op) != 1)
+		{
+			FAIL() << "expected support for list operator: " << op;
+		}
+	}
+}
+
 // Inspired by Falco's parser smoke tests:
 // https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/userspace/engine/lua/parser-smoke.sh#L41
 TEST(parser, parse_smoke_test)
