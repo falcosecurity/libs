@@ -82,7 +82,7 @@ public:
 			col = 1;
 		}
 		
-		inline std::string as_string()
+		inline std::string as_string() const
 		{
 			return "index " + std::to_string(idx) 
 				+ ", line " + std::to_string(line) 
@@ -103,19 +103,19 @@ public:
 		\brief Constructs the parser with a given filter string input
 		\param input The filter string to parse.
 	*/
-	parser(const std::string& input);
+	explicit parser(const std::string& input);
 
 	/*!
 		\brief Retrieves the parser position info.
 		\param pos pos_info struct in which the info is written.
 	*/
-	void get_pos(pos_info& pos);
+	void get_pos(pos_info& pos) const;
 
 	/*!
 		\brief Retrieves the parser position info.
 		\return pos_info struct in which the info is written.
 	*/
-	pos_info get_pos();
+	pos_info get_pos() const;
 
 	/*!
 		\brief Sets the partial parsing option. Default is true.
@@ -163,13 +163,13 @@ private:
 	bool lex_str_op();
 	bool lex_list_op();
 	bool lex_helper_rgx(std::string rgx);
-	bool lex_helper_str(std::string str);
-	bool lex_helper_str_list(std::vector<std::string> list);
+	bool lex_helper_str(const std::string& str);
+	bool lex_helper_str_list(const std::vector<std::string>& list);
 	void depth_push();
 	void depth_pop();
 	const char* cursor();
-	std::string escape_str(std::string& str);
-	std::string trim_str(const std::string& str);
+	std::string escape_str(const std::string& str);
+	std::string trim_str(std::string str);
 
 	bool m_parse_partial;
 	uint32_t m_depth;

@@ -40,6 +40,7 @@ struct binary_check_expr;
 */
 struct SINSP_PUBLIC expr_visitor
 {
+    virtual ~expr_visitor() = default;
     virtual void visit(and_expr*) = 0;
     virtual void visit(or_expr*) = 0;
     virtual void visit(not_expr*) = 0;
@@ -58,6 +59,17 @@ struct SINSP_PUBLIC expr_visitor
 struct SINSP_PUBLIC base_expr_visitor: public expr_visitor
 {
 public:
+    /*!
+        \brief Can be set to true by subclasses to instruct the
+        visitor that the exploration can be stopped, so
+        that the recursion gets rewinded and no more nodes
+        are explored.
+    */
+    inline void stop(bool v)
+    {
+        m_should_stop_visit = v;
+    }
+
     virtual void visit(and_expr*) override;
     virtual void visit(or_expr*) override;
     virtual void visit(not_expr*) override;
@@ -66,12 +78,7 @@ public:
     virtual void visit(unary_check_expr*) override;
     virtual void visit(binary_check_expr*) override;
 
-    /*!
-        \brief Can be set to true by subclasses to instruct the
-        visitor that the exploration can be stopped, so
-        that the recursion gets rewinded and no more nodes
-        are explored.
-    */
+private:
     bool m_should_stop_visit = false;
 };
 
@@ -80,7 +87,7 @@ public:
 */
 struct SINSP_PUBLIC expr
 {
-    virtual ~expr() { }
+    virtual ~expr() = default;
     virtual void accept(expr_visitor*) = 0;
     virtual bool is_equal(const expr* other) const = 0;
 };
@@ -95,11 +102,11 @@ inline bool compare(const expr* left, const expr* right)
 
 struct SINSP_PUBLIC and_expr: expr
 {
-    inline and_expr() { }
+    and_expr() { }
 
-    inline and_expr(std::vector<expr*> c): children(c) { }
+    explicit and_expr(const std::vector<expr*>& c): children(c) { }
 
-    inline ~and_expr()
+    ~and_expr()
     {
         for (auto &c : children)
         {
@@ -107,12 +114,12 @@ struct SINSP_PUBLIC and_expr: expr
         }
     }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const and_expr*>(other);
         return o != nullptr && std::equal(
@@ -125,11 +132,11 @@ struct SINSP_PUBLIC and_expr: expr
 
 struct SINSP_PUBLIC or_expr: expr
 {
-    inline or_expr() { }
+    or_expr() { }
 
-    inline or_expr(std::vector<expr*> c): children(c) { }
+    explicit or_expr(const std::vector<expr*>& c): children(c) { }
 
-    inline ~or_expr()
+    ~or_expr()
     {
         for (auto &c : children)
         {
@@ -137,12 +144,12 @@ struct SINSP_PUBLIC or_expr: expr
         }
     }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const or_expr*>(other);
         return o != nullptr && std::equal(
@@ -155,21 +162,21 @@ struct SINSP_PUBLIC or_expr: expr
 
 struct SINSP_PUBLIC not_expr: expr
 {
-    inline not_expr() { }
+    not_expr() { }
 
-    inline not_expr(expr* c): child(c) { }
+    explicit not_expr(expr* c): child(c) { }
 
-    inline ~not_expr()
+    ~not_expr()
     {
         delete child;
     }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const not_expr*>(other);
         return o != nullptr && child->is_equal(o->child);
@@ -180,16 +187,16 @@ struct SINSP_PUBLIC not_expr: expr
 
 struct SINSP_PUBLIC value_expr: expr
 {
-    inline value_expr() { }
+    value_expr() { }
 
-    inline value_expr(std::string v): value(v) { }
+    explicit value_expr(const std::string& v): value(v) { }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const value_expr*>(other);
         return o != nullptr && value == o->value;
@@ -200,16 +207,16 @@ struct SINSP_PUBLIC value_expr: expr
 
 struct SINSP_PUBLIC list_expr: expr
 {
-    inline list_expr() { }
+    list_expr() { }
 
-    inline list_expr(std::vector<std::string>v): values(v) { }
+    explicit list_expr(const std::vector<std::string>& v): values(v) { }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const list_expr*>(other);
         return o != nullptr && values == o->values;
@@ -220,19 +227,19 @@ struct SINSP_PUBLIC list_expr: expr
 
 struct SINSP_PUBLIC unary_check_expr: expr
 {
-    inline unary_check_expr() { }
+    unary_check_expr() { }
 
-    inline unary_check_expr(
-        std::string f,
-        std::string a,
-        std::string o): field(f), arg(a), op(o) { }
+    unary_check_expr(
+        const std::string& f,
+        const std::string& a,
+        const std::string& o): field(f), arg(a), op(o) { }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const unary_check_expr*>(other);
         return o != nullptr && field == o->field
@@ -246,25 +253,25 @@ struct SINSP_PUBLIC unary_check_expr: expr
 
 struct SINSP_PUBLIC binary_check_expr: expr
 {
-    inline binary_check_expr() { }
+    binary_check_expr() { }
 
-    inline binary_check_expr(
-        std::string f,
-        std::string a,
-        std::string o,
+    binary_check_expr(
+        const std::string& f,
+        const std::string& a,
+        const std::string& o,
         expr* v): field(f), arg(a), op(o), value(v) { }
 
-    inline ~binary_check_expr()
+    ~binary_check_expr()
     {
         delete value;
     }
 
-    inline void accept(expr_visitor* v) override
+    void accept(expr_visitor* v) override
     {
         v->visit(this);
     };
 
-    inline bool is_equal(const expr* other) const override
+    bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const binary_check_expr*>(other);
         return o != nullptr && field == o->field
