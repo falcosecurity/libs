@@ -105,14 +105,14 @@ parser::parser(const string& input)
 	m_parse_partial = false;
 }
 
-void parser::get_pos(pos_info& pos)
+void parser::get_pos(pos_info& pos) const
 {
 	pos.idx = m_pos.idx;
 	pos.col = m_pos.col;
 	pos.line = m_pos.line;
 }
 
-parser::pos_info parser::get_pos()
+parser::pos_info parser::get_pos() const
 {
 	pos_info info;
 	get_pos(info);
@@ -539,7 +539,7 @@ bool parser::lex_helper_rgx(string rgx)
 	return false;
 }
 
-bool parser::lex_helper_str(string str)
+bool parser::lex_helper_str(const string& str)
 {
 	if (strncmp(cursor(), str.c_str(), str.size()) == 0)
 	{
@@ -551,7 +551,7 @@ bool parser::lex_helper_str(string str)
 	return false;
 }
 
-bool parser::lex_helper_str_list(vector<string> list)
+bool parser::lex_helper_str_list(const std::vector<std::string>& list)
 {
 	for (auto &op : list)
 	{
@@ -568,7 +568,7 @@ inline const char* parser::cursor()
 	return m_input.c_str() + m_pos.idx;
 }
 
-string parser::escape_str(string& str)
+string parser::escape_str(const string& str)
 {
 	string res = "";
 	size_t len = str.size() - 1;
@@ -641,11 +641,10 @@ string parser::escape_str(string& str)
 	return res;
 }
 
-inline string parser::trim_str(const string& str)
+inline string parser::trim_str(string str)
 {
-	string val = str;
-	trim(val);
-	return val;
+	trim(str);
+	return str;
 }
 
 inline void parser::depth_push()
