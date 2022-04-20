@@ -212,10 +212,11 @@ public:
 	typedef std::shared_ptr<k8s_ext_list_t> k8s_ext_list_ptr_t;
 
 	sinsp(bool static_container = false,
-		  const std::string static_id = "",
-		  const std::string static_name = "",
-		  const std::string static_image = "");
-	virtual ~sinsp();
+		  const std::string &static_id = "",
+		  const std::string &static_name = "",
+		  const std::string &static_image = "");
+
+	~sinsp() override;
 
 	/*!
 	  \brief Start a live event capture.
@@ -1316,6 +1317,7 @@ public:
 	uint16_t m_replay_scap_cpuid;
 
 	bool m_inited;
+	static std::atomic<int> instance_count;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
