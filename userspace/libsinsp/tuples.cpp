@@ -115,8 +115,7 @@ ipv6net::ipv6net(const std::string &str)
 	}
 	else
 	{
-		g_logger.format(sinsp_logger::SEV_INFO, "using legacy netV6 formatting with '/64' bit prefix for '%'", str.c_str());
-		init(str + "/64");
+		throw sinsp_exception("invalid v6 netmask: " + str);
 	}
 }
 
