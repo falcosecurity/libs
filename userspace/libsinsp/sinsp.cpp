@@ -63,7 +63,9 @@ void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_thr
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp::sinsp(bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
+std::atomic<int> sinsp::instance_count{0};
+
+sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image) :
 	m_external_event_processor(),
 	m_simpleconsumer(false),
 	m_evt(this),
@@ -74,6 +76,7 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_suppressed_comms(),
 	m_inited(false)
 {
+	++instance_count;
 #if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
 	// used by mesos and container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -207,7 +210,10 @@ sinsp::~sinsp()
 	delete m_mesos_client;
 #ifdef HAS_CAPTURE
 	curl_global_cleanup();
-	sinsp_dns_manager::get().cleanup();
+	if (--instance_count == 0)
+	{
+		sinsp_dns_manager::get().cleanup();
+	}
 #endif
 #endif
 	m_plugins_list.clear();
