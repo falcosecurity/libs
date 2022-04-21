@@ -21,12 +21,16 @@ limitations under the License.
 #include "runc.h"
 #include "sinsp.h"
 
+#include <glob.h>
+#include <unistd.h>
+
 #include <fstream>
 
 using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
 std::string podman::m_api_sock = "/run/podman/podman.sock";
+std::string podman::m_user_api_sock_pattern = "/run/user/*/podman/podman.sock";
 
 namespace {
 constexpr const cgroup_layout ROOT_PODMAN_CGROUP_LAYOUT[] = {
@@ -122,9 +126,41 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 }
 }
 
+bool podman::can_api_sock_exist()
+{
+	glob_t gl;
+	int rc;
+	int glob_flags = 0;
+
+	// If the GNU extension GLOB_BRACE were universal, we could
+	// probably do this as one glob.
+
+	if (access(m_api_sock.c_str(), R_OK|W_OK) == 0)
+	{
+		return true;
+	}
+
+	// NULL is errfunc
+	rc = glob(m_user_api_sock_pattern.c_str(), glob_flags, NULL, &gl);
+	globfree(&gl);
+
+	return (rc == 0);
+}
+
 bool podman::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 {
 	std::string container_id, api_sock;
+
+	if(m_api_sock_can_exist == nullptr)
+	{
+		m_api_sock_can_exist.reset(new bool(can_api_sock_exist()));
+	}
+
+	if(! (*(m_api_sock_can_exist.get())))
+	{
+		return false;
+	}
+
 	int uid = detect_podman(tinfo, container_id);
 
 	switch(uid)
