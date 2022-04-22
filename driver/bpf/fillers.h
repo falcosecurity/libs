@@ -2751,24 +2751,26 @@ FILLER(sys_unshare_e, true)
 
 FILLER(sys_generic, true)
 {
-	long *scap_id;
+	int libs_id;
 	int native_id;
 	int res;
+	const struct syscall_evt_pair *sc_evt;
 
 	native_id = bpf_syscall_get_nr(data->ctx);
-	scap_id = bpf_map_lookup_elem(&syscall_code_routing_table, &native_id);
-	if (!scap_id) {
+	sc_evt = get_syscall_info(native_id);
+	if (!sc_evt) {
 		bpf_printk("no routing for syscall %d\n", native_id);
 		return PPM_FAILURE_BUG;
 	}
 
-	if (*scap_id == PPM_SC_UNKNOWN)
+	libs_id = sc_evt->ppm_code;
+	if (libs_id == PPM_SC_UNKNOWN)
 		bpf_printk("no syscall for id %d\n", native_id);
 
 	/*
 	 * id
 	 */
-	res = bpf_val_to_ring(data, *scap_id);
+	res = bpf_val_to_ring(data, libs_id);
 	if (res != PPM_SUCCESS)
 		return res;
 

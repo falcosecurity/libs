@@ -89,7 +89,7 @@ struct event_data_t {
 		struct {
 			struct pt_regs *regs;
 			long id;
-			const enum ppm_syscall_code *cur_g_syscall_code_routing_table;
+			const struct syscall_evt_pair *cur_g_syscall_table;
 		} syscall_data;
 
 		struct {
@@ -1753,12 +1753,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if (event_datap->category == PPMC_SYSCALL) {
 			args.regs = event_datap->event_info.syscall_data.regs;
 			args.syscall_id = event_datap->event_info.syscall_data.id;
-			args.cur_g_syscall_code_routing_table = event_datap->event_info.syscall_data.cur_g_syscall_code_routing_table;
+			args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
 			args.compat = event_datap->compat;
 		} else {
 			args.regs = NULL;
 			args.syscall_id = -1;
-			args.cur_g_syscall_code_routing_table = NULL;
+			args.cur_g_syscall_table = NULL;
 			args.compat = false;
 		}
 
@@ -1923,7 +1923,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
-	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
 	bool compat = false;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
@@ -1942,7 +1941,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
 #endif
 		cur_g_syscall_table = g_syscall_ia32_table;
-		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
 		compat = true;
 	}
@@ -1980,7 +1978,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
-		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
+		event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
 		event_data.socketcall_syscall = socketcall_syscall;
 		event_data.compat = compat;
 
@@ -1996,7 +1994,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	int id;
 	long table_index;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
-	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = g_syscall_code_routing_table;
 	bool compat = false;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
@@ -2019,7 +2016,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
 #endif
 		cur_g_syscall_table = g_syscall_ia32_table;
-		cur_g_syscall_code_routing_table = g_syscall_ia32_code_routing_table;
 		socketcall_syscall = __NR_ia32_socketcall;
 		compat = true;
 	}
@@ -2057,7 +2053,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.category = PPMC_SYSCALL;
 		event_data.event_info.syscall_data.regs = regs;
 		event_data.event_info.syscall_data.id = id;
-		event_data.event_info.syscall_data.cur_g_syscall_code_routing_table = cur_g_syscall_code_routing_table;
+		event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
 		event_data.socketcall_syscall = socketcall_syscall;
 		event_data.compat = compat;
 

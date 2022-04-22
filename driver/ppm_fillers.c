@@ -119,7 +119,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
-	const enum ppm_syscall_code *cur_g_syscall_code_routing_table = args->cur_g_syscall_code_routing_table;
+	const struct syscall_evt_pair *cur_g_syscall_table = args->cur_g_syscall_table;
 
 #ifdef _HAS_SOCKETCALL
 	if (unlikely(args->syscall_id == args->socketcall_syscall)) {
@@ -137,7 +137,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 
 	if (likely(table_index >= 0 &&
 		   table_index <  SYSCALL_TABLE_SIZE)) {
-		enum ppm_syscall_code sc_code = cur_g_syscall_code_routing_table[table_index];
+		enum ppm_syscall_code sc_code = cur_g_syscall_table[table_index].ppm_code;
 
 		/*
 		 * ID
