@@ -173,7 +173,7 @@ sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
-	return &(m_params[id]);
+	return &(m_params.at(id));
 }
 
 const char *sinsp_evt::get_param_name(uint32_t id)
@@ -754,8 +754,6 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
-	ASSERT(id < get_num_params());
-
 	//
 	// Reset the resolved string
 	//
@@ -764,7 +762,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	//
 	// Get the parameter
 	//
-	sinsp_evt_param *param = &(m_params[id]);
+	sinsp_evt_param *param = get_param(id);
 	payload = param->m_val;
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
@@ -1430,7 +1428,7 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 		return cwd;
 	}
 
-	const sinsp_evt_param* dir_param = &m_params[dirfd_id];
+	const sinsp_evt_param* dir_param = get_param(dirfd_id);
 	const int64_t dirfd = *(int64_t*)dir_param->m_val;
 
 	// If the FD is special value PPM_AT_FDCWD, just use CWD
@@ -1478,7 +1476,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	//
 	// Get the parameter
 	//
-	sinsp_evt_param *param = &(m_params[id]);
+	sinsp_evt_param *param = get_param(id);
 	payload = param->m_val;
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
