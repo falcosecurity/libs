@@ -131,7 +131,6 @@ typedef struct ss_plugin_event
 //   If the field is a list type, then res_len can must be any value from 0 to N, depending
 //   on how many values can be extracted from a given event.
 //   Setting res_len to 0 means that no value of this field can be extracted from a given event.
-//
 typedef struct ss_plugin_extract_field
 {
 	// NOTE: For a given architecture, this has always the same size which
