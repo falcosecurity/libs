@@ -40,7 +40,7 @@ limitations under the License.
 
 using namespace std;
 
-// Used below--set a std::string from the provided allocated charbuf and free() the charbuf.
+// Used below--set a std::string from the provided allocated charbuf
 static std::string str_from_alloc_charbuf(const char* charbuf)
 {
 	std::string str;
