@@ -22,8 +22,14 @@ limitations under the License.
 #include "sinsp.h"
 #include "../common/strlcpy.h"
 #include <sys/types.h>
+
+#ifdef HAVE_PWD_H
 #include <pwd.h>
+#endif
+
+#ifdef HAVE_GRP_H
 #include <grp.h>
+#endif
 
 using namespace std;
 
@@ -142,6 +148,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
+#ifdef HAVE_PWD_H
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
@@ -153,6 +160,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 				shell = p->pw_shell;
 			}
 		}
+#endif
 
 		if (name == NULL)
 		{
@@ -208,6 +216,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
+#ifdef HAVE_GRP_H
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
@@ -217,6 +226,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 				name = p->gr_name;
 			}
 		}
+#endif
 
 		if (name == NULL)
 		{

@@ -63,6 +63,19 @@ else()
 
 endif()
 
+include(CheckIncludeFile)
+
+check_include_file("pwd.h" HAVE_PWD_H)
+if (HAVE_PWD_H)
+	add_definitions(-DHAVE_PWD_H)
+endif()
+
+check_include_file("grp.h" HAVE_GRP_H)
+if (HAVE_GRP_H)
+	add_definitions(-DHAVE_GRP_H)
+endif()
+
+
 if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
 endif()
