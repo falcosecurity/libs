@@ -2751,7 +2751,7 @@ FILLER(sys_unshare_e, true)
 
 FILLER(sys_generic, true)
 {
-	int libs_id;
+	int scap_id;
 	int native_id;
 	int res;
 	const struct syscall_evt_pair *sc_evt;
@@ -2763,14 +2763,14 @@ FILLER(sys_generic, true)
 		return PPM_FAILURE_BUG;
 	}
 
-	libs_id = sc_evt->ppm_code;
-	if (libs_id == PPM_SC_UNKNOWN)
+	scap_id = sc_evt->ppm_code;
+	if (scap_id == PPM_SC_UNKNOWN)
 		bpf_printk("no syscall for id %d\n", native_id);
 
 	/*
 	 * id
 	 */
-	res = bpf_val_to_ring(data, libs_id);
+	res = bpf_val_to_ring(data, scap_id);
 	if (res != PPM_SUCCESS)
 		return res;
 
