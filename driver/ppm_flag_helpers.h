@@ -1042,7 +1042,7 @@ static __always_inline u16 poll_events_to_scap(short revents)
 	if (revents & POLLIN)
 		res |= PPM_POLLIN;
 
-	if (revents & PPM_POLLPRI)
+	if (revents & POLLPRI)
 		res |= PPM_POLLPRI;
 
 	if (revents & POLLOUT)
