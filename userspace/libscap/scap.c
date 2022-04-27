@@ -53,6 +53,9 @@ limitations under the License.
 #include "windows_hal.h"
 #endif
 
+#include "gettimeofday.h"
+#include "sleep.h"
+
 //#define NDEBUG
 #include <assert.h>
 
@@ -1625,11 +1628,7 @@ int32_t refill_read_buffers(scap_t* handle)
 
 	if(are_buffers_empty(handle))
 	{
-#ifdef _WIN32
-		Sleep((DWORD)handle->m_buffer_empty_wait_time_us / 1000);
-#else
-		usleep(handle->m_buffer_empty_wait_time_us);
-#endif
+		sleep_ms(handle->m_buffer_empty_wait_time_us / 1000);
 		handle->m_buffer_empty_wait_time_us = MIN(handle->m_buffer_empty_wait_time_us * 2,
 							  BUFFER_EMPTY_WAIT_TIME_US_MAX);
 	}
@@ -1873,39 +1872,13 @@ static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uin
 	evt.type = PPME_SCAPEVENT_X;
 	evt.nparams = 0;
 
-	usleep(100000);
+	sleep_ms(100);
 
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-
-	evt.ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
+	evt.ts = get_timestamp_ns();
 	*pevent = &evt;
 	return SCAP_SUCCESS;
 }
 #endif // _WIN32
-
-static inline uint64_t get_timestamp_ns()
-{
-	uint64_t ts;
-
-#ifdef _WIN32
-	FILETIME ft;
-	static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
-
-	GetSystemTimePreciseAsFileTime(&ft);
-
-	uint64_t ftl = (((uint64_t)ft.dwHighDateTime) << 32) + ft.dwLowDateTime;
-	ftl -= EPOCH;
-
-	ts = ftl * 100;
-#else
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	ts = tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
-#endif
-
-	return ts;
-}
 
 static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {

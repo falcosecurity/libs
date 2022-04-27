@@ -172,3 +172,11 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 		# Add unit test directories
 		add_subdirectory(test)
 endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	add_subdirectory(linux)
+	include_directories(linux)
+elseif(WIN32)
+	add_subdirectory(win32)
+	include_directories(win32)
+endif()
