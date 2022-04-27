@@ -29,6 +29,9 @@ limitations under the License.
 #include "scap-int.h"
 #include "windows_hal.h"
 
+#pragma comment(lib, "netapi32.lib")
+#pragma comment(lib, "iphlpapi.lib")
+
 typedef char* (*fwh_getlasterror)(wh_t* handle);
 typedef wh_t* (*fwh_open)(char* error);
 typedef void (*fwh_close)(wh_t* handle);
