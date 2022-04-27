@@ -99,13 +99,15 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 			container.m_is_pod_sandbox = true;
 			return true;
 		}
-		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): id is neither a container nor a pod sandbox",
+		g_logger.format(sinsp_logger::SEV_ERROR, "cri (%s): id is neither a container nor a pod sandbox",
 			container.m_id.c_str());
 		return false;
 	}
 
 	if(!resp.has_status())
 	{
+		g_logger.format(sinsp_logger::SEV_ERROR, "cri (%s): get_container_status returned without status",
+			container.m_id.c_str());
 		ASSERT(false);
 		return false;
 	}
@@ -185,7 +187,7 @@ bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_
 
 	if(!parse_cri(value, key))
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
+		g_logger.format(sinsp_logger::SEV_ERROR,
 				"cri (%s): Failed to get CRI metadata, returning successful=false",
 				key.m_container_id.c_str());
 		value.m_lookup_state = sinsp_container_lookup_state::FAILED;
