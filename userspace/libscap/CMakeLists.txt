@@ -185,3 +185,7 @@ add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
 # don't link the noop engine to libscap directly,
 # it's a helper library for other engines (it's completely useless on its own)
+
+add_definitions(-DHAS_ENGINE_NODRIVER)
+add_subdirectory(engine/nodriver)
+target_link_libraries(scap scap_engine_nodriver)
