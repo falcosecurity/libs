@@ -1078,7 +1078,7 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
   \brief Get (at most) n parameters for this event.
  
   \param e The scap event.
-  \param params An array large enough to contain n entries.
+  \param params An array large enough to contain at least one entry per event parameter (which is at most PPM_MAX_EVENT_PARAMS).
  */
 uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params);
 
