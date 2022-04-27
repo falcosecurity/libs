@@ -262,6 +262,7 @@ public:
 		TYPE_DEV = 38,
 		TYPE_DEV_MAJOR = 39,
 		TYPE_DEV_MINOR = 40,
+		TYPE_INO = 41,
 	};
 
 	enum fd_type

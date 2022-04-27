@@ -2171,6 +2171,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	string sdir;
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
+	uint64_t ino = 0;
 	bool lastevent_retrieved = false;
 
 	ASSERT(evt->m_tinfo);
@@ -2212,6 +2213,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(4);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			if (evt->get_num_params() > 5)
+			{
+				parinfo = evt->get_param(5);
+				ASSERT(parinfo->m_len == sizeof(uint64_t));
+				ino = *(uint64_t *)parinfo->m_val;
+			}
 		}
 
 		//
@@ -2250,6 +2257,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(3);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			if (evt->get_num_params() > 4)
+			{
+				parinfo = evt->get_param(4);
+				ASSERT(parinfo->m_len == sizeof(uint64_t));
+				ino = *(uint64_t *)parinfo->m_val;
+			}
 		}
 
 		if(lastevent_retrieved && enter_evt->get_num_params() >= 1)
@@ -2305,6 +2318,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(5);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			if (evt->get_num_params() > 6)
+			{
+				parinfo = evt->get_param(6);
+				ASSERT(parinfo->m_len == sizeof(uint64_t));
+				ino = *(uint64_t *)parinfo->m_val;
+			}
 		}
 
 		//
@@ -2367,7 +2386,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
 			name, namelen, m_inspector->m_is_windows);
 	}
-    else 
+	else
 	{
 		strcpy(fullpath, name);
 	}
@@ -2389,6 +2408,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.m_openflags = flags;
 		fdi.m_mount_id = 0;
 		fdi.m_dev = dev;
+		fdi.m_ino = ino;
 		fdi.add_filename(fullpath);
 
 		//
