@@ -847,6 +847,7 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	//
 	// Preliminary initializations
 	//
+	handle->m_vtable = NULL;
 	handle->m_mode = SCAP_MODE_CAPTURE;
 	handle->m_proc_callback = proc_callback;
 	handle->m_proc_callback_context = proc_callback_context;
@@ -1439,6 +1440,11 @@ void scap_close(scap_t* handle)
 		handle->m_suppressed_tids = NULL;
 	}
 
+	if(handle->m_vtable)
+	{
+		handle->m_vtable->close(handle->m_engine);
+	}
+
 	//
 	// Release the handle
 	//
@@ -1468,6 +1474,10 @@ scap_os_platform scap_get_os_platform(scap_t* handle)
 
 uint32_t scap_get_ndevs(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_n_devs(handle->m_engine);
+	}
 	return handle->m_ndevs;
 }
 
@@ -2010,6 +2020,10 @@ static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint1
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_max_buf_used(handle->m_engine);
+	}
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	uint64_t i;
 	uint64_t max = 0;
@@ -2029,32 +2043,38 @@ uint64_t scap_max_buf_used(scap_t* handle)
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res = SCAP_FAILURE;
-
-	switch(handle->m_mode)
+	if(handle->m_vtable)
 	{
-	case SCAP_MODE_CAPTURE:
-		res = scap_next_offline(handle, pevent, pcpuid);
-		break;
-	case SCAP_MODE_LIVE:
-		if(handle->m_udig)
+		res = handle->m_vtable->next(handle->m_engine, pevent, pcpuid);
+	}
+	else
+	{
+		switch(handle->m_mode)
 		{
-			res = scap_next_udig(handle, pevent, pcpuid);
-		}
-		else
-		{
-			res = scap_next_live(handle, pevent, pcpuid);
-		}
-		break;
+		case SCAP_MODE_CAPTURE:
+			res = scap_next_offline(handle, pevent, pcpuid);
+			break;
+		case SCAP_MODE_LIVE:
+			if(handle->m_udig)
+			{
+				res = scap_next_udig(handle, pevent, pcpuid);
+			}
+			else
+			{
+				res = scap_next_live(handle, pevent, pcpuid);
+			}
+			break;
 #ifndef _WIN32
-	case SCAP_MODE_NODRIVER:
-		res = scap_next_nodriver(handle, pevent, pcpuid);
-		break;
+		case SCAP_MODE_NODRIVER:
+			res = scap_next_nodriver(handle, pevent, pcpuid);
+			break;
 #endif
-	case SCAP_MODE_PLUGIN:
-		res = scap_next_plugin(handle, pevent, pcpuid);
-		break;
-	case SCAP_MODE_NONE:
-		res = SCAP_FAILURE;
+		case SCAP_MODE_PLUGIN:
+			res = scap_next_plugin(handle, pevent, pcpuid);
+			break;
+		case SCAP_MODE_NONE:
+			res = SCAP_FAILURE;
+		}
 	}
 
 	if(res == SCAP_SUCCESS)
@@ -2105,6 +2125,10 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_suppressed = handle->m_num_suppressed_evts;
 	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppressed_tids);
 
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_stats(handle->m_engine, stats);
+	}
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	if(handle->m_bpf)
 	{
@@ -2136,6 +2160,11 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->stop_capture(handle->m_engine);
+	}
+
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
@@ -2191,6 +2220,11 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->start_capture(handle->m_engine);
+	}
+
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
@@ -2280,9 +2314,13 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 }
 #endif
 
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
+	}
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	//
 	// Not supported for files
 	//
@@ -2311,12 +2349,19 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	}
 
 	return SCAP_SUCCESS;
-}
+#else
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
 #endif
+}
 
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 int32_t scap_enable_page_faults(scap_t *handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_PAGE_FAULTS, 1, 0);
+	}
+#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on this scap mode");
@@ -2342,11 +2387,18 @@ int32_t scap_enable_page_faults(scap_t *handle)
 	}
 
 	return SCAP_SUCCESS;
-}
+#else
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
 #endif
+}
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
+	}
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_stop_dropping_mode not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
@@ -2368,6 +2420,10 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
+	}
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
@@ -2423,6 +2479,10 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle)
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
+	}
 	//
 	// Not supported on files
 	//
@@ -2492,9 +2552,16 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	return scap_reader_offset(handle->m_reader);
 }
 
-#ifndef CYGWING_AGENT
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, event_id);
+	}
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
 	if (handle == NULL)
 	{
 		return SCAP_FAILURE;
@@ -2509,10 +2576,6 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
 	//
 	// Tell the driver to change the snaplen
 	//
@@ -2566,33 +2629,17 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	return SCAP_SUCCESS;
 #endif // HAS_CAPTURE
 }
-#endif // CYGWING_AGENT
 
 int32_t scap_clear_eventmask(scap_t* handle) {
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_ZERO_EVENTS, 0));
-#endif
+	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_ZERO, 0));
 }
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_SET_EVENT, event_id));
-#endif
+	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_SET, event_id));
 }
 
 int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	return(scap_handle_eventmask(handle, PPM_IOCTL_MASK_UNSET_EVENT, event_id));
-#endif
+	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_UNSET, event_id));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)
@@ -2602,6 +2649,10 @@ uint32_t scap_event_get_dump_flags(scap_t* handle)
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
+	}
 	//
 	// Not supported on files
 	//
@@ -2648,6 +2699,10 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
+	}
 	//
 	// Not supported on files
 	//
@@ -2794,6 +2849,10 @@ uint64_t scap_get_unexpected_block_readsize(scap_t* handle)
 
 int32_t scap_enable_simpledriver_mode(scap_t* handle)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_SIMPLEDRIVER_MODE, 1, 0);
+	}
 	//
 	// Not supported on files
 	//
@@ -2833,6 +2892,10 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
+	}
 	//
 	// Not supported on files
 	//
@@ -2938,6 +3001,10 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
+	}
 	//
 	// Not supported on files
 	//
@@ -2997,6 +3064,10 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
+	}
 	//
 	// Not supported on files
 	//

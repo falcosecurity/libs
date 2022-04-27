@@ -19,6 +19,13 @@ limitations under the License.
 // Private definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 
+#ifndef SCAP_HANDLE_T
+#define SCAP_HANDLE_T void
+#endif
+
+#include "engine_handle.h"
+#include "scap_vtable.h"
+
 #include "settings.h"
 #include "plugin_info.h"
 
@@ -124,6 +131,9 @@ struct scap_reader
 //
 struct scap
 {
+	const struct scap_vtable *m_vtable;
+	struct scap_engine_handle m_engine;
+
 	scap_mode_t m_mode;
 	scap_device* m_devs;
 	uint32_t m_ndevs;
