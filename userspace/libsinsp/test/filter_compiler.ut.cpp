@@ -1,6 +1,6 @@
 #include <sinsp.h>
 #include <filter.h>
-#include <gtest.h>
+#include <gtest/gtest.h>
 #include <list>
 
 using namespace std;

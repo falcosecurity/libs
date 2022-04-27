@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-#include <gtest.h>
+#include <gtest/gtest.h>
 #include <procfs_utils.h>
 #include <sstream>
 

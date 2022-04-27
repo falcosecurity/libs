@@ -1,5 +1,5 @@
 #include <filter/parser.h>
-#include <gtest.h>
+#include <gtest/gtest.h>
 
 using namespace std;
 using namespace libsinsp::filter;

@@ -34,7 +34,7 @@ else()
 					 ${PROJECT_BINARY_DIR}/googletest-build
 					 EXCLUDE_FROM_ALL)
 
-	set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include/gtest")
+	set(GTEST_INCLUDE_DIR "${gtest_SOURCE_DIR}/include")
 	set(GTEST_MAIN_LIB "gtest_main")
 	install(DIRECTORY "${GTEST_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/")
 endif()

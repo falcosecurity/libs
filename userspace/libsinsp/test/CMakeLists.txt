@@ -15,7 +15,6 @@
 #
 
 include(jsoncpp)
-include(gtest)
 include(tbb)
 if(NOT MINIMAL_BUILD)
 	include(curl)

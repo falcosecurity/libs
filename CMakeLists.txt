@@ -73,6 +73,10 @@ option(WITH_CHISEL "Include chisel implementation" OFF)
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+	include(gtest)
+endif()
+
 include(libscap)
 include(libsinsp)
 
