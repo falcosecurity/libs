@@ -1,0 +1,104 @@
+/*
+Copyright (C) 2022 The Falco Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
+#include "scap.h"
+#include <gtest/gtest.h>
+#include "../../common/strlcpy.h"
+
+// This function behaves exactly like scap_event_encode_params but it will allocate the event and return it by setting the event pointer.
+int32_t scap_event_generate(scap_evt **event, char *error, enum ppm_event_type event_type, uint32_t n, ...)
+{
+	struct scap_sized_buffer event_buf = {NULL, 0};
+	size_t event_size;
+	char count_error[SCAP_LASTERR_SIZE];
+	count_error[0] = '\0';
+	va_list args;
+	va_start(args, n);
+	int32_t ret = scap_event_encode_params_v(event_buf, &event_size, count_error, event_type, n, args);
+	va_end(args);
+
+	if(ret != SCAP_INPUT_TOO_SMALL) {
+		if (ret == SCAP_SUCCESS) {
+			snprintf(count_error, SCAP_LASTERR_SIZE, "Could not generate event. Expected SCAP_INPUT_TOO_SMALL, got SCAP_SUCCESS for event type %d with %d args", event_type, n);
+		}
+		strlcpy(error, count_error, SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+
+	event_buf.buf = malloc(event_size);
+	event_buf.size = event_size;
+
+	if(event_buf.buf == NULL) {
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not generate event. Allocation failed for %zu bytes", event_size);
+		return SCAP_FAILURE;
+	}
+
+	va_start(args, n);
+	ret = scap_event_encode_params_v(event_buf, &event_size, count_error, event_type, n, args);
+	va_end(args);
+
+	if(ret != SCAP_SUCCESS) {
+		free(event_buf.buf);
+		event_buf.size = 0;
+	}
+
+	*event = (scap_evt*)event_buf.buf;
+
+	return ret;
+}
+
+TEST(scap_event, empty_clone)
+{
+    char scap_error[SCAP_LASTERR_SIZE];
+    scap_evt *maybe_evt;
+    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_CLONE_20_E, 0);
+    ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
+    ASSERT_NE(maybe_evt, nullptr);
+    std::unique_ptr<scap_evt, decltype(free)*> evt {maybe_evt, free};
+
+    EXPECT_EQ(evt->nparams, 0);
+
+    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
+    EXPECT_EQ(n, 0);
+}
+
+TEST(scap_event, int_args)
+{
+    char scap_error[SCAP_LASTERR_SIZE];
+    scap_evt *maybe_evt;
+    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_KILL_E, 2, 1234, 9);
+    ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
+    ASSERT_NE(maybe_evt, nullptr);
+    std::unique_ptr<scap_evt, decltype(free)*> evt {maybe_evt, free};
+
+    EXPECT_EQ(evt->nparams, 2);
+
+    struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
+    uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
+    EXPECT_EQ(n, 2);
+    EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
+    uint64_t val64;
+    memcpy(&val64, decoded_params[0].buf, sizeof(uint64_t));
+    EXPECT_EQ(val64, 1234);
+
+	uint8_t val8;
+    memcpy(&val8, decoded_params[1].buf, sizeof(uint8_t));
+    EXPECT_EQ(val8, 9);
+}
+
+}

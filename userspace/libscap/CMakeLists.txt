@@ -139,3 +139,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
 	include(FindMakedev)
 endif()
+
+option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
+
+if(CREATE_TEST_TARGETS AND NOT WIN32)
+		# Add unit test directories
+		add_subdirectory(test)
+endif()
