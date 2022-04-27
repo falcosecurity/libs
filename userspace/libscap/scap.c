@@ -55,6 +55,7 @@ limitations under the License.
 
 #include "gettimeofday.h"
 #include "sleep.h"
+#include "scap_engines.h"
 
 //#define NDEBUG
 #include <assert.h>
@@ -1001,6 +1002,14 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_NODRIVER;
+	handle->m_vtable = &scap_nodriver_engine;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		free(handle);
+		return NULL;
+	}
 
 	//
 	// Extract machine information
@@ -1863,23 +1872,6 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
-#ifndef _WIN32
-static int32_t scap_next_nodriver(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	static scap_evt evt;
-	evt.len = 0;
-	evt.tid = -1;
-	evt.type = PPME_SCAPEVENT_X;
-	evt.nparams = 0;
-
-	sleep_ms(100);
-
-	evt.ts = get_timestamp_ns();
-	*pevent = &evt;
-	return SCAP_SUCCESS;
-}
-#endif // _WIN32
-
 static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	ss_plugin_event *plugin_evt;
@@ -2037,14 +2029,10 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 				res = scap_next_live(handle, pevent, pcpuid);
 			}
 			break;
-#ifndef _WIN32
-		case SCAP_MODE_NODRIVER:
-			res = scap_next_nodriver(handle, pevent, pcpuid);
-			break;
-#endif
 		case SCAP_MODE_PLUGIN:
 			res = scap_next_plugin(handle, pevent, pcpuid);
 			break;
+		case SCAP_MODE_NODRIVER:
 		case SCAP_MODE_NONE:
 			res = SCAP_FAILURE;
 		}
