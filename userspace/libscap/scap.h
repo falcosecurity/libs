@@ -179,7 +179,7 @@ typedef enum scap_l4_proto
 typedef struct scap_fdinfo
 {
 	int64_t fd; ///< The FD number, which uniquely identifies this file descriptor.
-	uint64_t ino; ///< For unix sockets, the inode.
+	uint64_t ino; ///< The inode.
 	scap_fd_type type; ///< This file descriptor's type.
 	union
 	{

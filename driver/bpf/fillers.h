@@ -210,8 +210,8 @@ FILLER(sys_open_x, true)
 	unsigned int flags;
 	unsigned int mode;
 	unsigned long val;
-	unsigned long dev;
-	unsigned long ino;
+	unsigned long dev = 0;
+	unsigned long ino = 0;
 	long retval;
 	int res;
 
@@ -249,13 +249,20 @@ FILLER(sys_open_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
+	bpf_get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
 	 * Device
 	 */
-	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
-		dev = 0;
-
 	res = bpf_val_to_ring(data, dev);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Ino
+	 */
+	res = bpf_val_to_ring(data, ino);
+
 	return res;
 }
 
@@ -2832,8 +2839,8 @@ FILLER(sys_openat_e, true)
 
 FILLER(sys_openat_x, true)
 {
-	unsigned long dev;
-	unsigned long ino;
+	unsigned long dev = 0;
+	unsigned long ino = 0;
 	unsigned long flags;
 	unsigned long val;
 	unsigned long mode;
@@ -2883,13 +2890,19 @@ FILLER(sys_openat_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
+	bpf_get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
 	 * Device
 	 */
-	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
-		dev = 0;
-
 	res = bpf_val_to_ring(data, dev);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Ino
+	 */
+	res = bpf_val_to_ring(data, ino);
 	return res;
 }
 
@@ -4034,8 +4047,8 @@ FILLER(sys_creat_e, true)
 
 FILLER(sys_creat_x, true)
 {
-	unsigned long dev;
-	unsigned long ino;
+	unsigned long dev = 0;
+	unsigned long ino = 0;
 	unsigned long val;
 	unsigned long mode;
 	long retval;
@@ -4063,19 +4076,26 @@ FILLER(sys_creat_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
+	bpf_get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
 	 * Device
 	 */
-	if (retval < 0 || !bpf_get_fd_dev_ino(retval, &dev, &ino))
-		dev = 0;
-
 	res = bpf_val_to_ring(data, dev);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * Ino
+	 */
+	res = bpf_val_to_ring(data, ino);
+
 	return res;
 }
 
 FILLER(sys_pipe_x, true)
 {
-	unsigned long ino;
+	unsigned long ino = 0;
 	unsigned long dev;
 	unsigned long val;
 	long retval;
@@ -4105,8 +4125,7 @@ FILLER(sys_pipe_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	if (!bpf_get_fd_dev_ino(fds[0], &dev, &ino))
-		ino = 0;
+	bpf_get_fd_dev_ino(fds[0], &dev, &ino);
 
 	res = bpf_val_to_ring(data, ino);
 

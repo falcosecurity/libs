@@ -195,24 +195,23 @@ int f_sys_single_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-static inline uint32_t get_fd_dev(int64_t fd)
+static inline void get_fd_dev_ino(int64_t fd, uint32_t* dev, uint64_t* ino)
 {
 #ifdef UDIG
-	return 0;
+	return;
 #else
 	struct files_struct *files;
 	struct fdtable *fdt;
 	struct file *file;
 	struct inode *inode;
 	struct super_block *sb;
-	uint32_t dev = 0;
 
 	if (fd < 0)
-		return dev;
+		return;
 
 	files = current->files;
 	if (unlikely(!files))
-		return dev;
+		return;
 
 	spin_lock(&files->file_lock);
 	fdt = files_fdtable(files);
@@ -227,15 +226,17 @@ static inline uint32_t get_fd_dev(int64_t fd)
 	if (unlikely(!inode))
 		goto out_unlock;
 
+	*ino = inode->i_ino;
+
 	sb = inode->i_sb;
 	if (unlikely(!sb))
 		goto out_unlock;
 
-	dev = new_encode_dev(sb->s_dev);
+	*dev = new_encode_dev(sb->s_dev);
 
 out_unlock:
 	spin_unlock(&files->file_lock);
-	return dev;
+	return;
 #endif /* UDIG */
 }
 
@@ -285,6 +286,8 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	syscall_arg_t val;
 	syscall_arg_t flags;
 	syscall_arg_t modes;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 	int res;
 	int64_t retval;
 
@@ -322,10 +325,19 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
-	 * dev
+	 *  dev
 	 */
-	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
+	res = val_to_ring(args, dev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  ino
+	 */
+	res = val_to_ring(args, ino, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2800,6 +2812,8 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long modes;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 	int res;
 	int64_t retval;
 
@@ -2827,10 +2841,19 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
-	 * dev
+	 *  dev
 	 */
-	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
+	res = val_to_ring(args, dev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  ino
+	 */
+	res = val_to_ring(args, ino, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -2844,7 +2867,8 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	int64_t retval;
 	unsigned long val;
 	int fds[2];
-	struct file *file;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 
 	/*
 	 * retval
@@ -2879,20 +2903,9 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	val = 0;
-#ifndef UDIG
-	file = fget(fds[0]);
-	if (likely(file != NULL)) {
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		val = file->f_path.dentry->d_inode->i_ino;
-#else
-		val = file->f_dentry->d_inode->i_ino;
-#endif
-		fput(file);
-	}
-#endif
+	get_fd_dev_ino(fds[0], &dev, &ino);
 
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, ino, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3326,6 +3339,8 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	unsigned long val;
 	unsigned long flags;
 	unsigned long modes;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
 	int res;
 	int64_t retval;
 
@@ -3371,10 +3386,19 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	get_fd_dev_ino(retval, &dev, &ino);
+
 	/*
-	 * dev
+	 *  dev
 	 */
-	res = val_to_ring(args, get_fd_dev(retval), 0, false, 0);
+	res = val_to_ring(args, dev, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 *  ino
+	 */
+	res = val_to_ring(args, ino, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

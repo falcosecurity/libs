@@ -136,6 +136,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT32, EPF_NONE, PF_HEX, "fd.dev", "FD Device", "device number (major/minor) containing the referenced file"},
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.major", "FD Major Device", "major device number containing the referenced file"},
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "FD Minor Device", "minor device number containing the referenced file"},
+	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1325,6 +1326,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			}
 
 			m_tbool = m_fdinfo->get_device_minor();
+
+			RETURN_EXTRACT_VAR(m_tbool);
+		}
+		break;
+	case TYPE_INO:
+		{
+			if(m_fdinfo == NULL)
+			{
+				return NULL;
+			}
+
+			m_tbool = m_fdinfo->get_ino();
 
 			RETURN_EXTRACT_VAR(m_tbool);
 		}

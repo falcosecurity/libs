@@ -268,6 +268,11 @@ public:
 		return (m_dev & 0xff) | ((m_dev >> 12) & 0xfff00);
 	}
 
+	uint64_t get_ino() const
+	{
+		return m_ino;
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/

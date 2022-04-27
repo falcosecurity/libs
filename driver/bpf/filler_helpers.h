@@ -142,31 +142,32 @@ static __always_inline unsigned long bpf_encode_dev(dev_t dev)
 	return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
 }
 
-static __always_inline bool bpf_get_fd_dev_ino(int fd, unsigned long *dev, unsigned long *ino)
+static __always_inline void bpf_get_fd_dev_ino(int fd, unsigned long *dev, unsigned long *ino)
 {
 	struct super_block *sb;
 	struct inode *inode;
 	struct file *file;
 	dev_t kdev;
 
+	if (fd < 0)
+		return;
+
 	file = bpf_fget(fd);
 	if (!file)
-		return false;
+		return;
 
 	inode = _READ(file->f_inode);
 	if (!inode)
-		return false;
+		return;
 
 	sb = _READ(inode->i_sb);
 	if (!sb)
-		return false;
+		return;
 
 	kdev = _READ(sb->s_dev);
 	*dev = bpf_encode_dev(kdev);
 
 	*ino = _READ(inode->i_ino);
-
-	return true;
 }
 
 static __always_inline bool bpf_ipv6_addr_any(const struct in6_addr *a)
