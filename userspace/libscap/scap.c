@@ -1479,12 +1479,13 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 
 static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 {
+	struct scap_device *dev = &handle->m_dev_set.m_devs[cpuid];
 	uint32_t ttail;
 
 #ifndef _WIN32
 	if(handle->m_bpf)
 	{
-		return scap_bpf_advance_tail(handle, cpuid);
+		return scap_bpf_advance_tail(dev);
 	}
 #endif
 
@@ -1493,7 +1494,7 @@ static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 	// Tail is never updated when we serve the data, because we assume that the caller is using
 	// the buffer we give to her until she calls us again.
 	//
-	ttail = handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail + handle->m_dev_set.m_devs[cpuid].m_lastreadsize;
+	ttail = dev->m_bufinfo->tail + dev->m_lastreadsize;
 
 	//
 	// Make sure every read of the old buffer is completed before we move the tail and the
@@ -1509,14 +1510,14 @@ static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 
 	if(ttail < RING_BUF_SIZE)
 	{
-		handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail = ttail;
+		dev->m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail = ttail - RING_BUF_SIZE;
+		dev->m_bufinfo->tail = ttail - RING_BUF_SIZE;
 	}
 
-	handle->m_dev_set.m_devs[cpuid].m_lastreadsize = 0;
+	dev->m_lastreadsize = 0;
 }
 
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
@@ -1524,32 +1525,30 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	uint32_t thead;
 	uint32_t ttail;
 	uint64_t read_size;
+	struct scap_device* dev = &handle->m_dev_set.m_devs[cpuid];
 
 #ifndef _WIN32
 	if(handle->m_bpf)
 	{
-		return scap_bpf_readbuf(handle, cpuid, buf, len);
+		return scap_bpf_readbuf(dev, buf, len);
 	}
 #endif
 
 	//
 	// Read the pointers.
 	//
-	get_buf_pointers(handle->m_dev_set.m_devs[cpuid].m_bufinfo,
-	                 &thead,
-	                 &ttail,
-	                 &read_size);
+	get_buf_pointers(dev->m_bufinfo, &thead, &ttail, &read_size);
 
 	//
 	// Remember read_size so we can update the tail at the next call
 	//
-	handle->m_dev_set.m_devs[cpuid].m_lastreadsize = (uint32_t)read_size;
+	dev->m_lastreadsize = (uint32_t)read_size;
 
 	//
 	// Return the results
 	//
 	*len = (uint32_t)read_size;
-	*buf = handle->m_dev_set.m_devs[cpuid].m_buffer + ttail;
+	*buf = dev->m_buffer + ttail;
 
 	return SCAP_SUCCESS;
 }
@@ -1723,7 +1722,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 		if(handle->m_bpf)
 		{
 #ifndef _WIN32
-			scap_bpf_advance_to_evt(handle, *pcpuid, true,
+			scap_bpf_advance_to_evt(dev, true,
 						dev->m_sn_next_event,
 						&dev->m_sn_next_event,
 						&dev->m_sn_len);
@@ -1992,6 +1991,7 @@ int32_t scap_stop_capture(scap_t* handle)
 		//
 		for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 		{
+			struct scap_device *dev = &handle->m_dev_set.m_devs[j];
 			if(handle->m_bpf)
 			{
 #ifndef _WIN32
@@ -2000,12 +2000,12 @@ int32_t scap_stop_capture(scap_t* handle)
 			}
 			else if(handle->m_udig)
 			{
-				udig_stop_capture(handle);
+				udig_stop_capture(dev);
 			}
 			else
 			{
 #ifndef _WIN32
-				if(ioctl(handle->m_dev_set.m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
+				if(ioctl(dev->m_fd, PPM_IOCTL_DISABLE_CAPTURE))
 				{
 					snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
 					ASSERT(false);
@@ -2057,7 +2057,7 @@ int32_t scap_start_capture(scap_t* handle)
 		}
 		else if(handle->m_udig)
 		{
-			udig_start_capture(handle);
+			udig_start_capture(&handle->m_dev_set.m_devs[0]);
 		}
 		else
 		{
