@@ -546,7 +546,7 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 	}
 	else
 	{
-		*vtid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+		*vtid = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
 
 		if(*vtid == -1)
 		{
@@ -580,7 +580,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	}
 	else
 	{
-		*vpid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
+		*vpid = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
 
 		if(*vpid == -1)
 		{
@@ -1280,7 +1280,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	}
 	else
 	{
-		*pid = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+		*pid = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
 		if(*pid == -1)
 		{
 			ASSERT(false);
