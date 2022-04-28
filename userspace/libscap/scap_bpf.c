@@ -1179,22 +1179,22 @@ int32_t scap_bpf_close(scap_t *handle)
 	int header_size = page_size;
 	int total_size = ring_size * 2 + header_size;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 	{
-		if(handle->m_devs[j].m_buffer != MAP_FAILED)
+		if(handle->m_dev_set.m_devs[j].m_buffer != MAP_FAILED)
 		{
 #ifdef _DEBUG
 			int ret;
-			ret = munmap(handle->m_devs[j].m_buffer, total_size);
+			ret = munmap(handle->m_dev_set.m_devs[j].m_buffer, total_size);
 #else
-			munmap(handle->m_devs[j].m_buffer, total_size);
+			munmap(handle->m_dev_set.m_devs[j].m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
 		}
 
-		if(handle->m_devs[j].m_fd > 0)
+		if(handle->m_dev_set.m_devs[j].m_fd > 0)
 		{
-			close(handle->m_devs[j].m_fd);
+			close(handle->m_dev_set.m_devs[j].m_fd);
 		}
 	}
 
@@ -1528,9 +1528,9 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			}
 		}
 
-		if(online_cpu >= handle->m_ndevs)
+		if(online_cpu >= handle->m_dev_set.m_ndevs)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", online_cpu, handle->m_ndevs);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
 			return SCAP_FAILURE;
 		}
 
@@ -1541,7 +1541,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			return SCAP_FAILURE;
 		}
 
-		handle->m_devs[online_cpu].m_fd = pmu_fd;
+		handle->m_dev_set.m_devs[online_cpu].m_fd = pmu_fd;
 
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY) != 0)
 		{
@@ -1558,8 +1558,8 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		//
 		// Map the ring buffer
 		//
-		handle->m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(handle->m_devs[online_cpu].m_buffer == MAP_FAILED)
+		handle->m_dev_set.m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
+		if(handle->m_dev_set.m_devs[online_cpu].m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1567,9 +1567,9 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		++online_cpu;
 	}
 
-	if(online_cpu != handle->m_ndevs)
+	if(online_cpu != handle->m_dev_set.m_ndevs)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", j, handle->m_ndevs);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", j, handle->m_dev_set.m_ndevs);
 		return SCAP_FAILURE;
 	}
 

@@ -221,8 +221,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	handle->m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
-	if(!handle->m_devs)
+	handle->m_dev_set.m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
+	if(!handle->m_dev_set.m_devs)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
@@ -232,15 +232,15 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 
 	for(j = 0; j < ndevs; j++)
 	{
-		handle->m_devs[j].m_buffer = (char*)MAP_FAILED;
+		handle->m_dev_set.m_devs[j].m_buffer = (char*)MAP_FAILED;
 		if(!handle->m_bpf)
 		{
-			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
-			handle->m_devs[j].m_bufstatus = (struct udig_ring_buffer_status*)MAP_FAILED;
+			handle->m_dev_set.m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
+			handle->m_dev_set.m_devs[j].m_bufstatus = (struct udig_ring_buffer_status*)MAP_FAILED;
 		}
 	}
 
-	handle->m_ndevs = ndevs;
+	handle->m_dev_set.m_ndevs = ndevs;
 
 	//
 	// Extract machine information
@@ -302,7 +302,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
-	handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+	handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -366,14 +366,14 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		//
 		len = RING_BUF_SIZE * 2;
 
-		for(j = 0, all_scanned_devs = 0; j < handle->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
+		for(j = 0, all_scanned_devs = 0; j < handle->m_dev_set.m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 		{
 			//
 			// Open the device
 			//
 			snprintf(filename, sizeof(filename), "%s/dev/" DRIVER_DEVICE_NAME "%d", scap_get_host_root(), all_scanned_devs);
 
-			if((handle->m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
+			if((handle->m_dev_set.m_devs[j].m_fd = open(filename, O_RDWR | O_SYNC)) < 0)
 			{
 				if(errno == ENODEV)
 				{
@@ -398,19 +398,19 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			}
 
 			// Set close-on-exec for the fd
-			if (fcntl(handle->m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
+			if (fcntl(handle->m_dev_set.m_devs[j].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
 				snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
-				close(handle->m_devs[j].m_fd);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
 			}
 
 			// Check the API version reported
-			if (ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_API_VERSION, &api_version) < 0)
+			if (ioctl(handle->m_dev_set.m_devs[j].m_fd, PPM_IOCTL_GET_API_VERSION, &api_version) < 0)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_API_VERSION");
-				close(handle->m_devs[j].m_fd);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -427,7 +427,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 					PPM_API_VERSION_MINOR(handle->m_api_version),
 					PPM_API_VERSION_PATCH(handle->m_api_version)
 				);
-				close(handle->m_devs[j].m_fd);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -437,10 +437,10 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			handle->m_api_version = api_version;
 
 			// Check the schema version reported
-			if (ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, &schema_version) < 0)
+			if (ioctl(handle->m_dev_set.m_devs[j].m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, &schema_version) < 0)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "Kernel module does not support PPM_IOCTL_GET_SCHEMA_VERSION");
-				close(handle->m_devs[j].m_fd);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 				scap_close(handle);
 				*rc = SCAP_FAILURE;
 				return NULL;
@@ -468,17 +468,17 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			//
 			// Map the ring buffer
 			//
-			handle->m_devs[j].m_buffer = (char*)mmap(0,
+			handle->m_dev_set.m_devs[j].m_buffer = (char*)mmap(0,
 						len,
 						PROT_READ,
 						MAP_SHARED,
-						handle->m_devs[j].m_fd,
+						handle->m_dev_set.m_devs[j].m_fd,
 						0);
 
-			if(handle->m_devs[j].m_buffer == MAP_FAILED)
+			if(handle->m_dev_set.m_devs[j].m_buffer == MAP_FAILED)
 			{
 				// we cleanup this fd and then we let scap_close() take care of the other ones
-				close(handle->m_devs[j].m_fd);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 
 				scap_close(handle);
 				snprintf(error, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
@@ -489,18 +489,18 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			//
 			// Map the ppm_ring_buffer_info that contains the buffer pointers
 			//
-			handle->m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)mmap(0,
+			handle->m_dev_set.m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)mmap(0,
 						sizeof(struct ppm_ring_buffer_info),
 						PROT_READ | PROT_WRITE,
 						MAP_SHARED,
-						handle->m_devs[j].m_fd,
+						handle->m_dev_set.m_devs[j].m_fd,
 						0);
 
-			if(handle->m_devs[j].m_bufinfo == MAP_FAILED)
+			if(handle->m_dev_set.m_devs[j].m_bufinfo == MAP_FAILED)
 			{
 				// we cleanup this fd and then we let scap_close() take care of the other ones
-				munmap(handle->m_devs[j].m_buffer, len);
-				close(handle->m_devs[j].m_fd);
+				munmap(handle->m_dev_set.m_devs[j].m_buffer, len);
+				close(handle->m_dev_set.m_devs[j].m_fd);
 
 				scap_close(handle);
 
@@ -557,13 +557,13 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	for(j = 0; j < handle->m_ndevs; ++j)
+	for(j = 0; j < handle->m_dev_set.m_ndevs; ++j)
 	{
 		//
 		// Additional initializations
 		//
-		handle->m_devs[j].m_lastreadsize = 0;
-		handle->m_devs[j].m_sn_len = 0;
+		handle->m_dev_set.m_devs[j].m_lastreadsize = 0;
+		handle->m_dev_set.m_devs[j].m_sn_len = 0;
 		scap_stop_dropping_mode(handle);
 	}
 
@@ -623,10 +623,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_udig_capturing = false;
 	handle->m_ncpus = 1;
 
-	handle->m_ndevs = 1;
+	handle->m_dev_set.m_ndevs = 1;
 
-	handle->m_devs = (scap_device*) calloc(sizeof(scap_device), handle->m_ndevs);
-	if(!handle->m_devs)
+	handle->m_dev_set.m_devs = (scap_device*) calloc(sizeof(scap_device), handle->m_dev_set.m_ndevs);
+	if(!handle->m_dev_set.m_devs)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
@@ -634,11 +634,11 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	handle->m_devs[0].m_buffer = MAP_FAILED;
-	handle->m_devs[0].m_bufinfo = MAP_FAILED;
-	handle->m_devs[0].m_bufstatus = MAP_FAILED;
-	handle->m_devs[0].m_fd = -1;
-	handle->m_devs[0].m_bufinfo_fd = -1;
+	handle->m_dev_set.m_devs[0].m_buffer = MAP_FAILED;
+	handle->m_dev_set.m_devs[0].m_bufinfo = MAP_FAILED;
+	handle->m_dev_set.m_devs[0].m_bufstatus = MAP_FAILED;
+	handle->m_dev_set.m_devs[0].m_fd = -1;
+	handle->m_dev_set.m_devs[0].m_bufinfo_fd = -1;
 
 	//
 	// Extract machine information
@@ -698,7 +698,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
-	handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+	handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 #ifdef _WIN32
 	handle->m_whh = scap_windows_hal_open(error);
@@ -726,10 +726,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #if CYGWING_AGENT || _WIN32
 		&(handle->m_win_buf_handle),
 #else
-		&(handle->m_devs[0].m_fd),
+		&(handle->m_dev_set.m_devs[0].m_fd),
 #endif
-		(uint8_t**)&handle->m_devs[0].m_buffer,
-		&handle->m_devs[0].m_buffer_size,
+		(uint8_t**)&handle->m_dev_set.m_devs[0].m_buffer,
+		&handle->m_dev_set.m_devs[0].m_buffer_size,
 		error) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -739,7 +739,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 
 	// Set close-on-exec for the fd
 #ifndef _WIN32
-	if(fcntl(handle->m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
+	if(fcntl(handle->m_dev_set.m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
 		snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
 		scap_close(handle);
 		*rc = SCAP_FAILURE;
@@ -754,10 +754,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #if CYGWING_AGENT || _WIN32
 		&(handle->m_win_descs_handle),
 #else
-		&(handle->m_devs[0].m_bufinfo_fd),
+		&(handle->m_dev_set.m_devs[0].m_bufinfo_fd),
 #endif
-		&handle->m_devs[0].m_bufinfo, 
-		&handle->m_devs[0].m_bufstatus,
+		&handle->m_dev_set.m_devs[0].m_bufinfo,
+		&handle->m_dev_set.m_devs[0].m_bufstatus,
 		error) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -768,8 +768,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Additional initializations
 	//
-	handle->m_devs[0].m_lastreadsize = 0;
-	handle->m_devs[0].m_sn_len = 0;
+	handle->m_dev_set.m_devs[0].m_lastreadsize = 0;
+	handle->m_dev_set.m_devs[0].m_sn_len = 0;
 	scap_stop_dropping_mode(handle);
 
 	//
@@ -827,8 +827,8 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_mode = SCAP_MODE_CAPTURE;
 	handle->m_proc_callback = proc_callback;
 	handle->m_proc_callback_context = proc_callback_context;
-	handle->m_devs = NULL;
-	handle->m_ndevs = 0;
+	handle->m_dev_set.m_devs = NULL;
+	handle->m_dev_set.m_ndevs = 0;
 	handle->m_proclist = NULL;
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
@@ -1223,13 +1223,13 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 void scap_close_udig(scap_t* handle)
 {
-	if(handle->m_devs[0].m_buffer != MAP_FAILED)
+	if(handle->m_dev_set.m_devs[0].m_buffer != MAP_FAILED)
 	{
-		udig_free_ring((uint8_t*)handle->m_devs[0].m_buffer, handle->m_devs[0].m_buffer_size);
+		udig_free_ring((uint8_t*)handle->m_dev_set.m_devs[0].m_buffer, handle->m_dev_set.m_devs[0].m_buffer_size);
 	}
-	if(handle->m_devs[0].m_bufinfo != MAP_FAILED)
+	if(handle->m_dev_set.m_devs[0].m_bufinfo != MAP_FAILED)
 	{
-		udig_free_ring_descriptors((uint8_t*)handle->m_devs[0].m_bufinfo);
+		udig_free_ring_descriptors((uint8_t*)handle->m_dev_set.m_devs[0].m_bufinfo);
 	}
 #ifdef _WIN32
 	if(handle->m_win_buf_handle != NULL)
@@ -1241,13 +1241,13 @@ void scap_close_udig(scap_t* handle)
 		CloseHandle(handle->m_win_descs_handle);
 	}
 #else
-	if(handle->m_devs[0].m_fd != -1)
+	if(handle->m_dev_set.m_devs[0].m_fd != -1)
 	{
-		close(handle->m_devs[0].m_fd);
+		close(handle->m_dev_set.m_devs[0].m_fd);
 	}
-	if(handle->m_devs[0].m_bufinfo_fd != -1)
+	if(handle->m_dev_set.m_devs[0].m_bufinfo_fd != -1)
 	{
-		close(handle->m_devs[0].m_bufinfo_fd);
+		close(handle->m_dev_set.m_devs[0].m_bufinfo_fd);
 	}
 #endif
 }
@@ -1332,7 +1332,7 @@ void scap_close(scap_t* handle)
 
 		ASSERT(handle->m_reader == NULL);
 
-		if(handle->m_devs != NULL)
+		if(handle->m_dev_set.m_devs != NULL)
 		{
 			if(handle->m_bpf)
 			{
@@ -1357,13 +1357,13 @@ void scap_close(scap_t* handle)
 				// Destroy all the device descriptors
 				//
 				uint32_t j;
-				for(j = 0; j < handle->m_ndevs; j++)
+				for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 				{
-					if(handle->m_devs[j].m_buffer != MAP_FAILED)
+					if(handle->m_dev_set.m_devs[j].m_buffer != MAP_FAILED)
 					{
-						munmap(handle->m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-						munmap(handle->m_devs[j].m_buffer, RING_BUF_SIZE * 2);
-						close(handle->m_devs[j].m_fd);
+						munmap(handle->m_dev_set.m_devs[j].m_bufinfo, sizeof(struct ppm_ring_buffer_info));
+						munmap(handle->m_dev_set.m_devs[j].m_buffer, RING_BUF_SIZE * 2);
+						close(handle->m_dev_set.m_devs[j].m_fd);
 					}
 				}
 			}
@@ -1371,7 +1371,7 @@ void scap_close(scap_t* handle)
 			//
 			// Free the memory
 			//
-			free(handle->m_devs);
+			free(handle->m_dev_set.m_devs);
 		}
 #endif // HAS_CAPTURE
 	}
@@ -1453,7 +1453,7 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	{
 		return handle->m_vtable->get_n_devs(handle->m_engine);
 	}
-	return handle->m_ndevs;
+	return handle->m_dev_set.m_ndevs;
 }
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
@@ -1493,7 +1493,7 @@ static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 	// Tail is never updated when we serve the data, because we assume that the caller is using
 	// the buffer we give to her until she calls us again.
 	//
-	ttail = handle->m_devs[cpuid].m_bufinfo->tail + handle->m_devs[cpuid].m_lastreadsize;
+	ttail = handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail + handle->m_dev_set.m_devs[cpuid].m_lastreadsize;
 
 	//
 	// Make sure every read of the old buffer is completed before we move the tail and the
@@ -1509,14 +1509,14 @@ static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
 
 	if(ttail < RING_BUF_SIZE)
 	{
-		handle->m_devs[cpuid].m_bufinfo->tail = ttail;
+		handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		handle->m_devs[cpuid].m_bufinfo->tail = ttail - RING_BUF_SIZE;
+		handle->m_dev_set.m_devs[cpuid].m_bufinfo->tail = ttail - RING_BUF_SIZE;
 	}
 
-	handle->m_devs[cpuid].m_lastreadsize = 0;
+	handle->m_dev_set.m_devs[cpuid].m_lastreadsize = 0;
 }
 
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
@@ -1535,7 +1535,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	//
 	// Read the pointers.
 	//
-	get_buf_pointers(handle->m_devs[cpuid].m_bufinfo,
+	get_buf_pointers(handle->m_dev_set.m_devs[cpuid].m_bufinfo,
 	                 &thead,
 	                 &ttail,
 	                 &read_size);
@@ -1543,13 +1543,13 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	//
 	// Remember read_size so we can update the tail at the next call
 	//
-	handle->m_devs[cpuid].m_lastreadsize = (uint32_t)read_size;
+	handle->m_dev_set.m_devs[cpuid].m_lastreadsize = (uint32_t)read_size;
 
 	//
 	// Return the results
 	//
 	*len = (uint32_t)read_size;
-	*buf = handle->m_devs[cpuid].m_buffer + ttail;
+	*buf = handle->m_dev_set.m_devs[cpuid].m_buffer + ttail;
 
 	return SCAP_SUCCESS;
 }
@@ -1564,7 +1564,7 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 		uint64_t thead;
 		uint64_t ttail;
 
-		scap_bpf_get_buf_pointers(handle->m_devs[cpu].m_buffer, &thead, &ttail, &read_size);
+		scap_bpf_get_buf_pointers(handle->m_dev_set.m_devs[cpu].m_buffer, &thead, &ttail, &read_size);
 #endif
 	}
 	else
@@ -1572,7 +1572,7 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 		uint32_t thead;
 		uint32_t ttail;
 
-		get_buf_pointers(handle->m_devs[cpu].m_bufinfo, &thead, &ttail, &read_size);
+		get_buf_pointers(handle->m_dev_set.m_devs[cpu].m_bufinfo, &thead, &ttail, &read_size);
 	}
 
 	return read_size;
@@ -1582,7 +1582,7 @@ static bool are_buffers_empty(scap_t* handle)
 {
 	uint32_t j;
 
-	for(j = 0; j < handle->m_ndevs; j++)
+	for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 	{
 		if(buf_size_used(handle, j) > BUFFER_EMPTY_THRESHOLD_B)
 		{
@@ -1596,17 +1596,17 @@ static bool are_buffers_empty(scap_t* handle)
 int32_t refill_read_buffers(scap_t* handle)
 {
 	uint32_t j;
-	uint32_t ndevs = handle->m_ndevs;
+	uint32_t ndevs = handle->m_dev_set.m_ndevs;
 
 	if(are_buffers_empty(handle))
 	{
-		sleep_ms(handle->m_buffer_empty_wait_time_us / 1000);
-		handle->m_buffer_empty_wait_time_us = MIN(handle->m_buffer_empty_wait_time_us * 2,
+		sleep_ms(handle->m_dev_set.m_buffer_empty_wait_time_us / 1000);
+		handle->m_dev_set.m_buffer_empty_wait_time_us = MIN(handle->m_dev_set.m_buffer_empty_wait_time_us * 2,
 							  BUFFER_EMPTY_WAIT_TIME_US_MAX);
 	}
 	else
 	{
-		handle->m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
+		handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
 
 	//
@@ -1615,7 +1615,7 @@ int32_t refill_read_buffers(scap_t* handle)
 
 	for(j = 0; j < ndevs; j++)
 	{
-		struct scap_device *dev = &(handle->m_devs[j]);
+		struct scap_device *dev = &(handle->m_dev_set.m_devs[j]);
 
 		int32_t res = scap_readbuf(handle,
 		                           j,
@@ -1654,13 +1654,13 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	uint32_t j;
 	uint64_t max_ts = 0xffffffffffffffffLL;
 	scap_evt* pe = NULL;
-	uint32_t ndevs = handle->m_ndevs;
+	uint32_t ndevs = handle->m_dev_set.m_ndevs;
 
 	*pcpuid = 65535;
 
 	for(j = 0; j < ndevs; j++)
 	{
-		scap_device* dev = &(handle->m_devs[j]);
+		scap_device* dev = &(handle->m_dev_set.m_devs[j]);
 
 		if(dev->m_sn_len == 0)
 		{
@@ -1715,7 +1715,7 @@ static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	//
 	if(*pcpuid != 65535)
 	{
-		struct scap_device *dev = &handle->m_devs[*pcpuid];
+		struct scap_device *dev = &handle->m_dev_set.m_devs[*pcpuid];
 
 		//
 		// Update the pointers.
@@ -1765,13 +1765,13 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	uint32_t j;
 	uint64_t max_ts = 0xffffffffffffffffLL;
 	scap_evt* pe = NULL;
-	uint32_t ndevs = handle->m_ndevs;
+	uint32_t ndevs = handle->m_dev_set.m_ndevs;
 
 	*pcpuid = 65535;
 
 	for(j = 0; j < ndevs; j++)
 	{
-		scap_device* dev = &(handle->m_devs[j]);
+		scap_device* dev = &(handle->m_dev_set.m_devs[j]);
 
 		if(dev->m_sn_len == 0)
 		{
@@ -1817,7 +1817,7 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 	//
 	if(*pcpuid != 65535)
 	{
-		struct scap_device *dev = &handle->m_devs[*pcpuid];
+		struct scap_device *dev = &handle->m_dev_set.m_devs[*pcpuid];
 		ASSERT(dev->m_sn_len >= (*pevent)->len);
 		dev->m_sn_len -= (*pevent)->len;
 		dev->m_sn_next_event += (*pevent)->len;
@@ -1845,7 +1845,7 @@ uint64_t scap_max_buf_used(scap_t* handle)
 	uint64_t i;
 	uint64_t max = 0;
 
-	for(i = 0; i < handle->m_ndevs; i++)
+	for(i = 0; i < handle->m_dev_set.m_ndevs; i++)
 	{
 		uint64_t size = buf_size_used(handle, (uint32_t)i);
 		max = size > max ? size : max;
@@ -1951,14 +1951,14 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	{
 		uint32_t j;
 
-		for(j = 0; j < handle->m_ndevs; j++)
+		for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 		{
-			stats->n_evts += handle->m_devs[j].m_bufinfo->n_evts;
-			stats->n_drops_buffer += handle->m_devs[j].m_bufinfo->n_drops_buffer;
-			stats->n_drops_pf += handle->m_devs[j].m_bufinfo->n_drops_pf;
-			stats->n_drops += handle->m_devs[j].m_bufinfo->n_drops_buffer +
-						handle->m_devs[j].m_bufinfo->n_drops_pf;
-			stats->n_preemptions += handle->m_devs[j].m_bufinfo->n_preemptions;
+			stats->n_evts += handle->m_dev_set.m_devs[j].m_bufinfo->n_evts;
+			stats->n_drops_buffer += handle->m_dev_set.m_devs[j].m_bufinfo->n_drops_buffer;
+			stats->n_drops_pf += handle->m_dev_set.m_devs[j].m_bufinfo->n_drops_pf;
+			stats->n_drops += handle->m_dev_set.m_devs[j].m_bufinfo->n_drops_buffer +
+						handle->m_dev_set.m_devs[j].m_bufinfo->n_drops_pf;
+			stats->n_preemptions += handle->m_dev_set.m_devs[j].m_bufinfo->n_preemptions;
 		}
 	}
 #endif
@@ -1990,7 +1990,7 @@ int32_t scap_stop_capture(scap_t* handle)
 		//
 		// Disable capture on all the rings
 		//
-		for(j = 0; j < handle->m_ndevs; j++)
+		for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 		{
 			if(handle->m_bpf)
 			{
@@ -2005,7 +2005,7 @@ int32_t scap_stop_capture(scap_t* handle)
 			else
 			{
 #ifndef _WIN32
-				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
+				if(ioctl(handle->m_dev_set.m_devs[j].m_fd, PPM_IOCTL_DISABLE_CAPTURE))
 				{
 					snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
 					ASSERT(false);
@@ -2063,9 +2063,9 @@ int32_t scap_start_capture(scap_t* handle)
 		{
 #ifndef _WIN32
 			uint32_t j;
-			for(j = 0; j < handle->m_ndevs; j++)
+			for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 			{
-				if(ioctl(handle->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+				if(ioctl(handle->m_dev_set.m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
 				{
 					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
 					ASSERT(false);
@@ -2100,7 +2100,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		return SCAP_FAILURE;
 	}
 
-	if(handle->m_ndevs)
+	if(handle->m_dev_set.m_ndevs)
 	{
 		ASSERT((request == PPM_IOCTL_ENABLE_DROPPING_MODE &&
 			((sampling_ratio == 1)  ||
@@ -2112,7 +2112,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 				(sampling_ratio == 64) ||
 				(sampling_ratio == 128))) || (request == PPM_IOCTL_DISABLE_DROPPING_MODE));
 
-		if(ioctl(handle->m_devs[0].m_fd, request, sampling_ratio))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, request, sampling_ratio))
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "%s, request %d for sampling ratio %u: %s",
 					__FUNCTION__, request, sampling_ratio, scap_strerror(handle, errno));
@@ -2142,7 +2142,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-	if(handle->m_ndevs)
+	if(handle->m_dev_set.m_ndevs)
 	{
 		if(handle->m_bpf)
 		{
@@ -2150,7 +2150,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		}
 		else if(!handle->m_udig)
 		{
-			if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
+			if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 				ASSERT(false);
@@ -2180,7 +2180,7 @@ int32_t scap_enable_page_faults(scap_t *handle)
 		return SCAP_FAILURE;
 	}
 
-	if(handle->m_ndevs)
+	if(handle->m_dev_set.m_ndevs)
 	{
 		if(handle->m_bpf)
 		{
@@ -2188,7 +2188,7 @@ int32_t scap_enable_page_faults(scap_t *handle)
 		}
 		else
 		{
-			if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
+			if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
 				ASSERT(false);
@@ -2322,7 +2322,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		//
 		// Tell the driver to change the snaplen
 		//
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SNAPLEN, snaplen))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_set_snaplen failed");
 			ASSERT(false);
@@ -2335,14 +2335,14 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 			//
 			// Force a flush of the read buffers, so we don't capture events with the old snaplen
 			//
-			for(j = 0; j < handle->m_ndevs; j++)
+			for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 			{
 				scap_readbuf(handle,
 							j,
-							&handle->m_devs[j].m_sn_next_event,
-							&handle->m_devs[j].m_sn_len);
+							&handle->m_dev_set.m_devs[j].m_sn_next_event,
+							&handle->m_dev_set.m_devs[j].m_sn_len);
 
-				handle->m_devs[j].m_sn_len = 0;
+				handle->m_dev_set.m_devs[j].m_sn_len = 0;
 			}
 		}
 	}
@@ -2410,7 +2410,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	}
 	else
 	{
-		if(ioctl(handle->m_devs[0].m_fd, op, event_id))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, op, event_id))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
 				 "%s(%d) failed for event type %d",
@@ -2425,14 +2425,14 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 			//
 			// Force a flush of the read buffers, so we don't capture events with the old snaplen
 			//
-			for(j = 0; j < handle->m_ndevs; j++)
+			for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 			{
 				scap_readbuf(handle,
 					j,
-					&handle->m_devs[j].m_sn_next_event,
-					&handle->m_devs[j].m_sn_len);
+					&handle->m_dev_set.m_devs[j].m_sn_next_event,
+					&handle->m_dev_set.m_devs[j].m_sn_len);
 
-				handle->m_devs[j].m_sn_len = 0;
+				handle->m_dev_set.m_devs[j].m_sn_len = 0;
 			}
 		}
 	}
@@ -2495,7 +2495,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	}
 	else
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
 			ASSERT(false);
@@ -2537,7 +2537,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	}
 	else
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_disable_dynamic_snaplen failed");
 			ASSERT(false);
@@ -2622,7 +2622,7 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	}
 	else
 	{
-		int ioctlres = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
+		int ioctlres = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
 		if(ioctlres)
 		{
 			if(errno == ENOSPC)
@@ -2689,7 +2689,7 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	}
 	else
 	{
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
 			ASSERT(false);
@@ -2733,7 +2733,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	{
 		int ioctl_ret = 0;
 
-		ioctl_ret = ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+		ioctl_ret = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
 		if(ioctl_ret != 0)
 		{
 			if(errno == ENOTTY)
@@ -2844,7 +2844,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 		//
 		// Beam the value down to the module
 		//
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE, arg))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_FULLCAPTURE_PORT_RANGE, arg))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_set_fullcapture_port_range failed");
 			ASSERT(false);
@@ -2857,14 +2857,14 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 			//
 			// Force a flush of the read buffers, so we don't capture events with the old snaplen
 			//
-			for(j = 0; j < handle->m_ndevs; j++)
+			for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 			{
 				scap_readbuf(handle,
 							j,
-							&handle->m_devs[j].m_sn_next_event,
-							&handle->m_devs[j].m_sn_len);
+							&handle->m_dev_set.m_devs[j].m_sn_next_event,
+							&handle->m_dev_set.m_devs[j].m_sn_len);
 
-				handle->m_devs[j].m_sn_len = 0;
+				handle->m_dev_set.m_devs[j].m_sn_len = 0;
 			}
 		}
 	}
@@ -2906,7 +2906,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 		//
 		// Beam the value down to the module
 		//
-		if(ioctl(handle->m_devs[0].m_fd, PPM_IOCTL_SET_STATSD_PORT, port))
+		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_STATSD_PORT, port))
 		{
 			snprintf(handle->m_lasterr,
 			         SCAP_LASTERR_SIZE,
@@ -2922,14 +2922,14 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 			// Force a flush of the read buffers, so we don't
 			// capture events with the old snaplen
 			//
-			for(j = 0; j < handle->m_ndevs; j++)
+			for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 			{
 				scap_readbuf(handle,
 				             j,
-				             &handle->m_devs[j].m_sn_next_event,
-				             &handle->m_devs[j].m_sn_len);
+				             &handle->m_dev_set.m_devs[j].m_sn_next_event,
+				             &handle->m_dev_set.m_devs[j].m_sn_len);
 
-				handle->m_devs[j].m_sn_len = 0;
+				handle->m_dev_set.m_devs[j].m_sn_len = 0;
 			}
 		}
 	}
