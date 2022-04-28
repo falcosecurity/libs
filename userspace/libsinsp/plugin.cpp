@@ -418,16 +418,6 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath,
 		return ret;
 	}
 
-	// Before doing anything else, check the required api
-	// version. If it doesn't match, return an error.
-	// This is always valid
-	version frameworkVers(PLUGIN_API_VERSION_STR);
-	if(!frameworkVers.check(plugin->m_required_api_version))
-	{
-		errstr = string("Unsupported plugin required api version ") + plugin->m_required_api_version.as_string();
-		return ret;
-	}
-
 	if (plugin->m_caps == 0)
 	{
 		errstr = "Desired plugin has no capability.";
@@ -668,10 +658,34 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 
 bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 {
+
+	if ((*(void **) (&(m_api.get_required_api_version)) = getsym("plugin_get_required_api_version", errstr)) == NULL)
+	{
+		return false;
+	}
+
+	// The required api version was already checked in
+	// create_plugin to be valid and compatible. This just saves it for info/debugging.
+	std::string req_version_str = str_from_alloc_charbuf(m_api.get_required_api_version());
+	m_required_api_version = sinsp_plugin::version(req_version_str);
+	if(!m_required_api_version.m_valid)
+	{
+		errstr = string("Could not parse version string from ") + req_version_str;
+		return false;
+	}
+	// Before doing anything else, check the required api
+	// version. If it doesn't match, return an error.
+	// This is always valid
+	version frameworkVers(PLUGIN_API_VERSION_STR);
+	if(!frameworkVers.check(m_required_api_version))
+	{
+		errstr = string("Unsupported plugin required api version ") + m_required_api_version.as_string();
+		return false;
+	}
+
 	/** Common plugin API **/
 	// Some functions are required and return false if not found.
-	if((*(void **) (&(m_api.get_required_api_version)) = getsym("plugin_get_required_api_version", errstr)) == NULL ||
-	   (*(void **) (&(m_api.get_last_error)) = getsym("plugin_get_last_error", errstr)) == NULL ||
+	if((*(void **) (&(m_api.get_last_error)) = getsym("plugin_get_last_error", errstr)) == NULL ||
 	   (*(void **) (&(m_api.get_name)) = getsym("plugin_get_name", errstr)) == NULL ||
 	   (*(void **) (&(m_api.get_description)) = getsym("plugin_get_description", errstr)) == NULL ||
 	   (*(void **) (&(m_api.get_contact)) = getsym("plugin_get_contact", errstr)) == NULL ||
@@ -688,19 +702,10 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	m_name = str_from_alloc_charbuf(m_api.get_name());
 	m_description = str_from_alloc_charbuf(m_api.get_description());
 	m_contact = str_from_alloc_charbuf(m_api.get_contact());
+
 	std::string version_str = str_from_alloc_charbuf(m_api.get_version());
 	m_plugin_version = sinsp_plugin::version(version_str);
 	if(!m_plugin_version.m_valid)
-	{
-		errstr = string("Could not parse version string from ") + version_str;
-		return false;
-	}
-
-	// The required api version was already checked in
-	// create_plugin to be valid and compatible. This just saves it for info/debugging.
-	version_str = str_from_alloc_charbuf(m_api.get_required_api_version());
-	m_required_api_version = sinsp_plugin::version(version_str);
-	if(!m_required_api_version.m_valid)
 	{
 		errstr = string("Could not parse version string from ") + version_str;
 		return false;
