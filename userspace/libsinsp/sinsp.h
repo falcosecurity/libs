@@ -995,6 +995,7 @@ private:
 	bool is_initialstate_event(scap_evt* pevent);
 	void import_thread_table();
 	void import_ifaddr_list();
+	void import_user_list();
 	void add_protodecoders();
 	void fill_syscalls_of_interest(scap_open_args *oargs);
 	void remove_thread(int64_t tid, bool force);

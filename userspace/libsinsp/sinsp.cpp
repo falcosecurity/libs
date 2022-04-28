@@ -391,6 +391,8 @@ void sinsp::init()
 
 	import_ifaddr_list();
 
+	import_user_list();
+
 	//
 	// Scan the list to create the proper parent/child dependencies
 	//
@@ -998,6 +1000,25 @@ void sinsp::import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo)
 {
 	ASSERT(m_network_interfaces);
 	m_network_interfaces->import_ipv4_interface(ifinfo);
+}
+
+void sinsp::import_user_list()
+{
+	uint32_t j;
+	scap_userlist* ul = scap_get_user_list(m_h);
+
+	if(ul)
+	{
+		for(j = 0; j < ul->nusers; j++)
+		{
+			m_usergroup_manager.add_user("", ul->users[j].uid, ul->users[j].gid, ul->users[j].name, ul->users[j].homedir, ul->users[j].shell);
+		}
+
+		for(j = 0; j < ul->ngroups; j++)
+		{
+			m_usergroup_manager.add_group("", ul->groups[j].gid, ul->groups[j].name);
+		}
+	}
 }
 
 void sinsp::refresh_ifaddr_list()
