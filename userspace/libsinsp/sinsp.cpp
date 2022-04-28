@@ -266,8 +266,8 @@ bool sinsp::is_initialstate_event(scap_evt* pevent)
 			pevent->type == PPME_CONTAINER_JSON_2_E ||
 			pevent->type == PPME_USER_ADDED_E ||
 			pevent->type == PPME_USER_DELETED_E ||
-			pevent->type != PPME_GROUP_ADDED_E ||
-			pevent->type != PPME_GROUP_DELETED_E;
+			pevent->type == PPME_GROUP_ADDED_E ||
+			pevent->type == PPME_GROUP_DELETED_E;
 }
 
 void sinsp::consume_initialstate_events()
