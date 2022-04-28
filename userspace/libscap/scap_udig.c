@@ -252,9 +252,9 @@ void udig_free_ring_descriptors(uint8_t* addr)
 ///////////////////////////////////////////////////////////////////////////////
 // Capture control helpers.
 ///////////////////////////////////////////////////////////////////////////////
-bool acquire_and_init_ring_status_buffer(scap_t* handle)
+bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 	bool res = __sync_bool_compare_and_swap(&(rbs->m_capturing_pid), 0, getpid());
 
 	if(res)
@@ -290,7 +290,8 @@ bool acquire_and_init_ring_status_buffer(scap_t* handle)
 
 int32_t udig_begin_capture(scap_t* handle, char *error)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct scap_device *dev = &handle->m_dev_set.m_devs[0];
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
 	{
@@ -314,13 +315,13 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 		}
 	}
 
-	struct ppm_ring_buffer_info* rbi = handle->m_dev_set.m_devs[0].m_bufinfo;
+	struct ppm_ring_buffer_info* rbi = dev->m_bufinfo;
 	rbi->head = 0;
 	rbi->tail = 0;
 	rbi->n_evts = 0;
 	rbi->n_drops_buffer = 0;
 
-	if(acquire_and_init_ring_status_buffer(handle))
+	if(acquire_and_init_ring_status_buffer(dev))
 	{
 		handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
@@ -535,9 +536,9 @@ void udig_free_ring_descriptors(uint8_t* addr)
 ///////////////////////////////////////////////////////////////////////////////
 // Capture control helpers.
 ///////////////////////////////////////////////////////////////////////////////
-bool acquire_and_init_ring_status_buffer(scap_t* handle)
+bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 #ifdef _WIN32
 	LONG dval = InterlockedCompareExchange(&(rbs->m_capturing_pid), GetCurrentProcessId(), 0);
 	bool res = (dval == 0);
@@ -578,7 +579,8 @@ bool acquire_and_init_ring_status_buffer(scap_t* handle)
 
 int32_t udig_begin_capture(scap_t* handle, char *error)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct scap_device *dev = &handle->m_dev_set.m_devs[0];
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
 	{
@@ -620,13 +622,13 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 #endif
 	}
 
-	struct ppm_ring_buffer_info* rbi = handle->m_dev_set.m_devs[0].m_bufinfo;
+	struct ppm_ring_buffer_info* rbi = dev->m_bufinfo;
 	rbi->head = 0;
 	rbi->tail = 0;
 	rbi->n_evts = 0;
 	rbi->n_drops_buffer = 0;
 
-	if(acquire_and_init_ring_status_buffer(handle))
+	if(acquire_and_init_ring_status_buffer(dev))
 	{
 		handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
@@ -640,15 +642,15 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 
 #endif // _WIN32
 
-void udig_start_capture(scap_t* handle)
+void udig_start_capture(struct scap_device *dev)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 	rbs->m_stopped = 0;
 }
 
-void udig_stop_capture(scap_t* handle)
+void udig_stop_capture(struct scap_device *dev)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 	rbs->m_stopped = 1;
 }
 

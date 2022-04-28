@@ -84,14 +84,11 @@ static inline void scap_bpf_get_buf_pointers(char *buf, uint64_t *phead, uint64_
 	}
 }
 
-static inline int32_t scap_bpf_advance_to_evt(scap_t *handle, uint16_t cpuid, bool skip_current,
+static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip_current,
 					      char *cur_evt, char **next_evt, uint32_t *len)
 {
-	struct scap_device *dev;
 	void *base;
 	void *begin;
-
-	dev = &handle->m_dev_set.m_devs[cpuid];
 
 	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *) dev->m_buffer;
 
@@ -150,12 +147,10 @@ static inline int32_t scap_bpf_advance_to_evt(scap_t *handle, uint16_t cpuid, bo
 	return SCAP_SUCCESS;
 }
 
-static inline void scap_bpf_advance_tail(scap_t *handle, uint32_t cpuid)
+static inline void scap_bpf_advance_tail(struct scap_device *dev)
 {
 	struct perf_event_mmap_page *header;
-	struct scap_device *dev;
 
-	dev = &handle->m_dev_set.m_devs[cpuid];
 	header = (struct perf_event_mmap_page *)dev->m_buffer;
 
 	// clang-format off
@@ -167,16 +162,14 @@ static inline void scap_bpf_advance_tail(scap_t *handle, uint32_t cpuid)
 	dev->m_lastreadsize = 0;
 }
 
-static inline int32_t scap_bpf_readbuf(scap_t *handle, uint32_t cpuid, char **buf, uint32_t *len)
+static inline int32_t scap_bpf_readbuf(struct scap_device *dev, char **buf, uint32_t *len)
 {
 	struct perf_event_mmap_page *header;
-	struct scap_device *dev;
 	uint64_t tail;
 	uint64_t head;
 	uint64_t read_size;
 	char *p;
 
-	dev = &handle->m_dev_set.m_devs[cpuid];
 	header = (struct perf_event_mmap_page *) dev->m_buffer;
 
 	ASSERT(dev->m_lastreadsize == 0);
@@ -186,7 +179,7 @@ static inline int32_t scap_bpf_readbuf(scap_t *handle, uint32_t cpuid, char **bu
 	p = ((char *) header) + header->data_offset + tail % header->data_size;
 	*len = read_size;
 
-	return scap_bpf_advance_to_evt(handle, cpuid, false, p, buf, len);
+	return scap_bpf_advance_to_evt(dev, false, p, buf, len);
 }
 
 #endif

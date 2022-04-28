@@ -1178,23 +1178,25 @@ int32_t scap_bpf_close(scap_t *handle)
 	int ring_size = page_size * BUF_SIZE_PAGES;
 	int header_size = page_size;
 	int total_size = ring_size * 2 + header_size;
+	struct scap_device_set *devset = &handle->m_dev_set;
 
-	for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
+	for(j = 0; j < devset->m_ndevs; j++)
 	{
-		if(handle->m_dev_set.m_devs[j].m_buffer != MAP_FAILED)
+		struct scap_device *dev = &devset->m_devs[j];
+		if(dev->m_buffer != MAP_FAILED)
 		{
 #ifdef _DEBUG
 			int ret;
-			ret = munmap(handle->m_dev_set.m_devs[j].m_buffer, total_size);
+			ret = munmap(dev->m_buffer, total_size);
 #else
-			munmap(handle->m_dev_set.m_devs[j].m_buffer, total_size);
+			munmap(dev->m_buffer, total_size);
 #endif
 			ASSERT(ret == 0);
 		}
 
-		if(handle->m_dev_set.m_devs[j].m_fd > 0)
+		if(dev->m_fd > 0)
 		{
-			close(handle->m_dev_set.m_devs[j].m_fd);
+			close(dev->m_fd);
 		}
 	}
 
@@ -1496,6 +1498,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			.config = PERF_COUNT_SW_BPF_OUTPUT,
 		};
 		int pmu_fd;
+		struct scap_device *dev;
 
 		if(j > 0)
 		{
@@ -1534,6 +1537,8 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			return SCAP_FAILURE;
 		}
 
+		dev = &handle->m_dev_set.m_devs[online_cpu];
+
 		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
 		if(pmu_fd < 0)
 		{
@@ -1541,7 +1546,7 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 			return SCAP_FAILURE;
 		}
 
-		handle->m_dev_set.m_devs[online_cpu].m_fd = pmu_fd;
+		dev->m_fd = pmu_fd;
 
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY) != 0)
 		{
@@ -1558,8 +1563,8 @@ int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
 		//
 		// Map the ring buffer
 		//
-		handle->m_dev_set.m_devs[online_cpu].m_buffer = perf_event_mmap(handle, pmu_fd);
-		if(handle->m_dev_set.m_devs[online_cpu].m_buffer == MAP_FAILED)
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd);
+		if(dev->m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
 		}
