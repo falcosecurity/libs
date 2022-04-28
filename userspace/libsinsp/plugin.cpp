@@ -380,9 +380,9 @@ bool sinsp_plugin::version::check(version &requested) const
 }
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(string &filepath,
-														  const char* config,
-														  std::string &errstr,
-														  filter_check_list &available_checks)
+							  const char* config,
+							  std::string &errstr,
+							  filter_check_list &available_checks)
 {
 	std::shared_ptr<sinsp_plugin> ret;
 
@@ -661,11 +661,10 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 
 	if ((*(void **) (&(m_api.get_required_api_version)) = getsym("plugin_get_required_api_version", errstr)) == NULL)
 	{
+		errstr = string("Could not resolve plugin_get_required_api_version function");
 		return false;
 	}
 
-	// The required api version was already checked in
-	// create_plugin to be valid and compatible. This just saves it for info/debugging.
 	std::string req_version_str = str_from_alloc_charbuf(m_api.get_required_api_version());
 	m_required_api_version = sinsp_plugin::version(req_version_str);
 	if(!m_required_api_version.m_valid)
