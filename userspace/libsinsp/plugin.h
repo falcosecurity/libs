@@ -64,7 +64,7 @@ public:
 
 	virtual std::string get_progress(uint32_t &progress_pct) = 0;
 
-	virtual std::string event_to_string(const uint8_t *data, uint32_t datalen) = 0;
+	virtual std::string event_to_string(sinsp_evt* evt) = 0;
 
 	virtual std::vector<open_param> list_open_params() = 0;
 };
@@ -158,7 +158,7 @@ public:
 
 	std::string get_progress(uint32_t &progress_pct);
 
-	std::string event_to_string(const uint8_t *data, uint32_t datalen);
+	std::string event_to_string(sinsp_evt* evt);
 
 	std::vector<sinsp_plugin_cap_sourcing::open_param> list_open_params();
 	/** **/

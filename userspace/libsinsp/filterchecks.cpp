@@ -2859,7 +2859,6 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 {
 
 	std::shared_ptr<sinsp_plugin> plugin;
-	sinsp_evt_param *parinfo;
 
 	*len = 0;
 	switch(m_field_id)
@@ -2921,9 +2920,7 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		else
 		{
-			parinfo = evt->get_param(1);
-			auto splugin = static_cast<sinsp_plugin_cap_sourcing*>(plugin.get());
-			m_strstorage = splugin->event_to_string((const uint8_t *) parinfo->m_val, parinfo->m_len);
+			m_strstorage = plugin->event_to_string(evt);
 		}
 
 		RETURN_EXTRACT_STRING(m_strstorage);
