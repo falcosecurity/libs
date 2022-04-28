@@ -417,6 +417,7 @@ void udig_end_capture(scap_t* handle);
 uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
 int32_t udig_stop_dropping_mode(scap_t* handle);
 int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
+void scap_close_udig(scap_t* handle);
 
 //
 // scap_reader functions implementation
