@@ -1046,17 +1046,40 @@ std::string sinsp_plugin::get_progress(uint32_t &progress_pct)
 	return ret;
 }
 
-std::string sinsp_plugin::event_to_string(const uint8_t *data, uint32_t datalen)
+std::string sinsp_plugin::event_to_string(sinsp_evt* evt)
 {
-	std::string ret = "<NA>";
-
-	if (!m_state || !m_api.event_to_string)
+	string ret = "";
+	auto datalen = evt->get_param(1)->m_len;
+	auto data = (const uint8_t *) evt->get_param(1)->m_val;
+	if (m_state && m_api.event_to_string)
 	{
-		return ret;
+		ss_plugin_event pevt = {
+			.evtnum = evt->get_num(),
+			.data = data,
+			.datalen = datalen,
+			.ts = evt->get_ts(),
+		};
+		ret = str_from_alloc_charbuf(m_api.event_to_string(m_state, &pevt));
 	}
-
-	ret = str_from_alloc_charbuf(m_api.event_to_string(m_state, data, datalen));
-
+	if (ret.empty())
+	{
+		ret += "datalen=";
+		ret += std::to_string(datalen);
+		ret += " data=";
+		for (size_t i = 0; i < MIN(datalen, 50); ++i)
+		{
+			if (!std::isprint(data[i]))
+			{
+				ret += "<binary>";
+				return ret;
+			}
+		}
+		ret.append((char*) data, MIN(datalen, 50));
+		if (datalen > 50)
+		{
+			ret += "...";
+		}
+	}
 	return ret;
 }
 
