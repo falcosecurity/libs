@@ -60,34 +60,6 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
-static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)
-{
-	switch(plugin_rc)
-	{
-	case SS_PLUGIN_SUCCESS:
-		return SCAP_SUCCESS;
-		break;
-	case SS_PLUGIN_FAILURE:
-		return SCAP_FAILURE;
-		break;
-	case SS_PLUGIN_TIMEOUT:
-		return SCAP_TIMEOUT;
-		break;
-	case SS_PLUGIN_EOF:
-		return SCAP_EOF;
-		break;
-	case SS_PLUGIN_NOT_SUPPORTED:
-		return SCAP_NOT_SUPPORTED;
-		break;
-	default:
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	ASSERT(false);
-	return SCAP_FAILURE;
-}
-
 const char* scap_getlasterr(scap_t* handle)
 {
 	return handle ? handle->m_lasterr : "null scap handle";
@@ -1119,6 +1091,14 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * inpu
 	//
 	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_PLUGIN;
+	handle->m_vtable = &scap_source_plugin_engine;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		free(handle);
+		return NULL;
+	}
 
 	//
 	// Extract machine information
@@ -1147,36 +1127,12 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * inpu
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
-	handle->m_input_plugin = input_plugin;
-
-	// Set the rc to SCAP_FAILURE now, so in the unlikely event
-	// that a plugin doesn't not actually set a rc, that it gets
-	// treated as a failure.
-	ss_plugin_rc plugin_rc = SCAP_FAILURE;
-
-	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
-	                                                              input_plugin_params,
-	                                                              &plugin_rc);
-
-	*rc = plugin_rc_to_scap_rc(plugin_rc);
-	handle->m_input_plugin_batch_nevts = 0;
-	handle->m_input_plugin_batch_evts = NULL;
-	handle->m_input_plugin_batch_idx = 0;
-	handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
-
-	if(*rc != SCAP_SUCCESS)
-	{
-		const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", errstr);
-		scap_close(handle);
-		return NULL;
-	}
-
 	return handle;
 }
 
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 {
+	scap_t *handle;
 	switch(args.mode)
 	{
 	case SCAP_MODE_CAPTURE:
@@ -1240,7 +1196,19 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 					      args.proc_callback_context,
 					      args.import_users);
 	case SCAP_MODE_PLUGIN:
-		return scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
+		handle = scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
+		if(handle && handle->m_vtable)
+		{
+			int32_t res = handle->m_vtable->init(handle, &args);
+			if(res != SCAP_SUCCESS)
+			{
+				strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);
+				scap_close(handle);
+				handle = NULL;
+			}
+			*rc = res;
+			return handle;
+		}
 	case SCAP_MODE_NONE:
 		// error
 		break;
@@ -1406,11 +1374,6 @@ void scap_close(scap_t* handle)
 			free(handle->m_devs);
 		}
 #endif // HAS_CAPTURE
-	}
-	else if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		handle->m_input_plugin->close(handle->m_input_plugin->state, handle->m_input_plugin->handle);
-		handle->m_input_plugin->handle = NULL;
 	}
 
 #if CYGWING_AGENT || _WIN32
@@ -1872,117 +1835,6 @@ static int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_
 #endif
 }
 
-static int32_t scap_next_plugin(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	ss_plugin_event *plugin_evt;
-	int32_t res = SCAP_FAILURE;
-
-	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
-	{
-		if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)
-		{
-			if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
-			{
-				const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-			}
-			int32_t tres = handle->m_input_plugin_last_batch_res;
-			handle->m_input_plugin_last_batch_res = SCAP_SUCCESS;
-			return tres;
-		}
-
-		int32_t plugin_res = handle->m_input_plugin->next_batch(handle->m_input_plugin->state,
-		                                                        handle->m_input_plugin->handle,
-		                                                        &(handle->m_input_plugin_batch_nevts),
-		                                                        &(handle->m_input_plugin_batch_evts));
-		handle->m_input_plugin_last_batch_res = plugin_rc_to_scap_rc(plugin_res);
-		
-		if(handle->m_input_plugin_batch_nevts == 0)
-		{
-			if(handle->m_input_plugin_last_batch_res == SCAP_SUCCESS)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected 0 size event returned by plugin %s", handle->m_input_plugin->name);
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-			else
-			{
-				if(handle->m_input_plugin_last_batch_res != SCAP_TIMEOUT && handle->m_input_plugin_last_batch_res != SCAP_EOF)
-				{
-					const char *errstr = handle->m_input_plugin->get_last_error(handle->m_input_plugin->state);
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", errstr);
-				}
-				return handle->m_input_plugin_last_batch_res;
-			}
-		}
-
-		handle->m_input_plugin_batch_idx = 0;
-	}
-
-	uint32_t pos = handle->m_input_plugin_batch_idx;
-
-	plugin_evt = &(handle->m_input_plugin_batch_evts[pos]);
-
-	handle->m_input_plugin_batch_idx++;
-
-	res = SCAP_SUCCESS;
-
-	/*
-	 * | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
-	 * Note: we need to use 4B for len_id too because the PPME_PLUGINEVENT_E has
-	 * EF_LARGE_PAYLOAD flag!
-	 */
-	uint32_t reqsize = sizeof(scap_evt) + 4 + 4 + 4 + plugin_evt->datalen;
-	if(handle->m_input_plugin_evt_storage_len < reqsize)
-	{
-		uint8_t *tmp = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
-		if (tmp)
-		{
-			handle->m_input_plugin_evt_storage = tmp;
-			handle->m_input_plugin_evt_storage_len = reqsize;
-		}
-		else
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s", "failed to alloc space for plugin storage");
-			ASSERT(false);
-			return SCAP_FAILURE;
-		}
-	}
-
-	scap_evt* evt = (scap_evt*)handle->m_input_plugin_evt_storage;
-	evt->len = reqsize;
-	evt->tid = -1;
-	evt->type = PPME_PLUGINEVENT_E;
-	evt->nparams = 2;
-
-	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
-
-	const uint32_t plugin_id_size = 4;
-	memcpy(buf, &plugin_id_size, sizeof(plugin_id_size));
-	buf += sizeof(plugin_id_size);
-
-	uint32_t datalen = plugin_evt->datalen;
-	memcpy(buf, &(datalen), sizeof(datalen));
-	buf += sizeof(datalen);
-
-	memcpy(buf, &(handle->m_input_plugin->id), sizeof(handle->m_input_plugin->id));
-	buf += sizeof(handle->m_input_plugin->id);
-
-	memcpy(buf, plugin_evt->data, plugin_evt->datalen);
-
-	if(plugin_evt->ts != UINT64_MAX)
-	{
-		evt->ts = plugin_evt->ts;
-	}
-	else
-	{
-		evt->ts = get_timestamp_ns();
-	}
-
-	*pevent = evt;
-	return res;
-}
-
 uint64_t scap_max_buf_used(scap_t* handle)
 {
 	if(handle->m_vtable)
@@ -2030,8 +1882,6 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 			}
 			break;
 		case SCAP_MODE_PLUGIN:
-			res = scap_next_plugin(handle, pevent, pcpuid);
-			break;
 		case SCAP_MODE_NODRIVER:
 		case SCAP_MODE_NONE:
 			res = SCAP_FAILURE;
