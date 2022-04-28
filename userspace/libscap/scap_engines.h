@@ -22,3 +22,7 @@ limitations under the License.
 #ifdef HAS_ENGINE_NODRIVER
 extern const struct scap_vtable scap_nodriver_engine;
 #endif
+
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
+extern const struct scap_vtable scap_source_plugin_engine;
+#endif

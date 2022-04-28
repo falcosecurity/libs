@@ -189,3 +189,7 @@ add_subdirectory(engine/noop)
 add_definitions(-DHAS_ENGINE_NODRIVER)
 add_subdirectory(engine/nodriver)
 target_link_libraries(scap scap_engine_nodriver)
+
+add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
+add_subdirectory(engine/source_plugin)
+target_link_libraries(scap scap_engine_source_plugin)
