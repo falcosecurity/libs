@@ -1220,39 +1220,6 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 	return NULL;
 }
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
-void scap_close_udig(scap_t* handle)
-{
-	if(handle->m_dev_set.m_devs[0].m_buffer != MAP_FAILED)
-	{
-		udig_free_ring((uint8_t*)handle->m_dev_set.m_devs[0].m_buffer, handle->m_dev_set.m_devs[0].m_buffer_size);
-	}
-	if(handle->m_dev_set.m_devs[0].m_bufinfo != MAP_FAILED)
-	{
-		udig_free_ring_descriptors((uint8_t*)handle->m_dev_set.m_devs[0].m_bufinfo);
-	}
-#ifdef _WIN32
-	if(handle->m_win_buf_handle != NULL)
-	{
-		CloseHandle(handle->m_win_buf_handle);
-	}
-	if(handle->m_win_descs_handle != NULL)
-	{
-		CloseHandle(handle->m_win_descs_handle);
-	}
-#else
-	if(handle->m_dev_set.m_devs[0].m_fd != -1)
-	{
-		close(handle->m_dev_set.m_devs[0].m_fd);
-	}
-	if(handle->m_dev_set.m_devs[0].m_bufinfo_fd != -1)
-	{
-		close(handle->m_dev_set.m_devs[0].m_bufinfo_fd);
-	}
-#endif
-}
-#endif
-
 static inline void scap_deinit_state(scap_t* handle)
 {
 	// Free the process table
