@@ -90,7 +90,8 @@ list(APPEND targetfiles
 	syscall_info_table.c
 	../../driver/dynamic_params_table.c
 	../../driver/event_table.c
-	../../driver/flags_table.c)
+	../../driver/flags_table.c
+	ringbuffer/devset.c)
 
 if(NOT APPLE)
 	list(APPEND targetfiles
