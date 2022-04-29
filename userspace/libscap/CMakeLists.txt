@@ -95,7 +95,7 @@ list(APPEND targetfiles
 
 if(NOT APPLE)
 	list(APPEND targetfiles
-		scap_udig.c)
+		engine/udig/scap_udig.c)
 endif()
 
 
