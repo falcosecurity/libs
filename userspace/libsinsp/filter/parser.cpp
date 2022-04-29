@@ -633,7 +633,7 @@ string parser::escape_str(const string& str)
 				case 'x':
 					// todo(jasondellaluce): support hex num escaping (not needed for now)
 				default:
-					throw sinsp_exception("unsupported string escape sequence: \\" + str[i]);
+					throw sinsp_exception("unsupported string escape sequence: \\" + string(1, str[i]));
 			}
 			escaped = false;
 		}
