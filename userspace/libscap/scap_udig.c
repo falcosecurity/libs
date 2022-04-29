@@ -29,6 +29,7 @@
 #include "scap.h"
 #include "scap-int.h"
 #include "../../driver/ppm_ringbuffer.h"
+#include "ringbuffer/ringbuffer.h"
 
 #define PPM_PORT_STATSD 8125
 
@@ -735,4 +736,9 @@ void scap_close_udig(scap_t* handle)
 		close(handle->m_dev_set.m_devs[0].m_bufinfo_fd);
 	}
 #endif
+}
+
+int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return ringbuffer_next(&handle->m_dev_set, pevent, pcpuid);
 }
