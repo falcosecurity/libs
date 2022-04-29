@@ -82,6 +82,8 @@ set(SINSP_SOURCES
 	logger.cpp
 	parsers.cpp
 	plugin.cpp
+	plugin_manager.cpp
+	plugin_filtercheck.cpp
 	prefix_search.cpp
 	protodecoder.cpp
 	threadinfo.cpp
