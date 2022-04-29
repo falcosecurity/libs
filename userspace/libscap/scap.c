@@ -221,26 +221,12 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	handle->m_dev_set.m_devs = (scap_device*) calloc(sizeof(scap_device), ndevs);
-	if(!handle->m_dev_set.m_devs)
+	*rc = devset_init(&handle->m_dev_set, ndevs, error);
+	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
-		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-
-	for(j = 0; j < ndevs; j++)
-	{
-		handle->m_dev_set.m_devs[j].m_buffer = (char*)MAP_FAILED;
-		if(!handle->m_bpf)
-		{
-			handle->m_dev_set.m_devs[j].m_bufinfo = (struct ppm_ring_buffer_info*)MAP_FAILED;
-			handle->m_dev_set.m_devs[j].m_bufstatus = (struct udig_ring_buffer_status*)MAP_FAILED;
-		}
-	}
-
-	handle->m_dev_set.m_ndevs = ndevs;
 
 	//
 	// Extract machine information
@@ -302,7 +288,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
-	handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -623,22 +608,12 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_udig_capturing = false;
 	handle->m_ncpus = 1;
 
-	handle->m_dev_set.m_ndevs = 1;
-
-	handle->m_dev_set.m_devs = (scap_device*) calloc(sizeof(scap_device), handle->m_dev_set.m_ndevs);
-	if(!handle->m_dev_set.m_devs)
+	*rc = devset_init(&handle->m_dev_set, 1, error);
+	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the device handles");
-		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-
-	handle->m_dev_set.m_devs[0].m_buffer = MAP_FAILED;
-	handle->m_dev_set.m_devs[0].m_bufinfo = MAP_FAILED;
-	handle->m_dev_set.m_devs[0].m_bufstatus = MAP_FAILED;
-	handle->m_dev_set.m_devs[0].m_fd = -1;
-	handle->m_dev_set.m_devs[0].m_bufinfo_fd = -1;
 
 	//
 	// Extract machine information
@@ -698,7 +673,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
-	handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 #ifdef _WIN32
 	handle->m_whh = scap_windows_hal_open(error);
