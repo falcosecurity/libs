@@ -56,13 +56,13 @@ static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
 	return (scap_evt *) perf_evt->data;
 }
 
-static inline void scap_bpf_get_buf_pointers(char *buf, uint64_t *phead, uint64_t *ptail, uint64_t *pread_size)
+static inline void scap_bpf_get_buf_pointers(scap_device *dev, uint64_t *phead, uint64_t *ptail, uint64_t *pread_size)
 {
 	struct perf_event_mmap_page *header;
 	uint64_t begin;
 	uint64_t end;
 
-	header = (struct perf_event_mmap_page *) buf;
+	header = (struct perf_event_mmap_page *) dev->m_buffer;
 
 	*phead = header->data_head;
 	*ptail = header->data_tail;
@@ -173,7 +173,7 @@ static inline int32_t scap_bpf_readbuf(struct scap_device *dev, char **buf, uint
 	header = (struct perf_event_mmap_page *) dev->m_buffer;
 
 	ASSERT(dev->m_lastreadsize == 0);
-	scap_bpf_get_buf_pointers((char *) header, &head, &tail, &read_size);
+	scap_bpf_get_buf_pointers(dev, &head, &tail, &read_size);
 
 	dev->m_lastreadsize = read_size;
 	p = ((char *) header) + header->data_offset + tail % header->data_size;

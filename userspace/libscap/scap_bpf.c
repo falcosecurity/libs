@@ -42,6 +42,29 @@ limitations under the License.
 #include "compat/misc.h"
 #include "compat/bpf.h"
 
+#ifndef MINIMAL_BUILD
+static inline scap_evt* scap_bpf_next_event(scap_device* dev)
+{
+	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
+}
+
+static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *event)
+{
+	scap_bpf_advance_to_evt(dev, true,
+				dev->m_sn_next_event,
+				&dev->m_sn_next_event,
+				&dev->m_sn_len);
+}
+
+#define GET_BUF_POINTERS scap_bpf_get_buf_pointers
+#define ADVANCE_TAIL scap_bpf_advance_tail
+#define ADVANCE_TO_EVT scap_bpf_advance_to_next_evt
+#define READBUF scap_bpf_readbuf
+#define NEXT_EVENT scap_bpf_next_event
+
+#include "ringbuffer/ringbuffer.h"
+#endif
+
 //
 // Some of this code is taken from the kernel samples under samples/bpf,
 // namely the parsing of the ELF objects, which is very tedious and not
@@ -1681,6 +1704,10 @@ int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_i
 	return populate_syscall_table_map(handle);
 }
 
+int32_t scap_next_bpf(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return ringbuffer_next(&handle->m_dev_set, pevent, pcpuid);
+}
 #else // MINIMAL_BUILD
 
 int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe)
@@ -1713,5 +1740,10 @@ int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_i
 	return SCAP_FAILURE;
 }
 
+int32_t scap_next_bpf(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
+	return SCAP_FAILURE;
+}
 #endif // MINIMAL_BUILD
 

@@ -102,6 +102,7 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
 		scap_bpf.c
+		scap_kmod.c
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 

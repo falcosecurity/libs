@@ -1418,49 +1418,6 @@ void get_buf_pointers(struct ppm_ring_buffer_info* bufinfo, uint32_t* phead, uin
 	}
 }
 
-static void scap_advance_tail(scap_t* handle, uint32_t cpuid)
-{
-	struct scap_device *dev = &handle->m_dev_set.m_devs[cpuid];
-	uint32_t ttail;
-
-#ifndef _WIN32
-	if(handle->m_bpf)
-	{
-		return scap_bpf_advance_tail(dev);
-	}
-#endif
-
-	//
-	// Update the tail based on the amount of data read in the *previous* call.
-	// Tail is never updated when we serve the data, because we assume that the caller is using
-	// the buffer we give to her until she calls us again.
-	//
-	ttail = dev->m_bufinfo->tail + dev->m_lastreadsize;
-
-	//
-	// Make sure every read of the old buffer is completed before we move the tail and the
-	// producer (on another CPU) can start overwriting it.
-	// I use this instead of asm(mfence) because it should be portable even on the weirdest
-	// CPUs
-	//
-#ifdef _WIN32
-	MemoryBarrier();
-#else
-	__sync_synchronize();
-#endif
-
-	if(ttail < RING_BUF_SIZE)
-	{
-		dev->m_bufinfo->tail = ttail;
-	}
-	else
-	{
-		dev->m_bufinfo->tail = ttail - RING_BUF_SIZE;
-	}
-
-	dev->m_lastreadsize = 0;
-}
-
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
 {
 	uint32_t thead;
@@ -1504,7 +1461,7 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 		uint64_t thead;
 		uint64_t ttail;
 
-		scap_bpf_get_buf_pointers(handle->m_dev_set.m_devs[cpu].m_buffer, &thead, &ttail, &read_size);
+		scap_bpf_get_buf_pointers(&handle->m_dev_set.m_devs[cpu], &thead, &ttail, &read_size);
 #endif
 	}
 	else
@@ -1518,177 +1475,10 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 	return read_size;
 }
 
-static bool are_buffers_empty(scap_t* handle)
-{
-	uint32_t j;
-
-	for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
-	{
-		if(buf_size_used(handle, j) > BUFFER_EMPTY_THRESHOLD_B)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-int32_t refill_read_buffers(scap_t* handle)
-{
-	uint32_t j;
-	uint32_t ndevs = handle->m_dev_set.m_ndevs;
-
-	if(are_buffers_empty(handle))
-	{
-		sleep_ms(handle->m_dev_set.m_buffer_empty_wait_time_us / 1000);
-		handle->m_dev_set.m_buffer_empty_wait_time_us = MIN(handle->m_dev_set.m_buffer_empty_wait_time_us * 2,
-							  BUFFER_EMPTY_WAIT_TIME_US_MAX);
-	}
-	else
-	{
-		handle->m_dev_set.m_buffer_empty_wait_time_us = BUFFER_EMPTY_WAIT_TIME_US_START;
-	}
-
-	//
-	// Refill our data for each of the devices
-	//
-
-	for(j = 0; j < ndevs; j++)
-	{
-		struct scap_device *dev = &(handle->m_dev_set.m_devs[j]);
-
-		int32_t res = scap_readbuf(handle,
-		                           j,
-		                           &dev->m_sn_next_event,
-		                           &dev->m_sn_len);
-
-		if(res != SCAP_SUCCESS)
-		{
-			return res;
-		}
-	}
-
-	//
-	// Note: we might return a spurious timeout here in case the previous loop extracted valid data to parse.
-	//       It's ok, since this is rare and the caller will just call us again after receiving a
-	//       SCAP_TIMEOUT.
-	//
-	return SCAP_TIMEOUT;
-}
-
 #endif // HAS_CAPTURE
 
-#ifndef _WIN32
-static inline int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-#else
-static int32_t scap_next_live(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-#endif
-{
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-	//
-	// this should be prevented at open time
-	//
-	ASSERT(false);
-	return SCAP_FAILURE;
-#else
-	uint32_t j;
-	uint64_t max_ts = 0xffffffffffffffffLL;
-	scap_evt* pe = NULL;
-	uint32_t ndevs = handle->m_dev_set.m_ndevs;
-
-	*pcpuid = 65535;
-
-	for(j = 0; j < ndevs; j++)
-	{
-		scap_device* dev = &(handle->m_dev_set.m_devs[j]);
-
-		if(dev->m_sn_len == 0)
-		{
-			//
-			// If we don't have data from this ring, but we are
-			// still occupying, free the resources for the
-			// producer rather than sitting on them.
-			//
-			if(dev->m_lastreadsize > 0)
-			{
-				scap_advance_tail(handle, j);
-			}
-
-			continue;
-		}
-
-		if(handle->m_bpf)
-		{
-#ifndef _WIN32
-			pe = scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
-#endif
-		}
-		else
-		{
-			pe = (scap_evt *) dev->m_sn_next_event;
-		}
-
-		//
-		// We want to consume the event with the lowest timestamp
-		//
-		if(pe->ts < max_ts)
-		{
-			if(pe->len > dev->m_sn_len)
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_next buffer corruption");
-
-				//
-				// if you get the following assertion, first recompile the driver and libscap
-				//
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-
-			*pevent = pe;
-			*pcpuid = j;
-			max_ts = pe->ts;
-		}
-	}
-
-	//
-	// Check which buffer has been picked
-	//
-	if(*pcpuid != 65535)
-	{
-		struct scap_device *dev = &handle->m_dev_set.m_devs[*pcpuid];
-
-		//
-		// Update the pointers.
-		//
-		if(handle->m_bpf)
-		{
-#ifndef _WIN32
-			scap_bpf_advance_to_evt(dev, true,
-						dev->m_sn_next_event,
-						&dev->m_sn_next_event,
-						&dev->m_sn_len);
-#endif
-		}
-		else
-		{
-			ASSERT(dev->m_sn_len >= (*pevent)->len);
-			dev->m_sn_len -= (*pevent)->len;
-			dev->m_sn_next_event += (*pevent)->len;
-		}
-
-		return SCAP_SUCCESS;
-	}
-	else
-	{
-		//
-		// All the buffers have been consumed. Check if there's enough data to keep going or
-		// if we should wait.
-		//
-		return refill_read_buffers(handle);
-	}
-#endif
-}
-
+int32_t scap_next_bpf(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
+int32_t scap_next_kmod(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 
 uint64_t scap_max_buf_used(scap_t* handle)
@@ -1732,9 +1522,13 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 			{
 				res = scap_next_udig(handle, pevent, pcpuid);
 			}
+			else if(handle->m_bpf)
+			{
+				res = scap_next_bpf(handle, pevent, pcpuid);
+			}
 			else
 			{
-				res = scap_next_live(handle, pevent, pcpuid);
+				res = scap_next_kmod(handle, pevent, pcpuid);
 			}
 			break;
 		case SCAP_MODE_PLUGIN:
