@@ -114,6 +114,7 @@ class k8s;
 class sinsp_partial_tracer;
 class mesos;
 class sinsp_plugin;
+class sinsp_plugin_manager;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -958,14 +959,8 @@ public:
 	std::shared_ptr<sinsp_plugin> register_plugin(std::string filepath,
 												  const char* config,
 												  filter_check_list &available_checks = g_filterlist);
-	// Return a string with names/descriptions/etc of all plugins used by this inspector
-	std::list<sinsp_plugin::info> plugin_infos();
-	void set_input_plugin(string plugin_name);
-	void set_input_plugin_open_params(string params);
-	const std::vector<std::shared_ptr<sinsp_plugin>>& get_plugins();
-	std::shared_ptr<sinsp_plugin> get_plugin_by_evt(sinsp_evt &evt);
-	std::shared_ptr<sinsp_plugin> get_plugin_by_id(uint32_t plugin_id);
-	std::shared_ptr<sinsp_plugin> get_source_plugin_by_source(const std::string &source);
+	const sinsp_plugin_manager* get_plugin_manager();
+	void set_input_plugin(const string& name, const string& params);
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
@@ -1045,8 +1040,6 @@ private:
 	void get_read_progress_plugin(OUT double* nres, string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
-
-	void add_plugin(std::shared_ptr<sinsp_plugin> plugin);
 
 	scap_t* m_h;
 	uint64_t m_nevts;
@@ -1259,11 +1252,10 @@ public:
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
 	std::set<std::string> m_suppressed_comms;
-
 	//
-	// List of the sinsp/scap plugins configured by the user.
+	// Internal manager for plugins
 	//
-	std::vector<std::shared_ptr<sinsp_plugin>> m_plugins_list;
+	sinsp_plugin_manager* m_plugin_manager;
 	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source

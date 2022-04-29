@@ -36,6 +36,8 @@ limitations under the License.
 #include "protodecoder.h"
 #include "dns_manager.h"
 #include "plugin.h"
+#include "plugin_manager.h"
+#include "plugin_filtercheck.h"
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD
@@ -163,6 +165,8 @@ sinsp::sinsp(bool static_container, const std::string static_id, const std::stri
 	m_filter_proc_table_when_saving = false;
 
 	m_replay_scap_evt = NULL;
+
+	m_plugin_manager = new sinsp_plugin_manager();
 }
 
 sinsp::~sinsp()
@@ -197,6 +201,12 @@ sinsp::~sinsp()
 		delete[] m_meinfo.m_piscapevt;
 	}
 
+	if(m_plugin_manager)
+	{
+		delete m_plugin_manager;
+		m_plugin_manager = NULL;
+	}
+
 	m_container_manager.cleanup();
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
@@ -210,7 +220,6 @@ sinsp::~sinsp()
 	sinsp_dns_manager::get().cleanup();
 #endif
 #endif
-	m_plugins_list.clear();
 }
 
 void sinsp::add_protodecoders()
@@ -539,8 +548,8 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	//
 	if(m_input_plugin)
 	{
-		oargs.input_plugin = m_input_plugin->as_scap_source();
-		oargs.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
+		oargs.input_plugin = &m_input_plugin->as_scap_source();
+		oargs.input_plugin_params = (char*) m_input_plugin_open_params.c_str();
 		m_mode = SCAP_MODE_PLUGIN;
 		oargs.mode = SCAP_MODE_PLUGIN;
 	}
@@ -1687,7 +1696,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
 													 filter_check_list &available_checks)
 {
 	string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create_plugin(filepath, config, errstr, available_checks);
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create_plugin(filepath, config, errstr);
 
 	if (!plugin)
 	{
@@ -1696,7 +1705,23 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
 
 	try
 	{
-		add_plugin(plugin);
+		// Only add the gen_event filter checks for plugins with event
+		// sourcing capability. Plugins woth extractor capabilities don't
+		// deal with event timestamps/etc and don't need these checks (They were
+		// probably added by the associated source plugins anyway).
+		if(plugin->caps() & CAP_SOURCING)
+		{
+			auto evt_filtercheck = new sinsp_filter_check_gen_event();
+			available_checks.add_filter_check(evt_filtercheck);
+		}
+
+		if (plugin->caps() & CAP_EXTRACTION)
+		{
+			auto filtercheck = new sinsp_filter_check_plugin(plugin);
+			available_checks.add_filter_check(filtercheck);
+		}
+
+		m_plugin_manager->add(plugin);
 	}
 	catch(sinsp_exception const& e)
 	{
@@ -1706,123 +1731,27 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
 	return plugin;
 }
 
-std::list<sinsp_plugin::info> sinsp::plugin_infos()
+void sinsp::set_input_plugin(const string& name, const string& params)
 {
-	std::list<sinsp_plugin::info> ret;
-
-	for(auto p : get_plugins())
+	for(auto& it : m_plugin_manager->plugins())
 	{
-		sinsp_plugin::info info;
-		info.name = p->name();
-		info.description = p->description();
-		info.contact = p->contact();
-		info.plugin_version = p->plugin_version();
-		info.required_api_version = p->required_api_version();
-		info.caps = p->caps();
-
-		if(info.caps & CAP_SOURCING)
-		{
-			auto sp = static_cast<sinsp_plugin_cap_sourcing*>(p.get());
-			info.id = sp->id();
-		}
-		ret.push_back(info);
-	}
-
-	return ret;
-}
-
-void sinsp::add_plugin(std::shared_ptr<sinsp_plugin> plugin)
-{
-	for(auto& it : m_plugins_list)
-	{
-		if(it->name() == plugin->name())
-		{
-			throw sinsp_exception("found multiple plugins with name " + it->name() + ". Aborting.");
-		}
-	}
-
-	m_plugins_list.push_back(plugin);
-}
-
-void sinsp::set_input_plugin(string plugin_name)
-{
-	for(auto& it : m_plugins_list)
-	{
-		if(it->name() == plugin_name)
+		if(it->name() == name)
 		{
 			if(!(it->caps() & CAP_SOURCING))
 			{
-				throw sinsp_exception("plugin " + plugin_name + " has not event sourcing capabilities and cannot be used as input.");
+				throw sinsp_exception("plugin " + name + " has not event sourcing capabilities and cannot be used as input.");
 			}
-
 			m_input_plugin = it;
+			m_input_plugin_open_params = params;
 			return;
 		}
 	}
-
-	throw sinsp_exception("plugin " + plugin_name + " does not exist");
+	throw sinsp_exception("plugin " + name + " does not exist");
 }
 
-void sinsp::set_input_plugin_open_params(string params)
+const sinsp_plugin_manager* sinsp::get_plugin_manager()
 {
-	m_input_plugin_open_params = params;
-}
-
-const std::vector<std::shared_ptr<sinsp_plugin>>& sinsp::get_plugins()
-{
-	return m_plugins_list;
-}
-
-std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_evt(sinsp_evt &evt)
-{
-	//
-	// Only extract if the event is a plugin event.
-	//
-	if(evt.get_type() != PPME_PLUGINEVENT_E)
-	{
-		return std::shared_ptr<sinsp_plugin>();
-	}
-
-	sinsp_evt_param *parinfo;
-	parinfo = evt.get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int32_t));
-	uint32_t pgid = *(int32_t *)parinfo->m_val;
-
-	return get_plugin_by_id(pgid);
-}
-
-std::shared_ptr<sinsp_plugin> sinsp::get_plugin_by_id(uint32_t plugin_id)
-{
-	for(auto &it : m_plugins_list)
-	{
-		if(it->caps() & CAP_SOURCING)
-		{
-			auto splugin = static_cast<sinsp_plugin_cap_sourcing*>(it.get());
-			if(splugin->id() == plugin_id)
-			{
-				return it;
-			}
-		}
-	}
-
-	return std::shared_ptr<sinsp_plugin>();
-}
-
-std::shared_ptr<sinsp_plugin> sinsp::get_source_plugin_by_source(const std::string &source)
-{
-	for(auto &it : m_plugins_list)
-	{
-		if(it->caps() & CAP_SOURCING)
-		{
-			auto splugin = static_cast<sinsp_plugin_cap_sourcing*>(it.get());
-			if(splugin->event_source() == source)
-			{
-				return it;
-			}
-		}
-	}
-
-	return std::shared_ptr<sinsp_plugin>();
+	return m_plugin_manager;
 }
 
 void sinsp::stop_capture()
