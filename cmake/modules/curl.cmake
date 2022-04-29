@@ -5,14 +5,14 @@ option(USE_BUNDLED_CURL "Enable building of the bundled curl" ${USE_BUNDLED_DEPS
 
 include(openssl)
 
-if(CURL_INCLUDE_DIR)
+if(CURL_INCLUDE_DIRS)
 	# we already have curl
 elseif(NOT USE_BUNDLED_CURL)
 	find_package(CURL REQUIRED)
-	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIR}, lib: ${CURL_LIBRARIES}")
+	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIRS}, lib: ${CURL_LIBRARIES}")
 else()
 	set(CURL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/curl-prefix/src/curl")
-	set(CURL_INCLUDE_DIR "${CURL_BUNDLE_DIR}/include/")
+	set(CURL_INCLUDE_DIRS "${CURL_BUNDLE_DIR}/include/")
 	set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
 
 	if(NOT USE_BUNDLED_OPENSSL)
@@ -78,9 +78,9 @@ else()
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
 			INSTALL_COMMAND "")
 		install(FILES "${CURL_LIBRARIES}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}/")
-		install(DIRECTORY "${CURL_INCLUDE_DIR}curl" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/"
+		install(DIRECTORY "${CURL_INCLUDE_DIRS}curl" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/"
 			FILES_MATCHING PATTERN "*.h")
 	endif()
 endif()
 
-include_directories("${CURL_INCLUDE_DIR}")
+include_directories("${CURL_INCLUDE_DIRS}")
