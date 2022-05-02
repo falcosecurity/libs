@@ -26,6 +26,8 @@
 #include <windows.h>
 #endif // _WIN32
 
+#include "../common/strlcpy.h"
+#include "udig.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -289,9 +291,9 @@ bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 	return res;
 }
 
-int32_t udig_begin_capture(scap_t* handle, char *error)
+int32_t udig_begin_capture(struct scap_engine_handle engine, char *error)
 {
-	struct scap_device *dev = &handle->m_dev_set.m_devs[0];
+	struct scap_device *dev = &engine.m_handle->m_dev_set.m_devs[0];
 	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
@@ -324,7 +326,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 
 	if(acquire_and_init_ring_status_buffer(dev))
 	{
-		handle->m_udig_capturing = true;
+		engine.m_handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
 	}
 	else
@@ -578,9 +580,9 @@ bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 	return res;
 }
 
-int32_t udig_begin_capture(scap_t* handle, char *error)
+int32_t udig_begin_capture(struct scap_engine_handle engine, char *error)
 {
-	struct scap_device *dev = &handle->m_dev_set.m_devs[0];
+	struct scap_device *dev = &engine.m_handle->m_dev_set.m_devs[0];
 	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
@@ -631,7 +633,7 @@ int32_t udig_begin_capture(scap_t* handle, char *error)
 
 	if(acquire_and_init_ring_status_buffer(dev))
 	{
-		handle->m_udig_capturing = true;
+		engine.m_handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
 	}
 	else
@@ -655,26 +657,26 @@ void udig_stop_capture(struct scap_device *dev)
 	rbs->m_stopped = 1;
 }
 
-void udig_end_capture(scap_t* handle)
+void udig_end_capture(struct scap_engine_handle engine)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
-	if(handle->m_udig_capturing)
+	struct udig_ring_buffer_status* rbs = engine.m_handle->m_dev_set.m_devs[0].m_bufstatus;
+	if(engine.m_handle->m_udig_capturing)
 	{
 		//__sync_bool_compare_and_swap(&(rbs->m_capturing_pid), getpid(), 0);
 		rbs->m_capturing_pid = 0;
 	}
 }
 
-uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen)
+int32_t udig_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)
 {
-	struct udig_ring_buffer_status* rbs = handle->m_dev_set.m_devs[0].m_bufstatus;
+	struct udig_ring_buffer_status* rbs = engine.m_handle->m_dev_set.m_devs[0].m_bufstatus;
 	rbs->m_consumer.snaplen = snaplen;
 	return SCAP_SUCCESS;
 }
 
-int32_t udig_stop_dropping_mode(scap_t* handle)
+int32_t udig_stop_dropping_mode(struct scap_engine_handle engine)
 {
-	struct udig_consumer_t* consumer = &(handle->m_dev_set.m_devs[0].m_bufstatus->m_consumer);
+	struct udig_consumer_t* consumer = &(engine.m_handle->m_dev_set.m_devs[0].m_bufstatus->m_consumer);
 	consumer->dropping_mode = 0;
 	consumer->sampling_interval = 1000000000;
 	consumer->sampling_ratio = 1;
@@ -682,9 +684,9 @@ int32_t udig_stop_dropping_mode(scap_t* handle)
 	return SCAP_SUCCESS;
 }
 
-int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
+int32_t udig_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio)
 {
-	struct udig_consumer_t* consumer = &(handle->m_dev_set.m_devs[0].m_bufstatus->m_consumer);
+	struct udig_consumer_t* consumer = &(engine.m_handle->m_dev_set.m_devs[0].m_bufstatus->m_consumer);
 
 	consumer->dropping_mode = 1;
 
@@ -697,7 +699,7 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 		sampling_ratio != 64 &&
 		sampling_ratio != 128) 
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid sampling ratio %u\n", sampling_ratio);
+		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid sampling ratio %u\n", sampling_ratio);
 		return SCAP_FAILURE;
 	}
 
@@ -707,8 +709,10 @@ int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	return SCAP_SUCCESS;
 }
 
-void scap_close_udig(scap_t* handle)
+void scap_close_udig(struct scap_engine_handle engine)
 {
+	struct udig_engine *handle = engine.m_handle;
+
 	if(handle->m_dev_set.m_devs[0].m_buffer != MAP_FAILED)
 	{
 		udig_free_ring((uint8_t*)handle->m_dev_set.m_devs[0].m_buffer, handle->m_dev_set.m_devs[0].m_buffer_size);
@@ -736,9 +740,242 @@ void scap_close_udig(scap_t* handle)
 		close(handle->m_dev_set.m_devs[0].m_bufinfo_fd);
 	}
 #endif
+
+	free(handle->m_dev_set.m_devs);
+	handle->m_dev_set.m_devs = NULL;
 }
 
-int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static int close_engine(struct scap_engine_handle engine)
 {
-	return ringbuffer_next(&handle->m_dev_set, pevent, pcpuid);
+	udig_end_capture(engine);
+	scap_close_udig(engine);
+
+	return SCAP_SUCCESS;
 }
+
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
+}
+
+//
+// Return the number of dropped events for the given handle
+//
+static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+{
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	uint32_t j;
+
+	for(j = 0; j < devset->m_ndevs; j++)
+	{
+		stats->n_evts += devset->m_devs[j].m_bufinfo->n_evts;
+		stats->n_drops_buffer += devset->m_devs[j].m_bufinfo->n_drops_buffer;
+		stats->n_drops_pf += devset->m_devs[j].m_bufinfo->n_drops_pf;
+		stats->n_drops += devset->m_devs[j].m_bufinfo->n_drops_buffer +
+				  devset->m_devs[j].m_bufinfo->n_drops_pf;
+		stats->n_preemptions += devset->m_devs[j].m_bufinfo->n_preemptions;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+//
+// Stop capturing the events
+//
+static int32_t stop_capture(struct scap_engine_handle engine)
+{
+	udig_stop_capture(&engine.m_handle->m_dev_set.m_devs[0]);
+
+	return SCAP_SUCCESS;
+}
+
+//
+// Start capturing the events
+//
+static int32_t start_capture(struct scap_engine_handle engine)
+{
+	udig_start_capture(&engine.m_handle->m_dev_set.m_devs[0]);
+
+	return SCAP_SUCCESS;
+}
+
+static int32_t get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
+{
+	return SCAP_NOT_SUPPORTED;
+}
+
+static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
+{
+	strlcpy(engine.m_handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
+	return SCAP_FAILURE;
+}
+
+static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
+{
+	switch(setting)
+	{
+	case SCAP_SAMPLING_RATIO:
+		if(arg2 == 0)
+		{
+			return udig_stop_dropping_mode(engine);
+		}
+		else
+		{
+			return udig_start_dropping_mode(engine, arg1);
+		}
+	case SCAP_TRACERS_CAPTURE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
+		}
+		// yes, it's a no-op in udig
+		return SCAP_SUCCESS;
+	case SCAP_PAGE_FAULTS:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
+		}
+		// the original code blindly tries a kmod-only ioctl
+		// which can only fail. Let's return a better error code instead
+		return SCAP_NOT_SUPPORTED;
+	case SCAP_SNAPLEN:
+		return udig_set_snaplen(engine, arg1);
+	case SCAP_SIMPLEDRIVER_MODE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
+		}
+		// the original code blindly tries a kmod-only ioctl
+		// which can only fail. Let's return a better error code instead
+		return SCAP_NOT_SUPPORTED;
+	case SCAP_EVENTMASK:
+	case SCAP_DYNAMIC_SNAPLEN:
+	case SCAP_STATSD_PORT:
+	case SCAP_FULLCAPTURE_PORT_RANGE:
+		// the original code blindly tries a kmod-only ioctl
+		// which can only fail. Let's return a better error code instead
+		return SCAP_NOT_SUPPORTED;
+	default:
+	{
+		char msg[256];
+		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
+		return unsupported_config(engine, msg);
+	}
+	}
+}
+
+static bool match(scap_open_args* open_args)
+{
+	return open_args->udig;
+}
+
+static struct udig_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+{
+	struct udig_engine *engine = calloc(1, sizeof(struct udig_engine));
+	if(engine)
+	{
+		engine->m_lasterr = lasterr_ptr;
+	}
+	return engine;
+}
+
+static void free_handle(struct scap_engine_handle engine)
+{
+	free(engine.m_handle);
+}
+
+static int32_t init(scap_t* main_handle, scap_open_args* open_args)
+{
+	struct udig_engine *handle = main_handle->m_engine.m_handle;
+	int rc;
+
+	rc = devset_init(&handle->m_dev_set, 1, handle->m_lasterr);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	//
+	// Map the ring buffer.
+	//
+	if(udig_alloc_ring(
+#if CYGWING_AGENT || _WIN32
+		&(handle->m_win_buf_handle),
+#else
+		&(handle->m_dev_set.m_devs[0].m_fd),
+#endif
+		(uint8_t**)&handle->m_dev_set.m_devs[0].m_buffer,
+		&handle->m_dev_set.m_devs[0].m_buffer_size,
+		handle->m_lasterr) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	// Set close-on-exec for the fd
+#ifndef _WIN32
+	if(fcntl(handle->m_dev_set.m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
+		char buf[SCAP_LASTERR_SIZE];
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for udig device (%s)", scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+#endif
+
+	//
+	// Map the ppm_ring_buffer_info that contains the buffer pointers
+	//
+	if(udig_alloc_ring_descriptors(
+#if CYGWING_AGENT || _WIN32
+		&(handle->m_win_descs_handle),
+#else
+		&(handle->m_dev_set.m_devs[0].m_bufinfo_fd),
+#endif
+		&handle->m_dev_set.m_devs[0].m_bufinfo,
+		&handle->m_dev_set.m_devs[0].m_bufstatus,
+		handle->m_lasterr) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+static uint32_t get_n_devs(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_dev_set.m_ndevs;
+}
+
+static uint64_t get_max_buf_used(struct scap_engine_handle engine)
+{
+	uint64_t i;
+	uint64_t max = 0;
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+
+	for(i = 0; i < devset->m_ndevs; i++)
+	{
+		uint64_t size = buf_size_used(&devset->m_devs[i]);
+		max = size > max ? size : max;
+	}
+
+	return max;
+}
+
+
+
+struct scap_vtable scap_udig_engine = {
+	.name = "udig",
+	.mode = SCAP_MODE_LIVE,
+
+	.match = match,
+	.alloc_handle = alloc_handle,
+	.init = init,
+	.free_handle = free_handle,
+	.close = close_engine,
+	.next = next,
+	.start_capture = start_capture,
+	.stop_capture = stop_capture,
+	.configure = configure,
+	.get_stats = get_stats,
+	.get_n_tracepoint_hit = get_n_tracepoint_hit,
+	.get_n_devs = get_n_devs,
+	.get_max_buf_used = get_max_buf_used,
+};

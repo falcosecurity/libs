@@ -14,19 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
-
 #pragma once
 
-#include "scap_vtable.h"
+#include <stdbool.h>
+#include "../../ringbuffer/devset.h"
 
-#ifdef HAS_ENGINE_NODRIVER
-extern const struct scap_vtable scap_nodriver_engine;
-#endif
+struct scap;
 
-#ifdef HAS_ENGINE_SOURCE_PLUGIN
-extern const struct scap_vtable scap_source_plugin_engine;
-#endif
+struct udig_engine
+{
+	struct scap_device_set m_dev_set;
 
-#ifdef HAS_ENGINE_UDIG
-extern const struct scap_vtable scap_udig_engine;
-#endif
+	char* m_lasterr;
+	bool m_udig_capturing;
+};
+
+#define SCAP_HANDLE_T struct udig_engine

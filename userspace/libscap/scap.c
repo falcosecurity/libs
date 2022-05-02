@@ -162,7 +162,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_udig = false;
 
 	//
 	// While in theory we could always rely on the scap caller to properly
@@ -603,15 +602,25 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_udig = true;
 	handle->m_bpf = false;
-	handle->m_udig_capturing = false;
 	handle->m_ncpus = 1;
 
-	*rc = devset_init(&handle->m_dev_set, 1, error);
+	handle->m_vtable = &scap_udig_engine;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		free(handle);
+		return NULL;
+	}
+
+	// TODO: we don't have open_args here. thankfully the udig init method
+	//       doesn't need them
+	*rc = handle->m_vtable->init(handle, NULL);
 	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
+		free(handle);
 		return NULL;
 	}
 
@@ -694,56 +703,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	}
 
 	//
-	// Map the ring buffer.
-	//
-	if(udig_alloc_ring(
-#if CYGWING_AGENT || _WIN32
-		&(handle->m_win_buf_handle),
-#else
-		&(handle->m_dev_set.m_devs[0].m_fd),
-#endif
-		(uint8_t**)&handle->m_dev_set.m_devs[0].m_buffer,
-		&handle->m_dev_set.m_devs[0].m_buffer_size,
-		error) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-
-	// Set close-on-exec for the fd
-#ifndef _WIN32
-	if(fcntl(handle->m_dev_set.m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-		snprintf(error, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for device %s (%s)", filename, scap_strerror(handle, errno));
-		scap_close(handle);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-#endif
-
-	//
-	// Map the ppm_ring_buffer_info that contains the buffer pointers
-	//
-	if(udig_alloc_ring_descriptors(
-#if CYGWING_AGENT || _WIN32
-		&(handle->m_win_descs_handle),
-#else
-		&(handle->m_dev_set.m_devs[0].m_bufinfo_fd),
-#endif
-		&handle->m_dev_set.m_devs[0].m_bufinfo,
-		&handle->m_dev_set.m_devs[0].m_bufstatus,
-		error) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-
-	//
 	// Additional initializations
 	//
-	handle->m_dev_set.m_devs[0].m_lastreadsize = 0;
-	handle->m_dev_set.m_devs[0].m_sn_len = 0;
 	scap_stop_dropping_mode(handle);
 
 	//
@@ -762,7 +723,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Now that /proc parsing has been done, start the capture
 	//
-	if(udig_begin_capture(handle, error) != SCAP_SUCCESS)
+	if(udig_begin_capture(handle->m_engine, error) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return NULL;
@@ -819,7 +780,6 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_win_descs_handle = NULL;
 #endif
 	handle->m_bpf = false;
-	handle->m_udig = false;
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
 
@@ -1286,11 +1246,6 @@ void scap_close(scap_t* handle)
 				}
 #endif
 			}
-			else if(handle->m_udig)
-			{
-				udig_end_capture(handle);
-				scap_close_udig(handle);
-			}
 #ifndef _WIN32
 			else
 			{
@@ -1479,7 +1434,6 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 
 int32_t scap_next_bpf(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 int32_t scap_next_kmod(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
-int32_t scap_next_udig(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
@@ -1518,11 +1472,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 			res = scap_next_offline(handle, pevent, pcpuid);
 			break;
 		case SCAP_MODE_LIVE:
-			if(handle->m_udig)
-			{
-				res = scap_next_udig(handle, pevent, pcpuid);
-			}
-			else if(handle->m_bpf)
+			if(handle->m_bpf)
 			{
 				res = scap_next_bpf(handle, pevent, pcpuid);
 			}
@@ -1649,10 +1599,6 @@ int32_t scap_stop_capture(scap_t* handle)
 				return scap_bpf_stop_capture(handle);
 #endif
 			}
-			else if(handle->m_udig)
-			{
-				udig_stop_capture(dev);
-			}
 			else
 			{
 #ifndef _WIN32
@@ -1705,10 +1651,6 @@ int32_t scap_start_capture(scap_t* handle)
 #ifndef _WIN32
 			return scap_bpf_start_capture(handle);
 #endif
-		}
-		else if(handle->m_udig)
-		{
-			udig_start_capture(&handle->m_dev_set.m_devs[0]);
 		}
 		else
 		{
@@ -1799,7 +1741,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		{
 			return scap_bpf_enable_tracers_capture(handle);
 		}
-		else if(!handle->m_udig)
+		else
 		{
 			if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 			{
@@ -1869,10 +1811,6 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	{
 		return scap_bpf_stop_dropping_mode(handle);
 	}
-	if(handle->m_udig)
-	{
-		return udig_stop_dropping_mode(handle);
-	}
 	else
 	{
 		return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
@@ -1893,10 +1831,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	if(handle->m_bpf)
 	{
 		return scap_bpf_start_dropping_mode(handle, sampling_ratio);
-	}
-	else if(handle->m_udig)
-	{
-		return udig_start_dropping_mode(handle, sampling_ratio);
 	}
 	else
 	{
@@ -1959,12 +1893,8 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_udig)
-	{
-		return udig_set_snaplen(handle, snaplen);
-	}
 #ifndef _WIN32
-	else if(handle->m_bpf)
+	if(handle->m_bpf)
 	{
 		return scap_bpf_set_snaplen(handle, snaplen);
 	}
@@ -2132,15 +2062,8 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(handle->m_udig)
-	{
-		//
-		// Not implemented for udig yet.
-		//
-		return SCAP_SUCCESS;
-	}
 #ifndef _WIN32
-	else if(handle->m_bpf)
+	if(handle->m_bpf)
 	{
 		return scap_bpf_enable_dynamic_snaplen(handle);
 	}
@@ -2267,7 +2190,8 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 		}
 	}
 
-	if(handle->m_bpf || handle->m_udig)
+	// TODO: we got rid of handle->m_udig but we don't have proclists virtualized yet
+	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
 	{
 		return scap_procfs_get_threadlist(handle);
 	}
@@ -2375,10 +2299,6 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	if(handle->m_bpf)
 	{
 		return scap_bpf_get_n_tracepoint_hit(handle, ret);
-	}
-	else if(handle->m_udig)
-	{
-		return SCAP_NOT_SUPPORTED;
 	}
 	else
 	{

@@ -146,8 +146,6 @@ struct scap
 	void* m_win_descs_handle;
 #endif
 	bool m_bpf;
-	bool m_udig;
-	bool m_udig_capturing;
 	// Anonymous struct with bpf stuff
 	struct
 	{
@@ -319,6 +317,7 @@ int32_t scap_update_suppressed(scap_t *handle,
 
 // Wrapper around strerror using buffer in handle
 const char *scap_strerror(scap_t *handle, int errnum);
+const char *scap_strerror_r(char *buf, int errnum);
 
 struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
 
@@ -381,14 +380,13 @@ extern bool validate_info_table_size();
 //
 // udig stuff
 //
-int32_t udig_begin_capture(scap_t* handle, char *error);
+int32_t udig_begin_capture(struct scap_engine_handle engine, char *error);
 void udig_start_capture(struct scap_device *dev);
 void udig_stop_capture(struct scap_device *dev);
-void udig_end_capture(scap_t* handle);
-uint32_t udig_set_snaplen(scap_t* handle, uint32_t snaplen);
-int32_t udig_stop_dropping_mode(scap_t* handle);
-int32_t udig_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
-void scap_close_udig(scap_t* handle);
+void udig_end_capture(struct scap_engine_handle engine);
+int32_t udig_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen);
+int32_t udig_stop_dropping_mode(struct scap_engine_handle engine);
+int32_t udig_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio);
 
 //
 // scap_reader functions implementation
