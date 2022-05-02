@@ -5,19 +5,10 @@
 #include <stdlib.h>
 #ifndef _WIN32
 #include <unistd.h>
-#include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <errno.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/syscall.h>
-#include <pthread.h>
 #else // _WIN32
 // enable use of snprintf
 #pragma warning(disable : 4996)
