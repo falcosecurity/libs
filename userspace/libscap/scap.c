@@ -46,7 +46,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_engine_util.h"
 #if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(CYGWING_AGENT)
-#include "scap_bpf.h"
+#include "engine/bpf/scap_bpf.h"
 #endif
 
 #if defined(_WIN32) || defined(CYGWING_AGENT)
