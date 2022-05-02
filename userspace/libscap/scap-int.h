@@ -26,7 +26,6 @@ limitations under the License.
 #include "engine_handle.h"
 #include "scap_vtable.h"
 #include "ringbuffer/devset.h"
-#include "engine/bpf/bpf.h"
 
 #include "settings.h"
 #include "plugin_info.h"
@@ -146,8 +145,6 @@ struct scap
 	void* m_win_buf_handle;
 	void* m_win_descs_handle;
 #endif
-	bool m_bpf;
-	struct scap_engine_handle m_bpf_handle;
 
 	// The set of process names that are suppressed
 	char **m_suppressed_comms;

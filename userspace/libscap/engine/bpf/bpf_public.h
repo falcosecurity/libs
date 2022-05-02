@@ -12,33 +12,16 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
 
 #pragma once
 
-#include <stdbool.h>
-#include "../../ringbuffer/devset.h"
-#include "../../../../driver/ppm_events_public.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-//
-// ebpf defs
-//
-#define BPF_PROGS_MAX 128
-#define BPF_MAPS_MAX 32
+const char *scap_get_bpf_probe_from_env();
 
-struct bpf_engine
-{
-	struct scap_device_set m_dev_set;
-	bool m_syscalls_of_interest[SYSCALL_TABLE_SIZE];
-	size_t m_ncpus;
-	char* m_lasterr;
-	int m_bpf_prog_fds[BPF_PROGS_MAX];
-	int m_bpf_prog_cnt;
-	bool m_bpf_fillers[BPF_PROGS_MAX];
-	int m_bpf_event_fd[BPF_PROGS_MAX];
-	int m_bpf_map_fds[BPF_MAPS_MAX];
-	int m_bpf_prog_array_map_idx;
+#ifdef __cplusplus
 };
-
-#define SCAP_HANDLE_T struct bpf_engine
+#endif

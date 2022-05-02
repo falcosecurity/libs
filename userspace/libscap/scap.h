@@ -71,6 +71,7 @@ struct iovec;
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"
+#include "engine/bpf/bpf_public.h"
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
@@ -983,8 +984,6 @@ const char* scap_get_host_root();
   \brief Get the process list.
 */
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
-
-const char *scap_get_bpf_probe_from_env();
 
 bool scap_get_bpf_enabled(scap_t* handle);
 
