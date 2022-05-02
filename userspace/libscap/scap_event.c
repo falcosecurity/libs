@@ -267,12 +267,6 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 			return SCAP_FAILURE;
 		}
 
-        // don't do anything if we couldn't correctly parse the argument (or if it's unsupported)
-        if(param.size == 0)
-        {
-            continue;
-        }
-
 		uint16_t param_size_16;
 		uint32_t param_size_32;
 
