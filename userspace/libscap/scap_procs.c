@@ -37,6 +37,7 @@ limitations under the License.
 #include "scap.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
+#include "scap_engines.h"
 
 #if defined(CYGWING_AGENT) || defined(_WIN32)
 #include <io.h>
@@ -540,7 +541,7 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_udig)
+	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
 	{
 		*vtid = 0;
 	}
@@ -574,7 +575,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_udig)
+	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
 	{
 		*vpid = 0;
 	}
@@ -1248,7 +1249,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_udig)
+	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
 	{
 		char filename[SCAP_MAX_PATH_SIZE];
 		char line[512];
@@ -1540,18 +1541,23 @@ void scap_proc_print_table(scap_t* handle)
 	printf("*******************************************\n");
 }
 
-const char *scap_strerror(scap_t *handle, int errnum)
+const char *scap_strerror_r(char *buf, int errnum)
 {
 	int rc;
-	if((rc = strerror_r(errnum, handle->m_strerror_buf, SCAP_LASTERR_SIZE) != 0))
+	if((rc = strerror_r(errnum, buf, SCAP_LASTERR_SIZE) != 0))
 	{
 		if(rc != ERANGE)
 		{
-			snprintf(handle->m_strerror_buf, SCAP_LASTERR_SIZE, "Errno %d", errnum);
+			snprintf(buf, SCAP_LASTERR_SIZE, "Errno %d", errnum);
 		}
 	}
 
-	return handle->m_strerror_buf;
+	return buf;
+}
+
+const char *scap_strerror(scap_t *handle, int errnum)
+{
+	return scap_strerror_r(handle->m_strerror_buf, errnum);
 }
 
 int32_t scap_update_suppressed(scap_t *handle,
