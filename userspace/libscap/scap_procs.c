@@ -541,7 +541,7 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
+	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
 	{
 		*vtid = 0;
 	}
@@ -575,7 +575,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
+	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
 	{
 		*vpid = 0;
 	}
@@ -1249,7 +1249,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
+	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
 	{
 		char filename[SCAP_MAX_PATH_SIZE];
 		char line[512];

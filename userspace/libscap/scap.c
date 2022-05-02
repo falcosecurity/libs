@@ -45,9 +45,6 @@ limitations under the License.
 #include "scap_savefile.h"
 #include "scap-int.h"
 #include "scap_engine_util.h"
-#if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(CYGWING_AGENT)
-#include "engine/bpf/scap_bpf.h"
-#endif
 
 #if defined(_WIN32) || defined(CYGWING_AGENT)
 #define DRAGENT_WIN_HAL_C_ONLY
@@ -135,8 +132,6 @@ static uint32_t get_max_consumers()
 }
 
 #ifndef _WIN32
-const char* resolve_bpf_probe(const char *bpf_probe, char *buf);
-
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
@@ -149,6 +144,14 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 	uint32_t ndevs;
+
+	scap_open_args oargs;
+	oargs.proc_callback = proc_callback;
+	oargs.proc_callback_context = proc_callback_context;
+	oargs.import_users = import_users;
+	oargs.bpf_probe = bpf_probe;
+	memcpy(&oargs.suppressed_comms, suppressed_comms, sizeof(*suppressed_comms));
+	memcpy(&oargs.ppm_sc_of_interest, ppm_sc_of_interest, sizeof(*ppm_sc_of_interest));
 
 	//
 	// Allocate the handle
@@ -166,29 +169,18 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	char buf[SCAP_MAX_PATH_SIZE];
-	bpf_probe = resolve_bpf_probe(bpf_probe, buf);
-	if(bpf_probe)
+	if(scap_bpf_engine.match(&oargs))
 	{
-		struct bpf_engine *engine;
-		handle->m_bpf = true;
-
-		engine = calloc(sizeof(*engine), 1);
-		if(!engine)
+		handle->m_vtable = &scap_bpf_engine;
+		handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+		if(!handle->m_engine.m_handle)
 		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "Cannot allocate memory for BPF handle");
-			*rc = SCAP_FAILURE;
+			snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+			free(handle);
 			return NULL;
 		}
-		engine->m_lasterr = handle->m_lasterr;
-		handle->m_bpf_handle.m_handle = engine;
 	}
 	else
-	{
-		handle->m_bpf = false;
-	}
-
 	{
 		handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
 		if(handle->m_ncpus == -1)
@@ -287,18 +279,12 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	fill_syscalls_of_interest(ppm_sc_of_interest, &handle->syscalls_of_interest);
-
 	//
 	// Open and initialize all the devices
 	//
-	if(handle->m_bpf)
+	if(handle->m_vtable == &scap_bpf_engine)
 	{
-		if((*rc = scap_bpf_load(
-			    (struct bpf_engine*)handle->m_bpf_handle.m_handle,
-			    bpf_probe,
-		            &handle->m_api_version,
-		            &handle->m_schema_version) != SCAP_SUCCESS))
+		if((*rc = handle->m_vtable->init(handle, &oargs)) != SCAP_SUCCESS)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 			scap_close(handle);
@@ -311,6 +297,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		uint32_t all_scanned_devs;
 		uint64_t api_version;
 		uint64_t schema_version;
+
+		fill_syscalls_of_interest(ppm_sc_of_interest, &handle->syscalls_of_interest);
 
 		//
 		// Allocate the device descriptors.
@@ -540,7 +528,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_bpf = false;
 	handle->m_ncpus = 1;
 
 	handle->m_vtable = &scap_udig_engine;
@@ -717,7 +704,6 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_win_buf_handle = NULL;
 	handle->m_win_descs_handle = NULL;
 #endif
-	handle->m_bpf = false;
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
 
@@ -1173,20 +1159,7 @@ void scap_close(scap_t* handle)
 
 		if(handle->m_dev_set.m_devs != NULL)
 		{
-			if(handle->m_bpf)
-			{
-#ifdef _WIN32
-				ASSERT(false);
-#else
-				if(scap_bpf_close(handle->m_bpf_handle) != SCAP_SUCCESS)
-				{
-					ASSERT(false);
-				}
-				free(handle->m_bpf_handle.m_handle);
-#endif
-			}
 #ifndef _WIN32
-			else
 			{
 				//
 				// Destroy all the device descriptors
@@ -1318,14 +1291,16 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 	uint32_t thead;
 	uint32_t ttail;
 	uint64_t read_size;
-	struct scap_device* dev = &handle->m_dev_set.m_devs[cpuid];
+	struct scap_device* dev;
 
-#ifndef _WIN32
-	if(handle->m_bpf)
+	if(handle->m_vtable)
 	{
-		return scap_bpf_readbuf(dev, buf, len);
+		// engines do not even necessarily have a concept of a buffer
+		// that you read events from
+		return SCAP_NOT_SUPPORTED;
 	}
-#endif
+
+	dev = &handle->m_dev_set.m_devs[cpuid];
 
 	//
 	// Read the pointers.
@@ -1350,16 +1325,6 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 {
 	uint64_t read_size;
 
-	if (handle->m_bpf)
-	{
-#ifndef _WIN32
-		uint64_t thead;
-		uint64_t ttail;
-
-		scap_bpf_get_buf_pointers(&handle->m_dev_set.m_devs[cpu], &thead, &ttail, &read_size);
-#endif
-	}
-	else
 	{
 		uint32_t thead;
 		uint32_t ttail;
@@ -1372,7 +1337,6 @@ static uint64_t buf_size_used(scap_t* handle, uint32_t cpu)
 
 #endif // HAS_CAPTURE
 
-int32_t scap_next_bpf(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 int32_t scap_next_kmod(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 
 uint64_t scap_max_buf_used(scap_t* handle)
@@ -1412,14 +1376,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 			res = scap_next_offline(handle, pevent, pcpuid);
 			break;
 		case SCAP_MODE_LIVE:
-			if(handle->m_bpf)
-			{
-				res = scap_next_bpf(handle, pevent, pcpuid);
-			}
-			else
-			{
-				res = scap_next_kmod(handle, pevent, pcpuid);
-			}
+			res = scap_next_kmod(handle, pevent, pcpuid);
 			break;
 		case SCAP_MODE_PLUGIN:
 		case SCAP_MODE_NODRIVER:
@@ -1481,13 +1438,6 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 		return handle->m_vtable->get_stats(handle->m_engine, stats);
 	}
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
-	if(handle->m_bpf)
-	{
-#ifndef _WIN32
-		return scap_bpf_get_stats(handle->m_bpf_handle, stats);
-#endif
-	}
-	else
 	{
 		uint32_t j;
 
@@ -1533,13 +1483,6 @@ int32_t scap_stop_capture(scap_t* handle)
 		for(j = 0; j < handle->m_dev_set.m_ndevs; j++)
 		{
 			struct scap_device *dev = &handle->m_dev_set.m_devs[j];
-			if(handle->m_bpf)
-			{
-#ifndef _WIN32
-				return scap_bpf_stop_capture(handle->m_bpf_handle);
-#endif
-			}
-			else
 			{
 #ifndef _WIN32
 				if(ioctl(dev->m_fd, PPM_IOCTL_DISABLE_CAPTURE))
@@ -1586,13 +1529,6 @@ int32_t scap_start_capture(scap_t* handle)
 		//
 		// Enable capture on all the rings
 		//
-		if(handle->m_bpf)
-		{
-#ifndef _WIN32
-			return scap_bpf_start_capture(handle->m_bpf_handle);
-#endif
-		}
-		else
 		{
 #ifndef _WIN32
 			uint32_t j;
@@ -1677,11 +1613,6 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 
 	if(handle->m_dev_set.m_ndevs)
 	{
-		if(handle->m_bpf)
-		{
-			return scap_bpf_enable_tracers_capture(handle->m_bpf_handle);
-		}
-		else
 		{
 			if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_TRACERS_CAPTURE))
 			{
@@ -1715,11 +1646,6 @@ int32_t scap_enable_page_faults(scap_t *handle)
 
 	if(handle->m_dev_set.m_ndevs)
 	{
-		if(handle->m_bpf)
-		{
-			return scap_bpf_enable_page_faults(handle->m_bpf_handle);
-		}
-		else
 		{
 			if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
 			{
@@ -1747,11 +1673,6 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_stop_dropping_mode not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
-	if(handle->m_bpf)
-	{
-		return scap_bpf_stop_dropping_mode(handle->m_bpf_handle);
-	}
-	else
 	{
 		return scap_set_dropping_mode(handle, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
 	}
@@ -1768,11 +1689,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
-	if(handle->m_bpf)
-	{
-		return scap_bpf_start_dropping_mode(handle->m_bpf_handle, sampling_ratio);
-	}
-	else
 	{
 		return scap_set_dropping_mode(handle, PPM_IOCTL_ENABLE_DROPPING_MODE, sampling_ratio);
 	}
@@ -1834,11 +1750,6 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 #else
 
 #ifndef _WIN32
-	if(handle->m_bpf)
-	{
-		return scap_bpf_set_snaplen(handle->m_bpf_handle, snaplen);
-	}
-	else
 	{
 		//
 		// Tell the driver to change the snaplen
@@ -1925,11 +1836,6 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 		break;
 	}
 
-	if(handle->m_bpf)
-	{
-		return scap_bpf_handle_event_mask(handle->m_bpf_handle, op, event_id);
-	}
-	else
 	{
 		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, op, event_id))
 		{
@@ -2003,11 +1909,6 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	// Tell the driver to change the snaplen
 	//
 #ifndef _WIN32
-	if(handle->m_bpf)
-	{
-		return scap_bpf_enable_dynamic_snaplen(handle->m_bpf_handle);
-	}
-	else
 	{
 		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
 		{
@@ -2045,11 +1946,6 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(handle->m_bpf)
-	{
-		return scap_bpf_disable_dynamic_snaplen(handle->m_bpf_handle);
-	}
-	else
 	{
 		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
 		{
@@ -2130,8 +2026,8 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 		}
 	}
 
-	// TODO: we got rid of handle->m_udig but we don't have proclists virtualized yet
-	if(handle->m_bpf || handle->m_vtable == &scap_udig_engine)
+	// TODO: we got rid of handle->m_udig and ->m_bpf but we don't have proclists virtualized yet
+	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
 	{
 		return scap_procfs_get_threadlist(handle);
 	}
@@ -2193,16 +2089,6 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf)
-	{
-		if (scap_bpf_set_simple_mode(handle->m_bpf_handle))
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
-			ASSERT(false);
-			return SCAP_FAILURE;
-		}
-	}
-	else
 	{
 		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
 		{
@@ -2236,10 +2122,6 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf)
-	{
-		return scap_bpf_get_n_tracepoint_hit(handle->m_bpf_handle, ret);
-	}
 	else
 	{
 		int ioctl_ret = 0;
@@ -2272,16 +2154,11 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 }
 #endif
 
-const char *scap_get_bpf_probe_from_env()
-{
-	return getenv(SCAP_BPF_PROBE_ENV_VAR_NAME);
-}
-
 bool scap_get_bpf_enabled(scap_t *handle)
 {
-	if(handle)
+	if(handle && handle->m_vtable)
 	{
-		return handle->m_bpf;
+		return !strcmp(handle->m_vtable->name, "bpf");
 	}
 
 	return false;
@@ -2341,11 +2218,6 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf)
-	{
-		return scap_bpf_set_fullcapture_port_range(handle->m_bpf_handle, range_start, range_end);
-	}
-	else
 	{
 		//
 		// Encode the port range
@@ -2408,11 +2280,6 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 	return SCAP_FAILURE;
 #else
 
-	if(handle->m_bpf)
-	{
-		return scap_bpf_set_statsd_port(handle->m_bpf_handle, port);
-	}
-	else
 	{
 		//
 		// Beam the value down to the module

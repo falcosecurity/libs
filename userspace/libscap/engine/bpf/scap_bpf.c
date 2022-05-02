@@ -34,18 +34,22 @@ limitations under the License.
 #include <dirent.h>
 
 #include "bpf.h"
-#define SCAP_HANDLE_T struct bpf_engine
-
+#include "bpf_public.h"
 #include "engine_handle.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_bpf.h"
+#include "scap_engine_util.h"
 #include "driver_config.h"
 #include "../../driver/bpf/types.h"
 #include "../../driver/bpf/maps.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
 #include "../common/strlcpy.h"
+
+#ifdef MINIMAL_BUILD
+#include "noop.h"
+#endif
 
 #ifndef MINIMAL_BUILD
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
@@ -85,7 +89,7 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
-const char* resolve_bpf_probe(const char *bpf_probe, char *buf)
+static const char* resolve_bpf_probe(const char *bpf_probe, char *buf)
 {
 	//
 	// While in theory we could always rely on the scap caller to properly
@@ -117,6 +121,28 @@ const char* resolve_bpf_probe(const char *bpf_probe, char *buf)
 
 	snprintf(buf, SCAP_MAX_PATH_SIZE, "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
 	return buf;
+}
+
+static bool match(scap_open_args* open_args)
+{
+	char bpf_probe_buf[SCAP_MAX_PATH_SIZE];
+
+	return !open_args->udig && resolve_bpf_probe(open_args->bpf_probe, bpf_probe_buf);
+}
+
+static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+{
+	struct bpf_engine *engine = calloc(1, sizeof(struct bpf_engine));
+	if(engine)
+	{
+		engine->m_lasterr = lasterr_ptr;
+	}
+	return engine;
+}
+
+static void free_handle(struct scap_engine_handle engine)
+{
+	free(engine.m_handle);
 }
 
 #ifndef MINIMAL_BUILD
@@ -1687,9 +1713,185 @@ int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op
 	return populate_syscall_table_map(handle);
 }
 
-int32_t scap_next_bpf(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
 }
+
+static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
+{
+	struct bpf_engine* handle = engine.m_handle;
+
+	strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
+	return SCAP_FAILURE;
+}
+
+static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
+{
+	switch(setting)
+	{
+	case SCAP_SAMPLING_RATIO:
+		if(arg2 == 0)
+		{
+			return scap_bpf_stop_dropping_mode(engine);
+		}
+		else
+		{
+			return scap_bpf_start_dropping_mode(engine, arg1);
+		}
+	case SCAP_TRACERS_CAPTURE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
+		}
+		return scap_bpf_enable_tracers_capture(engine);
+	case SCAP_PAGE_FAULTS:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
+		}
+		return scap_bpf_enable_page_faults(engine);
+	case SCAP_SNAPLEN:
+		return scap_bpf_set_snaplen(engine, arg1);
+	case SCAP_EVENTMASK:
+		return scap_bpf_handle_event_mask(engine, arg1, arg2);
+	case SCAP_DYNAMIC_SNAPLEN:
+		if(arg1 == 0)
+		{
+			return scap_bpf_disable_dynamic_snaplen(engine);
+		}
+		else
+		{
+			return scap_bpf_enable_dynamic_snaplen(engine);
+		}
+	case SCAP_SIMPLEDRIVER_MODE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
+		}
+		return scap_bpf_set_simple_mode(engine);
+	case SCAP_FULLCAPTURE_PORT_RANGE:
+		return scap_bpf_set_fullcapture_port_range(engine, arg1, arg2);
+	case SCAP_STATSD_PORT:
+		return scap_bpf_set_statsd_port(engine, arg1);
+	default:
+	{
+		char msg[256];
+		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
+		return unsupported_config(engine, msg);
+	}
+	}
+}
+
+static int32_t init(scap_t* handle, scap_open_args *open_args)
+{
+	int32_t rc;
+	char bpf_probe_buf[SCAP_MAX_PATH_SIZE];
+	const char* bpf_probe;
+	char buf[SCAP_LASTERR_SIZE];
+	struct scap_engine_handle engine = handle->m_engine;
+
+	bpf_probe = resolve_bpf_probe(open_args->bpf_probe, bpf_probe_buf);
+	//
+	// Find out how many devices we have to open, which equals to the number of CPUs
+	//
+	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	if(num_cpus == -1)
+	{
+		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	engine.m_handle->m_ncpus = num_cpus;
+
+	fill_syscalls_of_interest(&open_args->ppm_sc_of_interest, &engine.m_handle->m_syscalls_of_interest);
+
+	rc = devset_init(&engine.m_handle->m_dev_set, num_cpus, engine.m_handle->m_lasterr);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	rc = scap_bpf_load(engine.m_handle, bpf_probe, &handle->m_api_version, &handle->m_schema_version);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	rc = check_api_compatibility(handle, handle->m_lasterr);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+static uint32_t get_n_devs(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_dev_set.m_ndevs;
+}
+
+static uint64_t get_max_buf_used(struct scap_engine_handle engine)
+{
+	uint64_t i;
+	uint64_t max = 0;
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+
+	for(i = 0; i < devset->m_ndevs; i++)
+	{
+		uint64_t size = buf_size_used(&devset->m_devs[i]);
+		max = size > max ? size : max;
+	}
+
+	return max;
+}
+
+
+struct scap_vtable scap_bpf_engine = {
+	.name = "bpf",
+	.mode = SCAP_MODE_LIVE,
+
+	.match = match,
+	.alloc_handle = alloc_handle,
+	.init = init,
+	.free_handle = free_handle,
+	.close = scap_bpf_close,
+	.next = next,
+	.start_capture = scap_bpf_start_capture,
+	.stop_capture = scap_bpf_stop_capture,
+	.configure = configure,
+	.get_stats = scap_bpf_get_stats,
+	.get_n_tracepoint_hit = scap_bpf_get_n_tracepoint_hit,
+	.get_n_devs = get_n_devs,
+	.get_max_buf_used = get_max_buf_used,
+};
+
+#else // MINIMAL_BUILD
+
+static int32_t init(scap_t* handle, scap_open_args *open_args)
+{
+	strlcpy(handle->m_lasterr, "The eBPF probe driver is not supported when using a minimal build", SCAP_LASTERR_SIZE);
+	return SCAP_NOT_SUPPORTED;
+}
+
+const struct scap_vtable scap_bpf_engine = {
+	.name = "bpf",
+	.mode = SCAP_MODE_LIVE,
+
+	.match = match,
+	.alloc_handle = alloc_handle,
+	.init = init,
+	.free_handle = free_handle,
+	.close = noop_close_engine,
+	.next = noop_next,
+	.start_capture = noop_start_capture,
+	.stop_capture = noop_stop_capture,
+	.configure = noop_configure,
+	.get_stats = noop_get_stats,
+	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
+	.get_n_devs = noop_get_n_devs,
+	.get_max_buf_used = noop_get_max_buf_used,
+};
 #endif // MINIMAL_BUILD
 
