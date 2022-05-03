@@ -5376,13 +5376,22 @@ FILLER(sys_autofill, true)
 	const struct ppm_event_entry *evinfo;
 	int res;
 	int j;
+	unsigned long ret = 0;
+	unsigned long val = 0;
+
+	/* We are interested in the return value only in the exit events.
+	 * Please note: all exit events have an odd `PPM`code.
+	 */
+	if(data->state->tail_ctx.evt_type % 2 != 0)
+	{
+		ret = bpf_syscall_get_retval(data->ctx);
+	}
 
 	evinfo = data->filler_info;
 
 	#pragma unroll
 	for (j = 0; j < PPM_MAX_AUTOFILL_ARGS; j++) {
 		struct ppm_autofill_arg arg = evinfo->autofill_args[j];
-		unsigned long val;
 
 		if (j == evinfo->n_autofill_args)
 			break;
@@ -5390,7 +5399,7 @@ FILLER(sys_autofill, true)
 		if (arg.id >= 0)
 			val = bpf_syscall_get_argument(data, arg.id);
 		else if (arg.id == AF_ID_RETVAL)
-			val = bpf_syscall_get_retval(data->ctx);
+			val = ret;
 		else if (arg.id == AF_ID_USEDEFAULT)
 			val = arg.default_val;
 
