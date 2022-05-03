@@ -59,9 +59,14 @@ struct bpf_map_data {
 
 #ifndef MINIMAL_BUILD
 
+# define UINT32_MAX (4294967295U)
+
 static const int BUF_SIZE_PAGES = 2048;
 
-static const int BPF_LOG_SIZE = 1 << 18;
+/* Recommended log buffer size. 
+ * Taken from libbpf source code: https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
+ */
+static const int BPF_LOG_SIZE = UINT32_MAX >> 8; /* verifier maximum in kernels <= 5.1 */
 
 static char* license;
 
@@ -181,12 +186,21 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	attr.log_size = 0;
 	attr.log_level = 0;
 
+	/* Try a first time without catching verifier logs.
+	 * If `log_buf` paramater is NULL it means that we have no intention
+	 * to collect verifier logs in any case, so only 1 attempt is enough,
+	 * the second one would be useless without catching logs.
+	 */
 	fd = sys_bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
 	if(fd >= 0 || !log_buf || !log_buf_sz)
 	{
 		return fd;
 	}
 
+	/* Try a second time catching verifier logs. This step is performed 
+	 * only if we have a buffer for collecting them (so only if we
+	 * pass to `bpf_load_program()` function a `log_buf`!= NULL).
+	 */
 	attr.log_buf = (unsigned long) log_buf;
 	attr.log_size = log_buf_sz;
 	attr.log_level = 1;
@@ -450,8 +464,8 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE);
 	if(fd < 0)
 	{
-		fprintf(stderr, "%s", error);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "bpf_load_program() err=%d event=%s message=%s", errno, event, error);
+		fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s-- END PROG LOAD LOG --\n", error);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: bpf_load_program() err=%d event=%s", errno, event);
 		free(error);
 		return SCAP_FAILURE;
 	}
