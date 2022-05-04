@@ -309,7 +309,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 				return SCAP_FAILURE;
 		}
 
-		if (scap_buffer_can_fit(event_buf, len + param.size))
+		if (scap_buffer_can_fit(event_buf, len + param.size) && param.size != 0)
 		{
         	memcpy(((char*)event_buf.buf + len), param.buf, param.size);
 		}
@@ -330,6 +330,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 	// we were not able to write the event to the buffer
 	if (!scap_buffer_can_fit(event_buf, len))
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not encode event of size %zu into supplied buffer sized %zu.", len, event_buf.size);
 		return SCAP_INPUT_TOO_SMALL;
 	}
 
