@@ -14,11 +14,19 @@
 # limitations under the License.
 #
 
-include_directories("..")
+include(protobuf)
+include_directories(..)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 set(LIBSCAP_UNIT_TESTS_SOURCES
     scap_event.ut.cpp
 )
+
+if (ENGINE_GVISOR)
+	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
+	include_directories(../engine/gvisor)
+	include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)
+endif()
 
 add_executable(unit-test-libscap ${LIBSCAP_UNIT_TESTS_SOURCES})
 
