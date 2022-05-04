@@ -110,14 +110,14 @@ sudo ./libscap/examples/01-open/scap-open
 sudo rmmod scap
 ```
 
-To test the `kernel_simple_consumer` logic, use the following option:
+You look at the other available options by using `--help` option:
 ```bash
-sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o --simple_consumer
+sudo ./libscap/examples/01-open/scap-open --help
 ```
-This option can be used both by the kernel module and the eBPF probe.
 
 As soon as you quit (ctrl-C) the `scap-open` program, you will be prompted with detailed information on the capture:
 ```bash
+---------------------- STATS -----------------------
 events captured: 39460
 seen by driver: 39912
 Number of dropped events: 0
@@ -127,6 +127,7 @@ Number of dropped events caused by an invalid condition in the kernel instrument
 Number of preemptions: 0
 Number of events skipped due to the tid being in a set of suppressed tids: 0
 Number of threads currently being suppressed: 0
+-----------------------------------------------------
 ```
 therefore confirming that the drivers are indeed working fine!
 

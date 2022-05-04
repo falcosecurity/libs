@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,12 +21,17 @@ limitations under the License.
 
 uint64_t g_nevts = 0;
 scap_t* g_h = NULL;
+bool premature_death = false;
+bool bpf_probe = false;
+bool simple_consumer = false;
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 
 static void signal_callback(int signal)
 {
 	scap_stats s;
+
+	printf("\n---------------------- STATS -----------------------\n");
 	printf("events captured: %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
 	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
@@ -38,7 +43,65 @@ static void signal_callback(int signal)
 	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);
 	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
 	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
+	printf("-----------------------------------------------------\n");
 	exit(0);
+}
+
+void print_help()
+{
+	printf("\n----------------------- MENU -----------------------\n");
+	printf("'--bpf': enable the BPF probe instead of the kernel module.\n");
+	printf("'--sc'(simple_consumer): enable the simple consumer mode.\n");
+	printf("'--pd'(premature_death): load the driver and capture only one event.\n");
+	printf("'--help': print this menu.\n");
+	printf("-----------------------------------------------------\n");
+}
+
+void print_configuration()
+{
+	printf("\n---------------------- CONFIG ----------------------\n");
+	if(bpf_probe)
+	{
+		printf("* DRIVER: BPF probe\n");
+	}
+	else
+	{
+		printf("* DRIVER: Kernel module\n");
+	}
+
+	if(simple_consumer)
+	{
+		printf("* MODE: Simple consumer\n");
+	}
+
+	if(premature_death)
+	{
+		printf("* MODE: Premature death\n");
+	}
+	printf("-----------------------------------------------------\n");
+
+}
+
+void print_load_success()
+{
+	if(bpf_probe)
+	{
+		printf("\n * OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
+	}
+	else
+	{
+		printf("\n * OK! Kernel module correctly loaded\n");
+	}
+}
+
+void print_premature_death()
+{
+	printf("\n * OK! We correctly catched one event! Bye!\n");
+}
+
+void print_start_capture()
+{
+	printf("\n * Capture in progress...\n");
 }
 
 int main(int argc, char** argv)
@@ -67,8 +130,9 @@ int main(int argc, char** argv)
 		if(!strcmp(argv[i], "--bpf") && ++i < argc)
 		{
 			args.bpf_probe = argv[i];
+			bpf_probe = true;
 		}
-		if(!strcmp(argv[i], "--simple_consumer"))
+		if(!strcmp(argv[i], "--sc"))
 		{
 			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
 
@@ -77,15 +141,39 @@ int main(int argc, char** argv)
 			{
 				args.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
 			}
+			simple_consumer = true;
+		}
+		if(!strcmp(argv[i], "--pd"))
+		{
+			premature_death = true;
+		}
+		if(!strcmp(argv[i], "--help"))
+		{
+			print_help();
+			return EXIT_SUCCESS;
 		}
 	}
+
+	print_configuration();
 
 	g_h = scap_open(args, error, &res);
 	if(g_h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
-		return -1;
+		return EXIT_FAILURE;
 	}
+
+	print_load_success();
+
+	if(premature_death)
+	{
+		while(scap_next(g_h, &ev, &cpuid) != 0)
+			;
+		print_premature_death();
+		goto cleanup;
+	}
+
+	print_start_capture();
 
 	while(1)
 	{
@@ -104,6 +192,7 @@ int main(int argc, char** argv)
 		}
 	}
 
+cleanup:
 	scap_close(g_h);
-	return 0;
+	return EXIT_SUCCESS;
 }
