@@ -5379,8 +5379,11 @@ FILLER(sys_autofill, true)
 	unsigned long ret = 0;
 	unsigned long val = 0;
 
-	/* We are interested in the return value only in the exit events.
-	 * Please note: all exit events have an odd `PPM`code.
+	/* Please note: we have to perform this action outside the `for` loop
+	 * in order to avoid verifier issues on aarch64.
+	 *
+	 * We are interested in the return value only inside the exit events.
+	 * Remember that all exit events have an odd `PPM`code.
 	 */
 	if(data->state->tail_ctx.evt_type % 2 != 0)
 	{
