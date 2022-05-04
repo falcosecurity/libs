@@ -90,6 +90,8 @@ cmake -DBUILD_BPF=true ../
 make bpf
 ```
 
+>__WARNING__: **clang-7** is the oldest supported version to build our BPF probe, since it is the one used by our infrastructure.
+
 ## Test drivers
 
 Libscap ships a small example that is quite handy to quickly check that drivers are working fine.  
