@@ -1163,6 +1163,8 @@ public:
 	const std::string& get_host_root() const { return m_host_root; }
 	void set_host_root(const std::string& s) { m_host_root = s; }
 
+	bool remove_inactive_threads();
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1205,7 +1207,6 @@ private:
 
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
-	bool remove_inactive_threads();
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void k8s_discover_ext();
