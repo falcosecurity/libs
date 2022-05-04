@@ -110,7 +110,7 @@ sudo ./libscap/examples/01-open/scap-open
 sudo rmmod scap
 ```
 
-You look at the other available options by using `--help` option:
+You can look at the other available options by using `--help`:
 ```bash
 sudo ./libscap/examples/01-open/scap-open --help
 ```

@@ -16,21 +16,21 @@ limitations under the License.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <scap.h>
 
 uint64_t g_nevts = 0;
 scap_t* g_h = NULL;
-bool premature_death = false;
+uint64_t num_events = UINT64_MAX;
 bool bpf_probe = false;
 bool simple_consumer = false;
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 
-static void signal_callback(int signal)
+void print_stats()
 {
 	scap_stats s;
-
 	printf("\n---------------------- STATS -----------------------\n");
 	printf("events captured: %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
@@ -44,15 +44,22 @@ static void signal_callback(int signal)
 	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
 	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
 	printf("-----------------------------------------------------\n");
-	exit(0);
+
 }
+
+static void signal_callback(int signal)
+{
+	print_stats();
+	exit(EXIT_SUCCESS);
+}
+
 
 void print_help()
 {
 	printf("\n----------------------- MENU -----------------------\n");
-	printf("'--bpf': enable the BPF probe instead of the kernel module.\n");
-	printf("'--sc'(simple_consumer): enable the simple consumer mode.\n");
-	printf("'--pd'(premature_death): load the driver and capture only one event.\n");
+	printf("'--bpf <probe_path>': enable the BPF probe instead of the kernel module. (default: disabled)\n");
+	printf("'--simple_consumer': enable the simple consumer mode. (default: disabled)\n");
+	printf("'--num_events <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n");
 	printf("'--help': print this menu.\n");
 	printf("-----------------------------------------------------\n");
 }
@@ -74,9 +81,10 @@ void print_configuration()
 		printf("* MODE: Simple consumer\n");
 	}
 
-	if(premature_death)
-	{
-		printf("* MODE: Premature death\n");
+	if(num_events!=UINT64_MAX){
+		printf("* EVENTS TO CATCH: %lu\n", num_events);
+	} else {
+		printf("* EVENTS TO CATCH: UINT64_MAX\n");
 	}
 	printf("-----------------------------------------------------\n");
 
@@ -92,11 +100,6 @@ void print_load_success()
 	{
 		printf("\n * OK! Kernel module correctly loaded\n");
 	}
-}
-
-void print_premature_death()
-{
-	printf("\n * OK! We correctly catched one event! Bye!\n");
 }
 
 void print_start_capture()
@@ -132,7 +135,7 @@ int main(int argc, char** argv)
 			args.bpf_probe = argv[i];
 			bpf_probe = true;
 		}
-		if(!strcmp(argv[i], "--sc"))
+		if(!strcmp(argv[i], "--simple_consumer"))
 		{
 			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
 
@@ -143,9 +146,9 @@ int main(int argc, char** argv)
 			}
 			simple_consumer = true;
 		}
-		if(!strcmp(argv[i], "--pd"))
+		if(!strcmp(argv[i], "--num_events") && ++i < argc)
 		{
-			premature_death = true;
+			num_events = strtoul(argv[i], NULL, 10);
 		}
 		if(!strcmp(argv[i], "--help"))
 		{
@@ -165,17 +168,9 @@ int main(int argc, char** argv)
 
 	print_load_success();
 
-	if(premature_death)
-	{
-		while(scap_next(g_h, &ev, &cpuid) != 0)
-			;
-		print_premature_death();
-		goto cleanup;
-	}
-
 	print_start_capture();
 
-	while(1)
+	while(g_nevts!=num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
 
@@ -192,7 +187,7 @@ int main(int argc, char** argv)
 		}
 	}
 
-cleanup:
+	print_stats();
 	scap_close(g_h);
 	return EXIT_SUCCESS;
 }
