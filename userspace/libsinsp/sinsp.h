@@ -1151,6 +1151,8 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
+	bool remove_inactive_threads();
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1193,7 +1195,6 @@ private:
 
 	// this is here for testing purposes only
 	sinsp_threadinfo* find_thread_test(int64_t tid, bool lookup_only);
-	bool remove_inactive_threads();
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 	void k8s_discover_ext();
