@@ -464,7 +464,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE);
 	if(fd < 0)
 	{
-		fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s-- END PROG LOAD LOG --\n", error);
+		fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: bpf_load_program() err=%d event=%s", errno, event);
 		free(error);
 		return SCAP_FAILURE;
