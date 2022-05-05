@@ -54,6 +54,7 @@ public:
 	struct open_param {
 		std::string value;
 		std::string desc;
+		std::string separator;
 	};
 
 	// Return a struct to be used as scap source plugin

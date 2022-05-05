@@ -1111,6 +1111,7 @@ std::vector<sinsp_plugin_cap_sourcing::open_param> sinsp_plugin::list_open_param
 					throw sinsp_exception(string("error in plugin ") + name() + ": list_open_params has entry with no value");
 				}
 				param.desc = root[i]["desc"].asString();
+				param.separator = root[i]["separator"].asString();
 				list.push_back(param);
 			}
 		}
