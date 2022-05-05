@@ -171,3 +171,8 @@ elseif(WIN32)
 	add_subdirectory(win32)
 	include_directories(win32)
 endif()
+
+add_definitions(-DHAS_ENGINE_NOOP)
+add_subdirectory(engine/noop)
+# don't link the noop engine to libscap directly,
+# it's a helper library for other engines (it's completely useless on its own)
