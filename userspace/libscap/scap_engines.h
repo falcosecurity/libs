@@ -38,3 +38,7 @@ extern const struct scap_vtable scap_bpf_engine;
 #ifdef HAS_ENGINE_KMOD
 extern const struct scap_vtable scap_kmod_engine;
 #endif
+
+#ifdef HAS_ENGINE_GVISOR
+extern const struct scap_vtable scap_gvisor_engine;
+#endif

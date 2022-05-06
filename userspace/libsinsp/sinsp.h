@@ -251,6 +251,8 @@ public:
 	void fdopen(int fd);
 
 	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+	void open_gvisor(std::string socket_path, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+
 	void open_nodriver();
 
 	/*!
@@ -1057,6 +1059,7 @@ private:
 	std::string m_input_filename;
 	bool m_bpf;
 	bool m_udig;
+	std::string m_gvisor_socket = "";
 	bool m_is_windows;
 	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
