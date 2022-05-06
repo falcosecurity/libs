@@ -36,6 +36,7 @@ namespace scap_gvisor {
 struct header
 {
 	uint16_t header_size;
+	uint16_t message_type;
 	uint32_t dropped_count;
 };
 #pragma pack(pop)

@@ -25,15 +25,22 @@ limitations under the License.
 #include "pkg/sentry/seccheck/points/container.pb.h"
 #include "engine/gvisor/gvisor.h"
 
-uint32_t prepare_message(char *message, uint32_t message_size, google::protobuf::Any &any)
+template<class T>
+uint32_t prepare_message(char *message, uint32_t message_size, uint16_t message_type, T &gvisor_evt)
 {
-    uint32_t proto_size = static_cast<uint32_t>(any.ByteSizeLong()); 
+    uint32_t proto_size = static_cast<uint32_t>(gvisor_evt.ByteSizeLong());
     uint16_t header_size = sizeof(scap_gvisor::header);
     uint32_t total_size = header_size + proto_size;
     uint32_t dropped_count = 0;
+
+    // Fill the message header
     memcpy(message, &header_size, sizeof(uint16_t));
-    memcpy(&message[sizeof(uint32_t)], &dropped_count, sizeof(uint32_t));
-    any.SerializeToArray(&message[header_size], message_size - header_size);
+    memcpy(&message[sizeof(uint16_t)], &message_type, sizeof(uint16_t));
+    memcpy(&message[sizeof(uint16_t) + sizeof(uint16_t)], &dropped_count, sizeof(uint32_t));
+
+    // Serialize proto
+    gvisor_evt.SerializeToArray(&message[header_size], message_size - header_size);
+
     return total_size;
 }
 
@@ -43,14 +50,12 @@ TEST(gvisor_parsers, parse_execve_e)
     char buffer[1024];
 
     gvisor::syscall::Execve gvisor_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
     gvisor_evt.set_pathname("/usr/bin/ls");
     auto *context_data = gvisor_evt.mutable_context_data();
     context_data->set_container_id("1234");
 
-    google::protobuf::Any any;
-    any.PackFrom(gvisor_evt);
-
-    uint32_t total_size = prepare_message(message, 1024, any);
+    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
@@ -73,6 +78,7 @@ TEST(gvisor_parsers, parse_execve_x)
     char buffer[1024];
 
     gvisor::syscall::Execve gvisor_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
     gvisor_evt.set_pathname("/usr/bin/ls");
     gvisor_evt.mutable_argv()->Add("ls");
     gvisor_evt.mutable_argv()->Add("a");
@@ -83,10 +89,7 @@ TEST(gvisor_parsers, parse_execve_x)
     gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
     exit->set_result(0);
 
-    google::protobuf::Any any;
-    any.PackFrom(gvisor_evt);
-
-    uint32_t total_size = prepare_message(message, 1024, any);
+    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
@@ -111,15 +114,13 @@ TEST(gvisor_parsers, parse_container_start)
     char buffer[1024];
 
     gvisor::container::Start gvisor_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_CONTAINER_START;
     gvisor_evt.set_id("deadbeef");
     gvisor_evt.mutable_args()->Add("ls");
     auto *context_data = gvisor_evt.mutable_context_data();
     context_data->set_cwd("/root");
 
-    google::protobuf::Any any;
-    any.PackFrom(gvisor_evt);
-
-    uint32_t total_size = prepare_message(message, 1024, any);
+    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
@@ -139,14 +140,12 @@ TEST(gvisor_parsers, unhandled_syscall)
     char buffer[1024];
 
     gvisor::syscall::Syscall gvisor_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_RAW;
     gvisor_evt.set_sysno(999);
     auto *context_data = gvisor_evt.mutable_context_data();
     context_data->set_container_id("1234");
 
-    google::protobuf::Any any;
-    any.PackFrom(gvisor_evt);
-
-    uint32_t total_size = prepare_message(message, 1024, any);
+    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
@@ -162,6 +161,7 @@ TEST(gvisor_parsers, small_buffer)
     char buffer[1024];
 
     gvisor::syscall::Execve gvisor_evt;
+    uint16_t message_type = gvisor::common::MessageType::MESSAGE_SYSCALL_EXECVE;
     gvisor_evt.set_pathname("/usr/bin/ls");
     gvisor_evt.mutable_argv()->Add("ls");
     auto *context_data = gvisor_evt.mutable_context_data();
@@ -170,10 +170,7 @@ TEST(gvisor_parsers, small_buffer)
     gvisor::syscall::Exit *exit = gvisor_evt.mutable_exit();
     exit->set_result(0);
 
-    google::protobuf::Any any;
-    any.PackFrom(gvisor_evt);
-
-    uint32_t total_size = prepare_message(message, 1024, any);
+    uint32_t total_size = prepare_message(message, 1024, message_type, gvisor_evt);
 
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1};
