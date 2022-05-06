@@ -197,6 +197,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_SIGTYPE:
 		case PT_L4PROTO:
 		case PT_SOCKFAMILY:
+		case PT_ENUMFLAGS8:
 			u8_arg = (uint8_t) (va_arg(args, int) & 0xff);
 			param.buf = &u8_arg;
 			param.size = sizeof(uint8_t);
@@ -207,6 +208,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_SYSCALLID:
 		case PT_PORT:
 		case PT_FLAGS16:
+		case PT_ENUMFLAGS16:
 			u16_arg = (uint16_t) (va_arg(args, int) & 0xffff);
 			param.buf = &u16_arg;
 			param.size = sizeof(uint16_t);
@@ -221,6 +223,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_FLAGS32:
 		case PT_SIGSET:
 		case PT_MODE:
+		case PT_ENUMFLAGS32:
             u32_arg = va_arg(args, uint32_t);
             param.buf = &u32_arg;
             param.size = sizeof(uint32_t);
