@@ -34,7 +34,6 @@ limitations under the License.
 
 #include "userspace_flag_helpers.h"
 
-#include "google/protobuf/any.pb.h"
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"
 #include "pkg/sentry/seccheck/points/container.pb.h"
@@ -42,10 +41,7 @@ limitations under the License.
 namespace scap_gvisor {
 namespace parsers {
 
-constexpr size_t prefix_len = sizeof("type.googleapis.com/") - 1;
-constexpr size_t max_event_size = 300 * 1024;
-
-typedef std::function<parse_result(const google::protobuf::Any &any, scap_sized_buffer scap_buf)> Callback;
+typedef std::function<parse_result(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)> Callback;
 
 // In gVisor there's no concept of tid and tgid but only vtid and vtgid.
 // However, to fit into sinsp we do need values for tid and tgid.
@@ -66,7 +62,7 @@ void fill_context_data(scap_evt *evt, T& gvisor_evt)
 	evt->tid = generate_tid_field(context_data.thread_id(), context_data.container_id());
 }
 
-parse_result parse_container_start(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -78,10 +74,10 @@ parse_result parse_container_start(const google::protobuf::Any &any, scap_sized_
 	size_t event_size;
 
 	gvisor::container::Start gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error =  std::string("Error unpacking container start protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking container start protobuf message";
 		return ret;
 	}
 
@@ -244,7 +240,7 @@ parse_result parse_container_start(const google::protobuf::Any &any, scap_sized_
 	return ret;
 }
 
-struct parse_result parse_execve(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -253,10 +249,10 @@ struct parse_result parse_execve(const google::protobuf::Any &any, scap_sized_bu
 	scap_err[0] = '\0';
 
 	gvisor::syscall::Execve gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking connect protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking execve protobuf message";
 		return ret;
 	}
 
@@ -374,7 +370,7 @@ struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap
 	return ret;
 }
 
-struct parse_result parse_sentry_clone(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -383,10 +379,10 @@ struct parse_result parse_sentry_clone(const google::protobuf::Any &any, scap_si
 	scap_err[0] = '\0';
 
 	gvisor::sentry::CloneInfo gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking connect protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking sentry clone protobuf message";
 		return ret;
 	}
 
@@ -428,15 +424,15 @@ struct parse_result parse_sentry_clone(const google::protobuf::Any &any, scap_si
 	return ret;
 }
 
-struct parse_result parse_read(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Read gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking open protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking read protobuf message";
 		return ret;
 	}
 
@@ -468,15 +464,15 @@ struct parse_result parse_read(const google::protobuf::Any &any, scap_sized_buff
 	return ret;
 }
 
-struct parse_result parse_connect(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Connect gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking open protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking connect protobuf message";
 		return ret;
 	}
 
@@ -559,15 +555,15 @@ struct parse_result parse_connect(const google::protobuf::Any &any, scap_sized_b
 	return ret;
 }
 
-struct parse_result parse_socket(const google::protobuf::Any &any, scap_sized_buffer event_buf)
+struct parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Socket gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking open protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking socket protobuf message";
 		return ret;
 	}
 
@@ -593,14 +589,14 @@ struct parse_result parse_socket(const google::protobuf::Any &any, scap_sized_bu
 	return ret;
 }
 
-struct parse_result parse_generic_syscall(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	gvisor::syscall::Syscall gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking open protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking generic syscall protobuf message";
 		return ret;
 	}
 
@@ -611,7 +607,7 @@ struct parse_result parse_generic_syscall(const google::protobuf::Any &any, scap
 		case 57:
 			return parse_clone(gvisor_evt, scap_buf, false);
 		default:
-			ret.error = std::string("Unhandled syscall: ") + any.DebugString();
+			ret.error = std::string("Unhandled syscall: ") + std::to_string(gvisor_evt.sysno());
 			ret.status = SCAP_TIMEOUT;
 			return ret;
 	}
@@ -621,15 +617,15 @@ struct parse_result parse_generic_syscall(const google::protobuf::Any &any, scap
 }
 
 
-struct parse_result parse_open(const google::protobuf::Any &any, scap_sized_buffer scap_buf)
+struct parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Open gvisor_evt;
-	if(!any.UnpackTo(&gvisor_evt))
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
 	{
 		ret.status = SCAP_FAILURE;
-		ret.error = std::string("Error unpacking open protobuf message: ") + any.DebugString();
+		ret.error = "Error unpacking open protobuf message";
 		return ret;
 	}
 
@@ -661,15 +657,21 @@ struct parse_result parse_open(const google::protobuf::Any &any, scap_sized_buff
 	return ret;
 }
 
-std::map<std::string, Callback> dispatchers = {
-	{"gvisor.syscall.Syscall", parse_generic_syscall},
-	{"gvisor.syscall.Read", parse_read},
-	{"gvisor.syscall.Connect", parse_connect},
-	{"gvisor.syscall.Socket", parse_socket},
-	{"gvisor.syscall.Open", parse_open},
-	{"gvisor.syscall.Execve", parse_execve},
-	{"gvisor.sentry.CloneInfo", parse_sentry_clone},
-	{"gvisor.container.Start", parse_container_start},
+// List of parsers. Indexes are based on MessageType enum values
+std::vector<Callback> dispatchers = {
+	nullptr, 				// MESSAGE_UNKNOWN
+	parse_container_start,
+	parse_sentry_clone, 
+	nullptr, 				// MESSAGE_SENTRY_EXEC
+	nullptr, 				// MESSAGE_SENTRY_EXIT_NOTIFY_PARENT
+	nullptr, 				// MESSAGE_SENTRY_TASK_EXIT
+	parse_generic_syscall,
+	parse_open,
+	nullptr, 				// MESSAGE_SYSCALL_CLOSE
+	parse_read,
+	parse_connect,
+	parse_execve,
+	parse_socket,
 };
 
 struct parse_result parse_gvisor_proto(struct scap_const_sized_buffer gvisor_buf, struct scap_sized_buffer scap_buf)
@@ -677,7 +679,6 @@ struct parse_result parse_gvisor_proto(struct scap_const_sized_buffer gvisor_buf
 	struct parse_result ret = {0};
 	const char *buf = static_cast<const char*>(gvisor_buf.buf);
 
-	// XXX this may change with a wire protocol update
 	const header *hdr = reinterpret_cast<const header *>(buf);
 	if(hdr->header_size > gvisor_buf.size)
 	{
@@ -689,33 +690,22 @@ struct parse_result parse_gvisor_proto(struct scap_const_sized_buffer gvisor_buf
 	const char *proto = &buf[hdr->header_size];
 	ssize_t proto_size = gvisor_buf.size - hdr->header_size;
 
-	google::protobuf::Any any;
-	if(!any.ParseFromArray(proto, proto_size))
-	{
-		ret.error = std::string("Invalid protobuf message");
+	size_t message_type = hdr->message_type;
+	if (message_type == 0 || message_type >= dispatchers.size()) {
+		ret.error = std::string("Invalid message type " + std::to_string(message_type));
 		ret.status = SCAP_TIMEOUT;
 		return ret;
-	}
+ 	}
 
-	auto url = any.type_url();
-	if(url.size() <= prefix_len)
-	{
-		ret.error = std::string("Invalid URL ") + url;
-		ret.status = SCAP_TIMEOUT;
-		return ret;
-	}
-
-	const std::string name = url.substr(prefix_len);
-
-	Callback cb = dispatchers[name];
+	Callback cb = dispatchers[message_type];
 	if(cb == nullptr)
 	{
-		ret.error = std::string("No callback registered for ") + name;
+		ret.error = std::string("No callback registered for message type: ") + std::to_string(message_type);
 		ret.status = SCAP_TIMEOUT;
 		return ret;
 	}
 
-	return cb(any, scap_buf);
+	return cb(proto, proto_size, scap_buf);
 }
 
 } // namespace parsers
