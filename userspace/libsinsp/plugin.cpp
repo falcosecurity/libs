@@ -1053,12 +1053,11 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt)
 	auto data = (const uint8_t *) evt->get_param(1)->m_val;
 	if (m_state && m_api.event_to_string)
 	{
-		ss_plugin_event pevt = {
-			.evtnum = evt->get_num(),
-			.data = data,
-			.datalen = datalen,
-			.ts = evt->get_ts(),
-		};
+		ss_plugin_event pevt;
+		pevt.evtnum = evt->get_num();
+		pevt.data = data;
+		pevt.datalen = datalen;
+		pevt.ts = evt->get_ts();
 		ret = str_from_alloc_charbuf(m_api.event_to_string(m_state, &pevt));
 	}
 	if (ret.empty())
