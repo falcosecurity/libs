@@ -60,7 +60,7 @@ TEST(gvisor_parsers, parse_execve_e)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -94,7 +94,7 @@ TEST(gvisor_parsers, parse_execve_x)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_EQ("", res.error);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 
@@ -125,7 +125,7 @@ TEST(gvisor_parsers, parse_container_start)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
 
     EXPECT_EQ(res.scap_events.size(), 4);
     EXPECT_EQ(res.scap_events[0]->type, PPME_SYSCALL_CLONE_20_E);
@@ -150,7 +150,7 @@ TEST(gvisor_parsers, unhandled_syscall)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1024};
 
-    scap_gvisor::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_NE(res.error.find("Unhandled syscall"), std::string::npos);
     EXPECT_EQ(res.status, SCAP_TIMEOUT);
 }
@@ -175,7 +175,7 @@ TEST(gvisor_parsers, small_buffer)
     scap_const_sized_buffer gvisor_msg = {.buf = message, .size = total_size};
     scap_sized_buffer scap_buf = {.buf = buffer, .size = 1};
 
-    scap_gvisor::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
+    scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_EQ(res.status, SCAP_INPUT_TOO_SMALL);
     scap_buf.size = res.size;
     res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
