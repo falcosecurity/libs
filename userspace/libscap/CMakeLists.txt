@@ -176,6 +176,10 @@ elseif(WIN32)
 	include_directories(win32)
 endif()
 
+add_library(scap_engine_util scap_engine_util.c)
+
+target_link_libraries(scap scap_engine_util)
+
 add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
 # don't link the noop engine to libscap directly,
