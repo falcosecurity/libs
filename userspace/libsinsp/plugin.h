@@ -25,6 +25,7 @@ limitations under the License.
 #include <vector>
 #include <unordered_map>
 #include <plugin_info.h>
+#include "event.h"
 #include "version.h"
 
 #ifdef _WIN32

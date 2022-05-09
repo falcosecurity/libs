@@ -636,12 +636,16 @@ void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::st
 	}
 }
 
-void sinsp_plugin::destroy_handle(sinsp_plugin_handle handle) {
+void sinsp_plugin::destroy_handle(sinsp_plugin_handle handle)
+{
+	if (handle)
+	{
 #ifdef _WIN32
-	FreeLibrary(handle);
+		FreeLibrary(handle);
 #else
-	dlclose(handle);
+		dlclose(handle);
 #endif
+	}
 }
 
 /** Event Source CAP **/
