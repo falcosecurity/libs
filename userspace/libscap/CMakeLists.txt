@@ -81,24 +81,17 @@ endif()
 
 list(APPEND targetfiles
 	scap.c
-	scap_event.c
 	scap_fds.c
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
 	scap_userlist.c
-	syscall_info_table.c
-	../../driver/dynamic_params_table.c
-	../../driver/event_table.c
-	../../driver/flags_table.c
 	ringbuffer/devset.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
 		scap_bpf.c
-		scap_kmod.c
-		../../driver/syscall_table.c
-		../../driver/fillers_table.c)
+		scap_kmod.c)
 
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
@@ -174,6 +167,19 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(WIN32)
 	add_subdirectory(win32)
 	include_directories(win32)
+endif()
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+	add_library(scap_event_schema
+		scap_event.c
+		syscall_info_table.c
+		../../driver/dynamic_params_table.c
+		../../driver/event_table.c
+		../../driver/flags_table.c
+		../../driver/syscall_table.c
+		../../driver/fillers_table.c)
+
+	target_link_libraries(scap scap_event_schema)
 endif()
 
 add_library(scap_engine_util scap_engine_util.c)
