@@ -41,6 +41,8 @@ struct header
 };
 #pragma pack(pop)
 
+namespace parsers {
+
 struct parse_result {
     // the scap status of the operation
 	uint32_t status;
@@ -52,8 +54,6 @@ struct parse_result {
 	std::vector<scap_evt*> scap_events;
 };
 typedef struct parse_result parse_result;
-
-namespace parsers {
 
 /*!
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events

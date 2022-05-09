@@ -137,7 +137,7 @@ parse_result parse_container_start(const char *proto, size_t proto_size, scap_si
 		tgid_field, // pid
 		1,
 		"", // cwd
-		75000, // fdlimit ?
+		75000, // fdlimit
 		0, // pgft_maj
 		0, // pgft_min
 		0, // vm_size
@@ -338,7 +338,7 @@ struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap
 			scap_const_sized_buffer{"", 0}, // args
 			generate_tid_field(context_data.thread_id(), context_data.container_id()), // tid
 			generate_tid_field(context_data.thread_group_id(), context_data.container_id()), // pid
-			0, // ptid -- we could get it from gvisor
+			0, // ptid
 			context_data.cwd().c_str(), // cwd
 			16,
 			0,
@@ -438,7 +438,6 @@ struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 
 	if(!gvisor_evt.has_exit())
 	{
-		// ret.status = scap_event_encode_params(event_buf, &event_size, scap_err,
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_E, 2,
 							gvisor_evt.fd(),
 							gvisor_evt.count());
