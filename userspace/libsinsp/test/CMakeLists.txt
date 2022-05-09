@@ -29,6 +29,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	sinsp.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
+	plugin_manager.ut.cpp
 	filter_parser.ut.cpp
 	filter_compiler.ut.cpp
 )
