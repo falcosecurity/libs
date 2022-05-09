@@ -49,23 +49,31 @@ class sinsp_plugin_cap_common
 {
 public:
 	virtual ~sinsp_plugin_cap_common() = default;
-	virtual bool init(const char* config) = 0;
-	virtual void destroy() = 0;
-	virtual std::string get_last_error() const = 0;
-	virtual const std::string &name() const = 0;
-	virtual const std::string &description() const = 0;
-	virtual const std::string &contact() const = 0;
-	virtual const sinsp_version &plugin_version() const = 0;
-	virtual const sinsp_version &required_api_version() const = 0;
-	virtual std::string get_init_schema(ss_plugin_schema_type& schema_type) const = 0;
+
 	virtual ss_plugin_caps caps() const = 0;
+
+	virtual bool init(const char* config) = 0;
+
+	virtual void destroy() = 0;
+
+	virtual std::string get_last_error() const = 0;
+
+	virtual const std::string &name() const = 0;
+
+	virtual const std::string &description() const = 0;
+
+	virtual const std::string &contact() const = 0;
+
+	virtual const sinsp_version &plugin_version() const = 0;
+
+	virtual const sinsp_version &required_api_version() const = 0;
+
+	virtual std::string get_init_schema(ss_plugin_schema_type& schema_type) const = 0;
 };
 
 class sinsp_plugin_cap_sourcing: public sinsp_plugin_cap_common
 {
 public:
-	virtual ~sinsp_plugin_cap_sourcing() = default;
-
 	// Describes a valid parameter for the open() function.
 	struct open_param {
 		std::string value;
@@ -73,10 +81,12 @@ public:
 		std::string separator;
 	};
 
-	// Return a struct to be used as scap source plugin
+	virtual ~sinsp_plugin_cap_sourcing() = default;
+
 	virtual scap_source_plugin& as_scap_source() = 0;
 
 	virtual uint32_t id() const = 0;
+
 	virtual const std::string &event_source() const = 0;
 
 	virtual std::string get_progress(uint32_t &progress_pct) const = 0;
@@ -119,29 +129,29 @@ public:
 	virtual ~sinsp_plugin();
 
 	/** Common API **/
-	bool init(const char* config) override;
-	void destroy() override;
-	std::string get_last_error() const override;
-	const std::string &name() const override;
-	const std::string &description() const override;
-	const std::string &contact() const override;
-	const sinsp_version &plugin_version() const override;
-	const sinsp_version &required_api_version() const override;
-	std::string get_init_schema(ss_plugin_schema_type& schema_type) const override;
-	ss_plugin_caps caps() const override;
+	virtual bool init(const char* config) override;
+	virtual void destroy() override;
+	virtual std::string get_last_error() const override;
+	virtual const std::string &name() const override;
+	virtual const std::string &description() const override;
+	virtual const std::string &contact() const override;
+	virtual const sinsp_version &plugin_version() const override;
+	virtual const sinsp_version &required_api_version() const override;
+	virtual std::string get_init_schema(ss_plugin_schema_type& schema_type) const override;
+	virtual ss_plugin_caps caps() const override;
 
 	/** Event Sourcing **/
-	scap_source_plugin& as_scap_source() override;
-	uint32_t id() const override;
-	const std::string &event_source() const override;
-	std::string get_progress(uint32_t &progress_pct) const override;
-	std::string event_to_string(sinsp_evt* evt) const override;
-	std::vector<sinsp_plugin_cap_sourcing::open_param> list_open_params() const override;
+	virtual scap_source_plugin& as_scap_source() override;
+	virtual uint32_t id() const override;
+	virtual const std::string &event_source() const override;
+	virtual std::string get_progress(uint32_t &progress_pct) const override;
+	virtual std::string event_to_string(sinsp_evt* evt) const override;
+	virtual std::vector<sinsp_plugin_cap_sourcing::open_param> list_open_params() const override;
 
 	/** Field Extraction **/
-	const std::set<std::string> &extract_event_sources() const override;
-	bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const override;
-	const std::vector<filtercheck_field_info>& fields() const override;
+	virtual const std::set<std::string> &extract_event_sources() const override;
+	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const override;
+	virtual const std::vector<filtercheck_field_info>& fields() const override;
 
 private:
 	std::string m_name;

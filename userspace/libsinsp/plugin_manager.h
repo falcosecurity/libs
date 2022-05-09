@@ -58,9 +58,9 @@ public:
 	const std::vector<std::shared_ptr<sinsp_plugin>>& plugins() const;
 
 	/*!
-		\brief Returns the source names from all the plugins. The index
-		is maintained constant until reset() is invoked, so it may be used
-		by consumers for efficient index-based lookups.
+		\brief Returns the source names from all the plugins. The index of each
+		source name does not change, so it may be used by consumers for
+		efficient index-based lookups.
 	*/
 	const std::vector<std::string>& sources() const;
 
@@ -70,20 +70,22 @@ public:
 	std::vector<info> infos() const;
 
 	/*!
-		\brief Returns a plugin given its ID
+		\brief Returns a plugin given its ID. The plugin is guaranteed to have
+		the CAP_EVENT_SOURCE capability.
 	*/
-	std::shared_ptr<sinsp_plugin_cap_sourcing> plugin_by_id(uint32_t id) const;
+	std::shared_ptr<sinsp_plugin> plugin_by_id(uint32_t id) const;
 
 	/*!
-		\brief Returns a plugin given an event
+		\brief Returns a plugin given an event. The plugin is guaranteed to have
+		the CAP_EVENT_SOURCE capability.
 	*/
-	std::shared_ptr<sinsp_plugin_cap_sourcing> plugin_by_evt(sinsp_evt &evt) const;
+	std::shared_ptr<sinsp_plugin> plugin_by_evt(sinsp_evt* evt) const;
 
 	/*!
 		\brief Returns a the index of a source name as in the order of sources()
 		given a plugin id
 	*/
-	size_t source_by_plugin_id(uint32_t plugin_id, bool& found) const;
+	std::size_t source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const;
 
 private:
 	std::vector<std::shared_ptr<sinsp_plugin>> m_plugins;

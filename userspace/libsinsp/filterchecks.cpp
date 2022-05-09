@@ -2909,7 +2909,7 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_PLUGINNAME:
 	case TYPE_PLUGININFO:
-		plugin = m_inspector->get_plugin_manager()->plugin_by_evt(*evt);
+		plugin = m_inspector->get_plugin_manager()->plugin_by_evt(evt);
 		if (plugin == nullptr)
 		{
 			return NULL;

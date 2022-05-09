@@ -30,6 +30,7 @@ void sinsp_plugin_manager::add(std::shared_ptr<sinsp_plugin> plugin)
 {
 	for(auto& it : m_plugins)
 	{
+		// todo: we may consider dropping this constraint in the future
 		if(it->name() == plugin->name())
 		{
 			throw sinsp_exception(
@@ -75,24 +76,24 @@ std::vector<sinsp_plugin_manager::info> sinsp_plugin_manager::infos() const
 	return ret;
 }
 
-std::shared_ptr<sinsp_plugin_cap_sourcing> sinsp_plugin_manager::plugin_by_id(uint32_t id) const
+std::shared_ptr<sinsp_plugin> sinsp_plugin_manager::plugin_by_id(uint32_t id) const
 {
 	auto it = m_plugins_id_index.find(id);
 	return it != m_plugins_id_index.end() ? m_plugins[it->second] : nullptr;
 }
 
-std::shared_ptr<sinsp_plugin_cap_sourcing> sinsp_plugin_manager::plugin_by_evt(sinsp_evt &evt) const
+std::shared_ptr<sinsp_plugin> sinsp_plugin_manager::plugin_by_evt(sinsp_evt* evt) const
 {
-	if(evt.get_type() == PPME_PLUGINEVENT_E)
+	if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
 	{
-		sinsp_evt_param *parinfo = evt.get_param(0);
+		sinsp_evt_param *parinfo = evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
 		return plugin_by_id(*(int32_t *)parinfo->m_val);
 	}
 	return nullptr;
 }
 
-size_t sinsp_plugin_manager::source_by_plugin_id(uint32_t plugin_id, bool& found) const
+size_t sinsp_plugin_manager::source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const
 {
 	auto it = m_plugins_id_source_index.find(plugin_id);
 	found = it != m_plugins_id_source_index.end();

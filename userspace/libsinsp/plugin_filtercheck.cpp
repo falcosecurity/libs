@@ -39,7 +39,7 @@ sinsp_filter_check_plugin::sinsp_filter_check_plugin(std::shared_ptr<sinsp_plugi
 	}
 
 	m_eplugin = plugin;
-	m_info.m_fields = &m_eplugin->fields()[0];
+	m_info.m_fields = &m_eplugin->fields()[0]; // we use a vector so this should be safe
 	m_info.m_nfields = m_eplugin->fields().size();
 	m_info.m_flags = filter_check_info::FL_NONE;
 	m_compatible_sources = NULL;
@@ -151,7 +151,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 
 	// We know that plugin has source capabilities because it has an id and is sending events
 	bool pfound = false;
-	auto psource = m_inspector->get_plugin_manager()->source_by_plugin_id(pgid, pfound);
+	auto psource = m_inspector->get_plugin_manager()->source_idx_by_plugin_id(pgid, pfound);
 	if (!pfound)
 	{
 		return false;
