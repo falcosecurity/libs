@@ -44,6 +44,7 @@ limitations under the License.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap_savefile.h"
 #include "scap-int.h"
+#include "scap_engine_util.h"
 #if defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(CYGWING_AGENT)
 #include "scap_bpf.h"
 #endif
@@ -295,36 +296,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	if (ppm_sc_of_interest)
-	{
-		for (int i = 0; i < PPM_SC_MAX; i++)
-		{
-			// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
-			for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-			{
-				// Find the match between the ppm_sc and the syscall_nr
-				if(g_syscall_code_routing_table[syscall_nr] == i)
-				{
-					// UF_NEVER_DROP syscalls must be always traced
-					if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-					{
-						handle->syscalls_of_interest[syscall_nr] = true;
-					}
-					// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
-				}
-			}
-		}
-	}
-	else
-	{
-		// fallback to trace all syscalls
-		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
-		{
-			handle->syscalls_of_interest[i] = true;
-		}
-	}
-
-
+	fill_syscalls_of_interest(ppm_sc_of_interest, &handle->syscalls_of_interest);
 
 	//
 	// Open and initialize all the devices
@@ -513,30 +485,9 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		}
 	}
 
-	if(!scap_is_api_compatible(handle->m_api_version, SCAP_MINIMUM_DRIVER_API_VERSION))
+	*rc = check_api_compatibility(handle, handle->m_lasterr);
+	if(*rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports API version %llu.%llu.%llu, but running version needs %d.%d.%d",
-			PPM_API_VERSION_MAJOR(handle->m_api_version),
-			PPM_API_VERSION_MINOR(handle->m_api_version),
-			PPM_API_VERSION_PATCH(handle->m_api_version),
-			PPM_API_CURRENT_VERSION_MAJOR,
-			PPM_API_CURRENT_VERSION_MINOR,
-			PPM_API_CURRENT_VERSION_PATCH);
-		*rc = SCAP_FAILURE;
-		scap_close(handle);
-		return NULL;
-	}
-
-	if(!scap_is_api_compatible(handle->m_schema_version, SCAP_MINIMUM_DRIVER_SCHEMA_VERSION))
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports schema version %llu.%llu.%llu, but running version needs %d.%d.%d",
-			PPM_API_VERSION_MAJOR(handle->m_schema_version),
-			PPM_API_VERSION_MINOR(handle->m_schema_version),
-			PPM_API_VERSION_PATCH(handle->m_schema_version),
-			PPM_SCHEMA_CURRENT_VERSION_MAJOR,
-			PPM_SCHEMA_CURRENT_VERSION_MINOR,
-			PPM_SCHEMA_CURRENT_VERSION_PATCH);
-		*rc = SCAP_FAILURE;
 		scap_close(handle);
 		return NULL;
 	}
