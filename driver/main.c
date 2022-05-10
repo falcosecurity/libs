@@ -1589,7 +1589,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	u32 freespace;
 	u32 usedspace;
 	u32 delta_from_end;
-	struct event_filler_arguments args;
+	struct event_filler_arguments args = {};
 	u32 ttail;
 	u32 head;
 	struct ppm_ring_buffer_context *ring;
