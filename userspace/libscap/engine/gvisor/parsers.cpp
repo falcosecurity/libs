@@ -45,7 +45,7 @@ typedef std::function<parse_result(const char *proto, size_t proto_size, scap_si
 
 // In gVisor there's no concept of tid and tgid but only vtid and vtgid.
 // However, to fit into sinsp we do need values for tid and tgid.
-uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
+static uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
 {
 	std::string container_id_64 = container_id_hex.length() > 16 ? container_id_hex.substr(0, 15) : container_id_hex;
 
@@ -55,14 +55,14 @@ uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
 }
 
 template<class T>
-void fill_context_data(scap_evt *evt, T& gvisor_evt)
+static void fill_context_data(scap_evt *evt, T& gvisor_evt)
 {
 	auto& context_data = gvisor_evt.context_data();
 	evt->ts = context_data.time_ns();
 	evt->tid = generate_tid_field(context_data.thread_id(), context_data.container_id());
 }
 
-parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -240,7 +240,7 @@ parse_result parse_container_start(const char *proto, size_t proto_size, scap_si
 	return ret;
 }
 
-struct parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -320,7 +320,7 @@ struct parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 	return ret;
 }
 
-struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
+static struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -370,7 +370,7 @@ struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap
 	return ret;
 }
 
-struct parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret;
 	ret.status = SCAP_SUCCESS;
@@ -424,7 +424,7 @@ struct parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 	return ret;
 }
 
-struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -463,7 +463,7 @@ struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 	return ret;
 }
 
-struct parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -554,7 +554,7 @@ struct parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 	return ret;
 }
 
-struct parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
+static struct parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
 {
 	struct parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -588,7 +588,7 @@ struct parse_result parse_socket(const char *proto, size_t proto_size, scap_size
 	return ret;
 }
 
-struct parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	gvisor::syscall::Syscall gvisor_evt;
@@ -616,7 +616,7 @@ struct parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 }
 
 
-struct parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static struct parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
