@@ -37,25 +37,15 @@ void sinsp_plugin_manager::add(std::shared_ptr<sinsp_plugin> plugin)
 				"found multiple plugins with name " + it->name() + ". Aborting.");
 		}
 	}
-	auto index = m_plugins.size();
+	auto plugin_index = m_plugins.size();
 	m_plugins.push_back(plugin);
 	if (plugin->caps() & CAP_SOURCING)
 	{
 		auto source_index = m_source_names.size();
 		m_source_names.push_back(plugin->event_source());
-		m_plugins_id_index[plugin->id()] = index;
+		m_plugins_id_index[plugin->id()] = plugin_index;
 		m_plugins_id_source_index[plugin->id()] = source_index;
 	}	
-}
-
-const std::vector<std::string>& sinsp_plugin_manager::sources() const
-{
-	return m_source_names;
-}
-
-const std::vector<std::shared_ptr<sinsp_plugin>>& sinsp_plugin_manager::plugins() const
-{
-	return m_plugins;
 }
 
 std::vector<sinsp_plugin_manager::info> sinsp_plugin_manager::infos() const
@@ -74,28 +64,4 @@ std::vector<sinsp_plugin_manager::info> sinsp_plugin_manager::infos() const
 		ret.push_back(info);
 	}
 	return ret;
-}
-
-std::shared_ptr<sinsp_plugin> sinsp_plugin_manager::plugin_by_id(uint32_t id) const
-{
-	auto it = m_plugins_id_index.find(id);
-	return it != m_plugins_id_index.end() ? m_plugins[it->second] : nullptr;
-}
-
-std::shared_ptr<sinsp_plugin> sinsp_plugin_manager::plugin_by_evt(sinsp_evt* evt) const
-{
-	if(evt && evt->get_type() == PPME_PLUGINEVENT_E)
-	{
-		sinsp_evt_param *parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int32_t));
-		return plugin_by_id(*(int32_t *)parinfo->m_val);
-	}
-	return nullptr;
-}
-
-size_t sinsp_plugin_manager::source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const
-{
-	auto it = m_plugins_id_source_index.find(plugin_id);
-	found = it != m_plugins_id_source_index.end();
-	return found ? it->second : 0;
 }
