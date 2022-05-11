@@ -508,15 +508,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	for(j = 0; j < handle->m_dev_set.m_ndevs; ++j)
-	{
-		//
-		// Additional initializations
-		//
-		handle->m_dev_set.m_devs[j].m_lastreadsize = 0;
-		handle->m_dev_set.m_devs[j].m_sn_len = 0;
-		scap_stop_dropping_mode(handle);
-	}
+	scap_stop_dropping_mode(handle);
 
 	//
 	// Create the process list
