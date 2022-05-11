@@ -1309,83 +1309,6 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-#else // MINIMAL_BUILD
-
-int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_set_fullcapture_port_range(struct scap_engine_handle engine, uint16_t range_start, uint16_t range_end)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_set_statsd_port(struct scap_engine_handle engine, const uint16_t port)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_disable_dynamic_snaplen(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_stop_dropping_mode(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_enable_page_faults(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_close(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-#endif // MINIMAL_BUILD
-
-#ifndef MINIMAL_BUILD
 //
 // This is completely horrible, revisit this shameful code
 // with a proper solution
@@ -1767,47 +1690,6 @@ int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op
 int32_t scap_next_bpf(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
-}
-#else // MINIMAL_BUILD
-
-int32_t scap_bpf_load(
-	struct bpf_engine *handle,
-	const char *bpf_probe,
-	uint64_t *api_version_p,
-	uint64_t *schema_version_p)
-{
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_set_simple_mode(struct scap_engine_handle engine)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_next_bpf(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
-{
-	snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "The eBPF probe driver is not supported when using a minimal build");
-	return SCAP_FAILURE;
 }
 #endif // MINIMAL_BUILD
 
