@@ -135,6 +135,8 @@ static uint32_t get_max_consumers()
 }
 
 #ifndef _WIN32
+const char* resolve_bpf_probe(const char *bpf_probe, char *buf);
+
 scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
@@ -164,37 +166,12 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	//
-	// While in theory we could always rely on the scap caller to properly
-	// set a BPF probe from the environment variable, it's in practice easier
-	// to do one more check here in scap so we don't have to repeat the logic
-	// in all the possible users of the libraries
-	//
-	if(!bpf_probe)
-	{
-		bpf_probe = scap_get_bpf_probe_from_env();
-	}
-
 	char buf[SCAP_MAX_PATH_SIZE];
+	bpf_probe = resolve_bpf_probe(bpf_probe, buf);
 	if(bpf_probe)
 	{
 		struct bpf_engine *engine;
 		handle->m_bpf = true;
-
-		if(strlen(bpf_probe) == 0)
-		{
-			const char *home = getenv("HOME");
-			if(!home)
-			{
-				scap_close(handle);
-				snprintf(error, SCAP_LASTERR_SIZE, "HOME environment not set");
-				*rc = SCAP_FAILURE;
-				return NULL;
-			}
-
-			snprintf(buf, sizeof(buf), "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
-			bpf_probe = buf;
-		}
 
 		engine = calloc(sizeof(*engine), 1);
 		if(!engine)

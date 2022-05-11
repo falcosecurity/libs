@@ -45,6 +45,7 @@ limitations under the License.
 #include "../../driver/bpf/maps.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
+#include "../common/strlcpy.h"
 
 #ifndef MINIMAL_BUILD
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
@@ -83,6 +84,40 @@ struct bpf_map_data {
 	size_t elf_offset;
 	struct bpf_map_def def;
 };
+
+const char* resolve_bpf_probe(const char *bpf_probe, char *buf)
+{
+	//
+	// While in theory we could always rely on the scap caller to properly
+	// set a BPF probe from the environment variable, it's in practice easier
+	// to do one more check here in scap so we don't have to repeat the logic
+	// in all the possible users of the libraries
+	//
+	if(!bpf_probe)
+	{
+		bpf_probe = scap_get_bpf_probe_from_env();
+	}
+
+	if(!bpf_probe)
+	{
+		return NULL;
+	}
+
+	if(strlen(bpf_probe) != 0)
+	{
+		strlcpy(buf, bpf_probe, SCAP_MAX_PATH_SIZE);
+		return buf;
+	}
+
+	const char *home = getenv("HOME");
+	if(!home)
+	{
+		return NULL;
+	}
+
+	snprintf(buf, SCAP_MAX_PATH_SIZE, "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
+	return buf;
+}
 
 #ifndef MINIMAL_BUILD
 
