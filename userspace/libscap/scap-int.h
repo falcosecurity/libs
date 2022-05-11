@@ -26,6 +26,7 @@ limitations under the License.
 #include "engine_handle.h"
 #include "scap_vtable.h"
 #include "ringbuffer/devset.h"
+#include "engine/bpf/bpf.h"
 
 #include "settings.h"
 #include "plugin_info.h"
@@ -146,16 +147,7 @@ struct scap
 	void* m_win_descs_handle;
 #endif
 	bool m_bpf;
-	// Anonymous struct with bpf stuff
-	struct
-	{
-		int m_bpf_prog_fds[BPF_PROGS_MAX];
-		int m_bpf_prog_cnt;
-		bool m_bpf_fillers[BPF_PROGS_MAX];
-		int m_bpf_event_fd[BPF_PROGS_MAX];
-		int m_bpf_map_fds[BPF_MAPS_MAX];
-		int m_bpf_prog_array_map_idx;
-	};
+	struct scap_engine_handle m_bpf_handle;
 
 	// The set of process names that are suppressed
 	char **m_suppressed_comms;

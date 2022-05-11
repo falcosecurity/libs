@@ -178,6 +178,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	char buf[SCAP_MAX_PATH_SIZE];
 	if(bpf_probe)
 	{
+		struct bpf_engine *engine;
 		handle->m_bpf = true;
 
 		if(strlen(bpf_probe) == 0)
@@ -194,6 +195,17 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			snprintf(buf, sizeof(buf), "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
 			bpf_probe = buf;
 		}
+
+		engine = calloc(sizeof(*engine), 1);
+		if(!engine)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "Cannot allocate memory for BPF handle");
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+		engine->m_lasterr = handle->m_lasterr;
+		handle->m_bpf_handle.m_handle = engine;
 	}
 	else
 	{
@@ -303,7 +315,11 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	if(handle->m_bpf)
 	{
-		if((*rc = scap_bpf_load(handle, bpf_probe)) != SCAP_SUCCESS)
+		if((*rc = scap_bpf_load(
+			    (struct bpf_engine*)handle->m_bpf_handle.m_handle,
+			    bpf_probe,
+		            &handle->m_api_version,
+		            &handle->m_schema_version) != SCAP_SUCCESS))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 			scap_close(handle);
@@ -1191,10 +1207,11 @@ void scap_close(scap_t* handle)
 #ifdef _WIN32
 				ASSERT(false);
 #else
-				if(scap_bpf_close(handle) != SCAP_SUCCESS)
+				if(scap_bpf_close(handle->m_bpf_handle) != SCAP_SUCCESS)
 				{
 					ASSERT(false);
 				}
+				free(handle->m_bpf_handle.m_handle);
 #endif
 			}
 #ifndef _WIN32
@@ -1496,7 +1513,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	if(handle->m_bpf)
 	{
 #ifndef _WIN32
-		return scap_bpf_get_stats(handle, stats);
+		return scap_bpf_get_stats(handle->m_bpf_handle, stats);
 #endif
 	}
 	else
@@ -1548,7 +1565,7 @@ int32_t scap_stop_capture(scap_t* handle)
 			if(handle->m_bpf)
 			{
 #ifndef _WIN32
-				return scap_bpf_stop_capture(handle);
+				return scap_bpf_stop_capture(handle->m_bpf_handle);
 #endif
 			}
 			else
@@ -1601,7 +1618,7 @@ int32_t scap_start_capture(scap_t* handle)
 		if(handle->m_bpf)
 		{
 #ifndef _WIN32
-			return scap_bpf_start_capture(handle);
+			return scap_bpf_start_capture(handle->m_bpf_handle);
 #endif
 		}
 		else
@@ -1691,7 +1708,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		if(handle->m_bpf)
 		{
-			return scap_bpf_enable_tracers_capture(handle);
+			return scap_bpf_enable_tracers_capture(handle->m_bpf_handle);
 		}
 		else
 		{
@@ -1729,7 +1746,7 @@ int32_t scap_enable_page_faults(scap_t *handle)
 	{
 		if(handle->m_bpf)
 		{
-			return scap_bpf_enable_page_faults(handle);
+			return scap_bpf_enable_page_faults(handle->m_bpf_handle);
 		}
 		else
 		{
@@ -1761,7 +1778,7 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 #else
 	if(handle->m_bpf)
 	{
-		return scap_bpf_stop_dropping_mode(handle);
+		return scap_bpf_stop_dropping_mode(handle->m_bpf_handle);
 	}
 	else
 	{
@@ -1782,7 +1799,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 #else
 	if(handle->m_bpf)
 	{
-		return scap_bpf_start_dropping_mode(handle, sampling_ratio);
+		return scap_bpf_start_dropping_mode(handle->m_bpf_handle, sampling_ratio);
 	}
 	else
 	{
@@ -1848,7 +1865,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 #ifndef _WIN32
 	if(handle->m_bpf)
 	{
-		return scap_bpf_set_snaplen(handle, snaplen);
+		return scap_bpf_set_snaplen(handle->m_bpf_handle, snaplen);
 	}
 	else
 	{
@@ -1939,7 +1956,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 
 	if(handle->m_bpf)
 	{
-		return scap_bpf_handle_event_mask(handle, op, event_id);
+		return scap_bpf_handle_event_mask(handle->m_bpf_handle, op, event_id);
 	}
 	else
 	{
@@ -2017,7 +2034,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 #ifndef _WIN32
 	if(handle->m_bpf)
 	{
-		return scap_bpf_enable_dynamic_snaplen(handle);
+		return scap_bpf_enable_dynamic_snaplen(handle->m_bpf_handle);
 	}
 	else
 	{
@@ -2059,7 +2076,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	//
 	if(handle->m_bpf)
 	{
-		return scap_bpf_disable_dynamic_snaplen(handle);
+		return scap_bpf_disable_dynamic_snaplen(handle->m_bpf_handle);
 	}
 	else
 	{
@@ -2207,7 +2224,7 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 
 	if(handle->m_bpf)
 	{
-		if (scap_bpf_set_simple_mode(handle))
+		if (scap_bpf_set_simple_mode(handle->m_bpf_handle))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
 			ASSERT(false);
@@ -2250,7 +2267,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 
 	if(handle->m_bpf)
 	{
-		return scap_bpf_get_n_tracepoint_hit(handle, ret);
+		return scap_bpf_get_n_tracepoint_hit(handle->m_bpf_handle, ret);
 	}
 	else
 	{
@@ -2355,7 +2372,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 
 	if(handle->m_bpf)
 	{
-		return scap_bpf_set_fullcapture_port_range(handle, range_start, range_end);
+		return scap_bpf_set_fullcapture_port_range(handle->m_bpf_handle, range_start, range_end);
 	}
 	else
 	{
@@ -2422,7 +2439,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 
 	if(handle->m_bpf)
 	{
-		return scap_bpf_set_statsd_port(handle, port);
+		return scap_bpf_set_statsd_port(handle->m_bpf_handle, port);
 	}
 	else
 	{

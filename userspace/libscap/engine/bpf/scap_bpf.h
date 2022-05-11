@@ -17,6 +17,7 @@ limitations under the License.
 #ifndef _SCAP_BPF_H
 #define _SCAP_BPF_H
 
+#include "bpf.h"
 #include "../compat/perf_event.h"
 
 struct perf_event_sample {
@@ -31,23 +32,27 @@ struct perf_lost_sample {
 	uint64_t lost;
 };
 
-int32_t scap_bpf_load(scap_t *handle, const char *bpf_probe);
-int32_t scap_bpf_start_capture(scap_t *handle);
-int32_t scap_bpf_stop_capture(scap_t *handle);
-int32_t scap_bpf_close(scap_t *handle);
-int32_t scap_bpf_set_snaplen(scap_t* handle, uint32_t snaplen);
-int32_t scap_bpf_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
-int32_t scap_bpf_set_statsd_port(scap_t* handle, uint16_t port);
-int32_t scap_bpf_enable_dynamic_snaplen(scap_t* handle);
-int32_t scap_bpf_disable_dynamic_snaplen(scap_t* handle);
-int32_t scap_bpf_enable_page_faults(scap_t* handle);
-int32_t scap_bpf_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
-int32_t scap_bpf_stop_dropping_mode(scap_t* handle);
-int32_t scap_bpf_enable_tracers_capture(scap_t* handle);
-int32_t scap_bpf_get_stats(scap_t* handle, OUT scap_stats* stats);
-int32_t scap_bpf_get_n_tracepoint_hit(scap_t* handle, long* ret);
-int32_t scap_bpf_set_simple_mode(scap_t* handle);
-int32_t scap_bpf_handle_event_mask(scap_t *handle, uint32_t op, uint32_t event_id);
+int32_t scap_bpf_load(
+	struct bpf_engine *handle,
+	const char *bpf_probe,
+	uint64_t *api_version_p,
+	uint64_t *schema_version_p);
+int32_t scap_bpf_start_capture(struct scap_engine_handle engine);
+int32_t scap_bpf_stop_capture(struct scap_engine_handle engine);
+int32_t scap_bpf_close(struct scap_engine_handle engine);
+int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen);
+int32_t scap_bpf_set_fullcapture_port_range(struct scap_engine_handle engine, uint16_t range_start, uint16_t range_end);
+int32_t scap_bpf_set_statsd_port(struct scap_engine_handle engine, const uint16_t port);
+int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine);
+int32_t scap_bpf_disable_dynamic_snaplen(struct scap_engine_handle engine);
+int32_t scap_bpf_enable_page_faults(struct scap_engine_handle engine);
+int32_t scap_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio);
+int32_t scap_bpf_stop_dropping_mode(struct scap_engine_handle engine);
+int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine);
+int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* stats);
+int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret);
+int32_t scap_bpf_set_simple_mode(struct scap_engine_handle engine);
+int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id);
 
 static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
 {
