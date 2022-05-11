@@ -1706,7 +1706,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
 	try
 	{
 		// Only add the gen_event filter checks for plugins with event
-		// sourcing capability. Plugins woth extractor capabilities don't
+		// sourcing capability. Plugins with extractor capabilities don't
 		// deal with event timestamps/etc and don't need these checks (They were
 		// probably added by the associated source plugins anyway).
 		if(plugin->caps() & CAP_SOURCING)
