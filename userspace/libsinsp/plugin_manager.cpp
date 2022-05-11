@@ -34,7 +34,7 @@ void sinsp_plugin_manager::add(std::shared_ptr<sinsp_plugin> plugin)
 		if(it->name() == plugin->name())
 		{
 			throw sinsp_exception(
-				"found multiple plugins with name " + it->name() + ". Aborting.");
+				"found another plugin with name " + it->name() + ". Aborting.");
 		}
 	}
 	auto plugin_index = m_plugins.size();
