@@ -3098,7 +3098,8 @@ FILLER(sys_open_by_handle_at_x, true)
 		}
 	} 
 
-	res = bpf_val_to_ring(data, (unsigned long)"<NA>");
+	char na[] = "<NA>";
+	res = bpf_val_to_ring(data, (unsigned long)na);
 	return res;
 }
 
