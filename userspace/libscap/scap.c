@@ -189,32 +189,34 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		handle->m_bpf = false;
 	}
 
-	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
-	if(handle->m_ncpus == -1)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+		handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
+		if(handle->m_ncpus == -1)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
 
-	//
-	// Find out how many devices we have to open, which equals to the number of CPUs
-	//
-	ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-	if(ndevs == -1)
-	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+		//
+		// Find out how many devices we have to open, which equals to the number of CPUs
+		//
+		ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+		if(ndevs == -1)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
 
-	*rc = devset_init(&handle->m_dev_set, ndevs, error);
-	if(*rc != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return NULL;
+		*rc = devset_init(&handle->m_dev_set, ndevs, error);
+		if(*rc != SCAP_SUCCESS)
+		{
+			scap_close(handle);
+			return NULL;
+		}
 	}
 
 	//
