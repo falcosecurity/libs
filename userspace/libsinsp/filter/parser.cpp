@@ -160,11 +160,24 @@ ast::expr* parser::parse_or()
 	lex_blank();
 	while (lex_helper_str("or"))
 	{
+		libsinsp::filter::ast::expr* child = nullptr;
 		if (!lex_blank())
 		{
-			throw sinsp_exception("expected blank after 'or'");
+			if (lex_helper_str("("))
+			{
+				lex_blank();
+				child = parse_embedded_remainder();
+			}
+			else
+			{
+				throw sinsp_exception("expected blank or '(' after 'or'");
+			}
 		}
-		children.push_back(parse_and());
+		else
+		{
+			child = parse_and();
+		}
+		children.push_back(child);
 		lex_blank();
 	}
 	depth_pop();
@@ -184,11 +197,24 @@ ast::expr* parser::parse_and()
 	lex_blank();
 	while (lex_helper_str("and"))
 	{
+		libsinsp::filter::ast::expr* child = nullptr;
 		if (!lex_blank())
 		{
-			throw sinsp_exception("expected blank after 'and'");
+			if (lex_helper_str("("))
+			{
+				lex_blank();
+				child = parse_embedded_remainder();
+			}
+			else
+			{
+				throw sinsp_exception("expected blank or '(' after 'and'");
+			}
 		}
-		children.push_back(parse_not());
+		else
+		{
+			child = parse_not();
+		}
+		children.push_back(child);
 		lex_blank();
 	}
 	depth_pop();
@@ -206,19 +232,40 @@ ast::expr* parser::parse_not()
 	lex_blank();
 	while (lex_helper_str("not"))
 	{
+		is_not = !is_not;
 		if (!lex_blank())
 		{
-			throw sinsp_exception("expected blank after 'not'");
+			if (lex_helper_str("("))
+			{
+				lex_blank();
+				auto child = parse_embedded_remainder();
+				depth_pop();
+				return is_not ? new ast::not_expr(child) : child;
+			}
+			throw sinsp_exception("expected blank or '(' after 'not'");
 		}
-		is_not = !is_not;
 	}
 	auto child = parse_check();
 	lex_blank();
 	depth_pop();
-	if (is_not)
+	return is_not ? new ast::not_expr(child) : child;
+}
+
+// this is an internal helper to parse the remainder of a
+// self-embedding expression right after having parsed a "("
+ast::expr* parser::parse_embedded_remainder()
+{
+	depth_push();
+	lex_blank();
+	auto child = parse_or();
+	lex_blank();
+	if (!lex_helper_str(")"))
 	{
-		return new ast::not_expr(child);
+		delete child;
+		throw sinsp_exception("expected a ')' token");
 	}
+	lex_blank();
+	depth_pop();
 	return child;
 }
 
@@ -229,14 +276,7 @@ ast::expr* parser::parse_check()
 	if (lex_helper_str("("))
 	{
 		lex_blank();
-		auto child = parse_or();
-		lex_blank();
-		if (!lex_helper_str(")"))
-		{
-			delete child;
-			throw sinsp_exception("expected a ')' token");
-		}
-		lex_blank();
+		auto child = parse_embedded_remainder();
 		depth_pop();
 		return child;
 	}
