@@ -35,6 +35,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "sinsp_exception.h"
 #include "plugin.h"
+#include "plugin_filtercheck.h"
 
 using namespace std;
 
@@ -51,9 +52,9 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(
-	string &filepath,
-	const char* config,
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
+	const std::string &filepath,
+	const std::string &config,
 	std::string &errstr)
 {
 	std::shared_ptr<sinsp_plugin> ret;
@@ -101,7 +102,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create_plugin(
 	ret.reset(plugin);
 
 	// Initialize the plugin
-	std::string conf = str_from_alloc_charbuf(config);
+	std::string conf = config;
 	ret->validate_init_config(conf);
 	if (!ret->init(conf.c_str()))
 	{
@@ -780,6 +781,11 @@ const std::set<std::string> &sinsp_plugin::extract_event_sources() const
 const std::vector<filtercheck_field_info>& sinsp_plugin::fields() const
 {
 	return m_fields;
+}
+
+sinsp_filter_check* sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> plugin)
+{
+	return new sinsp_filter_check_plugin(plugin);
 }
 
 bool sinsp_plugin::extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const

@@ -454,6 +454,12 @@ public:
 	*/
 	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
 
+	/*!
+	  \brief Returns a new instance of a filtercheck supporting fields for
+	  a generic event source (e.g. evt.num, evt.time, evt.pluginname...)
+	*/
+	static sinsp_filter_check* new_generic_filtercheck();
+
 	bool has_metrics();
 
 	/*!
@@ -951,15 +957,10 @@ public:
 	void set_cri_delay(uint64_t delay_ms);
 	void set_container_labels_max_len(uint32_t max_label_len);
 
-
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
-	// Also create filterchecks for fields supported by the plugin
-	// and add them to the provided filter check list.
 	// The created sinsp_plugin is returned.
-	std::shared_ptr<sinsp_plugin> register_plugin(std::string filepath,
-												  const char* config,
-												  filter_check_list &available_checks = g_filterlist);
+	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath, const std::string& config);
 	const sinsp_plugin_manager* get_plugin_manager();
 	void set_input_plugin(const string& name, const string& params);
 

@@ -28,6 +28,9 @@ limitations under the License.
 #include "event.h"
 #include "version.h"
 
+// todo(jasondellaluce: remove this forward declaration)
+class sinsp_filter_check;
+
 #ifdef _WIN32
 typedef HINSTANCE sinsp_plugin_handle;
 #else
@@ -118,13 +121,17 @@ public:
 	// Create a plugin from the dynamic library at the provided
 	// path. On error, the shared_ptr will == NULL and errstr is
 	// set with an error.
-	static std::shared_ptr<sinsp_plugin> create_plugin(
-		std::string &filepath,
-		const char* config,
+	static std::shared_ptr<sinsp_plugin> create(
+		const std::string &filepath,
+		const std::string &config,
 		std::string &errstr);
 
 	// Return whether a filesystem object is loaded
 	static bool is_plugin_loaded(std::string &filepath);
+
+	// If the plugin has CAP_EXTRACTION capability, returns a filtercheck with
+	// its exported fields. Returns NULL otherwise
+	static sinsp_filter_check* new_filtercheck(std::shared_ptr<sinsp_plugin> plugin);
 
 	sinsp_plugin(sinsp_plugin_handle handle);
 	virtual ~sinsp_plugin();
