@@ -1697,13 +1697,10 @@ void sinsp::set_statsd_port(const uint16_t port)
 }
 
 
-std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
-													 const char* config,
-													 filter_check_list &available_checks)
+std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath, const std::string& config)
 {
 	string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create_plugin(filepath, config, errstr);
-
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, config, errstr);
 	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin " + filepath + ": " + errstr.c_str());
@@ -1711,22 +1708,6 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(string filepath,
 
 	try
 	{
-		// Only add the gen_event filter checks for plugins with event
-		// sourcing capability. Plugins with extractor capabilities don't
-		// deal with event timestamps/etc and don't need these checks (They were
-		// probably added by the associated source plugins anyway).
-		if(plugin->caps() & CAP_SOURCING)
-		{
-			auto evt_filtercheck = new sinsp_filter_check_gen_event();
-			available_checks.add_filter_check(evt_filtercheck);
-		}
-
-		if (plugin->caps() & CAP_EXTRACTION)
-		{
-			auto filtercheck = new sinsp_filter_check_plugin(plugin);
-			available_checks.add_filter_check(filtercheck);
-		}
-
 		m_plugin_manager->add(plugin);
 	}
 	catch(sinsp_exception const& e)
@@ -1854,6 +1835,11 @@ const scap_machine_info* sinsp::get_machine_info()
 void sinsp::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);
+}
+
+sinsp_filter_check* sinsp::new_generic_filtercheck()
+{
+	return new sinsp_filter_check_gen_event();
 }
 
 uint32_t sinsp::reserve_thread_memory(uint32_t size)
