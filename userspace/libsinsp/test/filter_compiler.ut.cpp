@@ -130,11 +130,16 @@ TEST(sinsp_filter_compiler, boolean_evaluation)
 	test_filter_run(true,  "c.true=1");
 	test_filter_run(false, "c.false=1");
 	test_filter_run(false, "not c.true=1");
+	test_filter_run(false, "not(c.true=1)");
 	test_filter_run(true,  "not not c.true=1");
+	test_filter_run(true,  "not not(c.true=1)");
 	test_filter_run(true,  "not (not c.true=1)");
 	test_filter_run(false, "not not not c.true=1");
+	test_filter_run(false, "not not not(c.true=1)");
 	test_filter_run(false, "not (not (not c.true=1))");
+	test_filter_run(false, "not(not(not c.true=1))");
 	test_filter_run(true,  "not not not not c.true=1");
+	test_filter_run(true,  "not not(not not c.true=1)");
 	test_filter_run(true,  "c.true=1 and c.true=1");
 	test_filter_run(false, "c.true=1 and c.false=1");
 	test_filter_run(false, "c.false=1 and c.true=1");
