@@ -14,14 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+#pragma once
 
-#include <stdio.h>
+#include <stdint.h>
+#include "ringbuffer/devset.h"
 
-#include "scap.h"
-#include "scap-int.h"
-#include "ringbuffer/ringbuffer.h"
+struct scap;
 
-int32_t scap_next_kmod(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+struct kmod_engine
 {
-	return ringbuffer_next(&handle->m_kmod_engine.m_dev_set, pevent, pcpuid);
-}
+	struct scap_device_set m_dev_set;
+	char* m_lasterr;
+};

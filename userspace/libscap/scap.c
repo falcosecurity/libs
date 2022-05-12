@@ -203,7 +203,9 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			return NULL;
 		}
 
-		*rc = devset_init(&handle->m_dev_set, ndevs, error);
+		handle->m_engine.m_handle = &handle->m_kmod_engine;
+		handle->m_kmod_engine.m_lasterr = handle->m_lasterr;
+		*rc = devset_init(&handle->m_kmod_engine.m_dev_set, ndevs, error);
 		if(*rc != SCAP_SUCCESS)
 		{
 			scap_close(handle);
@@ -305,7 +307,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		//
 		len = RING_BUF_SIZE * 2;
 
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 		{
 			struct scap_device *dev = &devset->m_devs[j];
@@ -690,8 +692,6 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_mode = SCAP_MODE_CAPTURE;
 	handle->m_proc_callback = proc_callback;
 	handle->m_proc_callback_context = proc_callback_context;
-	handle->m_dev_set.m_devs = NULL;
-	handle->m_dev_set.m_ndevs = 0;
 	handle->m_proclist = NULL;
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
@@ -1157,7 +1157,7 @@ void scap_close(scap_t* handle)
 	else if(handle->m_mode == SCAP_MODE_LIVE)
 	{
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		ASSERT(handle->m_reader == NULL);
 
 		if(devset->m_devs != NULL)
@@ -1266,7 +1266,7 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	{
 		return handle->m_vtable->get_n_devs(handle->m_engine);
 	}
-	return handle->m_dev_set.m_ndevs;
+	return handle->m_kmod_engine.m_dev_set.m_ndevs;
 }
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
@@ -1304,7 +1304,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 		return SCAP_NOT_SUPPORTED;
 	}
 
-	dev = &handle->m_dev_set.m_devs[cpuid];
+	dev = &handle->m_kmod_engine.m_dev_set.m_devs[cpuid];
 
 	//
 	// Read the pointers.
@@ -1352,7 +1352,7 @@ uint64_t scap_max_buf_used(scap_t* handle)
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	uint64_t i;
 	uint64_t max = 0;
-	struct scap_device_set *devset = &handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 
 	for(i = 0; i < devset->m_ndevs; i++)
 	{
@@ -1444,7 +1444,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	}
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		uint32_t j;
 
 		for(j = 0; j < devset->m_ndevs; j++)
@@ -1484,7 +1484,7 @@ int32_t scap_stop_capture(scap_t* handle)
 	//
 	if(handle->m_mode == SCAP_MODE_LIVE)
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		//
 		// Disable capture on all the rings
 		//
@@ -1540,7 +1540,7 @@ int32_t scap_start_capture(scap_t* handle)
 		{
 #ifndef _WIN32
 			uint32_t j;
-			struct scap_device_set *devset = &handle->m_dev_set;
+			struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 			for(j = 0; j < devset->m_ndevs; j++)
 			{
 				if(ioctl(devset->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
@@ -1578,7 +1578,7 @@ static int32_t scap_set_dropping_mode(scap_t* handle, int request, uint32_t samp
 		return SCAP_FAILURE;
 	}
 
-	struct scap_device_set *devset = &handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 	if(devset->m_ndevs)
 	{
 		ASSERT((request == PPM_IOCTL_ENABLE_DROPPING_MODE &&
@@ -1621,7 +1621,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 		return SCAP_FAILURE;
 	}
 
-	struct scap_device_set *devset = &handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 	if(devset->m_ndevs)
 	{
 		{
@@ -1655,7 +1655,7 @@ int32_t scap_enable_page_faults(scap_t *handle)
 		return SCAP_FAILURE;
 	}
 
-	struct scap_device_set *devset = &handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 	if(devset->m_ndevs)
 	{
 		{
@@ -1763,7 +1763,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 
 #ifndef _WIN32
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		//
 		// Tell the driver to change the snaplen
 		//
@@ -1850,7 +1850,7 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event
 	}
 
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		if(ioctl(devset->m_devs[0].m_fd, op, event_id))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
@@ -1924,7 +1924,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 	//
 #ifndef _WIN32
 	{
-		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+		if(ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_dynamic_snaplen failed");
 			ASSERT(false);
@@ -1961,7 +1961,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 	// Tell the driver to change the snaplen
 	//
 	{
-		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+		if(ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_disable_dynamic_snaplen failed");
 			ASSERT(false);
@@ -2047,7 +2047,7 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	}
 	else
 	{
-		int ioctlres = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
+		int ioctlres = ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, handle->m_driver_procinfo);
 		if(ioctlres)
 		{
 			if(errno == ENOSPC)
@@ -2104,7 +2104,7 @@ int32_t scap_enable_simpledriver_mode(scap_t* handle)
 #else
 
 	{
-		if(ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
+		if(ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
 			ASSERT(false);
@@ -2140,7 +2140,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	{
 		int ioctl_ret = 0;
 
-		ioctl_ret = ioctl(handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
+		ioctl_ret = ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_N_TRACEPOINT_HIT, ret);
 		if(ioctl_ret != 0)
 		{
 			if(errno == ENOTTY)
@@ -2233,7 +2233,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 #else
 
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		//
 		// Encode the port range
 		//
@@ -2296,7 +2296,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 #else
 
 	{
-		struct scap_device_set *devset = &handle->m_dev_set;
+		struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
 		//
 		// Beam the value down to the module
 		//
