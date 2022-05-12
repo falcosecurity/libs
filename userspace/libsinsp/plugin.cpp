@@ -164,7 +164,7 @@ bool sinsp_plugin::is_plugin_loaded(std::string &filepath)
 }
 
 sinsp_plugin::sinsp_plugin(sinsp_plugin_handle handle)
-	: m_handle(handle)
+	: m_state(nullptr), m_caps((ss_plugin_caps) 0), m_handle(handle)
 {
 	memset(&m_api, 0, sizeof(m_api));
 	m_id = -1;
