@@ -182,35 +182,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	}
 	else
 	{
-		handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
-		if(handle->m_ncpus == -1)
-		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
-
-		//
-		// Find out how many devices we have to open, which equals to the number of CPUs
-		//
-		ndevs = sysconf(_SC_NPROCESSORS_ONLN);
-		if(ndevs == -1)
-		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
-
 		handle->m_engine.m_handle = &handle->m_kmod_engine;
 		handle->m_kmod_engine.m_lasterr = handle->m_lasterr;
-		*rc = devset_init(&handle->m_kmod_engine.m_dev_set, ndevs, error);
-		if(*rc != SCAP_SUCCESS)
-		{
-			scap_close(handle);
-			return NULL;
-		}
 	}
 
 	//
@@ -300,6 +273,33 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		uint64_t api_version;
 		uint64_t schema_version;
 
+		handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
+		if(handle->m_ncpus == -1)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+
+		//
+		// Find out how many devices we have to open, which equals to the number of CPUs
+		//
+		ndevs = sysconf(_SC_NPROCESSORS_ONLN);
+		if(ndevs == -1)
+		{
+			scap_close(handle);
+			snprintf(error, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror(handle, errno));
+			*rc = SCAP_FAILURE;
+			return NULL;
+		}
+
+		*rc = devset_init(&handle->m_kmod_engine.m_dev_set, ndevs, error);
+		if(*rc != SCAP_SUCCESS)
+		{
+			scap_close(handle);
+			return NULL;
+		}
 		fill_syscalls_of_interest(ppm_sc_of_interest, &handle->syscalls_of_interest);
 
 		//
