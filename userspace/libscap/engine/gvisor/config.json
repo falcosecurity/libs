@@ -1,0 +1,217 @@
+{
+    "trace_session": {
+      "name": "Default",
+      "points": [
+        {
+          "name": "container/start", 
+          "context_fields": [
+            "cwd",
+			"time"
+          ]
+        },
+        {
+          "name": "syscall/openat/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/openat/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/read/enter",
+          "optional_fields": [
+            "fd_path"
+          ],
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/read/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/1/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/1/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/execve/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/execve/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "cwd",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/56/enter",
+          "context_fields": [
+            "container_id",
+            "group_id",
+            "thread_id", 
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/56/exit",
+          "context_fields": [
+            "container_id",
+            "group_id",
+            "thread_id", 
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/57/enter",
+          "context_fields": [
+            "container_id",
+            "group_id",
+            "thread_id", 
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/sysno/57/exit",
+          "context_fields": [
+            "container_id",
+            "group_id",
+            "thread_id", 
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/connect/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/connect/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "sentry/clone",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time",
+            "process_name"
+          ]
+        },
+        {
+          "name": "sentry/task_exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "sentry/execve",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/socket/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/socket/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        }
+      ],
+      "sinks": [
+        {
+          "name": "remote",
+          "config": {
+            "endpoint": "/tmp/gvisor.sock"
+          }
+        }
+      ]
+    }
+  }
