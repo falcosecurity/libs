@@ -30,21 +30,6 @@ limitations under the License.
 class sinsp_plugin_manager
 {
 public:
-	/*!
-		\brief Contains important info about a plugin, suitable for
-		printing or other checks like compatibility.
-	*/
-	struct info
-	{
-		uint32_t id; // only for plugins with CAP_EVENT_SOURCE capability
-		ss_plugin_caps caps;
-		std::string name;
-		std::string description;
-		std::string contact;
-		sinsp_version plugin_version;
-		sinsp_version required_api_version;
-	};
-
 	virtual ~sinsp_plugin_manager();
 
 	/*!
