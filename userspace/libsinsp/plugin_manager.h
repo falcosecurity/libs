@@ -71,11 +71,6 @@ public:
 	}
 
 	/*!
-		\brief Returns names/descriptions/etc for all the plugins
-	*/
-	std::vector<info> infos() const;
-
-	/*!
 		\brief Returns a plugin given its ID. The plugin is guaranteed to have
 		the CAP_EVENT_SOURCE capability.
 	*/

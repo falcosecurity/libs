@@ -47,21 +47,3 @@ void sinsp_plugin_manager::add(std::shared_ptr<sinsp_plugin> plugin)
 		m_plugins_id_source_index[plugin->id()] = source_index;
 	}	
 }
-
-std::vector<sinsp_plugin_manager::info> sinsp_plugin_manager::infos() const
-{
-	std::vector<sinsp_plugin_manager::info> ret;
-	for(auto p : plugins())
-	{
-		sinsp_plugin_manager::info info;
-		info.name = p->name();
-		info.description = p->description();
-		info.contact = p->contact();
-		info.plugin_version = p->plugin_version();
-		info.required_api_version = p->required_api_version();
-		info.caps = p->caps();
-		info.id = info.caps & CAP_SOURCING ? p->id() : 0;
-		ret.push_back(info);
-	}
-	return ret;
-}
