@@ -32,30 +32,6 @@ limitations under the License.
 
 namespace scap_gvisor {
 
-void accept_thread(int listenfd, int epollfd)
-{
-	while(true)
-	{
-		int client = accept(listenfd, NULL, NULL);
-		if (client < 0)
-		{
-			if (errno == EINTR)
-			{
-				continue;
-			}
-			return;
-		}
-
-		struct epoll_event evt;
-		evt.data.fd = client;
-		evt.events = EPOLLIN;
-		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, client, &evt) < 0)
-		{
-			return;
-		}
-	}
-}
-
 engine::engine(char *lasterr)
 {
     m_lasterr = lasterr;
@@ -124,20 +100,45 @@ int32_t engine::init(std::string socket_path)
 
 int32_t engine::close()
 {
+	free_sandbox_buffers();
 	unlink(m_socket_path.c_str());
     return SCAP_SUCCESS;
 }
 
+void engine::free_sandbox_buffers()
+{
+	for (const auto& kv : m_sandbox_buffers) {
+		free(kv.second.buf);
+	}
+	m_sandbox_buffers.clear();
+}
+
+static void accept_thread(int listenfd, int epollfd)
+{
+	while(true)
+	{
+		int client = accept(listenfd, NULL, NULL);
+		if (client < 0)
+		{
+			if (errno == EINTR)
+			{
+				continue;
+			}
+			return;
+		}
+
+		struct epoll_event evt;
+		evt.data.fd = client;
+		evt.events = EPOLLIN;
+		if(epoll_ctl(epollfd, EPOLL_CTL_ADD, client, &evt) < 0)
+		{
+			return;
+		}
+	}
+}
+
 int32_t engine::start_capture()
 {
-	m_scap_buf.buf = malloc(GVISOR_INITIAL_EVENT_BUFFER_SIZE);
-	if(!m_scap_buf.buf)
-	{
-		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot allocate gvisor buffer of size %d", GVISOR_INITIAL_EVENT_BUFFER_SIZE);
-		return SCAP_FAILURE;
-	}
-	m_scap_buf.size = GVISOR_INITIAL_EVENT_BUFFER_SIZE;
-
 	m_accept_thread = std::thread(accept_thread, m_listenfd, m_epollfd);
 	m_accept_thread.detach();
 
@@ -146,38 +147,83 @@ int32_t engine::start_capture()
 
 int32_t engine::stop_capture()
 {
-	free(m_scap_buf.buf);
+	free_sandbox_buffers();
     return SCAP_SUCCESS;
 }
 
-parse_result engine::parse(scap_const_sized_buffer gvisor_msg)
+// Reads one gvisor message from the specified fd, stores the resulting events overwriting m_buffers and adds pointers to m_event_queue.
+// Returns:
+// * SCAP_SUCCESS in case of success
+// * SCAP_FAILURE in case of a fatal error while reading from the fd or allocating memory (m_lasterr is filled)
+// * SCAP_ILLEGAL_INPUT in case of parsing errors
+// * SCAP_EOF if there is no more data to process from this fd
+int32_t engine::process_message_from_fd(int fd)
 {
-	parse_result res;
+	char message[GVISOR_MAX_MESSAGE_SIZE];
 
-	res = parsers::parse_gvisor_proto(gvisor_msg, m_scap_buf);
-	if(res.status == SCAP_INPUT_TOO_SMALL)
+	ssize_t nbytes = read(fd, message, GVISOR_MAX_MESSAGE_SIZE);
+	if(nbytes == -1)
 	{
-		m_scap_buf.buf = realloc(m_scap_buf.buf, res.size);
-		if(!m_scap_buf.buf)
+		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Error reading from gvisor client: %s", strerror(errno));
+		return SCAP_FAILURE;
+	}
+	else if(nbytes == 0)
+	{
+		::close(fd);
+		if (m_sandbox_buffers.count(fd) == 1)
 		{
-			res.error = "Cannot realloc gvisor buffer";
-			res.status = SCAP_FAILURE;
-			return res;
+			free(m_sandbox_buffers[fd].buf);
+			m_sandbox_buffers.erase(fd);
 		}
-		m_scap_buf.size = res.size;
-	} 
-	else {
-		return res;
+
+		return SCAP_EOF;
 	}
 
-	return parsers::parse_gvisor_proto(gvisor_msg, m_scap_buf);
+	// check if we need to allocate a new buffer for this sandbox
+	if(m_sandbox_buffers.count(fd) != 1)
+	{
+		scap_sized_buffer new_buf;
+		new_buf.buf = malloc(GVISOR_INITIAL_EVENT_BUFFER_SIZE);
+		new_buf.size = GVISOR_INITIAL_EVENT_BUFFER_SIZE;
+		if (new_buf.buf == nullptr)
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %zu bytes for gvisor sandbox on fd %d", new_buf.size, fd);
+			return SCAP_FAILURE;
+		}
+		m_sandbox_buffers[fd] = new_buf;
+	}
+
+	scap_sized_buffer &sandbox_buf = m_sandbox_buffers[fd];
+	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
+
+	struct parsers::parse_result parse_result = parsers::parse_gvisor_proto(gvisor_msg, sandbox_buf);
+	if(parse_result.status == SCAP_INPUT_TOO_SMALL)
+	{
+		sandbox_buf.buf = realloc(sandbox_buf.buf, parse_result.size);
+		if(!sandbox_buf.buf)
+		{
+			strlcpy(m_lasterr, "Cannot realloc gvisor buffer", SCAP_LASTERR_SIZE);
+			return SCAP_FAILURE;
+		}
+		sandbox_buf.size = parse_result.size;
+		parse_result = parsers::parse_gvisor_proto(gvisor_msg, sandbox_buf);
+	} 
+
+	if(parse_result.status != SCAP_SUCCESS)
+	{
+		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
+		return parse_result.status;
+	}
+
+	for(scap_evt *evt : parse_result.scap_events)
+	{
+		m_event_queue.push_back(evt);
+	}
 }
 
 int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 {
 	struct epoll_event evts[GVISOR_MAX_READY_SANDBOXES];
-	char message[GVISOR_MAX_MESSAGE_SIZE];
-	struct parse_result parse_result;
 
 	// if there are still events to process do it before getting more
 	if(!m_event_queue.empty())
@@ -194,40 +240,17 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		return SCAP_TIMEOUT;
 	}
 
-	// TODO optimize this! nfds is max 1 at this point
 	for (int i = 0; i < nfds; ++i) {
 		if (evts[i].events & EPOLLIN) {
-			ssize_t nbytes = read(evts[i].data.fd, message, GVISOR_MAX_MESSAGE_SIZE);
-			if(nbytes == -1)
-			{
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Error reading from gvisor client: %s", strerror(errno));
+			uint32_t status = process_message_from_fd(evts[i].data.fd);
+			if (status == SCAP_FAILURE) {
 				return SCAP_FAILURE;
 			}
-			else if(nbytes == 0)
-			{
-				::close(evts[i].data.fd);
-				return SCAP_TIMEOUT;
+
+			// useful for debugging but we might want to do better
+			if (status == SCAP_ILLEGAL_INPUT) {
+				return SCAP_FAILURE;
 			}
-
-			scap_const_sized_buffer gvisor_msg = {.buf = (void *)message, .size = static_cast<size_t>(nbytes)};
-			parse_result = parse(gvisor_msg);
-			if(parse_result.status != SCAP_SUCCESS)
-			{
-				strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
-				return parse_result.status;
-			}
-
-			for(scap_evt *evt : parse_result.scap_events)
-			{
-				m_event_queue.push_back(evt);
-			}
-
-			// NOTE if more than one sandbox can be handled at a time this cannot return until all messages have been
-			// added to the queue. At the end, if any new message is available one can be returned.
-
-			*pevent = m_event_queue.front();
-			m_event_queue.pop_front();
-			return SCAP_SUCCESS;
 		}
 
 		if ((evts[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0)
@@ -244,11 +267,19 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll error: %s", strerror(socket_error));
 				return SCAP_FAILURE;
 			}
-			
 		}
 	}
 
-    return SCAP_SUCCESS;
+	// check if any message has been processed and return the first
+	if(!m_event_queue.empty())
+	{
+		*pevent = m_event_queue.front();
+		m_event_queue.pop_front();
+		return SCAP_SUCCESS;
+	}
+
+	// nothing to do
+    return SCAP_TIMEOUT;
 }
 
 } // namespace scap_gvisor

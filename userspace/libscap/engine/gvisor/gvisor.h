@@ -23,12 +23,11 @@ limitations under the License.
 #include <atomic>
 #include <deque>
 #include <vector>
+#include <map>
 
 #include "scap.h"
 
-// TODO: optimize this to allow up to 32 sandboxes to be handled at the same time
-#define GVISOR_MAX_READY_SANDBOXES 1
-// #define GVISOR_MAX_READY_SANDBOXES 32
+#define GVISOR_MAX_READY_SANDBOXES 32
 
 #define GVISOR_MAX_MESSAGE_SIZE 300 * 1024
 #define GVISOR_INITIAL_EVENT_BUFFER_SIZE 32
@@ -92,7 +91,8 @@ public:
     int32_t next(scap_evt **pevent, uint16_t *pcpuid);
     
 private:
-    parse_result parse(scap_const_sized_buffer gvisor_msg);
+    int32_t process_message_from_fd(int fd);
+    void free_sandbox_buffers();
 
     char *m_lasterr;
     int m_listenfd;
@@ -100,7 +100,9 @@ private:
     std::string m_socket_path;
     std::thread m_accept_thread;
     std::deque<scap_evt *> m_event_queue{};
-    scap_sized_buffer m_scap_buf;
+
+    // buffers in which to store events, one per each active sandbox, indexed by fd
+    std::map<int, scap_sized_buffer> m_sandbox_buffers;
 };
 
 } // namespace scap_gvisor
