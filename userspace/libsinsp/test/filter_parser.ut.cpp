@@ -83,20 +83,29 @@ TEST(parser, supported_operators)
 	}
 }
 
-// Inspired by Falco's parser smoke tests:
+// Based on and extended Falco's parser smoke tests:
 // https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/userspace/engine/lua/parser-smoke.sh#L41
 TEST(parser, parse_smoke_test)
 {
 	// good
 	test_accept("  a");
-	test_accept("a and b");
 	test_accept("(a)");
+	test_accept("a and b");
+	test_accept("a and b and c");
+	test_accept("a and b and(c)");
+	test_accept("(a)and(b)and(c)");
 	test_accept("(a and b)");
+	test_accept("a or b");
+	test_accept("a or b or c");
+	test_accept("a or b or(c)");
+	test_accept("(a)or(b)or(c)");
+	test_accept("(a or b)");
 	test_accept("(a.a exists and b)");
 	test_accept("(a.a exists) and (b)");
 	test_accept("a.a exists and b");
 	test_accept("a.a=1 or b.b=2 and c");
 	test_accept("not (a)");
+	test_accept("not(a)");
 	test_accept("not (not (a))");
 	test_accept("not (a.b=1)");
 	test_accept("not (a.a exists)");
@@ -104,6 +113,9 @@ TEST(parser, parse_smoke_test)
 	test_accept("a.b = 1 and not a");
 	test_accept("not not a");
 	test_accept("(not not a)");
+	test_accept("not not(a)");
+	test_accept("not(not(a))");
+	test_accept("not(a)and(not(b))");
 	test_accept("not a.b=1");
 	test_accept("not a.a exists");
 	test_accept("a.b = bla");
@@ -121,6 +133,34 @@ TEST(parser, parse_smoke_test)
 	test_accept("evt.arg[a] contains /bin");
 
 	// bad
+	test_reject("a andb");
+	test_reject("aand b");
+	test_reject("a and b and");
+	test_reject("a and b or");
+	test_reject("a and b not");
+	test_reject("and a");
+	test_reject("or a");
+	test_reject("a or b and");
+	test_reject("a or b or");
+	test_reject("a or b not");
+	test_reject("a not b and");
+	test_reject("a not b or");
+	test_reject("a not b not");
+	test_reject("a orb");
+	test_reject("aor b");
+	test_reject("a and or b");
+	test_reject("a andor b");
+	test_reject("a not b");
+	test_reject("a notb");
+	test_reject("anot b");
+	test_reject("a andnot b");
+	test_reject("a andnotb");
+	test_reject("a and notb");
+	test_reject("(a)andnot(b)");
+	test_reject("a ornot b");
+	test_reject("a ornotb");
+	test_reject("a or notb");
+	test_reject("(a)ornot(b)");
 	test_reject("evt.arg[] contains /bin");
 	test_reject("a.b = b = 1");
 	test_reject("(a.b = 1");
