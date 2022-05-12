@@ -110,6 +110,8 @@ public:
 	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const = 0;
 
 	virtual const std::vector<filtercheck_field_info>& fields() const = 0;
+
+	virtual bool is_source_compatible(const std::string &source) const = 0;
 };
 
 // Class that holds a plugin.
@@ -160,6 +162,7 @@ public:
 	virtual const std::set<std::string> &extract_event_sources() const override;
 	virtual bool extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const override;
 	virtual const std::vector<filtercheck_field_info>& fields() const override;
+	virtual bool is_source_compatible(const std::string &source) const override;
 
 private:
 	std::string m_name;
