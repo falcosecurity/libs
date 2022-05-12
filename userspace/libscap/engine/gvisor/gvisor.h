@@ -26,7 +26,10 @@ limitations under the License.
 
 #include "scap.h"
 
-#define GVISOR_MAX_READY_SANDBOXES 32
+// TODO: optimize this to allow up to 32 sandboxes to be handled at the same time
+#define GVISOR_MAX_READY_SANDBOXES 1
+// #define GVISOR_MAX_READY_SANDBOXES 32
+
 #define GVISOR_MAX_MESSAGE_SIZE 300 * 1024
 #define GVISOR_INITIAL_EVENT_BUFFER_SIZE 32
 
@@ -74,4 +77,30 @@ typedef struct parse_result parse_result;
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
 
 } // namespace parsers
+
+
+class engine {
+public:
+    engine(char *lasterr);
+    ~engine();
+    int32_t init(std::string socket_path);
+    int32_t close();
+
+    int32_t start_capture();
+    int32_t stop_capture();
+
+    int32_t next(scap_evt **pevent, uint16_t *pcpuid);
+    
+private:
+    parse_result parse(scap_const_sized_buffer gvisor_msg);
+
+    char *m_lasterr;
+    int m_listenfd;
+    int m_epollfd;
+    std::string m_socket_path;
+    std::thread m_accept_thread;
+    std::deque<scap_evt *> m_event_queue{};
+    scap_sized_buffer m_scap_buf;
+};
+
 } // namespace scap_gvisor

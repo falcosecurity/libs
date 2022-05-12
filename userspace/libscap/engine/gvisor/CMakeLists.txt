@@ -1,6 +1,6 @@
 include(protobuf)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${LIBSCAP_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR})
 
 add_library(scap_engine_gvisor STATIC
     pkg/sentry/seccheck/points/syscall.pb.cc
@@ -8,13 +8,21 @@ add_library(scap_engine_gvisor STATIC
     pkg/sentry/seccheck/points/container.pb.cc
     pkg/sentry/seccheck/points/sentry.pb.cc
     parsers.cpp
+    gvisor.cpp
+    scap_gvisor.cpp
 )
 
 if(USE_BUNDLED_PROTOBUF)
     add_dependencies(scap_engine_gvisor protobuf)
 endif()
 
-target_link_libraries(scap_engine_gvisor ${PROTOBUF_LIB} scap)
+find_package(Threads)
+
+target_link_libraries(scap_engine_gvisor 
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${PROTOBUF_LIB}
+    scap
+)
 
 add_custom_command(
     OUTPUT
@@ -32,5 +40,4 @@ add_custom_command(
     COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR}/proto --cpp_out=. ${CMAKE_CURRENT_SOURCE_DIR}/proto/pkg/sentry/seccheck/points/sentry.proto
     COMMAND ${PROTOC} -I ${CMAKE_CURRENT_SOURCE_DIR}/proto --cpp_out=. ${CMAKE_CURRENT_SOURCE_DIR}/proto/pkg/sentry/seccheck/points/syscall.proto
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
-
+)
