@@ -23,13 +23,19 @@ limitations under the License.
 // Context-free Grammar for Sinsp Filters
 //
 // Productions (EBNF Syntax):
-//     Expr          ::= OrExpr
-//     OrExpr        ::= AndExpr ('or' AndExpr)*
-//     AndExpr       ::= NotExpr ('and' NotExpr)*
-//     NotExpr       ::= ('not')* Check
+//     Expr                ::= OrExpr
+//     OrExpr              ::= AndExpr ('or' OrExprTail)*
+//     OrExprTail          ::= ' ' AndExpr
+//                             | '(' Expr ')'
+//     AndExpr             ::= NotExpr ('and' AndExprTail)*
+//     AndExprTail         ::= ' ' NotExpr
+//                             | '(' Expr ')'
+//     NotExpr             ::= ('not ')* NotExprTail
+//     NotExprTail         ::= 'not' '(' Expr ')'
+//                             | Check
 //     Check               ::= CheckField CheckCondition
 //                             | Identifier
-//                             | '(' OrExpr ')'
+//                             | '(' Expr ')'
 //     CheckCondition      ::= UnaryOperator
 //                             | NumOperator NumValue
 //                             | StrOperator StrValue
@@ -146,6 +152,7 @@ private:
 	ast::expr* parse_or();
 	ast::expr* parse_and();
 	ast::expr* parse_not();
+	ast::expr* parse_embedded_remainder();
 	ast::expr* parse_check();
 	ast::expr* parse_list_value();
 	ast::value_expr* parse_num_value();
