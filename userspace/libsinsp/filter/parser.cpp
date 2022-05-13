@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include <cstring>
+#include <iterator>
 #include "parser.h"
 #include "../utils.h"
 #include "../sinsp_exception.h"
@@ -154,18 +155,17 @@ ast::expr* parser::parse()
 ast::expr* parser::parse_or()
 {
 	depth_push();
+	ast::expr* child = nullptr;
 	vector<ast::expr*> children;
 	lex_blank();
 	children.push_back(parse_and());
 	lex_blank();
 	while (lex_helper_str("or"))
 	{
-		libsinsp::filter::ast::expr* child = nullptr;
 		if (!lex_blank())
 		{
 			if (lex_helper_str("("))
 			{
-				lex_blank();
 				child = parse_embedded_remainder();
 			}
 			else
@@ -191,18 +191,17 @@ ast::expr* parser::parse_or()
 ast::expr* parser::parse_and()
 {
 	depth_push();
+	ast::expr* child = nullptr;
 	vector<ast::expr*> children;
 	lex_blank();
 	children.push_back(parse_not());
 	lex_blank();
 	while (lex_helper_str("and"))
 	{
-		libsinsp::filter::ast::expr* child = nullptr;
 		if (!lex_blank())
 		{
 			if (lex_helper_str("("))
 			{
-				lex_blank();
 				child = parse_embedded_remainder();
 			}
 			else
@@ -237,7 +236,6 @@ ast::expr* parser::parse_not()
 		{
 			if (lex_helper_str("("))
 			{
-				lex_blank();
 				auto child = parse_embedded_remainder();
 				depth_pop();
 				return is_not ? new ast::not_expr(child) : child;
@@ -246,7 +244,6 @@ ast::expr* parser::parse_not()
 		}
 	}
 	auto child = parse_check();
-	lex_blank();
 	depth_pop();
 	return is_not ? new ast::not_expr(child) : child;
 }
@@ -264,7 +261,6 @@ ast::expr* parser::parse_embedded_remainder()
 		delete child;
 		throw sinsp_exception("expected a ')' token");
 	}
-	lex_blank();
 	depth_pop();
 	return child;
 }
@@ -275,7 +271,6 @@ ast::expr* parser::parse_check()
 	lex_blank();
 	if (lex_helper_str("("))
 	{
-		lex_blank();
 		auto child = parse_embedded_remainder();
 		depth_pop();
 		return child;
@@ -297,55 +292,40 @@ ast::expr* parser::parse_check()
 				throw sinsp_exception("expected a ']' token");
 			}
 		}
-		lex_blank();
 
+		lex_blank();
 		if (lex_unary_op())
 		{
-			lex_blank();
 			depth_pop();
 			return new ast::unary_check_expr(field, field_arg, trim_str(m_last_token));
 		}
 
 		string op = "";
 		ast::expr* value = NULL;
+		lex_blank();
 		if (lex_num_op())
 		{
-			lex_blank();
 			op = m_last_token;
 			value = parse_num_value();
 		}
 		else if (lex_str_op())
 		{
-			lex_blank();
 			op = m_last_token;
 			value = parse_str_value();
 		}
 		else if (lex_list_op())
 		{
-			lex_blank();
 			op = m_last_token;
 			value = parse_list_value();
 		} 
 		else
 		{
-			string ops = "";
-			for (auto &o: unary_ops)
+			std::string ops = "";
+			for (const auto &op : supported_operators())
 			{
-				ops += "'" + trim_str(o) + "', ";
+				ops += ops.empty() ? "" : ", ";
+				ops += "'" + op + "'";
 			}
-			for (auto &o: binary_num_ops)
-			{
-				ops += "'" + trim_str(o) + "', ";
-			}
-			for (auto &o: binary_str_ops)
-			{
-				ops += "'" + trim_str(o) + "', ";
-			}
-			for (auto &o: binary_list_ops)
-			{
-				ops += "'" + trim_str(o) + "', ";
-			}
-			ops.erase(ops.size() - 2, 2);
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
@@ -354,7 +334,6 @@ ast::expr* parser::parse_check()
 
 	if (lex_identifier())
 	{
-		lex_blank();
 		depth_pop();
 		return new ast::value_expr(m_last_token);
 	}
@@ -368,7 +347,6 @@ ast::value_expr* parser::parse_num_value()
 	lex_blank();
 	if (lex_hex_num() || lex_num())
 	{
-		lex_blank();
 		depth_pop();
 		return new ast::value_expr(m_last_token);
 	}
@@ -381,7 +359,6 @@ ast::value_expr* parser::parse_str_value()
 	lex_blank();
 	if (lex_quoted_str() || lex_bare_str())
 	{
-		lex_blank();
 		depth_pop();
 		return new ast::value_expr(m_last_token);
 	}
@@ -416,7 +393,6 @@ ast::expr* parser::parse_list_value()
 			lex_blank();
 			while (lex_helper_str(","))
 			{
-				lex_blank();
 				child = parse_str_value();
 				values.push_back(child->value);
 				delete child;
@@ -428,14 +404,12 @@ ast::expr* parser::parse_list_value()
 		{
 			throw sinsp_exception("expected a ')' token");
 		}
-		lex_blank();
 		depth_pop();
 		return new ast::list_expr(values);
 	}
 
 	if (lex_identifier())
 	{
-		lex_blank();
 		depth_pop();
 		return new ast::value_expr(m_last_token);
 	}
