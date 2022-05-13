@@ -22,7 +22,7 @@ set(LIBSCAP_UNIT_TESTS_SOURCES
     scap_event.ut.cpp
 )
 
-if (ENGINE_GVISOR)
+if (BUILD_LIBSCAP_GVISOR)
 	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
 	include_directories(../engine/gvisor)
 	include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)
