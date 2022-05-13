@@ -142,11 +142,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	include(FindMakedev)
 endif()
 
-if(NOT MINIMAL_BUILD AND NOT WIN32 AND NOT APPLE) # gVisor is currently only supported on Linux
-	set(ENGINE_GVISOR TRUE)
-	add_definitions(-DHAS_ENGINE_GVISOR)
-	add_subdirectory(engine/gvisor)
-	target_link_libraries(scap scap_engine_gvisor)
+
+# gVisor is currently only supported on Linux
+if(NOT MINIMAL_BUILD AND NOT WIN32 AND NOT APPLE)
+	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
+	if (BUILD_LIBSCAP_GVISOR)
+		add_definitions(-DHAS_ENGINE_GVISOR)
+		add_subdirectory(engine/gvisor)
+		target_link_libraries(scap scap_engine_gvisor)
+	endif()
 endif()
 
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
