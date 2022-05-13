@@ -267,3 +267,17 @@ static inline int32_t ringbuffer_next(struct scap_device_set *devset, OUT scap_e
 		return refill_read_buffers(devset);
 	}
 }
+
+static inline uint64_t ringbuffer_get_max_buf_used(struct scap_device_set *devset)
+{
+	uint64_t i;
+	uint64_t max = 0;
+
+	for(i = 0; i < devset->m_ndevs; i++)
+	{
+		uint64_t size = buf_size_used(&devset->m_devs[i]);
+		max = size > max ? size : max;
+	}
+
+	return max;
+}
