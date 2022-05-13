@@ -54,7 +54,7 @@ mkdir build && cd build
 The easiest way to build the project is to use `BUNDLED_DEPS` option, 
 meaning that most of the dependencies will be fetched and compiled during the process:
 ```bash
-cmake -DUSE_BUNDLED_DEPS=true ../
+cmake -DUSE_BUNDLED_DEPS=true -DCREATE_TEST_TARGETS=OFF ../
 make sinsp
 ```
 > **NOTE:** take a break as this will take quite a bit of time (around 15 mins, dependent on the hardware obviously).
@@ -89,6 +89,11 @@ Then, issue:
 cmake -DBUILD_BPF=true ../
 make bpf
 ```
+
+### gVisor support
+
+Libscap contains additional library functions to allow integration with system call events coming from [gVisor](https://gvisor.dev).
+Compilation of this functionality can be disabled with `-DBUILD_LIBSCAP_GVISOR=Off`.
 
 >__WARNING__: **clang-7** is the oldest supported version to build our BPF probe, since it is the one used by our infrastructure.
 
