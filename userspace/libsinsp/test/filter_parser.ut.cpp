@@ -25,7 +25,7 @@ static void test_equal_ast(string in, expr* ast)
 	delete ast;
 };
 
-static void test_accept(string in)
+static void test_accept(string in, parser::pos_info* out_pos = NULL)
 {
 	parser parser(in);
 	try
@@ -36,6 +36,10 @@ static void test_accept(string in)
 	{
 		auto pos = parser.get_pos();
 		FAIL() << "at " << pos.as_string() << ": " << e.what() << " -> " << in;
+	}
+	if (out_pos)
+	{
+		*out_pos = parser.get_pos();
 	}
 }
 
@@ -336,6 +340,35 @@ TEST(parser, parse_operators)
 	test_reject("test.op globvalue");
 }
 
+TEST(parser, parse_position_info)
+{
+	parser::pos_info pos;
+
+	test_accept("a and b", &pos);
+	EXPECT_EQ(pos.idx, 7);
+	EXPECT_EQ(pos.line, 1);
+	EXPECT_EQ(pos.col, pos.idx + 1);
+	test_accept("a and b    ", &pos);
+	EXPECT_EQ(pos.idx, 11);
+	EXPECT_EQ(pos.line, 1);
+	EXPECT_EQ(pos.col, pos.idx + 1);
+	test_accept("not b", &pos);
+	EXPECT_EQ(pos.idx, 5);
+	EXPECT_EQ(pos.line, 1);
+	EXPECT_EQ(pos.col, pos.idx + 1);
+	test_accept("not b    ", &pos);
+	EXPECT_EQ(pos.idx, 9);
+	EXPECT_EQ(pos.line, 1);
+	EXPECT_EQ(pos.col, pos.idx + 1);
+	test_accept("a    ", &pos);
+	EXPECT_EQ(pos.idx, 5);
+	EXPECT_EQ(pos.line, 1);
+	EXPECT_EQ(pos.col, pos.idx + 1);
+	test_accept("a \n and \n  b", &pos);
+	EXPECT_EQ(pos.idx, 12);
+	EXPECT_EQ(pos.line, 3);
+	EXPECT_EQ(pos.col, 4);
+}
 
 // complex test case with all supported node types
 TEST(parser, expr_all_node_types)
