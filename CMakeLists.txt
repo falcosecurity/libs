@@ -71,6 +71,8 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	include(gtest)
 endif()
 
+option(INSTALL_LIBS "Actually install files during the install step." ON)
+
 include(libscap)
 include(libsinsp)
 
