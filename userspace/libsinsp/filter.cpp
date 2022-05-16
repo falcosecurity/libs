@@ -1430,6 +1430,9 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 			extract(evt, m_extraction_cache_entry->m_res, sanitize_strings);
 		}
 
+		// Shallow-copy the cached values to values
+		values = m_extraction_cache_entry->m_res;
+
 		return !m_extraction_cache_entry->m_res.empty();
 	}
 	else
