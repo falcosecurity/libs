@@ -229,6 +229,20 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
+	// Note that the provided tid, a thread in this main thread's
+	// pid, has been used in an exec enter event. In the
+	// corresponding exec exit event, the threadinfo for this tid
+	// will be removed, as it no longer exists.
+	void set_exec_enter_tid(int64_t tid);
+
+	// Fill in the provided tid with any tid set in
+	// set_exec_enter_tid(). Returns true if a tid was set, false
+	// otherwise.
+	bool get_exec_enter_tid(int64_t* tid);
+
+	// Clear any value set in set_exec_enter_tid
+	void clear_exec_enter_tid();
+
 	static void populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo);
 
 	// Return true if this thread is a part of a healthcheck,
@@ -248,6 +262,16 @@ public:
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	cgroups_t& cgroups() const;
+
+	// In rare cases, a thread may do an exec, which results in
+	// the thread having its tid reset to be the main thread of
+	// the pid and all other threads for the pid being destroyed.
+	//
+	// We need to keep track of the tid that started the exec so
+	// when parsing the exec exit event, we delete the thread that
+	// performed the exec, as it is now the main thread of the new
+	// pid.
+	std::unique_ptr<int64_t> m_exec_enter_tid;
 
 	//
 	// Core state
