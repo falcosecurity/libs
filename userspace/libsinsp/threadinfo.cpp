@@ -1042,6 +1042,28 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
+void sinsp_threadinfo::set_exec_enter_tid(int64_t tid)
+{
+	m_exec_enter_tid.reset(new int64_t(tid));
+}
+
+bool sinsp_threadinfo::get_exec_enter_tid(int64_t* tid)
+{
+	if(m_exec_enter_tid == NULL)
+	{
+		return false;
+	}
+
+	*tid = *(m_exec_enter_tid.get());
+
+	return true;
+}
+
+void sinsp_threadinfo::clear_exec_enter_tid()
+{
+	m_exec_enter_tid = NULL;
+}
+
 void sinsp_threadinfo::populate_cmdline(string &cmdline, const sinsp_threadinfo *tinfo)
 {
 	cmdline = tinfo->get_comm();
@@ -1421,6 +1443,15 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 				else
 				{
 					ASSERT(false);
+				}
+
+				// If the main thread has already been
+				// closed and now has no children,
+				// remove it now.
+				if((main_thread->m_flags & PPM_CL_CLOSED) &&
+				   main_thread->m_nchilds == 0)
+				{
+					m_inspector->m_tid_to_remove = main_thread->m_tid;
 				}
 			}
 			else

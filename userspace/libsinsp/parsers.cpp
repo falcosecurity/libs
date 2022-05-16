@@ -267,11 +267,13 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETRESGID_E:
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
+	case PPME_SYSCALL_SETPGID_E:
+		store_event(evt);
+		break;
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
 	case PPME_SYSCALL_EXECVEAT_E:
-	case PPME_SYSCALL_SETPGID_E:
-		store_event(evt);
+		parse_execve_enter(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
 		if(!m_inspector->m_is_dumping && evt->m_tinfo != nullptr)
@@ -1613,6 +1615,38 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	return;
 }
 
+void sinsp_parser::parse_execve_enter(sinsp_evt *evt)
+{
+	store_event(evt);
+
+	if(!evt->m_tinfo)
+	{
+		// Should be impossible
+		ASSERT(false);
+
+		return;
+	}
+
+	// Find the main thread for this pid and note that this tid
+	// was an an exec enter event. When parsing the exit event,
+	// the threadinfo for the tid will be removed, as it no longer
+	// exists.
+	sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(evt->m_tinfo->m_pid, true, true).get();
+
+	if(!main_thread)
+	{
+		return;
+	}
+
+	// Only set the exec enter tid for non-main threads
+	if(main_thread->m_tid == evt->m_tinfo->m_tid)
+	{
+		return;
+	}
+
+	main_thread->set_exec_enter_tid(evt->m_tinfo->m_tid);
+}
+
 void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -1998,6 +2032,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	{
 		m_fd_listener->on_execve(evt);
 	}
+
+	// The exec may have been performed by a thread other than the
+	// main thread. If that occurred, remove the threadinfo for
+	// the now-nonexistent thread.
+	int64_t exec_enter_tid;
+	if(evt->m_tinfo->get_exec_enter_tid(&exec_enter_tid))
+	{
+		m_inspector->m_tid_to_remove = exec_enter_tid;
+
+		evt->m_tinfo->clear_exec_enter_tid();
+	}
+
+	// This may have been a multithreaded program that exec()ed
+	// into a new process. In any case, all the other threads were
+	// destroyed by doing the exec, so reset the child thread
+	// count.
+	evt->m_tinfo->m_nchilds = 0;
 
 	return;
 }
