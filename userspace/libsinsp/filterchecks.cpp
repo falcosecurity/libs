@@ -6132,6 +6132,11 @@ int32_t sinsp_filter_check_container::extract_arg(const string &val, size_t base
 	return end+1;
 }
 
+const std::string &sinsp_filter_check_container::get_argstr()
+{
+	return m_argstr;
+}
+
 int32_t sinsp_filter_check_container::parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering)
 {
 	string val(str);
