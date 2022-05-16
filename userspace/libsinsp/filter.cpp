@@ -682,6 +682,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 
 		case PT_INT64:
 		case PT_PID:
+		case PT_FD:
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
@@ -784,7 +785,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
+			throw sinsp_exception("wrong param type " + to_string((long long) ptype));
 	}
 }
 
@@ -874,6 +875,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 		case PT_INT64:
 		case PT_PID:
 		case PT_ERRNO:
+		case PT_FD:
 			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo64;
@@ -1084,7 +1086,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong event type " + to_string((long long) ptype));
+			throw sinsp_exception("wrong param type " + to_string((long long) ptype));
 	}
 }
 
