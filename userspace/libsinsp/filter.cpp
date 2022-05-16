@@ -780,6 +780,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 		case PT_IPV4ADDR:
 		case PT_IPV6ADDR:
 		case PT_IPADDR:
+		case PT_IPNET:
 		case PT_FSRELPATH:
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
@@ -1081,6 +1082,11 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			snprintf(m_getpropertystr_storage,
 					 sizeof(m_getpropertystr_storage),
 					 "%.1lf", *(double*)rawval);
+			return m_getpropertystr_storage;
+		case PT_IPNET:
+			snprintf(m_getpropertystr_storage,
+				 sizeof(m_getpropertystr_storage),
+				 "<IPNET>");
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
