@@ -252,6 +252,7 @@ public:
 		m_cpu_period(100000),
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
+		m_container_user("<NA>"),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
 	{
@@ -316,6 +317,9 @@ public:
 	bool m_is_pod_sandbox;
 
 	sinsp_container_lookup m_lookup;
+
+	std::string m_container_user;
+
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif

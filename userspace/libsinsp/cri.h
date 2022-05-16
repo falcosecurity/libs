@@ -126,6 +126,16 @@ public:
 	bool parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container);
 
 	/**
+	 * @brief fill out extra container user info (e.g. configured uid) based on CRI response
+	 * @param info the `info` key of the `info` field of the ContainerStatusResponse
+	 * @param container the container info to fill out
+	 * @return true if successful
+	 *
+	 * Note: only containerd exposes this data
+	 */
+	bool parse_cri_user_info(const Json::Value &info, sinsp_container_info &container);
+
+	/**
 	 * @brief check if the passed container ID is a pod sandbox (pause container)
 	 * @param container_id the container ID to check
 	 * @return true if it's a pod sandbox
