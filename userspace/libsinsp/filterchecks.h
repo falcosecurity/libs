@@ -783,6 +783,7 @@ public:
 	sinsp_filter_check* allocate_new();
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 
+	const std::string &get_argstr();
 private:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	int32_t extract_arg(const string& val, size_t basename);
