@@ -73,7 +73,9 @@ int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_thread
 int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
-	uint32_t nfound = 0;
+	uint32_t pidinfo_nfound = 0;
+	uint32_t caps_nfound = 0;
+	uint32_t vm_nfound = 0;
 	int64_t tmp;
 	uint32_t uid;
 	uint64_t tgid;
@@ -123,7 +125,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		if(strstr(line, "Tgid") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 
 			if(sscanf(line, "Tgid: %" PRIu64, &tgid) == 1)
 			{
@@ -136,7 +138,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		if(strstr(line, "Uid") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 
 			if(sscanf(line, "Uid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2)
 			{
@@ -149,7 +151,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "Gid") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 
 			if(sscanf(line, "Gid: %" PRIu64 " %" PRIu32, &tmp, &uid) == 2)
 			{
@@ -162,7 +164,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		if(strstr(line, "CapInh") == line)
 		{
-			nfound++;
+			caps_nfound++;
 
 			if(sscanf(line, "CapInh: %" PRIx64, &cap_inheritable) == 1)
 			{
@@ -175,7 +177,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		if(strstr(line, "CapPrm") == line)
 		{
-			nfound++;
+			caps_nfound++;
 
 			if(sscanf(line, "CapPrm: %" PRIx64, &cap_permitted) == 1)
 			{
@@ -188,7 +190,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		if(strstr(line, "CapEff") == line)
 		{
-			nfound++;
+			caps_nfound++;
 
 			if(sscanf(line, "CapEff: %" PRIx64, &cap_effective) == 1)
 			{
@@ -201,7 +203,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "PPid") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 
 			if(sscanf(line, "PPid: %" PRIu64, &ppid) == 1)
 			{
@@ -214,7 +216,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "VmSize:") == line)
 		{
-			nfound++;
+			vm_nfound++;
 
 			if(sscanf(line, "VmSize: %" PRIu32, &vmsize_kb) == 1)
 			{
@@ -227,7 +229,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "VmRSS:") == line)
 		{
-			nfound++;
+			vm_nfound++;
 
 			if(sscanf(line, "VmRSS: %" PRIu32, &vmrss_kb) == 1)
 			{
@@ -240,7 +242,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "VmSwap:") == line)
 		{
-			nfound++;
+			vm_nfound++;
 
 			if(sscanf(line, "VmSwap: %" PRIu32, &vmswap_kb) == 1)
 			{
@@ -253,7 +255,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "NSpid:") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 			if(sscanf(line, "NSpid: %*u %" PRIu64, &vtid) == 1)
 			{
 				tinfo->vtid = vtid;
@@ -265,7 +267,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "NSpgid:") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 			if(sscanf(line, "NSpgid: %*u %" PRIu64, &vpgid) == 1)
 			{
 				tinfo->vpgid = vpgid;
@@ -273,7 +275,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 		}
 		else if(strstr(line, "NStgid:") == line)
 		{
-			nfound++;
+			pidinfo_nfound++;
 			if(sscanf(line, "NStgid: %*u %" PRIu64, &vpid) == 1)
 			{
 				tinfo->vpid = vpid;
@@ -284,13 +286,20 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			}
 		}
 
-		if(nfound == 13)
+		if(pidinfo_nfound == 7 && caps_nfound == 3 && vm_nfound == 3)
 		{
 			break;
 		}
 	}
 
-	ASSERT(nfound == 13 || nfound == 7 || nfound == 6);
+	// We must fetch all pidinfo information
+	ASSERT(pidinfo_nfound == 7);
+
+	// Capability info may not be found, but it's all or nothing
+	ASSERT(caps_nfound == 0 || caps_nfound == 3);
+
+	// VM info may not be found, but it's all or nothing
+	ASSERT(vm_nfound == 0 || vm_nfound == 3);
 
 	fclose(f);
 
