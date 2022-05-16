@@ -155,6 +155,7 @@ std::shared_ptr<sinsp_threadinfo> sinsp_container_info::get_tinfo(sinsp* inspect
 	tinfo->m_vtid = -2;
 	tinfo->m_vpid = -2;
 	tinfo->m_comm = "container:" + m_id;
+	tinfo->m_exe = "container:" + m_id;
 	tinfo->m_container_id = m_id;
 
 	return tinfo;

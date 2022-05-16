@@ -189,6 +189,8 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 
 	container["Mounts"] = mounts;
 
+	container["User"] = container_info.m_container_user;
+
 	sinsp_container_info::container_health_probe::add_health_probes(container_info.m_health_probes, container);
 
 	char addrbuff[100];
