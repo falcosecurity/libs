@@ -113,7 +113,6 @@ struct scap
 	struct scap_engine_handle m_engine;
 
 	scap_mode_t m_mode;
-	struct kmod_engine m_kmod_engine;
 	scap_reader_t* m_reader;
 	char* m_reader_evt_buf;
 	size_t m_reader_evt_buf_size;

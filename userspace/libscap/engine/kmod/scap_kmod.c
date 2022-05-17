@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -29,9 +30,30 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_engine_util.h"
 #include "ringbuffer/ringbuffer.h"
+#include "../common/strlcpy.h"
 
 //#define NDEBUG
 #include <assert.h>
+
+static bool match(scap_open_args* open_args)
+{
+	return !open_args->bpf_probe && !open_args->udig;
+}
+
+static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
+{
+	struct kmod_engine *engine = calloc(1, sizeof(struct kmod_engine));
+	if(engine)
+	{
+		engine->m_lasterr = lasterr_ptr;
+	}
+	return engine;
+}
+
+static void free_handle(struct scap_engine_handle engine)
+{
+	free(engine.m_handle);
+}
 
 static uint32_t get_max_consumers()
 {
@@ -81,7 +103,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		return SCAP_FAILURE;
 	}
 
-	rc = devset_init(&handle->m_kmod_engine.m_dev_set, ndevs, handle->m_lasterr);
+	rc = devset_init(&handle->m_engine.m_handle->m_dev_set, ndevs, handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
@@ -93,7 +115,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	//
 	len = RING_BUF_SIZE * 2;
 
-	struct scap_device_set *devset = &handle->m_kmod_engine.m_dev_set;
+	struct scap_device_set *devset = &handle->m_engine.m_handle->m_dev_set;
 	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
@@ -276,12 +298,17 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_kmod_next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+{
+	return ringbuffer_next(&engine.m_handle->m_dev_set, pevent, pcpuid);
+}
+
 uint32_t scap_kmod_get_n_devs(struct scap_engine_handle engine)
 {
 	return engine.m_handle->m_dev_set.m_ndevs;
 }
 
-uint64_t scap_kmod_max_buf_used(struct scap_engine_handle engine)
+uint64_t scap_kmod_get_max_buf_used(struct scap_engine_handle engine)
 {
 	return ringbuffer_get_max_buf_used(&engine.m_handle->m_dev_set);
 }
@@ -457,7 +484,7 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_handle_eventmask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id)
+int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id)
 {
 	//
 	// Tell the driver to change the snaplen
@@ -634,3 +661,88 @@ int32_t scap_kmod_set_statsd_port(struct scap_engine_handle engine, const uint16
 
 	return SCAP_SUCCESS;
 }
+
+static int32_t unsupported_config(struct scap_engine_handle engine, const char* msg)
+{
+	struct kmod_engine* handle = engine.m_handle;
+
+	strlcpy(handle->m_lasterr, msg, SCAP_LASTERR_SIZE);
+	return SCAP_FAILURE;
+}
+
+static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
+{
+	switch(setting)
+	{
+	case SCAP_SAMPLING_RATIO:
+		if(arg2 == 0)
+		{
+			return scap_kmod_stop_dropping_mode(engine);
+		}
+		else
+		{
+			return scap_kmod_start_dropping_mode(engine, arg1);
+		}
+	case SCAP_TRACERS_CAPTURE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
+		}
+		return scap_kmod_enable_tracers_capture(engine);
+	case SCAP_PAGE_FAULTS:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
+		}
+		return scap_kmod_enable_page_faults(engine);
+	case SCAP_SNAPLEN:
+		return scap_kmod_set_snaplen(engine, arg1);
+	case SCAP_EVENTMASK:
+		return scap_kmod_handle_event_mask(engine, arg1, arg2);
+	case SCAP_DYNAMIC_SNAPLEN:
+		if(arg1 == 0)
+		{
+			return scap_kmod_disable_dynamic_snaplen(engine);
+		}
+		else
+		{
+			return scap_kmod_enable_dynamic_snaplen(engine);
+		}
+	case SCAP_SIMPLEDRIVER_MODE:
+		if(arg1 == 0)
+		{
+			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
+		}
+		return scap_kmod_enable_simpledriver_mode(engine);
+	case SCAP_FULLCAPTURE_PORT_RANGE:
+		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
+	case SCAP_STATSD_PORT:
+		return scap_kmod_set_statsd_port(engine, arg1);
+	default:
+	{
+		char msg[256];
+		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
+		return unsupported_config(engine, msg);
+	}
+	}
+}
+
+struct scap_vtable scap_kmod_engine = {
+	.name = "kmod",
+	.mode = SCAP_MODE_LIVE,
+
+	.match = match,
+	.alloc_handle = alloc_handle,
+	.init = scap_kmod_init,
+	.free_handle = free_handle,
+	.close = scap_kmod_close,
+	.next = scap_kmod_next,
+	.start_capture = scap_kmod_start_capture,
+	.stop_capture = scap_kmod_stop_capture,
+	.configure = configure,
+	.get_stats = scap_kmod_get_stats,
+	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
+	.get_n_devs = scap_kmod_get_n_devs,
+	.get_max_buf_used = scap_kmod_get_max_buf_used,
+};
+
