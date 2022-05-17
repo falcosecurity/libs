@@ -85,14 +85,9 @@ list(APPEND targetfiles
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
-	scap_userlist.c
-	ringbuffer/devset.c)
+	scap_userlist.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	list(APPEND targetfiles
-		scap_kmod.c
-		engine/kmod/scap_kmod.c)
-
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
@@ -180,7 +175,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap scap_event_schema)
 endif()
 
-add_library(scap_engine_util scap_engine_util.c)
+add_library(scap_engine_util
+	scap_engine_util.c
+	ringbuffer/devset.c)
 
 target_link_libraries(scap scap_engine_util)
 
@@ -205,4 +202,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_BPF)
 	add_subdirectory(engine/bpf)
 	target_link_libraries(scap scap_engine_bpf)
+
+	add_definitions(-DHAS_ENGINE_KMOD)
+	add_subdirectory(engine/kmod)
+	target_link_libraries(scap scap_engine_kmod)
 endif()
