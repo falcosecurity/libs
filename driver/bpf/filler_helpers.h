@@ -903,10 +903,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		} 
 		else 
 		{
-			/*
-			 * Handle NULL pointers
-			 */
-			len = 0;
+			len = val_len;
 		}
 		break;
 	}
