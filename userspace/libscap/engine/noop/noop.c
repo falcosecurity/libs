@@ -102,6 +102,16 @@ uint64_t noop_get_max_buf_used(struct scap_engine_handle engine)
 	return 0;
 }
 
+int32_t noop_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
+{
+	return SCAP_NOT_SUPPORTED;
+}
+
+int32_t noop_get_vxid(struct scap_engine_handle engine, int64_t xid, int64_t* vxid)
+{
+	return SCAP_NOT_SUPPORTED;
+}
+
 const struct scap_vtable scap_noop_engine = {
 	.name = "noop",
 	.mode = SCAP_MODE_NODRIVER,
@@ -118,4 +128,7 @@ const struct scap_vtable scap_noop_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
+	.get_threadlist = noop_get_threadlist,
+	.get_vpid = noop_get_vxid,
+	.get_vtid = noop_get_vxid,
 };

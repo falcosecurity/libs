@@ -223,6 +223,43 @@ struct scap_vtable {
 	 * @return the buffer space used, in bytes
 	 */
 	uint64_t (*get_max_buf_used)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief get the list of all threads in the system, with their cpu usage
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param procinfo_p pointer to pointer to the resulting list
+	 * @param lasterr pointer to a buffer of SCAP_LASTERR_SIZE bytes
+	 *                for the error message (if any)
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * `procinfo_p` must not be NULL, but `*procinfo_p` may be; the returned
+	 * list will be (re)allocated on demand
+	 */
+	int32_t (*get_threadlist)(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
+
+	/**
+	 * @brief get the vpid of a process
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param pid the pid of the process to check
+	 * @param vpid output parameter, pointer to the vpid
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * `vpid` is the pid as seen by the process itself, i.e. within its
+	 * PID namespace
+	 */
+	int32_t (*get_vpid)(struct scap_engine_handle engine, int64_t pid, int64_t *vpid);
+
+	/**
+	 * @brief get the vtid of a process
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param tid the tid of the process to check
+	 * @param vtid output parameter, pointer to the vtid
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * `vtid` is the tid as seen by the process itself, i.e. within its
+	 * PID namespace
+	 */
+	int32_t (*get_vtid)(struct scap_engine_handle engine, int64_t tid, int64_t *vtid);
 };
 
 #ifdef __cplusplus

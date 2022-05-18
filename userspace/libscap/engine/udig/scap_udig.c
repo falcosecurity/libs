@@ -23,6 +23,7 @@
 #include "scap-int.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "ringbuffer/ringbuffer.h"
+#include "engine/noop/noop.h"
 
 #define PPM_PORT_STATSD 8125
 
@@ -969,4 +970,7 @@ struct scap_vtable scap_udig_engine = {
 	.get_n_tracepoint_hit = get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
+	.get_threadlist = scap_procfs_get_threadlist,
+	.get_vpid = noop_get_vxid,
+	.get_vtid = noop_get_vxid,
 };

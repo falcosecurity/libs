@@ -529,8 +529,30 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, int64_t tid, int64_t* vtid)
+{
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*vtid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+
+	if(*vtid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vtid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_vtid(handle->m_engine, tid, vtid);
+	}
+
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get vtid (not in live mode)");
@@ -541,33 +563,37 @@ static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
 	ASSERT(false)
 	return SCAP_FAILURE;
 #else
-
-	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
-	{
-		*vtid = 0;
-	}
-	else
-	{
-		*vtid = ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
-
-		if(*vtid == -1)
-		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vtid failed (%s)",
-				 scap_strerror(handle, errno));
-			return SCAP_FAILURE;
-		}
-	}
-
-	return SCAP_SUCCESS;
+	return scap_kmod_get_vtid(handle->m_engine, tid, vtid);
 #endif
 }
 
-static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
+int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, int64_t pid, int64_t* vpid)
 {
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*vpid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VPID, pid);
+
+	if(*vpid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vpid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+static int32_t scap_get_vpid(scap_t* handle, int64_t pid, int64_t *vpid)
+{
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_vpid(handle->m_engine, pid, vpid);
+	}
+
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get vtid (not in live mode)");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get vpid (not in live mode)");
 		return SCAP_FAILURE;
 	}
 
@@ -575,25 +601,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t tid, int64_t *vpid)
 	ASSERT(false)
 	return SCAP_FAILURE;
 #else
-
-	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
-	{
-		*vpid = 0;
-	}
-	else
-	{
-		*vpid = ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VPID, tid);
-
-		if(*vpid == -1)
-		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vpid failed (%s)",
-				 scap_strerror(handle, errno));
-			return SCAP_FAILURE;
-		}
-	}
-
-	return SCAP_SUCCESS;
+	return scap_kmod_get_vpid(handle->m_engine, pid, vpid);
 #endif
 }
 

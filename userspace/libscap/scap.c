@@ -2068,10 +2068,9 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	}
 
 	int res;
-	// TODO: we got rid of handle->m_udig and ->m_bpf but we don't have proclists virtualized yet
-	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
+	if(handle->m_vtable)
 	{
-		res = scap_procfs_get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
+		res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
 	}
 	else
 	{
