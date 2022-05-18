@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <set>
+#include <string>
 #include <vector>
 
 
@@ -49,7 +50,7 @@ private:
 /*!
   \brief This is the class that compiles the filters.
 */
-class SINSP_PUBLIC sinsp_filter_compiler: 
+class SINSP_PUBLIC sinsp_filter_compiler:
 	private libsinsp::filter::ast::expr_visitor
 {
 public:
@@ -66,7 +67,7 @@ public:
 	*/
 	sinsp_filter_compiler(
 		sinsp* inspector,
-		const string& fltstr,
+		const std::string& fltstr,
 		bool ttable_only=false);
 
 	/*!
@@ -79,7 +80,7 @@ public:
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const string& fltstr,
+		const std::string& fltstr,
 		bool ttable_only=false);
 
 	/*!
@@ -116,20 +117,20 @@ private:
 	void visit(libsinsp::filter::ast::list_expr*) override;
 	void visit(libsinsp::filter::ast::unary_check_expr*) override;
 	void visit(libsinsp::filter::ast::binary_check_expr*) override;
-	void check_ttable_only(string& field, gen_event_filter_check *check);
+	void check_ttable_only(std::string& field, gen_event_filter_check *check);
 	void check_op_value_compatibility(cmpop op, std::string& value);
-	cmpop str_to_cmpop(string& str);
-	string create_filtercheck_name(string& name, string& arg);
-	gen_event_filter_check* create_filtercheck(string& field);
+	cmpop str_to_cmpop(std::string& str);
+	std::string create_filtercheck_name(std::string& name, std::string& arg);
+	gen_event_filter_check* create_filtercheck(std::string& field);
 
 	int32_t m_check_id;
 	bool m_ttable_only;
 	bool m_internal_parsing;
 	bool m_expect_values;
 	boolop m_last_boolop;
-	string m_flt_str;
+	std::string m_flt_str;
 	sinsp_filter* m_filter;
-	vector<string> m_field_values;
+	std::vector<std::string> m_field_values;
 	libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
 
@@ -156,7 +157,7 @@ public:
 	// filter_fieldclass_infos. This is useful for programs that
 	// use filterchecks but not factories.
 	static std::list<filter_fieldclass_info> check_infos_to_fieldclass_infos(
-		const vector<const filter_check_info*> &fc_plugins);
+		const std::vector<const filter_check_info*> &fc_plugins);
 
 protected:
 	sinsp *m_inspector;
