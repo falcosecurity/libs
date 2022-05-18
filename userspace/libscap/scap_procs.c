@@ -38,6 +38,7 @@ limitations under the License.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 #include "scap_engines.h"
+#include "engine/kmod/kmod.h"
 
 #if defined(CYGWING_AGENT) || defined(_WIN32)
 #include <io.h>
@@ -1714,9 +1715,8 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 	return SCAP_SUCCESS;
 }
 
-struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
+int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
-	struct ppm_proclist_info *res = NULL;
 #ifdef __linux__
 	DIR *dir_p = NULL;
 	DIR *taskdir_p = NULL;
@@ -1724,14 +1724,14 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 	struct dirent *dir_entry_p;
 	char procdirname[SCAP_MAX_PATH_SIZE];
 
-	handle->m_driver_procinfo->n_entries = 0;
+	(*procinfo_p)->n_entries = 0;
 
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
 
 	dir_p = opendir(procdirname);
 	if(dir_p == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", procdirname);
+		snprintf(lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", procdirname);
 		goto error;
 	}
 
@@ -1751,7 +1751,7 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 		taskdir_p = opendir(tasksdirname);
 		if(taskdir_p == NULL)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", tasksdirname);
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", tasksdirname);
 			continue;
 		}
 
@@ -1782,18 +1782,18 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 				continue;
 			}
 
-			if(handle->m_driver_procinfo->n_entries == handle->m_driver_procinfo->max_entries)
+			if((*procinfo_p)->n_entries == (*procinfo_p)->max_entries)
 			{
-				if(!scap_alloc_proclist_info(handle, handle->m_driver_procinfo->n_entries + 256))
+				if(!scap_alloc_proclist_info(procinfo_p, (*procinfo_p)->n_entries + 256, lasterr))
 				{
 					goto error;
 				}
 			}
 
-			handle->m_driver_procinfo->entries[handle->m_driver_procinfo->n_entries].pid = tid;
-			handle->m_driver_procinfo->entries[handle->m_driver_procinfo->n_entries].utime = utime;
-			handle->m_driver_procinfo->entries[handle->m_driver_procinfo->n_entries].stime = stime;
-			++handle->m_driver_procinfo->n_entries;
+			(*procinfo_p)->entries[(*procinfo_p)->n_entries].pid = tid;
+			(*procinfo_p)->entries[(*procinfo_p)->n_entries].utime = utime;
+			(*procinfo_p)->entries[(*procinfo_p)->n_entries].stime = stime;
+			++(*procinfo_p)->n_entries;
 
 			fclose(fp);
 			fp = NULL;
@@ -1803,7 +1803,6 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 		taskdir_p = NULL;
 	}
 
-	res = handle->m_driver_procinfo;
 	error:
 	if(dir_p)
 	{
@@ -1819,6 +1818,8 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle)
 	{
 		fclose(fp);
 	}
+	return SCAP_SUCCESS;
+#else
+	return SCAP_FAILURE;
 #endif /* __linux__ */
-	return res;
 }

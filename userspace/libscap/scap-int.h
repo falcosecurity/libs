@@ -279,7 +279,7 @@ int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
 int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname);
 
-bool scap_alloc_proclist_info(scap_t* handle, uint32_t n_entries);
+bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_entries, char* error);
 
 // Determine whether or not the provided event should be suppressed,
 // based on its event type and parameters. May update the set of
@@ -309,7 +309,7 @@ int32_t scap_update_suppressed(scap_t *handle,
 const char *scap_strerror(scap_t *handle, int errnum);
 const char *scap_strerror_r(char *buf, int errnum);
 
-struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
+int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 //
 // ASSERT implementation
