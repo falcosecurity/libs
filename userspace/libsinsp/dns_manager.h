@@ -34,7 +34,7 @@ class sinsp_dns_manager
 {
 public:
 	bool match(const char *name, int af, void *addr, uint64_t ts);
-	string name_of(int af, void *addr, uint64_t ts);
+	std::string name_of(int af, void *addr, uint64_t ts);
 
 	void cleanup();
 
