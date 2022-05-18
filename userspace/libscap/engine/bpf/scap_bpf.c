@@ -46,10 +46,7 @@ limitations under the License.
 #include "compat/misc.h"
 #include "compat/bpf.h"
 #include "../common/strlcpy.h"
-
-#ifdef MINIMAL_BUILD
 #include "noop.h"
-#endif
 
 #ifndef MINIMAL_BUILD
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
@@ -1865,6 +1862,9 @@ struct scap_vtable scap_bpf_engine = {
 	.get_n_tracepoint_hit = scap_bpf_get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
+	.get_threadlist = scap_procfs_get_threadlist,
+	.get_vpid = noop_get_vxid,
+	.get_vtid = noop_get_vxid,
 };
 
 #else // MINIMAL_BUILD
@@ -1892,6 +1892,9 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
+	.get_threadlist = noop_get_threadlist,
+	.get_vpid = noop_get_vxid,
+	.get_vtid = noop_get_vxid,
 };
 #endif // MINIMAL_BUILD
 
