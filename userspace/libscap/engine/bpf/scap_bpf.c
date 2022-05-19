@@ -1865,6 +1865,7 @@ struct scap_vtable scap_bpf_engine = {
 	.get_threadlist = scap_procfs_get_threadlist,
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
+	.getpid_global = scap_os_getpid_global,
 };
 
 #else // MINIMAL_BUILD
@@ -1895,6 +1896,7 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_threadlist = noop_get_threadlist,
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
+	.getpid_global = noop_getpid_global,
 };
 #endif // MINIMAL_BUILD
 

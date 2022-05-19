@@ -1237,24 +1237,12 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 #endif
 }
 
-int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
-{
-	struct kmod_engine *kmod_engine = engine.m_handle;
-	*pid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
-	if(*pid == -1)
-	{
-		char buf[SCAP_LASTERR_SIZE];
-		ASSERT(false);
-		snprintf(error, SCAP_LASTERR_SIZE, "ioctl to get pid failed (%s)",
-			 scap_strerror_r(buf, errno));
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->getpid_global(handle->m_engine, pid, handle->m_lasterr);
+	}
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (not in live mode)");
@@ -1262,21 +1250,9 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 		return SCAP_FAILURE;
 	}
 
-#if !defined(HAS_CAPTURE)
 	ASSERT(false);
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (capture not enabled)");
 	return SCAP_FAILURE;
-#else
-
-	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
-	{
-		return scap_os_getpid_global(handle->m_engine, pid, handle->m_lasterr);
-	}
-	else
-	{
-		return scap_kmod_getpid_global(handle->m_engine, pid, handle->m_lasterr);
-	}
-#endif
 }
 
 #endif // HAS_CAPTURE

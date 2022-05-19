@@ -973,4 +973,5 @@ struct scap_vtable scap_udig_engine = {
 	.get_threadlist = scap_procfs_get_threadlist,
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
+	.getpid_global = noop_getpid_global,
 };
