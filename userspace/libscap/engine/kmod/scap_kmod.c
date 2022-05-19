@@ -727,6 +727,40 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	}
 }
 
+static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, int64_t pid, int64_t* vpid)
+{
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*vpid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VPID, pid);
+
+	if(*vpid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vpid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+static int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, int64_t tid, int64_t* vtid)
+{
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*vtid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);
+
+	if(*vtid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get vtid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 struct scap_vtable scap_kmod_engine = {
 	.name = "kmod",
 	.mode = SCAP_MODE_LIVE,
@@ -744,5 +778,7 @@ struct scap_vtable scap_kmod_engine = {
 	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
 	.get_n_devs = scap_kmod_get_n_devs,
 	.get_max_buf_used = scap_kmod_get_max_buf_used,
+	.get_vpid = scap_kmod_get_vpid,
+	.get_vtid = scap_kmod_get_vtid,
 };
 
