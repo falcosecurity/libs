@@ -1242,9 +1242,61 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 
 #endif // CYGWING_AGENT
 
+int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
+{
+#ifdef _WIN32
+	*pid = _getpid();
+	return SCAP_SUCCESS;
+#else
+	char filename[SCAP_MAX_PATH_SIZE];
+	char line[512];
+
+	snprintf(filename, sizeof(filename), "%s/proc/self/status", scap_get_host_root());
+
+	FILE* f = fopen(filename, "r");
+	if(f == NULL)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(error, SCAP_LASTERR_SIZE, "can not open status file %s (%s)",
+			 filename, scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		if(sscanf(line, "Tgid: %" PRId64, pid) == 1)
+		{
+			fclose(f);
+			return SCAP_SUCCESS;
+		}
+	}
+
+	fclose(f);
+	snprintf(error, SCAP_LASTERR_SIZE, "could not find tgid in status file %s",
+		 filename);
+	return SCAP_FAILURE;
+#endif
+}
+
+int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
+{
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*pid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(error, SCAP_LASTERR_SIZE, "ioctl to get pid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
-#if !defined(CYGWING_AGENT) && !defined(_WIN32)
 	if(handle->m_mode != SCAP_MODE_LIVE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (not in live mode)");
@@ -1260,52 +1312,13 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 
 	if(handle->m_vtable == &scap_bpf_engine || handle->m_vtable == &scap_udig_engine)
 	{
-		char filename[SCAP_MAX_PATH_SIZE];
-		char line[512];
-
-		snprintf(filename, sizeof(filename), "%s/proc/self/status", scap_get_host_root());
-
-		FILE* f = fopen(filename, "r");
-		if(f == NULL)
-		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can not open status file %s (%s)",
-				 filename, scap_strerror(handle, errno));
-			return SCAP_FAILURE;
-		}
-
-		while(fgets(line, sizeof(line), f) != NULL)
-		{
-			if(sscanf(line, "Tgid: %" PRId64, pid) == 1)
-			{
-				fclose(f);
-				return SCAP_SUCCESS;
-			}
-		}
-
-		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "could not find tgid in status file %s",
-			 filename);
-		return SCAP_FAILURE;
+		return scap_os_getpid_global(handle->m_engine, pid, handle->m_lasterr);
 	}
 	else
 	{
-		*pid = ioctl(handle->m_kmod_engine.m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
-		if(*pid == -1)
-		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ioctl to get pid failed (%s)",
-				 scap_strerror(handle, errno));
-			return SCAP_FAILURE;
-		}
+		return scap_kmod_getpid_global(handle->m_engine, pid, handle->m_lasterr);
 	}
-
-	return SCAP_SUCCESS;
 #endif
-#else // CYGWING_AGENT
-	*pid = _getpid();
-	return SCAP_SUCCESS;
-#endif // CYGWING_AGENT
 }
 
 #endif // HAS_CAPTURE
