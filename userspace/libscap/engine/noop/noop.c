@@ -112,6 +112,11 @@ int32_t noop_get_vxid(struct scap_engine_handle engine, int64_t xid, int64_t* vx
 	return SCAP_NOT_SUPPORTED;
 }
 
+int32_t noop_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
+{
+	return SCAP_NOT_SUPPORTED;
+}
+
 const struct scap_vtable scap_noop_engine = {
 	.name = "noop",
 	.mode = SCAP_MODE_NODRIVER,
@@ -131,4 +136,5 @@ const struct scap_vtable scap_noop_engine = {
 	.get_threadlist = noop_get_threadlist,
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
+	.getpid_global = noop_getpid_global,
 };

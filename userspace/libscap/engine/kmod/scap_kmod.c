@@ -761,6 +761,22 @@ static int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, int64_t tid,
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
+{
+	struct kmod_engine *kmod_engine = engine.m_handle;
+	*pid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_CURRENT_PID);
+	if(*pid == -1)
+	{
+		char buf[SCAP_LASTERR_SIZE];
+		ASSERT(false);
+		snprintf(error, SCAP_LASTERR_SIZE, "ioctl to get pid failed (%s)",
+			 scap_strerror_r(buf, errno));
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 struct scap_vtable scap_kmod_engine = {
 	.name = "kmod",
 	.mode = SCAP_MODE_LIVE,
@@ -780,5 +796,6 @@ struct scap_vtable scap_kmod_engine = {
 	.get_max_buf_used = scap_kmod_get_max_buf_used,
 	.get_vpid = scap_kmod_get_vpid,
 	.get_vtid = scap_kmod_get_vtid,
+	.getpid_global = scap_kmod_getpid_global,
 };
 

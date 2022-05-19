@@ -38,5 +38,6 @@ uint32_t noop_get_n_devs(struct scap_engine_handle engine);
 uint64_t noop_get_max_buf_used(struct scap_engine_handle engine);
 int32_t noop_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 int32_t noop_get_vxid(struct scap_engine_handle engine, int64_t xid, int64_t* vxid);
+int32_t noop_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error);
 
 extern const struct scap_vtable scap_noop_engine;
