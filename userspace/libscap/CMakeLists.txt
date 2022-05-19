@@ -80,7 +80,8 @@ list(APPEND targetfiles
 	scap_iflist.c
 	scap_savefile.c
 	scap_procs.c
-	scap_userlist.c)
+	scap_userlist.c
+	engine/savefile/scap_savefile.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
