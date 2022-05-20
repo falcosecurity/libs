@@ -233,6 +233,23 @@ struct tuple {
 	__u16 pad;
 };
 
+#ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+struct tcp_reset_args {
+    struct sock *sk;
+};
+#else
+struct tcp_reset_args {
+	__u64 pad;
+	const void *skaddr;
+	__u16 sport;
+	__u16 dport;
+	__u8 saddr[4];
+	__u8 daddr[4];
+	__u8 saddr_v6[16];
+	__u8 daddr_v6[16];
+};
+#endif
+
 enum sysdig_map_types {
 	SYSDIG_PERF_MAP = 0,
 	SYSDIG_TAIL_MAP = 1,

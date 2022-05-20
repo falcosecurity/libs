@@ -106,6 +106,13 @@ struct bpf_map_def __bpf_section("maps") rtt_static_map = {
         .max_entries = 65535,
 };
 
+struct bpf_map_def __bpf_section("maps") stash_tuple_map = {
+	.type = BPF_MAP_TYPE_HASH,
+	.key_size = sizeof(u64),
+	.value_size = sizeof(struct tuple),
+	.max_entries = 65535,
+};
+
 #endif // __KERNEL__
 
 #endif

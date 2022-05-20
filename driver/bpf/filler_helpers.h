@@ -1423,5 +1423,30 @@ static __always_inline int sock_to_ring(struct filler_data *data, struct sock *s
 	return bpf_val_to_ring_len(data, 0, size);
 }
 
+static __always_inline int tuple_to_ring(struct filler_data *data, struct tuple *tp){
+	u16 sport = 0;
+	u16 dport = 0;
+	u32 saddr = 0;
+	u32 daddr = 0;
+	u16 family = 0;
+
+	saddr = tp->saddr;
+	daddr = tp->daddr;
+	family = tp->family;
+	sport = ntohs(tp->sport);
+	dport = ntohs(tp->dport);
+
+
+	int size = 1 + 4 + 4 + 2 + 2;
+
+	data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF] = socket_family_to_scap(family);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 1) & SCRATCH_SIZE_HALF], &saddr, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 5) & SCRATCH_SIZE_HALF], &sport, 2);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 7) & SCRATCH_SIZE_HALF], &daddr, 4);
+	memcpy(&data->buf[(data->state->tail_ctx.curoff + 11) & SCRATCH_SIZE_HALF], &dport, 2);
+	data->curarg_already_on_frame = true;
+	return bpf_val_to_ring_len(data, 0, size);
+}
+
 
 #endif

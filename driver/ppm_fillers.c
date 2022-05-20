@@ -5207,6 +5207,21 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_tcp_connect_x(struct event_filler_arguments *args){
+	return 0;
+}
+
+int f_tcp_finish_connect_e(struct event_filler_arguments *args){
+	return 0;
+}
+
+int f_tcp_receive_reset_e(struct event_filler_arguments *args){
+	return 0;
+}
+
+int f_tcp_send_reset_e(struct event_filler_arguments *args){
+	return 0;
+}
 
 int f_tcp_rcv_established_e(struct event_filler_arguments *args){
 	u16 sport = 0;
