@@ -11,7 +11,7 @@ else()
 	set(CMD_MAKE make)
 endif()
 
-if(NOT WIN32)
+if(NOT MSVC)
 
 	set(FALCOSECURITY_LIBS_COMMON_FLAGS "-Wall -ggdb")
 	set(FALCOSECURITY_LIBS_DEBUG_FLAGS "-D_DEBUG")
@@ -43,7 +43,7 @@ if(NOT WIN32)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
 
-else()
+else() # MSVC
 	set(MINIMAL_BUILD ON)
 
 	set(FALCOSECURITY_LIBS_COMMON_FLAGS "-D_CRT_SECURE_NO_WARNINGS -DWIN32 -DMINIMAL_BUILD /EHsc /W3 /Zi")
