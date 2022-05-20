@@ -453,7 +453,7 @@ private:
 
 		for(j = 0; j < nparams; j++)
 		{
-			par.init((char*)params[j].buf, params[j].size);
+			par.init((char*)params[j].buf, (int)params[j].size);
 			m_params.push_back(par);
 		}
 	}
