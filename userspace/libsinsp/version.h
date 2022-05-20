@@ -21,10 +21,8 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <cstdio>
-#ifndef _WIN32
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#endif
 
 /*!
 	\brief Represents a version number
