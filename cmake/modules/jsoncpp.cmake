@@ -18,7 +18,8 @@ else()
 	set(JSONCPP_INCLUDE "${JSONCPP_SRC}/")
 	set(JSONCPP_LIB_SRC "${JSONCPP_SRC}/jsoncpp.cpp")
 	message(STATUS "Using bundled jsoncpp in '${JSONCPP_SRC}'")
-	install(DIRECTORY "${JSONCPP_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}")
+	install(DIRECTORY "${JSONCPP_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "libs-deps")
 endif()
 
 include_directories("${JSONCPP_INCLUDE}")
