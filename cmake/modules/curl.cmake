@@ -28,10 +28,8 @@ else()
 			curl
 			PREFIX "${PROJECT_BINARY_DIR}/curl-prefix"
 			DEPENDS openssl zlib
-			# START CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
-			URL "https://github.com/curl/curl/releases/download/curl-7_77_0/curl-7.77.0.tar.bz2"
-			URL_HASH "SHA256=6c0c28868cb82593859fc43b9c8fdb769314c855c05cf1b56b023acf855df8ea"
-			# END CHANGE for CVE-2017-8816, CVE-2017-8817, CVE-2017-8818, CVE-2018-1000007
+			URL "https://github.com/curl/curl/releases/download/curl-7_83_1/curl-7.83.1.tar.bz2"
+			URL_HASH "SHA256=f539a36fb44a8260ec5d977e4e0dbdd2eee29ed90fcedaa9bc3c9f78a113bff0"
 			CONFIGURE_COMMAND
 			./configure
 			${CURL_SSL_OPTION}
@@ -56,14 +54,12 @@ else()
 			--disable-ntlm-wb
 			--disable-tls-srp
 			--without-winssl
-			--without-darwinssl
 			--without-polarssl
 			--without-cyassl
 			--without-nss
 			--without-axtls
 			--without-ca-path
 			--without-ca-bundle
-			--without-libmetalink
 			--without-librtmp
 			--without-winidn
 			--without-libidn2
