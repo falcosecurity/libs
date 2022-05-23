@@ -7,8 +7,15 @@
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
+
 if(NOT DEFINED DRIVER_COMPONENT_NAME)
     set(DRIVER_COMPONENT_NAME "scap-driver")
+endif()
+if(NOT DEFINED DRIVER_PACKAGE_NAME)
+        set(DRIVER_PACKAGE_NAME "scap")
+endif()
+if(NOT DEFINED DRIVER_NAME)
+        set(DRIVER_NAME "scap")
 endif()
 
 # The driver build process is somewhat involved because we use the same
