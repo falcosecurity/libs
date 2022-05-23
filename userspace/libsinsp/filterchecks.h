@@ -60,6 +60,22 @@ public:
 	bool m_res;
 };
 
+class check_cache_metrics
+{
+public:
+	// The number of times extract_cached() was called
+	uint64_t m_num_extract;
+
+	// The number of times extract_cached() could use a cached value
+	uint64_t m_num_extract_cache;
+
+	// The number of times compare() was called
+	uint64_t m_num_eval;
+
+	// The number of times compare() could use a cached value
+	uint64_t m_num_eval_cache;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // The filter check interface
 // NOTE: in order to add a new type of filter check, you need to add a class for
@@ -163,6 +179,7 @@ public:
 	check_eval_cache_entry* m_eval_cache_entry = NULL;
 	check_extraction_cache_entry* m_extraction_cache_entry = NULL;
 	std::vector<extract_value_t> m_extracted_values;
+	check_cache_metrics *m_cache_metrics = NULL;
 
 protected:
 	// This is a single-value version of extract for subclasses non supporting extracting
