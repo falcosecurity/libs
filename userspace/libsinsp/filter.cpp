@@ -1410,6 +1410,11 @@ uint8_t* sinsp_filter_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool san
 
 bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
 {
+	if(m_cache_metrics != NULL)
+	{
+		m_cache_metrics->m_num_extract++;
+	}
+
 	if(m_extraction_cache_entry != NULL)
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
@@ -1418,6 +1423,13 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 		{
 			m_extraction_cache_entry->m_evtnum = en;
 			extract(evt, m_extraction_cache_entry->m_res, sanitize_strings);
+		}
+		else
+		{
+			if(m_cache_metrics != NULL)
+			{
+				m_cache_metrics->m_num_extract_cache++;
+			}
 		}
 
 		// Shallow-copy the cached values to values
@@ -1433,6 +1445,11 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 
 bool sinsp_filter_check::compare(gen_event *evt)
 {
+	if(m_cache_metrics != NULL)
+	{
+		m_cache_metrics->m_num_eval++;
+	}
+
 	if(m_eval_cache_entry != NULL)
 	{
 		uint64_t en = ((sinsp_evt *)evt)->get_num();
@@ -1442,6 +1459,14 @@ bool sinsp_filter_check::compare(gen_event *evt)
 			m_eval_cache_entry->m_evtnum = en;
 			m_eval_cache_entry->m_res = compare((sinsp_evt *) evt);
 		}
+		else
+		{
+			if(m_cache_metrics != NULL)
+			{
+				m_cache_metrics->m_num_eval_cache++;
+			}
+		}
+
 
 		return m_eval_cache_entry->m_res;
 	}
