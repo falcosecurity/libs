@@ -1939,20 +1939,22 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	}
 
 	// Get capabilities
-	if(evt->get_num_params() > 20)
+	if(evt->get_num_params() > 22)
 	{
 		if(etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X)
+		{
 			parinfo = evt->get_param(20);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
-			evt->m_tinfo->m_cap_inheritable = *(uint64_t *) parinfo->m_val;
-			
+			evt->m_tinfo->m_cap_inheritable = *(uint64_t *)parinfo->m_val;
+
 			parinfo = evt->get_param(21);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
-			evt->m_tinfo->m_cap_permitted = *(uint64_t *) parinfo->m_val;
-			
+			evt->m_tinfo->m_cap_permitted = *(uint64_t *)parinfo->m_val;
+
 			parinfo = evt->get_param(22);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
-			evt->m_tinfo->m_cap_effective = *(uint64_t *) parinfo->m_val;
+			evt->m_tinfo->m_cap_effective = *(uint64_t *)parinfo->m_val;
+		}
 	}
 
 	//
