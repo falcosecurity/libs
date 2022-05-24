@@ -208,27 +208,11 @@ bool flt_compare_buffer(cmpop op, char* operand1, char* operand2, uint32_t op1_l
 	case CO_ICONTAINS:
 		throw sinsp_exception("'icontains' not supported for buffer filters");
 	case CO_BCONTAINS:
-	{
-		std::vector<char> hex_chars(operand2, operand2 + op2_len);
-		std::vector<char> hex_bytes;
-		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
-		{
-			throw sinsp_exception("filter error: bcontains operator supports hex strings only");
-		}
-		return (memmem(operand1, op1_len, &hex_bytes[0], hex_bytes.size()) != NULL);
-	}
+		return (memmem(operand1, op1_len, operand2, op2_len) != NULL);
 	case CO_STARTSWITH:
 		return op2_len <= op1_len && (memcmp(operand1, operand2, op2_len) == 0);
 	case CO_BSTARTSWITH:
-	{
-		std::vector<char> hex_chars(operand2, operand2 + op2_len);
-		std::vector<char> hex_bytes;
-		if(!sinsp_utils::unhex(hex_chars, hex_bytes))
-		{
-			throw sinsp_exception("filter error: bstartswith operator supports hex strings only");
-		}
-		return hex_bytes.size() <= op1_len && (memcmp(operand1, &hex_bytes[0], hex_bytes.size()) == 0);
-	}
+		return op2_len <= op1_len && (memcmp(operand1, operand2, op2_len) == 0);
 	case CO_ENDSWITH: 
 		return (sinsp_utils::endswith(operand1, operand2, op1_len, op2_len));
 	case CO_GLOB:
@@ -1656,6 +1640,25 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr* e)
 	check->set_check_id(m_check_id);
 }
 
+static void add_filtercheck_value(gen_event_filter_check *chk, size_t idx, const std::string& value)
+{
+	std::vector<char> hex_bytes;
+	switch(chk->m_cmpop)
+	{
+		case CO_BCONTAINS:
+		case CO_BSTARTSWITH:
+			if(!sinsp_utils::unhex(std::vector<char>(value.c_str(), value.c_str() + value.size()), hex_bytes))
+			{
+				throw sinsp_exception("filter error: bcontains and bstartswith operator support hex strings only");
+			}
+			chk->add_filter_value(&hex_bytes[0], hex_bytes.size(), idx);
+			break;
+		default:
+			chk->add_filter_value(value.c_str(), value.size(), idx);
+			break;
+	}
+}
+
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 {
 	string field = create_filtercheck_name(e->field, e->arg);
@@ -1677,8 +1680,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 	m_expect_values = false;
 	for (size_t i = 0; i < m_field_values.size(); i++)
 	{
-		check_op_value_compatibility(check->m_cmpop, m_field_values[i]);
-		check->add_filter_value(m_field_values[i].c_str(), m_field_values[i].size(), i);
+		add_filtercheck_value(check, i, m_field_values[i]);
 	}
 }
 
@@ -1704,24 +1706,6 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 	}
 	m_field_values.clear();
 	m_field_values = e->values;
-}
-
-void sinsp_filter_compiler::check_op_value_compatibility(cmpop op, std::string& value)
-{
-	std::vector<char> hex_chars(value.c_str(), value.c_str() + value.size());
-	std::vector<char> hex_bytes;
-	switch(op)
-	{
-		case CO_BCONTAINS:
-		case CO_BSTARTSWITH:
-			if(!sinsp_utils::unhex(hex_chars, hex_bytes))
-			{
-				throw sinsp_exception("filter error: bcontains and bstartswith operator support hex strings only");
-			}
-			break;
-		default:
-			break;
-	}
 }
 
 string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
