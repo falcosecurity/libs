@@ -1464,7 +1464,8 @@ bool sinsp_filter_check::compare(sinsp_evt *evt)
 
 	return flt_compare(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
-		extracted_values);
+		extracted_values,
+		m_val_storage_len);
 }
 
 sinsp_filter::sinsp_filter(sinsp *inspector)
