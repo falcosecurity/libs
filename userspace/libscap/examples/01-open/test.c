@@ -26,8 +26,6 @@ uint64_t num_events = UINT64_MAX;
 bool bpf_probe = false;
 bool simple_consumer = false;
 
-extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
-
 void print_stats()
 {
 	scap_stats s;
@@ -119,6 +117,9 @@ int main(int argc, char** argv)
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
 		return -1;
 	}
+
+	const struct ppm_syscall_desc *g_syscall_info_table = scap_get_syscall_info_table();
+
 
 	scap_open_args args = {.mode = SCAP_MODE_LIVE};
 

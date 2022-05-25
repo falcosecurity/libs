@@ -2529,7 +2529,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 	{
 		//
 		// This event is a syscall that doesn't have a filler yet.
-		// The category can be found in g_syscall_info_table.
+		// The category can be found in event_table/scap_get_syscall_info_table().
 		//
 		sinsp_evt_param *parinfo = get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint16_t));
