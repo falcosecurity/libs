@@ -31,6 +31,7 @@ bool simple_consumer = false;
 uint16_t evt_type = -1;
 uint16_t* lens16 = NULL;
 char* valptr = NULL;
+char *scap_file = NULL;
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
@@ -66,6 +67,7 @@ void print_help()
 	printf("'--simple_consumer': enable the simple consumer mode. (default: disabled)\n");
 	printf("'--num_events <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n");
 	printf("'--evt_type <event_type>': every event of this type will be printed to console. (default: -1, no print)\n");
+	printf("'--scap_file <file.scap>': read events from scap file. (default: live capture)\n");
 	printf("'--help': print this menu.\n");
 	printf("-----------------------------------------------------\n");
 }
@@ -117,7 +119,14 @@ void print_load_success()
 
 void print_start_capture()
 {
-	printf("\n * Capture in progress...\n");
+	if (scap_file)
+	{
+		printf("\n * Reading from scap file: %s...\n", scap_file);
+	}
+	else
+	{
+		printf("\n * Live capture in progress...\n");
+	}
 }
 
 void print_ipv4(int starting_index)
@@ -374,6 +383,12 @@ int main(int argc, char** argv)
 		{
 			evt_type = strtoul(argv[i], NULL, 10);
 		}
+		if(!strcmp(argv[i], "--scap_file") && ++i < argc)
+		{
+			scap_file = argv[i];
+			args.fname = scap_file;
+			args.mode = SCAP_MODE_CAPTURE;
+		}
 		if(!strcmp(argv[i], "--help"))
 		{
 			print_help();
@@ -390,7 +405,10 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	print_load_success();
+	if (!scap_file)
+	{
+		print_load_success();
+	}
 
 	print_start_capture();
 
@@ -400,9 +418,13 @@ int main(int argc, char** argv)
 
 		if(res > 0)
 		{
-			fprintf(stderr, "%s\n", scap_getlasterr(g_h));
-			scap_close(g_h);
-			return -1;
+			if (res != SCAP_EOF)
+			{
+				scap_close(g_h);
+				fprintf(stderr, "%s\n", scap_getlasterr(g_h));
+				return -1;
+			}
+			break;
 		}
 
 		if(res != SCAP_TIMEOUT)
