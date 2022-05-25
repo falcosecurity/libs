@@ -560,7 +560,7 @@ typedef struct scap_reader scap_reader_t;
 struct ppm_syscall_desc {
 	enum ppm_event_category category; /**< System call category. */
 	enum ppm_event_flags flags;
-	char *name; /**< System call name, e.g. 'open'. */
+	const char *name; /**< System call name, e.g. 'open'. */
 };
 
 /*!

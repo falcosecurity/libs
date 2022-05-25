@@ -35,7 +35,6 @@ limitations under the License.
 //
 const struct ppm_event_info* scap_get_event_info_table()
 {
-	ASSERT(validate_info_table_size());
 	return g_event_info;
 }
 
@@ -44,6 +43,26 @@ const struct ppm_event_info* scap_get_event_info_table()
 //
 const struct ppm_syscall_desc* scap_get_syscall_info_table()
 {
+	static struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
+
+	// Check if we need to fill the table
+	if (g_syscall_info_table[PPM_SC_EXIT].category == 0)
+	{
+		int i;
+		for(i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			const int ppm_id = g_syscall_table[i].ppm_code;
+			const int enter_ev = g_syscall_table[i].enter_event_type;
+
+			ASSERT(ppm_id < PPM_SC_MAX);
+			ASSERT(enter_ev < PPM_EVENT_MAX);
+
+			g_syscall_info_table[ppm_id].category = g_event_info[enter_ev].category;
+			g_syscall_info_table[ppm_id].flags = g_event_info[enter_ev].flags;
+			g_syscall_info_table[ppm_id].name = g_event_info[enter_ev].name;
+		}
+	}
+
 	return g_syscall_info_table;
 }
 

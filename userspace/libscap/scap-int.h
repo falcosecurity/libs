@@ -407,7 +407,6 @@ struct ppm_proclist_info *scap_procfs_get_threadlist(scap_t *handle);
 
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
-extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
 extern bool validate_info_table_size();
 
