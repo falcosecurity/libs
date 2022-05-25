@@ -62,6 +62,10 @@ if(NOT DEFINED SCAP_HOST_ROOT_ENV_VAR_NAME)
 endif()
 add_definitions(-DSCAP_HOST_ROOT_ENV_VAR_NAME="${SCAP_HOST_ROOT_ENV_VAR_NAME}")
 
+if (DEFINED SCAP_BPF_PROGS_MAX)
+	add_definitions(-DBPF_PROGS_MAX=${SCAP_BPF_PROGS_MAX})
+endif()
+
 if(CYGWIN)
 include_directories("${WIN_HAL_INCLUDE}")
 endif()
