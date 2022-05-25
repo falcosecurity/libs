@@ -30,6 +30,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	ppm_api_version.ut.cpp
 	plugin_manager.ut.cpp
 	filter_parser.ut.cpp
+	filter_op_bcontains.ut.cpp
 	filter_compiler.ut.cpp
 )
 
