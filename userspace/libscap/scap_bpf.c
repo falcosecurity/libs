@@ -472,6 +472,11 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 
 	free(error);
 
+	if (handle->m_bpf_prog_cnt + 1 >= BPF_PROGS_MAX) {
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: too many programs recorded (limit is %d)", BPF_PROGS_MAX);
+		return SCAP_FAILURE;
+	}
+
 	handle->m_bpf_prog_fds[handle->m_bpf_prog_cnt++] = fd;
 
 	if(memcmp(event, "filler/", sizeof("filler/") - 1) == 0)
@@ -489,6 +494,11 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		if(prog_id == -1)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filler name: %s", event);
+			return SCAP_FAILURE;
+		}
+		else if (prog_id >= BPF_PROGS_MAX)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "program ID exceeds BPF_PROG_MAX limit (%d/%d)", prog_id, BPF_PROGS_MAX);
 			return SCAP_FAILURE;
 		}
 
@@ -570,6 +580,8 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 		}
 	}
 
+	// by this point m_bpf_prog_cnt has already been checked for
+	// being inbounds, so this is safe.
 	handle->m_bpf_event_fd[handle->m_bpf_prog_cnt - 1] = efd;
 
 	return SCAP_SUCCESS;
