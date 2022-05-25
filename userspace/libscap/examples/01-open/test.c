@@ -65,6 +65,7 @@ void print_help()
 	printf("'--bpf <probe_path>': enable the BPF probe instead of the kernel module. (default: disabled)\n");
 	printf("'--simple_consumer': enable the simple consumer mode. (default: disabled)\n");
 	printf("'--num_events <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n");
+	printf("'--evt_type <event_type>': every event of this type will be printed to console. (default: -1, no print)\n");
 	printf("'--help': print this menu.\n");
 	printf("-----------------------------------------------------\n");
 }
