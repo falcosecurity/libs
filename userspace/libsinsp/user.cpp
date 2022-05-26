@@ -149,10 +149,11 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 	if (!usr)
 	{
 #ifdef HAVE_PWD_H
+		struct passwd *p = nullptr;
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
-			auto *p = getpwuid(uid);
+			p = getpwuid(uid);
 			if (p)
 			{
 				name = p->pw_name;
@@ -217,10 +218,11 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 	if (!gr)
 	{
 #ifdef HAVE_GRP_H
+		struct group *p = nullptr;
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
-			auto *p = getgrgid(gid);
+			p = getgrgid(gid);
 			if (p)
 			{
 				name = p->gr_name;

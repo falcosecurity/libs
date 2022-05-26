@@ -430,8 +430,8 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	ASSERT(m_inspector);
 	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_capture());
 
-	set_user(pi->uid);
 	set_group(pi->gid);
+	set_user(pi->uid);
 	set_loginuser((uint32_t)pi->loginuid);
 
 	//
@@ -537,6 +537,8 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 		m_group.gid = gid;
 		strcpy(m_group.name, "<NA>");
 	}
+	// Force-sync user.gid and group id
+	m_user.gid = m_group.gid;
 }
 
 void sinsp_threadinfo::set_loginuser(uint32_t loginuid)

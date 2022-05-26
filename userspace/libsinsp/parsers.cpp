@@ -1534,7 +1534,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo->set_group(*(int32_t *)parinfo->m_val);
-	tinfo->m_user.gid = tinfo->m_group.gid;
 
 	//
 	// If we're in a container, vtid and vpid are
