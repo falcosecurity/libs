@@ -187,6 +187,8 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 		{
 			notify_user_changed(&userlist[uid], container_id);
 		}
+
+		usr = &userlist[uid];
 	}
 	return usr;
 }
@@ -243,6 +245,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 		{
 			notify_group_changed(&grplist[gid], container_id, true);
 		}
+		gr = &grplist[gid];
 	}
 	return gr;
 }
