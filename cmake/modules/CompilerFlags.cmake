@@ -5,6 +5,8 @@ if(ENABLE_PIC)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
+# NOTE: do not add `add_definition` in this file because consumers project won't import it.
+
 if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	set(CMD_MAKE gmake)
 else()
@@ -62,19 +64,6 @@ else() # MSVC
 	add_definitions(-DHAS_CAPTURE)
 
 endif()
-
-include(CheckIncludeFile)
-
-check_include_file("pwd.h" HAVE_PWD_H)
-if (HAVE_PWD_H)
-	add_definitions(-DHAVE_PWD_H)
-endif()
-
-check_include_file("grp.h" HAVE_GRP_H)
-if (HAVE_GRP_H)
-	add_definitions(-DHAVE_GRP_H)
-endif()
-
 
 if(APPLE)
 	set(CMAKE_EXE_LINKER_FLAGS "-pagezero_size 10000 -image_base 100000000")
