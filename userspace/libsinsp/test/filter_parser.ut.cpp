@@ -131,6 +131,17 @@ TEST(parser, parse_smoke_test)
 	test_accept("evt.dir=> and fd.name=*.log");
 	test_accept("a.g in (1, 'a', b.c)");
 	test_accept("a.b = a.a");
+	test_accept("a and notb");
+	test_accept("a or notb");
+	test_accept("notz and a and b");
+	test_accept("macro and not_macro");
+	test_accept("macro and not not_macro");
+	test_accept("macro and not(not_macro)");
+	test_accept("((macro) and (not_macro))");
+	test_accept("macro and and_macro");
+	test_accept("((macro) and (and_macro))");
+	test_accept("macro and or_macro");
+	test_accept("((macro) and (or_macro))");
 
 	// marked as bad in Falco smoke checks, but they should be good instead
 	test_accept("evt.arg[0] contains /bin");
@@ -159,11 +170,9 @@ TEST(parser, parse_smoke_test)
 	test_reject("anot b");
 	test_reject("a andnot b");
 	test_reject("a andnotb");
-	test_reject("a and notb");
 	test_reject("(a)andnot(b)");
 	test_reject("a ornot b");
 	test_reject("a ornotb");
-	test_reject("a or notb");
 	test_reject("(a)ornot(b)");
 	test_reject("evt.arg[] contains /bin");
 	test_reject("a.b = b = 1");
@@ -176,7 +185,6 @@ TEST(parser, parse_smoke_test)
 	test_reject("#a and b; a and b");
 	test_reject("#a and b; # ; ; a and b");
 	test_reject("evt.dir=> and fd.name=/var/lo);g/httpd.log");
-	test_reject("notz and a and b");
 }
 
 TEST(parser, parse_str)
@@ -421,5 +429,9 @@ TEST(parser, expr_multi_negation)
 			}),
 			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
 		})
+	);
+	test_equal_ast(
+		"not not not not not(not not(not not_macro))",
+		new not_expr(new not_expr(new value_expr("not_macro")))
 	);
 }
