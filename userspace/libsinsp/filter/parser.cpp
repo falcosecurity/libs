@@ -43,6 +43,7 @@ limitations under the License.
 #endif  // _WIN32
 
 #ifdef USE_POSIX_REGEX
+	#define RGX_NOTBLANK            "not[[:space:]]+"
 	#define RGX_IDENTIFIER          "[a-zA-Z]+[a-zA-Z0-9_]*"
 	#define RGX_FIELDNAME           "[a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+"
 	#define RGX_FIELDARGBARESTR     "[^][\"'[:space:]]+"
@@ -50,6 +51,7 @@ limitations under the License.
 	#define RGX_NUMBER              "[+\\-]?[0-9]+[\\.]?[0-9]*([eE][+\\-][0-9]+)?"
 	#define RGX_BARESTR             "[^()\"'[:space:]=,]+"
 #else   // USE_POSIX_REGEX
+	#define RGX_NOTBLANK            "not[ \\b\\t\\n\\r]+"
 	#define RGX_IDENTIFIER          "[a-zA-Z]+[a-zA-Z0-9_]*"
 	#define RGX_FIELDNAME           "[a-zA-Z]+[a-zA-Z0-9_]*(\\.[a-zA-Z]+[a-zA-Z0-9_]*)+"
 	#define RGX_FIELDARGBARESTR     "[^ \\b\\t\\n\\r\\[\\]\"']+"
@@ -228,22 +230,21 @@ ast::expr* parser::parse_not()
 {
 	depth_push();
 	bool is_not = false;
+	ast::expr* child = nullptr;
 	lex_blank();
-	while (lex_helper_str("not"))
+	while (lex_helper_rgx(RGX_NOTBLANK))
 	{
 		is_not = !is_not;
-		if (!lex_blank())
-		{
-			if (lex_helper_str("("))
-			{
-				auto child = parse_embedded_remainder();
-				depth_pop();
-				return is_not ? new ast::not_expr(child) : child;
-			}
-			throw sinsp_exception("expected blank or '(' after 'not'");
-		}
 	}
-	auto child = parse_check();
+	if (lex_helper_str("not("))
+	{
+		is_not = !is_not;
+		child = parse_embedded_remainder();
+	}
+	else
+	{
+		child = parse_check();
+	}
 	depth_pop();
 	return is_not ? new ast::not_expr(child) : child;
 }
