@@ -31,7 +31,7 @@ limitations under the License.
 //     AndExprTail         ::= ' ' NotExpr
 //                             | '(' Expr ')'
 //     NotExpr             ::= ('not ')* NotExprTail
-//     NotExprTail         ::= 'not' '(' Expr ')'
+//     NotExprTail         ::= 'not(' Expr ')'
 //                             | Check
 //     Check               ::= CheckField CheckCondition
 //                             | Identifier
