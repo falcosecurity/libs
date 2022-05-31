@@ -84,6 +84,25 @@ static const vector<string> binary_list_ops =
 	"intersects", "in", "pmatch"
 };
 
+static inline void update_pos(const char c, parser::pos_info& pos)
+{
+	pos.col++;
+	if (c == '\r' || c == '\n')
+	{
+		pos.col = 1;
+		pos.line++;
+	}
+	pos.idx++;
+}
+
+static void update_pos(const string& s, parser::pos_info& pos)
+{
+	for (const auto &c : s)
+	{
+		update_pos(c, pos);
+	}
+}
+
 vector<string> parser::supported_operators(bool list_only)
 {
 	if (list_only)
@@ -426,13 +445,7 @@ bool parser::lex_blank()
 			|| *cursor() == '\r' || *cursor() == '\n')
 	{
 		found = true;
-		m_pos.col++;
-		if (*cursor() == '\r' || *cursor() == '\n')
-		{
-			m_pos.col = 1;
-			m_pos.line++;
-		}
-		m_pos.idx++;
+		update_pos(*cursor(), m_pos);
 	}
 	return found;
 }
@@ -474,16 +487,14 @@ inline bool parser::lex_quoted_str()
 		{
 			if (*cursor() == delimiter && prev != '\\')
 			{
-				m_pos.idx++;
-				m_pos.col++;
+				update_pos(*cursor(), m_pos);
 				m_last_token += delimiter;
 				m_last_token = escape_str(m_last_token);
 				return true;
 			}
 			prev = *cursor();
 			m_last_token += prev;
-			m_pos.idx++;
-			m_pos.col++;
+			update_pos(*cursor(), m_pos);
 		}
 		m_pos = pos;
 	}
@@ -529,8 +540,7 @@ bool parser::lex_helper_rgx(string rgx)
     if (regexec(&re, cursor(), 1, &re_match, 0) == 0)
 	{
 		m_last_token = string(cursor(), re_match.rm_eo);
-		m_pos.idx += m_last_token.size();
-		m_pos.col += m_last_token.size();
+		update_pos(m_last_token, m_pos);
 		regfree(&re);
 		return true;
 	}
@@ -544,8 +554,7 @@ bool parser::lex_helper_rgx(string rgx)
 		if (match.size() > group_idx && match[group_idx].matched)
 		{
 			m_last_token = match[group_idx].str();
-			m_pos.idx += m_last_token.size();
-			m_pos.col += m_last_token.size();
+			update_pos(m_last_token, m_pos);
 			return true;
 		}
 	}
@@ -559,8 +568,7 @@ bool parser::lex_helper_str(const string& str)
 	if (strncmp(cursor(), str.c_str(), str.size()) == 0)
 	{
 		m_last_token = str;
-		m_pos.idx += m_last_token.size();
-		m_pos.col += m_last_token.size();
+		update_pos(m_last_token, m_pos);
 		return true;
 	}
 	return false;

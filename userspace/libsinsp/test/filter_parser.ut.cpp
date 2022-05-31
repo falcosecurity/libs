@@ -376,6 +376,10 @@ TEST(parser, parse_position_info)
 	EXPECT_EQ(pos.idx, 12);
 	EXPECT_EQ(pos.line, 3);
 	EXPECT_EQ(pos.col, 4);
+	test_accept("a \n and \n not \n b", &pos);
+	EXPECT_EQ(pos.idx, 17);
+	EXPECT_EQ(pos.line, 4);
+	EXPECT_EQ(pos.col, 3);
 }
 
 // complex test case with all supported node types
