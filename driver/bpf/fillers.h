@@ -4683,13 +4683,24 @@ KP_FILLER(tcp_connect_kprobe_x)
 	return 0;
 }
 
-KP_FILLER(tcp_finish_connect_kprobe_e)
+KP_FILLER(tcp_set_state_kprobe_e)
 {
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
 	struct sock *sk = (struct sock *)_READ(args->di);
+	u8 old_state = 0;
+	bpf_probe_read(&old_state, sizeof(old_state), (void *)&sk->sk_state);
+	int new_state = _READ(args->si);
 
 	int res;
 	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring(data, old_state);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring(data, new_state);
 	if (res != PPM_SUCCESS)
 		return res;
 	return 0;
@@ -4716,7 +4727,7 @@ FILLER(tcp_connect_x, false)
 	return 0;
 }
 
-FILLER(tcp_finish_connect_e, false)
+FILLER(tcp_set_state_e, false)
 {
 	return 0;
 }

@@ -5211,7 +5211,7 @@ int f_tcp_connect_x(struct event_filler_arguments *args){
 	return 0;
 }
 
-int f_tcp_finish_connect_e(struct event_filler_arguments *args){
+int f_tcp_set_state_e(struct event_filler_arguments *args){
 	return 0;
 }
 

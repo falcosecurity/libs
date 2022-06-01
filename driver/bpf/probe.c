@@ -505,17 +505,30 @@ BPF_KRET_PROBE(tcp_connect)
 	}
 }
 
-BPF_KPROBE(tcp_finish_connect)
+BPF_KPROBE(tcp_set_state)
 {
 	struct sysdig_bpf_settings *settings;
 	enum ppm_event_type evt_type;
 	settings = get_bpf_settings();
 	if (!settings)
 		return 0;
-	evt_type = PPME_TCP_FINISH_CONNECT_E;
-	if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)){
-		bpf_tcp_finish_connect_kprobe_e(ctx);
+	struct sock *sk = (struct sock *)_READ(ctx->di);
+	u16 family = 0;
+	bpf_probe_read(&family, sizeof(family), (void *)&sk->__sk_common.skc_family);
+	if(family != AF_INET)
+		return 0;
+
+	const struct inet_sock *inet = inet_sk(sk);
+	u8 old_state = 0;
+	bpf_probe_read(&old_state, sizeof(old_state), (void *)&sk->sk_state);
+	int new_state = _READ(ctx->si);
+	if(old_state == 1 || new_state == 1){
+		evt_type = PPME_TCP_SET_STATE_E;
+		if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)){
+			bpf_tcp_set_state_kprobe_e(ctx);
+		}
 	}
+
 
 }
 
