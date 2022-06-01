@@ -519,6 +519,7 @@ BPF_KPROBE(tcp_finish_connect)
 
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
 BPF_PROBE("tcp/", tcp_send_reset, tcp_reset_args){
 	struct sysdig_bpf_settings *settings;
 	enum ppm_event_type evt_type;
@@ -547,6 +548,7 @@ BPF_PROBE("tcp/", tcp_receive_reset, tcp_reset_args){
 	call_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP);
 
 }
+#endif
 
 
 
