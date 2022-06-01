@@ -56,6 +56,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(DEBUG) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
+		-DKBUILD_MODNAME='"falcobpf"' \
 		-Wno-gnu-variable-sized-type-not-at-end \
 		-Wno-address-of-packed-member \
 		-fno-jump-tables \
