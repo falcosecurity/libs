@@ -58,8 +58,6 @@ private:
 	char* m_arg_key;
 	uint64_t m_arg_index;
 	bool m_arg_present;
-	std::vector<std::string> m_res_str_storage;
-	std::vector<uint64_t> m_res_u64_storage;
 	std::set<size_t>* m_compatible_sources = NULL;
 	std::shared_ptr<sinsp_plugin_cap_extraction> m_eplugin;
 

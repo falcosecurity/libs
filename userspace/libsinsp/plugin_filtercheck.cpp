@@ -205,27 +205,6 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 	}
 
 	values.clear();
-	switch(type)
-	{
-		case PT_CHARBUF:
-		{
-			if (m_res_str_storage.size() < efield.res_len)
-			{
-				m_res_str_storage.resize(efield.res_len);
-			}
-			break;
-		}
-		case PT_UINT64:
-		{
-			if (m_res_u64_storage.size() < efield.res_len)
-			{
-				m_res_u64_storage.resize(efield.res_len);
-			}
-			break;
-		}
-		default:
-			break;
-	}
 	for (uint32_t i = 0; i < efield.res_len; ++i)
 	{
 		extract_value_t res;
@@ -233,16 +212,14 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		{
 			case PT_CHARBUF:
 			{
-				m_res_str_storage[i] = efield.res.str[i];
-				res.len = m_res_str_storage[i].size();
-				res.ptr = (uint8_t*) m_res_str_storage[i].c_str();
+				res.len = strlen(efield.res.str[i]);
+				res.ptr = (uint8_t*) efield.res.str[i];
 				break;
 			}
 			case PT_UINT64:
 			{
-				m_res_u64_storage[i] = efield.res.u64[i];
 				res.len = sizeof(uint64_t);
-				res.ptr = (uint8_t*) &m_res_u64_storage[i];
+				res.ptr = (uint8_t*) &efield.res.u64[i];
 				break;
 			}
 			default:
