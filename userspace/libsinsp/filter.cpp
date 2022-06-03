@@ -1082,8 +1082,8 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 
 char* sinsp_filter_check::tostring(sinsp_evt* evt)
 {
-	vector<extract_value_t> raw_values;
-	if(!extract_cached(evt, raw_values))
+	m_extracted_values.clear();
+	if(!extract_cached(evt, m_extracted_values))
 	{
 		return NULL;
 	}
@@ -1091,7 +1091,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 	if (m_field->m_flags & EPF_IS_LIST)
 	{
 		std::string res = "(";
-		for (auto &val : raw_values)
+		for (auto &val : m_extracted_values)
 		{
 			if (res.size() > 1)
 			{
@@ -1103,7 +1103,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 		strncpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage) - 1);
 		return m_getpropertystr_storage;
 	}
-	return rawval_to_string(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
+	return rawval_to_string(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
 }
 
 Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
@@ -1113,21 +1113,21 @@ Json::Value sinsp_filter_check::tojson(sinsp_evt* evt)
 
 	if(jsonval == Json::nullValue)
 	{
-		vector<extract_value_t> raw_values;
-		if(!extract_cached(evt, raw_values))
+		m_extracted_values.clear();
+		if(!extract_cached(evt, m_extracted_values))
 		{
 			return Json::nullValue;
 		}
 
 		if (m_field->m_flags & EPF_IS_LIST)
 		{
-			for (auto &val : raw_values)
+			for (auto &val : m_extracted_values)
 			{
 				jsonval.append(rawval_to_json(val.ptr, m_field->m_type, m_field->m_print_format, val.len));
 			}
 			return jsonval;
 		}
-		return rawval_to_json(raw_values[0].ptr, m_field->m_type, m_field->m_print_format, raw_values[0].len);
+		return rawval_to_json(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
 	}
 
 	return jsonval;
