@@ -200,6 +200,7 @@ protected:
 	uint32_t m_field_id;
 	uint32_t m_th_state_id;
 	uint32_t m_val_storage_len;
+	std::vector<extract_value_t> m_extracted_values;
 
 private:
 	void set_inspector(sinsp* inspector);
