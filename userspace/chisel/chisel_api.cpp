@@ -357,11 +357,11 @@ int lua_cbacks::field(lua_State *ls)
 		return 1;
 	}
 
-	vector<extract_value_t> rawvalues;
-	if(chk->extract(evt, rawvalues))
+	chk->m_extracted_values.clear();
+	if (chk->extract(evt, chk->m_extracted_values))
 	{
 		// todo: Do something better here. For now, only support single-value extracted fields
-		return rawval_to_lua_stack(ls, rawvalues[0].ptr, chk->get_field_info()->m_type, rawvalues[0].len);
+		return rawval_to_lua_stack(ls, chk->m_extracted_values[0].ptr, chk->get_field_info()->m_type, chk->m_extracted_values[0].len);
 	}
 	else
 	{
