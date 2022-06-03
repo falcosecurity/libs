@@ -1455,16 +1455,15 @@ bool sinsp_filter_check::compare(gen_event *evt)
 
 bool sinsp_filter_check::compare(sinsp_evt *evt)
 {
-	bool sanitize_strings = false;
-	vector<extract_value_t> extracted_values;
-	if(!extract_cached(evt, extracted_values, sanitize_strings))
+	m_extracted_values.clear();
+	if(!extract_cached(evt, m_extracted_values, false))
 	{
 		return false;
 	}
 
 	return flt_compare(m_cmpop,
 		m_info.m_fields[m_field_id].m_type,
-		extracted_values,
+		m_extracted_values,
 		m_val_storage_len);
 }
 
