@@ -21,6 +21,9 @@ limitations under the License.
 #include <scap.h>
 #include <arpa/inet.h>
 
+#define SYSCALL_NAME_MAX_SIZE 40
+
+scap_open_args args = {.mode = SCAP_MODE_LIVE};
 uint64_t g_nevts = 0;
 scap_t* g_h = NULL;
 
@@ -28,13 +31,15 @@ scap_t* g_h = NULL;
 uint64_t num_events = UINT64_MAX;
 bool bpf_probe = false;
 bool simple_consumer = false;
-uint16_t evt_type = -1;
+int evt_type = -1;
 uint16_t* lens16 = NULL;
 char* valptr = NULL;
 char* scap_file = NULL;
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
+extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
 void print_stats()
 {
@@ -68,6 +73,8 @@ void print_help()
 	printf("'--num_events <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n");
 	printf("'--evt_type <event_type>': every event of this type will be printed to console. (default: -1, no print)\n");
 	printf("'--scap_file <file.scap>': read events from scap file. (default: live capture)\n");
+	printf("'--print_modern_probe_syscalls': print all syscalls that will be used in modern bpf probe.\n");
+	printf("'--print_sc_syscalls': print all syscalls that are used in kernel simple consumer mode.\n");
 	printf("'--help': print this menu.\n");
 	printf("-----------------------------------------------------\n");
 }
@@ -343,6 +350,118 @@ void print_parameter(int16_t num_param)
 	valptr += len;
 }
 
+void print_ordered_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE], int dim)
+{
+	char temp[SYSCALL_NAME_MAX_SIZE];
+
+	/* storing strings in the lexicographical order */
+	for(int i = 0; i < dim; ++i)
+	{
+		for(int j = i + 1; j < dim; ++j)
+		{
+			/* swapping strings if they are not in the lexicographical order */
+			if(strcmp(string_vector[i], string_vector[j]) > 0)
+			{
+				strcpy(temp, string_vector[i]);
+				strcpy(string_vector[i], string_vector[j]);
+				strcpy(string_vector[j], temp);
+			}
+		}
+	}
+
+	printf("\nSyscalls in the lexicographical order: \n");
+	for(int i = 0; i < dim; i++)
+	{
+		printf("[%d] %s\n", i, string_vector[i]);
+	}
+	printf("Interesting syscalls: %d\n", dim);
+}
+
+/* This are the real interesting syscalls that we want to support in the new probe.
+ * - all syscalls associated with events of type `UF_NEVER_DROP`.
+ * - all syscalls that are not managed through `GENERIC_EVENTS` and don't
+ *   have the `EF_DROP_SIMPLE_CONS` flag.
+ *
+ * Please note: if some syscalls miss probably you have an old kernel
+ * that don't define them. Try to use a newer one.
+ */
+
+void print_modern_probe_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE];
+	int interesting_syscall = 0;
+	enum ppm_syscall_code ppm_syscall_code = 0;
+
+	/* For every syscall of the system. */
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+		/* TAKE ALWAYS: If the syscall has `UF_NEVER_DROP` flag we cannot use simple consumer. */
+		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP)
+		{
+			ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+			if(!g_syscall_info_table[ppm_syscall_code].name)
+			{
+				printf("*ERROR: a `UF_NEVER_DROP` syscall has no the corresponding name in the g_syscall_info_table.\n");
+				exit(EXIT_FAILURE);
+			}
+			strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
+			continue;
+		}
+
+		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic. */
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
+		{
+			continue;
+		}
+
+		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+		if(g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
+		{
+			continue;
+		}
+
+		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
+		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
+		 */
+		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
+		{
+			printf("*ERROR: a syscall that has an event associated is unknown in g_syscall_info_table.\n");
+			exit(EXIT_FAILURE);
+		}
+
+		strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
+	}
+
+	print_ordered_syscalls(str, interesting_syscall);
+}
+
+/* Print all supported syscall. Please if you only want
+ * to see syscalls in simple consumer mode, enable the
+ * `--simple_consumer` option.
+ */
+void print_kernel_simple_consumer_syscalls()
+{
+	bool interesting[PPM_SC_MAX];
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE];
+	int interesting_syscall = 0;
+
+	for(int i = 0; i < PPM_SC_MAX; i++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] == i)
+			{
+				if(args.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+				{
+					strcpy(str[interesting_syscall++], g_syscall_info_table[i].name);
+				}
+			}
+		}
+	}
+
+	print_ordered_syscalls(str, interesting_syscall);
+}
+
 int main(int argc, char** argv)
 {
 	char error[SCAP_LASTERR_SIZE];
@@ -355,8 +474,6 @@ int main(int argc, char** argv)
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
 		return -1;
 	}
-
-	scap_open_args args = {.mode = SCAP_MODE_LIVE};
 
 	/* Base configuration without simple consumer. */
 	for(int j = 0; j < PPM_SC_MAX; j++)
@@ -395,6 +512,16 @@ int main(int argc, char** argv)
 			scap_file = argv[i];
 			args.fname = scap_file;
 			args.mode = SCAP_MODE_CAPTURE;
+		}
+		if(!strcmp(argv[i], "--print_modern_probe_syscalls"))
+		{
+			print_modern_probe_syscalls();
+			return EXIT_SUCCESS;
+		}
+		if(!strcmp(argv[i], "--print_sc_syscalls"))
+		{
+			print_kernel_simple_consumer_syscalls();
+			return EXIT_SUCCESS;
 		}
 		if(!strcmp(argv[i], "--help"))
 		{
