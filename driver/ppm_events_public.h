@@ -1147,6 +1147,17 @@ enum ppm_event_type {
 };
 /*@}*/
 
+
+/* ----------- Used by modern BPF probe -----------
+ * "Tx_" stands for "extra tail call number x for the event after '_'".
+ * For example "T1_PPME_SYSCALL_EXECVEAT_X" stands for "extra tail call number 1
+ * for the event PPME_SYSCALL_EXECVEAT_X".
+ */
+enum extra_event_prog_code
+{
+	TAIL_EXTRA_EVENT_PROG_MAX = 0
+};
+
 /*
  * System-independent syscall codes
  */
