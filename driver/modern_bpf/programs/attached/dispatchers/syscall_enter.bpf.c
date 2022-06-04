@@ -1,0 +1,36 @@
+#include "../../../helpers/interfaces/syscalls_dispatcher.h"
+#include "../../../helpers/interfaces/attached_programs.h"
+
+/* From linux tree: /include/trace/events/syscall.h
+ * TP_PROTO(struct pt_regs *regs, long id),
+ */
+SEC("tp_btf/sys_enter")
+int BPF_PROG(dispatch_syscall_enter_events,
+	     struct pt_regs *regs,
+	     long syscall_id)
+{
+	/* The `syscall-id` can refer to both 64-bit and 32-bit architectures.
+	 * Right now we filter only 64-bit syscalls, all the 32-bit syscalls
+	 * will be dropped with `syscalls_dispatcher__check_32bit_syscalls`.
+	 *
+	 * If the syscall is not interesting we drop it.
+	 */
+	if(!syscalls_dispatcher__64bit_interesting_syscall(syscall_id))
+	{
+		return 0;
+	}
+
+	if(!attached_programs__capture_enabled())
+	{
+		return 0;
+	}
+
+	/* Right now, drops all ia32 syscalls. */
+	if(syscalls_dispatcher__check_32bit_syscalls())
+	{
+		return 0;
+	}
+
+	bpf_tail_call(ctx, &syscall_enter_tail_table, syscall_id);
+	return 0;
+}
