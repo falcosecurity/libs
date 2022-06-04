@@ -1,0 +1,268 @@
+#include "state.h"
+
+#include <stdint.h>
+#include "events_prog_names.h"
+#include <scap.h>
+
+extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
+extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+
+/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
+
+/// TODO: in a future optimization we can think to remove this table,
+/// defining macros for `nparams` and directly use them inside bpf
+/// programs instead of reading from a map.
+static void fill_event_params_table()
+{
+	uint8_t nparams_event = 0;
+
+	for(int j = 0; j < PPM_EVENT_MAX; ++j)
+	{
+		nparams_event = (uint8_t)g_event_info[j].nparams;
+		g_state.skel->rodata->g_event_params_table[j] = nparams_event;
+	}
+}
+
+#ifdef TEST_HELPERS
+uint8_t libpman__get_event_params(int event_type)
+{
+	return g_state.skel->rodata->g_event_params_table[event_type];
+}
+#endif
+
+uint64_t libpman__get_probe_api_ver()
+{
+	return g_state.skel->rodata->probe_api_ver;
+}
+
+uint64_t libpman__get_probe_schema_ver()
+{
+	return g_state.skel->rodata->probe_schema_var;
+}
+
+/*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
+
+/*=============================== BPF GLOBAL VARIABLES ===============================*/
+
+void libpman__set_snaplen(uint32_t desired_snaplen)
+{
+	g_state.skel->bss->g_settings.snaplen = desired_snaplen;
+}
+
+#ifdef TEST_HELPERS
+void libpman__mark_64bit_syscall_as_interesting(int intersting_syscall_id)
+{
+	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = true;
+}
+
+void libpman__clean_all_64bit_interesting_syscalls()
+{
+	/* All syscalls are not interesting. */
+	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = false;
+	}
+}
+#endif
+
+static void set_all_64bit_syscalls_interesting()
+{
+	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = true;
+	}
+}
+
+void libpman__fill_64bit_interesting_syscalls_table(bool* intersting_syscalls)
+{
+	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = intersting_syscalls[j];
+	}
+}
+
+/*=============================== BPF GLOBAL VARIABLES ===============================*/
+
+/*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
+
+static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog_name, int key)
+{
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	struct bpf_program* bpf_prog = NULL;
+	int bpf_prog_fd = 0;
+
+	bpf_prog = bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
+	if(!bpf_prog)
+	{
+		sprintf(error_message, "unable to find BPF program '%s'", bpf_prog_name);
+		libpman__print_error((const char*)error_message);
+		goto clean_add_program_to_tail_table;
+	}
+
+	bpf_prog_fd = bpf_program__fd(bpf_prog);
+	if(bpf_prog_fd <= 0)
+	{
+		sprintf(error_message, "unable to get the fd for BPF program '%s'", bpf_prog_name);
+		libpman__print_error((const char*)error_message);
+		goto clean_add_program_to_tail_table;
+	}
+
+	if(bpf_map_update_elem(tail_table_fd, &key, &bpf_prog_fd, BPF_ANY))
+	{
+		sprintf(error_message, "unable to update the tail table with BPF program '%s'", bpf_prog_name);
+		libpman__print_error((const char*)error_message);
+		goto clean_add_program_to_tail_table;
+	}
+	return 0;
+
+clean_add_program_to_tail_table:
+	close(bpf_prog_fd);
+	return errno;
+}
+
+int libpman__fill_syscalls_tail_table()
+{
+	int syscall_enter_tail_table_fd = 0;
+	int syscall_exit_tail_table_fd = 0;
+	int enter_event_type = 0;
+	int exit_event_type = 0;
+	const char* enter_prog_name;
+	const char* exit_prog_name;
+
+	syscall_enter_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_enter_tail_table);
+	if(syscall_enter_tail_table_fd <= 0)
+	{
+		libpman__print_error("unable to get the syscall enter tail table");
+		return errno;
+	}
+
+	syscall_exit_tail_table_fd = bpf_map__fd(g_state.skel->maps.syscall_exit_tail_table);
+	if(syscall_exit_tail_table_fd <= 0)
+	{
+		libpman__print_error("unable to get the syscall exit tail table");
+		return errno;
+	}
+
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+
+		/* Get event type from `g_syscall_table` */
+		enter_event_type = g_syscall_table[syscall_id].enter_event_type;
+		exit_event_type = g_syscall_table[syscall_id].exit_event_type;
+
+		/* Check if we have a corresponding bpf program for these events.
+		 * If we have no associated programs the tail call will fail for
+		 * these entries.
+		 */
+		enter_prog_name = event_prog_names[enter_event_type];
+		exit_prog_name = event_prog_names[exit_event_type];
+
+		if(enter_prog_name &&
+		   add_bpf_program_to_tail_table(syscall_enter_tail_table_fd, enter_prog_name, syscall_id))
+		{
+			goto clean_fill_syscalls_tail_table;
+		}
+
+		if(exit_prog_name &&
+		   add_bpf_program_to_tail_table(syscall_exit_tail_table_fd, exit_prog_name, syscall_id))
+		{
+			goto clean_fill_syscalls_tail_table;
+		}
+
+		/// TODO: for all not managed cases we can think of a generic bpf program like in the current probe.
+	}
+	return 0;
+
+clean_fill_syscalls_tail_table:
+	close(syscall_enter_tail_table_fd);
+	close(syscall_exit_tail_table_fd);
+	return errno;
+}
+
+int libpman__fill_extra_event_prog_tail_table()
+{
+	int extra_event_prog_tail_table_fd = 0;
+	const char* tail_prog_name;
+
+	extra_event_prog_tail_table_fd = bpf_map__fd(g_state.skel->maps.extra_event_prog_tail_table);
+	if(extra_event_prog_tail_table_fd <= 0)
+	{
+		libpman__print_error("unable to get the extra event programs tail table");
+		return errno;
+	}
+
+	for(int j = 0; j < TAIL_EXTRA_EVENT_PROG_MAX; j++)
+	{
+		tail_prog_name = extra_event_prog_names[j];
+
+		if(!tail_prog_name)
+		{
+			continue;
+		}
+
+		if(add_bpf_program_to_tail_table(extra_event_prog_tail_table_fd, tail_prog_name, j))
+		{
+			close(extra_event_prog_tail_table_fd);
+			return errno;
+		}
+	}
+	return 0;
+}
+
+/*=============================== BPF_MAP_TYPE_PROG_ARRAY ===============================*/
+
+/*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
+
+static int size_auxiliary_maps()
+{
+	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_cpus))
+	{
+		libpman__print_error("unable to set max entries for 'auxiliary_maps'");
+		return errno;
+	}
+	return 0;
+}
+
+static int size_counter_maps()
+{
+	if(bpf_map__set_max_entries(g_state.skel->maps.counter_maps, g_state.n_cpus))
+	{
+		libpman__print_error(" unable to set max entries for 'counter_maps'");
+		return errno;
+	}
+	return 0;
+}
+
+/*=============================== BPF_MAP_TYPE_ARRAY ===============================*/
+
+/* Here we split maps operations, before and after the loading phase.
+ */
+
+int libpman__prepare_maps_before_loading()
+{
+	int err;
+
+	/* Read-only global variables must be set before loading phase. */
+	fill_event_params_table();
+
+	/* We need to set the entries number for every BPF_MAP_TYPE_ARRAY
+	 * The number of entries will be always equal to the CPUs number.
+	 */
+	err = size_auxiliary_maps();
+	err = err ?: size_counter_maps();
+	return err;
+}
+
+int libpman__finalize_maps_after_loading()
+{
+	int err;
+
+	/* set bpf global variables. */
+	set_all_64bit_syscalls_interesting();
+	libpman__set_snaplen(80);
+
+	/* We have to fill all ours tail tables. */
+	err = libpman__fill_syscalls_tail_table();
+	err = err ?: libpman__fill_extra_event_prog_tail_table();
+	return err;
+}
