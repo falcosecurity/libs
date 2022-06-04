@@ -31,7 +31,7 @@ bool simple_consumer = false;
 uint16_t evt_type = -1;
 uint16_t* lens16 = NULL;
 char* valptr = NULL;
-char *scap_file = NULL;
+char* scap_file = NULL;
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
@@ -119,7 +119,7 @@ void print_load_success()
 
 void print_start_capture()
 {
-	if (scap_file)
+	if(scap_file)
 	{
 		printf("\n * Reading from scap file: %s...\n", scap_file);
 	}
@@ -164,6 +164,13 @@ void print_parameter(int16_t num_param)
 {
 	int16_t param_type = g_event_info[evt_type].params[num_param].type;
 	int16_t len = lens16[num_param];
+
+	if(len == 0)
+	{
+		printf("PARAM %d: is empty\n", num_param);
+		return;
+	}
+
 	switch(param_type)
 	{
 
@@ -405,7 +412,7 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	if (!scap_file)
+	if(!scap_file)
 	{
 		print_load_success();
 	}
@@ -418,7 +425,7 @@ int main(int argc, char** argv)
 
 		if(res > 0)
 		{
-			if (res != SCAP_EOF)
+			if(res != SCAP_EOF)
 			{
 				scap_close(g_h);
 				fprintf(stderr, "%s\n", scap_getlasterr(g_h));
@@ -437,6 +444,10 @@ int main(int argc, char** argv)
 				for(int i = 0; i < ev->nparams; i++)
 				{
 					print_parameter(i);
+				}
+				if(ev->nparams == 0)
+				{
+					printf("- This event has no parameter\n");
 				}
 				printf("------------------\n");
 			}
