@@ -8,8 +8,7 @@
 #include "scap-int.h"
 #include "scap_procs.h"
 
-/// TODO: Right now if we build the modern probe and there is a path in `bpf_probe`
-// we match the modern probe.
+/// TODO: Rigth now this is not used
 bool scap_modern_bpf_match(scap_open_args* open_args)
 {
 	return open_args->bpf_probe && !open_args->udig;
@@ -141,7 +140,7 @@ int32_t scap_modern_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, l
 
 struct scap_vtable scap_modern_bpf_vtable = {
 	.name = "modern_bpf",
-	.mode = SCAP_MODE_LIVE,
+	.mode = SCAP_MODE_MODERN_BPF,
 
 	.match = scap_modern_bpf_match,
 	.alloc_handle = scap_modern_bpf_alloc_engine,
