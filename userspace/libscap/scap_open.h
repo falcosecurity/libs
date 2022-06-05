@@ -59,6 +59,11 @@ typedef enum {
 	 * Do not read system call data. Events come from the configured input plugin.
 	 */
 	SCAP_MODE_PLUGIN,
+	/*!
+	 * Read system call data from the underlying operating system using a modern
+	 * bpf probe.
+	 */
+	SCAP_MODE_MODERN_BPF,
 } scap_mode_t;
 
 /*!
