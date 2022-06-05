@@ -856,6 +856,70 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * inpu
 	return handle;
 }
 
+#ifdef HAS_ENGINE_MODERN_BPF
+/* Temp workaround until the v-table implementation is completed. */
+scap_t* scap_open_modern_bpf_int(char *error, int32_t *rc, scap_open_args *args)
+{
+	/*
+	 * Allocate the handle
+	 */
+	scap_t* handle = (scap_t*)malloc(sizeof(scap_t));
+	if(!handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	/*
+	 * Preliminary initializations
+	 */
+	memset(handle, 0, sizeof(scap_t));
+	handle->m_mode = SCAP_MODE_MODERN_BPF;
+	handle->m_vtable = &scap_modern_bpf_vtable;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		*rc = SCAP_FAILURE;
+		free(handle);
+		return NULL;
+	}
+
+	/*
+	 * Init handle
+	 */
+	if(handle->m_vtable->init)
+	{
+		*rc = handle->m_vtable->init(handle, args);
+		if(*rc != SCAP_SUCCESS)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
+			/* Since we use the custom mode `SCAP_MODE_MODERN_BPF` and not 
+			 * `SCAP_MODE_LIVE`, the `scap_close()` is ok! 
+			 */
+			scap_close(handle);
+			return NULL;
+		}
+	}
+
+	/*
+	 * Please note: here we don't scan /proc and all the other stuff.
+	 */
+
+
+	/*
+	 * Start the capture
+	 */
+	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+	return handle;
+}
+#endif
+
 scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 {
 	scap_t *handle;
@@ -1687,67 +1751,3 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
 	return handle->m_schema_version;
 }
-
-#ifdef HAS_ENGINE_MODERN_BPF
-/* Temp workaround until the v-table implementation is completed. */
-scap_t* scap_open_modern_bpf_int(char *error, int32_t *rc, scap_open_args *args)
-{
-	/*
-	 * Allocate the handle
-	 */
-	scap_t* handle = (scap_t*)malloc(sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-
-	/*
-	 * Preliminary initializations
-	 */
-	memset(handle, 0, sizeof(scap_t));
-	handle->m_mode = SCAP_MODE_MODERN_BPF;
-	handle->m_vtable = &scap_modern_bpf_vtable;
-	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
-	if(!handle->m_engine.m_handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		*rc = SCAP_FAILURE;
-		free(handle);
-		return NULL;
-	}
-
-	/*
-	 * Init handle
-	 */
-	if(handle->m_vtable->init)
-	{
-		*rc = handle->m_vtable->init(handle, args);
-		if(*rc != SCAP_SUCCESS)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-			/* Since we use the custom mode `SCAP_MODE_MODERN_BPF` and not 
-			 * `SCAP_MODE_LIVE`, the `scap_close()` is ok! 
-			 */
-			scap_close(handle);
-			return NULL;
-		}
-	}
-
-	/*
-	 * Please note: here we don't scan /proc and all the other stuff.
-	 */
-
-
-	/*
-	 * Start the capture
-	 */
-	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return NULL;
-	}
-	return handle;
-}
-#endif
