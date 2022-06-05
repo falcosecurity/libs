@@ -93,7 +93,7 @@ struct
 struct
 {
 	__uint(type, BPF_MAP_TYPE_PROG_ARRAY);
-	__uint(max_entries, TAIL_EXTRA_EVENT_PROG_MAX);
+	__uint(max_entries, 1); /// TODO: right now is `1` because `TAIL_EXTRA_EVENT_PROG_MAX` is `0`!!
 	__type(key, u32);
 	__type(value, u32);
 } extra_event_prog_tail_table __weak SEC(".maps");
