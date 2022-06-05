@@ -9,7 +9,15 @@ or GPL2.txt for full copies of the license.
 
 #ifndef PPM_FLAG_HELPERS_H_
 #define PPM_FLAG_HELPERS_H_
-#ifndef UDIG
+
+/* The ASSERT is defined in other files that we don't 
+ * want to inlcude with the modern probe. `ppm.h`
+ */
+#ifdef __USE_VMLINUX__
+	#define ASSERT(expr)
+#endif
+
+#if !defined(UDIG) && !defined(__USE_VMLINUX__)
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
