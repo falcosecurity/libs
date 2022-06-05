@@ -34,4 +34,4 @@ add_library(scap_engine_modern_bpf
 )
 
 add_dependencies(scap_engine_modern_bpf pman)
-target_link_libraries(scap_engine_modern_bpf scap_event_schema scap_platform pman)
+target_link_libraries(scap_engine_modern_bpf pman)
