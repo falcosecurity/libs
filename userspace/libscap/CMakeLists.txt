@@ -17,6 +17,8 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../common")
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
+option(USE_MODERN_BPF "Enable modern bpf probe" OFF)
+
 if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_definitions(-DHAS_CAPTURE)
@@ -199,4 +201,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_KMOD)
 	add_subdirectory(engine/kmod)
 	target_link_libraries(scap scap_engine_kmod)
+
+	if(USE_MODERN_BPF)
+		add_definitions(-DHAS_ENGINE_MODERN_BPF)
+		add_subdirectory(engine/modern_bpf)
+		target_link_libraries(scap scap_engine_modern_bpf)
+	endif()
+
 endif()
+
