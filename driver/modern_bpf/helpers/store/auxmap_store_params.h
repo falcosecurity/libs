@@ -3,7 +3,6 @@
 #include "../base/push_data.h"
 #include "../extract/extract_from_kernel.h"
 
-
 /* Concept of auxamp (auxiliary map):
  *
  * For variable size events we cannot directly reserve space into the ringbuf,
