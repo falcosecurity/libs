@@ -425,7 +425,7 @@ void print_modern_probe_syscalls()
 		 */
 		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
 		{
-			printf("*ERROR: a syscall that has an event associated is unknown in g_syscall_info_table.\n");
+			printf("*ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our g_syscall_info_table.\n", ppm_syscall_code);
 			exit(EXIT_FAILURE);
 		}
 
@@ -449,12 +449,14 @@ void print_kernel_simple_consumer_syscalls()
 	{
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			if(g_syscall_code_routing_table[syscall_nr] == i)
+			if(g_syscall_code_routing_table[syscall_nr] != i)
 			{
-				if(args.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-				{
-					strcpy(str[interesting_syscall++], g_syscall_info_table[i].name);
-				}
+				continue;
+			}
+
+			if(args.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[i].name);
 			}
 		}
 	}
