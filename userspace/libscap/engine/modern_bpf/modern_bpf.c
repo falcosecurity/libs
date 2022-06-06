@@ -93,7 +93,7 @@ int32_t scap_modern_bpf_init(scap_t* handle, scap_open_args* open_args)
 	handle->m_schema_version = libpman__get_probe_schema_ver();
 
 	/* Here we miss the simple consumer logic. Right now
-	 * all syscalls are interesting. 
+	 * all syscalls are interesting.
 	 */
 
 	/* Here we miss the check on API compatibility */

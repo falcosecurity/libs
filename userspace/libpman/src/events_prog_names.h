@@ -9,5 +9,4 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
-static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
-};
+static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {};
