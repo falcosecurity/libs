@@ -2,19 +2,6 @@
 
 #include "state.h"
 
-/* Taken from libbpf: `include/uapi/linux/bpf.h` */
-
-/* BPF ring buffer map type*/
-#define BPF_MAP_TYPE_RINGBUF 27
-
-/* BPF ring buffer constants */
-enum
-{
-	BPF_RINGBUF_BUSY_BIT = (1U << 31),
-	BPF_RINGBUF_DISCARD_BIT = (1U << 30),
-	BPF_RINGBUF_HDR_SZ = 8,
-};
-
 /* Taken from libbpf: /src/ringbuf.c */
 struct ring
 {
