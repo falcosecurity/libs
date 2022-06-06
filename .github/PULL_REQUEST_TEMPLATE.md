@@ -30,11 +30,25 @@
 
 > /area driver-kmod
 
-> /area driver-ebpf
+> /area driver-bpf
 
-> /area driver-modern_ebpf
+> /area driver-modern-bpf
 
-> /area driver-gvisor
+> /area libscap-engine-bpf
+
+> /area libscap-engine-gvisor
+
+> /area libscap-engine-kmod
+
+> /area libscap-engine-modern-bpf
+
+> /area libscap-engine-nodriver
+
+> /area libscap-engine-noop
+
+> /area libscap-engine-source-plugin
+
+> /area libscap-engine-udig
 
 > /area libscap
 
