@@ -32,6 +32,10 @@
 
 > /area driver-ebpf
 
+> /area driver-modern_ebpf
+
+> /area driver-gvisor
+
 > /area libscap
 
 > /area libsinsp
@@ -61,13 +65,15 @@ Fixes #
 **Does this PR introduce a user-facing change?**:
 
 <!--
-If no, just write "NONE" in the release-note block below.
+If no, you have to do nothing.
 If yes, a release note is required:
-Enter your extended release note in the block below.
+Delete `NONE` and enter your extended release note in the block below.
+Please note, the release note follows the "conventional commit specification" (https://www.conventionalcommits.org/en/v1.0.0/):
+For example: `fix: broken link`.
 If the PR requires additional action from users switching to the new release, prepend the string "action required:".
 For example, `action required: change the API interface of libscap`.
 -->
 
 ```release-note
-
+NONE
 ```
