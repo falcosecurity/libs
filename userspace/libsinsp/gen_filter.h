@@ -73,16 +73,6 @@ public:
 	gen_event();
 	virtual ~gen_event();
 
-	/*!
-	  \brief Set an opaque "check id", corresponding to the id of the last filtercheck that matched this event.
-	*/
-	void set_check_id(int32_t id);
-
-	/*!
-	  \brief Get the opaque "check id" (-1 if not set).
-	*/
-	int32_t get_check_id() const;
-
 	// Every event must expose a timestamp
 	virtual uint64_t get_ts() const = 0;
 
@@ -95,9 +85,6 @@ public:
 	  \brief Get the type of the event.
 	*/
 	virtual uint16_t get_type() const = 0;
-
-private:
-	int32_t m_check_id = 0;
 
 };
 
@@ -119,16 +106,6 @@ public:
 	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 ) = 0;
 	virtual bool compare(gen_event *evt) = 0;
 	virtual bool extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings = true) = 0;
-
-	//
-	// Configure numeric id to be set on events that match this filter
-	//
-	void set_check_id(int32_t id);
-	virtual int32_t get_check_id();
-
-private:
-	int32_t m_check_id = 0;
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////

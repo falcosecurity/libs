@@ -107,8 +107,6 @@ public:
 	*/
 	sinsp_filter* compile();
 
-	void set_check_id(int32_t id);
-
 private:
 	void visit(libsinsp::filter::ast::and_expr*) override;
 	void visit(libsinsp::filter::ast::or_expr*) override;
@@ -122,7 +120,6 @@ private:
 	std::string create_filtercheck_name(std::string& name, std::string& arg);
 	gen_event_filter_check* create_filtercheck(std::string& field);
 
-	int32_t m_check_id;
 	bool m_ttable_only;
 	bool m_internal_parsing;
 	bool m_expect_values;
