@@ -13,11 +13,25 @@
  */
 static int ringbuf_array_set_inner_map()
 {
-	if(bpf_map__set_max_entries(bpf_map__inner_map(g_state.skel->maps.ringbuf_maps), SINGLE_RINGBUF_DIMENSION))
+	int err = 0;
+	int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, SINGLE_RINGBUF_DIMENSION, NULL);
+	if(inner_map_fd < 0)
 	{
-		libpman__print_error("failed to create the dummy inner map inside the ringbuf_array");
+		libpman__print_error("failed to create the dummy inner map");
 		return errno;
 	}
+
+	/* Set the inner map file descriptor into the outer map. */
+	err = bpf_map__set_inner_map_fd(g_state.skel->maps.ringbuf_maps, inner_map_fd);
+	if(err)
+	{
+		libpman__print_error("failed to set the dummy inner map inside the ringbuf array");
+		close(inner_map_fd);
+		return errno;
+	}
+
+	/* Save to close it after the loading phase. */
+	g_state.inner_ringbuf_map_fd = inner_map_fd;
 	return 0;
 }
 
@@ -59,6 +73,9 @@ static int create_first_ringbuffer_map()
 	int ringubuf_array_fd = -1;
 	int ringbuf_map_fd = -1;
 	int index = 0;
+
+	/* We don't need anymore the inner map, close it. */
+	close(g_state.inner_ringbuf_map_fd);
 
 	/* `ringbuf_array` is a maps array, every map inside it is a `BPF_MAP_TYPE_RINGBUF`. */
 	ringubuf_array_fd = bpf_map__fd(g_state.skel->maps.ringbuf_maps);
