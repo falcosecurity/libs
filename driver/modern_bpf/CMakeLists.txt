@@ -32,9 +32,12 @@ endif()
 set(VMLINUX_FILE ${CMAKE_CURRENT_SOURCE_DIR}/definitions/vmlinux.h)
 get_filename_component(VMLINUX_DIR ${VMLINUX_FILE} DIRECTORY)
 
-## Get target arch
+## Get target arch (right now we explicitly support only `x86` and `arm64`)
 execute_process(COMMAND uname -m
   COMMAND sed "s/x86_64/x86/"
+  COMMAND sed "s/aarch64/arm64/"
+  COMMAND sed "s/ppc64le/powerpc/"
+  COMMAND sed "s/mips.*/mips/"
   OUTPUT_VARIABLE ARCH_output
   ERROR_VARIABLE ARCH_error
   RESULT_VARIABLE ARCH_result
@@ -52,10 +55,9 @@ list(APPEND CLANG_FLAGS
     -g -O2
     -target bpf
     -D__${DEBUG}__
-    -D__TARGET_ARCH_${ARCH}
+    -D__TARGET_ARCH_${ARCH} # Match libbpf usage in `/libbpf/src/bpf_tracing.h`
     -D__USE_VMLINUX__ # Used to compile without kernel headers.
     -I${LIBBPF_INCLUDE}
-    -D__${ARCH}__
     -I${VMLINUX_DIR}
     -isystem
 )

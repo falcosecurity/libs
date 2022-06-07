@@ -13,7 +13,7 @@
 /* 32bit syscall active (only in ARCH_x86) */
 #define TS_COMPAT 0x0002
 
-#elif defined(__TARGET_ARCH_aarch64)
+#elif defined(__TARGET_ARCH_arm64)
 
 /* Taken from arch/arm64/include/asm/thread_info.h */
 #define _TIF_32BIT (1 << 22)
