@@ -6,7 +6,6 @@ else()
   set(DEBUG "")
 endif()
 
-## Get clang bpf system includes
 #### TODO: we could add checks on the minimum required clang version.
 find_program(CLANG_EXE NAMES clang DOC "Path to clang executable")
 
@@ -49,6 +48,12 @@ else()
   message(FATAL_ERROR "Failed to determine target architecture: ${ARCH_error}")
 endif()
 
+# Get modern probe include.
+set(MODERN_PROBE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Get PPM include.
+set(PPM_INCLUDE ${CMAKE_SOURCE_DIR}/driver/)
+
 ## Set CLANG FLAGS
 set(CLANG_FLAGS "")
 list(APPEND CLANG_FLAGS
@@ -59,6 +64,8 @@ list(APPEND CLANG_FLAGS
     -D__USE_VMLINUX__ # Used to compile without kernel headers.
     -I${LIBBPF_INCLUDE}
     -I${VMLINUX_DIR}
+    -I${MODERN_PROBE_INCLUDE}
+    -I${PPM_INCLUDE}
     -isystem
 )
 

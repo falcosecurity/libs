@@ -1,11 +1,9 @@
 #pragma once
 
-#include "../helpers/base/common.h"
-#include "../shared_definitions/struct_definitions.h"
-
-/* Shared. */
-#include "../../ppm_events_public.h"
-#include "../../driver_config.h"
+#include <helpers/base/common.h>
+#include <shared_definitions/struct_definitions.h>
+#include <ppm_events_public.h>
+#include <driver_config.h>
 
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 

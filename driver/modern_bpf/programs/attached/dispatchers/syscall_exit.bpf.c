@@ -1,5 +1,5 @@
-#include "../../../helpers/interfaces/syscalls_dispatcher.h"
-#include "../../../helpers/interfaces/attached_programs.h"
+#include <helpers/interfaces/syscalls_dispatcher.h>
+#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long ret),

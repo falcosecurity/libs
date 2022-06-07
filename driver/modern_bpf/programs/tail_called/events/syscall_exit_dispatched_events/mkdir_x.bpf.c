@@ -1,4 +1,4 @@
-#include "../../../../helpers/interfaces/variable_size_event.h"
+#include <helpers/interfaces/variable_size_event.h>
 
 SEC("tp_btf/sys_exit")
 int BPF_PROG(mkdir_x,

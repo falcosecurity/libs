@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../base/push_data.h"
-#include "../extract/extract_from_kernel.h"
+#include <helpers/base/push_data.h>
+#include <helpers/extract/extract_from_kernel.h>
 
 /* Concept of auxamp (auxiliary map):
  *

@@ -1,8 +1,7 @@
 #pragma once
 
-/* Definitions */
-#include "../../definitions/vmlinux.h"
-#include "../../definitions/missing_definitions.h"
+#include <definitions/vmlinux.h>
+#include <definitions/missing_definitions.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>

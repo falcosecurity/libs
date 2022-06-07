@@ -1,8 +1,8 @@
 #pragma once
 
 /* Syscall dispatcher programs are always attached programs. */
-#include "../base/maps_getters.h"
-#include "../base/read_from_task.h"
+#include <helpers/base/maps_getters.h>
+#include <helpers/base/read_from_task.h>
 
 static __always_inline u32 syscalls_dispatcher__get_syscall_id(struct pt_regs *regs)
 {

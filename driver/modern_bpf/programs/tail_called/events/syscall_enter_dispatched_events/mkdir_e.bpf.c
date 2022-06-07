@@ -1,4 +1,4 @@
-#include "../../../../helpers/interfaces/fixed_size_event.h"
+#include <helpers/interfaces/fixed_size_event.h>
 
 SEC("tp_btf/sys_enter")
 int BPF_PROG(mkdir_e,
