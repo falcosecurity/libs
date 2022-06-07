@@ -194,21 +194,49 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_pause - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 #endif
 
-#ifndef __NR_socketcall
+#ifdef __NR_socket
 	[__NR_socket - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
+#endif
+#ifdef __NR_bind
 	[__NR_bind - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
+#endif
+#ifdef __NR_connect
 	[__NR_connect - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
+#endif
+#ifdef __NR_listen
 	[__NR_listen - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
+#endif
+#ifdef __NR_accept
 	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT_5_E, PPME_SOCKET_ACCEPT_5_X},
+#endif
+#ifdef __NR_getsockname
 	[__NR_getsockname - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
+#endif
+#ifdef __NR_getpeername
 	[__NR_getpeername - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETPEERNAME_E, PPME_SOCKET_GETPEERNAME_X},
+#endif
+#ifdef __NR_socketpair
 	[__NR_socketpair - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X},
+#endif
+#ifdef __NR_sendto
 	[__NR_sendto - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_SENDTO_E, PPME_SOCKET_SENDTO_X},
+#endif
+#ifdef __NR_recvfrom
 	[__NR_recvfrom - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SOCKET_RECVFROM_E, PPME_SOCKET_RECVFROM_X},
+#endif
+#ifdef __NR_shutdown
 	[__NR_shutdown - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SOCKET_SHUTDOWN_E, PPME_SOCKET_SHUTDOWN_X},
+#endif
+#ifdef __NR_setsockopt
 	[__NR_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
+#endif
+#ifdef __NR_getsockopt
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
+#endif
+#ifdef __NR_sendmsg
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
+#endif
+#ifdef __NR_accept4
 	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X},
 #endif
 
@@ -755,32 +783,62 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_syncfs - SYSCALL_TABLE_ID0] = PPM_SC_SYNCFS,
 #endif
 	[__NR_getdents64 - SYSCALL_TABLE_ID0] =  PPM_SC_GETDENTS64,
-#ifndef __NR_socketcall
 	/*
 	 * Non-multiplexed socket family
 	 */
+#ifdef __NR_socket
 	[__NR_socket - SYSCALL_TABLE_ID0] =  PPM_SC_SOCKET,
+#endif
+#ifdef __NR_bind
 	[__NR_bind - SYSCALL_TABLE_ID0] =	PPM_SC_BIND,
+#endif
+#ifdef __NR_connect
 	[__NR_connect - SYSCALL_TABLE_ID0] =  PPM_SC_CONNECT,
+#endif
+#ifdef __NR_listen
 	[__NR_listen - SYSCALL_TABLE_ID0] =  PPM_SC_LISTEN,
+#endif
+#ifdef __NR_accept
 	[__NR_accept - SYSCALL_TABLE_ID0] =  PPM_SC_ACCEPT,
+#endif
+#ifdef __NR_getsockname
 	[__NR_getsockname - SYSCALL_TABLE_ID0] = PPM_SC_GETSOCKNAME,
+#endif
+#ifdef __NR_getpeername
 	[__NR_getpeername - SYSCALL_TABLE_ID0] = PPM_SC_GETPEERNAME,
+#endif
+#ifdef __NR_socketpair
 	[__NR_socketpair - SYSCALL_TABLE_ID0] = PPM_SC_SOCKETPAIR,
-/* [__NR_send - SYSCALL_TABLE_ID0] =	PPM_SC_NR_SEND, */
+#endif
+#ifdef __NR_sendto
 	[__NR_sendto - SYSCALL_TABLE_ID0] =  PPM_SC_SENDTO,
+#endif
+/* [__NR_send - SYSCALL_TABLE_ID0] =	PPM_SC_NR_SEND, */
 /* [__NR_recv - SYSCALL_TABLE_ID0] =	PPM_SC_NR_RECV, */
+#ifdef __NR_recvfrom
 	[__NR_recvfrom - SYSCALL_TABLE_ID0] =  PPM_SC_RECVFROM,
+#endif
+#ifdef __NR_shutdown
 	[__NR_shutdown - SYSCALL_TABLE_ID0] =  PPM_SC_SHUTDOWN,
+#endif
+#ifdef __NR_setsockopt
 	[__NR_setsockopt - SYSCALL_TABLE_ID0] = PPM_SC_SETSOCKOPT,
+#endif
+#ifdef __NR_getsockopt
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] = PPM_SC_GETSOCKOPT,
+#endif
+#ifdef __NR_sendmsg
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =  PPM_SC_SENDMSG,
+#endif
+#ifdef __NR_recvmsg
 	[__NR_recvmsg - SYSCALL_TABLE_ID0] =  PPM_SC_RECVMSG,
+#endif
+#ifdef __NR_accept4
 	[__NR_accept4 - SYSCALL_TABLE_ID0] =  PPM_SC_ACCEPT4,
-#else
+#endif
+#ifdef __NR_socketcall
 	[__NR_socketcall - SYSCALL_TABLE_ID0] = PPM_SC_SOCKETCALL,
 #endif
-
 
 #ifdef __NR_sendmmsg
 	[__NR_sendmmsg - SYSCALL_TABLE_ID0] =  PPM_SC_SENDMMSG,
