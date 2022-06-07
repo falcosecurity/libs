@@ -284,8 +284,9 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	}
 
 	for (int i = 0; i < nfds; ++i) {
+		int fd = evts[i].data.fd;
 		if (evts[i].events & EPOLLIN) {
-			uint32_t status = process_message_from_fd(evts[i].data.fd);
+			uint32_t status = process_message_from_fd(fd);
 			if (status == SCAP_FAILURE) {
 				return SCAP_FAILURE;
 			}
@@ -298,14 +299,19 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 
 		if ((evts[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0)
 		{
-			return SCAP_EOF;
+			::close(fd);
+			if (m_sandbox_buffers.count(fd) == 1)
+			{
+				free(m_sandbox_buffers[fd].buf);
+				m_sandbox_buffers.erase(fd);
+			}
 		}
 
 		if (evts[i].events & EPOLLERR)
 		{
 			int socket_error = 0;
 			socklen_t len = sizeof(socket_error);
-			if(getsockopt(evts[i].data.fd, SOL_SOCKET, SO_ERROR, &socket_error, &len))
+			if(getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &len))
 			{
 				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll error: %s", strerror(socket_error));
 				return SCAP_FAILURE;
