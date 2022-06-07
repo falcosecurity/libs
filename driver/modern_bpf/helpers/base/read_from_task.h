@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include <helpers/base/common.h>
 
 /* This inline function tries to retrieve the task struct pointer with BTF information enabled.
  * Where not possible it retrieves the normal pointer without BTF info

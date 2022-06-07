@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common.h"
-#include "../../maps/maps.h"
+#include <helpers/base/common.h>
+#include <maps/maps.h>
 
 /* All these helpers functions are getters, they return
  * the specific map value.

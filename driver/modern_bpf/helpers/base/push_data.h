@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common.h"
+#include <helpers/base/common.h>
 
 /*
  * SCAP EVENT FORMAT:
