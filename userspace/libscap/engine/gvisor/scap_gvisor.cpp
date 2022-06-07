@@ -398,7 +398,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
     return SCAP_TIMEOUT;
 }
 
-std::vector<std::string> runsc(char *argv[])
+std::vector<std::string> engine::runsc(char *argv[])
 {
 	std::vector<std::string> res;
 	int pipefds[2];
@@ -444,6 +444,32 @@ std::vector<std::string> runsc(char *argv[])
 	}
 
 	return res;
+}
+
+std::vector<std::string> engine::runsc_list()
+{
+	std::vector<std::string> sandboxes;
+
+	const char *argv[] = {
+		"runsc", 
+		"--root",
+		m_root_path.c_str(),
+		"list",
+		NULL
+	};
+
+	std::vector<std::string> output = runsc((char **)argv);
+
+	for(auto &line : output)
+	{
+		if(line.find("running") != std::string::npos)
+		{
+			std::string sandbox = line.substr(0, line.find_first_of(" ", 0));
+			sandboxes.emplace_back(sandbox);
+		}
+	}
+
+	return sandboxes;
 }
 
 } // namespace scap_gvisor
