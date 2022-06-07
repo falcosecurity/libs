@@ -31,34 +31,12 @@ gen_event::~gen_event()
 {
 }
 
-void gen_event::set_check_id(int32_t id)
-{
-	if (id) {
-		m_check_id = id;
-	}
-}
-
-int32_t gen_event::get_check_id() const
-{
-	return m_check_id;
-}
-
 gen_event_filter_check::gen_event_filter_check()
 {
 }
 
 gen_event_filter_check::~gen_event_filter_check()
 {
-}
-
-void gen_event_filter_check::set_check_id(int32_t id)
-{
-	m_check_id = id;
-}
-
-int32_t gen_event_filter_check::get_check_id()
-{
-	return m_check_id;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -102,9 +80,6 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 			{
 			case BO_NONE:
 				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
 				break;
 			case BO_NOT:
 				res = !chk->compare(evt);
@@ -124,9 +99,6 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 					goto done;
 				}
 				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
 				break;
 			case BO_AND:
 				if(!res)
@@ -134,9 +106,6 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 					goto done;
 				}
 				res = chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
 				break;
 			case BO_ORNOT:
 				if(res)
@@ -144,9 +113,6 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 					goto done;
 				}
 				res = !chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
 				break;
 			case BO_ANDNOT:
 				if(!res)
@@ -154,9 +120,6 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 					goto done;
 				}
 				res = !chk->compare(evt);
-				if (res) {
-					evt->set_check_id(chk->get_check_id());
-				}
 				break;
 			default:
 				ASSERT(false);
