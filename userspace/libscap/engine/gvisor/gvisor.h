@@ -110,6 +110,7 @@ private:
 
     std::vector<std::string> runsc(char *argv[]);
     std::vector<std::string> runsc_list();
+    void runsc_trace_create(std::string &sandbox_id);
 
     char *m_lasterr;
     int m_listenfd = 0;
