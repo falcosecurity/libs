@@ -4981,12 +4981,12 @@ int f_sys_io_uring_setup_x (struct event_filler_arguments *args)
 {
 	int res;
 	unsigned long val;
-	unsigned long sq_entries;
-	unsigned long cq_entries;
-	unsigned long flags;
-	unsigned long sq_thread_cpu;
-	unsigned long sq_thread_idle;
-	unsigned long features;
+	unsigned long sq_entries = 0;
+	unsigned long cq_entries = 0;
+	unsigned long flags = 0;
+	unsigned long sq_thread_cpu = 0;
+	unsigned long sq_thread_idle = 0;
+	unsigned long features = 0;
 
 #ifdef __NR_io_uring_setup
 	struct io_uring_params params;
@@ -5017,15 +5017,10 @@ int f_sys_io_uring_setup_x (struct event_filler_arguments *args)
 	flags = io_uring_setup_flags_to_scap(params.flags);
 	sq_thread_cpu = params.sq_thread_cpu;
 	sq_thread_idle = params.sq_thread_idle;
+#ifdef IORING_FEAT_SINGLE_MMAP
 	features = io_uring_setup_feats_to_scap(params.features);
-#else
-	sq_entries = 0;
-	cq_entries = 0;
-	flags = 0;
-	sq_thread_cpu = 0;
-	sq_thread_idle = 0;
-	features = 0;
 #endif
+#endif // __NR_io_uring_setup
 	/*
 	 * sq_entries (extracted from io_uring_params structure)
 	 */
