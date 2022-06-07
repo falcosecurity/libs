@@ -29,6 +29,10 @@ limitations under the License.
 
 namespace scap_gvisor {
 
+constexpr uint32_t min_supported_version = 1;
+constexpr uint32_t current_version = 1;
+constexpr size_t max_line_size = 2048;
+
 #pragma pack(push, 1)
 struct header
 {
@@ -104,6 +108,8 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
+    std::vector<std::string> runsc(char *argv[]);
+
     char *m_lasterr;
     int m_listenfd = 0;
     int m_epollfd = 0;
@@ -122,6 +128,8 @@ private:
     // when get_threadinfos() is called. They are only updated upon get_threadinfos()
     std::vector<scap_threadinfo> m_threadinfos_threads;
     std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
+    std::string m_root_path;
+	std::string m_podinit_path;
 };
 
 } // namespace scap_gvisor
