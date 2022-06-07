@@ -54,11 +54,8 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	const std::string &filepath,
-	const std::string &config,
 	std::string &errstr)
 {
-	std::shared_ptr<sinsp_plugin> ret;
-
 #ifdef _WIN32
 	sinsp_plugin_handle handle = LoadLibrary(filepath.c_str());
 
@@ -81,36 +78,21 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	if(handle == NULL)
 	{
 		errstr = "error loading plugin " + filepath + ": " + dlerror();
-		return ret;
+		return nullptr;
 	}
 #endif
 
-	auto plugin = new sinsp_plugin(handle);
+	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle));
 	if (!plugin->resolve_dylib_symbols(errstr))
 	{
-		return ret;
+		return nullptr;
 	}
-
 	if (plugin->m_caps == 0)
 	{
-		errstr = "Desired plugin has no capability.";
-		delete plugin;
-		return ret;
+		errstr = "loaded plugin implements no capability: " + filepath;
+		return nullptr;
 	}
-
-	errstr = "";
-	ret.reset(plugin);
-
-	// Initialize the plugin
-	std::string conf = config;
-	ret->validate_init_config(conf);
-	if (!ret->init(conf.c_str()))
-	{
-		errstr = string("Could not initialize plugin: " + ret->get_last_error());
-		ret = NULL;
-	}
-
-	return ret;
+	return plugin;
 }
 
 void* sinsp_plugin::getsym(const char* name, std::string &errstr)
@@ -178,16 +160,19 @@ sinsp_plugin::~sinsp_plugin()
 	m_fields.clear();
 }
 
-bool sinsp_plugin::init(const char *config)
+bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 {
 	if (!m_api.init)
 	{
+		errstr = string("init api symbol not found");
 		return false;
 	}
 
 	ss_plugin_rc rc;
+	std::string conf = config;
+	validate_init_config(conf);
 
-	ss_plugin_t *state = m_api.init(config, &rc);
+	ss_plugin_t *state = m_api.init(conf.c_str(), &rc);
 	if (state != NULL)
 	{
 		// Plugins can return a state even if the result code is
@@ -196,7 +181,13 @@ bool sinsp_plugin::init(const char *config)
 		m_state = state;
 	}
 
-	return rc == SS_PLUGIN_SUCCESS;
+	if (rc != SS_PLUGIN_SUCCESS)
+	{
+		errstr = "Could not initialize plugin: " + get_last_error();
+		return false;
+	}
+
+	return true;
 }
 
 void sinsp_plugin::destroy()

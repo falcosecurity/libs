@@ -960,7 +960,7 @@ public:
 	// Create and register a plugin from a shared library pointed
 	// to by filepath, and add it to the inspector.
 	// The created sinsp_plugin is returned.
-	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath, const std::string& config);
+	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
 	const sinsp_plugin_manager* get_plugin_manager();
 	void set_input_plugin(const string& name, const string& params);
 
