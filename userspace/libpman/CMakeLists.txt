@@ -16,7 +16,7 @@ set(PMAN_PRIVATE_INCLUDES
     "${SKEL_DIR}"
     "${CMAKE_SOURCE_DIR}/driver/" ## ppm_enum and tables
     "${CMAKE_SOURCE_DIR}/userspace/libscap" ## scap-stats struct
-    "${CMAKE_SOURCE_DIR}/driver/modern_bpf/shared_definitions" ## bpf-shared structs
+    "${CMAKE_SOURCE_DIR}/driver/modern_bpf/" ## bpf-shared structs
 )
 
 set(PMAN_PUBLIC_INCLUDES

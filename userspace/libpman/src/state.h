@@ -2,7 +2,7 @@
 
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
-#include <struct_definitions.h> // contains definition used in the skeleton
+#include <shared_definitions/struct_definitions.h>
 #include <bpf_probe.skel.h>
 #include <unistd.h>
 
