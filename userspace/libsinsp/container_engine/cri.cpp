@@ -345,7 +345,8 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		sinsp_container_info result;
 
 		bool done;
-		if(s_async && cache->async_allowed())
+		const bool async = s_async && cache->async_allowed();
+		if(async)
 		{
 			done = m_async_source->lookup_delayed(key, result, chrono::milliseconds(s_cri_lookup_delay_ms), cb);
 		}
@@ -359,7 +360,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			// if a previous lookup call already found the metadata, process it now
 			cb(key, result);
 
-			if(s_async)
+			if(async)
 			{
 				// This should *never* happen, in async mode as ttl is 0 (never wait)
 				g_logger.format(sinsp_logger::SEV_ERROR,
