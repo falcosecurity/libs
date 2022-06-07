@@ -8,11 +8,17 @@
 
 /*=============================== ARCH SPECIFIC ===========================*/
 
+#if defined(__TARGET_ARCH_x86)
+
 /* 32bit syscall active (only in ARCH_x86) */
 #define TS_COMPAT 0x0002
 
-// arch/arm64/include/asm/thread_info.h
+#elif defined(__TARGET_ARCH_aarch64)
+
+/* Taken from arch/arm64/include/asm/thread_info.h */
 #define _TIF_32BIT (1 << 22)
+
+#endif
 
 /*=============================== ARCH SPECIFIC ===========================*/
 
