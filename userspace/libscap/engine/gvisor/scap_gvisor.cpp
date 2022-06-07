@@ -27,6 +27,7 @@ limitations under the License.
 #include <vector>
 
 #include "gvisor.h"
+#include "pkg/sentry/seccheck/points/common.pb.h"
 
 #include "../../../common/strlcpy.h"
 
@@ -113,6 +114,40 @@ void engine::free_sandbox_buffers()
 	m_sandbox_buffers.clear();
 }
 
+static bool handshake(int client)
+{
+	std::vector<char> buf(GVISOR_MAX_MESSAGE_SIZE);
+	ssize_t bytes = read(client, buf.data(), buf.size());
+	if(bytes < 0)
+	{
+		return false;
+	}
+	else if(bytes == buf.size())
+	{
+		return false;
+	}
+
+	gvisor::common::Handshake in = {};
+	if(!in.ParseFromArray(buf.data(), bytes))
+	{
+		return false;
+	}
+
+	if(in.version() < min_supported_version)
+	{
+		return false;
+	}
+
+	gvisor::common::Handshake out;
+	out.set_version(current_version);
+	if(!out.SerializeToFileDescriptor(client))
+	{
+		return false;
+	}
+	
+	return true;
+}
+
 static void accept_thread(int listenfd, int epollfd)
 {
 	while(true)
@@ -125,6 +160,12 @@ static void accept_thread(int listenfd, int epollfd)
 				continue;
 			}
 			return;
+		}
+
+		if(!handshake(client))
+		{
+			close(client);
+			continue;
 		}
 
 		struct epoll_event evt;
@@ -219,6 +260,8 @@ int32_t engine::process_message_from_fd(int fd)
 	{
 		m_event_queue.push_back(evt);
 	}
+
+	return parse_result.status;
 }
 
 int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
