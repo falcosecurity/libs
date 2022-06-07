@@ -56,7 +56,7 @@ public:
 
 	virtual ss_plugin_caps caps() const = 0;
 
-	virtual bool init(const char* config) = 0;
+	virtual bool init(const std::string &config, std::string &errstr) = 0;
 
 	virtual void destroy() = 0;
 
@@ -121,11 +121,10 @@ class sinsp_plugin: public sinsp_plugin_cap_sourcing, public sinsp_plugin_cap_ex
 {
 public:
 	// Create a plugin from the dynamic library at the provided
-	// path. On error, the shared_ptr will == NULL and errstr is
+	// path. On error, the shared_ptr will == nullptr and errstr is
 	// set with an error.
 	static std::shared_ptr<sinsp_plugin> create(
 		const std::string &filepath,
-		const std::string &config,
 		std::string &errstr);
 
 	// Return whether a filesystem object is loaded
@@ -139,7 +138,7 @@ public:
 	virtual ~sinsp_plugin();
 
 	/** Common API **/
-	virtual bool init(const char* config) override;
+	virtual bool init(const std::string &config, std::string &errstr) override;
 	virtual void destroy() override;
 	virtual std::string get_last_error() const override;
 	virtual const std::string &name() const override;
