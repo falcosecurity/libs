@@ -727,6 +727,34 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	}
 }
 
+static int32_t scap_kmod_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
+{
+	struct kmod_engine* kmod_engine = engine.m_handle;
+	int ioctlres = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, procinfo_p);
+	if(ioctlres)
+	{
+		if(errno == ENOSPC)
+		{
+			if(scap_alloc_proclist_info(procinfo_p, (*procinfo_p)->n_entries + 256, kmod_engine->m_lasterr) == false)
+			{
+				return SCAP_FAILURE;
+			}
+			else
+			{
+				return scap_kmod_get_threadlist(engine, procinfo_p, lasterr);
+			}
+		}
+		else
+		{
+			snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROCLIST");
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
+
 static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, int64_t pid, int64_t* vpid)
 {
 	struct kmod_engine *kmod_engine = engine.m_handle;
@@ -794,6 +822,7 @@ struct scap_vtable scap_kmod_engine = {
 	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
 	.get_n_devs = scap_kmod_get_n_devs,
 	.get_max_buf_used = scap_kmod_get_max_buf_used,
+	.get_threadlist = scap_kmod_get_threadlist,
 	.get_vpid = scap_kmod_get_vpid,
 	.get_vtid = scap_kmod_get_vtid,
 	.getpid_global = scap_kmod_getpid_global,

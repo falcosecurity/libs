@@ -1380,33 +1380,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 	return true;
 }
 
-int32_t scap_kmod_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p)
-{
-	struct kmod_engine* kmod_engine = engine.m_handle;
-	int ioctlres = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, procinfo_p);
-	if(ioctlres)
-	{
-		if(errno == ENOSPC)
-		{
-			if(scap_alloc_proclist_info(procinfo_p, (*procinfo_p)->n_entries + 256, kmod_engine->m_lasterr) == false)
-			{
-				return SCAP_FAILURE;
-			}
-			else
-			{
-				return scap_kmod_get_threadlist(engine, procinfo_p);
-			}
-		}
-		else
-		{
-			snprintf(kmod_engine->m_lasterr, SCAP_LASTERR_SIZE, "Error calling PPM_IOCTL_GET_PROCLIST");
-			return SCAP_FAILURE;
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
 	//
@@ -1430,15 +1403,7 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 		}
 	}
 
-	int res;
-	if(handle->m_vtable)
-	{
-		res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
-	}
-	else
-	{
-		res = scap_kmod_get_threadlist(handle->m_engine, &handle->m_driver_procinfo);
-	}
+	int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
 	if(res != SCAP_SUCCESS)
 	{
 		return NULL;
