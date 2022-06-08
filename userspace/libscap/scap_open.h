@@ -86,6 +86,8 @@ typedef struct scap_open_args
 	// values via scap_suppress_events_comm().
 	bool udig; ///< If true, UDIG will be used for event capture.
 	const char *gvisor_socket; ///< If not null, gvisor will be used for event capture.
+	const char *gvisor_root_path; ///< When using gvisor, the root path used by runsc commands
+	const char *gvisor_trace_session_path; ///< When using gvisor, the trace session config file
 
 	interesting_ppm_sc_set ppm_sc_of_interest;
 

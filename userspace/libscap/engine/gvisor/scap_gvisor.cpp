@@ -87,8 +87,11 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string socket_path)
+int32_t engine::init(std::string socket_path, std::string root_path, std::string trace_session_path)
 {
+	m_root_path = root_path;
+	m_trace_session_path = trace_session_path;
+	
 	// Initialize the listen fd
 	int sock, ret;
 	struct sockaddr_un address;
@@ -222,10 +225,45 @@ static void accept_thread(int listenfd, int epollfd)
 
 int32_t engine::start_capture()
 {
+	//
+	// Retrieve all running sandboxes
+	// We will need to recreate a session for each of them
+	//
+	std::vector<std::string> existing_sandboxes = runsc_list();
+
+	// Start accepting connections
 	m_accept_thread = std::thread(accept_thread, m_listenfd, m_epollfd);
 	m_accept_thread.detach();
 
 	m_capture_started = true;
+	
+	for(const auto& sandbox : existing_sandboxes)
+	{
+		// Since they were already running, we need to force the creation
+		runsc_trace_create(sandbox, true);
+	}
+
+
+	// Catch all sandboxes that might have been created in the meantime
+	std::vector<std::string> new_sandboxes = runsc_list();
+
+	// Remove the existing sandboxes (erase-remove idiom)
+	new_sandboxes.erase(
+		remove_if(
+			new_sandboxes.begin(),
+			new_sandboxes.end(),
+			[&existing_sandboxes](const std::string &s) -> bool
+			{
+				auto res = find(existing_sandboxes.begin(), existing_sandboxes.end(), s);
+				return res != existing_sandboxes.end();
+			}),
+		new_sandboxes.end());
+
+	// Create new session for remaining sandboxes
+	for(const auto& sandbox : new_sandboxes)
+	{
+		runsc_trace_create(sandbox, false);
+	}
 
     return SCAP_SUCCESS;
 }
@@ -472,7 +510,7 @@ std::vector<std::string> engine::runsc_list()
 	return sandboxes;
 }
 
-void engine::runsc_trace_create(std::string &sandbox_id)
+void engine::runsc_trace_create(const std::string &sandbox_id, bool force)
 {
 	const char *argv[] = {
 		"runsc", 
@@ -480,14 +518,14 @@ void engine::runsc_trace_create(std::string &sandbox_id)
 		m_root_path.c_str(),
 		"trace",
 		"create",
-		"--force",
+		force ? "--force" : "",
 		"--config", 
 		m_trace_session_path.c_str(),
 		sandbox_id.c_str(),
 		NULL
 	};
 
-	std::vector<std::string> output = runsc((char **)argv);
+	runsc((char **)argv);
 }
 
 } // namespace scap_gvisor
