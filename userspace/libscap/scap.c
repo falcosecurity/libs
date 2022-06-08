@@ -1314,6 +1314,7 @@ void scap_close(scap_t* handle)
 	if(handle->m_vtable)
 	{
 		handle->m_vtable->close(handle->m_engine);
+		handle->m_vtable->free_handle(handle->m_engine);
 	}
 
 	//
