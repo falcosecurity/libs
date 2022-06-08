@@ -93,7 +93,7 @@ class engine {
 public:
     engine(char *lasterr);
     ~engine();
-    int32_t init(std::string socket_path);
+    int32_t init(std::string socket_path, std::string root_path, std::string trace_session_path);
     int32_t close();
 
     int32_t start_capture();
@@ -110,7 +110,7 @@ private:
 
     std::vector<std::string> runsc(char *argv[]);
     std::vector<std::string> runsc_list();
-    void runsc_trace_create(std::string &sandbox_id);
+    void runsc_trace_create(const std::string &sandbox_id, bool force);
 
     char *m_lasterr;
     int m_listenfd = 0;
@@ -131,7 +131,7 @@ private:
     std::vector<scap_threadinfo> m_threadinfos_threads;
     std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
     std::string m_root_path;
-	std::string m_podinit_path;
+    std::string m_trace_session_path;
 };
 
 } // namespace scap_gvisor
