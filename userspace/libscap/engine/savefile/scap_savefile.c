@@ -36,15 +36,15 @@ struct iovec {
 //
 // Load the machine info block
 //
-static int32_t scap_read_machine_info(scap_t *handle, scap_reader_t* r, uint32_t block_length)
+static int32_t scap_read_machine_info(scap_reader_t* r, scap_machine_info* machine_info, char* error, uint32_t block_length)
 {
 	//
 	// Read the section header block
 	//
-	if(scap_reader_read(r, &handle->m_machine_info, sizeof(handle->m_machine_info)) !=
-		sizeof(handle->m_machine_info))
+	if(scap_reader_read(r, machine_info, sizeof(*machine_info)) !=
+		sizeof(*machine_info))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
+		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
 	}
 
@@ -1474,7 +1474,11 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case MI_BLOCK_TYPE:
 		case MI_BLOCK_TYPE_INT:
 
-			if(scap_read_machine_info(handle, r, bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
+			if(scap_read_machine_info(
+				   r,
+				   &handle->m_machine_info,
+				   handle->m_lasterr,
+				   bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
