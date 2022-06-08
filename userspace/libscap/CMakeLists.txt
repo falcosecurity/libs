@@ -90,7 +90,8 @@ list(APPEND targetfiles
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	list(APPEND targetfiles
-		scap_kmod.c)
+		scap_kmod.c
+		engine/kmod/scap_kmod.c)
 
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
