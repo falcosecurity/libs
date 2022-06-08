@@ -5630,4 +5630,53 @@ FILLER(sys_capset_x, true)
 	return res;
 }
 
+<<<<<<< HEAD
+=======
+FILLER(sys_dup_x, true)
+{
+	unsigned long val;
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * oldfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	
+	return res;
+}
+
+FILLER(sys_dup2_x, true)
+{
+	unsigned long val;
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * oldfd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * newfd
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, val);
+	
+	return res;
+}
+
+>>>>>>> 29f2228b (update(driver): add support for dup2 syscall)
 #endif
