@@ -27,6 +27,8 @@ limitations under the License.
 
 #include <vector>
 
+#include <json/json.h>
+
 #include "gvisor.h"
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
