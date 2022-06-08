@@ -25,21 +25,11 @@ if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_definitions(-DHAS_CAPTURE)
 	endif()
+	add_definitions(-DHAVE_PWD_H)
+	add_definitions(-DHAVE_GRP_H)
 else() # MSVC
 	# todo(leogr): this should be removed - double check
 	add_definitions(-DHAS_CAPTURE)
-endif()
-
-include(CheckIncludeFile)
-
-check_include_file("pwd.h" HAVE_PWD_H)
-if (HAVE_PWD_H)
-	add_definitions(-DHAVE_PWD_H)
-endif()
-
-check_include_file("grp.h" HAVE_GRP_H)
-if (HAVE_GRP_H)
-	add_definitions(-DHAVE_GRP_H)
 endif()
 
 include(ExternalProject)
