@@ -175,6 +175,11 @@ public:
 	bool is_running() const;
 
 	/**
+	 * Set m_running to the provided value, protected by m_mutex.
+	 */
+	void set_running(bool running);
+
+	/**
 	 * Return all results available so far
 	 *
 	 * All available results are moved from the internal map to the returned map

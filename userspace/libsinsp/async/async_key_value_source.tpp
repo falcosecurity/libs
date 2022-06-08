@@ -108,11 +108,21 @@ bool async_key_value_source<key_type, value_type>::is_running() const
 }
 
 template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::set_running(bool running)
+{
+	std::unique_lock<std::mutex> guard(m_mutex);
+
+	m_running = running;
+}
+
+template<typename key_type, typename value_type>
 void async_key_value_source<key_type, value_type>::run()
 {
-	m_running = true;
+	set_running(true);
 
-	while(!m_terminate)
+	bool terminate = false;
+
+	while(!terminate)
 	{
 		{
 			std::unique_lock<std::mutex> guard(m_mutex);
@@ -136,17 +146,19 @@ void async_key_value_source<key_type, value_type>::run()
 				}
 			}
 
+			terminate = m_terminate;
+
 			prune_stale_requests();
 		}
 
-		if(!m_terminate)
+		if(!terminate)
 		{
 
 			run_impl();
 		}
 	}
 
-	m_running = false;
+	set_running(false);
 }
 
 template<typename key_type, typename value_type>
