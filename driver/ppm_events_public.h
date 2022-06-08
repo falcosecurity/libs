@@ -684,6 +684,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCKALL_MCL_FUTURE			(1<<1)
 #define PPM_MLOCKALL_MCL_ONFAULT		(1<<2)
 
+
 /*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
@@ -1137,7 +1138,9 @@ enum ppm_event_type {
 	PPME_GROUP_DELETED_X = 361,
 	PPME_SYSCALL_DUP2_E = 362,
 	PPME_SYSCALL_DUP2_X = 363,
-	PPM_EVENT_MAX = 364
+	PPME_SYSCALL_DUP3_E = 364,
+	PPME_SYSCALL_DUP3_X = 365,
+	PPM_EVENT_MAX = 366
 };
 /*@}*/
 

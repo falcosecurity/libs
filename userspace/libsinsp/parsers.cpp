@@ -411,6 +411,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_DUP2_X:
 		parse_dup_exit(evt);
 		break;
+	case PPME_SYSCALL_DUP3_X:
+		parse_dup_exit(evt);
+		break;
 	case PPME_SYSCALL_SIGNALFD_X:
 		parse_signalfd_exit(evt);
 		break;

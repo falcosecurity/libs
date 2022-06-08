@@ -376,6 +376,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_GROUP_DELETED_X */{"groupdeleted", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_SYSCALL_DUP2_E */{"dup2", EC_IO_OTHER, EF_NONE, 0},
 	/* PPME_SYSCALL_DUP2_X */{"dup2", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 3, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC}, {"newfd", PT_FD, PF_DEC} } },
+	/* PPME_SYSCALL_DUP3_E */{"dup3", EC_IO_OTHER, EF_NONE, 0},
+	/* PPME_SYSCALL_DUP3_X */{"dup3", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 4, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC}, {"newfd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
