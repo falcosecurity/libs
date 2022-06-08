@@ -1833,6 +1833,16 @@ static __always_inline u64 capabilities_to_scap(unsigned long caps)
 	return res;
 }
 
+static __always_inline u32 dup3_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+	return res;
+}
+
 #endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */
