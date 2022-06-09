@@ -66,6 +66,6 @@ jobs:
           rm -rf build
           mkdir -p build
           cd build
-          cmake ${{ matrix.build-args }} ..
+          cmake ${{ matrix.build-args }} -DBUILD_LIBSCAP_GVISOR=OFF ..
           KERNELDIR=/lib/modules/$(uname -r)/build make -j$(nproc)
           make run-unit-tests
