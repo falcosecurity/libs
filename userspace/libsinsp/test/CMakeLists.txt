@@ -39,7 +39,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	events_proc.ut.cpp
 	events_user.ut.cpp
 	external_processor.ut.cpp
-	procfs_utils.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
 	plugin_manager.ut.cpp
