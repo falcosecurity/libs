@@ -32,6 +32,8 @@ add_executable(unit-test-libscap ${LIBSCAP_UNIT_TESTS_SOURCES})
 
 find_package(Threads)
 
+message(STATUS "cmake thread init: ${CMAKE_THREAD_LIBS_INIT}")
+
 target_link_libraries(unit-test-libscap
 	"${CMAKE_THREAD_LIBS_INIT}"
 	"${GTEST_LIB}"
