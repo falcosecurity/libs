@@ -33,6 +33,43 @@ limitations under the License.
 
 namespace scap_gvisor {
 
+
+sandbox_entry::sandbox_entry()
+{
+	m_buf.buf = nullptr;
+	m_buf.size = 0;
+}
+
+sandbox_entry::~sandbox_entry()
+{
+	if (m_buf.buf != nullptr)
+	{
+		free(m_buf.buf);
+	}
+}
+
+int32_t sandbox_entry::expand_buffer(size_t size)
+{
+	void* new_buf;
+
+	if (m_buf.buf == nullptr) {
+		new_buf = malloc(size);
+	} else
+	{
+		new_buf = realloc(m_buf.buf, size);
+	}
+
+	if (new_buf == nullptr)
+	{
+		return SCAP_FAILURE;
+	}
+
+	m_buf.buf = new_buf;
+	m_buf.size = size;
+
+	return SCAP_SUCCESS;
+}
+
 engine::engine(char *lasterr)
 {
     m_lasterr = lasterr;
@@ -101,17 +138,14 @@ int32_t engine::init(std::string socket_path)
 
 int32_t engine::close()
 {
-	free_sandbox_buffers();
+	stop_capture();
 	unlink(m_socket_path.c_str());
     return SCAP_SUCCESS;
 }
 
 void engine::free_sandbox_buffers()
 {
-	for (const auto& kv : m_sandbox_buffers) {
-		free(kv.second.buf);
-	}
-	m_sandbox_buffers.clear();
+	m_sandbox_data.clear();
 }
 
 static bool handshake(int client)
@@ -122,7 +156,7 @@ static bool handshake(int client)
 	{
 		return false;
 	}
-	else if(bytes == buf.size())
+	else if(static_cast<size_t>(bytes) == buf.size())
 	{
 		return false;
 	}
@@ -159,6 +193,7 @@ static void accept_thread(int listenfd, int epollfd)
 			{
 				continue;
 			}
+			// connection shutdown
 			return;
 		}
 
@@ -188,6 +223,7 @@ int32_t engine::start_capture()
 
 int32_t engine::stop_capture()
 {
+	shutdown(m_listenfd, 2);
 	free_sandbox_buffers();
     return SCAP_SUCCESS;
 }
@@ -211,43 +247,32 @@ int32_t engine::process_message_from_fd(int fd)
 	else if(nbytes == 0)
 	{
 		::close(fd);
-		if (m_sandbox_buffers.count(fd) == 1)
-		{
-			free(m_sandbox_buffers[fd].buf);
-			m_sandbox_buffers.erase(fd);
-		}
+		m_sandbox_data.erase(fd);
 
 		return SCAP_EOF;
 	}
 
 	// check if we need to allocate a new buffer for this sandbox
-	if(m_sandbox_buffers.count(fd) != 1)
+	if(m_sandbox_data.count(fd) != 1)
 	{
-		scap_sized_buffer new_buf;
-		new_buf.buf = malloc(GVISOR_INITIAL_EVENT_BUFFER_SIZE);
-		new_buf.size = GVISOR_INITIAL_EVENT_BUFFER_SIZE;
-		if (new_buf.buf == nullptr)
-		{
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %zu bytes for gvisor sandbox on fd %d", new_buf.size, fd);
+		m_sandbox_data.emplace(fd, sandbox_entry{});
+		if (m_sandbox_data[fd].expand_buffer(GVISOR_INITIAL_EVENT_BUFFER_SIZE) == SCAP_FAILURE) {
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %d bytes for gvisor sandbox on fd %d", GVISOR_INITIAL_EVENT_BUFFER_SIZE, fd);
 			return SCAP_FAILURE;
 		}
-		m_sandbox_buffers[fd] = new_buf;
 	}
 
-	scap_sized_buffer &sandbox_buf = m_sandbox_buffers[fd];
 	scap_const_sized_buffer gvisor_msg = {.buf = static_cast<void*>(message), .size = static_cast<size_t>(nbytes)};
 
-	struct parsers::parse_result parse_result = parsers::parse_gvisor_proto(gvisor_msg, sandbox_buf);
+	struct parsers::parse_result parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
 	if(parse_result.status == SCAP_INPUT_TOO_SMALL)
 	{
-		sandbox_buf.buf = realloc(sandbox_buf.buf, parse_result.size);
-		if(!sandbox_buf.buf)
+		if (m_sandbox_data[fd].expand_buffer(parse_result.size) == SCAP_FAILURE)
 		{
-			strlcpy(m_lasterr, "Cannot realloc gvisor buffer", SCAP_LASTERR_SIZE);
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE,"Cannot realloc gvisor buffer to %zu", parse_result.size);
 			return SCAP_FAILURE;
-		}
-		sandbox_buf.size = parse_result.size;
-		parse_result = parsers::parse_gvisor_proto(gvisor_msg, sandbox_buf);
+		};
+		parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
 	} 
 
 	if(parse_result.status != SCAP_SUCCESS)
@@ -280,7 +305,12 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	if (nfds < 0)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));
-		return SCAP_TIMEOUT;
+		if (errno == EINTR) {
+			// Syscall interrupted. Nothing else to read.
+			return SCAP_EOF;
+		}
+		// unhandled error
+		return SCAP_FAILURE;
 	}
 
 	for (int i = 0; i < nfds; ++i) {
@@ -300,11 +330,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		if ((evts[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0)
 		{
 			::close(fd);
-			if (m_sandbox_buffers.count(fd) == 1)
-			{
-				free(m_sandbox_buffers[fd].buf);
-				m_sandbox_buffers.erase(fd);
-			}
+			m_sandbox_data.erase(fd);
 		}
 
 		if (evts[i].events & EPOLLERR)

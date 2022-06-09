@@ -23,7 +23,7 @@ limitations under the License.
 #include <atomic>
 #include <deque>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 #include "scap.h"
 
@@ -80,6 +80,16 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 
 } // namespace parsers
 
+// contains entries to store per-sandbox data and buffers to use to write events in
+class sandbox_entry {
+public:
+	sandbox_entry();
+    ~sandbox_entry();
+
+    int32_t expand_buffer(size_t size);
+
+	scap_sized_buffer m_buf;
+};
 
 class engine {
 public:
@@ -102,10 +112,12 @@ private:
     int m_epollfd;
     std::string m_socket_path;
     std::thread m_accept_thread;
+
+    // contains pointers to parsed events to process
     std::deque<scap_evt *> m_event_queue{};
 
-    // buffers in which to store events, one per each active sandbox, indexed by fd
-    std::map<int, scap_sized_buffer> m_sandbox_buffers;
+    // stores per-sandbox data. All buffers used to contain parsed event data are owned by this map
+    std::unordered_map<int, sandbox_entry> m_sandbox_data;
 };
 
 } // namespace scap_gvisor
