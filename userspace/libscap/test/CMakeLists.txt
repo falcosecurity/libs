@@ -33,9 +33,9 @@ add_executable(unit-test-libscap ${LIBSCAP_UNIT_TESTS_SOURCES})
 find_package(Threads)
 
 target_link_libraries(unit-test-libscap
-	"${CMAKE_THREAD_LIBS_INIT}"
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
+	"${CMAKE_THREAD_LIBS_INIT}"
 	scap
 )
 
