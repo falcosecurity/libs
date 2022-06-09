@@ -35,7 +35,7 @@ struct capture_settings
  */
 struct auxiliary_map
 {
-	char data[AUXILIARY_MAP_SIZE]; /* raw space to save our variable-size event. */
+	uint8_t data[AUXILIARY_MAP_SIZE]; /* raw space to save our variable-size event. */
 	uint64_t payload_pos;	       /* position of the first empty byte in the `data` buf. */
 	uint8_t lengths_pos;	       /* position the first empty slot into the lengths array of the event. */
 };

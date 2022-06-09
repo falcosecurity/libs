@@ -92,7 +92,7 @@
  * @param lengths_pos pointer to the first empty slot into the `lengths_arr`.
  * @param len length to store inside the array (16 bit).
  */
-static __always_inline void push__param_len(char *data, u8 *lengths_pos, u16 len)
+static __always_inline void push__param_len(u8* data, u8 *lengths_pos, u16 len)
 {
 	*((u16 *)&data[SAFE_ACCESS(*lengths_pos)]) = len;
 	*lengths_pos += sizeof(u16);
@@ -118,49 +118,49 @@ static __always_inline void push__param_len(char *data, u8 *lengths_pos, u16 len
 // PUSH FIXED DIMENSIONS
 ///////////////////////////
 
-static __always_inline void push__u8(char *data, u64 *payload_pos, u8 param)
+static __always_inline void push__u8(u8* data, u64 *payload_pos, u8 param)
 {
 	*((u8 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(u8);
 }
 
-static __always_inline void push__u16(char *data, u64 *payload_pos, u16 param)
+static __always_inline void push__u16(u8* data, u64 *payload_pos, u16 param)
 {
 	*((u16 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(u16);
 }
 
-static __always_inline void push__u32(char *data, u64 *payload_pos, u32 param)
+static __always_inline void push__u32(u8* data, u64 *payload_pos, u32 param)
 {
 	*((u32 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(u32);
 }
 
-static __always_inline void push__u64(char *data, u64 *payload_pos, u64 param)
+static __always_inline void push__u64(u8* data, u64 *payload_pos, u64 param)
 {
 	*((u64 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(u64);
 }
 
-static __always_inline void push__s32(char *data, u64 *payload_pos, s32 param)
+static __always_inline void push__s32(u8* data, u64 *payload_pos, s32 param)
 {
 	*((s32 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(s32);
 }
 
-static __always_inline void push__s64(char *data, u64 *payload_pos, s64 param)
+static __always_inline void push__s64(u8* data, u64 *payload_pos, s64 param)
 {
 	*((s64 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
 	*payload_pos += sizeof(s64);
 }
 
-static __always_inline void push__ipv6(char *data, u64 *payload_pos, u32 ipv6[4])
+static __always_inline void push__ipv6(u8* data, u64 *payload_pos, u32 ipv6[4])
 {
 	__builtin_memcpy(&data[SAFE_ACCESS(*payload_pos)], ipv6, 16);
 	*payload_pos += 16;
 }
 
-static __always_inline void push__new_character(char *data, u64 *payload_pos, char character)
+static __always_inline void push__new_character(u8* data, u64 *payload_pos, char character)
 {
 	*((char *)&data[SAFE_ACCESS(*payload_pos)]) = character;
 	*payload_pos += sizeof(char);
@@ -170,7 +170,7 @@ static __always_inline void push__new_character(char *data, u64 *payload_pos, ch
  * a previous character. Since we overwrite it we don't need to update
  * `payload_pos`.
  */
-static __always_inline void push__previous_character(char *data, u64 *payload_pos, char character)
+static __always_inline void push__previous_character(u8* data, u64 *payload_pos, char character)
 {
 	*((char *)&data[SAFE_ACCESS(*payload_pos - 1)]) = character;
 }
@@ -192,7 +192,7 @@ static __always_inline void push__previous_character(char *data, u64 *payload_po
  * @param limit maximum number of bytes that we read in case we don't find a `\0`
  * @return (u16) the number of bytes written in the buffer. Could be '0' if the passed pointer is not valid.
  */
-static __always_inline u16 push__charbuf(char *data, u64 *payload_pos, unsigned long charbuf_pointer, u16 limit)
+static __always_inline u16 push__charbuf(u8* data, u64 *payload_pos, unsigned long charbuf_pointer, u16 limit)
 {
 	int written_bytes = bpf_probe_read_str(&data[SAFE_ACCESS(*payload_pos)],
 					       limit,
@@ -221,7 +221,7 @@ static __always_inline u16 push__charbuf(char *data, u64 *payload_pos, unsigned 
  * @param len_to_read bytes that we need to read from the pointer.
  * @return (u16) the number of bytes written in the buffer. Could be '0' if the passed pointer is not valid.
  */
-static __always_inline u16 push__bytebuf(char *data, u64 *payload_pos, unsigned long bytebuf_pointer, u16 len_to_read)
+static __always_inline u16 push__bytebuf(u8* data, u64 *payload_pos, unsigned long bytebuf_pointer, u16 len_to_read)
 {
 	int written_bytes = bpf_probe_read(&data[SAFE_ACCESS(*payload_pos)],
 					   len_to_read,

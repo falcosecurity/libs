@@ -17,7 +17,7 @@
  *
  * struct ringbuf_struct
  * {
- *	  char *data;	   // pointer to the space reserved in the ring buffer.
+ *	  u8 *data;	   // pointer to the space reserved in the ring buffer.
  *	  u64 payload_pos; // position of the first empty byte in the `data` buf.
  *	  u8 lengths_pos;  // position the first empty slot into the lengths array of the event.
  * };
@@ -44,7 +44,7 @@
 
 struct ringbuf_struct
 {
-	char *data;	 /* pointer to the space reserved in the ring buffer. */
+	u8 *data;	 /* pointer to the space reserved in the ring buffer. */
 	u64 payload_pos; /* position of the first empty byte in the `data` buf.*/
 	u8 lengths_pos;	 /* position the first empty slot into the lengths array of the event. */
 };
@@ -83,7 +83,7 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
 	/* If we are not able to reserve space we stop here
 	 * the event collection.
 	 */
-	char *space = bpf_ringbuf_reserve(rb, event_size, 0);
+	u8 *space = bpf_ringbuf_reserve(rb, event_size, 0);
 	if(!space)
 	{
 		counter->n_drops_buffer++;
