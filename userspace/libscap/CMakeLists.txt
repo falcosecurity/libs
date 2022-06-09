@@ -139,7 +139,7 @@ endif()
 
 # gVisor is currently only supported on Linux
 if(NOT MINIMAL_BUILD AND NOT WIN32 AND NOT APPLE)
-	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
+	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" OFF)
 	if (BUILD_LIBSCAP_GVISOR)
 		add_definitions(-DHAS_ENGINE_GVISOR)
 		add_subdirectory(engine/gvisor)
