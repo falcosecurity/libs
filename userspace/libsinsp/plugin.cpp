@@ -317,7 +317,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	m_required_api_version = sinsp_version(req_version_str);
 	if(!m_required_api_version.m_valid)
 	{
-		errstr = string("Could not parse version string from ") + req_version_str;
+		errstr = "Plugin provided an invalid required API version string: '" + req_version_str + "'";
 		return false;
 	}
 	// Before doing anything else, check the required api
@@ -326,7 +326,10 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	sinsp_version frameworkVers(PLUGIN_API_VERSION_STR);
 	if(!frameworkVers.check(m_required_api_version))
 	{
-		errstr = string("Unsupported plugin required api version ") + m_required_api_version.as_string();
+		errstr = "Plugin required API version '"
+			+ m_required_api_version.as_string()
+			+ "' is not supported by the plugin API version of the framework '"
+			+ PLUGIN_API_VERSION_STR + "'";
 		return false;
 	}
 
@@ -354,7 +357,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	m_plugin_version = sinsp_version(version_str);
 	if(!m_plugin_version.m_valid)
 	{
-		errstr = string("Could not parse version string from ") + version_str;
+		errstr = "Plugin provided an invalid version string: '" + version_str + "'";
 		return false;
 	}
 	/** **/
