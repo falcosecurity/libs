@@ -431,6 +431,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 }
 #endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
+#ifdef HAS_ENGINE_GVISOR
 scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 {
 	scap_t* handle = NULL;
@@ -501,6 +502,14 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	}
 	return handle;
 }
+#else
+scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "gvisor not supported on this build (platform: %s)", PLATFORM_NAME);
+	*rc = SCAP_NOT_SUPPORTED;
+	return NULL;
+}
+#endif // HAS_ENGINE_GVISOR
 
 
 scap_t* scap_open_offline_int(scap_reader_t* reader,
