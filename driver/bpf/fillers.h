@@ -2786,6 +2786,7 @@ FILLER(execve_family_flags, true)
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
 	uint32_t flags = 0;
+	kuid_t euid;
 
 	if(inode)
 	{
@@ -2843,7 +2844,12 @@ FILLER(execve_family_flags, true)
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
-	return bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	CHECK_RES(res);
+
+	/* Parameter 27: uid */
+	euid = _READ(cred->euid);
+	return bpf_val_to_ring_type(data, euid.val, PT_UINT32);
 }
 
 FILLER(sys_accept4_e, true)
@@ -6361,6 +6367,7 @@ FILLER(sched_prog_exec_4, false)
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
 	uint32_t flags = 0;
+	kuid_t euid;
 
 	if(inode)
 	{
@@ -6418,7 +6425,12 @@ FILLER(sched_prog_exec_4, false)
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
-	return bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	CHECK_RES(res);
+
+	/* Parameter 27: uid */
+	euid = _READ(cred->euid);
+	return bpf_val_to_ring_type(data, euid.val, PT_UINT32);
 }
 #endif
 
