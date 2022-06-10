@@ -45,6 +45,8 @@ if(NOT MSVC)
 		add_definitions(-DHAS_CAPTURE)
 	endif()
 
+	add_definitions(-D__STDC_FORMAT_MACROS)
+
 else() # MSVC
 	set(MINIMAL_BUILD ON)
 
