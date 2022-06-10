@@ -247,7 +247,7 @@ struct scap_vtable {
 	 * `vpid` is the pid as seen by the process itself, i.e. within its
 	 * PID namespace
 	 */
-	int32_t (*get_vpid)(struct scap_engine_handle engine, int64_t pid, int64_t *vpid);
+	int32_t (*get_vpid)(struct scap_engine_handle engine, uint64_t pid, int64_t *vpid);
 
 	/**
 	 * @brief get the vtid of a process
@@ -259,7 +259,7 @@ struct scap_vtable {
 	 * `vtid` is the tid as seen by the process itself, i.e. within its
 	 * PID namespace
 	 */
-	int32_t (*get_vtid)(struct scap_engine_handle engine, int64_t tid, int64_t *vtid);
+	int32_t (*get_vtid)(struct scap_engine_handle engine, uint64_t tid, int64_t *vtid);
 
 	/**
 	 * @brief get the current process id in the init pid namespace

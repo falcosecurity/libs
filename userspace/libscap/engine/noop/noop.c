@@ -107,7 +107,7 @@ int32_t noop_get_threadlist(struct scap_engine_handle engine, struct ppm_proclis
 	return SCAP_NOT_SUPPORTED;
 }
 
-int32_t noop_get_vxid(struct scap_engine_handle engine, int64_t xid, int64_t* vxid)
+int32_t noop_get_vxid(struct scap_engine_handle engine, uint64_t xid, int64_t* vxid)
 {
 	return SCAP_NOT_SUPPORTED;
 }
