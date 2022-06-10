@@ -54,8 +54,6 @@ limitations under the License.
 #include "sinsp_public.h"
 #include "sinsp_exception.h"
 
-#define __STDC_FORMAT_MACROS
-
 #include <string>
 #include <map>
 #include <queue>

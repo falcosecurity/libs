@@ -18,7 +18,6 @@ limitations under the License.
 //
 // Various helper functions to render stuff on the screen
 //
-#define __STDC_FORMAT_MACROS
 #include <stdio.h>
 #include <iostream>
 #include <assert.h>

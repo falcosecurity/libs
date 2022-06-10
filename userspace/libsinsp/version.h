@@ -21,7 +21,6 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <cstdio>
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 
 /*!
