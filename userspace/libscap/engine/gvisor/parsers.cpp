@@ -50,8 +50,14 @@ static uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
 	std::string container_id_64 = container_id_hex.length() > 16 ? container_id_hex.substr(0, 15) : container_id_hex;
 
 	uint64_t tid_field = stoull(container_id_64, nullptr, 16);
-	tid_field = tid_field ^ tid;
+	tid_field = (tid_field & 0xffffffff00000000) ^ tid;
 	return tid_field;
+}
+
+// Perform conversion from pid/tid field to vpid/vtid
+uint64_t get_vxid(uint64_t xid)
+{
+	return xid & 0xffffffff;
 }
 
 template<class T>

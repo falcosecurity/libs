@@ -78,6 +78,8 @@ typedef struct parse_result parse_result;
 */
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
 
+uint64_t get_vxid(uint64_t vxid);
+
 } // namespace parsers
 
 // contains entries to store per-sandbox data and buffers to use to write events in
@@ -102,14 +104,17 @@ public:
     int32_t stop_capture();
 
     int32_t next(scap_evt **pevent, uint16_t *pcpuid);
-    
+
+    uint32_t get_vxid(uint64_t pid);
 private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
     char *m_lasterr;
-    int m_listenfd;
-    int m_epollfd;
+    int m_listenfd = 0;
+    int m_epollfd = 0;
+    bool m_capture_started = false;
+
     std::string m_socket_path;
     std::thread m_accept_thread;
 

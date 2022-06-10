@@ -218,14 +218,27 @@ int32_t engine::start_capture()
 	m_accept_thread = std::thread(accept_thread, m_listenfd, m_epollfd);
 	m_accept_thread.detach();
 
+	m_capture_started = true;
+
     return SCAP_SUCCESS;
 }
 
 int32_t engine::stop_capture()
 {
+	if (!m_capture_started)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	shutdown(m_listenfd, 2);
 	free_sandbox_buffers();
+	m_capture_started = false;
     return SCAP_SUCCESS;
+}
+
+uint32_t engine::get_vxid(uint64_t xid)
+{
+	return parsers::get_vxid(xid);
 }
 
 // Reads one gvisor message from the specified fd, stores the resulting events overwriting m_buffers and adds pointers to m_event_queue.

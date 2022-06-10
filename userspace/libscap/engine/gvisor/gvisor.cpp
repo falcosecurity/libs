@@ -106,6 +106,26 @@ static uint64_t gvisor_get_max_buf_used(struct scap_engine_handle engine)
 	return 0;
 }
 
+static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
+{
+	// placeholder
+	(*procinfo_p)->n_entries = 0;
+	return SCAP_SUCCESS;
+}
+
+static int32_t gvisor_get_vxid(struct scap_engine_handle engine, uint64_t xid, int64_t *vxid)
+{
+	*vxid = engine.m_handle->get_vxid(xid);
+	return SCAP_SUCCESS;
+}
+
+static int32_t gvisor_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
+{
+	// there is no current PID in gvisor since we run outside a sandbox
+	*pid = 1000;
+	return SCAP_SUCCESS;
+}
+
 #ifdef __cplusplus
 }
 #endif
@@ -127,4 +147,8 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_n_tracepoint_hit = gvisor_get_n_tracepoint_hit,
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
+	.get_threadlist = gvisor_get_threadlist,
+	.get_vpid = gvisor_get_vxid,
+	.get_vtid = gvisor_get_vxid,
+	.getpid_global = gvisor_getpid_global
 };
