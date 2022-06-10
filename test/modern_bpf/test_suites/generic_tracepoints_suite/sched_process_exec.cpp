@@ -107,8 +107,11 @@ TEST(GenericTracepoints, sched_proc_exec)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
+	/* Parameter 27: uid (type: PT_UINT32) */
+	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(26);
+	evt_test->assert_num_params_pushed(27);
 }
 #endif

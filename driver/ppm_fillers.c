@@ -1181,6 +1181,7 @@ cgroups_error:
 		uint64_t cap_inheritable = 0;
 		uint64_t cap_permitted = 0;
 		uint64_t cap_effective = 0;
+		uint64_t euid = 0;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1389,6 +1390,17 @@ cgroups_error:
 
 		/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 		res = val_to_ring(args, mtime, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 27: uid */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+		euid = from_kuid_munged(current_user_ns(), current_euid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		euid = current_euid();
+#else
+		euid = current->euid;
+#endif
+		res = val_to_ring(args, euid, 0, false, 0);
 		CHECK_RES(res);
 	}
 	return add_sentinel(args);
@@ -6591,6 +6603,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	uint64_t cap_inheritable = 0;
 	uint64_t cap_permitted = 0;
 	uint64_t cap_effective = 0;
+	uint64_t euid = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
@@ -6937,6 +6950,16 @@ cgroups_error:
 	res = val_to_ring(args, mtime, 0, false, 0);
 	CHECK_RES(res);
 
+	/* Parameter 27: uid */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+	euid = from_kuid_munged(current_user_ns(), current_euid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	euid = current_euid();
+#else
+	euid = current->euid;
+#endif
+	res = val_to_ring(args, euid, 0, false, 0);
+	CHECK_RES(res);
 	return add_sentinel(args);
 }
 #endif

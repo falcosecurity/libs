@@ -2165,6 +2165,12 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		}
 	}
 
+	// Get uid
+	if(evt->get_num_params() > 26)
+	{
+		parinfo = evt->get_param(26);
+		evt->m_tinfo->m_user.uid = *(uint32_t *)parinfo->m_val;
+	}
 	//
 	// execve starts with a clean fd list, so we get rid of the fd list that clone
 	// copied from the parent

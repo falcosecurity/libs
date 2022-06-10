@@ -150,9 +150,12 @@ TEST(SyscallExit, execveatX_failure)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
+	/* Parameter 27: uid (type: PT_UINT32) */
+	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(26);
+	evt_test->assert_num_params_pushed(27);
 }
 
 /* All architectures return an `EXECVEAT_X` event when the syscall fails, but only
@@ -264,9 +267,12 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
+	/* Parameter 27: uid (type: PT_UINT32) */
+	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(26);
+	evt_test->assert_num_params_pushed(27);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);
@@ -386,9 +392,12 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
 
+	/* Parameter 27: uid (type: PT_UINT32) */
+	evt_test->assert_numeric_param(27, (uint32_t)geteuid(), EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(26);
+	evt_test->assert_num_params_pushed(27);
 #endif
 }
 #endif
