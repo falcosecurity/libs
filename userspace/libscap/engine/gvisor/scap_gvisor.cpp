@@ -231,6 +231,7 @@ int32_t engine::stop_capture()
 	}
 
 	shutdown(m_listenfd, 2);
+	::close(m_epollfd);
 	free_sandbox_buffers();
 	m_capture_started = false;
     return SCAP_SUCCESS;
