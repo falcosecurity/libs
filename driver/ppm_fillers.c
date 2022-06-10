@@ -5224,6 +5224,28 @@ int f_sys_munlockall_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_dup_x(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+
+
+	int64_t retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * oldfd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_dup2_x(struct event_filler_arguments *args)
 {
 	int res;
