@@ -138,6 +138,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_capset_x)			\
 	FN(sys_dup2_x)				\
 	FN(sys_dup3_x)				\
+	FN(sys_dup_x)				\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
