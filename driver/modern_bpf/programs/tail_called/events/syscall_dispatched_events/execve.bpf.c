@@ -274,6 +274,11 @@ int BPF_PROG(t1_execve_x,
 	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
 	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
+	/* Parameter 27: uid (type: PT_UINT32) */
+	u32 uid = 0;
+	extract__euid(task, &uid);
+	auxmap__store_u32_param(auxmap, uid);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
