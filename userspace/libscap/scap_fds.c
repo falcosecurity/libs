@@ -35,7 +35,6 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <errno.h>
 #else
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <unistd.h>
 #include <sys/param.h>

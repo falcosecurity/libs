@@ -20,7 +20,6 @@ limitations under the License.
 #define strcasecmp _stricmp
 #endif
 
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <stdbool.h>
 

@@ -18,7 +18,6 @@ limitations under the License.
 #include "sinsp_errno.h"
 
 #ifndef _WIN32
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <sys/socket.h>
 #include <algorithm>

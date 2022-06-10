@@ -18,8 +18,6 @@ limitations under the License.
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-// This makes inttypes.h define PRIu32 (ISO C99 plus older g++ versions)
-#define __STDC_FORMAT_MACROS
 #include <inttypes.h>
 #include <string.h>
 #include <vector>
