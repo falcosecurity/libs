@@ -755,7 +755,7 @@ static int32_t scap_kmod_get_threadlist(struct scap_engine_handle engine, struct
 }
 
 
-static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, int64_t pid, int64_t* vpid)
+static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, uint64_t pid, int64_t* vpid)
 {
 	struct kmod_engine *kmod_engine = engine.m_handle;
 	*vpid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VPID, pid);
@@ -772,7 +772,7 @@ static int32_t scap_kmod_get_vpid(struct scap_engine_handle engine, int64_t pid,
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, int64_t tid, int64_t* vtid)
+static int32_t scap_kmod_get_vtid(struct scap_engine_handle engine, uint64_t tid, int64_t* vtid)
 {
 	struct kmod_engine *kmod_engine = engine.m_handle;
 	*vtid = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_VTID, tid);

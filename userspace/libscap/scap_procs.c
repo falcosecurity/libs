@@ -529,7 +529,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_get_vtid(scap_t* handle, int64_t tid, int64_t *vtid)
+static int32_t scap_get_vtid(scap_t* handle, uint64_t tid, int64_t *vtid)
 {
 	if(handle->m_vtable)
 	{
