@@ -7,7 +7,7 @@
 
 struct internal_state g_state;
 
-void libpman__print_error(const char* error_message)
+void pman_print_error(const char* error_message)
 {
 	if(!error_message)
 	{

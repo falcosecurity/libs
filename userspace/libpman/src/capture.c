@@ -1,12 +1,12 @@
 #include "state.h"
 #include <scap.h>
 
-void libpman__enable_capture()
+void pman_enable_capture()
 {
 	g_state.skel->bss->g_settings.capture_enabled = true;
 }
 
-void libpman__disable_capture()
+void pman_disable_capture()
 {
 	g_state.skel->bss->g_settings.capture_enabled = false;
 }
@@ -14,7 +14,7 @@ void libpman__disable_capture()
 #ifdef TEST_HELPERS
 
 /* Not used right now */
-int libpman__print_stats()
+int pman_print_stats()
 {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	long overall_n_drops_buffer = 0;
@@ -25,7 +25,7 @@ int libpman__print_stats()
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd <= 0)
 	{
-		libpman__print_error("unable to get counter maps");
+		pman_print_error("unable to get counter maps");
 		return errno;
 	}
 
@@ -34,7 +34,7 @@ int libpman__print_stats()
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
 			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
-			libpman__print_error((const char *)error_message);
+			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
 		overall_n_evts += cnt_map.n_evts;
@@ -52,7 +52,7 @@ clean_print_stats:
 }
 #endif
 
-int libpman__get_scap_stats(void *scap_stats_struct)
+int pman_get_scap_stats(void *scap_stats_struct)
 {
 	struct scap_stats *stats = (struct scap_stats *)scap_stats_struct;
 	char error_message[MAX_ERROR_MESSAGE_LEN];
@@ -60,14 +60,14 @@ int libpman__get_scap_stats(void *scap_stats_struct)
 
 	if(!stats)
 	{
-		libpman__print_error("pointer to scap_stats is empty");
+		pman_print_error("pointer to scap_stats is empty");
 		return errno;
 	}
 
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd <= 0)
 	{
-		libpman__print_error("unable to get counter maps");
+		pman_print_error("unable to get counter maps");
 		return errno;
 	}
 
@@ -82,7 +82,7 @@ int libpman__get_scap_stats(void *scap_stats_struct)
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
 			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
-			libpman__print_error((const char *)error_message);
+			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
 		stats->n_evts += cnt_map.n_evts;
@@ -96,7 +96,7 @@ clean_print_stats:
 	return errno;
 }
 
-int libpman__get_n_tracepoint_hit(long *n_events_per_cpu)
+int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
 {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
@@ -104,7 +104,7 @@ int libpman__get_n_tracepoint_hit(long *n_events_per_cpu)
 	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 	if(counter_maps_fd <= 0)
 	{
-		libpman__print_error("unable to get counter maps");
+		pman_print_error("unable to get counter maps");
 		return errno;
 	}
 
@@ -113,7 +113,7 @@ int libpman__get_n_tracepoint_hit(long *n_events_per_cpu)
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
 			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
-			libpman__print_error((const char *)error_message);
+			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
 		n_events_per_cpu[index] = cnt_map.n_evts;
