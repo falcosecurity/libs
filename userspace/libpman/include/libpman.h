@@ -30,7 +30,7 @@ extern "C"
 	 * @param verbosity use `true` if you want to activate libbpf verbosity.
 	 * @return `0` on success, `-1` in case of error.
 	 */
-	int libpman__set_libbpf_configuration(bool verbosity);
+	int pman_set_libbpf_configuration(bool verbosity);
 
 	/**
 	 * @brief Return the number of available CPUs on the system, not the
@@ -38,7 +38,7 @@ extern "C"
 	 *
 	 * @return number of available CPUs on success, `-1` in case of error.
 	 */
-	int libpman__get_cpus_number(void);
+	int pman_get_cpus_number(void);
 
 	/////////////////////////////
 	// PROBE LIFECYCLE
@@ -50,7 +50,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__open_probe(void);
+	int pman_open_probe(void);
 
 	/**
 	 * @brief Load into the kernel all the programs and maps
@@ -58,7 +58,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__load_probe(void);
+	int pman_load_probe(void);
 
 	/**
 	 * @brief Clean what we have previously allocated:
@@ -66,7 +66,7 @@ extern "C"
 	 * - ringbuffer manager
 	 * - consumers/producers vectors
 	 */
-	void libpman__close_probe(void);
+	void pman_close_probe(void);
 
 	/////////////////////////////
 	// ATTACH PROGRAMS
@@ -77,42 +77,42 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__attach_all_programs(void);
+	int pman_attach_all_programs(void);
 
 	/**
 	 * @brief Detach all available BPF programs
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__detach_all_programs(void);
+	int pman_detach_all_programs(void);
 
 	/**
 	 * @brief Attach only the syscall_exit_dispatcher
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__attach_syscall_exit_dispatcher(void);
+	int pman_attach_syscall_exit_dispatcher(void);
 
 	/**
 	 * @brief Detach only the syscall_exit_dispatcher
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__detach_syscall_exit_dispatcher(void);
+	int pman_detach_syscall_exit_dispatcher(void);
 
 	/**
 	 * @brief Attach only the syscall_enter_dispatcher
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__attach_syscall_enter_dispatcher(void);
+	int pman_attach_syscall_enter_dispatcher(void);
 
 	/**
 	 * @brief Detach only the syscall_enter_dispatcher
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__detach_syscall_enter_dispatcher(void);
+	int pman_detach_syscall_enter_dispatcher(void);
 
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
@@ -127,7 +127,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__prepare_ringbuf_array_before_loading(void);
+	int pman_prepare_ringbuf_array_before_loading(void);
 
 	/**
 	 * @brief Performs all necessary operations on ringbuf array after the
@@ -136,7 +136,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__finalize_ringbuf_array_after_loading(void);
+	int pman_finalize_ringbuf_array_after_loading(void);
 
 	/**
 	 * @brief Search for one event to read in all the ringbufs.
@@ -147,7 +147,7 @@ extern "C"
 	 * on which we have found the event, otherwise return NULL
 	 * @return `0` if an event is found otherwise returns `-1`
 	 */
-	int libpman__consume_one_from_buffers(void** event_ptr, uint16_t* cpu_id);
+	int pman_consume_one_from_buffers(void** event_ptr, uint16_t* cpu_id);
 
 	/////////////////////////////
 	// CAPTURE (EXCHANGE VALUES WITH BPF SIDE)
@@ -157,13 +157,13 @@ extern "C"
 	 * @brief Enable BPF-capture if we have previously
 	 * disabled it.
 	 */
-	void libpman__enable_capture(void);
+	void pman_enable_capture(void);
 
 	/**
 	 * @brief Disable BPF capture for example when we
 	 * want to dump a particular event.
 	 */
-	void libpman__disable_capture(void);
+	void pman_disable_capture(void);
 
 	/**
 	 * @brief Receive a pointer to `struct scap_stats` and fill it
@@ -174,7 +174,7 @@ extern "C"
 	 * definitions in this file.
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__get_scap_stats(void* scap_stats_struct);
+	int pman_get_scap_stats(void* scap_stats_struct);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU
@@ -183,7 +183,7 @@ extern "C"
 	 * @param n_events_per_cpu array of `nCPUs` elements.
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__get_n_tracepoint_hit(long* n_events_per_cpu);
+	int pman_get_n_tracepoint_hit(long* n_events_per_cpu);
 
 	/////////////////////////////
 	// MAPS
@@ -195,21 +195,21 @@ extern "C"
 	 *
 	 * @param desired_snaplen maximum length we accept
 	 */
-	void libpman__set_snaplen(uint32_t desired_snaplen);
+	void pman_set_snaplen(uint32_t desired_snaplen);
 
 	/**
 	 * @brief Get API version to check it a runtime.
 	 *
 	 * @return API version
 	 */
-	uint64_t libpman__get_probe_api_ver(void);
+	uint64_t pman_get_probe_api_ver(void);
 
 	/**
 	 * @brief Get schema version to check it a runtime.
 	 *
 	 * @return schema version
 	 */
-	uint64_t libpman__get_probe_schema_ver(void);
+	uint64_t pman_get_probe_schema_ver(void);
 
 	/**
 	 * @brief Some bpf programs exceed the maximum complexity
@@ -224,7 +224,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__fill_extra_event_prog_tail_table(void);
+	int pman_fill_extra_event_prog_tail_table(void);
 
 	/**
 	 * @brief The syscall dispatchers will look into these tables
@@ -242,7 +242,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__fill_syscalls_tail_table(void);
+	int pman_fill_syscalls_tail_table(void);
 
 	/**
 	 * @brief Performs all necessary operations on maps before the
@@ -252,7 +252,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__prepare_maps_before_loading(void);
+	int pman_prepare_maps_before_loading(void);
 
 	/**
 	 * @brief Performs all necessary operations on maps after the
@@ -262,7 +262,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__finalize_maps_after_loading(void);
+	int pman_finalize_maps_after_loading(void);
 
 	/**
 	 * @brief For every syscall set if it is interesting or not.
@@ -270,7 +270,7 @@ extern "C"
 	 * @param intersting_syscalls array of size `SYSCALL_TABLE_SIZE` that says
 	 * if the single syscall is interesting or not.
 	 */
-	void libpman__fill_64bit_interesting_syscalls_table(bool* intersting_syscalls);
+	void pman_fill_64bit_interesting_syscalls_table(bool* intersting_syscalls);
 
 	/////////////////////////////
 	// TEST HELPERS
@@ -282,12 +282,12 @@ extern "C"
 	 *
 	 * @param intersting_syscall_id syscall id.
 	 */
-	void libpman__mark_64bit_syscall_as_interesting(int intersting_syscall_id);
+	void pman_mark_64bit_syscall_as_interesting(int intersting_syscall_id);
 
 	/**
 	 * @brief Mark all syscalls as uninteresting.
 	 */
-	void libpman__clean_all_64bit_interesting_syscalls(void);
+	void pman_clean_all_64bit_interesting_syscalls(void);
 
 	/**
 	 * @brief Print some statistics about events captured and
@@ -295,7 +295,7 @@ extern "C"
 	 *
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int libpman__print_stats(void);
+	int pman_print_stats(void);
 
 	/**
 	 * @brief Given the event type, returns the number of params
@@ -304,7 +304,7 @@ extern "C"
 	 * @param event_type event type
 	 * @return number of params associated with the event type
 	 */
-	uint8_t libpman__get_event_params(int event_type);
+	uint8_t pman_get_event_params(int event_type);
 
 	/**
 	 * @brief Given the event type, returns the name of the BPF
@@ -313,7 +313,7 @@ extern "C"
 	 * @param event_type event type
 	 * @return name of the BPF program associated with the event type
 	 */
-	const char* libpman__get_event_prog_name(int event_type);
+	const char* pman_get_event_prog_name(int event_type);
 #endif
 
 #ifdef __cplusplus

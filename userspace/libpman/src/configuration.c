@@ -27,7 +27,7 @@ static void setup_libbpf_logging(bool verbosity)
 	}
 }
 
-int libpman__set_libbpf_configuration(bool verbosity)
+int pman_set_libbpf_configuration(bool verbosity)
 {
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -43,13 +43,13 @@ int libpman__set_libbpf_configuration(bool verbosity)
 	g_state.n_cpus = libbpf_num_possible_cpus();
 	if(g_state.n_cpus <= 0)
 	{
-		libpman__print_error("no available cpus");
+		pman_print_error("no available cpus");
 		return -1;
 	}
 	return 0;
 }
 
-int libpman__get_cpus_number()
+int pman_get_cpus_number()
 {
 	return g_state.n_cpus;
 }

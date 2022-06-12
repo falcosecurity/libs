@@ -21,4 +21,4 @@ struct internal_state
 
 extern struct internal_state g_state;
 
-extern void libpman__print_error(const char* error_message);
+extern void pman_print_error(const char* error_message);
