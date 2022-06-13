@@ -33,6 +33,12 @@ limitations under the License.
 
 namespace scap_gvisor {
 
+constexpr uint32_t min_supported_version = 1;
+constexpr uint32_t current_version = 1;
+constexpr uint32_t max_ready_sandboxes = 32;
+constexpr size_t max_message_size = 300 * 1024;
+constexpr size_t initial_event_buffer_size = 32;
+constexpr int listen_backlog_size = 128;
 
 sandbox_entry::sandbox_entry()
 {
@@ -114,7 +120,7 @@ int32_t engine::init(std::string socket_path)
 		return SCAP_FAILURE;
 	}
 
-	ret = listen(sock, 128);
+	ret = listen(sock, listen_backlog_size);
 	if(ret == -1)
 	{
 		umask(old_umask);
@@ -150,7 +156,7 @@ void engine::free_sandbox_buffers()
 
 static bool handshake(int client)
 {
-	std::vector<char> buf(GVISOR_MAX_MESSAGE_SIZE);
+	std::vector<char> buf(max_message_size);
 	ssize_t bytes = read(client, buf.data(), buf.size());
 	if(bytes < 0)
 	{
@@ -250,9 +256,9 @@ uint32_t engine::get_vxid(uint64_t xid)
 // * SCAP_EOF if there is no more data to process from this fd
 int32_t engine::process_message_from_fd(int fd)
 {
-	char message[GVISOR_MAX_MESSAGE_SIZE];
+	char message[max_message_size];
 
-	ssize_t nbytes = read(fd, message, GVISOR_MAX_MESSAGE_SIZE);
+	ssize_t nbytes = read(fd, message, max_message_size);
 	if(nbytes == -1)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Error reading from gvisor client: %s", strerror(errno));
@@ -270,8 +276,8 @@ int32_t engine::process_message_from_fd(int fd)
 	if(m_sandbox_data.count(fd) != 1)
 	{
 		m_sandbox_data.emplace(fd, sandbox_entry{});
-		if (m_sandbox_data[fd].expand_buffer(GVISOR_INITIAL_EVENT_BUFFER_SIZE) == SCAP_FAILURE) {
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %d bytes for gvisor sandbox on fd %d", GVISOR_INITIAL_EVENT_BUFFER_SIZE, fd);
+		if (m_sandbox_data[fd].expand_buffer(initial_event_buffer_size) == SCAP_FAILURE) {
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "could not initialize %zu bytes for gvisor sandbox on fd %d", initial_event_buffer_size, fd);
 			return SCAP_FAILURE;
 		}
 	}
@@ -305,7 +311,7 @@ int32_t engine::process_message_from_fd(int fd)
 
 int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 {
-	struct epoll_event evts[GVISOR_MAX_READY_SANDBOXES];
+	struct epoll_event evts[max_ready_sandboxes];
 
 	// if there are still events to process do it before getting more
 	if(!m_event_queue.empty())
@@ -315,7 +321,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		return SCAP_SUCCESS;
 	}
 
-	int nfds = epoll_wait(m_epollfd, evts, GVISOR_MAX_READY_SANDBOXES, -1);
+	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, -1);
 	if (nfds < 0)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));

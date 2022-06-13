@@ -27,15 +27,7 @@ limitations under the License.
 
 #include "scap.h"
 
-#define GVISOR_MAX_READY_SANDBOXES 32
-
-#define GVISOR_MAX_MESSAGE_SIZE 300 * 1024
-#define GVISOR_INITIAL_EVENT_BUFFER_SIZE 32
-
 namespace scap_gvisor {
-
-constexpr uint32_t min_supported_version = 1;
-constexpr uint32_t current_version = 1;
 
 #pragma pack(push, 1)
 struct header
