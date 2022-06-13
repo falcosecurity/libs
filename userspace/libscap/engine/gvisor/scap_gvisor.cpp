@@ -42,6 +42,9 @@ constexpr uint32_t max_ready_sandboxes = 32;
 constexpr size_t max_message_size = 300 * 1024;
 constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
+constexpr size_t max_line_size = 2048;
+// todo(loresuso): change default to k8s path
+const std::string default_runsc_root_path = "/var/run/docker/runtime-runc/moby";
 
 sandbox_entry::sandbox_entry()
 {

@@ -29,10 +29,6 @@ limitations under the License.
 
 namespace scap_gvisor {
 
-constexpr uint32_t min_supported_version = 1;
-constexpr uint32_t current_version = 1;
-constexpr size_t max_line_size = 2048;
-
 #pragma pack(push, 1)
 struct header
 {
