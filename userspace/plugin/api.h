@@ -19,6 +19,11 @@ limitations under the License.
 
 #include "types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 //
 // API versions of this plugin engine
 //
@@ -346,3 +351,7 @@ typedef struct
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	};
 } plugin_api;
+
+#ifdef __cplusplus
+}
+#endif
