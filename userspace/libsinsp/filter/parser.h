@@ -175,7 +175,6 @@ private:
 	void depth_push();
 	void depth_pop();
 	const char* cursor();
-	std::string escape_str(const std::string& str);
 	std::string trim_str(std::string str);
 
 	bool m_parse_partial;
