@@ -15,8 +15,6 @@ limitations under the License.
 
 */
 
-#define __STDC_FORMAT_MACROS
-
 #ifdef _WIN32
     typedef HINSTANCE library_handle_t;
 #else
