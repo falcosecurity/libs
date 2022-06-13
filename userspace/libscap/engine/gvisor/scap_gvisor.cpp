@@ -43,8 +43,6 @@ constexpr size_t max_message_size = 300 * 1024;
 constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
 constexpr size_t max_line_size = 2048;
-// todo(loresuso): change default to k8s path
-const std::string default_runsc_root_path = "/var/run/docker/runtime-runc/moby";
 
 sandbox_entry::sandbox_entry()
 {
@@ -524,6 +522,23 @@ void engine::runsc_trace_create(const std::string &sandbox_id, bool force)
 		force ? "--force" : "",
 		"--config", 
 		m_trace_session_path.c_str(),
+		sandbox_id.c_str(),
+		NULL
+	};
+
+	runsc((char **)argv);
+}
+
+void engine::runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id)
+{
+	const char *argv[] = {
+		"runsc", 
+		"--root",
+		m_root_path.c_str(),
+		"trace",
+		"delete",
+		"--name",
+		session_name.c_str(),
 		sandbox_id.c_str(),
 		NULL
 	};
