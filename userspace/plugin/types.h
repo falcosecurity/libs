@@ -17,6 +17,10 @@ limitations under the License.
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <inttypes.h>
 
@@ -155,3 +159,7 @@ typedef void ss_plugin_t;
 // and it treats is as opaque.
 //
 typedef void ss_instance_t;
+
+#ifdef __cplusplus
+}
+#endif
