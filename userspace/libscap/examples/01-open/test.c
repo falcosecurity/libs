@@ -21,120 +21,47 @@ limitations under the License.
 #include <scap.h>
 #include <arpa/inet.h>
 
-#define SYSCALL_NAME_MAX_SIZE 40
+#define KMOD_OPTION "--kmod"
+#define BPF_OPTION "--bpf"
+#define MODERN_BPF_OPTION "--modern_bpf"
+#define SCAP_FILE_OPTION "--scap_file"
+#define SIMPLE_CONSUMER_OPTION "--simple_consumer"
+#define NUM_EVENTS_OPTION "--num_events"
+#define EVENT_TYPE_OPTION "--evt_type"
+#define PRINT_SYSCALLS_OPTION "--print_syscalls"
+#define PRINT_VALIDATION_OPTION "--print_validation"
+#define PRINT_HELP_OPTION "--help"
 
-scap_open_args args = {.mode = SCAP_MODE_LIVE};
-uint64_t g_nevts = 0;
-scap_t* g_h = NULL;
-
-/* Configuration variables set through CLI. */
-uint64_t num_events = UINT64_MAX;
-bool bpf_probe = false;
-bool simple_consumer = false;
-int evt_type = -1;
-uint16_t* lens16 = NULL;
-char* valptr = NULL;
-char* scap_file = NULL;
+#define SYSCALL_NAME_MAX_LEN 40
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
-void print_stats()
+/* Possible scap sources for this test program. */
+enum scap_source
 {
-	scap_stats s;
-	printf("\n---------------------- STATS -----------------------\n");
-	printf("events captured: %" PRIu64 "\n", g_nevts);
-	scap_get_stats(g_h, &s);
-	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
-	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
-	printf("Number of dropped events caused by full buffer: %" PRIu64 "\n", s.n_drops_buffer);
-	printf("Number of dropped events caused by full scratch map: %" PRIu64 "\n", s.n_drops_scratch_map);
-	printf("Number of dropped events caused by invalid memory access: %" PRIu64 "\n", s.n_drops_pf);
-	printf("Number of dropped events caused by an invalid condition in the kernel instrumentation: %" PRIu64 "\n", s.n_drops_bug);
-	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);
-	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
-	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
-	printf("-----------------------------------------------------\n");
-}
+	KERNEL_MODULE = 0,
+	BPF_PROBE = 1,
+	MODERN_BPF_PROBE = 2,
+	SCAP_FILE = 3
+};
 
-static void signal_callback(int signal)
-{
-	print_stats();
-	exit(EXIT_SUCCESS);
-}
+/* Configuration variables set through CLI. */
+int source = -1;		  /* scap source to catch events. */
+uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
+bool simple_consumer = false;	  /* kernel simple consumer mode. */
+int evt_type = -1;		  /* event type to print. */
 
-void print_help()
-{
-	printf("\n----------------------- MENU -----------------------\n");
-	printf("'--bpf <probe_path>': enable the BPF probe instead of the kernel module. (default: disabled)\n");
-	printf("'--simple_consumer': enable the simple consumer mode. (default: disabled)\n");
-	printf("'--num_events <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n");
-	printf("'--evt_type <event_type>': every event of this type will be printed to console. (default: -1, no print)\n");
-	printf("'--scap_file <file.scap>': read events from scap file. (default: live capture)\n");
-	printf("'--print_modern_probe_syscalls': print all syscalls that will be used in modern bpf probe.\n");
-	printf("'--print_sc_syscalls': print all syscalls that are used in kernel simple consumer mode.\n");
-	printf("'--help': print this menu.\n");
-	printf("-----------------------------------------------------\n");
-}
+/* Generic global variables. */
+scap_open_args args = {.mode = SCAP_MODE_LIVE}; /* scap args used in `scap_open`. */
+uint64_t g_nevts = 0;				/* total number of events captured. */
+scap_t* g_h = NULL;				/* global scap handler. */
+uint16_t* lens16 = NULL;			/* pointer used to print the length of event params. */
+char* valptr = NULL;				/* pointer used to print the value of event params. */
 
-void print_configuration()
-{
-	printf("\n---------------------- CONFIG ----------------------\n");
-	if(bpf_probe)
-	{
-		printf("* DRIVER: BPF probe\n");
-	}
-	else
-	{
-		printf("* DRIVER: Kernel module\n");
-	}
-
-	if(simple_consumer)
-	{
-		printf("* MODE: Simple consumer\n");
-	}
-
-	if(evt_type != -1)
-	{
-		printf("* EVENT_TYPE: %d\n", evt_type);
-	}
-
-	if(num_events != UINT64_MAX)
-	{
-		printf("* EVENTS TO CATCH: %lu\n", num_events);
-	}
-	else
-	{
-		printf("* EVENTS TO CATCH: UINT64_MAX\n");
-	}
-	printf("-----------------------------------------------------\n");
-}
-
-void print_load_success()
-{
-	if(bpf_probe)
-	{
-		printf("\n * OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
-	}
-	else
-	{
-		printf("\n * OK! Kernel module correctly loaded\n");
-	}
-}
-
-void print_start_capture()
-{
-	if(scap_file)
-	{
-		printf("\n * Reading from scap file: %s...\n", scap_file);
-	}
-	else
-	{
-		printf("\n * Live capture in progress...\n");
-	}
-}
+/*=============================== PRINT EVENT PARAMS ===========================*/
 
 void print_ipv4(int starting_index)
 {
@@ -350,9 +277,29 @@ void print_parameter(int16_t num_param)
 	valptr += len;
 }
 
-void print_ordered_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE], int dim)
+void print_event(scap_evt* ev)
 {
-	char temp[SYSCALL_NAME_MAX_SIZE];
+	lens16 = (uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr));
+	valptr = (char*)lens16 + ev->nparams * sizeof(uint16_t);
+	printf("\n------------------ EVENT: %d TID:%lu\n", evt_type, ev->tid);
+	for(int i = 0; i < ev->nparams; i++)
+	{
+		print_parameter(i);
+	}
+	if(ev->nparams == 0)
+	{
+		printf("- This event has no parameter\n");
+	}
+	printf("------------------\n");
+}
+
+/*=============================== PRINT EVENT PARAMS ===========================*/
+
+/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
+
+void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN], int dim)
+{
+	char temp[SYSCALL_NAME_MAX_LEN];
 
 	/* storing strings in the lexicographical order */
 	for(int i = 0; i < dim; ++i)
@@ -382,67 +329,60 @@ void print_ordered_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_
  * - all syscalls that are not managed through `GENERIC_EVENTS` and don't
  *   have the `EF_DROP_SIMPLE_CONS` flag.
  *
- * Please note: if some syscalls miss probably you have an old kernel
+ * Please note: if some syscalls miss, probably, you have an old kernel
  * that don't define them. Try to use a newer one.
  */
-
 void print_modern_probe_syscalls()
 {
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE];
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
 	int interesting_syscall = 0;
 	enum ppm_syscall_code ppm_syscall_code = 0;
 
 	/* For every syscall of the system. */
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
 	{
+		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+
 		/* TAKE ALWAYS: If the syscall has `UF_NEVER_DROP` flag we cannot use simple consumer. */
 		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP)
 		{
-			ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
 			if(!g_syscall_info_table[ppm_syscall_code].name)
 			{
-				printf("*ERROR: a `UF_NEVER_DROP` syscall has no the corresponding name in the g_syscall_info_table.\n");
-				exit(EXIT_FAILURE);
+				goto error;
 			}
 			strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
 			continue;
 		}
 
-		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic. */
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
-		{
-			continue;
-		}
-
-		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
-		if(g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
-		{
-			continue;
-		}
-
-		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
-		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
+		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic.
+		 * Same thing if the syscall has the `EF_DROP_SIMPLE_CONS`.
 		 */
-		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E || g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
 		{
-			printf("*ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our g_syscall_info_table.\n", ppm_syscall_code);
-			exit(EXIT_FAILURE);
+			continue;
 		}
 
+		if(!g_syscall_info_table[ppm_syscall_code].name)
+		{
+			goto error;
+		}
 		strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
 	}
 
-	print_ordered_syscalls(str, interesting_syscall);
+	print_sorted_syscalls(str, interesting_syscall);
+	return;
+
+error:
+	printf("unexpected error, please check with `--print_validation` option");
 }
 
-/* Print all supported syscall. Please if you only want
- * to see syscalls in simple consumer mode, enable the
- * `--simple_consumer` option.
+/* Print syscall supported by actual drivers: `KERNEL_MODULE`, `BPF_PROBE`.
+ * You can also print only simple consumer syscalls by passing the CLI
+ * option `--simple_consumer`.
  */
-void print_kernel_simple_consumer_syscalls()
+void print_actual_drivers_syscalls()
 {
-	bool interesting[PPM_SC_MAX];
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_SIZE];
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
 	int interesting_syscall = 0;
 
 	for(int i = 0; i < PPM_SC_MAX; i++)
@@ -461,7 +401,279 @@ void print_kernel_simple_consumer_syscalls()
 		}
 	}
 
-	print_ordered_syscalls(str, interesting_syscall);
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
+/* Print all supported syscall according to the scap source you have chosen:
+ * - `KERNEL_MODULE` or `BPF_PROBE`, print all syscalls supported by these
+ *   sources. Please note: you can also print only simple consumer syscalls
+ *   by passing the CLI option `--simple_consumer`
+ * - `MODERN_BPF_PROBE`, print all syscalls that will be supported by
+ *   modern BPF probe. These syscall are a subset of actual simple consumer.
+ *   `--simple_consumer`  option will have no effect on this print.
+ * - `SCAP_FILE` not supported by this function.
+ */
+void print_supported_syscalls()
+{
+	switch(source)
+	{
+	case KERNEL_MODULE:
+	case BPF_PROBE:
+		print_actual_drivers_syscalls();
+		break;
+
+	case MODERN_BPF_PROBE:
+		print_modern_probe_syscalls();
+		break;
+
+	case SCAP_FILE:
+	default:
+		printf("Scap source not supported! Bye!");
+	}
+}
+
+/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
+
+/*=============================== PRINT SYSCALLS VALIDATION ===========================*/
+
+void print_validation()
+{
+	enum ppm_syscall_code ppm_syscall_code = 0;
+	bool success = true;
+	/* For every syscall of the system. */
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+
+		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
+		 * `g_syscall_info_table`.
+		 */
+		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP && !g_syscall_info_table[ppm_syscall_code].name)
+		{
+			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
+			success = false;
+			continue;
+		}
+
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E || g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
+		{
+			continue;
+		}
+
+		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
+		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
+		 */
+		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
+		{
+			printf("ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our `g_syscall_info_table`.\n", ppm_syscall_code);
+			success = false;
+			continue;
+		}
+	}
+
+	if(success)
+	{
+		printf("\n[SUCCESS] Our table are consistent!\n");
+	}
+	else
+	{
+		printf("\n[FAIL] Our table are not consistent!\n");
+	}
+}
+
+/*=============================== PRINT SYSCALLS VALIDATION ===========================*/
+
+/*=============================== PRINT CAPTURE INFO ===========================*/
+
+void print_help()
+{
+	printf("\n----------------------- MENU -----------------------\n");
+	printf("------> SCAP SOURCES\n");
+	printf("'%s': enable the kernel module.\n", KMOD_OPTION);
+	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
+	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
+	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
+	printf("\n------> CONFIGURATIONS\n");
+	printf("'%s': enable the simple consumer mode. (default: disabled)\n", SIMPLE_CONSUMER_OPTION);
+	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
+	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
+	printf("\n------> PRINT OPTIONS\n");
+	printf("'%s': print all supported syscalls with different sources and configurations.\n", PRINT_SYSCALLS_OPTION);
+	printf("'%s': print some validation checks.\n", PRINT_VALIDATION_OPTION);
+	printf("'%s': print this menu.\n", PRINT_HELP_OPTION);
+	printf("-----------------------------------------------------\n");
+}
+
+void print_scap_source()
+{
+	printf("\n---------------------- SCAP SOURCE ----------------------\n");
+	switch(source)
+	{
+	case KERNEL_MODULE:
+		printf("* Kernel module.\n");
+		break;
+
+	case BPF_PROBE:
+		printf("* BPF probe.\n");
+		break;
+
+	case MODERN_BPF_PROBE:
+		printf("* Modern BPF probe NOT SUPPORTED RIGHT NOW!\n");
+		exit(EXIT_FAILURE);
+
+	case SCAP_FILE:
+		printf("* Scap file.\n");
+		break;
+
+	default:
+		printf("* Unknown scap source! Bye!\n");
+		print_help();
+		exit(EXIT_FAILURE);
+	}
+	printf("-----------------------------------------------------------\n\n");
+}
+
+void print_configurations()
+{
+	printf("---------------------- CONFIGURATIONS ----------------------\n");
+	printf("* Simple consumer mode: %d (`1` means enabled).\n", simple_consumer);
+	printf("* Print single event type: %d (`-1` means no event to print).\n", evt_type);
+	printf("* Run until '%lu' events are catched.\n", num_events);
+	printf("--------------------------------------------------------------\n\n");
+}
+
+void print_start_capture()
+{
+	switch(source)
+	{
+	case KERNEL_MODULE:
+		printf("* OK! Kernel module correctly loaded.\n");
+		break;
+
+	case BPF_PROBE:
+		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
+		break;
+
+	case MODERN_BPF_PROBE:
+		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
+		break;
+
+	case SCAP_FILE:
+		printf("* OK! Ready to read from scap file.\n");
+		printf("\n * Reading from scap file: %s...\n", args.fname);
+		goto final_print;
+
+	default:
+		exit(EXIT_FAILURE);
+	}
+	printf("* Live capture in progress...\n");
+
+final_print:
+	printf("* Press CTRL+C to stop the capture\n");
+}
+
+void parse_CLI_options(int argc, char** argv)
+{
+	for(int i = 0; i < argc; i++)
+	{
+		/*=============================== SCAP SOURCES ===========================*/
+
+		if(!strcmp(argv[i], KMOD_OPTION))
+		{
+			source = KERNEL_MODULE;
+		}
+		if(!strcmp(argv[i], BPF_OPTION) && ++i < argc)
+		{
+			args.bpf_probe = argv[i];
+			source = BPF_PROBE;
+		}
+		if(!strcmp(argv[i], MODERN_BPF_OPTION))
+		{
+			/* TODO: Right now there is no real `modern_bpf` implementation.
+			 * We can only print the supported syscalls in this new mode.
+			 */
+			source = MODERN_BPF_PROBE;
+		}
+		if(!strcmp(argv[i], SCAP_FILE_OPTION) && ++i < argc)
+		{
+			args.fname = argv[i];
+			/* we need also to change the mode. */
+			args.mode = SCAP_MODE_CAPTURE;
+			source = SCAP_FILE;
+		}
+
+		/*=============================== SCAP SOURCES ===========================*/
+
+		/*=============================== CONFIGURATIONS ===========================*/
+
+		if(!strcmp(argv[i], SIMPLE_CONSUMER_OPTION))
+		{
+			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
+
+			/* Starting from '1' since we ignore all the unknown syscalls (PPM_SC_UNKNOWN). */
+			for(int j = 1; j < PPM_SC_MAX; j++)
+			{
+				args.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
+			}
+			simple_consumer = true;
+		}
+		if(!strcmp(argv[i], NUM_EVENTS_OPTION) && ++i < argc)
+		{
+			num_events = strtoul(argv[i], NULL, 10);
+		}
+		if(!strcmp(argv[i], EVENT_TYPE_OPTION) && ++i < argc)
+		{
+			evt_type = strtoul(argv[i], NULL, 10);
+		}
+
+		/*=============================== CONFIGURATIONS ===========================*/
+
+		/*=============================== PRINT ===========================*/
+
+		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
+		{
+			print_supported_syscalls();
+			exit(EXIT_SUCCESS);
+		}
+		if(!strcmp(argv[i], PRINT_VALIDATION_OPTION))
+		{
+			print_validation();
+			exit(EXIT_SUCCESS);
+		}
+		if(!strcmp(argv[i], PRINT_HELP_OPTION))
+		{
+			print_help();
+			exit(EXIT_SUCCESS);
+		}
+
+		/*=============================== PRINT ===========================*/
+	}
+}
+
+void print_stats()
+{
+	scap_stats s;
+	printf("\n---------------------- STATS -----------------------\n");
+	printf("events captured: %" PRIu64 "\n", g_nevts);
+	scap_get_stats(g_h, &s);
+	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
+	printf("Number of dropped events caused by full buffer: %" PRIu64 "\n", s.n_drops_buffer);
+	printf("Number of dropped events caused by full scratch map: %" PRIu64 "\n", s.n_drops_scratch_map);
+	printf("Number of dropped events caused by invalid memory access: %" PRIu64 "\n", s.n_drops_pf);
+	printf("Number of dropped events caused by an invalid condition in the kernel instrumentation: %" PRIu64 "\n", s.n_drops_bug);
+	printf("Number of preemptions: %" PRIu64 "\n", s.n_preemptions);
+	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
+	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
+	printf("-----------------------------------------------------\n");
+}
+
+/*=============================== PRINT CAPTURE INFO ===========================*/
+
+static void signal_callback(int signal)
+{
+	print_stats();
+	exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char** argv)
@@ -474,76 +686,26 @@ int main(int argc, char** argv)
 	if(signal(SIGINT, signal_callback) == SIG_ERR)
 	{
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
-		return -1;
+		return EXIT_FAILURE;
 	}
 
-	/* Base configuration without simple consumer. */
+	/* Interesting syscalls by default. */
 	for(int j = 0; j < PPM_SC_MAX; j++)
 	{
 		args.ppm_sc_of_interest.ppm_sc[j] = 1;
 	}
 
-	for(int i = 0; i < argc; i++)
-	{
-		if(!strcmp(argv[i], "--bpf") && ++i < argc)
-		{
-			args.bpf_probe = argv[i];
-			bpf_probe = true;
-		}
-		if(!strcmp(argv[i], "--simple_consumer"))
-		{
-			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
+	parse_CLI_options(argc, argv);
 
-			/* Starting from '1' since we ignore all the unknown syscalls (PPM_SC_UNKNOWN). */
-			for(int j = 1; j < PPM_SC_MAX; j++)
-			{
-				args.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
-			}
-			simple_consumer = true;
-		}
-		if(!strcmp(argv[i], "--num_events") && ++i < argc)
-		{
-			num_events = strtoul(argv[i], NULL, 10);
-		}
-		if(!strcmp(argv[i], "--evt_type") && ++i < argc)
-		{
-			evt_type = strtoul(argv[i], NULL, 10);
-		}
-		if(!strcmp(argv[i], "--scap_file") && ++i < argc)
-		{
-			scap_file = argv[i];
-			args.fname = scap_file;
-			args.mode = SCAP_MODE_CAPTURE;
-		}
-		if(!strcmp(argv[i], "--print_modern_probe_syscalls"))
-		{
-			print_modern_probe_syscalls();
-			return EXIT_SUCCESS;
-		}
-		if(!strcmp(argv[i], "--print_sc_syscalls"))
-		{
-			print_kernel_simple_consumer_syscalls();
-			return EXIT_SUCCESS;
-		}
-		if(!strcmp(argv[i], "--help"))
-		{
-			print_help();
-			return EXIT_SUCCESS;
-		}
-	}
+	print_scap_source();
 
-	print_configuration();
+	print_configurations();
 
 	g_h = scap_open(args, error, &res);
 	if(g_h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
 		return EXIT_FAILURE;
-	}
-
-	if(!scap_file)
-	{
-		print_load_success();
 	}
 
 	print_start_capture();
@@ -567,18 +729,7 @@ int main(int argc, char** argv)
 		{
 			if(ev->type == evt_type)
 			{
-				lens16 = (uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr));
-				valptr = (char*)lens16 + ev->nparams * sizeof(uint16_t);
-				printf("\n------------------ EVENT: %d TID:%lu\n", evt_type, ev->tid);
-				for(int i = 0; i < ev->nparams; i++)
-				{
-					print_parameter(i);
-				}
-				if(ev->nparams == 0)
-				{
-					printf("- This event has no parameter\n");
-				}
-				printf("------------------\n");
+				print_event(ev);
 			}
 			g_nevts++;
 		}
