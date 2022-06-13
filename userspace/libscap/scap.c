@@ -460,7 +460,6 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		free(handle);
 		return NULL;
 	}
 
@@ -497,7 +496,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 
 	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
 	{
-		handle->m_vtable->close(handle->m_engine);
+		scap_close(handle);
 		return NULL;
 	}
 	return handle;
