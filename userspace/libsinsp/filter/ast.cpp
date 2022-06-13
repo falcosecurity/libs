@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include "ast.h"
+#include "escaping.h"
 
 using namespace libsinsp::filter::ast;
 
@@ -64,6 +65,120 @@ void base_expr_visitor::visit(value_expr* e) { }
 void base_expr_visitor::visit(list_expr* e) { }
 
 void base_expr_visitor::visit(unary_check_expr* e) { }
+
+void string_visitor::visit_logical_op(const char *op, std::vector<expr*> &children)
+{
+	bool first = true;
+
+	m_str += "(";
+
+	for (auto &c : children)
+	{
+		if(!first)
+		{
+			m_str += " ";
+			m_str += op;
+			m_str += " ";
+		}
+		first = false;
+		c->accept(this);
+	}
+	m_str += ")";
+}
+
+void string_visitor::visit(and_expr* e)
+{
+	visit_logical_op("and", e->children);
+}
+
+void string_visitor::visit(or_expr* e)
+{
+	visit_logical_op("or", e->children);
+}
+
+void string_visitor::visit(not_expr* e)
+{
+	m_str += "not ";
+
+	e->child->accept(this);
+}
+
+void string_visitor::visit(value_expr* e)
+{
+	if(escape_next_value)
+	{
+		m_str += libsinsp::filter::escape_str(e->value);
+	}
+	else
+	{
+		m_str += e->value;
+	}
+
+	escape_next_value = false;
+}
+
+void string_visitor::visit(list_expr* e)
+{
+	bool first = true;
+
+	m_str += "(";
+
+	for(auto &val : e->values)
+	{
+		if(!first)
+		{
+			m_str += ", ";
+		}
+		first = false;
+		m_str += libsinsp::filter::escape_str(val);
+	}
+
+	m_str += ")";
+}
+void string_visitor::visit(unary_check_expr* e)
+{
+	m_str += e->field;
+
+	if(e->arg != "")
+	{
+		m_str += "[" + libsinsp::filter::escape_str(e->arg) + "]";
+	}
+
+	m_str += " ";
+	m_str += e->op;
+}
+
+void string_visitor::visit(binary_check_expr* e)
+{
+	m_str += e->field;
+
+	if(e->arg != "")
+	{
+	        m_str += "[" + libsinsp::filter::escape_str(e->arg) + "]";
+	}
+
+	m_str += " ";
+	m_str += e->op;
+	m_str += " ";
+
+	escape_next_value = true;
+
+	e->value->accept(this);
+}
+
+const std::string& string_visitor::as_string()
+{
+	return m_str;
+}
+
+std::string libsinsp::filter::ast::as_string(ast::expr &e)
+{
+	string_visitor sv;
+
+	e.accept(&sv);
+
+	return sv.as_string();
+}
 
 expr* libsinsp::filter::ast::clone(expr* e)
 {  

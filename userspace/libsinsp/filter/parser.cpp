@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <cstring>
 #include <iterator>
+#include "escaping.h"
 #include "parser.h"
 #include "../utils.h"
 #include "../sinsp_exception.h"
@@ -489,7 +490,7 @@ inline bool parser::lex_quoted_str()
 			{
 				update_pos(*cursor(), m_pos);
 				m_last_token += delimiter;
-				m_last_token = escape_str(m_last_token);
+				m_last_token = unescape_str(m_last_token);
 				return true;
 			}
 			prev = *cursor();
@@ -589,79 +590,6 @@ bool parser::lex_helper_str_list(const std::vector<std::string>& list)
 inline const char* parser::cursor()
 {
 	return m_input.c_str() + m_pos.idx;
-}
-
-string parser::escape_str(const string& str)
-{
-	string res = "";
-	size_t len = str.size() - 1;
-	bool escaped = false;
-	for (size_t i = 1; i < len; i++)
-	{
-		if (!escaped)
-		{
-			if (str[i] == '\\')
-			{
-				escaped = true;
-			}
-			else 
-			{
-				res += str[i];
-			}
-		}
-		else
-		{
-			switch(str[i])
-			{
-				case 'b':
-					res += '\b';
-					break;
-				case 'f':
-					res += '\f';
-					break;
-				case 'n':
-					res += '\n';
-					break;
-				case 'r':
-					res += '\r';
-					break;
-				case 't':
-					res += '\t';
-					break;
-				case ' ':
-					// NOTE: we may need to initially support this to not create breaking changes with
-					// some existing wrongly-escaped rules. So far, I only found one, in Falco:
-					// https://github.com/falcosecurity/falco/blob/204f9ff875be035e620ca1affdf374dd1c610a98/rules/falco_rules.yaml#L3046
-					// todo(jasondellaluce): remove this once rules are rewritten with correct escaping
-				case '\\':
-					res += '\\';
-					break;
-				case '/':
-					res += '/';
-					break;
-				case '"':
-					if (str[0] != str[i]) 
-					{
-						throw sinsp_exception("invalid \\\" escape in '-quoted string");
-					}
-					res += '\"';
-					break;
-				case '\'':
-					if (str[0] != str[i]) 
-					{
-						throw sinsp_exception("invalid \\' escape in \"-quoted string");
-					}
-					res += '\'';
-					break;
-				case 'x':
-					// todo(jasondellaluce): support hex num escaping (not needed for now)
-				default:
-					throw sinsp_exception("unsupported string escape sequence: \\" + string(1, str[i]));
-			}
-			escaped = false;
-		}
-	}
-	return res;
 }
 
 inline string parser::trim_str(string str)

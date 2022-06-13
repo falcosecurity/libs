@@ -83,6 +83,35 @@ private:
 };
 
 /*!
+    \brief A visitor that builds a string as it traverses the
+    ast. Used to convert to strings.
+*/
+struct SINSP_PUBLIC string_visitor: public expr_visitor
+{
+public:
+	virtual ~string_visitor() = default;
+	virtual void visit(and_expr*) override;
+	virtual void visit(or_expr*) override;
+	virtual void visit(not_expr*) override;
+	virtual void visit(value_expr*) override;
+	virtual void visit(list_expr*) override;
+	virtual void visit(unary_check_expr*) override;
+	virtual void visit(binary_check_expr*) override;
+
+	const std::string& as_string();
+
+protected:
+
+	void visit_logical_op(const char *op, std::vector<expr*> &children);
+
+	// If true, the next call to vist(value_expr*) will escape the
+	// value. This occurs for any right hand side of a binary check.
+	bool escape_next_value = false;
+
+	std::string m_str;
+};
+
+/*!
     \brief Base interface of AST hierarchy
 */
 struct SINSP_PUBLIC expr
@@ -283,6 +312,12 @@ struct SINSP_PUBLIC binary_check_expr: expr
     std::string op;
     expr* value;
 };
+
+/*!
+	\brief Return a string representation of an AST.
+	\return A string representation of an AST.
+*/
+std::string as_string(ast::expr &e);
 
 /*!
 	\brief Creates a deep clone of a filter AST

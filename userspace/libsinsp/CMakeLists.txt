@@ -67,6 +67,7 @@ endif()
 
 set(SINSP_SOURCES
 	filter/ast.cpp
+	filter/escaping.cpp
 	filter/parser.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp
