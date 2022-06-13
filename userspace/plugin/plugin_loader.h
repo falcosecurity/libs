@@ -17,7 +17,7 @@ limitations under the License.
 
 #pragma once
 
-#include "api.h"
+#include "plugin_api.h"
 
 #ifdef __cplusplus
 extern "C" {
