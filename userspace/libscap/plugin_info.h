@@ -17,7 +17,7 @@ limitations under the License.
 
 #pragma once
 
-#include "../plugin/api.h"
+#include "../plugin/plugin_api.h"
 
 //
 // Small C interface that is passed down to libscap

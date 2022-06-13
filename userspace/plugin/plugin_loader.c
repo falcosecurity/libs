@@ -15,6 +15,8 @@ limitations under the License.
 
 */
 
+#define __STDC_FORMAT_MACROS
+
 #ifdef _WIN32
     typedef HINSTANCE library_handle_t;
 #else
@@ -24,7 +26,7 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "loader.h"
+#include "plugin_loader.h"
 
 static void add_str_prefix(char* s, const char* prefix)
 {
