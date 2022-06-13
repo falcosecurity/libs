@@ -23,7 +23,7 @@ class mock_sinsp_plugin: public sinsp_plugin
 {
 public:
 	inline mock_sinsp_plugin(): sinsp_plugin(nullptr) { }
-	inline ss_plugin_caps caps() const override { return m_caps; };
+	inline plugin_caps_t caps() const override { return m_caps; };
 	inline uint32_t id() const override { return m_id; };
 	inline const std::string &name() const { return m_name; }
 	inline const std::string &event_source() const override { return m_source; }
@@ -31,7 +31,7 @@ public:
 	uint32_t m_id;
 	std::string m_source;
 	std::string m_name;
-	ss_plugin_caps m_caps;
+	plugin_caps_t m_caps;
 };
 
 TEST(sinsp_plugin_manager, add_and_queries)
