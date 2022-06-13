@@ -27,34 +27,17 @@ limitations under the License.
 #include <plugin_info.h>
 #include "event.h"
 #include "version.h"
+#include "../plugin/plugin_loader.h"
 
 // todo(jasondellaluce: remove this forward declaration)
 class sinsp_filter_check;
-
-#ifdef _WIN32
-typedef HINSTANCE sinsp_plugin_handle;
-#else
-typedef void* sinsp_plugin_handle;
-#endif
-
-//
-// A plugin has capabilities.
-// There are following plugin caps at the moment:
-// * ability to source events and provide them to the event loop
-// * ability to extract fields from events created by other plugins
-//
-typedef enum
-{
-	CAP_SOURCING     = 1 << 0,
-	CAP_EXTRACTION   = 1 << 1
-} ss_plugin_caps;
 
 class sinsp_plugin_cap_common
 {
 public:
 	virtual ~sinsp_plugin_cap_common() = default;
 
-	virtual ss_plugin_caps caps() const = 0;
+	virtual plugin_caps_t caps() const = 0;
 
 	virtual bool init(const std::string &config, std::string &errstr) = 0;
 
@@ -134,7 +117,7 @@ public:
 	// its exported fields. Returns NULL otherwise
 	static sinsp_filter_check* new_filtercheck(std::shared_ptr<sinsp_plugin> plugin);
 
-	sinsp_plugin(sinsp_plugin_handle handle);
+	sinsp_plugin(plugin_handle_t* handle);
 	virtual ~sinsp_plugin();
 
 	/** Common API **/
@@ -147,7 +130,7 @@ public:
 	virtual const sinsp_version &plugin_version() const override;
 	virtual const sinsp_version &required_api_version() const override;
 	virtual std::string get_init_schema(ss_plugin_schema_type& schema_type) const override;
-	virtual ss_plugin_caps caps() const override;
+	virtual plugin_caps_t caps() const override;
 
 	/** Event Sourcing **/
 	virtual scap_source_plugin& as_scap_source() override;
@@ -170,10 +153,9 @@ private:
 	sinsp_version m_plugin_version;
 	sinsp_version m_required_api_version;
 
-	plugin_api m_api;
 	ss_plugin_t* m_state;
-	ss_plugin_caps m_caps;
-	sinsp_plugin_handle m_handle;
+	plugin_caps_t m_caps;
+	plugin_handle_t* m_handle;
 
 	/** Event Sourcing **/
 	uint32_t m_id;
@@ -188,6 +170,4 @@ private:
 	bool resolve_dylib_symbols(std::string &errstr);
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info &tf);
 	void validate_init_config_json_schema(std::string& config, std::string &schema);
-	static void destroy_handle(sinsp_plugin_handle handle);
-	void* getsym(const char* name, std::string &errstr);
 };

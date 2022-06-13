@@ -92,6 +92,7 @@ set(SINSP_SOURCES
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
+	../plugin/plugin_loader.c
 	plugin.cpp
 	plugin_manager.cpp
 	plugin_filtercheck.cpp
