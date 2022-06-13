@@ -70,7 +70,7 @@ static void fill_context_data(scap_evt *evt, T& gvisor_evt)
 
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret;
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -246,9 +246,9 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	return ret;
 }
 
-static struct parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret;
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -326,9 +326,9 @@ static struct parse_result parse_execve(const char *proto, size_t proto_size, sc
 	return ret;
 }
 
-static struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
+static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
 {
-	struct parse_result ret;
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -376,9 +376,9 @@ static struct parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_ev
 	return ret;
 }
 
-static struct parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret;
+	parse_result ret;
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -430,9 +430,9 @@ static struct parse_result parse_sentry_clone(const char *proto, size_t proto_si
 	return ret;
 }
 
-static struct parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret = {0};
+	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Read gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -469,9 +469,9 @@ static struct parse_result parse_read(const char *proto, size_t proto_size, scap
 	return ret;
 }
 
-static struct parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret = {0};
+	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Connect gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -560,9 +560,9 @@ static struct parse_result parse_connect(const char *proto, size_t proto_size, s
 	return ret;
 }
 
-static struct parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
+static parse_result parse_socket(const char *proto, size_t proto_size, scap_sized_buffer event_buf)
 {
-	struct parse_result ret = {0};
+	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
 	gvisor::syscall::Socket gvisor_evt;
 	if(!gvisor_evt.ParseFromArray(proto, proto_size))
@@ -594,7 +594,7 @@ static struct parse_result parse_socket(const char *proto, size_t proto_size, sc
 	return ret;
 }
 
-static struct parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_generic_syscall(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	gvisor::syscall::Syscall gvisor_evt;
@@ -622,7 +622,7 @@ static struct parse_result parse_generic_syscall(const char *proto, size_t proto
 }
 
 
-static struct parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -679,9 +679,9 @@ std::vector<Callback> dispatchers = {
 	parse_socket,
 };
 
-struct parse_result parse_gvisor_proto(struct scap_const_sized_buffer gvisor_buf, struct scap_sized_buffer scap_buf)
+parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
 {
-	struct parse_result ret = {0};
+	parse_result ret = {0};
 	const char *buf = static_cast<const char*>(gvisor_buf.buf);
 
 	const header *hdr = reinterpret_cast<const header *>(buf);

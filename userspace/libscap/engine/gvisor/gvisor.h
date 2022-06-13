@@ -50,7 +50,6 @@ struct parse_result {
     // pointers to each encoded event within the supplied output buffer
 	std::vector<scap_evt*> scap_events;
 };
-typedef struct parse_result parse_result;
 
 /*!
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events
