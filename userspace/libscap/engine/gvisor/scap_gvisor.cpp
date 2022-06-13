@@ -279,6 +279,14 @@ int32_t engine::stop_capture()
 	shutdown(m_listenfd, 2);
 	::close(m_epollfd);
 	free_sandbox_buffers();
+
+	// todo(loresuso): change session name when gVisor will support it
+	std::vector<std::string> sandboxes = runsc_list();
+	for(const auto &sandbox : sandboxes)
+	{
+		runsc_trace_delete("Default", sandbox);
+	}	
+
 	m_capture_started = false;
     return SCAP_SUCCESS;
 }
