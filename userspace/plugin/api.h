@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,7 @@ limitations under the License.
 
 #pragma once
 
-#include <stdbool.h>
-#include <inttypes.h>
-
-//
-// This file contains the prototype and type definitions of sinsp/scap plugins
-//
+#include "types.h"
 
 //
 // API versions of this plugin engine
@@ -34,150 +29,15 @@ limitations under the License.
 //
 // Just some not so smart defines to retrieve plugin api version as string
 //
-#define QUOTE(str) 			#str
-#define EXPAND_AND_QUOTE(str) 		QUOTE(str)
-#define PLUGIN_API_VERSION		PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
-#define PLUGIN_API_VERSION_STR		EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
-
-// The noncontinguous numbers are to maintain equality with underlying
-// falcosecurity libs types.
-typedef enum ss_plugin_field_type
-{
-	FTYPE_UINT64 = 8,
-	FTYPE_STRING = 9
-}ss_plugin_field_type;
-
-// Values to return from init() / open() / next_batch() /
-// extract_fields().
-typedef enum ss_plugin_rc
-{
-	SS_PLUGIN_SUCCESS = 0,
-	SS_PLUGIN_FAILURE = 1,
-	SS_PLUGIN_TIMEOUT = -1,
-	SS_PLUGIN_EOF = 2,
-	SS_PLUGIN_NOT_SUPPORTED = 3,
-} ss_plugin_rc;
-
-// The supported schema formats for the init configuration.
-typedef enum ss_plugin_schema_type
-{
-	// The schema is undefined and the init configuration
-	// is an opaque string.
-	SS_PLUGIN_SCHEMA_NONE = 0,
-	//
-	// The schema follows the JSON Schema specific, and the
-	// init configuration must be represented as a json.
-	// see: https://json-schema.org/
-	SS_PLUGIN_SCHEMA_JSON = 1,
-} ss_plugin_schema_type;
-
-// This struct represents an event returned by the plugin, and is used
-// below in next_batch().
-// - evtnum: incremented for each event returned. Might not be contiguous.
-// - data: pointer to a memory buffer pointer. The plugin will set it
-//   to point to the memory containing the next event.
-// - datalen: pointer to a 32bit integer. The plugin will set it the size of the
-//   buffer pointed by data.
-// - ts: the event timestamp, in nanoseconds since the epoch.
-//   Can be (uint64_t)-1, in which case the engine will automatically
-//   fill the event time with the current time.
-//
-// Note: event numbers are assigned by the plugin
-// framework. Therefore, there isn't any need to fill in evtnum when
-// returning an event via plugin_next_batch. It will be ignored.
-typedef struct ss_plugin_event
-{
-	uint64_t evtnum;
-	const uint8_t *data;
-	uint32_t datalen;
-	uint64_t ts;
-} ss_plugin_event;
-
-// Used in extract_fields functions below to receive a field/arg
-// pair and return an extracted value.
-// field_id: id of the field, as of its index in the list of
-//           fields specified by the plugin.
-// field: the field name.
-// arg_key: the field argument, if a 'key' argument has been specified
-//          for the field (isKey=true), otherwise it's NULL.
-//          For example:
-//          * if the field specified by the user is foo.bar[pippo], arg_key 
-//            will be the string "pippo"
-//         	* if the field specified by the user is foo.bar, arg will be NULL
-// arg_index: the field argument, if a 'index' argument has been specified
-//            for the field (isIndex=true), otherwise it's 0.
-//            For example:
-//            * if the field specified by the user is foo.bar[1], arg_index 
-//            will be the uint64_t '1'. 
-//            Please note the ambiguity with a 0
-//            argument which could be a real argument of just the default 
-//            value to point out the absence. The `arg_present` field resolves
-//            this ambiguity.
-// arg_present: helps to understand if the arg is there since arg_index is
-//              0-based.
-// ftype: the type of the field. Could be derived from the field name alone,
-//   but including here can prevent a second lookup of field names.
-// flist: whether the field can extract lists of values or not.
-//   Could be derived from the field name alone, but including it
-//   here can prevent a second lookup of field names.
-// The following should be filled in by the extraction function:
-// - res: this union should be filled with a pointer to an array of values.
-//   The array represent the list of extracted values for this field from a given event.
-//   Each array element should be filled with a char* string if the corresponding
-//   field was type==string, and with a uint64 value if the corresponding field was
-//   type==uint64.
-// - res_len: the length of the array of pointed by res.
-//   If the field is not a list type, then res_len must be either 0 or 1.
-//   If the field is a list type, then res_len can must be any value from 0 to N, depending
-//   on how many values can be extracted from a given event.
-//   Setting res_len to 0 means that no value of this field can be extracted from a given event.
-typedef struct ss_plugin_extract_field
-{
-	// NOTE: For a given architecture, this has always the same size which
-	// is sizeof(uintptr_t). Adding new value types will not create breaking
-	// changes in the plugin API. However, we must make sure that each added
-	// type is always a pointer.
-	union {
-		const char** str;
-		uint64_t* u64;
-	} res;
-	uint64_t res_len;
-
-	// NOTE: When/if adding new input fields, make sure of appending them
-	// at the end of the struct to avoid introducing breaking changes in the
-	// plugin API.
-	uint32_t field_id;
-	const char* field;
-	const char* arg_key;
-	uint64_t arg_index;
-	bool arg_present;
-	uint32_t ftype;
-	bool flist;
-} ss_plugin_extract_field;
+#define QUOTE(str)                  #str
+#define EXPAND_AND_QUOTE(str)       QUOTE(str)
+#define PLUGIN_API_VERSION          PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
+#define PLUGIN_API_VERSION_STR      EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
 
 //
-// This is the opaque pointer to the state of a plugin.
-// It points to any data that might be needed plugin-wise. It is
-// allocated by init() and must be destroyed by destroy().
-// It is defined as void because the engine doesn't care what it is
-// and it treats is as opaque.
-//
-typedef void ss_plugin_t;
-
-//
-// This is the opaque pointer to the state of an open instance of the source
-// plugin.
-// It points to any data that is needed while a capture is running. It is
-// allocated by open() and must be destroyed by close().
-// It is defined as void because the engine doesn't care what it is
-// and it treats is as opaque.
-//
-typedef void ss_instance_t;
-
-//
-// The structs below define the functions and arguments for plugins capabilities:
+// The struct below define the functions and arguments for plugins capabilities:
 // * event sourcing
-// * extractor
+// * field extraction
 // The structs are used by the plugin framework to load and interface with plugins.
 //
 // From the perspective of the plugin, each function below should be
@@ -199,7 +59,6 @@ typedef void ss_instance_t;
 // parameters) if not corresponding to plugin-allocated memory in the
 // cases above. Plugins can safely use the passed memory during the execution
 // of the exported functions.
-
 //
 // Plugins vtable
 //
@@ -209,7 +68,7 @@ typedef struct
 	// Return the version of the plugin API used by this plugin.
 	// Required: yes
 	// Return value: the API version string, in the following format:
-	//        "<major>.<minor>.<patch>", e.g. "1.2.3".
+	//       "<major>.<minor>.<patch>", e.g. "1.2.3".
 	// NOTE: to ensure correct interoperability between the engine and the plugins,
 	//       we use a semver approach. Plugins are required to specify the version
 	//       of the API they run against, and the engine will take care of checking
@@ -247,7 +106,8 @@ typedef struct
 	// - rc: pointer to a ss_plugin_rc that will contain the initialization result
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the engine and passed to the other plugin functions.
-	//   If rc is SS_PLUGIN_FAILURE, this function may return NULL or a state to later retrieve the error string.
+	//   If rc is SS_PLUGIN_FAILURE, this function may return NULL or a state to
+	//   later retrieve the error string.
 	//
 	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc);
 
@@ -304,7 +164,8 @@ typedef struct
 	const char *(*get_version)();
 
 	// Sourcing capabilities related
-	struct {
+	struct
+	{
 		//
 		// Return the unique ID of the plugin.
 		// Required: yes
@@ -312,6 +173,7 @@ typedef struct
 		// FALCOSECURITY ORGANIZATION, OTHERWISE IT WON'T PROPERLY COEXIST WITH OTHER PLUGINS.
 		//
 		uint32_t (*get_id)();
+
 		//
 		// Return a string describing the events generated by this plugin with event sourcing capabilities.
 		// Required: yes
@@ -320,6 +182,7 @@ typedef struct
 		// plugins to filter the events they receive.
 		//
 		const char* (*get_event_source)();
+
 		//
 		// Open the source and start a capture (e.g. stream of events)
 		// Required: yes
@@ -332,6 +195,7 @@ typedef struct
 		//   close(), event_to_string() and extract_fields.
 		//
 		ss_instance_t* (*open)(ss_plugin_t* s, const char* params, ss_plugin_rc* rc);
+
 		//
 		// Close a capture.
 		// Required: yes
@@ -340,6 +204,7 @@ typedef struct
 		// - h: the capture context, returned by open(). Can be NULL.
 		//
 		void (*close)(ss_plugin_t* s, ss_instance_t* h);
+
 		//
 		// Return a list of suggested open parameters supported by this plugin.
 		// Any of the values in the returned list are valid parameters for open().
@@ -355,6 +220,7 @@ typedef struct
 		//      {"value": "resource2", "desc": "Another example of openable resource"}
 		//   ]
 		const char* (*list_open_params)(ss_plugin_t* s, ss_plugin_rc* rc);
+
 		//
 		// Return the read progress.
 		// Required: no
@@ -375,6 +241,7 @@ typedef struct
 		//       user.
 		//
 		const char* (*get_progress)(ss_plugin_t* s, ss_instance_t* h, uint32_t* progress_pct);
+
 		//
 		// Return a text representation of an event generated by this plugin with event sourcing capabilities.
 		// Required: no
@@ -390,6 +257,7 @@ typedef struct
 		//   event_to_string().
 		//
 		const char* (*event_to_string)(ss_plugin_t *s, const ss_plugin_event *evt);
+
 		//
 		// Return the next batch of events.
 		// On success:
@@ -406,7 +274,8 @@ typedef struct
 	};
 
 	// Extraction capability related
-	struct {
+	struct
+	{
 		//
 		// Return a string describing the event sources that this
 		// plugin can consume.
@@ -419,6 +288,7 @@ typedef struct
 		// otherwise it will receive every event for extraction.
 		//
 		const char* (*get_extract_event_sources)();
+
 		//
 		// Return the list of extractor fields exported by this plugin. Extractor
 		// fields can be used in Falco rule conditions.
@@ -455,6 +325,7 @@ typedef struct
 		//    {"type": "string", "name": "field3", "arg": {"isRequired": true, "isIndex": true,}, "desc": "Describing field 3"},
 		// ]
 		const char* (*get_fields)();
+
 		//
 		// Extract one or more a filter field values from an event.
 		// Required: yes
@@ -475,20 +346,3 @@ typedef struct
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	};
 } plugin_api;
-
-//
-// Small C interface that is passed down to libscap
-// and is used as event source.
-//
-typedef struct
-{
-	uint32_t id;
-	const char *name;
-	ss_plugin_t *state;
-	ss_instance_t *handle;
-
-	ss_instance_t* (*open)(ss_plugin_t* s, const char* params, ss_plugin_rc* rc);
-	void (*close)(ss_plugin_t* s, ss_instance_t* h);
-	ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
-	const char *(*get_last_error)(ss_plugin_t *s);
-} scap_source_plugin;
