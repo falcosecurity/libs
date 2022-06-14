@@ -26,7 +26,7 @@ limitations under the License.
 #include <string.h>
 #include "plugin_loader.h"
 
-static void add_str_prefix(char* s, const char* prefix)
+static inline void add_str_prefix(char* s, const char* prefix)
 {
     char tmp[PLUGIN_MAX_ERRLEN];
     strncpy(tmp, prefix, PLUGIN_MAX_ERRLEN - 1);
@@ -44,13 +44,13 @@ static void* getsym(library_handle_t handle, const char* name)
 }
 
 // little hack for simplifying the plugin_load function
-#define SYM_RESOLVE(h, s) *(void **)(&(h->api.s)) = getsym(h->handle, "plugin_"#s);
+#define SYM_RESOLVE(h, s) \
+    *(void **)(&(h->api.s)) = getsym(h->handle, "plugin_"#s)
 
 plugin_handle_t* plugin_load(const char* path, char* err)
 {
     // alloc and init memory
-    plugin_handle_t* ret = (plugin_handle_t*) malloc (sizeof(plugin_handle_t));
-    memset(ret, 0, sizeof(plugin_handle_t));
+    plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
 
     // open dynamic library
 #ifdef _WIN32
@@ -154,40 +154,36 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
     const char *ver, *failmsg;
     if (h->api.get_required_api_version == NULL)
     {
-        strcpy(err, "plugin_get_required_api_version symbol not implemented");
+        strncpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN - 1);
         return false;
     }
 
     ver = h->api.get_required_api_version();
     if (sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3)
     {
-        strcpy(err, "plugin provided an invalid required API version: '");
-        strncat(err, ver, PLUGIN_MAX_ERRLEN - 1);
-        strncat(err, "'", PLUGIN_MAX_ERRLEN - 1);
+        snprintf(err, PLUGIN_MAX_ERRLEN - 1, "plugin provided an invalid required API version: '%s'", ver);
         return false;
     }
 
     failmsg = NULL;
     if(PLUGIN_API_VERSION_MAJOR != major)
     {
-        failmsg = "': major versions disagree";
+        failmsg = "major versions disagree";
     }
     else if(PLUGIN_API_VERSION_MINOR < minor)
     {
-        failmsg = "': framework's minor is less than the requested one";
+        failmsg = "framework's minor is less than the requested one";
     }
     else if(PLUGIN_API_VERSION_MINOR == minor && PLUGIN_API_VERSION_PATCH < patch)
     {
-        failmsg = "': framework's patch is less than the requested one";
+        failmsg = "framework's patch is less than the requested one";
     }
 
     if (failmsg != NULL)
     {
-        strcpy(err, "plugin required API version '");
-        strncat(err, ver, PLUGIN_MAX_ERRLEN - 1);
-        strncat(err, "' not compatible with the framework's API version '", PLUGIN_MAX_ERRLEN - 1);
-        strncat(err, PLUGIN_API_VERSION_STR, PLUGIN_MAX_ERRLEN - 1);
-        strncat(err, failmsg, PLUGIN_MAX_ERRLEN - 1);
+        snprintf(err, PLUGIN_MAX_ERRLEN - 1,
+            "plugin required API version '%s' not compatible with the framework's API version '%s': %s",
+            ver, PLUGIN_API_VERSION_STR, failmsg);
         return false;
     }
 
@@ -221,8 +217,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
     do { \
         if(a->api.s == NULL) \
         { \
-            strcpy(e, "symbol not implemented: "); \
-            strncat(e, #s, PLUGIN_MAX_ERRLEN - 1); \
+            snprintf(e, PLUGIN_MAX_ERRLEN - 1, "symbol not implemented: %s", #s); \
             return false; \
         } \
     } while(0)
