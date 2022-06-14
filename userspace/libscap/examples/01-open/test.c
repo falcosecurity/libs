@@ -28,8 +28,8 @@ limitations under the License.
 #define SIMPLE_CONSUMER_OPTION "--simple_consumer"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
+#define VALIDATION_OPTION "--validate_syscalls"
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
-#define PRINT_VALIDATION_OPTION "--print_validation"
 #define PRINT_HELP_OPTION "--help"
 
 #define SYSCALL_NAME_MAX_LEN 40
@@ -373,7 +373,7 @@ void print_modern_probe_syscalls()
 	return;
 
 error:
-	printf("unexpected error, please check with `--print_validation` option");
+	printf("unexpected error, please check with `%s` option", VALIDATION_OPTION);
 }
 
 /* Print syscall supported by actual drivers: `KERNEL_MODULE`, `BPF_PROBE`.
@@ -436,7 +436,7 @@ void print_supported_syscalls()
 
 /*=============================== PRINT SYSCALLS VALIDATION ===========================*/
 
-void print_validation()
+void validate_syscalls()
 {
 	enum ppm_syscall_code ppm_syscall_code = 0;
 	bool success = true;
@@ -493,13 +493,14 @@ void print_help()
 	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
-	printf("\n------> CONFIGURATIONS\n");
+	printf("\n------> CONFIGURATIONS OPTIONS\n");
 	printf("'%s': enable the simple consumer mode. (default: disabled)\n", SIMPLE_CONSUMER_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
+	printf("\n------> VALIDATION OPTIONS\n");
+	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
 	printf("'%s': print all supported syscalls with different sources and configurations.\n", PRINT_SYSCALLS_OPTION);
-	printf("'%s': print some validation checks.\n", PRINT_VALIDATION_OPTION);
 	printf("'%s': print this menu.\n", PRINT_HELP_OPTION);
 	printf("-----------------------------------------------------\n");
 }
@@ -627,16 +628,21 @@ void parse_CLI_options(int argc, char** argv)
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
+		/*=============================== VALIDATION ===========================*/
+
+		if(!strcmp(argv[i], VALIDATION_OPTION))
+		{
+			validate_syscalls();
+			exit(EXIT_SUCCESS);
+		}
+
+		/*=============================== VALIDATION ===========================*/
+
 		/*=============================== PRINT ===========================*/
 
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
 			print_supported_syscalls();
-			exit(EXIT_SUCCESS);
-		}
-		if(!strcmp(argv[i], PRINT_VALIDATION_OPTION))
-		{
-			print_validation();
 			exit(EXIT_SUCCESS);
 		}
 		if(!strcmp(argv[i], PRINT_HELP_OPTION))
