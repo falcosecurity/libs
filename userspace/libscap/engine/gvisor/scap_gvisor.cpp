@@ -456,7 +456,7 @@ std::vector<std::string> engine::runsc(char *argv[])
 		return res;
 	}
 
-	int pid = fork();
+	pid_t pid = vfork();
 	if(pid > 0)
 	{
 		char line[max_line_size];
