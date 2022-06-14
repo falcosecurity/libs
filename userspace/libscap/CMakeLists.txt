@@ -46,7 +46,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     if(NOT DEFINED DRIVER_NAME)
         set(DRIVER_NAME "scap")
     endif()
-	
+
     if(NOT DEFINED DRIVER_DEVICE_NAME)
         set(DRIVER_DEVICE_NAME "${DRIVER_NAME}")
     endif()
@@ -62,7 +62,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 endif()
 
 if(NOT DEFINED SCAP_BPF_PROBE_ENV_VAR_NAME)
-	set(SCAP_BPF_PROBE_ENV_VAR_NAME "BPF_PROBE") 
+	set(SCAP_BPF_PROBE_ENV_VAR_NAME "BPF_PROBE")
 endif()
 add_definitions(-DSCAP_BPF_PROBE_ENV_VAR_NAME="${SCAP_BPF_PROBE_ENV_VAR_NAME}")
 
@@ -160,6 +160,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(WIN32)
 	add_subdirectory(win32)
 	include_directories(win32)
+elseif(APPLE)
+	add_subdirectory(macos)
+	include_directories(macos)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
