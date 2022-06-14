@@ -231,5 +231,6 @@ bool plugin_check_required_symbols(const plugin_handle_t* h, char* err)
     SYM_REQCHECK(h, err, get_contact);
     SYM_REQCHECK(h, err, init);
     SYM_REQCHECK(h, err, destroy);
+    SYM_REQCHECK(h, err, get_last_error);
     return true;
 }
