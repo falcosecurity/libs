@@ -23,6 +23,7 @@ find_package(Threads)
 target_link_libraries(scap_engine_gvisor 
     ${CMAKE_THREAD_LIBS_INIT}
     ${PROTOBUF_LIB}
+    ${JSONCPP_LIB}
     scap
 )
 
