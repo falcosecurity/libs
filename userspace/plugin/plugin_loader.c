@@ -161,7 +161,7 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
     ver = h->api.get_required_api_version();
     if (sscanf(ver, "%" PRIu32 ".%" PRIu32 ".%" PRIu32, &major, &minor, &patch) != 3)
     {
-        snprintf(err, PLUGIN_MAX_ERRLEN - 1, "plugin provided an invalid required API version: '%s'", ver);
+        snprintf(err, PLUGIN_MAX_ERRLEN, "plugin provided an invalid required API version: '%s'", ver);
         return false;
     }
 
@@ -181,7 +181,7 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
 
     if (failmsg != NULL)
     {
-        snprintf(err, PLUGIN_MAX_ERRLEN - 1,
+        snprintf(err, PLUGIN_MAX_ERRLEN,
             "plugin required API version '%s' not compatible with the framework's API version '%s': %s",
             ver, PLUGIN_API_VERSION_STR, failmsg);
         return false;
@@ -217,7 +217,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
     do { \
         if(a->api.s == NULL) \
         { \
-            snprintf(e, PLUGIN_MAX_ERRLEN - 1, "symbol not implemented: %s", #s); \
+            snprintf(e, PLUGIN_MAX_ERRLEN, "symbol not implemented: %s", #s); \
             return false; \
         } \
     } while(0)
