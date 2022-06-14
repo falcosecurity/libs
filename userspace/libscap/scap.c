@@ -128,7 +128,19 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	oargs.import_users = import_users;
 	oargs.bpf_probe = bpf_probe;
 	memcpy(&oargs.suppressed_comms, suppressed_comms, sizeof(*suppressed_comms));
-	memcpy(&oargs.ppm_sc_of_interest, ppm_sc_of_interest, sizeof(*ppm_sc_of_interest));
+
+	if(!ppm_sc_of_interest)
+	{
+		/* Fallback: set all syscalls as interesting. */
+		for(int j = 0; j < PPM_SC_MAX; j++)
+		{
+			oargs.ppm_sc_of_interest.ppm_sc[j] = 1;
+		}
+	} 
+	else 
+	{
+		memcpy(&oargs.ppm_sc_of_interest, ppm_sc_of_interest, sizeof(*ppm_sc_of_interest));
+	}
 
 	//
 	// Allocate the handle
