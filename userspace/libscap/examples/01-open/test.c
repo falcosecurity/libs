@@ -514,7 +514,7 @@ void print_scap_source()
 		break;
 
 	case BPF_PROBE:
-		printf("* BPF probe.\n");
+		printf("* BPF probe: '%s'\n", args.bpf_probe);
 		break;
 
 	case MODERN_BPF_PROBE:
@@ -522,7 +522,7 @@ void print_scap_source()
 		exit(EXIT_FAILURE);
 
 	case SCAP_FILE:
-		printf("* Scap file.\n");
+		printf("* Scap file: '%s'.\n", args.fname);
 		break;
 
 	default:
@@ -560,15 +560,14 @@ void print_start_capture()
 
 	case SCAP_FILE:
 		printf("* OK! Ready to read from scap file.\n");
-		printf("\n * Reading from scap file: %s...\n", args.fname);
-		goto final_print;
+		printf("\n* Reading from scap file: '%s' ...\n", args.fname);
+		return;
 
 	default:
+		printf("Cannot start the capture! Bye\n");
 		exit(EXIT_FAILURE);
 	}
 	printf("* Live capture in progress...\n");
-
-final_print:
 	printf("* Press CTRL+C to stop the capture\n");
 }
 
