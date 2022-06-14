@@ -218,12 +218,14 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
 
 // little hack for simplifying the plugin_check_required_symbols function
 #define SYM_REQCHECK(a, e, s) \
-    if(a->api.s == NULL) \
-    { \
-        strcpy(e, "symbol not implemented: "); \
-        strncat(e, #s, PLUGIN_MAX_ERRLEN - 1); \
-        return false; \
-    }
+    do { \
+        if(a->api.s == NULL) \
+        { \
+            strcpy(e, "symbol not implemented: "); \
+            strncat(e, #s, PLUGIN_MAX_ERRLEN - 1); \
+            return false; \
+        } \
+    } while(0)
 
 bool plugin_check_required_symbols(const plugin_handle_t* h, char* err)
 {
