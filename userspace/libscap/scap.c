@@ -122,7 +122,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 
-	scap_open_args oargs;
+	scap_open_args oargs = {0};
 	oargs.proc_callback = proc_callback;
 	oargs.proc_callback_context = proc_callback_context;
 	oargs.import_users = import_users;
