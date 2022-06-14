@@ -269,7 +269,6 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 int32_t scap_kmod_close(struct scap_engine_handle engine)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	ASSERT(handle->m_reader == NULL);
 
 	if(devset->m_devs != NULL)
 	{
