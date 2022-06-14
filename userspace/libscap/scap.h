@@ -553,6 +553,10 @@ void udig_free_ring_descriptors(uint8_t* addr);
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
 
+/** @defgroup scap_functs API Functions
+ *  @{
+ */
+
 /*!
   \brief Start an event capture from file.
 
