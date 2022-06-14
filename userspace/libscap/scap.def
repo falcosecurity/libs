@@ -1,7 +1,6 @@
 LIBRARY scap
 
 EXPORTS
-		scap_open_live
 		scap_open_offline
 		scap_open_offline_fd
 		scap_open

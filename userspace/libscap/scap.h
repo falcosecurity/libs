@@ -105,7 +105,7 @@ struct iovec;
 #define SCAP_NOT_SUPPORTED 9
 
 //
-// Last error string size for scap_open_live()
+// Last error string size for `scap_open...` methods.
 //
 #define SCAP_LASTERR_SIZE 256
 
@@ -552,22 +552,6 @@ void udig_free_ring_descriptors(uint8_t* addr);
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////
-
-/** @defgroup scap_functs API Functions
- *  @{
- */
-
-/*!
-  \brief Start a live event capture.
-
-  \param error Pointer to a buffer that will contain the error string in case the
-    function fails. The buffer must have size SCAP_LASTERR_SIZE.
-  \param rc Integer pointer that will contain the scap return code in case the
-    function fails.
-
-  \return The capture instance handle in case of success. NULL in case of failure.
-*/
-scap_t* scap_open_live(char *error, int32_t *rc);
 
 /*!
   \brief Start an event capture from file.
