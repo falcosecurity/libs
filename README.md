@@ -99,44 +99,8 @@ Compilation of this functionality can be disabled with `-DBUILD_LIBSCAP_GVISOR=O
 
 ## Test drivers
 
-Libscap ships a small example that is quite handy to quickly check that drivers are working fine.  
-To build it, issue:
-```bash
-make scap-open
-```
-
-Then, to execute it with the eBPF probe, issue:
-```bash
-sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o
-```
-
-To execute it with the kmod instead, issue:
-```bash
-sudo insmod driver/scap.ko
-sudo ./libscap/examples/01-open/scap-open
-sudo rmmod scap
-```
-
-You can look at the other available options by using `--help`:
-```bash
-sudo ./libscap/examples/01-open/scap-open --help
-```
-
-As soon as you quit (ctrl-C) the `scap-open` program, you will be prompted with detailed information on the capture:
-```bash
----------------------- STATS -----------------------
-events captured: 39460
-seen by driver: 39912
-Number of dropped events: 0
-Number of dropped events caused by full buffer: 0
-Number of dropped events caused by invalid memory access: 0
-Number of dropped events caused by an invalid condition in the kernel instrumentation: 0
-Number of preemptions: 0
-Number of events skipped due to the tid being in a set of suppressed tids: 0
-Number of threads currently being suppressed: 0
------------------------------------------------------
-```
-therefore confirming that the drivers are indeed working fine!
+Libscap ships a small example that is quite handy to quickly check that drivers are working fine.
+Look at the `scap-open` program [documentation](./userspace/libscap/examples/01-open/README.md).
 
 ## Contribute
 
