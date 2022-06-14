@@ -661,11 +661,6 @@ scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
 	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
 }
 
-scap_t* scap_open_live(char *error, int32_t *rc)
-{
-	return scap_open_live_int(error, rc, NULL, NULL, true, NULL, NULL, NULL);
-}
-
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 			       proc_entry_callback proc_callback,
 			       void* proc_callback_context,
@@ -784,7 +779,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	if((*rc = scap_proc_scan_proc_dir(handle, filename, proc_scan_err)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
 		return NULL;
 	}
 
