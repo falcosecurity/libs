@@ -17,9 +17,6 @@ limitations under the License.
 
 #pragma once
 
-#include <stdbool.h>
-#define __STDC_FORMAT_MACROS
-#include <inttypes.h>
 #include "../plugin/plugin_api.h"
 
 //
