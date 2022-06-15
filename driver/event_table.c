@@ -374,14 +374,21 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_GROUP_ADDED_X */{"groupadded", EC_PROCESS, EF_UNUSED, 0},
 	/* PPME_GROUP_DELETED_E */{"groupdeleted", EC_PROCESS, EF_MODIFIES_STATE, 3, {{"gid", PT_UINT32, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"container_id", PT_CHARBUF, PF_NA} } },
 	/* PPME_GROUP_DELETED_X */{"groupdeleted", EC_PROCESS, EF_UNUSED, 0},
-	/* PPME_SYSCALL_DUP2_E */{"dup2", EC_IO_OTHER, EF_NONE, 0},
+	/* PPME_SYSCALL_DUP2_E */{"dup2", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_DUP2_X */{"dup2", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 3, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC}, {"newfd", PT_FD, PF_DEC} } },
-	/* PPME_SYSCALL_DUP3_E */{"dup3", EC_IO_OTHER, EF_NONE, 0},
+	/* PPME_SYSCALL_DUP3_E */{"dup3", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_DUP3_X */{"dup3", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 4, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC}, {"newfd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
-	/* PPME_SYSCALL_DUP_1_E */{"dup", EC_IO_OTHER, EF_NONE, 0, },
+	/* PPME_SYSCALL_DUP_1_E */{"dup", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_DUP_1_X */{"dup", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.
+	 */
+	/* NB: all events that have the "EF_USES_FD" flag should return as first parameter a file descriptor.
+	 *	   "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has 
+	 *	   0 parameters but has the "EF_USES_FD" flag then a runtime error will occurr shutting down the process. 
+	 *     Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have 
+	 *     it (following the logic described above).Otherwise the exit event will not trigger "libsinsp" code 
+	 *     in order to properly manage the file descriptor returned by the exit event.
 	 */
 };

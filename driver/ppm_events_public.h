@@ -684,7 +684,6 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCKALL_MCL_FUTURE			(1<<1)
 #define PPM_MLOCKALL_MCL_ONFAULT		(1<<2)
 
-
 /*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.

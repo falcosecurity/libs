@@ -405,12 +405,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_SHUTDOWN_X:
 		parse_shutdown_exit(evt);
 		break;
-	case PPME_SYSCALL_DUP_X:
-		parse_dup_exit(evt);
-		break;
+	case PPME_SYSCALL_DUP_1_X:
 	case PPME_SYSCALL_DUP2_X:
-		parse_dup_exit(evt);
-		break;
 	case PPME_SYSCALL_DUP3_X:
 		parse_dup_exit(evt);
 		break;
