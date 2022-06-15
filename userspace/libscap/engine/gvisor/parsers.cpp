@@ -70,7 +70,7 @@ static void fill_context_data(scap_evt *evt, T& gvisor_evt)
 
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret;
+	parse_result ret = {0};
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -248,7 +248,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 
 static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret;
+	parse_result ret = {0};
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -328,7 +328,7 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 
 static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap_sized_buffer scap_buf, bool is_fork)
 {
-	parse_result ret;
+	parse_result ret = {0};
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
@@ -378,7 +378,7 @@ static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap
 
 static parse_result parse_sentry_clone(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
-	parse_result ret;
+	parse_result ret = {0};
 	ret.status = SCAP_SUCCESS;
 	ret.size = 0;
 	char scap_err[SCAP_LASTERR_SIZE];
