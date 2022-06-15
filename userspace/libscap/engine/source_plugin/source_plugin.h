@@ -25,6 +25,9 @@ struct source_plugin_engine
 {
 	char* m_lasterr;
 
+	// Total number of events sourced by the plugin
+	uint32_t m_nevts;
+
 	scap_source_plugin* m_input_plugin;
 	uint8_t* m_input_plugin_evt_storage;
 	uint32_t m_input_plugin_evt_storage_len;
