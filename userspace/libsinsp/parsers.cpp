@@ -5077,24 +5077,24 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 		const Json::Value& lookup_state = container["lookup_state"];
 		if(check_json_val_is_convertible(lookup_state, Json::uintValue, "lookup_state"))
 		{
-			container_info->m_lookup_state = static_cast<sinsp_container_lookup_state>(lookup_state.asUInt());
-			switch(container_info->m_lookup_state)
+			container_info->set_lookup_status(static_cast<sinsp_container_lookup::state>(lookup_state.asUInt()));
+			switch(container_info->get_lookup_status())
 			{
-			case sinsp_container_lookup_state::STARTED:
-			case sinsp_container_lookup_state::SUCCESSFUL:
-			case sinsp_container_lookup_state::FAILED:
+			case sinsp_container_lookup::state::STARTED:
+			case sinsp_container_lookup::state::SUCCESSFUL:
+			case sinsp_container_lookup::state::FAILED:
 				break;
 			default:
-				container_info->m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+				container_info->set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 			}
 
 			// state == STARTED doesn't make sense in a scap file
 			// as there's no actual lookup that would ever finish
-			if(!evt->m_tinfo_ref && container_info->m_lookup_state == sinsp_container_lookup_state::STARTED)
+			if(!evt->m_tinfo_ref && container_info->get_lookup_status() == sinsp_container_lookup::state::STARTED)
 			{
 				SINSP_DEBUG("Rewriting lookup_state = STARTED from scap file to FAILED for container %s",
 					container_info->m_id.c_str());
-				container_info->m_lookup_state = sinsp_container_lookup_state::FAILED;
+				container_info->set_lookup_status(sinsp_container_lookup::state::FAILED);
 			}
 		}
 

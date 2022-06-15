@@ -56,7 +56,7 @@ void docker_linux::update_with_size(const std::string &container_id)
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): with size callback result=%d",
 				instruction.container_id.c_str(),
-				res.m_lookup_state);
+				res.get_lookup_status());
 
 		sinsp_container_info::ptr_t updated = make_shared<sinsp_container_info>(res);
 		container_cache().replace_container(updated);

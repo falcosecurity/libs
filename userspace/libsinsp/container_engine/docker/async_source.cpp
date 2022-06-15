@@ -43,7 +43,7 @@ docker_async_source::~docker_async_source()
 
 bool docker_async_source::lookup_sync(const docker_lookup_request& request, sinsp_container_info& value)
 {
-	value.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	value.m_type = request.container_type;
 	value.m_id = request.container_id;
 
@@ -57,7 +57,7 @@ bool docker_async_source::lookup_sync(const docker_lookup_request& request, sins
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Failed to get Docker metadata, returning successful=false",
 				request.container_id.c_str());
-		value.m_lookup_state = sinsp_container_lookup_state::FAILED;
+		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
 	}
 
 	return true;

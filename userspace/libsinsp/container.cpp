@@ -169,7 +169,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["imagedigest"] = container_info.m_imagedigest;
 	container["privileged"] = container_info.m_privileged;
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
-	container["lookup_state"] = static_cast<int>(container_info.m_lookup_state);
+	container["lookup_state"] = static_cast<int>(container_info.get_lookup_status());
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
 
 	Json::Value mounts = Json::arrayValue;
@@ -298,7 +298,8 @@ sinsp_container_manager::map_ptr_t sinsp_container_manager::get_containers() con
 
 void sinsp_container_manager::add_container(const sinsp_container_info::ptr_t& container_info, sinsp_threadinfo *thread)
 {
-	set_lookup_status(container_info->m_id, container_info->m_type, container_info->m_lookup_state);
+	set_lookup_status(container_info->m_id, container_info->m_type, container_info->get_lookup_status());
+
 	{
 		auto containers = m_containers.lock();
 		(*containers)[container_info->m_id] = container_info;

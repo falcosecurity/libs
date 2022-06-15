@@ -36,7 +36,7 @@ public:
 
 	virtual bool should_lookup(const std::string& container_id, sinsp_container_type ctype) = 0;
 
-	virtual void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) = 0;
+	virtual void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup::state state) = 0;
 
 	/**
 	 * Get a container from the cache.

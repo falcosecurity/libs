@@ -171,7 +171,7 @@ public:
 	 * state of the lookup via this method and call should_lookup() before
 	 * starting a new lookup.
 	 */
-	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup_state state) override
+	void set_lookup_status(const std::string& container_id, sinsp_container_type ctype, sinsp_container_lookup::state state) override
 	{
 		m_lookups[container_id][ctype] = state;
 	}
@@ -206,7 +206,7 @@ private:
 
 	sinsp* m_inspector;
 	libsinsp::Mutex<std::unordered_map<std::string, std::shared_ptr<const sinsp_container_info>>> m_containers;
-	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup_state>> m_lookups;
+	std::unordered_map<std::string, std::unordered_map<sinsp_container_type, sinsp_container_lookup::state>> m_lookups;
 	uint64_t m_last_flush_time_ns;
 	std::list<new_container_cb> m_new_callbacks;
 	std::list<remove_container_cb> m_remove_callbacks;
