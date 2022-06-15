@@ -104,6 +104,14 @@ int32_t engine::init(std::string socket_path, std::string root_path, std::string
 	}
 
 	unlink(m_socket_path.c_str());
+	
+	// Check if runsc is installed in the system
+	runsc_result version = runsc_version();
+	if(version.error)
+	{
+		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
 
 	int sock = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if(sock == -1)
@@ -230,7 +238,13 @@ int32_t engine::start_capture()
 	// Retrieve all running sandboxes
 	// We will need to recreate a session for each of them
 	//
-	std::vector<std::string> existing_sandboxes = runsc_list();
+	runsc_result exisiting_sandboxes_res = runsc_list();
+	if(exisiting_sandboxes_res.error)
+	{
+		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+	std::vector<std::string> &existing_sandboxes = exisiting_sandboxes_res.output;
 
 	// Start accepting connections
 	m_accept_thread = std::thread(accept_thread, m_listenfd, m_epollfd);
@@ -241,12 +255,23 @@ int32_t engine::start_capture()
 	for(const auto& sandbox : existing_sandboxes)
 	{
 		// Since they were already running, we need to force the creation
-		runsc_trace_create(sandbox, true);
+		runsc_result trace_create_res = runsc_trace_create(sandbox, true);
+		if(trace_create_res.error)
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
+			return SCAP_FAILURE;
+		}
 	}
 
 
 	// Catch all sandboxes that might have been created in the meantime
-	std::vector<std::string> new_sandboxes = runsc_list();
+	runsc_result new_sandboxes_res = runsc_list();
+	if(new_sandboxes_res.error)
+	{
+		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+	std::vector<std::string> &new_sandboxes = new_sandboxes_res.output;
 
 	// Remove the existing sandboxes (erase-remove idiom)
 	new_sandboxes.erase(
@@ -263,7 +288,12 @@ int32_t engine::start_capture()
 	// Create new session for remaining sandboxes
 	for(const auto& sandbox : new_sandboxes)
 	{
-		runsc_trace_create(sandbox, false);
+		runsc_result trace_create_res = runsc_trace_create(sandbox, false);
+		if(trace_create_res.error)
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
+			return SCAP_FAILURE;
+		}
 	}
 
     return SCAP_SUCCESS;
@@ -280,11 +310,22 @@ int32_t engine::stop_capture()
 	::close(m_epollfd);
 	free_sandbox_buffers();
 
-	// todo(loresuso): change session name when gVisor will support it
-	std::vector<std::string> sandboxes = runsc_list();
+	runsc_result sandboxes_res = runsc_list();
+	if(sandboxes_res.error)
+	{
+		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+	std::vector<std::string> &sandboxes = sandboxes_res.output;
 	for(const auto &sandbox : sandboxes)
 	{
-		runsc_trace_delete("Default", sandbox);
+		// todo(loresuso): change session name when gVisor will support it
+		runsc_result trace_delete_res = runsc_trace_delete("Default", sandbox);
+		if(trace_delete_res.error)
+		{
+			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot delete session for sandbox %s", sandbox.c_str());
+			return SCAP_FAILURE;
+		}
 	}	
 
 	m_capture_started = false;
@@ -445,9 +486,9 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
     return SCAP_TIMEOUT;
 }
 
-std::vector<std::string> engine::runsc(char *argv[])
+engine::runsc_result engine::runsc(char *argv[])
 {
-	std::vector<std::string> res;
+	runsc_result res = {0};
 	int pipefds[2];
 
 	int ret = pipe(pipefds);
@@ -466,6 +507,7 @@ std::vector<std::string> engine::runsc(char *argv[])
 		wait(&status);
 		if(status)
 		{
+			res.error = status;
 			return res;
 		}
 
@@ -477,7 +519,7 @@ std::vector<std::string> engine::runsc(char *argv[])
 
 		while(fgets(line, max_line_size, f))
 		{
-			res.emplace_back(std::string(line));
+			res.output.emplace_back(std::string(line));
 		}
 
 		fclose(f);
@@ -493,9 +535,21 @@ std::vector<std::string> engine::runsc(char *argv[])
 	return res;
 }
 
-std::vector<std::string> engine::runsc_list()
+engine::runsc_result engine::runsc_version()
 {
-	std::vector<std::string> sandboxes;
+	const char *argv[] = {
+		"runsc",
+		"--version",
+		NULL
+	};
+
+	return runsc((char **)argv);
+}
+
+engine::runsc_result engine::runsc_list()
+{
+	runsc_result res = {0};
+	std::vector<std::string> running_sandboxes;
 
 	const char *argv[] = {
 		"runsc", 
@@ -505,21 +559,26 @@ std::vector<std::string> engine::runsc_list()
 		NULL
 	};
 
-	std::vector<std::string> output = runsc((char **)argv);
+	res = runsc((char **)argv);
+	if(res.error)
+	{
+		return res;
+	}
 
-	for(auto &line : output)
+	for(const auto &line : res.output)
 	{
 		if(line.find("running") != std::string::npos)
 		{
 			std::string sandbox = line.substr(0, line.find_first_of(" ", 0));
-			sandboxes.emplace_back(sandbox);
+			running_sandboxes.emplace_back(sandbox);
 		}
 	}
 
-	return sandboxes;
+	res.output = running_sandboxes;
+	return res;
 }
 
-void engine::runsc_trace_create(const std::string &sandbox_id, bool force)
+engine::runsc_result engine::runsc_trace_create(const std::string &sandbox_id, bool force)
 {
 	const char *argv[] = {
 		"runsc", 
@@ -534,10 +593,10 @@ void engine::runsc_trace_create(const std::string &sandbox_id, bool force)
 		NULL
 	};
 
-	runsc((char **)argv);
+	return runsc((char **)argv);
 }
 
-void engine::runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id)
+engine::runsc_result engine::runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id)
 {
 	const char *argv[] = {
 		"runsc", 
@@ -551,7 +610,7 @@ void engine::runsc_trace_delete(const std::string &session_name, const std::stri
 		NULL
 	};
 
-	runsc((char **)argv);
+	return runsc((char **)argv);
 }
 
 } // namespace scap_gvisor
