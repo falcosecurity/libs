@@ -60,6 +60,16 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 
 void docker_base::parse_docker(const docker_lookup_request& request, container_cache_interface *cache)
 {
+	auto cb = [cache](const docker_lookup_request& request, const sinsp_container_info& res)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Source callback result=%d",
+				request.container_id.c_str(),
+				res.get_lookup_status());
+
+		cache->notify_new_container(res);
+	};
+
 	sinsp_container_info result;
 
 	bool done;
