@@ -276,7 +276,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_rename
 	[__NR_rename - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_RENAME_E, PPME_SYSCALL_RENAME_X},
 #endif
+#ifdef __NR_renameat
 	[__NR_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
+#endif	
 #ifdef __NR_symlink
 	[__NR_symlink - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SYMLINK_E, PPME_SYSCALL_SYMLINK_X},
 #endif
@@ -732,7 +734,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_futimesat - SYSCALL_TABLE_ID0] = PPM_SC_FUTIMESAT,
 #endif
 	[__NR_unlinkat - SYSCALL_TABLE_ID0] = PPM_SC_UNLINKAT,
+#ifdef __NR_renameat
 	[__NR_renameat - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT,
+#endif	
 	[__NR_linkat - SYSCALL_TABLE_ID0] = PPM_SC_LINKAT,
 	[__NR_symlinkat - SYSCALL_TABLE_ID0] = PPM_SC_SYMLINKAT,
 	[__NR_readlinkat - SYSCALL_TABLE_ID0] = PPM_SC_READLINKAT,
@@ -1245,9 +1249,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_process_vm_writev
 	[__NR_ia32_process_vm_writev - SYSCALL_TABLE_ID0] =          {UF_USED, PPME_GENERIC_E, PPME_GENERIC_X},
 #endif
-
+#ifdef __NR_ia32_rename
 	[__NR_ia32_rename - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_RENAME_E, PPME_SYSCALL_RENAME_X},
+#endif	
+#ifdef __NR_ia32_renameat	
 	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_RENAMEAT_E, PPME_SYSCALL_RENAMEAT_X},
+#endif	
 	[__NR_ia32_symlink - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_SYMLINK_E, PPME_SYSCALL_SYMLINK_X},
 	[__NR_ia32_symlinkat - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_SYMLINKAT_E, PPME_SYSCALL_SYMLINKAT_X},
 	[__NR_ia32_sendfile - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_SENDFILE_E, PPME_SYSCALL_SENDFILE_X},
@@ -1422,7 +1429,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_access - SYSCALL_TABLE_ID0] = PPM_SC_ACCESS,
 	[__NR_ia32_sync - SYSCALL_TABLE_ID0] = PPM_SC_SYNC,
 	[__NR_ia32_kill - SYSCALL_TABLE_ID0] = PPM_SC_KILL,
+#ifdef 	__NR_ia32_rename
 	[__NR_ia32_rename - SYSCALL_TABLE_ID0] = PPM_SC_RENAME,
+#endif	
 	[__NR_ia32_mkdir - SYSCALL_TABLE_ID0] = PPM_SC_MKDIR,
 	[__NR_ia32_rmdir - SYSCALL_TABLE_ID0] = PPM_SC_RMDIR,
 	[__NR_ia32_dup - SYSCALL_TABLE_ID0] = PPM_SC_DUP,
@@ -1631,7 +1640,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 	[__NR_ia32_fchownat - SYSCALL_TABLE_ID0] = PPM_SC_FCHOWNAT,
 	[__NR_ia32_futimesat - SYSCALL_TABLE_ID0] = PPM_SC_FUTIMESAT,
 	[__NR_ia32_unlinkat - SYSCALL_TABLE_ID0] = PPM_SC_UNLINKAT,
+#ifdef 	__NR_ia32_renameat
 	[__NR_ia32_renameat - SYSCALL_TABLE_ID0] = PPM_SC_RENAMEAT,
+#endif	
 	[__NR_ia32_linkat - SYSCALL_TABLE_ID0] = PPM_SC_LINKAT,
 	[__NR_ia32_symlinkat - SYSCALL_TABLE_ID0] = PPM_SC_SYMLINKAT,
 	[__NR_ia32_readlinkat - SYSCALL_TABLE_ID0] = PPM_SC_READLINKAT,
