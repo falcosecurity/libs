@@ -471,6 +471,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	*rc = handle->m_vtable->init(handle, args);
 	if(*rc != SCAP_SUCCESS)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
 	}

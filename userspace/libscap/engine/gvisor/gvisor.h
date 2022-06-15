@@ -103,10 +103,16 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
-    std::vector<std::string> runsc(char *argv[]);
-    std::vector<std::string> runsc_list();
-    void runsc_trace_create(const std::string &sandbox_id, bool force);
-    void runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id);
+    struct runsc_result {
+        int error;
+        std::vector<std::string> output;
+    };
+
+    runsc_result runsc(char *argv[]);
+    runsc_result runsc_version();
+    runsc_result runsc_list();
+    runsc_result runsc_trace_create(const std::string &sandbox_id, bool force);
+    runsc_result runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id);
 
     char *m_lasterr;
     int m_listenfd = 0;
