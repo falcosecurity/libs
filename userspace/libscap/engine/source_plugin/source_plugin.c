@@ -80,6 +80,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* open_args)
 	                                                              &plugin_rc);
 
 	rc = plugin_rc_to_scap_rc(plugin_rc);
+	handle->m_nevts = 0;
 	handle->m_input_plugin_batch_nevts = 0;
 	handle->m_input_plugin_batch_evts = NULL;
 	handle->m_input_plugin_batch_idx = 0;
@@ -212,8 +213,16 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 		evt->ts = get_timestamp_ns();
 	}
 
+	handle->m_nevts++;
 	*pevent = evt;
 	return res;
+}
+
+static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
+{
+	struct source_plugin_engine *handle = engine.m_handle;
+	stats->n_evts = handle->m_nevts;
+	return SCAP_SUCCESS;
 }
 
 const struct scap_vtable scap_source_plugin_engine = {
@@ -228,7 +237,7 @@ const struct scap_vtable scap_source_plugin_engine = {
 	.start_capture = noop_start_capture,
 	.stop_capture = noop_stop_capture,
 	.configure = noop_configure,
-	.get_stats = noop_get_stats,
+	.get_stats = get_stats,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
