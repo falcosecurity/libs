@@ -179,7 +179,7 @@ void cri_async_source::run_impl()
 bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_key& key,
 		 sinsp_container_info& value)
 {
-	value.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 	value.m_type = m_cri->get_cri_runtime_type();
 	value.m_id = key.m_container_id;
 
@@ -188,7 +188,7 @@ bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"cri (%s): Failed to get CRI metadata, returning successful=false",
 				key.m_container_id.c_str());
-		value.m_lookup_state = sinsp_container_lookup_state::FAILED;
+		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
 	}
 
 	return true;
@@ -318,7 +318,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 				"cri (%s): Performing lookup",
 				container_id.c_str());
 
-		container.m_lookup_state = sinsp_container_lookup_state::SUCCESSFUL;
+		container.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
 		libsinsp::cgroup_limits::cgroup_limits_key key(
 			container.m_id,
 			tinfo->get_cgroup("cpu"),
@@ -331,13 +331,13 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			m_async_source = std::unique_ptr<cri_async_source>(async_source);
 		}
 
-		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup_state::STARTED);
+		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
 		auto cb = [cache](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Source callback result=%d",
 					key.m_container_id.c_str(),
-					res.m_lookup_state);
+					res.get_lookup_status());
 
 			cache->notify_new_container(res);
 		};

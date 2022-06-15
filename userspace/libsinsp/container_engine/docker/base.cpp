@@ -45,7 +45,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 					request.container_id.c_str());
 
 			// give docker a chance to return metadata for this container
-			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup_state::STARTED);
+			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup::state::STARTED);
 			parse_docker(request, cache);
 		}
 #endif
@@ -65,7 +65,7 @@ void docker_base::parse_docker(const docker_lookup_request& request, container_c
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Source callback result=%d",
 				request.container_id.c_str(),
-				res.m_lookup_state);
+				res.get_lookup_status());
 
 		cache->notify_new_container(res);
 	};

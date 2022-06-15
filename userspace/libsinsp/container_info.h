@@ -49,22 +49,38 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 		t == CT_PODMAN;
 }
 
-/**
- * \brief the state of a container metadata lookup
- *
- * Some container engines (Docker, CRI) do external API calls to find container
- * metadata. This value stores the state of the lookup (a separate value is kept
- * for each container_id/engine pair). The purpose is to avoid repeated lookups
- * after failure, especially when multiple engines match against the same process
- * (e.g. Docker and containerd may use the same cgroup layout).
- *
- * If all engines fail to find metadata for a container, we need to remember that
- * for each engine individually and there's only one sinsp_container_info->m_type
- */
-enum class sinsp_container_lookup_state {
-	STARTED = 0,
-	SUCCESSFUL = 1,
-	FAILED = 2
+class sinsp_container_lookup
+{
+public:
+	/**
+	 * \brief the state of a container metadata lookup
+	 *
+	 * Some container engines (Docker, CRI) do external API calls to find container
+	 * metadata. This value stores the state of the lookup (a separate value is kept
+	 * for each container_id/engine pair). The purpose is to avoid repeated lookups
+	 * after failure, especially when multiple engines match against the same process
+	 * (e.g. Docker and containerd may use the same cgroup layout).
+	 *
+	 * If all engines fail to find metadata for a container, we need to remember that
+	 * for each engine individually and there's only one sinsp_container_info->m_type
+	 */
+	enum class state
+	{
+		STARTED = 0,
+		SUCCESSFUL = 1,
+		FAILED = 2
+	};
+
+	state get_status() const { return m_state; }
+	void set_status(state s) { m_state = s; }
+
+	bool is_successful() const
+	{
+		return m_state == state::SUCCESSFUL;
+	}
+
+private:
+	state m_state = state::SUCCESSFUL;
 };
 
 class sinsp_container_info
@@ -196,7 +212,6 @@ public:
 		m_cpu_period(100000),
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
-		m_lookup_state(sinsp_container_lookup_state::SUCCESSFUL),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
 	{
@@ -212,8 +227,15 @@ public:
 		return m_is_pod_sandbox;
 	}
 
-	bool is_successful() const {
-		return m_lookup_state == sinsp_container_lookup_state::SUCCESSFUL;
+	bool is_successful() const { return m_lookup.is_successful(); }
+
+	void set_lookup_status(sinsp_container_lookup::state s)
+	{
+		m_lookup.set_status(s);
+	}
+	sinsp_container_lookup::state get_lookup_status() const
+	{
+		return m_lookup.get_status();
 	}
 
 	std::shared_ptr<sinsp_threadinfo> get_tinfo(sinsp* inspector) const;
@@ -247,7 +269,7 @@ public:
 
 	bool m_is_pod_sandbox;
 
-	sinsp_container_lookup_state m_lookup_state;
+	sinsp_container_lookup m_lookup;
 #ifdef HAS_ANALYZER
 	std::string m_sysdig_agent_conf;
 #endif
