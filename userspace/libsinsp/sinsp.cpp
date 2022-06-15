@@ -397,6 +397,7 @@ void sinsp::init()
 	//
 	if(is_capture())
 	{
+		m_parser->set_swap_endian(get_swap_endian());
 		consume_initialstate_events();
 	}
 
@@ -1262,6 +1263,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			evt->m_pevt = m_replay_scap_evt;
 			evt->m_cpuid = m_replay_scap_cpuid;
 			m_replay_scap_evt = NULL;
+			evt->m_swap_endian = get_swap_endian();
 		}
 		else 
 		{
@@ -2717,6 +2719,15 @@ std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
 	}
 }
 #endif
+
+scap_swap_endian sinsp::get_swap_endian() const
+{
+	if(!m_h)
+	{
+		return SCAP_NATIVE_ENDIAN;
+	}
+	return scap_get_swap_endian(m_h);
+}
 
 sinsp_threadinfo*
 libsinsp::event_processor::build_threadinfo(sinsp* inspector)

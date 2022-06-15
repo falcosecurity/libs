@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include "scap.h"
+#include "scap_endian.h"
 #include <gtest/gtest.h>
 #include "../../common/strlcpy.h"
 
@@ -97,7 +98,7 @@ TEST(scap_event, empty_clone)
     EXPECT_EQ(evt->nparams, 0);
 
     struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
+    uint32_t n = scap_event_decode_params(evt.get(), decoded_params, SCAP_NATIVE_ENDIAN);
     EXPECT_EQ(n, 0);
 }
 
@@ -113,7 +114,7 @@ TEST(scap_event, int_args)
     EXPECT_EQ(evt->nparams, 2);
 
     struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
+    uint32_t n = scap_event_decode_params(evt.get(), decoded_params, SCAP_NATIVE_ENDIAN);
     EXPECT_EQ(n, 2);
     EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
     uint64_t val64;
@@ -139,7 +140,7 @@ TEST(scap_event, empty_buffers)
     EXPECT_EQ(evt->nparams, 2);
 
     struct scap_sized_buffer decoded_params[PPM_MAX_EVENT_PARAMS];
-    uint32_t n = scap_event_decode_params(evt.get(), decoded_params);
+    uint32_t n = scap_event_decode_params(evt.get(), decoded_params, SCAP_NATIVE_ENDIAN);
 	EXPECT_EQ(n, 2);
 	EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
 	EXPECT_EQ(decoded_params[1].size, 1);
@@ -149,7 +150,7 @@ TEST(scap_event, empty_buffers)
     ASSERT_NE(maybe_evt, nullptr);
 	evt.reset(maybe_evt);
 
-	n = scap_event_decode_params(evt.get(), decoded_params);
+	n = scap_event_decode_params(evt.get(), decoded_params, SCAP_NATIVE_ENDIAN);
 	EXPECT_EQ(n, 2);
 	EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
 	EXPECT_EQ(decoded_params[1].size, 0);

@@ -75,7 +75,8 @@ sinsp_evt::sinsp_evt() :
 
 sinsp_evt::sinsp_evt(sinsp *inspector) :
 	m_pevt_storage(NULL),
-	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024)
+	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024),
+	m_swap_endian(inspector->get_swap_endian())
 {
 	m_inspector = inspector;
 	m_flags = EF_NONE;
@@ -1528,7 +1529,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int16_t *)payload);
+			prfmt, betoh_ternary(*(int16_t *)payload));
 		break;
 	case PT_INT32:
 		ASSERT(payload_len == sizeof(int32_t));
@@ -1536,7 +1537,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int32_t *)payload);
+			prfmt, betoh_ternary(*(int32_t *)payload));
 		break;
 	case PT_INT64:
 		ASSERT(payload_len == sizeof(int64_t));
@@ -1544,25 +1545,28 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 			m_paramstr_storage.size(),
-			prfmt, *(int64_t *)payload);
+			prfmt, betoh_ternary(*(int64_t *)payload));
 		break;
 	case PT_FD:
 		{
 			ASSERT(payload_len == sizeof(int64_t));
 			int64_t fd = *(int64_t*)payload;
+			betoh(&(fd));
 			render_fd(fd, resolved_str, fmt);
 			break;
 		}
 	case PT_PID:
 		{
 			ASSERT(payload_len == sizeof(int64_t));
+			int64_t tid = *(int64_t *)payload;
+			betoh(&(tid));
 
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
-					 "%" PRId64, *(int64_t *)payload);
+					 "%" PRId64, tid);
 
 
-			sinsp_threadinfo* atinfo = m_inspector->get_thread_ref(*(int64_t *)payload, false, true).get();
+			sinsp_threadinfo* atinfo = m_inspector->get_thread_ref(tid, false, true).get();
 			if(atinfo != NULL)
 			{
 				string& tcomm = atinfo->m_comm;
@@ -1596,7 +1600,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(uint16_t *)payload);
+		         prfmt, betoh_ternary(*(uint16_t *)payload));
 		break;
 	case PT_UINT32:
 		ASSERT(payload_len == sizeof(uint32_t));
@@ -1604,13 +1608,14 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(uint32_t *)payload);
+		         prfmt, betoh_ternary(*(uint32_t *)payload));
 		break;
 	case PT_ERRNO:
 	{
 		ASSERT(payload_len == sizeof(int64_t));
 
 		int64_t val = *(int64_t *)payload;
+		betoh(&(val));
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
@@ -1640,7 +1645,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		snprintf(&m_paramstr_storage[0],
 		         m_paramstr_storage.size(),
-		         prfmt, *(int64_t *)payload);
+		         prfmt, betoh_ternary(*(uint64_t *)payload));
 
 		break;
 	case PT_CHARBUF:
@@ -1780,6 +1785,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				addr.m_ip = *(uint32_t*)(payload + 1);
 				addr.m_port = *(uint16_t*)(payload+5);
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				betoh(&(addr.m_ip));
+				betoh(&(addr.m_port));
 				string straddr = ipv4serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
 					   	 m_paramstr_storage.size(),
@@ -1801,6 +1808,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				ipv6serverinfo addr;
 				memcpy((uint8_t *) addr.m_ip.m_b, (uint8_t *) payload+1, sizeof(addr.m_ip.m_b));
 				addr.m_port = *(uint16_t*)(payload+17);
+				betoh(&(addr.m_port));
 				addr.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
 				string straddr = ipv6serveraddr_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
@@ -1843,6 +1851,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				addr.m_fields.m_dip = *(uint32_t*)(payload + 7);
 				addr.m_fields.m_dport = *(uint16_t*)(payload+11);
 				addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+				betoh(&(addr.m_fields.m_sip));
+				betoh(&(addr.m_fields.m_sport));
+				betoh(&(addr.m_fields.m_dip));
+				betoh(&(addr.m_fields.m_dport));
 				string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 				snprintf(&m_paramstr_storage[0],
 					   	 m_paramstr_storage.size(),
@@ -1874,6 +1886,10 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					addr.m_fields.m_dip = *(uint32_t*)dip;
 					addr.m_fields.m_dport = *(uint16_t*)(payload+35);
 					addr.m_fields.m_l4proto = (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN;
+					betoh(&(addr.m_fields.m_sip));
+					betoh(&(addr.m_fields.m_sport));
+					betoh(&(addr.m_fields.m_dip));
+					betoh(&(addr.m_fields.m_dport));
 					string straddr = ipv4tuple_to_string(&addr, m_inspector->m_hostname_and_port_resolution_enabled);
 
 					snprintf(&m_paramstr_storage[0],
@@ -1890,12 +1906,20 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						inet_ntop(AF_INET6, dip6, dststr, sizeof(dststr)))
 					{
 						snprintf(&m_paramstr_storage[0],
-								 m_paramstr_storage.size(),
-								 "%s:%s->%s:%s",
-								 srcstr,
-								 port_to_string(*(uint16_t*)(payload + 17), (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str(),
-								 dststr,
-								 port_to_string(*(uint16_t*)(payload + 35), (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN, m_inspector->m_hostname_and_port_resolution_enabled).c_str());
+							 m_paramstr_storage.size(),
+							 "%s:%s->%s:%s",
+							 srcstr,
+							 port_to_string(
+								 betoh_ternary(*(uint16_t *)(payload + 17)),
+								 (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN,
+								 m_inspector->m_hostname_and_port_resolution_enabled)
+								 .c_str(),
+							 dststr,
+							 port_to_string(
+								 betoh_ternary(*(uint16_t *)(payload + 35)),
+								 (m_fdinfo != NULL) ? m_fdinfo->get_l4proto() : SCAP_L4_UNKNOWN,
+								 m_inspector->m_hostname_and_port_resolution_enabled)
+								 .c_str());
 						break;
 					}
 				}
@@ -1919,8 +1943,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%" PRIx64 "->%" PRIx64 " %s",
-				*(uint64_t*)(payload + 1),
-				*(uint64_t*)(payload + 9),
+				betoh_ternary(*(uint64_t *)(payload + 1)),
+				betoh_ternary(*(uint64_t *)(payload + 9)),
 				sanitized_str.c_str());
 		}
 		else
@@ -1939,6 +1963,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 
 			uint16_t nfds = *(uint16_t *)payload;
+			betoh(&(nfds));
 			uint32_t pos = 2;
 			uint32_t spos = 0;
 
@@ -1948,6 +1973,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			{
 				char tch;
 				int64_t fd = *(int64_t *)(payload + pos);
+				betoh(&(fd));
 
 				sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
 				if(fdinfo)
@@ -1964,7 +1990,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						"%" PRIu64 ":%c%x%c",
 						fd,
 						tch,
-						(uint32_t) * (int16_t *)(payload + pos + 8),
+						(uint32_t) betoh_ternary(*(int16_t *)(payload + pos + 8)),
 						(j < (uint32_t)(nfds - 1)) ? ' ' : '\0');
 
 				if(r < 0 || spos + r >= m_paramstr_storage.size() - 1)
@@ -1981,6 +2007,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_SYSCALLID:
 		{
 			uint16_t scid  = *(uint16_t *)payload;
+			betoh(&(scid));
 			if(scid >= PPM_SC_MAX)
 			{
 				ASSERT(false);
@@ -2030,7 +2057,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 			ASSERT(payload_len == sizeof(uint64_t));
 			uint64_t val = *(uint64_t *)payload;
-
+			betoh(&(val));
 			if(val == (uint64_t)(-1))
 			{
 				snprintf(&m_paramstr_storage[0],
@@ -2068,10 +2095,12 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			case PT_FLAGS16:
 			case PT_ENUMFLAGS16:
 				val = *(uint16_t *)payload;
+				betoh(&(val));
 				break;
 			case PT_FLAGS32:
 			case PT_ENUMFLAGS32:
 				val = *(uint32_t *)payload;
+				betoh(&(val));
 				break;
 			default:
 				ASSERT(false);
@@ -2133,6 +2162,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_MODE:
 		{
 			uint32_t val = *(uint32_t *)payload;
+			betoh(&(val));
 			SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIo32, PRId32, PRIX32);
 			snprintf(&m_paramstr_storage[0],
 					m_paramstr_storage.size(),
@@ -2194,6 +2224,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_UID:
 	{
 		uint32_t val = *(uint32_t *)payload;
+		betoh(&(val));
 		if (val < std::numeric_limits<uint32_t>::max())
 		{
 			snprintf(&m_paramstr_storage[0],
@@ -2231,6 +2262,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_GID:
 	{
 		uint32_t val = *(uint32_t *)payload;
+		betoh(&(val));
 		if (val < std::numeric_limits<uint32_t>::max())
 		{
 			snprintf(&m_paramstr_storage[0],
@@ -2414,6 +2446,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	{
 		ASSERT(payload_len == sizeof(uint32_t));
 		uint32_t val = *(uint32_t *)payload;
+		betoh(&(val));
 
 		m_resolved_paramstr_storage[0] = '\0';
 		m_paramstr_storage[0]          = '\0';

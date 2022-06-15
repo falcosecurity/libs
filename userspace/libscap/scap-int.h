@@ -95,6 +95,7 @@ struct scap_reader
 {
 	ppm_reader_type m_type;
 	gzFile m_file;
+	scap_swap_endian m_swap_endian;
 };
 
 //
@@ -388,6 +389,7 @@ static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
 	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
 	r->m_type = RT_FILE;
 	r->m_file = file;
+	r->m_swap_endian = SCAP_NATIVE_ENDIAN;
 	return r;
 }
 

@@ -84,7 +84,7 @@ uint32_t scap_event_has_large_payload(const scap_evt* e)
 	return (g_event_info[e->type].flags & EF_LARGE_PAYLOAD) != 0;
 }
 
-uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params)
+uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params, scap_swap_endian swap_endian)
 {
 	char *len_buf = (char*)e + sizeof(struct ppm_evt_hdr);
 	char *param_buf = len_buf;
@@ -112,11 +112,19 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
 		if(is_large)
 		{
 			memcpy(&param_size_32, len_buf, sizeof(uint32_t));
+			if(swap_endian)
+			{
+				param_size_32 = be32toh(param_size_32);
+			}
 			params[i].size = param_size_32;
 			len_buf += sizeof(uint32_t);
 		} else
 		{
 			memcpy(&param_size_16, len_buf, sizeof(uint16_t));
+			if(swap_endian)
+			{
+				param_size_16 = be16toh(param_size_16);
+			}
 			params[i].size = param_size_16;
 			len_buf += sizeof(uint16_t);
 		}

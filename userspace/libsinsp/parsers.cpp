@@ -159,6 +159,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			sinsp_evt_param *parinfo = evt->get_param(0);
 			uint16_t evid = *(uint16_t *)parinfo->m_val;
+			evt->betoh(&(evid));
 			flags = g_infotables.m_syscall_info_table[evid].flags;
 		}
 		else
@@ -701,6 +702,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			ASSERT(evt->get_param_info(0)->type == PT_FD);
 
 			evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			evt->betoh(&(evt->m_tinfo->m_lastevent_fd));
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		}
 
@@ -751,6 +753,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t res = *(int64_t *)parinfo->m_val;
+			evt->betoh(&(res));
 
 			if(res < 0)
 			{
@@ -774,6 +777,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				parinfo = evt->get_param(1);
 				ASSERT(parinfo->m_len == sizeof(int64_t));
 				tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+				evt->betoh(&(tinfo->m_lastevent_fd));
 			}
 
 			evt->m_fdinfo = tinfo->get_fd(tinfo->m_lastevent_fd);
@@ -971,6 +975,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	childtid = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(childtid));
 
 	switch(evt->get_type())
 	{
@@ -998,6 +1003,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	uint32_t flags = *(int32_t *)parinfo->m_val;
+	evt->betoh(&(flags));
 
 	if(childtid < 0)
 	{
@@ -1027,10 +1033,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(18);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		vtid = *(int64_t *)parinfo->m_val;
+		evt->betoh(&(vtid));
 
 		parinfo = evt->get_param(19);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		vpid = *(int64_t *)parinfo->m_val;
+		evt->betoh(&(vpid));
 		break;
 	default:
 		ASSERT(false);
@@ -1073,8 +1081,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This is a thread, the parent tid is the pid
 			//
 			parinfo = evt->get_param(4);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
 		}
 		else
 		{
@@ -1082,9 +1088,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This is not a thread, the parent tid is ptid
 			//
 			parinfo = evt->get_param(5);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
 		}
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		parenttid = *(int64_t *)parinfo->m_val;
+		evt->betoh(&(parenttid));
 
 		// Validate that the child thread info has actually been created.
 		//
@@ -1329,6 +1336,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo->m_pid = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(tinfo->m_pid));
 
 	// Get the flags, and check if this is a thread or a new thread
 	tinfo->m_flags = flags;
@@ -1437,6 +1445,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(tinfo->m_fdlimit));
 
 	switch(etype)
 	{
@@ -1456,26 +1465,31 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
+		evt->betoh(&(tinfo->m_pfmajor));
 
 		// Get the pgflt_min
 		parinfo = evt->get_param(9);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+		evt->betoh(&(tinfo->m_pfminor));
 
 		// Get the vm_size
 		parinfo = evt->get_param(10);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(tinfo->m_vmsize_kb));
 
 		// Get the vm_rss
 		parinfo = evt->get_param(11);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(tinfo->m_vmrss_kb));
 
 		// Get the vm_swap
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(tinfo->m_vmswap_kb));
 		break;
 	default:
 		ASSERT(false);
@@ -1507,7 +1521,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo->set_user(*(int32_t *)parinfo->m_val);
+	tinfo->set_user(evt->betoh_ternary(*(int32_t *)parinfo->m_val));
 
 	// Copy the gid
 	switch(etype)
@@ -1535,7 +1549,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 	ASSERT(parinfo->m_len == sizeof(int32_t));
-	tinfo->set_group(*(int32_t *)parinfo->m_val);
+	tinfo->set_group(evt->betoh_ternary(*(int32_t *)parinfo->m_val));
 
 	//
 	// If we're in a container, vtid and vpid are
@@ -1624,6 +1638,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(retval));
 
 	if(retval < 0)
 	{
@@ -1679,6 +1694,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	evt->m_tinfo->m_pid = *(uint64_t *)parinfo->m_val;
+	evt->betoh(&(evt->m_tinfo->m_pid));
 
 	//
 	// In case this thread is a fake entry,
@@ -1690,12 +1706,14 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_ptid));
 	}
 
 	// Get the fdlimit
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	evt->m_tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(evt->m_tinfo->m_fdlimit));
 
 	switch(etype)
 	{
@@ -1713,26 +1731,31 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		evt->m_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_pfmajor));
 
 		// Get the pgflt_min
 		parinfo = evt->get_param(9);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		evt->m_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_pfminor));
 
 		// Get the vm_size
 		parinfo = evt->get_param(10);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_vmsize_kb));
 
 		// Get the vm_rss
 		parinfo = evt->get_param(11);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_vmrss_kb));
 
 		// Get the vm_swap
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		evt->m_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(evt->m_tinfo->m_vmswap_kb));
 		break;
 	default:
 		ASSERT(false);
@@ -1844,6 +1867,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t dirfd = *(int64_t *)parinfo->m_val;
+			evt->betoh(&(dirfd));
 
 			/*
 			 * Get pathname
@@ -1863,6 +1887,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(2);
 			ASSERT(parinfo->m_len == sizeof(int32_t));
 			uint32_t flags = *(int32_t *)parinfo->m_val;
+			evt->betoh(&(flags));
 
 			string sdir;
 			parse_dirfd(enter_evt, pathname, dirfd, &sdir);
@@ -1947,14 +1972,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(20);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			evt->m_tinfo->m_cap_inheritable = *(uint64_t *)parinfo->m_val;
+			evt->betoh(&(evt->m_tinfo->m_cap_inheritable));
 
 			parinfo = evt->get_param(21);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			evt->m_tinfo->m_cap_permitted = *(uint64_t *)parinfo->m_val;
+			evt->betoh(&(evt->m_tinfo->m_cap_permitted));
 
 			parinfo = evt->get_param(22);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			evt->m_tinfo->m_cap_effective = *(uint64_t *)parinfo->m_val;
+			evt->betoh(&(evt->m_tinfo->m_cap_effective));
 		}
 	}
 
@@ -2197,6 +2225,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	fd = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(fd));
 
 	//
 	// Parse the parameters, based on the event type
@@ -2210,17 +2239,20 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(2);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(flags));
 
 		if(evt->get_num_params() > 4)
 		{
 			parinfo = evt->get_param(4);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			evt->betoh(&(dev));
 			if (evt->get_num_params() > 5)
 			{
 				parinfo = evt->get_param(5);
 				ASSERT(parinfo->m_len == sizeof(uint64_t));
 				ino = *(uint64_t *)parinfo->m_val;
+				evt->betoh(&(ino));
 			}
 		}
 
@@ -2236,6 +2268,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(1);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			enter_evt_flags = *(uint32_t *)parinfo->m_val;
+			evt->betoh(&(enter_evt_flags));
 
 			if(enter_evt_namelen != 0 && strcmp(enter_evt_name, "(NULL)") != 0)
 			{
@@ -2260,11 +2293,13 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(3);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			evt->betoh(&(dev));
 			if (evt->get_num_params() > 4)
 			{
 				parinfo = evt->get_param(4);
 				ASSERT(parinfo->m_len == sizeof(uint64_t));
 				ino = *(uint64_t *)parinfo->m_val;
+				evt->betoh(&(ino));
 			}
 		}
 
@@ -2295,10 +2330,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		parinfo = enter_evt->get_param(2);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(flags));
 
 		parinfo = enter_evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
+		evt->betoh(&(dirfd));
 
 		parse_dirfd(evt, name, dirfd, &sdir);
 	}
@@ -2311,21 +2348,25 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(3);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(flags));
 
 		parinfo = evt->get_param(1);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
 		int64_t dirfd = *(int64_t *)parinfo->m_val;
+		evt->betoh(&(dirfd));
 
 		if(etype == PPME_SYSCALL_OPENAT_2_X && evt->get_num_params() > 5)
 		{
 			parinfo = evt->get_param(5);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			dev = *(uint32_t *)parinfo->m_val;
+			evt->betoh(&(dev));
 			if (evt->get_num_params() > 6)
 			{
 				parinfo = evt->get_param(6);
 				ASSERT(parinfo->m_len == sizeof(uint64_t));
 				ino = *(uint64_t *)parinfo->m_val;
+				evt->betoh(&(ino));
 			}
 		}
 
@@ -2341,10 +2382,12 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(2);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			enter_evt_flags = *(uint32_t *)parinfo->m_val;
+			evt->betoh(&(enter_evt_flags));
 
 			parinfo = enter_evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t enter_evt_dirfd = *(int64_t *)parinfo->m_val;
+			evt->betoh(&(enter_evt_dirfd));
 
 			if(enter_evt_namelen != 0 && strcmp(enter_evt_name, "(NULL)") != 0)
 			{
@@ -2365,6 +2408,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(2);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		flags = *(uint32_t *)parinfo->m_val;
+		evt->betoh(&(flags));
 
 		/*
 		 * Path
@@ -2639,6 +2683,7 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	fd = *(int64_t *)parinfo->m_val;
+	evt->betoh(&(fd));
 
 	if(fd < 0)
 	{
@@ -2667,14 +2712,17 @@ void sinsp_parser::parse_socket_exit(sinsp_evt *evt)
 	parinfo = enter_evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	domain = *(uint32_t *)parinfo->m_val;
+	evt->betoh(&(domain));
 
 	parinfo = enter_evt->get_param(1);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	type = *(uint32_t *)parinfo->m_val;
+	evt->betoh(&(type));
 
 	parinfo = enter_evt->get_param(2);
 	ASSERT(parinfo->m_len == sizeof(uint32_t));
 	protocol = *(uint32_t *)parinfo->m_val;
+	evt->betoh(&(protocol));
 
 	//
 	// Allocate a new fd descriptor, populate it and add it to the thread fd table

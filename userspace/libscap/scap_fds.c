@@ -20,6 +20,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_savefile.h"
+#include "scap_endian.h"
 #include "../common/strlcpy.h"
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -390,6 +391,23 @@ uint32_t scap_fd_read_prop_from_disk(scap_t *handle, OUT void *target, size_t ex
 	size_t readsize;
 	readsize = scap_reader_read(r, target, (unsigned int)expected_size);
 	CHECK_READ_SIZE(readsize, expected_size);
+	if(r->m_swap_endian)
+	{
+		switch(expected_size)
+		{
+		case 2:
+			*(uint16_t*)target = be16toh(*(uint16_t*)target);
+			break;
+		case 4:
+			*(uint32_t *)target = be32toh(*(uint32_t *)target);
+			break;
+		case 8:
+			*(uint64_t *)target = be64toh(*(uint64_t *)target);
+			break;
+		default:
+			break;
+		}
+	}
 	(*nbytes) += readsize;
 	return SCAP_SUCCESS;
 }
@@ -401,6 +419,7 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 
 	readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 	CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+	scap_reader_be16toh(r, &(stlen));
 
 	if(stlen >= SCAP_MAX_PATH_SIZE)
 	{
@@ -465,6 +484,10 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (1)");
 			return SCAP_FAILURE;
 		}
+		scap_reader_be32toh(r, &(fdi->info.ipv4info.sip));
+		scap_reader_be32toh(r, &(fdi->info.ipv4info.dip));
+		scap_reader_be16toh(r, &(fdi->info.ipv4info.sport));
+		scap_reader_be16toh(r, &(fdi->info.ipv4info.dport));
 
 		(*nbytes) += (sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint8_t));
 
@@ -477,6 +500,8 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (2)");
 			return SCAP_FAILURE;
 		}
+		scap_reader_be32toh(r, &(fdi->info.ipv4serverinfo.ip));
+		scap_reader_be16toh(r, &(fdi->info.ipv4serverinfo.port));
 
 		(*nbytes) += (sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t));
 		break;
@@ -489,6 +514,17 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 		}
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.sip[0]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.sip[1]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.sip[2]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.sip[3]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.dip[0]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.dip[1]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.dip[2]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6info.dip[3]));
+		scap_reader_be16toh(r, &(fdi->info.ipv6info.sport));
+		scap_reader_be16toh(r, &(fdi->info.ipv6info.dport));
+
 		(*nbytes) += (sizeof(uint32_t) * 4 + // sip
 				sizeof(uint32_t) * 4 + // dip
 				sizeof(uint16_t) + // sport
@@ -502,6 +538,12 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 		}
+		scap_reader_be32toh(r, &(fdi->info.ipv6serverinfo.ip[0]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6serverinfo.ip[1]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6serverinfo.ip[2]));
+		scap_reader_be32toh(r, &(fdi->info.ipv6serverinfo.ip[3]));
+		scap_reader_be16toh(r, &(fdi->info.ipv6serverinfo.port));
+
 		(*nbytes) += (sizeof(uint32_t) * 4 + // ip
 				sizeof(uint16_t) + // port
 				sizeof(uint8_t)); // l4proto
@@ -513,6 +555,8 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi5)");
 			return SCAP_FAILURE;
 		}
+		scap_reader_be64toh(r, &(fdi->info.unix_socket_info.source));
+		scap_reader_be64toh(r, &(fdi->info.unix_socket_info.destination));
 
 		(*nbytes) += (sizeof(uint64_t) + sizeof(uint64_t));
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.unix_socket_info.fname, nbytes, r);
@@ -523,6 +567,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi1)");
 			return SCAP_FAILURE;
 		}
+		scap_reader_be32toh(r, &(fdi->info.regularinfo.open_flags));
 
 		(*nbytes) += sizeof(uint32_t);
 		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, r);
@@ -535,6 +580,8 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
 			return SCAP_FAILURE;
 		}
+		scap_reader_be32toh(r, &(fdi->info.regularinfo.dev));
+
 		(*nbytes) += sizeof(uint32_t);
 		break;
 	case SCAP_FD_FIFO:

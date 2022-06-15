@@ -68,6 +68,7 @@ struct iovec;
 #endif
 
 #include "plugin_info.h"
+#include "scap_endian.h"
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"
@@ -998,8 +999,9 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
  
   \param e The scap event.
   \param params An array large enough to contain at least one entry per event parameter (which is at most PPM_MAX_EVENT_PARAMS).
+  \param swap_endian
  */
-uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params);
+uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *params, scap_swap_endian swap_endian);
 
 /*!
   \brief Create an event from the parameters given as arguments.
@@ -1129,6 +1131,8 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  * Get schema version supported by the driver
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
+
+scap_swap_endian scap_get_swap_endian(scap_t* handle);
 
 #ifdef __cplusplus
 }

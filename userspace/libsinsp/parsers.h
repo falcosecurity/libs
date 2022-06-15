@@ -80,6 +80,8 @@ public:
 	static void init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size);
 
 	void set_track_connection_status(bool enabled);
+
+	void set_swap_endian(scap_swap_endian f) { m_tmp_evt.m_swap_endian = f; }
 private:
 	//
 	// Initializers

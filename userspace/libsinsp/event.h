@@ -449,7 +449,7 @@ private:
 
 		m_params.clear();
 
-		uint32_t nparams = scap_event_decode_params(m_pevt, params);
+		uint32_t nparams = scap_event_decode_params(m_pevt, params, m_swap_endian);
 
 		for(j = 0; j < nparams; j++)
 		{
@@ -462,6 +462,46 @@ private:
 	char* render_fd(int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
+
+	template<typename I, typename std::enable_if<sizeof(I) == 2>::type* = nullptr>
+	void betoh(I* i)
+	{
+		if(m_swap_endian)
+		{
+			*i = ::be16toh(*i);
+		}
+	}
+	template<typename I, typename std::enable_if<sizeof(I) == 2>::type* = nullptr>
+	I betoh_ternary(I i)
+	{
+		return (m_swap_endian) ? ::be16toh(i) : i;
+	}
+	template<typename I, typename std::enable_if<sizeof(I) == 4>::type* = nullptr>
+	void betoh(I* i)
+	{
+		if(m_swap_endian)
+		{
+			*i = ::be32toh(*i);
+		}
+	}
+	template<typename I, typename std::enable_if<sizeof(I) == 4>::type* = nullptr>
+	I betoh_ternary(I i)
+	{
+		return (m_swap_endian) ? ::be32toh(i) : i;
+	}
+	template<typename I, typename std::enable_if<sizeof(I) == 8>::type* = nullptr>
+	void betoh(I* i)
+	{
+		if(m_swap_endian)
+		{
+			*i = ::be64toh(*i);
+		}
+	}
+	template<typename I, typename std::enable_if<sizeof(I) == 8>::type* = nullptr>
+	I betoh_ternary(I i)
+	{
+		return (m_swap_endian) ? ::be64toh(i) : i;
+	}
 
 VISIBILITY_PRIVATE
 	enum flags
@@ -500,6 +540,7 @@ VISIBILITY_PRIVATE
 	int32_t m_rawbuf_str_len;
 	bool m_filtered_out;
 	const struct ppm_event_info* m_event_info_table;
+	scap_swap_endian m_swap_endian = SCAP_NATIVE_ENDIAN;
 
 	friend class sinsp;
 	friend class sinsp_parser;

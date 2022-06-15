@@ -65,6 +65,7 @@ limitations under the License.
 using namespace std;
 
 #include <scap.h>
+#include <scap_endian.h>
 #include "settings.h"
 #include "logger.h"
 #include "event.h"
@@ -1053,6 +1054,8 @@ private:
 	void get_read_progress_plugin(OUT double* nres, string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
+
+	scap_swap_endian get_swap_endian() const;
 
 	scap_t* m_h;
 	uint64_t m_nevts;

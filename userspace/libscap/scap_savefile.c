@@ -31,6 +31,7 @@ struct iovec {
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_endian.h"
 #include "scap_savefile.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1230,6 +1231,8 @@ static int32_t scap_read_machine_info(scap_t *handle, scap_reader_t* r, uint32_t
 		return SCAP_FAILURE;
 	}
 
+	scap_reader_be_scap_machine_info_toh(r, (&handle->m_machine_info));
+
 	return SCAP_SUCCESS;
 }
 
@@ -1297,6 +1300,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(sub_len));
 
 			subreadsize += readsize;
 			break;
@@ -1311,6 +1315,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.tid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		scap_reader_be64toh(r, &(tinfo.tid));
 
 		subreadsize += readsize;
 
@@ -1319,6 +1324,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.pid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		scap_reader_be64toh(r, &(tinfo.pid));
 
 		subreadsize += readsize;
 
@@ -1327,6 +1333,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.ptid), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		scap_reader_be64toh(r, &(tinfo.ptid));
 
 		subreadsize += readsize;
 
@@ -1347,6 +1354,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(tinfo.sid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.sid));
 
 			subreadsize += readsize;
 			break;
@@ -1376,6 +1384,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(tinfo.vpgid), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.vpgid));
 
 			subreadsize += readsize;
 			break;
@@ -1390,6 +1399,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		scap_reader_be16toh(r, &(stlen));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
@@ -1412,6 +1422,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		scap_reader_be16toh(r, &(stlen));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
@@ -1449,6 +1460,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			scap_reader_be16toh(r, &(stlen));
 
 			if(stlen > SCAP_MAX_PATH_SIZE)
 			{
@@ -1478,6 +1490,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		scap_reader_be16toh(r, &(stlen));
 
 		if(stlen > SCAP_MAX_ARGS_SIZE)
 		{
@@ -1501,6 +1514,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		scap_reader_be16toh(r, &(stlen));
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
@@ -1523,6 +1537,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.fdlimit), sizeof(uint64_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		scap_reader_be64toh(r, &(tinfo.fdlimit));
 
 		subreadsize += readsize;
 
@@ -1531,6 +1546,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.flags), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		scap_reader_be32toh(r, &(tinfo.flags));
 
 		subreadsize += readsize;
 
@@ -1539,6 +1555,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.uid), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		scap_reader_be32toh(r, &(tinfo.uid));
 
 		subreadsize += readsize;
 
@@ -1547,6 +1564,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		readsize = scap_reader_read(r, &(tinfo.gid), sizeof(uint32_t));
 		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		scap_reader_be32toh(r, &(tinfo.gid));
 
 		subreadsize += readsize;
 
@@ -1570,6 +1588,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmsize_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(tinfo.vmsize_kb));
 
 			subreadsize += readsize;
 
@@ -1578,6 +1597,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmrss_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(tinfo.vmrss_kb));
 
 			subreadsize += readsize;
 
@@ -1586,6 +1606,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmswap_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(tinfo.vmswap_kb));
 
 			subreadsize += readsize;
 
@@ -1594,6 +1615,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(tinfo.pfmajor), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.pfmajor));
 
 			subreadsize += readsize;
 
@@ -1602,6 +1624,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(tinfo.pfminor), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.pfminor));
 
 			subreadsize += readsize;
 
@@ -1619,6 +1642,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				//
 				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+				scap_reader_be16toh(r, &(stlen));
 
 				if(stlen > SCAP_MAX_ENV_SIZE)
 				{
@@ -1650,6 +1674,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				//
 				readsize = scap_reader_read(r, &(tinfo.vtid), sizeof(int64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+				scap_reader_be64toh(r, &(tinfo.vtid));
 
 				subreadsize += readsize;
 
@@ -1658,6 +1683,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				//
 				readsize = scap_reader_read(r, &(tinfo.vpid), sizeof(int64_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+				scap_reader_be64toh(r, &(tinfo.vpid));
 
 				subreadsize += readsize;
 
@@ -1666,6 +1692,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				//
 				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+				scap_reader_be16toh(r, &(stlen));
 
 				if(stlen > SCAP_MAX_CGROUPS_SIZE)
 				{
@@ -1689,6 +1716,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				{
 					readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+					scap_reader_be16toh(r, &(stlen));
 
 					if(stlen > SCAP_MAX_PATH_SIZE)
 					{
@@ -1730,6 +1758,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			readsize = scap_reader_read(r, &(tinfo.loginuid), sizeof(int32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(tinfo.loginuid));
 			subreadsize += readsize;
 		}
 
@@ -1750,6 +1779,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_inheritable), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.cap_inheritable));
 			subreadsize += readsize;
 		}
 
@@ -1757,6 +1787,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_permitted), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.cap_permitted));
 			subreadsize += readsize;
 		}
 
@@ -1764,6 +1795,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_effective), sizeof(uint64_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			scap_reader_be64toh(r, &(tinfo.cap_effective));
 			subreadsize += readsize;
 		}
 
@@ -1898,6 +1930,8 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		{
 			iftype = *(uint16_t *)pif;
 			ifnamlen = *(uint16_t *)(pif + 2);
+			scap_reader_be16toh(r, &(iftype));
+			scap_reader_be16toh(r, &(ifnamlen));
 
 			if(iftype == SCAP_II_IPV4)
 			{
@@ -1925,9 +1959,14 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		}
 		else
 		{
-			entrysize = *(uint32_t *)pif + sizeof(uint32_t);
+			entrysize = *(uint32_t *)pif;
+			scap_reader_be32toh(r, &(entrysize));
+			entrysize += sizeof(uint32_t);
+
 			iftype = *(uint16_t *)(pif + 4);
 			ifnamlen = *(uint16_t *)(pif + 4 + 2);
+			scap_reader_be16toh(r, &(iftype));
+			scap_reader_be16toh(r, &(ifnamlen));
 		}
 
 		if(toread < entrysize)
@@ -2028,12 +2067,15 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		if(block_type == IL_BLOCK_TYPE_V2)
 		{
 			entrysize = *(uint32_t *)pif;
+			scap_reader_be32toh(r, &(entrysize));
 			totreadsize += sizeof(uint32_t);
 			pif += sizeof(uint32_t);
 		}
 
 		iftype = *(uint16_t *)pif;
 		ifnamlen = *(uint16_t *)(pif + 2);
+		scap_reader_be16toh(r, &(iftype));
+		scap_reader_be16toh(r, &(ifnamlen));
 
 		if(ifnamlen >= SCAP_MAX_PATH_SIZE)
 		{
@@ -2055,13 +2097,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		uint32_t ifsize;
 		if(iftype == SCAP_II_IPV4)
 		{
-			ifsize = sizeof(uint16_t) + // type
-				sizeof(uint16_t) +  // ifnamelen
-				sizeof(uint32_t) +  // addr
-				sizeof(uint32_t) +  // netmask
-				sizeof(uint32_t) +  // bcast
-				sizeof(uint64_t) +  // linkspeed
-			        ifnamlen;
+			ifsize = sizeof(scap_ifinfo_ipv4) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
 			if(toread < ifsize)
 			{
@@ -2072,6 +2108,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			// Copy the entry
 			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, ifsize - ifnamlen);
+			scap_reader_be_scap_ifinfo_ipv4_toh(r, (handle->m_addrlist->v4list + ifcnt4));
 
 			memcpy(handle->m_addrlist->v4list[ifcnt4].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
@@ -2105,6 +2142,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 			dst->bcast = src->bcast;
 			dst->linkspeed = 0;
 			memcpy(dst->ifname, src->ifname, MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1));
+			scap_reader_be_scap_ifinfo_ipv4_toh(r, dst);
 
 			// Make sure the name string is NULL-terminated
 			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
@@ -2113,13 +2151,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		}
 		else if(iftype == SCAP_II_IPV6)
 		{
-			ifsize = sizeof(uint16_t) +  // type
-				sizeof(uint16_t) +   // ifnamelen
-				SCAP_IPV6_ADDR_LEN + // addr
-				SCAP_IPV6_ADDR_LEN + // netmask
-				SCAP_IPV6_ADDR_LEN + // bcast
-				sizeof(uint64_t) +   // linkspeed
-				ifnamlen;
+			ifsize = sizeof(scap_ifinfo_ipv6) + ifnamlen - SCAP_MAX_PATH_SIZE;
 
 			if(toread < ifsize)
 			{
@@ -2130,6 +2162,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			// Copy the entry
 			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, ifsize - ifnamlen);
+			scap_reader_be_scap_ifinfo_ipv6_toh(r, (handle->m_addrlist->v6list + ifcnt6));
 
 			memcpy(handle->m_addrlist->v6list[ifcnt6].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
@@ -2162,6 +2195,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 			memcpy(dst->bcast, src->bcast, SCAP_IPV6_ADDR_LEN);
 			dst->linkspeed = 0;
 			memcpy(dst->ifname, src->ifname, MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1));
+			scap_reader_be_scap_ifinfo_ipv6_toh(r, dst);
 
 			// Make sure the name string is NULL-terminated
 			*((char *)(dst->ifname + MIN(dst->ifnamelen, SCAP_MAX_PATH_SIZE - 1))) = 0;
@@ -2255,6 +2289,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(sub_len));
 
 			subreadsize += readsize;
 		}
@@ -2286,6 +2321,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(puser->uid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(puser->uid));
 
 			subreadsize += readsize;
 
@@ -2294,6 +2330,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(puser->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(puser->gid));
 
 			subreadsize += readsize;
 
@@ -2302,6 +2339,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			scap_reader_be16toh(r, &(stlen));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
@@ -2324,6 +2362,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			scap_reader_be16toh(r, &(stlen));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
@@ -2346,6 +2385,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			scap_reader_be16toh(r, &(stlen));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
@@ -2391,6 +2431,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(pgroup->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			scap_reader_be32toh(r, &(pgroup->gid));
 
 			subreadsize += readsize;
 
@@ -2399,6 +2440,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			scap_reader_be16toh(r, &(stlen));
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
@@ -2487,6 +2529,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 	//
 	readsize = scap_reader_read(r, &tid, sizeof(tid));
 	CHECK_READ_SIZE(readsize, sizeof(tid));
+	scap_reader_be64toh(r, (&tid));
 	totreadsize += readsize;
 
 	if(handle->m_proc_callback == NULL)
@@ -2583,10 +2626,27 @@ int32_t scap_read_section_header(scap_t *handle, scap_reader_t* r)
 		return SCAP_FAILURE;
 	}
 
-	if(sh.byte_order_magic != 0x1a2b3c4d)
+	if(sh.byte_order_magic == SHB_MAGIC)
+	{
+		// Ok
+	}
+	else if(be32toh(sh.byte_order_magic) == SHB_MAGIC)
+	{
+		// Magic number in different Endian, we will have to swap bytes
+		r->m_swap_endian = SCAP_SWAP_ENDIAN;
+	}
+	else
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid magic number");
 		return SCAP_FAILURE;
+	}
+
+	if (r->m_swap_endian)
+	{
+		sh.byte_order_magic = be32toh(sh.byte_order_magic);
+		sh.major_version = be16toh(sh.major_version);
+		sh.minor_version = be16toh(sh.minor_version);
+		sh.section_length = be64toh(sh.section_length);
 	}
 
 	if(sh.major_version > CURRENT_MAJOR_VERSION)
@@ -2621,15 +2681,17 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		return SCAP_FAILURE;
 	}
 
+	if((rc = scap_read_section_header(handle, r)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	scap_reader_be_block_header_toh(r, (&bh));
+
 	if(bh.block_type != SHB_BLOCK_TYPE)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid block type");
 		return SCAP_FAILURE;
-	}
-
-	if((rc = scap_read_section_header(handle, r)) != SCAP_SUCCESS)
-	{
-		return rc;
 	}
 
 	//
@@ -2650,6 +2712,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		}
 
 		CHECK_READ_SIZE(readsize, sizeof(bh));
+		scap_reader_be_block_header_toh(r, (&bh));
 
 		switch(bh.block_type)
 		{
@@ -2754,6 +2817,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		//
 		readsize = scap_reader_read(r, &bt, sizeof(bt));
 		CHECK_READ_SIZE(readsize, sizeof(bt));
+		scap_reader_be32toh(r, &bt);
 
 		if(bt != bh.block_total_length)
 		{
@@ -2823,6 +2887,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 				CHECK_READ_SIZE(readsize, sizeof(bh));
 			}
 		}
+		scap_reader_be_block_header_toh(r, (&bh));
 
 		if(bh.block_type != EV_BLOCK_TYPE &&
 		   bh.block_type != EV_BLOCK_TYPE_V2 &&
@@ -2884,10 +2949,12 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 		// EVF_BLOCK_TYPE has 32 bits of flags
 		//
 		*pcpuid = *(uint16_t *)handle->m_reader_evt_buf;
+		scap_reader_be16toh(r, pcpuid);
 
 		if(bh.block_type == EVF_BLOCK_TYPE || bh.block_type == EVF_BLOCK_TYPE_V2 || bh.block_type == EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			handle->m_last_evt_dump_flags = *(uint32_t*)(handle->m_reader_evt_buf + sizeof(uint16_t));
+			scap_reader_be32toh(r, (&handle->m_last_evt_dump_flags));
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t) + sizeof(uint32_t));
 		}
 		else
@@ -2895,6 +2962,7 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 			handle->m_last_evt_dump_flags = 0;
 			*pevent = (struct ppm_evt_hdr *)(handle->m_reader_evt_buf + sizeof(uint16_t));
 		}
+		scap_reader_be_scap_evt_toh(r, ((struct ppm_evt_hdr *)*pevent));
 
 		if((*pevent)->type >= PPM_EVENT_MAX)
 		{
@@ -2953,7 +3021,9 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 				uint32_t i;
 				for(i = 0; i < nparams; i++)
 				{
-					valptr += lens[i];
+					uint16_t len_i = lens[i];
+					scap_reader_be16toh(r, &len_i);
+					valptr += len_i;
 				}
 				if(valptr < end)
 				{
