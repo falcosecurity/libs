@@ -243,6 +243,26 @@ int32_t engine::stop_capture()
     return SCAP_SUCCESS;
 }
 
+uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
+{
+	// Add logic to parse process and file list from runsc here
+
+	*tinfos = m_threadinfos_threads.data();
+	*n = m_threadinfos_threads.size();
+
+	return SCAP_SUCCESS;
+}
+
+uint32_t engine::get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
+{
+	*n = m_threadinfos_fds[tinfo->tid].size();
+	if (*n != 0) {
+		*fdinfos = m_threadinfos_fds[tinfo->tid].data();
+	}
+
+	return SCAP_SUCCESS;
+}
+
 uint32_t engine::get_vxid(uint64_t xid)
 {
 	return parsers::get_vxid(xid);
