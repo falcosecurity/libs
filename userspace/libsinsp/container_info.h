@@ -79,8 +79,30 @@ public:
 		return m_state == state::SUCCESSFUL;
 	}
 
+	/**
+	 * True when not successful and we didn't do too many attempts
+	 */
+	bool should_retry() const
+	{
+		if(is_successful())
+		{
+			return false;
+		}
+
+		return m_retry < 3;
+	}
+
+	/**
+	 * Compute the delay and increment retry count
+	 */
+	short delay()
+	{
+		return 125 << m_retry++;
+	}
+
 private:
 	state m_state = state::SUCCESSFUL;
+	short m_retry = 0;
 };
 
 class sinsp_container_info

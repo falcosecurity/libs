@@ -159,6 +159,11 @@ void cri_async_source::run_impl()
 {
 	libsinsp::cgroup_limits::cgroup_limits_key key;
 
+	auto cb = [this](const libsinsp::cgroup_limits::cgroup_limits_key&, const sinsp_container_info& res)
+	{
+		m_cache->notify_new_container(res);
+	};
+
 	while (dequeue_next_key(key))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -168,11 +173,14 @@ void cri_async_source::run_impl()
 		sinsp_container_info res;
 		lookup_sync(key, res);
 
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Parse successful, storing value",
-				key.m_container_id.c_str());
-
+		// For security reasons we store the value regardless of the lookup status,
+		// so we can track the container activity even without its metadata.
 		store_value(key, res);
+
+		if (res.m_lookup.should_retry())
+		{
+			lookup_delayed(key, res, chrono::milliseconds(res.m_lookup.delay()), cb);
+		}
 	}
 
 }
