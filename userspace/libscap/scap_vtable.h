@@ -238,6 +238,28 @@ struct scap_vtable {
 	int32_t (*get_threadlist)(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 	/**
+	 * @brief get information about all threads in the system
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param n [out] the number of scap_threadinfo structures returned
+	 * @param tinfos [out] an array of scap_threadinfo structures
+	 * 				 that represent the state of the system, owned by the engine
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 */
+	int32_t (*get_threadinfos)(struct scap_engine_handle engine, uint64_t *n, const scap_threadinfo **tinfos);
+
+	/**
+	 * @brief get information about file descriptors for a thread that was identified by get_threadinfos
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param tinfo a thread pointer returned by get_threadinfos
+	 * @param n [out] the number of scap_fdinfo structures returned 
+	 * @param fdinfos [out] an array of scap_fdinfo structures
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 */
+	int32_t (*get_fdinfos)(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+
+	/**
 	 * @brief get the vpid of a process
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param pid the pid of the process to check
