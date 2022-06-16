@@ -497,6 +497,9 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
+	handle->m_proc_callback = args->proc_callback;
+	handle->m_proc_callback_context = args->proc_callback_context;
+
 	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -504,7 +507,11 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 		return NULL;
 	}
 
-	// XXX - process / sandbox initialization goes here
+	if ((*rc = scap_proc_scan_vtable(error, handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
 
 	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
 	{

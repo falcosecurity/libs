@@ -1778,3 +1778,107 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 	return SCAP_FAILURE;
 #endif /* __linux__ */
 }
+
+int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error)
+{
+	uint64_t n_fdinfos, i;
+	const scap_fdinfo *fdinfos;
+	scap_fdinfo *fdi = NULL;
+	uint32_t res;
+
+	res = handle->m_vtable->get_fdinfos(handle->m_engine, src_tinfo, &n_fdinfos, &fdinfos);
+	if (res != SCAP_SUCCESS)
+	{
+		return res;
+	}
+
+	for (i = 0; i < n_fdinfos; i++)
+	{
+		res = scap_fd_allocate_fdinfo(handle, &fdi, fdinfos[i].fd, fdinfos[i].type);
+		if (res != SCAP_SUCCESS)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fdinfos[i].fd);
+			return res;
+		}
+
+		// copy the contents
+		*fdi = fdinfos[i];
+
+		res = scap_add_fd_to_proc_table(handle, dst_tinfo, fdi, error);
+		if (res != SCAP_SUCCESS)
+		{
+			scap_fd_free_fdinfo(&fdi);
+			continue;
+		}
+
+		if(handle->m_proc_callback != NULL)
+		{
+			if(fdi)
+			{
+				scap_fd_free_fdinfo(&fdi);
+			}
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_proc_scan_vtable(char *error, scap_t *handle)
+{
+	const scap_threadinfo *tinfos;
+	scap_threadinfo *tinfo;
+	uint32_t res = SCAP_SUCCESS;
+	uint64_t n_tinfos, i;
+
+	res = handle->m_vtable->get_threadinfos(handle->m_engine, &n_tinfos, &tinfos);
+	if (res != SCAP_SUCCESS)
+	{
+		return res;
+	}
+
+	for (i = 0; i < n_tinfos; i++)
+	{
+		bool free_tinfo = false;
+		if((tinfo = scap_proc_alloc(handle)) == NULL)
+		{
+			// Error message saved in handle->m_lasterr
+			snprintf(error, SCAP_LASTERR_SIZE, "can't allocate procinfo struct: %s", handle->m_lasterr);
+			return SCAP_FAILURE;
+		}
+
+		// copy the structure contents
+		*tinfo = tinfos[i];
+
+		//
+		// Add the entry to the process table, or fire the notification callback
+		//
+		if(handle->m_proc_callback == NULL)
+		{
+			int32_t uth_status = SCAP_SUCCESS;
+			HASH_ADD_INT64(handle->m_proclist, tid, tinfo);
+			if(uth_status != SCAP_SUCCESS)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
+				free(tinfo);
+				return SCAP_FAILURE;
+			}
+		}
+		else
+		{
+			handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
+			free_tinfo = true;
+		}
+
+		if(tinfo->pid == tinfo->tid)
+		{
+			res = scap_fd_scan_vtable(handle, &tinfos[i], tinfo, error);
+		}
+
+		if(free_tinfo)
+		{
+			free(tinfo);
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
