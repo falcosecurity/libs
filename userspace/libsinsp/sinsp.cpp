@@ -593,6 +593,7 @@ void sinsp::open_gvisor(std::string socket_path, uint32_t timeout_ms)
 {
 	m_gvisor_socket = socket_path;
 	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+	set_get_procs_cpu_from_driver(false);
 }
 
 void sinsp::open_nodriver()
