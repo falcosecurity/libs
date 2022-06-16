@@ -964,7 +964,10 @@ public:
 	void add_cri_socket_path(const std::string &path);
 	void set_cri_timeout(int64_t timeout_ms);
 	void set_cri_async(bool async);
+
+	// TODO DEPRECATED: drop this method after a release or two
 	void set_cri_delay(uint64_t delay_ms);
+
 	void set_container_labels_max_len(uint32_t max_label_len);
 
 	// Create and register a plugin from a shared library pointed
