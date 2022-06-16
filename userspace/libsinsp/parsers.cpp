@@ -4397,9 +4397,14 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		{
 			return;
 		}
-
 		//
-		// If the old FD is in the table, remove it properly
+		// If the old FD is in the table, remove it properly.
+		// The old FD is:
+		// 	- dup(): fd number of a previously closed fd that has not been removed from the fd_table
+		//		     and has been reassigned to the newly created fd by dup()(very rare condition);
+		//  - dup2(): fd number of an existing fd that we pass to the dup2() as the "newfd". dup2()
+	    //			  will close the existing one. So we need to clean it up / overwrite;
+		//  - dup3(): same as dup2().
 		//
 		sinsp_fdinfo_t* oldfdinfo = evt->m_tinfo->get_fd(retval);
 
@@ -4414,6 +4419,37 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 			eparams.m_ts = evt->get_ts();
 
 			erase_fd(&eparams);
+		}
+
+		//
+		// If we are handling the dup3() event exit then we add the flags to the new file descriptor.
+		//
+		if (evt->get_type() == PPME_SYSCALL_DUP3_X){
+			uint32_t flags;
+			
+			//
+			// Get the flags parameter.
+			//
+			parinfo = evt->get_param(3);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			flags = *(uint32_t *)parinfo->m_val;
+			
+			//
+			// We keep the previously flags that has been set on the original file descriptor and
+			// just set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
+			//
+			if (flags){
+				//
+				// set the O_CLOEXEC flag.
+				//
+				evt->m_fdinfo->m_openflags |= flags;
+			}else{
+				//
+				// reset the O_CLOEXEC flag.
+				//
+				evt->m_fdinfo->m_openflags &= ~PPM_O_CLOEXEC;
+			}
+			
 		}
 
 		//
