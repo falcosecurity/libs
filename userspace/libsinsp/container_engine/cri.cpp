@@ -37,11 +37,12 @@ using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;
 
-namespace {
+namespace
+{
 // do the CRI communication asynchronously
 bool s_async = true;
-// delay before talking to CRI/cgroups
-uint64_t s_cri_lookup_delay_ms = 500;
+
+constexpr const chrono::milliseconds CRI_LOOKUP_INITIAL_DELAY{0};
 
 constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 	{"/", ""}, // non-systemd containerd
@@ -51,7 +52,7 @@ constexpr const cgroup_layout CRI_CGROUP_LAYOUT[] = {
 	{":cri-containerd:", ""}, // containerd without "SystemdCgroup = true"
 	{nullptr, nullptr}
 };
-}
+} // namespace
 
 bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info &container)
 {
@@ -257,7 +258,7 @@ void cri::add_cri_socket_path(const std::string& path)
 
 void cri::set_cri_timeout(int64_t timeout_ms)
 {
-	s_cri_timeout = timeout_ms + s_cri_lookup_delay_ms;
+	s_cri_timeout = timeout_ms;
 }
 
 void cri::set_extra_queries(bool extra_queries) {
@@ -267,11 +268,6 @@ void cri::set_extra_queries(bool extra_queries) {
 void cri::set_async(bool async)
 {
 	s_async = async;
-}
-
-void cri::set_cri_delay(uint64_t delay_ms)
-{
-	s_cri_lookup_delay_ms = delay_ms;
 }
 
 bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
@@ -348,7 +344,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		const bool async = s_async && cache->async_allowed();
 		if(async)
 		{
-			done = m_async_source->lookup_delayed(key, result, chrono::milliseconds(s_cri_lookup_delay_ms), cb);
+			done = m_async_source->lookup_delayed(key, result, CRI_LOOKUP_INITIAL_DELAY, cb);
 		}
 		else
 		{

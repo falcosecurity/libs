@@ -1646,9 +1646,10 @@ void sinsp::set_cri_async(bool async)
 	m_container_manager.set_cri_async(async);
 }
 
-void sinsp::set_cri_delay(uint64_t delay_ms)
+void sinsp::set_cri_delay(uint64_t)
 {
-	m_container_manager.set_cri_delay(delay_ms);
+	g_logger.format(sinsp_logger::SEV_WARNING, "%s is deprecated", __FUNCTION__);
+	ASSERT(false);
 }
 
 void sinsp::set_container_labels_max_len(uint32_t max_label_len)
