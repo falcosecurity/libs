@@ -110,7 +110,18 @@ static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct pp
 {
 	// placeholder
 	(*procinfo_p)->n_entries = 0;
+
 	return SCAP_SUCCESS;
+}
+
+static int32_t gvisor_get_threadinfos(struct scap_engine_handle engine, uint64_t *n, const scap_threadinfo **tinfos)
+{
+	return engine.m_handle->get_threadinfos(n, tinfos);
+}
+
+static int32_t gvisor_get_fdinfos(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
+{
+	return engine.m_handle->get_fdinfos(tinfo, n, fdinfos);
 }
 
 static int32_t gvisor_get_vxid(struct scap_engine_handle engine, uint64_t xid, int64_t *vxid)
@@ -148,6 +159,8 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
 	.get_threadlist = gvisor_get_threadlist,
+	.get_threadinfos = gvisor_get_threadinfos,
+	.get_fdinfos = gvisor_get_fdinfos,
 	.get_vpid = gvisor_get_vxid,
 	.get_vtid = gvisor_get_vxid,
 	.getpid_global = gvisor_getpid_global

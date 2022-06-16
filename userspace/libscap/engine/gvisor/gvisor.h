@@ -97,6 +97,8 @@ public:
 
     int32_t next(scap_evt **pevent, uint16_t *pcpuid);
 
+    uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
+    uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
     uint32_t get_vxid(uint64_t pid);
 private:
     int32_t process_message_from_fd(int fd);
@@ -115,6 +117,11 @@ private:
 
     // stores per-sandbox data. All buffers used to contain parsed event data are owned by this map
     std::unordered_map<int, sandbox_entry> m_sandbox_data;
+
+    // the following two maps store and manage memory for thread information requested
+    // when get_threadinfos() is called. They are only updated upon get_threadinfos()
+    std::vector<scap_threadinfo> m_threadinfos_threads;
+    std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
 };
 
 } // namespace scap_gvisor
