@@ -108,6 +108,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_input_fd = 0;
 	m_bpf = false;
 	m_udig = false;
+	m_gvisor = false;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
@@ -525,19 +526,11 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	oargs.proc_callback = NULL;
 	oargs.proc_callback_context = NULL;
 	oargs.udig = m_udig;
-	oargs.gvisor_socket = NULL;
-	if(m_gvisor_socket != "")
+	if (m_gvisor)
 	{
+		oargs.gvisor = true;
 		oargs.gvisor_socket = m_gvisor_socket.c_str();
-	}
-	oargs.gvisor_root_path = NULL;
-	if(m_gvisor_root_path != "")
-	{
 		oargs.gvisor_root_path = m_gvisor_root_path.c_str();
-	}
-	oargs.gvisor_trace_session_path = NULL;
-	if(m_gvisor_trace_session_path != "")
-	{
 		oargs.gvisor_trace_session_path = m_gvisor_trace_session_path.c_str();
 	}
 
@@ -601,6 +594,7 @@ void sinsp::open_udig(uint32_t timeout_ms)
 
 void sinsp::open_gvisor(std::string socket_path, std::string root_path, std::string trace_session_path, uint32_t timeout_ms)
 {
+	m_gvisor = true;
 	m_gvisor_socket = socket_path;
 	m_gvisor_root_path = root_path, 
 	m_gvisor_trace_session_path = trace_session_path;
