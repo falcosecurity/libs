@@ -1057,6 +1057,7 @@ private:
 	std::string m_input_filename;
 	bool m_bpf;
 	bool m_udig;
+	bool m_gvisor;
 	std::string m_gvisor_socket = "";
 	std::string m_gvisor_root_path = "";
 	std::string m_gvisor_trace_session_path = "";
