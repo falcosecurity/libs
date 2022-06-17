@@ -136,9 +136,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	include(FindMakedev)
 endif()
 
-
-# gVisor is currently only supported on Linux
-if(NOT MINIMAL_BUILD AND NOT WIN32 AND NOT APPLE)
+# gVisor is currently only supported on Linux x86_64
+if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64" AND NOT MINIMAL_BUILD AND NOT WIN32 AND NOT APPLE)
 	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
 	if (BUILD_LIBSCAP_GVISOR)
 		add_definitions(-DHAS_ENGINE_GVISOR)
