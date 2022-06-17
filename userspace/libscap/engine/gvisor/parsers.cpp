@@ -33,6 +33,7 @@ limitations under the License.
 #include "../../driver/ppm_events_public.h"
 
 #include "userspace_flag_helpers.h"
+#include "../common/strlcpy.h"
 
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"
@@ -526,8 +527,7 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 				memcpy(targetbuf, &sock_family, sizeof(uint8_t));
 				memset(targetbuf + 1, 0, sizeof(uint64_t)); // TODO: understand how to fill this 
 				memset(targetbuf + 1 + 8, 0, sizeof(uint64_t));
-				memcpy(targetbuf + 1 + 8 + 8, &unix_addr->sun_path, 108);
-				memset(targetbuf + 1 + 8 + 8 + UNIX_PATH_MAX - 1, 0, sizeof(uint8_t));
+				strlcpy(targetbuf + 1 + 8 + 8, unix_addr->sun_path, UNIX_PATH_MAX);
 				size = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t) + UNIX_PATH_MAX;
 				break;
 			}
