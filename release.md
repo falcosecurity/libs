@@ -34,6 +34,8 @@ The *driver version number* represents the build version of kernel-space drivers
 
 - Since our driver APIs are assumed to be stable, the major version number MUST be equal to or greater than `1`.
 
+- The version string MUST be suffixed with `+driver` to distinguish it from libs version numbers.
+
 - To pick a new driver version number:
 
     1. The [API for user/kernel boundary](https://github.com/falcosecurity/libs/blob/master/proposals/20210818-driver-semver.md) is versioned in the source code. You MUST ensure the two files below have been updated by following the rules described in [driver/README.VERSION.md](https://github.com/falcosecurity/libs/blob/master/driver/README.VERSION.md):
