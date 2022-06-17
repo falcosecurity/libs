@@ -505,7 +505,7 @@ engine::runsc_result engine::runsc(char *argv[])
 		
 		::close(pipefds[1]);
 		wait(&status);
-		if(status)
+		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0)
 		{
 			res.error = status;
 			return res;
