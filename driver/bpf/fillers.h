@@ -4716,12 +4716,17 @@ FILLER(sched_switch_e, false)
 
 FILLER(sys_pagefault_e, false)
 {
+	int res = 0;
+/* We cannot compile the whole filler out since in userspace we
+ * check that every filler-id (`PPM_FILLER_...`) has a corresponding BPF
+ * implementation.
+ */
+#ifndef __TARGET_ARCH_arm64
 	struct page_fault_args *ctx;
 	unsigned long error_code;
 	unsigned long address;
 	unsigned long ip;
 	u32 flags;
-	int res;
 
 	ctx = (struct page_fault_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -4746,7 +4751,7 @@ FILLER(sys_pagefault_e, false)
 
 	flags = pf_flags_to_scap(error_code);
 	res = bpf_val_to_ring(data, flags);
-
+#endif
 	return res;
 }
 

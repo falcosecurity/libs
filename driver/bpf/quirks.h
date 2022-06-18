@@ -25,7 +25,7 @@ or GPL2.txt for full copies of the license.
 #endif
 
 /* RAW_TRACEPOINTS logic is x86-specific */
-#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
+#if (defined(__i386__) || defined(__TARGET_ARCH_x86)  || defined(_M_IX86) || defined(__TARGET_ARCH_arm64))
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #endif

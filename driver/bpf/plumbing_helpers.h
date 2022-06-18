@@ -97,7 +97,16 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
+#if defined(__TARGET_ARCH_arm64)
+	id = _READ(regs->syscallno);
+#else 
+	/* Right now we used this for all other architectures that are not ARM
+	 * becuase we support only `x86`, but we have to check if it is correct
+	 * in case of other architectures.
+	 */
 	id = _READ(regs->orig_ax);
+#endif
+
 #else
 	id = args->id;
 #endif
@@ -127,8 +136,26 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
+	/* This is used both by ARM64 and x86. */
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
+#if defined(__TARGET_ARCH_arm64)
+	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
+	switch (idx) {
+	case 0:
+		arg = _READ(regs->orig_x0);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		arg = _READ(user_regs->regs[idx]);
+		break;
+	default:
+		arg = 0;
+	}
+#else
 	switch (idx) {
 	case 0:
 		arg = _READ(regs->di);
@@ -151,6 +178,8 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	default:
 		arg = 0;
 	}
+#endif
+
 #else
 	unsigned long *args = unstash_args();
 
