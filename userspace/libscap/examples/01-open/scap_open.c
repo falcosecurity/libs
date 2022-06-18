@@ -282,6 +282,16 @@ void print_event(scap_evt* ev)
 	lens16 = (uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr));
 	valptr = (char*)lens16 + ev->nparams * sizeof(uint16_t);
 	printf("\n------------------ EVENT: %d TID:%lu\n", evt_type, ev->tid);
+	
+	printf("------ HEADER\n");
+	printf("timestamp: %lu\n", ev->ts);
+	printf("tid: %lu\n", ev->tid);
+	printf("len: %d\n", ev->len);
+	printf("type: %d\n", ev->type);
+	printf("num params: %d\n", ev->nparams);
+	printf("------\n");
+	printf("------ PARAMS\n");
+
 	for(int i = 0; i < ev->nparams; i++)
 	{
 		print_parameter(i);
@@ -290,6 +300,8 @@ void print_event(scap_evt* ev)
 	{
 		printf("- This event has no parameter\n");
 	}
+
+	printf("------\n");
 	printf("------------------\n");
 }
 
