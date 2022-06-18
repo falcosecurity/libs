@@ -582,9 +582,14 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			source = KERNEL_MODULE;
 		}
-		if(!strcmp(argv[i], BPF_OPTION) && ++i < argc)
+		if(!strcmp(argv[i], BPF_OPTION))
 		{
-			args.bpf_probe = argv[i];
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the BPF probe path! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			args.bpf_probe = argv[++i];
 			source = BPF_PROBE;
 		}
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
@@ -594,9 +599,14 @@ void parse_CLI_options(int argc, char** argv)
 			 */
 			source = MODERN_BPF_PROBE;
 		}
-		if(!strcmp(argv[i], SCAP_FILE_OPTION) && ++i < argc)
+		if(!strcmp(argv[i], SCAP_FILE_OPTION))
 		{
-			args.fname = argv[i];
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the scap file path! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			args.fname = argv[++i];
 			/* we need also to change the mode. */
 			args.mode = SCAP_MODE_CAPTURE;
 			source = SCAP_FILE;
@@ -617,13 +627,23 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			simple_consumer = true;
 		}
-		if(!strcmp(argv[i], NUM_EVENTS_OPTION) && ++i < argc)
+		if(!strcmp(argv[i], NUM_EVENTS_OPTION))
 		{
-			num_events = strtoul(argv[i], NULL, 10);
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the number of events to catch! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			num_events = strtoul(argv[++i], NULL, 10);
 		}
-		if(!strcmp(argv[i], EVENT_TYPE_OPTION) && ++i < argc)
+		if(!strcmp(argv[i], EVENT_TYPE_OPTION))
 		{
-			evt_type = strtoul(argv[i], NULL, 10);
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the event type number! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			evt_type = strtoul(argv[++i], NULL, 10);
 		}
 
 		/*=============================== CONFIGURATIONS ===========================*/
@@ -652,6 +672,12 @@ void parse_CLI_options(int argc, char** argv)
 		}
 
 		/*=============================== PRINT ===========================*/
+	}
+
+	if(source == -1)
+	{
+		printf("\nSource not specified! Bye!\n");
+		exit(EXIT_FAILURE);
 	}
 }
 
