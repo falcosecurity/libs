@@ -170,6 +170,10 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 	return 0;
 }
 
+#ifndef __TARGET_ARCH_arm64
+/* Page fault tracepoints are not defined in ARM64, so
+ * we don't inject anything into the kernel.
+ */
 static __always_inline int bpf_page_fault(struct page_fault_args *ctx)
 {
 	struct scap_bpf_settings *settings;
@@ -200,6 +204,7 @@ BPF_PROBE("exceptions/", page_fault_kernel, page_fault_args)
 {
 	return bpf_page_fault(ctx);
 }
+#endif
 
 BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 {

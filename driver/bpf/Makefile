@@ -16,6 +16,8 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
 # DEBUG = -DBPF_DEBUG
 
+ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
+
 #
 # https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
 # This commit diverged the ChromiumOS kernel from stock in the area of audit information, which this probe accesses.
@@ -56,6 +58,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(DEBUG) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
+		-D__TARGET_ARCH_${ARCH} \
 		-Wno-gnu-variable-sized-type-not-at-end \
 		-Wno-address-of-packed-member \
 		-fno-jump-tables \
