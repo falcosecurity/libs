@@ -599,13 +599,6 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 			return SCAP_FAILURE;
 		}
 
-		/* If there is an elf section with the bpf implmentation of the filler with id `prog_id` 
-		 * set the entry in this table to `true`. When we will populate the filler map in 
-		 * `populate_fillers_table_map` function, we will check that every filler defined by us with
-		 * an enum code has its corresponding bpf implementation through this boolean table.
-		 */
-		handle->m_bpf_fillers[prog_id] = true;
-
 		return SCAP_SUCCESS;
 	}
 
@@ -963,14 +956,11 @@ static int32_t populate_fillers_table_map(struct bpf_engine *handle)
 		}
 	}
 
-	for(j = 0; j < PPM_FILLER_MAX; ++j)
-	{
-		if(!handle->m_bpf_fillers[j])
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Missing filler %d (%s)\n", j, g_filler_names[j]);
-			return SCAP_FAILURE;
-		}
-	}
+	/* Even if the filler ppm code is defined it could happen that there 
+	 * is no filler implementation, some fillers are architecture-specifc.
+	 * For example `sched_prog_exec` filler exists only on `ARM64` while
+	 * `sys_pagefault_e` exists only on `x86`.
+	 */
 
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_FILLERS_TABLE]);
 }
