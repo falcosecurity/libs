@@ -5757,4 +5757,389 @@ FILLER(sys_dup3_x, true)
 	return res;
 }
 
+/// TODO: we need to compile it out in `x86`, look at the next commits,
+/// we want to change a little bit the logic in scap filler loading.
+
+/* Please note: here we cannot use the FILLER macro since, this is
+ * the unique case in which we need to set the `tid` in the header
+ * different from the current thread id.
+ */
+
+/* We set `is_syscall` flag to `false` since this is not
+ * a real syscall, we only send the same event from another
+ * tracepoint.
+ * 
+ * Please note: `is_syscall` is used only if `BPF_RAW_TRACEPOINT`
+ * are not defined but in our ARM implementation they are akways defined,
+ * so value of this flag is not relevant at all. 
+ */
+FILLER(sched_prog_exec, false)
+{
+	int res = 0;
+
+	/* 1° Parameter: res (type: PT_ERRNO) */
+	/* Please note: if this filler is called the execve is correctly
+	 * performed, so the return value will be always 0.
+	 */
+	res = bpf_val_to_ring_type(data, 0, PT_ERRNO);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct mm_struct *mm = _READ(task->mm);
+	if(!mm)
+	{
+		return PPM_FAILURE_BUG;
+	}
+
+	/*
+	* The call always succeed so get `exe`, `args` from the current
+	* process; put one \0-separated exe-args string into
+	* str_storage
+	*/
+	unsigned long arg_start = 0;
+	unsigned long arg_end = 0;
+
+	arg_start = _READ(mm->arg_start);
+	arg_end = _READ(mm->arg_end);
+
+	unsigned long args_len = arg_end - arg_start;
+
+	if(args_len > ARGS_ENV_SIZE_MAX)
+	{
+		args_len = ARGS_ENV_SIZE_MAX;
+	}
+
+	/* `bpf_probe_read()` returns 0 in case of success. */
+	int correctly_read = bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					    args_len & SCRATCH_SIZE_HALF,
+					    (void *)arg_start);
+
+	/* If there was something to read and we read it correctly, update all
+	 * the offsets, otherwise push empty params to userspace.
+	 */
+	if(args_len && correctly_read == 0)
+	{
+
+		data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
+
+		/* We need the len of the second param `exe`. */
+		int exe_len = bpf_probe_read_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						 SCRATCH_SIZE_HALF,
+						 &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
+
+		if(exe_len == -EFAULT)
+		{
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+		}
+
+		/* 2° Parameter: exe (type: PT_CHARBUF) */
+		data->curarg_already_on_frame = true;
+		res = __bpf_val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false);
+		if(res != PPM_SUCCESS)
+		{
+			return res;
+		}
+
+		/* 3° Parameter: args (type: PT_CHARBUFARRAY) */
+		data->curarg_already_on_frame = true;
+		res = __bpf_val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false);
+		if(res != PPM_SUCCESS)
+		{
+			return res;
+		}
+	}
+	else
+	{
+		/* 2° Parameter: exe (type: PT_CHARBUF) */
+		res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+		if(res != PPM_SUCCESS)
+		{
+			return res;
+		}
+
+		/* 3° Parameter: args (type: PT_CHARBUFARRAY) */
+		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
+		if(res != PPM_SUCCESS)
+		{
+			return res;
+		}
+	}
+
+	/* 4° Parameter: tid (type: PT_PID) */
+	pid_t pid = _READ(task->pid);
+	res = bpf_val_to_ring_type(data, pid, PT_PID);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 5° Parameter: pid (type: PT_PID) */
+	pid_t tgid = _READ(task->tgid);
+	res = bpf_val_to_ring_type(data, tgid, PT_PID);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 6° Parameter: ptid (type: PT_PID) */
+	struct task_struct *real_parent = _READ(task->real_parent);
+	pid_t ptid = _READ(real_parent->pid);
+	res = bpf_val_to_ring_type(data, ptid, PT_PID);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 7° Parameter: cwd (type: PT_CHARBUF)
+	 * cwd, pushed empty to avoid breaking compatibility
+	 * with the older event format
+	 */
+	/// TODO: we have to check if only 0 is enough, it seems ok in `x86`, same thing for `exe` param.
+	res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 8° Parameter: fdlimit (type: PT_UINT64) */
+	struct signal_struct *signal = _READ(task->signal);
+	unsigned long fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
+	res = bpf_val_to_ring_type(data, fdlimit, PT_UINT64);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 9° Parameter: pgft_maj (type: PT_UINT64) */
+	unsigned long maj_flt = _READ(task->maj_flt);
+	res = bpf_val_to_ring_type(data, maj_flt, PT_UINT64);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 10° Parameter: pgft_min (type: PT_UINT64) */
+	unsigned long min_flt = _READ(task->min_flt);
+	res = bpf_val_to_ring_type(data, min_flt, PT_UINT64);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	unsigned long total_vm = 0;
+	unsigned long total_rss = 0;
+	unsigned long swap = 0;
+
+	if(mm)
+	{
+		total_vm = _READ(mm->total_vm);
+		total_vm <<= (PAGE_SHIFT - 10);
+		total_rss = bpf_get_mm_rss(mm) << (PAGE_SHIFT - 10);
+		swap = bpf_get_mm_swap(mm) << (PAGE_SHIFT - 10);
+	}
+
+	/* 11° Parameter: vm_size (type: PT_UINT32) */
+	res = bpf_val_to_ring_type(data, total_vm, PT_UINT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 12° Parameter: vm_rss (type: PT_UINT32) */
+	res = bpf_val_to_ring_type(data, total_rss, PT_UINT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 13° Parameter: vm_swap (type: PT_UINT32) */
+	res = bpf_val_to_ring_type(data, swap, PT_UINT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 14° Parameter: comm (type: PT_CHARBUF) */
+	res = bpf_val_to_ring_type(data, (unsigned long)task->comm, PT_CHARBUF);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_2);
+	bpf_printk("Can't tail call 'sched_prog_exec_2' filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(sched_prog_exec_2, false)
+{
+	int cgroups_len = 0;
+	int res = 0;
+
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+
+	res = bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 15° Parameter: cgroups (type: PT_CHARBUFARRAY) */
+	res = __bpf_val_to_ring(data, (unsigned long)data->tmp_scratch, cgroups_len, PT_BYTEBUF, -1, false);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_3);
+	bpf_printk("Can't tail call 'sched_prog_exec_3' filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(sched_prog_exec_3, false)
+{
+	int res = 0;
+
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct mm_struct *mm = _READ(task->mm);
+	if(!mm)
+	{
+		return PPM_FAILURE_BUG;
+	}
+
+	unsigned long env_start = _READ(mm->env_start);
+	unsigned long env_end = _READ(mm->env_end);
+	long env_len = env_end - env_start;
+
+	if(env_len)
+	{
+		if(env_len > ARGS_ENV_SIZE_MAX)
+		{
+			env_len = ARGS_ENV_SIZE_MAX;
+		}
+
+		if(bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				  env_len & SCRATCH_SIZE_HALF,
+				  (void *)env_start))
+		{
+			env_len = 0;
+		}
+		else
+		{
+			data->buf[(data->state->tail_ctx.curoff + env_len - 1) & SCRATCH_SIZE_MAX] = 0;
+		}
+	}
+
+	/* 16° Parameter: env (type: PT_CHARBUFARRAY) */
+	data->curarg_already_on_frame = true;
+	res = __bpf_val_to_ring(data, 0, env_len, PT_BYTEBUF, -1, false);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 17° Parameter: tty (type: PT_INT32) */
+	int tty = bpf_ppm_get_tty(task);
+	res = bpf_val_to_ring_type(data, tty, PT_INT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 18° Parameter: pgid (type: PT_PID) */
+	res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* TODO: implement user namespace support */
+	kuid_t loginuid;
+#ifdef COS_73_WORKAROUND
+	{
+		struct audit_task_info *audit = _READ(task->audit);
+		if(audit)
+		{
+			loginuid = _READ(audit->loginuid);
+		}
+		else
+		{
+			loginuid = INVALID_UID;
+		}
+	}
+#else
+	loginuid = _READ(task->loginuid);
+#endif
+
+	/* 19° Parameter: loginuid (type: PT_INT32) */
+	res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_4);
+	bpf_printk("Can't tail call 'sched_prog_exec_4' filler\n");
+	return PPM_FAILURE_BUG;
+}
+
+FILLER(sched_prog_exec_4, false)
+{
+
+	int res = 0;
+
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct cred *cred = (struct cred *)_READ(task->cred);
+
+	uint32_t flags = 0;
+
+	/* `exe_writable` flag logic */
+	bool exe_writable = false;
+	exe_writable = get_exe_writable(task);
+	if(exe_writable)
+	{
+		flags |= PPM_EXE_WRITABLE;
+	}
+
+	// write all additional flags for execve family here...
+
+	/* 20° Parameter: flags (type: PT_FLAGS32) */
+	res = bpf_val_to_ring_type(data, flags, PT_UINT32);
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	kernel_cap_t cap;
+	unsigned long val;
+
+	/* 21° Parameter: cap_inheritable (type: PT_UINT64) */
+	cap = _READ(cred->cap_inheritable);
+	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
+	res = bpf_val_to_ring(data, capabilities_to_scap(val));
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 22° Parameter: cap_permitted (type: PT_UINT64) */
+	cap = _READ(cred->cap_permitted);
+	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
+	res = bpf_val_to_ring(data, capabilities_to_scap(val));
+	if(res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* 23° Parameter: cap_effective (type: PT_UINT64) */
+	cap = _READ(cred->cap_effective);
+	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
+	res = bpf_val_to_ring(data, capabilities_to_scap(val));
+
+	return res;
+}
+
 #endif
