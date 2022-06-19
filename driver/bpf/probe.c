@@ -282,16 +282,6 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
  * version, you can use the kernel module which requires a kernel greater than `3.4`.
  */
 
-/* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
- * Taken from `/include/trace/events/sched.h`
- */
- struct sched_process_exec_raw_args
- {
- 	struct task_struct *p;
- 	pid_t old_pid;
- 	struct linux_binprm *bprm;
- };
-
 /* This macro `BPF_PROBE()` is equivalent to:
  *
  * __bpf_section(raw_tracepoint/sched_process_exec)
@@ -329,6 +319,37 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 	return 0;
 }
 
+BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
+{
+	struct scap_bpf_settings *settings;
+
+	/* Check if the capture is enabled. */
+	settings = get_bpf_settings();
+	if(!(settings && settings->capture_enabled))
+	{
+		return 0;
+	}
+
+	/* Reset the tail context in cpu state map. */
+	uint32_t cpu = bpf_get_smp_processor_id();
+	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
+	if(!state)
+	{
+		return 0;
+	}
+	uint64_t ts = settings->boot_time + bpf_ktime_get_boot_ns();
+	/* We wiil always send an execve exit event. */
+	reset_tail_ctx(state, PPME_SYSCALL_CLONE_20_X, ts);
+	++state->n_evts;
+
+	int filler_code = PPM_FILLER_sched_prog_fork;
+
+	bpf_tail_call(ctx, &tail_map, filler_code);
+	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
+		   PPME_SYSCALL_CLONE_20_X,
+		   filler_code);	
+	return 0;
+}
 #endif
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;

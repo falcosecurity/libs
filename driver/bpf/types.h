@@ -129,6 +129,27 @@ struct sys_stash_args {
 };
 #endif
 
+#ifdef __TARGET_ARCH_arm64
+/* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
+ * Taken from `/include/trace/events/sched.h`
+ */
+ struct sched_process_exec_raw_args
+ {
+ 	struct task_struct *p;
+ 	pid_t old_pid;
+ 	struct linux_binprm *bprm;
+ };
+
+/* TP_PROTO(struct task_struct *parent, struct task_struct *child)
+ * Taken from `/include/trace/events/sched.h`
+ */
+struct sched_process_fork_raw_args
+{
+	struct task_struct *parent;
+ 	struct task_struct *child;
+};
+#endif
+
 struct filler_data {
 	void *ctx;
 	struct scap_bpf_settings *settings;

@@ -81,7 +81,7 @@ inline const char *gzerror(FILE *F, int *E) {*E = ferror(F); return "error readi
 // ebpf defs
 //
 #ifndef BPF_PROGS_MAX
-#define BPF_PROGS_MAX 128
+#define BPF_PROGS_MAX 156
 #endif
 
 #define BPF_MAPS_MAX 32
