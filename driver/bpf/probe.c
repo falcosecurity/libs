@@ -252,6 +252,85 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 }
 #endif
 
+#if defined(BPF_SUPPORTS_RAW_TRACEPOINTS) && defined(__TARGET_ARCH_arm64)
+/* This section explains why we need two additional `raw_tracepoint`
+ * in ARM64 architectures. Right now, we catch information from all
+ * syscalls with `sys_enter` and `sys_exit` tracepoint. In x86 we are
+ * able to catch all the information we want through these tracepoints
+ * but in ARM64 we cannot do the same thing.
+ * More precisely we are not able to catch 2 main events:
+ * 
+ * - `execve` exit event.
+ * - `clone` child exit event.
+ * 
+ * This exit events don't call the `sys_exit` tracepoint and so our
+ * bpf programs are not called. These events are really important so
+ * in order to not lose them, we use 2 new tracepoints: 
+ * 
+ * - `sched_process_exec`: we catch every process that correctly performs
+ *                         an execve call.
+ * - `sched_process_fork`: we catch every new process that is spawned.
+ * 
+ * Please note: we need to use raw_tracepoint programs in order to access
+ * the raw tracepoint arguments! This is not so relevant for `sched_process_exec`
+ * since we can access all needed information from the current task, but it is
+ * essential for `sched_process_fork` since the only way we have to access the
+ * child task struct is through the raw tracepoint arguments.
+ * 
+ * Since we need to use `BPF_PROG_TYPE_RAW_TRACEPOINT`, the ARM64 support for our 
+ * BPF probe requires kernel greater or equal than `4.17`. If your run old kernel
+ * version, you can use the kernel module which requires a kernel greater than `3.4`.
+ */
+
+/* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
+ * Taken from `/include/trace/events/sched.h`
+ */
+ struct sched_process_exec_raw_args
+ {
+ 	struct task_struct *p;
+ 	pid_t old_pid;
+ 	struct linux_binprm *bprm;
+ };
+
+/* This macro `BPF_PROBE()` is equivalent to:
+ *
+ * __bpf_section(raw_tracepoint/sched_process_exec)
+ * int bpf_sched_process_exec(struct sched_process_exec_raw_args *ctx)
+ */
+BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
+{
+	struct scap_bpf_settings *settings;
+
+	/* Check if the capture is enabled. */
+	settings = get_bpf_settings();
+	if(!(settings && settings->capture_enabled))
+	{
+		return 0;
+	}
+
+	/* Reset the tail context in cpu state map. */
+	uint32_t cpu = bpf_get_smp_processor_id();
+	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
+	if(!state)
+	{
+		return 0;
+	}
+	uint64_t ts = settings->boot_time + bpf_ktime_get_boot_ns();
+	/* We wiil always send an execve exit event. */
+	reset_tail_ctx(state, PPME_SYSCALL_EXECVE_19_X, ts);
+	++state->n_evts;
+
+	int filler_code = PPM_FILLER_sched_prog_exec;
+
+	bpf_tail_call(ctx, &tail_map, filler_code);
+	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
+		   PPME_SYSCALL_EXECVE_19_X,
+		   filler_code);	
+	return 0;
+}
+
+#endif
+
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 
 char __license[] __bpf_section("license") = "GPL";
