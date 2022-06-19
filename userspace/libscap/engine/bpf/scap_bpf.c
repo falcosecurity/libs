@@ -559,7 +559,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	free(error);
 
 	if (handle->m_bpf_prog_cnt + 1 >= BPF_PROGS_MAX) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: too many programs recorded (limit is %d)", BPF_PROGS_MAX);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: too many programs recorded: %d (limit is %d)", handle->m_bpf_prog_cnt + 1 ,BPF_PROGS_MAX);
 		return SCAP_FAILURE;
 	}
 
