@@ -4714,19 +4714,15 @@ FILLER(sched_switch_e, false)
 	return res;
 }
 
+#ifndef __TARGET_ARCH_arm64
 FILLER(sys_pagefault_e, false)
 {
-	int res = 0;
-/* We cannot compile the whole filler out since in userspace we
- * check that every filler-id (`PPM_FILLER_...`) has a corresponding BPF
- * implementation.
- */
-#ifndef __TARGET_ARCH_arm64
 	struct page_fault_args *ctx;
 	unsigned long error_code;
 	unsigned long address;
 	unsigned long ip;
 	u32 flags;
+	int res;
 
 	ctx = (struct page_fault_args *)data->ctx;
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -4751,9 +4747,9 @@ FILLER(sys_pagefault_e, false)
 
 	flags = pf_flags_to_scap(error_code);
 	res = bpf_val_to_ring(data, flags);
-#endif
 	return res;
 }
+#endif
 
 static __always_inline int siginfo_not_a_pointer(struct siginfo* info)
 {
@@ -5757,9 +5753,7 @@ FILLER(sys_dup3_x, true)
 	return res;
 }
 
-/// TODO: we need to compile it out in `x86`, look at the next commits,
-/// we want to change a little bit the logic in scap filler loading.
-
+#ifdef __TARGET_ARCH_arm64
 /* Please note: here we cannot use the FILLER macro since, this is
  * the unique case in which we need to set the `tid` in the header
  * different from the current thread id.
@@ -6141,5 +6135,6 @@ FILLER(sched_prog_exec_4, false)
 
 	return res;
 }
+#endif
 
 #endif

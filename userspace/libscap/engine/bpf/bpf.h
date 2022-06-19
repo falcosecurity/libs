@@ -35,7 +35,6 @@ struct bpf_engine
 	char* m_lasterr;
 	int m_bpf_prog_fds[BPF_PROGS_MAX];
 	int m_bpf_prog_cnt;
-	bool m_bpf_fillers[BPF_PROGS_MAX];
 	int m_bpf_event_fd[BPF_PROGS_MAX];
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
