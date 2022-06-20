@@ -104,16 +104,8 @@ struct event_data_t {
 			struct k_sigaction *ka;
 		} signal_data;
 
-		/* Not sure we have to add here since we don't need them... */
-		struct {
-			struct task_struct *p;
-			pid_t old_pid;
-			struct linux_binprm *bprm;
-		} sched_proc_exec_data;
-
 #ifdef __aarch64__
 		struct {
-			struct task_struct *parent;
 			struct task_struct *child;
 		} sched_proc_fork_data;
 #endif
@@ -2263,11 +2255,13 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 
 	g_n_tracepoint_hit_inc();
 
-	event_data.category = PPMC_SCHED_PROC_EXEC;
-	// event_data.event_info.context_data.sched_proc_exec_data.p = p;
-	// event_data.event_info.context_data.sched_proc_exec_data.old_pid = old_pid;
-	// event_data.event_info.context_data.sched_proc_exec_data.bprm = bprm;
+	/* We are not interested in kernel threads. */
+	if(unlikely(current->flags & PF_KTHREAD))
+	{
+    	return;
+	}
 
+	event_data.category = PPMC_SCHED_PROC_EXEC;
 	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data);
 }
 
@@ -2276,6 +2270,14 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 	struct event_data_t event_data;
 
 	g_n_tracepoint_hit_inc();
+
+	/* We are not interested in kernel threads. 
+	 * The current thread here is the `parent`.
+	 */
+	if(unlikely(current->flags & PF_KTHREAD))
+	{
+    	return;
+	}
 
 	event_data.category = PPMC_SCHED_PROC_FORK;
 	event_data.event_info.sched_proc_fork_data.child = child;

@@ -290,6 +290,16 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 {
 	struct scap_bpf_settings *settings;
+	/* We will always send an execve exit event. */
+	enum ppm_event_type event_type = PPME_SYSCALL_EXECVE_19_X;
+
+	/* We are not interested in kernel threads. */
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	unsigned int flags = _READ(task->flags);
+	if(flags & PF_KTHREAD)
+	{
+		return 0;
+	}
 
 	/* Check if the capture is enabled. */
 	settings = get_bpf_settings();
@@ -306,15 +316,14 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 		return 0;
 	}
 	uint64_t ts = settings->boot_time + bpf_ktime_get_boot_ns();
-	/* We wiil always send an execve exit event. */
-	reset_tail_ctx(state, PPME_SYSCALL_EXECVE_19_X, ts);
+	reset_tail_ctx(state, event_type, ts);
 	++state->n_evts;
 
-	int filler_code = PPM_FILLER_sched_prog_exec;
 
+	int filler_code = PPM_FILLER_sched_prog_exec;
 	bpf_tail_call(ctx, &tail_map, filler_code);
-	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
-		   PPME_SYSCALL_EXECVE_19_X,
+	bpf_printk("Can't tail call filler 'sched_proc_exec' evt=%d, filler=%d\n",
+		   event_type,
 		   filler_code);	
 	return 0;
 }
@@ -322,6 +331,16 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 {
 	struct scap_bpf_settings *settings;
+	/* We will always send a clone exit event. */
+	enum ppm_event_type event_type = PPME_SYSCALL_CLONE_20_X;
+
+	/* We are not interested in kernel threads. */
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	unsigned int flags = _READ(task->flags);
+	if(flags & PF_KTHREAD)
+	{
+		return 0;
+	}
 
 	/* Check if the capture is enabled. */
 	settings = get_bpf_settings();
@@ -338,15 +357,13 @@ BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 		return 0;
 	}
 	uint64_t ts = settings->boot_time + bpf_ktime_get_boot_ns();
-	/* We wiil always send an execve exit event. */
-	reset_tail_ctx(state, PPME_SYSCALL_CLONE_20_X, ts);
+	reset_tail_ctx(state, event_type, ts);
 	++state->n_evts;
 
 	int filler_code = PPM_FILLER_sched_prog_fork;
-
 	bpf_tail_call(ctx, &tail_map, filler_code);
-	bpf_printk("Can't tail call filler evt=%d, filler=%d\n",
-		   PPME_SYSCALL_CLONE_20_X,
+	bpf_printk("Can't tail call filler 'sched_proc_fork' evt=%d, filler=%d\n",
+		   event_type,
 		   filler_code);	
 	return 0;
 }
