@@ -29,8 +29,11 @@ limitations under the License.
 #include <sstream>
 #include <string>
 
+#include <json/json.h>
+
 #include "gvisor.h"
 #include "../../driver/ppm_events_public.h"
+#include "../../../common/strlcpy.h"
 
 #include "userspace_flag_helpers.h"
 #include "../common/strlcpy.h"
@@ -711,6 +714,142 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	}
 
 	return cb(proto, proto_size, scap_buf);
+}
+
+bool parse_procfs_json(const std::string &input, const std::string &sandbox, scap_threadinfo &tinfo)
+{
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	std::string err;
+	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+
+	bool json_parse = reader->parse(input.c_str(), input.c_str() + input.size() - 1, &root, &err);
+	if(!json_parse)
+	{
+		return false;
+	}
+
+	//
+	// Fill threadinfo
+	//
+
+	if(!root.isMember("status"))
+	{
+		return false;
+	}
+	Json::Value &status = root["status"];
+
+	if(!root.isMember("stat"))
+	{
+		return false;
+	}
+	Json::Value &stat = root["stat"];
+
+	// tid
+	if(!status.isMember("pid") || !status["pid"].isUInt64())
+	{
+		return false;
+	}
+	tinfo.tid = generate_tid_field(status["pid"].asUInt64(), sandbox);
+
+	// pid
+	if(!stat.isMember("pgid") || !stat["pgid"].isUInt64())
+	{
+		return false;
+	}
+	tinfo.pid = generate_tid_field(stat["pgid"].asUInt64(), sandbox);
+
+	// sid
+	if(!stat.isMember("sid") || !stat["sid"].isUInt64())
+	{
+		return false;
+	}
+	tinfo.sid = stat["sid"].asUInt64();
+
+	// vpgid
+	tinfo.vpgid = stat["pgid"].asUInt64();
+
+	// comm
+	if(!status.isMember("comm") || !status["comm"].isString())
+	{
+		return false;
+	}
+	strlcpy(tinfo.comm, status["comm"].asCString(), SCAP_MAX_PATH_SIZE + 1);
+
+	// exe
+	if(!root.isMember("args") || !root["args"].isArray() || !root["args"][0].isString())
+	{
+		return false;
+	}
+	strlcpy(tinfo.exe, root["args"][0].asCString(), SCAP_MAX_PATH_SIZE + 1);
+
+	// exepath
+	if(!root.isMember("exe") || !root["exe"].isString())
+	{
+		return false;
+	}
+	strlcpy(tinfo.exepath, root["exe"].asCString(), SCAP_MAX_PATH_SIZE + 1);
+
+	// args
+	if(!root.isMember("args") || !root["args"].isArray())
+	{
+		return false;
+	}
+	std::string args;
+	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
+	{
+		args += root["args"][i].asString();
+		args.push_back('\0');
+	}
+	size_t args_size = args.size() > SCAP_MAX_ARGS_SIZE ? SCAP_MAX_ARGS_SIZE : args.size();
+	tinfo.args_len = args_size;
+	memcpy(tinfo.args, args.data(), args_size);
+	tinfo.args[SCAP_MAX_ARGS_SIZE] = '\0';
+
+	// env
+	if(!root.isMember("env") || !root["env"].isArray())
+	{
+		return false;
+	}
+	std::string env;
+	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
+	{
+		env += root["env"][i].asString();
+		env.push_back('\0');
+	}
+	size_t env_size = env.size() > SCAP_MAX_ENV_SIZE ? SCAP_MAX_ENV_SIZE : env.size();
+	tinfo.env_len = env_size;
+	memcpy(tinfo.env, env.data(), env_size);
+	tinfo.env[SCAP_MAX_ENV_SIZE] = '\0';
+
+	// cwd
+	if(!root.isMember("cwd") || !root["cwd"].isString())
+	{
+		return false;
+	}
+	strlcpy(tinfo.cwd, root["cwd"].asCString(), SCAP_MAX_PATH_SIZE + 1);
+
+	// vtid
+	tinfo.vtid = status["pid"].asUInt64();
+
+	// vpid
+	tinfo.vpid = status["pgid"].asUInt64();
+
+	// root
+	if(!root.isMember("root") || !root["root"].isString())
+	{
+		return false;
+	}
+	strlcpy(tinfo.root, root["root"].asCString(), SCAP_MAX_PATH_SIZE + 1);
+
+	// clone_ts
+	if(!root.isMember("clone_ts") || !root["clone_ts"].isUInt64())
+	{
+		return false;
+	}
+	tinfo.clone_ts = root["clone_ts"].asUInt64();
+
+	return true;
 }
 
 } // namespace parsers
