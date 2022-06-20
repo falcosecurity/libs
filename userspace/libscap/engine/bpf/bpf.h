@@ -24,8 +24,11 @@ limitations under the License.
 //
 // ebpf defs
 //
-/// TODO: why we have 2 definitions ?
+
+#ifndef BPF_PROGS_MAX
 #define BPF_PROGS_MAX 156
+#endif
+
 #define BPF_MAPS_MAX 32
 
 struct bpf_engine
