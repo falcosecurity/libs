@@ -40,7 +40,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	endif()
 
     if(NOT DEFINED DRIVER_VERSION)
-        set(DRIVER_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+        message(ERROR 
+			"No driver version set. Please either build the project from a git working directory or explicitly set the DRIVER_VERSION cmake cache entry."
+		)
     endif()
 
     if(NOT DEFINED DRIVER_NAME)
