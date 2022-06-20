@@ -237,6 +237,18 @@ struct scap_bpf_per_cpu_state {
 	struct tail_context tail_ctx;
 	unsigned long long n_evts;
 	unsigned long long n_drops_buffer;
+	unsigned long long n_drops_buffer_clone_fork_enter;
+	unsigned long long n_drops_buffer_clone_fork_exit;
+	unsigned long long n_drops_buffer_execve_enter;
+	unsigned long long n_drops_buffer_execve_exit;
+	unsigned long long n_drops_buffer_connect_enter;
+	unsigned long long n_drops_buffer_connect_exit;
+	unsigned long long n_drops_buffer_open_enter;
+	unsigned long long n_drops_buffer_open_exit;
+	unsigned long long n_drops_buffer_dir_file_enter;
+	unsigned long long n_drops_buffer_dir_file_exit;
+	unsigned long long n_drops_buffer_other_interest_enter;
+	unsigned long long n_drops_buffer_other_interest_exit;
 	unsigned long long n_drops_scratch_map;
 	unsigned long long n_drops_pf;
 	unsigned long long n_drops_bug;
