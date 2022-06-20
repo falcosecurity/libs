@@ -170,7 +170,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 	return 0;
 }
 
-#ifndef __TARGET_ARCH_arm64
+#ifndef __aarch64__
 /* Page fault tracepoints are not defined in ARM64, so
  * we don't inject anything into the kernel.
  */
@@ -252,7 +252,7 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 }
 #endif
 
-#if defined(BPF_SUPPORTS_RAW_TRACEPOINTS) && defined(__TARGET_ARCH_arm64)
+#ifdef __aarch64__
 /* This section explains why we need two additional `raw_tracepoint`
  * in ARM64 architectures. Right now, we catch information from all
  * syscalls with `sys_enter` and `sys_exit` tracepoint. In x86 we are

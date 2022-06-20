@@ -1046,7 +1046,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 	u32 status = 0;
 
 	task = (struct task_struct *)bpf_get_current_task();
-#if (defined(__i386__) || defined(__TARGET_ARCH_x86)  || defined(_M_IX86))
+#if (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86))
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
 	status = _READ(task->thread.status);
@@ -1059,7 +1059,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
-#elif defined(__TARGET_ARCH_arm64)
+#elif defined(__aarch64__)
 	status = _READ(task->thread_info.flags);
 	return status & _TIF_32BIT;
 #else
