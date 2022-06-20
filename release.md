@@ -6,18 +6,18 @@ We have two separate release processes which occur **independently** of each oth
 - The **drivers release**
 - The **libs release** (ie. _libsinp_ and _libscap_)
 
-The drivers release process is mainly automated and happens outside this repository. The actual building and distribution system is implemented in our [test-infra](https://github.com/falcosecurity/test-infra) by the [Driverkit Build Grid](https://github.com/falcosecurity/test-infra/tree/master/driverkit), and drivers are published to https://download.falco.org/?prefix=driver/. The [drivers versioning](#Drivers-versioning) process happens in this repo. 
+The [drivers versioning](#Drivers-versioning) process happens in this repository, but their release process is mainly automated and managed in our [test-infra](https://github.com/falcosecurity/test-infra). Building is implemented there as per the [Driverkit Build Grid](https://github.com/falcosecurity/test-infra/tree/master/driverkit), and drivers are published to https://download.falco.org/?prefix=driver/.
 
 >_Note that not all versioned releases will be built and distributed. Drivers distribution is indeed implemented and maintained only to satisfy Falco's needs._
 
-The libs release process is currently under development and limited to the versioning process only. The [libs versioning](#Libs-versioning) process happens in this repo.
+The libs release process is currently under development and limited to the versioning process only. The [libs versioning](#Libs-versioning) process happens in this repository.
 
 
 ## Release procedure
 
 Regardless if it is a driver or a libs release when initiating a new release, we do the following process:
 
-1. We decide together (usually in the #falco channel in [slack](https://kubernetes.slack.com/messages/falco)) if the source code is a good shape and if it's the case to be released
+1. We decide together (usually in the #falco channel in [slack](https://kubernetes.slack.com/messages/falco)) if the source code is in a shape good enough to be released
 2. We double-check if the versioning rules have been respected (see sections below), then we pick the next version number to tag (i.e., a _git tag_)
 3. A person with repository rights creates a [new release using the GitHub UI](https://github.com/falcosecurity/libs/releases/new) (a git tag will be automatically created)
 
@@ -26,11 +26,11 @@ Regardless if it is a driver or a libs release when initiating a new release, we
 
 ## Drivers versioning
 
-The *driver version number* represents the build version of kernel-space drivers (i.e., the kernel module, the eBPF probe, and possibly any other kernel-space drivers).
+The *driver version number* represents the build version of kernel-space drivers (i.e., the kernel module, the eBPF probe, and possibly any other kernel-space artifact).
 
 **Requirements**
 
-- The version MUST be a [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string.
+- The version MUST be a [SemVer 2.0](https://semver.org/spec/v2.0.0.html) compliant string.
 
 - Since our driver APIs are assumed to be stable, the major version number MUST be equal to or greater than `1`.
 
@@ -48,15 +48,13 @@ The *driver version number* represents the build version of kernel-space drivers
 
 > _Note that `API_VERSION` and `SCHEMA_VERSION` are only used internally. On the other hand, only the **driver version number** will be used **to tag a new release**._
 
-
-
 ## Libs versioning
 
 The *libs version number* represents a software version of the user-space libraries (i.e., libscap, libsinsp, and possibly any other further user-space library), and it is not tied to the drivers version numbering.
 
 **Requirements**
 
-- The version MUST be a [SemVer 2.0](https://semver.org/spec/v2.0.0.html) string.
+- The version MUST be a [SemVer 2.0](https://semver.org/spec/v2.0.0.html) compliant string.
 
 - Since our userspace APIs are not yet stable, the major version number MUST be `0` (see the SemVer section about the [initial development phase](https://semver.org/spec/v2.0.0.html#how-should-i-deal-with-revisions-in-the-0yz-initial-development-phase)).
 
