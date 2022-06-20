@@ -34,6 +34,12 @@ plus chisels related code and common utilities.
 external dependencies, plus the libscap and libsinsp ones; consumers
 (like Falco) use those modules to build the libs in their projects.
 
+## Versioning
+
+This project uses two different versioning schemes for the _libs_ and _driver_ components. In particular, the _driver_ versions are suffixed with `+driver` to distinguish them from the _libs_ ones. Both adhere to the [Semantic Versioning 2.0.0](https://semver.org/). You can find more detail about how we version those components in our [release process documentation](./release.md).
+
+If you build this project from a git working directory, the main [CMakeLists.txt](./CMakeLists.txt) will automatically compute the appropriate version for all components. Otherwise, if you use a source code copy with no the git information or pull the sources of the libs or the drivers directly in your project, it's up to you to correctly set the appropriate cmake variables (for example,  `-DFALCOSECURITY_LIBS_VERSION=x.y.z -DDRIVER_VERSION=a.b.c+driver`).
+
 ## Build
 
 Libs relies upon `cmake` build system.  
