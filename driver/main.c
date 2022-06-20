@@ -161,7 +161,8 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
 #endif
 
-#ifdef CAPTURE_PAGE_FAULTS
+/* tracepoints `page_fault_user/kernel` don't exist on ARM64 architecture .*/
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
@@ -204,7 +205,7 @@ static struct tracepoint *tp_sched_switch;
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 static struct tracepoint *tp_signal_deliver;
 #endif
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 // Even in kernels that can support page fault tracepoints, tracepoints may be
 // disabled so check if g_fault_tracepoint_disabled is set.
 static struct tracepoint *tp_page_fault_user;
@@ -649,7 +650,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 			if (g_fault_tracepoint_registered) {
 				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
 				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
@@ -1137,7 +1138,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_ENABLE_PAGE_FAULTS:
 	{
 		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 		ASSERT(g_tracepoint_registered);
 
 		if (g_fault_tracepoint_disabled) {
@@ -1177,7 +1178,7 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 	}
 
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 err_page_fault_kernel:
 	compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
 #endif
@@ -2226,7 +2227,7 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 }
 #endif
 
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
 	struct event_data_t event_data;
@@ -2394,7 +2395,7 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 	else if (!strcmp(tp->name, "signal_deliver"))
 		tp_signal_deliver = tp;
 #endif
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 	else if (!strcmp(tp->name, "page_fault_user"))
 		tp_page_fault_user = tp;
 	else if (!strcmp(tp->name, "page_fault_kernel"))
@@ -2436,7 +2437,7 @@ static int get_tracepoint_handles(void)
 		return -ENOENT;
 	}
 #endif
-#ifdef CAPTURE_PAGE_FAULTS
+#if defined(CAPTURE_PAGE_FAULTS) && !defined(CONFIG_ARM64)
 	if (!tp_page_fault_user) {
 		pr_notice("failed to find page_fault_user tracepoint, disabling page-faults\n");
 		g_fault_tracepoint_disabled = true;
