@@ -113,6 +113,7 @@ private:
     runsc_result runsc_list();
     runsc_result runsc_trace_create(const std::string &sandbox_id, bool force);
     runsc_result runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id);
+    runsc_result runsc_trace_procfs(const std::string &sandbox_id);
 
     char *m_lasterr;
     int m_listenfd = 0;
@@ -132,6 +133,7 @@ private:
     // when get_threadinfos() is called. They are only updated upon get_threadinfos()
     std::vector<scap_threadinfo> m_threadinfos_threads;
     std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
+
     std::string m_root_path;
     std::string m_trace_session_path;
 };
