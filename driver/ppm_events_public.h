@@ -766,6 +766,7 @@ enum ppm_capture_category {
 	PPMC_CONTEXT_SWITCH = 2,
 	PPMC_SIGNAL = 3,
 	PPMC_PAGE_FAULT = 4,
+	PPMC_SCHED_PROC_EXEC = 5,
 };
 
 /** @defgroup etypes Event Types
