@@ -77,15 +77,6 @@ inline const char *gzerror(FILE *F, int *E) {*E = ferror(F); return "error readi
 //
 #define PF_CLONING 1
 
-//
-// ebpf defs
-//
-#ifndef BPF_PROGS_MAX
-#define BPF_PROGS_MAX 156
-#endif
-
-#define BPF_MAPS_MAX 32
-
 typedef struct scap_tid
 {
 	uint64_t tid;
