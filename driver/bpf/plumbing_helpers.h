@@ -97,7 +97,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#if defined(__TARGET_ARCH_arm64)
+#ifdef __aarch64__
 	id = _READ(regs->syscallno);
 #else 
 	/* Right now we used this for all other architectures that are not ARM
@@ -139,7 +139,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	/* This is used both by ARM64 and x86. */
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#if defined(__TARGET_ARCH_arm64)
+#ifdef __aarch64__
 	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
 	switch (idx) {
 	case 0:

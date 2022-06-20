@@ -129,7 +129,7 @@ struct sys_stash_args {
 };
 #endif
 
-#ifdef __TARGET_ARCH_arm64
+#ifdef __aarch64__
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */

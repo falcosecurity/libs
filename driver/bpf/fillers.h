@@ -4714,7 +4714,7 @@ FILLER(sched_switch_e, false)
 	return res;
 }
 
-#ifndef __TARGET_ARCH_arm64
+#ifndef __aarch64__
 FILLER(sys_pagefault_e, false)
 {
 	struct page_fault_args *ctx;
@@ -5753,7 +5753,7 @@ FILLER(sys_dup3_x, true)
 	return res;
 }
 
-#ifdef __TARGET_ARCH_arm64
+#ifdef __aarch64__
 /* We set `is_syscall` flag to `false` since this is not
  * a real syscall, we only send the same event from another
  * tracepoint.
