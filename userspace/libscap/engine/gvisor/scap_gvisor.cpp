@@ -27,8 +27,6 @@ limitations under the License.
 
 #include <vector>
 
-#include <json/json.h>
-
 #include "gvisor.h"
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
@@ -42,7 +40,7 @@ constexpr uint32_t max_ready_sandboxes = 32;
 constexpr size_t max_message_size = 300 * 1024;
 constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
-constexpr size_t max_line_size = 2048;
+constexpr size_t max_line_size = 8192;
 
 sandbox_entry::sandbox_entry()
 {
@@ -608,6 +606,21 @@ engine::runsc_result engine::runsc_trace_delete(const std::string &session_name,
 		session_name.c_str(),
 		sandbox_id.c_str(),
 		NULL
+	};
+
+	return runsc((char **)argv);
+}
+
+engine::runsc_result engine::runsc_trace_procfs(const std::string &sandbox_id)
+{
+	const char *argv[] = {
+		"runsc", 
+		"--root",
+		m_root_path.c_str(),
+		"trace",
+		"procfs",
+		sandbox_id.c_str(),
+		NULL, 
 	};
 
 	return runsc((char **)argv);
