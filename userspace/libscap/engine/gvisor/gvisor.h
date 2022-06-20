@@ -69,6 +69,8 @@ struct parse_result {
 */
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
 
+bool parse_procfs_json(const std::string &input, const std::string &sandbox, scap_threadinfo &tinfo);
+
 uint64_t get_vxid(uint64_t vxid);
 
 } // namespace parsers
