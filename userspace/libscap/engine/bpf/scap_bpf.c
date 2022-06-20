@@ -1599,6 +1599,18 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 
 		stats->n_evts += v.n_evts;
 		stats->n_drops_buffer += v.n_drops_buffer;
+		stats->n_drops_buffer_clone_fork_enter += v.n_drops_buffer_clone_fork_enter;
+		stats->n_drops_buffer_clone_fork_exit += v.n_drops_buffer_clone_fork_exit;
+		stats->n_drops_buffer_execve_enter += v.n_drops_buffer_execve_enter;
+		stats->n_drops_buffer_execve_exit += v.n_drops_buffer_execve_exit;
+		stats->n_drops_buffer_connect_enter += v.n_drops_buffer_connect_enter;
+		stats->n_drops_buffer_connect_exit += v.n_drops_buffer_connect_exit;
+		stats->n_drops_buffer_open_enter += v.n_drops_buffer_open_enter;
+		stats->n_drops_buffer_open_exit += v.n_drops_buffer_open_exit;
+		stats->n_drops_buffer_dir_file_enter += v.n_drops_buffer_dir_file_enter;
+		stats->n_drops_buffer_dir_file_exit += v.n_drops_buffer_dir_file_exit;
+		stats->n_drops_buffer_other_interest_enter += v.n_drops_buffer_other_interest_enter;
+		stats->n_drops_buffer_other_interest_exit += v.n_drops_buffer_other_interest_exit;
 		stats->n_drops_scratch_map += v.n_drops_scratch_map;
 		stats->n_drops_pf += v.n_drops_pf;
 		stats->n_drops_bug += v.n_drops_bug;
