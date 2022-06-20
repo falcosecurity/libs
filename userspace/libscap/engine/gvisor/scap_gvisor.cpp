@@ -332,7 +332,35 @@ int32_t engine::stop_capture()
 
 uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 {
-	// Add logic to parse process and file list from runsc here
+	engine::runsc_result sandboxes_res = runsc_list();
+	std::vector<std::string> &sandboxes = sandboxes_res.output;
+
+	m_threadinfos_threads.clear();
+
+	for(const auto &sandbox : sandboxes)
+	{
+		runsc_result procfs_res = runsc_trace_procfs(sandbox);
+		for(const auto &line : procfs_res.output)
+		{
+			// skip first line of the output and empty lines
+			if(line.find("PROCFS DUMP") != std::string::npos || line.compare("\n") == 0)
+			{
+				continue;
+			}
+
+			scap_threadinfo tinfo;
+			bool res = parsers::parse_procfs_json(line, sandbox, tinfo);
+			if(!res)
+			{
+				*tinfos = NULL;
+				*n = 0;
+				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot retrieve procfs state information");
+				return SCAP_FAILURE;
+			}
+
+			m_threadinfos_threads.emplace_back(tinfo);
+		}
+	}
 
 	*tinfos = m_threadinfos_threads.data();
 	*n = m_threadinfos_threads.size();
