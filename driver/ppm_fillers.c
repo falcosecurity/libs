@@ -6335,7 +6335,7 @@ out:
 	return res;
 }
 
-#if(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) && defined(__aarch64__)
+#ifdef CONFIG_ARM64
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
 	int res = 0;

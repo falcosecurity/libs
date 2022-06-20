@@ -63,7 +63,7 @@ struct event_filler_arguments {
 	struct task_struct *sched_prev; /* for context switch events, the task that is being scheduled out */
 	struct task_struct *sched_next; /* for context switch events, the task that is being scheduled in */
 
-#ifdef __aarch64__
+#ifdef CONFIG_ARM64
 	struct task_struct *child; /* for sched_process_fork events, this is the child task */
 #endif
 
