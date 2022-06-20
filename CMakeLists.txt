@@ -1,11 +1,11 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2022 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -38,32 +38,26 @@ option(MINIMAL_BUILD "Produce a minimal build with only the essential features (
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 
 include(GNUInstallDirs)
+
 # Add path for custom CMake modules.
 list(APPEND CMAKE_MODULE_PATH
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-include(GetGitRevisionDescription)
+include(versions)
 
+# Libs version
 if(NOT DEFINED FALCOSECURITY_LIBS_VERSION)
-	# Try to obtain the exact git tag
-	git_get_exact_tag(LIBS_TAG)
-	if(NOT LIBS_TAG)
-		# Obtain the closest tag
-		git_describe(FALCOSECURITY_LIBS_VERSION "--always" "--tags" "--abbrev=7")
-		# Fallback version
-		if(FALCOSECURITY_LIBS_VERSION MATCHES "NOTFOUND$")
-			set(FALCOSECURITY_LIBS_VERSION "0.1.1dev")
-		endif()
-		# Format FALCOSECURITY_LIBS_VERSION to be semver with prerelease and build part
-		string(REPLACE "-g" "+" FALCOSECURITY_LIBS_VERSION "${FALCOSECURITY_LIBS_VERSION}")
-	else()
-		# A tag has been found: use it as the Falco version
-		set(FALCOSECURITY_LIBS_VERSION "${LIBS_TAG}")
-	endif()
+	get_libs_version(FALCOSECURITY_LIBS_VERSION)
 endif()
 
-# Remove the starting "v" in case there is one
-string(REGEX REPLACE "^v(.*)" "\\1" FALCOSECURITY_LIBS_VERSION "${FALCOSECURITY_LIBS_VERSION}")
+message(STATUS "Libs version: ${FALCOSECURITY_LIBS_VERSION}")
+
+# Driver version
+if(NOT DEFINED DRIVER_VERSION)
+	get_drivers_version(DRIVER_VERSION)
+endif()
+
+message(STATUS "Driver version: ${DRIVER_VERSION}")
 
 if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
@@ -73,6 +67,7 @@ set(LIBS_PACKAGE_NAME "falcosecurity")
 
 include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+
 if(HAVE_STRLCPY)
 	message(STATUS "Existing strlcpy found, will *not* use local definition by setting -DHAVE_STRLCPY.")
 	add_definitions(-DHAVE_STRLCPY)
@@ -94,11 +89,10 @@ include(libscap)
 include(libsinsp)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
-		# Add command to run all unit tests at once via the make system.
-		# This is preferred vs using ctest's add_test because it will build
-		# the code and output to stdout.
-		add_custom_target(run-unit-tests
-			COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
-		)
+	# Add command to run all unit tests at once via the make system.
+	# This is preferred vs using ctest's add_test because it will build
+	# the code and output to stdout.
+	add_custom_target(run-unit-tests
+		COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
+	)
 endif()
-
