@@ -15,7 +15,9 @@ or GPL2.txt for full copies of the license.
 #ifndef UDIG
 #define CAPTURE_CONTEXT_SWITCHES
 #define CAPTURE_SIGNAL_DELIVERIES
-#define CAPTURE_PAGE_FAULTS
+#ifdef __x86_64__
+	#define CAPTURE_PAGE_FAULTS
+#endif
 #endif /* UDIG */
 #endif /* __KERNEL__ */
 
