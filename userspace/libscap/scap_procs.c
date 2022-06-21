@@ -1459,44 +1459,6 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 }
 
-//
-// Internal helper functions to output the process table to screen
-//
-void scap_proc_print_info(scap_t *handle, scap_threadinfo* tinfo)
-{
-	fprintf(stderr, "TID:%"PRIu64" PID:%"PRIu64" FLAGS:%"PRIu32" COMM:%s EXE:%s ARGS:%s CWD:%s FLIMIT:%" PRId64 "\n", tinfo->tid, tinfo->pid, tinfo->flags,tinfo->comm, tinfo->exe, tinfo->args, tinfo->cwd, tinfo->fdlimit);
-	scap_fd_print_table(handle, tinfo);
-}
-
-void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid)
-{
-	scap_threadinfo* tinfo;
-	scap_threadinfo* ttinfo;
-
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
-	{
-		if(tinfo->tid == tid)
-		{
-			scap_proc_print_info(handle, tinfo);
-		}
-	}
-}
-
-void scap_proc_print_table(scap_t* handle)
-{
-	scap_threadinfo* tinfo;
-	scap_threadinfo* ttinfo;
-
-	printf("************** PROCESS TABLE **************\n");
-
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
-	{
-		scap_proc_print_info(handle, tinfo);
-	}
-
-	printf("*******************************************\n");
-}
-
 const char *scap_strerror_r(char *buf, int errnum)
 {
 	int rc;
