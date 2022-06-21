@@ -23,7 +23,6 @@ limitations under the License.
 #include <sys/un.h>
 #include <sys/epoll.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
 #include <vector>
 
@@ -40,7 +39,6 @@ constexpr uint32_t max_ready_sandboxes = 32;
 constexpr size_t max_message_size = 300 * 1024;
 constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
-constexpr size_t max_line_size = 8192;
 
 sandbox_entry::sandbox_entry()
 {
@@ -104,7 +102,7 @@ int32_t engine::init(std::string socket_path, std::string root_path, std::string
 	unlink(m_socket_path.c_str());
 	
 	// Check if runsc is installed in the system
-	runsc_result version = runsc_version();
+	runsc::result version = runsc::version();
 	if(version.error)
 	{
 		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
@@ -236,7 +234,7 @@ int32_t engine::start_capture()
 	// Retrieve all running sandboxes
 	// We will need to recreate a session for each of them
 	//
-	runsc_result exisiting_sandboxes_res = runsc_list();
+	runsc::result exisiting_sandboxes_res = runsc::list(m_root_path);
 	if(exisiting_sandboxes_res.error)
 	{
 		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
@@ -253,7 +251,7 @@ int32_t engine::start_capture()
 	for(const auto& sandbox : existing_sandboxes)
 	{
 		// Since they were already running, we need to force the creation
-		runsc_result trace_create_res = runsc_trace_create(sandbox, true);
+		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, true);
 		if(trace_create_res.error)
 		{
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
@@ -263,7 +261,7 @@ int32_t engine::start_capture()
 
 
 	// Catch all sandboxes that might have been created in the meantime
-	runsc_result new_sandboxes_res = runsc_list();
+	runsc::result new_sandboxes_res = runsc::list(m_root_path);
 	if(new_sandboxes_res.error)
 	{
 		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
@@ -286,7 +284,7 @@ int32_t engine::start_capture()
 	// Create new session for remaining sandboxes
 	for(const auto& sandbox : new_sandboxes)
 	{
-		runsc_result trace_create_res = runsc_trace_create(sandbox, false);
+		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, false);
 		if(trace_create_res.error)
 		{
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
@@ -308,7 +306,7 @@ int32_t engine::stop_capture()
 	::close(m_epollfd);
 	free_sandbox_buffers();
 
-	runsc_result sandboxes_res = runsc_list();
+	runsc::result sandboxes_res = runsc::list(m_root_path);
 	if(sandboxes_res.error)
 	{
 		strlcpy(m_lasterr, "Error listing running sandboxes", SCAP_LASTERR_SIZE);
@@ -318,7 +316,7 @@ int32_t engine::stop_capture()
 	for(const auto &sandbox : sandboxes)
 	{
 		// todo(loresuso): change session name when gVisor will support it
-		runsc_result trace_delete_res = runsc_trace_delete("Default", sandbox);
+		runsc::result trace_delete_res = runsc::trace_delete(m_root_path, "Default", sandbox);
 		if(trace_delete_res.error)
 		{
 			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot delete session for sandbox %s", sandbox.c_str());
@@ -332,14 +330,14 @@ int32_t engine::stop_capture()
 
 uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 {
-	engine::runsc_result sandboxes_res = runsc_list();
+	runsc::result sandboxes_res = runsc::list(m_root_path);
 	std::vector<std::string> &sandboxes = sandboxes_res.output;
 
 	m_threadinfos_threads.clear();
 
 	for(const auto &sandbox : sandboxes)
 	{
-		runsc_result procfs_res = runsc_trace_procfs(sandbox);
+		runsc::result procfs_res = runsc::trace_procfs(m_root_path, sandbox);
 		for(const auto &line : procfs_res.output)
 		{
 			// skip first line of the output and empty lines
@@ -510,148 +508,6 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 
 	// nothing to do
     return SCAP_TIMEOUT;
-}
-
-engine::runsc_result engine::runsc(char *argv[])
-{
-	runsc_result res = {0};
-	int pipefds[2];
-
-	int ret = pipe(pipefds);
-	if(ret)
-	{
-		return res;
-	}
-
-	pid_t pid = vfork();
-	if(pid > 0)
-	{
-		char line[max_line_size];
-		int status;
-		
-		::close(pipefds[1]);
-		wait(&status);
-		if(!WIFEXITED(status) || WEXITSTATUS(status) != 0)
-		{
-			res.error = status;
-			return res;
-		}
-
-		FILE *f = fdopen(pipefds[0], "r");
-		if(!f)
-		{
-			return res;
-		}
-
-		while(fgets(line, max_line_size, f))
-		{
-			res.output.emplace_back(std::string(line));
-		}
-
-		fclose(f);
-	}
-	else
-	{
-		::close(pipefds[0]);
-		dup2(pipefds[1], STDOUT_FILENO);
-		execvp("runsc", argv);
-		exit(1);
-	}
-
-	return res;
-}
-
-engine::runsc_result engine::runsc_version()
-{
-	const char *argv[] = {
-		"runsc",
-		"--version",
-		NULL
-	};
-
-	return runsc((char **)argv);
-}
-
-engine::runsc_result engine::runsc_list()
-{
-	runsc_result res = {0};
-	std::vector<std::string> running_sandboxes;
-
-	const char *argv[] = {
-		"runsc", 
-		"--root",
-		m_root_path.c_str(),
-		"list",
-		NULL
-	};
-
-	res = runsc((char **)argv);
-	if(res.error)
-	{
-		return res;
-	}
-
-	for(const auto &line : res.output)
-	{
-		if(line.find("running") != std::string::npos)
-		{
-			std::string sandbox = line.substr(0, line.find_first_of(" ", 0));
-			running_sandboxes.emplace_back(sandbox);
-		}
-	}
-
-	res.output = running_sandboxes;
-	return res;
-}
-
-engine::runsc_result engine::runsc_trace_create(const std::string &sandbox_id, bool force)
-{
-	const char *argv[] = {
-		"runsc", 
-		"--root",
-		m_root_path.c_str(),
-		"trace",
-		"create",
-		force ? "--force" : "",
-		"--config", 
-		m_trace_session_path.c_str(),
-		sandbox_id.c_str(),
-		NULL
-	};
-
-	return runsc((char **)argv);
-}
-
-engine::runsc_result engine::runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id)
-{
-	const char *argv[] = {
-		"runsc", 
-		"--root",
-		m_root_path.c_str(),
-		"trace",
-		"delete",
-		"--name",
-		session_name.c_str(),
-		sandbox_id.c_str(),
-		NULL
-	};
-
-	return runsc((char **)argv);
-}
-
-engine::runsc_result engine::runsc_trace_procfs(const std::string &sandbox_id)
-{
-	const char *argv[] = {
-		"runsc", 
-		"--root",
-		m_root_path.c_str(),
-		"trace",
-		"procfs",
-		sandbox_id.c_str(),
-		NULL, 
-	};
-
-	return runsc((char **)argv);
 }
 
 } // namespace scap_gvisor

@@ -75,6 +75,22 @@ uint64_t get_vxid(uint64_t vxid);
 
 } // namespace parsers
 
+namespace runsc
+{
+
+    struct result {
+        int error;
+        std::vector<std::string> output;
+    };
+
+    result version();
+    result list(const std::string &root_path);
+    result trace_create(const std::string &root_path, const std::string &trace_session_path, const std::string &sandbox_id, bool force);
+    result trace_delete(const std::string &root_path, const std::string &session_name, const std::string &sandbox_id);
+    result trace_procfs(const std::string &root_path, const std::string &sandbox_id);
+
+} // namespace runsc
+
 // contains entries to store per-sandbox data and buffers to use to write events in
 class sandbox_entry {
 public:
@@ -105,18 +121,6 @@ private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
 
-    struct runsc_result {
-        int error;
-        std::vector<std::string> output;
-    };
-
-    runsc_result runsc(char *argv[]);
-    runsc_result runsc_version();
-    runsc_result runsc_list();
-    runsc_result runsc_trace_create(const std::string &sandbox_id, bool force);
-    runsc_result runsc_trace_delete(const std::string &session_name, const std::string &sandbox_id);
-    runsc_result runsc_trace_procfs(const std::string &sandbox_id);
-
     char *m_lasterr;
     int m_listenfd = 0;
     int m_epollfd = 0;
@@ -136,8 +140,11 @@ private:
     std::vector<scap_threadinfo> m_threadinfos_threads;
     std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
 
+    // the following two strings contains the path of the root dir used by the runsc command
+    // and the path the trace session configuration file used to set up traces, respectively
     std::string m_root_path;
     std::string m_trace_session_path;
+
 };
 
 } // namespace scap_gvisor

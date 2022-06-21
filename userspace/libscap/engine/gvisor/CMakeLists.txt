@@ -11,6 +11,7 @@ add_library(scap_engine_gvisor STATIC
     parsers.cpp
     gvisor.cpp
     scap_gvisor.cpp
+    runsc.cpp
     ${JSONCPP_LIB_SRC}
 )
 
