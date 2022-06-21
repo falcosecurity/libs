@@ -108,6 +108,12 @@ struct event_data_t {
 		} signal_data;
 
 #ifdef CONFIG_ARM64
+		/* Here we save only the child task struct since it is the
+		 * unique parameter we will use in our `f_sched_prog_fork`
+		 * filler. On the other side the `f_sched_prog_exec` filler
+		 * won't need any tracepoint parameter so we don't need a 
+		 * internal struct here.
+		 */
 		struct {
 			struct task_struct *child;
 		} sched_proc_fork_data;
