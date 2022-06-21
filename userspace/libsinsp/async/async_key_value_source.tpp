@@ -95,6 +95,8 @@ void async_key_value_source<key_type, value_type>::stop()
 		// Remove any pointers from the thread to this object
 		// (just to be safe)
 		m_thread = std::thread();
+
+		m_running = false;
 	}
 }
 
@@ -108,18 +110,8 @@ bool async_key_value_source<key_type, value_type>::is_running() const
 }
 
 template<typename key_type, typename value_type>
-void async_key_value_source<key_type, value_type>::set_running(bool running)
-{
-	std::unique_lock<std::mutex> guard(m_mutex);
-
-	m_running = running;
-}
-
-template<typename key_type, typename value_type>
 void async_key_value_source<key_type, value_type>::run()
 {
-	set_running(true);
-
 	bool terminate = false;
 
 	while(!terminate)
@@ -158,7 +150,6 @@ void async_key_value_source<key_type, value_type>::run()
 		}
 	}
 
-	set_running(false);
 }
 
 template<typename key_type, typename value_type>
@@ -172,6 +163,7 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 
 	if(!m_running && !m_thread.joinable())
 	{
+		m_running = true;
 		m_thread = std::thread(&async_key_value_source::run, this);
 	}
 
