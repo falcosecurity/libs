@@ -213,15 +213,9 @@ int32_t scap_proc_scan_vtable(char *error, scap_t *handle);
 void scap_proc_free_table(scap_t* handle);
 // Copy the fd table of a process into the one of another process
 // int32_t scap_proc_copy_fd_table(scap_t* handle, scap_threadinfo* dst, scap_threadinfo* src);
-// Internal helper function to output the process table to screen
-void scap_proc_print_info(scap_t *handle, scap_threadinfo* pi);
-void scap_proc_print_table(scap_t* handle);
 // Free all the state related to a process and delete it from the fd table
 void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
 // Internal helper function to output the fd table of a process
-void scap_fd_print_table(scap_t *handle, scap_threadinfo* pi);
-// Internal helper function to output an fd table
-void scap_fd_print_fd_table(scap_t *handle, scap_fdinfo* fds);
 // Given an event, get the info entry for the process that generated it.
 // NOTE: this is different from scap_event_getprocinfo() because it returns the full event information
 // struct scap_threadinfo* scap_proc_get_from_event(scap_t* handle, scap_evt* e);

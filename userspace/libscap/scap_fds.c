@@ -2024,29 +2024,3 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 
 
 #endif // HAS_CAPTURE
-
-//
-// Internal helper function to output the fd table of a process
-//
-void scap_fd_print_table(scap_t *handle, scap_threadinfo *tinfo)
-{
-	scap_fd_print_fd_table(handle, tinfo->fdlist);
-}
-
-void scap_fd_print_fd_table(scap_t *handle, scap_fdinfo *fds)
-{
-	scap_fdinfo *fdi;
-	scap_fdinfo *tfdi;
-	char str[SCAP_MAX_PATH_SIZE];
-
-	HASH_ITER(hh, fds, fdi, tfdi)
-	{
-		if(scap_fd_info_to_string(handle, fdi, str, SCAP_MAX_PATH_SIZE) != SCAP_SUCCESS)
-		{
-			ASSERT(false);
-			snprintf(str, SCAP_MAX_PATH_SIZE, "N.A.");
-		}
-		fprintf(stderr, "  %"PRIu64") %s\n", fdi->fd, str);
-	}
-}
-
