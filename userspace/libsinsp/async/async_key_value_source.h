@@ -180,6 +180,14 @@ public:
 	void set_running(bool running);
 
 	/**
+	 * Stops the thread associated with this async_key_value_source, if
+	 * it is running; otherwise, does nothing.  The only use for this is
+	 * in a destructor to ensure that the async thread stops when the
+	 * object is destroyed.
+	 */
+	void stop();
+
+	/**
 	 * Return all results available so far
 	 *
 	 * All available results are moved from the internal map to the returned map
@@ -204,13 +212,6 @@ public:
 	std::unordered_map<key_type, value_type> get_complete_results();
 
 protected:
-	/**
-	 * Stops the thread associated with this async_key_value_source, if
-	 * it is running; otherwise, does nothing.  The only use for this is
-	 * in a destructor to ensure that the async thread stops when the
-	 * object is destroyed.
-	 */
-	void stop();
 
 	/**
 	 * Dequeues an entry from the request queue and returns it in the given
