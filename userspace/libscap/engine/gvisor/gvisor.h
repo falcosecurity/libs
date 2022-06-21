@@ -51,6 +51,15 @@ struct parse_result {
 	std::vector<scap_evt*> scap_events;
 };
 
+struct procfs_result {
+    // the scap status of the operation
+    uint32_t status;
+    // description of the error in case of failure
+    std::string error;
+    // the resulting thread information
+    scap_threadinfo tinfo;
+};
+
 /*!
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events
     \param gvisor_buf the source buffer that contains the raw event coming from gVisor
@@ -69,7 +78,7 @@ struct parse_result {
 */
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
 
-bool parse_procfs_json(const std::string &input, const std::string &sandbox, scap_threadinfo &tinfo);
+procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox);
 
 uint64_t get_vxid(uint64_t vxid);
 

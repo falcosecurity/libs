@@ -346,17 +346,16 @@ uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 				continue;
 			}
 
-			scap_threadinfo tinfo;
-			bool res = parsers::parse_procfs_json(line, sandbox, tinfo);
-			if(!res)
+			parsers::procfs_result res = parsers::parse_procfs_json(line, sandbox);
+			if(res.status != SCAP_SUCCESS)
 			{
 				*tinfos = NULL;
 				*n = 0;
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot retrieve procfs state information");
-				return SCAP_FAILURE;
+				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "%s", res.error.c_str());
+				return res.status;
 			}
-
-			m_threadinfos_threads.emplace_back(tinfo);
+			
+			m_threadinfos_threads.emplace_back(res.tinfo);
 		}
 	}
 

@@ -716,8 +716,9 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	return cb(proto, proto_size, scap_buf);
 }
 
-bool parse_procfs_json(const std::string &input, const std::string &sandbox, scap_threadinfo &tinfo)
+procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox)
 {
+	procfs_result res = {0};
 	Json::Value root;
 	Json::CharReaderBuilder builder;
 	std::string err;
@@ -726,8 +727,19 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 	bool json_parse = reader->parse(input.c_str(), input.c_str() + input.size() - 1, &root, &err);
 	if(!json_parse)
 	{
-		return false;
+		res.status = SCAP_FAILURE;
+		res.error = "Malformed json string: cannot parse procfs entry";
+		return res;
 	}
+
+	//
+	// Initialize res, so that in case of error we can
+	// directly return it
+	//
+
+	res.status = SCAP_FAILURE;
+	res.error = "Missing json field or wrong type: cannot parse procfs entry";
+	scap_threadinfo &tinfo = res.tinfo;
 
 	//
 	// Fill threadinfo
@@ -735,34 +747,34 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 
 	if(!root.isMember("status"))
 	{
-		return false;
+		return res;
 	}
 	Json::Value &status = root["status"];
 
 	if(!root.isMember("stat"))
 	{
-		return false;
+		return res;
 	}
 	Json::Value &stat = root["stat"];
 
 	// tid
 	if(!status.isMember("pid") || !status["pid"].isUInt64())
 	{
-		return false;
+		return res;
 	}
 	tinfo.tid = generate_tid_field(status["pid"].asUInt64(), sandbox);
 
 	// pid
 	if(!stat.isMember("pgid") || !stat["pgid"].isUInt64())
 	{
-		return false;
+		return res;
 	}
 	tinfo.pid = generate_tid_field(stat["pgid"].asUInt64(), sandbox);
 
 	// sid
 	if(!stat.isMember("sid") || !stat["sid"].isUInt64())
 	{
-		return false;
+		return res;
 	}
 	tinfo.sid = stat["sid"].asUInt64();
 
@@ -772,28 +784,28 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 	// comm
 	if(!status.isMember("comm") || !status["comm"].isString())
 	{
-		return false;
+		return res;
 	}
 	strlcpy(tinfo.comm, status["comm"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
 	// exe
 	if(!root.isMember("args") || !root["args"].isArray() || !root["args"][0].isString())
 	{
-		return false;
+		return res;
 	}
 	strlcpy(tinfo.exe, root["args"][0].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
 	// exepath
 	if(!root.isMember("exe") || !root["exe"].isString())
 	{
-		return false;
+		return res;
 	}
 	strlcpy(tinfo.exepath, root["exe"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
 	// args
 	if(!root.isMember("args") || !root["args"].isArray())
 	{
-		return false;
+		return res;
 	}
 	std::string args;
 	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
@@ -809,7 +821,7 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 	// env
 	if(!root.isMember("env") || !root["env"].isArray())
 	{
-		return false;
+		return res;
 	}
 	std::string env;
 	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
@@ -825,7 +837,7 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 	// cwd
 	if(!root.isMember("cwd") || !root["cwd"].isString())
 	{
-		return false;
+		return res;
 	}
 	strlcpy(tinfo.cwd, root["cwd"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
@@ -838,18 +850,20 @@ bool parse_procfs_json(const std::string &input, const std::string &sandbox, sca
 	// root
 	if(!root.isMember("root") || !root["root"].isString())
 	{
-		return false;
+		return res;
 	}
 	strlcpy(tinfo.root, root["root"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
 	// clone_ts
 	if(!root.isMember("clone_ts") || !root["clone_ts"].isUInt64())
 	{
-		return false;
+		return res;
 	}
 	tinfo.clone_ts = root["clone_ts"].asUInt64();
 
-	return true;
+	res.status = SCAP_SUCCESS;
+	res.error = "";
+	return res;
 }
 
 } // namespace parsers
