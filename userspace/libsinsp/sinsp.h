@@ -600,6 +600,14 @@ public:
 	}
 
 	/*!
+	  \brief Returns true if the inspector is configured to collect events from gVisor
+	*/
+	inline bool is_gvisor()
+	{
+		return m_gvisor;
+	}
+
+	/*!
 	  \brief Returns the framework plugin api version as a string with static storage
 	*/
 	inline const char *get_plugin_api_version() const
