@@ -181,3 +181,90 @@ TEST(gvisor_parsers, small_buffer)
     res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
 }
+
+TEST(gvisor_parsers, procfs_entry)
+{
+    scap_gvisor::parsers::procfs_result res = {0};
+    std::string not_json = "not a json string";
+    std::string sandbox_id = "deadbeef";
+
+    res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
+    EXPECT_EQ(res.status, SCAP_FAILURE);
+    EXPECT_STREQ(res.error.c_str(), "Malformed json string: cannot parse procfs entry");
+
+    std::string json = 
+        "{"
+        "   \"args\" : [ \"bash\" ],"
+        "   \"clone_ts\" : 1655473752715788585,"
+        "   \"cwd\" : \"/\","
+        "   \"env\" : ["
+        "      \"HOSTNAME=91e91fdd849d\","
+        "      \"TERM=xterm\","
+        "      \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\","
+        "      \"HOME=/root\""
+        "   ],"
+        "   \"exe\" : \"/usr/bin/bash\","
+        "   \"fdlist\" : ["
+        "      {"
+        "         \"path\" : \"host:[1]\""
+        "      },"
+        "      {"
+        "         \"number\" : 1,"
+        "         \"path\" : \"host:[1]\""
+        "      },"
+        "      {"
+        "         \"number\" : 2,"
+        "         \"path\" : \"host:[1]\""
+        "      },"
+        "      {"
+        "         \"number\" : 255,"
+        "         \"path\" : \"host:[1]\""
+        "      }"
+        "   ],"
+        "   \"limits\" : {"
+        "      \"RLIMIT_NOFILE\" : {"
+        "         \"cur\" : 1048576,"
+        "         \"max\" : 1048576"
+        "      }"
+        "   },"
+        "   \"root\" : \"/\","
+        "   \"stat\" : {"
+        "      \"pgid\" : 1,"
+        "      \"sid\" : 1"
+        "   },"
+        "   \"status\" : {"
+        "      \"comm\" : \"bash\","
+        "      \"gid\" : {},"
+        "      \"pid\" : 1,"
+        "      \"uid\" : {},"
+        "      \"vm_rss\" : 4664,"
+        "      \"vm_size\" : 12164"
+        "   }"
+        "}\n";
+    res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
+    EXPECT_EQ(res.status, SCAP_SUCCESS);
+    EXPECT_EQ(res.tinfo.vtid, 1);
+    EXPECT_STREQ(res.tinfo.comm, "bash");
+    EXPECT_STREQ(res.tinfo.exepath, "/usr/bin/bash");
+    std::string args = std::string(res.tinfo.args, res.tinfo.args_len);
+    EXPECT_TRUE(args.find("bash") != std::string::npos);
+    std::string env = std::string(res.tinfo.env, res.tinfo.env_len);
+    EXPECT_TRUE(env.find("HOSTNAME=91e91fdd849d") != std::string::npos);
+    EXPECT_TRUE(env.find("TERM=xterm") != std::string::npos);
+    EXPECT_TRUE(env.find("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin") != std::string::npos);
+    EXPECT_TRUE(env.find("HOME=/root") != std::string::npos);
+
+    std::string json_missing_fields = "{\"exe\":\"/usr/bin/bash\"}\n";
+    res = scap_gvisor::parsers::parse_procfs_json(json_missing_fields, sandbox_id);
+    EXPECT_EQ(res.status, SCAP_FAILURE);
+    EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
+
+    std::string args_arr = "[ \"bash\" ]";
+    std::string args_no_arr = "\"bash\"";
+    auto pos = json.find(args_arr);
+    json.replace(pos, args_arr.size(), args_no_arr);
+    res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
+    EXPECT_EQ(res.status, SCAP_FAILURE);
+    EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
+
+}
