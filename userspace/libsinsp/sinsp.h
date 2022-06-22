@@ -100,6 +100,7 @@ using namespace std;
 
 #include "include/sinsp_external_processor.h"
 #include "plugin.h"
+#include "gvisor_config.h"
 class sinsp_partial_transaction;
 class sinsp_parser;
 class sinsp_analyzer;
@@ -250,6 +251,8 @@ public:
 
 	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 	void open_gvisor(std::string socket_path, std::string root_path, std::string trace_session_path, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+
+	std::string generate_gvisor_config(std::string socket_path);
 
 	void open_nodriver();
 
