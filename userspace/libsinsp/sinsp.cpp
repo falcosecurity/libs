@@ -532,6 +532,11 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 		oargs.gvisor_socket = m_gvisor_socket.c_str();
 		oargs.gvisor_root_path = m_gvisor_root_path.c_str();
 		oargs.gvisor_trace_session_path = m_gvisor_trace_session_path.c_str();
+	} else {
+		oargs.gvisor = false;
+		oargs.gvisor_socket = NULL;
+		oargs.gvisor_root_path = NULL;
+		oargs.gvisor_trace_session_path = NULL;
 	}
 
 	fill_syscalls_of_interest(&oargs);
