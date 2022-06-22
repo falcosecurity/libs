@@ -5,12 +5,15 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
+cmake_minimum_required(VERSION 2.8.5)
+project(driver)
+
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
 if(NOT DEFINED DRIVER_VERSION)
-	message(ERROR
-		"No driver version set. Please either build the project from a git working directory or explicitly set the DRIVER_VERSION cmake cache entry."
+	message(FATAL_ERROR
+		"No DRIVER_VERSION set.\nPlease either explicitly set it or build the root project 'falcosecurity/libs' from a git working directory."
 	)
 endif()
 
