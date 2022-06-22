@@ -35,23 +35,11 @@ endif()
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
+
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		set(KBUILD_FLAGS "${FALCOSECURITY_LIBS_DEBUG_FLAGS}")
 	endif()
-
-    if(NOT DEFINED DRIVER_VERSION)
-        message(ERROR 
-			"No driver version set. Please either build the project from a git working directory or explicitly set the DRIVER_VERSION cmake cache entry."
-		)
-    endif()
-
-    if(NOT DEFINED DRIVER_NAME)
-        set(DRIVER_NAME "scap")
-    endif()
-
-    if(NOT DEFINED DRIVER_DEVICE_NAME)
-        set(DRIVER_DEVICE_NAME "${DRIVER_NAME}")
-    endif()
 
 	string(REPLACE "-" "_" SCAP_KERNEL_MODULE_NAME "${DRIVER_NAME}")
 	add_definitions(-DSCAP_KERNEL_MODULE_NAME="${SCAP_KERNEL_MODULE_NAME}")
@@ -126,8 +114,6 @@ target_link_libraries(scap
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
-
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 
     if (BUILD_LIBSCAP_EXAMPLES)
