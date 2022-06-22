@@ -16,7 +16,7 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../common")
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
-option(WITH_DRIVER "Include the driver sub-project in the current build (only available in Linux)" ON)
+option(WITH_DRIVER "Add the driver subdirectory in scap (only available in Linux)" ON)
 
 if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -35,11 +35,18 @@ endif()
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
-if(WITH_DRIVER AND CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
-
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		set(KBUILD_FLAGS "${FALCOSECURITY_LIBS_DEBUG_FLAGS}")
+	endif()
+
+	if(WITH_DRIVER)
+		add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
+	endif()
+
+	# do not remove this since when WITH_DRIVER is off
+	if (NOT DEFINED DRIVER_NAME)
+		set(DRIVER_NAME "scap")
 	endif()
 
 	string(REPLACE "-" "_" SCAP_KERNEL_MODULE_NAME "${DRIVER_NAME}")
