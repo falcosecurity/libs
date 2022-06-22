@@ -36,6 +36,7 @@ project(falcosecurity-libs)
 
 option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
+option(USE_BUNDLED_DRIVER "Use the driver/ subdirectory in the build process (only available in Linux)" ON)
 
 include(GNUInstallDirs)
 
@@ -52,12 +53,16 @@ endif()
 
 message(STATUS "Libs version: ${FALCOSECURITY_LIBS_VERSION}")
 
-# Driver version
-if(NOT DEFINED DRIVER_VERSION)
-	get_drivers_version(DRIVER_VERSION)
-endif()
+if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND USE_BUNDLED_DRIVER)
+	# Driver version
+	if(NOT DEFINED DRIVER_VERSION)
+		get_drivers_version(DRIVER_VERSION)
+	endif()
 
-message(STATUS "Driver version: ${DRIVER_VERSION}")
+	message(STATUS "Driver version: ${DRIVER_VERSION}")
+
+	add_subdirectory(driver ${PROJECT_BINARY_DIR}/driver)
+endif()
 
 if(NOT CMAKE_BUILD_TYPE)
 	SET(CMAKE_BUILD_TYPE Release)
