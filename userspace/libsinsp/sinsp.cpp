@@ -2287,8 +2287,10 @@ void sinsp::validate_k8s_node_name()
 
 		if(!found)
 		{
-			throw sinsp_exception("Failing to enrich events with Kubernetes metadata:"
-				"node name does not correspond to a node in the cluster");
+			throw sinsp_exception(
+				"Failing to enrich events with Kubernetes metadata: "
+				"node name does not correspond to a node in the cluster: "
+				+ *m_k8s_node_name);
 		}
 	}
 
