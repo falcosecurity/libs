@@ -16,6 +16,7 @@
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../common")
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
+option(WITH_DRIVER "Include the driver sub-project in the current build (only available in Linux)" ON)
 
 if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -34,7 +35,7 @@ endif()
 
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+if(WITH_DRIVER AND CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_subdirectory(../../driver ${PROJECT_BINARY_DIR}/driver)
 
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
