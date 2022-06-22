@@ -111,7 +111,8 @@ set(SINSP_SOURCES
 	user_event.cpp
 	value_parser.cpp
 	viewinfo.cpp
-	user.cpp)
+	user.cpp
+	gvisor_config.cpp)
 
 if(WITH_CHISEL)
 	list(APPEND SINSP_SOURCES
