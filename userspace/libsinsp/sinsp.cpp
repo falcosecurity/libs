@@ -606,6 +606,11 @@ void sinsp::open_gvisor(std::string socket_path, std::string root_path, std::str
 	set_get_procs_cpu_from_driver(false);
 }
 
+std::string sinsp::generate_gvisor_config(std::string socket_path)
+{
+	return gvisor_config::generate(socket_path);
+}
+
 void sinsp::open_nodriver()
 {
 	char error[SCAP_LASTERR_SIZE];
