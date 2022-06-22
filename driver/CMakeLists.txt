@@ -8,14 +8,26 @@
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
+if(NOT DEFINED DRIVER_VERSION)
+	message(ERROR
+		"No driver version set. Please either build the project from a git working directory or explicitly set the DRIVER_VERSION cmake cache entry."
+	)
+endif()
+
 if(NOT DEFINED DRIVER_COMPONENT_NAME)
-    set(DRIVER_COMPONENT_NAME "scap-driver")
+	set(DRIVER_COMPONENT_NAME "scap-driver")
 endif()
+
 if(NOT DEFINED DRIVER_PACKAGE_NAME)
-        set(DRIVER_PACKAGE_NAME "scap")
+	set(DRIVER_PACKAGE_NAME "scap")
 endif()
+
 if(NOT DEFINED DRIVER_NAME)
-        set(DRIVER_NAME "scap")
+	set(DRIVER_NAME "scap")
+endif()
+
+if(NOT DEFINED DRIVER_DEVICE_NAME)
+	set(DRIVER_DEVICE_NAME "${DRIVER_NAME}")
 endif()
 
 # The driver build process is somewhat involved because we use the same
@@ -31,8 +43,8 @@ endif()
 # 1. The user (or some script) runs make in our driver directory
 # 2. Our Makefile runs the Makefile from kernel sources/headers
 # 3. The kernel Makefile calls our original Makefile again, with options that
-#    trigger the actual build. This step cannot know that our Makefile has
-#    a different name.
+# trigger the actual build. This step cannot know that our Makefile has
+# a different name.
 #
 # (DKMS needs a Makefile called Makefile as well).
 #
@@ -45,7 +57,6 @@ endif()
 # ${CMAKE_CURRENT_BINARY_DIR}/src. To maintain compatibility with older versions,
 # after the build we copy the compiled module one directory up,
 # to ${CMAKE_CURRENT_BINARY_DIR}.
-
 file(STRINGS API_VERSION DRIVER_API_VERSION LIMIT_COUNT 1)
 string(REGEX MATCHALL "[0-9]+" DRIVER_API_COMPONENTS "${DRIVER_API_VERSION}")
 list(GET DRIVER_API_COMPONENTS 0 PPM_API_CURRENT_VERSION_MAJOR)
@@ -133,7 +144,6 @@ if(ENABLE_DKMS)
 		${DRIVER_SOURCES}
 		DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}"
 		COMPONENT ${DRIVER_COMPONENT_NAME})
-
 endif()
 
 add_subdirectory(bpf)
