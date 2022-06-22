@@ -40,6 +40,18 @@ This project uses two different versioning schemes for the _libs_ and _driver_ c
 
 If you build this project from a git working directory, the main [CMakeLists.txt](./CMakeLists.txt) will automatically compute the appropriate version for all components. Otherwise, if you use a source code copy with no the git information or pull the sources of the libs or the drivers directly in your project, it's up to you to correctly set the appropriate cmake variables (for example,  `-DFALCOSECURITY_LIBS_VERSION=x.y.z -DDRIVER_VERSION=a.b.c+driver`).
 
+## Drivers officially supported architectures
+
+Right now our drivers (kernel module, eBPF probe) officially support two main architectues: `ARM64` and `x86_64`.
+
+### x86_64
+- **eBPF probe** requires kernel versions greater or equal than `4.14`
+- **Kernel module** requires kernel versions greater or equal than `2.6`
+
+### ARM64
+- **eBPF probe** requires kernel versions greater or equal than `4.17`
+- **Kernel module** requires kernel versions greater or equal than `3.4`
+
 ## Build
 
 Libs relies upon `cmake` build system.  

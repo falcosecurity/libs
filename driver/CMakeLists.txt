@@ -8,6 +8,11 @@
 cmake_minimum_required(VERSION 2.8.5)
 project(driver)
 
+set(TARGET_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
+if((NOT TARGET_ARCH STREQUAL "x86_64") AND (NOT TARGET_ARCH STREQUAL "aarch64"))
+	message(WARNING "Target architecture not officially supported by our drivers!")
+endif()
+
 option(BUILD_DRIVER "Build the driver on Linux" ON)
 option(ENABLE_DKMS "Enable DKMS on Linux" ON)
 
