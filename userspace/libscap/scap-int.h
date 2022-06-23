@@ -315,6 +315,16 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 #define ASSERT(X)
 #endif // _DEBUG
 
+#define CHECK_READ_SIZE_ERR(read_size, expected_size, error) if(read_size != expected_size) \
+	{\
+		snprintf(error,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
+			(int)expected_size,\
+			(int)read_size,\
+			__FILE__,\
+			__LINE__);\
+		return SCAP_FAILURE;\
+	}
+
 #define CHECK_READ_SIZE(read_size, expected_size) if(read_size != expected_size) \
 	{\
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
