@@ -588,7 +588,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback
 		//
-		if(handle->m_proc_callback == NULL)
+		if(handle->m_proclist.m_proc_callback == NULL)
 		{
 			//
 			// All parsed. Allocate the new entry and copy the temp one into into it.
@@ -603,7 +603,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// Structure copy
 			*ntinfo = tinfo;
 
-			HASH_ADD_INT64(handle->m_proclist, tid, ntinfo);
+			HASH_ADD_INT64(handle->m_proclist.m_proclist, tid, ntinfo);
 			if(uth_status != SCAP_SUCCESS)
 			{
 				free(ntinfo);
@@ -613,7 +613,9 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		}
 		else
 		{
-			handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo.tid, &tinfo, NULL);
+			handle->m_proclist.m_proc_callback(
+				handle->m_proclist.m_proc_callback_context,
+				handle->m_proclist.m_main_handle, tinfo.tid, &tinfo, NULL);
 		}
 
 		if(sub_len && subreadsize != sub_len)
@@ -1307,12 +1309,12 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 	CHECK_READ_SIZE(readsize, sizeof(tid));
 	totreadsize += readsize;
 
-	if(handle->m_proc_callback == NULL)
+	if(handle->m_proclist.m_proc_callback == NULL)
 	{
 		//
 		// Identify the process descriptor
 		//
-		HASH_FIND_INT64(handle->m_proclist, &tid, tinfo);
+		HASH_FIND_INT64(handle->m_proclist.m_proclist, &tid, tinfo);
 		if(tinfo == NULL)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
@@ -1336,7 +1338,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
-		if(handle->m_proc_callback == NULL)
+		if(handle->m_proclist.m_proc_callback == NULL)
 		{
 			//
 			// Parsed successfully. Allocate the new entry and copy the temp one into into it.
@@ -1365,7 +1367,9 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 		{
 			ASSERT(tinfo == NULL);
 
-			handle->m_proc_callback(handle->m_proc_callback_context, handle, tid, NULL, &fdi);
+			handle->m_proclist.m_proc_callback(
+				handle->m_proclist.m_proc_callback_context,
+				handle->m_proclist.m_main_handle, tid, NULL, &fdi);
 		}
 	}
 

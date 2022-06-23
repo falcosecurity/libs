@@ -31,6 +31,15 @@ typedef void (*proc_entry_callback)(void* context,
 				    scap_threadinfo* tinfo,
 				    scap_fdinfo* fdinfo);
 
+struct scap_proclist
+{
+	scap_t *m_main_handle;
+	proc_entry_callback m_proc_callback;
+	void* m_proc_callback_context;
+
+	scap_threadinfo* m_proclist;
+};
+
 #ifdef __cplusplus
 }
 #endif

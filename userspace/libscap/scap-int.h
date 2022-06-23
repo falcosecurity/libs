@@ -114,15 +114,13 @@ struct scap
 	// Used for scap_strerror
 	char m_strerror_buf[SCAP_LASTERR_SIZE];
 
-	scap_threadinfo* m_proclist;
+	struct scap_proclist m_proclist;
 	scap_mountinfo* m_dev_list;
 	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
-	proc_entry_callback m_proc_callback;
-	void* m_proc_callback_context;
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
