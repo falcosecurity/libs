@@ -1329,7 +1329,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
-		if(scap_fd_read_from_disk(handle, &fdi, &readsize, block_type, r) != SCAP_SUCCESS)
+		if(scap_fd_read_from_disk(&fdi, &readsize, block_type, r, handle->m_lasterr) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}

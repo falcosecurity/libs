@@ -230,7 +230,7 @@ uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
 int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper, uint32_t len);
 // Populate the given fd by reading the info from disk
-uint32_t scap_fd_read_from_disk(scap_t* handle, OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, scap_reader_t* r);
+uint32_t scap_fd_read_from_disk(OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, scap_reader_t* r, char* error);
 // Parse the headers of a trace file and load the tables
 int32_t scap_read_init(scap_t* handle, scap_reader_t* r);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.

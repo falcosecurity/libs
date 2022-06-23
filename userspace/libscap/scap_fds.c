@@ -385,33 +385,33 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 	return SCAP_SUCCESS;
 }
 
-uint32_t scap_fd_read_prop_from_disk(scap_t *handle, OUT void *target, size_t expected_size, OUT size_t *nbytes, scap_reader_t* r)
+static uint32_t scap_fd_read_prop_from_disk(OUT void *target, size_t expected_size, OUT size_t *nbytes, scap_reader_t* r, char* error)
 {
 	size_t readsize;
 	readsize = scap_reader_read(r, target, (unsigned int)expected_size);
-	CHECK_READ_SIZE(readsize, expected_size);
+	CHECK_READ_SIZE_ERR(readsize, expected_size, error);
 	(*nbytes) += readsize;
 	return SCAP_SUCCESS;
 }
 
-uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nbytes, scap_reader_t* r)
+static uint32_t scap_fd_read_fname_from_disk(char* fname,OUT size_t* nbytes, scap_reader_t* r, char* error)
 {
 	size_t readsize;
 	uint16_t stlen;
 
 	readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-	CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+	CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 	if(stlen >= SCAP_MAX_PATH_SIZE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filename len %"PRId32, stlen);
+		snprintf(error, SCAP_LASTERR_SIZE, "invalid filename len %"PRId32, stlen);
 		return SCAP_FAILURE;
 	}
 
 	(*nbytes) += readsize;
 
 	readsize = scap_reader_read(r, fname, stlen);
-	CHECK_READ_SIZE(readsize, stlen);
+	CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 	(*nbytes) += stlen;
 
@@ -424,7 +424,7 @@ uint32_t scap_fd_read_fname_from_disk(scap_t* handle, char* fname,OUT size_t* nb
 // Populate the given fd by reading the info from disk
 // Returns the number of read bytes.
 //
-uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t *nbytes, uint32_t block_type, scap_reader_t* r)
+uint32_t scap_fd_read_from_disk(OUT scap_fdinfo *fdi, OUT size_t *nbytes, uint32_t block_type, scap_reader_t* r, char* error)
 {
 	uint8_t type;
 	uint32_t toread;
@@ -433,12 +433,13 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	uint32_t res = SCAP_SUCCESS;
 	*nbytes = 0;
 
-	if((block_type == FDL_BLOCK_TYPE_V2 && scap_fd_read_prop_from_disk(handle, &sub_len, sizeof(uint32_t), nbytes, r)) ||
-	        scap_fd_read_prop_from_disk(handle, &(fdi->fd), sizeof(fdi->fd), nbytes, r) ||
-	        scap_fd_read_prop_from_disk(handle, &(fdi->ino), sizeof(fdi->ino), nbytes, r) ||
-	        scap_fd_read_prop_from_disk(handle, &type, sizeof(uint8_t), nbytes, r))
+	if((block_type == FDL_BLOCK_TYPE_V2 &&
+	    	scap_fd_read_prop_from_disk(&sub_len, sizeof(uint32_t), nbytes, r, error)) ||
+	        scap_fd_read_prop_from_disk(&(fdi->fd), sizeof(fdi->fd), nbytes, r, error) ||
+	        scap_fd_read_prop_from_disk(&(fdi->ino), sizeof(fdi->ino), nbytes, r, error) ||
+	        scap_fd_read_prop_from_disk(&type, sizeof(uint8_t), nbytes, r, error))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read prop block for fd");
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not read prop block for fd");
 		return SCAP_FAILURE;
 	}
 
@@ -462,7 +463,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		        scap_reader_read(r, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_reader_read(r, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (1)");
 			return SCAP_FAILURE;
 		}
 
@@ -474,7 +475,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		        scap_reader_read(r, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_reader_read(r, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (2)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (2)");
 			return SCAP_FAILURE;
 		}
 
@@ -487,7 +488,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		        scap_reader_read(r, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_reader_read(r, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 		}
 		(*nbytes) += (sizeof(uint32_t) * 4 + // sip
 				sizeof(uint32_t) * 4 + // dip
@@ -500,7 +501,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		        scap_reader_read(r, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_reader_read(r, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 		}
 		(*nbytes) += (sizeof(uint32_t) * 4 + // ip
 				sizeof(uint16_t) + // port
@@ -510,29 +511,29 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		if(scap_reader_read(r, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        scap_reader_read(r, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi5)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi5)");
 			return SCAP_FAILURE;
 		}
 
 		(*nbytes) += (sizeof(uint64_t) + sizeof(uint64_t));
-		res = scap_fd_read_fname_from_disk(handle, fdi->info.unix_socket_info.fname, nbytes, r);
+		res = scap_fd_read_fname_from_disk(fdi->info.unix_socket_info.fname, nbytes, r, error);
 		break;
 	case SCAP_FD_FILE_V2:
 		if(scap_reader_read(r, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi1)");
 			return SCAP_FAILURE;
 		}
 
 		(*nbytes) += sizeof(uint32_t);
-		res = scap_fd_read_fname_from_disk(handle, fdi->info.regularinfo.fname, nbytes, r);
+		res = scap_fd_read_fname_from_disk(fdi->info.regularinfo.fname, nbytes, r, error);
 		if (!sub_len || (sub_len < *nbytes + sizeof(uint32_t)))
 		{
 			break;
 		}
 		if(scap_reader_read(r, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
+			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
 			return SCAP_FAILURE;
 		}
 		(*nbytes) += sizeof(uint32_t);
@@ -547,13 +548,13 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
-		res = scap_fd_read_fname_from_disk(handle, fdi->info.fname,nbytes, r);
+		res = scap_fd_read_fname_from_disk(fdi->info.fname,nbytes, r, error);
 		break;
 	case SCAP_FD_UNKNOWN:
 		ASSERT(false);
 		break;
 	default:
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
+		snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file, wrong fd type %u", (uint32_t)fdi->type);
 		return SCAP_FAILURE;
 	}
 
@@ -561,7 +562,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 	{
 		if(*nbytes > sub_len)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %zu bytes, but fdlist entry have length %u.",
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Had read %zu bytes, but fdlist entry have length %u.",
 				 *nbytes, sub_len);
 			return SCAP_FAILURE;
 		}
@@ -569,7 +570,7 @@ uint32_t scap_fd_read_from_disk(scap_t *handle, OUT scap_fdinfo *fdi, OUT size_t
 		fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 		if(fseekres == -1)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
 				 (unsigned int)toread);
 			return SCAP_FAILURE;
 		}
