@@ -661,7 +661,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 //
 // Parse an interface list block
 //
-static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_t block_type, scap_addrlist** addrlist_p, char* error)
 {
 	int32_t res = SCAP_SUCCESS;
 	size_t readsize;
@@ -679,10 +679,10 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 	// If the list of interfaces was already allocated for this handle (for example because this is
 	// not the first interface list block), free it
 	//
-	if(handle->m_addrlist != NULL)
+	if((*addrlist_p) != NULL)
 	{
-		scap_free_iflist(handle->m_addrlist);
-		handle->m_addrlist = NULL;
+		scap_free_iflist((*addrlist_p));
+		(*addrlist_p) = NULL;
 	}
 
 	//
@@ -692,12 +692,12 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 	readbuf = (char *)malloc(block_length);
 	if(!readbuf)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_iflist");
+		snprintf(error, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_iflist");
 		return SCAP_FAILURE;
 	}
 
 	readsize = scap_reader_read(r, readbuf, block_length);
-	CHECK_READ_SIZE_WITH_FREE(readbuf, readsize, block_length);
+	CHECK_READ_SIZE_WITH_FREE_ERR(readbuf, readsize, block_length, error);
 
 	//
 	// First pass, count the number of addresses
@@ -737,7 +737,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 			}
 			else
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
+				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(1)");
 				ASSERT(false);
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
@@ -752,7 +752,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 		if(toread < entrysize)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(2) toread=%u, entrysize=%u", toread, entrysize);
+			snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(2) toread=%u, entrysize=%u", toread, entrysize);
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
@@ -771,7 +771,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		else
 		{
 			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unknown interface type %d", (int)iftype);
+			snprintf(error, SCAP_LASTERR_SIZE, "unknown interface type %d", (int)iftype);
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
@@ -780,52 +780,52 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 	//
 	// Allocate the handle and the arrays
 	//
-	handle->m_addrlist = (scap_addrlist *)malloc(sizeof(scap_addrlist));
-	if(!handle->m_addrlist)
+	(*addrlist_p) = (scap_addrlist *)malloc(sizeof(scap_addrlist));
+	if(!(*addrlist_p))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_iflist allocation failed(1)");
+		snprintf(error, SCAP_LASTERR_SIZE, "scap_read_iflist allocation failed(1)");
 		res = SCAP_FAILURE;
 		goto scap_read_iflist_error;
 	}
 
-	handle->m_addrlist->n_v4_addrs = 0;
-	handle->m_addrlist->n_v6_addrs = 0;
-	handle->m_addrlist->v4list = NULL;
-	handle->m_addrlist->v6list = NULL;
-	handle->m_addrlist->totlen = block_length - (ifcnt4 + ifcnt6) * sizeof(uint32_t);
+	(*addrlist_p)->n_v4_addrs = 0;
+	(*addrlist_p)->n_v6_addrs = 0;
+	(*addrlist_p)->v4list = NULL;
+	(*addrlist_p)->v6list = NULL;
+	(*addrlist_p)->totlen = block_length - (ifcnt4 + ifcnt6) * sizeof(uint32_t);
 
 	if(ifcnt4 != 0)
 	{
-		handle->m_addrlist->v4list = (scap_ifinfo_ipv4 *)malloc(ifcnt4 * sizeof(scap_ifinfo_ipv4));
-		if(!handle->m_addrlist->v4list)
+		(*addrlist_p)->v4list = (scap_ifinfo_ipv4 *)malloc(ifcnt4 * sizeof(scap_ifinfo_ipv4));
+		if(!(*addrlist_p)->v4list)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_iflist allocation failed(2)");
+			snprintf(error, SCAP_LASTERR_SIZE, "scap_read_iflist allocation failed(2)");
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
 	}
 	else
 	{
-		handle->m_addrlist->v4list = NULL;
+		(*addrlist_p)->v4list = NULL;
 	}
 
 	if(ifcnt6 != 0)
 	{
-		handle->m_addrlist->v6list = (scap_ifinfo_ipv6 *)malloc(ifcnt6 * sizeof(scap_ifinfo_ipv6));
-		if(!handle->m_addrlist->v6list)
+		(*addrlist_p)->v6list = (scap_ifinfo_ipv6 *)malloc(ifcnt6 * sizeof(scap_ifinfo_ipv6));
+		if(!(*addrlist_p)->v6list)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "getifaddrs allocation failed(3)");
+			snprintf(error, SCAP_LASTERR_SIZE, "getifaddrs allocation failed(3)");
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
 	}
 	else
 	{
-		handle->m_addrlist->v6list = NULL;
+		(*addrlist_p)->v6list = NULL;
 	}
 
-	handle->m_addrlist->n_v4_addrs = ifcnt4;
-	handle->m_addrlist->n_v6_addrs = ifcnt6;
+	(*addrlist_p)->n_v4_addrs = ifcnt4;
+	(*addrlist_p)->n_v6_addrs = ifcnt6;
 
 	//
 	// Second pass: populate the arrays
@@ -857,7 +857,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 		if(ifnamlen >= SCAP_MAX_PATH_SIZE)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(0)");
+			snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(0)");
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
@@ -885,18 +885,18 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(3)");
+				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(3)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v4list + ifcnt4, pif, ifsize - ifnamlen);
+			memcpy((*addrlist_p)->v4list + ifcnt4, pif, ifsize - ifnamlen);
 
-			memcpy(handle->m_addrlist->v4list[ifcnt4].ifname, pif + ifsize - ifnamlen, ifnamlen);
+			memcpy((*addrlist_p)->v4list[ifcnt4].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
 			// Make sure the name string is NULL-terminated
-			*((char *)(handle->m_addrlist->v4list + ifcnt4) + ifsize) = 0;
+			*((char *)((*addrlist_p)->v4list + ifcnt4) + ifsize) = 0;
 
 			ifcnt4++;
 		}
@@ -909,14 +909,14 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(4)");
+				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(4)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
 			src = (scap_ifinfo_ipv4_nolinkspeed*)pif;
-			dst = handle->m_addrlist->v4list + ifcnt4;
+			dst = (*addrlist_p)->v4list + ifcnt4;
 
 			dst->type = src->type;
 			dst->ifnamelen = src->ifnamelen;
@@ -943,18 +943,18 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(5)");
+				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(5)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
-			memcpy(handle->m_addrlist->v6list + ifcnt6, pif, ifsize - ifnamlen);
+			memcpy((*addrlist_p)->v6list + ifcnt6, pif, ifsize - ifnamlen);
 
-			memcpy(handle->m_addrlist->v6list[ifcnt6].ifname, pif + ifsize - ifnamlen, ifnamlen);
+			memcpy((*addrlist_p)->v6list[ifcnt6].ifname, pif + ifsize - ifnamlen, ifnamlen);
 
 			// Make sure the name string is NULL-terminated
-			*((char *)(handle->m_addrlist->v6list + ifcnt6) + ifsize) = 0;
+			*((char *)((*addrlist_p)->v6list + ifcnt6) + ifsize) = 0;
 
 			ifcnt6++;
 		}
@@ -966,14 +966,14 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 			if(toread < ifsize)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(6)");
+				snprintf(error, SCAP_LASTERR_SIZE, "trace file has corrupted interface list(6)");
 				res = SCAP_FAILURE;
 				goto scap_read_iflist_error;
 			}
 
 			// Copy the entry
 			src = (scap_ifinfo_ipv6_nolinkspeed*)pif;
-			dst = handle->m_addrlist->v6list + ifcnt6;
+			dst = (*addrlist_p)->v6list + ifcnt6;
 
 			dst->type = src->type;
 			dst->ifnamelen = src->ifnamelen;
@@ -991,7 +991,7 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 		else
 		{
 			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unknown interface type %d", (int)iftype);
+			snprintf(error, SCAP_LASTERR_SIZE, "unknown interface type %d", (int)iftype);
 			res = SCAP_FAILURE;
 			goto scap_read_iflist_error;
 		}
@@ -1010,8 +1010,8 @@ static int32_t scap_read_iflist(scap_t *handle, scap_reader_t* r, uint32_t block
 	return res;
 
 scap_read_iflist_error:
-	scap_free_iflist(handle->m_addrlist);
-	handle->m_addrlist = NULL;
+	scap_free_iflist((*addrlist_p));
+	(*addrlist_p) = NULL;
 
 	if(readbuf)
 	{
@@ -1540,7 +1540,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case IL_BLOCK_TYPE_INT:
 		case IL_BLOCK_TYPE_V2:
 
-			if(scap_read_iflist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_iflist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_addrlist, handle->m_lasterr) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
