@@ -41,6 +41,7 @@ typedef struct scap_device
 		struct
 		{
 			struct ppm_ring_buffer_info* m_bufinfo;
+			int m_bufinfo_size;
 			struct udig_ring_buffer_status* m_bufstatus; // used by udig
 		};
 	};
@@ -55,3 +56,4 @@ struct scap_device_set
 };
 
 int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr);
+void devset_free(struct scap_device_set *devset);
