@@ -223,8 +223,6 @@ void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
 void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
 // Free a process' fd table
 void scap_fd_free_proc_fd_table(scap_t* handle, scap_threadinfo* pi);
-// Convert an fd entry's info into a string
-int32_t scap_fd_info_to_string(scap_t *handle, scap_fdinfo* fdi, OUT char* str, uint32_t strlen);
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
