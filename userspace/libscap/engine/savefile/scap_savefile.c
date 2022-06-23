@@ -1289,7 +1289,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 //
 // Parse a process list block
 //
-static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_t block_type, struct scap_proclist* proclist, char* error)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -1306,18 +1306,18 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 	// Read the tid
 	//
 	readsize = scap_reader_read(r, &tid, sizeof(tid));
-	CHECK_READ_SIZE(readsize, sizeof(tid));
+	CHECK_READ_SIZE_ERR(readsize, sizeof(tid), error);
 	totreadsize += readsize;
 
-	if(handle->m_proclist.m_proc_callback == NULL)
+	if(proclist->m_proc_callback == NULL)
 	{
 		//
 		// Identify the process descriptor
 		//
-		HASH_FIND_INT64(handle->m_proclist.m_proclist, &tid, tinfo);
+		HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
 		if(tinfo == NULL)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
 					 tid);
 			return SCAP_FAILURE;
 		}
@@ -1329,7 +1329,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 
 	while(((int32_t)block_length - (int32_t)totreadsize) >= 4)
 	{
-		if(scap_fd_read_from_disk(&fdi, &readsize, block_type, r, handle->m_lasterr) != SCAP_SUCCESS)
+		if(scap_fd_read_from_disk(&fdi, &readsize, block_type, r, error) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1338,7 +1338,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 		//
 		// Add the entry to the table, or fire the notification callback
 		//
-		if(handle->m_proclist.m_proc_callback == NULL)
+		if(proclist->m_proc_callback == NULL)
 		{
 			//
 			// Parsed successfully. Allocate the new entry and copy the temp one into into it.
@@ -1346,7 +1346,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 			nfdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
 			if(nfdi == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
 				return SCAP_FAILURE;
 			}
 
@@ -1359,7 +1359,7 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 			if(uth_status != SCAP_SUCCESS)
 			{
 				free(nfdi);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
 				return SCAP_FAILURE;
 			}
 		}
@@ -1367,9 +1367,9 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 		{
 			ASSERT(tinfo == NULL);
 
-			handle->m_proclist.m_proc_callback(
-				handle->m_proclist.m_proc_callback_context,
-				handle->m_proclist.m_main_handle, tid, NULL, &fdi);
+			proclist->m_proc_callback(
+				proclist->m_proc_callback_context,
+				proclist->m_main_handle, tid, NULL, &fdi);
 		}
 	}
 
@@ -1379,13 +1379,13 @@ static int32_t scap_read_fdlist(scap_t *handle, scap_reader_t* r, uint32_t block
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_fdlist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(error, SCAP_LASTERR_SIZE, "scap_read_fdlist read more %lu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
 
 	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
-	CHECK_READ_SIZE(readsize, padding_len);
+	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
 }
@@ -1509,7 +1509,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case FDL_BLOCK_TYPE_INT:
 		case FDL_BLOCK_TYPE_V2:
 
-			if(scap_read_fdlist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_fdlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_proclist, handle->m_lasterr) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
