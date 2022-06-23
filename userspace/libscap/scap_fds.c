@@ -677,7 +677,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	//
 	// Add the fd to the table, or fire the notification callback
 	//
-	if(handle->m_proc_callback == NULL)
+	if(handle->m_proclist.m_proc_callback == NULL)
 	{
 		HASH_ADD_INT64(tinfo->fdlist, fd, fdi);
 		if(uth_status != SCAP_SUCCESS)
@@ -688,7 +688,9 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	}
 	else
 	{
-		handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, fdi);
+		handle->m_proclist.m_proc_callback(
+			handle->m_proclist.m_proc_callback_context,
+			handle->m_proclist.m_main_handle, tinfo->tid, tinfo, fdi);
 	}
 
 	return SCAP_SUCCESS;
@@ -1982,7 +1984,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
-			if(handle->m_proc_callback == NULL)
+			if(handle->m_proclist.m_proc_callback == NULL)
 			{
 				// we can land here if we've got a netlink socket
 				if(fdi->type == SCAP_FD_UNKNOWN)
@@ -2003,7 +2005,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			break;
 		}
 
-		if(handle->m_proc_callback != NULL)
+		if(handle->m_proclist.m_proc_callback != NULL)
 		{
 			if(fdi)
 			{

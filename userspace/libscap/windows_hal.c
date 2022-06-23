@@ -486,7 +486,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 {
 	struct scap_threadinfo* tinfo;
 
-	if(handle->m_proc_callback == NULL)
+	if(handle->m_proclist.m_proc_callback == NULL)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "process table construction in scap not supported on windows");
 		return SCAP_FAILURE;
@@ -540,7 +540,12 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 			for(uint32_t j = 1; j < ptl.m_count; j++)
 			{
 				tinfo->tid = ptl.m_tids[j];
-				handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
+				handle->m_proclist.m_proc_callback(
+					handle->m_proclist.m_proc_callback_context,
+					handle,
+					tinfo->tid,
+					tinfo,
+					NULL);
 			}
 		}
 
@@ -594,7 +599,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 				return ares;
 			}
 
-			if(handle->m_proc_callback != NULL)
+			if(handle->m_proclist.m_proc_callback != NULL)
 			{
 				if(fdi)
 				{
@@ -605,7 +610,12 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 	}
 
 	tinfo->flags |= PPM_CL_IS_MAIN_THREAD;
-	handle->m_proc_callback(handle->m_proc_callback_context, handle, tinfo->tid, tinfo, NULL);
+	handle->m_proclist.m_proc_callback(
+		handle->m_proclist.m_proc_callback_context,
+		handle,
+		tinfo->tid,
+		tinfo,
+		NULL);
 
 	free(tinfo);
 

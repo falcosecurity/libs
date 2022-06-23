@@ -261,7 +261,7 @@ static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
 		return SCAP_SUCCESS;
 	}
 
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
+	HASH_ITER(hh, handle->m_proclist.m_proclist, tinfo, ttinfo)
 	{
 		if(!tinfo->filtered_out)
 		{
@@ -532,7 +532,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 	//
 	// Exit immediately if the process list is empty
 	//
-	if(HASH_COUNT(handle->m_proclist) == 0)
+	if(HASH_COUNT(handle->m_proclist.m_proclist) == 0)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -542,7 +542,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;
-	HASH_ITER(hh, handle->m_proclist, tinfo, ttinfo)
+	HASH_ITER(hh, handle->m_proclist.m_proclist, tinfo, ttinfo)
 	{
 		if(tinfo->filtered_out)
 		{
@@ -908,19 +908,19 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 #if defined(HAS_CAPTURE) && !defined(WIN32)
 	if(handle->m_reader == NULL && handle->refresh_proc_table_when_saving)
 	{
-		proc_entry_callback tcb = handle->m_proc_callback;
-		handle->m_proc_callback = NULL;
+		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
+		handle->m_proclist.m_proc_callback = NULL;
 
 		scap_proc_free_table(handle);
 		char filename[SCAP_MAX_PATH_SIZE];
 		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
 		{
-			handle->m_proc_callback = tcb;
+			handle->m_proclist.m_proc_callback = tcb;
 			return SCAP_FAILURE;
 		}
 
-		handle->m_proc_callback = tcb;
+		handle->m_proclist.m_proc_callback = tcb;
 	}
 #endif
 
@@ -967,7 +967,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	//
 	// If the user doesn't need the thread table, free it
 	//
-	if(handle->m_proc_callback != NULL)
+	if(handle->m_proclist.m_proc_callback != NULL)
 	{
 		scap_proc_free_table(handle);
 	}

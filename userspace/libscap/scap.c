@@ -175,11 +175,14 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = proc_callback;
+	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
+
 	//
 	// Extract machine information
 	//
-	handle->m_proc_callback = proc_callback;
-	handle->m_proc_callback_context = proc_callback_context;
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
@@ -336,11 +339,14 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = proc_callback;
+	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
+
 	//
 	// Extract machine information
 	//
-	handle->m_proc_callback = proc_callback;
-	handle->m_proc_callback_context = proc_callback_context;
 #ifdef _WIN32
 	scap_get_machine_info_windows(&handle->m_machine_info.num_cpus, &handle->m_machine_info.memory_size_bytes);
 #else
@@ -500,8 +506,10 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
-	handle->m_proc_callback = args->proc_callback;
-	handle->m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = args->proc_callback;
+	handle->m_proclist.m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
 
 	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -560,9 +568,6 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	//
 	handle->m_vtable = NULL;
 	handle->m_mode = SCAP_MODE_CAPTURE;
-	handle->m_proc_callback = proc_callback;
-	handle->m_proc_callback_context = proc_callback_context;
-	handle->m_proclist = NULL;
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_addrlist = NULL;
@@ -579,6 +584,12 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 #endif
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
+
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = proc_callback;
+	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
+
 
 	handle->m_reader_evt_buf = (char*)malloc(READER_BUF_SIZE);
 	if(!handle->m_reader_evt_buf)
@@ -709,11 +720,14 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = proc_callback;
+	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
+
 	//
 	// Extract machine information
 	//
-	handle->m_proc_callback = proc_callback;
-	handle->m_proc_callback_context = proc_callback_context;
 #ifdef _WIN32
 	handle->m_machine_info.num_cpus = 0;
 	handle->m_machine_info.memory_size_bytes = 0;
@@ -826,11 +840,14 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * inpu
 		return NULL;
 	}
 
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = NULL;
+	handle->m_proclist.m_proc_callback_context = NULL;
+	handle->m_proclist.m_proclist = NULL;
+
 	//
 	// Extract machine information
 	//
-	handle->m_proc_callback = NULL;
-	handle->m_proc_callback_context = NULL;
 #ifdef _WIN32
 	handle->m_machine_info.num_cpus = 0;
 	handle->m_machine_info.memory_size_bytes = 0;
@@ -1023,10 +1040,10 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 static inline void scap_deinit_state(scap_t* handle)
 {
 	// Free the process table
-	if(handle->m_proclist != NULL)
+	if(handle->m_proclist.m_proclist != NULL)
 	{
 		scap_proc_free_table(handle);
-		handle->m_proclist = NULL;
+		handle->m_proclist.m_proclist = NULL;
 	}
 
 	// Free the device table
@@ -1247,7 +1264,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 //
 scap_threadinfo* scap_get_proc_table(scap_t* handle)
 {
-	return handle->m_proclist;
+	return handle->m_proclist.m_proclist;
 }
 
 //
