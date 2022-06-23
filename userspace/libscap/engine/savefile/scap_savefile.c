@@ -1024,7 +1024,7 @@ scap_read_iflist_error:
 //
 // Parse a user list block
 //
-static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint32_t block_type, scap_userlist** userlist_p, char* error)
 {
 	size_t readsize;
 	size_t totreadsize = 0;
@@ -1040,27 +1040,27 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 	// If the list of users was already allocated for this handle (for example because this is
 	// not the first interface list block), free it
 	//
-	if(handle->m_userlist != NULL)
+	if((*userlist_p) != NULL)
 	{
-		scap_free_userlist(handle->m_userlist);
-		handle->m_userlist = NULL;
+		scap_free_userlist((*userlist_p));
+		(*userlist_p) = NULL;
 	}
 
 	//
 	// Allocate and initialize the handle info
 	//
-	handle->m_userlist = (scap_userlist*)malloc(sizeof(scap_userlist));
-	if(handle->m_userlist == NULL)
+	(*userlist_p) = (scap_userlist*)malloc(sizeof(scap_userlist));
+	if((*userlist_p) == NULL)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
+		snprintf(error,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
 		return SCAP_FAILURE;
 	}
 
-	handle->m_userlist->nusers = 0;
-	handle->m_userlist->ngroups = 0;
-	handle->m_userlist->totsavelen = 0;
-	handle->m_userlist->users = NULL;
-	handle->m_userlist->groups = NULL;
+	(*userlist_p)->nusers = 0;
+	(*userlist_p)->ngroups = 0;
+	(*userlist_p)->totsavelen = 0;
+	(*userlist_p)->users = NULL;
+	(*userlist_p)->groups = NULL;
 
 	//
 	// Import the blocks
@@ -1074,7 +1074,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// len
 			//
 			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 		}
@@ -1083,7 +1083,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// type
 		//
 		readsize = scap_reader_read(r, &(type), sizeof(type));
-		CHECK_READ_SIZE(readsize, sizeof(type));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(type), error);
 
 		subreadsize += readsize;
 
@@ -1091,21 +1091,21 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			scap_userinfo* puser;
 
-			handle->m_userlist->nusers++;
-			handle->m_userlist->users = (scap_userinfo*)realloc(handle->m_userlist->users, handle->m_userlist->nusers * sizeof(scap_userinfo));
-			if(handle->m_userlist->users == NULL)
+			(*userlist_p)->nusers++;
+			(*userlist_p)->users = (scap_userinfo*)realloc((*userlist_p)->users, (*userlist_p)->nusers * sizeof(scap_userinfo));
+			if((*userlist_p)->users == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(1)");
+				snprintf(error, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(1)");
 				return SCAP_FAILURE;
 			}
 
-			puser = &handle->m_userlist->users[handle->m_userlist->nusers -1];
+			puser = &(*userlist_p)->users[(*userlist_p)->nusers -1];
 
 			//
 			// uid
 			//
 			readsize = scap_reader_read(r, &(puser->uid), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -1113,7 +1113,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// gid
 			//
 			readsize = scap_reader_read(r, &(puser->gid), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -1121,18 +1121,18 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// name
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid user name len %d", stlen);
+				snprintf(error, SCAP_LASTERR_SIZE, "invalid user name len %d", stlen);
 				return SCAP_FAILURE;
 			}
 
 			subreadsize += readsize;
 
 			readsize = scap_reader_read(r, puser->name, stlen);
-			CHECK_READ_SIZE(readsize, stlen);
+			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
 			puser->name[stlen] = 0;
@@ -1143,18 +1143,18 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// homedir
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid user homedir len %d", stlen);
+				snprintf(error, SCAP_LASTERR_SIZE, "invalid user homedir len %d", stlen);
 				return SCAP_FAILURE;
 			}
 
 			subreadsize += readsize;
 
 			readsize = scap_reader_read(r, puser->homedir, stlen);
-			CHECK_READ_SIZE(readsize, stlen);
+			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
 			puser->homedir[stlen] = 0;
@@ -1165,18 +1165,18 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// shell
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid user shell len %d", stlen);
+				snprintf(error, SCAP_LASTERR_SIZE, "invalid user shell len %d", stlen);
 				return SCAP_FAILURE;
 			}
 
 			subreadsize += readsize;
 
 			readsize = scap_reader_read(r, puser->shell, stlen);
-			CHECK_READ_SIZE(readsize, stlen);
+			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
 			puser->shell[stlen] = 0;
@@ -1196,21 +1196,21 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			scap_groupinfo* pgroup;
 
-			handle->m_userlist->ngroups++;
-			handle->m_userlist->groups = (scap_groupinfo*)realloc(handle->m_userlist->groups, handle->m_userlist->ngroups * sizeof(scap_groupinfo));
-			if(handle->m_userlist->groups == NULL)
+			(*userlist_p)->ngroups++;
+			(*userlist_p)->groups = (scap_groupinfo*)realloc((*userlist_p)->groups, (*userlist_p)->ngroups * sizeof(scap_groupinfo));
+			if((*userlist_p)->groups == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(2)");
+				snprintf(error, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(2)");
 				return SCAP_FAILURE;
 			}
 
-			pgroup = &handle->m_userlist->groups[handle->m_userlist->ngroups -1];
+			pgroup = &(*userlist_p)->groups[(*userlist_p)->ngroups -1];
 
 			//
 			// gid
 			//
 			readsize = scap_reader_read(r, &(pgroup->gid), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -1218,18 +1218,18 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// name
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid group name len %d", stlen);
+				snprintf(error, SCAP_LASTERR_SIZE, "invalid group name len %d", stlen);
 				return SCAP_FAILURE;
 			}
 
 			subreadsize += readsize;
 
 			readsize = scap_reader_read(r, pgroup->name, stlen);
-			CHECK_READ_SIZE(readsize, stlen);
+			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
 			pgroup->name[stlen] = 0;
@@ -1250,7 +1250,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		{
 			if(subreadsize > sub_len)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but userlist entry have length %u.",
+				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but userlist entry have length %u.",
 					 subreadsize, sub_len);
 				return SCAP_FAILURE;
 			}
@@ -1258,7 +1258,7 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
+				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
 				         (unsigned int)toread);
 				return SCAP_FAILURE;
 			}
@@ -1275,13 +1275,13 @@ static int32_t scap_read_userlist(scap_t *handle, scap_reader_t* r, uint32_t blo
 	if(totreadsize > block_length)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_userlist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(error, SCAP_LASTERR_SIZE, "scap_read_userlist read more %lu than a block %u", totreadsize, block_length);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
 
 	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
-	CHECK_READ_SIZE(readsize, padding_len);
+	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
 }
@@ -1549,7 +1549,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case UL_BLOCK_TYPE_INT:
 		case UL_BLOCK_TYPE_V2:
 
-			if(scap_read_userlist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_userlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_userlist, handle->m_lasterr) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
