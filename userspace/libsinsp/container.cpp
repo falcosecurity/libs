@@ -330,7 +330,15 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		//
 		// Fallback at just storing the new container.
 		// NOTE: this must be kept in sync with what happens on container event parsing, in parsers.cpp.
-		add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+		const auto container = m_inspector->m_container_manager.get_container(container_info.m_id);
+		if(container != nullptr && container->is_successful())
+		{
+			SINSP_DEBUG("Ignoring new container notification for already successful lookup of %s", container_info.m_id.c_str());
+		}
+		else
+		{
+			add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+		}
 		return;
 	}
 
