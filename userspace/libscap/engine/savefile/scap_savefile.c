@@ -1390,7 +1390,7 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_read_section_header(scap_t *handle, scap_reader_t* r)
+static int32_t scap_read_section_header(scap_reader_t* r, char* error)
 {
 	section_header_block sh;
 	uint32_t bt;
@@ -1401,19 +1401,19 @@ int32_t scap_read_section_header(scap_t *handle, scap_reader_t* r)
 	if(scap_reader_read(r, &sh, sizeof(sh)) != sizeof(sh) ||
 	   scap_reader_read(r, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
+		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
 	}
 
 	if(sh.byte_order_magic != 0x1a2b3c4d)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid magic number");
+		snprintf(error, SCAP_LASTERR_SIZE, "invalid magic number");
 		return SCAP_FAILURE;
 	}
 
 	if(sh.major_version > CURRENT_MAJOR_VERSION)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE,
+		snprintf(error, SCAP_LASTERR_SIZE,
 			 "cannot correctly parse the capture. Upgrade your version.");
 		return SCAP_VERSION_MISMATCH;
 	}
@@ -1449,7 +1449,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_read_section_header(handle, r)) != SCAP_SUCCESS)
+	if((rc = scap_read_section_header(r, handle->m_lasterr)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
