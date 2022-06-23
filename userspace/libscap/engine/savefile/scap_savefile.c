@@ -54,7 +54,7 @@ static int32_t scap_read_machine_info(scap_reader_t* r, scap_machine_info* machi
 //
 // Parse a process list block
 //
-static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t block_length, uint32_t block_type)
+static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint32_t block_type, struct scap_proclist *proclist, char *error)
 {
 	size_t readsize;
 	size_t subreadsize = 0;
@@ -114,12 +114,12 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			break;
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -128,7 +128,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// tid
 		//
 		readsize = scap_reader_read(r, &(tinfo.tid), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
 
@@ -136,7 +136,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// pid
 		//
 		readsize = scap_reader_read(r, &(tinfo.pid), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
 
@@ -144,7 +144,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// ptid
 		//
 		readsize = scap_reader_read(r, &(tinfo.ptid), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
 
@@ -164,12 +164,12 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(tinfo.sid), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -193,12 +193,12 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
 			readsize = scap_reader_read(r, &(tinfo.vpgid), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -207,18 +207,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// comm
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid commlen %d", stlen);
+			snprintf(error, SCAP_LASTERR_SIZE, "invalid commlen %d", stlen);
 			return SCAP_FAILURE;
 		}
 
 		subreadsize += readsize;
 
 		readsize = scap_reader_read(r, tinfo.comm, stlen);
-		CHECK_READ_SIZE(readsize, stlen);
+		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
 		tinfo.comm[stlen] = 0;
@@ -229,18 +229,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// exe
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid exelen %d", stlen);
+			snprintf(error, SCAP_LASTERR_SIZE, "invalid exelen %d", stlen);
 			return SCAP_FAILURE;
 		}
 
 		subreadsize += readsize;
 
 		readsize = scap_reader_read(r, tinfo.exe, stlen);
-		CHECK_READ_SIZE(readsize, stlen);
+		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
 		tinfo.exe[stlen] = 0;
@@ -266,18 +266,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// exepath
 			//
 			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen > SCAP_MAX_PATH_SIZE)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid exepathlen %d", stlen);
+				snprintf(error, SCAP_LASTERR_SIZE, "invalid exepathlen %d", stlen);
 				return SCAP_FAILURE;
 			}
 
 			subreadsize += readsize;
 
 			readsize = scap_reader_read(r, tinfo.exepath, stlen);
-			CHECK_READ_SIZE(readsize, stlen);
+			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
 			tinfo.exepath[stlen] = 0;
@@ -286,7 +286,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -295,18 +295,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// args
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_ARGS_SIZE)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid argslen %d", stlen);
+			snprintf(error, SCAP_LASTERR_SIZE, "invalid argslen %d", stlen);
 			return SCAP_FAILURE;
 		}
 
 		subreadsize += readsize;
 
 		readsize = scap_reader_read(r, tinfo.args, stlen);
-		CHECK_READ_SIZE(readsize, stlen);
+		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
 		tinfo.args[stlen] = 0;
@@ -318,18 +318,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// cwd
 		//
 		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid cwdlen %d", stlen);
+			snprintf(error, SCAP_LASTERR_SIZE, "invalid cwdlen %d", stlen);
 			return SCAP_FAILURE;
 		}
 
 		subreadsize += readsize;
 
 		readsize = scap_reader_read(r, tinfo.cwd, stlen);
-		CHECK_READ_SIZE(readsize, stlen);
+		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
 		tinfo.cwd[stlen] = 0;
@@ -340,7 +340,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// fdlimit
 		//
 		readsize = scap_reader_read(r, &(tinfo.fdlimit), sizeof(uint64_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
 
@@ -348,7 +348,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// flags
 		//
 		readsize = scap_reader_read(r, &(tinfo.flags), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
 
@@ -356,7 +356,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// uid
 		//
 		readsize = scap_reader_read(r, &(tinfo.uid), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
 
@@ -364,7 +364,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		// gid
 		//
 		readsize = scap_reader_read(r, &(tinfo.gid), sizeof(uint32_t));
-		CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
 
@@ -387,7 +387,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// vmsize_kb
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmsize_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -395,7 +395,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// vmrss_kb
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmrss_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -403,7 +403,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// vmswap_kb
 			//
 			readsize = scap_reader_read(r, &(tinfo.vmswap_kb), sizeof(uint32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
 
@@ -411,7 +411,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// pfmajor
 			//
 			readsize = scap_reader_read(r, &(tinfo.pfmajor), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
 
@@ -419,7 +419,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			// pfminor
 			//
 			readsize = scap_reader_read(r, &(tinfo.pfminor), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
 
@@ -436,18 +436,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				// env
 				//
 				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 				if(stlen > SCAP_MAX_ENV_SIZE)
 				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid envlen %d", stlen);
+					snprintf(error, SCAP_LASTERR_SIZE, "invalid envlen %d", stlen);
 					return SCAP_FAILURE;
 				}
 
 				subreadsize += readsize;
 
 				readsize = scap_reader_read(r, tinfo.env, stlen);
-				CHECK_READ_SIZE(readsize, stlen);
+				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 				// the string is not null-terminated on file
 				tinfo.env[stlen] = 0;
@@ -467,7 +467,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				// vtid
 				//
 				readsize = scap_reader_read(r, &(tinfo.vtid), sizeof(int64_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 				subreadsize += readsize;
 
@@ -475,7 +475,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				// vpid
 				//
 				readsize = scap_reader_read(r, &(tinfo.vpid), sizeof(int64_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 				subreadsize += readsize;
 
@@ -483,11 +483,11 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				// cgroups
 				//
 				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-				CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 				if(stlen > SCAP_MAX_CGROUPS_SIZE)
 				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
+					snprintf(error, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
 					return SCAP_FAILURE;
 				}
 				tinfo.cgroups_len = stlen;
@@ -495,7 +495,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				subreadsize += readsize;
 
 				readsize = scap_reader_read(r, tinfo.cgroups, stlen);
-				CHECK_READ_SIZE(readsize, stlen);
+				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 				subreadsize += readsize;
 
@@ -506,18 +506,18 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 				   block_type == PL_BLOCK_TYPE_V9)
 				{
 					readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
-					CHECK_READ_SIZE(readsize, sizeof(uint16_t));
+					CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 					if(stlen > SCAP_MAX_PATH_SIZE)
 					{
-						snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid rootlen %d", stlen);
+						snprintf(error, SCAP_LASTERR_SIZE, "invalid rootlen %d", stlen);
 						return SCAP_FAILURE;
 					}
 
 					subreadsize += readsize;
 
 					readsize = scap_reader_read(r, tinfo.root, stlen);
-					CHECK_READ_SIZE(readsize, stlen);
+					CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 					// the string is not null-terminated on file
 					tinfo.root[stlen] = 0;
@@ -527,7 +527,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			}
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
+			snprintf(error, SCAP_LASTERR_SIZE, "corrupted process block type (fd1)");
 			ASSERT(false);
 			return SCAP_FAILURE;
 		}
@@ -547,7 +547,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
 		{
 			readsize = scap_reader_read(r, &(tinfo.loginuid), sizeof(int32_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 			subreadsize += readsize;
 		}
 
@@ -557,7 +557,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
 		{
 			readsize = scap_reader_read(r, &(tinfo.exe_writable), sizeof(uint8_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint8_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
 			subreadsize += readsize;
 		}
 
@@ -567,28 +567,28 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_inheritable), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
 
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_permitted), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
 
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
 			readsize = scap_reader_read(r, &(tinfo.cap_effective), sizeof(uint64_t));
-			CHECK_READ_SIZE(readsize, sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
 
 		//
 		// All parsed. Add the entry to the table, or fire the notification callback
 		//
-		if(handle->m_proclist.m_proc_callback == NULL)
+		if(proclist->m_proc_callback == NULL)
 		{
 			//
 			// All parsed. Allocate the new entry and copy the temp one into into it.
@@ -596,33 +596,33 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			struct scap_threadinfo *ntinfo = (scap_threadinfo *)malloc(sizeof(scap_threadinfo));
 			if(ntinfo == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd1)");
 				return SCAP_FAILURE;
 			}
 
 			// Structure copy
 			*ntinfo = tinfo;
 
-			HASH_ADD_INT64(handle->m_proclist.m_proclist, tid, ntinfo);
+			HASH_ADD_INT64(proclist->m_proclist, tid, ntinfo);
 			if(uth_status != SCAP_SUCCESS)
 			{
 				free(ntinfo);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
+				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (fd2)");
 				return SCAP_FAILURE;
 			}
 		}
 		else
 		{
-			handle->m_proclist.m_proc_callback(
-				handle->m_proclist.m_proc_callback_context,
-				handle->m_proclist.m_main_handle, tinfo.tid, &tinfo, NULL);
+			proclist->m_proc_callback(
+				proclist->m_proc_callback_context,
+				proclist->m_main_handle, tinfo.tid, &tinfo, NULL);
 		}
 
 		if(sub_len && subreadsize != sub_len)
 		{
 			if(subreadsize > sub_len)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but proclist entry have length %u.",
+				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Had read %lu bytes, but proclist entry have length %u.",
 					 subreadsize, sub_len);
 				return SCAP_FAILURE;
 			}
@@ -630,7 +630,7 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
+				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
 				         (unsigned int)toread);
 				return SCAP_FAILURE;
 			}
@@ -646,14 +646,14 @@ static int32_t scap_read_proclist(scap_t *handle, scap_reader_t* r, uint32_t blo
 	//
 	if(totreadsize > block_length)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_read_proclist read more %lu than a block %u", totreadsize, block_length);
+		snprintf(error, SCAP_LASTERR_SIZE, "scap_read_proclist read more %lu than a block %u", totreadsize, block_length);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
 	padding_len = block_length - totreadsize;
 
 	readsize = (size_t)scap_reader_read(r, &padding, (unsigned int)padding_len);
-	CHECK_READ_SIZE(readsize, padding_len);
+	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
 }
@@ -1500,7 +1500,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:
 
-			if(scap_read_proclist(handle, r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type) != SCAP_SUCCESS)
+			if(scap_read_proclist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_proclist, handle->m_lasterr) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
