@@ -841,13 +841,15 @@ cleanup:
 	return res;
 }
 
-static void *perf_event_mmap(struct bpf_engine *handle, int fd)
+static void *perf_event_mmap(struct bpf_engine *handle, int fd, int *size)
 {
 	int page_size = getpagesize();
 	int ring_size = page_size * BUF_SIZE_PAGES;
 	int header_size = page_size;
 	int total_size = ring_size * 2 + header_size;
 	char buf[SCAP_LASTERR_SIZE];
+
+	*size = 0;
 
 	//
 	// All this playing with MAP_FIXED might be very very wrong, revisit
@@ -881,6 +883,8 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd)
 	}
 
 	ASSERT(p2 == tmp);
+
+	*size = total_size;
 
 	return tmp;
 }
@@ -1263,31 +1267,9 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
 
-	int page_size = getpagesize();
-	int ring_size = page_size * BUF_SIZE_PAGES;
-	int header_size = page_size;
-	int total_size = ring_size * 2 + header_size;
 	struct scap_device_set *devset = &handle->m_dev_set;
 
-	for(j = 0; j < devset->m_ndevs; j++)
-	{
-		struct scap_device *dev = &devset->m_devs[j];
-		if(dev->m_buffer != MAP_FAILED)
-		{
-#ifdef _DEBUG
-			int ret;
-			ret = munmap(dev->m_buffer, total_size);
-#else
-			munmap(dev->m_buffer, total_size);
-#endif
-			ASSERT(ret == 0);
-		}
-
-		if(dev->m_fd > 0)
-		{
-			close(dev->m_fd);
-		}
-	}
+	devset_free(devset);
 
 	for(j = 0; j < sizeof(handle->m_bpf_event_fd) / sizeof(handle->m_bpf_event_fd[0]); ++j)
 	{
@@ -1578,7 +1560,7 @@ int32_t scap_bpf_load(
 		//
 		// Map the ring buffer
 		//
-		dev->m_buffer = perf_event_mmap(handle, pmu_fd);
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size);
 		if(dev->m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;

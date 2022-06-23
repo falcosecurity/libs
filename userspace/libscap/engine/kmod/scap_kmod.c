@@ -223,6 +223,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
 			return SCAP_FAILURE;
 		}
+		dev->m_buffer_size = len;
 
 		//
 		// Map the ppm_ring_buffer_info that contains the buffer pointers
@@ -243,6 +244,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
 			return SCAP_FAILURE;
 		}
+		dev->m_bufinfo_size = sizeof(struct ppm_ring_buffer_info);
 
 		++j;
 	}
@@ -270,29 +272,7 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 
-	if(devset->m_devs != NULL)
-	{
-		{
-			//
-			// Destroy all the device descriptors
-			//
-			uint32_t j;
-			for(j = 0; j < devset->m_ndevs; j++)
-			{
-				struct scap_device *dev = &devset->m_devs[j];
-				if(dev->m_buffer != MAP_FAILED)
-				{
-					munmap(dev->m_bufinfo, sizeof(struct ppm_ring_buffer_info));
-					munmap(dev->m_buffer, RING_BUF_SIZE * 2);
-					close(dev->m_fd);
-				}
-			}
-		}
-		//
-		// Free the memory
-		//
-		free(devset->m_devs);
-	}
+	devset_free(devset);
 
 	return SCAP_SUCCESS;
 }

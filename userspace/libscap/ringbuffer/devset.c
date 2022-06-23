@@ -38,3 +38,38 @@ int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *laste
 
 	return SCAP_SUCCESS;
 }
+
+void devset_free(struct scap_device_set *devset)
+{
+	if(devset == NULL || devset->m_devs == NULL)
+	{
+		return;
+	}
+
+	uint32_t j;
+	for(j = 0; j < devset->m_ndevs; j++)
+	{
+		struct scap_device *dev = &devset->m_devs[j];
+		if(dev->m_buffer != MAP_FAILED)
+		{
+#ifdef _DEBUG
+			int ret;
+			ret = munmap(dev->m_buffer, dev->m_buffer_size);
+#else
+			munmap(dev->m_buffer, dev->m_buffer_size);
+#endif
+			ASSERT(ret == 0);
+		}
+
+		if(dev->m_bufinfo != MAP_FAILED)
+		{
+			munmap(dev->m_bufinfo, dev->m_bufinfo_size);
+		}
+
+		if(dev->m_fd > 0)
+		{
+			close(dev->m_fd);
+		}
+	}
+	free(devset->m_devs);
+}
