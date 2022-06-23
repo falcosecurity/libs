@@ -147,7 +147,8 @@ static int get_kernel_version()
 	char buf[256];
 	char filename[256];
 	unsigned x, y, z;
-	for (int i = 0; i < 4; i++)
+	int i = 0;
+	for (i = 0; i < 4; i++)
 	{
 		switch(i)
 		{
@@ -1394,7 +1395,8 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.fullcapture_port_range_end = 0;
 	settings.statsd_port = 8125;
 	memset(settings.if_name, 0, 16);
-	for (int i = 0; i < PPM_EVENT_MAX; i++) {
+	int i = 0;
+	for (i = 0; i < PPM_EVENT_MAX; i++) {
 	    settings.events_mask[i] = true;
 	}
 
@@ -1661,7 +1663,8 @@ int32_t scap_bpf_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id
 	{
 	case PPM_IOCTL_MASK_ZERO_EVENTS:
 	{
-		for(int j = 0; j < PPM_EVENT_MAX; j++)
+		int j = 0;
+		for(j = 0; j < PPM_EVENT_MAX; j++)
 		{
 			const struct ppm_event_info event = g_event_info[j];
 			// event with flag EF_MODIFIES_STATE cannot be dropped, so we preserve.
