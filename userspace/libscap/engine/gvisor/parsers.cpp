@@ -841,6 +841,22 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	}
 	strlcpy(tinfo.cwd, root["cwd"].asCString(), SCAP_MAX_PATH_SIZE + 1);
 
+	// uid 
+	if(!status.isMember("uid") || !status["uid"].isMember("effective") || 
+		!status["uid"]["effective"].isUInt64())
+	{
+		return res;
+	}
+	tinfo.uid = status["uid"]["effective"].asUInt64();
+
+	// gid
+	if(!status.isMember("gid") || !status["gid"].isMember("effective") || 
+		!status["gid"]["effective"].isUInt64())
+	{
+		return res;
+	}
+	tinfo.gid = status["gid"]["effective"].asUInt64();
+
 	// vtid
 	tinfo.vtid = status["pid"].asUInt64();
 
