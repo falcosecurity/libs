@@ -232,7 +232,7 @@ int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* d
 // Populate the given fd by reading the info from disk
 uint32_t scap_fd_read_from_disk(OUT scap_fdinfo* fdi, OUT size_t* nbytes, uint32_t block_type, scap_reader_t* r, char* error);
 // Parse the headers of a trace file and load the tables
-int32_t scap_read_init(scap_t* handle, scap_reader_t* r);
+int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);

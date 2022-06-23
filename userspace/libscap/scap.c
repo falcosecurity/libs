@@ -615,7 +615,13 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	//
 	// Validate the file and load the non-event blocks
 	//
-	if((*rc = scap_read_init(handle, handle->m_reader)) != SCAP_SUCCESS)
+	if((*rc = scap_read_init(
+		    handle->m_reader,
+		    &handle->m_machine_info,
+		    &handle->m_proclist,
+		    &handle->m_addrlist,
+		    &handle->m_userlist,
+		    handle->m_lasterr)) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not initialize reader: %s", scap_getlasterr(handle));
 		scap_close(handle);
@@ -1090,7 +1096,13 @@ uint32_t scap_restart_capture(scap_t* handle)
 			scap_reader_seek(handle->m_reader, (int64_t)0 - (int64_t)handle->m_unexpected_block_readsize, SEEK_CUR);
 			handle->m_unexpected_block_readsize = 0;
 		}
-		if((res = scap_read_init(handle, handle->m_reader)) != SCAP_SUCCESS)
+		if((res = scap_read_init(
+			handle->m_reader,
+			&handle->m_machine_info,
+			&handle->m_proclist,
+			&handle->m_addrlist,
+			&handle->m_userlist,
+			handle->m_lasterr)) != SCAP_SUCCESS)
 		{
 			char error[SCAP_LASTERR_SIZE];
 			snprintf(error, SCAP_LASTERR_SIZE, "could not restart capture: %s", scap_getlasterr(handle));
