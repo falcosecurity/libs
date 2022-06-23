@@ -1424,7 +1424,7 @@ static int32_t scap_read_section_header(scap_reader_t* r, char* error)
 //
 // Parse the headers of a trace file and load the tables
 //
-int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
+int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error)
 {
 	block_header bh;
 	uint32_t bt;
@@ -1439,17 +1439,17 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 	//
 	if(scap_reader_read(r, &bh, sizeof(bh)) != sizeof(bh))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error reading from file (1)");
+		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
 	}
 
 	if(bh.block_type != SHB_BLOCK_TYPE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid block type");
+		snprintf(error, SCAP_LASTERR_SIZE, "invalid block type");
 		return SCAP_FAILURE;
 	}
 
-	if((rc = scap_read_section_header(r, handle->m_lasterr)) != SCAP_SUCCESS)
+	if((rc = scap_read_section_header(r, error)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -1467,11 +1467,11 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		//
 		if (readsize == 0 && !found_ev)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "no events in file");
+			snprintf(error, SCAP_LASTERR_SIZE, "no events in file");
 			return SCAP_FAILURE;
 		}
 
-		CHECK_READ_SIZE(readsize, sizeof(bh));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(bh), error);
 
 		switch(bh.block_type)
 		{
@@ -1480,8 +1480,8 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 
 			if(scap_read_machine_info(
 				   r,
-				   &handle->m_machine_info,
-				   handle->m_lasterr,
+				   machine_info_p,
+				   error,
 				   bh.block_total_length - sizeof(block_header) - 4) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
@@ -1500,7 +1500,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case PL_BLOCK_TYPE_V2_INT:
 		case PL_BLOCK_TYPE_V3_INT:
 
-			if(scap_read_proclist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_proclist, handle->m_lasterr) != SCAP_SUCCESS)
+			if(scap_read_proclist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, proclist_p, error) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -1509,7 +1509,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case FDL_BLOCK_TYPE_INT:
 		case FDL_BLOCK_TYPE_V2:
 
-			if(scap_read_fdlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_proclist, handle->m_lasterr) != SCAP_SUCCESS)
+			if(scap_read_fdlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, proclist_p, error) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -1533,14 +1533,14 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 			}
 			else
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error seeking in file");
+				snprintf(error, SCAP_LASTERR_SIZE, "error seeking in file");
 				return SCAP_FAILURE;
 			}
 		case IL_BLOCK_TYPE:
 		case IL_BLOCK_TYPE_INT:
 		case IL_BLOCK_TYPE_V2:
 
-			if(scap_read_iflist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_addrlist, handle->m_lasterr) != SCAP_SUCCESS)
+			if(scap_read_iflist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, addrlist_p, error) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -1549,7 +1549,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		case UL_BLOCK_TYPE_INT:
 		case UL_BLOCK_TYPE_V2:
 
-			if(scap_read_userlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, &handle->m_userlist, handle->m_lasterr) != SCAP_SUCCESS)
+			if(scap_read_userlist(r, bh.block_total_length - sizeof(block_header) - 4, bh.block_type, userlist_p, error) != SCAP_SUCCESS)
 			{
 				return SCAP_FAILURE;
 			}
@@ -1562,7 +1562,7 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",
+				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",
 				         (int)bh.block_type,
 				         (unsigned int)toread);
 				return SCAP_FAILURE;
@@ -1579,11 +1579,11 @@ int32_t scap_read_init(scap_t *handle, scap_reader_t* r)
 		// Read and validate the trailer
 		//
 		readsize = scap_reader_read(r, &bt, sizeof(bt));
-		CHECK_READ_SIZE(readsize, sizeof(bt));
+		CHECK_READ_SIZE_ERR(readsize, sizeof(bt), error);
 
 		if(bt != bh.block_total_length)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "wrong block total length, header=%u, trailer=%u",
+			snprintf(error, SCAP_LASTERR_SIZE, "wrong block total length, header=%u, trailer=%u",
 			         bh.block_total_length,
 			         bt);
 			return SCAP_FAILURE;
