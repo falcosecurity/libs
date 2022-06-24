@@ -263,6 +263,9 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
  * - `execve` exit event.
  * - `clone` child exit event.
  * 
+ * Here https://www.spinics.net/lists/linux-trace/msg01001.html
+ * you can find a brief description of the problem.
+ * 
  * This exit events don't call the `sys_exit` tracepoint and so our
  * bpf programs are not called. These events are really important so
  * in order to not lose them, we use 2 new tracepoints: 
@@ -277,9 +280,9 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
  * essential for `sched_process_fork` since the only way we have to access the
  * child task struct is through the raw tracepoint arguments.
  * 
- * Since we need to use `BPF_PROG_TYPE_RAW_TRACEPOINT`, the ARM64 support for our 
- * BPF probe requires kernel greater or equal than `4.17`. If your run old kernel
- * version, you can use the kernel module which requires a kernel greater than `3.4`.
+ * Since we need to use `BPF_PROG_TYPE_RAW_TRACEPOINT`, the ARM64 support for our
+ * BPF probe requires kernel versions greater or equal than `4.17`. If you run old kernels, 
+ * you can use the kernel module which requires kernel versions greater or equal than `3.4`.
  */
 
 /* This macro `BPF_PROBE()` is equivalent to:
@@ -308,7 +311,7 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 		return 0;
 	}
 
-	/* Reset the tail context in cpu state map. */
+	/* Reset the tail context in the CPU state map. */
 	uint32_t cpu = bpf_get_smp_processor_id();
 	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
 	if(!state)
@@ -349,7 +352,7 @@ BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 		return 0;
 	}
 
-	/* Reset the tail context in cpu state map. */
+	/* Reset the tail context in the CPU state map. */
 	uint32_t cpu = bpf_get_smp_processor_id();
 	struct scap_bpf_per_cpu_state * state = get_local_state(cpu);
 	if(!state)

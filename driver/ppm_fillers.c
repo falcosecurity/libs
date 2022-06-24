@@ -6371,7 +6371,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	const struct cred *cred = NULL;
 
 
-	/* 1° Parameter: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
 	 * performed, so the return value will be always 0.
 	 */
@@ -6426,35 +6426,35 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 		++exe_len;
 	}
 
-	/* 2° Parameter: exe (type: PT_CHARBUF) */
+	/* Parameter 2: exe (type: PT_CHARBUF) */
 	res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 3° Parameter: args (type: PT_CHARBUFARRAY) */
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 4° Parameter: tid (type: PT_PID) */
+	/* Parameter 4: tid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)current->pid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 5° Parameter: pid (type: PT_PID) */
+	/* Parameter 5: pid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)current->tgid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 6° Parameter: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID) */
 	if(current->real_parent)
 	{
 		ptid = current->real_parent->pid;
@@ -6466,7 +6466,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* 7° Parameter: cwd (type: PT_CHARBUF)
+	/* Parameter 7: cwd (type: PT_CHARBUF)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
@@ -6476,21 +6476,21 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* 8° Parameter: fdlimit (type: PT_UINT64) */
+	/* Parameter 8: fdlimit (type: PT_UINT64) */
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 9° Parameter: pgft_maj (type: PT_UINT64) */
+	/* Parameter 9: pgft_maj (type: PT_UINT64) */
 	res = val_to_ring(args, current->maj_flt, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 10° Parameter: pgft_min (type: PT_UINT64) */
+	/* Parameter 10: pgft_min (type: PT_UINT64) */
 	res = val_to_ring(args, current->min_flt, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6504,28 +6504,28 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
-	/* 11° Parameter: vm_size (type: PT_UINT32) */
+	/* Parameter 11: vm_size (type: PT_UINT32) */
 	res = val_to_ring(args, total_vm, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 12° Parameter: vm_rss (type: PT_UINT32) */
+	/* Parameter 12: vm_rss (type: PT_UINT32) */
 	res = val_to_ring(args, total_rss, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 13° Parameter: vm_swap (type: PT_UINT32) */
+	/* Parameter 13: vm_swap (type: PT_UINT32) */
 	res = val_to_ring(args, swap, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 14° Parameter: comm (type: PT_CHARBUF) */
+	/* Parameter 14: comm (type: PT_CHARBUF) */
 	res = val_to_ring(args, (uint64_t)current->comm, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6540,7 +6540,7 @@ cgroups_error:
 	rcu_read_unlock();
 #endif
 
-	/* 15° Parameter: cgroups (type: PT_CHARBUFARRAY) */
+	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6561,18 +6561,18 @@ cgroups_error:
 	}
 	else
 	{
-		args_len = 0;
+		env_len = 0;
 		*args->str_storage = 0;
 	}
 
-	/* 16° Parameter: env (type: PT_CHARBUFARRAY) */
+	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage, env_len, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 17° Parameter: tty (type: PT_INT32) */
+	/* Parameter 17: tty (type: PT_INT32) */
 	tty_nr = ppm_get_tty();
 	res = val_to_ring(args, tty_nr, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
@@ -6580,14 +6580,14 @@ cgroups_error:
 		return res;
 	}
 
-	/* 18° Parameter: pgid (type: PT_PID) */
+	/* Parameter 18: pgid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 19° Parameter: loginuid (type: PT_INT32) */
+	/* Parameter 19: loginuid (type: PT_INT32) */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
 	val = from_kuid(current_user_ns(), audit_get_loginuid(current));
 #else
@@ -6623,7 +6623,7 @@ cgroups_error:
 
 	// write all the additional flags for execve family here...
 
-	/* 20° Parameter: flags (type: PT_FLAGS32) */
+	/* Parameter 20: flags (type: PT_FLAGS32) */
 	res = val_to_ring(args, flags, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6632,7 +6632,7 @@ cgroups_error:
 
 	cred = get_current_cred();
 
-	/* 21° Parameter: cap_inheritable (type: PT_UINT64) */
+	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
 	val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
 	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
@@ -6640,7 +6640,7 @@ cgroups_error:
 		goto out;
 	}
 
-	/* 22° Parameter: cap_permitted (type: PT_UINT64) */
+	/* Parameter 22: cap_permitted (type: PT_UINT64) */
 	val = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
 	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
@@ -6648,7 +6648,7 @@ cgroups_error:
 		goto out;
 	}
 
-	/* 23° Parameter: cap_effective (type: PT_UINT64) */
+	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	val = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
 	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
@@ -6682,7 +6682,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	uint64_t euid = task_euid(child).val;
 	uint64_t egid = child->cred->egid.val;
 
-	/* 1° Parameter: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: here we are in the clone child exit
 	 * event, so the return value will be always 0.
 	 */
@@ -6737,35 +6737,35 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 		++exe_len;
 	}
 
-	/* 2° Parameter: exe (type: PT_CHARBUF) */
+	/* Parameter 2: exe (type: PT_CHARBUF) */
 	res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 3° Parameter: args (type: PT_CHARBUFARRAY) */
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 4° Parameter: tid (type: PT_PID) */
+	/* Parameter 4: tid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)child->pid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 5° Parameter: pid (type: PT_PID) */
+	/* Parameter 5: pid (type: PT_PID) */
 	res = val_to_ring(args, (int64_t)child->tgid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 6° Parameter: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID) */
 	if(child->real_parent)
 	{
 		ptid = child->real_parent->pid;
@@ -6777,7 +6777,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* 7° Parameter: cwd (type: PT_CHARBUF)
+	/* Parameter 7: cwd (type: PT_CHARBUF)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
@@ -6787,21 +6787,21 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* 8° Parameter: fdlimit (type: PT_UINT64) */
+	/* Parameter 8: fdlimit (type: PT_UINT64) */
 	res = val_to_ring(args, (int64_t)rlimit(RLIMIT_NOFILE), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 9° Parameter: pgft_maj (type: PT_UINT64) */
+	/* Parameter 9: pgft_maj (type: PT_UINT64) */
 	res = val_to_ring(args, child->maj_flt, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 10° Parameter: pgft_min (type: PT_UINT64) */
+	/* Parameter 10: pgft_min (type: PT_UINT64) */
 	res = val_to_ring(args, child->min_flt, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6815,28 +6815,28 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 		swap = ppm_get_mm_swap(mm) << (PAGE_SHIFT - 10);
 	}
 
-	/* 11° Parameter: vm_size (type: PT_UINT32) */
+	/* Parameter 11: vm_size (type: PT_UINT32) */
 	res = val_to_ring(args, total_vm, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 12° Parameter: vm_rss (type: PT_UINT32) */
+	/* Parameter 12: vm_rss (type: PT_UINT32) */
 	res = val_to_ring(args, total_rss, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 13° Parameter: vm_swap (type: PT_UINT32) */
+	/* Parameter 13: vm_swap (type: PT_UINT32) */
 	res = val_to_ring(args, swap, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 14° Parameter: comm (type: PT_CHARBUF) */
+	/* Parameter 14: comm (type: PT_CHARBUF) */
 	res = val_to_ring(args, (uint64_t)child->comm, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -6851,42 +6851,42 @@ cgroups_error:
 	rcu_read_unlock();
 #endif
 
-	/* 15° Parameter: cgroups (type: PT_CHARBUFARRAY) */
+	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
 	res = val_to_ring(args, (int64_t)(long)args->str_storage, STR_STORAGE_SIZE - available, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 16° Parameter: flags (type: PT_FLAGS32) */
+	/* Parameter 16: flags (type: PT_FLAGS32) */
 	res = val_to_ring(args, flags, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 17° Parameter: uid (type: PT_UINT32) */
+	/* Parameter 17: uid (type: PT_UINT32) */
 	res = val_to_ring(args, euid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 18° Parameter: gid (type: PT_UINT32) */
+	/* Parameter 18: gid (type: PT_UINT32) */
 	res = val_to_ring(args, egid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 19° Parameter: vtid (type: PT_PID) */
+	/* Parameter 19: vtid (type: PT_PID) */
 	res = val_to_ring(args, task_pid_vnr(child), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* 20° Parameter: vpid (type: PT_PID) */
+	/* Parameter 20: vpid (type: PT_PID) */
 	res = val_to_ring(args, task_tgid_vnr(child), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
