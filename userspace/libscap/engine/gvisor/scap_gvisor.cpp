@@ -334,6 +334,7 @@ uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 	std::vector<std::string> &sandboxes = sandboxes_res.output;
 
 	m_threadinfos_threads.clear();
+	m_threadinfos_fds.clear();
 
 	for(const auto &sandbox : sandboxes)
 	{
@@ -356,6 +357,7 @@ uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 			}
 			
 			m_threadinfos_threads.emplace_back(res.tinfo);
+			m_threadinfos_fds[res.tinfo.tid] = res.fdinfos;
 		}
 	}
 
