@@ -93,3 +93,12 @@ message Socket {
   int32 type = 5;
   int32 protocol = 6;
 }
+
+message Chdir {
+  gvisor.common.ContextData context_data = 1;
+  Exit exit = 2;
+  uint64 sysno = 3;
+  int64 fd = 4;
+  string fd_path = 5;
+  string pathname = 6;
+}
