@@ -929,5 +929,65 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	return res;
 }
 
+config_result parse_config(std::string config)
+{
+	config_result res;
+	res.socket_path = "";
+	res.error = "";
+	res.status = SCAP_FAILURE;	
+
+	std::string err;
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+	
+	bool json_parse = reader->parse(config.c_str(), config.c_str() + config.size() - 1, &root, &err);
+	if(!json_parse)
+	{
+		res.error = "Could not parse configuration file contents.";
+		return res;
+	}
+
+	if(!root.isMember("trace_session"))
+	{
+		res.error = "Could not find trace_session entry in configuration";
+		return res;
+	}
+	Json::Value &trace_session = root["trace_session"];
+
+	if(!trace_session.isMember("sinks") || !trace_session["sinks"].isArray())
+	{
+		res.error = "Could not find trace_session -> sinks array in configuration";
+		return res;
+	}
+
+	if(trace_session["sinks"].size() == 0)
+	{
+		res.error = "trace_session -> sinks array is empty";
+		return res;
+	}
+
+	// We don't know how to distinguish between sinks in case there is more than one
+	// we're taking the first for now but this can be tweaked if necessary.
+	Json::Value &sink = trace_session["sinks"][0];
+
+	if(!sink.isMember("config"))
+	{
+		res.error = "Could not find config in sink item";
+		return res;
+	}
+	Json::Value &sink_config = sink["config"];
+
+	if(!sink_config.isMember("endpoint") || !sink_config["endpoint"].isString())
+	{
+		res.error = "Could not find endpoint in sink configuration";
+		return res;
+	}
+	
+	res.socket_path = sink_config["endpoint"].asString();
+	res.status = SCAP_SUCCESS;
+	return res;
+}
+
 } // namespace parsers
 } // namespace scap_gvisor

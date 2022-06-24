@@ -62,6 +62,15 @@ struct procfs_result {
     std::vector<scap_fdinfo> fdinfos;
 };
 
+struct config_result {
+    // the scap status of the operation
+    uint32_t status;
+    // description of the error in case of failure
+    std::string error;
+    // the socket path
+    std::string socket_path;
+};
+
 /*!
     \brief Translate a gVisor seccheck protobuf into one, or more, scap events
     \param gvisor_buf the source buffer that contains the raw event coming from gVisor
@@ -83,6 +92,8 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox);
 
 uint64_t get_vxid(uint64_t vxid);
+
+config_result parse_config(std::string config);
 
 } // namespace parsers
 
@@ -117,7 +128,7 @@ class engine {
 public:
     engine(char *lasterr);
     ~engine();
-    int32_t init(std::string socket_path, std::string root_path, std::string trace_session_path);
+    int32_t init(std::string config_path, std::string root_path);
     int32_t close();
 
     int32_t start_capture();

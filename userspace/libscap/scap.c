@@ -901,7 +901,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.import_users,
 						args.suppressed_comms);
 		}
-		else if (args.gvisor_socket != NULL)
+		else if (args.gvisor)
 		{
 			return scap_open_gvisor_int(error, rc, &args);
 		}
