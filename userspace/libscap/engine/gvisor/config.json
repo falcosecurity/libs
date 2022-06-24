@@ -203,6 +203,26 @@
             "task_start_time",
             "time"
           ]
+        },
+        {
+          "name": "syscall/chdir/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/chdir/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
         }
       ],
       "sinks": [
