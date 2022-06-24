@@ -270,3 +270,67 @@ TEST(gvisor_parsers, procfs_entry)
     EXPECT_STREQ(res.error.c_str(), "Missing json field or wrong type: cannot parse procfs entry");
 
 }
+
+TEST(gvisor_parsers, config_socket)
+{
+    std::string config = R"(
+{
+    "trace_session": {
+        "name": "Default",
+        "points": [
+        {
+            "name": "container/start", 
+            "context_fields": [
+                "cwd",
+                "time"
+            ]
+        },
+        {
+            "name": "syscall/openat/enter",
+            "context_fields": [
+                "credentials",
+                "container_id",
+                "thread_id",
+                "task_start_time",
+                "time"
+            ]
+        },
+        {
+            "name": "syscall/openat/exit",
+            "context_fields": [
+                "credentials",
+                "container_id",
+                "thread_id",
+                "task_start_time",
+                "time"
+            ]
+        },
+        {
+            "name": "sentry/task_exit",
+            "context_fields": [
+                "credentials",
+                "container_id",
+                "thread_id",
+                "task_start_time",
+                "time"
+            ]
+        }
+        ],
+        "sinks": [
+        {
+            "name": "remote",
+            "config": {
+                "endpoint": "/tmp/gvisor.sock"
+            }
+        }
+        ]
+    }
+}
+    )";
+
+    scap_gvisor::parsers::config_result res;
+
+    res = scap_gvisor::parsers::parse_config(config);
+    EXPECT_EQ(res.status, SCAP_SUCCESS);
+    EXPECT_STREQ(res.socket_path.c_str(), "/tmp/gvisor.sock");
+}
