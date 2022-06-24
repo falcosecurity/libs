@@ -660,34 +660,6 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	return handle;
 }
 
-scap_t* scap_open_offline(const char* fname, char *error, int32_t* rc)
-{
-	gzFile gzfile = gzopen(fname, "rb");
-	if(gzfile == NULL)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", fname);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
-
-	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
-}
-
-scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc)
-{
-	gzFile gzfile = gzdopen(fd, "rb");
-	if(gzfile == NULL)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
-
-	return scap_open_offline_int(reader, error, rc, NULL, NULL, true, 0, NULL);
-}
-
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 			       proc_entry_callback proc_callback,
 			       void* proc_callback_context,

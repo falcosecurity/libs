@@ -571,32 +571,6 @@ void udig_free_ring_descriptors(uint8_t* addr);
  */
 
 /*!
-  \brief Start an event capture from file.
-
-  \param fname The name of the file to open.
-  \param error Pointer to a buffer that will contain the error string in case the
-    function fails. The buffer must have size SCAP_LASTERR_SIZE.
-  \param rc Integer pointer that will contain the scap return code in case the
-    function fails.
-
-  \return The capture instance handle in case of success. NULL in case of failure.
-*/
-scap_t* scap_open_offline(const char* fname, char *error, int32_t *rc);
-
-/*!
-  \brief Start an event capture from an already opened file descriptor.
-
-  \param fd The fd to use.
-  \param error Pointer to a buffer that will contain the error string in case the
-    function fails. The buffer must have size SCAP_LASTERR_SIZE.
-  \param rc Integer pointer that will contain the scap return code in case the
-    function fails.
-
-  \return The capture instance handle in case of success. NULL in case of failure.
-*/
-scap_t* scap_open_offline_fd(int fd, char *error, int32_t *rc);
-
-/*!
   \brief Advanced function to start a capture.
 
   \param args a \ref scap_open_args structure containing the open parameters.
