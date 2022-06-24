@@ -58,6 +58,8 @@ struct procfs_result {
     std::string error;
     // the resulting thread information
     scap_threadinfo tinfo;
+    // the fdinfos associated with this thread
+    std::vector<scap_fdinfo> fdinfos;
 };
 
 /*!
