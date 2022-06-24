@@ -223,6 +223,86 @@
             "task_start_time",
             "time"
           ]
+        },
+        {
+          "name": "syscall/setresuid/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setresuid/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setuid/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setuid/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setgid/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setgid/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setresgid/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/setresgid/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
         }
       ],
       "sinks": [

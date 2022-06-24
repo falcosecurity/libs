@@ -102,3 +102,19 @@ message Chdir {
   string fd_path = 5;
   string pathname = 6;
 }
+
+message Setresid {
+  gvisor.common.ContextData context_data = 1;
+  Exit exit = 2;
+  uint64 sysno = 3;
+  uint32 rgid = 4;
+  uint32 egid = 5;
+  uint32 sgid = 6;
+}
+
+message Setid {
+  gvisor.common.ContextData context_data = 1;
+  Exit exit = 2;
+  uint64 sysno = 3;
+  uint32 id = 4;
+}

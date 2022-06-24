@@ -703,6 +703,90 @@ static parse_result parse_chdir(const char *proto, size_t proto_size, scap_sized
 	return ret;
 }
 
+static parse_result parse_setresid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Setresid gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking setresid protobuf message";
+		return ret;
+	}
+
+	enum ppm_event_type type;
+
+	if(gvisor_evt.has_exit())
+	{
+		type = gvisor_evt.sysno() == SYS_setresuid ? PPME_SYSCALL_SETRESUID_X : PPME_SYSCALL_SETRESGID_X;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
+		    					gvisor_evt.exit().result()); 
+	}
+	else
+	{
+		type = gvisor_evt.sysno() == SYS_setresuid ? PPME_SYSCALL_SETRESUID_E : PPME_SYSCALL_SETRESGID_E;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 3,
+								gvisor_evt.rgid(), 
+								gvisor_evt.egid(),
+								gvisor_evt.sgid());
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Setid gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking setid protobuf message";
+		return ret;
+	}
+
+	enum ppm_event_type type;
+
+	if(gvisor_evt.has_exit())
+	{
+		type = gvisor_evt.sysno() == SYS_setuid ? PPME_SYSCALL_SETUID_X : PPME_SYSCALL_SETGID_X;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
+		    					gvisor_evt.exit().result()); 
+	}
+	else
+	{
+		type = gvisor_evt.sysno() == SYS_setuid ? PPME_SYSCALL_SETUID_E : PPME_SYSCALL_SETGID_E;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1,
+								gvisor_evt.id());
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<Callback> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
@@ -719,6 +803,8 @@ std::vector<Callback> dispatchers = {
 	parse_execve,
 	parse_socket,
 	parse_chdir,
+	parse_setid,
+	parse_setresid, 
 };
 
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
