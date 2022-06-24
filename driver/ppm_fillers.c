@@ -6681,6 +6681,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	uint32_t flags = 0;
 	uint64_t euid = task_euid(child).val;
 	uint64_t egid = child->cred->egid.val;
+	struct pid_namespace *pidns = task_active_pid_ns(child);
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: here we are in the clone child exit
@@ -6858,17 +6859,36 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 16: flags (type: PT_FLAGS32) */
+	/* Since Linux 2.5.35, the flags mask must also include
+	 * CLONE_SIGHAND if CLONE_THREAD is specified (and note that,
+	 * since Linux 2.6.0, CLONE_SIGHAND also requires CLONE_VM to
+	 * be included). 
+	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
+	 */
 	if(child->pid != child->tgid)
 	{
 		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
 	}
 
+	/* If CLONE_FILES is set, the calling process and the child
+	 * process share the same file descriptor table.
+	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
+	 */
 	if(child->files == current->files)
 	{
 		flags |= PPM_CL_CLONE_FILES;
 	}
 
+	/* It's possible to have a process in a PID namespace that 
+	 * nevertheless has tid == vtid,  so we need to generate this
+	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
+	 */
+	if(pidns != &init_pid_ns || pid_ns_for_children(child) != pidns)
+	{
+		flags |= PPM_CL_CHILD_IN_PIDNS;
+	}
+
+	/* Parameter 16: flags (type: PT_FLAGS32) */
 	res = val_to_ring(args, flags, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
