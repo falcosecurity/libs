@@ -6680,7 +6680,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	}
 
 	/*
-	* The call always succeed so get `exe`, `args` from the current
+	* The call always succeed so get `exe`, `args` from the child
 	* process; put one \0-separated exe-args string into
 	* str_storage
 	*/
@@ -6846,6 +6846,16 @@ cgroups_error:
 	}
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
+	if(child->pid != child->tgid)
+	{
+		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
+	}
+
+	if(child->files == current->files)
+	{
+		flags |= PPM_CL_CLONE_FILES;
+	}
+
 	res = val_to_ring(args, flags, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
