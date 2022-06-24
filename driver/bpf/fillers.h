@@ -6400,6 +6400,29 @@ FILLER(sched_prog_fork_3, false)
 		flags |= PPM_CL_CLONE_FILES;
 	}
 
+	/* It's possible to have a process in a PID namespace that 
+	 * nevertheless has tid == vtid,  so we need to generate this
+	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
+	 */
+	struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
+	int pidns_level = _READ(pidns->level);
+	if(pidns_level != 0) 
+	{
+		flags |= PPM_CL_CHILD_IN_PIDNS;
+	} 
+	else 
+	{
+		struct nsproxy *nsproxy = _READ(task->nsproxy);
+		if(nsproxy)
+		{
+			struct pid_namespace *pid_ns_for_children = _READ(nsproxy->pid_ns_for_children);
+			if(pid_ns_for_children != pidns)
+			{
+				flags |= PPM_CL_CHILD_IN_PIDNS;
+			}
+		}
+	}
+
 	/* Parameter 16: flags (type: PT_FLAGS32) */
 	res = bpf_val_to_ring_type(data, flags, PT_FLAGS32);
 	if(res != PPM_SUCCESS)
