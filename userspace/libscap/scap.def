@@ -1,8 +1,6 @@
 LIBRARY scap
 
 EXPORTS
-		scap_open_offline
-		scap_open_offline_fd
 		scap_open
 		scap_close
 		scap_get_os_platform
