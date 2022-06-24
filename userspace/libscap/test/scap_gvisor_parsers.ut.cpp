@@ -192,55 +192,57 @@ TEST(gvisor_parsers, procfs_entry)
     EXPECT_EQ(res.status, SCAP_FAILURE);
     EXPECT_STREQ(res.error.c_str(), "Malformed json string: cannot parse procfs entry");
 
-    std::string json = 
-        "{"
-        "   \"args\" : [ \"bash\" ],"
-        "   \"clone_ts\" : 1655473752715788585,"
-        "   \"cwd\" : \"/\","
-        "   \"env\" : ["
-        "      \"HOSTNAME=91e91fdd849d\","
-        "      \"TERM=xterm\","
-        "      \"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\","
-        "      \"HOME=/root\""
-        "   ],"
-        "   \"exe\" : \"/usr/bin/bash\","
-        "   \"fdlist\" : ["
-        "      {"
-        "         \"path\" : \"host:[1]\""
-        "      },"
-        "      {"
-        "         \"number\" : 1,"
-        "         \"path\" : \"host:[1]\""
-        "      },"
-        "      {"
-        "         \"number\" : 2,"
-        "         \"path\" : \"host:[1]\""
-        "      },"
-        "      {"
-        "         \"number\" : 255,"
-        "         \"path\" : \"host:[1]\""
-        "      }"
-        "   ],"
-        "   \"limits\" : {"
-        "      \"RLIMIT_NOFILE\" : {"
-        "         \"cur\" : 1048576,"
-        "         \"max\" : 1048576"
-        "      }"
-        "   },"
-        "   \"root\" : \"/\","
-        "   \"stat\" : {"
-        "      \"pgid\" : 1,"
-        "      \"sid\" : 1"
-        "   },"
-        "   \"status\" : {"
-        "      \"comm\" : \"bash\","
-        "      \"gid\" : {},"
-        "      \"pid\" : 1,"
-        "      \"uid\" : {},"
-        "      \"vm_rss\" : 4664,"
-        "      \"vm_size\" : 12164"
-        "   }"
-        "}\n";
+    std::string json = R"(
+{
+  "args": [ "bash" ],
+  "clone_ts": 1655473752715788585,
+  "cwd": "/",
+  "env": [
+    "HOSTNAME=91e91fdd849d",
+    "TERM=xterm",
+    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "HOME=/root"
+  ],
+  "exe": "/usr/bin/bash",
+  "fdlist": [
+    {
+      "path": "host:[1]"
+    },
+    {
+      "number": 1,
+      "path": "host:[1]"
+    },
+    {
+      "number": 2,
+      "path": "host:[1]"
+    },
+    {
+      "number": 255,
+      "path": "host:[1]"
+    }
+  ],
+  "limits": {
+    "RLIMIT_NOFILE": {
+      "cur": 1048576,
+      "max": 1048576
+    }
+  },
+  "root": "/",
+  "stat": {
+    "pgid": 1,
+    "sid": 1
+  },
+  "status": {
+    "comm": "bash",
+    "gid": {"effective": 0, "real": 0, "saved": 0},
+    "pid": 1,
+    "uid": {"effective": 0, "real": 0, "saved": 0},
+    "vm_rss": 4664,
+    "vm_size": 12164
+  }
+}
+    )";
+
     res = scap_gvisor::parsers::parse_procfs_json(json, sandbox_id);
     EXPECT_EQ(res.status, SCAP_SUCCESS);
     EXPECT_EQ(res.tinfo.vtid, 1);
