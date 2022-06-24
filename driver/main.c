@@ -61,7 +61,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
 #if defined(CONFIG_ARM64) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-	#error The kernel module ARM64 support requires a kernel version greater or equal than '3.4'
+	#error The kernel module ARM64 support requires kernel versions greater or equal than '3.4'.
 #endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
@@ -2260,6 +2260,9 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 #endif
 
 #ifdef CONFIG_ARM64
+/* We explained why we need these tracepoints for ARM64 in the BPF probe code.
+ * Please take a look at `/bpf/probe.c`.
+ */ 
 TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
 {
 	struct event_data_t event_data;
