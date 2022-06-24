@@ -809,7 +809,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 		return res;
 	}
 	std::string args;
-	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
+	for(Json::Value::ArrayIndex i = 0; i < root["args"].size(); i++)
 	{
 		args += root["args"][i].asString();
 		args.push_back('\0');
@@ -825,7 +825,7 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 		return res;
 	}
 	std::string env;
-	for(Json::Value::ArrayIndex i = 0; i != root.size(); i++)
+	for(Json::Value::ArrayIndex i = 0; i < root["env"].size(); i++)
 	{
 		env += root["env"][i].asString();
 		env.push_back('\0');
