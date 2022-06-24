@@ -29,9 +29,11 @@ struct iovec {
 };
 #endif
 
+#include "savefile.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_savefile.h"
+#include "../noop/noop.h"
 
 //
 // Load the machine info block
@@ -1797,8 +1799,9 @@ int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, stru
 //
 // Read an event from disk
 //
-int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *pcpuid)
+static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_t *pcpuid)
 {
+	struct savefile_engine* handle = engine.m_handle;
 	block_header bh;
 	size_t readsize;
 	uint32_t readlen;
@@ -2002,20 +2005,190 @@ int32_t scap_next_offline(scap_t *handle, OUT scap_evt **pevent, OUT uint16_t *p
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_next_offline(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid)
+{
+	int32_t res;
+	struct savefile_engine engine_handle = {
+		.m_lasterr = handle->m_lasterr,
+		.m_reader = handle->m_reader,
+
+		.m_unexpected_block_readsize = handle->m_unexpected_block_readsize,
+		.m_reader_evt_buf = handle->m_reader_evt_buf,
+		.m_reader_evt_buf_size = handle->m_reader_evt_buf_size,
+		.m_last_evt_dump_flags = handle->m_last_evt_dump_flags,
+	};
+	struct scap_engine_handle engine = { &engine_handle };
+
+	res = next(engine, pevent, pcpuid);
+
+	handle->m_unexpected_block_readsize = engine_handle.m_unexpected_block_readsize;
+	handle->m_reader_evt_buf = engine_handle.m_reader_evt_buf;
+	handle->m_reader_evt_buf_size = engine_handle.m_reader_evt_buf_size;
+	handle->m_last_evt_dump_flags = engine_handle.m_last_evt_dump_flags;
+
+	return res;
+}
+
 uint64_t scap_ftell(scap_t *handle)
 {
-	return scap_reader_tell(handle->m_reader);
+	scap_reader_t * reader = handle->m_engine.m_handle->m_reader;
+	return scap_reader_tell(reader);
 }
 
 void scap_fseek(scap_t *handle, uint64_t off)
 {
-	switch (scap_reader_type(handle->m_reader))
+	scap_reader_t * reader = handle->m_engine.m_handle->m_reader;
+	switch (scap_reader_type(reader))
 	{
 		case RT_FILE:
-			scap_reader_seek(handle->m_reader, off, SEEK_SET);
+			scap_reader_seek(reader, off, SEEK_SET);
 			return;
 		default:
 			ASSERT(false);
 			return;
 	}
 }
+
+static bool match(struct scap_open_args* args)
+{
+	return args->mode == SCAP_MODE_CAPTURE;
+}
+
+static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
+{
+	struct savefile_engine *engine = calloc(1, sizeof(struct savefile_engine));
+	if(engine)
+	{
+		engine->m_lasterr = lasterr_ptr;
+	}
+	return engine;
+
+}
+
+static int32_t init(struct scap* main_handle, struct scap_open_args* args)
+{
+	gzFile gzfile;
+	int res;
+	struct savefile_engine *handle = main_handle->m_engine.m_handle;
+
+	if(args->fd != 0)
+	{
+		gzfile = gzdopen(args->fd, "rb");
+	}
+	else
+	{
+		gzfile = gzopen(args->fname, "rb");
+	}
+
+	if(gzfile == NULL)
+	{
+		if(args->fd != 0)
+		{
+			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open fd %d", args->fd);
+		}
+		else
+		{
+			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open file %s", args->fname);
+		}
+		return SCAP_FAILURE;
+	}
+
+	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
+	if(!reader)
+	{
+		gzclose(gzfile);
+		return SCAP_FAILURE;
+	}
+
+	//
+	// If this is a merged file, we might have to move the read offset to the next section
+	//
+	if(args->start_offset != 0)
+	{
+		scap_fseek(main_handle, args->start_offset);
+	}
+
+	res = scap_read_init(
+		reader,
+		&main_handle->m_machine_info,
+		&main_handle->m_proclist,
+		&main_handle->m_addrlist,
+		&main_handle->m_userlist,
+		main_handle->m_lasterr
+	);
+
+	if(res != SCAP_SUCCESS)
+	{
+		scap_reader_close(reader);
+		free(reader);
+		return res;
+	}
+
+	handle->m_reader_evt_buf = (char*)malloc(READER_BUF_SIZE);
+	if(!handle->m_reader_evt_buf)
+	{
+		snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the read buffer");
+		return SCAP_FAILURE;
+	}
+	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
+	handle->m_reader = reader;
+	handle->m_unexpected_block_readsize = 0;
+
+	if(!args->import_users)
+	{
+		if(main_handle->m_userlist != NULL)
+		{
+			scap_free_userlist(main_handle->m_userlist);
+			main_handle->m_userlist = NULL;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
+static void free_handle(struct scap_engine_handle engine)
+{
+	free(engine.m_handle);
+}
+
+static int32_t scap_savefile_close(struct scap_engine_handle engine)
+{
+	struct savefile_engine* handle = engine.m_handle;
+	if (handle->m_reader)
+	{
+		scap_reader_close(handle->m_reader);
+		free(handle->m_reader);
+		handle->m_reader = NULL;
+	}
+
+	if(handle->m_reader_evt_buf)
+	{
+		free(handle->m_reader_evt_buf);
+		handle->m_reader_evt_buf = NULL;
+	}
+
+	return SCAP_SUCCESS;
+}
+
+struct scap_vtable scap_savefile_engine = {
+	.name = "savefile",
+	.mode = SCAP_MODE_CAPTURE,
+
+	.match = match,
+	.alloc_handle = alloc_handle,
+	.init = init,
+	.free_handle = free_handle,
+	.close = scap_savefile_close,
+	.next = next,
+	.start_capture = noop_start_capture,
+	.stop_capture = noop_stop_capture,
+	.configure = noop_configure,
+	.get_stats = noop_get_stats,
+	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
+	.get_n_devs = noop_get_n_devs,
+	.get_max_buf_used = noop_get_max_buf_used,
+	.get_threadlist = noop_get_threadlist,
+	.get_vpid = noop_get_vxid,
+	.get_vtid = noop_get_vxid,
+	.getpid_global = noop_getpid_global,
+};

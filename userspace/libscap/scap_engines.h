@@ -27,6 +27,10 @@ extern const struct scap_vtable scap_nodriver_engine;
 extern const struct scap_vtable scap_source_plugin_engine;
 #endif
 
+#ifdef HAS_ENGINE_SAVEFILE
+extern const struct scap_vtable scap_savefile_engine;
+#endif
+
 #ifdef HAS_ENGINE_UDIG
 extern const struct scap_vtable scap_udig_engine;
 #endif
