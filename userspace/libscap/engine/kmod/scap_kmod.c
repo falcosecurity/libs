@@ -305,6 +305,18 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 		struct scap_device *dev = &devset->m_devs[j];
 		stats->n_evts += dev->m_bufinfo->n_evts;
 		stats->n_drops_buffer += dev->m_bufinfo->n_drops_buffer;
+		stats->n_drops_buffer_clone_fork_enter += dev->m_bufinfo->n_drops_buffer_clone_fork_enter;
+		stats->n_drops_buffer_clone_fork_exit += dev->m_bufinfo->n_drops_buffer_clone_fork_exit;
+		stats->n_drops_buffer_execve_enter += dev->m_bufinfo->n_drops_buffer_execve_enter;
+		stats->n_drops_buffer_execve_exit += dev->m_bufinfo->n_drops_buffer_execve_exit;
+		stats->n_drops_buffer_connect_enter += dev->m_bufinfo->n_drops_buffer_connect_enter;
+		stats->n_drops_buffer_connect_exit += dev->m_bufinfo->n_drops_buffer_connect_exit;
+		stats->n_drops_buffer_open_enter += dev->m_bufinfo->n_drops_buffer_open_enter;
+		stats->n_drops_buffer_open_exit += dev->m_bufinfo->n_drops_buffer_open_exit;
+		stats->n_drops_buffer_dir_file_enter += dev->m_bufinfo->n_drops_buffer_dir_file_enter;
+		stats->n_drops_buffer_dir_file_exit += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
+		stats->n_drops_buffer_other_interest_enter += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
+		stats->n_drops_buffer_other_interest_exit += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
 		stats->n_drops_pf += dev->m_bufinfo->n_drops_pf;
 		stats->n_drops += dev->m_bufinfo->n_drops_buffer +
 				  dev->m_bufinfo->n_drops_pf;
