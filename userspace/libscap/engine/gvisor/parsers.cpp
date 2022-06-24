@@ -19,6 +19,7 @@ limitations under the License.
 #include <stdarg.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <linux/un.h>
 #include <arpa/inet.h>
@@ -876,6 +877,52 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 		return res;
 	}
 	tinfo.clone_ts = root["clone_ts"].asUInt64();
+
+	// fdinfos 
+
+	// set error so that we can understand that parsing failed here
+	res.error = "Error parsing fdlist";
+
+	std::vector<scap_fdinfo> &fds = res.fdinfos;
+	if(!root.isMember("fdlist") || !root["fdlist"].isArray())
+	{
+		return res;
+	}
+	for(Json::Value::ArrayIndex i = 0; i != root["fdlist"].size(); i++)
+	{
+		Json::Value &entry = root["fdlist"][i];
+		scap_fdinfo fdinfo;
+		
+		if(!entry.isMember("number") || !entry["number"].isUInt64())
+		{
+			return res;
+		}
+		fdinfo.fd = entry["number"].asUInt64();
+
+		if(!entry.isMember("mode") || !entry["mode"].isUInt64())
+		{
+			return res;
+		}
+		
+		if(!entry.isMember("path") || !entry["path"].isString())
+		{
+			return res;
+		}
+
+		uint64_t mode = entry["mode"].asUInt64();
+
+		if(S_ISREG(mode))
+		{
+			fdinfo.type = SCAP_FD_FILE_V2;
+			strlcpy(fdinfo.info.regularinfo.fname, entry["path"].asCString(), SCAP_MAX_PATH_SIZE);
+		}
+		else
+		{
+			continue;
+		}
+
+		fds.push_back(fdinfo);
+	}
 
 	res.status = SCAP_SUCCESS;
 	res.error = "";
