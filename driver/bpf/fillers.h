@@ -6371,10 +6371,36 @@ FILLER(sched_prog_fork_3, false)
 	int res = 0;
 	struct sched_process_fork_raw_args* original_ctx = (struct sched_process_fork_raw_args*)data->ctx;
 	struct task_struct *task = (struct task_struct *)original_ctx->child;
+	struct task_struct *parent_task = (struct task_struct *)original_ctx->parent;
+	uint32_t flags = 0;
+
+	/* Since Linux 2.5.35, the flags mask must also include
+	 * CLONE_SIGHAND if CLONE_THREAD is specified (and note that,
+	 * since Linux 2.6.0, CLONE_SIGHAND also requires CLONE_VM to
+	 * be included). 
+	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
+	 */
+	pid_t tid = _READ(task->pid);
+	pid_t tgid = _READ(task->tgid);
+	if(tid != tgid)
+	{
+		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
+	}
+	
+	/* If CLONE_FILES is set, the calling process and the child
+	 * process share the same file descriptor table.
+	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
+	 */
+	struct files_struct * file_struct = NULL;
+	struct files_struct * parent_file_struct = NULL;
+	file_struct = _READ(task->files);
+	parent_file_struct = _READ(parent_task->files);
+	if(parent_file_struct == file_struct)
+	{
+		flags |= PPM_CL_CLONE_FILES;
+	}
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
-	/// TODO: we have to recover them from the kernel in some way.
-	uint32_t flags = 0;
 	res = bpf_val_to_ring_type(data, flags, PT_FLAGS32);
 	if(res != PPM_SUCCESS)
 	{
