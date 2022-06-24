@@ -25,6 +25,18 @@ struct ppm_ring_buffer_info {
 	volatile __u32 tail;
 	volatile __u64 n_evts;			/* Total number of events that were received by the driver. */
 	volatile __u64 n_drops_buffer;		/* Number of dropped events (buffer full). */
+	volatile __u64 n_drops_buffer_clone_fork_enter;
+	volatile __u64 n_drops_buffer_clone_fork_exit;
+	volatile __u64 n_drops_buffer_execve_enter;
+	volatile __u64 n_drops_buffer_execve_exit;
+	volatile __u64 n_drops_buffer_connect_enter;
+	volatile __u64 n_drops_buffer_connect_exit;
+	volatile __u64 n_drops_buffer_open_enter;
+	volatile __u64 n_drops_buffer_open_exit;
+	volatile __u64 n_drops_buffer_dir_file_enter;
+	volatile __u64 n_drops_buffer_dir_file_exit;
+	volatile __u64 n_drops_buffer_other_interest_enter;
+	volatile __u64 n_drops_buffer_other_interest_exit;
 	volatile __u64 n_drops_pf;		/* Number of dropped events (page faults). */
 	volatile __u64 n_preemptions;		/* Number of preemptions. */
 	volatile __u64 n_context_switches;	/* Number of received context switch events. */
