@@ -67,6 +67,16 @@ void docker_async_source::run_impl()
 {
 	docker_lookup_request request;
 
+	auto cb = [this](const docker_lookup_request& request, const sinsp_container_info& res)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker (%s): Source callback result=%d",
+				request.container_id.c_str(),
+				res.get_lookup_status());
+
+		m_cache->notify_new_container(res);
+	};
+
 	while (dequeue_next_key(request))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -75,16 +85,16 @@ void docker_async_source::run_impl()
 				request.request_rw_size ? "true" : "false");
 
 		sinsp_container_info res;
-
 		lookup_sync(request, res);
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): Parse successful, storing value",
-				request.container_id.c_str());
 
 		// Return a result object either way, to ensure any
 		// new container callbacks are called.
 		store_value(request, res);
+
+		if (res.m_lookup.should_retry())
+		{
+			lookup_delayed(request, res, chrono::milliseconds(res.m_lookup.delay()), cb);
+		}
 	}
 }
 
