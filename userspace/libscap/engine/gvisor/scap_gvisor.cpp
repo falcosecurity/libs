@@ -25,6 +25,8 @@ limitations under the License.
 #include <sys/stat.h>
 
 #include <vector>
+#include <fstream>
+#include <sstream>
 
 #include "gvisor.h"
 #include "pkg/sentry/seccheck/points/common.pb.h"
@@ -86,13 +88,30 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string socket_path, std::string root_path, std::string trace_session_path)
+int32_t engine::init(std::string config_path, std::string root_path)
 {
 	m_root_path = root_path;
-	m_trace_session_path = trace_session_path;
+	m_trace_session_path = config_path;
 	
+	std::ifstream config_file(config_path);
+	if (config_file.fail())
+	{
+		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Could not open gVisor configuration file %s", config_path.c_str());
+		return SCAP_FAILURE;
+	}
+	std::stringstream config_buf;
+	config_buf << config_file.rdbuf();
+
+	parsers::config_result config_result = parsers::parse_config(config_buf.str());
+	if(config_result.status != SCAP_SUCCESS)
+	{
+		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Could not parse gVisor configuration file %s : %s",
+			config_path.c_str(), config_result.error.c_str());
+		return config_result.status;
+	}
+
 	// Initialize the listen fd
-	m_socket_path = socket_path;
+	m_socket_path = config_result.socket_path;
 	if (m_socket_path.empty())
 	{
 		strlcpy(m_lasterr, "Empty gVisor socket path", SCAP_LASTERR_SIZE);

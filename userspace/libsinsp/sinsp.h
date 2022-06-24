@@ -250,7 +250,7 @@ public:
 	void fdopen(int fd);
 
 	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
-	void open_gvisor(std::string socket_path, std::string root_path, std::string trace_session_path, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+	void open_gvisor(std::string config_path, std::string root_path, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
 
 	std::string generate_gvisor_config(std::string socket_path);
 
@@ -1069,9 +1069,8 @@ private:
 	bool m_bpf;
 	bool m_udig;
 	bool m_gvisor;
-	std::string m_gvisor_socket = "";
 	std::string m_gvisor_root_path = "";
-	std::string m_gvisor_trace_session_path = "";
+	std::string m_gvisor_config_path = "";
 	bool m_is_windows;
 	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
