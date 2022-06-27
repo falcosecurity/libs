@@ -822,6 +822,79 @@ static parse_result parse_chroot(const char *proto, size_t proto_size, scap_size
 	return ret;
 }
 
+static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Dup gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking dup protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		switch(gvisor_evt.sysno())
+		{
+		case SYS_dup:
+			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP_1_X, 2,
+							gvisor_evt.exit().result(),
+							gvisor_evt.old_fd());
+			break;
+		case SYS_dup2:
+			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP2_X, 3,
+							gvisor_evt.exit().result(),
+							gvisor_evt.old_fd(),
+							gvisor_evt.new_fd());
+			break;
+		case SYS_dup3:
+			ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_DUP3_X, 4,
+							gvisor_evt.exit().result(),
+							gvisor_evt.old_fd(),
+							gvisor_evt.new_fd(),
+							dup3_flags_to_scap(gvisor_evt.flags()));
+			break;
+		}
+	}
+	else
+	{
+		enum ppm_event_type type;
+
+		switch(gvisor_evt.sysno())
+		{
+		case SYS_dup:
+			type = PPME_SYSCALL_DUP_1_E;
+			break;
+		case SYS_dup2:
+			type = PPME_SYSCALL_DUP2_E;
+			break;
+		case SYS_dup3:
+			type = PPME_SYSCALL_DUP3_E;
+			break;
+		default:
+			ret.status = SCAP_FAILURE;
+			ret.error = "Unrecognized syscall number for dup family syscalls";
+			return ret;
+		}
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 1, gvisor_evt.old_fd());
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<Callback> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
@@ -843,9 +916,9 @@ std::vector<Callback> dispatchers = {
 	nullptr,				// MESSAGE_SYSCALL_PRLIMIT64 = 16;
   	nullptr, 				// MESSAGE_SYSCALL_PIPE = 17;
   	nullptr, 				// MESSAGE_SYSCALL_FCNTL = 18;
-  	nullptr, 				// MESSAGE_SYSCALL_DUP = 19;
+  	parse_dup,
    	nullptr, 				// MESSAGE_SYSCALL_SIGNALFD = 20;
-  	parse_chroot, 			// MESSAGE_SYSCALL_CHROOT = 21;
+  	parse_chroot,
   	nullptr, 				// MESSAGE_SYSCALL_EVENTFD = 22;
   	nullptr, 				// MESSAGE_SYSCALL_CLONE = 23;
   	nullptr, 				// MESSAGE_SYSCALL_BIND = 24;
