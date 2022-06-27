@@ -727,11 +727,11 @@ procfs_result parse_procfs_json(const std::string &input, const std::string &san
 	std::string err;
 	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
 
-	bool json_parse = reader->parse(input.c_str(), input.c_str() + input.size() - 1, &root, &err);
+	bool json_parse = reader->parse(input.c_str(), input.c_str() + input.size(), &root, &err);
 	if(!json_parse)
 	{
 		res.status = SCAP_FAILURE;
-		res.error = "Malformed json string: cannot parse procfs entry";
+		res.error = "Malformed json string: cannot parse procfs entry: " + err;
 		return res;
 	}
 
@@ -943,10 +943,10 @@ config_result parse_config(std::string config)
 	Json::CharReaderBuilder builder;
 	const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
 	
-	bool json_parse = reader->parse(config.c_str(), config.c_str() + config.size() - 1, &root, &err);
+	bool json_parse = reader->parse(config.c_str(), config.c_str() + config.size(), &root, &err);
 	if(!json_parse)
 	{
-		res.error = "Could not parse configuration file contents.";
+		res.error = "Could not parse configuration file contents: " + err;
 		return res;
 	}
 
