@@ -6141,8 +6141,8 @@ FILLER(sched_prog_fork, false)
 	 * modify the event header to simulate it.
 	 */
 	struct sched_process_fork_raw_args* original_ctx = (struct sched_process_fork_raw_args*)data->ctx;
-	struct task_struct *task = (struct task_struct *)original_ctx->child;
-	pid_t child_pid = _READ(task->pid);
+	struct task_struct *child = (struct task_struct *)original_ctx->child;
+	pid_t child_pid = _READ(child->pid);
 
 	struct ppm_evt_hdr *evt_hdr = (struct ppm_evt_hdr *)data->buf;
 	evt_hdr->tid = (uint64_t)child_pid;
@@ -6157,7 +6157,7 @@ FILLER(sched_prog_fork, false)
 		return res;
 	}
 
-	struct mm_struct *mm = _READ(task->mm);
+	struct mm_struct *mm = _READ(child->mm);
 	if(!mm)
 	{
 		return PPM_FAILURE_BUG;
@@ -6237,7 +6237,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 4: tid (type: PT_PID) */
-	pid_t pid = _READ(task->pid);
+	pid_t pid = _READ(child->pid);
 	res = bpf_val_to_ring_type(data, pid, PT_PID);
 	if(res != PPM_SUCCESS)
 	{
@@ -6245,7 +6245,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 5: pid (type: PT_PID) */
-	pid_t tgid = _READ(task->tgid);
+	pid_t tgid = _READ(child->tgid);
 	res = bpf_val_to_ring_type(data, tgid, PT_PID);
 	if(res != PPM_SUCCESS)
 	{
@@ -6253,7 +6253,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	struct task_struct *real_parent = _READ(task->real_parent);
+	struct task_struct *real_parent = _READ(child->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
 	res = bpf_val_to_ring_type(data, ptid, PT_PID);
 	if(res != PPM_SUCCESS)
@@ -6272,7 +6272,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
-	struct signal_struct *signal = _READ(task->signal);
+	struct signal_struct *signal = _READ(child->signal);
 	unsigned long fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
 	res = bpf_val_to_ring_type(data, fdlimit, PT_UINT64);
 	if(res != PPM_SUCCESS)
@@ -6281,7 +6281,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */
-	unsigned long maj_flt = _READ(task->maj_flt);
+	unsigned long maj_flt = _READ(child->maj_flt);
 	res = bpf_val_to_ring_type(data, maj_flt, PT_UINT64);
 	if(res != PPM_SUCCESS)
 	{
@@ -6289,7 +6289,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 10: pgft_min (type: PT_UINT64) */
-	unsigned long min_flt = _READ(task->min_flt);
+	unsigned long min_flt = _READ(child->min_flt);
 	res = bpf_val_to_ring_type(data, min_flt, PT_UINT64);
 	if(res != PPM_SUCCESS)
 	{
@@ -6330,7 +6330,7 @@ FILLER(sched_prog_fork, false)
 	}
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	res = bpf_val_to_ring_type(data, (unsigned long)task->comm, PT_CHARBUF);
+	res = bpf_val_to_ring_type(data, (unsigned long)child->comm, PT_CHARBUF);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6346,9 +6346,9 @@ FILLER(sched_prog_fork_2, false)
 	int res = 0;
 	int cgroups_len = 0;
 	struct sched_process_fork_raw_args* original_ctx = (struct sched_process_fork_raw_args*)data->ctx;
-	struct task_struct *task = (struct task_struct *)original_ctx->child;
+	struct task_struct *child = (struct task_struct *)original_ctx->child;
 
-	res = bpf_append_cgroup(task, data->tmp_scratch, &cgroups_len);
+	res = bpf_append_cgroup(child, data->tmp_scratch, &cgroups_len);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6370,8 +6370,8 @@ FILLER(sched_prog_fork_3, false)
 {
 	int res = 0;
 	struct sched_process_fork_raw_args* original_ctx = (struct sched_process_fork_raw_args*)data->ctx;
-	struct task_struct *task = (struct task_struct *)original_ctx->child;
-	struct task_struct *parent_task = (struct task_struct *)original_ctx->parent;
+	struct task_struct *child = (struct task_struct *)original_ctx->child;
+	struct task_struct *parent = (struct task_struct *)original_ctx->parent;
 	uint32_t flags = 0;
 
 	/* Since Linux 2.5.35, the flags mask must also include
@@ -6380,8 +6380,8 @@ FILLER(sched_prog_fork_3, false)
 	 * be included). 
 	 * Taken from https://man7.org/linux/man-pages/man2/clone.2.html
 	 */
-	pid_t tid = _READ(task->pid);
-	pid_t tgid = _READ(task->tgid);
+	pid_t tid = _READ(child->pid);
+	pid_t tgid = _READ(child->tgid);
 	if(tid != tgid)
 	{
 		flags |= PPM_CL_CLONE_THREAD | PPM_CL_CLONE_SIGHAND | PPM_CL_CLONE_VM;
@@ -6393,8 +6393,8 @@ FILLER(sched_prog_fork_3, false)
 	 */
 	struct files_struct * file_struct = NULL;
 	struct files_struct * parent_file_struct = NULL;
-	file_struct = _READ(task->files);
-	parent_file_struct = _READ(parent_task->files);
+	file_struct = _READ(child->files);
+	parent_file_struct = _READ(parent->files);
 	if(parent_file_struct == file_struct)
 	{
 		flags |= PPM_CL_CLONE_FILES;
@@ -6404,7 +6404,7 @@ FILLER(sched_prog_fork_3, false)
 	 * nevertheless has tid == vtid,  so we need to generate this
 	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
 	 */
-	struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
+	struct pid_namespace *pidns = bpf_task_active_pid_ns(child);
 	int pidns_level = _READ(pidns->level);
 	if(pidns_level != 0) 
 	{
@@ -6412,7 +6412,7 @@ FILLER(sched_prog_fork_3, false)
 	} 
 	else 
 	{
-		struct nsproxy *nsproxy = _READ(task->nsproxy);
+		struct nsproxy *nsproxy = _READ(child->nsproxy);
 		if(nsproxy)
 		{
 			struct pid_namespace *pid_ns_for_children = _READ(nsproxy->pid_ns_for_children);
@@ -6430,7 +6430,7 @@ FILLER(sched_prog_fork_3, false)
 		return res;
 	}
 
-	struct cred *cred = (struct cred *)_READ(task->cred);
+	struct cred *cred = (struct cred *)_READ(child->cred);
 
 	/* Parameter 17: uid (type: PT_UINT32) */
 	kuid_t euid = _READ(cred->euid);
@@ -6449,13 +6449,13 @@ FILLER(sched_prog_fork_3, false)
 	}
 
 	/* Parameter 19: vtid (type: PT_PID) */
-	pid_t vtid = bpf_task_pid_vnr(task);
+	pid_t vtid = bpf_task_pid_vnr(child);
 	res = bpf_val_to_ring_type(data, vtid, PT_PID);
 	if(res != PPM_SUCCESS)
 		return res;
 
 	/* Parameter 20: vpid (type: PT_PID) */
-	pid_t vpid = bpf_task_tgid_vnr(task);
+	pid_t vpid = bpf_task_tgid_vnr(child);
 	res = bpf_val_to_ring_type(data, vpid, PT_PID);
 
 	return res;
