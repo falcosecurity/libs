@@ -81,7 +81,7 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 	return ret;
 }
 
-bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp::cgroup_limits::cgroup_limits_key& key)
+bool cri_async_source::parse(const key_type& key, sinsp_container_info& container)
 {
 	runtime::v1alpha2::ContainerStatusResponse resp;
 	grpc::Status status = m_cri->get_container_status(container.m_id, resp);
@@ -148,58 +148,6 @@ bool cri_async_source::parse_cri(sinsp_container_info& container, const libsinsp
 		{
 			container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
 		}
-	}
-
-	return true;
-}
-
-void cri_async_source::run_impl()
-{
-	libsinsp::cgroup_limits::cgroup_limits_key key;
-
-	auto cb = [this](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Source callback result=%d",
-				key.m_container_id.c_str(),
-				res.get_lookup_status());
-		m_cache->notify_new_container(res);
-	};
-
-	while (dequeue_next_key(key))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Source dequeued key",
-				key.m_container_id.c_str());
-
-		sinsp_container_info res;
-		lookup_sync(key, res);
-
-		// For security reasons we store the value regardless of the lookup status,
-		// so we can track the container activity even without its metadata.
-		store_value(key, res);
-
-		if (res.m_lookup.should_retry())
-		{
-			lookup_delayed(key, res, chrono::milliseconds(res.m_lookup.delay()), cb);
-		}
-	}
-
-}
-
-bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_key& key,
-		 sinsp_container_info& value)
-{
-	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-	value.m_type = m_cri->get_cri_runtime_type();
-	value.m_id = key.m_container_id;
-
-	if(!parse_cri(value, key))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): Failed to get CRI metadata, returning successful=false",
-				key.m_container_id.c_str());
-		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
 	}
 
 	return true;
@@ -338,15 +286,6 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		}
 
 		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
-		auto cb = [cache](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri_async (%s): Source callback result=%d",
-					key.m_container_id.c_str(),
-					res.get_lookup_status());
-
-			cache->notify_new_container(res);
-		};
 
 		sinsp_container_info result;
 
@@ -354,7 +293,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		const bool async = s_async && cache->async_allowed();
 		if(async)
 		{
-			done = m_async_source->lookup(key, result, cb);
+			done = m_async_source->lookup(key, result);
 		}
 		else
 		{
@@ -364,7 +303,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		if (done)
 		{
 			// if a previous lookup call already found the metadata, process it now
-			cb(key, result);
+			m_async_source->source_callback(key, result);
 
 			if(async)
 			{
