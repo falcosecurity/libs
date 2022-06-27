@@ -24,6 +24,8 @@ limitations under the License.
 #include <linux/un.h>
 #include <arpa/inet.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <sys/syscall.h> // SYS_* constants
 
 #include <functional>
 #include <unordered_map>
@@ -611,9 +613,9 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 
 	switch(gvisor_evt.sysno())
 	{
-		case 56:
+		case SYS_clone:
 			return parse_clone(gvisor_evt, scap_buf, true);
-		case 57:
+		case SYS_fork:
 			return parse_clone(gvisor_evt, scap_buf, false);
 		default:
 			ret.error = std::string("Unhandled syscall: ") + std::to_string(gvisor_evt.sysno());
