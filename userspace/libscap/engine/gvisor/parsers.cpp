@@ -895,6 +895,75 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 	return ret;
 }
 
+static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::sentry::TaskExit gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking task exit protobuf message";
+		return ret;
+	}
+
+	ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_PROCEXIT_1_E, 4, gvisor_evt.exit_status(),
+					0, 0, 0);
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Prlimit gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking prlimit64 protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PRLIMIT_X, 5,
+							gvisor_evt.exit().result(),
+							gvisor_evt.new_limit().cur(),
+							gvisor_evt.new_limit().max(),
+							gvisor_evt.old_limit().cur(),
+							gvisor_evt.old_limit().max());
+	}
+	else 
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PRLIMIT_E, 2,
+							gvisor_evt.pid(),
+							rlimit_resource_to_scap(gvisor_evt.resource()));
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<Callback> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
@@ -902,7 +971,7 @@ std::vector<Callback> dispatchers = {
 	parse_sentry_clone, 
 	nullptr, 				// MESSAGE_SENTRY_EXEC
 	nullptr, 				// MESSAGE_SENTRY_EXIT_NOTIFY_PARENT
-	nullptr, 				// MESSAGE_SENTRY_TASK_EXIT
+	parse_task_exit,
 	parse_generic_syscall,
 	parse_open,
 	nullptr, 				// MESSAGE_SYSCALL_CLOSE
@@ -913,7 +982,7 @@ std::vector<Callback> dispatchers = {
 	parse_chdir,
 	parse_setid,
 	parse_setresid, 
-	nullptr,				// MESSAGE_SYSCALL_PRLIMIT64 = 16;
+	parse_prlimit64,
   	nullptr, 				// MESSAGE_SYSCALL_PIPE = 17;
   	nullptr, 				// MESSAGE_SYSCALL_FCNTL = 18;
   	parse_dup,
