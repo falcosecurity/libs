@@ -35,6 +35,7 @@ limitations under the License.
 #include <json/json.h>
 
 #include "gvisor.h"
+#include "parsers.h"
 #include "../../driver/ppm_events_public.h"
 #include "../../../common/strlcpy.h"
 
@@ -47,8 +48,6 @@ limitations under the License.
 
 namespace scap_gvisor {
 namespace parsers {
-
-typedef std::function<parse_result(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)> Callback;
 
 // In gVisor there's no concept of tid and tgid but only vtid and vtgid.
 // However, to fit into sinsp we do need values for tid and tgid.
@@ -963,36 +962,6 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 
 	return ret;
 }
-
-// List of parsers. Indexes are based on MessageType enum values
-std::vector<Callback> dispatchers = {
-	nullptr, 				// MESSAGE_UNKNOWN
-	parse_container_start,
-	parse_sentry_clone, 
-	nullptr, 				// MESSAGE_SENTRY_EXEC
-	nullptr, 				// MESSAGE_SENTRY_EXIT_NOTIFY_PARENT
-	parse_task_exit,
-	parse_generic_syscall,
-	parse_open,
-	nullptr, 				// MESSAGE_SYSCALL_CLOSE
-	parse_read,
-	parse_connect,
-	parse_execve,
-	parse_socket,
-	parse_chdir,
-	parse_setid,
-	parse_setresid, 
-	parse_prlimit64,
-  	nullptr, 				// MESSAGE_SYSCALL_PIPE = 17;
-  	nullptr, 				// MESSAGE_SYSCALL_FCNTL = 18;
-  	parse_dup,
-   	nullptr, 				// MESSAGE_SYSCALL_SIGNALFD = 20;
-  	parse_chroot,
-  	nullptr, 				// MESSAGE_SYSCALL_EVENTFD = 22;
-  	nullptr, 				// MESSAGE_SYSCALL_CLONE = 23;
-  	nullptr, 				// MESSAGE_SYSCALL_BIND = 24;
-  	nullptr, 				// MESSAGE_SYSCALL_ACCEPT = 25;
-};
 
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
 {
