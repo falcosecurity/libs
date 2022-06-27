@@ -26,6 +26,7 @@ class sinsp_threadinfo;
 #include "container_engine/container_engine_base.h"
 #include "container_engine/sinsp_container_type.h"
 #include "container_info.h"
+#include "container_async_source.h"
 #include <cri.h>
 
 namespace runtime {
@@ -46,14 +47,12 @@ namespace container_engine {
  * 2. Apparently CRI can fail to find a freshly created container
  * for a short while, so we should delay the query a bit.
  */
-class cri_async_source : public libsinsp::async_key_value_source<
-        libsinsp::cgroup_limits::cgroup_limits_key,
-        sinsp_container_info>
+class cri_async_source : public container_async_source<libsinsp::cgroup_limits::cgroup_limits_key>
 {
+	using key_type = libsinsp::cgroup_limits::cgroup_limits_key;
 public:
 	explicit cri_async_source(container_cache_interface *cache, ::libsinsp::cri::cri_interface *cri, uint64_t ttl_ms) :
-		async_key_value_source(NO_WAIT_LOOKUP, ttl_ms),
-		m_cache(cache),
+		container_async_source(NO_WAIT_LOOKUP, ttl_ms, cache),
 		m_cri(cri)
 	{
 	}
@@ -62,15 +61,21 @@ public:
 		async_key_value_source::stop();
 	}
 
-	bool lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_key& key,
-		    sinsp_container_info& value);
-
-	bool parse_cri(sinsp_container_info& container, const libsinsp::cgroup_limits::cgroup_limits_key& key);
+	bool parse(const key_type& key, sinsp_container_info& container) override;
 private:
 	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info& container);
-	void run_impl() override;
 
-	container_cache_interface *m_cache;
+	const char* name() const override { return "cri"; };
+
+	sinsp_container_type container_type(const key_type& key) const override
+	{
+		return m_cri->get_cri_runtime_type();
+	}
+	std::string container_id(const key_type& key) const override
+	{
+		return key.m_container_id;
+	}
+
 	::libsinsp::cri::cri_interface *m_cri;
 };
 

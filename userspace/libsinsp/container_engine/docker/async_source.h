@@ -1,8 +1,8 @@
 #pragma once
 
-#include "async/async_key_value_source.h"
 #include "container_info.h"
 
+#include "container_engine/container_async_source.h"
 #include "container_engine/docker/connection.h"
 #include "container_engine/docker/lookup_request.h"
 
@@ -11,8 +11,10 @@ namespace container_engine {
 
 class container_cache_interface;
 
-class docker_async_source : public libsinsp::async_key_value_source<docker_lookup_request, sinsp_container_info>
+class docker_async_source : public container_async_source<docker_lookup_request>
 {
+	using key_type = docker_lookup_request;
+
 public:
 	docker_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface *cache);
 	virtual ~docker_async_source();
@@ -20,13 +22,19 @@ public:
 	static void parse_json_mounts(const Json::Value &mnt_obj, std::vector<sinsp_container_info::container_mount_info> &mounts);
 	static void set_query_image_info(bool query_image_info);
 
-	bool lookup_sync(const docker_lookup_request& request, sinsp_container_info& value);
-
-protected:
-	void run_impl();
-
 private:
-	bool parse_docker(const docker_lookup_request& request, sinsp_container_info& container);
+	bool parse(const docker_lookup_request& key, sinsp_container_info& container) override;
+
+	const char* name() const override { return "docker"; };
+
+	sinsp_container_type container_type(const key_type& key) const override
+	{
+		return key.container_type;
+	}
+	std::string container_id(const key_type& key) const override
+	{
+		return key.container_id;
+	}
 
 	// Look for a pod specification in this container's labels and
 	// if found set spec to the pod spec.
@@ -81,7 +89,6 @@ private:
 	// find one with matching repository/tag and get the digest from there
 	void fetch_image_info_from_list(const docker_lookup_request& request, sinsp_container_info& container);
 
-	container_cache_interface *m_cache;
 	docker_connection m_connection;
 	static bool m_query_image_info;
 };

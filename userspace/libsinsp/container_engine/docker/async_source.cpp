@@ -29,8 +29,7 @@ bool docker_async_source::m_query_image_info = true;
 docker_async_source::docker_async_source(uint64_t max_wait_ms,
 					 uint64_t ttl_ms,
 					 container_cache_interface *cache)
-	: async_key_value_source(max_wait_ms, ttl_ms),
-	  m_cache(cache)
+	: container_async_source(max_wait_ms, ttl_ms, cache)
 {
 }
 
@@ -39,63 +38,6 @@ docker_async_source::~docker_async_source()
 	this->stop();
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async: Source destructor");
-}
-
-bool docker_async_source::lookup_sync(const docker_lookup_request& request, sinsp_container_info& value)
-{
-	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-	value.m_type = request.container_type;
-	value.m_id = request.container_id;
-
-	if(!parse_docker(request, value))
-	{
-		// This is not always an error e.g. when using
-		// containerd as the runtime. Since the cgroup
-		// names are often identical between
-		// containerd and docker, we have to try to
-		// fetch both.
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): Failed to get Docker metadata, returning successful=false",
-				request.container_id.c_str());
-		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
-	}
-
-	return true;
-}
-
-void docker_async_source::run_impl()
-{
-	docker_lookup_request request;
-
-	auto cb = [this](const docker_lookup_request& request, const sinsp_container_info& res)
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): Source callback result=%d",
-				request.container_id.c_str(),
-				res.get_lookup_status());
-
-		m_cache->notify_new_container(res);
-	};
-
-	while (dequeue_next_key(request))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s : %s): Source dequeued key",
-				request.container_id.c_str(),
-				request.request_rw_size ? "true" : "false");
-
-		sinsp_container_info res;
-		lookup_sync(request, res);
-
-		// Return a result object either way, to ensure any
-		// new container callbacks are called.
-		store_value(request, res);
-
-		if (res.m_lookup.should_retry())
-		{
-			lookup_delayed(request, res, chrono::milliseconds(res.m_lookup.delay()), cb);
-		}
-	}
 }
 
 bool docker_async_source::get_k8s_pod_spec(const Json::Value &config_obj,
@@ -672,7 +614,7 @@ void docker_async_source::parse_json_mounts(const Json::Value &mnt_obj, vector<s
 }
 
 
-bool docker_async_source::parse_docker(const docker_lookup_request& request, sinsp_container_info& container)
+bool docker_async_source::parse(const docker_lookup_request& request, sinsp_container_info& container)
 {
 	string json;
 
@@ -777,12 +719,12 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 					request.container_id.c_str(),
 					secondary_container_id.c_str());
 
-			if(parse_docker(docker_lookup_request(secondary_container_id,
-							      request.docker_socket,
-							      request.container_type,
-							      request.uid,
-							      false /*don't request size since we just need the IP*/),
-					pcnt))
+			if(parse(docker_lookup_request(secondary_container_id,
+						       request.docker_socket,
+						       request.container_type,
+						       request.uid,
+						       false /*don't request size since we just need the IP*/),
+				 pcnt))
 			{
 				g_logger.format(sinsp_logger::SEV_DEBUG,
 						"docker_async (%s), secondary (%s): Secondary fetch successful",
@@ -932,7 +874,7 @@ bool docker_async_source::parse_docker(const docker_lookup_request& request, sin
 #endif
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"docker_async (%s): parse_docker returning true",
+			"docker_async (%s): parse returning true",
 			request.container_id.c_str());
 	return true;
 }
