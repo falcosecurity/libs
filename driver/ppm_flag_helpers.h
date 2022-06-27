@@ -15,12 +15,13 @@ or GPL2.txt for full copies of the license.
 #include <linux/ptrace.h>
 #include <linux/capability.h>
 #include "ppm.h"
-#endif
-#ifdef WDIG
-#include <fcntl.h>
-#endif
 #ifdef __NR_io_uring_register
 #include <uapi/linux/io_uring.h>
+#endif
+#endif // ifndef UDIG
+
+#ifdef WDIG
+#include <fcntl.h>
 #endif
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
