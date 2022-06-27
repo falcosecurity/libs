@@ -787,6 +787,41 @@ static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized
 	return ret;
 }
 
+static parse_result parse_chroot(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Chroot gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking chroot protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHROOT_X, 2,
+							gvisor_evt.exit().result(),
+							gvisor_evt.pathname().c_str());
+	}
+	else
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_CHROOT_E, 0);
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<Callback> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
@@ -805,6 +840,16 @@ std::vector<Callback> dispatchers = {
 	parse_chdir,
 	parse_setid,
 	parse_setresid, 
+	nullptr,				// MESSAGE_SYSCALL_PRLIMIT64 = 16;
+  	nullptr, 				// MESSAGE_SYSCALL_PIPE = 17;
+  	nullptr, 				// MESSAGE_SYSCALL_FCNTL = 18;
+  	nullptr, 				// MESSAGE_SYSCALL_DUP = 19;
+   	nullptr, 				// MESSAGE_SYSCALL_SIGNALFD = 20;
+  	parse_chroot, 			// MESSAGE_SYSCALL_CHROOT = 21;
+  	nullptr, 				// MESSAGE_SYSCALL_EVENTFD = 22;
+  	nullptr, 				// MESSAGE_SYSCALL_CLONE = 23;
+  	nullptr, 				// MESSAGE_SYSCALL_BIND = 24;
+  	nullptr, 				// MESSAGE_SYSCALL_ACCEPT = 25;
 };
 
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)

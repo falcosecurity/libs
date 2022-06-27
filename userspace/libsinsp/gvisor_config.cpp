@@ -46,6 +46,8 @@ static const std::vector<std::string> s_gvisor_points = {
 	"syscall/setresuid/exit",
 	"syscall/setresgid/enter",
 	"syscall/setresgid/exit",
+	"syscall/chroot/enter",
+	"syscall/chroot/exit",
 	"sentry/clone",
 	"sentry/task_exit",
 	"sentry/execve",
