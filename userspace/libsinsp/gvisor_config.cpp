@@ -54,6 +54,8 @@ static const std::vector<std::string> s_gvisor_points = {
 	"syscall/dup2/exit",
 	"syscall/dup3/enter",
 	"syscall/dup3/exit",
+	"syscall/prlimit64/enter",
+	"syscall/prlimit64/exit",
 	"sentry/clone",
 	"sentry/task_exit",
 	"sentry/execve",
