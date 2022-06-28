@@ -1024,15 +1024,15 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 		return ret;
  	}
 
-	Callback cb = dispatchers[message_type];
-	if(cb == nullptr)
+	parser parser = dispatchers[message_type];
+	if(parser == nullptr)
 	{
-		ret.error = std::string("No callback registered for message type: ") + std::to_string(message_type);
+		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
 		ret.status = SCAP_TIMEOUT;
 		return ret;
 	}
 
-	return cb(proto, proto_size, scap_buf);
+	return parser(proto, proto_size, scap_buf);
 }
 
 procfs_result parse_procfs_json(const std::string &input, const std::string &sandbox)
