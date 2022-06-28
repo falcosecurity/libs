@@ -31,6 +31,9 @@ limitations under the License.
 #include <time.h>
 #include <dirent.h>
 #include <linux/version.h>
+#include <sys/auxv.h>
+#include <link.h>
+#include <elf.h>
 
 #include "scap.h"
 #include "scap-int.h"
@@ -142,17 +145,53 @@ static int bpf_map_create(enum bpf_map_type map_type,
 
 	return sys_bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
 }
-static int get_kernel_version()
+static uint32_t find_vdso_code()
+{
+    char *vdso = (char *) getauxval(AT_SYSINFO_EHDR);
+    if (vdso == NULL) {
+        return 0;
+    }
+    if (memcmp(vdso, ELFMAG, 4)) {
+        return 0;
+    }
+    const ElfW(Ehdr) *ehdr = (const ElfW(Ehdr) *) vdso;
+    int i;
+    for (i = 0; i < ehdr->e_shnum; i++) {
+        const ElfW(Shdr) *shdr = (const ElfW(Shdr) *)(vdso + ehdr->e_shoff + (i * ehdr->e_shentsize));
+        if (shdr->sh_type == SHT_NOTE) {
+            const char *ptr = (const char *)(vdso + shdr->sh_offset);
+            const char *end = ptr + shdr->sh_size;
+            while (ptr < end) {
+                const ElfW(Nhdr) *nhdr = (const ElfW(Nhdr) *) ptr;
+                ptr += sizeof(*nhdr);
+                const char *name = ptr;
+                ptr += (nhdr->n_namesz + sizeof(ElfW(Word)) - 1) & -sizeof(ElfW(Word));
+                const char *desc = ptr;
+                ptr += (nhdr->n_descsz + sizeof(ElfW(Word)) - 1) & -sizeof(ElfW(Word));
+                if ((nhdr->n_namesz > 5 && !memcmp(name, "Linux", 5)) && nhdr->n_descsz == 4 && !nhdr->n_type)
+                {
+                    return *(uint32_t *) desc;
+                }
+            }
+        }
+    }
+    return 0;
+}
+static uint32_t get_kernel_version()
 {
 	char buf[256];
-	char filename[256];
+	char filename[256];*(uint32_t *) desc;
 	unsigned x, y, z;
 	int i = 0;
 	for (i = 0; i < 4; i++)
 	{
 		switch(i)
 		{
-			case 0:
+		    case 0:
+		    {
+		        return find_vdso_code();
+            }
+			case 1:
 			{
 				// KERNEL_VERSION_CODE, as environment variable
 				// KERNEL_VERSION_CODE = (VERSION * 65536) + (PATCHLEVEL * 256) + SUBLEVEL
@@ -162,7 +201,7 @@ static int get_kernel_version()
 					return atoi(kernel_version_c);
 				break;
 			}
-			case 1:
+			case 2:
 			{
 				// ubuntu
 				// check /proc/version_signature
@@ -174,7 +213,7 @@ static int get_kernel_version()
 					break;
 				return KERNEL_VERSION(x, y, z);
 			}
-			case 2:
+			case 3:
 			{
 				// debian
 				// check /proc/sys/kernel/version
@@ -187,7 +226,7 @@ static int get_kernel_version()
 					break;
 				return KERNEL_VERSION(x, y, z);
 			}
-			case 3:
+			case 4:
 			{
 				// uname
 				struct utsname utsn;
@@ -201,7 +240,7 @@ static int get_kernel_version()
 		}
 	}
 }
-static int bpf_load_program(const struct bpf_insn *insns,
+static uint32_t bpf_load_program(const struct bpf_insn *insns,
 			    enum bpf_prog_type type,
 			    size_t insns_cnt,
 			    char *log_buf,
