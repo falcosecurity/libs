@@ -25,7 +25,7 @@ namespace scap_gvisor {
 
 namespace parsers {
 
-typedef std::function<parse_result(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)> Callback;
+typedef std::function<parse_result(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)> parser;
 
 static parse_result parse_container_start(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_execve(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
@@ -46,7 +46,7 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 
 // List of parsers. Indexes are based on MessageType enum values
-std::vector<Callback> dispatchers = {
+std::vector<parser> dispatchers = {
 	nullptr, 				// MESSAGE_UNKNOWN
 	parse_container_start,
 	parse_sentry_clone, 
