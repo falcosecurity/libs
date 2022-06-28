@@ -403,6 +403,46 @@
             "task_start_time",
             "time"
           ]
+        },
+        {
+          "name": "syscall/signalfd/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/signalfd/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/signalfd4/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/signalfd4/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
         }
       ],
       "sinks": [
