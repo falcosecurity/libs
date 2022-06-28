@@ -963,6 +963,44 @@ static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_s
 	return ret;
 }
 
+static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Signalfd gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking signalfd protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_SIGNALFD_X, 1,
+							gvisor_evt.exit().result());
+	}
+	else
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_SIGNALFD_E, 3,
+							gvisor_evt.fd(),
+							gvisor_evt.sigset(),
+							gvisor_evt.flags());
+	}
+
+	if(ret.status != SCAP_SUCCESS)
+	{
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt *>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf)
 {
 	parse_result ret = {0};

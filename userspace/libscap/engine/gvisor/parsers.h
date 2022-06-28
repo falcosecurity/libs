@@ -43,6 +43,7 @@ static parse_result parse_chroot(const char *proto, size_t proto_size, scap_size
 static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<Callback> dispatchers = {
@@ -66,7 +67,7 @@ std::vector<Callback> dispatchers = {
   	nullptr, 				// MESSAGE_SYSCALL_PIPE
   	nullptr, 				// MESSAGE_SYSCALL_FCNTL
   	parse_dup,
-   	nullptr, 				// MESSAGE_SYSCALL_SIGNALFD
+   	parse_signalfd,
   	parse_chroot,
   	nullptr, 				// MESSAGE_SYSCALL_EVENTFD
   	nullptr, 				// MESSAGE_SYSCALL_CLONE
