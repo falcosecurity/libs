@@ -27,6 +27,7 @@ using namespace std;
 
 static bool g_interrupted;
 static const uint8_t g_backoff_timeout_secs = 2;
+static bool g_all_threads = false;
 
 sinsp_evt* get_event(sinsp& inspector);
 
@@ -54,6 +55,7 @@ Options:
   -h, --help                    Print this page
   -f <filter>                   Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields)
   -j, --json                    Use JSON as the output format
+  -a, --all-threads             Output information about all threads, not just the main one
 )";
     cout << usage << endl;
 }
@@ -69,8 +71,9 @@ int main(int argc, char **argv)
 
     // Parse configuration options.
     static struct option long_options[] = {
-            {"help",      no_argument, 0, 'h'},
-            {"json",      no_argument, 0, 'j'},
+            {"help",        no_argument, 0, 'h'},
+            {"json",        no_argument, 0, 'j'},
+            {"all-threads", no_argument, 0, 'a'},
             {0,   0,         0,  0}
     };
 
@@ -79,7 +82,7 @@ int main(int argc, char **argv)
     string filter_string;
     std::function<void (sinsp& inspector)> dump = plaintext_dump;
     while((op = getopt_long(argc, argv,
-                            "hr:s:f:j",
+                            "hr:s:f:ja",
                             long_options, &long_index)) != -1)
     {
         switch(op)
@@ -98,6 +101,8 @@ int main(int argc, char **argv)
 
                 inspector.set_buffer_format(sinsp_evt::PF_JSON);
                 dump = json_dump;
+            case 'a':
+                g_all_threads = true;
             default:
                 break;
         }
@@ -105,6 +110,7 @@ int main(int argc, char **argv)
 
     signal(SIGINT, sigint_handler);
     signal(SIGPIPE, sigint_handler);
+    signal(SIGTERM, sigint_handler);
 
     inspector.open();
 
@@ -168,7 +174,7 @@ void plaintext_dump(sinsp& inspector)
         string cmdline;
         sinsp_threadinfo::populate_cmdline(cmdline, thread);
 
-        if(thread->is_main_thread())
+        if(g_all_threads || thread->is_main_thread())
         {
             string date_time;
             sinsp_utils::ts_to_iso_8601(ev->get_ts(), &date_time);
@@ -210,7 +216,7 @@ void plaintext_dump(sinsp& inspector)
             }
 
             sinsp_threadinfo *p_thr = thread->get_parent_thread();
-            int64_t parent_pid;
+            int64_t parent_pid = -1;
             if(nullptr != p_thr)
             {
                 parent_pid = p_thr->m_pid;
@@ -252,7 +258,7 @@ void json_dump(sinsp& inspector)
 
     if (thread)
     {
-        if(thread->is_main_thread())
+        if(g_all_threads || thread->is_main_thread())
         {
             if(ev->get_category() == EC_PROCESS)
             {
@@ -266,6 +272,11 @@ void json_dump(sinsp& inspector)
             {
                 default_formatter->tostring(ev, output);
             }
+        }
+        else
+        {
+            // Prevent empty lines from being printed
+            return;
         }
     }
     else
