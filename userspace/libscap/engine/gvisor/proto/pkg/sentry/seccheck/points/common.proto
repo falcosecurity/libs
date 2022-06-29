@@ -94,6 +94,8 @@ message ContextData {
   string process_name = 9;
 }
 
+// MessageType describes the payload of a message sent to the remote process.
+// LINT.IfChange
 enum MessageType {
   MESSAGE_UNKNOWN = 0;
   MESSAGE_CONTAINER_START = 1;
@@ -122,3 +124,4 @@ enum MessageType {
   MESSAGE_SYSCALL_BIND = 24;
   MESSAGE_SYSCALL_ACCEPT = 25;
 }
+// LINT.ThenChange(../../../../examples/seccheck/server.cc)
