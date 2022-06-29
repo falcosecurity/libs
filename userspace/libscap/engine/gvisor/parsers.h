@@ -44,6 +44,10 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_prlimit64(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 static parse_result parse_signalfd(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
+static parse_result parse_accept(const char *proto, size_t proto_size, scap_sized_buffer scap_buf);
 
 // List of parsers. Indexes are based on MessageType enum values
 std::vector<parser> dispatchers = {
@@ -62,17 +66,17 @@ std::vector<parser> dispatchers = {
 	parse_socket,
 	parse_chdir,
 	parse_setid,
-	parse_setresid, 
+	parse_setresid,
 	parse_prlimit64,
-  	nullptr, 				// MESSAGE_SYSCALL_PIPE
-  	nullptr, 				// MESSAGE_SYSCALL_FCNTL
+  	parse_pipe,
+  	parse_fcntl,
   	parse_dup,
    	parse_signalfd,
   	parse_chroot,
   	nullptr, 				// MESSAGE_SYSCALL_EVENTFD
   	nullptr, 				// MESSAGE_SYSCALL_CLONE
-  	nullptr, 				// MESSAGE_SYSCALL_BIND
-  	nullptr, 				// MESSAGE_SYSCALL_ACCEPT
+  	parse_bind,
+  	parse_accept,
 };
 
 } // namespace parsers
