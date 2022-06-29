@@ -49,6 +49,8 @@ limitations under the License.
 namespace scap_gvisor {
 namespace parsers {
 
+constexpr size_t socktuple_buffer_size = 1024;
+
 // In gVisor there's no concept of tid and tgid but only vtid and vtgid.
 // However, to fit into sinsp we do need values for tid and tgid.
 static uint64_t generate_tid_field(uint64_t tid, std::string container_id_hex)
@@ -456,10 +458,9 @@ static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 	}
 	else
 	{
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_X, 3,
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_X, 2,
 								gvisor_evt.exit().result(),
-								scap_const_sized_buffer{gvisor_evt.data().data(),
-								gvisor_evt.data().size()});
+								scap_const_sized_buffer{nullptr, 0});
 	}
 
 	if (ret.status != SCAP_SUCCESS) {
@@ -473,6 +474,135 @@ static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 	ret.scap_events.push_back(evt);
 
 	return ret;
+}
+
+// Converts the address + port portion of a sockaddr in our representation
+// Providing a large enough buffer is responsibility of the caller.
+// Returns the number of bytes written
+static inline size_t pack_addr_port(sockaddr *sa, char *targetbuf)
+{
+	size_t size = 0;
+	switch(sa->sa_family)
+	{
+		case AF_INET:
+		{
+			sockaddr_in *sa_in = (sockaddr_in *)sa;
+			uint16_t dport = ntohs(sa_in->sin_port);
+			memcpy(targetbuf, &sa_in->sin_addr.s_addr, sizeof(uint32_t));
+			targetbuf += sizeof(uint32_t);
+			memcpy(targetbuf, &dport, sizeof(uint16_t));
+			size = sizeof(uint32_t) + sizeof(uint16_t);
+		}
+		break;
+
+		case AF_INET6:
+		{
+			sockaddr_in6 *sa_in6 = (sockaddr_in6 *)sa;
+			uint16_t dport = ntohs(sa_in6->sin6_port);
+			memcpy(targetbuf, &sa_in6->sin6_addr, 2 * sizeof(uint64_t));
+			targetbuf += 2 * sizeof(uint64_t);
+			memcpy(targetbuf, &dport, sizeof(uint16_t));
+			size = 2 * sizeof(uint64_t) + sizeof(uint16_t);
+		}
+		break;
+
+		case AF_UNIX:
+		{
+			sockaddr_un *sa_un = (sockaddr_un *)sa;
+			size_t len = strlcpy(targetbuf, sa_un->sun_path, UNIX_PATH_MAX);
+			size = len + 1;
+		}
+		break;
+	}
+
+	return size;
+}
+
+static inline size_t pack_sock_family(sockaddr *sa, char *targetbuf)
+{
+	uint8_t sock_family = 0;
+	switch(sa->sa_family)
+	{
+		case AF_INET:
+		{
+			sockaddr_in *sa_in = (sockaddr_in *)sa;
+			sock_family = socket_family_to_scap(sa_in->sin_family);
+		}
+		break;
+
+		case AF_INET6:
+		{
+			sockaddr_in6 *sa_in6 = (sockaddr_in6 *)sa;
+			sock_family = socket_family_to_scap(sa_in6->sin6_family);
+		}
+		break;
+
+		case AF_UNIX:
+		{
+			sockaddr_un *sa_un = (sockaddr_un *)sa;
+			sock_family = socket_family_to_scap(sa_un->sun_family);
+		}
+		break;
+	}
+
+	memcpy(targetbuf, &sock_family, sizeof(uint8_t));
+	return sizeof(uint8_t);
+}
+
+// Converts a single address into a socktuple with a zeroed out local part and a remote counterpart
+// Providing a large enough buffer is responsibility of the caller (socktuple_buffer_size is set for this reason)
+static size_t pack_sockaddr_to_remote_tuple(sockaddr *sa, char *targetbuf)
+{
+	char *buf = targetbuf;
+	size_t size = 0;
+	switch(sa->sa_family)
+	{
+		case AF_INET:
+		{
+			size += pack_sock_family(sa, buf);
+			memset(targetbuf + 1, 0, sizeof(uint32_t));
+			memset(targetbuf + 5, 0, sizeof(uint16_t));
+			size += sizeof(uint32_t) + sizeof(uint16_t);
+			buf = targetbuf + size;
+			size += pack_addr_port(sa, buf);
+		}
+		break;
+
+		case AF_INET6:
+		{
+			size += pack_sock_family(sa, buf);
+			memset(targetbuf + 1, 0, 2 * sizeof(uint64_t)); //saddr
+			memset(targetbuf + 17, 0, sizeof(uint16_t)); //sport
+			size += sizeof(uint64_t) + sizeof(uint16_t);
+			buf = targetbuf + size;
+			size += pack_addr_port(sa, buf);
+		}
+		break;
+
+		case AF_UNIX:
+		{
+			size += pack_sock_family(sa, buf);
+			memset(targetbuf + 1, 0, sizeof(uint64_t)); // TODO: understand how to fill this 
+			memset(targetbuf + 1 + 8, 0, sizeof(uint64_t));
+			size += sizeof(uint64_t) + sizeof(uint64_t);
+			buf = targetbuf + size;
+			size += pack_addr_port(sa, buf);
+		}
+		break;
+	}
+
+	return size;
+}
+
+static size_t pack_sockaddr(sockaddr *sa, char *targetbuf)
+{
+	char *buf = targetbuf;
+	size_t size = 0;
+	size += pack_sock_family(sa, buf);
+	buf = targetbuf + size;
+	size += pack_addr_port(sa, buf);
+
+	return size;
 }
 
 static parse_result parse_connect(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
@@ -489,58 +619,9 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 
 	if(gvisor_evt.has_exit())
 	{
-		char targetbuf[17 + SCAP_MAX_PATH_SIZE];
-		uint32_t size = 0;
-
+		char targetbuf[socktuple_buffer_size];
 		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
-		uint8_t sock_family;
-
-		// TODO: source side of the connection
-		switch(addr->sa_family)
-		{
-			case AF_INET: 
-			{
-				sockaddr_in *inet_addr = (sockaddr_in *)addr;
-				uint16_t dport = ntohs(inet_addr->sin_port);
-				sock_family = socket_family_to_scap(inet_addr->sin_family);
-				memcpy(targetbuf, &sock_family, sizeof(uint8_t));
-				memset(targetbuf + 1, 0, sizeof(uint32_t));
-				memset(targetbuf + 5, 0, sizeof(uint16_t));
-				memcpy(targetbuf + 7, &inet_addr->sin_addr.s_addr, sizeof(uint32_t));
-				memcpy(targetbuf + 11, &dport, sizeof(uint16_t));
-
-				size = sizeof(uint8_t) + (sizeof(uint32_t) + sizeof(uint16_t)) * 2;
-				break;
-			}
-			case AF_INET6:
-			{
-				sockaddr_in6 *inet6_addr = (sockaddr_in6 *)addr;
-				uint16_t dport = ntohs(inet6_addr->sin6_port);
-				sock_family = socket_family_to_scap(inet6_addr->sin6_family);
-				memcpy(targetbuf, &sock_family, sizeof(uint8_t));
-				memset(targetbuf + 1, 0, 2 * sizeof(uint64_t)); //saddr
-				memset(targetbuf + 17, 0, sizeof(uint16_t)); //sport
-				memcpy(targetbuf + 19, &inet6_addr->sin6_addr, 2 * sizeof(uint64_t));
-				memcpy(targetbuf + 35, &dport, sizeof(uint16_t));
-				size = sizeof(uint8_t) + (2 * sizeof(uint64_t) + sizeof(uint16_t)) * 2;
-				break;
-			}
-			case AF_UNIX:
-			{
-				sockaddr_un *unix_addr = (sockaddr_un *)addr;
-				sock_family = socket_family_to_scap(unix_addr->sun_family);
-				memcpy(targetbuf, &sock_family, sizeof(uint8_t));
-				memset(targetbuf + 1, 0, sizeof(uint64_t)); // TODO: understand how to fill this 
-				memset(targetbuf + 1 + 8, 0, sizeof(uint64_t));
-				strlcpy(targetbuf + 1 + 8 + 8, unix_addr->sun_path, UNIX_PATH_MAX);
-				size = sizeof(uint8_t) + sizeof(uint64_t) + sizeof(uint64_t) + UNIX_PATH_MAX;
-				break;
-			}
-			default:
-			ret.status = SCAP_TIMEOUT;
-			return ret;
-		}
-
+		size_t size = pack_sockaddr_to_remote_tuple(addr, targetbuf);
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_X, 2,
 								gvisor_evt.exit().result(),
 								scap_const_sized_buffer{targetbuf, size});
@@ -626,6 +707,164 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 	return ret;
 }
 
+static parse_result parse_accept(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Accept gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking accept protobuf message";
+		return ret;
+	}
+
+	ppm_event_type type;
+
+	if(gvisor_evt.has_exit())
+	{
+		char targetbuf[socktuple_buffer_size];
+		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
+		size_t size = pack_sockaddr_to_remote_tuple(addr, targetbuf);
+
+		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_5_X : PPME_SOCKET_ACCEPT_5_X;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 5,
+			gvisor_evt.fd(),
+			scap_const_sized_buffer{targetbuf, size},
+			0, 0, 0); // queue information missing
+	}
+	else
+	{
+		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_5_E : PPME_SOCKET_ACCEPT_5_E;
+
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 0);
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_fcntl(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Fcntl gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking fcntl protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_FCNTL_X, 1,
+			gvisor_evt.exit().result());
+	}
+	else
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_FCNTL_E, 2,
+			gvisor_evt.fd(),
+			fcntl_cmd_to_scap(gvisor_evt.cmd()));
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Bind gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking bind protobuf message";
+		return ret;
+	}
+
+	char targetbuf[socktuple_buffer_size]; // XXX maybe a smaller version for addr
+	sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
+	size_t size = pack_sockaddr(addr, targetbuf);
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_BIND_X, 2,
+			gvisor_evt.exit().result(),
+			scap_const_sized_buffer{targetbuf, size});
+	}
+	else
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_BIND_E, 1,
+			gvisor_evt.fd());
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
+
+static parse_result parse_pipe(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
+{
+	parse_result ret = {0};
+	char scap_err[SCAP_LASTERR_SIZE];
+	gvisor::syscall::Pipe gvisor_evt;
+	if(!gvisor_evt.ParseFromArray(proto, proto_size))
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Error unpacking pipe protobuf message";
+		return ret;
+	}
+
+	if(gvisor_evt.has_exit())
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PIPE_X, 4,
+							gvisor_evt.exit().result(),
+							gvisor_evt.reader(),
+							gvisor_evt.writer(),
+							0); // missing "ino"
+	}
+	else
+	{
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_PIPE_E, 0);
+	}
+
+	if(ret.status != SCAP_SUCCESS) {
+		ret.error = scap_err;
+		return ret;
+	}
+
+	scap_evt *evt = static_cast<scap_evt*>(scap_buf.buf);
+	fill_context_data(evt, gvisor_evt);
+	ret.scap_events.push_back(evt);
+
+	return ret;
+}
 
 static parse_result parse_open(const char *proto, size_t proto_size, scap_sized_buffer scap_buf)
 {
