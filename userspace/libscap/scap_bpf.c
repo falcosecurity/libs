@@ -180,7 +180,7 @@ static uint32_t find_vdso_code()
 static uint32_t get_kernel_version()
 {
 	char buf[256];
-	char filename[256];*(uint32_t *) desc;
+	char filename[256];
 	unsigned x, y, z;
 	int i = 0;
 	for (i = 0; i < 4; i++)
