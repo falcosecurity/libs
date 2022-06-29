@@ -1829,7 +1829,7 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 }
 
 
-struct scap_vtable scap_bpf_engine = {
+const struct scap_vtable scap_bpf_engine = {
 	.name = "bpf",
 	.mode = SCAP_MODE_LIVE,
 
