@@ -460,7 +460,7 @@ static parse_result parse_read(const char *proto, size_t proto_size, scap_sized_
 	{
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SYSCALL_READ_X, 2,
 								gvisor_evt.exit().result(),
-								scap_const_sized_buffer{nullptr, 0});
+								scap_const_sized_buffer{NULL, 0});
 	}
 
 	if (ret.status != SCAP_SUCCESS) {
