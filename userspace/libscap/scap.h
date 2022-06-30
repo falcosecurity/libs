@@ -88,7 +88,7 @@ struct iovec;
 // and handle the result
 //
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(1, 0, 0)
-#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
 
 //
 // Return types
