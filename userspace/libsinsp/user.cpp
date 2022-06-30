@@ -190,6 +190,14 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 
 		usr = &userlist[uid];
 	}
+	else  if (name != NULL)
+	{
+		// Update user if it was already there
+		strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
+		strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
+		strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
+
+	}
 	return usr;
 }
 
@@ -246,6 +254,12 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 			notify_group_changed(&grplist[gid], container_id, true);
 		}
 		gr = &grplist[gid];
+	}
+	else  if (name != NULL)
+	{
+		// Update group if it was already there
+		strlcpy(gr->name, name, MAX_CREDENTIALS_STR_LEN);
+
 	}
 	return gr;
 }
@@ -493,5 +507,45 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, 
 
 #ifndef _WIN32
 	m_inspector->m_pending_state_evts.push(cevt);
+#endif
+}
+
+void sinsp_usergroup_manager::load_from_container(const std::string &container_id, const std::string &overlayfs_root)
+{
+	// See fgetpwent() feature test macros: https://man7.org/linux/man-pages/man3/fgetpwent.3.html
+#if defined HAVE_PWD_H && _DEFAULT_SOURCE
+	auto usrlist = get_userlist(container_id);
+	if (!usrlist)
+	{
+		auto passwd_in_container = overlayfs_root + "/etc/passwd";
+		auto pwd_file = fopen(passwd_in_container.c_str(), "r");
+		if(pwd_file)
+		{
+			while(auto p = fgetpwent(pwd_file))
+			{
+				m_inspector->m_usergroup_manager.add_user(container_id, p->pw_uid, p->pw_gid, p->pw_name, p->pw_dir, p->pw_shell, true);
+			}
+			fclose(pwd_file);
+		}
+	}
+#endif
+
+	// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
+#if defined HAVE_GRP_H && _DEFAULT_SOURCE
+	auto grplist = get_grouplist(container_id);
+	if (!grplist)
+	{
+		auto group_in_container = overlayfs_root + "/etc/group";
+
+		auto grp_file = fopen(group_in_container.c_str(), "r");
+		if(grp_file)
+		{
+			while(auto g = fgetgrent(grp_file))
+			{
+				m_inspector->m_usergroup_manager.add_group(container_id, g->gr_gid, g->gr_name, true);
+			}
+			fclose(grp_file);
+		}
+	}
 #endif
 }

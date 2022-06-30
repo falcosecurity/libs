@@ -6569,11 +6569,11 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			{
 				if (m_field_id == TYPE_CONTAINER_MOUNT_SOURCE)
 				{
-					mntinfo = container_info->mount_by_dest(m_argstr);
+					mntinfo = container_info->mount_by_source(m_argstr);
 				}
 				else
 				{
-					mntinfo = container_info->mount_by_source(m_argstr);
+					mntinfo = container_info->mount_by_dest(m_argstr);
 				}
 			}
 

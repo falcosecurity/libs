@@ -133,7 +133,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 	// Delayed so there's a chance to set alternate socket paths,
 	// timeouts, after creation but before inspector open.
-	if(m_container_engines.size() == 0)
+	if(m_container_engines.empty())
 	{
 		create_engines();
 	}
@@ -141,7 +141,6 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	for(auto &eng : m_container_engines)
 	{
 		matches = matches || eng->resolve(tinfo, query_os_for_missing_info);
-
 		if(matches)
 		{
 			break;
@@ -150,6 +149,11 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 
 	// Also possibly set the category for the threadinfo
 	identify_category(tinfo);
+	
+	if (!tinfo->m_container_id.empty())
+	{
+		m_inspector->m_usergroup_manager.load_from_container(tinfo->m_container_id, tinfo->m_overlayfs_root);
+	}
 
 	return matches;
 }

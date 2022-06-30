@@ -283,7 +283,9 @@ typedef struct scap_threadinfo
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts;
 	int32_t tty;
-    int32_t loginuid; ///< loginuid (auid)
+	int32_t loginuid; ///< loginuid (auid)
+
+	char overlayfs_root[SCAP_MAX_PATH_SIZE+1];
 
 	UT_hash_handle hh; ///< makes this structure hashable
 }scap_threadinfo;

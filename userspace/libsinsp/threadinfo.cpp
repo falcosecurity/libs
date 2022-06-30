@@ -397,6 +397,8 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_exe = pi->exe;
 	m_exepath = pi->exepath;
 	m_exe_writable = pi->exe_writable;
+	m_overlayfs_root = pi->overlayfs_root;
+
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())
 	{
@@ -547,7 +549,7 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 	if (!login_user)
 	{
 		// this can fail if import_user is disabled
-		login_user = m_inspector->m_usergroup_manager.add_user(m_container_id, loginuid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
+		login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
 	}
 
 	if (login_user)
@@ -556,7 +558,7 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 	}
 	else
 	{
-		m_loginuser.uid =loginuid;
+		m_loginuser.uid = loginuid;
 		m_loginuser.gid = m_group.gid;
 		strcpy(m_loginuser.name, "<NA>");
 		strcpy(m_loginuser.homedir, "<NA>");
