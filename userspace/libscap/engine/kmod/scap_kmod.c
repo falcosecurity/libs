@@ -721,6 +721,14 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 static int32_t scap_kmod_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
 	struct kmod_engine* kmod_engine = engine.m_handle;
+	if(*procinfo_p == NULL)
+	{
+		if(scap_alloc_proclist_info(procinfo_p, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, lasterr) == false)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
 	int ioctlres = ioctl(kmod_engine->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_GET_PROCLIST, *procinfo_p);
 	if(ioctlres)
 	{

@@ -1476,14 +1476,6 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
-	if(handle->m_driver_procinfo == NULL)
-	{
-		if(scap_alloc_proclist_info(&handle->m_driver_procinfo, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, handle->m_lasterr) == false)
-		{
-			return NULL;
-		}
-	}
-
 	int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
 	if(res != SCAP_SUCCESS)
 	{
