@@ -63,6 +63,14 @@ static const std::vector<std::string> s_gvisor_points = {
 	"sentry/clone",
 	"sentry/task_exit",
 	"sentry/execve",
+	"syscall/pipe/enter",
+	"syscall/pipe/exit",
+	"syscall/fcntl/enter",
+	"syscall/fcntl/exit",
+	"syscall/bind/enter",
+	"syscall/bind/exit",
+	"syscall/accept/enter",
+	"syscall/accept/exit"
 };
 
 static const std::vector<std::string> s_context_fields = {
