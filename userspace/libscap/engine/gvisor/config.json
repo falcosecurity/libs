@@ -6,7 +6,7 @@
           "name": "container/start", 
           "context_fields": [
             "cwd",
-			"time"
+			      "time"
           ]
         },
         {
@@ -21,29 +21,6 @@
         },
         {
           "name": "syscall/openat/exit",
-          "context_fields": [
-            "credentials",
-            "container_id",
-            "thread_id",
-            "task_start_time",
-            "time"
-          ]
-        },
-        {
-          "name": "syscall/read/enter",
-          "optional_fields": [
-            "fd_path"
-          ],
-          "context_fields": [
-            "credentials",
-            "container_id",
-            "thread_id",
-            "task_start_time",
-            "time"
-          ]
-        },
-        {
-          "name": "syscall/read/exit",
           "context_fields": [
             "credentials",
             "container_id",
@@ -316,6 +293,106 @@
         },
         {
           "name": "syscall/chroot/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/pipe/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/pipe/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/fcntl/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/fcntl/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/bind/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/bind/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/accept/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/accept/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/accept4/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/accept4/exit",
           "context_fields": [
             "credentials",
             "container_id",
