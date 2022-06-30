@@ -87,8 +87,8 @@ struct iovec;
 // call `scap_get_driver_api_version()` and/or `scap_get_driver_schema_version()`
 // and handle the result
 //
-#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(1, 0, 0)
-#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(1, 0, 0)
+#define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_CURRENT_VERSION
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_SCHEMA_CURRENT_VERSION
 
 //
 // Return types
@@ -995,7 +995,7 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
 
 /*!
   \brief Get (at most) n parameters for this event.
- 
+
   \param e The scap event.
   \param params An array large enough to contain at least one entry per event parameter (which is at most PPM_MAX_EVENT_PARAMS).
  */
@@ -1009,7 +1009,7 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
    - String types (including PT_FSPATH, PT_FSRELPATH) are passed via a null-terminated char*
    - Buffer types, variable size types and similar, including PT_BYTEBUF, PT_SOCKTUPLE are passed with
      a struct scap_const_sized_buffer
-  
+
   If the event was written successfully, SCAP_SUCCESS is returned. If the supplied buffer is not large enough to contain
   the event, SCAP_INPUT_TOO_SMALL is returned and event_size is set with the required size to contain the entire event.
 

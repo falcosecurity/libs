@@ -1,6 +1,8 @@
 #ifndef PPM_API_VERSION_H
 #define PPM_API_VERSION_H
 
+#include "driver_config.h"
+
 /*
  * API version component macros
  *
