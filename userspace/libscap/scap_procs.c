@@ -536,12 +536,6 @@ static int32_t scap_get_vtid(scap_t* handle, uint64_t tid, int64_t *vtid)
 		return handle->m_vtable->get_vtid(handle->m_engine, tid, vtid);
 	}
 
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get vtid (not in live mode)");
-		return SCAP_FAILURE;
-	}
-
 	ASSERT(false);
 	return SCAP_FAILURE;
 }
@@ -551,12 +545,6 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t pid, int64_t *vpid)
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_vpid(handle->m_engine, pid, vpid);
-	}
-
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get vpid (not in live mode)");
-		return SCAP_FAILURE;
 	}
 
 	ASSERT(false);
@@ -1244,12 +1232,6 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->getpid_global(handle->m_engine, pid, handle->m_lasterr);
-	}
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (not in live mode)");
-		ASSERT(false);
-		return SCAP_FAILURE;
 	}
 
 	ASSERT(false);
