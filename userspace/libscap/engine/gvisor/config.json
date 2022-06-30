@@ -520,6 +520,26 @@
             "task_start_time",
             "time"
           ]
+        },
+        {
+          "name": "syscall/eventfd2/enter",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
+        },
+        {
+          "name": "syscall/eventfd2/exit",
+          "context_fields": [
+            "credentials",
+            "container_id",
+            "thread_id",
+            "task_start_time",
+            "time"
+          ]
         }
       ],
       "sinks": [
