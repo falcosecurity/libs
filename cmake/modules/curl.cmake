@@ -58,8 +58,6 @@ else()
 			--without-cyassl
 			--without-nss
 			--without-axtls
-			--without-ca-path
-			--without-ca-bundle
 			--without-librtmp
 			--without-winidn
 			--without-libidn2
