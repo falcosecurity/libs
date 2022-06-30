@@ -286,6 +286,7 @@ public:
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
 	int32_t m_tty;
 
+	std::string m_overlayfs_root;
 
 	// In some cases, a threadinfo has a category that identifies
 	// why it was run. Descriptions:
