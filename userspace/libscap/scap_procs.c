@@ -1643,6 +1643,14 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 	struct dirent *dir_entry_p;
 	char procdirname[SCAP_MAX_PATH_SIZE];
 
+	if(*procinfo_p == NULL)
+	{
+		if(scap_alloc_proclist_info(procinfo_p, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, lasterr) == false)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
 	(*procinfo_p)->n_entries = 0;
 
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());

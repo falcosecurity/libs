@@ -108,6 +108,14 @@ static uint64_t gvisor_get_max_buf_used(struct scap_engine_handle engine)
 
 static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
+	if(*procinfo_p == NULL)
+	{
+		if(scap_alloc_proclist_info(procinfo_p, SCAP_DRIVER_PROCINFO_INITIAL_SIZE, lasterr) == false)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
 	// placeholder
 	(*procinfo_p)->n_entries = 0;
 
