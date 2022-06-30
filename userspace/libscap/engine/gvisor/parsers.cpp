@@ -829,24 +829,25 @@ static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	char targetbuf[socktuple_buffer_size]; // XXX maybe a smaller version for addr
-	if(gvisor_evt.address().size() == 0)
-	{
-		ret.status = SCAP_FAILURE;
-		ret.error = "No address data received";
-		return ret;
-	}
-
-	sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
-	size_t size = pack_sockaddr(addr, targetbuf);
-	if (size == 0)
-	{
-		ret.status = SCAP_FAILURE;
-		ret.error = "Could not parse received address";
-		return ret;
-	}
 
 	if(gvisor_evt.has_exit())
 	{
+		if(gvisor_evt.address().size() == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "No address data received";
+			return ret;
+		}
+
+		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
+		size_t size = pack_sockaddr(addr, targetbuf);
+		if (size == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "Could not parse received address";
+			return ret;
+		}
+
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_BIND_X, 2,
 			gvisor_evt.exit().result(),
 			scap_const_sized_buffer{targetbuf, size});
