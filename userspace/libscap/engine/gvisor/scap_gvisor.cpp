@@ -460,7 +460,7 @@ int32_t engine::process_message_from_fd(int fd)
 	if(parse_result.status != SCAP_SUCCESS)
 	{
 		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
-		return parse_result.status;
+		return SCAP_ILLEGAL_INPUT;
 	}
 
 	for(scap_evt *evt : parse_result.scap_events)
@@ -474,6 +474,7 @@ int32_t engine::process_message_from_fd(int fd)
 int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 {
 	epoll_event evts[max_ready_sandboxes];
+	*pcpuid = 0;
 
 	// if there are still events to process do it before getting more
 	if(!m_event_queue.empty())
@@ -503,9 +504,9 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 				return SCAP_FAILURE;
 			}
 
-			// useful for debugging but we might want to do better
+			// ignore parsing errors, we will simply discard the message
 			if (status == SCAP_ILLEGAL_INPUT) {
-				return SCAP_FAILURE;
+				continue;
 			}
 		}
 

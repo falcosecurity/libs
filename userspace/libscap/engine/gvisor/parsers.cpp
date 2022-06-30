@@ -620,8 +620,22 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 	if(gvisor_evt.has_exit())
 	{
 		char targetbuf[socktuple_buffer_size];
+		if(gvisor_evt.address().size() == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "No address data received";
+			return ret;
+		}
+
 		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
 		size_t size = pack_sockaddr_to_remote_tuple(addr, targetbuf);
+		if (size == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "Could not parse received address";
+			return ret;
+		}
+
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_X, 2,
 								gvisor_evt.exit().result(),
 								scap_const_sized_buffer{targetbuf, size});
@@ -699,11 +713,11 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 			return parse_clone(gvisor_evt, scap_buf, false);
 		default:
 			ret.error = std::string("Unhandled syscall: ") + std::to_string(gvisor_evt.sysno());
-			ret.status = SCAP_TIMEOUT;
+			ret.status = SCAP_FAILURE;
 			return ret;
 	}
 	
-	ret.status = SCAP_TIMEOUT;
+	ret.status = SCAP_FAILURE;
 	return ret;
 }
 
@@ -724,8 +738,21 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 	if(gvisor_evt.has_exit())
 	{
 		char targetbuf[socktuple_buffer_size];
+		if(gvisor_evt.address().size() == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "No address data received";
+			return ret;
+		}
+
 		sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
 		size_t size = pack_sockaddr_to_remote_tuple(addr, targetbuf);
+		if (size == 0)
+		{
+			ret.status = SCAP_FAILURE;
+			ret.error = "Could not parse received address";
+			return ret;
+		}
 
 		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_5_X : PPME_SOCKET_ACCEPT_5_X;
 
@@ -802,8 +829,21 @@ static parse_result parse_bind(const char *proto, size_t proto_size, scap_sized_
 	}
 
 	char targetbuf[socktuple_buffer_size]; // XXX maybe a smaller version for addr
+	if(gvisor_evt.address().size() == 0)
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "No address data received";
+		return ret;
+	}
+
 	sockaddr *addr = (sockaddr *)gvisor_evt.address().data();
 	size_t size = pack_sockaddr(addr, targetbuf);
+	if (size == 0)
+	{
+		ret.status = SCAP_FAILURE;
+		ret.error = "Could not parse received address";
+		return ret;
+	}
 
 	if(gvisor_evt.has_exit())
 	{
@@ -1249,7 +1289,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	if(hdr->header_size > gvisor_buf.size)
 	{
 		ret.error = std::string("Header size (") + std::to_string(hdr->header_size) + ") is larger than message " + std::to_string(gvisor_buf.size);
-		ret.status = SCAP_TIMEOUT;
+		ret.status = SCAP_FAILURE;
 		return ret;
 	}
 
@@ -1259,7 +1299,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	size_t message_type = hdr->message_type;
 	if (message_type == 0 || message_type >= dispatchers.size()) {
 		ret.error = std::string("Invalid message type " + std::to_string(message_type));
-		ret.status = SCAP_TIMEOUT;
+		ret.status = SCAP_FAILURE;
 		return ret;
  	}
 
@@ -1267,7 +1307,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	if(parser == nullptr)
 	{
 		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
-		ret.status = SCAP_TIMEOUT;
+		ret.status = SCAP_FAILURE;
 		return ret;
 	}
 
