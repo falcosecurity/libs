@@ -573,7 +573,7 @@ static size_t pack_sockaddr_to_remote_tuple(sockaddr *sa, char *targetbuf)
 			size += pack_sock_family(sa, buf);
 			memset(targetbuf + 1, 0, 2 * sizeof(uint64_t)); //saddr
 			memset(targetbuf + 17, 0, sizeof(uint16_t)); //sport
-			size += sizeof(uint64_t) + sizeof(uint16_t);
+			size += 2 * sizeof(uint64_t) + sizeof(uint16_t);
 			buf = targetbuf + size;
 			size += pack_addr_port(sa, buf);
 		}
