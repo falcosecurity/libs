@@ -799,6 +799,7 @@ int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, 
 struct scap_vtable scap_kmod_engine = {
 	.name = "kmod",
 	.mode = SCAP_MODE_LIVE,
+	.savefile_ops = NULL,
 
 	.match = match,
 	.alloc_handle = alloc_handle,

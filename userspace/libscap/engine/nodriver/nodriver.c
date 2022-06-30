@@ -55,6 +55,7 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 const struct scap_vtable scap_nodriver_engine = {
 	.name = "nodriver",
 	.mode = SCAP_MODE_NODRIVER,
+	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,
 	.init = NULL,

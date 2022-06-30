@@ -104,11 +104,6 @@ struct scap
 	struct scap_engine_handle m_engine;
 
 	scap_mode_t m_mode;
-	scap_reader_t* m_reader;
-	char* m_reader_evt_buf;
-	size_t m_reader_evt_buf_size;
-
-	uint32_t m_last_evt_dump_flags;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
 	// Used for scap_strerror
@@ -124,7 +119,6 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
-	uint64_t m_unexpected_block_readsize;
 	uint32_t m_ncpus;
 	uint8_t m_cgroup_version;
 
@@ -236,8 +230,6 @@ int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, stru
 int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
-// Read an event from disk
-int32_t scap_next_offline(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid);
 // read the file descriptors for a given process directory
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine

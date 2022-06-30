@@ -97,6 +97,43 @@ enum scap_setting {
 	SCAP_STATSD_PORT,
 };
 
+struct scap_savefile_vtable {
+	/**
+	 * @brief return the current read position in the capture
+	 * @param engine the handle to the engine
+	 * @return the current read offset, in (uncompressed) bytes
+	 */
+	uint64_t (*ftell_capture)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief seek through the capture
+	 * @param engine the handle to the engine
+	 * @param off offset (in uncompressed bytes) where to seek
+	 */
+	void (*fseek_capture)(struct scap_engine_handle engine, uint64_t off);
+
+	/**
+	 * @brief restart a capture from the current offset
+	 * @param handle the full scap_t handle
+	 * @return SCAP_SUCCESS or a failure code
+	 */
+	int32_t (*restart_capture)(struct scap* handle);
+
+	/**
+	 * @brief return the current offset in the capture file
+	 * @param engine the handle to the engine
+	 * @return the current read offset, in (compressed) bytes
+	 */
+	int64_t (*get_readfile_offset)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief return the flags for the last read event
+	 * @param engine the handle to the engine
+	 * @return the flags of the event (currently only SCAP_DF_LARGE is supported)
+	 */
+	uint32_t (*get_event_dump_flags)(struct scap_engine_handle engine);
+};
+
 struct scap_vtable {
 	/**
 	 * @brief name of the engine
@@ -108,6 +145,8 @@ struct scap_vtable {
 	 * of the engine (live capture, capture files, etc.)
 	 */
 	scap_mode_t mode;
+
+	const struct scap_savefile_vtable *savefile_ops;
 
 	/**
 	 * @brief check whether `open_args` are compatible with this engine
