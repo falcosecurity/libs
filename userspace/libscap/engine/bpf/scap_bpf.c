@@ -1832,6 +1832,7 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 const struct scap_vtable scap_bpf_engine = {
 	.name = "bpf",
 	.mode = SCAP_MODE_LIVE,
+	.savefile_ops = NULL,
 
 	.match = match,
 	.alloc_handle = alloc_handle,
@@ -1863,6 +1864,7 @@ static int32_t init(scap_t* handle, scap_open_args *open_args)
 const struct scap_vtable scap_bpf_engine = {
 	.name = "bpf",
 	.mode = SCAP_MODE_LIVE,
+	.savefile_ops = NULL,
 
 	.match = match,
 	.alloc_handle = alloc_handle,

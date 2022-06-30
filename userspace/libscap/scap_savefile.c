@@ -906,7 +906,7 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	// between opening the handle and starting the dump
 	//
 #if defined(HAS_CAPTURE) && !defined(WIN32)
-	if(handle->m_reader == NULL && handle->refresh_proc_table_when_saving)
+	if(handle->m_mode != SCAP_MODE_CAPTURE && handle->refresh_proc_table_when_saving)
 	{
 		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
 		handle->m_proclist.m_proc_callback = NULL;

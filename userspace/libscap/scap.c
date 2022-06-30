@@ -541,14 +541,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 #endif // HAS_ENGINE_GVISOR
 
 
-scap_t* scap_open_offline_int(scap_reader_t* reader,
-			      char *error,
-			      int32_t *rc,
-			      proc_entry_callback proc_callback,
-			      void* proc_callback_context,
-			      bool import_users,
-			      uint64_t start_offset,
-			      const char **suppressed_comms)
+scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 {
 	scap_t* handle = NULL;
 
@@ -566,14 +559,21 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	//
 	// Preliminary initializations
 	//
-	handle->m_vtable = NULL;
 	handle->m_mode = SCAP_MODE_CAPTURE;
+	handle->m_vtable = &scap_savefile_engine;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		free(handle);
+		return NULL;
+	}
+
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
-	handle->m_last_evt_dump_flags = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->refresh_proc_table_when_saving = true;
 	handle->m_fd_lookup_limit = 0;
@@ -586,55 +586,15 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_suppressed_tids = NULL;
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = proc_callback;
-	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-
-	handle->m_reader_evt_buf = (char*)malloc(READER_BUF_SIZE);
-	if(!handle->m_reader_evt_buf)
+	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the read buffer");
-		scap_close(handle);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
-
-	handle->m_reader = reader;
-	handle->m_unexpected_block_readsize = 0;
-
-	//
-	// If this is a merged file, we might have to move the read offset to the next section
-	//
-	if(start_offset != 0)
-	{
-		scap_fseek(handle, start_offset);
-	}
-
-	//
-	// Validate the file and load the non-event blocks
-	//
-	if((*rc = scap_read_init(
-		    handle->m_reader,
-		    &handle->m_machine_info,
-		    &handle->m_proclist,
-		    &handle->m_addrlist,
-		    &handle->m_userlist,
-		    handle->m_lasterr)) != SCAP_SUCCESS)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not initialize reader: %s", scap_getlasterr(handle));
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
-	}
-
-	if(!import_users)
-	{
-		if(handle->m_userlist != NULL)
-		{
-			scap_free_userlist(handle->m_userlist);
-			handle->m_userlist = NULL;
-		}
 	}
 
 	//
@@ -650,7 +610,7 @@ scap_t* scap_open_offline_int(scap_reader_t* reader,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_num_suppressed_evts = 0;
 
-	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -922,36 +882,7 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 	{
 	case SCAP_MODE_CAPTURE:
 	{
-		gzFile gzfile;
-
-		if(args.fd != 0)
-		{
-			gzfile = gzdopen(args.fd, "rb");
-		}
-		else
-		{
-			gzfile = gzopen(args.fname, "rb");
-		}
-
-		if(gzfile == NULL)
-		{
-			if(args.fd != 0)
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't open fd %d", args.fd);
-			}
-			else
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "can't open file %s", args.fname);
-			}
-			*rc = SCAP_FAILURE;
-			return NULL;
-		}
-
-		scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
-		return scap_open_offline_int(reader, error, rc,
-					     args.proc_callback, args.proc_callback_context,
-					     args.import_users, args.start_offset,
-					     args.suppressed_comms);
+		return scap_open_offline_int(&args, rc, error);
 	}
 	case SCAP_MODE_LIVE:
 #ifndef CYGWING_AGENT
@@ -1054,60 +985,26 @@ static inline void scap_deinit_state(scap_t* handle)
 
 uint32_t scap_restart_capture(scap_t* handle)
 {
-	uint32_t res;
-	if (handle->m_mode != SCAP_MODE_CAPTURE)
+	if(handle->m_vtable->savefile_ops)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart supported only in capture mode");
-		res = SCAP_FAILURE;
+		scap_deinit_state(handle);
+		return handle->m_vtable->savefile_ops->restart_capture(handle);
 	}
 	else
 	{
-		scap_deinit_state(handle);
-		if (handle->m_unexpected_block_readsize > 0)
-		{
-			scap_reader_seek(handle->m_reader, (int64_t)0 - (int64_t)handle->m_unexpected_block_readsize, SEEK_CUR);
-			handle->m_unexpected_block_readsize = 0;
-		}
-		if((res = scap_read_init(
-			handle->m_reader,
-			&handle->m_machine_info,
-			&handle->m_proclist,
-			&handle->m_addrlist,
-			&handle->m_userlist,
-			handle->m_lasterr)) != SCAP_SUCCESS)
-		{
-			char error[SCAP_LASTERR_SIZE];
-			snprintf(error, SCAP_LASTERR_SIZE, "could not restart capture: %s", scap_getlasterr(handle));
-			strncpy(handle->m_lasterr, error, SCAP_LASTERR_SIZE);
-		}
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "capture restart supported only in capture mode");
+		return SCAP_FAILURE;
 	}
-	return res;
 }
 
 void scap_close(scap_t* handle)
 {
-	if(handle->m_mode == SCAP_MODE_CAPTURE)
-	{
-		if (handle->m_reader)
-		{
-			scap_reader_close(handle->m_reader);
-			handle->m_reader = NULL;
-		}
-	}
-
 #if CYGWING_AGENT || _WIN32
 	if(handle->m_whh != NULL)
 	{
 		scap_windows_hal_close(handle->m_whh);
 	}
 #endif
-
-	if(handle->m_reader_evt_buf)
-	{
-		free(handle->m_reader_evt_buf);
-		handle->m_reader_evt_buf = NULL;
-	}
-
 	scap_deinit_state(handle);
 
 	if(handle->m_suppressed_comms)
@@ -1205,17 +1102,8 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 	}
 	else
 	{
-		switch(handle->m_mode)
-		{
-		case SCAP_MODE_CAPTURE:
-			res = scap_next_offline(handle, pevent, pcpuid);
-			break;
-		case SCAP_MODE_LIVE:
-		case SCAP_MODE_PLUGIN:
-		case SCAP_MODE_NODRIVER:
-		case SCAP_MODE_NONE:
-			res = SCAP_FAILURE;
-		}
+		ASSERT(false);
+		res = SCAP_FAILURE;
 	}
 
 	if(res == SCAP_SUCCESS)
@@ -1442,13 +1330,15 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 
 int64_t scap_get_readfile_offset(scap_t* handle)
 {
-	if(handle->m_mode != SCAP_MODE_CAPTURE)
+	if(handle->m_vtable->savefile_ops)
 	{
-		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on captures");
-		return -1;
+		return handle->m_vtable->savefile_ops->get_readfile_offset(handle->m_engine);
 	}
-
-	return scap_reader_offset(handle->m_reader);
+	else
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_readfile_offset only works on captures");
+		return SCAP_FAILURE;
+	}
 }
 
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
@@ -1485,7 +1375,14 @@ int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)
 {
-	return handle->m_last_evt_dump_flags;
+	if(handle->m_vtable->savefile_ops)
+	{
+		return handle->m_vtable->savefile_ops->get_event_dump_flags(handle->m_engine);
+	}
+	else
+	{
+		return 0;
+	}
 }
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)
@@ -1602,9 +1499,24 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
 	handle->refresh_proc_table_when_saving = refresh;
 }
 
-uint64_t scap_get_unexpected_block_readsize(scap_t* handle)
+uint64_t scap_ftell(scap_t *handle)
 {
-	return handle->m_unexpected_block_readsize;
+	if(handle->m_vtable->savefile_ops)
+	{
+		return handle->m_vtable->savefile_ops->ftell_capture(handle->m_engine);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void scap_fseek(scap_t *handle, uint64_t off)
+{
+	if(handle->m_vtable->savefile_ops)
+	{
+		return handle->m_vtable->savefile_ops->fseek_capture(handle->m_engine, off);
+	}
 }
 
 int32_t scap_enable_simpledriver_mode(scap_t* handle)

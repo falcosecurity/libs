@@ -120,6 +120,7 @@ int32_t noop_getpid_global(struct scap_engine_handle engine, int64_t* pid, char*
 const struct scap_vtable scap_noop_engine = {
 	.name = "noop",
 	.mode = SCAP_MODE_NODRIVER,
+	.savefile_ops = NULL,
 
 	.alloc_handle = noop_alloc_handle,
 	.init = NULL,

@@ -2005,39 +2005,15 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_next_offline(scap_t* handle, scap_evt** pevent, uint16_t* pcpuid)
+uint64_t scap_savefile_ftell(struct scap_engine_handle engine)
 {
-	int32_t res;
-	struct savefile_engine engine_handle = {
-		.m_lasterr = handle->m_lasterr,
-		.m_reader = handle->m_reader,
-
-		.m_unexpected_block_readsize = handle->m_unexpected_block_readsize,
-		.m_reader_evt_buf = handle->m_reader_evt_buf,
-		.m_reader_evt_buf_size = handle->m_reader_evt_buf_size,
-		.m_last_evt_dump_flags = handle->m_last_evt_dump_flags,
-	};
-	struct scap_engine_handle engine = { &engine_handle };
-
-	res = next(engine, pevent, pcpuid);
-
-	handle->m_unexpected_block_readsize = engine_handle.m_unexpected_block_readsize;
-	handle->m_reader_evt_buf = engine_handle.m_reader_evt_buf;
-	handle->m_reader_evt_buf_size = engine_handle.m_reader_evt_buf_size;
-	handle->m_last_evt_dump_flags = engine_handle.m_last_evt_dump_flags;
-
-	return res;
-}
-
-uint64_t scap_ftell(scap_t *handle)
-{
-	scap_reader_t * reader = handle->m_engine.m_handle->m_reader;
+	scap_reader_t* reader = engine.m_handle->m_reader;
 	return scap_reader_tell(reader);
 }
 
-void scap_fseek(scap_t *handle, uint64_t off)
+void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 {
-	scap_reader_t * reader = handle->m_engine.m_handle->m_reader;
+	scap_reader_t* reader = engine.m_handle->m_reader;
 	switch (scap_reader_type(reader))
 	{
 		case RT_FILE:
@@ -2170,9 +2146,54 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_savefile_restart_capture(scap_t* handle)
+{
+	struct savefile_engine *engine = handle->m_engine.m_handle;
+	int32_t res;
+
+	if (engine->m_unexpected_block_readsize > 0)
+	{
+		scap_reader_seek(engine->m_reader, (int64_t)0 - (int64_t)engine->m_unexpected_block_readsize, SEEK_CUR);
+		engine->m_unexpected_block_readsize = 0;
+	}
+	if((res = scap_read_init(
+		engine->m_reader,
+		&handle->m_machine_info,
+		&handle->m_proclist,
+		&handle->m_addrlist,
+		&handle->m_userlist,
+		handle->m_lasterr)) != SCAP_SUCCESS)
+	{
+		char error[SCAP_LASTERR_SIZE];
+		snprintf(error, SCAP_LASTERR_SIZE, "could not restart capture: %s", scap_getlasterr(handle));
+		strncpy(handle->m_lasterr, error, SCAP_LASTERR_SIZE);
+	}
+	return res;
+}
+
+static int64_t get_readfile_offset(struct scap_engine_handle engine)
+{
+	return scap_reader_offset(engine.m_handle->m_reader);
+}
+
+static uint32_t get_event_dump_flags(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_last_evt_dump_flags;
+}
+
+static struct scap_savefile_vtable savefile_ops = {
+	.ftell_capture = scap_savefile_ftell,
+	.fseek_capture = scap_savefile_fseek,
+
+	.restart_capture = scap_savefile_restart_capture,
+	.get_readfile_offset = get_readfile_offset,
+	.get_event_dump_flags = get_event_dump_flags,
+};
+
 struct scap_vtable scap_savefile_engine = {
 	.name = "savefile",
 	.mode = SCAP_MODE_CAPTURE,
+	.savefile_ops = &savefile_ops,
 
 	.match = match,
 	.alloc_handle = alloc_handle,

@@ -956,6 +956,7 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 struct scap_vtable scap_udig_engine = {
 	.name = "udig",
 	.mode = SCAP_MODE_LIVE,
+	.savefile_ops = NULL,
 
 	.match = match,
 	.alloc_handle = alloc_handle,
