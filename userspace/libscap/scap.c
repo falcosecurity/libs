@@ -1463,15 +1463,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
-	//
-	// Not supported on files
-	//
-	if(handle->m_mode != SCAP_MODE_LIVE)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_get_threadlist not supported on this scap mode");
-		return NULL;
-	}
-
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
