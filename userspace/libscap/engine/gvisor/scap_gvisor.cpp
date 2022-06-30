@@ -41,6 +41,7 @@ constexpr uint32_t max_ready_sandboxes = 32;
 constexpr size_t max_message_size = 300 * 1024;
 constexpr size_t initial_event_buffer_size = 32;
 constexpr int listen_backlog_size = 128;
+const std::string default_root_path = "/var/run/docker/runtime-runc/moby";
 
 sandbox_entry::sandbox_entry()
 {
@@ -90,7 +91,15 @@ engine::~engine()
 
 int32_t engine::init(std::string config_path, std::string root_path)
 {
-	m_root_path = root_path;
+	if(root_path.empty())
+	{
+		m_root_path = default_root_path;
+	}
+	else
+	{
+		m_root_path = root_path;
+	}
+
 	m_trace_session_path = config_path;
 	
 	std::ifstream config_file(config_path);
