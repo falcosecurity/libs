@@ -3126,7 +3126,7 @@ FILLER(sys_io_uring_setup_x, true)
 	unsigned long flags;
 	unsigned long sq_thread_cpu;
 	unsigned long sq_thread_idle;
-	unsigned long features;
+	unsigned long features = 0;
 
 #ifdef __NR_io_uring_setup
 	struct io_uring_params params;
@@ -3157,7 +3157,9 @@ FILLER(sys_io_uring_setup_x, true)
 	flags = io_uring_setup_flags_to_scap(params.flags);
 	sq_thread_cpu = params.sq_thread_cpu;
 	sq_thread_idle = params.sq_thread_idle;
+#ifdef IORING_FEAT_SINGLE_MMAP	
 	features = io_uring_setup_feats_to_scap(params.features);
+#endif	
 #else
 	sq_entries = 0;
 	cq_entries = 0;
