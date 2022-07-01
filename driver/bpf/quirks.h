@@ -28,7 +28,7 @@ or GPL2.txt for full copies of the license.
 #define BPF_SUPPORTS_RAW_TRACEPOINTS
 #endif
 
-#if defined(__aarch64__) && !defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+#if defined(CONFIG_ARM64) && !defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
     #error The BPF ARM64 support requires 'raw_tracepoints' so kernel versions greater or equal than '4.17'.
 #endif
 

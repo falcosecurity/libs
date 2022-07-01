@@ -115,7 +115,7 @@ struct event_data_t {
 			struct k_sigaction *ka;
 		} signal_data;
 
-#ifdef CONFIG_ARM64
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 		/* Here we save only the child task struct since it is the
 		 * unique parameter we will use in our `f_sched_prog_fork`
 		 * filler. On the other side the `f_sched_prog_exec` filler
@@ -179,9 +179,12 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
-#ifdef CONFIG_ARM64
-TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm);
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_struct *child);
+#endif
+
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
+TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm);
 #endif
 
 static struct ppm_device *g_ppm_devs;
@@ -227,9 +230,12 @@ static bool g_fault_tracepoint_registered;
 static bool g_fault_tracepoint_disabled;
 #endif
 
-#ifdef CONFIG_ARM64
-static struct tracepoint *tp_sched_proc_exec;
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 static struct tracepoint *tp_sched_proc_fork;
+#endif
+
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
+static struct tracepoint *tp_sched_proc_exec;
 #endif
 
 #ifdef _DEBUG
@@ -496,6 +502,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 * Enable the tracepoints
 		 */
 
+		/* 
+		 * SYS_EXIT 
+		 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
@@ -506,6 +515,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sys_exit;
 		}
 
+		/* 
+		 * SYS_ENTER 
+		 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
@@ -516,12 +528,18 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto err_sys_enter;
 		}
 
+		/* 
+		 * SCHED_PROCESS_EXIT
+		 */
 		ret = compat_register_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 		if (ret) {
 			pr_err("can't create the sched_process_exit tracepoint\n");
 			goto err_sched_procexit;
 		}
 
+		/* 
+		 * CAPTURE_CONTEXT_SWITCHES
+		 */
 #ifdef CAPTURE_CONTEXT_SWITCHES
 		ret = compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 		if (ret) {
@@ -530,6 +548,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 #endif
 
+		/* 
+		 * CAPTURE_SIGNAL_DELIVERIES
+		 */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 		ret = compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 		if (ret) {
@@ -538,12 +559,21 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 #endif
 
-#ifdef CONFIG_ARM64
+		/* 
+		 * DEDICATED_EXECVE_EXIT_EVENT
+		 */
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 		ret = compat_register_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
 		if (ret) {
 			pr_err("can't create the 'sched_proc_exec' tracepoint\n");
 			goto err_sched_proc_exec;
 		}
+#endif
+
+		/* 
+		 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+		 */
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 		ret = compat_register_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
 		if (ret) {
 			pr_err("can't create the 'sched_proc_fork' tracepoint\n");
@@ -557,35 +587,69 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	goto cleanup_open;
 
-#ifdef CONFIG_ARM64
+	/* 
+	 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+	 */
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 err_sched_proc_fork:
+#endif
+
+	/* 
+	 * DEDICATED_EXECVE_EXIT_EVENT
+	 */
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 	compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
 err_sched_proc_exec:
-	compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
+
+	/* 
+	 * CAPTURE_SIGNAL_DELIVERIES
+	 */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
+	compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 err_signal_deliver:
-	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
+
+	/* 
+	 * CAPTURE_CONTEXT_SWITCHES
+	 */
+#ifdef CAPTURE_CONTEXT_SWITCHES
+	compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 err_sched_switch:
+#endif
+
+	/* 
+	 * SCHED_PROCESS_EXIT
+	 */
 	compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 err_sched_procexit:
+
+	/* 
+	 * SYS_ENTER 
+	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
 	unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
 err_sys_enter:
+
+	/* 
+	 * SYS_EXIT 
+	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
 	unregister_trace_syscall_exit(syscall_exit_probe);
 #endif
 err_sys_exit:
+
 	ring->open = false;
 err_init_ring_buffer:
+
 	check_remove_consumer(consumer, in_list);
 cleanup_open:
+
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
@@ -660,33 +724,70 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		if (g_tracepoint_registered) {
 			pr_info("no more consumers, stopping capture\n");
 
+			/* 
+			 * SYS_EXIT 
+			 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
-			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
 			unregister_trace_syscall_exit(syscall_exit_probe);
+#endif
+
+			/* 
+			 * SYS_ENTER
+			 */	
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
 			unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
+
+			/* 
+			 * SCHED_PROCESS_EXIT
+			 */	
 			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
 
+			/* 
+			 * CAPTURE_CONTEXT_SWITCHES
+			 */
 #ifdef CAPTURE_CONTEXT_SWITCHES
 			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
 #endif
+
+			/* 
+			 * CAPTURE_SIGNAL_DELIVERIES
+			 */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 #endif
+
+			/* 
+			 * CAPTURE_PAGE_FAULTS
+			 */
 #ifdef CAPTURE_PAGE_FAULTS
-			if (g_fault_tracepoint_registered) {
+			if (g_fault_tracepoint_registered) 
+			{
 				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
 				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
-
 				g_fault_tracepoint_registered = false;
 			}
 #endif
-#ifdef CONFIG_ARM64
+DEDICATED_CLONE_EXIT_CHILD_EVENT
+
+			/* 
+			 * DEDICATED_EXECVE_EXIT_EVENT
+			 */
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 			compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
-			compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
 #endif
+
+			/* 
+			 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+			 */
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+			compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
+#endif			
+
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
 #endif
@@ -2026,11 +2127,13 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		 */
 		switch (event_datap->category)
 		{
-#ifdef CONFIG_ARM64
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 		case PPMC_SCHED_PROC_EXEC:
 			cbres = f_sched_prog_exec(&args);
 			break;
+#endif
 
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 		case PPMC_SCHED_PROC_FORK:
 			/* First of all we need to update the event header with the child pid. */
 			args.child = event_datap->event_info.sched_proc_fork_data.child;
@@ -2038,6 +2141,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			cbres = f_sched_prog_fork(&args);
 			break;
 #endif
+
 		default:
 			if (likely(g_ppm_events[event_type].filler_callback)) 
 			{
@@ -2430,7 +2534,7 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 }
 #endif
 
-#ifdef CONFIG_ARM64
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 /* We explained why we need these tracepoints for ARM64 in the BPF probe code.
  * Please take a look at `/bpf/probe.c`.
  */ 
@@ -2449,7 +2553,9 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 	event_data.category = PPMC_SCHED_PROC_EXEC;
 	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data);
 }
+#endif 
 
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_struct *child)
 {
 	struct event_data_t event_data;
@@ -2579,23 +2685,30 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 		tp_sys_exit = tp;
 	else if (!strcmp(tp->name, "sched_process_exit"))
 		tp_sched_process_exit = tp;
+
 #ifdef CAPTURE_CONTEXT_SWITCHES
 	else if (!strcmp(tp->name, "sched_switch"))
 		tp_sched_switch = tp;
 #endif
+
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	else if (!strcmp(tp->name, "signal_deliver"))
 		tp_signal_deliver = tp;
 #endif
+
 #ifdef CAPTURE_PAGE_FAULTS
 	else if (!strcmp(tp->name, "page_fault_user"))
 		tp_page_fault_user = tp;
 	else if (!strcmp(tp->name, "page_fault_kernel"))
 		tp_page_fault_kernel = tp;
 #endif
-#ifdef CONFIG_ARM64
+
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 	else if (!strcmp(tp->name, "sched_process_exec"))
 		tp_sched_proc_exec = tp;
+#endif
+
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 	else if (!strcmp(tp->name, "sched_process_fork"))
 		tp_sched_proc_fork = tp;	
 #endif
@@ -2617,18 +2730,21 @@ static int get_tracepoint_handles(void)
 		pr_err("failed to find sched_process_exit tracepoint\n");
 		return -ENOENT;
 	}
+
 #ifdef CAPTURE_CONTEXT_SWITCHES
 	if (!tp_sched_switch) {
 		pr_err("failed to find sched_switch tracepoint\n");
 		return -ENOENT;
 	}
 #endif
+
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 	if (!tp_signal_deliver) {
 		pr_err("failed to find signal_deliver tracepoint\n");
 		return -ENOENT;
 	}
 #endif
+
 #ifdef CAPTURE_PAGE_FAULTS
 	if (!tp_page_fault_user) {
 		pr_notice("failed to find page_fault_user tracepoint, disabling page-faults\n");
@@ -2639,18 +2755,23 @@ static int get_tracepoint_handles(void)
 		g_fault_tracepoint_disabled = true;
 	}
 #endif
-#ifdef CONFIG_ARM64
+
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 	if (!tp_sched_proc_exec)
 	{
 		pr_err("failed to find 'sched_process_exec' tracepoint\n");
 		return -ENOENT;
 	}
+#endif
+
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 	if (!tp_sched_proc_fork)
 	{
 		pr_err("failed to find 'sched_process_fork' tracepoint\n");
 		return -ENOENT;
 	}
 #endif
+
 	return 0;
 }
 #else

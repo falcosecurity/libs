@@ -4878,7 +4878,7 @@ FILLER(sched_switch_e, false)
 	return res;
 }
 
-#ifndef __aarch64__
+#ifdef CAPTURE_PAGE_FAULTS
 FILLER(sys_pagefault_e, false)
 {
 	struct page_fault_args *ctx;
@@ -5917,7 +5917,7 @@ FILLER(sys_dup3_x, true)
 	return res;
 }
 
-#ifdef __aarch64__
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 /* We set `is_syscall` flag to `false` since this is not
  * a real syscall, we only send the same event from another
  * tracepoint.
@@ -6295,7 +6295,9 @@ FILLER(sched_prog_exec_4, false)
 
 	return res;
 }
+#endif
 
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 /* These `sched_proc_fork` fillers will generate a 
  * `PPME_SYSCALL_CLONE_20_X` event.
  */
