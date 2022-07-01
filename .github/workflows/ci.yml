@@ -10,8 +10,8 @@ jobs:
   builder:
     env:
       REGISTRY: ghcr.io
-      BUILDER_IMAGE_BASE: ghcr.io/fededp/libs-builder
-      BUILDER_DEV: ghcr.io/fededp/libs-builder:dev
+      BUILDER_IMAGE_BASE: ghcr.io/falcosecurity/libs-builder
+      BUILDER_DEV: ghcr.io/falcosecurity/libs-builder:dev
 
     runs-on: ubuntu-latest
     steps:
