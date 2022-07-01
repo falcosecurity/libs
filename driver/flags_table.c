@@ -175,7 +175,7 @@ const struct ppm_name_value mount_flags[] = {
 	{"NOSEC", PPM_MS_NOSEC},
 	{"BORN", PPM_MS_BORN},
 	{"ACTIVE", PPM_MS_ACTIVE},
-	{"NOUSER", PPM_MS_NOUSER},
+	{"NOUSER", PPM_MS_NOUSER}, // NOTE: we are at 1 << 31 -> and we have an uint32_t value.
 	{0, 0},
 };
 
