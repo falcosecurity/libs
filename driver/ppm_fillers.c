@@ -3512,7 +3512,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef _64BIT_ARGS_SINGLE_REGISTER
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3646,7 +3646,7 @@ int f_sys_preadv64_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* _64BIT_ARGS_SINGLE_REGISTER */
+#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
 int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 {
@@ -3785,7 +3785,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-#ifndef _64BIT_ARGS_SINGLE_REGISTER
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	unsigned long pos0;
 	unsigned long pos1;
 	uint64_t pos64;
@@ -3834,7 +3834,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
 	 * separate registers that we need to merge.
 	 */
-#ifdef _64BIT_ARGS_SINGLE_REGISTER
+#ifdef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3854,7 +3854,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, pos64, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
-#endif /* _64BIT_ARGS_SINGLE_REGISTER */
+#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
 	return add_sentinel(args);
 }
@@ -6335,7 +6335,7 @@ out:
 	return res;
 }
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
 	int res = 0;
@@ -6653,7 +6653,7 @@ out:
 #endif
 
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 int f_sched_prog_fork(struct event_filler_arguments *args)
 {
 	int res = 0;

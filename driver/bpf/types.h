@@ -129,7 +129,7 @@ struct sys_stash_args {
 };
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */
@@ -141,7 +141,7 @@ struct sys_stash_args {
  };
  #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)
  * Taken from `/include/trace/events/sched.h`
  */

@@ -252,7 +252,7 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 }
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 /* This section explains why we need two additional `raw_tracepoint`
  * in ARM64 architectures. Right now, we catch information from all
  * syscalls with `sys_enter` and `sys_exit` tracepoint. In x86 we are
@@ -332,7 +332,7 @@ BPF_PROBE("sched_process_exec", sched_process_exec, sched_process_exec_raw_args)
 }
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 BPF_PROBE("sched_process_fork", sched_process_fork, sched_process_fork_raw_args)
 {
 	struct scap_bpf_settings *settings;
