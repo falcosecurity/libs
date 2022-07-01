@@ -129,7 +129,7 @@ struct sys_stash_args {
 };
 #endif
 
-#ifdef __aarch64__
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 /* TP_PROTO(struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
  * Taken from `/include/trace/events/sched.h`
  */
@@ -139,7 +139,9 @@ struct sys_stash_args {
  	pid_t old_pid;
  	struct linux_binprm *bprm;
  };
+ #endif
 
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)
  * Taken from `/include/trace/events/sched.h`
  */

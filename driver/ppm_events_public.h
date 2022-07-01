@@ -20,6 +20,119 @@ or GPL2.txt for full copies of the license.
 #include "../userspace/common/types.h"
 #endif
 
+/* DRIVERs FEATURE GATES:
+ * 
+ * These feature gates are used by: 
+ * - kernel module
+ * - BPF probe
+ * - userspace 
+ * to compile out some features. The userspace is in charge of 
+ * filling the BPF maps that's why it also needs these macros.
+ * 
+ * This file is included by the 2 drivers and the userspace so 
+ * it could be the right place to define these feature gates.
+ */
+
+
+#ifdef __KERNEL__ /* Kernel module - BPF probe */
+
+#include <linux/version.h>
+
+///////////////////////////////
+// DEDICATED_CLONE_EXIT_CHILD_EVENT 
+///////////////////////////////
+
+#if defined(CONFIG_ARM64)
+	#define DEDICATED_CLONE_EXIT_CHILD_EVENT 
+#endif
+
+///////////////////////////////
+// DEDICATED_EXECVE_EXIT_EVENT 
+///////////////////////////////
+
+#if defined(CONFIG_ARM64)
+	#define DEDICATED_EXECVE_EXIT_EVENT 
+#endif
+
+///////////////////////////////
+// _64BIT_ARGS_SINGLE_REGISTER 
+///////////////////////////////
+
+/* This is described in syscall(2). Some syscalls take 64-bit arguments. On
+ * arches that have 64-bit registers, these arguments are shipped in a register.
+ * On 32-bit arches, however, these are split between two consecutive registers,
+ * with some alignment requirements. Some require an odd/even pair while some
+ * others require even/odd. For now I assume they all do what x86_32 does, and
+ * we can handle the rest when we port those.
+ */
+
+#ifdef CONFIG_64BIT
+	#define _64BIT_ARGS_SINGLE_REGISTER
+#endif /* CONFIG_64BIT */
+
+///////////////////////////////
+// CAPTURE_CONTEXT_SWITCHES 
+///////////////////////////////
+
+#define CAPTURE_CONTEXT_SWITCHES
+
+///////////////////////////////
+// CAPTURE_SIGNAL_DELIVERIES 
+///////////////////////////////
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 32))
+	#define CAPTURE_SIGNAL_DELIVERIES
+#endif
+
+///////////////////////////////
+// CAPTURE_PAGE_FAULTS 
+///////////////////////////////
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_X86)
+	#define CAPTURE_PAGE_FAULTS
+#endif
+
+#else /* Userspace */
+
+/* Please note: the userspace loads the filler table for the bpf probe
+ * so it must define these macro according to what BPF supports
+ */
+#ifndef UDIG
+
+///////////////////////////////
+// _64BIT_ARGS_SINGLE_REGISTER 
+///////////////////////////////
+
+#if defined(__x86_64__) || defined(__aarch64__)
+	#define _64BIT_ARGS_SINGLE_REGISTER
+#endif 
+
+///////////////////////////////
+// CAPTURE_CONTEXT_SWITCHES 
+///////////////////////////////
+
+#define CAPTURE_CONTEXT_SWITCHES
+
+///////////////////////////////
+// CAPTURE_SIGNAL_DELIVERIES 
+///////////////////////////////
+
+#define CAPTURE_SIGNAL_DELIVERIES
+
+///////////////////////////////
+// CAPTURE_PAGE_FAULTS 
+///////////////////////////////
+
+#ifdef __x86_64__
+	#define CAPTURE_PAGE_FAULTS
+#endif /* __x86_64__ */
+
+#endif /* UDIG */
+
+#endif
+
+
+
 /*
  * Macros for packing in different build environments
  */

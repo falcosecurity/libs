@@ -6335,7 +6335,7 @@ out:
 	return res;
 }
 
-#ifdef CONFIG_ARM64
+#ifdef DEDICATED_EXECVE_EXIT_EVENT
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
 	int res = 0;
@@ -6650,7 +6650,10 @@ out:
 	put_cred(cred);
 	return res;
 }
+#endif
 
+
+#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
 int f_sched_prog_fork(struct event_filler_arguments *args)
 {
 	int res = 0;

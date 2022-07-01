@@ -1058,7 +1058,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 	return status & TS_COMPAT;
 
-#elif defined(__aarch64__)
+#elif defined(CONFIG_ARM64)
 
 	status = _READ(task->thread_info.flags);
 	return status & _TIF_32BIT;

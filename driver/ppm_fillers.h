@@ -10,23 +10,6 @@ or GPL2.txt for full copies of the license.
 #ifndef PPM_FILLERS_H_
 #define PPM_FILLERS_H_
 
-/* This is described in syscall(2). Some syscalls take 64-bit arguments. On
- * arches that have 64-bit registers, these arguments are shipped in a register.
- * On 32-bit arches, however, these are split between two consecutive registers,
- * with some alignment requirements. Some require an odd/even pair while some
- * others require even/odd. For now I assume they all do what x86_32 does, and
- * we can handle the rest when we port those.
- */
-#ifdef __KERNEL__
-#ifdef CONFIG_64BIT
-	#define _64BIT_ARGS_SINGLE_REGISTER
-#endif /* CONFIG_64BIT */
-#else
-#if defined(__x86_64__) || defined(__aarch64__)
-	#define _64BIT_ARGS_SINGLE_REGISTER
-#endif /* __x86_64__ */
-#endif /* __KERNEL__ */
-
 #define FILLER_LIST_MAPPER(FN)			\
 	FN(sys_autofill)			\
 	FN(sys_generic)				\

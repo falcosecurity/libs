@@ -98,7 +98,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#ifdef __aarch64__
+#ifdef CONFIG_ARM64
 	
 	id = _READ(regs->syscallno);
 
@@ -146,7 +146,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#ifdef __aarch64__
+#ifdef CONFIG_ARM64
 	
 	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
 	switch (idx) {
