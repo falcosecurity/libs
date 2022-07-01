@@ -134,6 +134,11 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_self_pid = getpid();
 #endif
 
+#ifdef _WIN32
+	m_self_pthread = GetCurrentThreadId();
+#else
+	m_self_pthread = pthread_self();
+#endif
 	uint32_t evlen = sizeof(scap_evt) + 2 * sizeof(uint16_t) + 2 * sizeof(uint64_t);
 	m_meinfo.m_piscapevt = (scap_evt*)new char[evlen];
 	m_meinfo.m_piscapevt->type = PPME_PROCINFO_E;

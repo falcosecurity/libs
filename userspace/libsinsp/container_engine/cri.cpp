@@ -332,21 +332,21 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		}
 
 		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup_state::STARTED);
-		auto cb = [cache](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
+		auto cb = [cache, tinfo](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
 		{
 			g_logger.format(sinsp_logger::SEV_DEBUG,
 					"cri_async (%s): Source callback result=%d",
 					key.m_container_id.c_str(),
 					res.m_lookup_state);
 
-			cache->notify_new_container(res);
+			cache->notify_new_container(res, tinfo);
 		};
 
 		sinsp_container_info result;
 
+		const bool is_async = s_async && container_cache().async_allowed();
 		bool done;
-		const bool async = s_async && cache->async_allowed();
-		if(async)
+		if(is_async)
 		{
 			done = m_async_source->lookup_delayed(key, result, chrono::milliseconds(s_cri_lookup_delay_ms), cb);
 		}
@@ -360,7 +360,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			// if a previous lookup call already found the metadata, process it now
 			cb(key, result);
 
-			if(async)
+			if(is_async)
 			{
 				// This should *never* happen, in async mode as ttl is 0 (never wait)
 				g_logger.format(sinsp_logger::SEV_ERROR,

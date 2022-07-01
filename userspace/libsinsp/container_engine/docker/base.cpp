@@ -46,7 +46,7 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 
 			// give docker a chance to return metadata for this container
 			cache->set_lookup_status(request.container_id, request.container_type, sinsp_container_lookup_state::STARTED);
-			parse_docker(request, cache);
+			parse_docker(tinfo, request, cache);
 		}
 #endif
 		return false;
@@ -58,22 +58,23 @@ docker_base::resolve_impl(sinsp_threadinfo *tinfo, const docker_lookup_request& 
 	return container_info->is_successful();
 }
 
-void docker_base::parse_docker(const docker_lookup_request& request, container_cache_interface *cache)
+void docker_base::parse_docker(sinsp_threadinfo *tinfo, const docker_lookup_request& request, container_cache_interface *cache)
 {
-	auto cb = [cache](const docker_lookup_request& request, const sinsp_container_info& res)
+	auto cb = [cache, tinfo](const docker_lookup_request& request, const sinsp_container_info& res)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker (%s): Source callback result=%d",
 				request.container_id.c_str(),
 				res.m_lookup_state);
 
-		cache->notify_new_container(res);
+		cache->notify_new_container(res, tinfo);
 	};
 
 	sinsp_container_info result;
 
 	bool done;
-	if (cache->async_allowed())
+	const bool is_async = container_cache().async_allowed();
+	if (is_async)
 	{
 		done = m_docker_info_source->lookup(request, result, cb);
 	}
@@ -86,7 +87,7 @@ void docker_base::parse_docker(const docker_lookup_request& request, container_c
 		// if a previous lookup call already found the metadata, process it now
 		cb(request, result);
 
-		if(cache->async_allowed())
+		if(is_async)
 		{
 			// This should *never* happen, in async mode as ttl is 0 (never wait)
 			g_logger.format(sinsp_logger::SEV_ERROR,

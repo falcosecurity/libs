@@ -319,27 +319,37 @@ void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo)
 {
-	if (!m_inspector->m_inited || m_inspector->is_capture())
+#ifdef _WIN32
+	const bool on_main_thread = m_inspector->m_self_pthread == GetCurrentThreadId();
+#else
+	const bool on_main_thread = pthread_equal(m_inspector->m_self_pthread, pthread_self());
+#endif
+	// This is either:
+	// * being called from a threadinfo->resolve_container
+	// 	before sinsp is actually started (ie: while parsing proc),
+	//     	We should not send any event in this phase, as these containers
+	//	will be part of "initial state" (dumped by dump_containers())
+	// * being called in capture mode (no need to send any event as we will read it)
+	// * being called from a synchronous container engine
+	//
+	// Fallback at just storing the new container.
+	// NOTE: this must be kept in sync with what happens on container event parsing, in parsers.cpp.
+	if (!m_inspector->m_inited || m_inspector->is_capture() || on_main_thread)
 	{
-		// This is either:
-		// * being called from a threadinfo->resolve_container
-		// 	before sinsp is actually started (ie: while parsing proc),
-		//     	We should not send any event in this phase, as these containers
-		//	will be part of "initial state" (dumped by dump_containers())
-		// * being called in capture mode (no need to send any event as we will read it)
-		//
-		// Fallback at just storing the new container.
-		// NOTE: this must be kept in sync with what happens on container event parsing, in parsers.cpp.
+		// Avoid overwriting good container metadata with bad one
 		const auto container = m_inspector->m_container_manager.get_container(container_info.m_id);
 		if(container != nullptr && container->is_successful())
 		{
 			SINSP_DEBUG("Ignoring new container notification for already successful lookup of %s", container_info.m_id.c_str());
+			return;
 		}
-		else
+		add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+
+		if (!m_inspector->m_inited || m_inspector->is_capture())
 		{
-			add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
+			return;
 		}
-		return;
+		// Proceed to create event in any case for synchronous container engines
 	}
 
 	// In all other cases, containers will be stored after the proper

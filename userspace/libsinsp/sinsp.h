@@ -1265,6 +1265,12 @@ public:
 	int64_t m_self_pid;
 #endif
 
+#ifdef _WIN32
+	DWORD m_self_pthread;
+#else
+	pthread_t m_self_pthread;
+#endif
+
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
 	std::set<std::string> m_suppressed_comms;
