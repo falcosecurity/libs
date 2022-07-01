@@ -16,8 +16,15 @@ or GPL2.txt for full copies of the license.
 #include "ppm_syscall.h"
 #include <trace/syscall.h>
 #else
+
+/// TODO: @Andreagit97 @FedeDP we need to remove the ifdef, this patch should also work on x86.
+#ifdef CONFIG_ARM64
+#include <trace/syscall.h>
+#endif /* CONFIG_ARM64 */
+
 #include <asm/syscall.h>
-#endif
+#endif /* LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20) */
+
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
 #include <asm/atomic.h>
 #else
