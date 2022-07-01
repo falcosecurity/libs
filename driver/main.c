@@ -16,6 +16,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_syscall.h"
 #include <trace/syscall.h>
 #else
+#include <trace/syscall.h>
 #include <asm/syscall.h>
 #endif
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 37))
