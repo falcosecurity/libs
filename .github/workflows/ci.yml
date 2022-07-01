@@ -1,0 +1,155 @@
+name: CI Build
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  builder:
+    env:
+      REGISTRY: ghcr.io
+      BUILDER_IMAGE_BASE: ghcr.io/fededp/libs-builder
+      BUILDER_DEV: ghcr.io/fededp/libs-builder:dev
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+        
+      - name: Check if docker builder is modified
+        id: builder-files
+        uses: tj-actions/changed-files@v10.1
+        with:
+          files: |
+            ^docker/  
+
+      - name: Set up QEMU
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/setup-qemu-action@v2
+        
+      - name: Set up Docker Buildx
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Login to GitHub Container Registry
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}  
+        
+      - name: Get new builder image tag
+        id: get-new-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        run: |
+          echo "::set-output name=builder_image::${{ env.BUILDER_IMAGE_BASE }}:${{ github.event.pull_request.number }}"
+        
+      - name: Build libs-builder
+        id: libs-builder
+        if: steps.builder-files.outputs.any_changed == 'true'
+        uses: docker/build-push-action@v3
+        with:
+          context: docker
+          file: docker/builder.Dockerfile
+          platforms: amd64,arm64
+          push: true
+          tags: ${{ steps.get-new-builder.outputs.builder_image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+    outputs:
+      builder_image: ${{ (steps.builder-files.outputs.any_changed == 'true') && steps.get-new-builder.outputs.builder_image || env.BUILDER_DEV }}      
+
+  build-libs:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.builder_image }}
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Link libs repo to /workspace
+        run: |
+          mkdir -p /workspace
+          ln -s "$GITHUB_WORKSPACE" /workspace
+  
+      - name: Build and test
+        run: /build.sh -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+        
+  build-libs-bundled-deps:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.builder_image }}
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Link libs repo to /workspace
+        run: |
+          mkdir -p /workspace
+          ln -s "$GITHUB_WORKSPACE" /workspace
+  
+      - name: Build and test
+        run: /build.sh -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+        
+  build-libs-with-chisels:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.builder_image }}
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Link libs repo to /workspace
+        run: |
+          mkdir -p /workspace
+          ln -s "$GITHUB_WORKSPACE" /workspace
+  
+      - name: Build and test
+        run: /build.sh -DBUILD_BPF=On -DWITH_CHISEL=True
+        
+  build-libs-minimal:
+    needs: builder
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.builder.outputs.builder_image }}
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Link libs repo to /workspace
+        run: |
+          mkdir -p /workspace
+          ln -s "$GITHUB_WORKSPACE" /workspace
+  
+      - name: Build and test
+        run: /build.sh -DMINIMAL_BUILD=True
+        
+  build-libs-arm64:
+    needs: builder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2
+        name: Run aarch64 build
+        with:
+          arch: aarch64
+          distro: alpine_latest
+          githubToken: ${{ github.token }}
+
+          # Set an output parameter `uname` for use in subsequent steps
+          install: |
+            apk add docker
+            
+          run: |
+            docker run -ti --rm -v $GITHUB_WORKSPACE:/workspace ${{ needs.builder.outputs.builder_image }} -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
