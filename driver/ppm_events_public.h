@@ -41,23 +41,23 @@ or GPL2.txt for full copies of the license.
 #include <linux/version.h>
 
 ///////////////////////////////
-// DEDICATED_CLONE_EXIT_CHILD_EVENT 
+// CAPTURE_SCHED_PROC_FORK 
 ///////////////////////////////
 
 #if defined(CONFIG_ARM64)
-	#define DEDICATED_CLONE_EXIT_CHILD_EVENT 
+	#define CAPTURE_SCHED_PROC_FORK 
 #endif
 
 ///////////////////////////////
-// DEDICATED_EXECVE_EXIT_EVENT 
+// CAPTURE_SCHED_PROC_EXEC 
 ///////////////////////////////
 
 #if defined(CONFIG_ARM64)
-	#define DEDICATED_EXECVE_EXIT_EVENT 
+	#define CAPTURE_SCHED_PROC_EXEC 
 #endif
 
 ///////////////////////////////
-// _64BIT_ARGS_SINGLE_REGISTER 
+// CAPTURE_64BIT_ARGS_SINGLE_REGISTER 
 ///////////////////////////////
 
 /* This is described in syscall(2). Some syscalls take 64-bit arguments. On
@@ -69,7 +69,7 @@ or GPL2.txt for full copies of the license.
  */
 
 #ifdef CONFIG_64BIT
-	#define _64BIT_ARGS_SINGLE_REGISTER
+	#define CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #endif /* CONFIG_64BIT */
 
 ///////////////////////////////
@@ -102,11 +102,11 @@ or GPL2.txt for full copies of the license.
 #ifndef UDIG
 
 ///////////////////////////////
-// _64BIT_ARGS_SINGLE_REGISTER 
+// CAPTURE_64BIT_ARGS_SINGLE_REGISTER 
 ///////////////////////////////
 
 #if defined(__x86_64__) || defined(__aarch64__)
-	#define _64BIT_ARGS_SINGLE_REGISTER
+	#define CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #endif 
 
 ///////////////////////////////

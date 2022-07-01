@@ -115,7 +115,7 @@ struct event_data_t {
 			struct k_sigaction *ka;
 		} signal_data;
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 		/* Here we save only the child task struct since it is the
 		 * unique parameter we will use in our `f_sched_prog_fork`
 		 * filler. On the other side the `f_sched_prog_exec` filler
@@ -179,11 +179,11 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_struct *child);
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm);
 #endif
 
@@ -230,11 +230,11 @@ static bool g_fault_tracepoint_registered;
 static bool g_fault_tracepoint_disabled;
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 static struct tracepoint *tp_sched_proc_fork;
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 static struct tracepoint *tp_sched_proc_exec;
 #endif
 
@@ -560,9 +560,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #endif
 
 		/* 
-		 * DEDICATED_EXECVE_EXIT_EVENT
+		 * CAPTURE_SCHED_PROC_EXEC
 		 */
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 		ret = compat_register_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
 		if (ret) {
 			pr_err("can't create the 'sched_proc_exec' tracepoint\n");
@@ -571,9 +571,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #endif
 
 		/* 
-		 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+		 * CAPTURE_SCHED_PROC_FORK
 		 */
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 		ret = compat_register_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
 		if (ret) {
 			pr_err("can't create the 'sched_proc_fork' tracepoint\n");
@@ -588,16 +588,16 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	goto cleanup_open;
 
 	/* 
-	 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+	 * CAPTURE_SCHED_PROC_FORK
 	 */
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 err_sched_proc_fork:
 #endif
 
 	/* 
-	 * DEDICATED_EXECVE_EXIT_EVENT
+	 * CAPTURE_SCHED_PROC_EXEC
 	 */
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 	compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
 err_sched_proc_exec:
 #endif
@@ -772,19 +772,19 @@ static int ppm_release(struct inode *inode, struct file *filp)
 				g_fault_tracepoint_registered = false;
 			}
 #endif
-DEDICATED_CLONE_EXIT_CHILD_EVENT
+CAPTURE_SCHED_PROC_FORK
 
 			/* 
-			 * DEDICATED_EXECVE_EXIT_EVENT
+			 * CAPTURE_SCHED_PROC_EXEC
 			 */
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 			compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
 #endif
 
 			/* 
-			 * DEDICATED_CLONE_EXIT_CHILD_EVENT
+			 * CAPTURE_SCHED_PROC_FORK
 			 */
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 			compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
 #endif			
 
@@ -2127,13 +2127,13 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		 */
 		switch (event_datap->category)
 		{
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 		case PPMC_SCHED_PROC_EXEC:
 			cbres = f_sched_prog_exec(&args);
 			break;
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 		case PPMC_SCHED_PROC_FORK:
 			/* First of all we need to update the event header with the child pid. */
 			args.child = event_datap->event_info.sched_proc_fork_data.child;
@@ -2534,7 +2534,7 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 }
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 /* We explained why we need these tracepoints for ARM64 in the BPF probe code.
  * Please take a look at `/bpf/probe.c`.
  */ 
@@ -2555,7 +2555,7 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 }
 #endif 
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_struct *child)
 {
 	struct event_data_t event_data;
@@ -2703,12 +2703,12 @@ static void visit_tracepoint(struct tracepoint *tp, void *priv)
 		tp_page_fault_kernel = tp;
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 	else if (!strcmp(tp->name, "sched_process_exec"))
 		tp_sched_proc_exec = tp;
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 	else if (!strcmp(tp->name, "sched_process_fork"))
 		tp_sched_proc_fork = tp;	
 #endif
@@ -2756,7 +2756,7 @@ static int get_tracepoint_handles(void)
 	}
 #endif
 
-#ifdef DEDICATED_EXECVE_EXIT_EVENT
+#ifdef CAPTURE_SCHED_PROC_EXEC
 	if (!tp_sched_proc_exec)
 	{
 		pr_err("failed to find 'sched_process_exec' tracepoint\n");
@@ -2764,7 +2764,7 @@ static int get_tracepoint_handles(void)
 	}
 #endif
 
-#ifdef DEDICATED_CLONE_EXIT_CHILD_EVENT
+#ifdef CAPTURE_SCHED_PROC_FORK
 	if (!tp_sched_proc_fork)
 	{
 		pr_err("failed to find 'sched_process_fork' tracepoint\n");
