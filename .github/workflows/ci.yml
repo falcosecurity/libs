@@ -153,3 +153,17 @@ jobs:
             
           run: |
             docker run -ti --rm -v $GITHUB_WORKSPACE:/workspace ${{ needs.builder.outputs.builder_image }} -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+            
+  build-libs-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build && cmake ..
+  
+      - name: Build
+        run: cd build && cmake --build .
