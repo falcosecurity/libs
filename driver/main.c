@@ -62,11 +62,11 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
-#if CAPTURE_SCHED_PROC_EXEC && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+#if defined(CAPTURE_SCHED_PROC_EXEC) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
 	#error The kernel module CAPTURE_SCHED_PROC_EXEC support requires kernel versions greater or equal than '3.4'.
 #endif
 
-#if CAPTURE_SCHED_PROC_FORK && (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
+#if defined(CAPTURE_SCHED_PROC_FORK) && (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
 	#error The kernel module CAPTURE_SCHED_PROC_FORK support requires kernel versions greater or equal than '2.6'.
 #endif
 
@@ -771,7 +771,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 				g_fault_tracepoint_registered = false;
 			}
 #endif
-CAPTURE_SCHED_PROC_FORK
 
 			/* 
 			 * CAPTURE_SCHED_PROC_EXEC
