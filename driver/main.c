@@ -67,8 +67,12 @@ or GPL2.txt for full copies of the license.
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
 
-#if defined(CONFIG_ARM64) && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
-	#error The kernel module ARM64 support requires kernel versions greater or equal than '3.4'.
+#if CAPTURE_SCHED_PROC_EXEC && (LINUX_VERSION_CODE < KERNEL_VERSION(3, 4, 0))
+	#error The kernel module CAPTURE_SCHED_PROC_EXEC support requires kernel versions greater or equal than '3.4'.
+#endif
+
+#if CAPTURE_SCHED_PROC_FORK && (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 0))
+	#error The kernel module CAPTURE_SCHED_PROC_FORK support requires kernel versions greater or equal than '2.6'.
 #endif
 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 35))
@@ -174,7 +178,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_sigaction *ka);
 #endif
 
-/* tracepoints `page_fault_user/kernel` don't exist on ARM64 architecture .*/
+/* tracepoints `page_fault_user/kernel` don't exist on some architectures.*/
 #ifdef CAPTURE_PAGE_FAULTS
 TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
@@ -2535,9 +2539,6 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-/* We explained why we need these tracepoints for ARM64 in the BPF probe code.
- * Please take a look at `/bpf/probe.c`.
- */ 
 TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm)
 {
 	struct event_data_t event_data;
