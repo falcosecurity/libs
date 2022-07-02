@@ -5924,10 +5924,6 @@ FILLER(sys_dup3_x, true)
  * 
  * These `sched_proc_exec` fillers will generate a 
  * `PPME_SYSCALL_EXECVE_19_X` event.
- * 
- * Please note: `is_syscall` is used only if `BPF_RAW_TRACEPOINT`
- * are not defined but in our ARM implementation they are always defined,
- * so the value of this flag is not relevant at all.
  */
 FILLER(sched_prog_exec, false)
 {
@@ -5967,9 +5963,15 @@ FILLER(sched_prog_exec, false)
 	}
 
 	/* `bpf_probe_read()` returns 0 in case of success. */
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	int correctly_read = bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+						((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
+						(void *)arg_start);
+#else						
 	int correctly_read = bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 					    args_len & SCRATCH_SIZE_HALF,
 					    (void *)arg_start);
+#endif /* BPF_FORBIDS_ZERO_ACCESS */
 
 	/* If there was something to read and we read it correctly, update all
 	 * the offsets, otherwise push empty params to userspace.
@@ -6172,9 +6174,15 @@ FILLER(sched_prog_exec_3, false)
 			env_len = ARGS_ENV_SIZE_MAX;
 		}
 
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+		if(bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+				  ((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
+				  (void *)env_start))
+#else
 		if(bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 				  env_len & SCRATCH_SIZE_HALF,
 				  (void *)env_start))
+#endif
 		{
 			env_len = 0;
 		}
@@ -6300,6 +6308,9 @@ FILLER(sched_prog_exec_4, false)
 #ifdef CAPTURE_SCHED_PROC_FORK
 /* These `sched_proc_fork` fillers will generate a 
  * `PPME_SYSCALL_CLONE_20_X` event.
+ * 
+ * Please note: `is_syscall` is used only if `BPF_RAW_TRACEPOINT`
+ * are not defined.
  */
 FILLER(sched_prog_fork, false)
 {
