@@ -178,7 +178,7 @@ or GPL2.txt for full copies of the license.
 
 #endif /* UDIG */
 
-#endif
+#endif /* __KERNEL__ */
 
 
 

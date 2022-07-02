@@ -290,7 +290,7 @@ BPF_PROBE("sched/", sched_process_exec, sched_process_exec_args)
 		   filler_code);	
 	return 0;
 }
-#endif
+#endif /* CAPTURE_SCHED_PROC_EXEC */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 __bpf_section("raw_tracepoint/sched_process_fork")
@@ -333,7 +333,7 @@ int bpf_sched_process_fork(struct sched_process_fork_raw_args *ctx)
 		   filler_code);	
 	return 0;
 }
-#endif
+#endif /* CAPTURE_SCHED_PROC_FORK */
 
 char kernel_ver[] __bpf_section("kernel_version") = UTS_RELEASE;
 

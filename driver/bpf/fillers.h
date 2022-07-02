@@ -6018,7 +6018,7 @@ FILLER(sched_prog_exec_3, false)
 		if(bpf_probe_read(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 				  env_len & SCRATCH_SIZE_HALF,
 				  (void *)env_start))
-#endif
+#endif /* BPF_FORBIDS_ZERO_ACCESS */
 		{
 			env_len = 0;
 		}
