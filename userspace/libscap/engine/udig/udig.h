@@ -27,6 +27,10 @@ struct udig_engine
 
 	char* m_lasterr;
 	bool m_udig_capturing;
+#ifdef _WIN32
+	HANDLE m_win_buf_handle;
+	HANDLE m_win_descs_handle;
+#endif
 };
 
 #define SCAP_HANDLE_T struct udig_engine
