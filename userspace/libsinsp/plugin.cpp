@@ -68,7 +68,7 @@ std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 			errstr.append(msg_buf, strlen(msg_buf));
 			LocalFree(msg_buf);
 		}
-		return ret;
+		return nullptr;
 	}
 #else
 	sinsp_plugin_handle handle = dlopen(filepath.c_str(), RTLD_LAZY);
