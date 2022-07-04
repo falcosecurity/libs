@@ -92,6 +92,7 @@ set(DRIVER_SOURCES
 	fillers_table.c
 	flags_table.c
 	kernel_hacks.h
+	feature_gates.h
 	main.c
 	ppm.h
 	ppm_api_version.h
