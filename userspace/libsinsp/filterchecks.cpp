@@ -4072,7 +4072,6 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			const char* argstr;
 
 			const sinsp_evt_param* pi = evt->get_param_value_raw("res");
-
 			if(pi != NULL)
 			{
 				ASSERT(pi->m_len == sizeof(int64_t));
@@ -4102,27 +4101,41 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
-					pi = evt->get_param_value_raw("fd");
-
-					int64_t res = *(int64_t*)pi->m_val;
-
-					if(res >= 0)
+					const char *raw_param_name = "fd";
+					pi = evt->get_param_value_raw(raw_param_name);
+					if (pi == NULL)
 					{
-						RETURN_EXTRACT_CSTR("SUCCESS");
+						// bpf exit uses this (instead of 2 params, just one with multiple meanings)
+						// fallback at trying to read the fd from here
+						raw_param_name = "res_or_fd";
+						pi = evt->get_param_value_raw(raw_param_name);
+					}
+					if (pi)
+					{
+						int64_t res = *(int64_t*)pi->m_val;
+						if(res >= 0)
+						{
+							RETURN_EXTRACT_CSTR("SUCCESS");
+						}
+						else
+						{
+							argstr = evt->get_param_value_str(raw_param_name, &resolved_argstr);
+
+							ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
+
+							if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+							{
+								RETURN_EXTRACT_CSTR(resolved_argstr);
+							}
+							else if(argstr != NULL)
+							{
+								RETURN_EXTRACT_CSTR(argstr);
+							}
+						}
 					}
 					else
 					{
-						argstr = evt->get_param_value_str("fd", &resolved_argstr);
-						ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
-
-						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
-						{
-							RETURN_EXTRACT_CSTR(resolved_argstr);
-						}
-						else if(argstr != NULL)
-						{
-							RETURN_EXTRACT_CSTR(argstr);
-						}
+						ASSERT(false);
 					}
 				}
 			}
