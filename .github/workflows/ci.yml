@@ -145,7 +145,7 @@ jobs:
         with:
           arch: aarch64
           distro: alpine_latest
-          githubToken: ${{ github.token }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
 
           # Set an output parameter `uname` for use in subsequent steps
           install: |
