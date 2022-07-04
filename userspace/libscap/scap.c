@@ -281,6 +281,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
 	}
