@@ -4103,25 +4103,27 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 				{
 					pi = evt->get_param_value_raw("fd");
-
-					int64_t res = *(int64_t*)pi->m_val;
-
-					if(res >= 0)
+					if (pi)
 					{
-						RETURN_EXTRACT_CSTR("SUCCESS");
-					}
-					else
-					{
-						argstr = evt->get_param_value_str("fd", &resolved_argstr);
-						ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
+						int64_t res = *(int64_t*)pi->m_val;
 
-						if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+						if(res >= 0)
 						{
-							RETURN_EXTRACT_CSTR(resolved_argstr);
+							RETURN_EXTRACT_CSTR("SUCCESS");
 						}
-						else if(argstr != NULL)
+						else
 						{
-							RETURN_EXTRACT_CSTR(argstr);
+							argstr = evt->get_param_value_str("fd", &resolved_argstr);
+							ASSERT(resolved_argstr != NULL && resolved_argstr[0] != 0);
+
+							if(resolved_argstr != NULL && resolved_argstr[0] != 0)
+							{
+								RETURN_EXTRACT_CSTR(resolved_argstr);
+							}
+							else if(argstr != NULL)
+							{
+								RETURN_EXTRACT_CSTR(argstr);
+							}
 						}
 					}
 				}
