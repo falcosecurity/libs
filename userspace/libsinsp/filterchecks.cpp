@@ -3556,7 +3556,15 @@ uint8_t* sinsp_filter_check_event::extract_error_count(sinsp_evt *evt, OUT uint3
 
 	if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 	{
-		pi = evt->get_param_value_raw("fd");
+		const char *raw_param_name = "fd";
+		pi = evt->get_param_value_raw(raw_param_name);
+		if (pi == NULL)
+		{
+			// bpf exit uses this (instead of 2 params, just one with multiple meanings)
+			// fallback at trying to read the fd from here
+			raw_param_name = "res_or_fd";
+			pi = evt->get_param_value_raw(raw_param_name);
+		}
 
 		if(pi != NULL)
 		{
@@ -4054,8 +4062,15 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 			if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
-				pi = evt->get_param_value_raw("fd");
-
+				const char *raw_param_name = "fd";
+				pi = evt->get_param_value_raw(raw_param_name);
+				if (pi == NULL)
+				{
+					// bpf exit uses this (instead of 2 params, just one with multiple meanings)
+					// fallback at trying to read the fd from here
+					raw_param_name = "res_or_fd";
+					pi = evt->get_param_value_raw(raw_param_name);
+				}
 				if(pi != NULL)
 				{
 					*len = pi->m_len;
@@ -4158,7 +4173,15 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 			else if((evt->get_info_flags() & EF_CREATES_FD) && PPME_IS_EXIT(evt->get_type()))
 			{
-				pi = evt->get_param_value_raw("fd");
+				const char *raw_param_name = "fd";
+				pi = evt->get_param_value_raw(raw_param_name);
+				if (pi == NULL)
+				{
+					// bpf exit uses this (instead of 2 params, just one with multiple meanings)
+					// fallback at trying to read the fd from here
+					raw_param_name = "res_or_fd";
+					pi = evt->get_param_value_raw(raw_param_name);
+				}
 
 				if(pi != NULL)
 				{
