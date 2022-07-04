@@ -140,7 +140,7 @@ jobs:
       - name: Checkout Libs
         uses: actions/checkout@v3
 
-      - uses: uraimo/run-on-arch-action@v2
+      - uses: uraimo/run-on-arch-action@v2.2.0
         name: Run aarch64 build
         with:
           arch: aarch64
@@ -153,7 +153,7 @@ jobs:
             
           run: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker run -ti --rm -v $GITHUB_WORKSPACE:/workspace ${{ needs.builder.outputs.builder_image }} -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+            docker run -ti --rm --platform arm64 -v $GITHUB_WORKSPACE:/workspace ${{ needs.builder.outputs.builder_image }} -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
             
   build-libs-windows:
     runs-on: windows-latest
