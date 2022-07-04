@@ -15,6 +15,8 @@ limitations under the License.
 
 */
 
+#pragma once
+
 // Force struct alignment
 #if defined _MSC_VER
 #pragma pack(push)
