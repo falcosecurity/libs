@@ -41,7 +41,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}  
+          password: ${{ secrets.GITHUB_TOKEN }}
         
       - name: Get new builder image tag
         id: get-new-builder
@@ -152,6 +152,7 @@ jobs:
             apk add docker
             
           run: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker run -ti --rm -v $GITHUB_WORKSPACE:/workspace ${{ needs.builder.outputs.builder_image }} -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
             
   build-libs-windows:
