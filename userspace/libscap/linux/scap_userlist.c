@@ -20,7 +20,6 @@ limitations under the License.
 #include "scap-int.h"
 #include "../common/strlcpy.h"
 
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
 
 #include <pwd.h>
@@ -275,33 +274,4 @@ int32_t scap_create_userlist(scap_t* handle)
 		handle->m_userlist->groups = realloc(handle->m_userlist->groups, grpidx * sizeof(scap_groupinfo));
 	}
 	return SCAP_SUCCESS;
-}
-#else // HAS_CAPTURE
-#ifdef _WIN32
-#include "windows_hal.h"
-
-int32_t scap_create_userlist(scap_t* handle)
-{
-	return scap_create_userlist_windows(handle);
-}
-#else // _WIN32
-int32_t scap_create_userlist(scap_t* handle)
-{
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_create_userlist not implement on this platform");
-	return SCAP_FAILURE;
-}
-#endif // _WIN32
-#endif // HAS_CAPTURE
-
-//
-// Free a previously allocated list of users
-//
-void scap_free_userlist(scap_userlist* uhandle)
-{
-	if(uhandle)
-	{
-		free(uhandle->users);
-		free(uhandle->groups);
-		free(uhandle);
-	}
 }
