@@ -21,7 +21,6 @@ limitations under the License.
 #include "scap-int.h"
 #include "../common/strlcpy.h"
 
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -157,7 +156,6 @@ int32_t scap_create_iflist(scap_t* handle)
 				handle->m_addrlist->v4list[ifcnt4].netmask = 0;
 			}
 
-#ifndef CYGWING_AGENT
 			if(tempIfAddr->ifa_ifu.ifu_broadaddr != NULL)
 			{
 				handle->m_addrlist->v4list[ifcnt4].bcast = *(uint32_t*)&(((struct sockaddr_in *)tempIfAddr->ifa_ifu.ifu_broadaddr)->sin_addr);
@@ -166,9 +164,6 @@ int32_t scap_create_iflist(scap_t* handle)
 			{
 				handle->m_addrlist->v4list[ifcnt4].bcast = 0;
 			}
-#else
-			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
-#endif
 			strlcpy(handle->m_addrlist->v4list[ifcnt4].ifname, tempIfAddr->ifa_name, sizeof(handle->m_addrlist->v4list[ifcnt4].ifname));
 			handle->m_addrlist->v4list[ifcnt4].ifnamelen = strlen(tempIfAddr->ifa_name);
 
@@ -196,7 +191,6 @@ int32_t scap_create_iflist(scap_t* handle)
 				memset(handle->m_addrlist->v6list[ifcnt6].netmask, 0, 16);
 			}
 
-#ifndef CYGWING_AGENT
 			if(tempIfAddr->ifa_ifu.ifu_broadaddr != NULL)
 			{
 				memcpy(handle->m_addrlist->v6list[ifcnt6].bcast,
@@ -207,9 +201,6 @@ int32_t scap_create_iflist(scap_t* handle)
 			{
 				memset(handle->m_addrlist->v6list[ifcnt6].bcast, 0, 16);
 			}
-#else
-			handle->m_addrlist->v4list[ifcnt4].bcast = 0;
-#endif
 
 			strlcpy(handle->m_addrlist->v6list[ifcnt6].ifname, tempIfAddr->ifa_name, sizeof(handle->m_addrlist->v6list[ifcnt6].ifname));
 			handle->m_addrlist->v6list[ifcnt6].ifnamelen = strlen(tempIfAddr->ifa_name);
@@ -232,27 +223,6 @@ int32_t scap_create_iflist(scap_t* handle)
 
 	return SCAP_SUCCESS;
 }
-#else
-#ifdef _WIN32
-
-#include "windows_hal.h"
-
-int32_t scap_create_iflist(scap_t* handle)
-{
-	return scap_create_iflist_windows(handle);
-}
-
-#else // _WIN32
-//
-// This is the fallback for MacOS and the other OSes where we don't support live
-// captures
-//
-int32_t scap_create_iflist(scap_t* handle)
-{
-	return SCAP_FAILURE;
-}
-#endif // _WIN32
-#endif // HAS_CAPTURE
 
 void scap_refresh_iflist(scap_t* handle)
 {
@@ -261,23 +231,3 @@ void scap_refresh_iflist(scap_t* handle)
 	scap_create_iflist(handle);
 }
 
-//
-// Free a previously allocated list of interfaces
-//
-void scap_free_iflist(scap_addrlist* ifhandle)
-{
-	if(ifhandle)
-	{
-		if(ifhandle->v6list)
-		{
-			free(ifhandle->v6list);
-		}
-
-		if(ifhandle->v4list)
-		{
-			free(ifhandle->v4list);
-		}
-
-		free(ifhandle);
-	}
-}
