@@ -121,7 +121,8 @@ public:
 
     int32_t expand_buffer(size_t size);
 
-	scap_sized_buffer m_buf;
+    scap_sized_buffer m_buf;
+	bool m_closing;
 };
 
 class engine {
