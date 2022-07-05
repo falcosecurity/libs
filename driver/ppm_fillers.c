@@ -1261,6 +1261,7 @@ cgroups_error:
 		exe_file = ppm_get_mm_exe_file(mm);
 
 		if (exe_file != NULL) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 			if (file_inode(exe_file) != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 				exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE) == 0);
@@ -1270,6 +1271,7 @@ cgroups_error:
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
 			}
+#endif
 			fput(exe_file);
 		}
 
