@@ -47,6 +47,7 @@ sandbox_entry::sandbox_entry()
 {
 	m_buf.buf = nullptr;
 	m_buf.size = 0;
+	m_closing = false;
 }
 
 sandbox_entry::~sandbox_entry()
@@ -428,9 +429,6 @@ int32_t engine::process_message_from_fd(int fd)
 	}
 	else if(nbytes == 0)
 	{
-		::close(fd);
-		m_sandbox_data.erase(fd);
-
 		return SCAP_EOF;
 	}
 
@@ -484,6 +482,24 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		return SCAP_SUCCESS;
 	}
 
+	// at this moment, there are no events in any of the buffers we allocated
+	// for each sandbox: this is the right place to close fds and deallocate
+	// buffers safely for all the sandboxes that are no longer connected. 
+
+	for(auto it = m_sandbox_data.begin(); it != m_sandbox_data.end(); )
+	{
+		sandbox_entry &sandbox = it->second;
+		if(sandbox.m_closing)
+		{
+			::close(it->first);
+			it = m_sandbox_data.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+
 	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, -1);
 	if (nfds < 0)
 	{
@@ -503,6 +519,10 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 			if (status == SCAP_FAILURE) {
 				return SCAP_FAILURE;
 			}
+			else if (status == SCAP_EOF)
+			{
+				m_sandbox_data[fd].m_closing = true;
+			}
 
 			// ignore parsing errors, we will simply discard the message
 			if (status == SCAP_ILLEGAL_INPUT) {
@@ -512,8 +532,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 
 		if ((evts[i].events & (EPOLLRDHUP | EPOLLHUP)) != 0)
 		{
-			::close(fd);
-			m_sandbox_data.erase(fd);
+			m_sandbox_data[fd].m_closing = true;
 		}
 
 		if (evts[i].events & EPOLLERR)
