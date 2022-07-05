@@ -1,9 +1,6 @@
 approvers:
-  - fntlnz
-  - leodido
   - leogr
   - gnosek
-  - ldegio
   - mstemm
   - fededp
   - andreagit97
@@ -16,3 +13,8 @@ reviewers:
   - mstemm
   - fededp
   - andreagit97
+emeritus_approvers:
+  - fntlnz
+  - leodido
+  - ldegio
+  
