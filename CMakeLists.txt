@@ -34,6 +34,7 @@ cmake_minimum_required(VERSION 2.8.5)
 
 project(falcosecurity-libs)
 
+option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 option(MINIMAL_BUILD "Produce a minimal build with only the essential features (no eBPF probe driver, no kubernetes, no mesos, no marathon and no container metadata)" OFF)
 option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 option(USE_BUNDLED_DRIVER "Use the driver/ subdirectory in the build process (only available in Linux)" ON)
