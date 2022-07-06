@@ -39,14 +39,6 @@ const struct ppm_event_info* scap_get_event_info_table()
 	return g_event_info;
 }
 
-//
-// Get the syscall info table
-//
-const struct ppm_syscall_desc* scap_get_syscall_info_table()
-{
-	return g_syscall_info_table;
-}
-
 uint32_t scap_event_getlen(scap_evt* e)
 {
 	return e->len;
