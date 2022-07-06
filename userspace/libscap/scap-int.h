@@ -19,6 +19,8 @@ limitations under the License.
 // Private definitions for the scap library
 ////////////////////////////////////////////////////////////////////////////
 
+#pragma once
+
 #ifndef SCAP_HANDLE_T
 #define SCAP_HANDLE_T void
 #endif
