@@ -1683,5 +1683,9 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 
 scap_swap_endian scap_get_swap_endian(scap_t* handle)
 {
+	if(!handle->m_reader)
+	{
+		return SCAP_NATIVE_ENDIAN;
+	}
 	return handle->m_reader->m_swap_endian;
 }
