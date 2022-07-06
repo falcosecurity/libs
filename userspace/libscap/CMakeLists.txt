@@ -118,16 +118,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	include(FindMakedev)
 endif()
 
-# gVisor is currently only supported on Linux x86_64
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT MINIMAL_BUILD)
-	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
-	if (BUILD_LIBSCAP_GVISOR)
-		add_definitions(-DHAS_ENGINE_GVISOR)
-		add_subdirectory(engine/gvisor)
-		target_link_libraries(scap scap_engine_gvisor)
-	endif()
-endif()
-
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
@@ -209,4 +199,14 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		target_link_libraries(scap scap_engine_modern_bpf)
 	endif()
 
+endif()
+
+# gVisor is currently only supported on Linux x86_64
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT MINIMAL_BUILD)
+	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
+	if (BUILD_LIBSCAP_GVISOR)
+		add_definitions(-DHAS_ENGINE_GVISOR)
+		add_subdirectory(engine/gvisor)
+		target_link_libraries(scap scap_engine_gvisor)
+	endif()
 endif()
