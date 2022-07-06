@@ -88,7 +88,7 @@ static int32_t gvisor_configure(struct scap_engine_handle engine, enum scap_sett
 
 static int32_t gvisor_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 {
-	return SCAP_SUCCESS;
+	return engine.m_handle->get_stats(stats);
 }
 
 static int32_t gvisor_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)

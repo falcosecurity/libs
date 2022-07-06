@@ -49,6 +49,8 @@ struct parse_result {
 	size_t size;
     // pointers to each encoded event within the supplied output buffer
 	std::vector<scap_evt*> scap_events;
+    // number of events dropped by gVisor
+    uint32_t dropped_count;
 };
 
 struct procfs_result {
@@ -140,6 +142,7 @@ public:
     uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
     uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
     uint32_t get_vxid(uint64_t pid);
+    int32_t get_stats(scap_stats  *stats);
 private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
@@ -167,6 +170,16 @@ private:
     // and the path the trace session configuration file used to set up traces, respectively
     std::string m_root_path;
     std::string m_trace_session_path;
+
+    struct gvisor_stats
+    {
+        // total number of events received from gVisor
+        uint64_t n_evts;
+        // total number of drops due to parsig errors
+        uint64_t n_drops_parsing;
+        // total number of drops on gVisor side
+        uint64_t n_drops_gvisor;
+    } m_gvisor_stats;
 
 };
 
