@@ -370,3 +370,11 @@ bool validate_info_table_size()
 {
 	return (sizeof(g_syscall_info_table) / sizeof(g_syscall_info_table[0]) == PPM_SC_MAX);
 }
+
+//
+// Get the syscall info table
+//
+const struct ppm_syscall_desc* scap_get_syscall_info_table()
+{
+	return g_syscall_info_table;
+}
