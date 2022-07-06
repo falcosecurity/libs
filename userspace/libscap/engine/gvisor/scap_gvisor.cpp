@@ -83,6 +83,9 @@ int32_t sandbox_entry::expand_buffer(size_t size)
 engine::engine(char *lasterr)
 {
     m_lasterr = lasterr;
+	m_gvisor_stats.n_evts = 0;
+	m_gvisor_stats.n_drops_parsing = 0;
+	m_gvisor_stats.n_drops_gvisor = 0;
 }
 
 engine::~engine()
@@ -411,6 +414,15 @@ uint32_t engine::get_vxid(uint64_t xid)
 	return parsers::get_vxid(xid);
 }
 
+int32_t engine::get_stats(scap_stats *stats)
+{
+	stats->n_drops = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
+	stats->n_drops_bug = m_gvisor_stats.n_drops_parsing;
+	stats->n_drops_buffer = m_gvisor_stats.n_drops_gvisor;
+	stats->n_evts = m_gvisor_stats.n_evts;
+	return SCAP_SUCCESS;
+}
+
 // Reads one gvisor message from the specified fd, stores the resulting events overwriting m_buffers and adds pointers to m_event_queue.
 // Returns:
 // * SCAP_SUCCESS in case of success
@@ -461,6 +473,8 @@ int32_t engine::process_message_from_fd(int fd)
 		return SCAP_ILLEGAL_INPUT;
 	}
 
+	m_gvisor_stats.n_drops_gvisor = parse_result.dropped_count;
+
 	for(scap_evt *evt : parse_result.scap_events)
 	{
 		m_event_queue.push_back(evt);
@@ -479,6 +493,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	{
 		*pevent = m_event_queue.front();
 		m_event_queue.pop_front();
+		m_gvisor_stats.n_evts++;
 		return SCAP_SUCCESS;
 	}
 
@@ -526,6 +541,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 
 			// ignore parsing errors, we will simply discard the message
 			if (status == SCAP_ILLEGAL_INPUT) {
+				m_gvisor_stats.n_drops_parsing++;
 				continue;
 			}
 		}
@@ -552,6 +568,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 	{
 		*pevent = m_event_queue.front();
 		m_event_queue.pop_front();
+		m_gvisor_stats.n_evts++;
 		return SCAP_SUCCESS;
 	}
 

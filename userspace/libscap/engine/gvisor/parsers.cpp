@@ -1331,6 +1331,8 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 		return ret;
 	}
 
+	// dropped count is the absolute number of events dropped from gVisor side
+	ret.dropped_count = hdr->dropped_count;
 	const char *proto = &buf[hdr->header_size];
 	ssize_t proto_size = gvisor_buf.size - hdr->header_size;
 
