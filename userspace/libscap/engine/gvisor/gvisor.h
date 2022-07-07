@@ -86,7 +86,7 @@ struct config_result {
             - the status field will be set as SCAP_INPUT_TOO_SMALL
             - the size field will be set to the total required size to fully translate the supplied gVisor event
         In case of any error:
-            - the status field will be set to the relevant SCAP_* value
+            - the status field will be set to SCAP_FAILURE for parsing erros, SCAP_NOT_SUPPORTED for unsupported events
             - the error field will contain a string representation of the error
 */
 parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_buffer scap_buf);
