@@ -428,7 +428,8 @@ int32_t engine::get_stats(scap_stats *stats)
 // Returns:
 // * SCAP_SUCCESS in case of success
 // * SCAP_FAILURE in case of a fatal error while reading from the fd or allocating memory (m_lasterr is filled)
-// * SCAP_ILLEGAL_INPUT in case of parsing errors
+// * SCAP_NOT_SUPPORTED if the message type is not currently supported
+// * SCAP_ILLEGAL_INPUT in case of parsing errors (invalid message or parsing issue)
 // * SCAP_EOF if there is no more data to process from this fd
 int32_t engine::process_message_from_fd(int fd)
 {
@@ -468,7 +469,13 @@ int32_t engine::process_message_from_fd(int fd)
 		parse_result = parsers::parse_gvisor_proto(gvisor_msg, m_sandbox_data[fd].m_buf);
 	} 
 
-	if(parse_result.status != SCAP_SUCCESS)
+	if(parse_result.status == SCAP_NOT_SUPPORTED)
+	{
+		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
+		return SCAP_NOT_SUPPORTED;
+	}
+
+	if(parse_result.status == SCAP_FAILURE)
 	{
 		strlcpy(m_lasterr, parse_result.error.c_str(), SCAP_LASTERR_SIZE);
 		return SCAP_ILLEGAL_INPUT;
@@ -540,6 +547,11 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 			else if (status == SCAP_EOF)
 			{
 				m_sandbox_data[fd].m_closing = true;
+			}
+
+			// ignore unsupported messages, we will simply discard them
+			if (status == SCAP_NOT_SUPPORTED) {
+				continue;
 			}
 
 			// ignore parsing errors, we will simply discard the message

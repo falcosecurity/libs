@@ -1347,7 +1347,7 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	if(parser == nullptr)
 	{
 		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
-		ret.status = SCAP_FAILURE;
+		ret.status = SCAP_NOT_SUPPORTED;
 		return ret;
 	}
 
