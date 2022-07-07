@@ -1057,7 +1057,7 @@ private:
 
 	scap_swap_endian get_swap_endian() const;
 
-	scap_t* m_h;
+	scap_t* m_h = nullptr;
 	uint64_t m_nevts;
 	int64_t m_filesize;
 
