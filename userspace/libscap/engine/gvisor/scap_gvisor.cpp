@@ -47,6 +47,7 @@ sandbox_entry::sandbox_entry()
 {
 	m_buf.buf = nullptr;
 	m_buf.size = 0;
+	m_last_dropped_count = 0;
 	m_closing = false;
 }
 
@@ -473,7 +474,9 @@ int32_t engine::process_message_from_fd(int fd)
 		return SCAP_ILLEGAL_INPUT;
 	}
 
-	m_gvisor_stats.n_drops_gvisor = parse_result.dropped_count;
+	uint64_t delta = parse_result.dropped_count - m_sandbox_data[fd].m_last_dropped_count;
+	m_sandbox_data[fd].m_last_dropped_count = parse_result.dropped_count;
+	m_gvisor_stats.n_drops_gvisor += delta;
 
 	for(scap_evt *evt : parse_result.scap_events)
 	{

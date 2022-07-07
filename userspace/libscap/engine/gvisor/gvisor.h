@@ -124,6 +124,7 @@ public:
     int32_t expand_buffer(size_t size);
 
     scap_sized_buffer m_buf;
+    uint64_t m_last_dropped_count;
 	bool m_closing;
 };
 
