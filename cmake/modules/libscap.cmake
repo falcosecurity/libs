@@ -16,9 +16,22 @@ get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSO
 set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
 
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
-set(LIBSCAP_LIB "${PROJECT_BINARY_DIR}/libscap/libscap.a")
-install(FILES "${LIBSCAP_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
-			COMPONENT "scap")
+
+set(LIBSCAP_LIBS "")
+list(APPEND LIBSCAP_LIBS
+	"${PROJECT_BINARY_DIR}/libscap/libscap.a"
+	"${PROJECT_BINARY_DIR}/libscap/libscap_engine_util.a"
+	"${PROJECT_BINARY_DIR}/libscap/libscap_event_schema.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/bpf/libscap_engine_bpf.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/gvisor/libscap_engine_gvisor.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/kmod/libscap_engine_kmod.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/nodriver/libscap_engine_nodriver.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/noop/libscap_engine_noop.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/source_plugin/libscap_engine_source_plugin.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/udig/libscap_engine_udig.a"
+)
+install(FILES ${LIBSCAP_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			COMPONENT "scap" OPTIONAL)
 install(DIRECTORY "${LIBSCAP_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 			COMPONENT "scap"
 			FILES_MATCHING PATTERN "*.h"
