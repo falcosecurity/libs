@@ -168,3 +168,17 @@ jobs:
   
       - name: Build
         run: cd build && cmake --build .
+        
+  build-libs-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Libs
+        uses: actions/checkout@v3
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build && cmake -DCREATE_TEST_TARGETS=OFF ..
+  
+      - name: Build
+        run: cd build && cmake --build .
