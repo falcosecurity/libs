@@ -184,6 +184,28 @@ inline void sanitize_string(std::string &str)
 	str.erase(remove_if(str.begin(), str.end(), g_invalidchar()), str.end());
 }
 
+inline void remove_duplicate_path_separators(std::string &str)
+{
+	// Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
+	char prev_char;
+	char separator = '/';
+	for (auto cur_char_it = str.begin(); cur_char_it != str.end(); cur_char_it++)
+	{
+		if (prev_char == *cur_char_it)
+		{
+			if (prev_char == separator)
+			{
+				str.erase(cur_char_it);
+				cur_char_it--;
+			}
+		}
+		else
+		{
+			prev_char = *cur_char_it;
+		}
+	}
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Time utility functions.
 ///////////////////////////////////////////////////////////////////////////////

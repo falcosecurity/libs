@@ -113,6 +113,7 @@ public:
 		m_openflags = other.m_openflags;	
 		m_sockinfo = other.m_sockinfo;
 		m_name = other.m_name;
+		m_name_raw = other.m_name_raw;
 		m_oldname = other.m_oldname;
 		m_flags = other.m_flags;
 		m_dev = other.m_dev;
@@ -342,6 +343,7 @@ public:
 	sinsp_sockinfo m_sockinfo = {};
 
 	std::string m_name; ///< Human readable rendering of this FD. For files, this is the full file name. For sockets, this is the tuple. And so on.
+	std::string m_name_raw; // Human readable rendering of this FD. See m_name, only used if fd is a file path. Path is kept "raw" with limited sanitization and without absolute path derivation.
 	std::string m_oldname; // The name of this fd at the beginning of event parsing. Used to detect name changes that result from parsing an event.
 
 	inline bool has_decoder_callbacks()
@@ -381,6 +383,7 @@ private:
 		FLAGS_CONNECTION_FAILED = (1 << 16),
 	};
 
+	void add_filename_raw(const char* rawpath);
 	void add_filename(const char* fullpath);
 
 public:

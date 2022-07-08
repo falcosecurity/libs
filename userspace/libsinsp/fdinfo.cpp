@@ -135,6 +135,11 @@ template<> string sinsp_fdinfo_t::tostring_clean()
 	return m_tstr;
 }
 
+template<> void sinsp_fdinfo_t::add_filename_raw(const char* rawpath)
+{
+	m_name_raw = rawpath;
+}
+
 template<> void sinsp_fdinfo_t::add_filename(const char* fullpath)
 {
 	m_name = fullpath;

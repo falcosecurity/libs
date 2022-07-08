@@ -137,6 +137,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.major", "FD Major Device", "major device number containing the referenced file"},
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "FD Minor Device", "minor device number containing the referenced file"},
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -156,7 +157,7 @@ sinsp_filter_check* sinsp_filter_check_fd::allocate_new()
 	return (sinsp_filter_check*) new sinsp_filter_check_fd();
 }
 
-bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
+bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw)
 {
 	const char* resolved_argstr;
 	uint16_t etype = evt->get_type();
@@ -247,7 +248,15 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				namelen,
 				m_inspector->m_is_windows);
 
-			m_tstr = fullpath;
+			if(fd_nameraw)
+			{
+				m_tstr = name;
+			}
+			else
+			{
+				m_tstr = fullpath;
+			}
+
 			if(sanitize_strings)
 			{
 				sanitize_string(m_tstr);
@@ -289,7 +298,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 	case TYPE_FDNAME:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
 		{
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
@@ -300,7 +309,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERNAME:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
 		{
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			RETURN_EXTRACT_STRING(m_tstr);
@@ -313,7 +322,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
 		{
 			if(sanitize_strings)
 			{
@@ -354,7 +363,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 
-		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
 		{
 			if(sanitize_strings)
 			{
@@ -427,6 +436,18 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			m_tcstr[0] = 'o';
 			m_tcstr[1] = 0;
 			return m_tcstr;
+		}
+	case TYPE_FDNAMERAW:
+		{
+			if(extract_fdname_from_creator(evt, len, sanitize_strings, true) == true)
+			{
+				remove_duplicate_path_separators(m_tstr);
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else
+			{
+				return NULL;
+			}
 		}
 	default:
 		return NULL;
@@ -1342,6 +1363,18 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			RETURN_EXTRACT_VAR(m_tbool);
 		}
 		break;
+	case TYPE_FDNAMERAW:
+		{
+		if(m_fdinfo == NULL)
+		{
+			return extract_from_null_fd(evt, len, sanitize_strings);
+		}
+
+		m_tstr = m_fdinfo->m_name_raw;
+		remove_duplicate_path_separators(m_tstr);
+		RETURN_EXTRACT_STRING(m_tstr);
+		}
+		break;
 	default:
 		ASSERT(false);
 	}
@@ -1862,6 +1895,9 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_permitted", "Permitted capabilities", "The permitted capabilities set"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_inheritable", "Inheritable capabilities", "The inheritable capabilities set"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cap_effective", "Effective capabilities", "The effective capabilities set"},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdnargs", "Number of cmd args", "The number of cmd args."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Chars in cmd args", "The total count of characters / length of all cmd args combined excluding whitespaces."},
+	{PT_INT64, EPF_NONE, PF_ID, "proc.pvpid", "Parent Virtual Process ID", "the id of the parent process generating the event as seen from its current PID namespace."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2672,6 +2708,38 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_CAP_EFFECTIVE:
 		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_effective);
 		RETURN_EXTRACT_STRING(m_tstr);
+	case TYPE_CMDNARGS:
+		{
+			m_u64val = (uint32_t)tinfo->m_args.size();
+			RETURN_EXTRACT_VAR(m_u64val);
+		}
+	case TYPE_CMDLENARGS:
+		{
+			m_u64val = 0;
+			uint32_t j;
+			uint32_t nargs = (uint32_t)tinfo->m_args.size();
+
+			for(j = 0; j < nargs; j++)
+			{
+				m_u64val += tinfo->m_args[j].length();
+
+			}
+			RETURN_EXTRACT_VAR(m_u64val);
+		}
+	case TYPE_PVPID:
+		{
+			sinsp_threadinfo* ptinfo =
+				m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
+
+			if(ptinfo != NULL)
+			{
+				RETURN_EXTRACT_VAR(ptinfo->m_vpid);
+			}
+			else
+			{
+				return NULL;
+			}
+		}
 	default:
 		ASSERT(false);
 		return NULL;
