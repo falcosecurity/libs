@@ -1580,69 +1580,24 @@ void sinsp_thread_manager::thread_to_scap(sinsp_threadinfo& tinfo, 	scap_threadi
 
 void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 {
-	//
-	// First pass of the table to calculate the lengths
-	//
-	uint32_t totlen = 0;
-
-	vector<uint32_t> lengths;
-
-	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		uint32_t il = (uint32_t)
-			(sizeof(uint32_t) +     // len
-			sizeof(uint64_t) +	// tid
-			sizeof(uint64_t) +	// pid
-			sizeof(uint64_t) +	// ptid
-			sizeof(uint64_t) +	// sid
-			sizeof(uint64_t) +  // pgid
-			2 + MIN(tinfo.m_comm.size(), SCAP_MAX_PATH_SIZE) +
-			2 + MIN(tinfo.m_exe.size(), SCAP_MAX_PATH_SIZE) +
-			2 + MIN(tinfo.m_exepath.size(), SCAP_MAX_PATH_SIZE) +
-                        2 + MIN(tinfo.args_len(), SCAP_MAX_ARGS_SIZE) +
-                        // 1 is sizeof("/")
-                        2 + MIN((tinfo.m_cwd == "")? 1 : tinfo.m_cwd.size(), SCAP_MAX_PATH_SIZE) +
-			sizeof(uint64_t) +	// fdlimit
-			sizeof(uint32_t) +	// flags
-			sizeof(uint32_t) +	// uid
-			sizeof(uint32_t) +	// gid
-			sizeof(uint32_t) +  // vmsize_kb
-			sizeof(uint32_t) +  // vmrss_kb
-			sizeof(uint32_t) +  // vmswap_kb
-			sizeof(uint64_t) +  // pfmajor
-			sizeof(uint64_t) +  // pfminor
-                        2 + MIN(tinfo.env_len(), SCAP_MAX_ENV_SIZE) +
-			sizeof(int64_t) +  // vtid
-			sizeof(int64_t) +  // vpid
-                        2 + MIN(tinfo.cgroups_len(), SCAP_MAX_CGROUPS_SIZE) +
-			2 + MIN(tinfo.m_root.size(), SCAP_MAX_PATH_SIZE)) +
-			sizeof(int32_t) + // loginuid;
-			sizeof(uint64_t) + // cap_inheritable
-			sizeof(uint64_t) + // cap_permitted
-			sizeof(uint64_t) + //cap_effective
-			sizeof(uint8_t); // exe_writable
-
-		lengths.push_back(il);
-		totlen += il;
-		return true;
-	});
-
-	//
-	// Second pass of the table to dump the Threads
-	//
-	if(scap_write_proclist_header(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
+	if(m_threadtable.size() == 0)
 	{
-		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		return;
 	}
 
-	uint32_t idx = 0;
+	scap_dumper_t *d2 = scap_write_proclist_begin(m_inspector->m_h);
+
+	uint32_t totlen = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		scap_threadinfo *sctinfo;
 		struct iovec *args_iov, *envs_iov, *cgroups_iov;
 		int argscnt, envscnt, cgroupscnt;
 		string argsrem, envsrem, cgroupsrem;
+		uint32_t entrylen = 0;
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
+			scap_dump_close(d2);
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
@@ -1651,7 +1606,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, dumper, sctinfo, lengths[idx++],
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, d2, sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
@@ -1661,8 +1616,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
+			scap_dump_close(d2);
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
+
+		totlen += entrylen;
 
 		free(args_iov);
 		free(envs_iov);
@@ -1672,13 +1630,13 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		return true;
 	});
 
-	if(scap_write_proclist_trailer(m_inspector->m_h, dumper, totlen) != SCAP_SUCCESS)
+	if(scap_write_proclist_end(m_inspector->m_h, dumper, d2, totlen) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
 
 	//
-	// Third pass of the table to dump the FDs
+	// Dump the FDs
 	//
 
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
