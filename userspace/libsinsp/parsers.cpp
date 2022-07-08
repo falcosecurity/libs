@@ -2412,6 +2412,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		fdi.m_mount_id = 0;
 		fdi.m_dev = dev;
 		fdi.m_ino = ino;
+		fdi.add_filename_raw(name);
 		fdi.add_filename(fullpath);
 
 		//
