@@ -2566,6 +2566,7 @@ FILLER(proc_startupdate_3, true)
 		 * loginuid
 		 */
 		/* TODO: implement user namespace support */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) && CONFIG_AUDIT) || (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && CONFIG_AUDITSYSCALL)
 #ifdef COS_73_WORKAROUND
 		{
 			struct audit_task_info* audit = _READ(task->audit);
@@ -2577,7 +2578,10 @@ FILLER(proc_startupdate_3, true)
 		}
 #else
 		loginuid = _READ(task->loginuid);
-#endif
+#endif /* COS_73_WORKAROUND */
+#else
+		loginuid.val = -1;
+#endif /* CONFIG_AUDIT... */
 
 		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
 		if (res != PPM_SUCCESS)
@@ -6047,6 +6051,7 @@ FILLER(sched_prog_exec_3, false)
 
 	/* TODO: implement user namespace support */
 	kuid_t loginuid;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 1, 0) && CONFIG_AUDIT) || (LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0) && CONFIG_AUDITSYSCALL)
 #ifdef COS_73_WORKAROUND
 	{
 		struct audit_task_info *audit = _READ(task->audit);
@@ -6061,7 +6066,10 @@ FILLER(sched_prog_exec_3, false)
 	}
 #else
 	loginuid = _READ(task->loginuid);
-#endif
+#endif /* COS_73_WORKAROUND */
+#else
+	loginuid.val = -1;
+#endif /* CONFIG_AUDIT... */
 
 	/* Parameter 19: loginuid (type: PT_INT32) */
 	res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
