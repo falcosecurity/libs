@@ -22,7 +22,7 @@ using namespace libsinsp::container_engine;
 
 bool libvirt_lxc::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
-	for(const auto& it : tinfo->m_cgroups)
+	for(const auto& it : tinfo->cgroups())
 	{
 		//
 		// Non-systemd libvirt-lxc

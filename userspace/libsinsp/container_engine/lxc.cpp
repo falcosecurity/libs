@@ -25,7 +25,7 @@ bool lxc::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	auto container = sinsp_container_info();
 	bool matches = false;
 
-	for(const auto& it : tinfo->m_cgroups)
+	for(const auto& it : tinfo->cgroups())
 	{
 		//
 		// Non-systemd LXC

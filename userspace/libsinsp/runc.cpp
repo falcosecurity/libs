@@ -83,7 +83,7 @@ bool match_container_id(const std::string &cgroup, const libsinsp::runc::cgroup_
 }
 bool matches_runc_cgroups(const sinsp_threadinfo *tinfo, const cgroup_layout *layout, std::string &container_id, std::string &matching_cgroup)
 {
-	for(const auto &it : tinfo->m_cgroups)
+	for(const auto &it : tinfo->cgroups())
 	{
 		if(match_container_id(it.second, layout, container_id))
 		{

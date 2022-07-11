@@ -44,7 +44,7 @@ std::string get_systemd_cgroup(const sinsp_threadinfo *tinfo)
 	// in the cgroups field, so we have to do a check here, and load /proc/pid/cgroups
 	// ourselves if needed
 
-	for(const auto& it : tinfo->m_cgroups)
+	for(const auto& it : tinfo->cgroups())
 	{
 		if(it.first == "name=systemd")
 		{
