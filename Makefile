@@ -15,7 +15,13 @@
 #
 
 CLANG_FORMAT_EXE ?= clang-format
+CLANG_FORMAT_VERSION = "$(shell ${CLANG_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
+CLANG_FORMAT_DESIRED_VERSION ="14.0.0"
+
 CMAKE_FORMAT_EXE ?= cmake-format
+CMAKE_FORMAT_VERSION = "$(shell ${CMAKE_FORMAT_EXE} --version | grep -o '[0-9]*\.[0-9]*\.[0-9]*')"
+CMAKE_FORMAT_DESIRED_VERSION = "0.6.13"
+
 PROJECT_ROOT_DIR = $(shell git rev-parse --show-toplevel)
 
 ######################
@@ -25,6 +31,11 @@ PROJECT_ROOT_DIR = $(shell git rev-parse --show-toplevel)
 clang-format-install:
 ifeq (, $(shell ${CLANG_FORMAT_EXE} --version))
 	@echo "${CLANG_FORMAT_EXE} is not installed. Please read the 'coding style' doc to get more info."
+	@exit 1
+endif
+
+ifneq ($(CLANG_FORMAT_VERSION), $(CLANG_FORMAT_DESIRED_VERSION))
+	@echo "${CLANG_FORMAT_EXE} version is not '${CLANG_FORMAT_DESIRED_VERSION}'. Actual version is '${CLANG_FORMAT_VERSION}'"
 	@exit 1
 endif
 
@@ -43,6 +54,11 @@ check-clang: clang-format-install
 cmake-format-install:
 ifeq (, $(shell ${CMAKE_FORMAT_EXE} --version))
 	@echo "${CMAKE_FORMAT_EXE} is not installed. Please read the 'coding style' doc to get more info."
+	@exit 1
+endif
+
+ifneq ($(CMAKE_FORMAT_VERSION), $(CMAKE_FORMAT_DESIRED_VERSION))
+	@echo "${CMAKE_FORMAT_EXE} version is not '${CMAKE_FORMAT_DESIRED_VERSION}'. Actual version is '${CMAKE_FORMAT_VERSION}'"
 	@exit 1
 endif
 
