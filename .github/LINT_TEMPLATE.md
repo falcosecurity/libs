@@ -1,5 +1,5 @@
-
-## Report {{ .tool }}
+Report {{ .tool }}
+===
 
 Hi 🖖 Sorry if I bother you but `{{ .tool }}` found some files not correctly linted.
 You can follow these steps to solve the issue:
