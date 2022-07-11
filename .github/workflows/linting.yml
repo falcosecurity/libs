@@ -140,7 +140,7 @@ jobs:
         id: files
         uses: jitterbit/get-changed-files@v1
 
-      - name: Appy clang-tidy 🤕
+      - name: Apply clang-tidy 🤕
         run: |
           END=""
           FOUND=0
