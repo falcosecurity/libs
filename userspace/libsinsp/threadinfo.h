@@ -246,6 +246,9 @@ public:
 	void set_group(uint32_t gid);
 	void set_loginuser(uint32_t loginuid);
 
+	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
+	cgroups_t& cgroups() const;
+
 	//
 	// Core state
 	//
@@ -259,7 +262,7 @@ public:
 	bool m_exe_writable;
 	std::vector<std::string> m_args; ///< Command line arguments (e.g. "-d1")
 	std::vector<std::string> m_env; ///< Environment variables
-	std::vector<std::pair<std::string, std::string>> m_cgroups; ///< subsystem-cgroup pairs
+	std::unique_ptr<cgroups_t> m_cgroups; ///< subsystem-cgroup pairs
 	std::string m_container_id; ///< heuristic-based container id
 	uint32_t m_flags; ///< The thread flags. See the PPM_CL_* declarations in ppm_events_public.h.
 	int64_t m_fdlimit;  ///< The maximum number of FDs this thread can open

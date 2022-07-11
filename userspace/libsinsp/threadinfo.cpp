@@ -44,6 +44,7 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector) :
+	m_cgroups(new cgroups_t),
 	m_tracer_parser(NULL),
 	m_inspector(inspector),
 	m_fdtable(inspector)
@@ -563,6 +564,17 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 	}
 }
 
+sinsp_threadinfo::cgroups_t& sinsp_threadinfo::cgroups() const
+{
+	if(m_cgroups)
+	{
+		return *m_cgroups;
+	}
+
+	static cgroups_t empty;
+	return empty;
+}
+
 std::string sinsp_threadinfo::get_comm() const
 {
 	return m_comm;
@@ -699,7 +711,7 @@ string sinsp_threadinfo::get_env(const string& name)
 
 void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 {
-	m_cgroups.clear();
+	decltype(m_cgroups) tmp_cgroups(new cgroups_t);
 
 	size_t offset = 0;
 	while(offset < len)
@@ -738,9 +750,11 @@ void sinsp_threadinfo::set_cgroups(const char* cgroups, size_t len)
 			subsys = "blkio";
 		}
 
-		m_cgroups.push_back(std::make_pair(subsys, cgroup));
+		tmp_cgroups->push_back(std::make_pair(subsys, cgroup));
 		offset += subsys_length + 1 + cgroup.length() + 1;
 	}
+
+	m_cgroups.swap(tmp_cgroups);
 }
 
 sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
@@ -968,7 +982,7 @@ const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
 {
 	static const std::string notfound = "/";
 
-	for(const auto& it : m_cgroups)
+	for(const auto& it : cgroups())
 	{
 		if(it.first == subsys)
 		{
@@ -1107,7 +1121,7 @@ size_t sinsp_threadinfo::cgroups_len() const
 {
 	size_t totlen = 0;
 
-	for(auto &cgroup : m_cgroups)
+	for(auto &cgroup : cgroups())
 	{
 		totlen += cgroup.first.size() + 1 + cgroup.second.size();
 		totlen++; // Trailing NULL
@@ -1171,11 +1185,11 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
 	// We allocate an iovec big enough to hold all the cgroups and
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
-	*iov = (struct iovec *) malloc((3 * m_cgroups.size()) * sizeof(struct iovec));
+	*iov = (struct iovec *) malloc((3 * cgroups().size()) * sizeof(struct iovec));
 
 	*iovcnt = 0;
 
-	for(auto it = m_cgroups.begin(); it != m_cgroups.end() && alen > 0; ++it)
+	for(auto it = cgroups().begin(); it != cgroups().end() && alen > 0; ++it)
 	{
 		add_to_iovec(it->first, false, (*iov)[(*iovcnt)++], alen, rem);
 		if(alen > 0)

@@ -2530,7 +2530,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr.clear();
 
 			uint32_t j;
-			uint32_t nargs = (uint32_t)tinfo->m_cgroups.size();
+			uint32_t nargs = (uint32_t)tinfo->cgroups().size();
 
 			if(nargs == 0)
 			{
@@ -2539,9 +2539,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			for(j = 0; j < nargs; j++)
 			{
-				m_tstr += tinfo->m_cgroups[j].first;
+				m_tstr += tinfo->cgroups()[j].first;
 				m_tstr += "=";
-				m_tstr += tinfo->m_cgroups[j].second;
+				m_tstr += tinfo->cgroups()[j].second;
 				if(j < nargs - 1)
 				{
 					m_tstr += ' ';
@@ -2552,7 +2552,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_CGROUP:
 		{
-			uint32_t nargs = (uint32_t)tinfo->m_cgroups.size();
+			uint32_t nargs = (uint32_t)tinfo->cgroups().size();
 
 			if(nargs == 0)
 			{
@@ -2561,9 +2561,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			for(uint32_t j = 0; j < nargs; j++)
 			{
-				if(tinfo->m_cgroups[j].first == m_argname)
+				if(tinfo->cgroups()[j].first == m_argname)
 				{
-					m_tstr = tinfo->m_cgroups[j].second;
+					m_tstr = tinfo->cgroups()[j].second;
 					RETURN_EXTRACT_STRING(m_tstr);
 				}
 			}
