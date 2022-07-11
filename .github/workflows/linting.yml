@@ -1,6 +1,6 @@
 name: Linting code
 on:
-  pull_request:
+  pull_request_target:
 jobs:
   
   clang-format:
