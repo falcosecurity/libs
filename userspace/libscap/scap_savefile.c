@@ -271,20 +271,20 @@ scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
 {
 	return scap_memstream_dump_create(handle);
 }
-int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *d2, uint32_t totlen)
+int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen)
 {
 	int res = SCAP_SUCCESS;
 
 	do
 	{
-		scap_dump_flush(d2);
+		scap_dump_flush(proclist_dumper);
 
 		if(scap_write_proclist_header(handle, d, totlen) != SCAP_SUCCESS)
 		{
 			res = SCAP_FAILURE;
 			break;
 		}
-		if(scap_dump_write(d, d2->m_targetbuf, totlen) <= 0)
+		if(scap_dump_write(d, proclist_dumper->m_targetbuf, totlen) <= 0)
 		{
 			res = SCAP_FAILURE;
 			break;
@@ -296,7 +296,7 @@ int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *d2,
 		}
 	} while(false);
 
-	scap_dump_close(d2);
+	scap_dump_close(proclist_dumper);
 
 	return res;
 }
@@ -519,7 +519,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 		return SCAP_SUCCESS;
 	}
 
-	scap_dumper_t *d2 = scap_write_proclist_begin(handle);
+	scap_dumper_t *proclist_dumper = scap_write_proclist_begin(handle);
 
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;
@@ -532,16 +532,16 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 		}
 
 		uint32_t len = 0;
-		if(scap_write_proclist_entry(handle, d2, tinfo, &len) != SCAP_SUCCESS)
+		if(scap_write_proclist_entry(handle, proclist_dumper, tinfo, &len) != SCAP_SUCCESS)
 		{
-			scap_dump_close(d2);
+			scap_dump_close(proclist_dumper);
 			return SCAP_FAILURE;
 		}
 
 		totlen += len;
 	}
 
-	return scap_write_proclist_end(handle, d, d2, totlen);
+	return scap_write_proclist_end(handle, d, proclist_dumper, totlen);
 }
 
 //
