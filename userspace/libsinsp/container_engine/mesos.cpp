@@ -24,9 +24,9 @@ limitations under the License.
 
 bool libsinsp::container_engine::mesos::match(sinsp_threadinfo* tinfo, sinsp_container_info &container_info)
 {
-	for(auto it = tinfo->cgroups().begin(); it != tinfo->cgroups().end(); ++it)
+	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it->second;
+		string cgroup = it.second;
 		size_t pos;
 
 		pos = cgroup.find("/mesos/");

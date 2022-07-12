@@ -1181,15 +1181,16 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 	static const string eq = "=";
+	auto cgroups = this->cgroups();
 
 	// We allocate an iovec big enough to hold all the cgroups and
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
-	*iov = (struct iovec *) malloc((3 * cgroups().size()) * sizeof(struct iovec));
+	*iov = (struct iovec *) malloc((3 * cgroups.size()) * sizeof(struct iovec));
 
 	*iovcnt = 0;
 
-	for(auto it = cgroups().begin(); it != cgroups().end() && alen > 0; ++it)
+	for(auto it = cgroups.begin(); it != cgroups.end() && alen > 0; ++it)
 	{
 		add_to_iovec(it->first, false, (*iov)[(*iovcnt)++], alen, rem);
 		if(alen > 0)

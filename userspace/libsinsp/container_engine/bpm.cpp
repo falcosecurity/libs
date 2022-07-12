@@ -24,9 +24,9 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	sinsp_container_info container_info;
 	bool matches = false;
 
-	for(auto it = tinfo->cgroups().begin(); it != tinfo->cgroups().end(); ++it)
+	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it->second;
+		string cgroup = it.second;
 		size_t pos;
 
 		//
