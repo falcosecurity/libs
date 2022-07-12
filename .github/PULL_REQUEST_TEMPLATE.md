@@ -52,6 +52,8 @@
 
 > /area libscap
 
+> /area libpman
+
 > /area libsinsp
 
 > /area tests
