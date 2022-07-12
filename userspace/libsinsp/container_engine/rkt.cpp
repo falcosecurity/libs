@@ -26,9 +26,9 @@ using namespace libsinsp::container_engine;
 
 bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
 {
-	for(auto it = tinfo->cgroups().begin(); it != tinfo->cgroups().end(); ++it)
+	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it->second;
+		string cgroup = it.second;
 
 		static const string COREOS_PODID_VAR = "container_uuid=";
 		static const string SYSTEMD_UUID_ARG = "--uuid=";
