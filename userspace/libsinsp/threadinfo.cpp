@@ -1600,7 +1600,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		return;
 	}
 
-	scap_dumper_t *d2 = scap_write_proclist_begin(m_inspector->m_h);
+	scap_dumper_t *proclist_dumper = scap_write_proclist_begin(m_inspector->m_h);
 
 	uint32_t totlen = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
@@ -1612,7 +1612,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
-			scap_dump_close(d2);
+			scap_dump_close(proclist_dumper);
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
@@ -1621,7 +1621,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, d2, sctinfo, &entrylen,
+		if(scap_write_proclist_entry_bufs(m_inspector->m_h, proclist_dumper, sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
@@ -1631,7 +1631,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
-			scap_dump_close(d2);
+			scap_dump_close(proclist_dumper);
 			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 		}
 
@@ -1645,7 +1645,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		return true;
 	});
 
-	if(scap_write_proclist_end(m_inspector->m_h, dumper, d2, totlen) != SCAP_SUCCESS)
+	if(scap_write_proclist_end(m_inspector->m_h, dumper, proclist_dumper, totlen) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
 	}
