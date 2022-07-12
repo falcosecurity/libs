@@ -298,7 +298,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	{
 	case TYPE_FDNAME:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
@@ -309,7 +309,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	}
 	case TYPE_CONTAINERNAME:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			m_tstr = m_tinfo->m_container_id + ':' + m_tstr;
 			RETURN_EXTRACT_STRING(m_tstr);
@@ -322,7 +322,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY:
 	{
-		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			if(sanitize_strings)
 			{
@@ -363,7 +363,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			return NULL;
 		}
 
-		if(extract_fdname_from_creator(evt, len, sanitize_strings, false) == true)
+		if(extract_fdname_from_creator(evt, len, sanitize_strings) == true)
 		{
 			if(sanitize_strings)
 			{

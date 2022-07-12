@@ -186,24 +186,27 @@ inline void sanitize_string(std::string &str)
 
 inline void remove_duplicate_path_separators(std::string &str)
 {
-	// Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
-	char prev_char;
-	char separator = '/';
-	for (auto cur_char_it = str.begin(); cur_char_it != str.end(); cur_char_it++)
-	{
-		if (prev_char == *cur_char_it)
-		{
-			if (prev_char == separator)
-			{
-				str.erase(cur_char_it);
-				cur_char_it--;
-			}
-		}
-		else
-		{
-			prev_char = *cur_char_it;
-		}
-	}
+    // Light fd name sanitization if fd is a file - only remove consecutive duplicate separators
+    if(str.size() < 2)
+    {
+        // There is nothing to do if there are 0 or 1 chars in the string, protecting dereference operations
+        return;
+    }
+
+    char prev_char = *str.begin();
+
+    for (auto cur_char_it = str.begin() + 1; cur_char_it != str.end();)
+    {
+        if (prev_char == *cur_char_it && prev_char == '/')
+        {
+            cur_char_it = str.erase(cur_char_it);
+        }
+        else
+        {
+            prev_char = *cur_char_it;
+            cur_char_it++;
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
