@@ -474,9 +474,8 @@ void chisel_table::process_event(sinsp_evt* evt)
 		else
 		{
 			// todo: Do something better here. For now, only support single-value extracted fields
-			pfld->m_val = m_premerge_extractors[j]->m_extracted_values[0].ptr;
 			pfld->m_len = get_field_len(j);
-			pfld->m_val = m_buffer->copy(m_premerge_extractors[j]->m_extracted_values[0].ptr, pfld->m_len);
+			pfld->m_val = m_buffer->copy(m_premerge_extractors[j]->m_check->m_extracted_values[0].ptr, pfld->m_len);
 			pfld->m_cnt = 1;
 		}
 	}
