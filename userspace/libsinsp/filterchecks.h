@@ -301,7 +301,7 @@ public:
 
 private:
 	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings);
-	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw);
+	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw = false);
 	bool extract_fd(sinsp_evt *evt);
 };
 
