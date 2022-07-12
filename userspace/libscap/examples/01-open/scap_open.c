@@ -282,7 +282,7 @@ void print_event(scap_evt* ev)
 	lens16 = (uint16_t*)((char*)ev + sizeof(struct ppm_evt_hdr));
 	valptr = (char*)lens16 + ev->nparams * sizeof(uint16_t);
 	printf("\n------------------ EVENT: %d TID:%lu\n", evt_type, ev->tid);
-	
+
 	printf("------ HEADER\n");
 	printf("timestamp: %lu\n", ev->ts);
 	printf("tid: %lu\n", ev->tid);
@@ -531,8 +531,8 @@ void print_scap_source()
 		break;
 
 	case MODERN_BPF_PROBE:
-		printf("* Modern BPF probe NOT SUPPORTED RIGHT NOW!\n");
-		exit(EXIT_FAILURE);
+		printf("* Modern BPF probe.\n");
+		break;
 
 	case SCAP_FILE:
 		printf("* Scap file: '%s'.\n", args.fname);
@@ -606,9 +606,7 @@ void parse_CLI_options(int argc, char** argv)
 		}
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
-			/* TODO: Right now there is no real `modern_bpf` implementation.
-			 * We can only print the supported syscalls in this new mode.
-			 */
+			args.mode = SCAP_MODE_MODERN_BPF;
 			source = MODERN_BPF_PROBE;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))

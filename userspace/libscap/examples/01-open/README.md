@@ -130,6 +130,12 @@ Remember to remove the kernel module when you have finished:
 sudo rmmod scap
 ```
 
+To run it with the modern BPF probe, issue:
+
+```bash
+sudo ./libscap/examples/01-open/scap-open --modern_bpf
+```
+
 ### Some examples
 
 You can look at the other available options by using `--help`:
