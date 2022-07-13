@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #ifdef _WIN32
+    #include <windows.h>
     typedef HINSTANCE library_handle_t;
 #else
     #include <dlfcn.h>
@@ -50,6 +51,7 @@ static void* getsym(library_handle_t handle, const char* name)
 plugin_handle_t* plugin_load(const char* path, char* err)
 {
     // alloc and init memory
+    strcpy(err, "");
     plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
 
     // open dynamic library
@@ -61,16 +63,15 @@ plugin_handle_t* plugin_load(const char* path, char* err)
             | FORMAT_MESSAGE_FROM_SYSTEM
             | FORMAT_MESSAGE_IGNORE_INSERTS;
         LPTSTR msg_buf = 0;
-        if(FormatMessageA(flg, 0, GetLastError(), 0, (LPTSTR)&msg_buf, 0, NULL) && msg_buf)
+        if (FormatMessageA(flg, 0, GetLastError(), 0, (LPTSTR) &msg_buf, 0, NULL) && msg_buf)
         {
-            errstr.append(msg_buf, strlen(msg_buf));
             strncpy(err, msg_buf, PLUGIN_MAX_ERRLEN -1 );
             LocalFree(msg_buf);
         }
     }
 #else
     ret->handle = dlopen(path, RTLD_LAZY);
-    if(ret->handle == NULL)
+    if (ret->handle == NULL)
     {
         strncpy(err, (const char*) dlerror(), PLUGIN_MAX_ERRLEN - 1);
     }
