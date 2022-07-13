@@ -110,6 +110,8 @@ cmake -DBUILD_BPF=true ../
 make bpf
 ```
 
+>__WARNING__: **clang-7** is the oldest supported version to build our BPF probe, since it is the one used by our infrastructure.
+
 ### Build modern eBPF probe
 
 To build the modern eBPF probe, you need:
@@ -140,8 +142,6 @@ make ProbeSkeleton
 
 Libscap contains additional library functions to allow integration with system call events coming from [gVisor](https://gvisor.dev).
 Compilation of this functionality can be disabled with `-DBUILD_LIBSCAP_GVISOR=Off`.
-
->__WARNING__: **clang-7** is the oldest supported version to build our BPF probe, since it is the one used by our infrastructure.
 
 ## Test drivers
 
