@@ -157,6 +157,7 @@ struct sched_process_exec_args
 #endif /* CAPTURE_SCHED_PROC_EXEC */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
+
 /* TP_PROTO(struct task_struct *parent, struct task_struct *child)
  * Taken from `/include/trace/events/sched.h`
  */
