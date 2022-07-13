@@ -53,7 +53,7 @@ endif()
 
 message(STATUS "Libs version: ${FALCOSECURITY_LIBS_VERSION}")
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND USE_BUNDLED_DRIVER)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	# Driver version
 	if(NOT DEFINED DRIVER_VERSION)
 		get_drivers_version(DRIVER_VERSION)

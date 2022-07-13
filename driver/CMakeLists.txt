@@ -114,6 +114,10 @@ foreach(FILENAME IN LISTS DRIVER_SOURCES)
 	configure_file(${FILENAME} src/${FILENAME} COPYONLY)
 endforeach()
 
+if(NOT USE_BUNDLED_DRIVER)
+	return()
+endif()
+
 # make can be self-referenced as $(MAKE) only from Makefiles but this
 # triggers syntax errors with other generators such as Ninja
 if(${CMAKE_GENERATOR} STREQUAL "Unix Makefiles")
