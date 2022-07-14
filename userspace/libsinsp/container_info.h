@@ -100,12 +100,22 @@ public:
 		return m_retry == 0;
 	}
 
+	short retry_no() const
+	{
+		return m_retry;
+	}
+
+	void attempt_increment()
+	{
+		++m_retry;
+	}
+
 	/**
 	 * Compute the delay and increment retry count
 	 */
 	short delay()
 	{
-		return 125 << m_retry++;
+		return 125 << (m_retry-1);
 	}
 
 private:
