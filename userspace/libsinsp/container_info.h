@@ -93,6 +93,14 @@ public:
 	}
 
 	/**
+	 * i.e. whether we didn't do any retry yet
+	 */
+	bool first_attempt() const
+	{
+		return m_retry == 0;
+	}
+
+	/**
 	 * Compute the delay and increment retry count
 	 */
 	short delay()

@@ -101,12 +101,20 @@ void container_async_source<key_type>::run_impl()
 		sinsp_container_info res;
 		lookup_sync(key, res);
 
-		// For security reasons we store the value regardless of the lookup status,
-		// so we can track the container activity even without its metadata.
-		this->store_value(key, res);
+		// For security reasons we store the value regardless of the lookup status on the
+		// first attempt, so we can track the container activity even without its metadata.
+		// For subsequent attempts we store it only if successful.
+		if(res.m_lookup.first_attempt() || res.m_lookup.is_successful())
+		{
+			this->store_value(key, res);
+		}
 
 		if(res.m_lookup.should_retry())
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"%s_async (%s): lookup retry scheduled",
+					name(),
+					container_id(key).c_str());
 			this->lookup_delayed(
 				key,
 				res,
