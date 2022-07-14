@@ -111,10 +111,14 @@ void container_async_source<key_type>::run_impl()
 
 		if(res.m_lookup.should_retry())
 		{
+			res.m_lookup.attempt_increment();
+
 			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"%s_async (%s): lookup retry scheduled",
+					"%s_async (%s): lookup retry no. %d",
 					name(),
-					container_id(key).c_str());
+					container_id(key).c_str(),
+					res.m_lookup.retry_no());
+
 			this->lookup_delayed(
 				key,
 				res,
