@@ -212,6 +212,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(engine/kmod)
 	target_link_libraries(scap scap_engine_kmod)
 
+	add_definitions(-DHAS_ENGINE_TEST_INPUT)
+	add_subdirectory(engine/test_input)
+	target_link_libraries(scap scap_engine_test_input)
+
 	if(USE_MODERN_BPF)
 		add_subdirectory(engine/modern_bpf)
 		target_link_libraries(scap scap_engine_modern_bpf)

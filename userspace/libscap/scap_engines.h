@@ -50,3 +50,7 @@ extern const struct scap_vtable scap_gvisor_engine;
 #ifdef HAS_ENGINE_MODERN_BPF
 extern const struct scap_vtable scap_modern_bpf_vtable;
 #endif
+
+#ifdef HAS_ENGINE_TEST_INPUT
+extern const struct scap_vtable scap_test_input_engine;
+#endif

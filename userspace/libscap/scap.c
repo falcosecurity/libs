@@ -451,6 +451,76 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 }
 #endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
+scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
+{
+	scap_t* handle = NULL;
+
+	//
+	// Allocate the handle
+	//
+	handle = (scap_t*) calloc(1, sizeof(scap_t));
+	if(!handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+
+	handle->m_vtable = &scap_test_input_engine;
+	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
+	if(!handle->m_engine.m_handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		free(handle);
+		return NULL;
+	}
+
+	*rc = handle->m_vtable->init(handle, args);
+	if(*rc != SCAP_SUCCESS)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
+		scap_close(handle);
+		return NULL;
+	}
+
+	//
+	// Preliminary initializations
+	//
+	handle->m_mode = SCAP_MODE_LIVE;
+
+	handle->m_ncpus = 1;
+
+	handle->m_fake_kernel_proc.tid = -1;
+	handle->m_fake_kernel_proc.pid = -1;
+	handle->m_fake_kernel_proc.flags = 0;
+	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
+	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
+	handle->m_fake_kernel_proc.args[0] = 0;
+	handle->refresh_proc_table_when_saving = true;
+
+	handle->m_suppressed_comms = NULL;
+	handle->m_num_suppressed_comms = 0;
+	handle->m_suppressed_tids = NULL;
+	handle->m_num_suppressed_evts = 0;
+
+	handle->m_proc_callback = args->proc_callback;
+	handle->m_proc_callback_context = args->proc_callback_context;
+
+	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return NULL;
+	}
+
+	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+	return handle;
+}
+
 #ifdef HAS_ENGINE_GVISOR
 scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 {
@@ -896,6 +966,10 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 		else if (args.gvisor)
 		{
 			return scap_open_gvisor_int(error, rc, &args);
+		}
+		else if (args.test_input_data)
+		{
+			return scap_open_test_input_int(error, rc, &args);
 		}
 		{
 			return scap_open_live_int(error, rc, args.proc_callback,
