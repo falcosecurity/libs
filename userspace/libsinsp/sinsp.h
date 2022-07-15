@@ -255,6 +255,8 @@ public:
 
 	void open_nodriver();
 
+	void open_test_input(scap_test_input_data *data);
+
 	/*!
 	  \brief Ends a capture and release all resources.
 	*/
@@ -1100,6 +1102,7 @@ private:
 	bool m_is_tracers_capture_enabled;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
+	scap_test_input_data *m_test_input_data = nullptr;
 
 	sinsp_network_interfaces* m_network_interfaces;
 
