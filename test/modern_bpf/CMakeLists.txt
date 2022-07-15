@@ -28,8 +28,14 @@ set(MODERN_BPF_TEST_LINK_LIBRARIES
 
 set(MODERN_BPF_TEST_DEPENDECIES 
   pman  
+)
+
+if(USE_BUNDLED_GTEST)
+list(APPEND 
+  MODERN_BPF_TEST_DEPENDECIES
   gtest
 )
+endif()
 
 add_executable(bpf_test ${MODERN_BPF_TEST_SOURCES})
 target_include_directories(bpf_test ${MODERN_BPF_TEST_INCLUDE})
