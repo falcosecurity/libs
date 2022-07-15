@@ -173,20 +173,17 @@ bool async_key_value_source<key_type, value_type>::lookup_delayed(
 	if (itr == m_value_map.end())
 	{
 		// Haven't made the request yet. Be explicit and validate insertion.
-		auto insert_result = m_value_map.emplace(key, lookup_request());
+		bool inserted;
+		std::tie(itr, inserted) = m_value_map.emplace(key, lookup_request());
 
-		if(!insert_result.second)
+		if(!inserted)
 		{
-			g_logger.log("async_key_value_source: Failed to insert an empty item "
-						 "into the container cache.", sinsp_logger::SEV_ERROR);
+			g_logger.log("async_key_value_source: Failed to insert",
+				     sinsp_logger::SEV_ERROR);
 			return false;
 		}
 
-		// Replace the itr with the mapped value
-		itr = insert_result.first;
-
-		// Not sure why setting the value is needed, but being consistent with
-		// previous implementation.
+		// Set the value, in case it has a state
 		itr->second.m_value = value;
 
 		// Make request to API and let the async thread know about it
@@ -295,10 +292,8 @@ void async_key_value_source<key_type, value_type>::store_value(
 	typename value_map::iterator itr = m_value_map.find(key);
 	if(itr == m_value_map.end())
 	{
-		g_logger.log("async_key_value_source: Container not found when committing "
-					 "to container cache. Either the container no longer exists or "
-					 "the container lookup took longer than the timeout.",
-					 sinsp_logger::SEV_WARNING);
+		g_logger.log("async_key_value_source: Key not found when storing value",
+			     sinsp_logger::SEV_WARNING);
 		return;
 	}
 
