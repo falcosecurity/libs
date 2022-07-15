@@ -44,26 +44,40 @@ struct iovec {
 //
 int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 {
-	switch(d->m_type)
+	if(d->m_type == DT_FILE)
 	{
-	case DT_FILE:
 		return gzwrite(d->m_f, buf, len);
-	case DT_MEM:
-		if(d->m_targetbufcurpos + len < d->m_targetbufend)
+	}
+	else
+	{
+		if(d->m_targetbufcurpos + len >= d->m_targetbufend)
 		{
-			memcpy(d->m_targetbufcurpos, buf, len);
+			if(d->m_type == DT_MEM)
+			{
+				return -1;
+			}
 
-			d->m_targetbufcurpos += len;
-			return len;
+			// DT_MANAGED_BUF, try to increase the size
+			size_t targetbufsize = 1.25 * (d->m_targetbufend - d->m_targetbuf);
+
+			uint8_t *targetbuf = (uint8_t *)realloc(
+				d->m_targetbuf,
+				targetbufsize);
+			if(targetbuf == NULL)
+			{
+				return -1;
+			}
+
+			size_t offset = (d->m_targetbufcurpos - d->m_targetbuf);
+			d->m_targetbuf = targetbuf;
+			d->m_targetbufcurpos = targetbuf + offset;
+			d->m_targetbufend = targetbuf + targetbufsize;
 		}
-		else
-		{
-			return -1;
-		}
-	case DT_MEMSTREAM:
-		return fwrite(buf, 1, len, d->m_memstream);
-	default:
-		return -1;
+
+		memcpy(d->m_targetbufcurpos, buf, len);
+
+		d->m_targetbufcurpos += len;
+		return len;
 	}
 }
 
@@ -269,7 +283,7 @@ static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
 //
 scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
 {
-	return scap_memstream_dump_create(handle);
+	return scap_managedbuf_dump_create(handle);
 }
 int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen)
 {
@@ -1113,32 +1127,23 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 }
 
 //
-// Create a memstream (see open_memstream) "savefile"
+// Create a dumper with an internally managed buffer
 //
-scap_dumper_t *scap_memstream_dump_create(scap_t *handle)
+scap_dumper_t *scap_managedbuf_dump_create(scap_t *handle)
 {
 	scap_dumper_t *res = (scap_dumper_t *)malloc(sizeof(scap_dumper_t));
 	if(res == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_memstream_dump_create memory allocation failure (1)");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_managedbuf_dump_create memory allocation failure (1)");
 		return NULL;
 	}
 
 	res->m_f = NULL;
-	res->m_targetbuf = NULL;
-	res->m_targetbufcurpos = NULL;
-	res->m_targetbufend = NULL;
-
-	res->m_type = DT_MEMSTREAM;
-
-	// we don't really care about the size, so we recycle m_targetbufend
-	res->m_memstream = open_memstream((char **)&res->m_targetbuf, (size_t *)&res->m_targetbufend);
-	if (res->m_memstream == NULL)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_memstream_dump_create memstream creation failure (1)");
-		free(res);
-		return NULL;
-	}
+	res->m_type = DT_MANAGED_BUF;
+	const size_t targetbufsize = 3 * 1024 * 1024;
+	res->m_targetbuf = (uint8_t *)malloc(targetbufsize);
+	res->m_targetbufcurpos = res->m_targetbuf;
+	res->m_targetbufend = res->m_targetbuf + targetbufsize;
 
 	return res;
 }
@@ -1152,9 +1157,8 @@ void scap_dump_close(scap_dumper_t *d)
 	{
 		gzclose(d->m_f);
 	}
-	else if (d->m_type == DT_MEMSTREAM)
+	else if (d->m_type == DT_MANAGED_BUF)
 	{
-		fclose(d->m_memstream);
 		free(d->m_targetbuf);
 	}
 
@@ -1193,10 +1197,6 @@ void scap_dump_flush(scap_dumper_t *d)
 	if(d->m_type == DT_FILE)
 	{
 		gzflush(d->m_f, Z_FULL_FLUSH);
-	}
-	else if (d->m_type == DT_MEMSTREAM)
-	{
-		fflush(d->m_memstream);
 	}
 }
 
