@@ -90,15 +90,15 @@ template<typename key_type>
 void container_async_source<key_type>::run_impl()
 {
 	key_type key;
+	sinsp_container_info res;
 
-	while(this->dequeue_next_key(key))
+	while(this->dequeue_next_key(key, &res))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"%s_async (%s): Source dequeued key",
 				name(),
 				container_id(key).c_str());
 
-		sinsp_container_info res;
 		lookup_sync(key, res);
 
 		// For security reasons we store the value regardless of the lookup status on the
@@ -111,6 +111,7 @@ void container_async_source<key_type>::run_impl()
 
 		if(res.m_lookup.should_retry())
 		{
+			// Make a new attempt
 			res.m_lookup.attempt_increment();
 
 			g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -129,6 +130,9 @@ void container_async_source<key_type>::run_impl()
 					std::placeholders::_1,
 					std::placeholders::_2));
 		}
+
+		// Reset res
+		res.clear();
 	}
 }
 
