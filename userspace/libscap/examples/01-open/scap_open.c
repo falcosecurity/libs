@@ -23,7 +23,9 @@ limitations under the License.
 
 #define KMOD_OPTION "--kmod"
 #define BPF_OPTION "--bpf"
-#define MODERN_BPF_OPTION "--modern_bpf"
+#ifdef HAS_ENGINE_MODERN_BPF
+	#define MODERN_BPF_OPTION "--modern_bpf"
+#endif
 #define SCAP_FILE_OPTION "--scap_file"
 #define SIMPLE_CONSUMER_OPTION "--simple_consumer"
 #define NUM_EVENTS_OPTION "--num_events"
@@ -503,7 +505,9 @@ void print_help()
 	printf("------> SCAP SOURCES\n");
 	printf("'%s': enable the kernel module.\n", KMOD_OPTION);
 	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
+#ifdef HAS_ENGINE_MODERN_BPF
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
+#endif
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
 	printf("'%s': enable the simple consumer mode. (default: disabled)\n", SIMPLE_CONSUMER_OPTION);
@@ -604,11 +608,13 @@ void parse_CLI_options(int argc, char** argv)
 			args.bpf_probe = argv[++i];
 			source = BPF_PROBE;
 		}
+#ifdef HAS_ENGINE_MODERN_BPF
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
 			args.mode = SCAP_MODE_MODERN_BPF;
 			source = MODERN_BPF_PROBE;
 		}
+#endif
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
 		{
 			if(!(i + 1 < argc))
