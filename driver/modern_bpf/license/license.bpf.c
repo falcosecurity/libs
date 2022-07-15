@@ -5,6 +5,6 @@
  * or GPL2.txt for full copies of the license.
  */
 
-#include "../helpers/base/common.h"
+#include <helpers/base/common.h>
 
 char LICENSE[] SEC("license") = "GPL";

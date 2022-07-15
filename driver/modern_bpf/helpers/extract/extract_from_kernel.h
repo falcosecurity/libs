@@ -9,7 +9,7 @@
 
 #include <helpers/base/maps_getters.h>
 #include <helpers/base/read_from_task.h>
-#include <ppm_flag_helpers.h>
+#include <driver/ppm_flag_helpers.h>
 
 /* All the functions that are called in bpf to extract parameters
  * start with the `extract` prefix.

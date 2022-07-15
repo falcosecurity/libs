@@ -21,6 +21,7 @@ else()
     ExternalProject_Add(
         libbpf
         PREFIX "${PROJECT_BINARY_DIR}/libbpf-prefix"
+        DEPENDS zlib
         URL "https://github.com/libbpf/libbpf/archive/refs/tags/v0.8.0.tar.gz"
         URL_HASH
         "SHA256=f4480242651a93c101ece320030f6b2b9b437f622f807719c13cb32569a6d65a"
