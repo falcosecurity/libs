@@ -299,12 +299,12 @@ extern "C"
 	 *
 	 * @param intersting_syscall_id syscall id.
 	 */
-	void pman_mark_64bit_syscall_as_interesting(int intersting_syscall_id);
+	void pman_mark_single_64bit_syscall_as_interesting(int intersting_syscall_id);
 
 	/**
 	 * @brief Mark all syscalls as uninteresting.
 	 */
-	void pman_clean_all_64bit_interesting_syscalls(void);
+	void pman_mark_all_64bit_syscalls_as_uninteresting(void);
 
 	/**
 	 * @brief Print some statistics about events captured and

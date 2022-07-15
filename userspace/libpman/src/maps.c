@@ -67,12 +67,12 @@ void pman_set_snaplen(uint32_t desired_snaplen)
 }
 
 #ifdef TEST_HELPERS
-void pman_mark_64bit_syscall_as_interesting(int intersting_syscall_id)
+void pman_mark_single_64bit_syscall_as_interesting(int intersting_syscall_id)
 {
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = true;
 }
 
-void pman_clean_all_64bit_interesting_syscalls()
+void pman_mark_all_64bit_syscalls_as_uninteresting()
 {
 	/* All syscalls are not interesting. */
 	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
