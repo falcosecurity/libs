@@ -536,6 +536,9 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 		oargs.gvisor_config_path = NULL;
 	}
 
+	// only useful for testing
+	oargs.test_input_data = m_test_input_data;
+
 	fill_syscalls_of_interest(&oargs);
 
 	if(!m_filter_proc_table_when_saving)
@@ -600,6 +603,13 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path, uint32_t
 	m_gvisor_root_path = root_path;
 	m_gvisor_config_path = config_path;
 	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+	set_get_procs_cpu_from_driver(false);
+}
+
+void sinsp::open_test_input(scap_test_input_data *data)
+{
+	m_test_input_data = data;
+	open_live_common(SCAP_TIMEOUT_MS, SCAP_MODE_LIVE);
 	set_get_procs_cpu_from_driver(false);
 }
 
