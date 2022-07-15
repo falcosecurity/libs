@@ -26,7 +26,7 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpm
 
 # Build modern BPF probe gtest
 if(BUILD_MODERN_BPF_TEST)
-    # Still to implement!
+  add_subdirectory(${CMAKE_SOURCE_DIR}/test/modern_bpf ${CMAKE_BINARY_DIR}/test/modern_bpf)
 endif()
 
 add_library(scap_engine_modern_bpf
