@@ -26,6 +26,7 @@ set(PMAN_PUBLIC_INCLUDES
 set(PMAN_PRIVATE_LINK_LIBRARIES
     "${LIBBPF_LIB}"
     "${ZLIB_LIB}"
+    scap_event_schema
     elf
 )
 
