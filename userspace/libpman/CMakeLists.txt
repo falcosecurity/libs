@@ -23,6 +23,23 @@ set(PMAN_PUBLIC_INCLUDES
     "./include"
 )
 
+set(PMAN_PRIVATE_LINK_LIBRARIES
+    "${LIBBPF_LIB}"
+    "${ZLIB_LIB}"
+    elf
+)
+
+set(PMAN_DEPENDENCIES
+    ProbeSkeleton
+)
+
+if(USE_BUNDLED_LIBBPF)
+list(APPEND 
+    PMAN_DEPENDENCIES
+    libbpf
+)
+endif()
+
 add_library(pman ${PMAN_SOURCES})
 
 target_include_directories(pman
@@ -35,9 +52,7 @@ target_include_directories(pman
 
 target_link_libraries(pman
     PRIVATE
-    "${LIBBPF_LIB}"
-    "${ZLIB_LIB}"
-    elf
+    ${PMAN_PRIVATE_LINK_LIBRARIES}
 )
 
-add_dependencies(pman ProbeSkeleton libbpf zlib)
+add_dependencies(pman ${PMAN_DEPENDENCIES})

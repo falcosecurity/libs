@@ -27,10 +27,6 @@ else()
   message(FATAL_ERROR "Failed to determine BPF system includes: ${CLANG_SYSTEM_INCLUDES_error}")
 endif()
 
-## Get vmlinux directory
-set(VMLINUX_FILE ${CMAKE_CURRENT_SOURCE_DIR}/definitions/vmlinux.h)
-get_filename_component(VMLINUX_DIR ${VMLINUX_FILE} DIRECTORY)
-
 ## Get target arch (right now we explicitly support only `x86` and `arm64`)
 execute_process(COMMAND uname -m
   COMMAND sed "s/x86_64/x86/"
@@ -51,8 +47,9 @@ endif()
 # Get modern probe include.
 set(MODERN_PROBE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Get PPM include.
-set(PPM_INCLUDE ${CMAKE_SOURCE_DIR}/driver/)
+# Note here we use the source directory since we want to avoid conflicts between the `bpf` folder inside 
+# `driver` and the `libbpf` includes.
+set(PPM_INCLUDE ${CMAKE_SOURCE_DIR})
 
 ## Set CLANG FLAGS
 set(CLANG_FLAGS "")
@@ -63,7 +60,6 @@ list(APPEND CLANG_FLAGS
     -D__TARGET_ARCH_${ARCH} # Match libbpf usage in `/libbpf/src/bpf_tracing.h`
     -D__USE_VMLINUX__ # Used to compile without kernel headers.
     -I${LIBBPF_INCLUDE}
-    -I${VMLINUX_DIR}
     -I${MODERN_PROBE_INCLUDE}
     -I${PPM_INCLUDE}
     -isystem
@@ -80,6 +76,8 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
     get_filename_component(file_stem ${BPF_C_FILE} NAME_WE)
     set(BPF_O_FILE ${CMAKE_CURRENT_BINARY_DIR}/${file_stem}.bpf.o)
 
+## Please note: that the `libbpf` target exists only if we use `USE_BUNDLED_LIBBPF`
+if(USE_BUNDLED_LIBBPF)
     add_custom_command(
         OUTPUT ${BPF_O_FILE}
         COMMAND ${CLANG_EXE} ${CLANG_FLAGS} ${CLANG_SYSTEM_INCLUDES} -c ${BPF_C_FILE} -o ${BPF_O_FILE}
@@ -88,6 +86,15 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
         DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} 
         COMMENT "[clang] Building BPF object: ${BPF_O_FILE}"
     )
+else()
+    add_custom_command(
+      OUTPUT ${BPF_O_FILE}
+      COMMAND ${CLANG_EXE} ${CLANG_FLAGS} ${CLANG_SYSTEM_INCLUDES} -c ${BPF_C_FILE} -o ${BPF_O_FILE}
+      VERBATIM
+      DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} 
+      COMMENT "[clang] Building BPF object: ${BPF_O_FILE}"
+    )
+endif()
 
     list(APPEND BPF_OBJECT_FILES ${BPF_O_FILE})
 endforeach()
