@@ -72,6 +72,7 @@ struct iovec;
 #include "scap_open.h"
 #include "scap_procs.h"
 #include "engine/bpf/bpf_public.h"
+#include "scap_test.h"
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
