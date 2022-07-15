@@ -251,7 +251,7 @@ bool async_key_value_source<key_type, value_type>::lookup(
 }
 
 template<typename key_type, typename value_type>
-bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& key)
+bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& key, value_type* value_ptr)
 {
 	std::lock_guard<std::mutex> guard(m_mutex);
 	bool key_found = false;
@@ -265,6 +265,11 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			key = std::move(top_element.second);
 			m_request_queue.pop();
 			m_request_set.erase(key);
+
+			if(value_ptr)
+			{
+				*value_ptr = m_value_map[key].m_value;
+			}
 		}
 	}
 

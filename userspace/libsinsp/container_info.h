@@ -257,6 +257,12 @@ public:
 	{
 	}
 
+	void clear()
+	{
+		this->~sinsp_container_info();
+		new(this) sinsp_container_info();
+	}
+
 	const std::vector<std::string>& get_env() const { return m_env; }
 
 	const container_mount_info *mount_by_idx(uint32_t idx) const;

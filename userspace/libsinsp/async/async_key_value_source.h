@@ -217,10 +217,11 @@ protected:
 	 * Dequeues an entry from the request queue and returns it in the given
 	 * key.  Concrete subclasses will call this method to get the next key
 	 * for which to collect values.
+	 * Get also the associated value by providing @p value_ptr
 	 *
 	 * @returns true if there was a key to dequeue, false otherwise.
 	 */
-	bool dequeue_next_key(key_type& key);
+	bool dequeue_next_key(key_type& key, value_type* value_ptr = nullptr);
 
 	/**
 	 * Get the (potentially partial) value for the given key.
