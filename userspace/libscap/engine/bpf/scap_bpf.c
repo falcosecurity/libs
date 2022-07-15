@@ -841,7 +841,7 @@ cleanup:
 	return res;
 }
 
-static void *perf_event_mmap(struct bpf_engine *handle, int fd, int *size)
+static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size)
 {
 	int page_size = getpagesize();
 	int ring_size = page_size * BUF_SIZE_PAGES;
