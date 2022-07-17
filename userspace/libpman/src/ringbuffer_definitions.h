@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "state.h"
+#include <linux/bpf.h>
 
 /* Taken from libbpf: /src/ringbuf.c */
 struct ring
