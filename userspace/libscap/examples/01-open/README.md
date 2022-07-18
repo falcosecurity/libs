@@ -51,6 +51,8 @@ Print some information like the supported syscalls or the help menu:
 
 ## Build 🏗️
 
+#### Build with CMakeList
+
 From the repository root (`/libs`) type:
 
 ```bash
@@ -65,7 +67,19 @@ Optional Cmake options:
 * `-DUSE_MODERN_BPF=ON`: if you want to test the modern BPF probe.
 * `-DMODERN_BPF_DEBUG_MODE=ON`: if you want to test the modern BPF probe in debug mode. (if you use it you need also the previous one `-DUSE_MODERN_BPF=ON`).
 
-You have also to build the driver that you want to use:
+#### Build with Makefile
+
+From the repository root (`/libs`) type:
+
+```bash
+mkdir build && cd build
+cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ..
+make scap
+cd ../userspace/libscap/example/01-open/
+make
+```
+
+#### You have also to build the driver that you want to use:
 
 * Kernel module
 
