@@ -82,6 +82,8 @@ static const std::vector<std::string> s_context_fields = {
 	"time",
 };
 
+constexpr unsigned int max_retries = 3;
+
 std::string generate(std::string socket_path)
 {
 	Json::Value context_fields;
@@ -102,6 +104,8 @@ std::string generate(std::string socket_path)
 	Json::Value sinks, sink;
 	sink["name"] = "remote";
 	sink["config"]["endpoint"] = socket_path.empty() ? s_default_socket_path : socket_path;
+	sink["config"]["retries"] = max_retries;
+	sink["ignore_setup_error"] = true;
 	sinks.append(sink);
 
 	Json::Value trace_session;
