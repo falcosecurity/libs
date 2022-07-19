@@ -545,8 +545,10 @@
       "sinks": [
         {
           "name": "remote",
+          "ignore_setup_error" : true,
           "config": {
-            "endpoint": "/tmp/gvisor.sock"
+            "endpoint": "/tmp/gvisor.sock",
+            "retries" : 3
           }
         }
       ]
