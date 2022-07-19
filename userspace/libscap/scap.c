@@ -451,6 +451,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 }
 #endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
+#ifdef HAS_ENGINE_TEST_INPUT
 scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 {
 	scap_t* handle = NULL;
@@ -520,6 +521,14 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 	}
 	return handle;
 }
+#else
+scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "the test_input engine is only available for testing");
+	*rc = SCAP_NOT_SUPPORTED;
+	return NULL;
+}
+#endif
 
 #ifdef HAS_ENGINE_GVISOR
 scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
