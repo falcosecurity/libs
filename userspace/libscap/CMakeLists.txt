@@ -148,8 +148,13 @@ endif()
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
-		# Add unit test directories
-		add_subdirectory(test)
+	# Add engine only used for testing
+	add_definitions(-DHAS_ENGINE_TEST_INPUT)
+	add_subdirectory(engine/test_input)
+	target_link_libraries(scap scap_engine_test_input)
+
+	# Add unit test directories
+	add_subdirectory(test)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -211,10 +216,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_KMOD)
 	add_subdirectory(engine/kmod)
 	target_link_libraries(scap scap_engine_kmod)
-
-	add_definitions(-DHAS_ENGINE_TEST_INPUT)
-	add_subdirectory(engine/test_input)
-	target_link_libraries(scap scap_engine_test_input)
 
 	if(USE_MODERN_BPF)
 		add_subdirectory(engine/modern_bpf)
