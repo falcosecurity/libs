@@ -235,8 +235,9 @@ struct tail_context {
 
 struct scap_bpf_per_cpu_state {
 	struct tail_context tail_ctx;
-	unsigned long long n_evts;
-	unsigned long long n_drops_buffer;
+	unsigned long long n_evts;		/* Total number of kernel side events actively traced (not including events discarded due to simple consumer mode). */
+	unsigned long long n_drops_buffer;		/* Total number of kernel side drops due to full buffer, includes all categories below, likely higher than sum of syscall categories. */
+	/* Kernel side drops due to full buffer for categories of system calls. Not all system calls of interest are mapped into one of the categories. */
 	unsigned long long n_drops_buffer_clone_fork_enter;
 	unsigned long long n_drops_buffer_clone_fork_exit;
 	unsigned long long n_drops_buffer_execve_enter;
@@ -247,11 +248,11 @@ struct scap_bpf_per_cpu_state {
 	unsigned long long n_drops_buffer_open_exit;
 	unsigned long long n_drops_buffer_dir_file_enter;
 	unsigned long long n_drops_buffer_dir_file_exit;
-	unsigned long long n_drops_buffer_other_interest_enter;
+	unsigned long long n_drops_buffer_other_interest_enter;		/* Category of other system calls of interest, not all other system calls that did not match a category from above. */
 	unsigned long long n_drops_buffer_other_interest_exit;
-	unsigned long long n_drops_scratch_map;
-	unsigned long long n_drops_pf;
-	unsigned long long n_drops_bug;
+	unsigned long long n_drops_scratch_map;		/* Number of kernel side scratch map drops. */
+	unsigned long long n_drops_pf;		/* Number of kernel side page faults drops (invalid memory access). */
+	unsigned long long n_drops_bug;		/* Number of kernel side bug drops (invalid condition in the kernel instrumentation). */
 	unsigned int hotplug_cpu;
 	bool in_use;
 } __attribute__((packed));

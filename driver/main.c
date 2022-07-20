@@ -1532,6 +1532,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_MKDIR_2_E:
 	case PPME_SYSCALL_MKDIRAT_E:
 	case PPME_SYSCALL_MOUNT_E:
+	case PPME_SYSCALL_UMOUNT_E:
 	case PPME_SYSCALL_RENAME_E:
 	case PPME_SYSCALL_RENAMEAT_E:
 	case PPME_SYSCALL_RENAMEAT2_E:
@@ -1556,13 +1557,6 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_VFORK_20_E:
 		ring_info->n_drops_buffer_clone_fork_enter++;
 		break;
-	case PPME_SYSCALL_EXECVE_8_E:
-	case PPME_SYSCALL_EXECVE_13_E:
-	case PPME_SYSCALL_EXECVE_14_E:
-	case PPME_SYSCALL_EXECVE_15_E:
-	case PPME_SYSCALL_EXECVE_16_E:
-	case PPME_SYSCALL_EXECVE_17_E:
-	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
 	case PPME_SYSCALL_EXECVEAT_E:
 		ring_info->n_drops_buffer_execve_enter++;
@@ -1571,7 +1565,6 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 		ring_info->n_drops_buffer_connect_enter++;
 		break;
 	case PPME_SYSCALL_BPF_E:
-	case PPME_SYSCALL_FCHDIR_E:
 	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_PTRACE_E:
 	case PPME_SYSCALL_SECCOMP_E:
@@ -1580,6 +1573,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_SETRESUID_E:
 	case PPME_SYSCALL_SETSID_E:
 	case PPME_SYSCALL_UNSHARE_E:
+	case PPME_SYSCALL_CAPSET_E:
 		ring_info->n_drops_buffer_other_interest_enter++;
 		break;
 	// exit
@@ -1603,6 +1597,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_MKDIR_2_X:
 	case PPME_SYSCALL_MKDIRAT_X:
 	case PPME_SYSCALL_MOUNT_X:
+	case PPME_SYSCALL_UMOUNT_X:
 	case PPME_SYSCALL_RENAME_X:
 	case PPME_SYSCALL_RENAMEAT_X:
 	case PPME_SYSCALL_RENAMEAT2_X:
@@ -1627,13 +1622,6 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_VFORK_20_X:
 		ring_info->n_drops_buffer_clone_fork_exit++;
 		break;
-	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
-	case PPME_SYSCALL_EXECVE_15_X:
-	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
-	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
 	case PPME_SYSCALL_EXECVEAT_X:
 		ring_info->n_drops_buffer_execve_exit++;
@@ -1642,7 +1630,6 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 		ring_info->n_drops_buffer_connect_exit++;
 		break;
 	case PPME_SYSCALL_BPF_X:
-	case PPME_SYSCALL_FCHDIR_X:
 	case PPME_SYSCALL_SETPGID_X:
 	case PPME_SYSCALL_PTRACE_X:
 	case PPME_SYSCALL_SECCOMP_X:
@@ -1651,6 +1638,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 	case PPME_SYSCALL_SETRESUID_X:
 	case PPME_SYSCALL_SETSID_X:
 	case PPME_SYSCALL_UNSHARE_X:
+	case PPME_SYSCALL_CAPSET_X:
 		ring_info->n_drops_buffer_other_interest_exit++;
 		break;
 	default:
@@ -2119,7 +2107,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		if (cbres == PPM_SUCCESS) {
 			ASSERT(freespace < sizeof(struct ppm_evt_hdr) + args.arg_data_offset);
 			ring_info->n_drops_buffer++;
-			drops_buffer_syscall_categories_counters(event_type, ring_info);
 		} else if (cbres == PPM_FAILURE_INVALID_USER_MEMORY) {
 #ifdef _DEBUG
 			pr_err("Invalid read from user for event %d\n", event_type);
