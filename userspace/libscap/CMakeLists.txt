@@ -101,7 +101,8 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(scap STATIC
-	${targetfiles})
+	${targetfiles}
+	$<TARGET_OBJECTS:scap_event_schema>)
 
 if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 	add_dependencies(scap zlib)
@@ -163,17 +164,19 @@ elseif(APPLE)
 	include_directories(macos)
 endif()
 
+add_library(scap_event_schema OBJECT
+	scap_event.c
+	syscall_info_table.c
+	../../driver/dynamic_params_table.c
+	../../driver/event_table.c
+	../../driver/flags_table.c)
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_library(scap_event_schema
-		scap_event.c
-		syscall_info_table.c
-		../../driver/dynamic_params_table.c
-		../../driver/event_table.c
-		../../driver/flags_table.c
+	add_library(driver_event_schema
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 
-	target_link_libraries(scap scap_event_schema)
+	target_link_libraries(scap driver_event_schema)
 endif()
 
 add_library(scap_engine_util
