@@ -1,20 +1,11 @@
 approvers:
-  - fntlnz
-  - leodido
   - leogr
   - gnosek
-  - ldegio
   - mstemm
   - fededp
   - andreagit97
   - molter73
-reviewers:
+emeritus_approvers:
   - fntlnz
   - leodido
-  - leogr
-  - gnosek
   - ldegio
-  - mstemm
-  - fededp
-  - andreagit97
-  - molter73
