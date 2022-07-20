@@ -58,7 +58,7 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 			}
 
 			// DT_MANAGED_BUF, try to increase the size
-			size_t targetbufsize = 1.25 * (d->m_targetbufend - d->m_targetbuf);
+			size_t targetbufsize = PPM_DUMPER_MANAGED_BUF_RESIZE_FACTOR * (d->m_targetbufend - d->m_targetbuf);
 
 			uint8_t *targetbuf = (uint8_t *)realloc(
 				d->m_targetbuf,
@@ -1140,10 +1140,9 @@ scap_dumper_t *scap_managedbuf_dump_create(scap_t *handle)
 
 	res->m_f = NULL;
 	res->m_type = DT_MANAGED_BUF;
-	const size_t targetbufsize = 3 * 1024 * 1024;
-	res->m_targetbuf = (uint8_t *)malloc(targetbufsize);
+	res->m_targetbuf = (uint8_t *)malloc(PPM_DUMPER_MANAGED_BUF_SIZE);
 	res->m_targetbufcurpos = res->m_targetbuf;
-	res->m_targetbufend = res->m_targetbuf + targetbufsize;
+	res->m_targetbufend = res->m_targetbuf + PPM_DUMPER_MANAGED_BUF_SIZE;
 
 	return res;
 }

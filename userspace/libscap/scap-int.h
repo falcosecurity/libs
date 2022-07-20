@@ -168,6 +168,9 @@ typedef enum ppm_dumper_type
 	DT_MANAGED_BUF = 2,
 }ppm_dumper_type;
 
+#define PPM_DUMPER_MANAGED_BUF_SIZE (3 * 1024 * 1024)
+#define PPM_DUMPER_MANAGED_BUF_RESIZE_FACTOR (1.25)
+
 struct scap_dumper
 {
 	gzFile m_f;
