@@ -103,6 +103,7 @@ struct iovec;
 #define SCAP_UNEXPECTED_BLOCK 7
 #define SCAP_VERSION_MISMATCH 8
 #define SCAP_NOT_SUPPORTED 9
+#define SCAP_FILTERED_EVENT 10
 
 //
 // Last error string size for `scap_open...` methods.
