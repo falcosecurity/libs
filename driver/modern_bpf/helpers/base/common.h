@@ -23,6 +23,8 @@
 #define __PT_PARM6_REG r9
 #elif defined(bpf_target_arm64)
 #define __PT_PARM6_REG regs[5]
+#elif defined(bpf_target_s390)
+#define __PT_PARM6_REG gprs[7]
 #endif
 
 #define PT_REGS_PARM6_CORE(x) BPF_CORE_READ(__PT_REGS_CAST(x), __PT_PARM6_REG)
