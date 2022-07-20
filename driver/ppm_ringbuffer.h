@@ -24,7 +24,8 @@ struct ppm_ring_buffer_info {
 	volatile __u32 head;
 	volatile __u32 tail;
 	volatile __u64 n_evts;			/* Total number of events that were received by the driver. */
-	volatile __u64 n_drops_buffer;		/* Number of dropped events (buffer full). */
+	volatile __u64 n_drops_buffer;		/* Total number of kernel side drops due to full buffer, includes all categories below, likely higher than sum of syscall categories. */
+	/*  Kernel side drops due to full buffer for categories of system calls. Not all system calls of interest are mapped into one of the categories. */
 	volatile __u64 n_drops_buffer_clone_fork_enter;
 	volatile __u64 n_drops_buffer_clone_fork_exit;
 	volatile __u64 n_drops_buffer_execve_enter;
@@ -35,7 +36,7 @@ struct ppm_ring_buffer_info {
 	volatile __u64 n_drops_buffer_open_exit;
 	volatile __u64 n_drops_buffer_dir_file_enter;
 	volatile __u64 n_drops_buffer_dir_file_exit;
-	volatile __u64 n_drops_buffer_other_interest_enter;
+	volatile __u64 n_drops_buffer_other_interest_enter;		/* Category of other system calls of interest, not all other system calls that did not match a category from above. */
 	volatile __u64 n_drops_buffer_other_interest_exit;
 	volatile __u64 n_drops_pf;		/* Number of dropped events (page faults). */
 	volatile __u64 n_preemptions;		/* Number of preemptions. */

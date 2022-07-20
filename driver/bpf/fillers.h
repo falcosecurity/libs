@@ -126,6 +126,7 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_MKDIR_2_E:
 			case PPME_SYSCALL_MKDIRAT_E:
 			case PPME_SYSCALL_MOUNT_E:
+			case PPME_SYSCALL_UMOUNT_E:
 			case PPME_SYSCALL_RENAME_E:
 			case PPME_SYSCALL_RENAMEAT_E:
 			case PPME_SYSCALL_RENAMEAT2_E:
@@ -154,13 +155,6 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_clone_fork_enter;
 				}
 				break;
-			case PPME_SYSCALL_EXECVE_8_E:
-			case PPME_SYSCALL_EXECVE_13_E:
-			case PPME_SYSCALL_EXECVE_14_E:
-			case PPME_SYSCALL_EXECVE_15_E:
-			case PPME_SYSCALL_EXECVE_16_E:
-			case PPME_SYSCALL_EXECVE_17_E:
-			case PPME_SYSCALL_EXECVE_18_E:
 			case PPME_SYSCALL_EXECVE_19_E:
 			case PPME_SYSCALL_EXECVEAT_E:
 				if (state->n_drops_buffer_execve_enter != ULLONG_MAX) {
@@ -173,7 +167,6 @@ FILLER_RAW(terminate_filler)
 				}
 				break;
 			case PPME_SYSCALL_BPF_E:
-			case PPME_SYSCALL_FCHDIR_E:
 			case PPME_SYSCALL_SETPGID_E:
 			case PPME_SYSCALL_PTRACE_E:
 			case PPME_SYSCALL_SECCOMP_E:
@@ -182,6 +175,7 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_SETRESUID_E:
 			case PPME_SYSCALL_SETSID_E:
 			case PPME_SYSCALL_UNSHARE_E:
+			case PPME_SYSCALL_CAPSET_E:
 				if (state->n_drops_buffer_other_interest_enter != ULLONG_MAX) {
 					++state->n_drops_buffer_other_interest_enter;
 				}
@@ -209,6 +203,7 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_MKDIR_2_X:
 			case PPME_SYSCALL_MKDIRAT_X:
 			case PPME_SYSCALL_MOUNT_X:
+			case PPME_SYSCALL_UMOUNT_X:
 			case PPME_SYSCALL_RENAME_X:
 			case PPME_SYSCALL_RENAMEAT_X:
 			case PPME_SYSCALL_RENAMEAT2_X:
@@ -237,13 +232,6 @@ FILLER_RAW(terminate_filler)
 					++state->n_drops_buffer_clone_fork_exit;
 				}
 				break;
-			case PPME_SYSCALL_EXECVE_8_X:
-			case PPME_SYSCALL_EXECVE_13_X:
-			case PPME_SYSCALL_EXECVE_14_X:
-			case PPME_SYSCALL_EXECVE_15_X:
-			case PPME_SYSCALL_EXECVE_16_X:
-			case PPME_SYSCALL_EXECVE_17_X:
-			case PPME_SYSCALL_EXECVE_18_X:
 			case PPME_SYSCALL_EXECVE_19_X:
 			case PPME_SYSCALL_EXECVEAT_X:
 				if (state->n_drops_buffer_execve_exit != ULLONG_MAX) {
@@ -256,7 +244,6 @@ FILLER_RAW(terminate_filler)
 				}
 				break;
 			case PPME_SYSCALL_BPF_X:
-			case PPME_SYSCALL_FCHDIR_X:
 			case PPME_SYSCALL_SETPGID_X:
 			case PPME_SYSCALL_PTRACE_X:
 			case PPME_SYSCALL_SECCOMP_X:
@@ -265,13 +252,13 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_SETRESUID_X:
 			case PPME_SYSCALL_SETSID_X:
 			case PPME_SYSCALL_UNSHARE_X:
+			case PPME_SYSCALL_CAPSET_X:
 				if (state->n_drops_buffer_other_interest_exit != ULLONG_MAX) {
 					++state->n_drops_buffer_other_interest_exit;
 				}
 				break;
 			default:
 				break;
-
 		}
 		break;
 	case PPM_FAILURE_INVALID_USER_MEMORY:
