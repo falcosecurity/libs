@@ -95,6 +95,9 @@ protected:
 		}
 
 		scap_evt *event = static_cast<scap_evt*>(event_buf.buf);
+		event->ts = ts;
+		event->tid = tid;
+
 		m_events.push_back(event);
 		m_test_data->events = m_events.data();
 		m_test_data->event_count = m_events.size();
