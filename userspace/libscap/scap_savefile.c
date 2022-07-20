@@ -287,6 +287,10 @@ scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
 }
 int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen)
 {
+	ASSERT(handle != NULL);
+	ASSERT(proclist_dumper != NULL);
+	ASSERT(proclist_dumper->m_type == DT_MANAGED_BUF);
+
 	int res = SCAP_SUCCESS;
 
 	do
