@@ -3,9 +3,7 @@
 #ifdef __NR_mkdir
 TEST(SyscallExit, mkdirX)
 {
-	auto evt_test = new event_test(PPME_SYSCALL_MKDIR_2_X);
-
-	evt_test->mark_single_64bit_syscall_as_interesting(__NR_mkdir);
+	auto evt_test = new event_test(__NR_mkdir, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

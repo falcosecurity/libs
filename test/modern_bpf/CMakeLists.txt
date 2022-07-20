@@ -22,6 +22,7 @@ set(MODERN_BPF_TEST_INCLUDE
 set(MODERN_BPF_TEST_LINK_LIBRARIES 
   PRIVATE
   pman
+  scap_event_schema
   "${GTEST_LIB}"
   "${GTEST_MAIN_LIB}"
 )
