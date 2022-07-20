@@ -25,6 +25,13 @@
 /* Taken from arch/arm64/include/asm/thread_info.h */
 #define _TIF_32BIT (1 << 22)
 
+#elif defined(__TARGET_ARCH_s390)
+
+/* See here for definition:
+ * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/s390/include/asm/thread_info.h#L101
+ */
+#define _TIF_31BIT (1 << 16)
+
 #endif
 
 /*=============================== ARCH SPECIFIC ===========================*/
