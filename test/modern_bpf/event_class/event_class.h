@@ -22,6 +22,9 @@ struct param
 	uint16_t len;
 };
 
+#define EXIT_EVENT 0
+#define ENTER_EVENT 1
+
 class event_test
 {
 public:
@@ -33,12 +36,13 @@ public:
 
 	/**
 	 * @brief Construct a new event_test object:
-	 * - initialize the event type that we want to assert.
+	 * - search in the `g_syscall_table` for the right event associated with the syscall-id.
 	 * - clean the BPF probe state before starting a new test.
 	 *
-	 * @param event_type event type that we want to assert.
+	 * @param syscall_id syscall that we want to assert.
+	 * @param enter_event `ENTER_EVENT==true` or `EXIT_EVENT==false`.
 	 */
-	explicit event_test(ppm_event_type event_type);
+	explicit event_test(int syscall_id, bool enter_event);
 
 	/**
 	 * @brief Destroy the event_test object

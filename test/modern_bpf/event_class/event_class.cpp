@@ -5,13 +5,23 @@
 #define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
 #define VALUE_NOT_ZERO ">>>>> value of the param must not be zero. Param id = "
 
+extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+
 /////////////////////////////////
 // CONFIGURATION
 /////////////////////////////////
 
-event_test::event_test(ppm_event_type event_type)
+event_test::event_test(int syscall_id, bool enter_event)
 {
-	m_event_type = event_type;
+	if(enter_event)
+	{
+		m_event_type = g_syscall_table[syscall_id].enter_event_type;
+	} 
+	else
+	{
+		m_event_type = g_syscall_table[syscall_id].exit_event_type;
+	}
+	
 	m_current_param = 0;
 
 	/*
@@ -27,7 +37,10 @@ event_test::event_test(ppm_event_type event_type)
 	/* 3 - clean all interesting syscalls. */
 	mark_all_64bit_syscalls_as_uninteresting();
 
-	/* 4 - detach all bpf programs attached to the kernel a part from syscall dispatchers. */
+	/* 4 - set the current as the only interesting syscall. */
+	mark_single_64bit_syscall_as_interesting(syscall_id);
+
+	/* 5 - detach all bpf programs attached to the kernel a part from syscall dispatchers. */
 	/* Right now we don't have BPF programs to detach here ...*/
 }
 
