@@ -65,8 +65,7 @@ protected:
 	{
 		struct scap_sized_buffer event_buf = {NULL, 0};
 		size_t event_size;
-		char error[SCAP_LASTERR_SIZE];
-		error[0] = '\0';
+		char error[SCAP_LASTERR_SIZE] = {'\0'};
 
 		va_list args;
 		va_start(args, n);
