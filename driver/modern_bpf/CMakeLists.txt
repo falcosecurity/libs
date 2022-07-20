@@ -33,6 +33,7 @@ execute_process(COMMAND uname -m
   COMMAND sed "s/aarch64/arm64/"
   COMMAND sed "s/ppc64le/powerpc/"
   COMMAND sed "s/mips.*/mips/"
+  COMMAND sed "s/s390x/s390/"
   OUTPUT_VARIABLE ARCH_output
   ERROR_VARIABLE ARCH_error
   RESULT_VARIABLE ARCH_result
