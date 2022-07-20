@@ -102,7 +102,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(scap STATIC
 	${targetfiles}
-	$<TARGET_OBJECTS:scap_event_schema>)
+	$<TARGET_OBJECTS:scap_event_schema>
+	$<TARGET_OBJECTS:scap_engine_util>
+	$<TARGET_OBJECTS:scap_engine_noop>
+	$<TARGET_OBJECTS:scap_engine_nodriver>
+	$<TARGET_OBJECTS:scap_engine_savefile>
+	$<TARGET_OBJECTS:scap_engine_source_plugin>
+	$<TARGET_OBJECTS:scap_engine_udig>)
 
 if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 	add_dependencies(scap zlib)
@@ -179,32 +185,26 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap driver_event_schema)
 endif()
 
-add_library(scap_engine_util
+# Instead of creating object libraries we might want to append to scap's ${targetfiles}.
+add_library(scap_engine_util OBJECT
 	scap_engine_util.c
 	ringbuffer/devset.c)
 
-target_link_libraries(scap scap_engine_util)
-
 add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
-# don't link the noop engine to libscap directly,
-# it's a helper library for other engines (it's completely useless on its own)
 
 add_definitions(-DHAS_ENGINE_NODRIVER)
 add_subdirectory(engine/nodriver)
-target_link_libraries(scap scap_engine_nodriver)
 
 add_definitions(-DHAS_ENGINE_SAVEFILE)
 add_subdirectory(engine/savefile)
-target_link_libraries(scap scap_engine_savefile)
 
 add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
 add_subdirectory(engine/source_plugin)
-target_link_libraries(scap scap_engine_source_plugin)
 
 add_definitions(-DHAS_ENGINE_UDIG)
 add_subdirectory(engine/udig)
-target_link_libraries(scap scap_engine_udig)
+target_link_libraries(scap rt)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_BPF)

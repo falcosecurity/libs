@@ -1,3 +1,2 @@
 include_directories(${LIBSCAP_INCLUDE_DIRS})
-add_library(scap_engine_udig scap_udig.c)
-target_link_libraries(scap_engine_udig scap_engine_util rt)
+add_library(scap_engine_udig OBJECT scap_udig.c)
