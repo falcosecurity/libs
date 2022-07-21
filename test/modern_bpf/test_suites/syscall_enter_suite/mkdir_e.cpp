@@ -9,7 +9,7 @@ TEST(SyscallEnter, mkdirE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* This is a mock mode just to check that the value is correctly caught. 
+	/* This is a mock mode just to check that the value is correctly caught.
 	 * The syscall should fail!
 	 */
 	uint32_t mode = 7;

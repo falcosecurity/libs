@@ -35,7 +35,7 @@ set(PMAN_DEPENDENCIES
 )
 
 if(USE_BUNDLED_LIBBPF)
-    list(APPEND 
+    list(APPEND
         PMAN_DEPENDENCIES
         libbpf
     )

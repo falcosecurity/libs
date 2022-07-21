@@ -14,7 +14,7 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 void assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op, long expected_rc)
 {
 	bool match = false;
-	
+
 	switch (op)
 	{
 	case EQUAL:
@@ -52,12 +52,12 @@ event_test::event_test(int syscall_id, int event_direction)
 	if(event_direction == ENTER_EVENT)
 	{
 		m_event_type = g_syscall_table[syscall_id].enter_event_type;
-	} 
+	}
 	else
 	{
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
 	}
-	
+
 	m_current_param = 0;
 
 	/*
@@ -215,7 +215,7 @@ void event_test::assert_numeric_param(int param_num, T param, enum assertion_ope
 
 		case GREATER_EQUAL:
 		ASSERT_GE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-		
+
 		default:
 		FAIL() << "Operation currently not supported!";
 		return;
