@@ -47,7 +47,7 @@ endif()
 # Get modern probe include.
 set(MODERN_PROBE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Note here we use the source directory since we want to avoid conflicts between the `bpf` folder inside 
+# Note here we use the source directory since we want to avoid conflicts between the `bpf` folder inside
 # `driver` and the `libbpf` includes.
 set(PPM_INCLUDE ${CMAKE_SOURCE_DIR})
 
@@ -84,7 +84,7 @@ if(USE_BUNDLED_LIBBPF)
         COMMAND ${CLANG_EXE} ${CLANG_FLAGS} ${CLANG_SYSTEM_INCLUDES} -c ${BPF_C_FILE} -o ${BPF_O_FILE}
         VERBATIM
         DEPENDS libbpf
-        DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} 
+        DEPENDS ${BPF_C_FILE} ${BPF_H_FILES}
         COMMENT "[clang] Building BPF object: ${BPF_O_FILE}"
     )
 else()
@@ -92,7 +92,7 @@ else()
       OUTPUT ${BPF_O_FILE}
       COMMAND ${CLANG_EXE} ${CLANG_FLAGS} ${CLANG_SYSTEM_INCLUDES} -c ${BPF_C_FILE} -o ${BPF_O_FILE}
       VERBATIM
-      DEPENDS ${BPF_C_FILE} ${BPF_H_FILES} 
+      DEPENDS ${BPF_C_FILE} ${BPF_H_FILES}
       COMMENT "[clang] Building BPF object: ${BPF_O_FILE}"
     )
 endif()
@@ -109,7 +109,7 @@ add_custom_command(
   VERBATIM
   DEPENDS ${BPF_OBJECT_FILES}
   COMMENT "[bpftool]  Building BPF unique object file: ${UNIQUE_BPF_O_FILE}"
-) 
+)
 
 ## Generate the skeleton file
 set(BPF_SKEL_FILE ${SKEL_DIR}/${UNIQUE_BPF_O_FILE_NAME}.skel.h)
@@ -124,4 +124,3 @@ add_custom_command(
 ## Add the skeleton as a custom target
 set(BPF_SKEL_TARGET ProbeSkeleton)
 add_custom_target(${BPF_SKEL_TARGET} ALL DEPENDS ${BPF_SKEL_FILE})
-

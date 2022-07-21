@@ -49,7 +49,7 @@ enum assertion_operators
  * @brief With this method we want to assert the syscall state: `failure` or `success`.
  * Please note that not all syscalls return `-1` when they fail, there are some
  * exceptions, so you have to set the `expected_rc` if it is different from `-1`.
- * 
+ *
  * When you use this method you must check what is the syscall return value!
  *
  * @param syscall_state it could be `SYSCALL_FAILURE` or `SYSCALL_SUCCESS`
@@ -216,7 +216,7 @@ public:
 	 * @param param expected value.
 	 * @param op the operation we want to perform in the assertion.
 	 */
-	template <class T> 
+	template <class T>
 	void assert_numeric_param(int param_num, T param, enum assertion_operators op = EQUAL);
 
 
