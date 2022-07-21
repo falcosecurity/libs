@@ -76,6 +76,7 @@ foreach(BPF_C_FILE ${BPF_C_FILES})
     get_filename_component(file_stem ${BPF_C_FILE} NAME_WE)
     set(BPF_O_FILE ${CMAKE_CURRENT_BINARY_DIR}/${file_stem}.bpf.o)
 
+## TODO: we need to clean this!
 ## Please note: that the `libbpf` target exists only if we use `USE_BUNDLED_LIBBPF`
 if(USE_BUNDLED_LIBBPF)
     add_custom_command(

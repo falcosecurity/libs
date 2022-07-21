@@ -32,10 +32,10 @@ set(MODERN_BPF_TEST_DEPENDECIES
 )
 
 if(USE_BUNDLED_GTEST)
-list(APPEND 
-  MODERN_BPF_TEST_DEPENDECIES
-  gtest
-)
+  list(APPEND 
+    MODERN_BPF_TEST_DEPENDECIES
+    gtest
+  )
 endif()
 
 add_executable(bpf_test ${MODERN_BPF_TEST_SOURCES})

@@ -14,7 +14,7 @@ TEST(SyscallEnter, mkdirE)
 	 */
 	uint32_t mode = 7;
 	const char* path = NULL;
-	evt_test->assert_syscall_failure(syscall(__NR_mkdir, path, mode), "mkdir");
+	assert_syscall_state(SYSCALL_FAILURE, "mkdir", syscall(__NR_mkdir, path, mode));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -29,7 +29,7 @@ TEST(SyscallEnter, mkdirE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* 1° Parameter: mode (type: PT_UINT32) */
-	evt_test->assert_u32_param(1, mode);
+	evt_test->assert_numeric_param(1, mode);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

@@ -17,10 +17,19 @@ void print_setup_phase_message()
 
 void print_start_test_message()
 {
-	std::cout << "\n* BPF probe correctly configured!" << std::endl;
+	std::cout << "* BPF probe correctly configured!" << std::endl;
 	std::cout << std::endl;
 	std::cout << "-----------------------------------------------------" << std::endl;
 	std::cout << "------------------- Testing phase -------------------" << std::endl;
+	std::cout << "-----------------------------------------------------" << std::endl;
+	std::cout << std::endl;
+}
+
+void print_teardown_test_message()
+{
+	std::cout << std::endl;
+	std::cout << "-----------------------------------------------------" << std::endl;
+	std::cout << "------------------- Teardown phase ------------------" << std::endl;
 	std::cout << "-----------------------------------------------------" << std::endl;
 	std::cout << std::endl;
 }
@@ -64,7 +73,9 @@ int main(int argc, char** argv)
 	ret = RUN_ALL_TESTS();
 
 cleanup_tests:
+	print_teardown_test_message();
 	pman_detach_all_programs();
 	pman_close_probe();
+	std::cout << "* BPF probe correctly detached! Bye!" << std::endl;
 	return ret;
 }
