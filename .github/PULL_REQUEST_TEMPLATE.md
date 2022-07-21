@@ -22,9 +22,15 @@
 
 > /kind feature
 
+<!--
+Please remove the leading whitespace before the `/kind <>` you uncommented.
+-->
+
 **Any specific area of the project related to this PR?**
 
 > Uncomment one (or more) `/area <>` lines:
+
+> /area API-version
 
 > /area build
 
@@ -62,6 +68,24 @@
 
 <!--
 Please remove the leading whitespace before the `/area <>` you uncommented.
+-->
+
+**Does this PR require a change in the driver versions?**
+
+> /version driver-API-version-major
+
+> /version driver-API-version-minor
+
+> /version driver-API-version-patch
+
+> /version driver-SCHEMA-version-major
+
+> /version driver-SCHEMA-version-minor
+
+> /version driver-SCHEMA-version-patch
+
+<!--
+Please remove the leading whitespace before the `/version <>` you uncommented.
 -->
 
 **What this PR does / why we need it**:
