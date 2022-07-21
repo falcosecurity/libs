@@ -8,12 +8,48 @@
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /////////////////////////////////
+// SYSCALL RESULT ASSERTIONS
+/////////////////////////////////
+
+void assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op, long expected_rc)
+{
+	bool match = false;
+	
+	switch (op)
+	{
+	case EQUAL:
+		match = syscall_rc == expected_rc;
+		break;
+
+	case NOT_EQUAL:
+		match = syscall_rc != expected_rc;
+		break;
+
+	default:
+		FAIL() << "Operation currently not supported!";
+		return;
+	}
+
+	if(!match)
+	{
+		if(syscall_state==SYSCALL_SUCCESS)
+		{
+			FAIL() << ">>>>> The syscall '" << syscall_name << "' must be successful. Errno: " << errno << " err_message: " << strerror(errno) << std::endl;
+		}
+		else
+		{
+			FAIL() << ">>>>> The syscall '" << syscall_name << "' must fail." << std::endl;
+		}
+	}
+}
+
+/////////////////////////////////
 // CONFIGURATION
 /////////////////////////////////
 
-event_test::event_test(int syscall_id, bool enter_event)
+event_test::event_test(int syscall_id, int event_direction)
 {
-	if(enter_event)
+	if(event_direction == ENTER_EVENT)
 	{
 		m_event_type = g_syscall_table[syscall_id].enter_event_type;
 	} 
@@ -149,35 +185,13 @@ void event_test::assert_num_params_pushed(int total_params)
 }
 
 /////////////////////////////////
-// SYSCALL RESULT ASSERTIONS
-/////////////////////////////////
-
-void event_test::assert_syscall_failure(long syscall_rc, const char* syscall_name)
-{
-	if(syscall_rc != -1)
-	{
-		FAIL() << ">>>>> The syscall '" << syscall_name << "' must fail.";
-		exit(EXIT_SUCCESS);
-	}
-}
-
-void event_test::assert_syscall_success(long syscall_rc, const char* syscall_name)
-{
-	if(syscall_rc == -1)
-	{
-		FAIL() << ">>>>> The syscall '" << syscall_name << "' must not fail. Errno: " << errno << " err_message: " << strerror(errno) << std::endl;
-		exit(EXIT_SUCCESS);
-	}
-}
-
-/////////////////////////////////
 // PARAM ASSERTIONS
 /////////////////////////////////
 
 void event_test::assert_empty_param(int param_num)
 {
 	assert_param_boundaries(param_num);
-	/* The param len must be 0. */
+	/* The param length must be 0. */
 	assert_param_len(0);
 }
 
@@ -187,75 +201,43 @@ void event_test::assert_only_param_len(int param_num, uint16_t expected_size)
 	assert_param_len(expected_size);
 }
 
-void event_test::assert_u8_param(int param_num, uint8_t param)
+template <typename T>
+void event_test::assert_numeric_param(int param_num, T param, enum assertion_operators op)
 {
 	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint8_t));
-	ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+	assert_param_len(sizeof(T));
+
+	switch (op)
+	{
+		case EQUAL:
+		ASSERT_EQ(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		break;
+
+		case GREATER_EQUAL:
+		ASSERT_GE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		
+		default:
+		FAIL() << "Operation currently not supported!";
+		return;
+	}
+
 }
 
-void event_test::assert_u16_param(int param_num, uint16_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint16_t));
-	ASSERT_EQ(*(uint16_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_u32_param(int param_num, uint32_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint32_t));
-	ASSERT_EQ(*(uint32_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_u64_param(int param_num, uint64_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint64_t));
-	ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_s32_param(int param_num, int32_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(int32_t));
-	ASSERT_EQ(*(int32_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_s64_param(int param_num, int64_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(int64_t));
-	ASSERT_EQ(*(int64_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_u32_param_ge_than(int param_num, uint32_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint32_t));
-	ASSERT_GE(*(uint32_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_u64_param_ge_than(int param_num, uint64_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(uint64_t));
-	ASSERT_GE(*(uint64_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
-
-void event_test::assert_s64_param_ge_than(int param_num, uint64_t param)
-{
-	assert_param_boundaries(param_num);
-	assert_param_len(sizeof(int64_t));
-	ASSERT_GE(*(int64_t*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
-}
+template void event_test::assert_numeric_param<uint8_t>(int, uint8_t, enum assertion_operators);
+template void event_test::assert_numeric_param<uint16_t>(int, uint16_t, enum assertion_operators);
+template void event_test::assert_numeric_param<uint32_t>(int, uint32_t, enum assertion_operators);
+template void event_test::assert_numeric_param<uint64_t>(int, uint64_t, enum assertion_operators);
+template void event_test::assert_numeric_param<int8_t>(int, int8_t, enum assertion_operators);
+template void event_test::assert_numeric_param<int16_t>(int, int16_t, enum assertion_operators);
+template void event_test::assert_numeric_param<int32_t>(int, int32_t, enum assertion_operators);
+template void event_test::assert_numeric_param<int64_t>(int, int64_t, enum assertion_operators);
 
 void event_test::assert_charbuf_param(int param_num, const char* param)
 {
 	assert_param_boundaries(param_num);
 	/* 'strlen()' does not include the terminating null byte while bpf adds it. */
 	assert_param_len(strlen(param) + 1);
-	/* The following assertion compare two C strings, not std::string */
+	/* The following assertion compares two C strings, not std::string */
 	ASSERT_STREQ(m_event_params[m_current_param].valptr, param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 }
 

@@ -11,7 +11,7 @@ TEST(SyscallExit, mkdirX)
 
 	uint32_t mode = 7;
 	const char* path = "*//null";
-	evt_test->assert_syscall_failure(syscall(__NR_mkdir, path, mode), "mkdir");
+	assert_syscall_state(SYSCALL_FAILURE, "mkdir", syscall(__NR_mkdir, path, mode));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -27,7 +27,7 @@ TEST(SyscallExit, mkdirX)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* 1° Parameter: res (type: PT_ERRNO)*/
-	evt_test->assert_s64_param(1, errno_value);
+	evt_test->assert_numeric_param(1, errno_value);
 
 	/* 2° Parameter: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);

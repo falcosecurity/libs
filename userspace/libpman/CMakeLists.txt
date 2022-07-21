@@ -35,10 +35,10 @@ set(PMAN_DEPENDENCIES
 )
 
 if(USE_BUNDLED_LIBBPF)
-list(APPEND 
-    PMAN_DEPENDENCIES
-    libbpf
-)
+    list(APPEND 
+        PMAN_DEPENDENCIES
+        libbpf
+    )
 endif()
 
 add_library(pman ${PMAN_SOURCES})

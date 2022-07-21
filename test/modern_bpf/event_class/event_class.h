@@ -22,8 +22,43 @@ struct param
 	uint16_t len;
 };
 
+/* Assertion operators */
+enum assertion_operators
+{
+	EQUAL = 0,
+	NOT_EQUAL = 1,
+	GREATER = 2,
+	LESS = 3,
+	GREATER_EQUAL = 4,
+	LESS_EQUAL = 5,
+};
+
+/* Syscall return code assertions. */
+#define SYSCALL_FAILURE 0
+#define SYSCALL_SUCCESS 1
+
+/* Event direction. */
 #define EXIT_EVENT 0
 #define ENTER_EVENT 1
+
+/////////////////////////////////
+// SYSCALL RESULT ASSERTIONS
+/////////////////////////////////
+
+/**
+ * @brief With this method we want to assert the syscall state: `failure` or `success`.
+ * Please note that not all syscalls return `-1` when they fail, there are some
+ * exceptions, so you have to set the `expected_rc` if it is different from `-1`.
+ * 
+ * When you use this method you must check what is the syscall return value!
+ *
+ * @param syscall_state it could be `SYSCALL_FAILURE` or `SYSCALL_SUCCESS`
+ * @param syscall_name the name of the syscall to assert.
+ * @param syscall_rc the return code of the syscall to assert.
+ * @param op the operation we want to perform in the assertion.
+ * @param expected_rc the return code we expect.
+ */
+void assert_syscall_state(int syscall_state, const char* syscall_name, long syscall_rc, enum assertion_operators op = EQUAL, long expected_rc = -1);
 
 class event_test
 {
@@ -40,9 +75,9 @@ public:
 	 * - clean the BPF probe state before starting a new test.
 	 *
 	 * @param syscall_id syscall that we want to assert.
-	 * @param enter_event `ENTER_EVENT==true` or `EXIT_EVENT==false`.
+	 * @param event_direction it could be `ENTER_EVENT` or `EXIT_EVENT`.
 	 */
-	explicit event_test(int syscall_id, bool enter_event);
+	explicit event_test(int syscall_id, int event_direction);
 
 	/**
 	 * @brief Destroy the event_test object
@@ -85,7 +120,7 @@ public:
 	/**
 	 * @brief Parse information from the event that we have extracted from the buffer:
 	 * - Number of parameters.
-	 * - Lenght and value of each parameter.
+	 * - Length and value of each parameter.
 	 * - Total length of the event.
 	 *
 	 */
@@ -118,32 +153,6 @@ public:
 	void assert_num_params_pushed(int param_num);
 
 	/////////////////////////////////
-	// SYSCALL RESULT ASSERTIONS
-	/////////////////////////////////
-
-	/**
-	 * @brief When we call this function we expect that the syscall will fail.
-	 * Please note that not all syscalls return `-1` when they fail, there are some
-	 * exceptions... by the way, with this function we can manage the large majority of
-	 * cases. When you use this method you must check what is the syscall return value!
-	 *
-	 * @param syscall_rc the return code of the syscall to assert
-	 * @param syscall_name the name of the syscall to assert
-	 */
-	void assert_syscall_failure(long syscall_rc, const char* syscall_name);
-
-	/**
-	 * @brief When we call this function we expect that the syscall will succeed.
-	 * Please note that not all syscalls return `-1` when they fail, there are some
-	 * exceptions... by the way, with this function we can manage the large majority of
-	 * cases. When you use this method you must check what is the syscall return value!
-	 *
-	 * @param syscall_rc the return code of the syscall to assert
-	 * @param syscall_name the name of the syscall to assert
-	 */
-	void assert_syscall_success(long syscall_rc, const char* syscall_name);
-
-	/////////////////////////////////
 	// PARAM ASSERTIONS
 	/////////////////////////////////
 
@@ -166,40 +175,21 @@ public:
 	void assert_only_param_len(int param_num, uint16_t expected_size);
 
 	/**
-	 * @brief Assert that the parameter is an `uint8` and
+	 * @brief Assert that the parameter is of the right type and
 	 * compare its value with the expected one.
 	 *
-	 * Use this method with the following types:
+	 * `T` must be `uint8_t` for the following types:
 	 * - PT_UINT8
 	 * - PT_SIGTYPE
 	 * - PT_FLAGS8
 	 * - PT_ENUMFLAGS8
 	 *
-	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u8_param(int param_num, uint8_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `uint16` and
-	 * compare its value with the expected one.
-	 *
-	 * Use this method with the following types:
+	 * `T` must be `uint16_t` for the following types:
 	 * - PT_UINT16
 	 * - PT_FLAGS16
 	 * - PT_ENUMFLAGS16
 	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u16_param(int param_num, uint16_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `uint32` and
-	 * compare its value with the expected one.
-	 *
-	 * Use this method with the following types:
+	 * `T` must be `uint32_t` for the following types:
 	 * - PT_UINT32
 	 * - PT_UID
 	 * - PT_GID
@@ -208,42 +198,15 @@ public:
 	 * - PT_FLAGS32
 	 * - PT_ENUMFLAGS32
 	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u32_param(int param_num, uint32_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `uint64` and
-	 * compare its value with the expected one.
-	 *
-	 * Use this method with the following types:
+	 * `T` must be `uint64_t` for the following types:
 	 * - PT_UINT64
 	 * - PT_RELTIME
 	 * - PT_ABSTIME
 	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u64_param(int param_num, uint64_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `int32` and
-	 * compare its value with the expected one.
-	 *
-	 * Use this method with the following types:
+	 * `T` must be `int32_t` for the following types:
 	 * - PT_INT32
 	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_s32_param(int param_num, int32_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `int64` and
-	 * compare its value with the expected one.
-	 *
-	 * Use this method with the following types:
+	 * `T` must be `int64_t` for the following types:
 	 * - PT_INT64
 	 * - PT_ERRNO
 	 * - PT_FD
@@ -251,35 +214,11 @@ public:
 	 *
 	 * @param param_num number of the parameter to assert into the event.
 	 * @param param expected value.
+	 * @param op the operation we want to perform in the assertion.
 	 */
-	void assert_s64_param(int param_num, int64_t param);
+	template <class T> 
+	void assert_numeric_param(int param_num, T param, enum assertion_operators op = EQUAL);
 
-	/**
-	 * @brief Assert that the parameter is an `uint32` and
-	 * check that its value is greater or equal to the expected one.
-	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u32_param_ge_than(int param_num, uint32_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `uint64` and
-	 * check that its value is greater or equal to the expected one.
-	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_u64_param_ge_than(int param_num, uint64_t param);
-
-	/**
-	 * @brief Assert that the parameter is an `int64` and
-	 * check that its value is greater or equal to the expected one.
-	 *
-	 * @param param_num number of the parameter to assert into the event.
-	 * @param param expected value.
-	 */
-	void assert_s64_param_ge_than(int param_num, uint64_t param);
 
 	/**
 	 * @brief Assert that the parameter is a `charbuf` and
