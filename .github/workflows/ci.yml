@@ -72,3 +72,74 @@ jobs:
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
             make run-unit-tests
+
+  build-modern-bpf-x86:
+    name: build-modern-bpf-x86 🏗️
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update 
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev
+
+      - name: Build scap-open using BUNDLED_DEPS 🏗️
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DUSE_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make scap-open
+
+      - name: Check no verifier issues 👀
+        run: |
+          cd build
+          sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
+
+  test-modern-bpf-x86:
+    name: test-modern-bpf-x86 🧪
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update 
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev
+
+      - name: Build bpf_test using BUNDLED_DEPS 🏗️
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make bpf_test
+
+      - name: Check all test are successful 👀
+        run: |
+          cd build
+          sudo ./test/modern_bpf/bpf_test
+
+  build-modern-bpf-arm64:
+    name: build-modern-bpf-arm64 🏗️ 
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run aarch64 build 🏎️
+        with:
+          arch: aarch64
+          distro: archarm_latest
+          githubToken: ${{ github.token }}
+
+          install: |
+            pacman -Sy --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml
+
+          run: |
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ../
+            make scap-open
