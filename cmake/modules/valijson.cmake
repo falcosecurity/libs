@@ -14,8 +14,13 @@
 #
 # Valijson (https://github.com/tristanpenman/valijson/)
 #
+
+option(USE_BUNDLED_VALIJSON "Enable building of the bundled valijson" ${USE_BUNDLED_DEPS})
+
 if(VALIJSON_INCLUDE)
 	# we already have valijson
+elseif(NOT USE_BUNDLED_VALIJSON)
+	find_package(valijson REQUIRED)
 else()
 	set(VALIJSON_SRC "${PROJECT_BINARY_DIR}/valijson-prefix/src/valijson")
 	set(VALIJSON_INCLUDE "${VALIJSON_SRC}/include")
