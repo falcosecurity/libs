@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-libs-linux-amd64:
+    name: build-libs-linux-amd64 😁
     strategy:
       matrix:
         name: [system_deps, bundled_deps, system_deps_w_chisels, system_deps_minimal]
@@ -24,13 +25,14 @@ jobs:
     container:
       image: debian:buster
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
             
-      - name: Install deps
+      - name: Install deps ⛓️
         run: |
           apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
   
-      - name: Build and test
+      - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
           cd build && cmake ${{ matrix.cmake_opts }} ../
@@ -38,27 +40,30 @@ jobs:
           make run-unit-tests
           
   build-libs-others-amd64:
+    name: build-libs-others-amd64 😨
     strategy:
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
   
-      - name: Build and test
+      - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
           cd build && cmake -DCREATE_TEST_TARGETS=OFF ..
           cmake --build .
 
   build-libs-arm64:
+    name: build-libs-arm64 🥶
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Libs
+      - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
 
       - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run aarch64 build
+        name: Run aarch64 build 🏎️
         with:
           arch: aarch64
           distro: buster
@@ -74,7 +79,7 @@ jobs:
             make run-unit-tests
 
   build-and-test-modern-bpf-x86:
-    name: build-and-test-modern-bpf-x86 🏗️🧪
+    name: build-and-test-modern-bpf-x86 😇
     runs-on: ubuntu-22.04
     steps:
 
@@ -108,7 +113,7 @@ jobs:
           sudo ./test/modern_bpf/bpf_test --verbose
 
   build-modern-bpf-arm64:
-    name: build-modern-bpf-arm64 🏗️ 
+    name: build-modern-bpf-arm64 🙃
     runs-on: ubuntu-22.04
     steps:
 
