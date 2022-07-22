@@ -56,7 +56,7 @@ jobs:
           cmake --build .
 
   build-libs-arm64:
-    name: build-libs-arm64 🥶
+    name: build-libs-arm64 🥶 (system_deps)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Libs ⤵️
@@ -79,7 +79,7 @@ jobs:
             make run-unit-tests
 
   build-and-test-modern-bpf-x86:
-    name: build-and-test-modern-bpf-x86 😇
+    name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
     steps:
 
@@ -113,7 +113,7 @@ jobs:
           sudo ./test/modern_bpf/bpf_test --verbose
 
   build-modern-bpf-arm64:
-    name: build-modern-bpf-arm64 🙃
+    name: build-modern-bpf-arm64 🙃 (system_deps)
     runs-on: ubuntu-22.04
     steps:
 
