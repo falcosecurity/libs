@@ -25,7 +25,7 @@ int BPF_PROG(mkdir_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* 1° Parameter: mode (type: PT_UINT32) */
+	/* Parameter 1: mode (type: PT_UINT32) */
 	u32 mode = (u32)extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, mode);
 
@@ -55,10 +55,10 @@ int BPF_PROG(mkdir_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* 1° Parameter: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* 2° Parameter: path (type: PT_FSPATH) */
+	/* Parameter 2: path (type: PT_FSPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);
 	auxmap__store_charbuf_param(auxmap, path_pointer);
 
