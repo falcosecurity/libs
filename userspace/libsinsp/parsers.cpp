@@ -2237,7 +2237,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			enter_evt_flags = *(uint32_t *)parinfo->m_val;
 
-			if(enter_evt_namelen != 0 && strcmp(enter_evt_name, "(NULL)") != 0)
+			if(enter_evt_namelen != 0
+			   && strncmp(enter_evt_name, "(NULL)", 6) != 0
+			   && strncmp(enter_evt_name, "<NA>", 4) != 0)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
@@ -2276,7 +2278,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 
 			enter_evt_flags = 0;
 
-			if(enter_evt_namelen != 0 && strcmp(enter_evt_name, "(NULL)") != 0)
+			if(enter_evt_namelen != 0
+			   && strncmp(enter_evt_name, "(NULL)", 6) != 0
+			   && strncmp(enter_evt_name, "<NA>", 4) != 0)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
@@ -2346,7 +2350,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t enter_evt_dirfd = *(int64_t *)parinfo->m_val;
 
-			if(enter_evt_namelen != 0 && strcmp(enter_evt_name, "(NULL)") != 0)
+			if(enter_evt_namelen != 0
+			   && strncmp(enter_evt_name, "(NULL)", 6) != 0
+			   && strncmp(enter_evt_name, "<NA>", 4) != 0)
 			{
 				name = enter_evt_name;
 				namelen = enter_evt_namelen;
