@@ -92,31 +92,46 @@ static __always_inline long bpf_syscall_get_retval(void *ctx)
 static __always_inline long bpf_syscall_get_nr(void *ctx)
 {
 	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
-	long id;
+	long id = 0;
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#ifdef CONFIG_ARM64
-	
+#ifdef CONFIG_X86_64
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/x86/include/asm/syscall.h#L40
+	 */	
+	id = _READ(regs->orig_ax);
+
+#elif CONFIG_ARM64
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/arm64/include/asm/syscall.h#L23
+	 */	
 	id = _READ(regs->syscallno);
+
+#elif CONFIG_S390
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/s390/include/asm/syscall.h#L24
+	 */
+	id = _READ(regs->int_code);
+	id = id & 0xffff;
 
 #else 
 	
-	/* Right now we used this for all other architectures that are not ARM
-	 * becuase we support only `x86`, but we have to check if it is correct
-	 * in case of other architectures.
-	 */
-	id = _READ(regs->orig_ax);
+	/* Unknown architecture. */
+	id = 0;
 
-#endif
+#endif /* CONFIG_X86_64 */
 
 #else
 
 	id = args->id;
 
-#endif
+#endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
 
 	return id;
 }
@@ -125,7 +140,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned long *args,
 									int idx)
 {
-	unsigned long arg;
+	unsigned long arg = 0;
 
 	if (idx <= 5)
 		arg = args[idx];
@@ -139,33 +154,18 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned
 static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx,
 								       int idx)
 {
-	unsigned long arg;
+	unsigned long arg = 0;
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 
 	struct sys_enter_args *args = (struct sys_enter_args *)ctx;
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-#ifdef CONFIG_ARM64
-	
-	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
-	switch (idx) {
-	case 0:
-		arg = _READ(regs->orig_x0);
-		break;
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 5:
-		arg = _READ(user_regs->regs[idx]);
-		break;
-	default:
-		arg = 0;
-	}
+#ifdef CONFIG_X86_64
 
-#else
-	
+	/* See here for the definition:
+	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L75-L87
+	 */
 	switch (idx) {
 	case 0:
 		arg = _READ(regs->di);
@@ -189,7 +189,54 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 		arg = 0;
 	}
 
-#endif
+#elif CONFIG_ARM64
+
+	/* See here for the definition:
+	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L166-L178 
+	 */
+	struct user_pt_regs *user_regs = (struct user_pt_regs *)args->regs;
+	switch (idx) {
+	case 0:
+		arg = _READ(regs->orig_x0);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		arg = _READ(user_regs->regs[idx]);
+		break;
+	default:
+		arg = 0;
+	}
+
+#elif CONFIG_S390
+	
+	/* See here for the definition:
+	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L132-L144
+	 */
+	user_pt_regs *user_regs = (user_pt_regs *)args->regs;
+	switch (idx) {
+	case 0:
+		arg = _READ(regs->orig_gpr2);
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		arg = _READ(user_regs->gprs[idx]);
+		break;
+	default:
+		arg = 0;
+	}
+
+#else
+
+	/* Unknown architecture. */
+	arg = 0;
+
+#endif /* CONFIG_X86_64 */
 
 #else
 
@@ -199,7 +246,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	else
 		arg = 0;
 		
-#endif
+#endif /* BPF_SUPPORTS_RAW_TRACEPOINTS */
 
 	return arg;
 }
