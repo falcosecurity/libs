@@ -1045,7 +1045,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	u32 status = 0;
 
-#if (defined(__i386__) || defined(__x86_64__) || defined(_M_IX86))
+#ifdef CONFIG_X86_64
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
 	status = _READ(task->thread.status);
@@ -1055,20 +1055,35 @@ static __always_inline bool bpf_in_ia32_syscall()
 	status = _READ(task->thread.status);
 #else
 	status = _READ(task->thread_info.status);
-#endif
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18) */
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/x86/include/asm/thread_info.h#L212
+	 */
 	return status & TS_COMPAT;
 
 #elif defined(CONFIG_ARM64)
 
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/arm64/include/asm/thread_info.h#L99
+	 */
 	status = _READ(task->thread_info.flags);
 	return status & _TIF_32BIT;
+
+#elif defined(CONFIG_S390)
+
+	/* See here for the definition: 
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/s390/include/asm/thread_info.h#L101
+	 */
+	status = _READ(task->thread_info.flags);
+	return status & _TIF_31BIT;
 
 #else
 
 	/* Unknown architecture. */
-	return status;
+	return false;
 
-#endif 
+#endif /* CONFIG_X86_64 */
 }
 
 #endif
