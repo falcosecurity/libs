@@ -44,15 +44,22 @@ If you build this project from a git working directory, the main [CMakeLists.txt
 
 ## Drivers officially supported architectures
 
-Right now our drivers (kernel module, eBPF probe) officially support two main architectues: `ARM64` and `x86_64`.
+Right now our drivers officially support the following architectures:
 
 ### x86_64
-- **eBPF probe** requires kernel versions greater or equal than `4.14`
 - **Kernel module** requires kernel versions greater or equal than `2.6`
+- **eBPF probe** requires kernel versions greater or equal than `4.14`
+- **Modern eBPF probe** work in progress...
 
 ### ARM64
-- **eBPF probe** requires kernel versions greater or equal than `4.17`
 - **Kernel module** requires kernel versions greater or equal than `3.4`
+- **eBPF probe** requires kernel versions greater or equal than `4.17`
+- **Modern eBPF probe** work in progress...
+
+### s390x
+- **Kernel module** requires kernel versions greater or equal than `2.6`
+- **eBPF probe** not supported right now.
+- **Modern eBPF probe** not supported right now.
 
 ## Build
 
