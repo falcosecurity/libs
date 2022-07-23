@@ -28,7 +28,7 @@ TEST(SyscallEnter, mkdirE)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* 1° Parameter: mode (type: PT_UINT32) */
+	/* Parameter 1: mode (type: PT_UINT32) */
 	evt_test->assert_numeric_param(1, mode);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

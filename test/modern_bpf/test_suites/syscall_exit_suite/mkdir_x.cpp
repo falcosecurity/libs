@@ -26,10 +26,10 @@ TEST(SyscallExit, mkdirX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* 1° Parameter: res (type: PT_ERRNO)*/
+	/* Parameter 1: res (type: PT_ERRNO)*/
 	evt_test->assert_numeric_param(1, errno_value);
 
-	/* 2° Parameter: path (type: PT_FSPATH) */
+	/* Parameter 2: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
