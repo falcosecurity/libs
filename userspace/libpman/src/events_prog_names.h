@@ -23,6 +23,8 @@ limitations under the License.
 static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MKDIR_2_E] = "mkdir_e",
 	[PPME_SYSCALL_MKDIR_2_X] = "mkdir_x",
+	[PPME_SYSCALL_OPEN_E] = "open_e",
+	[PPME_SYSCALL_OPEN_X] = "open_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
