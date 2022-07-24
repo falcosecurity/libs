@@ -1,7 +1,9 @@
 #include "../../event_class/event_class.h"
-#include <sys/stat.h>
 
 #if defined(__NR_open) && defined(__NR_fstat)
+
+#include <sys/stat.h> /* Definitions for `fstat` syscall. */
+
 TEST(SyscallExit, openX_success)
 {
 	auto evt_test = new event_test(__NR_open, EXIT_EVENT);
