@@ -57,3 +57,84 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
 
 	return arg;
 }
+
+///////////////////////////
+// ENCODE DEVICE NUMBER
+///////////////////////////
+
+/**
+ * @brief Encode device number with `MAJOR` and `MINOR` MACRO.
+ *
+ * Please note: **Used only inside this file**.
+ *
+ * @param dev device number extracted directly from the kernel.
+ * @return encoded device number.
+ */
+static __always_inline dev_t encode_dev(dev_t dev)
+{
+	unsigned int major = MAJOR(dev);
+	unsigned int minor = MINOR(dev);
+
+	return (minor & 0xff) | (major << 8) | ((minor & ~0xff) << 12);
+}
+
+///////////////////////////
+// FILE EXTRACION
+///////////////////////////
+
+/**
+ * @brief Return `file` struct from a file descriptor.
+ *
+ * @param file_descriptor generic file descriptor.
+ * @return struct file* pointer to the `struct file` associated with the
+ * file descriptor. Return a NULL pointer in case of failure.
+ */
+static __always_inline struct file *extract__file_struct_from_fd(int file_descriptor)
+{
+	struct file *f = NULL;
+	if(file_descriptor > 0)
+	{
+		struct file **fds;
+		struct task_struct *task = get_current_task();
+		READ_TASK_FIELD_INTO(&fds, task, files, fdt, fd);
+		bpf_probe_read_kernel(&f, sizeof(struct file *), &fds[file_descriptor]);
+	}
+	return f;
+}
+
+/**
+ * \brief Extract the inode number from a file descriptor.
+ *
+ * @param fd generic file descriptor.
+ * @param ino pointer to the inode number we have to fill.
+ */
+static __always_inline void extract__ino_from_fd(s32 fd, u64 *ino)
+{
+	struct file *f = extract__file_struct_from_fd(fd);
+	if(!f)
+	{
+		return;
+	}
+
+	BPF_CORE_READ_INTO(ino, f, f_inode, i_ino);
+}
+
+/**
+ * \brief Extract the device number and the inode number from a file descriptor.
+ *
+ * @param fd generic file descriptor.
+ * @param dev pointer to the device number we have to fill.
+ * @param ino pointer to the inode number we have to fill.
+ */
+static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64 *ino)
+{
+	struct file *f = extract__file_struct_from_fd(fd);
+	if(!f)
+	{
+		return;
+	}
+
+	BPF_CORE_READ_INTO(dev, f, f_inode, i_sb, s_dev);
+	*dev = encode_dev(*dev);
+	BPF_CORE_READ_INTO(ino, f, f_inode, i_ino);
+}
