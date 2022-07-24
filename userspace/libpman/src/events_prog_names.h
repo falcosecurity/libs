@@ -27,6 +27,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_OPEN_X] = "open_x",
 	[PPME_SYSCALL_OPENAT_2_E] = "openat_e",
 	[PPME_SYSCALL_OPENAT_2_X] = "openat_x",
+	[PPME_SYSCALL_OPENAT2_E] = "openat2_e",
+	[PPME_SYSCALL_OPENAT2_X] = "openat2_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
