@@ -1170,13 +1170,16 @@
 /*=============================== DIRECTORY_NOTIFICATIONS ===========================*/
 
 /*=============================== DEVICE_VERSIONS ===========================*/
-/*
-Some programs want their definitions of MAJOR and MINOR and MKDEV
-from the kernel sources. These must be the externally visible ones.
-*/
-#define MAJOR(dev) ((dev) >> 8)
-#define MINOR(dev) ((dev)&0xff)
-#define MKDEV(ma, mi) ((ma) << 8 | (mi))
+
+/* `/include/linux/kdev_t.h` from kernel source tree. */
+
+#define MINORBITS	20
+#define MINORMASK	((1U << MINORBITS) - 1)
+
+#define MAJOR(dev)	((unsigned int) ((dev) >> MINORBITS))
+#define MINOR(dev)	((unsigned int) ((dev) & MINORMASK))
+#define MKDEV(ma,mi)	(((ma) << MINORBITS) | (mi))
+
 /*=============================== DEVICE_VERSIONS ===========================*/
 
 /*=============================== RLIMIT_ID ===========================*/
