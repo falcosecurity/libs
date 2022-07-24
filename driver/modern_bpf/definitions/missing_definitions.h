@@ -96,12 +96,28 @@
 #define O_TRUNC 00001000  /* not fcntl */
 #define O_APPEND 00002000
 #define O_NONBLOCK 00004000
-#define O_DSYNC 00010000  /* used to be O_SYNC, see below */
-#define FASYNC 00020000	  /* fcntl, for BSD compatibility */
+#define O_NDELAY O_NONBLOCK
+#define O_DSYNC 00010000 /* used to be O_SYNC, see below */
+#define FASYNC 00020000	 /* fcntl, for BSD compatibility */
+
+#if defined(__TARGET_ARCH_x86)
+
 #define O_DIRECT 00040000 /* direct disk access hint */
 #define O_LARGEFILE 00100000
 #define O_DIRECTORY 00200000 /* must be a directory */
 #define O_NOFOLLOW 00400000  /* don't follow links */
+
+#elif defined(__TARGET_ARCH_arm64)
+
+/* `/arch/arm64/include/uapi/asm/fcntl.h` from kernel source tree. */
+
+#define O_DIRECTORY 040000 /* must be a directory */
+#define O_NOFOLLOW 0100000 /* don't follow links */
+#define O_DIRECT 0200000   /* direct disk access hint - currently ignored */
+#define O_LARGEFILE 0400000
+
+#endif
+
 #define O_NOATIME 01000000
 #define O_CLOEXEC 02000000 /* set close_on_exec */
 #define __O_SYNC 04000000
@@ -112,8 +128,6 @@
 /* a horrid kludge trying to make sure that this will fail on old kernels */
 #define O_TMPFILE (__O_TMPFILE | O_DIRECTORY)
 #define O_TMPFILE_MASK (__O_TMPFILE | O_DIRECTORY | O_CREAT)
-
-#define O_NDELAY O_NONBLOCK
 
 //////////////////////////
 // openat2 flags
@@ -1173,12 +1187,12 @@
 
 /* `/include/linux/kdev_t.h` from kernel source tree. */
 
-#define MINORBITS	20
-#define MINORMASK	((1U << MINORBITS) - 1)
+#define MINORBITS 20
+#define MINORMASK ((1U << MINORBITS) - 1)
 
-#define MAJOR(dev)	((unsigned int) ((dev) >> MINORBITS))
-#define MINOR(dev)	((unsigned int) ((dev) & MINORMASK))
-#define MKDEV(ma,mi)	(((ma) << MINORBITS) | (mi))
+#define MAJOR(dev) ((unsigned int)((dev) >> MINORBITS))
+#define MINOR(dev) ((unsigned int)((dev)&MINORMASK))
+#define MKDEV(ma, mi) (((ma) << MINORBITS) | (mi))
 
 /*=============================== DEVICE_VERSIONS ===========================*/
 
