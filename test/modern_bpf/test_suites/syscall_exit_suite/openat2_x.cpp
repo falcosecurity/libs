@@ -17,7 +17,7 @@ TEST(SyscallExit, openat2X_success)
 	 */
 	int dirfd = AT_FDCWD;
 	const char* pathname = ".";
-    struct open_how how;
+	struct open_how how;
 	how.flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
@@ -95,22 +95,22 @@ TEST(SyscallExit, openat2X_failure)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_s64_param(1, (int64_t)errno_value);
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	evt_test->assert_s64_param(2, (int64_t)PPM_AT_FDCWD);
+	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
 
 	/* Parameter 3: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(3, pathname);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	evt_test->assert_u32_param(4, PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
+	evt_test->assert_numeric_param(4, (uint32_t)PPM_O_RDWR | PPM_O_TMPFILE | PPM_O_DIRECTORY);
 
 	/* Parameter 5: mode (type: PT_UINT32) */
-	evt_test->assert_u32_param(5, how.mode);
+	evt_test->assert_numeric_param(5, (uint32_t)how.mode);
 
 	/* Parameter 6: resolve (type: PT_FLAGS32) */
-	evt_test->assert_u32_param(6, PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
+	evt_test->assert_numeric_param(6, (uint32_t)PPM_RESOLVE_BENEATH | PPM_RESOLVE_NO_MAGICLINKS);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
