@@ -6113,41 +6113,14 @@ int f_sys_access_e(struct event_filler_arguments *args)
 
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
-	int64_t retval;
-	unsigned long cmd;
 	int res;
+	int64_t fd;
 
 	/*
-	 * res, if failure or depending on cmd
+	 * fd
 	 */
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-	if (retval < 0) {
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
-
-		return add_sentinel(args);
-	}
-	/*
-	 * fd, depending on cmd
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &cmd);
-#ifdef UDIG
-	if(0)
-#else /* UDIG */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
-	if(cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD)
-#else
-	if(0)
-#endif
-#endif /* UDIG */
-	{
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD);
-	}
-	else
-	{
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
-	}
+	fd = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 

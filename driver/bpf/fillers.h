@@ -167,6 +167,7 @@ FILLER_RAW(terminate_filler)
 				}
 				break;
 			case PPME_SYSCALL_BPF_E:
+			case PPME_SYSCALL_BPF_2_E:
 			case PPME_SYSCALL_SETPGID_E:
 			case PPME_SYSCALL_PTRACE_E:
 			case PPME_SYSCALL_SECCOMP_E:
@@ -244,6 +245,7 @@ FILLER_RAW(terminate_filler)
 				}
 				break;
 			case PPME_SYSCALL_BPF_X:
+			case PPME_SYSCALL_BPF_2_X:
 			case PPME_SYSCALL_SETPGID_X:
 			case PPME_SYSCALL_PTRACE_X:
 			case PPME_SYSCALL_SECCOMP_X:
@@ -5402,21 +5404,14 @@ FILLER(sys_ptrace_x, true)
 
 FILLER(sys_bpf_x, true)
 {
-	unsigned long cmd;
-	s64 retval;
+	long fd;
 	int res;
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	cmd = bpf_syscall_get_argument(data, 0);
-
 	/*
-	 * fd, depending on cmd
+	 * fd
 	 */
-	if (retval >= 0 && (cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD))
-		res = bpf_val_to_ring_dyn(data, retval, PT_FD, PPM_BPF_IDX_FD);
-	else
-		res = bpf_val_to_ring_dyn(data, retval, PT_ERRNO, PPM_BPF_IDX_RES);
-
+	fd = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, fd);
 	return res;
 }
 

@@ -1664,6 +1664,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 		ring_info->n_drops_buffer_connect_enter++;
 		break;
 	case PPME_SYSCALL_BPF_E:
+	case PPME_SYSCALL_BPF_2_E:
 	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_PTRACE_E:
 	case PPME_SYSCALL_SECCOMP_E:
@@ -1729,6 +1730,7 @@ static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type 
 		ring_info->n_drops_buffer_connect_exit++;
 		break;
 	case PPME_SYSCALL_BPF_X:
+	case PPME_SYSCALL_BPF_2_X:
 	case PPME_SYSCALL_SETPGID_X:
 	case PPME_SYSCALL_PTRACE_X:
 	case PPME_SYSCALL_SECCOMP_X:

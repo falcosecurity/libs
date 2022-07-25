@@ -308,8 +308,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_19_X */{"execve", EC_PROCESS, EF_MODIFIES_STATE, 23, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC}, {"pgid", PT_PID, PF_DEC}, {"loginuid", PT_INT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, execve_flags}, {"cap_inheritable", PT_UINT64, PF_HEX}, {"cap_permitted", PT_UINT64, PF_HEX}, {"cap_effective", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_SETPGID_E */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 2, {{"pid", PT_PID, PF_DEC}, {"pgid", PT_PID, PF_DEC} } },
 	/* PPME_SYSCALL_SETPGID_X */{"setpgid", EC_PROCESS, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
-	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} } },
+	/* PPME_SYSCALL_BPF_E */{"bpf", EC_OTHER, EF_CREATES_FD | EF_OLD_VERSION, 1, {{"cmd", PT_INT64, PF_DEC} } },
+	/* PPME_SYSCALL_BPF_X */{"bpf", EC_OTHER, EF_CREATES_FD | EF_OLD_VERSION, 1, {{"res_or_fd", PT_DYN, PF_DEC, bpf_dynamic_param, PPM_BPF_IDX_MAX} } },
 	/* PPME_SYSCALL_SECCOMP_E */{"seccomp", EC_OTHER, EF_NONE, 1, {{"op", PT_UINT64, PF_DEC}, {"flags", PT_UINT64, PF_HEX} } },
 	/* PPME_SYSCALL_SECCOMP_X */{"seccomp", EC_OTHER, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_UNLINK_2_E */{"unlink", EC_FILE, EF_NONE, 0},
@@ -380,6 +380,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_DUP3_X */{"dup3", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 4, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC}, {"newfd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* PPME_SYSCALL_DUP_1_E */{"dup", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 1, {{"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_DUP_1_X */{"dup", EC_IO_OTHER, EF_CREATES_FD | EF_USES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"oldfd", PT_FD, PF_DEC} } },
+	/* PPME_SYSCALL_BPF_2_E */{"bpf", EC_OTHER, EF_CREATES_FD, 1, {{"cmd", PT_INT64, PF_DEC} } },
+	/* PPME_SYSCALL_BPF_2_X */{"bpf", EC_OTHER, EF_CREATES_FD, 1, { {"fd", PT_FD, PF_DEC} } },
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
 	 *     The number of parameters can be used to differentiate between event versions.

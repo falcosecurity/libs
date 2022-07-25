@@ -203,7 +203,9 @@ std::string get_event_type(uint16_t type)
         // Process syscalls
         //      
         case PPME_SYSCALL_BPF_E:
-        case PPME_SYSCALL_BPF_X: return "bpf";
+	case PPME_SYSCALL_BPF_2_E:
+        case PPME_SYSCALL_BPF_X:
+	case PPME_SYSCALL_BPF_2_X: return "bpf";
         case PPME_SYSCALL_BRK_1_E: 
         case PPME_SYSCALL_BRK_4_E:
         case PPME_SYSCALL_BRK_1_X:
