@@ -225,7 +225,7 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	case 3:
 	case 4:
 	case 5:
-		arg = _READ(user_regs->gprs[idx]);
+		arg = _READ(user_regs->gprs[idx+2]);
 		break;
 	default:
 		arg = 0;
