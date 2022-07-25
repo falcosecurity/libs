@@ -5104,6 +5104,12 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info->m_created_time = created_time.asInt64();
 		}
 
+		const Json::Value& lowerdir = container["lowerdir"];
+		if(check_json_val_is_convertible(lowerdir, Json::stringValue, "lowerdir"))
+		{
+			container_info->m_overlayfs_root = lowerdir.asString();
+		}
+
 #if !defined(MINIMAL_BUILD) && !defined(_WIN32)
 		libsinsp::container_engine::docker_async_source::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 #endif
