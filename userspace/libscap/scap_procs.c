@@ -403,72 +403,6 @@ static int32_t scap_proc_fill_flimit(scap_t *handle, uint64_t tid, struct scap_t
 }
 #endif
 
-int32_t scap_proc_fill_overlayfs_root(scap_t *handle, struct scap_threadinfo *tinfo, const char *procdirname)
-{
-	FILE *mounts_file;
-	char mounts_path[SCAP_MAX_PATH_SIZE];
-	char line[SCAP_MAX_ARGS_SIZE];
-
-	tinfo->overlayfs_root[0] = '\0';
-
-	snprintf(mounts_path, sizeof(mounts_path), "%smounts", procdirname);
-	mounts_file = fopen(mounts_path, "r");
-	if(!mounts_file)
-	{
-		return SCAP_FAILURE;
-	}
-
-	if(!fgets(line, sizeof(line), mounts_file))
-	{
-		fclose(mounts_file);
-		return SCAP_FAILURE;
-	}
-
-	fclose(mounts_file);
-
-	if(strstr(line, "overlay / overlay"))
-	{
-		char *start, *end;
-
-		//
-		//  Get the lower dir
-		//
-		start = strstr(line, "lowerdir=") + sizeof("lowerdir=") - 1;
-		if(!start)
-		{
-			return SCAP_FAILURE;
-		}
-
-		end = strstr(start, ",");
-		if(!end)
-		{
-			return;
-		}
-		*end = '\0';
-
-		// Docker lowerdir entry has this shape:
-		// lowerdir=/var/lib/docker/overlay2/l/KAHXLZBU2SRCXTUAGNXYDELYRI:/var/lib/docker/overlay2/l/Y35R5SXA45GJIQFSMFK3HDXM2D
-		// To get the actual lowerdir we have to use tha path right after the ':', so we must handle this as a special case
-		// Containerd does not have this problem
-		// todo: test with cri-o and podman
-		if(strstr(start, "docker"))
-		{
-			start = strstr(start, ":") + 1;
-		}
-
-		snprintf(tinfo->overlayfs_root,
-			 sizeof(tinfo->overlayfs_root),
-			 "%s%s",
-			 scap_get_host_root(),
-			 start);
-
-		return SCAP_SUCCESS;
-	}
-
-	return SCAP_FAILURE;
-
-}
-
 int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -1005,11 +939,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 		free(tinfo);
 		return SCAP_FAILURE;
-	}
-
-	if (scap_proc_fill_overlayfs_root(handle, tinfo, dir_name) == SCAP_FAILURE)
-	{
-		// NOT AN ERROR; skip
 	}
 
 	// These values should be read already from /status file, leave these

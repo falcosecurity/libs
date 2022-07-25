@@ -397,7 +397,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_exe = pi->exe;
 	m_exepath = pi->exepath;
 	m_exe_writable = pi->exe_writable;
-	m_overlayfs_root = pi->overlayfs_root;
 
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())

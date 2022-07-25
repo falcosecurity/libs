@@ -48,6 +48,10 @@ void sinsp_usergroup_manager::init()
 		m_inspector->m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {
 			delete_container_users_groups(cinfo);
 		});
+
+		m_inspector->m_container_manager.subscribe_on_new_container([&](const sinsp_container_info&cinfo, sinsp_threadinfo *tinfo) -> void {
+		        load_from_container(cinfo.m_id, cinfo.m_overlayfs_root);
+	       });
 	}
 }
 
@@ -512,40 +516,42 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, 
 
 void sinsp_usergroup_manager::load_from_container(const std::string &container_id, const std::string &overlayfs_root)
 {
+	if (!m_import_users)
+	{
+		return;
+	}
+
+	if (overlayfs_root.empty())
+	{
+		// Avoid loading from host
+		return;
+	}
+
 	// See fgetpwent() feature test macros: https://man7.org/linux/man-pages/man3/fgetpwent.3.html
 #if defined HAVE_PWD_H && _DEFAULT_SOURCE
-	auto usrlist = get_userlist(container_id);
-	if (!usrlist)
+	auto passwd_in_container = overlayfs_root + "/etc/passwd";
+	auto pwd_file = fopen(passwd_in_container.c_str(), "r");
+	if(pwd_file)
 	{
-		auto passwd_in_container = overlayfs_root + "/etc/passwd";
-		auto pwd_file = fopen(passwd_in_container.c_str(), "r");
-		if(pwd_file)
+		while(auto p = fgetpwent(pwd_file))
 		{
-			while(auto p = fgetpwent(pwd_file))
-			{
-				m_inspector->m_usergroup_manager.add_user(container_id, p->pw_uid, p->pw_gid, p->pw_name, p->pw_dir, p->pw_shell, true);
-			}
-			fclose(pwd_file);
+			m_inspector->m_usergroup_manager.add_user(container_id, p->pw_uid, p->pw_gid, p->pw_name, p->pw_dir, p->pw_shell, true);
 		}
+		fclose(pwd_file);
 	}
 #endif
 
 	// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
 #if defined HAVE_GRP_H && _DEFAULT_SOURCE
-	auto grplist = get_grouplist(container_id);
-	if (!grplist)
+	auto group_in_container = overlayfs_root + "/etc/group";
+	auto grp_file = fopen(group_in_container.c_str(), "r");
+	if(grp_file)
 	{
-		auto group_in_container = overlayfs_root + "/etc/group";
-
-		auto grp_file = fopen(group_in_container.c_str(), "r");
-		if(grp_file)
+		while(auto g = fgetgrent(grp_file))
 		{
-			while(auto g = fgetgrent(grp_file))
-			{
-				m_inspector->m_usergroup_manager.add_group(container_id, g->gr_gid, g->gr_name, true);
-			}
-			fclose(grp_file);
+			m_inspector->m_usergroup_manager.add_group(container_id, g->gr_gid, g->gr_name, true);
 		}
+		fclose(grp_file);
 	}
 #endif
 }

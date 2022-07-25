@@ -648,7 +648,6 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"docker_async (%s): Url fetch failed, returning false",
 				request.container_id.c_str());
-
 		return false;
 
 	case docker_connection::docker_response::RESP_OK:
@@ -673,7 +672,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		ASSERT(false);
 		return false;
 	}
-
+	
 	get_image_info(request, container, root);
 
 	const Json::Value& config_obj = root["Config"];
@@ -867,6 +866,17 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 	parse_json_mounts(root["Mounts"], container.m_mounts);
 
 	container.m_size_rw_bytes = root["SizeRw"].asInt64();
+
+	try
+	{
+		auto lowerdir = root["GraphDriver"]["Data"]["LowerDir"].asString();
+		container.m_overlayfs_root = lowerdir.substr(lowerdir.find_first_of(':') + 1);
+	}
+	catch (const std::exception &)
+	{
+		container.m_overlayfs_root = "";
+	}
+
 
 #ifdef HAS_ANALYZER
 	sinsp_utils::find_env(container.m_sysdig_agent_conf, container.get_env(), "SYSDIG_AGENT_CONF");
