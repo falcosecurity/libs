@@ -46,20 +46,13 @@ If you build this project from a git working directory, the main [CMakeLists.txt
 
 Right now our drivers officially support the following architectures:
 
-### x86_64
-- **Kernel module** requires kernel versions greater or equal than `2.6`
-- **eBPF probe** requires kernel versions greater or equal than `4.14`
-- **Modern eBPF probe** work in progress...
+|             | Kernel module | eBPF probe | Modern eBPF probe |
+| ----------- | ------------- | ---------- | ----------------- |
+| **x86_64**  | >= 2.6        | >= 4.14    | WIP 👷            |
+| **aarch64** | >= 3.4        | >= 4.17    | WIP 👷            |
+| **s390x**   | >= 2.6        | ❌         | ❌                |
 
-### ARM64
-- **Kernel module** requires kernel versions greater or equal than `3.4`
-- **eBPF probe** requires kernel versions greater or equal than `4.17`
-- **Modern eBPF probe** work in progress...
-
-### s390x
-- **Kernel module** requires kernel versions greater or equal than `2.6`
-- **eBPF probe** not supported right now.
-- **Modern eBPF probe** not supported right now.
+>**Please note**: BPF has some issues with architectures like `s390x`! Some helpers like `bpf_probe_read()` and `bpf_probe_read_str()` are broken on archs with overlapping address ranges.
 
 ## Build
 
