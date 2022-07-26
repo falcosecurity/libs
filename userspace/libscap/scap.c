@@ -514,6 +514,12 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 		return NULL;
 	}
 
+	if ((*rc = scap_proc_scan_vtable(error, handle)) != SCAP_SUCCESS)
+	{
+		scap_close(handle);
+		return NULL;
+	}
+
 	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
