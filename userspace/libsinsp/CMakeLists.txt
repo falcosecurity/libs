@@ -297,11 +297,8 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 		add_subdirectory(test)
 endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    option(BUILD_LIBSINSP_EXAMPLES "Build libsinsp examples" ON)
-
-    if (BUILD_LIBSINSP_EXAMPLES)
-        add_subdirectory(examples)
-    endif()
+option(BUILD_LIBSINSP_EXAMPLES "Build libsinsp examples" ON)
+if (BUILD_LIBSINSP_EXAMPLES)
+	add_subdirectory(examples)
 endif()
 

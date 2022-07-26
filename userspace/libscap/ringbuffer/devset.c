@@ -7,6 +7,8 @@
 #ifndef _WIN32
 #include <sys/mman.h>
 #include <unistd.h>
+#else
+#define MAP_FAILED	((void *) -1)
 #endif
 
 #include "../../common/strlcpy.h"
@@ -51,6 +53,7 @@ void devset_free(struct scap_device_set *devset)
 	for(j = 0; j < devset->m_ndevs; j++)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
+#ifndef _WIN32
 		if(dev->m_buffer != MAP_FAILED)
 		{
 #ifdef _DEBUG
@@ -66,7 +69,7 @@ void devset_free(struct scap_device_set *devset)
 		{
 			munmap(dev->m_bufinfo, dev->m_bufinfo_size);
 		}
-
+#endif
 		if(dev->m_fd > 0)
 		{
 			close(dev->m_fd);
