@@ -54,6 +54,10 @@ jobs:
           mkdir -p build
           cd build && cmake -DCREATE_TEST_TARGETS=OFF ..
           cmake --build .
+      - name: Test binaries linking 🏗
+        run: |
+          cd build
+          make sinsp-example
 
   build-libs-arm64:
     name: build-libs-arm64 🥶 (system_deps)
