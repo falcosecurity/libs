@@ -204,7 +204,7 @@ static __always_inline u16 push__charbuf(u8* data, u64 *payload_pos, unsigned lo
 	int written_bytes = bpf_probe_read_str(&data[SAFE_ACCESS(*payload_pos)],
 					       limit,
 					       (char *)charbuf_pointer);
-	if(written_bytes < 0)
+	if(written_bytes <= 0)
 	{
 		return 0;
 	}

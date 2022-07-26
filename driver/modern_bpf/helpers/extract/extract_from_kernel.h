@@ -114,7 +114,7 @@ static __always_inline dev_t encode_dev(dev_t dev)
  * @return struct file* pointer to the `struct file` associated with the
  * file descriptor. Return a NULL pointer in case of failure.
  */
-static __always_inline struct file *extract__file_struct_from_fd(int file_descriptor)
+static __always_inline struct file *extract__file_struct_from_fd(s32 file_descriptor)
 {
 	struct file *f = NULL;
 	if(file_descriptor > 0)
