@@ -31,6 +31,11 @@ TEST(SyscallEnter, openat2E)
 
 	evt_test->assert_event_presence();
 
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
 	evt_test->parse_event();
 
 	evt_test->assert_header();
