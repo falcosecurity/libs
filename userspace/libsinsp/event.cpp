@@ -2773,8 +2773,6 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 		return false;
 	}
 
-	dest.m_tinfo_ref = src.m_tinfo_ref;
-	dest.m_tinfo = src.m_tinfo;
 	if (src.m_tinfo_ref)
 	{
 		dest.m_tinfo_ref = src.m_tinfo_ref;
@@ -2816,11 +2814,6 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 
 	// fd info
 	dest.m_fdinfo = nullptr;
-	if (src.m_fdinfo != nullptr)
-	{
-		// dest.m_fdinfo_ref.reset(new sinsp_fdinfo_t(*src.m_fdinfo));
-		// dest.m_fdinfo = dest.m_fdinfo_ref.get();
-	}
 	dest.m_fdinfo_name_changed = src.m_fdinfo_name_changed;
 
 	return true;
