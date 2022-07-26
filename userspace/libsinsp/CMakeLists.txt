@@ -46,6 +46,9 @@ endif()
 
 if(NOT MINIMAL_BUILD)
 	include(cares)
+	if (NOT WIN32)
+		include(curl)
+	endif() # NOT WIN32
 endif()
 
 if(NOT WIN32 AND NOT APPLE)
@@ -53,7 +56,6 @@ if(NOT WIN32 AND NOT APPLE)
 		include(grpc)
 		include(protobuf)
 		include(openssl)
-		include(curl)
 	endif() # NOT MINIMAL_BUILD
 	include(jq)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
