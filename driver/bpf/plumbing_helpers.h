@@ -120,11 +120,6 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 	id = _READ(regs->int_code);
 	id = id & 0xffff;
 
-#else 
-	
-	/* Unknown architecture. */
-	id = 0;
-
 #endif /* CONFIG_X86_64 */
 
 #else
@@ -142,10 +137,10 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_args(unsigned
 {
 	unsigned long arg = 0;
 
-	if (idx <= 5)
+	if(idx <= 5)
+	{
 		arg = args[idx];
-	else
-		arg = 0;
+	}
 
 	return arg;
 }
@@ -230,11 +225,6 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	default:
 		arg = 0;
 	}
-
-#else
-
-	/* Unknown architecture. */
-	arg = 0;
 
 #endif /* CONFIG_X86_64 */
 
