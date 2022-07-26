@@ -15,7 +15,7 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 {
 	bool match = false;
 
-	switch (op)
+	switch(op)
 	{
 	case EQUAL:
 		match = syscall_rc == expected_rc;
@@ -26,13 +26,13 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 		break;
 
 	default:
-		FAIL() << "Operation currently not supported!";
+		FAIL() << "Operation currently not supported!" << std::endl;
 		return;
 	}
 
 	if(!match)
 	{
-		if(syscall_state==SYSCALL_SUCCESS)
+		if(syscall_state == SYSCALL_SUCCESS)
 		{
 			FAIL() << ">>>>> The syscall '" << syscall_name << "' must be successful. Errno: " << errno << " err_message: " << strerror(errno) << std::endl;
 		}
@@ -158,8 +158,7 @@ void event_test::assert_event_presence()
 		consume_ret = pman_consume_one_from_buffers((void**)&m_event_header, &cpu_id);
 		if(consume_ret == -1 || m_event_header == NULL)
 		{
-			FAIL() << "There is no event in the buffer.";
-			exit(EXIT_SUCCESS);
+			FAIL() << "There is no event in the buffer." << std::endl;
 		}
 		if(m_event_header->tid == pid && m_event_header->type == m_event_type)
 		{
@@ -201,27 +200,26 @@ void event_test::assert_only_param_len(int param_num, uint16_t expected_size)
 	assert_param_len(expected_size);
 }
 
-template <typename T>
+template<typename T>
 void event_test::assert_numeric_param(int param_num, T param, enum assertion_operators op)
 {
 	assert_param_boundaries(param_num);
 	assert_param_len(sizeof(T));
 
-	switch (op)
+	switch(op)
 	{
-		case EQUAL:
+	case EQUAL:
 		ASSERT_EQ(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		break;
 
-		case GREATER_EQUAL:
+	case GREATER_EQUAL:
 		ASSERT_GE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		break;
 
-		default:
+	default:
 		FAIL() << "Operation currently not supported!";
 		return;
 	}
-
 }
 
 template void event_test::assert_numeric_param<uint8_t>(int, uint8_t, enum assertion_operators);
