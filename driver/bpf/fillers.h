@@ -2173,6 +2173,10 @@ static __always_inline bool get_exe_writable(struct task_struct *task, struct in
 	umode_t i_mode = _READ(inode->i_mode);
 	unsigned i_flags = _READ(inode->i_flags);
 	struct super_block *sb = _READ(inode->i_sb);
+	if(sb == NULL)
+	{
+		return false;
+	}
 	kuid_t i_uid = _READ(inode->i_uid);
 	kgid_t i_gid = _READ(inode->i_gid);
 
@@ -2250,12 +2254,16 @@ static __always_inline bool get_exe_writable(struct task_struct *task, struct in
 static __always_inline bool get_exe_upper_layer(struct inode *inode)
 {
 	struct super_block *sb = _READ(inode->i_sb);
-	unsigned long sb_magic = _READ(sb->s_magic);
+	if(sb == NULL)
+	{
+		return false;
+	}
 
+	unsigned long sb_magic = _READ(sb->s_magic);
 	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 	{
-		struct dentry *upper_dentry;
-		struct inode *lower_inode;
+		struct dentry *upper_dentry = NULL;
+		struct inode *lower_inode = NULL;
 		char *vfs_inode = (char *)inode;
 		
 		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
@@ -6463,13 +6471,23 @@ FILLER(sched_prog_exec_4, false)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 
 
-	/* `exe_writable` flag logic */
+	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
+	bool exe_upper_layer = false;
 	struct inode *inode = get_exe_inode(task);
-	exe_writable = get_exe_writable(task, inode);
-	if(exe_writable)
+	if(inode)
 	{
-		flags |= PPM_EXE_WRITABLE;
+		exe_writable = get_exe_writable(task, inode);
+		if(exe_writable)
+		{
+			flags |= PPM_EXE_WRITABLE;
+		}
+
+		exe_upper_layer = get_exe_upper_layer(inode);
+		if(exe_upper_layer)
+		{
+			flags |= PPM_EXE_UPPER_LAYER;
+		}
 	}
 
 	// write all additional flags for execve family here...
