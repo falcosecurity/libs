@@ -10,6 +10,11 @@
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
 
+/* Right now a file path extracted from a file descriptor can
+ * have at most `MAX_PATH_POINTERS` components.
+ */
+#define MAX_PATH_POINTERS 16
+
 /* Concept of auxamp (auxiliary map):
  *
  * For variable size events we cannot directly reserve space into the ringbuf,
@@ -278,4 +283,104 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
 	 */
 	push__param_len(auxmap->data, &auxmap->lengths_pos, charbuf_len);
 	return charbuf_len;
+}
+
+/**
+ * @brief This helper stores the file path extracted from the `fd`.
+ *
+ * Please note: Kernel 5.10 introduced a new bpf_helper called `bpf_d_path`
+ * to extract a file path starting from a file descriptor but it can be used only
+ * with specific hooks:
+ *
+ * https://github.com/torvalds/linux/blob/e0dccc3b76fb35bb257b4118367a883073d7390e/kernel/trace/bpf_trace.c#L915-L929.
+ *
+ * So we need to do it by hand and this cause a limit in the max
+ * path component that we can retrieve (MAX_PATH_POINTERS).
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param fd file descriptor from which we want to retrieve the file path.
+ */
+static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *auxmap, s32 fd)
+{
+
+	u16 total_size = 0;
+	u8 path_components = 0;
+	unsigned long path_pointers[MAX_PATH_POINTERS] = {0};
+	struct file *f = extract__file_struct_from_fd(fd);
+	struct dentry *de = BPF_CORE_READ(f, f_path.dentry);
+
+	/* We need to save the pointer to the parent because when we reach the root
+	 * the pointer will always point to itself, so we need to compare `de_p != de`.
+	 */
+	struct dentry *de_p = NULL;
+
+	for(int k = 0; k < MAX_PATH_POINTERS; ++k)
+	{
+		if(de == de_p)
+		{
+			break;
+		}
+		path_components++;
+		BPF_CORE_READ_INTO(&path_pointers[k], de, d_name.name);
+		de_p = de;
+		BPF_CORE_READ_INTO(&de, de, d_parent);
+	}
+
+	/* Reconstruct the path in reverse, using previously collected pointers.
+	 * The first component we face must be the root "/". When we read the
+	 * string in BPF with `bpf_probe_read_str()` we always add the `\0`
+	 * terminator. In this way, we will obtain something like this:
+	 *
+	 * - "/\0"
+	 * - "path_1\0"
+	 * - "path_2\0"
+	 * - "file\0"
+	 *
+	 * So putting it all together:
+	 *
+	 * 	"/\0path_1\0path_2\0file\0"
+	 *
+	 * But we want to obtain something like this:
+	 *
+	 * 	"/path_1/path_2/file\0"
+	 *
+	 * To obtain it we can replace all `\0` with `/`, but in this way we
+	 * obtain:
+	 *
+	 * 	"//path_1/path_2/file/"
+	 *
+	 * So the rationale here is if we have more than 1 `path_components`
+	 * we will erase the last path_pointer[path_components-1] = 0, and we
+	 * will directly push `/` as a single char
+	 *
+	 */
+
+	if(path_components > 1)
+	{
+		/* remove the root pointer and push only `/` without `\0`. */
+		path_pointers[(path_components - 1) & MAX_PATH_POINTERS - 1] = 0;
+		push__new_character(auxmap->data, &auxmap->payload_pos, '/');
+		total_size += 1;
+	}
+
+	for(int k = MAX_PATH_POINTERS - 1; k >= 0; --k)
+	{
+		if(path_pointers[k])
+		{
+			total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, path_pointers[k], MAX_PARAM_SIZE);
+			push__previous_character(auxmap->data, &auxmap->payload_pos, '/');
+		}
+	}
+
+	/* Different cases:
+	 * - `path_components==0` we have to do nothing we will push an empty param.
+	 * - `path_components==1` we have to do nothing the path is already `/\0`.
+	 * - `path_components>1` we need to replace the last `/` with a `\0`.
+	 */
+	if(path_components > 1)
+	{
+		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
 }
