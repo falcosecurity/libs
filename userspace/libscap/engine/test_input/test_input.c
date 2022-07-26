@@ -54,32 +54,65 @@ static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr
 static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pcpuid)
 {
 	test_input_engine *engine = handle.m_handle;
-	if (engine->m_data == NULL)
-	{
-		strlcpy(engine->m_lasterr, "No test input data provided", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
-	}
+	scap_test_input_data *data = engine->m_data;
 
-	if (engine->m_event_index >= engine->m_data->event_count)
+	if (engine->m_event_index >= data->event_count)
 	{
 		return SCAP_EOF;
 	}
 	
-	*pevent = engine->m_data->events[engine->m_event_index];
+	*pevent = data->events[engine->m_event_index];
 	engine->m_event_index++;
 
 	return SCAP_SUCCESS;
+}
+
+
+static int32_t get_threadinfos(struct scap_engine_handle handle, uint64_t *n, const scap_threadinfo **tinfos)
+{
+	test_input_engine *engine = handle.m_handle;
+	scap_test_input_data *data = engine->m_data;
+
+	*tinfos = data->threads;
+	*n = data->thread_count;
+
+	return SCAP_SUCCESS;
+}
+
+static int32_t get_fdinfos(struct scap_engine_handle handle, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
+{
+	test_input_engine *engine = handle.m_handle;
+	scap_test_input_data *data = engine->m_data;
+	size_t i;
+
+	for (i = 0; i < data->thread_count; i++)
+	{
+		if(data->threads[i].tid == tinfo->tid) {
+			*fdinfos = data->fdinfo_data[i].fdinfos;
+			*n = data->fdinfo_data[i].fdinfo_count;
+			return SCAP_SUCCESS;
+		}
+	}
+
+	snprintf(engine->m_lasterr, SCAP_LASTERR_SIZE, "Could not find thread info for tid %lu", tinfo->tid);
+	return SCAP_FAILURE;
 }
 
 static int32_t init(scap_t* main_handle, scap_open_args* open_args)
 {
 	test_input_engine *engine = main_handle->m_engine.m_handle;
 	engine->m_data = open_args->test_input_data;
+
+	if (engine->m_data == NULL) {
+		strlcpy(engine->m_lasterr, "No test input data provided", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+
 	return SCAP_SUCCESS;
 }
 
 const struct scap_vtable scap_test_input_engine = {
-	.name = "test_source",
+	.name = "test_input",
 	.mode = SCAP_MODE_LIVE,
 
 	.alloc_handle = alloc_handle,
@@ -95,6 +128,8 @@ const struct scap_vtable scap_test_input_engine = {
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
 	.get_threadlist = noop_get_threadlist,
+	.get_threadinfos = get_threadinfos,
+	.get_fdinfos = get_fdinfos,
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
 	.getpid_global = noop_getpid_global,
