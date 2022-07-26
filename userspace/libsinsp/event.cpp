@@ -2788,9 +2788,11 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 		}
 		dest.m_tinfo = dest.m_tinfo_ref.get();
 	}
-
-	dest.m_tinfo_ref = src.m_tinfo_ref;
-	dest.m_tinfo = src.m_tinfo;
+	else
+	{
+		dest.m_tinfo_ref = nullptr;
+		dest.m_tinfo = nullptr;
+	}
 
 	// scalars
 	dest.m_cpuid = src.m_cpuid;
