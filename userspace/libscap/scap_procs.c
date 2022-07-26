@@ -693,6 +693,7 @@ void scap_proc_fill_exe_upper_layer(scap_t* handle, struct scap_threadinfo* tinf
 	//
 	if(!fgets(line, sizeof(line), mounts_file))
 	{
+		fclose(mounts_file);
 		return;
 	}
 
