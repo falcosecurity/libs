@@ -15,10 +15,10 @@ limitations under the License.
 */
 
 #include <iostream>
-#include <iomanip>
+#ifndef WIN32
 #include <getopt.h>
-#include <signal.h>
-#include <unistd.h>
+#endif
+#include <csignal>
 #include <sinsp.h>
 #include <functional>
 #include "util.h"
@@ -68,19 +68,20 @@ Options:
 int main(int argc, char **argv)
 {
     sinsp inspector;
+    string filter_string;
+    std::function<void (sinsp& inspector)> dump = plaintext_dump;
 
+#ifndef WIN32
     // Parse configuration options.
     static struct option long_options[] = {
-            {"help",        no_argument, 0, 'h'},
-            {"json",        no_argument, 0, 'j'},
-            {"all-threads", no_argument, 0, 'a'},
-            {0,   0,         0,  0}
+	    {"help",        no_argument, 0, 'h'},
+	    {"json",        no_argument, 0, 'j'},
+	    {"all-threads", no_argument, 0, 'a'},
+	    {0,   0,         0,  0}
     };
 
     int op;
     int long_index = 0;
-    string filter_string;
-    std::function<void (sinsp& inspector)> dump = plaintext_dump;
     while((op = getopt_long(argc, argv,
                             "hr:s:f:ja",
                             long_options, &long_index)) != -1)
@@ -108,8 +109,10 @@ int main(int argc, char **argv)
         }
     }
 
-    signal(SIGINT, sigint_handler);
     signal(SIGPIPE, sigint_handler);
+#endif
+
+    signal(SIGINT, sigint_handler);
     signal(SIGTERM, sigint_handler);
 
     inspector.open();
@@ -151,7 +154,7 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void (const std::string&)> 
     if(res != SCAP_TIMEOUT)
     {
         handle_error(inspector.getlasterr());
-        sleep(g_backoff_timeout_secs);
+	std::this_thread::sleep_for(std::chrono::seconds(g_backoff_timeout_secs));
     }
 
     return nullptr;
