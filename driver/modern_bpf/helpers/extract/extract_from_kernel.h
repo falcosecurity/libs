@@ -58,31 +58,6 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
 	return arg;
 }
 
-/////////////////////////
-// GENERIC EXTRACTION
-////////////////////////
-
-/**
- * @brief Extract `len_to_read` bytes from the pointer.
- *
- * The `dest` pointer usually is the stack or the auxmap.
- * If it is the auxmap we don't have to increment the payload_pos
- * since we are using the map as a scratch space!
- *
- * Please note: in case of failure the content of `dest` is not
- * changed so we don't have to manage the return value, we have only
- * to pass an empty value by default
- *
- * @param dest pointer to the destination buffer.
- * @param len_to_read number of bytes to be read.
- * @param src pointer to the source buffer.
- * @return return code of `bpf_probe_read`
- */
-static __always_inline int extract__bytebuf_from_pointer(void *dest, unsigned long len_to_read, void *src)
-{
-	return bpf_probe_read(dest, SAFE_ACCESS(len_to_read), src);
-}
-
 ///////////////////////////
 // ENCODE DEVICE NUMBER
 ///////////////////////////

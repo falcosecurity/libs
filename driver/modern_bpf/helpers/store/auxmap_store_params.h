@@ -272,11 +272,12 @@ static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param charbuf_pointer pointer to the charbuf to store.
+ * @param mem from which memory we need to read: user-space or kernel-space.
  * @return number of bytes read.
  */
-static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer)
+static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer, enum read_memory mem)
 {
-	u16 charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE);
+	u16 charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE, mem);
 	/* If we are not able to push anything with `push__charbuf`
 	 * `charbuf_len` will be equal to `0` so we will send an
 	 * empty param to userspace.
@@ -367,7 +368,7 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 	{
 		if(path_pointers[k])
 		{
-			total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, path_pointers[k], MAX_PARAM_SIZE);
+			total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, path_pointers[k], MAX_PARAM_SIZE, KERNEL);
 			push__previous_character(auxmap->data, &auxmap->payload_pos, '/');
 		}
 	}

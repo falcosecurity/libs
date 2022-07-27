@@ -34,7 +34,7 @@ int BPF_PROG(openat_e,
 
 	/* Parameter 2: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, path_pointer);
+	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)extract__syscall_argument(regs, 2);
@@ -85,7 +85,7 @@ int BPF_PROG(openat_x,
 
 	/* Parameter 3: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, path_pointer);
+	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	u32 flags = (u32)extract__syscall_argument(regs, 2);
