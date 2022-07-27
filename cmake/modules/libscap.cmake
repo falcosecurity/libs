@@ -22,11 +22,13 @@ list(APPEND LIBSCAP_LIBS
 	"${PROJECT_BINARY_DIR}/libscap/libscap.a"
 	"${PROJECT_BINARY_DIR}/libscap/libscap_engine_util.a"
 	"${PROJECT_BINARY_DIR}/libscap/libscap_event_schema.a"
+	"${PROJECT_BINARY_DIR}/libscap/libdriver_event_schema.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/bpf/libscap_engine_bpf.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/gvisor/libscap_engine_gvisor.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/kmod/libscap_engine_kmod.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/nodriver/libscap_engine_nodriver.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/noop/libscap_engine_noop.a"
+	"${PROJECT_BINARY_DIR}/libscap/engine/savefile/libscap_engine_savefile.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/source_plugin/libscap_engine_source_plugin.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/udig/libscap_engine_udig.a"
 )
@@ -43,4 +45,7 @@ install(DIRECTORY "${DRIVER_CONFIG_DIR}/" DESTINATION "${CMAKE_INSTALL_INCLUDEDI
 install(DIRECTORY "${LIBSCAP_DIR}/userspace/common" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 			COMPONENT "scap"
 			FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "${LIBSCAP_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
+		COMPONENT "scap"
+		FILES_MATCHING PATTERN "*.h")
 endif()

@@ -52,7 +52,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DCREATE_TEST_TARGETS=OFF ..
+          cd build && cmake -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
           cmake --build .
 
   build-libs-arm64:
