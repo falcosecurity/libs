@@ -43,6 +43,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_DUP2_X] = "dup2_x",
 	[PPME_SYSCALL_DUP3_E] = "dup3_e",
 	[PPME_SYSCALL_DUP3_X] = "dup3_x",
+	[PPME_SYSCALL_CHDIR_E] = "chdir_e",
+	[PPME_SYSCALL_CHDIR_X] = "chdir_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
