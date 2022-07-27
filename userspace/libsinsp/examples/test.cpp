@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include <cstdlib>
 #include <iostream>
 #ifndef WIN32
 #include <getopt.h>
@@ -22,6 +23,12 @@ limitations under the License.
 #include <sinsp.h>
 #include <functional>
 #include "util.h"
+
+extern "C" {
+#include <sys/syscall.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+}
 
 using namespace std;
 
@@ -191,6 +198,50 @@ void open_engine(sinsp& inspector)
 	std::cout << "-- Engine '" + engine_string + "' correctly opened." << std::endl;
 }
 
+#ifndef WIN32
+#define insmod(fd, opts, flags) syscall(__NR_finit_module, fd, opts, flags)
+#define rmmod(name, flags) syscall(__NR_delete_module, name, flags)
+
+static bool using_ebpf()
+{
+    char *bpf_probe = getenv("BPF_PROBE");
+
+    return bpf_probe != NULL && *bpf_probe;
+}
+
+static void remove_module()
+{
+    if (rmmod("scap", 0) != 0)
+        cerr << "[ERROR] Failed to remove kernel module" << strerror(errno) << endl;
+}
+
+static bool insert_module()
+{
+    // Check if we are configured to run with the eBPF probe
+    if (using_ebpf())
+        return true;
+
+    char *driver_path = getenv("KERNEL_MODULE");
+    if (driver_path == NULL || *driver_path == '\0')
+    {
+        // We don't have a path set, assuming the kernel module is already there
+        return true;
+    }
+
+    int fd = open(driver_path, O_RDONLY);
+    if (fd < 0)
+        return false;
+
+    int res = insmod(fd, "", 0);
+    if (res != 0)
+        return false;
+
+    atexit(remove_module);
+
+    return true;
+}
+#endif
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -203,7 +254,16 @@ int main(int argc, char** argv)
 
 #ifndef WIN32
 	parse_CLI_options(inspector, argc, argv);
-	signal(SIGPIPE, sigint_handler);
+
+    // Try inserting the kernel module
+    bool res = insert_module();
+    if (!res)
+    {
+        cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
+        return -1;
+    }
+
+    signal(SIGPIPE, sigint_handler);
 #endif
 
 	signal(SIGINT, sigint_handler);

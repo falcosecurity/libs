@@ -102,4 +102,6 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 		COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libsinsp
 		COMMAND ${CMAKE_MAKE_PROGRAM} run-unit-test-libscap
 	)
+
+	add_subdirectory(test/e2e)
 endif()
