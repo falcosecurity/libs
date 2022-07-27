@@ -100,7 +100,7 @@
 #define O_DSYNC 00010000 /* used to be O_SYNC, see below */
 #define FASYNC 00020000	 /* fcntl, for BSD compatibility */
 
-#if defined(__TARGET_ARCH_x86)
+#if defined(__TARGET_ARCH_x86) || defined(__TARGET_ARCH_s390)
 
 #define O_DIRECT 00040000 /* direct disk access hint */
 #define O_LARGEFILE 00100000
