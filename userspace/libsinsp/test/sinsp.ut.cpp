@@ -18,7 +18,6 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include "sinsp_with_test_input.h"
-#include "sinsp.h"
 
 using namespace libsinsp;
 

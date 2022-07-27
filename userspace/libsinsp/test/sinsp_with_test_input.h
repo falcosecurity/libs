@@ -20,6 +20,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include "scap.h"
+#include "sinsp.h"
 #include "filterchecks.h"
 #include "../../common/strlcpy.h"
 
