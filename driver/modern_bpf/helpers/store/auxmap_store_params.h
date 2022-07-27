@@ -13,7 +13,7 @@
 /* Right now a file path extracted from a file descriptor can
  * have at most `MAX_PATH_POINTERS` components.
  */
-#define MAX_PATH_POINTERS 16
+#define MAX_PATH_POINTERS 8
 
 /* Concept of auxamp (auxiliary map):
  *
@@ -303,43 +303,65 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
  */
 static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *auxmap, s32 fd)
 {
-
 	u16 total_size = 0;
 	u8 path_components = 0;
 	unsigned long path_pointers[MAX_PATH_POINTERS] = {0};
 	struct file *f = extract__file_struct_from_fd(fd);
-	struct dentry *de = BPF_CORE_READ(f, f_path.dentry);
+	if(!f)
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
+	}
 
-	/* We need to save the pointer to the parent because when we reach the root
-	 * the pointer will always point to itself, so we need to compare `de_p != de`.
+	struct task_struct *t = get_current_task();
+	struct dentry *file_dentry = BPF_CORE_READ(f, f_path.dentry);
+	struct dentry *root_dentry = READ_TASK_FIELD(t, fs, root.dentry);
+	struct vfsmount *original_mount = BPF_CORE_READ(f, f_path.mnt);
+	struct mount *mnt = container_of(original_mount, struct mount, mnt);
+	struct dentry *mount_dentry = BPF_CORE_READ(mnt, mnt.mnt_root);
+	struct dentry *file_dentry_parent = NULL;
+	struct mount *parent_mount = NULL;
+
+	/* Here we store all the pointers, note that we don't take the pointer
+	 * to the root so we will add it manually if it is necessary!
 	 */
-	struct dentry *de_p = NULL;
-
 	for(int k = 0; k < MAX_PATH_POINTERS; ++k)
 	{
-		if(de == de_p)
+		if(file_dentry == root_dentry)
 		{
 			break;
 		}
+
+		if(file_dentry == mount_dentry)
+		{
+			BPF_CORE_READ_INTO(&parent_mount, mnt, mnt_parent);
+			BPF_CORE_READ_INTO(&file_dentry, mnt, mnt_mountpoint);
+			mnt = parent_mount;
+			BPF_CORE_READ_INTO(&mount_dentry, mnt, mnt.mnt_root);
+			continue;
+		}
+
 		path_components++;
-		BPF_CORE_READ_INTO(&path_pointers[k], de, d_name.name);
-		de_p = de;
-		BPF_CORE_READ_INTO(&de, de, d_parent);
+		BPF_CORE_READ_INTO(&path_pointers[k], file_dentry, d_name.name);
+		BPF_CORE_READ_INTO(&file_dentry_parent, file_dentry, d_parent);
+		file_dentry = file_dentry_parent;
 	}
 
 	/* Reconstruct the path in reverse, using previously collected pointers.
-	 * The first component we face must be the root "/". When we read the
-	 * string in BPF with `bpf_probe_read_str()` we always add the `\0`
-	 * terminator. In this way, we will obtain something like this:
 	 *
-	 * - "/\0"
+	 * 1. As a first thing, we have to add the root `/`.
+	 *
+	 * 2. When we read the string in BPF with `bpf_probe_read_str()` we always
+	 * add the `\0` terminator. In this way, we will obtain something like this:
+	 *
 	 * - "path_1\0"
 	 * - "path_2\0"
 	 * - "file\0"
 	 *
 	 * So putting it all together:
 	 *
-	 * 	"/\0path_1\0path_2\0file\0"
+	 * 	"/path_1\0path_2\0file\0"
+	 *
+	 * (Note that we added `/` manually so there is no `\0`)
 	 *
 	 * But we want to obtain something like this:
 	 *
@@ -348,21 +370,14 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 	 * To obtain it we can replace all `\0` with `/`, but in this way we
 	 * obtain:
 	 *
-	 * 	"//path_1/path_2/file/"
+	 * 	"/path_1/path_2/file/"
 	 *
-	 * So the rationale here is if we have more than 1 `path_components`
-	 * we will erase the last path_pointer[path_components-1] = 0, and we
-	 * will directly push `/` as a single char
-	 *
+	 * So we need to replace the last `/` with `\0`.
 	 */
 
-	if(path_components > 1)
-	{
-		/* remove the root pointer and push only `/` without `\0`. */
-		path_pointers[(path_components - 1) & MAX_PATH_POINTERS - 1] = 0;
-		push__new_character(auxmap->data, &auxmap->payload_pos, '/');
-		total_size += 1;
-	}
+	/* 1. Push the root `/` */
+	push__new_character(auxmap->data, &auxmap->payload_pos, '/');
+	total_size += 1;
 
 	for(int k = MAX_PATH_POINTERS - 1; k >= 0; --k)
 	{
@@ -374,13 +389,18 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 	}
 
 	/* Different cases:
-	 * - `path_components==0` we have to do nothing we will push an empty param.
+	 * - `path_components==0` we have to add the last `\0`.
 	 * - `path_components==1` we need to replace the last `/` with a `\0`.
 	 * - `path_components>1` we need to replace the last `/` with a `\0`.
 	 */
 	if(path_components >= 1)
 	{
 		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+	else
+	{
+		push__new_character(auxmap->data, &auxmap->payload_pos, '\0');
+		total_size += 1;
 	}
 
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
