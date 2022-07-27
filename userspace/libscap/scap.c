@@ -504,8 +504,10 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
-	handle->m_proc_callback = args->proc_callback;
-	handle->m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_main_handle = handle;
+	handle->m_proclist.m_proc_callback = args->proc_callback;
+	handle->m_proclist.m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_proclist = NULL;
 
 	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
 	{
