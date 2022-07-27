@@ -79,7 +79,7 @@ static __always_inline dev_t encode_dev(dev_t dev)
 }
 
 ///////////////////////////
-// FILE EXTRACION
+// FILE EXTRACTION
 ///////////////////////////
 
 /**
@@ -92,7 +92,7 @@ static __always_inline dev_t encode_dev(dev_t dev)
 static __always_inline struct file *extract__file_struct_from_fd(s32 file_descriptor)
 {
 	struct file *f = NULL;
-	if(file_descriptor > 0)
+	if(file_descriptor >= 0)
 	{
 		struct file **fds;
 		struct task_struct *task = get_current_task();
