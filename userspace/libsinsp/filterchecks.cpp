@@ -3319,8 +3319,6 @@ size_t sinsp_filter_check_event::parse_filter_value(const char* str, uint32_t le
 
 void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t len)
 {
-	string val(str);
-
 	if(m_field_id == TYPE_TYPE)
 	{
 		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
