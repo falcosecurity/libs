@@ -31,5 +31,6 @@
 #define DUP3_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define DUP3_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint32_t) + PARAM_LEN * 4
 #define CHDIR_E_SIZE HEADER_LEN
+#define CHMOD_E_SIZE HEADER_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
