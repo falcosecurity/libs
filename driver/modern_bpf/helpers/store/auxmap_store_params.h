@@ -374,10 +374,10 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 
 	/* Different cases:
 	 * - `path_components==0` we have to do nothing we will push an empty param.
-	 * - `path_components==1` we have to do nothing the path is already `/\0`.
+	 * - `path_components==1` we need to replace the last `/` with a `\0`.
 	 * - `path_components>1` we need to replace the last `/` with a `\0`.
 	 */
-	if(path_components > 1)
+	if(path_components >= 1)
 	{
 		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
 	}
