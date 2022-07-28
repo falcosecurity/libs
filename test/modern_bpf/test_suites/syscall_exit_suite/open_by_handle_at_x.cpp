@@ -26,7 +26,8 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 		rc = syscall(__NR_mount, "none", dir_name, "tmpfs", 0, "size=1M,uid=0,gid=0,mode=700");
 		assert_syscall_state(SYSCALL_SUCCESS, "mount", rc, NOT_EQUAL, -1);
 
-		*dirfd = syscall(__NR_open, dir_name, O_DIRECTORY);
+		/* Since `dir_name` is always an absolute path `dirfd` can be `0` here. */
+		*dirfd = syscall(__NR_openat, 0, dir_name, O_DIRECTORY);
 		assert_syscall_state(SYSCALL_SUCCESS, "open", *dirfd, NOT_EQUAL, -1);
 	}
 
