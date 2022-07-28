@@ -33,5 +33,7 @@
 #define CHDIR_E_SIZE HEADER_LEN
 #define CHMOD_E_SIZE HEADER_LEN
 #define CHROOT_E_SIZE HEADER_LEN
+#define FCHDIR_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FCHDIR_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
