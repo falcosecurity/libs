@@ -121,32 +121,31 @@ protected:
 		uint32_t vmsize_kb=10000, uint32_t vmrss_kb=100, uint32_t vmswap_kb=0, uint64_t pfmajor=222, uint64_t pfminor=22,
 		std::vector<std::string> cgroups={}, std::string root="/", int filtered_out=0, int32_t tty=0, int32_t loginuid=-1)
 	{
-		scap_threadinfo tinfo = {
-			.tid = tid,
-			.pid = pid,
-			.ptid = ptid,
-			.sid = sid,
-			.vpgid = vpgid,
-			.exe_writable = exe_writable,
-			.fdlimit = fdlimit,
-			.flags = flags,
-			.uid = uid,
-			.gid = gid,
-			.cap_permitted = cap_permitted,
-			.cap_effective = cap_effective,
-			.cap_inheritable = cap_inheritable,
-			.vmsize_kb = vmsize_kb,
-			.vmrss_kb = vmrss_kb,
-			.pfmajor = pfmajor,
-			.pfminor = pfminor,
-			.vtid = vtid,
-			.vpid = vpid,
-			.filtered_out = filtered_out,
-			.fdlist = nullptr,
-			.clone_ts = clone_ts,
-			.tty = tty,
-			.loginuid = loginuid
-		};
+		scap_threadinfo tinfo = {};
+		tinfo.tid = tid;
+		tinfo.pid = pid;
+		tinfo.ptid = ptid;
+		tinfo.sid = sid;
+		tinfo.vpgid = vpgid;
+		tinfo.exe_writable = exe_writable;
+		tinfo.fdlimit = fdlimit;
+		tinfo.flags = flags;
+		tinfo.uid = uid;
+		tinfo.gid = gid;
+		tinfo.cap_permitted = cap_permitted;
+		tinfo.cap_effective = cap_effective;
+		tinfo.cap_inheritable = cap_inheritable;
+		tinfo.vmsize_kb = vmsize_kb;
+		tinfo.vmrss_kb = vmrss_kb;
+		tinfo.pfmajor = pfmajor;
+		tinfo.pfminor = pfminor;
+		tinfo.vtid = vtid;
+		tinfo.vpid = vpid;
+		tinfo.filtered_out = filtered_out;
+		tinfo.fdlist = nullptr;
+		tinfo.clone_ts = clone_ts;
+		tinfo.tty = tty;
+		tinfo.loginuid = loginuid;
 
 		std::string argsv = "";
 		for (std::string a : args) {
