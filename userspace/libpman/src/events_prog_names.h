@@ -33,6 +33,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_OPEN_BY_HANDLE_AT_X] = "open_by_handle_at_x",
 	[PPME_SYSCALL_CLOSE_E] = "close_e",
 	[PPME_SYSCALL_CLOSE_X] = "close_x",
+	[PPME_SYSCALL_COPY_FILE_RANGE_E] = "copy_file_range_e",
+	[PPME_SYSCALL_COPY_FILE_RANGE_X] = "copy_file_range_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
