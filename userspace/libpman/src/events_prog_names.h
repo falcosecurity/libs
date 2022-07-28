@@ -49,6 +49,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CHMOD_X] = "chmod_x",
 	[PPME_SYSCALL_CHROOT_E] = "chroot_e",
 	[PPME_SYSCALL_CHROOT_X] = "chroot_x",
+	[PPME_SYSCALL_FCHDIR_E] = "fchdir_e",
+	[PPME_SYSCALL_FCHDIR_X] = "fchdir_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
