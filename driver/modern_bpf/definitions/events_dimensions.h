@@ -22,5 +22,7 @@
 #define OPEN_BY_HANDLE_AT_E_SIZE HEADER_LEN
 #define CLOSE_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define CLOSE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define COPY_FILE_RANGE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
+#define COPY_FILE_RANGE_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 3
 
 #endif /* __EVENT_DIMENSIONS_H__ */
