@@ -28,5 +28,7 @@
 #define DUP_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define DUP2_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define DUP2_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + PARAM_LEN * 3
+#define DUP3_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define DUP3_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint32_t) + PARAM_LEN * 4
 
 #endif /* __EVENT_DIMENSIONS_H__ */
