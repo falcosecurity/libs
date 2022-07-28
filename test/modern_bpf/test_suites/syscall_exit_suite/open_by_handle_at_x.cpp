@@ -1,23 +1,42 @@
 #include "../../event_class/event_class.h"
+#include <sys/mount.h>
 
 #if defined(__NR_open_by_handle_at) && defined(__NR_name_to_handle_at) && defined(__NR_openat)
 
-TEST(SyscallExit, open_by_handle_atX_success)
+#define MAX_FSPATH_LEN	4096
+
+void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *fspath, int use_mountpoint)
 {
-	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+	/*
+	 * 0. Create (temporary) mount point (if use_mountpoint).
+	 */
+	char tmpdir[] = "/tmp/modern.bpf.open_by_handle_atX_success_mp.XXXXXX";
+	char *dir_name;
+	*dirfd = AT_FDCWD;
+	if(use_mountpoint)
+	{
+		int rc;
 
-	evt_test->enable_capture();
+		dir_name = mkdtemp(tmpdir);
+		if (dir_name == NULL)
+		{
+			FAIL() << "Could not create temporary directory" << std::endl;
+		}
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
+		rc = syscall(__NR_mount, "none", dir_name, "tmpfs", 0, "size=1M,uid=0,gid=0,mode=700");
+		assert_syscall_state(SYSCALL_SUCCESS, "mount", rc, NOT_EQUAL, -1);
+
+		*dirfd = syscall(__NR_open, dir_name, O_DIRECTORY);
+		assert_syscall_state(SYSCALL_SUCCESS, "open", *dirfd, NOT_EQUAL, -1);
+	}
 
 	/*
 	 * 1. Open a temp file.
 	 */
-	int dirfd = AT_FDCWD;
 	const char *pathname = ".";
 	int flags = O_RDWR | O_TMPFILE | O_DIRECTORY;
 	mode_t mode = 0;
-	int fd = syscall(__NR_openat, dirfd, pathname, flags, mode);
+	int fd = syscall(__NR_openat, *dirfd, pathname, flags, mode);
 	assert_syscall_state(SYSCALL_SUCCESS, "openat", fd, NOT_EQUAL, -1);
 
 	/* Allocate file_handle structure. */
@@ -36,7 +55,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	int mount_id;
 	flags = 0;
 	fhp->handle_bytes = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "name_to_handle_at", syscall(__NR_name_to_handle_at, dirfd, pathname, fhp, &mount_id, flags));
+	assert_syscall_state(SYSCALL_FAILURE, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, pathname, fhp, &mount_id, flags));
 
 	/*
 	 * 2. Reallocate file_handle structure with the correct size.
@@ -51,31 +70,60 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	/*
 	 * 3. Get file handle.
 	 */
-	assert_syscall_state(SYSCALL_SUCCESS, "name_to_handle_at", syscall(__NR_name_to_handle_at, dirfd, pathname, fhp, &mount_id, flags), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "name_to_handle_at", syscall(__NR_name_to_handle_at, *dirfd, pathname, fhp, &mount_id, flags), NOT_EQUAL, -1);
 
 	/*
 	 * 4. Call `open_by_handle_at`.
 	 */
 	flags = O_RDONLY;
-	int open_by_handle_fd = syscall(__NR_open_by_handle_at, AT_FDCWD, fhp, flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "open_by_handle_at", open_by_handle_fd, NOT_EQUAL, -1);
+	mount_id = use_mountpoint ? *dirfd : AT_FDCWD;
+	*open_by_handle_fd = syscall(__NR_open_by_handle_at, mount_id, fhp, flags);
+	assert_syscall_state(SYSCALL_SUCCESS, "open_by_handle_at", *open_by_handle_fd, NOT_EQUAL, -1);
 
 	/*
 	 * 5. Get the current working directory.
 	 */
-	char tmp[4096];
-	char *err = getcwd(tmp, 4096);
-	if(!err)
+	if(use_mountpoint)
 	{
-		FAIL() << "Could not get the current working directory" << std::endl;
+		strcpy(fspath, dir_name);
+	}
+	else
+	{
+		char *err = getcwd(fspath, MAX_FSPATH_LEN);
+		if(!err)
+		{
+			FAIL() << "Could not get the current working directory" << std::endl;
+		}
 	}
 
 	/*
 	 * 6. Cleaning phase.
 	 */
-	close(open_by_handle_fd);
+	close(*open_by_handle_fd);
 	close(fd);
 	free(fhp);
+
+	if(use_mountpoint)
+	{
+		close(*dirfd);
+		umount(dir_name);
+		rmdir(dir_name);
+	}
+
+}
+
+TEST(SyscallExit, open_by_handle_atX_success)
+{
+	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int open_by_handle_fd;
+	int dirfd;
+	char fspath[MAX_FSPATH_LEN];
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 0);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -98,13 +146,60 @@ TEST(SyscallExit, open_by_handle_atX_success)
 	evt_test->assert_numeric_param(1, (int64_t)open_by_handle_fd);
 
 	/* Parameter 2: mountfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
+	evt_test->assert_numeric_param(2, (int64_t)dirfd);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(3, (uint32_t)PPM_O_RDONLY);
 
 	/* Parameter 4: path (type: PT_FSPATH) */
-	evt_test->assert_charbuf_param(4, tmp);
+	evt_test->assert_charbuf_param(4, fspath);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(4);
+}
+
+TEST(SyscallExit, open_by_handle_atX_success_mp)
+{
+	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int open_by_handle_fd;
+	int dirfd;
+	char fspath[MAX_FSPATH_LEN];
+	do___open_by_handle_atX_success(&open_by_handle_fd, &dirfd, fspath, 1);
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: ret (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)open_by_handle_fd);
+
+	/* Parameter 2: mountfd (type: PT_FD) */
+	evt_test->assert_numeric_param(2, (int64_t)dirfd);
+
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(3, (uint32_t)PPM_O_RDONLY);
+
+	/* Parameter 4: path (type: PT_FSPATH) */
+	evt_test->assert_charbuf_param(4, fspath);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
