@@ -39,6 +39,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CREAT_X] = "creat_x",
 	[PPME_SYSCALL_DUP_1_E] = "dup_e",
 	[PPME_SYSCALL_DUP_1_X] = "dup_x",
+	[PPME_SYSCALL_DUP2_E] = "dup2_e",
+	[PPME_SYSCALL_DUP2_X] = "dup2_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

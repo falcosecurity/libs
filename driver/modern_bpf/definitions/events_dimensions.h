@@ -26,5 +26,7 @@
 #define COPY_FILE_RANGE_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) + PARAM_LEN * 3
 #define DUP_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define DUP_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
+#define DUP2_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define DUP2_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + PARAM_LEN * 3
 
 #endif /* __EVENT_DIMENSIONS_H__ */
