@@ -502,6 +502,8 @@ VISIBILITY_PRIVATE
 	bool m_filtered_out;
 	const struct ppm_event_info* m_event_info_table;
 
+	std::shared_ptr<sinsp_fdinfo_t> m_fdinfo_ref;
+
 	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
