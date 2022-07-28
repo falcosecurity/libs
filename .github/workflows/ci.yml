@@ -133,5 +133,6 @@ jobs:
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
             mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ../
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
+            make bpf_test
