@@ -28,7 +28,7 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 
 		/* Since `dir_name` is always an absolute path `dirfd` can be `0` here. */
 		*dirfd = syscall(__NR_openat, 0, dir_name, O_DIRECTORY);
-		assert_syscall_state(SYSCALL_SUCCESS, "open", *dirfd, NOT_EQUAL, -1);
+		assert_syscall_state(SYSCALL_SUCCESS, "openat", *dirfd, NOT_EQUAL, -1);
 	}
 
 	/*
