@@ -50,13 +50,18 @@ class SinspStreamer:
         """
         Split the docker log timestamp from the log line and return them
 
+        The expected log needs to have the timestamp provided by docker,
+        similar to running 'docker logs -t sinsp-example'
+
+        Example log:
+            2022-07-29T09:45:41.896041322Z {"evt.args":"","evt.cpu":0,"evt.dir":">","evt.num":18380,"evt.time":1659087941552081087,"evt.type":"epoll_pwait","proc.name":"<NA>","thread.tid":49892}
         Parameters:
             raw_log (binary): The log line as extracted from the logs call.
 
         Returns:
             A tuple holding a datetime object with the timestamp and a string with the log line.
         """
-        decoded_log = raw_log.decode("ascii").strip()
+        decoded_log = raw_log.decode("utf-8").strip()
         split_log = decoded_log.split(" ")
         return datetime.strptime(split_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f"), " ".join(split_log[1:])
 
@@ -70,6 +75,7 @@ class SinspField:
     """
     Stores the value expected in a field output by sinsp-example.
     """
+
     def __init__(self, value, value_type=SinspFieldTypes.STRING):
         self.value_type = value_type
 
@@ -107,7 +113,12 @@ def parse_log(log):
     Returns:
         A dictionary holding all the captured values for the event.
     """
-    return json.loads(log)
+    try:
+        return json.loads(log)
+    except json.JSONDecodeError as e:
+        print(f'Failed to parse JSON: {e}')
+        print(log)
+        return None
 
 
 def validate_event(expected_fields, event):
@@ -121,6 +132,9 @@ def validate_event(expected_fields, event):
     Returns:
         True if all `expected_fields` are in the event and have matching values, False otherwise.
     """
+    if event is None:
+        return False
+
     for k in expected_fields:
         if k not in event:
             return False
@@ -164,29 +178,17 @@ def assert_events(expected_events, container):
         assert success, f"Did not receive expected event: {event}"
 
 
-def is_ebpf():
-    """
-    Checks if the tests are being run with eBPF.
-
-    Returns:
-        True if the test is running with the eBPF driver, False otherwise.
-    """
-    return "BPF_PROBE" in os.environ
-
-
 def sinsp_validation(container: docker.models.containers.Container) -> (bool, str):
     """
     Checks a container exited correctly
     """
     container.reload()
     exit_code = container.attrs['State']['ExitCode']
-    if exit_code != 0:
-        return False, f'container exited with code {exit_code}'
 
-    return True, None
+    assert exit_code == 0, f'container exited with code {exit_code}'
 
 
-def container_spec(image=f'sinsp-example:latest', args=[]):
+def container_spec(image='sinsp-example:latest', args=[], env={}):
     """
     Generates a dictionary describing how to run the sinsp-example container
 
@@ -200,19 +202,39 @@ def container_spec(image=f'sinsp-example:latest', args=[]):
         docker.types.Mount("/dev", "/dev", type="bind",
                            consistency="delegated", read_only=True)
     ]
-    environment = {}
-
-    if is_ebpf():
-        environment["BPF_PROBE"] = os.environ.get("BPF_PROBE")
-    else:
-        environment["KERNEL_MODULE"] = os.environ.get("KERNEL_MODULE")
 
     return {
         'image': image,
         'args': args,
         'mounts': mounts,
-        'env': environment,
+        'env': env,
         'privileged': True,
         'init_wait': 2,
         'post_validation': sinsp_validation,
     }
+
+
+def generate_specs(image: str = 'sinsp-example:latest', args: list = []) -> list:
+    """
+    Generates a list of dictionaries describing how to run the sinsp-example container
+
+    Parameters:
+        image (str): The name of the image used for running
+        args (list): A list of arguments to supply into the container
+    Returns:
+        A dictionary describing how to run the sinsp-example container
+    """
+    specs = []
+
+    specs.append(container_spec(
+        image, args, {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE')}))
+    specs.append(container_spec(
+        image, args, {'BPF_PROBE': os.environ.get('BPF_PROBE')}))
+
+    return specs
+
+
+def generate_id(spec: dict) -> str:
+    if 'BPF_PROBE' in spec['env']:
+        return 'ebpf'
+    return 'kmod'

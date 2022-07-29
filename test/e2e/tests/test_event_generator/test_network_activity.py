@@ -6,13 +6,20 @@ from sinspqa.docker import get_container_id
 sinsp_filters = ["-f", "evt.category=net and not container.id=host"]
 ipv4_regex = r'\d+\.\d+\.\d+\.\d+:\d+'
 
-containers = [{
-    'sinsp': sinsp.container_spec(args=sinsp_filters),
-    'generator': event_generator.container_spec('syscall.SystemProcsNetworkActivity')
-}]
+containers = [
+    {
+        'sinsp': sinsp_container,
+        'generator': event_generator.container_spec('syscall.SystemProcsNetworkActivity')
+    } for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+]
+
+ids = [
+    f'{sinsp.generate_id(c["sinsp"])}-{event_generator.generate_id(c["generator"])}'
+    for c in containers
+]
 
 
-@pytest.mark.parametrize("run_containers", containers, indirect=True)
+@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
 def test_network_activity(run_containers):
     sinsp_container = run_containers['sinsp']
 

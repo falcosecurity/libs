@@ -10,8 +10,8 @@ RUN apt-get update && \
     libb64-0d \
     libtbb2
 
-COPY /libsinsp/examples/sinsp-example /usr/local/bin/sinsp-example
-COPY /driver/bpf/probe.o /driver/probe.o
-COPY /driver/scap.ko /driver/scap.ko
+COPY /sinsp-example /usr/local/bin/sinsp-example
+COPY /probe.o /driver/probe.o
+COPY /scap.ko /driver/scap.ko
 
 ENTRYPOINT [ "sinsp-example", "-j", "-a" ]

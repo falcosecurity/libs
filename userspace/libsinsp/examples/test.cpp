@@ -228,17 +228,25 @@ static bool insert_module()
         return true;
     }
 
+    int res;
     int fd = open(driver_path, O_RDONLY);
     if (fd < 0)
-        return false;
+        goto error;
 
-    int res = insmod(fd, "", 0);
+    res = insmod(fd, "", 0);
     if (res != 0)
-        return false;
+        goto error;
 
     atexit(remove_module);
 
     return true;
+
+error:
+    cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
+
+    close(fd);
+
+    return false;
 }
 #endif
 
@@ -259,7 +267,6 @@ int main(int argc, char** argv)
     bool res = insert_module();
     if (!res)
     {
-        cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
         return -1;
     }
 
