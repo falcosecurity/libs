@@ -13,7 +13,7 @@
 /* Right now a file path extracted from a file descriptor can
  * have at most `MAX_PATH_POINTERS` components.
  */
-#define MAX_PATH_POINTERS 16
+#define MAX_PATH_POINTERS 8
 
 /* Concept of auxamp (auxiliary map):
  *
@@ -298,6 +298,19 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
  * So we need to do it by hand and this cause a limit in the max
  * path component that we can retrieve (MAX_PATH_POINTERS).
  *
+ * This version of `auxmap__store_path_from_fd` works smooth on all
+ * supported architectures: `s390x`, `ARM64`, `x86_64`.
+ * The drawback is that due to its complexity we can catch at most
+ * `MAX_PATH_POINTERS==8`.
+ *
+ * The previous version of this method was able to correctly catch paths
+ * under different mount points, but not on `s390x` architecture, where
+ * the userspace test `open_by_handle_atX_success_mp` failed.
+ *
+ * #@Andreagit97: reduce the complexity of this helper to allow the capture
+ * of more path components, or enable only this version of the helper on `s390x`,
+ * leaving the previous working version on `x86` and `aarch64` architectures.
+ *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param fd file descriptor from which we want to retrieve the file path.
  */
@@ -319,12 +332,7 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 	struct mount *mnt = container_of(original_mount, struct mount, mnt);
 	struct dentry *mount_dentry = BPF_CORE_READ(mnt, mnt.mnt_root);
 	struct dentry *file_dentry_parent = NULL;
-
-	/* this should catch the path from the right mount point. */
-	if(file_dentry == mount_dentry && file_dentry != root_dentry)
-	{
-		BPF_CORE_READ_INTO(&file_dentry, mnt, mnt_mountpoint);
-	}
+	struct mount *parent_mount = NULL;
 
 	/* Here we store all the pointers, note that we don't take the pointer
 	 * to the root so we will add it manually if it is necessary!
@@ -334,6 +342,15 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 		if(file_dentry == root_dentry)
 		{
 			break;
+		}
+
+		if(file_dentry == mount_dentry)
+		{
+			BPF_CORE_READ_INTO(&parent_mount, mnt, mnt_parent);
+			BPF_CORE_READ_INTO(&file_dentry, mnt, mnt_mountpoint);
+			mnt = parent_mount;
+			BPF_CORE_READ_INTO(&mount_dentry, mnt, mnt.mnt_root);
+			continue;
 		}
 
 		path_components++;
