@@ -4,27 +4,54 @@ from sinspqa import sinsp, event_generator
 from sinspqa.sinsp import assert_events, SinspField
 
 
-def create_containers(sinsp_filter, syscall):
-    return {
-        'sinsp': sinsp.container_spec(args=sinsp_filter),
-        'generator': event_generator.container_spec(syscall),
-    }
-
-
 def create_expected_arg(directory):
     return fr'^fd=3\(<f>{re.escape(directory)}\/created-by-event-generator\) dirfd=-100\(AT_FDCWD\) name={re.escape(directory)}\/created-by-event-generator flags=4358\(O_TRUNC\|O_CREAT\|O_WRONLY\|O_CLOEXEC\) mode=0755 dev=.* ino=\d+ $'
 
 
-sinsp_filters = ["-f", "evt.is_open_write=true and fd.typechar='f' and fd.num>=0"]
+def generate_ids(parameters: list) -> list:
+    ret = []
+
+    for parameter in parameters:
+        containers = parameter[0]
+        sinsp_id = sinsp.generate_id(containers['sinsp'])
+        generator_id = event_generator.generate_id(containers['generator'])
+
+        ret.append(f'{sinsp_id}-{generator_id}')
+
+    return ret
+
+
+generator_containers = [
+    event_generator.container_spec('syscall.WriteBelowEtc'),
+    event_generator.container_spec('syscall.WriteBelowBinaryDir'),
+    event_generator.container_spec('syscall.CreateFilesBelowDev'),
+    event_generator.container_spec('syscall.WriteBelowRpmDatabase')
+]
+expected_args = [
+    create_expected_arg('/etc'),
+    create_expected_arg('/bin'),
+    create_expected_arg('/dev'),
+    create_expected_arg('/var/lib/rpm')
+]
+generator_tuples = zip(generator_containers, expected_args)
+
+sinsp_filters = [
+    "-f", "evt.is_open_write=true and fd.typechar='f' and fd.num>=0"]
+
 parameters = [
-    (create_containers(sinsp_filters, 'syscall.WriteBelowEtc'), create_expected_arg('/etc')),
-    (create_containers(sinsp_filters, 'syscall.WriteBelowBinaryDir'), create_expected_arg('/bin')),
-    (create_containers(sinsp_filters, 'syscall.CreateFilesBelowDev'), create_expected_arg('/dev')),
-    (create_containers(sinsp_filters, 'syscall.WriteBelowRpmDatabase'), create_expected_arg('/var/lib/rpm')),
+    (
+        {
+            'sinsp': sinsp_container,
+            'generator': generator_container
+        },
+        expected_arg
+    )
+    for (generator_container, expected_arg) in generator_tuples
+    for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
 ]
 
 
-@pytest.mark.parametrize('run_containers,expected_arg', parameters, indirect=['run_containers'])
+@pytest.mark.parametrize('run_containers,expected_arg', parameters, indirect=['run_containers'], ids=generate_ids(parameters))
 def test_file_writes(run_containers, expected_arg):
     sinsp_container = run_containers['sinsp']
     generator_container = run_containers['generator']

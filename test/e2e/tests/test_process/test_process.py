@@ -5,13 +5,15 @@ from sinspqa.sinsp import assert_events
 
 
 sinsp_filters = ["-f", "evt.category=process and evt.type=execve"]
+containers = [
+    {
+        'sinsp': sinsp_container
+    } for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+]
+ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
 
-containers = [{
-    'sinsp': sinsp.container_spec(args=sinsp_filters)
-}]
 
-
-@pytest.mark.parametrize("run_containers", containers, indirect=True)
+@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
 def test_process(run_containers, tester_id):
     """
     Runs a simple test where a bash script is executed and a corresponding sinsp event is found in the provided

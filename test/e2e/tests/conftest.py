@@ -1,10 +1,9 @@
 import pytest
-import subprocess
 import docker
 import os
 from time import sleep
-from sinspqa import SINSP_LOG_PATH, LOGS_PATH
-from sinspqa.sinsp import is_ebpf
+from sinspqa import LOGS_PATH
+from sinspqa.docker import get_container_id
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -26,20 +25,25 @@ def tester_id(docker_client):
     Returns:
         A 12 character string with the ID.
     """
-    return docker_client.containers.get("falco-e2e-tester").id[:12]
+    tester_container = docker_client.containers.get('sinsp-e2e-tester')
+
+    return get_container_id(tester_container)
 
 
-def wait_container_running(container: docker.models.containers.Container, additional_wait):
-    retries = 6
-    container.reload()
+def wait_container_running(container: docker.models.containers.Container, additional_wait=0, retries=5):
+    success = False
 
-    while container.status != 'running':
-        retries -= 1
-        if retries == 0:
-            raise TimeoutError
+    for _ in range(retries):
+        container.reload()
+
+        if container.status == 'running':
+            success = True
+            break
 
         sleep(0.5)
-        container.reload()
+
+    if not success:
+        raise TimeoutError
 
     if additional_wait:
         sleep(additional_wait)
@@ -97,15 +101,16 @@ def run_containers(request, docker_client):
         # the container stops
         container.stop()
 
-        logs = container.logs().decode('ascii')
+        logs = container.logs().decode('utf-8')
         if logs:
             with open(os.path.join(LOGS_PATH, f'{name}.log'), 'w') as f:
                 f.write(logs)
 
         if validation:
-            res, msg = validation(container)
-            if not res:
-                errors.append(f'{name}: {msg}')
+            try:
+                validation(container)
+            except AssertionError as e:
+                errors.append(f'{name}: {e}')
                 success = False
 
         container.remove()

@@ -6,7 +6,7 @@ libsinsp. Said tests are based around 2 containers:
 - Another one running the actual tests and verifying their outcome.
 
 ## sinsp container
-A container holding the `sinsp-example` binary. Its entrpoint is set to the
+A container holding the `sinsp-example` binary. Its entrypoint is set to the
 binary, so it can be run in the same way as explained in [this README file](https://github.com/falcosecurity/libs/blob/master/userspace/libsinsp/examples/README.md).
 The build for this container is based off of `containers/sinsp.Dockerfile`
 
@@ -22,7 +22,7 @@ This container is in charge of running any tests that are created under the
 written need to follow the pattern `test_*/test_*.py` in order for them to be
 properly picked up. Additionally, a module called `sinspqa` lives in
 `tests/commons/`, it is installed directly to the tester container and is meant
-to house any functions/classes that might be useful accross multiple tests. The
+to house any functions/classes that might be useful across multiple tests. The
 dockerfile for this image can be found under `containers/tests.Dockerfile`.
 
 ## Running the tests
