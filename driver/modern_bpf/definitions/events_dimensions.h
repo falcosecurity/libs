@@ -52,5 +52,7 @@
 #define SIGNALFD_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define KILL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define KILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define TGKILL_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) + PARAM_LEN * 3
+#define TGKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
