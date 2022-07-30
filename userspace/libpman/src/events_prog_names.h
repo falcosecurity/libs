@@ -57,6 +57,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHMODAT_X] = "fchmodat_x",
 	[PPME_SYSCALL_MKDIRAT_E] = "mkdirat_e",
 	[PPME_SYSCALL_MKDIRAT_X] = "mkdirat_x",
+	[PPME_SYSCALL_RMDIR_2_E] = "rmdir_e",
+	[PPME_SYSCALL_RMDIR_2_X] = "rmdir_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
