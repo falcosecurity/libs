@@ -418,3 +418,91 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
 }
+
+/**
+ * @brief Store ptrace addr param. This helper is used by ptrace syscall.
+ *  This param is of type `PT_DYN` and it is composed of:
+ * - 1 byte: a scap code that indicates how the ptrace addr param is sent to userspace.
+ *   As in the old probe we send only params of type `PPM_PTRACE_IDX_UINT64`.
+ * - 8 byte: the ptrace addr value sent as a `PT_UINT64`.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param ret return value to understand which action we have to perform.
+ * @param addr_pointer pointer to the `addr` param taken from syscall registers.
+ */
+static __always_inline void auxmap__store_ptrace_addr_param(struct auxiliary_map *auxmap, long ret, u64 addr_pointer)
+{
+	push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
+
+	/* The syscall is failed. */
+	if(ret < 0)
+	{
+		/* We push `0` in case of failure. */
+		push__u64(auxmap->data, &auxmap->payload_pos, 0);
+	}
+	else
+	{
+		/* We send the addr pointer as a uint64_t */
+		push__u64(auxmap->data, &auxmap->payload_pos, addr_pointer);
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(u64));
+}
+
+/**
+ * @brief Store ptrace data param. This helper is used by ptrace syscall.
+ *  This param is of type `PT_DYN` and it is composed of:
+ * - 1 byte: a scap code that indicates how the ptrace data param is sent to userspace.
+ * - a variable size part according to the `ptrace_req`
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param ret return value to understand which action we have to perform.
+ * @param ptrace_req ptrace request converted in the scap format.
+ * @param data_pointer pointer to the `data` param taken from syscall registers.
+ */
+static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map *auxmap, long ret, u16 ptrace_req, u64 data_pointer)
+{
+	/* The syscall is failed. */
+	if(ret < 0)
+	{
+		/* We push `0` in case of failure. */
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
+		push__u64(auxmap->data, &auxmap->payload_pos, 0);
+		push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8) + sizeof(u64));
+		return;
+	}
+
+	u64 dest = 0;
+	u16 total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
+	switch(ptrace_req)
+	{
+	case PPM_PTRACE_PEEKTEXT:
+	case PPM_PTRACE_PEEKDATA:
+	case PPM_PTRACE_PEEKUSR:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
+		bpf_probe_read_user((void *)&dest, sizeof(dest), (void *)data_pointer);
+		push__u64(auxmap->data, &auxmap->payload_pos, dest);
+		total_size_to_push += sizeof(u64);
+		break;
+
+	case PPM_PTRACE_CONT:
+	case PPM_PTRACE_SINGLESTEP:
+	case PPM_PTRACE_DETACH:
+	case PPM_PTRACE_SYSCALL:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_SIGTYPE);
+		push__u8(auxmap->data, &auxmap->payload_pos, data_pointer);
+		total_size_to_push += sizeof(u8);
+		break;
+
+	case PPM_PTRACE_ATTACH:
+	case PPM_PTRACE_TRACEME:
+	case PPM_PTRACE_POKETEXT:
+	case PPM_PTRACE_POKEDATA:
+	case PPM_PTRACE_POKEUSR:
+	default:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
+		push__u64(auxmap->data, &auxmap->payload_pos, data_pointer);
+		total_size_to_push += sizeof(u64);
+		break;
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
+}

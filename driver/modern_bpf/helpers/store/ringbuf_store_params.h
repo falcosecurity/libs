@@ -206,6 +206,22 @@ static __always_inline void ringbuf__store_u8(struct ringbuf_struct *ringbuf, u8
 }
 
 /**
+ * @brief This helper should be used to store unsigned 16 bit params.
+ * The following types are compatible with this helper:
+ * - PT_UINT16
+ * - PT_FLAGS16
+ * - PT_ENUMFLAGS16
+ *
+ * @param ringbuf pointer to the `ringbuf_struct`.
+ * @param param param to store
+ */
+static __always_inline void ringbuf__store_u16(struct ringbuf_struct *ringbuf, u16 param)
+{
+	push__u16(ringbuf->data, &ringbuf->payload_pos, param);
+	push__param_len(ringbuf->data, &ringbuf->lengths_pos, sizeof(u16));
+}
+
+/**
  * @brief This helper should be used to store unsigned 32 bit params.
  * The following types are compatible with this helper:
  * - PT_UINT32

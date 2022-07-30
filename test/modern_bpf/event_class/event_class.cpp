@@ -248,6 +248,32 @@ void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_
 	ASSERT_EQ(memcmp(m_event_params[m_current_param].valptr, param, buf_dimension), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 }
 
+void event_test::assert_ptrace_addr(int param_num)
+{
+	assert_param_boundaries(param_num);
+
+	/* Right now we test only the failure case.
+	 * - type: `PPM_PTRACE_IDX_UINT64`
+	 * - val: `0`
+	 */
+	assert_param_len(sizeof(uint8_t) + sizeof(uint64_t));
+	ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), PPM_PTRACE_IDX_UINT64) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+	ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr + 1), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
+void event_test::assert_ptrace_data(int param_num)
+{
+	assert_param_boundaries(param_num);
+
+	/* Right now we test only the failure case.
+	 * - type: `PPM_PTRACE_IDX_UINT64`
+	 * - val: `0`
+	 */
+	assert_param_len(sizeof(uint8_t) + sizeof(uint64_t));
+	ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), PPM_PTRACE_IDX_UINT64) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+	ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr + 1), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
 /////////////////////////////////
 // INTERNAL ASSERTIONS
 /////////////////////////////////

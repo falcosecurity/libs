@@ -807,8 +807,10 @@
 #define PTRACE_SEIZE 0x4206
 #define PTRACE_INTERRUPT 0x4207
 #define PTRACE_LISTEN 0x4208
+#define PTRACE_PEEKSIGINFO 0x4209
 #define PTRACE_GETSIGMASK 0x420a
 #define PTRACE_SETSIGMASK 0x420b
+#define PTRACE_SECCOMP_GET_FILTER 0x420c
 
 /* `/arch/x86/include/uapi/asm/ptrace-abi.h` from kernel source tree.  */
 
@@ -817,6 +819,7 @@
 #define PTRACE_SETREGS 13
 #define PTRACE_GETFPREGS 14
 #define PTRACE_SETFPREGS 15
+
 #define PTRACE_GETFPXREGS 18
 #define PTRACE_SETFPXREGS 19
 
@@ -827,10 +830,8 @@
 #define PTRACE_SET_THREAD_AREA 26
 
 #define PTRACE_ARCH_PRCTL 30
-
 #define PTRACE_SYSEMU 31
 #define PTRACE_SYSEMU_SINGLESTEP 32
-
 #define PTRACE_SINGLEBLOCK 33 /* resume execution until next branch */
 #endif
 

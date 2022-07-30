@@ -216,9 +216,8 @@ public:
 	 * @param param expected value.
 	 * @param op the operation we want to perform in the assertion.
 	 */
-	template <class T>
+	template<class T>
 	void assert_numeric_param(int param_num, T param, enum assertion_operators op = EQUAL);
-
 
 	/**
 	 * @brief Assert that the parameter is a `charbuf` and
@@ -248,6 +247,28 @@ public:
 	 * @param param expected value.
 	 */
 	void assert_bytebuf_param(int param_num, const char* param, int buf_dimension);
+
+	/**
+	 * @brief The ptrace `addr` param is a `PT_DYN`, so we need
+	 * a dedicated helper to assert it.
+	 *
+	 * TODO: This is still a partial implementation, we assert
+	 * only the case in which the param is empty.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 */
+	void assert_ptrace_addr(int param_num);
+
+	/**
+	 * @brief The ptrace `data` param is a `PT_DYN`, so we need
+	 * a dedicated helper to assert it.
+	 *
+	 * TODO: This is still a partial implementation, we assert
+	 * only the case in which the param is empty.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 */
+	void assert_ptrace_data(int param_num);
 
 private:
 	enum ppm_event_type m_event_type;	  /* type of the event we want to assert in this test. */
