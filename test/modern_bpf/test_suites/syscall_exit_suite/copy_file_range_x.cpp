@@ -1,7 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_copy_file_range
-TEST(SyscallEnter, copy_file_rangeX)
+TEST(SyscallExit, copy_file_rangeX)
 {
 	auto evt_test = new event_test(__NR_copy_file_range, EXIT_EVENT);
 
