@@ -38,5 +38,6 @@
 #define FCHMOD_E_SIZE HEADER_LEN
 #define FCHMOD_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define FCHMODAT_E_SIZE HEADER_LEN
+#define MKDIRAT_E_SIZE HEADER_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
