@@ -58,5 +58,6 @@
 #define TKILL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SECCOMP_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
 #define SECCOMP_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define PTRACE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + PARAM_LEN * 2
 
 #endif /* __EVENT_DIMENSIONS_H__ */
