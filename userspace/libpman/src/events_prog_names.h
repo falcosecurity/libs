@@ -69,6 +69,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_USERFAULTFD_X] = "userfaultfd_x",
 	[PPME_SYSCALL_SIGNALFD_E] = "signalfd_e",
 	[PPME_SYSCALL_SIGNALFD_X] = "signalfd_x",
+	[PPME_SYSCALL_KILL_E] = "kill_e",
+	[PPME_SYSCALL_KILL_X] = "kill_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
