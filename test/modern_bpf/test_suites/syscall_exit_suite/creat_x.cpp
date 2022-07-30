@@ -2,7 +2,7 @@
 
 #ifdef __NR_creat
 
-#if defined(__NR_fstat) && defined(__NR_unlinkat)
+#if defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close)
 TEST(SyscallExit, creatX_success)
 {
 	auto evt_test = new event_test(__NR_creat, EXIT_EVENT);
@@ -23,8 +23,8 @@ TEST(SyscallExit, creatX_success)
 	uint64_t inode = file_stat.st_ino;
 
 	/* Remove the file. */
-	close(fd);
-	assert_syscall_state(SYSCALL_SUCCESS, "unlinkat", syscall(__NR_unlinkat, AT_FDCWD, path, 0), NOT_EQUAL, -1);
+	syscall(__NR_close, fd);
+	syscall(__NR_unlinkat, AT_FDCWD, path, 0);
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -62,7 +62,7 @@ TEST(SyscallExit, creatX_success)
 
 	evt_test->assert_num_params_pushed(5);
 }
-#endif /* defined(__NR_fstat) && defined(__NR_unlinkat) */
+#endif /* defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close) */
 
 TEST(SyscallExit, creatX_failure)
 {

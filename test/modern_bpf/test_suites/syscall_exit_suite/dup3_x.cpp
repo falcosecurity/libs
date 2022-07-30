@@ -1,6 +1,6 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_dup3) && defined(__NR_openat)
+#if defined(__NR_dup3) && defined(__NR_openat) && defined(__NR_close)
 TEST(SyscallExit, dup3X)
 {
 	auto evt_test = new event_test(__NR_dup3, EXIT_EVENT);
@@ -19,9 +19,9 @@ TEST(SyscallExit, dup3X)
 	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
 	int64_t errno_value = -errno;
 
-	close(old_fd);
-	close(new_fd);
-	close(res);
+	syscall(__NR_close, old_fd);
+	syscall(__NR_close, new_fd);
+	syscall(__NR_close, res);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
