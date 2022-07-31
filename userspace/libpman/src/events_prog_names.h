@@ -79,6 +79,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SECCOMP_X] = "seccomp_x",
 	[PPME_SYSCALL_PTRACE_E] = "ptrace_e",
 	[PPME_SYSCALL_PTRACE_X] = "ptrace_x",
+	[PPME_SYSCALL_CAPSET_E] = "capset_e",
+	[PPME_SYSCALL_CAPSET_X] = "capset_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

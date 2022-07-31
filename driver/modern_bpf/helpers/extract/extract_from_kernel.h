@@ -11,6 +11,14 @@
 #include <helpers/base/read_from_task.h>
 #include <driver/ppm_flag_helpers.h>
 
+/* This enum should simplify the capabilities extraction. */
+enum capability_type
+{
+	CAP_INHERITABLE = 0,
+	CAP_PERMITTED = 1,
+	CAP_EFFECTIVE = 2,
+};
+
 /* All the functions that are called in bpf to extract parameters
  * start with the `extract` prefix.
  */
@@ -137,4 +145,53 @@ static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64
 	BPF_CORE_READ_INTO(dev, f, f_inode, i_sb, s_dev);
 	*dev = encode_dev(*dev);
 	BPF_CORE_READ_INTO(ino, f, f_inode, i_ino);
+}
+
+/////////////////////////
+// CAPABILITIES EXTRACTION
+////////////////////////
+
+/**
+ * @brief Extract capabilities
+ *
+ * Right now we support only 3 types of capabilities:
+ * - cap_inheritable
+ * - cap_permitted
+ * - cap_effective
+ *
+ * To extract the specific capabilities use the enum defined by us
+ * at the beginning of this file:
+ * - CAP_INHERITABLE
+ * - CAP_PERMITTED
+ * - CAP_EFFECTIVE
+ *
+ * @param task pointer to task struct.
+ * @param capability_type type of capability to extract defined by us.
+ * @return PPM encoded capability value
+ */
+static __always_inline u64 extract__capability(struct task_struct *task, enum capability_type capability_type)
+{
+	kernel_cap_t cap_struct;
+	unsigned long capability;
+
+	switch(capability_type)
+	{
+	case CAP_INHERITABLE:
+		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_inheritable);
+		break;
+
+	case CAP_PERMITTED:
+		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_permitted);
+		break;
+
+	case CAP_EFFECTIVE:
+		READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
+		break;
+
+	default:
+		return 0;
+		break;
+	}
+
+	return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
 }
