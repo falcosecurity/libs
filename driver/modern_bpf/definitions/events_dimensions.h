@@ -77,5 +77,7 @@
 #define RENAME_E_SIZE HEADER_LEN
 #define RENAMEAT_E_SIZE HEADER_LEN
 #define RENAMEAT2_E_SIZE HEADER_LEN
+#define PIPE_E_SIZE HEADER_LEN
+#define PIPE_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) + PARAM_LEN * 4
 
 #endif /* __EVENT_DIMENSIONS_H__ */
