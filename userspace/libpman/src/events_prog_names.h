@@ -107,6 +107,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FORK_20_X] = "fork_x",
 	[PPME_SYSCALL_VFORK_20_E] = "vfork_e",
 	[PPME_SYSCALL_VFORK_20_X] = "vfork_x",
+	[PPME_SYSCALL_RENAME_E] = "rename_e",
+	[PPME_SYSCALL_RENAME_X] = "rename_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
