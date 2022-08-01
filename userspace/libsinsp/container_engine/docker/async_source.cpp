@@ -40,53 +40,6 @@ docker_async_source::~docker_async_source()
 			"docker_async: Source destructor");
 }
 
-bool docker_async_source::lookup_sync(const docker_lookup_request& request, sinsp_container_info& value)
-{
-	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-	value.m_type = request.container_type;
-	value.m_id = request.container_id;
-
-	if(!parse_docker(request, value))
-	{
-		// This is not always an error e.g. when using
-		// containerd as the runtime. Since the cgroup
-		// names are often identical between
-		// containerd and docker, we have to try to
-		// fetch both.
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker (%s): Failed to get Docker metadata, returning successful=false",
-				request.container_id.c_str());
-		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
-	}
-
-	return true;
-}
-
-void docker_async_source::run_impl()
-{
-	docker_lookup_request request;
-
-	while (dequeue_next_key(request))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s : %s): Source dequeued key",
-				request.container_id.c_str(),
-				request.request_rw_size ? "true" : "false");
-
-		sinsp_container_info res;
-
-		lookup_sync(request, res);
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"docker_async (%s): Parse successful, storing value",
-				request.container_id.c_str());
-
-		// Return a result object either way, to ensure any
-		// new container callbacks are called.
-		store_value(request, res);
-	}
-}
-
 bool docker_async_source::get_k8s_pod_spec(const Json::Value &config_obj,
 					   Json::Value &spec)
 {
