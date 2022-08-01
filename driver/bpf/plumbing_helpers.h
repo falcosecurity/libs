@@ -284,6 +284,17 @@ static __always_inline const struct syscall_evt_pair *get_syscall_info(int id)
 	return p;
 }
 
+static __always_inline bool is_syscall_interesting(int id)
+{
+	bool *enabled = bpf_map_lookup_elem(&interesting_syscalls_table, &id);
+
+	if (!enabled)
+
+		bpf_printk("no syscall_info for %d\n", id);
+
+	return enabled && *enabled;
+}
+
 static __always_inline const struct ppm_event_info *get_event_info(enum ppm_event_type event_type)
 {
 	const struct ppm_event_info *e =

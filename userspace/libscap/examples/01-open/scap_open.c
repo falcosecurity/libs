@@ -25,7 +25,6 @@ limitations under the License.
 #define BPF_OPTION "--bpf"
 #define MODERN_BPF_OPTION "--modern_bpf"
 #define SCAP_FILE_OPTION "--scap_file"
-#define SIMPLE_CONSUMER_OPTION "--simple_consumer"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -47,7 +46,6 @@ struct scap_savefile_engine_params savefile_params;
 
 /* Configuration variables set through CLI. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
-bool simple_consumer = false;	  /* kernel simple consumer mode. */
 int evt_type = -1;		  /* event type to print. */
 
 /* Generic global variables. */
@@ -334,8 +332,6 @@ void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_M
 
 /* This are the real interesting syscalls that we want to support in the new probe.
  * - all syscalls associated with events of type `UF_NEVER_DROP`.
- * - all syscalls that are not managed through `GENERIC_EVENTS` and don't
- *   have the `EF_DROP_SIMPLE_CONS` flag.
  *
  * Please note: if some syscalls miss, probably, you have an old kernel
  * that don't define them. Try to use a newer one.
@@ -362,10 +358,8 @@ void print_modern_probe_syscalls()
 			continue;
 		}
 
-		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic.
-		 * Same thing if the syscall has the `EF_DROP_SIMPLE_CONS`.
-		 */
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E || g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
+		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic.*/
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
 		{
 			continue;
 		}
@@ -384,9 +378,8 @@ error:
 	printf("unexpected error, please check with `%s` option", VALIDATION_OPTION);
 }
 
-/* Print syscall supported by actual drivers: `KERNEL_MODULE`, `BPF_PROBE`.
- * You can also print only simple consumer syscalls by passing the CLI
- * option `--simple_consumer`.
+/*
+ * Print syscall supported by actual drivers: `KERNEL_MODULE`, `BPF_PROBE`.
  */
 void print_actual_drivers_syscalls()
 {
@@ -414,11 +407,9 @@ void print_actual_drivers_syscalls()
 
 /* Print all supported syscall according to the scap source you have chosen:
  * - `KERNEL_MODULE` or `BPF_PROBE`, print all syscalls supported by these
- *   sources. Please note: you can also print only simple consumer syscalls
- *   by passing the CLI option `--simple_consumer`
+ *   sources
  * - `MODERN_BPF_PROBE`, print all syscalls that will be supported by
- *   modern BPF probe. These syscall are a subset of actual simple consumer.
- *   `--simple_consumer`  option will have no effect on this print.
+ *   modern BPF probe.
  * - `SCAP_FILE` not supported by this function.
  */
 void print_supported_syscalls()
@@ -461,7 +452,7 @@ void validate_syscalls()
 			continue;
 		}
 
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E || g_syscall_info_table[ppm_syscall_code].flags & EF_DROP_SIMPLE_CONS)
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
 		{
 			continue;
 		}
@@ -500,7 +491,6 @@ void print_help()
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
-	printf("'%s': enable the simple consumer mode. (default: disabled)\n", SIMPLE_CONSUMER_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("\n------> VALIDATION OPTIONS\n");
@@ -544,7 +534,6 @@ void print_scap_source()
 void print_configurations()
 {
 	printf("---------------------- CONFIGURATIONS ----------------------\n");
-	printf("* Simple consumer mode: %d (`1` means enabled).\n", simple_consumer);
 	printf("* Print single event type: %d (`-1` means no event to print).\n", evt_type);
 	printf("* Run until '%lu' events are catched.\n", num_events);
 	printf("--------------------------------------------------------------\n\n");
@@ -627,17 +616,6 @@ void parse_CLI_options(int argc, char** argv)
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
-		if(!strcmp(argv[i], SIMPLE_CONSUMER_OPTION))
-		{
-			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
-
-			/* Starting from '1' since we ignore all the unknown syscalls (PPM_SC_UNKNOWN). */
-			for(int j = 1; j < PPM_SC_MAX; j++)
-			{
-				oargs.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
-			}
-			simple_consumer = true;
-		}
 		if(!strcmp(argv[i], NUM_EVENTS_OPTION))
 		{
 			if(!(i + 1 < argc))

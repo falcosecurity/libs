@@ -886,20 +886,30 @@ static int32_t populate_syscall_routing_table_map(struct bpf_engine *handle)
 
 static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 {
-	static const struct syscall_evt_pair uninterested_pair = { .flags = UF_UNINTERESTING };
 	int j;
 
 	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
 	{
 		const struct syscall_evt_pair *p = &g_syscall_table[j];
-		if (!handle->m_syscalls_of_interest[j])
-		{
-			p = &uninterested_pair;
-		}
-
 		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE], &j, p, BPF_ANY) != 0)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SYSCALL_TABLE bpf_map_update_elem < 0");
+			return SCAP_FAILURE;
+		}
+	}
+
+	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE]);
+}
+
+static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle)
+{
+	int j;
+
+	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &j, &handle->m_syscalls_of_interest[j], BPF_ANY) != 0)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_INTERESTING_SYSCALLS_TABLE bpf_map_update_elem < 0");
 			return SCAP_FAILURE;
 		}
 	}
@@ -968,6 +978,7 @@ static int32_t calibrate_socket_file_ops()
 int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
+
 	struct scap_bpf_settings settings;
 	int k = 0;
 
@@ -1451,6 +1462,11 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
+	if(populate_interesting_syscalls_map(handle) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
 	if(populate_event_table_map(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
@@ -1621,21 +1637,6 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_set_simple_mode(struct scap_engine_handle engine)
-{
-	struct bpf_engine *handle = engine.m_handle;
-	int j;
-	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		const struct syscall_evt_pair *p = &g_syscall_table[j];
-		if(!(p->flags & UF_SIMPLEDRIVER_KEEP))
-		{
-			handle->m_syscalls_of_interest[j] = false;
-		}
-	}
-	return populate_syscall_table_map(handle);
-}
-
 int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id) {
 	int j;
 	bool quit = false;
@@ -1669,7 +1670,9 @@ int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op
 			}
 		}
 	}
-	return populate_syscall_table_map(handle);
+
+	// Perhaps we could just update a single element here when op != PPM_IOCTL_MASK_ZERO_EVENTS ?
+	return populate_interesting_syscalls_map(handle);
 }
 
 static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
@@ -1723,12 +1726,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		{
 			return scap_bpf_enable_dynamic_snaplen(engine);
 		}
-	case SCAP_SIMPLEDRIVER_MODE:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
-		}
-		return scap_bpf_set_simple_mode(engine);
 	case SCAP_FULLCAPTURE_PORT_RANGE:
 		return scap_bpf_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
@@ -1763,7 +1760,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 
 	engine.m_handle->m_ncpus = num_cpus;
 
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, &engine.m_handle->m_syscalls_of_interest);
+	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, engine.m_handle->m_syscalls_of_interest);
 
 	rc = devset_init(&engine.m_handle->m_dev_set, num_cpus, engine.m_handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)

@@ -62,17 +62,17 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_creat
 	[__NR_creat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
 #endif
-	[__NR_close - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
+	[__NR_close - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
 	[__NR_brk - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_BRK_4_E, PPME_SYSCALL_BRK_4_X},
 	[__NR_read - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
 	[__NR_write - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
-	[__NR_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVE_19_E, PPME_SYSCALL_EXECVE_19_X},
-	[__NR_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
+	[__NR_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_EXECVE_19_E, PPME_SYSCALL_EXECVE_19_X},
+	[__NR_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
 #ifdef __NR_fork
-	[__NR_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
+	[__NR_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
 #endif
 #ifdef __NR_vfork
-	[__NR_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
+	[__NR_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
 #endif
 #ifdef __NR_pipe
 	[__NR_pipe - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
@@ -105,8 +105,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_capset
 	[__NR_capset - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_CAPSET_E, PPME_SYSCALL_CAPSET_X},
 #endif
-	[__NR_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
-	[__NR_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
+	[__NR_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
+	[__NR_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
 #ifdef __NR_mkdir
 	[__NR_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MKDIR_2_E, PPME_SYSCALL_MKDIR_2_X},
 #endif
@@ -129,11 +129,11 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_writev - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_WRITEV_E, PPME_SYSCALL_WRITEV_X},
 	[__NR_preadv - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_PREADV_E, PPME_SYSCALL_PREADV_X},
 	[__NR_pwritev - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_PWRITEV_E, PPME_SYSCALL_PWRITEV_X},
-	[__NR_dup - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X},
+	[__NR_dup - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X},
 #ifdef __NR_dup2
-	[__NR_dup2 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP2_E, PPME_SYSCALL_DUP2_X},
+	[__NR_dup2 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP2_E, PPME_SYSCALL_DUP2_X},
 #endif
-	[__NR_dup3 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP3_E, PPME_SYSCALL_DUP3_X},
+	[__NR_dup3 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP3_E, PPME_SYSCALL_DUP3_X},
 #ifdef __NR_signalfd
 	[__NR_signalfd - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
 #endif
@@ -195,19 +195,19 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 
 #ifdef __NR_socket
-	[__NR_socket - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
+	[__NR_socket - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
 #endif
 #ifdef __NR_bind
 	[__NR_bind - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
 #endif
 #ifdef __NR_connect
-	[__NR_connect - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
+	[__NR_connect - SYSCALL_TABLE_ID0] =                    {UF_USED , PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
 #endif
 #ifdef __NR_listen
 	[__NR_listen - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
 #endif
 #ifdef __NR_accept
-	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT_5_E, PPME_SOCKET_ACCEPT_5_X},
+	[__NR_accept - SYSCALL_TABLE_ID0] =                     {UF_USED , PPME_SOCKET_ACCEPT_5_E, PPME_SOCKET_ACCEPT_5_X},
 #endif
 #ifdef __NR_getsockname
 	[__NR_getsockname - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
@@ -237,7 +237,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
 #endif
 #ifdef __NR_accept4
-	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X},
+	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED , PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X},
 #endif
 
 #ifdef __NR_sendmmsg
@@ -395,13 +395,13 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_openat2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_OPENAT2_E, PPME_SYSCALL_OPENAT2_X},
 #endif	
 #ifdef __NR_clone3
-	[__NR_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
+	[__NR_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
 #endif
 #ifdef __NR_mprotect
 	[__NR_mprotect - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_MPROTECT_E, PPME_SYSCALL_MPROTECT_X},
 #endif
 #ifdef __NR_execveat
-	[__NR_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
+	[__NR_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
 #endif
 #ifdef __NR_io_uring_setup
 	[__NR_io_uring_setup - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_IO_URING_SETUP_E, PPME_SYSCALL_IO_URING_SETUP_X},
@@ -1120,14 +1120,14 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_open - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X},
 	[__NR_ia32_creat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X},
-	[__NR_ia32_close - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
+	[__NR_ia32_close - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X},
 	[__NR_ia32_brk - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_BRK_4_E, PPME_SYSCALL_BRK_4_X},
 	[__NR_ia32_read - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_READ_E, PPME_SYSCALL_READ_X},
 	[__NR_ia32_write - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_WRITE_E, PPME_SYSCALL_WRITE_X},
-	[__NR_ia32_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVE_19_E, PPME_SYSCALL_EXECVE_19_X},
-	[__NR_ia32_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
-	[__NR_ia32_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
-	[__NR_ia32_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
+	[__NR_ia32_execve - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_EXECVE_19_E, PPME_SYSCALL_EXECVE_19_X},
+	[__NR_ia32_clone - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLONE_20_E, PPME_SYSCALL_CLONE_20_X},
+	[__NR_ia32_fork - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_FORK_20_E, PPME_SYSCALL_FORK_20_X},
+	[__NR_ia32_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X},
 	[__NR_ia32_pipe - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
 	[__NR_ia32_pipe2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X},
 	[__NR_ia32_eventfd - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X},
@@ -1147,8 +1147,8 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_capset
 	[__NR_ia32_capset - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_CAPSET_E, PPME_SYSCALL_CAPSET_X},
 #endif
-	[__NR_ia32_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
-	[__NR_ia32_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
+	[__NR_ia32_chdir - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CHDIR_E, PPME_SYSCALL_CHDIR_X},
+	[__NR_ia32_fchdir - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_FCHDIR_E, PPME_SYSCALL_FCHDIR_X},
 	[__NR_ia32_mkdir - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MKDIR_2_E, PPME_SYSCALL_MKDIR_2_X},
 	[__NR_ia32_rmdir - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_RMDIR_2_E, PPME_SYSCALL_RMDIR_2_X},
 	[__NR_ia32_openat - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X},
@@ -1163,9 +1163,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_writev - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_WRITEV_E, PPME_SYSCALL_WRITEV_X},
 	[__NR_ia32_preadv - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_PREADV_E, PPME_SYSCALL_PREADV_X},
 	[__NR_ia32_pwritev - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_PWRITEV_E, PPME_SYSCALL_PWRITEV_X},
-	[__NR_ia32_dup - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X},
-	[__NR_ia32_dup2 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP2_E, PPME_SYSCALL_DUP2_X},
-	[__NR_ia32_dup3 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_DUP3_E, PPME_SYSCALL_DUP3_X},
+	[__NR_ia32_dup - SYSCALL_TABLE_ID0] =                        {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X},
+	[__NR_ia32_dup2 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP2_E, PPME_SYSCALL_DUP2_X},
+	[__NR_ia32_dup3 - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_DUP3_E, PPME_SYSCALL_DUP3_X},
 	[__NR_ia32_signalfd - SYSCALL_TABLE_ID0] =                   {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
 	[__NR_ia32_signalfd4 - SYSCALL_TABLE_ID0] =                  {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_SIGNALFD_E, PPME_SYSCALL_SIGNALFD_X},
 	[__NR_ia32_kill - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X},
@@ -1208,11 +1208,11 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_pause - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_GENERIC_E, PPME_GENERIC_X},
 
 #ifndef __NR_ia32_socketcall
-	[__NR_ia32_socket - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
+	[__NR_ia32_socket - SYSCALL_TABLE_ID0] =                     {UF_USED , PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X},
 	[__NR_ia32_bind - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SOCKET_BIND_E,  PPME_SOCKET_BIND_X},
-	[__NR_ia32_connect - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
+	[__NR_ia32_connect - SYSCALL_TABLE_ID0] =                    {UF_USED , PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X},
 	[__NR_ia32_listen - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X},
-	[__NR_ia32_accept - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},
+	[__NR_ia32_accept - SYSCALL_TABLE_ID0] =                     {UF_USED , PPME_SOCKET_ACCEPT_E, PPME_SOCKET_ACCEPT_X},
 	[__NR_ia32_getsockname - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETSOCKNAME_E, PPME_SOCKET_GETSOCKNAME_X},
 	[__NR_ia32_getpeername - SYSCALL_TABLE_ID0] =                {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_GETPEERNAME_E, PPME_SOCKET_GETPEERNAME_X},
 	[__NR_ia32_socketpair - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X},
@@ -1222,7 +1222,7 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X},
 	[__NR_ia32_getsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X},
 	[__NR_ia32_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X},
-	[__NR_ia32_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_SIMPLEDRIVER_KEEP, PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
+	[__NR_ia32_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED , PPME_SOCKET_ACCEPT4_E, PPME_SOCKET_ACCEPT4_X},
 #endif
 
 #ifdef __NR_ia32_sendmmsg
@@ -1363,13 +1363,13 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_openat2 - SYSCALL_TABLE_ID0] =                  {UF_USED, PPME_SYSCALL_OPENAT2_E, PPME_SYSCALL_OPENAT2_X},
 #endif	
 #ifdef __NR_ia32_clone3
-	[__NR_ia32_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
+	[__NR_ia32_clone3 - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_CLONE3_E, PPME_SYSCALL_CLONE3_X},
 #endif
 #ifdef __NR_ia32_mprotect
 	[__NR_ia32_mprotect - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_MPROTECT_E, PPME_SYSCALL_MPROTECT_X},
 #endif
 #ifdef __NR_ia32_execveat
-	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP | UF_SIMPLEDRIVER_KEEP, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
+	[__NR_ia32_execveat - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP , PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X},
 #endif
 #ifdef __NR_ia32_io_uring_setup
 	[__NR_ia32_io_uring_setup - SYSCALL_TABLE_ID0] =		{UF_USED, PPME_SYSCALL_IO_URING_SETUP_E, PPME_SYSCALL_IO_URING_SETUP_X},

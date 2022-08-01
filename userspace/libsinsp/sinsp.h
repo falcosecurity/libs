@@ -854,12 +854,8 @@ public:
 
 	sinsp_parser* get_parser();
 
-	/*!
-	  \brief Enables simple_consumer mode on sinsp, at driver level.
-	  This will avoid tracing syscalls flagged with EF_DROP_SIMPLE_CONS.
-	  Must be called before sinsp opening.
-	*/
-	void set_simple_consumer();
+	void set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
+	void mark_syscall_of_interest(uint32_t ppm_sc, bool enabled = true);
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -878,7 +874,6 @@ public:
 		scap_refresh_proc_table(m_h);
 	}
 
-	void set_simpledriver_mode();
 	std::vector<long> get_n_tracepoint_hit();
 	void set_bpf_probe(const std::string& bpf_probe);
 
@@ -960,7 +955,7 @@ VISIBILITY_PRIVATE
 
         static inline ppm_event_flags simple_consumer_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_DROP_SIMPLE_CONS | EF_OLD_VERSION);
+		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_OLD_VERSION);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
@@ -1029,8 +1024,6 @@ private:
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
-
-	bool m_simpleconsumer;
 
 	scap_mode_t m_mode = SCAP_MODE_NONE;
 

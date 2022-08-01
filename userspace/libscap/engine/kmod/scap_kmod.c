@@ -108,7 +108,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	{
 		return rc;
 	}
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, &handle->syscalls_of_interest);
+	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
 
 	//
 	// Allocate the device descriptors.
@@ -549,18 +549,6 @@ int32_t scap_kmod_disable_dynamic_snaplen(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_simpledriver_mode(struct scap_engine_handle engine)
-{
-	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_SET_SIMPLE_MODE))
-	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_simpledriver_mode failed");
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_kmod_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
 {
 	int ioctl_ret = 0;
@@ -699,12 +687,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		{
 			return scap_kmod_enable_dynamic_snaplen(engine);
 		}
-	case SCAP_SIMPLEDRIVER_MODE:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
-		}
-		return scap_kmod_enable_simpledriver_mode(engine);
 	case SCAP_FULLCAPTURE_PORT_RANGE:
 		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:

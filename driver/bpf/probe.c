@@ -40,6 +40,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	enum ppm_event_type evt_type;
 	int drop_flags;
 	long id;
+	bool enabled;
 
 	if (bpf_in_ia32_syscall())
 		return 0;
@@ -47,6 +48,12 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
+
+	enabled = is_syscall_interesting(id);
+	if (enabled == false)
+	{
+		return 0;
+	}
 
 	settings = get_bpf_settings();
 	if (!settings)
@@ -57,9 +64,6 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 	sc_evt = get_syscall_info(id);
 	if (!sc_evt)
-		return 0;
-
-	if (sc_evt->flags & UF_UNINTERESTING)
 		return 0;
 
 	if (sc_evt->flags & UF_USED) {
@@ -92,6 +96,7 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	enum ppm_event_type evt_type;
 	int drop_flags;
 	long id;
+	bool enabled;
 
 	if (bpf_in_ia32_syscall())
 		return 0;
@@ -99,6 +104,12 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
+
+	enabled = is_syscall_interesting(id);
+	if (enabled == false)
+	{
+		return 0;
+	}
 
 	settings = get_bpf_settings();
 	if (!settings)
@@ -109,9 +120,6 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	sc_evt = get_syscall_info(id);
 	if (!sc_evt)
-		return 0;
-
-	if (sc_evt->flags & UF_UNINTERESTING)
 		return 0;
 
 	if (sc_evt->flags & UF_USED) {

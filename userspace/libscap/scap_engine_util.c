@@ -26,7 +26,7 @@ limitations under the License.
 #endif
 
 /* `ppm_sc_of_interest` is never `NULL`, we check it before calling this method. */
-void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool (*syscalls_of_interest)[SYSCALL_TABLE_SIZE])
+void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool *syscalls_of_interest)
 {
 	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
@@ -36,10 +36,9 @@ void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool 
 			// Find the match between the ppm_sc and the syscall_nr
 			if(g_syscall_code_routing_table[syscall_nr] == i)
 			{
-				// UF_NEVER_DROP syscalls must be always traced
-				if (ppm_sc_of_interest->ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+				if (ppm_sc_of_interest->ppm_sc[i])
 				{
-					(*syscalls_of_interest)[syscall_nr] = true;
+					syscalls_of_interest[syscall_nr] = true;
 				}
 				// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
 			}
