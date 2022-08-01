@@ -103,7 +103,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update 
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
 
       - name: Build scap-open 🏗️
         run: |
@@ -144,7 +144,7 @@ jobs:
           githubToken: ${{ github.token }}
 
           install: |
-            pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml
+            pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml libpcap
             
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
