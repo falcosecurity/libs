@@ -499,8 +499,6 @@ typedef enum scap_dump_flags
 
 typedef struct scap_dumper scap_dumper_t;
 
-typedef struct scap_reader scap_reader_t;
-
 /*!
   \brief System call description struct.
 */

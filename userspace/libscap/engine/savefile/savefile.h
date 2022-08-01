@@ -18,10 +18,10 @@ limitations under the License.
 
 #include <stdint.h>
 #include <stddef.h>
+#include "scap_reader.h"
 
 #define SCAP_HANDLE_T struct savefile_engine
 
-typedef struct scap_reader scap_reader_t;
 typedef struct _scap_machine_info scap_machine_info;
 struct scap_proclist;
 struct scap_addrlist;
