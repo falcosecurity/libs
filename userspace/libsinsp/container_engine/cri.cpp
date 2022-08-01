@@ -186,46 +186,6 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 	return true;
 }
 
-void cri_async_source::run_impl()
-{
-	libsinsp::cgroup_limits::cgroup_limits_key key;
-
-	while (dequeue_next_key(key))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Source dequeued key",
-				key.m_container_id.c_str());
-
-		sinsp_container_info res;
-		lookup_sync(key, res);
-
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri_async (%s): Parse successful, storing value",
-				key.m_container_id.c_str());
-
-		store_value(key, res);
-	}
-
-}
-
-bool cri_async_source::lookup_sync(const libsinsp::cgroup_limits::cgroup_limits_key& key,
-		 sinsp_container_info& value)
-{
-	value.set_lookup_status(sinsp_container_lookup::state::SUCCESSFUL);
-	value.m_type = m_cri->get_cri_runtime_type();
-	value.m_id = key.m_container_id;
-
-	if(!parse_cri(value, key))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): Failed to get CRI metadata, returning successful=false",
-				key.m_container_id.c_str());
-		value.set_lookup_status(sinsp_container_lookup::state::FAILED);
-	}
-
-	return true;
-}
-
 cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
 	if (s_cri_unix_socket_paths.empty())
@@ -376,15 +336,6 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		}
 
 		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
-		auto cb = [cache](const libsinsp::cgroup_limits::cgroup_limits_key& key, const sinsp_container_info& res)
-		{
-			g_logger.format(sinsp_logger::SEV_DEBUG,
-					"cri_async (%s): Source callback result=%d",
-					key.m_container_id.c_str(),
-					res.get_lookup_status());
-
-			cache->notify_new_container(res);
-		};
 
 		// sinsp_container_lookup is set-up to perform 5 retries at most, with
 		// an exponential backoff with 2000 ms of maximum wait time.
