@@ -329,12 +329,13 @@ typedef struct {
 	UT_hash_handle hh; ///< makes this structure hashable
 } scap_mountinfo;
 
+#if 0
 typedef void (*proc_entry_callback)(void* context,
 									scap_t* handle,
 									int64_t tid,
 									scap_threadinfo* tinfo,
 									scap_fdinfo* fdinfo);
-
+#endif
 //
 // The following stuff is byte aligned because we save it to disk.
 //
