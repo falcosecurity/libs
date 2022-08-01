@@ -2069,10 +2069,17 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 		return SCAP_FAILURE;
 	}
 
-	scap_reader_t* reader = scap_reader_open_gzfile(gzfile);
-	if(!reader)
+	scap_reader_t* gz_reader = scap_reader_open_gzfile(gzfile);
+	if(!gz_reader)
 	{
 		gzclose(gzfile);
+		return SCAP_FAILURE;
+	}
+
+	scap_reader_t* reader = scap_reader_open_buffered(gz_reader, READER_BUF_SIZE, true);
+	if(!reader)
+	{
+		scap_reader_close(gz_reader);
 		return SCAP_FAILURE;
 	}
 
