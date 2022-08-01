@@ -69,7 +69,6 @@ std::atomic<int> sinsp::instance_count{0};
 
 sinsp::sinsp(bool static_container, const std::string &static_id, const std::string &static_name, const std::string &static_image) :
 	m_external_event_processor(),
-	m_simpleconsumer(false),
 	m_evt(this),
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
@@ -471,6 +470,24 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
+void sinsp::set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
+{
+	m_ppm_sc_of_interest = syscalls_of_interest;
+}
+
+void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
+{
+	if (enabled)
+	{
+		m_ppm_sc_of_interest.insert(ppm_sc);
+	}
+	else
+	{
+		m_ppm_sc_of_interest.erase(ppm_sc);
+
+	}
+}
+
 void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
 {
 	// Fallback to set all events as interesting
@@ -479,23 +496,6 @@ void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
 		for(int i = 0; i < PPM_SC_MAX; i++)
 		{
 			m_ppm_sc_of_interest.insert(i);
-		}
-	}
-
-	/*
-	 * in case of simple consumer (driver side)
-	 * set all droppable events as non interesting (if they are syscall driven)
-	 */
-	if (m_simpleconsumer)
-	{
-		m_ppm_sc_of_interest.erase(PPM_SC_UNKNOWN);
-
-		for (int i = 1; i < PPM_SC_MAX; i++)
-		{
-			if (g_infotables.m_syscall_info_table[i].flags & EF_DROP_SIMPLE_CONS)
-			{
-				m_ppm_sc_of_interest.erase(i);
-			}
 		}
 	}
 
@@ -661,11 +661,6 @@ void sinsp::open_nodriver()
 	init();
 }
 
-void sinsp::set_simple_consumer()
-{
-	m_simpleconsumer = true;
-}
-
 int64_t sinsp::get_file_size(const std::string& fname, char *error)
 {
 	static string err_str = "Could not determine capture file size: ";
@@ -694,16 +689,6 @@ int64_t sinsp::get_file_size(const std::string& fname, char *error)
 	if(errdesc.empty()) errdesc = get_error_desc(err_str);
 	strlcpy(error, errdesc.c_str(), SCAP_LASTERR_SIZE);
 	return -1;
-}
-
-void sinsp::set_simpledriver_mode()
-{
-#ifndef _WIN32
-	if(scap_enable_simpledriver_mode(m_h) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-#endif
 }
 
 unsigned sinsp::m_num_possible_cpus = 0;

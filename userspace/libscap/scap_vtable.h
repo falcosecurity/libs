@@ -80,11 +80,6 @@ enum scap_setting {
 	 */
 	SCAP_DYNAMIC_SNAPLEN,
 	/**
-	 * @brief simple driver mode
-	 * arg1: enabled?
-	 */
-	SCAP_SIMPLEDRIVER_MODE,
-	/**
 	 * @brief full capture port range
 	 * arg1: min port
 	 * arg2: max port
