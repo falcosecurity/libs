@@ -31,6 +31,7 @@ limitations under the License.
 #include "settings.h"
 #include "plugin_info.h"
 #include "scap_assert.h"
+#include "scap_zlib.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,22 +39,6 @@ extern "C" {
 
 #if CYGWING_AGENT || _WIN32
 typedef struct wh_t wh_t;
-#endif
-
-#if defined(USE_ZLIB) && !defined(UDIG)
-#include <zlib.h>
-#else
-#define	gzFile FILE*
-#define gzflush(X, Y) fflush(X)
-#define gzopen fopen
-#define	gzdopen(fd, mode) fdopen(fd, mode)
-#define gzclose fclose
-#define gzoffset ftell
-#define gzwrite(F, B, S) fwrite(B, 1, S, F)
-#define gzread(F, B, S) fread(B, 1, S, F)
-#define gztell(F) ftell(F)
-inline const char *gzerror(FILE *F, int *E) {*E = ferror(F); return "error reading file descriptor";}
-#define gzseek fseek
 #endif
 
 //
