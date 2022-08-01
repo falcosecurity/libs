@@ -832,14 +832,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return SCAP_NOT_SUPPORTED;
 	case SCAP_SNAPLEN:
 		return udig_set_snaplen(engine, arg1);
-	case SCAP_SIMPLEDRIVER_MODE:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Simpledriver mode cannot be disabled once enabled");
-		}
-		// the original code blindly tries a kmod-only ioctl
-		// which can only fail. Let's return a better error code instead
-		return SCAP_NOT_SUPPORTED;
 	case SCAP_EVENTMASK:
 	case SCAP_DYNAMIC_SNAPLEN:
 	case SCAP_STATSD_PORT:

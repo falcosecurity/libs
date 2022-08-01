@@ -1096,9 +1096,6 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 				       const struct iovec *cgroups, int cgroupscnt,
 				       const char *root);
 
-// Turn on processing only a subset syscalls. This is only appliable when scap
-// is in LIVE mode.
-int32_t scap_enable_simpledriver_mode(scap_t* handle);
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 #ifdef CYGWING_AGENT
 typedef struct wh_t wh_t;

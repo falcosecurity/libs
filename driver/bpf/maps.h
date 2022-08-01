@@ -99,6 +99,13 @@ struct bpf_map_def __bpf_section("maps") stash_map = {
 };
 #endif
 
+struct bpf_map_def __bpf_section("maps") interesting_syscalls_table = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = sizeof(bool),
+	.max_entries = SYSCALL_TABLE_SIZE,
+};
+
 #endif // __KERNEL__
 
 #endif
