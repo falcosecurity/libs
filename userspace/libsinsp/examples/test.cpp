@@ -200,7 +200,7 @@ void open_engine(sinsp& inspector)
 	std::cout << "-- Engine '" + engine_string + "' correctly opened." << std::endl;
 }
 
-#ifndef WIN32
+#ifdef __linux__
 #define insmod(fd, opts, flags) syscall(__NR_finit_module, fd, opts, flags)
 #define rmmod(name, flags) syscall(__NR_delete_module, name, flags)
 
@@ -265,12 +265,14 @@ int main(int argc, char** argv)
 #ifndef WIN32
 	parse_CLI_options(inspector, argc, argv);
 
+#ifdef __linux__
     // Try inserting the kernel module
     bool res = insert_module();
     if (!res)
     {
         return -1;
     }
+#endif
 
     signal(SIGPIPE, sigint_handler);
 #endif
