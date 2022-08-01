@@ -33,6 +33,7 @@ struct iovec {
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_savefile.h"
+#include "scap_reader.h"
 #include "../noop/noop.h"
 
 //
@@ -2069,17 +2070,10 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 		return SCAP_FAILURE;
 	}
 
-	scap_reader_t* gz_reader = scap_reader_open_gzfile(gzfile);
-	if(!gz_reader)
-	{
-		gzclose(gzfile);
-		return SCAP_FAILURE;
-	}
-
-	scap_reader_t* reader = scap_reader_open_buffered(gz_reader, READER_BUF_SIZE, true);
+	scap_reader_t* reader = scap_reader_open_buffered(scap_reader_open_gzfile(gzfile), READER_BUF_SIZE, true);
 	if(!reader)
 	{
-		scap_reader_close(gz_reader);
+		gzclose(gzfile);
 		return SCAP_FAILURE;
 	}
 
