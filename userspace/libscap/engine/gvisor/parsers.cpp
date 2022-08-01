@@ -713,7 +713,7 @@ static parse_result parse_generic_syscall(const char *proto, size_t proto_size, 
 			return parse_clone(gvisor_evt, scap_buf, false);
 		default:
 			ret.error = std::string("Unhandled syscall: ") + std::to_string(gvisor_evt.sysno());
-			ret.status = SCAP_FAILURE;
+			ret.status = SCAP_NOT_SUPPORTED;
 			return ret;
 	}
 	
@@ -1337,11 +1337,17 @@ parse_result parse_gvisor_proto(scap_const_sized_buffer gvisor_buf, scap_sized_b
 	ssize_t proto_size = gvisor_buf.size - hdr->header_size;
 
 	size_t message_type = hdr->message_type;
-	if (message_type == 0 || message_type >= dispatchers.size()) {
-		ret.error = std::string("Invalid message type " + std::to_string(message_type));
+	if (message_type == 0) {
+		ret.error = std::string("Invalid message type 0");
 		ret.status = SCAP_FAILURE;
 		return ret;
  	}
+
+	if (message_type >= dispatchers.size()) {
+		ret.error = std::string("No parser registered for message type: ") + std::to_string(message_type);
+		ret.status = SCAP_NOT_SUPPORTED;
+		return ret;
+	}
 
 	parser parser = dispatchers[message_type];
 	if(parser == nullptr)
