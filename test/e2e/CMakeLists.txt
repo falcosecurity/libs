@@ -1,4 +1,8 @@
 # TODO: find a better way to determine if we run ebpf tests or not
+if(NOT CMAKE_SYSTEM_NAME MATCHES "Linux")
+	return()
+endif()
+
 if(NOT BUILD_BPF)
 	message(WARNING e2e tests can only be run with the eBPF probe)
 	return()

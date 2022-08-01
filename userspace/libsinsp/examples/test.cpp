@@ -24,11 +24,13 @@ limitations under the License.
 #include <functional>
 #include "util.h"
 
+#ifndef WIN32
 extern "C" {
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 }
+#endif
 
 using namespace std;
 
