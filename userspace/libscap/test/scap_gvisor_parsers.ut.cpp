@@ -190,7 +190,6 @@ TEST(gvisor_parsers, procfs_entry)
 
     res = scap_gvisor::parsers::parse_procfs_json(not_json, sandbox_id);
     EXPECT_EQ(res.status, SCAP_FAILURE);
-    EXPECT_STREQ(res.error.c_str(), "Malformed json string: cannot parse procfs entry");
 
     std::string json = R"(
 {
@@ -206,18 +205,23 @@ TEST(gvisor_parsers, procfs_entry)
   "exe": "/usr/bin/bash",
   "fdlist": [
     {
+      "number": 0,
+      "mode": 0,
       "path": "host:[1]"
     },
     {
       "number": 1,
+      "mode": 0,
       "path": "host:[1]"
     },
     {
       "number": 2,
+      "mode": 0,
       "path": "host:[1]"
     },
     {
       "number": 255,
+      "mode": 0,
       "path": "host:[1]"
     }
   ],
