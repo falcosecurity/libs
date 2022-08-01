@@ -51,7 +51,7 @@ typedef struct wh_t wh_t;
 #define	gzFile FILE*
 #define gzflush(X, Y) fflush(X)
 #define gzopen fopen
-#define	gzdopen(fd, mode) stdout
+#define	gzdopen(fd, mode) fdopen(fd, mode)
 #define gzclose fclose
 #define gzoffset ftell
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
