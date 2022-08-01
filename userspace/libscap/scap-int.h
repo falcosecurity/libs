@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ limitations under the License.
 
 #include "settings.h"
 #include "plugin_info.h"
+#include "scap_assert.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,12 +40,6 @@ extern "C" {
 typedef struct wh_t wh_t;
 #endif
 
-#ifdef _WIN32
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
-#endif
-#include <assert.h>
 #if defined(USE_ZLIB) && !defined(UDIG)
 #include <zlib.h>
 #else
@@ -308,19 +303,6 @@ const char *scap_strerror_r(char *buf, int errnum);
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);
-
-//
-// ASSERT implementation
-//
-
-#ifdef ASSERT
-#undef ASSERT
-#endif // ASSERT
-#ifdef _DEBUG
-#define ASSERT(X) assert(X)
-#else // _DEBUG
-#define ASSERT(X)
-#endif // _DEBUG
 
 #define CHECK_READ_SIZE_ERR(read_size, expected_size, error) if(read_size != expected_size) \
 	{\
