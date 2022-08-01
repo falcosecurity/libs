@@ -152,7 +152,7 @@ TEST(gvisor_parsers, unhandled_syscall)
 
     scap_gvisor::parsers::parse_result res = scap_gvisor::parsers::parse_gvisor_proto(gvisor_msg, scap_buf);
     EXPECT_NE(res.error.find("Unhandled syscall"), std::string::npos);
-    EXPECT_EQ(res.status, SCAP_TIMEOUT);
+    EXPECT_EQ(res.status, SCAP_NOT_SUPPORTED);
 }
 
 TEST(gvisor_parsers, small_buffer)
