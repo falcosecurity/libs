@@ -1280,7 +1280,7 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 			case SO_ERROR:
 				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO32, PPM_SOCKOPT_IDX_ERRNO);
+				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO32, PPM_SOCKOPT_IDX_ERRNO32);
 #endif
 
 #ifdef SO_RCVTIMEO
@@ -5413,9 +5413,9 @@ FILLER(sys_bpf_x, true)
 	 * fd, depending on cmd
 	 */
 	if (retval >= 0 && (cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD))
-		res = bpf_val_to_ring_dyn(data, retval, PT_FD32, PPM_BPF_IDX_FD);
+		res = bpf_val_to_ring_dyn(data, retval, PT_FD32, PPM_BPF_IDX_FD32);
 	else
-		res = bpf_val_to_ring_dyn(data, retval, PT_ERRNO32, PPM_BPF_IDX_RES);
+		res = bpf_val_to_ring_dyn(data, retval, PT_ERRNO32, PPM_BPF_IDX_RES32);
 
 	return res;
 }

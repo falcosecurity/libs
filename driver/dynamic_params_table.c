@@ -15,6 +15,7 @@ const struct ppm_param_info sockopt_dynamic_param[PPM_SOCKOPT_IDX_MAX] = {
 	[PPM_SOCKOPT_IDX_UINT32] = {{0}, PT_UINT32, PF_DEC},
 	[PPM_SOCKOPT_IDX_UINT64] = {{0}, PT_UINT64, PF_DEC},
 	[PPM_SOCKOPT_IDX_TIMEVAL] = {{0}, PT_RELTIME, PF_DEC},
+	[PPM_SOCKOPT_IDX_ERRNO32] = {{0}, PT_ERRNO32, PF_DEC},
 };
 
 const struct ppm_param_info ptrace_dynamic_param[PPM_PTRACE_IDX_MAX] = {
@@ -25,4 +26,6 @@ const struct ppm_param_info ptrace_dynamic_param[PPM_PTRACE_IDX_MAX] = {
 const struct ppm_param_info bpf_dynamic_param[PPM_BPF_IDX_MAX] = {
 	[PPM_BPF_IDX_FD] = {{0}, PT_FD, PF_DEC},
 	[PPM_BPF_IDX_RES] = {{0}, PT_ERRNO, PF_DEC},
+	[PPM_BPF_IDX_FD32] = {{0}, PT_FD32, PF_DEC},
+	[PPM_BPF_IDX_RES32] = {{0}, PT_ERRNO32, PF_DEC},
 };

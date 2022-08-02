@@ -1743,7 +1743,7 @@ static int parse_sockopt(struct event_filler_arguments *args, int level, int opt
 			case SO_ERROR:
 				if (unlikely(ppm_copy_from_user(&u.val32, optval, sizeof(u.val32))))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				return val_to_ring(args, -(int)u.val32, 0, false, PPM_SOCKOPT_IDX_ERRNO);
+				return val_to_ring(args, -(int)u.val32, 0, false, PPM_SOCKOPT_IDX_ERRNO32);
 #endif
 
 #ifdef SO_RCVTIMEO
@@ -6113,16 +6113,16 @@ int f_sys_access_e(struct event_filler_arguments *args)
 
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
-	int64_t retval;
+	int32_t retval;
 	unsigned long cmd;
 	int res;
 
 	/*
 	 * res, if failure or depending on cmd
 	 */
-	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
+	retval = (int32_t)syscall_get_return_value(current, args->regs);
 	if (retval < 0) {
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES32);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -6142,11 +6142,11 @@ int f_sys_bpf_x(struct event_filler_arguments *args)
 #endif
 #endif /* UDIG */
 	{
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD);
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_FD32);
 	}
 	else
 	{
-		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES);
+		res = val_to_ring(args, retval, 0, false, PPM_BPF_IDX_RES32);
 	}
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

@@ -5607,9 +5607,17 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 		}
 
 		parinfo = evt->get_param(4);
-		ASSERT(*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO);
-		ASSERT(parinfo->m_len == sizeof(int64_t) + 1);
-		err = *(int64_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
+		ASSERT(*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO || *parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO32);
+		if (*parinfo->m_val == PPM_SOCKOPT_IDX_ERRNO)
+		{
+			ASSERT(parinfo->m_len == sizeof(int64_t) + 1);
+			err = *(int64_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
+		}
+		else
+		{
+			ASSERT(parinfo->m_len == sizeof(int32_t) + 1);
+			err = *(int32_t *)(parinfo->m_val + 1); // add 1 byte to skip over PT_DYN param index
+		}
 
 		evt->m_errorcode = (int32_t)err;
 		if (err < 0)

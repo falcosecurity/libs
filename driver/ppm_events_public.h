@@ -408,7 +408,8 @@ or GPL2.txt for full copies of the license.
 #define PPM_SOCKOPT_IDX_UINT32 2
 #define PPM_SOCKOPT_IDX_UINT64 3
 #define PPM_SOCKOPT_IDX_TIMEVAL 4
-#define PPM_SOCKOPT_IDX_MAX 5
+#define PPM_SOCKOPT_IDX_ERRNO32 5
+#define PPM_SOCKOPT_IDX_MAX 6
 
  /*
  * ptrace requests
@@ -463,8 +464,9 @@ or GPL2.txt for full copies of the license.
 
 #define PPM_BPF_IDX_FD 0
 #define PPM_BPF_IDX_RES 1
-
-#define PPM_BPF_IDX_MAX 2
+#define PPM_BPF_IDX_FD32 3
+#define PPM_BPF_IDX_RES32 4
+#define PPM_BPF_IDX_MAX 5
 
 /*
  * memory protection flags
