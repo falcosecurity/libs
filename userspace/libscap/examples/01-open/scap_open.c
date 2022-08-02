@@ -772,26 +772,35 @@ int main(int argc, char** argv)
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
-
-		if(res > 0)
+		if (res == SCAP_UNEXPECTED_BLOCK)
 		{
-			if(res != SCAP_EOF)
+			res = scap_restart_capture(g_h);
+			if (res == SCAP_SUCCESS)
 			{
-				scap_close(g_h);
-				fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
-				return -1;
+				continue;
 			}
+		}
+
+		if (res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
+		{
+			continue;
+		}
+		else if (res == SCAP_EOF)
+		{
 			break;
 		}
-
-		if(res != SCAP_TIMEOUT)
+		else if (res != SCAP_SUCCESS)
 		{
-			if(ev->type == evt_type)
-			{
-				print_event(ev);
-			}
-			g_nevts++;
+			scap_close(g_h);
+			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
+			return -1;
 		}
+		
+		if(ev->type == evt_type)
+		{
+			print_event(ev);
+		}
+		g_nevts++;
 	}
 
 	print_stats();
