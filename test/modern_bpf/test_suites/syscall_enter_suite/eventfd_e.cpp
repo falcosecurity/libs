@@ -10,8 +10,7 @@ TEST(SyscallEnter, eventfdE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	uint32_t initval = 3;
-	int flags = 0;
-	int32_t fd = syscall(__NR_eventfd, initval, flags);
+	int32_t fd = syscall(__NR_eventfd, initval);
 	assert_syscall_state(SYSCALL_SUCCESS, "eventfd", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
 
