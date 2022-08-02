@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <cstring>
 #include <iterator>
+#include <memory>
 #include "escaping.h"
 #include "parser.h"
 #include "../utils.h"
@@ -152,7 +153,7 @@ void parser::set_max_depth(uint32_t max_depth)
 	m_max_depth = max_depth;
 }
 
-ast::expr* parser::parse()
+std::unique_ptr<ast::expr> parser::parse()
 {
 	if (m_input.size() == 0)
 	{
@@ -174,16 +175,16 @@ ast::expr* parser::parse()
 	return res;
 }
 
-ast::expr* parser::parse_or()
+std::unique_ptr<ast::expr> parser::parse_or()
 {
 	depth_push();
-	ast::expr* child = nullptr;
-	vector<ast::expr*> children;
+	vector<std::unique_ptr<ast::expr>> children;
 	lex_blank();
 	children.push_back(parse_and());
 	lex_blank();
 	while (lex_helper_str("or"))
 	{
+		std::unique_ptr<ast::expr> child;
 		if (!lex_blank())
 		{
 			if (lex_helper_str("("))
@@ -199,22 +200,22 @@ ast::expr* parser::parse_or()
 		{
 			child = parse_and();
 		}
-		children.push_back(child);
+		children.push_back(std::move(child));
 		lex_blank();
 	}
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return new ast::or_expr(children);
+		return std::unique_ptr<ast::or_expr>(new ast::or_expr(children));
 	}
-	return children[0];
+	return std::move(children[0]);
 }
 
-ast::expr* parser::parse_and()
+std::unique_ptr<ast::expr> parser::parse_and()
 {
 	depth_push();
-	ast::expr* child = nullptr;
-	vector<ast::expr*> children;
+	std::unique_ptr<ast::expr> child;
+	std::vector<std::unique_ptr<ast::expr>> children;
 	lex_blank();
 	children.push_back(parse_not());
 	lex_blank();
@@ -235,22 +236,22 @@ ast::expr* parser::parse_and()
 		{
 			child = parse_not();
 		}
-		children.push_back(child);
+		children.push_back(std::move(child));
 		lex_blank();
 	}
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return new ast::and_expr(children);
+		return std::unique_ptr<ast::and_expr>(new ast::and_expr(children));
 	}
-	return children[0];
+	return std::move(children[0]);
 }
 
-ast::expr* parser::parse_not()
+std::unique_ptr<ast::expr> parser::parse_not()
 {
 	depth_push();
 	bool is_not = false;
-	ast::expr* child = nullptr;
+	std::unique_ptr<ast::expr> child;
 	lex_blank();
 	while (lex_helper_rgx(RGX_NOTBLANK))
 	{
@@ -266,33 +267,32 @@ ast::expr* parser::parse_not()
 		child = parse_check();
 	}
 	depth_pop();
-	return is_not ? new ast::not_expr(child) : child;
+	return is_not ? std::unique_ptr<ast::not_expr>(new ast::not_expr(child)) : std::move(child);
 }
 
 // this is an internal helper to parse the remainder of a
 // self-embedding expression right after having parsed a "("
-ast::expr* parser::parse_embedded_remainder()
+std::unique_ptr<ast::expr> parser::parse_embedded_remainder()
 {
 	depth_push();
 	lex_blank();
-	auto child = parse_or();
+	std::unique_ptr<ast::expr> child = parse_or();
 	lex_blank();
 	if (!lex_helper_str(")"))
 	{
-		delete child;
 		throw sinsp_exception("expected a ')' token");
 	}
 	depth_pop();
 	return child;
 }
 
-ast::expr* parser::parse_check()
+std::unique_ptr<ast::expr> parser::parse_check()
 {
 	depth_push();
 	lex_blank();
 	if (lex_helper_str("("))
 	{
-		auto child = parse_embedded_remainder();
+		std::unique_ptr<ast::expr> child = parse_embedded_remainder();
 		depth_pop();
 		return child;
 	}
@@ -318,11 +318,12 @@ ast::expr* parser::parse_check()
 		if (lex_unary_op())
 		{
 			depth_pop();
-			return new ast::unary_check_expr(field, field_arg, trim_str(m_last_token));
+			return std::unique_ptr<ast::unary_check_expr>(new ast::unary_check_expr(
+				field, field_arg, trim_str(m_last_token)));
 		}
 
 		string op = "";
-		ast::expr* value = NULL;
+		std::unique_ptr<ast::expr> value;
 		lex_blank();
 		if (lex_num_op())
 		{
@@ -350,51 +351,52 @@ ast::expr* parser::parse_check()
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
-		return new ast::binary_check_expr(field, field_arg, trim_str(op), value);
+		return std::unique_ptr<ast::binary_check_expr>(new ast::binary_check_expr(
+			field, field_arg, trim_str(op), value));
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
 }
 
-ast::value_expr* parser::parse_num_value()
+std::unique_ptr<ast::value_expr> parser::parse_num_value()
 {
 	depth_push();
 	lex_blank();
 	if (lex_hex_num() || lex_num())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
 	}
 	throw sinsp_exception("expected a number value");
 }
 
-ast::value_expr* parser::parse_str_value()
+std::unique_ptr<ast::value_expr> parser::parse_str_value()
 {
 	depth_push();
 	lex_blank();
 	if (lex_quoted_str() || lex_bare_str())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
 	}
 	throw sinsp_exception("expected a string value");
 }
 
-ast::expr* parser::parse_list_value()
+std::unique_ptr<ast::expr> parser::parse_list_value()
 {
 	depth_push();
 	lex_blank();
 	if (lex_helper_str("("))
 	{
 		bool should_be_empty = false;
-		ast::value_expr* child = NULL;
-		vector<string> values;
+		std::unique_ptr<ast::value_expr> child;
+		std::vector<std::string> values;
 
 		lex_blank();
 		try
@@ -410,13 +412,11 @@ ast::expr* parser::parse_list_value()
 		if (!should_be_empty)
 		{
 			values.push_back(child->value);
-			delete child;
 			lex_blank();
 			while (lex_helper_str(","))
 			{
 				child = parse_str_value();
 				values.push_back(child->value);
-				delete child;
 				lex_blank();
 			}
 		}
@@ -426,13 +426,13 @@ ast::expr* parser::parse_list_value()
 			throw sinsp_exception("expected a ')' token");
 		}
 		depth_pop();
-		return new ast::list_expr(values);
+		return std::unique_ptr<ast::list_expr>(new ast::list_expr(values));
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
 	}
 
 	throw sinsp_exception("expected a list or an identifier");

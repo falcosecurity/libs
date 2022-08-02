@@ -146,17 +146,17 @@ public:
 		by it. The pointer is automatically deleted in case of exception.
 		On delete, each node of the AST deletes all its subnodes.
 	*/
-	ast::expr* parse();
+	std::unique_ptr<ast::expr> parse();
 
 private:
-	ast::expr* parse_or();
-	ast::expr* parse_and();
-	ast::expr* parse_not();
-	ast::expr* parse_embedded_remainder();
-	ast::expr* parse_check();
-	ast::expr* parse_list_value();
-	ast::value_expr* parse_num_value();
-	ast::value_expr* parse_str_value();
+	std::unique_ptr<ast::expr> parse_or();
+	std::unique_ptr<ast::expr> parse_and();
+	std::unique_ptr<ast::expr> parse_not();
+	std::unique_ptr<ast::expr> parse_embedded_remainder();
+	std::unique_ptr<ast::expr> parse_check();
+	std::unique_ptr<ast::expr> parse_list_value();
+	std::unique_ptr<ast::value_expr> parse_num_value();
+	std::unique_ptr<ast::value_expr> parse_str_value();
 	bool lex_blank();
 	bool lex_identifier();
 	bool lex_field_name();

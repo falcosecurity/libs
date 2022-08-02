@@ -20,6 +20,7 @@ limitations under the License.
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
 #include "../sinsp_public.h"
 
 namespace libsinsp {
@@ -102,7 +103,7 @@ public:
 
 protected:
 
-	void visit_logical_op(const char *op, std::vector<expr*> &children);
+	void visit_logical_op(const char *op, std::vector<std::unique_ptr<expr>> &children);
 
 	// If true, the next call to vist(value_expr*) will escape the
 	// value. This occurs for any right hand side of a binary check.
@@ -133,15 +134,7 @@ struct SINSP_PUBLIC and_expr: expr
 {
     and_expr() { }
 
-    explicit and_expr(const std::vector<expr*>& c): children(c) { }
-
-    ~and_expr()
-    {
-        for (auto &c : children)
-        {
-            delete c;
-        }
-    }
+    explicit and_expr(std::vector<std::unique_ptr<expr>>& c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -151,27 +144,35 @@ struct SINSP_PUBLIC and_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const and_expr*>(other);
-        return o != nullptr && std::equal(
-            children.begin(), children.end(), 
-            o->children.begin(), compare);
+        if (o == nullptr)
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            if (o->children.size() <= i)
+            {
+                return false;
+            }
+
+            if (!compare(children[i].get(), o->children[i].get()))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    std::vector<expr*> children;
+    std::vector<std::unique_ptr<expr>> children;
 };
 
 struct SINSP_PUBLIC or_expr: expr
 {
     or_expr() { }
 
-    explicit or_expr(const std::vector<expr*>& c): children(c) { }
-
-    ~or_expr()
-    {
-        for (auto &c : children)
-        {
-            delete c;
-        }
-    }
+    explicit or_expr(std::vector<std::unique_ptr<expr>>& c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -181,24 +182,35 @@ struct SINSP_PUBLIC or_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const or_expr*>(other);
-        return o != nullptr && std::equal(
-            children.begin(), children.end(), 
-            o->children.begin(), compare);
+        if (o == nullptr)
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            if (o->children.size() <= i)
+            {
+                return false;
+            }
+
+            if (!compare(children[i].get(), o->children[i].get()))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
-    std::vector<expr*> children;
+    std::vector<std::unique_ptr<expr>> children;
 };
 
 struct SINSP_PUBLIC not_expr: expr
 {
     not_expr() { }
 
-    explicit not_expr(expr* c): child(c) { }
-
-    ~not_expr()
-    {
-        delete child;
-    }
+    explicit not_expr(std::unique_ptr<expr> &c): child(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -208,10 +220,10 @@ struct SINSP_PUBLIC not_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const not_expr*>(other);
-        return o != nullptr && child->is_equal(o->child);
+        return o != nullptr && this->child->is_equal(o->child.get());
     }
 
-    expr* child;
+    std::unique_ptr<expr> child;
 };
 
 struct SINSP_PUBLIC value_expr: expr
@@ -288,12 +300,7 @@ struct SINSP_PUBLIC binary_check_expr: expr
         const std::string& f,
         const std::string& a,
         const std::string& o,
-        expr* v): field(f), arg(a), op(o), value(v) { }
-
-    ~binary_check_expr()
-    {
-        delete value;
-    }
+        std::unique_ptr<expr> &v): field(f), arg(a), op(o), value(std::move(v)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -304,13 +311,13 @@ struct SINSP_PUBLIC binary_check_expr: expr
     {
         auto o = dynamic_cast<const binary_check_expr*>(other);
         return o != nullptr && field == o->field
-            && arg == o->arg && op == o->op && value->is_equal(o->value);
+            && arg == o->arg && op == o->op && value->is_equal(o->value.get());
     }
 
     std::string field;
     std::string arg;
     std::string op;
-    expr* value;
+    std::unique_ptr<expr> value;
 };
 
 /*!
@@ -324,7 +331,7 @@ std::string as_string(ast::expr &e);
 	\return The newly created cloned AST. Comparing the return value
     with the input parameter returns true
 */
-expr* clone(expr* e);
+std::unique_ptr<expr> clone(expr* e);
 
 }
 }
