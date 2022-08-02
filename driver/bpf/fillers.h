@@ -542,8 +542,8 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 			flags = poll_events_to_scap(fds[j].revents);
 		}
 
-		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
-		off += sizeof(s64);
+		*(s32 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
+		off += sizeof(s32);
 		if (off > SCRATCH_SIZE_HALF)
 		{
 			return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
@@ -556,7 +556,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 
 	*((u16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = fds_count;
 	data->curarg_already_on_frame = true;
-	return __bpf_val_to_ring(data, 0, off - data->state->tail_ctx.curoff, PT_FDLIST, -1, false);
+	return __bpf_val_to_ring(data, 0, off - data->state->tail_ctx.curoff, PT_FDLIST32, -1, false);
 }
 
 FILLER(sys_poll_e, true)
@@ -589,7 +589,7 @@ FILLER(sys_poll_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -720,7 +720,7 @@ FILLER(sys_readv_preadv_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1027,7 +1027,7 @@ FILLER(sys_fcntl_e, true)
 	 * fd
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, val, PT_FD);
+	res = bpf_val_to_ring_type(data, val, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1129,7 +1129,7 @@ FILLER(sys_connect_e, true)
 	int fd;
 
 	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	res = bpf_val_to_ring_type(data, fd, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1232,7 +1232,7 @@ FILLER(sys_socketpair_x, true)
 
 	/* ret */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1249,11 +1249,11 @@ FILLER(sys_socketpair_x, true)
 		}
 	}
 	/* fd1 */
-	res = bpf_val_to_ring_type(data, fds[0], PT_FD);
+	res = bpf_val_to_ring_type(data, fds[0], PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 	/* fd2 */
-	res = bpf_val_to_ring_type(data, fds[1], PT_FD);
+	res = bpf_val_to_ring_type(data, fds[1], PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 	/* source */
@@ -1280,7 +1280,7 @@ static int __always_inline parse_sockopt(struct filler_data *data, int level, in
 			case SO_ERROR:
 				if (bpf_probe_read(&u.val32, sizeof(u.val32), optval))
 					return PPM_FAILURE_INVALID_USER_MEMORY;
-				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO, PPM_SOCKOPT_IDX_ERRNO);
+				return bpf_val_to_ring_dyn(data, -u.val32, PT_ERRNO32, PPM_SOCKOPT_IDX_ERRNO);
 #endif
 
 #ifdef SO_RCVTIMEO
@@ -1446,13 +1446,13 @@ FILLER(sys_setsockopt_x, true)
 	retval = bpf_syscall_get_retval(data->ctx);
 
 	/* retval */
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	/* fd */
 	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	res = bpf_val_to_ring_type(data, fd, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1488,13 +1488,13 @@ FILLER(sys_getsockopt_x, true)
 	retval = bpf_syscall_get_retval(data->ctx);
 
 	/* retval */
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	/* fd */
 	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	res = bpf_val_to_ring_type(data, fd, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1628,7 +1628,7 @@ FILLER(sys_send_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2271,7 +2271,7 @@ FILLER(proc_startupdate, true)
 	 * Make sure the operation was successful
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2387,7 +2387,7 @@ FILLER(proc_startupdate, true)
 	 */
 	pid = _READ(task->pid);
 
-	res = bpf_val_to_ring_type(data, pid, PT_PID);
+	res = bpf_val_to_ring_type(data, pid, PT_PID32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2396,7 +2396,7 @@ FILLER(proc_startupdate, true)
 	 */
 	tgid = _READ(task->tgid);
 
-	res = bpf_val_to_ring_type(data, tgid, PT_PID);
+	res = bpf_val_to_ring_type(data, tgid, PT_PID32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2406,7 +2406,7 @@ FILLER(proc_startupdate, true)
 	real_parent = _READ(task->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
 
-	res = bpf_val_to_ring_type(data, ptid, PT_PID);
+	res = bpf_val_to_ring_type(data, ptid, PT_PID32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2624,7 +2624,7 @@ FILLER(proc_startupdate_3, true)
 		 * vtid
 		 */
 		vtid = bpf_task_pid_vnr(task);
-		res = bpf_val_to_ring_type(data, vtid, PT_PID);
+		res = bpf_val_to_ring_type(data, vtid, PT_PID32);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2632,7 +2632,7 @@ FILLER(proc_startupdate_3, true)
 		 * vpid
 		 */
 		vpid = bpf_task_tgid_vnr(task);
-		res = bpf_val_to_ring_type(data, vpid, PT_PID);
+		res = bpf_val_to_ring_type(data, vpid, PT_PID32);
 
 	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
 	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X) {
@@ -2716,7 +2716,7 @@ FILLER(proc_startupdate_3, true)
 		/*
 		 * pgid
 		 */
-		res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+		res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID32);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2840,7 +2840,7 @@ FILLER(sys_accept_x, true)
 	 * in the stack, and therefore we can consume them.
 	 */
 	fd = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	res = bpf_val_to_ring_type(data, fd, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -3653,7 +3653,7 @@ FILLER(sys_prlimit_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -3847,7 +3847,7 @@ static __always_inline int f_sys_recv_x_common(struct filler_data *data, long re
 	/*
 	 * res
 	 */
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -3990,7 +3990,7 @@ FILLER(sys_recvmsg_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4094,7 +4094,7 @@ FILLER(sys_sendmsg_e, true)
 	 * fd
 	 */
 	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
+	res = bpf_val_to_ring_type(data, fd, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4163,7 +4163,7 @@ FILLER(sys_sendmsg_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4456,7 +4456,7 @@ FILLER(sys_semop_x, true)
 	 * return value
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4687,7 +4687,7 @@ FILLER(sys_symlinkat_x, true)
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4707,7 +4707,7 @@ FILLER(sys_symlinkat_x, true)
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
-	res = bpf_val_to_ring_type(data, val, PT_FD);
+	res = bpf_val_to_ring_type(data, val, PT_FD32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4822,7 +4822,7 @@ FILLER(sched_switch_e, false)
 	/*
 	 * next
 	 */
-	res = bpf_val_to_ring_type(data, next_pid, PT_PID);
+	res = bpf_val_to_ring_type(data, next_pid, PT_PID32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -5057,7 +5057,7 @@ FILLER(sys_quotactl_x, true)
 	 * return value
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -5374,7 +5374,7 @@ FILLER(sys_ptrace_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO32);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -5413,9 +5413,9 @@ FILLER(sys_bpf_x, true)
 	 * fd, depending on cmd
 	 */
 	if (retval >= 0 && (cmd == BPF_MAP_CREATE || cmd == BPF_PROG_LOAD))
-		res = bpf_val_to_ring_dyn(data, retval, PT_FD, PPM_BPF_IDX_FD);
+		res = bpf_val_to_ring_dyn(data, retval, PT_FD32, PPM_BPF_IDX_FD);
 	else
-		res = bpf_val_to_ring_dyn(data, retval, PT_ERRNO, PPM_BPF_IDX_RES);
+		res = bpf_val_to_ring_dyn(data, retval, PT_ERRNO32, PPM_BPF_IDX_RES);
 
 	return res;
 }
@@ -5929,11 +5929,11 @@ FILLER(sched_prog_exec, false)
 {
 	int res = 0;
 
-	/* Parameter 1: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO32) */
 	/* Please note: if this filler is called the execve is correctly
 	 * performed, so the return value will be always 0.
 	 */
-	res = bpf_val_to_ring_type(data, 0, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, 0, PT_ERRNO32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6023,26 +6023,26 @@ FILLER(sched_prog_exec, false)
 		}
 	}
 
-	/* Parameter 4: tid (type: PT_PID) */
+	/* Parameter 4: tid (type: PT_PID32) */
 	pid_t pid = _READ(task->pid);
-	res = bpf_val_to_ring_type(data, pid, PT_PID);
+	res = bpf_val_to_ring_type(data, pid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
-	/* Parameter 5: pid (type: PT_PID) */
+	/* Parameter 5: pid (type: PT_PID32) */
 	pid_t tgid = _READ(task->tgid);
-	res = bpf_val_to_ring_type(data, tgid, PT_PID);
+	res = bpf_val_to_ring_type(data, tgid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
-	/* Parameter 6: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID32) */
 	struct task_struct *real_parent = _READ(task->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
-	res = bpf_val_to_ring_type(data, ptid, PT_PID);
+	res = bpf_val_to_ring_type(data, ptid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6208,8 +6208,8 @@ FILLER(sched_prog_exec_3, false)
 		return res;
 	}
 
-	/* Parameter 18: pgid (type: PT_PID) */
-	res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+	/* Parameter 18: pgid (type: PT_PID32) */
+	res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6328,11 +6328,11 @@ FILLER(sched_prog_fork, false)
 	struct ppm_evt_hdr *evt_hdr = (struct ppm_evt_hdr *)data->buf;
 	evt_hdr->tid = (uint64_t)child_pid;
 
-	/* Parameter 1: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO32) */
 	/* Please note: here we are in the clone child exit
 	 * event, so the return value will be always 0.
 	 */
-	res = bpf_val_to_ring_type(data, 0, PT_ERRNO);
+	res = bpf_val_to_ring_type(data, 0, PT_ERRNO32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6417,26 +6417,26 @@ FILLER(sched_prog_fork, false)
 		}
 	}
 
-	/* Parameter 4: tid (type: PT_PID) */
+	/* Parameter 4: tid (type: PT_PID32) */
 	pid_t pid = _READ(child->pid);
-	res = bpf_val_to_ring_type(data, pid, PT_PID);
+	res = bpf_val_to_ring_type(data, pid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
-	/* Parameter 5: pid (type: PT_PID) */
+	/* Parameter 5: pid (type: PT_PID32) */
 	pid_t tgid = _READ(child->tgid);
-	res = bpf_val_to_ring_type(data, tgid, PT_PID);
+	res = bpf_val_to_ring_type(data, tgid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
-	/* Parameter 6: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID32) */
 	struct task_struct *real_parent = _READ(child->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
-	res = bpf_val_to_ring_type(data, ptid, PT_PID);
+	res = bpf_val_to_ring_type(data, ptid, PT_PID32);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6617,15 +6617,15 @@ FILLER(sched_prog_fork_3, false)
 		return res;
 	}
 
-	/* Parameter 19: vtid (type: PT_PID) */
+	/* Parameter 19: vtid (type: PT_PID32) */
 	pid_t vtid = bpf_task_pid_vnr(child);
-	res = bpf_val_to_ring_type(data, vtid, PT_PID);
+	res = bpf_val_to_ring_type(data, vtid, PT_PID32);
 	if(res != PPM_SUCCESS)
 		return res;
 
-	/* Parameter 20: vpid (type: PT_PID) */
+	/* Parameter 20: vpid (type: PT_PID32) */
 	pid_t vpid = bpf_task_tgid_vnr(child);
-	res = bpf_val_to_ring_type(data, vpid, PT_PID);
+	res = bpf_val_to_ring_type(data, vpid, PT_PID32);
 
 	return res;
 }

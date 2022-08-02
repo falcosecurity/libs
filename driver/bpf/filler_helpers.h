@@ -915,6 +915,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+	case PT_FDLIST32:
 		if (!data->curarg_already_on_frame) {
 			bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
 				   data->state->tail_ctx.evt_type,
@@ -963,6 +964,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		len = sizeof(s16);
 		break;
 	case PT_INT32:
+	case PT_ERRNO32:
+	case PT_FD32:
+	case PT_PID32:
 		*((s32 *)&data->buf[curoff_bounded]) = val;
 		len = sizeof(s32);
 		break;
