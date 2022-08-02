@@ -42,11 +42,11 @@ TEST(SyscallExit, openat2X_success)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)fd);
+	/* Parameter 1: fd (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, fd);
 
-	/* Parameter 2: dirfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
+	/* Parameter 2: dirfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, PPM_AT_FDCWD);
 
 	/* Parameter 3: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(3, pathname);
@@ -85,7 +85,7 @@ TEST(SyscallExit, openat2X_failure)
 	how.mode = 0;
 	how.resolve = RESOLVE_BENEATH | RESOLVE_NO_MAGICLINKS;
 	assert_syscall_state(SYSCALL_FAILURE, "openat2", syscall(__NR_openat2, dirfd, pathname, &how, sizeof(struct open_how)));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -104,11 +104,11 @@ TEST(SyscallExit, openat2X_failure)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: fd (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, errno_value);
 
-	/* Parameter 2: dirfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)PPM_AT_FDCWD);
+	/* Parameter 2: dirfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, PPM_AT_FDCWD);
 
 	/* Parameter 3: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(3, pathname);

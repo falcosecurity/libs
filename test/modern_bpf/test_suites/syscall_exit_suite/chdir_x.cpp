@@ -17,7 +17,7 @@ TEST(SyscallExit, chdirX)
 
 	const char* new_dir = "mock_dir";
 	assert_syscall_state(SYSCALL_FAILURE, "chdir", syscall(__NR_chdir, new_dir));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -36,8 +36,8 @@ TEST(SyscallExit, chdirX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: res (type: PT_ERRNO32)*/
+	evt_test->assert_numeric_param(1, errno_value);
 
 	/* Parameter 2: path (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(2, new_dir);

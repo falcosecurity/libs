@@ -17,7 +17,7 @@ TEST(SyscallExit, dup3X)
 	uint32_t flags = O_CLOEXEC;
 	int32_t res = syscall(__NR_dup3, old_fd, new_fd, flags);
 	assert_syscall_state(SYSCALL_FAILURE, "dup3", res);
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	syscall(__NR_close, old_fd);
 	syscall(__NR_close, new_fd);
@@ -40,14 +40,14 @@ TEST(SyscallExit, dup3X)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: res (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, errno_value);
 
-	/* Parameter 2: oldfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)old_fd);
+	/* Parameter 2: oldfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, old_fd);
 
-	/* Parameter 3: newfd (type: PT_FD) */
-	evt_test->assert_numeric_param(3, (int64_t)new_fd);
+	/* Parameter 3: newfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(3, new_fd);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(4, (uint32_t)PPM_O_CLOEXEC);

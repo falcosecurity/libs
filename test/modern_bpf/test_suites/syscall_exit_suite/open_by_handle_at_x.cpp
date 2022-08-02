@@ -143,11 +143,11 @@ TEST(SyscallExit, open_by_handle_atX_success)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ret (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)open_by_handle_fd);
+	/* Parameter 1: ret (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, open_by_handle_fd);
 
-	/* Parameter 2: mountfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)dirfd);
+	/* Parameter 2: mountfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, dirfd);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	evt_test->assert_numeric_param(3, (uint32_t)PPM_O_RDONLY);

@@ -43,8 +43,8 @@ TEST(SyscallExit, creatX_success)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)fd);
+	/* Parameter 1: fd (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, fd);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);
@@ -75,7 +75,7 @@ TEST(SyscallExit, creatX_failure)
 	const char* path = "*//null";
 	mode_t mode = S_IRGRP;
 	assert_syscall_state(SYSCALL_FAILURE, "creat", syscall(__NR_creat, path, mode));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -94,8 +94,8 @@ TEST(SyscallExit, creatX_failure)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: fd (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, errno_value);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);

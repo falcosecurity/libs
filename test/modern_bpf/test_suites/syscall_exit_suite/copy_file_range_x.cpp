@@ -16,7 +16,7 @@ TEST(SyscallExit, copy_file_rangeX)
 	size_t len = 20;
 	uint32_t flags = 0;
 	assert_syscall_state(SYSCALL_FAILURE, "copy_file_range", syscall(__NR_copy_file_range, fd_in, off_in, fd_out, off_out, len, flags));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -35,11 +35,11 @@ TEST(SyscallExit, copy_file_rangeX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: res (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, errno_value);
 
-	/* Parameter 2: fdout (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)fd_out);
+	/* Parameter 2: fdout (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, fd_out);
 
 	/* Parameter 3: offout (type: PT_UINT64) */
 	evt_test->assert_numeric_param(3, (uint64_t)off_out);

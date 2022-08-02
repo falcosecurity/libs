@@ -11,7 +11,7 @@ TEST(SyscallExit, closeX)
 
 	int invalid_fd = -1;
 	assert_syscall_state(SYSCALL_FAILURE, "close", syscall(__NR_close, invalid_fd));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
@@ -30,7 +30,7 @@ TEST(SyscallExit, closeX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ret (type: PT_ERRNO)*/
+	/* Parameter 1: ret (type: PT_ERRNO32)*/
 	evt_test->assert_numeric_param(1, errno_value);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

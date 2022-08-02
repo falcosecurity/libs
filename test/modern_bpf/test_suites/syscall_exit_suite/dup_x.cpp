@@ -35,11 +35,11 @@ TEST(SyscallExit, dupX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)new_fd);
+	/* Parameter 1: res (type: PT_FD32) */
+	evt_test->assert_numeric_param(1, new_fd);
 
-	/* Parameter 2: oldfd (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)old_fd);
+	/* Parameter 2: oldfd (type: PT_FD32) */
+	evt_test->assert_numeric_param(2, old_fd);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

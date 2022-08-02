@@ -12,7 +12,7 @@ TEST(SyscallExit, chrootX)
 
 	const char* path = "*//null";
 	assert_syscall_state(SYSCALL_FAILURE, "chroot", syscall(__NR_chroot, path));
-	int64_t errno_value = -errno;
+	int32_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -31,8 +31,8 @@ TEST(SyscallExit, chrootX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	/* Parameter 1: res (type: PT_ERRNO32)*/
+	evt_test->assert_numeric_param(1, errno_value);
 
 	/* Parameter 2: path (type: PT_FSPATH) */
 	evt_test->assert_charbuf_param(2, path);
