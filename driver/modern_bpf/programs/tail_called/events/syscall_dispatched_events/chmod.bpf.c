@@ -53,8 +53,8 @@ int BPF_PROG(chmod_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO) */
-	auxmap__store_s64_param(auxmap, ret);
+	/* Parameter 1: res (type: PT_ERRNO32) */
+	auxmap__store_s32_param(auxmap, (s32)ret);
 
 	/* Parameter 2: filename (type: PT_FSPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);

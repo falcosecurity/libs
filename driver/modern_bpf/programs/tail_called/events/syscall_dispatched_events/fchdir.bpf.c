@@ -24,9 +24,9 @@ int BPF_PROG(fchdir_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: fd (type: PT_FD) */
+	/* Parameter 1: fd (type: PT_FD32) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s32(&ringbuf, fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,8 +54,8 @@ int BPF_PROG(fchdir_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
-	ringbuf__store_s64(&ringbuf, ret);
+	/* Parameter 1: res (type: PT_ERRNO32)*/
+	ringbuf__store_s32(&ringbuf, (s32)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -64,8 +64,8 @@ int BPF_PROG(open_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ret (type: PT_FD) */
-	auxmap__store_s64_param(auxmap, ret);
+	/* Parameter 1: ret (type: PT_FD32) */
+	auxmap__store_s32_param(auxmap, (s32)ret);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
 	unsigned long name_pointer = extract__syscall_argument(regs, 0);

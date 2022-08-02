@@ -53,16 +53,16 @@ int BPF_PROG(fchmodat_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO) */
-	auxmap__store_s64_param(auxmap, ret);
+	/* Parameter 1: res (type: PT_ERRNO32) */
+	auxmap__store_s32_param(auxmap, (s32)ret);
 
-	/* Parameter 2: dirfd (type: PT_FD) */
+	/* Parameter 2: dirfd (type: PT_FD32) */
 	s32 dirfd = (s32)extract__syscall_argument(regs, 0);
 	if(dirfd == AT_FDCWD)
 	{
 		dirfd = PPM_AT_FDCWD;
 	}
-	auxmap__store_s64_param(auxmap, (s64)dirfd);
+	auxmap__store_s32_param(auxmap, dirfd);
 
 	/* Parameter 3: filename (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);

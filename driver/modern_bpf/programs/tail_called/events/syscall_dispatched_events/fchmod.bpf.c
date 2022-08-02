@@ -53,12 +53,12 @@ int BPF_PROG(fchmod_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO) */
-	ringbuf__store_s64(&ringbuf, ret);
+	/* Parameter 1: res (type: PT_ERRNO32) */
+	ringbuf__store_s32(&ringbuf, (s32)ret);
 
-	/* Parameter 2: fd (type: PT_FD) */
+	/* Parameter 2: fd (type: PT_FD32) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)fd);
+	ringbuf__store_s32(&ringbuf, fd);
 
 	/* Parameter 3: mode (type: PT_MODE) */
 	unsigned long mode = extract__syscall_argument(regs, 1);
