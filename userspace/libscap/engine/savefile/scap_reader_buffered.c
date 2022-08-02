@@ -36,6 +36,7 @@ static int buffered_read(scap_reader_t *r, void* buf, uint32_t len)
     reader_handle_t* h = (reader_handle_t*) r->handle;
     uint8_t* buf_bytes = (uint8_t*) buf;
     uint32_t size = 0;
+    uint32_t buffer_len = 0;
     while (len > 0 && !h->m_has_err)
     {
         if (h->m_buffer_off >= h->m_buffer_len)
@@ -51,7 +52,8 @@ static int buffered_read(scap_reader_t *r, void* buf, uint32_t len)
             h->m_buffer_off = 0;
             h->m_buffer_len = (uint32_t) nread;
         }
-        size = len < (h->m_buffer_len - h->m_buffer_off) ? len : (h->m_buffer_len - h->m_buffer_off);
+        buffer_len = h->m_buffer_len - h->m_buffer_off;
+        size = len < buffer_len ? len : buffer_len;
         memcpy(buf_bytes, h->m_buffer + h->m_buffer_off, size);
         buf_bytes += size;
         h->m_buffer_off += size;
