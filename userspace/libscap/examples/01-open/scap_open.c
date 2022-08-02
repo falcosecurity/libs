@@ -761,7 +761,7 @@ int main(int argc, char** argv)
 	print_configurations();
 
 	g_h = scap_open(args, error, &res);
-	if(g_h == NULL)
+	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
 		return EXIT_FAILURE;
@@ -778,7 +778,7 @@ int main(int argc, char** argv)
 			if(res != SCAP_EOF)
 			{
 				scap_close(g_h);
-				fprintf(stderr, "%s\n", scap_getlasterr(g_h));
+				fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
 				return -1;
 			}
 			break;
