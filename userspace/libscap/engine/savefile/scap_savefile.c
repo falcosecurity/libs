@@ -1328,7 +1328,7 @@ static uint32_t scap_fd_read_fname_from_disk(char *fname, size_t *nbytes, scap_r
 // Populate the given fd by reading the info from disk
 // Returns the number of read bytes.
 //
-uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_t block_type, scap_reader_t *r, char *error)
+static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_t block_type, scap_reader_t *r, char *error)
 {
 	uint8_t type;
 	uint32_t toread;
@@ -1622,7 +1622,7 @@ static int32_t scap_read_section_header(scap_reader_t* r, char* error)
 //
 // Parse the headers of a trace file and load the tables
 //
-int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error)
+static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error)
 {
 	block_header bh;
 	uint32_t bt;
