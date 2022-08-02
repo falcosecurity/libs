@@ -20,7 +20,7 @@ limitations under the License.
 
 typedef struct reader_handle
 {
-    bool m_free_reader; ///< Whether the reader should be free-d on close
+    bool m_close_reader; ///< Whether the reader should be closed
     bool m_has_err; ///< True if the most recent m_reader operation had an error
     uint8_t* m_buffer; ///< The buffer used to read data from m_reader
     uint32_t m_buffer_cap; ///< The physical size of the buffer
@@ -110,13 +110,14 @@ static int buffered_close(scap_reader_t *r)
 {
     ASSERT(r != NULL);
     reader_handle_t* h = (reader_handle_t*) r->handle;
-    int res = h->m_reader->close(h->m_reader);
-    if (h->m_free_reader)
+    int res = 0;
+    if (h->m_close_reader)
     {
-        free(h->m_reader);
+        res = h->m_reader->close(h->m_reader);
     }
     free(h->m_buffer);
-    free(r->handle);
+    free(h);
+    free(r);
     return res;
 }
 
@@ -127,15 +128,11 @@ scap_reader_t *scap_reader_open_buffered(scap_reader_t* reader, uint32_t bufsize
         return NULL;
     }
 
-    reader_handle_t* h = (reader_handle_t *) malloc (sizeof (reader_handle_t));
-    h->m_free_reader = own_reader;
-    h->m_has_err = false;
+    reader_handle_t* h = (reader_handle_t *) calloc (1, sizeof (reader_handle_t));
+    h->m_close_reader = own_reader;
     h->m_reader = reader;
     h->m_buffer = (uint8_t*) malloc (sizeof(uint8_t) * bufsize);
     h->m_buffer_cap = bufsize;
-    h->m_buffer_len = 0;
-    h->m_buffer_off = 0;
-    h->m_offset = 0;
 
     scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
     r->handle = h;

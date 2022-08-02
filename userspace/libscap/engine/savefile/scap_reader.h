@@ -78,7 +78,7 @@ typedef struct scap_reader
     const char* (*error)(struct scap_reader *r, int *errnum);
 
     /**
-     * @brief Closes the reader and de-allocates handle.
+     * @brief Closes the reader and de-allocates it.
      */
     int (*close)(struct scap_reader *r);
 } scap_reader_t;
@@ -93,8 +93,8 @@ scap_reader_t *scap_reader_open_gzfile(gzFile file);
  * This is suitable to support stream-like data, for which buffering reduces
  * the number of data reads and allows seeking (inside the buffer boundaries).
  * @param bufsize is the size of the data buffer
- * @param own_reader if true, the wrapped reader will be de-allocated using
- * free() when the buffered reader gets closed.
+ * @param own_reader if true, the wrapped reader will be closed and de-allocated
+ * using its close() function when the buffered reader gets closed.
  */
 scap_reader_t *scap_reader_open_buffered(scap_reader_t* reader, uint32_t bufsize, bool own_reader);
 
