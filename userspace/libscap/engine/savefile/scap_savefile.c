@@ -44,7 +44,7 @@ static int32_t scap_read_machine_info(scap_reader_t* r, scap_machine_info* machi
 	//
 	// Read the section header block
 	//
-	if(scap_reader_read(r, machine_info, sizeof(*machine_info)) !=
+	if(r->read(r, machine_info, sizeof(*machine_info)) !=
 		sizeof(*machine_info))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
@@ -116,7 +116,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		case PL_BLOCK_TYPE_V8:
 			break;
 		case PL_BLOCK_TYPE_V9:
-			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
+			readsize = r->read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -130,7 +130,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// tid
 		//
-		readsize = scap_reader_read(r, &(tinfo.tid), sizeof(uint64_t));
+		readsize = r->read(r, &(tinfo.tid), sizeof(uint64_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
@@ -138,7 +138,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// pid
 		//
-		readsize = scap_reader_read(r, &(tinfo.pid), sizeof(uint64_t));
+		readsize = r->read(r, &(tinfo.pid), sizeof(uint64_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
@@ -146,7 +146,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// ptid
 		//
-		readsize = scap_reader_read(r, &(tinfo.ptid), sizeof(uint64_t));
+		readsize = r->read(r, &(tinfo.ptid), sizeof(uint64_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
@@ -166,7 +166,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		case PL_BLOCK_TYPE_V7:
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
-			readsize = scap_reader_read(r, &(tinfo.sid), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.sid), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
@@ -195,7 +195,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			break;
 		case PL_BLOCK_TYPE_V8:
 		case PL_BLOCK_TYPE_V9:
-			readsize = scap_reader_read(r, &(tinfo.vpgid), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.vpgid), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
@@ -209,7 +209,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// comm
 		//
-		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+		readsize = r->read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -220,7 +220,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 		subreadsize += readsize;
 
-		readsize = scap_reader_read(r, tinfo.comm, stlen);
+		readsize = r->read(r, tinfo.comm, stlen);
 		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
@@ -231,7 +231,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// exe
 		//
-		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+		readsize = r->read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -242,7 +242,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 		subreadsize += readsize;
 
-		readsize = scap_reader_read(r, tinfo.exe, stlen);
+		readsize = r->read(r, tinfo.exe, stlen);
 		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
@@ -268,7 +268,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// exepath
 			//
-			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+			readsize = r->read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen > SCAP_MAX_PATH_SIZE)
@@ -279,7 +279,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 			subreadsize += readsize;
 
-			readsize = scap_reader_read(r, tinfo.exepath, stlen);
+			readsize = r->read(r, tinfo.exepath, stlen);
 			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
@@ -297,7 +297,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// args
 		//
-		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+		readsize = r->read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_ARGS_SIZE)
@@ -308,7 +308,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 		subreadsize += readsize;
 
-		readsize = scap_reader_read(r, tinfo.args, stlen);
+		readsize = r->read(r, tinfo.args, stlen);
 		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
@@ -320,7 +320,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// cwd
 		//
-		readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+		readsize = r->read(r, &(stlen), sizeof(uint16_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 		if(stlen > SCAP_MAX_PATH_SIZE)
@@ -331,7 +331,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 		subreadsize += readsize;
 
-		readsize = scap_reader_read(r, tinfo.cwd, stlen);
+		readsize = r->read(r, tinfo.cwd, stlen);
 		CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 		// the string is not null-terminated on file
@@ -342,7 +342,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// fdlimit
 		//
-		readsize = scap_reader_read(r, &(tinfo.fdlimit), sizeof(uint64_t));
+		readsize = r->read(r, &(tinfo.fdlimit), sizeof(uint64_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 		subreadsize += readsize;
@@ -350,7 +350,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// flags
 		//
-		readsize = scap_reader_read(r, &(tinfo.flags), sizeof(uint32_t));
+		readsize = r->read(r, &(tinfo.flags), sizeof(uint32_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
@@ -358,7 +358,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// uid
 		//
-		readsize = scap_reader_read(r, &(tinfo.uid), sizeof(uint32_t));
+		readsize = r->read(r, &(tinfo.uid), sizeof(uint32_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
@@ -366,7 +366,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// gid
 		//
-		readsize = scap_reader_read(r, &(tinfo.gid), sizeof(uint32_t));
+		readsize = r->read(r, &(tinfo.gid), sizeof(uint32_t));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 		subreadsize += readsize;
@@ -389,7 +389,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// vmsize_kb
 			//
-			readsize = scap_reader_read(r, &(tinfo.vmsize_kb), sizeof(uint32_t));
+			readsize = r->read(r, &(tinfo.vmsize_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -397,7 +397,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// vmrss_kb
 			//
-			readsize = scap_reader_read(r, &(tinfo.vmrss_kb), sizeof(uint32_t));
+			readsize = r->read(r, &(tinfo.vmrss_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -405,7 +405,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// vmswap_kb
 			//
-			readsize = scap_reader_read(r, &(tinfo.vmswap_kb), sizeof(uint32_t));
+			readsize = r->read(r, &(tinfo.vmswap_kb), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -413,7 +413,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// pfmajor
 			//
-			readsize = scap_reader_read(r, &(tinfo.pfmajor), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.pfmajor), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
@@ -421,7 +421,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// pfminor
 			//
-			readsize = scap_reader_read(r, &(tinfo.pfminor), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.pfminor), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 			subreadsize += readsize;
@@ -438,7 +438,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				//
 				// env
 				//
-				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+				readsize = r->read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 				if(stlen > SCAP_MAX_ENV_SIZE)
@@ -449,7 +449,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 				subreadsize += readsize;
 
-				readsize = scap_reader_read(r, tinfo.env, stlen);
+				readsize = r->read(r, tinfo.env, stlen);
 				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 				// the string is not null-terminated on file
@@ -469,7 +469,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				//
 				// vtid
 				//
-				readsize = scap_reader_read(r, &(tinfo.vtid), sizeof(int64_t));
+				readsize = r->read(r, &(tinfo.vtid), sizeof(int64_t));
 				CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 				subreadsize += readsize;
@@ -477,7 +477,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				//
 				// vpid
 				//
-				readsize = scap_reader_read(r, &(tinfo.vpid), sizeof(int64_t));
+				readsize = r->read(r, &(tinfo.vpid), sizeof(int64_t));
 				CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 
 				subreadsize += readsize;
@@ -485,7 +485,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				//
 				// cgroups
 				//
-				readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+				readsize = r->read(r, &(stlen), sizeof(uint16_t));
 				CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 				if(stlen > SCAP_MAX_CGROUPS_SIZE)
@@ -497,7 +497,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 				subreadsize += readsize;
 
-				readsize = scap_reader_read(r, tinfo.cgroups, stlen);
+				readsize = r->read(r, tinfo.cgroups, stlen);
 				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 				subreadsize += readsize;
@@ -508,7 +508,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				   block_type == PL_BLOCK_TYPE_V8 ||
 				   block_type == PL_BLOCK_TYPE_V9)
 				{
-					readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+					readsize = r->read(r, &(stlen), sizeof(uint16_t));
 					CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 					if(stlen > SCAP_MAX_PATH_SIZE)
@@ -519,7 +519,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 
 					subreadsize += readsize;
 
-					readsize = scap_reader_read(r, tinfo.root, stlen);
+					readsize = r->read(r, tinfo.root, stlen);
 					CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 					// the string is not null-terminated on file
@@ -549,7 +549,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
 		{
-			readsize = scap_reader_read(r, &(tinfo.loginuid), sizeof(int32_t));
+			readsize = r->read(r, &(tinfo.loginuid), sizeof(int32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 			subreadsize += readsize;
 		}
@@ -559,7 +559,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
 		{
-			readsize = scap_reader_read(r, &(tinfo.exe_writable), sizeof(uint8_t));
+			readsize = r->read(r, &(tinfo.exe_writable), sizeof(uint8_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
 			subreadsize += readsize;
 		}
@@ -569,21 +569,21 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
-			readsize = scap_reader_read(r, &(tinfo.cap_inheritable), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.cap_inheritable), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
 
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
-			readsize = scap_reader_read(r, &(tinfo.cap_permitted), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.cap_permitted), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
 
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
-			readsize = scap_reader_read(r, &(tinfo.cap_effective), sizeof(uint64_t));
+			readsize = r->read(r, &(tinfo.cap_effective), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
@@ -630,7 +630,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 				return SCAP_FAILURE;
 			}
 			toread = sub_len - subreadsize;
-			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
+			fseekres = (int) r->seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
@@ -655,7 +655,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = (size_t)scap_reader_read(r, &padding, (unsigned int)padding_len);
+	readsize = (size_t)r->read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
@@ -699,7 +699,7 @@ static int32_t scap_read_iflist(scap_reader_t* r, uint32_t block_length, uint32_
 		return SCAP_FAILURE;
 	}
 
-	readsize = scap_reader_read(r, readbuf, block_length);
+	readsize = r->read(r, readbuf, block_length);
 	CHECK_READ_SIZE_WITH_FREE_ERR(readbuf, readsize, block_length, error);
 
 	//
@@ -1076,7 +1076,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// len
 			//
-			readsize = scap_reader_read(r, &(sub_len), sizeof(uint32_t));
+			readsize = r->read(r, &(sub_len), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -1085,7 +1085,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 		//
 		// type
 		//
-		readsize = scap_reader_read(r, &(type), sizeof(type));
+		readsize = r->read(r, &(type), sizeof(type));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(type), error);
 
 		subreadsize += readsize;
@@ -1107,7 +1107,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// uid
 			//
-			readsize = scap_reader_read(r, &(puser->uid), sizeof(uint32_t));
+			readsize = r->read(r, &(puser->uid), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -1115,7 +1115,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// gid
 			//
-			readsize = scap_reader_read(r, &(puser->gid), sizeof(uint32_t));
+			readsize = r->read(r, &(puser->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -1123,7 +1123,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// name
 			//
-			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+			readsize = r->read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -1134,7 +1134,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 
 			subreadsize += readsize;
 
-			readsize = scap_reader_read(r, puser->name, stlen);
+			readsize = r->read(r, puser->name, stlen);
 			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
@@ -1145,7 +1145,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// homedir
 			//
-			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+			readsize = r->read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -1156,7 +1156,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 
 			subreadsize += readsize;
 
-			readsize = scap_reader_read(r, puser->homedir, stlen);
+			readsize = r->read(r, puser->homedir, stlen);
 			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
@@ -1167,7 +1167,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// shell
 			//
-			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+			readsize = r->read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -1178,7 +1178,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 
 			subreadsize += readsize;
 
-			readsize = scap_reader_read(r, puser->shell, stlen);
+			readsize = r->read(r, puser->shell, stlen);
 			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
@@ -1212,7 +1212,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// gid
 			//
-			readsize = scap_reader_read(r, &(pgroup->gid), sizeof(uint32_t));
+			readsize = r->read(r, &(pgroup->gid), sizeof(uint32_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint32_t), error);
 
 			subreadsize += readsize;
@@ -1220,7 +1220,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			//
 			// name
 			//
-			readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+			readsize = r->read(r, &(stlen), sizeof(uint16_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 			if(stlen >= MAX_CREDENTIALS_STR_LEN)
@@ -1231,7 +1231,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 
 			subreadsize += readsize;
 
-			readsize = scap_reader_read(r, pgroup->name, stlen);
+			readsize = r->read(r, pgroup->name, stlen);
 			CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 			// the string is not null-terminated on file
@@ -1258,7 +1258,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 				return SCAP_FAILURE;
 			}
 			toread = sub_len - subreadsize;
-			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
+			fseekres = (int) r->seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
@@ -1283,7 +1283,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
+	readsize = r->read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
@@ -1292,7 +1292,7 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 static uint32_t scap_fd_read_prop_from_disk(void *target, size_t expected_size, size_t *nbytes, scap_reader_t *r, char *error)
 {
 	size_t readsize;
-	readsize = scap_reader_read(r, target, (unsigned int)expected_size);
+	readsize = r->read(r, target, (unsigned int)expected_size);
 	CHECK_READ_SIZE_ERR(readsize, expected_size, error);
 	(*nbytes) += readsize;
 	return SCAP_SUCCESS;
@@ -1303,7 +1303,7 @@ static uint32_t scap_fd_read_fname_from_disk(char *fname, size_t *nbytes, scap_r
 	size_t readsize;
 	uint16_t stlen;
 
-	readsize = scap_reader_read(r, &(stlen), sizeof(uint16_t));
+	readsize = r->read(r, &(stlen), sizeof(uint16_t));
 	CHECK_READ_SIZE_ERR(readsize, sizeof(uint16_t), error);
 
 	if(stlen >= SCAP_MAX_PATH_SIZE)
@@ -1314,7 +1314,7 @@ static uint32_t scap_fd_read_fname_from_disk(char *fname, size_t *nbytes, scap_r
 
 	(*nbytes) += readsize;
 
-	readsize = scap_reader_read(r, fname, stlen);
+	readsize = r->read(r, fname, stlen);
 	CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 	(*nbytes) += stlen;
@@ -1361,11 +1361,11 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 	switch(fdi->type)
 	{
 	case SCAP_FD_IPV4_SOCK:
-		if(scap_reader_read(r, &(fdi->info.ipv4info.sip), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4info.dip), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
+		if(r->read(r, &(fdi->info.ipv4info.sip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   r->read(r, &(fdi->info.ipv4info.dip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   r->read(r, &(fdi->info.ipv4info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (1)");
 			return SCAP_FAILURE;
@@ -1375,9 +1375,9 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 
 		break;
 	case SCAP_FD_IPV4_SERVSOCK:
-		if(scap_reader_read(r, &(fdi->info.ipv4serverinfo.ip), sizeof(uint32_t)) != sizeof(uint32_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
+		if(r->read(r, &(fdi->info.ipv4serverinfo.ip), sizeof(uint32_t)) != sizeof(uint32_t) ||
+		   r->read(r, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (2)");
 			return SCAP_FAILURE;
@@ -1386,11 +1386,11 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 		(*nbytes) += (sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t));
 		break;
 	case SCAP_FD_IPV6_SOCK:
-		if(scap_reader_read(r, (char *)fdi->info.ipv6info.sip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
-		   scap_reader_read(r, (char *)fdi->info.ipv6info.dip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
-		   scap_reader_read(r, &(fdi->info.ipv6info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
+		if(r->read(r, (char *)fdi->info.ipv6info.sip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		   r->read(r, (char *)fdi->info.ipv6info.dip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		   r->read(r, &(fdi->info.ipv6info.sport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 		}
@@ -1401,9 +1401,9 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 			      sizeof(uint8_t));      // l4proto
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
-		if(scap_reader_read(r, (char *)fdi->info.ipv6serverinfo.ip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
-		   scap_reader_read(r, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
-		   scap_reader_read(r, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
+		if(r->read(r, (char *)fdi->info.ipv6serverinfo.ip, sizeof(uint32_t) * 4) != sizeof(uint32_t) * 4 ||
+		   r->read(r, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
+		   r->read(r, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 		}
@@ -1412,8 +1412,8 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 			      sizeof(uint8_t));      // l4proto
 		break;
 	case SCAP_FD_UNIX_SOCK:
-		if(scap_reader_read(r, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
-		   scap_reader_read(r, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
+		if(r->read(r, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
+		   r->read(r, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi5)");
 			return SCAP_FAILURE;
@@ -1423,7 +1423,7 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 		res = scap_fd_read_fname_from_disk(fdi->info.unix_socket_info.fname, nbytes, r, error);
 		break;
 	case SCAP_FD_FILE_V2:
-		if(scap_reader_read(r, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
+		if(r->read(r, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (fi1)");
 			return SCAP_FAILURE;
@@ -1435,7 +1435,7 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 		{
 			break;
 		}
-		if(scap_reader_read(r, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
+		if(r->read(r, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "error reading the fd info from file (dev)");
 			return SCAP_FAILURE;
@@ -1471,7 +1471,7 @@ static uint32_t scap_fd_read_from_disk(scap_fdinfo *fdi, size_t *nbytes, uint32_
 			return SCAP_FAILURE;
 		}
 		toread = (uint32_t)(sub_len - *nbytes);
-		fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
+		fseekres = (int) r->seek(r, (long)toread, SEEK_CUR);
 		if(fseekres == -1)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip %u bytes.",
@@ -1503,7 +1503,7 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 	//
 	// Read the tid
 	//
-	readsize = scap_reader_read(r, &tid, sizeof(tid));
+	readsize = r->read(r, &tid, sizeof(tid));
 	CHECK_READ_SIZE_ERR(readsize, sizeof(tid), error);
 	totreadsize += readsize;
 
@@ -1582,7 +1582,7 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 	}
 	padding_len = block_length - totreadsize;
 
-	readsize = scap_reader_read(r, &padding, (unsigned int)padding_len);
+	readsize = r->read(r, &padding, (unsigned int)padding_len);
 	CHECK_READ_SIZE_ERR(readsize, padding_len, error);
 
 	return SCAP_SUCCESS;
@@ -1596,8 +1596,8 @@ static int32_t scap_read_section_header(scap_reader_t* r, char* error)
 	//
 	// Read the section header block
 	//
-	if(scap_reader_read(r, &sh, sizeof(sh)) != sizeof(sh) ||
-	   scap_reader_read(r, &bt, sizeof(bt)) != sizeof(bt))
+	if(r->read(r, &sh, sizeof(sh)) != sizeof(sh) ||
+	   r->read(r, &bt, sizeof(bt)) != sizeof(bt))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
@@ -1635,7 +1635,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 	//
 	// Read the section header block
 	//
-	if(scap_reader_read(r, &bh, sizeof(bh)) != sizeof(bh))
+	if(r->read(r, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
@@ -1657,7 +1657,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 	//
 	while(true)
 	{
-		readsize = scap_reader_read(r, &bh, sizeof(bh));
+		readsize = r->read(r, &bh, sizeof(bh));
 
 		//
 		// If we don't find the event block header,
@@ -1724,7 +1724,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 			//
 			// We're done with the metadata headers. Rewind the file position so we are aligned to start reading the events.
 			//
-			fseekres = scap_reader_seek(r, (long)0 - sizeof(bh), SEEK_CUR);
+			fseekres = r->seek(r, (long)0 - sizeof(bh), SEEK_CUR);
 			if(fseekres != -1)
 			{
 				break;
@@ -1757,7 +1757,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 			// Unknown block type. Skip the block.
 			//
 			toread = bh.block_total_length - sizeof(block_header) - 4;
-			fseekres = (int)scap_reader_seek(r, (long)toread, SEEK_CUR);
+			fseekres = (int) r->seek(r, (long)toread, SEEK_CUR);
 			if(fseekres == -1)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "corrupted input file. Can't skip block of type %x and size %u.",
@@ -1776,7 +1776,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 		//
 		// Read and validate the trailer
 		//
-		readsize = scap_reader_read(r, &bt, sizeof(bt));
+		readsize = r->read(r, &bt, sizeof(bt));
 		CHECK_READ_SIZE_ERR(readsize, sizeof(bt), error);
 
 		if(bt != bh.block_total_length)
@@ -1820,7 +1820,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 		//
 		// Read the block header
 		//
-		readsize = scap_reader_read(r, &bh, sizeof(bh));
+		readsize = r->read(r, &bh, sizeof(bh));
 
 		if(readsize != sizeof(bh))
 		{
@@ -1828,7 +1828,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 #ifdef WIN32
 			const char* err_str = "read error";
 #else
-			const char* err_str = scap_reader_error(r, &err_no);
+			const char* err_str = r->error(r, &err_no);
 #endif
 			if(err_no)
 			{
@@ -1902,7 +1902,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 			handle->m_reader_evt_buf_size = readlen;
 		}
 
-		readsize = scap_reader_read(r, handle->m_reader_evt_buf, readlen);
+		readsize = r->read(r, handle->m_reader_evt_buf, readlen);
 		CHECK_READ_SIZE(readsize, readlen);
 
 		//
@@ -2009,21 +2009,13 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 uint64_t scap_savefile_ftell(struct scap_engine_handle engine)
 {
 	scap_reader_t* reader = engine.m_handle->m_reader;
-	return scap_reader_tell(reader);
+	return reader->tell(reader);
 }
 
 void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 {
 	scap_reader_t* reader = engine.m_handle->m_reader;
-	switch (scap_reader_type(reader))
-	{
-		case RT_FILE:
-			scap_reader_seek(reader, off, SEEK_SET);
-			return;
-		default:
-			ASSERT(false);
-			return;
-	}
+	reader->seek(reader, off, SEEK_SET);
 }
 
 static bool match(struct scap_open_args* args)
@@ -2096,7 +2088,7 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 
 	if(res != SCAP_SUCCESS)
 	{
-		scap_reader_close(reader);
+		reader->close(reader);
 		free(reader);
 		return res;
 	}
@@ -2133,7 +2125,7 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine)
 	struct savefile_engine* handle = engine.m_handle;
 	if (handle->m_reader)
 	{
-		scap_reader_close(handle->m_reader);
+		handle->m_reader->close(handle->m_reader);
 		free(handle->m_reader);
 		handle->m_reader = NULL;
 	}
@@ -2154,7 +2146,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 
 	if (engine->m_unexpected_block_readsize > 0)
 	{
-		scap_reader_seek(engine->m_reader, (int64_t)0 - (int64_t)engine->m_unexpected_block_readsize, SEEK_CUR);
+		engine->m_reader->seek(engine->m_reader, (int64_t)0 - (int64_t)engine->m_unexpected_block_readsize, SEEK_CUR);
 		engine->m_unexpected_block_readsize = 0;
 	}
 	if((res = scap_read_init(
@@ -2174,7 +2166,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 
 static int64_t get_readfile_offset(struct scap_engine_handle engine)
 {
-	return scap_reader_offset(engine.m_handle->m_reader);
+	return engine.m_handle->m_reader->offset(engine.m_handle->m_reader);
 }
 
 static uint32_t get_event_dump_flags(struct scap_engine_handle engine)

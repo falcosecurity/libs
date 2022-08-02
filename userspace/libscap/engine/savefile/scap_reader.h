@@ -28,170 +28,75 @@ limitations under the License.
 extern "C" {
 #endif
 
-typedef enum ppm_reader_type
-{
-	RT_FILE = 0,
-	RT_BUFFERED = 1,
-} ppm_reader_type;
 
+/**
+ * @brief Represents a reader for data in SCAP format
+ */
 typedef struct scap_reader
 {
-	ppm_reader_type m_type;
-	union
-	{
-		struct // RT_FILE
-		{
-			gzFile m_file; ///< The file to read data from
-		};
-		struct // RT_BUFFERED
-		{
-			bool m_free_reader; ///< whether the reader should be free-d on close
-			bool m_has_err; ///< True if the most recent m_reader operation had an error
-			uint8_t* m_buffer; ///< The buffer used to read data from m_reader
-			uint32_t m_buffer_cap; ///< The physical size of the buffer
-			uint32_t m_buffer_len; ///< The number of bytes used in the buffer
-			uint32_t m_buffer_off; ///< The cursor position in the buffer
-			struct scap_reader* m_reader; ///< The reader to read from in buffered mode
-		};
-	};
+    /**
+     * @brief The internal state of each implementation.
+     */
+    void* handle;
+
+    /**
+     * @brief Reads at most len bytes into buf from the given reader.
+     * On success, returns the number of bytes read. On failure,
+     * returns 0 or a negative value, and error() can be used to
+     * retrieve the error.
+     */
+    int (*read)(struct scap_reader *r, void* buf, uint32_t len);
+
+    /**
+     * @brief Returns the current offset in the data being read.
+     * On error, returns a negative value and error() can be used to
+     * retrieve the error.
+     */
+    int64_t (*offset)(struct scap_reader *r);
+
+    /**
+     * @brief Returns the starting position for the next read().
+     * On error, returns a negative value and error() can be used to
+     * retrieve the error.
+     */
+    int64_t (*tell)(struct scap_reader *r);
+
+    /**
+     * @brief Sets the starting position for the next read().
+     * The whence parameter is defined as in lseek(2) and the support
+     * to each whence type is implementation-specific.
+     * On error, returns a negative value and error() can be used to
+     * retrieve the error.
+     */
+    int64_t (*seek)(struct scap_reader *r, int64_t offset, int whence);
+
+    /**
+     * @brief Returns the message and number for the last error occurred.
+     * If there is no error, errnum is set to 0. The message and the
+     * error number representations are implementation-specific.
+     */
+    const char* (*error)(struct scap_reader *r, int *errnum);
+
+    /**
+     * @brief Closes the reader and de-allocates handle.
+     */
+    int (*close)(struct scap_reader *r);
 } scap_reader_t;
 
-static inline scap_reader_t *scap_reader_open_gzfile(gzFile file)
-{
-	if (file == NULL)
-	{
-		return NULL;
-	}
-	scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
-	r->m_type = RT_FILE;
-	r->m_file = file;
-	return r;
-}
+/**
+ * @brief Opens a reader from a gzFile
+ */
+scap_reader_t *scap_reader_open_gzfile(gzFile file);
 
-int scap_reader_read_buffered(scap_reader_t *r, void* buf, uint32_t len);
-int64_t scap_reader_offset_buffered(scap_reader_t *r);
-int64_t scap_reader_tell_buffered(scap_reader_t *r);
-int64_t scap_reader_seek_buffered(scap_reader_t *r, int64_t offset, int whence);
-const char *scap_reader_error_buffered(scap_reader_t *r, int *errnum);
-int scap_reader_close_buffered(scap_reader_t *r);
-
-// wraps another scap reader and reads from it using a buffer of size bufsize.
-// if own_reader is true, the wrapped reader will be de-allocated using free()
-// when the buffered reader gets closed.
-static inline scap_reader_t *scap_reader_open_buffered(scap_reader_t* reader, uint32_t bufsize, bool own_reader)
-{
-	if (reader == NULL || bufsize == 0)
-	{
-		return NULL;
-	}
-	scap_reader_t* r = (scap_reader_t*) malloc (sizeof(scap_reader_t));
-	r->m_type = RT_BUFFERED;
-	r->m_free_reader = own_reader;
-	r->m_has_err = false;
-	r->m_reader = reader;
-	r->m_buffer = (uint8_t*) malloc (sizeof(uint8_t) * bufsize);
-	r->m_buffer_cap = bufsize;
-	r->m_buffer_len = 0;
-	r->m_buffer_off = 0;
-	return r;
-}
-
-static inline ppm_reader_type scap_reader_type(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	return r->m_type;
-}
-
-static inline int scap_reader_read(scap_reader_t *r, void* buf, uint32_t len)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzread(r->m_file, buf, len);
-		case RT_BUFFERED:
-			return scap_reader_read_buffered(r, buf, len);
-		default:
-			ASSERT(false);
-			return 0;
-	}
-}
-
-static inline int64_t scap_reader_offset(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzoffset(r->m_file);
-		case RT_BUFFERED:
-			return scap_reader_offset_buffered(r);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-static inline int64_t scap_reader_tell(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gztell(r->m_file);
-		case RT_BUFFERED:
-			return scap_reader_tell_buffered(r);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-static inline int64_t scap_reader_seek(scap_reader_t *r, int64_t offset, int whence)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzseek(r->m_file, offset, whence);
-		case RT_BUFFERED:
-			return scap_reader_seek_buffered(r, offset, whence);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
-
-static inline const char *scap_reader_error(scap_reader_t *r, int *errnum)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzerror(r->m_file, errnum);
-		case RT_BUFFERED:
-			return scap_reader_error_buffered(r, errnum);
-		default:
-			ASSERT(false);
-			*errnum = -1;
-			return "unknown scap_reader type";
-	}
-}
-
-static inline int scap_reader_close(scap_reader_t *r)
-{
-	ASSERT(r != NULL);
-	switch (r->m_type)
-	{
-		case RT_FILE:
-			return gzclose(r->m_file);
-		case RT_BUFFERED:
-			return scap_reader_close_buffered(r);
-		default:
-			ASSERT(false);
-			return -1;
-	}
-}
+/**
+ * @brief Opens a reader wrapping another reader, and reads data using buffering.
+ * This is suitable to support stream-like data, for which buffering reduces
+ * the number of data reads and allows seeking (inside the buffer boundaries).
+ * @param bufsize is the size of the data buffer
+ * @param own_reader if true, the wrapped reader will be de-allocated using
+ * free() when the buffered reader gets closed.
+ */
+scap_reader_t *scap_reader_open_buffered(scap_reader_t* reader, uint32_t bufsize, bool own_reader);
 
 
 #ifdef __cplusplus
