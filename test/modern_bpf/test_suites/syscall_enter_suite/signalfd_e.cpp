@@ -12,11 +12,11 @@ TEST(SyscallEnter, signalfdE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	/* `mask` and `flags` are not caught BPF side. */
+	/* `mask` is not caught BPF side. */
 	int32_t mock_fd = -1;
 	sigset_t mask = {0};
-	int flags = 7;
-	assert_syscall_state(SYSCALL_FAILURE, "signalfd", syscall(__NR_signalfd, mock_fd, &mask, flags));
+	size_t sizemask = 0;
+	assert_syscall_state(SYSCALL_FAILURE, "signalfd", syscall(__NR_signalfd, mock_fd, &mask, sizemask));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

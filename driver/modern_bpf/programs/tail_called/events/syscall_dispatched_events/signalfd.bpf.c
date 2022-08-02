@@ -35,6 +35,10 @@ int BPF_PROG(signalfd_e,
 	ringbuf__store_u32(&ringbuf, 0);
 
 	/* Parameter 3: flags (type: PT_FLAGS8) */
+	/// TODO: this are not flags, but it is a sizemask,
+	/// please see here for more deatails:
+	/// https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/fs/signalfd.c#n302
+	/// We need to create 2 separate events for `signalfd` and `signalfd4`.
 	/* Like in the old probe we send `0`. */
 	ringbuf__store_u8(&ringbuf, 0);
 
@@ -73,6 +77,5 @@ int BPF_PROG(signalfd_x,
 
 	return 0;
 }
-
 
 /*=============================== EXIT EVENT ===========================*/

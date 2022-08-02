@@ -21,8 +21,9 @@ TEST(SyscallExit, signalfd4X)
 	/* `mask` and `flags` are not catched BPF side. */
 	int32_t mock_fd = -1;
 	sigset_t mask = {0};
+	size_t sizemask = 0;
 	int flags = 7;
-	assert_syscall_state(SYSCALL_FAILURE, "signalfd4", syscall(__NR_signalfd4, mock_fd, &mask, flags));
+	assert_syscall_state(SYSCALL_FAILURE, "signalfd4", syscall(__NR_signalfd4, mock_fd, &mask, sizemask, flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
