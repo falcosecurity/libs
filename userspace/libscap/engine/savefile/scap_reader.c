@@ -19,8 +19,8 @@ limitations under the License.
 
 int scap_reader_read_buffered(scap_reader_t *r, void* buf, uint32_t len)
 {
-	uint8_t* buf_bytes = (uint8_t*) buf;
-	while (len > 0 && !r->m_has_err)
+    uint8_t* buf_bytes = (uint8_t*) buf;
+    while (len > 0 && !r->m_has_err)
     {
         if (r->m_buffer_off >= r->m_buffer_len)
         {
@@ -42,12 +42,12 @@ int scap_reader_read_buffered(scap_reader_t *r, void* buf, uint32_t len)
 
 int64_t scap_reader_offset_buffered(scap_reader_t *r)
 {
-	return scap_reader_offset(r->m_reader);
+    return scap_reader_offset(r->m_reader);
 }
 
 int64_t scap_reader_tell_buffered(scap_reader_t *r)
 {
-	int64_t res = scap_reader_tell(r->m_reader);
+    int64_t res = scap_reader_tell(r->m_reader);
     if (res < 0)
     {
         return res;
@@ -57,7 +57,7 @@ int64_t scap_reader_tell_buffered(scap_reader_t *r)
 
 int64_t scap_reader_seek_buffered(scap_reader_t *r, int64_t offset, int whence)
 {
-	if (whence == SEEK_CUR)
+    if (whence == SEEK_CUR)
     {
         if (offset < 0 && r->m_buffer_off >= (uint32_t) (offset * -1))
         {
@@ -77,12 +77,12 @@ int64_t scap_reader_seek_buffered(scap_reader_t *r, int64_t offset, int whence)
 
 const char *scap_reader_error_buffered(scap_reader_t *r, int *errnum)
 {
-	return scap_reader_error(r->m_reader, errnum);
+    return scap_reader_error(r->m_reader, errnum);
 }
 
 int scap_reader_close_buffered(scap_reader_t *r)
 {
-	int res = scap_reader_close(r->m_reader);
+    int res = scap_reader_close(r->m_reader);
     if (r->m_free_reader)
     {
         free(r->m_reader);
