@@ -6360,7 +6360,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	const struct cred *cred = NULL;
 
 
-	/* Parameter 1: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO32) */
 	/* Please note: if this filler is called the execve is correctly
 	 * performed, so the return value will be always 0.
 	 */
@@ -6429,27 +6429,27 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* Parameter 4: tid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)current->pid, 0, false, 0);
+	/* Parameter 4: tid (type: PT_PID32) */
+	res = val_to_ring(args, current->pid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* Parameter 5: pid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)current->tgid, 0, false, 0);
+	/* Parameter 5: pid (type: PT_PID32) */
+	res = val_to_ring(args, current->tgid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* Parameter 6: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID32) */
 	if(current->real_parent)
 	{
 		ptid = current->real_parent->pid;
 	}
 
-	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
+	res = val_to_ring(args, ptid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -6569,8 +6569,8 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 18: pgid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
+	/* Parameter 18: pgid (type: PT_PID32) */
+	res = val_to_ring(args, task_pgrp_nr_ns(current, task_active_pid_ns(current)), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -6675,7 +6675,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	uint64_t egid = child->cred->egid.val;
 	struct pid_namespace *pidns = task_active_pid_ns(child);
 
-	/* Parameter 1: res (type: PT_ERRNO) */
+	/* Parameter 1: res (type: PT_ERRNO32) */
 	/* Please note: here we are in the clone child exit
 	 * event, so the return value will be always 0.
 	 */
@@ -6744,27 +6744,27 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 		return res;
 	}
 
-	/* Parameter 4: tid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)child->pid, 0, false, 0);
+	/* Parameter 4: tid (type: PT_PID32) */
+	res = val_to_ring(args, child->pid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* Parameter 5: pid (type: PT_PID) */
-	res = val_to_ring(args, (int64_t)child->tgid, 0, false, 0);
+	/* Parameter 5: pid (type: PT_PID32) */
+	res = val_to_ring(args, child->tgid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* Parameter 6: ptid (type: PT_PID) */
+	/* Parameter 6: ptid (type: PT_PID32) */
 	if(child->real_parent)
 	{
 		ptid = child->real_parent->pid;
 	}
 
-	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
+	res = val_to_ring(args, ptid, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -6901,14 +6901,14 @@ cgroups_error:
 		return res;
 	}
 
-	/* Parameter 19: vtid (type: PT_PID) */
+	/* Parameter 19: vtid (type: PT_PID32) */
 	res = val_to_ring(args, task_pid_vnr(child), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
-	/* Parameter 20: vpid (type: PT_PID) */
+	/* Parameter 20: vpid (type: PT_PID32) */
 	res = val_to_ring(args, task_tgid_vnr(child), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
