@@ -52,25 +52,25 @@ int32_t check_api_compatibility(scap_t *handle, char *error)
 #ifdef PPM_API_CURRENT_VERSION_MAJOR
 	if(!scap_is_api_compatible(handle->m_api_version, SCAP_MINIMUM_DRIVER_API_VERSION))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports API version %llu.%llu.%llu, but running version needs %d.%d.%d",
+		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports API version %llu.%llu.%llu, but running version needs %llu.%llu.%llu",
 			 PPM_API_VERSION_MAJOR(handle->m_api_version),
 			 PPM_API_VERSION_MINOR(handle->m_api_version),
 			 PPM_API_VERSION_PATCH(handle->m_api_version),
-			 PPM_API_CURRENT_VERSION_MAJOR,
-			 PPM_API_CURRENT_VERSION_MINOR,
-			 PPM_API_CURRENT_VERSION_PATCH);
+			 PPM_API_VERSION_MAJOR(SCAP_MINIMUM_DRIVER_API_VERSION),
+			 PPM_API_VERSION_MINOR(SCAP_MINIMUM_DRIVER_API_VERSION),
+			 PPM_API_VERSION_PATCH(SCAP_MINIMUM_DRIVER_API_VERSION));
 		return SCAP_FAILURE;
 	}
 
 	if(!scap_is_api_compatible(handle->m_schema_version, SCAP_MINIMUM_DRIVER_SCHEMA_VERSION))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports schema version %llu.%llu.%llu, but running version needs %d.%d.%d",
+		snprintf(error, SCAP_LASTERR_SIZE, "Driver supports schema version %llu.%llu.%llu, but running version needs %llu.%llu.%llu",
 			 PPM_API_VERSION_MAJOR(handle->m_schema_version),
 			 PPM_API_VERSION_MINOR(handle->m_schema_version),
 			 PPM_API_VERSION_PATCH(handle->m_schema_version),
-			 PPM_SCHEMA_CURRENT_VERSION_MAJOR,
-			 PPM_SCHEMA_CURRENT_VERSION_MINOR,
-			 PPM_SCHEMA_CURRENT_VERSION_PATCH);
+			 PPM_API_VERSION_MAJOR(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION),
+			 PPM_API_VERSION_MINOR(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION),
+			 PPM_API_VERSION_PATCH(SCAP_MINIMUM_DRIVER_SCHEMA_VERSION));
 		return SCAP_FAILURE;
 	}
 #endif
