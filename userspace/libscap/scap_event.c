@@ -224,9 +224,12 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_SIGSET:
 		case PT_MODE:
 		case PT_ENUMFLAGS32:
-            u32_arg = va_arg(args, uint32_t);
-            param.buf = &u32_arg;
-            param.size = sizeof(uint32_t);
+		case PT_ERRNO32:
+		case PT_FD32:
+		case PT_PID32:
+	                u32_arg = va_arg(args, uint32_t);
+	                param.buf = &u32_arg;
+	                param.size = sizeof(uint32_t);
 			break;
 
 		case PT_INT64:
@@ -237,9 +240,9 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_RELTIME:
 		case PT_ABSTIME:
 		case PT_DOUBLE:
-            u64_arg = va_arg(args, uint64_t);
-            param.buf = &u64_arg;
-            param.size = sizeof(uint64_t);
+                        u64_arg = va_arg(args, uint64_t);
+                        param.buf = &u64_arg;
+                        param.size = sizeof(uint64_t);
 			break;
 
 		case PT_CHARBUF:
@@ -252,6 +255,7 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_BYTEBUF: /* A raw buffer of bytes not suitable for printing */
 		case PT_SOCKTUPLE:  /* A sockaddr tuple,1byte family + 12byte data + 12byte data */
 		case PT_FDLIST:		    /* A list of fds, 16bit count + count * (64bit fd + 16bit flags) */
+		case PT_FDLIST32:           /* A list of fds, 16bit count + count * (32bit fd + 16bit flags) */
 		case PT_DYN:		    /* Type can vary depending on the context. Used for filter fields like evt.rawarg. */
 		case PT_CHARBUFARRAY:	    /* Pointer to an array of strings, exported by the user events decoder. 64bit. For internal use only. */
 		case PT_CHARBUF_PAIR_ARRAY: /* Pointer to an array of string pairs, exported by the user events decoder. 64bit. For internal use only. */

@@ -131,12 +131,16 @@ void print_parameter(int16_t num_param)
 		break;
 
 	case PT_INT32:
+	case PT_ERRNO32:
+	case PT_FD32:
+	case PT_PID32:
 		printf("PARAM %d: %d\n", num_param, *(int32_t*)(valptr));
 		break;
 
 	case PT_INT64:
 	case PT_ERRNO:
 	case PT_PID:
+	case PT_FD:
 		printf("PARAM %d: %ld\n", num_param, *(int64_t*)(valptr));
 		break;
 
@@ -165,10 +169,6 @@ void print_parameter(int16_t num_param)
 	case PT_RELTIME:
 	case PT_ABSTIME:
 		printf("PARAM %d: %lu\n", num_param, *(uint64_t*)(valptr));
-		break;
-
-	case PT_FD:
-		printf("PARAM %d: %d\n", num_param, *(int32_t*)(valptr));
 		break;
 
 	case PT_SOCKADDR:

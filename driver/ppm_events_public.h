@@ -1595,7 +1595,11 @@ enum ppm_param_type {
 	PT_ENUMFLAGS8 = 44, /* this is an UINT8, but will be interpreted as an enum flag, ie: contiguous values flag. */
 	PT_ENUMFLAGS16 = 45, /* this is an UINT16, but will be interpreted as an enum flag, ie: contiguous values flag. */
 	PT_ENUMFLAGS32 = 46, /* this is an UINT32, but will be interpreted as an enum flag, ie: contiguous values flag. */
-	PT_MAX = 47 /* array size */
+	PT_FD32 = 47, /* An fd, 32bit */
+	PT_PID32 = 48, /* A pid/tid, 32bit */
+	PT_ERRNO32 = 49,	/* this is an INT32, but will be interpreted as an error code */
+	PT_FDLIST32 = 50, /* A list of fds, 16bit count + count * (32bit fd + 16bit flags) */
+	PT_MAX = 51 /* array size */
 };
 
 enum ppm_print_format {

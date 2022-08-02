@@ -2782,7 +2782,7 @@ bool sinsp_filter_check_thread::compare_full_apid(sinsp_evt *evt)
 		bool res;
 
 		res = flt_compare(m_cmpop,
-				  PT_PID,
+				  PT_PID, // use PT_PID here as we pass a 64bit pid
 				  &pt->m_pid);
 
 		if(res == true)

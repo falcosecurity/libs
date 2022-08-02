@@ -852,6 +852,34 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		}
 		break;
 
+	case PT_PID32:
+	{
+		ASSERT(payload_len == sizeof(int32_t));
+
+		int val = *(int32_t *)payload;
+		ret = (Json::Value::Int)val;
+
+		sinsp_threadinfo* atinfo = m_inspector->get_thread_ref((int64_t)val, false, true).get();
+		if(atinfo != NULL)
+		{
+			string& tcomm = atinfo->m_comm;
+
+			//
+			// Make sure the string will fit
+			//
+			if(tcomm.size() >= m_resolved_paramstr_storage.size())
+			{
+				m_resolved_paramstr_storage.resize(tcomm.size() + 1);
+			}
+
+			snprintf(&m_resolved_paramstr_storage[0],
+				 m_resolved_paramstr_storage.size(),
+				 "%s",
+				 tcomm.c_str());
+		}
+	}
+	break;
+
 	case PT_ERRNO:
 	{
 		ASSERT(payload_len == sizeof(int64_t));
@@ -878,17 +906,55 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	}
 	break;
 
-	case PT_FD:
+	case PT_ERRNO32:
+	{
+		ASSERT(payload_len == sizeof(int32_t));
+
+		int32_t val = *(int32_t *)payload;
+
+		//
+		// Resolve this as an errno
+		//
+		string errstr;
+
+		if(val < 0)
 		{
-			// We use the string extractor to get
-			// the resolved path, but use our routine
-			// to get the actual value to return
-			ASSERT(payload_len == sizeof(int64_t));
-			int64_t fd = *(int64_t*)payload;
-			render_fd_json(&ret, fd, resolved_str, fmt);
-			ret["num"] = (Json::Value::UInt64)*(int64_t *)payload;
-			break;
+			errstr = sinsp_utils::errno_to_str(val);
+
+			if(errstr != "")
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+					 m_resolved_paramstr_storage.size(),
+					 "%s", errstr.c_str());
+			}
 		}
+		ret = (Json::Value::Int)val;
+	}
+	break;
+
+	case PT_FD:
+	{
+		// We use the string extractor to get
+		// the resolved path, but use our routine
+		// to get the actual value to return
+		ASSERT(payload_len == sizeof(int64_t));
+		int64_t fd = *(int64_t*)payload;
+		render_fd_json(&ret, fd, resolved_str, fmt);
+		ret["num"] = (Json::Value::UInt64)*(int64_t *)payload;
+		break;
+	}
+
+	case PT_FD32:
+	{
+		// We use the string extractor to get
+		// the resolved path, but use our routine
+		// to get the actual value to return
+		ASSERT(payload_len == sizeof(int32_t));
+		int32_t fd = *(int32_t*)payload;
+		render_fd_json(&ret, (int64_t)fd, resolved_str, fmt);
+		ret["num"] = (Json::Value::Int)fd;
+		break;
+	}
 
 	case PT_CHARBUF:
 	case PT_FSPATH:
@@ -1098,6 +1164,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		}
 		break;
 	case PT_FDLIST:
+	case PT_FDLIST32:
 		ret = get_param_as_str(id, resolved_str, fmt);
 		break;
 
@@ -1433,14 +1500,22 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 
 	const ppm_param_info* dir_param_info = &(m_info->params[dirfd_id]);
 	// Ensure the index points to an actual FD
-	if (dir_param_info->type != PT_FD)
+	if (dir_param_info->type != PT_FD && dir_param_info->type != PT_FD32)
 	{
-		ASSERT(dir_param_info->type == PT_FD);
+		ASSERT(dir_param_info->type == PT_FD || dir_param_info->type == PT_FD32);
 		return cwd;
 	}
 
 	const sinsp_evt_param* dir_param = get_param(dirfd_id);
-	const int64_t dirfd = *(int64_t*)dir_param->m_val;
+	int64_t dirfd;
+	if (dir_param_info->type == PT_FD)
+	{
+		dirfd = *(int64_t*)dir_param->m_val;
+	}
+	else
+	{
+		dirfd = *(int32_t*)dir_param->m_val;
+	}
 
 	// If the FD is special value PPM_AT_FDCWD, just use CWD
 	if (dirfd == PPM_AT_FDCWD)
@@ -1553,6 +1628,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			render_fd(fd, resolved_str, fmt);
 			break;
 		}
+
+	case PT_FD32:
+	{
+		ASSERT(payload_len == sizeof(int32_t));
+		int32_t fd = *(int32_t*)payload;
+		render_fd((int64_t)fd, resolved_str, fmt);
+		break;
+	}
+
 	case PT_PID:
 		{
 			ASSERT(payload_len == sizeof(int64_t));
@@ -1582,6 +1666,38 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			}
 		}
 		break;
+
+	case PT_PID32:
+	{
+		ASSERT(payload_len == sizeof(int32_t));
+
+		int val = *(int32_t *)payload;
+		snprintf(&m_paramstr_storage[0],
+			 m_paramstr_storage.size(),
+			 "%d", val);
+
+
+		sinsp_threadinfo* atinfo = m_inspector->get_thread_ref((int64_t)val, false, true).get();
+		if(atinfo != NULL)
+		{
+			string& tcomm = atinfo->m_comm;
+
+			//
+			// Make sure the string will fit
+			//
+			if(tcomm.size() >= m_resolved_paramstr_storage.size())
+			{
+				m_resolved_paramstr_storage.resize(tcomm.size() + 1);
+			}
+
+			snprintf(&m_resolved_paramstr_storage[0],
+				 m_resolved_paramstr_storage.size(),
+				 "%s",
+				 tcomm.c_str());
+		}
+	}
+	break;
+
 	case PT_UINT8:
 		ASSERT(payload_len == sizeof(uint8_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIo8, PRId8, PRIX8);
@@ -1634,6 +1750,36 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 	}
 	break;
+
+	case PT_ERRNO32:
+	{
+		ASSERT(payload_len == sizeof(int32_t));
+
+		int32_t val = *(int32_t *)payload;
+
+		snprintf(&m_paramstr_storage[0],
+			 m_paramstr_storage.size(),
+			 "%d", val);
+
+		//
+		// Resolve this as an errno
+		//
+		string errstr;
+
+		if(val < 0)
+		{
+			errstr = sinsp_utils::errno_to_str(val);
+
+			if(errstr != "")
+			{
+				snprintf(&m_resolved_paramstr_storage[0],
+					 m_resolved_paramstr_storage.size(),
+					 "%s", errstr.c_str());
+			}
+		}
+	}
+	break;
+
 	case PT_UINT64:
 		ASSERT(payload_len == sizeof(uint64_t));
 		SET_NUMERIC_FORMAT(prfmt, param_fmt, PRIo64, PRId64, PRIX64);
@@ -1931,6 +2077,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_FDLIST:
+	case PT_FDLIST32:
 		{
 			sinsp_threadinfo* tinfo = get_thread_info();
 			if(!tinfo)
@@ -1947,7 +2094,16 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			for(j = 0; j < nfds; j++)
 			{
 				char tch;
-				int64_t fd = *(int64_t *)(payload + pos);
+				int64_t fd;
+
+				if (param_info->type == PT_FDLIST)
+				{
+					fd = *(int64_t *)(payload + pos);
+				}
+				else
+				{
+					fd = *(int32_t *)(payload + pos);
+				}
 
 				sinsp_fdinfo_t *fdinfo = tinfo->get_fd(fd);
 				if(fdinfo)

@@ -40,6 +40,8 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			parsed_len = sizeof(int16_t);
 			break;
 		case PT_INT32:
+		case PT_FD32:
+		case PT_ERRNO32:
 			*(int32_t*)storage = sinsp_numparser::parsed32(str);
 			parsed_len = sizeof(int32_t);
 			break;

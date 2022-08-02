@@ -394,6 +394,9 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_INT16:
 		return flt_compare_int64(op, (int64_t)*(int16_t*)operand1, (int64_t)*(int16_t*)operand2);
 	case PT_INT32:
+	case PT_FD32:
+	case PT_PID32:
+	case PT_ERRNO32:
 		return flt_compare_int64(op, (int64_t)*(int32_t*)operand1, (int64_t)*(int32_t*)operand2);
 	case PT_INT64:
 	case PT_FD:
@@ -465,6 +468,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+	case PT_FDLIST32:
 	case PT_SIGSET:
 	default:
 		ASSERT(false);
@@ -514,6 +518,9 @@ bool flt_compare_avg(cmpop op,
 		ASSERT(cnt2 != 0 || i642 == 0);
 		return flt_compare_int64(op, i641, i642);
 	case PT_INT32:
+	case PT_FD32:
+	case PT_PID32:
+	case PT_ERRNO32:
 		i641 = ((int64_t)*(int32_t*)operand1) / cnt1;
 		i642 = ((int64_t)*(int32_t*)operand2) / cnt2;
 		ASSERT(cnt1 != 0 || i641 == 0);
@@ -646,6 +653,8 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			}
 
 		case PT_INT32:
+		case PT_FD32:
+		case PT_PID32:
 			if(print_format == PF_DEC ||
 			   print_format == PF_ID)
 			{
@@ -832,6 +841,9 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 					 prfmt, *(int16_t *)rawval);
 			return m_getpropertystr_storage;
 		case PT_INT32:
+		case PT_FD32:
+		case PT_PID32:
+		case PT_ERRNO32:
 			if(print_format == PF_OCT)
 			{
 				prfmt = (char*)"%" PRIo32;
@@ -1322,6 +1334,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 		case PT_SOCKADDR:
 		case PT_SOCKTUPLE:
 		case PT_FDLIST:
+		case PT_FDLIST32:
 		case PT_FSPATH:
 		case PT_SIGSET:
 		case PT_FSRELPATH:

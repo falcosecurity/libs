@@ -701,9 +701,16 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			//
 			parinfo = evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
-			ASSERT(evt->get_param_info(0)->type == PT_FD);
+			ASSERT(evt->get_param_info(0)->type == PT_FD || evt->get_param_info(0)->type == PT_FD32);
 
-			evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			if (evt->get_param_info(0)->type == PT_FD)
+			{
+				evt->m_tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
+			}
+			else
+			{
+				evt->m_tinfo->m_lastevent_fd = *(int32_t *)parinfo->m_val;
+			}
 			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
 		}
 
@@ -2638,8 +2645,18 @@ inline void sinsp_parser::infer_sendto_fdinfo(sinsp_evt* const evt)
 
 	parinfo = evt->get_param(FILE_DESCRIPTOR_PARAM);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
-	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD);
-	const int64_t fd = *((int64_t*) parinfo->m_val);
+	ASSERT(evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD ||
+	       evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD32);
+	int64_t fd;
+
+	if (evt->get_param_info(FILE_DESCRIPTOR_PARAM)->type == PT_FD)
+	{
+		fd = *((int64_t *)parinfo->m_val);
+	}
+	else
+	{
+		fd = *((int32_t *)parinfo->m_val);
+	}
 
 	if(fd < 0)
 	{

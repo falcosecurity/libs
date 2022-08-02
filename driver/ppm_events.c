@@ -732,6 +732,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
+	case PT_FDLIST32:
 		if (likely(val != 0)) {
 			if (unlikely(val_len >= max_arg_size))
 				return PPM_FAILURE_BUFFER_FULL;
@@ -828,6 +829,9 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 		break;
 	case PT_INT32:
+	case PT_ERRNO32:
+	case PT_FD32:
+	case PT_PID32:
 		if (likely(max_arg_size >= sizeof(s32))) {
 			*(s32 *)(args->buffer + args->arg_data_offset) = (s32)(long)val;
 			len = sizeof(s32);

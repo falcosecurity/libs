@@ -1339,16 +1339,20 @@ const char* param_type_to_string(ppm_param_type pt)
 	case PT_BYTEBUF:
 		return "BYTEBUF";
 	case PT_ERRNO:
+	case PT_ERRNO32:
 		return "ERRNO";
 	case PT_SOCKADDR:
 		return "SOCKADDR";
 	case PT_SOCKTUPLE:
 		return "SOCKTUPLE";
 	case PT_FD:
+	case PT_FD32:
 		return "FD";
 	case PT_PID:
+	case PT_PID32:
 		return "PID";
 	case PT_FDLIST:
+	case PT_FDLIST32:
 		return "FDLIST";
 	case PT_FSPATH:
 		return "FSPATH";
