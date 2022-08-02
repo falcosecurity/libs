@@ -57,6 +57,7 @@ static int gzfile_close(scap_reader_t *r)
     ASSERT(r != NULL);
     int res = gzclose(((reader_handle_t*)r->handle)->m_file);
     free(r->handle);
+    free(r);
     return res;
 }
 

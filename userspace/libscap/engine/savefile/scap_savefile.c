@@ -2089,7 +2089,6 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 	if(res != SCAP_SUCCESS)
 	{
 		reader->close(reader);
-		free(reader);
 		return res;
 	}
 
@@ -2126,7 +2125,6 @@ static int32_t scap_savefile_close(struct scap_engine_handle engine)
 	if (handle->m_reader)
 	{
 		handle->m_reader->close(handle->m_reader);
-		free(handle->m_reader);
 		handle->m_reader = NULL;
 	}
 
