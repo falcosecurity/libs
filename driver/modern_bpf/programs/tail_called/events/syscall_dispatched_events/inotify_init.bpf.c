@@ -28,9 +28,10 @@ int BPF_PROG(inotify_init_e,
 
 	/* Parameter 1: flags (type: PT_FLAGS8) */
 	/// TODO: please note `int inotify_init(void)` has not a first parameter only
-	/// `inotify_init1` as a flag parameter... we could generate 2 new events to
-	/// manage this situation.
-	u8 flags = (u8)extract__syscall_argument(regs, 0);
+	/// `inotify_init1` as a flag parameter...To avoid information leakage taking
+	/// the value of first register even when we are not allowed, we default this
+	/// parameter to `0`... we could generate 2 new events to manage this situation.
+	u8 flags = 0;
 	ringbuf__store_u8(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

@@ -10,8 +10,7 @@ TEST(SyscallExit, inotify_initX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	uint32_t flags = 15;
-	int32_t fd = syscall(__NR_inotify_init, flags);
+	int32_t fd = syscall(__NR_inotify_init);
 	assert_syscall_state(SYSCALL_SUCCESS, "inotify_init", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
 

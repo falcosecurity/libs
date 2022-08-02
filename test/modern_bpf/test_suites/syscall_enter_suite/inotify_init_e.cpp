@@ -10,8 +10,7 @@ TEST(SyscallEnter, inotify_initE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	uint32_t flags = 15;
-	int32_t fd = syscall(__NR_inotify_init, flags);
+	int32_t fd = syscall(__NR_inotify_init);
 	assert_syscall_state(SYSCALL_SUCCESS, "inotify_init", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
 
@@ -33,7 +32,9 @@ TEST(SyscallEnter, inotify_initE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS8) */
-	evt_test->assert_numeric_param(1, (uint8_t)flags);
+	/// TODO: Right now we send `0` to avoid problems with `inotify_init` since they
+	/// share the same event. We need to split them.
+	evt_test->assert_numeric_param(1, (uint8_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

@@ -37,7 +37,9 @@ TEST(SyscallEnter, inotify_init1E)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS8) */
-	evt_test->assert_numeric_param(1, (uint8_t)flags);
+	/// TODO: Right now we send `0` to avoid problems with `inotify_init` since they
+	/// share the same event. We need to split them.
+	evt_test->assert_numeric_param(1, (uint8_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
