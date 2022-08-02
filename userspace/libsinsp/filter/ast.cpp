@@ -66,7 +66,7 @@ void base_expr_visitor::visit(list_expr* e) { }
 
 void base_expr_visitor::visit(unary_check_expr* e) { }
 
-void string_visitor::visit_logical_op(const char *op, std::vector<expr*> &children)
+void string_visitor::visit_logical_op(const char *op, std::vector<std::unique_ptr<expr>> &children)
 {
 	bool first = true;
 
@@ -180,64 +180,65 @@ std::string libsinsp::filter::ast::as_string(ast::expr &e)
 	return sv.as_string();
 }
 
-expr* libsinsp::filter::ast::clone(expr* e)
+std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
 {  
     struct clone_visitor: public expr_visitor
     {   
-        expr* m_last_node;
+        std::unique_ptr<expr> m_last_node;
 
         void visit(and_expr* e) override
         {
-            std::vector<expr*> children;
+            std::vector<std::unique_ptr<expr>> children;
             for (auto &c: e->children)
             {
                 c->accept(this);
-                children.push_back(m_last_node);
+                children.push_back(std::move(m_last_node)); /// NOTE FOR THE REVIEWER: should work as long as m_last_node is not used more than once
             }
-            m_last_node = new and_expr(children);
+            m_last_node = std::unique_ptr<and_expr>(new and_expr(children));
         }
 
         void visit(or_expr* e) override
         {
-            std::vector<expr*> children;
+            std::vector<std::unique_ptr<expr>> children;
             for (auto &c: e->children)
             {
                 c->accept(this);
-                children.push_back(m_last_node);
+                children.push_back(std::move(m_last_node));
             }
-            m_last_node = new or_expr(children);
+            m_last_node = std::unique_ptr<or_expr>(new or_expr(children));
         }
 
         void visit(not_expr* e) override
         {
             e->child->accept(this);
-            m_last_node = new not_expr(m_last_node);
+            m_last_node = std::unique_ptr<not_expr>(new not_expr(m_last_node));
         }
 
         void visit(binary_check_expr* e) override
         {
             e->value->accept(this);
-            m_last_node = new binary_check_expr(
-                e->field, e->arg, e->op, m_last_node);
+            m_last_node = std::unique_ptr<binary_check_expr>(new binary_check_expr(
+                e->field, e->arg, e->op, m_last_node));
         }
 
         void visit(unary_check_expr* e) override
         {
-            m_last_node = new unary_check_expr(e->field, e->arg, e->op);
+            m_last_node = std::unique_ptr<unary_check_expr>(new unary_check_expr(
+                e->field, e->arg, e->op));
         }
 
         void visit(value_expr* e) override
         {
-            m_last_node = new value_expr(e->value);
+            m_last_node = std::unique_ptr<value_expr>(new value_expr(e->value));
         }
 
         void visit(list_expr* e) override
         {
-            m_last_node = new list_expr(e->values);
+            m_last_node = std::unique_ptr<list_expr>(new list_expr(e->values));
         }
     } visitor;
 
     visitor.m_last_node = NULL;
     e->accept(&visitor);
-    return visitor.m_last_node;
+    return std::move(visitor.m_last_node);
 }
