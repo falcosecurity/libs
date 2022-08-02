@@ -26,6 +26,7 @@ typedef struct reader_handle
     uint32_t m_buffer_cap; ///< The physical size of the buffer
     uint32_t m_buffer_len; ///< The number of bytes used in the buffer
     uint32_t m_buffer_off; ///< The cursor position in the buffer
+    int64_t m_offset; ///< The cursor position in the underlying reader
     scap_reader_t* m_reader; ///< The reader to read from in buffered mode
 } reader_handle_t;
 
@@ -46,10 +47,11 @@ static int buffered_read(scap_reader_t *r, void* buf, uint32_t len)
                 h->m_has_err = true;
                 return buf_bytes - (uint8_t*) buf;
             }
+            h->m_offset += nread;
             h->m_buffer_off = 0;
             h->m_buffer_len = (uint32_t) nread;
         }
-        size = len <= (h->m_buffer_len - h->m_buffer_off) ? len : (h->m_buffer_len - h->m_buffer_off);
+        size = len < (h->m_buffer_len - h->m_buffer_off) ? len : (h->m_buffer_len - h->m_buffer_off);
         memcpy(buf_bytes, h->m_buffer + h->m_buffer_off, size);
         buf_bytes += size;
         h->m_buffer_off += size;
@@ -62,19 +64,14 @@ static int64_t buffered_offset(scap_reader_t *r)
 {
     ASSERT(r != NULL);
     reader_handle_t* h = (reader_handle_t*) r->handle;
-    return h->m_reader->offset(h->m_reader); 
+    return h->m_offset;
 }
 
 static int64_t buffered_tell(scap_reader_t *r)
 {
     ASSERT(r != NULL);
     reader_handle_t* h = (reader_handle_t*) r->handle;
-    int64_t res = h->m_reader->tell(h->m_reader); 
-    if (res < 0)
-    {
-        return res;
-    }
-    return res - h->m_buffer_len + h->m_buffer_off;
+    return h->m_offset - h->m_buffer_len + h->m_buffer_off;
 }
 
 static int64_t buffered_seek(scap_reader_t *r, int64_t offset, int whence)
@@ -96,7 +93,8 @@ static int64_t buffered_seek(scap_reader_t *r, int64_t offset, int whence)
     }
     h->m_buffer_off = 0;
     h->m_buffer_len = 0;
-    return h->m_reader->seek(h->m_reader, offset, whence);
+    h->m_offset = h->m_reader->seek(h->m_reader, offset, whence);
+    return h->m_offset;
 }
 
 static const char* buffered_error(scap_reader_t *r, int *errnum)
@@ -135,6 +133,7 @@ scap_reader_t *scap_reader_open_buffered(scap_reader_t* reader, uint32_t bufsize
     h->m_buffer_cap = bufsize;
     h->m_buffer_len = 0;
     h->m_buffer_off = 0;
+    h->m_offset = 0;
 
     scap_reader_t* r = (scap_reader_t *) malloc (sizeof (scap_reader_t));
     r->handle = h;
