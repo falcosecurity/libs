@@ -33,7 +33,7 @@ static void filter_compile(sinsp_filter **out, std::string filter)
 		}
 		else
 		{
-			*out = compiler.compile();
+			*out = f;
 		}
 	}
 	catch(const sinsp_exception& e)
