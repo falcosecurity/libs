@@ -121,12 +121,12 @@ private:
 	gen_event_filter_check* create_filtercheck(std::string& field);
 
 	bool m_ttable_only;
-	bool m_internal_parsing;
 	bool m_expect_values;
 	boolop m_last_boolop;
 	std::string m_flt_str;
 	sinsp_filter* m_filter;
 	std::vector<std::string> m_field_values;
+	std::unique_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
 
