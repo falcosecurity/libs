@@ -192,9 +192,9 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
             for (auto &c: e->children)
             {
                 c->accept(this);
-                children.push_back(std::move(m_last_node)); /// NOTE FOR THE REVIEWER: should work as long as m_last_node is not used more than once
+                children.push_back(std::move(m_last_node));
             }
-            m_last_node = std::unique_ptr<and_expr>(new and_expr(children));
+            m_last_node = and_expr::create(children);
         }
 
         void visit(or_expr* e) override
@@ -205,40 +205,37 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
                 c->accept(this);
                 children.push_back(std::move(m_last_node));
             }
-            m_last_node = std::unique_ptr<or_expr>(new or_expr(children));
+            m_last_node = or_expr::create(children);
         }
 
         void visit(not_expr* e) override
         {
             e->child->accept(this);
-            m_last_node = std::unique_ptr<not_expr>(new not_expr(m_last_node));
+            m_last_node = not_expr::create(std::move(m_last_node));
         }
 
         void visit(binary_check_expr* e) override
         {
             e->value->accept(this);
-            m_last_node = std::unique_ptr<binary_check_expr>(new binary_check_expr(
-                e->field, e->arg, e->op, m_last_node));
+            m_last_node = binary_check_expr::create(e->field, e->arg, e->op, std::move(m_last_node));
         }
 
         void visit(unary_check_expr* e) override
         {
-            m_last_node = std::unique_ptr<unary_check_expr>(new unary_check_expr(
-                e->field, e->arg, e->op));
+            m_last_node = unary_check_expr::create(e->field, e->arg, e->op);
         }
 
         void visit(value_expr* e) override
         {
-            m_last_node = std::unique_ptr<value_expr>(new value_expr(e->value));
+            m_last_node = value_expr::create(e->value);
         }
 
         void visit(list_expr* e) override
         {
-            m_last_node = std::unique_ptr<list_expr>(new list_expr(e->values));
+            m_last_node = list_expr::create(e->values);
         }
     } visitor;
 
-    visitor.m_last_node = NULL;
     e->accept(&visitor);
     return std::move(visitor.m_last_node);
 }

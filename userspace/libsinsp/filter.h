@@ -97,8 +97,6 @@ public:
 		libsinsp::filter::ast::expr* fltast,
 		bool ttable_only=false);
 
-	~sinsp_filter_compiler();
-
 	/*!
 		\brief Builds a filtercheck tree and bundles it in sinsp_filter
 		\return The resulting pointer is owned by the caller and must be deleted
