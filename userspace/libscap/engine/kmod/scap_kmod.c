@@ -108,7 +108,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	{
 		return rc;
 	}
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
+	fill_syscalls_of_interest(oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
 
 	//
 	// Allocate the device descriptors.
@@ -249,6 +249,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
+	// Set interesting syscalls
 	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 	{
 		if (!handle->syscalls_of_interest[i])
@@ -256,13 +257,25 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			// Kmod driver event_mask check uses event_types instead of syscall nr
 			enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
 			enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
-			// Filter unmapped syscalls (that have a g_syscall_table entry with both enter_ev and exit_ev 0ed)
-			if (enter_ev != 0 && exit_ev != 0)
-			{
-				scap_unset_eventmask(handle, enter_ev);
-				scap_unset_eventmask(handle, exit_ev);
-			}
+			scap_unset_eventmask(handle, enter_ev);
+			scap_unset_eventmask(handle, exit_ev);
 		}
+	}
+
+	// Set interesting Tracepoints
+	uint32_t tp_of_interest = 0;
+	for (int i = 0; i < TP_VAL_MAX; i++)
+	{
+		if (!oargs->tp_of_interest || oargs->tp_of_interest->tp[i])
+		{
+			tp_of_interest |= (1 << i);
+		}
+	}
+	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MANAGE_TP, tp_of_interest))
+	{
+		strncpy(handle->m_lasterr, "PPM_IOCTL_MANAGE_TP failed", SCAP_LASTERR_SIZE);
+		ASSERT(false);
+		return SCAP_FAILURE;
 	}
 
 	return SCAP_SUCCESS;

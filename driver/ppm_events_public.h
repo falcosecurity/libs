@@ -1709,6 +1709,7 @@ struct ppm_evt_hdr {
 #define PPM_IOCTL_SET_STATSD_PORT _IO(PPM_IOCTL_MAGIC, 23)
 #define PPM_IOCTL_GET_API_VERSION _IO(PPM_IOCTL_MAGIC, 24)
 #define PPM_IOCTL_GET_SCHEMA_VERSION _IO(PPM_IOCTL_MAGIC, 25)
+#define PPM_IOCTL_MANAGE_TP _IO(PPM_IOCTL_MAGIC, 26)
 #endif // CYGWING_AGENT
 
 extern const struct ppm_name_value socket_families[];

@@ -493,17 +493,18 @@ void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
 	// Fallback to set all events as interesting
 	if (m_mode != SCAP_MODE_LIVE  || m_ppm_sc_of_interest.empty())
 	{
-		for(int i = 0; i < PPM_SC_MAX; i++)
-		{
-			m_ppm_sc_of_interest.insert(i);
-		}
+		// Default NULL value will handle everything for us
+		return;
 	}
+
+	static interesting_ppm_sc_set ppm_sc_of_interest;
 
 	// Finally, set scap_open_args syscalls_of_interest
 	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
-		oargs->ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
 	}
+	oargs->ppm_sc_of_interest = &ppm_sc_of_interest;
 }
 
 void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
@@ -541,6 +542,8 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	// only useful for testing
 	oargs.test_input_data = m_test_input_data;
 
+	oargs.ppm_sc_of_interest = NULL;
+	oargs.tp_of_interest = NULL;
 	fill_syscalls_of_interest(&oargs);
 
 	if(!m_filter_proc_table_when_saving)
@@ -646,6 +649,8 @@ void sinsp::open_nodriver()
 		oargs.proc_callback_context = this;
 	}
 	oargs.import_users = m_usergroup_manager.m_import_users;
+	oargs.ppm_sc_of_interest = NULL;
+	oargs.tp_of_interest = NULL;
 	fill_syscalls_of_interest(&oargs);
 
 	int32_t scap_rc;
@@ -770,6 +775,9 @@ void sinsp::open_int()
 	oargs.proc_callback_context = NULL;
 	oargs.import_users = m_usergroup_manager.m_import_users;
 	oargs.start_offset = 0;
+
+	oargs.ppm_sc_of_interest = NULL;
+	oargs.tp_of_interest = NULL;
 	fill_syscalls_of_interest(&oargs);
 
 	add_suppressed_comms(oargs);

@@ -29,6 +29,7 @@ limitations under the License.
 #include "scap_procs.h"
 #include "scap_test.h"
 #include "../../driver/ppm_events_public.h"
+#include "../../driver/ppm_tp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,6 +79,15 @@ typedef struct {
 	bool ppm_sc[PPM_SC_MAX];
 } interesting_ppm_sc_set;
 
+/*!
+  \brief Argument for scap_open
+  Set any tracepoint idx to true to enable its tracing at driver level,
+  otherwise a tp is not attached (so called "uninteresting tracepoint").
+*/
+typedef struct {
+	bool tp[TP_VAL_MAX];
+} interesting_tp_set;
+
 typedef struct scap_open_args
 {
 	scap_mode_t mode;
@@ -98,7 +108,8 @@ typedef struct scap_open_args
 	const char *gvisor_root_path; ///< When using gvisor, the root path used by runsc commands
 	const char *gvisor_config_path; ///< When using gvisor, the path to the configuration file
 
-	interesting_ppm_sc_set ppm_sc_of_interest;
+	interesting_ppm_sc_set *ppm_sc_of_interest;
+	interesting_tp_set *tp_of_interest;
 
 	scap_source_plugin* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
 	char* input_plugin_params; ///< optional parameters string for the source plugin pointed by src_plugin

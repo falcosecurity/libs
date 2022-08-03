@@ -89,7 +89,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   bool import_users,
 			   const char *bpf_probe,
 			   const char **suppressed_comms,
-			   interesting_ppm_sc_set *ppm_sc_of_interest)
+			   interesting_ppm_sc_set *ppm_sc_of_interest,
+			   interesting_tp_set *tp_of_interest)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
@@ -117,7 +118,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 			   bool import_users,
 			   const char *bpf_probe,
 			   const char **suppressed_comms,
-			   interesting_ppm_sc_set *ppm_sc_of_interest)
+			   interesting_ppm_sc_set *ppm_sc_of_interest,
+			   interesting_tp_set *tp_of_interest)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -128,19 +130,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	oargs.import_users = import_users;
 	oargs.bpf_probe = bpf_probe;
 	memcpy(&oargs.suppressed_comms, suppressed_comms, sizeof(*suppressed_comms));
-
-	if(!ppm_sc_of_interest)
-	{
-		/* Fallback: set all syscalls as interesting. */
-		for(int j = 0; j < PPM_SC_MAX; j++)
-		{
-			oargs.ppm_sc_of_interest.ppm_sc[j] = 1;
-		}
-	} 
-	else 
-	{
-		memcpy(&oargs.ppm_sc_of_interest, ppm_sc_of_interest, sizeof(*ppm_sc_of_interest));
-	}
+	oargs.ppm_sc_of_interest = ppm_sc_of_interest;
+	oargs.tp_of_interest = tp_of_interest;
 
 	//
 	// Allocate the handle
@@ -994,7 +985,8 @@ scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
 						args.import_users,
 						args.bpf_probe,
 						args.suppressed_comms,
-						&args.ppm_sc_of_interest);
+						args.ppm_sc_of_interest,
+						args.tp_of_interest);
 		}
 #else
 		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on Windows.");

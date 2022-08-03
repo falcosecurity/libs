@@ -99,8 +99,14 @@ int32_t scap_modern_bpf_init(scap_t* handle, scap_open_args* open_args)
 	ret = ret ?: pman_load_probe();
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
-	ret = ret ?: pman_attach_syscall_enter_dispatcher();
-	ret = ret ?: pman_attach_syscall_exit_dispatcher();
+	if (!open_args->tp_of_interest || open_args->tp_of_interest->tp[SYS_ENTER])
+	{
+		ret = ret ?: pman_attach_syscall_enter_dispatcher();
+	}
+	if (!open_args->tp_of_interest || open_args->tp_of_interest->tp[SYS_EXIT])
+	{
+		ret = ret ?: pman_attach_syscall_exit_dispatcher();
+	}
 	if(ret != SCAP_SUCCESS)
 	{
 		return ret;
