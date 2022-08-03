@@ -55,6 +55,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
+#include "ppm_tp.h"
 #if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
 #include "ppm_compat_unistd_32.h"
 #endif
@@ -205,7 +206,7 @@ static const struct file_operations g_ppm_fops = {
  */
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
-static bool g_tracepoint_registered;
+static uint32_t g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -224,7 +225,6 @@ static struct tracepoint *tp_signal_deliver;
 // disabled so check if g_fault_tracepoint_disabled is set.
 static struct tracepoint *tp_page_fault_user;
 static struct tracepoint *tp_page_fault_kernel;
-static bool g_fault_tracepoint_registered;
 static bool g_fault_tracepoint_disabled;
 #endif
 
@@ -494,7 +494,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	reset_ring_buffer(ring);
 	ring->open = true;
 
-	if (!g_tracepoint_registered) {
+	if (g_tracepoints_attached == 0) {
 		pr_info("starting capture\n");
 		/*
 		 * Enable the tracepoints
@@ -508,10 +508,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #else
 		ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the sys_exit tracepoint\n");
 			goto err_sys_exit;
 		}
+		g_tracepoints_attached |= 1 << SYS_EXIT;
 
 		/* 
 		 * SYS_ENTER 
@@ -521,29 +523,35 @@ static int ppm_open(struct inode *inode, struct file *filp)
 #else
 		ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the sys_enter tracepoint\n");
 			goto err_sys_enter;
 		}
+		g_tracepoints_attached |= 1 << SYS_ENTER;
 
 		/* 
 		 * SCHED_PROCESS_EXIT
 		 */
 		ret = compat_register_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the sched_process_exit tracepoint\n");
 			goto err_sched_procexit;
 		}
+		g_tracepoints_attached |= 1 << SCHED_PROC_EXIT;
 
 		/* 
 		 * CAPTURE_CONTEXT_SWITCHES
 		 */
 #ifdef CAPTURE_CONTEXT_SWITCHES
 		ret = compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the sched_switch tracepoint\n");
 			goto err_sched_switch;
 		}
+		g_tracepoints_attached |= 1 << SCHED_SWITCH;
 #endif
 
 		/* 
@@ -551,10 +559,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 */
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 		ret = compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the signal_deliver tracepoint\n");
 			goto err_signal_deliver;
 		}
+		g_tracepoints_attached |= 1 << SIGNAL_DELIVER;
 #endif
 
 		/* 
@@ -562,10 +572,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 */
 #ifdef CAPTURE_SCHED_PROC_EXEC
 		ret = compat_register_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the 'sched_proc_exec' tracepoint\n");
 			goto err_sched_proc_exec;
 		}
+		g_tracepoints_attached |= 1 << SCHED_PROC_EXEC;
 #endif
 
 		/* 
@@ -573,12 +585,13 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		 */
 #ifdef CAPTURE_SCHED_PROC_FORK
 		ret = compat_register_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
-		if (ret) {
+		if(ret)
+		{
 			pr_err("can't create the 'sched_proc_fork' tracepoint\n");
 			goto err_sched_proc_fork;
 		}
+		g_tracepoints_attached |= 1 << SCHED_PROC_FORK;
 #endif
-		g_tracepoint_registered = true;
 	}
 
 	ret = 0;
@@ -640,6 +653,7 @@ err_sys_enter:
 #else
 	unregister_trace_syscall_exit(syscall_exit_probe);
 #endif
+	g_tracepoints_attached = 0;
 err_sys_exit:
 
 	ring->open = false;
@@ -719,55 +733,73 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 * The last closed device stops event collection
 	 */
 	if (list_empty(&g_consumer_list)) {
-		if (g_tracepoint_registered) {
+		if (g_tracepoints_attached != 0) {
 			pr_info("no more consumers, stopping capture\n");
 
 			/* 
 			 * SYS_EXIT 
 			 */
+			if ((g_tracepoints_attached & (1 << SYS_EXIT)))
+			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-			compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+				compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
 #else
-			unregister_trace_syscall_exit(syscall_exit_probe);
+				unregister_trace_syscall_exit(syscall_exit_probe);
 #endif
+			}
 
 			/* 
 			 * SYS_ENTER
-			 */	
+			 */
+			if ((g_tracepoints_attached & (1 << SYS_ENTER)))
+			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-			compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+				compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
 #else
-			unregister_trace_syscall_enter(syscall_enter_probe);
+				unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
+			}
 
 			/* 
 			 * SCHED_PROCESS_EXIT
-			 */	
-			compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+			 */
+			if ((g_tracepoints_attached & (1 << SCHED_PROC_EXIT)))
+			{
+				compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+			}
 
 			/* 
 			 * CAPTURE_CONTEXT_SWITCHES
 			 */
 #ifdef CAPTURE_CONTEXT_SWITCHES
-			compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+			if ((g_tracepoints_attached & (1 << SCHED_SWITCH)))
+			{
+				compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+			}
 #endif
 
 			/* 
 			 * CAPTURE_SIGNAL_DELIVERIES
 			 */
+
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+			if ((g_tracepoints_attached & (1 << SIGNAL_DELIVER)))
+			{
+				compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+			}
 #endif
 
 			/* 
 			 * CAPTURE_PAGE_FAULTS
 			 */
 #ifdef CAPTURE_PAGE_FAULTS
-			if (g_fault_tracepoint_registered) 
+			if (g_tracepoints_attached & (1 << PAGE_FAULT_USER))
 			{
 				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+			}
+			if (g_tracepoints_attached & (1 << PAGE_FAULT_KERN))
+			{
 				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
-				g_fault_tracepoint_registered = false;
 			}
 #endif
 
@@ -775,20 +807,26 @@ static int ppm_release(struct inode *inode, struct file *filp)
 			 * CAPTURE_SCHED_PROC_EXEC
 			 */
 #ifdef CAPTURE_SCHED_PROC_EXEC
-			compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
+			if (g_tracepoints_attached & (1 << SCHED_PROC_EXEC))
+			{
+				compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
+			}
 #endif
 
 			/* 
 			 * CAPTURE_SCHED_PROC_FORK
 			 */
 #ifdef CAPTURE_SCHED_PROC_FORK
-			compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
+			if (g_tracepoints_attached & (1 << SCHED_PROC_FORK))
+			{
+				compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
+			}
 #endif			
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
 #endif
-			g_tracepoint_registered = false;
+			g_tracepoints_attached = 0;
 
 			/*
 			 * Reset tracepoint counter
@@ -807,6 +845,147 @@ cleanup_release:
 	mutex_unlock(&g_consumer_mutex);
 
 	return ret;
+}
+
+static int force_tp_set(int new_tp_set)
+{
+	u32 idx;
+	u32 new_val;
+	u32 curr_val;
+	for(idx = 0; idx < TP_VAL_MAX; idx++)
+	{
+		new_val = new_tp_set & (1 << idx);
+		curr_val = g_tracepoints_attached & (1 << idx);
+		if((new_val ^ curr_val) == 0)
+		{
+			// no change needed
+			continue;
+		}
+		switch(idx)
+		{
+		case SYS_ENTER:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
+				register_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+#else
+				unregister_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			break;
+		case SYS_EXIT:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+#else
+				register_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+#else
+				unregister_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			break;
+		case SCHED_PROC_EXIT:
+			if (new_val)
+			{
+				compat_register_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+			}
+			else
+			{
+				compat_unregister_trace(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit);
+			}
+			break;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+		case SCHED_SWITCH:
+			if (new_val)
+			{
+				compat_register_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+			}
+			else
+			{
+				compat_unregister_trace(sched_switch_probe, "sched_switch", tp_sched_switch);
+			}
+			break;
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+		case PAGE_FAULT_USER:
+			if (new_val)
+			{
+				compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+			}
+			else
+			{
+				compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+			}
+			break;
+		case PAGE_FAULT_KERN:
+			if (new_val)
+			{
+				compat_register_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+			}
+			else
+			{
+				compat_unregister_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
+			}
+			break;
+#endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+		case SIGNAL_DELIVER:
+			if (new_val)
+			{
+				compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+			}
+			else
+			{
+				compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
+			}
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+		case SCHED_PROC_FORK:
+			if (new_val)
+			{
+				compat_register_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
+			}
+			else
+			{
+				compat_unregister_trace(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork);
+			}
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		case SCHED_PROC_EXEC:
+			if (new_val)
+			{
+				compat_register_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
+			}
+			else
+			{
+				compat_unregister_trace(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec);
+			}
+			break;
+#endif
+		default:
+			// unmanaged idx
+			break;
+		}
+	}
+	g_tracepoints_attached = new_tp_set;
+	return 0; // TODO error handling
 }
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
@@ -1225,7 +1404,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
 	{
 		vpr_info("PPM_IOCTL_DISABLE_SIGNAL_DELIVER\n");
-		if (g_tracepoint_registered)
+		if (g_tracepoints_attached & (1 << SIGNAL_DELIVER))
 			compat_unregister_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1233,7 +1412,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_ENABLE_SIGNAL_DELIVER:
 	{
 		vpr_info("PPM_IOCTL_ENABLE_SIGNAL_DELIVER\n");
-		if (g_tracepoint_registered)
+		if (!(g_tracepoints_attached & (1 << SIGNAL_DELIVER)))
 			compat_register_trace(signal_deliver_probe, "signal_deliver", tp_signal_deliver);
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1250,7 +1429,7 @@ cleanup_ioctl_procinfo:
 	{
 		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
 #ifdef CAPTURE_PAGE_FAULTS
-		ASSERT(g_tracepoint_registered);
+		ASSERT(g_tracepoint_attached > 0);
 
 		if (g_fault_tracepoint_disabled) {
 			pr_err("kernel page fault tracepoints are disabled\n");
@@ -1258,22 +1437,28 @@ cleanup_ioctl_procinfo:
 			goto cleanup_ioctl;
 		}
 
-		if (!g_fault_tracepoint_registered) {
+		if (!(g_tracepoints_attached & (1 << PAGE_FAULT_USER)))
+		{
 			ret = compat_register_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
-			if (ret) {
+			if(ret)
+			{
 				pr_err("can't create the page_fault_user tracepoint\n");
 				ret = -EINVAL;
 				goto cleanup_ioctl;
 			}
+			g_tracepoints_attached |= 1 << PAGE_FAULT_USER;
+		}
 
+		if (!(g_tracepoints_attached & (1 << PAGE_FAULT_KERN)))
+		{
 			ret = compat_register_trace(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel);
-			if (ret) {
+			if(ret)
+			{
 				pr_err("can't create the page_fault_kernel tracepoint\n");
 				ret = -EINVAL;
 				goto err_page_fault_kernel;
 			}
-
-			g_fault_tracepoint_registered = true;
+			g_tracepoints_attached |= 1 << PAGE_FAULT_KERN;
 		}
 
 		ret = 0;
@@ -1284,6 +1469,11 @@ cleanup_ioctl_procinfo:
 		goto cleanup_ioctl;
 #endif
 	}
+	case PPM_IOCTL_MANAGE_TP:
+	{
+		ret = force_tp_set( (u32)arg);
+		goto cleanup_ioctl;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
@@ -1292,6 +1482,7 @@ cleanup_ioctl_procinfo:
 #ifdef CAPTURE_PAGE_FAULTS
 err_page_fault_kernel:
 	compat_unregister_trace(page_fault_probe, "page_fault_user", tp_page_fault_user);
+	g_tracepoints_attached &= ~(1 << PAGE_FAULT_USER);
 #endif
 cleanup_ioctl:
 	mutex_unlock(&g_consumer_mutex);
@@ -2981,7 +3172,7 @@ int scap_init(void)
 	/*
 	 * All ok. Final initializations.
 	 */
-	g_tracepoint_registered = false;
+	g_tracepoints_attached = 0;
 
 	return 0;
 

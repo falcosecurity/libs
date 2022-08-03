@@ -83,7 +83,18 @@ static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
 }
 
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+<<<<<<< HEAD
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
+=======
+scap_t* scap_open_live_int(char *error, int32_t *rc,
+			   proc_entry_callback proc_callback,
+			   void* proc_callback_context,
+			   bool import_users,
+			   const char *bpf_probe,
+			   const char **suppressed_comms,
+			   interesting_ppm_sc_set *ppm_sc_of_interest,
+			   interesting_tp_set *tp_of_interest)
+>>>>>>> 717ab7c5 (new(driver, userspace/libscap): add a new scap_open argument to choose set of tracepoints to be attached.)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;

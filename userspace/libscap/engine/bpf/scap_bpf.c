@@ -644,10 +644,50 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	return SCAP_SUCCESS;
 }
 
+static tp_values tp_from_name(const char *tp_path)
+{
+	static const char *names[] = {
+#define X(name, path) path,
+	TP_FIELDS
+#undef X
+	};
+
+	// Find last '/' occurrence to take only the basename
+	const char *tp_name = strrchr(tp_path, '/');
+	if (tp_name && strlen(tp_name) > 1)
+	{
+		tp_name++;
+		for (int i = 0; i < TP_VAL_MAX; i++)
+		{
+			if (strcmp(tp_name, names[i]) == 0)
+			{
+				return i;
+			}
+		}
+	}
+	return -1;
+}
+
+static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname)
+{
+	if (tp_of_interest)
+	{
+		tp_values val = tp_from_name(shname);
+		if(val == -1)
+		{
+			// Not found? Enable it!
+			return true;
+		}
+		return tp_of_interest->tp[val];
+	}
+	return true;
+}
+
 static int32_t load_bpf_file(
 	struct bpf_engine *handle, const char *path,
 	uint64_t *api_version_p,
-	uint64_t *schema_version_p)
+	uint64_t *schema_version_p,
+	interesting_tp_set *tp_of_interest)
 {
 	int j;
 	int maps_shndx = 0;
@@ -805,9 +845,12 @@ static int32_t load_bpf_file(
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
 		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
-			if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
+			if (is_tp_enabled(tp_of_interest, shname))
 			{
-				goto cleanup;
+				if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
+				{
+					goto cleanup;
+				}
 			}
 		}
 	}
@@ -1428,7 +1471,8 @@ int32_t scap_bpf_load(
 	struct bpf_engine *handle,
 	const char *bpf_probe,
 	uint64_t *api_version_p,
-	uint64_t *schema_version_p)
+	uint64_t *schema_version_p,
+	interesting_tp_set *tp_of_interest)
 {
 	int online_cpu;
 	int j;
@@ -1447,7 +1491,7 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p) != SCAP_SUCCESS)
+	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p, tp_of_interest) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1768,7 +1812,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 		return rc;
 	}
 
-	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version);
+	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version, &oargs->tp_of_interest);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
