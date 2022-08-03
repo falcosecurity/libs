@@ -25,6 +25,8 @@ limitations under the License.
 #define BPF_OPTION "--bpf"
 #define MODERN_BPF_OPTION "--modern_bpf"
 #define SCAP_FILE_OPTION "--scap_file"
+#define TP_OPTION "--tp"
+#define PPM_SC_OPTION "--ppm_sc"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -47,6 +49,10 @@ struct scap_savefile_engine_params savefile_params;
 /* Configuration variables set through CLI. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
+interesting_tp_set tp_of_interest;
+bool tp_is_set;
+interesting_ppm_sc_set ppm_sc_of_interest;
+bool ppm_sc_is_set;
 
 /* Generic global variables. */
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
@@ -54,6 +60,50 @@ uint64_t g_nevts = 0;				   /* total number of events captured. */
 scap_t* g_h = NULL;				   /* global scap handler. */
 uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
 char* valptr = NULL;				   /* pointer used to print the value of event params. */
+
+void enable_single_tp(const char *tp_basename)
+{
+	static const char *names[] = {
+#define X(name, tp_path) tp_path,
+		TP_FIELDS
+#undef X
+	};
+
+	bool found = false;
+	for (int i = 0; i < TP_VAL_MAX && !found; i++)
+	{
+		if (strcmp(names[i], tp_basename) == 0)
+		{
+			tp_of_interest.tp[i] = true;
+			found = true;
+		}
+	}
+	if (!found)
+	{
+		fprintf(stderr, "Tracepoint '%s' not found. Unsupported or wrong parameter?\n", tp_basename);
+		fprintf(stderr, "Please choose between:\n");
+		for (int i = 0; i < TP_VAL_MAX; i++)
+		{
+			fprintf(stderr, "\t* %s\n", names[i]);
+		}
+		exit(EXIT_FAILURE);
+	}
+	else
+	{
+		tp_is_set = true;
+	}
+}
+
+void enable_single_ppm_sc(int ppm_sc_code)
+{
+	if (ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
+	{
+		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
+		exit(EXIT_FAILURE);
+	}
+	ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
+	ppm_sc_is_set = true;
+}
 
 /*=============================== PRINT EVENT PARAMS ===========================*/
 
@@ -491,6 +541,8 @@ void print_help()
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
+	printf("'%s <tp_basename>': enable only requested tracepoint. Can be passed multiple times.\n", TP_OPTION);
+	printf("'%s <ppm_sc_code>': enable only requested syscall. Can be passed multiple times.\n", PPM_SC_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("\n------> VALIDATION OPTIONS\n");
@@ -615,6 +667,25 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== SCAP SOURCES ===========================*/
 
 		/*=============================== CONFIGURATIONS ===========================*/
+		if(!strcmp(argv[i], TP_OPTION))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the basename of the tracepoint you are interested in! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			enable_single_tp(argv[++i]);
+		}
+
+		if(!strcmp(argv[i], PPM_SC_OPTION))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the syscall ppm_sc code! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			enable_single_ppm_sc(atoi(argv[++i]));
+		}
 
 		if(!strcmp(argv[i], NUM_EVENTS_OPTION))
 		{
@@ -721,13 +792,16 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	/* Interesting syscalls by default. */
-	for(int j = 0; j < PPM_SC_MAX; j++)
-	{
-		oargs.ppm_sc_of_interest.ppm_sc[j] = 1;
-	}
-
 	parse_CLI_options(argc, argv);
+
+	if (ppm_sc_is_set)
+	{
+		oargs.ppm_sc_of_interest = ppm_sc_of_interest;
+	}
+	if (tp_is_set)
+	{
+		oargs.tp_of_interest = tp_of_interest;
+	}
 
 	print_scap_source();
 
