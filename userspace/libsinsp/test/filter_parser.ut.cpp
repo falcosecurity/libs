@@ -15,14 +15,12 @@ static void test_equal_ast(string in, expr* ast)
 		{
 			FAIL() << "parsed ast is not equal to the expected one -> " << in;
 		}
-		delete res;
 	}
 	catch (runtime_error& e)
 	{
 		auto pos = parser.get_pos();
 		FAIL() << "at " << pos.as_string() << ": " << e.what() << " -> " << in;
 	}
-	delete ast;
 };
 
 static void test_accept(string in, parser::pos_info* out_pos = NULL)
@@ -30,7 +28,7 @@ static void test_accept(string in, parser::pos_info* out_pos = NULL)
 	parser parser(in);
 	try
 	{
-	   	delete parser.parse();
+	   	parser.parse();
 	}
 	catch (runtime_error& e)
 	{
@@ -48,7 +46,7 @@ static void test_reject(string in)
 	parser parser(in);
 	try
 	{
-		delete parser.parse();
+		parser.parse();
 		FAIL() << "error expected but not received -> " << in;
 	}
 	catch (runtime_error& e)
@@ -385,57 +383,66 @@ TEST(parser, parse_position_info)
 // complex test case with all supported node types
 TEST(parser, expr_all_node_types)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create("evt.name", "", "exists"));
+	and_children.push_back(binary_check_expr::create("evt.type", "", "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create("evt.dir", "", "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create("proc.name", "", "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
 	);
 }
 
 // complex example with parenthesis
 TEST(parser, expr_parenthesis)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create("evt.name", "", "exists"));
+	and_children.push_back(binary_check_expr::create("evt.type", "", "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create("evt.dir", "", "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create("proc.name", "", "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
 	);
 }
 
 // stressing nested negation and identifiers
 TEST(parser, expr_multi_negation)
 {
+	std::vector<std::unique_ptr<expr>> and_children;
+	and_children.push_back(unary_check_expr::create("evt.name", "", "exists"));
+	and_children.push_back(binary_check_expr::create("evt.type", "", "in", list_expr::create({"a", "b"})));
+	and_children.push_back(not_expr::create(binary_check_expr::create("evt.dir", "", "=", value_expr::create("<"))));
+
+	std::vector<std::unique_ptr<expr>> or_children;
+	or_children.push_back(and_expr::create(and_children));
+	or_children.push_back(binary_check_expr::create("proc.name", "", "=", value_expr::create("cat")));
+
+	std::unique_ptr<expr> ast = or_expr::create(or_children);
+
 	test_equal_ast(
 		"evt.name exists and evt.type in (a, b) and not evt.dir=< or proc.name=cat",
-		new or_expr({
-			new and_expr({
-				new unary_check_expr("evt.name", "", "exists"), 
-				new binary_check_expr("evt.type", "", "in", new list_expr({"a", "b"})),
-				new not_expr(
-					new binary_check_expr("evt.dir", "", "=", new value_expr("<"))
-				),
-			}),
-			new binary_check_expr("proc.name", "", "=", new value_expr("cat")),
-		})
+		ast.get()
 	);
+
+	ast = not_expr::create(not_expr::create(value_expr::create("not_macro")));
+
 	test_equal_ast(
 		"not not not not not(not not(not not_macro))",
-		new not_expr(new not_expr(new value_expr("not_macro")))
+		ast.get()
 	);
 }
