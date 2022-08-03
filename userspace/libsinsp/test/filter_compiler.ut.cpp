@@ -39,7 +39,7 @@ public:
 
 	inline void add_filter_value(const char* str, uint32_t l, uint32_t i) override
 	{ 
-		m_value = string(str);
+		m_value = string(str, l);
 	}
 
 	inline bool extract(gen_event *e, OUT vector<extract_value_t>& v, bool) override
