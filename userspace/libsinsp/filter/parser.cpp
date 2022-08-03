@@ -206,7 +206,7 @@ std::unique_ptr<ast::expr> parser::parse_or()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return std::unique_ptr<ast::or_expr>(new ast::or_expr(children));
+		return ast::or_expr::create(children);
 	}
 	return std::move(children[0]);
 }
@@ -242,7 +242,7 @@ std::unique_ptr<ast::expr> parser::parse_and()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return std::unique_ptr<ast::and_expr>(new ast::and_expr(children));
+		return ast::and_expr::create(children);
 	}
 	return std::move(children[0]);
 }
@@ -267,7 +267,7 @@ std::unique_ptr<ast::expr> parser::parse_not()
 		child = parse_check();
 	}
 	depth_pop();
-	return is_not ? std::unique_ptr<ast::not_expr>(new ast::not_expr(child)) : std::move(child);
+	return is_not ? ast::not_expr::create(std::move(child)) : std::move(child);
 }
 
 // this is an internal helper to parse the remainder of a
@@ -318,8 +318,7 @@ std::unique_ptr<ast::expr> parser::parse_check()
 		if (lex_unary_op())
 		{
 			depth_pop();
-			return std::unique_ptr<ast::unary_check_expr>(new ast::unary_check_expr(
-				field, field_arg, trim_str(m_last_token)));
+			return ast::unary_check_expr::create(field, field_arg, trim_str(m_last_token));
 		}
 
 		string op = "";
@@ -351,14 +350,13 @@ std::unique_ptr<ast::expr> parser::parse_check()
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
-		return std::unique_ptr<ast::binary_check_expr>(new ast::binary_check_expr(
-			field, field_arg, trim_str(op), value));
+		return ast::binary_check_expr::create(field, field_arg, trim_str(op), std::move(value));
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
+		return ast::value_expr::create(m_last_token);
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
@@ -371,7 +369,7 @@ std::unique_ptr<ast::value_expr> parser::parse_num_value()
 	if (lex_hex_num() || lex_num())
 	{
 		depth_pop();
-		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
+		return ast::value_expr::create(m_last_token);
 	}
 	throw sinsp_exception("expected a number value");
 }
@@ -383,7 +381,7 @@ std::unique_ptr<ast::value_expr> parser::parse_str_value()
 	if (lex_quoted_str() || lex_bare_str())
 	{
 		depth_pop();
-		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
+		return ast::value_expr::create(m_last_token);
 	}
 	throw sinsp_exception("expected a string value");
 }
@@ -426,13 +424,13 @@ std::unique_ptr<ast::expr> parser::parse_list_value()
 			throw sinsp_exception("expected a ')' token");
 		}
 		depth_pop();
-		return std::unique_ptr<ast::list_expr>(new ast::list_expr(values));
+		return ast::list_expr::create(values);
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return std::unique_ptr<ast::value_expr>(new ast::value_expr(m_last_token));
+		return ast::value_expr::create(m_last_token);
 	}
 
 	throw sinsp_exception("expected a list or an identifier");

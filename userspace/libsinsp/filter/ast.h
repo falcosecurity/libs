@@ -134,7 +134,7 @@ struct SINSP_PUBLIC and_expr: expr
 {
     and_expr() { }
 
-    explicit and_expr(std::vector<std::unique_ptr<expr>>& c): children(std::move(c)) { }
+    explicit and_expr(std::vector<std::unique_ptr<expr>> &c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -166,13 +166,18 @@ struct SINSP_PUBLIC and_expr: expr
     }
 
     std::vector<std::unique_ptr<expr>> children;
+
+    static std::unique_ptr<and_expr> create(std::vector<std::unique_ptr<expr>> &c)
+    {
+        return std::unique_ptr<and_expr>(new and_expr(c));
+    }
 };
 
 struct SINSP_PUBLIC or_expr: expr
 {
     or_expr() { }
 
-    explicit or_expr(std::vector<std::unique_ptr<expr>>& c): children(std::move(c)) { }
+    explicit or_expr(std::vector<std::unique_ptr<expr>> c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -204,13 +209,18 @@ struct SINSP_PUBLIC or_expr: expr
     }
 
     std::vector<std::unique_ptr<expr>> children;
+
+    static std::unique_ptr<or_expr> create(std::vector<std::unique_ptr<expr>> &c)
+    {
+        return std::unique_ptr<or_expr>(new or_expr(std::move(c)));
+    }
 };
 
 struct SINSP_PUBLIC not_expr: expr
 {
     not_expr() { }
 
-    explicit not_expr(std::unique_ptr<expr> &c): child(std::move(c)) { }
+    explicit not_expr(std::unique_ptr<expr> c): child(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -224,6 +234,11 @@ struct SINSP_PUBLIC not_expr: expr
     }
 
     std::unique_ptr<expr> child;
+
+    static std::unique_ptr<not_expr> create(std::unique_ptr<expr> c)
+    {
+        return std::unique_ptr<not_expr>(new not_expr(std::move(c)));
+    }
 };
 
 struct SINSP_PUBLIC value_expr: expr
@@ -244,6 +259,11 @@ struct SINSP_PUBLIC value_expr: expr
     }
 
     std::string value;
+
+    static std::unique_ptr<value_expr> create(const std::string& v)
+    {
+        return std::unique_ptr<value_expr>(new value_expr(v));
+    }
 };
 
 struct SINSP_PUBLIC list_expr: expr
@@ -264,6 +284,11 @@ struct SINSP_PUBLIC list_expr: expr
     }
 
     std::vector<std::string> values;
+
+    static std::unique_ptr<list_expr> create(const std::vector<std::string>& v)
+    {
+        return std::unique_ptr<list_expr>(new list_expr(v));
+    }
 };
 
 struct SINSP_PUBLIC unary_check_expr: expr
@@ -290,6 +315,13 @@ struct SINSP_PUBLIC unary_check_expr: expr
     std::string field;
     std::string arg;
     std::string op;
+
+    static std::unique_ptr<unary_check_expr> create(const std::string& f,
+        const std::string& a,
+        const std::string& o)
+    {
+        return std::unique_ptr<unary_check_expr>(new unary_check_expr(f, a, o));
+    }
 };
 
 struct SINSP_PUBLIC binary_check_expr: expr
@@ -318,6 +350,15 @@ struct SINSP_PUBLIC binary_check_expr: expr
     std::string arg;
     std::string op;
     std::unique_ptr<expr> value;
+
+    static std::unique_ptr<binary_check_expr> create(
+        const std::string& f,
+        const std::string& a,
+        const std::string& o,
+        std::unique_ptr<expr> v)
+    {
+        return std::unique_ptr<binary_check_expr>(new binary_check_expr(f, a, o, v));
+    }
 };
 
 /*!
