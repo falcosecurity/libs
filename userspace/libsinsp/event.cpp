@@ -2751,19 +2751,6 @@ uint64_t sinsp_evt::get_lastevent_ts() const
 bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 {
 	dest.m_inspector = src.m_inspector;
-
-	if (src.m_pevt != nullptr)
-	{
-		dest.m_pevt_storage = new char[src.m_pevt->len];
-		memcpy(dest.m_pevt_storage, src.m_pevt, src.m_pevt->len);
-		dest.m_pevt = (scap_evt *) dest.m_pevt_storage;
-	}
-	else
-	{
-		dest.m_pevt_storage = nullptr;
-		dest.m_pevt = nullptr;
-	}
-
 	dest.m_poriginal_evt = nullptr;
 
 	// tinfo
@@ -2792,6 +2779,18 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 	{
 		dest.m_tinfo_ref = nullptr;
 		dest.m_tinfo = nullptr;
+	}
+
+	if (src.m_pevt != nullptr)
+	{
+		dest.m_pevt_storage = new char[src.m_pevt->len];
+		memcpy(dest.m_pevt_storage, src.m_pevt, src.m_pevt->len);
+		dest.m_pevt = (scap_evt *) dest.m_pevt_storage;
+	}
+	else
+	{
+		dest.m_pevt_storage = nullptr;
+		dest.m_pevt = nullptr;
 	}
 
 	// scalars
