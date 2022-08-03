@@ -1512,7 +1512,6 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_str = fltstr;
 	m_flt_ast = NULL;
 	m_ttable_only = ttable_only;
-	m_internal_parsing = true;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
@@ -1525,7 +1524,6 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_flt_str = fltstr;
 	m_flt_ast = NULL;
 	m_ttable_only = ttable_only;
-	m_internal_parsing = true;
 }
 
 sinsp_filter_compiler::sinsp_filter_compiler(
@@ -1537,27 +1535,18 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 	m_filter = NULL;
 	m_flt_ast = fltast;
 	m_ttable_only = ttable_only;
-	m_internal_parsing = false;
-}
-
-sinsp_filter_compiler::~sinsp_filter_compiler()
-{
-	// we delete the AST only if it was parsed internally
-	if (m_internal_parsing && m_flt_ast != NULL)
-	{
-		delete m_flt_ast;
-	}
 }
 
 sinsp_filter* sinsp_filter_compiler::compile()
 {
 	// parse filter string on-the-fly if not pre-parsed AST is provided
-	if (m_internal_parsing && m_flt_ast == NULL)
+	if (m_flt_ast == NULL)
 	{
 		libsinsp::filter::parser parser(m_flt_str);
 		try
 		{
-			m_flt_ast = parser.parse();
+			m_internal_flt_ast = parser.parse();
+			m_flt_ast = m_internal_flt_ast.get();
 		}
 		catch (const sinsp_exception& e)
 		{
