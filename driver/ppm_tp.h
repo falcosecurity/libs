@@ -18,3 +18,5 @@ typedef enum {
 #undef X
 	TP_VAL_MAX,
 } tp_values;
+
+extern const char *tp_names[];

@@ -96,7 +96,7 @@ void list_events(sinsp* inspector, bool markdown)
 
 		if(markdown)
 		{
-			if(sinsp::simple_consumer_consider_evtnum(j))
+			if(sinsp::should_consider_evtnum(j))
 			{
 				printf("Yes");
 			} else {
