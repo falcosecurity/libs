@@ -179,3 +179,32 @@ jobs:
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
             make bpf_test
+
+  build-modern-bpf-s390x:
+    name: build-modern-bpf-s390x 😁 (system_deps)
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run s390x build 🏗️
+        with:
+          arch: s390x
+          distro: fedora_latest
+          githubToken: ${{ github.token }}
+
+          install: |
+            dnf install -y bpftool c-ares-devel clang cmake curl-devel git grpc-devel grpc-plugins gtest-devel jq-devel jsoncpp-devel libb64-devel libbpf-devel openssl-devel protobuf-devel tbb-devel wget
+
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-valijson.sh
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make scap-open
+            make bpf_test
