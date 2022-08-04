@@ -90,6 +90,31 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
             make run-unit-tests
 
+  build-libs-s390x:
+    name: build-libs-s390x 😁 (system_deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run s390x build 🏗️
+        with:
+          arch: s390x
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic
+
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-valijson.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+            make run-unit-tests
+
   build-and-test-modern-bpf-x86:
     name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
