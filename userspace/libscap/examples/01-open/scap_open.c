@@ -69,16 +69,10 @@ char* valptr = NULL;				/* pointer used to print the value of event params. */
 
 void enable_single_tp(const char *tp_basename)
 {
-	static const char *names[] = {
-#define X(name, tp_path) tp_path,
-		TP_FIELDS
-#undef X
-	};
-
 	bool found = false;
 	for (int i = 0; i < TP_VAL_MAX && !found; i++)
 	{
-		if (strcmp(names[i], tp_basename) == 0)
+		if (strcmp(tp_names[i], tp_basename) == 0)
 		{
 			tp_of_interest.tp[i] = true;
 			found = true;
@@ -90,7 +84,7 @@ void enable_single_tp(const char *tp_basename)
 		fprintf(stderr, "Please choose between:\n");
 		for (int i = 0; i < TP_VAL_MAX; i++)
 		{
-			fprintf(stderr, "\t* %s\n", names[i]);
+			fprintf(stderr, "\t* %s\n", tp_names[i]);
 		}
 		exit(EXIT_FAILURE);
 	}

@@ -484,7 +484,6 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 	else
 	{
 		m_ppm_sc_of_interest.erase(ppm_sc);
-
 	}
 }
 
