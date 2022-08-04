@@ -1313,22 +1313,6 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 #endif
 }
 
-int32_t scap_enable_page_faults(scap_t *handle)
-{
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_PAGE_FAULTS, 1, 0);
-	}
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on this scap mode");
-	ASSERT(false);
-	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_page_faults not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#endif
-}
-
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
 	if(handle->m_vtable)

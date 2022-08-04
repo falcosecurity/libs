@@ -822,14 +822,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		}
 		// yes, it's a no-op in udig
 		return SCAP_SUCCESS;
-	case SCAP_PAGE_FAULTS:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
-		}
-		// the original code blindly tries a kmod-only ioctl
-		// which can only fail. Let's return a better error code instead
-		return SCAP_NOT_SUPPORTED;
 	case SCAP_SNAPLEN:
 		return udig_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:

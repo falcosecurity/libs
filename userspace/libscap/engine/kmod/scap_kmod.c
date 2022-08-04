@@ -431,24 +431,6 @@ int32_t scap_kmod_enable_tracers_capture(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_page_faults(struct scap_engine_handle engine)
-{
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if(devset->m_ndevs)
-	{
-		{
-			if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_ENABLE_PAGE_FAULTS))
-			{
-				snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "%s failed", __FUNCTION__);
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_kmod_stop_dropping_mode(struct scap_engine_handle engine)
 {
 	return scap_kmod_set_dropping_mode(engine, PPM_IOCTL_DISABLE_DROPPING_MODE, 0);
@@ -681,12 +663,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
 		}
 		return scap_kmod_enable_tracers_capture(engine);
-	case SCAP_PAGE_FAULTS:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
-		}
-		return scap_kmod_enable_page_faults(engine);
 	case SCAP_SNAPLEN:
 		return scap_kmod_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:

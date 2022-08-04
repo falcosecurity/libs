@@ -59,11 +59,6 @@ enum scap_setting {
 	 */
 	SCAP_TRACERS_CAPTURE,
 	/**
-	 * @brief instrument page faults
-	 * arg1: enabled?
-	 */
-	SCAP_PAGE_FAULTS,
-	/**
 	 * @brief length of captured data buffers
 	 * arg1: the length (< 65536)
 	 */

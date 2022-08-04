@@ -20,3 +20,4 @@ typedef enum {
 } tp_values;
 
 extern const char *tp_names[];
+extern tp_values tp_from_name(const char *tp_path);
