@@ -500,9 +500,12 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		pr_info("starting capture\n");
 
 		/*
-		 * Enable the tracepoints
+		 * Enable the tracepoints, excepts for page faults
+		 * that are enabled through PPM_IOCTL_ENABLE_PAGE_FAULTS
 		 */
 		val = (1 << TP_VAL_MAX) - 1;
+		val &= ~(1 << PAGE_FAULT_USER);
+		val &= ~(1 << PAGE_FAULT_KERN);
 		ret = force_tp_set(val, TP_VAL_MAX);
 		if (ret != 0)
 		{
@@ -662,7 +665,7 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
 #else
 				ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
@@ -670,7 +673,7 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			else
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_enter_probe, "sys_enter", tp_sys_enter);
+				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
 #else
 				unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
@@ -680,7 +683,7 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
 #else
 				ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
@@ -688,47 +691,47 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			else
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_exit_probe, "sys_exit", tp_sys_exit);
+				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
 #else
 				unregister_trace_syscall_exit(syscall_exit_probe);
 #endif
 			}
 			break;
 		case SCHED_PROC_EXIT:
-			ret = compat_set_tracepoint(syscall_procexit_probe, "sched_process_exit", tp_sched_process_exit, new_val);
+			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
 			break;
 #ifdef CAPTURE_CONTEXT_SWITCHES
 		case SCHED_SWITCH:
-			ret = compat_set_tracepoint(sched_switch_probe, "sched_switch", tp_sched_switch, new_val);
+			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
 			break;
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
 		case PAGE_FAULT_USER:
 			if (!g_fault_tracepoint_disabled)
 			{
-				ret = compat_set_tracepoint(page_fault_probe, "page_fault_user", tp_page_fault_user, new_val);
+				ret = compat_set_tracepoint(page_fault_probe, tp_names[idx], tp_page_fault_user, new_val);
 			}
 			break;
 		case PAGE_FAULT_KERN:
 			if (!g_fault_tracepoint_disabled)
 			{
-				ret = compat_set_tracepoint(page_fault_probe, "page_fault_kernel", tp_page_fault_kernel, new_val);
+				ret = compat_set_tracepoint(page_fault_probe, tp_names[idx], tp_page_fault_kernel, new_val);
 			}
 			break;
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
 		case SIGNAL_DELIVER:
-			ret = compat_set_tracepoint(signal_deliver_probe, "signal_deliver", tp_signal_deliver, new_val);
+			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_FORK
 		case SCHED_PROC_FORK:
-			ret = compat_set_tracepoint(sched_proc_fork_probe, "sched_process_fork", tp_sched_proc_fork, new_val);
+			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_EXEC
 		case SCHED_PROC_EXEC:
-			ret = compat_set_tracepoint(sched_proc_exec_probe, "sched_process_exec", tp_sched_proc_exec, new_val);
+			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
 			break;
 #endif
 		default:
@@ -2577,37 +2580,37 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 static void visit_tracepoint(struct tracepoint *tp, void *priv)
 {
-	if (!strcmp(tp->name, "sys_enter"))
+	if (!strcmp(tp->name, tp_names[SYS_ENTER]))
 		tp_sys_enter = tp;
-	else if (!strcmp(tp->name, "sys_exit"))
+	else if (!strcmp(tp->name, tp_names[SYS_EXIT]))
 		tp_sys_exit = tp;
-	else if (!strcmp(tp->name, "sched_process_exit"))
+	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXIT]))
 		tp_sched_process_exit = tp;
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	else if (!strcmp(tp->name, "sched_switch"))
+	else if (!strcmp(tp->name, tp_names[SCHED_SWITCH]))
 		tp_sched_switch = tp;
 #endif
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-	else if (!strcmp(tp->name, "signal_deliver"))
+	else if (!strcmp(tp->name, tp_names[SIGNAL_DELIVER]))
 		tp_signal_deliver = tp;
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-	else if (!strcmp(tp->name, "page_fault_user"))
+	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_USER]))
 		tp_page_fault_user = tp;
-	else if (!strcmp(tp->name, "page_fault_kernel"))
+	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_KERN]))
 		tp_page_fault_kernel = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	else if (!strcmp(tp->name, "sched_process_exec"))
+	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXEC]))
 		tp_sched_proc_exec = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-	else if (!strcmp(tp->name, "sched_process_fork"))
+	else if (!strcmp(tp->name, tp_names[SCHED_PROC_FORK]))
 		tp_sched_proc_fork = tp;	
 #endif
 }
