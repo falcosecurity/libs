@@ -22,6 +22,8 @@ limitations under the License.
 #include <algorithm>
 #include "../sinsp_public.h"
 
+#include "pos_info.h"
+
 namespace libsinsp {
 namespace filter {
 namespace ast {
@@ -114,11 +116,19 @@ protected:
 /*!
     \brief Base interface of AST hierarchy
 */
+
+static struct pos_info initial_pos;
+
 struct SINSP_PUBLIC expr
 {
+    expr(const pos_info& pos = initial_pos): m_pos(pos) { }
     virtual ~expr() = default;
     virtual void accept(expr_visitor*) = 0;
     virtual bool is_equal(const expr* other) const = 0;
+    void get_pos(pos_info& pos) const;
+    pos_info get_pos() const;
+
+    pos_info m_pos;
 };
 
 /*!
@@ -131,9 +141,9 @@ inline bool compare(const expr* left, const expr* right)
 
 struct SINSP_PUBLIC and_expr: expr
 {
-    and_expr() { }
+    and_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
-    explicit and_expr(const std::vector<expr*>& c): children(c) { }
+    explicit and_expr(const std::vector<expr*>& c, const pos_info& pos = initial_pos): expr(pos), children(c) { }
 
     ~and_expr()
     {
@@ -161,9 +171,9 @@ struct SINSP_PUBLIC and_expr: expr
 
 struct SINSP_PUBLIC or_expr: expr
 {
-    or_expr() { }
+    or_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
-    explicit or_expr(const std::vector<expr*>& c): children(c) { }
+    explicit or_expr(const std::vector<expr*>& c, const pos_info& pos = initial_pos): expr(pos), children(c) { }
 
     ~or_expr()
     {
@@ -191,9 +201,9 @@ struct SINSP_PUBLIC or_expr: expr
 
 struct SINSP_PUBLIC not_expr: expr
 {
-    not_expr() { }
+    not_expr(pos_info &pos = initial_pos): expr(pos) { }
 
-    explicit not_expr(expr* c): child(c) { }
+    explicit not_expr(expr* c, const pos_info& pos = initial_pos): expr(pos), child(c) { }
 
     ~not_expr()
     {
@@ -216,9 +226,9 @@ struct SINSP_PUBLIC not_expr: expr
 
 struct SINSP_PUBLIC value_expr: expr
 {
-    value_expr() { }
+    value_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
-    explicit value_expr(const std::string& v): value(v) { }
+    explicit value_expr(const std::string& v, const pos_info& pos = initial_pos): expr(pos), value(v) { }
 
     void accept(expr_visitor* v) override
     {
@@ -236,9 +246,9 @@ struct SINSP_PUBLIC value_expr: expr
 
 struct SINSP_PUBLIC list_expr: expr
 {
-    list_expr() { }
+    list_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
-    explicit list_expr(const std::vector<std::string>& v): values(v) { }
+    explicit list_expr(const std::vector<std::string>& v, const pos_info& pos = initial_pos): expr(pos), values(v) { }
 
     void accept(expr_visitor* v) override
     {
@@ -256,12 +266,13 @@ struct SINSP_PUBLIC list_expr: expr
 
 struct SINSP_PUBLIC unary_check_expr: expr
 {
-    unary_check_expr() { }
+    unary_check_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
     unary_check_expr(
         const std::string& f,
         const std::string& a,
-        const std::string& o): field(f), arg(a), op(o) { }
+        const std::string& o,
+	const pos_info& pos = initial_pos): expr(pos), field(f), arg(a), op(o) { }
 
     void accept(expr_visitor* v) override
     {
@@ -282,13 +293,14 @@ struct SINSP_PUBLIC unary_check_expr: expr
 
 struct SINSP_PUBLIC binary_check_expr: expr
 {
-    binary_check_expr() { }
+    binary_check_expr(const pos_info& pos = initial_pos): expr(pos) { }
 
     binary_check_expr(
         const std::string& f,
         const std::string& a,
         const std::string& o,
-        expr* v): field(f), arg(a), op(o), value(v) { }
+        expr* v,
+	const pos_info& pos = initial_pos): expr(pos), field(f), arg(a), op(o), value(v) { }
 
     ~binary_check_expr()
     {

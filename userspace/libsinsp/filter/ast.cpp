@@ -180,6 +180,18 @@ std::string libsinsp::filter::ast::as_string(ast::expr &e)
 	return sv.as_string();
 }
 
+struct libsinsp::filter::pos_info initial_pos = {0, 1, 1};
+
+void libsinsp::filter::ast::expr::get_pos(pos_info& pos) const
+{
+	pos = m_pos;
+}
+
+libsinsp::filter::pos_info libsinsp::filter::ast::expr::get_pos() const
+{
+	return m_pos;
+}
+
 expr* libsinsp::filter::ast::clone(expr* e)
 {  
     struct clone_visitor: public expr_visitor
@@ -194,7 +206,7 @@ expr* libsinsp::filter::ast::clone(expr* e)
                 c->accept(this);
                 children.push_back(m_last_node);
             }
-            m_last_node = new and_expr(children);
+            m_last_node = new and_expr(children, e->get_pos());
         }
 
         void visit(or_expr* e) override
@@ -205,35 +217,35 @@ expr* libsinsp::filter::ast::clone(expr* e)
                 c->accept(this);
                 children.push_back(m_last_node);
             }
-            m_last_node = new or_expr(children);
+            m_last_node = new or_expr(children, e->get_pos());
         }
 
         void visit(not_expr* e) override
         {
             e->child->accept(this);
-            m_last_node = new not_expr(m_last_node);
+            m_last_node = new not_expr(m_last_node, e->get_pos());
         }
 
         void visit(binary_check_expr* e) override
         {
             e->value->accept(this);
             m_last_node = new binary_check_expr(
-                e->field, e->arg, e->op, m_last_node);
+                e->field, e->arg, e->op, m_last_node, e->get_pos());
         }
 
         void visit(unary_check_expr* e) override
         {
-            m_last_node = new unary_check_expr(e->field, e->arg, e->op);
+            m_last_node = new unary_check_expr(e->field, e->arg, e->op, e->get_pos());
         }
 
         void visit(value_expr* e) override
         {
-            m_last_node = new value_expr(e->value);
+            m_last_node = new value_expr(e->value, e->get_pos());
         }
 
         void visit(list_expr* e) override
         {
-            m_last_node = new list_expr(e->values);
+            m_last_node = new list_expr(e->values, e->get_pos());
         }
     } visitor;
 

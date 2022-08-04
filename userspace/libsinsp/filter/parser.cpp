@@ -205,7 +205,7 @@ ast::expr* parser::parse_or()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return new ast::or_expr(children);
+		return new ast::or_expr(children, get_pos());
 	}
 	return children[0];
 }
@@ -241,7 +241,7 @@ ast::expr* parser::parse_and()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return new ast::and_expr(children);
+		return new ast::and_expr(children, get_pos());
 	}
 	return children[0];
 }
@@ -266,7 +266,7 @@ ast::expr* parser::parse_not()
 		child = parse_check();
 	}
 	depth_pop();
-	return is_not ? new ast::not_expr(child) : child;
+	return is_not ? new ast::not_expr(child, get_pos()) : child;
 }
 
 // this is an internal helper to parse the remainder of a
@@ -318,7 +318,7 @@ ast::expr* parser::parse_check()
 		if (lex_unary_op())
 		{
 			depth_pop();
-			return new ast::unary_check_expr(field, field_arg, trim_str(m_last_token));
+			return new ast::unary_check_expr(field, field_arg, trim_str(m_last_token), get_pos());
 		}
 
 		string op = "";
@@ -350,13 +350,13 @@ ast::expr* parser::parse_check()
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
-		return new ast::binary_check_expr(field, field_arg, trim_str(op), value);
+		return new ast::binary_check_expr(field, field_arg, trim_str(op), value, get_pos());
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return new ast::value_expr(m_last_token, get_pos());
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
@@ -369,7 +369,7 @@ ast::value_expr* parser::parse_num_value()
 	if (lex_hex_num() || lex_num())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return new ast::value_expr(m_last_token, get_pos());
 	}
 	throw sinsp_exception("expected a number value");
 }
@@ -381,7 +381,7 @@ ast::value_expr* parser::parse_str_value()
 	if (lex_quoted_str() || lex_bare_str())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return new ast::value_expr(m_last_token, get_pos());
 	}
 	throw sinsp_exception("expected a string value");
 }
@@ -426,13 +426,13 @@ ast::expr* parser::parse_list_value()
 			throw sinsp_exception("expected a ')' token");
 		}
 		depth_pop();
-		return new ast::list_expr(values);
+		return new ast::list_expr(values, get_pos());
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return new ast::value_expr(m_last_token);
+		return new ast::value_expr(m_last_token, get_pos());
 	}
 
 	throw sinsp_exception("expected a list or an identifier");
