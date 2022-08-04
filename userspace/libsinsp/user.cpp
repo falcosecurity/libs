@@ -31,6 +31,69 @@ limitations under the License.
 #include <grp.h>
 #endif
 
+namespace {
+
+struct passwd *__getpwuid(uint32_t uid)
+{
+// See fgetpwent() feature test macros:
+// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
+#if defined HAVE_PWD_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+	static std::string host_root(scap_get_host_root());
+	if (host_root.empty())
+	{
+		return getpwuid(uid);
+	}
+
+	static std::string filename(host_root + "/etc/passwd");
+
+	auto f = fopen(filename.c_str(), "r");
+	if(f)
+	{
+		while(auto p = fgetpwent(f))
+		{
+			if(uid == p->pw_uid)
+			{
+				return p;
+			}
+		}
+		fclose(f);
+	}
+#endif
+
+	return NULL;
+}
+
+struct group *__getgrgid(uint32_t gid)
+{
+// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
+#if defined HAVE_GRP_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+	static std::string host_root(scap_get_host_root());
+	if (host_root.empty())
+	{
+		return getgrgid(gid);
+	}
+
+	static std::string filename(host_root + "/etc/group");
+
+	auto f = fopen(filename.c_str(), "r");
+	if(f)
+	{
+		while(auto p = fgetgrent(f))
+		{
+			if(gid == p->gr_gid)
+			{
+				return p;
+			}
+		}
+		fclose(f);
+	}
+#endif
+
+	return NULL;
+}
+
+}
+
 using namespace std;
 
 sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
@@ -157,7 +220,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
-			p = getpwuid(uid);
+			p = __getpwuid(uid);
 			if (p)
 			{
 				name = p->pw_name;
@@ -236,7 +299,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 		if (container_id.empty() && !name)
 		{
 			// On Host, try to load info from db
-			p = getgrgid(gid);
+			p = __getgrgid(gid);
 			if (p)
 			{
 				name = p->gr_name;
