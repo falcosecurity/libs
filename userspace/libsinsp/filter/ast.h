@@ -177,7 +177,7 @@ struct SINSP_PUBLIC or_expr: expr
 {
     or_expr() { }
 
-    explicit or_expr(std::vector<std::unique_ptr<expr>> c): children(std::move(c)) { }
+    explicit or_expr(std::vector<std::unique_ptr<expr>> &c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
     {
@@ -212,7 +212,7 @@ struct SINSP_PUBLIC or_expr: expr
 
     static std::unique_ptr<or_expr> create(std::vector<std::unique_ptr<expr>> &c)
     {
-        return std::unique_ptr<or_expr>(new or_expr(std::move(c)));
+        return std::unique_ptr<or_expr>(new or_expr(c));
     }
 };
 
