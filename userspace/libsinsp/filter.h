@@ -107,6 +107,18 @@ public:
 	*/
 	sinsp_filter* compile();
 
+	/*!
+		\brief Retrieves the compiler position info.
+		\param pos pos_info struct in which the info is written.
+	*/
+	void get_pos(libsinsp::filter::pos_info& pos) const;
+
+	/*!
+		\brief Retrieves the compiler position info.
+		\return pos_info struct in which the info is written.
+	*/
+	libsinsp::filter::pos_info get_pos() const;
+
 private:
 	void visit(libsinsp::filter::ast::and_expr*) override;
 	void visit(libsinsp::filter::ast::or_expr*) override;
@@ -129,6 +141,8 @@ private:
 	std::vector<std::string> m_field_values;
 	libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
+
+	libsinsp::filter::pos_info m_pos;
 
 	friend class sinsp_evt_formatter;
 };
