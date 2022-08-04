@@ -74,6 +74,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
 	m_ppm_sc_of_interest(),
+	m_ppm_tp_of_interest(),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -254,19 +255,6 @@ void sinsp::enable_tracers_capture()
 		}
 
 		m_is_tracers_capture_enabled = true;
-	}
-#endif
-}
-
-void sinsp::enable_page_faults()
-{
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
-	if(is_live() && m_h != NULL)
-	{
-		if(scap_enable_page_faults(m_h) != SCAP_SUCCESS)
-		{
-			throw sinsp_exception("error enabling page_faults");
-		}
 	}
 #endif
 }
@@ -466,9 +454,18 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
+#ifdef __linux__
 void sinsp::set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
 {
 	m_ppm_sc_of_interest = syscalls_of_interest;
+}
+
+void sinsp::set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
+{
+	for (auto tp : tp_of_interest)
+	{
+		mark_tracepoint_of_interest(tp, true);
+	}
 }
 
 void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
@@ -480,6 +477,24 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 	else
 	{
 		m_ppm_sc_of_interest.erase(ppm_sc);
+	}
+}
+
+void sinsp::mark_tracepoint_of_interest(string &tp, bool enabled)
+{
+	uint32_t val = (uint32_t)tp_from_name(tp.c_str());
+	if (val == -1)
+	{
+		throw sinsp_exception("unexisting tracepoint " + tp);
+	}
+
+	if (enabled)
+	{
+		m_ppm_tp_of_interest.insert(val);
+	}
+	else
+	{
+		m_ppm_tp_of_interest.erase(val);
 	}
 }
 

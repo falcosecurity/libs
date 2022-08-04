@@ -854,9 +854,13 @@ public:
 
 	sinsp_parser* get_parser();
 
+	// These make no sense on non-linux env
+#ifdef __linux__
 	void set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
+	void set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest);
 	void mark_syscall_of_interest(uint32_t ppm_sc, bool enabled = true);
-
+	void mark_tracepoint_of_interest(string &tp, bool enabled = true);
+#endif
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
@@ -864,7 +868,6 @@ public:
 	void remove_meta_event_callback();
 	void filter_proc_table_when_saving(bool filter);
 	void enable_tracers_capture();
-	void enable_page_faults();
 	uint64_t get_bytes_read()
 	{
 		return scap_ftell(m_h);
@@ -973,6 +976,7 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 	void fill_syscalls_of_interest(scap_open_args *oargs);
+	void fill_tracepoints_of_interest(scap_open_args *oargs);
 	void remove_thread(int64_t tid, bool force);
 
 	//
@@ -1116,7 +1120,7 @@ public:
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
 	unordered_set<uint32_t> m_ppm_sc_of_interest;
-
+	unordered_set<uint32_t> m_ppm_tp_of_interest;
 	//
 	// Internal stats
 	//

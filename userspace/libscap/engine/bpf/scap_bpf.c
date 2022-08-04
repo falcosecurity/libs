@@ -644,24 +644,6 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	return SCAP_SUCCESS;
 }
 
-static tp_values tp_from_name(const char *tp_path)
-{
-	// Find last '/' occurrence to take only the basename
-	const char *tp_name = strrchr(tp_path, '/');
-	if (tp_name && strlen(tp_name) > 1)
-	{
-		tp_name++;
-		for (int i = 0; i < TP_VAL_MAX; i++)
-		{
-			if (strcmp(tp_name, tp_names[i]) == 0)
-			{
-				return i;
-			}
-		}
-	}
-	return -1;
-}
-
 static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname)
 {
 	if (tp_of_interest)
@@ -1243,28 +1225,6 @@ int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_enable_page_faults(struct scap_engine_handle engine)
-{
-	struct scap_bpf_settings settings;
-	struct bpf_engine *handle = engine.m_handle;
-	int k = 0;
-
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
-	}
-
-	settings.page_faults = true;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine)
 {
 	struct scap_bpf_settings settings;
@@ -1442,7 +1402,6 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.sampling_ratio = 1;
 	settings.capture_enabled = false;
 	settings.do_dynamic_snaplen = false;
-	settings.page_faults = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
 	settings.tracers_enabled = false;
@@ -1744,12 +1703,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 			return unsupported_config(engine, "Tracers cannot be disabled once enabled");
 		}
 		return scap_bpf_enable_tracers_capture(engine);
-	case SCAP_PAGE_FAULTS:
-		if(arg1 == 0)
-		{
-			return unsupported_config(engine, "Page faults cannot be disabled once enabled");
-		}
-		return scap_bpf_enable_page_faults(engine);
 	case SCAP_SNAPLEN:
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:

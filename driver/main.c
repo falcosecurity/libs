@@ -500,12 +500,9 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		pr_info("starting capture\n");
 
 		/*
-		 * Enable the tracepoints, excepts for page faults
-		 * that are enabled through PPM_IOCTL_ENABLE_PAGE_FAULTS
+		 * Enable the tracepoints
 		 */
 		val = (1 << TP_VAL_MAX) - 1;
-		val &= ~(1 << PAGE_FAULT_USER);
-		val &= ~(1 << PAGE_FAULT_KERN);
 		ret = force_tp_set(val, TP_VAL_MAX);
 		if (ret != 0)
 		{
@@ -766,7 +763,6 @@ static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int cpu;
 	int ret;
-	u32 new_tp_set;
 	struct task_struct *consumer_id = filp->private_data;
 	struct ppm_consumer_t *consumer = NULL;
 
@@ -1175,49 +1171,12 @@ cleanup_ioctl_procinfo:
 		ret = task_tgid_nr(current);
 		goto cleanup_ioctl;
 #endif /* LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20) */
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-	case PPM_IOCTL_DISABLE_SIGNAL_DELIVER:
-	{
-		new_tp_set = g_tracepoints_attached & ~(1 << SIGNAL_DELIVER);
-		vpr_info("PPM_IOCTL_DISABLE_SIGNAL_DELIVER\n");
-		ret = force_tp_set(new_tp_set, TP_VAL_MAX);
-		goto cleanup_ioctl;
-	}
-	case PPM_IOCTL_ENABLE_SIGNAL_DELIVER:
-	{
-		new_tp_set = g_tracepoints_attached | (1 << SIGNAL_DELIVER);
-		vpr_info("PPM_IOCTL_ENABLE_SIGNAL_DELIVER\n");
-		ret = force_tp_set(new_tp_set, TP_VAL_MAX);
-		goto cleanup_ioctl;
-	}
-#endif
 	case PPM_IOCTL_SET_TRACERS_CAPTURE:
 	{
 		vpr_info("PPM_IOCTL_SET_TRACERS_CAPTURE, consumer %p\n", consumer_id);
 		g_tracers_enabled = true;
 		ret = 0;
 		goto cleanup_ioctl;
-	}
-	case PPM_IOCTL_ENABLE_PAGE_FAULTS:
-	{
-		vpr_info("PPM_IOCTL_ENABLE_PAGE_FAULTS\n");
-#ifdef CAPTURE_PAGE_FAULTS
-		ASSERT(g_tracepoint_attached > 0);
-
-		if (g_fault_tracepoint_disabled) {
-			pr_err("kernel page fault tracepoints are disabled\n");
-			ret = -EPERM;
-			goto cleanup_ioctl;
-		}
-
-		new_tp_set = g_tracepoints_attached | (1 << PAGE_FAULT_USER) | (1 << PAGE_FAULT_KERN);
-		ret = force_tp_set(new_tp_set, TP_VAL_MAX);
-		goto cleanup_ioctl;
-#else
-		pr_err("kernel doesn't support page fault tracepoints\n");
-		ret = -EINVAL;
-		goto cleanup_ioctl;
-#endif
 	}
 	case PPM_IOCTL_MANAGE_TP:
 	{
