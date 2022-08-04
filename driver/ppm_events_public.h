@@ -689,6 +689,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCKALL_MCL_ONFAULT		(1<<2)
 
 /*
+ * Mlock2 flags
+ */
+#define PPM_MLOCK_ONFAULT	(1<<0)
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -1149,7 +1154,9 @@ enum ppm_event_type {
 	PPME_SYSCALL_DUP_1_X = 367,
 	PPME_SYSCALL_BPF_2_E = 368,
 	PPME_SYSCALL_BPF_2_X = 369,
-	PPM_EVENT_MAX = 370
+	PPME_SYSCALL_MLOCK2_E = 370,
+	PPME_SYSCALL_MLOCK2_X = 371,
+	PPM_EVENT_MAX = 372
 };
 /*@}*/
 
@@ -1501,7 +1508,8 @@ enum ppm_syscall_code {
 	PPM_SC_IO_URING_SETUP = 330,
 	PPM_SC_IO_URING_ENTER = 331,
 	PPM_SC_IO_URING_REGISTER = 332,
-	PPM_SC_MAX = 333,
+	PPM_SC_MLOCK2 = 333,
+	PPM_SC_MAX = 334,
 };
 
 /*
@@ -1742,6 +1750,7 @@ extern const struct ppm_name_value io_uring_setup_feats[];
 extern const struct ppm_name_value io_uring_enter_flags[];
 extern const struct ppm_name_value io_uring_register_opcodes[];
 extern const struct ppm_name_value mlockall_flags[];
+extern const struct ppm_name_value mlock2_flags[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];

@@ -614,3 +614,8 @@ const struct ppm_name_value mlockall_flags[] = {
 	{"MCL_ONFAULT", PPM_MLOCKALL_MCL_ONFAULT},
 	{0,0},
 };
+
+const struct ppm_name_value mlock2_flags[] = {
+	{"MLOCK_ONFAULT", PPM_MLOCK_ONFAULT},
+	{0,0},
+};
