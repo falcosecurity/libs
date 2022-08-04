@@ -233,7 +233,6 @@ struct scap_bpf_settings {
 	uint32_t sampling_ratio;
 	bool capture_enabled;
 	bool do_dynamic_snaplen;
-	bool page_faults;
 	bool dropping_mode;
 	bool is_dropping;
 	bool tracers_enabled;

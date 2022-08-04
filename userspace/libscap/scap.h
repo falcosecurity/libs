@@ -1068,7 +1068,6 @@ void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
-int32_t scap_enable_page_faults(scap_t *handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
 scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
