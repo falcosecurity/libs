@@ -85,7 +85,7 @@ static const vector<string> binary_list_ops =
 	"intersects", "in", "pmatch"
 };
 
-static inline void update_pos(const char c, parser::pos_info& pos)
+static inline void update_pos(const char c, pos_info& pos)
 {
 	pos.col++;
 	if (c == '\r' || c == '\n')
@@ -96,7 +96,7 @@ static inline void update_pos(const char c, parser::pos_info& pos)
 	pos.idx++;
 }
 
-static void update_pos(const string& s, parser::pos_info& pos)
+static void update_pos(const string& s, pos_info& pos)
 {
 	for (const auto &c : s)
 	{
@@ -135,7 +135,7 @@ void parser::get_pos(pos_info& pos) const
 	pos.line = m_pos.line;
 }
 
-parser::pos_info parser::get_pos() const
+pos_info parser::get_pos() const
 {
 	pos_info info;
 	get_pos(info);

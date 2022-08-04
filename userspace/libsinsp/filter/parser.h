@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "ast.h"
+#include "pos_info.h"
 
 //
 // Context-free Grammar for Sinsp Filters
@@ -74,32 +75,6 @@ namespace filter {
 class SINSP_PUBLIC parser
 {
 public:
-	/*!
-		\brief A struct containing info about the position of the parser
-		relatively to the string input. For example, this can either be used
-		to retrieve context information when an exception is thrown.
-	*/
-	struct pos_info
-	{
-		inline void reset() 
-		{
-			idx = 0;
-			line = 1;
-			col = 1;
-		}
-		
-		inline std::string as_string() const
-		{
-			return "index " + std::to_string(idx) 
-				+ ", line " + std::to_string(line) 
-				+ ", column " + std::to_string(col);
-		}
-
-		uint32_t idx;
-		uint32_t line;
-		uint32_t col;
-	};
-
 	/*!
 		\brief Returns the set of filtering operators supported by libsinsp
 	*/

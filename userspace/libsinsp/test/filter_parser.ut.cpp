@@ -25,7 +25,7 @@ static void test_equal_ast(string in, expr* ast)
 	delete ast;
 };
 
-static void test_accept(string in, parser::pos_info* out_pos = NULL)
+static void test_accept(string in, pos_info* out_pos = NULL)
 {
 	parser parser(in);
 	try
@@ -350,7 +350,7 @@ TEST(parser, parse_operators)
 
 TEST(parser, parse_position_info)
 {
-	parser::pos_info pos;
+	pos_info pos;
 
 	test_accept("a and b", &pos);
 	EXPECT_EQ(pos.idx, 7);
