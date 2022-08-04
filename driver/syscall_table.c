@@ -430,6 +430,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_munlockall
 	[__NR_munlockall - SYSCALL_TABLE_ID0] =			{UF_USED, PPME_SYSCALL_MUNLOCKALL_E, PPME_SYSCALL_MUNLOCKALL_X},
 #endif
+#ifdef __NR_mlock2
+	[__NR_mlock2 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MLOCK2_E, PPME_SYSCALL_MLOCK2_X},
+#endif
 };
 
 /*
@@ -1108,6 +1111,9 @@ const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open_by_handle_at
 	[__NR_open_by_handle_at - SYSCALL_TABLE_ID0] = PPM_SC_OPEN_BY_HANDLE_AT,
 #endif
+#ifdef __NR_mlock2
+	[__NR_mlock2 - SYSCALL_TABLE_ID0] = PPM_SC_MLOCK2,
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1391,6 +1397,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_munlockall
 	[__NR_ia32_munlockall - SYSCALL_TABLE_ID0] = 			{UF_USED, PPME_SYSCALL_MUNLOCKALL_E, PPME_SYSCALL_MUNLOCKALL_X},
+#endif
+#ifdef __NR_ia32_mlock2
+	[__NR_ia32_mlock2 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MLOCK_E, PPME_SYSCALL_MUNLOCK_X},
 #endif
 };
 
@@ -1976,6 +1985,9 @@ const enum ppm_syscall_code g_syscall_ia32_code_routing_table[SYSCALL_TABLE_SIZE
 #endif	
 #ifdef __NR_ia32_open_by_handle_at
 	[__NR_ia32_open_by_handle_at - SYSCALL_TABLE_ID0] = PPM_SC_OPEN_BY_HANDLE_AT,
+#endif
+#ifdef __NR_ia32_mlock2
+	[__NR_ia32_mlock2 - SYSCALL_TABLE_ID0] = PPM_SC_MLOCK2,
 #endif
 };
 

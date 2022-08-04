@@ -364,10 +364,11 @@
 #define __NR_ia32_io_uring_setup 356
 #define __NR_ia32_io_uring_enter 357
 #define __NR_ia32_io_uring_register 358
+#define __NR_ia32_mlock2    359
 
 #ifdef __KERNEL__
 
-#define NR_ia32_syscalls 359
+#define NR_ia32_syscalls 360
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR

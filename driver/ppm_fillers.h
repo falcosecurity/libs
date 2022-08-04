@@ -132,6 +132,7 @@ or GPL2.txt for full copies of the license.
 	FN(sched_prog_fork)			\
 	FN(sched_prog_fork_2)		\
 	FN(sched_prog_fork_3)		\
+	FN(sys_mlock2_x)			\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
