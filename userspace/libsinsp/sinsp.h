@@ -891,18 +891,18 @@ public:
 	}
 #endif
 
-	static inline bool simple_consumer_consider_evtnum(uint16_t etype)
+	static inline bool should_consider_evtnum(uint16_t etype)
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return ! (flags & sinsp::simple_consumer_skip_flags());
+		return ! (flags & sinsp::event_skip_flags());
 	}
 
-	static inline bool simple_consumer_consider_syscallid(uint16_t scid)
+	static inline bool should_consider_syscallid(uint16_t scid)
 	{
 		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
 
-		return ! (flags & sinsp::simple_consumer_skip_flags());
+		return ! (flags & sinsp::event_skip_flags());
 	}
 
 	// Add comm to the list of comms for which the inspector
@@ -953,7 +953,7 @@ VISIBILITY_PROTECTED
 
 VISIBILITY_PRIVATE
 
-        static inline ppm_event_flags simple_consumer_skip_flags()
+        static inline ppm_event_flags event_skip_flags()
         {
 		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_OLD_VERSION);
         }

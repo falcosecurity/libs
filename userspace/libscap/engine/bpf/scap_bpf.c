@@ -646,12 +646,6 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 
 static tp_values tp_from_name(const char *tp_path)
 {
-	static const char *names[] = {
-#define X(name, path) path,
-	TP_FIELDS
-#undef X
-	};
-
 	// Find last '/' occurrence to take only the basename
 	const char *tp_name = strrchr(tp_path, '/');
 	if (tp_name && strlen(tp_name) > 1)
@@ -659,7 +653,7 @@ static tp_values tp_from_name(const char *tp_path)
 		tp_name++;
 		for (int i = 0; i < TP_VAL_MAX; i++)
 		{
-			if (strcmp(tp_name, names[i]) == 0)
+			if (strcmp(tp_name, tp_names[i]) == 0)
 			{
 				return i;
 			}
@@ -1021,7 +1015,6 @@ static int32_t calibrate_socket_file_ops()
 int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
-
 	struct scap_bpf_settings settings;
 	int k = 0;
 

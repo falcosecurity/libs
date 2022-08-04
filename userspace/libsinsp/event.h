@@ -341,13 +341,12 @@ public:
 	scap_dump_flags get_dump_flags(OUT bool* should_drop);
 
 	/*!
-	  \brief Return whether or not a simple consumer that privileges low overhead to
-	  full event capture should consider this event. (Generally, these events are
+	  \brief Return whether or not an event should be considered. (Generally, these events are
 	  automatically filtered out, but some events related to internal tracking are
 	  returned by next() anyway).
 	*/
 
-	bool simple_consumer_consider();
+	bool should_consider();
 
 	inline uint16_t get_source() const override
 	{
