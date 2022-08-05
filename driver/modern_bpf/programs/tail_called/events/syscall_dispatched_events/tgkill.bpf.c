@@ -24,9 +24,9 @@ int BPF_PROG(tgkill_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: pid (type: PT_PID) */
-	pid_t pid = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s64(&ringbuf, (s64)pid);
+	/* Parameter 1: tgid (type: PT_PID) */
+	pid_t tgid = (s32)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (s64)tgid);
 
 	/* Parameter 2: tid (type: PT_PID) */
 	pid_t tid = (s32)extract__syscall_argument(regs, 1);
