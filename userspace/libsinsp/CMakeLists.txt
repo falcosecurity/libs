@@ -32,6 +32,11 @@ else() # MSVC
 	add_definitions(-DHAS_CAPTURE)
 endif()
 
+if(NOT DEFINED CHISEL_TOOL_LIBRARY_NAME)
+	set(CHISEL_TOOL_LIBRARY_NAME "sinsp")
+endif()
+add_definitions(-DCHISEL_TOOL_LIBRARY_NAME="${CHISEL_TOOL_LIBRARY_NAME}")
+
 include(ExternalProject)
 
 if(NOT WIN32 AND NOT APPLE)

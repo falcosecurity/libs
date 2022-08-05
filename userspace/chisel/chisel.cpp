@@ -90,7 +90,7 @@ void lua_stackdump(lua_State *L)
 // Lua callbacks
 ///////////////////////////////////////////////////////////////////////////////
 #ifdef HAS_LUA_CHISELS
-const static struct luaL_Reg ll_sysdig [] =
+const static struct luaL_Reg ll_tool [] =
 {
 	{"set_filter", &lua_cbacks::set_global_filter},
 	{"set_snaplen", &lua_cbacks::set_snaplen},
@@ -966,7 +966,7 @@ bool sinsp_chisel::init_lua_chisel(chisel_desc &cd, string const &fpath)
 	//
 	// Load our own lua libs
 	//
-	luaL_openlib(ls, "sysdig", ll_sysdig, 0);
+	luaL_openlib(ls, CHISEL_TOOL_LIBRARY_NAME, ll_tool, 0);
 	luaL_openlib(ls, "chisel", ll_chisel, 0);
 	luaL_openlib(ls, "evt", ll_evt, 0);
 
@@ -1212,7 +1212,7 @@ void sinsp_chisel::load(string cmdstr, bool is_file)
 	//
 	// Load our own lua libs
 	//
-	luaL_openlib(m_ls, "sysdig", ll_sysdig, 0);
+	luaL_openlib(m_ls, CHISEL_TOOL_LIBRARY_NAME, ll_tool, 0);
 	luaL_openlib(m_ls, "chisel", ll_chisel, 0);
 	luaL_openlib(m_ls, "evt", ll_evt, 0);
 
