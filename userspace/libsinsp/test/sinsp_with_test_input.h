@@ -54,14 +54,34 @@ protected:
 
 	scap_evt* add_event(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
 	{
+		va_list args;
+		va_start(args, n);
+		scap_evt *ret = add_event_v(ts, tid, event_type, n, args);
+		va_end(args);
+
+		return ret;
+	}
+
+	// adds an event and advances the inspector to the next event
+	sinsp_evt* add_event_sinsp_next(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
+	{
+		va_list args;
+		va_start(args, n);
+		add_event_v(ts, tid, event_type, n, args);
+		va_end(args);
+
+		return next_event();
+	}
+
+	scap_evt* add_event_v(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, va_list args)
+	{
 		struct scap_sized_buffer event_buf = {NULL, 0};
 		size_t event_size;
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
+		va_list args2;
+		va_copy(args2, args);
 
-		va_list args;
-		va_start(args, n);
 		int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
-		va_end(args);
 
 		if(ret != SCAP_INPUT_TOO_SMALL) {
 			return nullptr;
@@ -74,9 +94,7 @@ protected:
 			return nullptr;
 		}
 
-		va_start(args, n);
-		ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
-		va_end(args);
+		ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args2);
 
 		if(ret != SCAP_SUCCESS) {
 			free(event_buf.buf);
