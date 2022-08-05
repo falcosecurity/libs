@@ -103,7 +103,7 @@ public:
 
 protected:
 
-	void visit_logical_op(const char *op, std::vector<std::unique_ptr<expr>> &children);
+	void visit_logical_op(const char *op, const std::vector<std::unique_ptr<expr>> &children);
 
 	// If true, the next call to vist(value_expr*) will escape the
 	// value. This occurs for any right hand side of a binary check.
