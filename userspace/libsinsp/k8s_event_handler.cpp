@@ -179,7 +179,7 @@ bool k8s_event_handler::handle_component(const Json::Value& json, const msg_data
 									}
 									else if(!m_event_limit_exceeded) // only get in here once per cycle, to send event overflow warning
 									{
-										sinsp_user_event::emit_event_overflow("Kubernetes", get_machine_id());
+										sinsp_user_event::emit_event_overflow("Kubernetes", get_machine_id(), "sinsp");
 										m_event_limit_exceeded = true;
 										return false;
 									}

@@ -290,7 +290,7 @@ public:
 
 	static void emit_event_overflow(const std::string& component,
 									const std::string& machine_id,
-									const std::string& source = "sysdig-agent");
+									const std::string& source);
 	static size_t max_events_per_cycle();
 
 private:
