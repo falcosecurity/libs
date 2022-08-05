@@ -56,3 +56,34 @@ TEST_F(sinsp_with_test_input, file_open)
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 }
+
+TEST_F(sinsp_with_test_input, dup_dup2_dup3)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt;
+
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/test", PPM_O_TRUNC|PPM_O_CREAT|PPM_O_WRONLY, 0666);
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, 3, "/tmp/test", PPM_O_TRUNC|PPM_O_CREAT|PPM_O_WRONLY, 0666, 0xCA02, 123);
+
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP_E, 1, 3);
+	evt = add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP_X, 1, 1);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "1");
+
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP2_E, 1, 3);
+	evt = add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP2_X, 3, 123, 1, 123);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "123");
+
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP3_E, 1, 3);
+	evt = add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP3_X, 4, 123, 1, 123, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "123");
+
+	add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP_1_E, 1, 3);
+	evt = add_event_sinsp_next(increasing_ts(), 1, PPME_SYSCALL_DUP_1_X, 2, 1, 3);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "1");
+}
