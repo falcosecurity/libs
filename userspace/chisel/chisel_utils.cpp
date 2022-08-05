@@ -60,7 +60,7 @@ const chiseldir_info g_chisel_dirs_array[] =
 	{
 		{false, ""}, // file as is
 #ifdef _WIN32
-		{false, "c:/sysdig/chisels/"},
+		{false, "c:/" CHISEL_TOOL_LIBRARY_NAME "/chisels/"},
 #endif
 		{false, "./chisels/"},
 		{true, "~/.chisels/"},
