@@ -883,12 +883,6 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 		container.m_overlayfs_root = "";
 	}
 
-
-#ifdef HAS_ANALYZER
-	sinsp_utils::find_env(container.m_sysdig_agent_conf, container.get_env(), "SYSDIG_AGENT_CONF");
-	// container.m_sysdig_agent_conf = get_docker_env(env_vars, "SYSDIG_AGENT_CONF");
-#endif
-
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): parse returning true",
 			request.container_id.c_str());
