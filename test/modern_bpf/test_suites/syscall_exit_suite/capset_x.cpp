@@ -6,20 +6,24 @@
 
 #ifndef CAP_PERFMON
 	#define CAP_PERFMON 38
-#endif	
+#endif
 
 #ifndef CAP_BPF
 	#define CAP_BPF 39
-#endif	
+#endif
 
 #ifndef CAP_CHECKPOINT_RESTORE
 	#define CAP_CHECKPOINT_RESTORE 40
-#endif 
+#endif
 
+/* This helper is a copy of the one you can find in `driver/ppm_flag_helpers.h`.
+ * Right now we cannot directly include it, let's see if we need other helpers
+ * from this file, in that case, we can think of splitting it.
+ */
 uint64_t capabilities_to_scap(unsigned long caps)
 {
 	uint64_t res = 0;
-	
+
 #ifdef CAP_CHOWN
 	if(caps & (1UL << CAP_CHOWN))
 		res |= PPM_CAP_CHOWN;
