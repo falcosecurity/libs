@@ -66,7 +66,7 @@ void base_expr_visitor::visit(list_expr* e) { }
 
 void base_expr_visitor::visit(unary_check_expr* e) { }
 
-void string_visitor::visit_logical_op(const char *op, std::vector<std::unique_ptr<expr>> &children)
+void string_visitor::visit_logical_op(const char *op, const std::vector<std::unique_ptr<expr>> &children)
 {
 	bool first = true;
 
