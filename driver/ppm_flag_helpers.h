@@ -1591,7 +1591,7 @@ static __always_inline u32 mlockall_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline u32 mlock2_flags_to_scap(unsigned flags)
+static __always_inline u32 mlock2_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
 #ifdef MLOCK_ONFAULT
