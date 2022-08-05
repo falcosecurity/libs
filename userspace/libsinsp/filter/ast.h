@@ -144,18 +144,13 @@ struct SINSP_PUBLIC and_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const and_expr*>(other);
-        if (o == nullptr)
+        if (o == nullptr || o->children.size() != children.size())
         {
             return false;
         }
 
         for (size_t i = 0; i < children.size(); i++)
         {
-            if (o->children.size() <= i)
-            {
-                return false;
-            }
-
             if (!compare(children[i].get(), o->children[i].get()))
             {
                 return false;
@@ -187,18 +182,13 @@ struct SINSP_PUBLIC or_expr: expr
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const or_expr*>(other);
-        if (o == nullptr)
+        if (o == nullptr || o->children.size() != children.size())
         {
             return false;
         }
 
         for (size_t i = 0; i < children.size(); i++)
         {
-            if (o->children.size() <= i)
-            {
-                return false;
-            }
-
             if (!compare(children[i].get(), o->children[i].get()))
             {
                 return false;
