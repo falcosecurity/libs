@@ -20,10 +20,17 @@ limitations under the License.
 #include <signal.h>
 #include <scap.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 
 #define KMOD_OPTION "--kmod"
 #define BPF_OPTION "--bpf"
+<<<<<<< HEAD
 #define MODERN_BPF_OPTION "--modern_bpf"
+=======
+#ifdef HAS_ENGINE_MODERN_BPF
+#define MODERN_BPF_OPTION "--modern_bpf"
+#endif
+>>>>>>> 43be7c39 (update(scap-open): improve scap-open logging level)
 #define SCAP_FILE_OPTION "--scap_file"
 #define TP_OPTION "--tp"
 #define PPM_SC_OPTION "--ppm_sc"
@@ -50,33 +57,44 @@ struct scap_savefile_engine_params savefile_params;
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
 interesting_tp_set tp_of_interest;
-bool tp_is_set;
+bool tp_is_set = false;
 interesting_ppm_sc_set ppm_sc_of_interest;
-bool ppm_sc_is_set;
+bool ppm_sc_is_set = false;
 
 /* Generic global variables. */
+<<<<<<< HEAD
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
 uint64_t g_nevts = 0;				   /* total number of events captured. */
 scap_t* g_h = NULL;				   /* global scap handler. */
 uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
 char* valptr = NULL;				   /* pointer used to print the value of event params. */
+=======
+scap_open_args args = {.mode = SCAP_MODE_LIVE}; /* scap args used in `scap_open`. */
+uint64_t g_nevts = 0;				/* total number of events captured. */
+scap_t* g_h = NULL;				/* global scap handler. */
+uint16_t* lens16 = NULL;			/* pointer used to print the length of event params. */
+char* valptr = NULL;				/* pointer used to print the value of event params. */
+struct timeval tval_start, tval_end, tval_result;
+>>>>>>> 43be7c39 (update(scap-open): improve scap-open logging level)
 
-void enable_single_tp(const char *tp_basename)
+void enable_single_tp(const char* tp_basename)
 {
 	bool found = false;
-	for (int i = 0; i < TP_VAL_MAX && !found; i++)
+
+	for(int i = 0; i < TP_VAL_MAX && !found; i++)
 	{
-		if (strcmp(tp_names[i], tp_basename) == 0)
+		if(strcmp(tp_names[i], tp_basename) == 0)
 		{
 			tp_of_interest.tp[i] = true;
 			found = true;
 		}
 	}
-	if (!found)
+
+	if(!found)
 	{
 		fprintf(stderr, "Tracepoint '%s' not found. Unsupported or wrong parameter?\n", tp_basename);
 		fprintf(stderr, "Please choose between:\n");
-		for (int i = 0; i < TP_VAL_MAX; i++)
+		for(int i = 0; i < TP_VAL_MAX; i++)
 		{
 			fprintf(stderr, "\t* %s\n", tp_names[i]);
 		}
@@ -90,13 +108,57 @@ void enable_single_tp(const char *tp_basename)
 
 void enable_single_ppm_sc(int ppm_sc_code)
 {
-	if (ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
+	if(ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
 	{
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
 		exit(EXIT_FAILURE);
 	}
 	ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
 	ppm_sc_is_set = true;
+}
+
+void set_enabled_syscalls()
+{
+	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
+	if(ppm_sc_is_set)
+	{
+		args.ppm_sc_of_interest = &ppm_sc_of_interest;
+		printf("* Syscall enabled:\n");
+		for(int j = 0; j < PPM_SC_MAX; j++)
+		{
+			if(args.ppm_sc_of_interest->ppm_sc[j])
+			{
+				printf("- %s\n", g_syscall_info_table[j].name);
+			}
+		}
+	}
+	else
+	{
+		printf("* All syscalls are enabled!\n");
+	}
+	printf("------------------------------------------------------------------\n\n");
+}
+
+void set_enabled_tracepoint()
+{
+	printf("---------------------- ENABLED TRACEPOINTS ----------------------\n");
+	if(tp_is_set)
+	{
+		args.tp_of_interest = &tp_of_interest;
+		printf("* Tracepoints enabled:\n");
+		for(int j = 0; j < TP_VAL_MAX; j++)
+		{
+			if(args.tp_of_interest->tp[j])
+			{
+				printf("- %s\n", tp_names[j]);
+			}
+		}
+	}
+	else
+	{
+		printf("* All Tracepoints are enabled!\n");
+	}
+	printf("-----------------------------------------------------------------\n\n");
 }
 
 /*=============================== PRINT EVENT PARAMS ===========================*/
@@ -535,7 +597,7 @@ void print_help()
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
-	printf("'%s <tp_basename>': enable only requested tracepoint. Can be passed multiple times.\n", TP_OPTION);
+	printf("'%s <tp_basename>': enable only requested tracepoint (sys_enter, sys_exit, sched_process_exit, sched_switch, page_fault_user, page_fault_kernel, signal_deliver, sched_process_fork, sched_process_exec). Can be passed multiple times.\n", TP_OPTION);
 	printf("'%s <ppm_sc_code>': enable only requested syscall. Can be passed multiple times.\n", PPM_SC_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
@@ -737,11 +799,19 @@ void parse_CLI_options(int argc, char** argv)
 
 void print_stats()
 {
+	gettimeofday(&tval_end, NULL);
+	timersub(&tval_end, &tval_start, &tval_result);
+
 	scap_stats s;
 	printf("\n---------------------- STATS -----------------------\n");
 	printf("Events captured: %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
 	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
+	if(tval_result.tv_sec != 0)
+	{
+		printf("Number of events/per-second: %ld\n", g_nevts / tval_result.tv_sec);
+	}
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
 	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
@@ -810,6 +880,8 @@ int main(int argc, char** argv)
 
 	print_start_capture();
 
+	gettimeofday(&tval_start, NULL);
+
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
@@ -821,7 +893,7 @@ int main(int argc, char** argv)
 				continue;
 			}
 		}
-
+		
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
 			continue;
