@@ -15,8 +15,7 @@ limitations under the License.
 
 */
 
-#ifdef _WIN32
-#define snprintf _snprintf
+#ifdef _MSC_VER
 #define strcasecmp _stricmp
 #endif
 
