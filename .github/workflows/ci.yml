@@ -198,7 +198,7 @@ jobs:
           githubToken: ${{ github.token }}
 
           install: |
-            dnf install -y bpftool c-ares-devel clang cmake curl-devel git grpc-devel grpc-plugins gtest-devel jq-devel jsoncpp-devel libb64-devel libbpf-devel openssl-devel protobuf-devel tbb-devel wget
+            dnf install -y bpftool c-ares-devel clang cmake curl-devel git grpc-devel grpc-plugins gtest-devel jq-devel jsoncpp-devel libb64-devel libbpf-devel libcap-devel openssl-devel protobuf-devel tbb-devel wget
 
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
