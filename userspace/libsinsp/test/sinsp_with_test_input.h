@@ -207,11 +207,10 @@ protected:
 		scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0);
 
 		std::vector<scap_fdinfo> fdinfos;
-		scap_fdinfo fdinfo = {
-			.fd = 0,
-			.ino = 5,
-			.type = SCAP_FD_FILE_V2
-		};
+		scap_fdinfo fdinfo;
+		fdinfo.fd = 0;
+		fdinfo.ino = 5;
+		fdinfo.type = SCAP_FD_FILE_V2;
 
 		fdinfo.info.regularinfo.open_flags = PPM_O_RDONLY;
 		fdinfo.info.regularinfo.mount_id = 25;
