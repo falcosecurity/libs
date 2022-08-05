@@ -34,7 +34,7 @@ TEST(SyscallEnter, tgkillE)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: pid (type: PT_PID) */
+	/* Parameter 1: tgid (type: PT_PID) */
 	evt_test->assert_numeric_param(1, (int64_t)mock_tgid);
 
 	/* Parameter 2: tid (type: PT_PID) */
