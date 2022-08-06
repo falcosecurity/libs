@@ -71,7 +71,6 @@ struct iovec;
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"
-#include "engine/bpf/bpf_public.h"
 #include "scap_test.h"
 
 //
@@ -572,7 +571,7 @@ void udig_free_ring_descriptors(uint8_t* addr);
 /*!
   \brief Advanced function to start a capture.
 
-  \param args a \ref scap_open_args structure containing the open parameters.
+  \param oargs a \ref scap_open_args structure containing the open parameters.
   \param error Pointer to a buffer that will contain the error string in case the
     function fails. The buffer must have size SCAP_LASTERR_SIZE.
   \param rc Integer pointer that will contain the scap return code in case the
@@ -580,7 +579,7 @@ void udig_free_ring_descriptors(uint8_t* addr);
 
   \return The capture instance handle in case of success. NULL in case of failure.
 */
-scap_t* scap_open(scap_open_args args, char *error, int32_t *rc);
+scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc);
 
 /*!
   \brief Close a capture handle.
