@@ -34,7 +34,6 @@ limitations under the License.
 #include <dirent.h>
 
 #include "bpf.h"
-#include "bpf_public.h"
 #include "engine_handle.h"
 #include "scap.h"
 #include "scap-int.h"
@@ -86,45 +85,9 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
-static const char* resolve_bpf_probe(const char *bpf_probe, char *buf)
+static bool match(scap_open_args* oargs)
 {
-	//
-	// While in theory we could always rely on the scap caller to properly
-	// set a BPF probe from the environment variable, it's in practice easier
-	// to do one more check here in scap so we don't have to repeat the logic
-	// in all the possible users of the libraries
-	//
-	if(!bpf_probe)
-	{
-		bpf_probe = scap_get_bpf_probe_from_env();
-	}
-
-	if(!bpf_probe)
-	{
-		return NULL;
-	}
-
-	if(strlen(bpf_probe) != 0)
-	{
-		strlcpy(buf, bpf_probe, SCAP_MAX_PATH_SIZE);
-		return buf;
-	}
-
-	const char *home = getenv("HOME");
-	if(!home)
-	{
-		return NULL;
-	}
-
-	snprintf(buf, SCAP_MAX_PATH_SIZE, "%s/%s", home, SCAP_PROBE_BPF_FILEPATH);
-	return buf;
-}
-
-static bool match(scap_open_args* open_args)
-{
-	char bpf_probe_buf[SCAP_MAX_PATH_SIZE];
-
-	return !open_args->udig && resolve_bpf_probe(open_args->bpf_probe, bpf_probe_buf);
+	return oargs->engine==BPF_ENGINE;
 }
 
 static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -1772,35 +1735,35 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_set_statsd_port(engine, arg1);
 	default:
 	{
-		char msg[256];
+		char msg[SCAP_LASTERR_SIZE];
 		snprintf(msg, sizeof(msg), "Unsupported setting %d (args %lu, %lu)", setting, arg1, arg2);
 		return unsupported_config(engine, msg);
 	}
 	}
 }
 
-static int32_t init(scap_t* handle, scap_open_args *open_args)
+static int32_t init(scap_t* handle, scap_open_args *oargs)
 {
-	int32_t rc;
-	char bpf_probe_buf[SCAP_MAX_PATH_SIZE];
-	const char* bpf_probe;
-	char buf[SCAP_LASTERR_SIZE];
+	int32_t rc = 0;
+	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
+	char error[SCAP_LASTERR_SIZE] = {0};
 	struct scap_engine_handle engine = handle->m_engine;
 
-	bpf_probe = resolve_bpf_probe(open_args->bpf_probe, bpf_probe_buf);
+	strlcpy(bpf_probe_buf, oargs->bpf_args.bpf_probe, SCAP_MAX_PATH_SIZE);
+
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
 	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	if(num_cpus == -1)
 	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror_r(buf, errno));
+		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror_r(error, errno));
 		return SCAP_FAILURE;
 	}
 
 	engine.m_handle->m_ncpus = num_cpus;
 
-	fill_syscalls_of_interest(&open_args->ppm_sc_of_interest, &engine.m_handle->m_syscalls_of_interest);
+	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, &engine.m_handle->m_syscalls_of_interest);
 
 	rc = devset_init(&engine.m_handle->m_dev_set, num_cpus, engine.m_handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
@@ -1808,7 +1771,7 @@ static int32_t init(scap_t* handle, scap_open_args *open_args)
 		return rc;
 	}
 
-	rc = scap_bpf_load(engine.m_handle, bpf_probe, &handle->m_api_version, &handle->m_schema_version);
+	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
@@ -1870,7 +1833,7 @@ const struct scap_vtable scap_bpf_engine = {
 
 #else // MINIMAL_BUILD
 
-static int32_t init(scap_t* handle, scap_open_args *open_args)
+static int32_t init(scap_t* handle, scap_oargs *oargs)
 {
 	strlcpy(handle->m_lasterr, "The eBPF probe driver is not supported when using a minimal build", SCAP_LASTERR_SIZE);
 	return SCAP_NOT_SUPPORTED;
@@ -1900,4 +1863,3 @@ const struct scap_vtable scap_bpf_engine = {
 	.getpid_global = noop_getpid_global,
 };
 #endif // MINIMAL_BUILD
-
