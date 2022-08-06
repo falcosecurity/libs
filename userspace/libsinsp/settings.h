@@ -40,11 +40,6 @@ limitations under the License.
 #undef GATHER_INTERNAL_STATS
 
 //
-// Read timeout specified when doing scap_open
-//
-#define SCAP_TIMEOUT_MS 30
-
-//
 // Max size that the FD table of a process can reach
 //
 #define MAX_FD_TABLE_SIZE 4096
