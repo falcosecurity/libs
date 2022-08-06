@@ -45,10 +45,10 @@ static SCAP_HANDLE_T *gvisor_alloc_handle(scap_t* main_handle, char *lasterr_ptr
 	return new scap_gvisor::engine(lasterr_ptr);
 }
 
-static int32_t gvisor_init(scap_t* main_handle, scap_open_args* open_args)
+static int32_t gvisor_init(scap_t* main_handle, scap_open_args* oargs)
 {
 	scap_gvisor::engine *gv = main_handle->m_engine.m_handle;
-	return gv->init(open_args->gvisor_config_path, open_args->gvisor_root_path);
+	return gv->init(oargs->gvisor_args.gvisor_config_path, oargs->gvisor_args.gvisor_root_path);
 }
 
 static void gvisor_free_handle(struct scap_engine_handle engine)
@@ -76,9 +76,9 @@ static int32_t gvisor_next(struct scap_engine_handle engine, scap_evt **pevent, 
 	return engine.m_handle->next(pevent, pcpuid);
 }
 
-static bool gvisor_match(scap_open_args* open_args)
+static bool gvisor_match(scap_open_args* oargs)
 {
-	return open_args->gvisor_config_path != NULL;
+	return oargs->engine == GVISOR_ENGINE;
 }
 
 static int32_t gvisor_configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
