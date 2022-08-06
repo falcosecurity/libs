@@ -106,9 +106,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_snaplen = DEFAULT_SNAPLEN;
 	m_buffer_format = sinsp_evt::PF_NORMAL;
 	m_input_fd = 0;
-	m_bpf = false;
-	m_udig = false;
-	m_gvisor = false;
 	m_isdebug_enabled = false;
 	m_isfatfile_enabled = false;
 	m_isinternal_events_enabled = false;
@@ -504,78 +501,29 @@ void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
 	}
 }
 
-void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
+void sinsp::open_common(scap_open_args* oargs)
 {
-	char error[SCAP_LASTERR_SIZE];
+	char error[SCAP_LASTERR_SIZE] = {0};
+	g_logger.log("Trying to open the right engine!");
 
-	g_logger.log("starting live capture");
-
-	//
-	// Reset the thread manager
-	//
+	/* Reset the thread manager */
 	m_thread_manager->clear();
 
-	//
-	// Start the capture
-	//
-	m_mode = mode;
-	scap_open_args oargs;
+	/* We need to save the actual mode in sinsp. */
+	m_mode = oargs->mode;
 
-	oargs.mode = mode;
-	oargs.fname = NULL;
-	oargs.proc_callback = NULL;
-	oargs.proc_callback_context = NULL;
-	oargs.udig = m_udig;
-	oargs.gvisor = m_gvisor;
-	if (m_gvisor)
-	{
-		oargs.gvisor_root_path = m_gvisor_root_path.c_str();
-		oargs.gvisor_config_path = m_gvisor_config_path.c_str();
-	} else {
-		oargs.gvisor_root_path = NULL;
-		oargs.gvisor_config_path = NULL;
-	}
-
-	// only useful for testing
-	oargs.test_input_data = m_test_input_data;
-
-	fill_syscalls_of_interest(&oargs);
-
+	fill_syscalls_of_interest(oargs);
 	if(!m_filter_proc_table_when_saving)
 	{
-		oargs.proc_callback = ::on_new_entry_from_proc;
-		oargs.proc_callback_context = this;
+		oargs->proc_callback = ::on_new_entry_from_proc;
+		oargs->proc_callback_context = this;
 	}
-	oargs.import_users = m_usergroup_manager.m_import_users;
+	oargs->import_users = m_usergroup_manager.m_import_users;
 
 	add_suppressed_comms(oargs);
 
-	if(m_bpf)
-	{
-		oargs.bpf_probe = m_bpf_probe.c_str();
-	}
-	else
-	{
-		oargs.bpf_probe = NULL;
-	}
-
-	add_suppressed_comms(oargs);
-
-	//
-	// If a plugin was configured, pass it to scap and set the capture mode to
-	// SCAP_MODE_PLUGIN.
-	//
-	if(m_input_plugin)
-	{
-		oargs.input_plugin = &m_input_plugin->as_scap_source();
-		oargs.input_plugin_params = (char*) m_input_plugin_open_params.c_str();
-		m_mode = SCAP_MODE_PLUGIN;
-		oargs.mode = SCAP_MODE_PLUGIN;
-	}
-
-	int32_t scap_rc;
+	int32_t scap_rc = 0;
 	m_h = scap_open(oargs, error, &scap_rc);
-
 	if(m_h == NULL)
 	{
 		throw scap_open_exception(error, scap_rc);
@@ -586,77 +534,133 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	init();
 }
 
-void sinsp::open(uint32_t timeout_ms)
+scap_open_args sinsp::factory_open_args(scap_engine_t engine, scap_mode_t scap_mode)
 {
-	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+	scap_open_args oargs{};
+	oargs.engine = engine;
+	oargs.mode = scap_mode;
+	return oargs;
 }
 
-void sinsp::open_udig(uint32_t timeout_ms)
+void sinsp::open_kmod(uint64_t buffer_dimension)
 {
-	m_udig = true;
-	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
+	oargs.kmod_args.single_buffer_dim = buffer_dimension;
+	open_common(&oargs);
 }
 
-void sinsp::open_gvisor(std::string config_path, std::string root_path, uint32_t timeout_ms)
+/* We cannot trust the client to validate arguments we need to do it here. */
+void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path)
 {
-	m_gvisor = true;
-	m_gvisor_root_path = root_path;
-	m_gvisor_config_path = config_path;
-	open_live_common(timeout_ms, SCAP_MODE_LIVE);
+	if(!bpf_path)
+	{
+		throw sinsp_exception("When you use the 'BPF' engine you need to provide a path to the bpf object file.");
+	}
+
+	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
+	oargs.bpf_args.single_buffer_dim = buffer_dimension;
+	oargs.bpf_args.bpf_probe = bpf_path;
+	open_common(&oargs);
+}
+
+void sinsp::open_udig(uint64_t buffer_dimension)
+{
+	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
+	oargs.bpf_args.single_buffer_dim = buffer_dimension;
+	open_common(&oargs);
+}
+
+void sinsp::open_nodriver()
+{
+	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
+	open_common(&oargs);
+}
+
+void sinsp::open_savefile(const std::string &filename, int fd)
+{
+	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
+
+	m_filter_proc_table_when_saving = true;
+
+	m_input_filename = filename;
+	m_input_fd = fd; /* default is 0. */
+	
+	if(m_input_fd != 0)
+	{
+		/* In this case, we can't get a reliable filesize */
+		oargs.scap_file_args.fd = m_input_fd;
+		oargs.scap_file_args.fname = NULL;
+		m_filesize = 0;
+	}
+	else 
+	{
+		if(filename.empty())
+		{
+			throw sinsp_exception("When you use the 'scap-file' engine you need to provide a path to the scap file.");
+		}
+
+		oargs.scap_file_args.fname = filename.c_str();
+		oargs.scap_file_args.fd = 0;
+
+		char error[SCAP_LASTERR_SIZE] = {0};
+		m_filesize = get_file_size(oargs.scap_file_args.fname, error);
+		if(m_filesize < 0)
+		{
+			throw sinsp_exception(error);
+		}
+	}
+	oargs.scap_file_args.fbuffer_size = 0;
+	oargs.scap_file_args.start_offset = 0;  /* Today this is always `0`. */
+	open_common(&oargs);
+}
+
+void sinsp::open_plugin()
+{
+	scap_open_args oargs = factory_open_args(PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
+	oargs.plugin_args.input_plugin = &m_input_plugin->as_scap_source();
+	oargs.plugin_args.input_plugin_params = (char*) m_input_plugin_open_params.c_str();
+	open_common(&oargs);
+}
+
+void sinsp::open_gvisor(std::string config_path, std::string root_path)
+{
+	if(config_path.empty())
+	{
+		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
+	}
+
+	if(root_path.empty())
+	{
+		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the root path.");
+	}
+
+	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
+	oargs.gvisor_args.gvisor_root_path = root_path.c_str();
+	oargs.gvisor_args.gvisor_config_path = config_path.c_str();
+	open_common(&oargs);
+
 	set_get_procs_cpu_from_driver(false);
+}
+
+void sinsp::open_modern_bpf(uint64_t buffer_dimension)
+{
+	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
+	oargs.modern_bpf_args.single_buffer_dim = buffer_dimension;
+	open_common(&oargs);
 }
 
 void sinsp::open_test_input(scap_test_input_data *data)
 {
-	m_test_input_data = data;
-	open_live_common(SCAP_TIMEOUT_MS, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_LIVE);
+	oargs.test_input_args.test_input_data = data;
+	open_common(&oargs);
+	
 	set_get_procs_cpu_from_driver(false);
 }
 
 std::string sinsp::generate_gvisor_config(std::string socket_path)
 {
 	return gvisor_config::generate(socket_path);
-}
-
-void sinsp::open_nodriver()
-{
-	char error[SCAP_LASTERR_SIZE];
-
-	g_logger.log("starting optimized sinsp");
-
-	//
-	// Reset the thread manager
-	//
-	m_thread_manager->clear();
-
-	//
-	// Start the capture
-	//
-	m_mode = SCAP_MODE_NODRIVER;
-	scap_open_args oargs;
-	oargs.mode = SCAP_MODE_NODRIVER;
-	oargs.fname = NULL;
-	oargs.proc_callback = NULL;
-	oargs.proc_callback_context = NULL;
-	if(!m_filter_proc_table_when_saving)
-	{
-		oargs.proc_callback = ::on_new_entry_from_proc;
-		oargs.proc_callback_context = this;
-	}
-	oargs.import_users = m_usergroup_manager.m_import_users;
-	fill_syscalls_of_interest(&oargs);
-
-	int32_t scap_rc;
-	m_h = scap_open(oargs, error, &scap_rc);
-
-	if(m_h == NULL)
-	{
-		throw scap_open_exception(error, scap_rc);
-	}
-
-	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
-
-	init();
 }
 
 void sinsp::set_simple_consumer()
@@ -752,90 +756,6 @@ std::string sinsp::get_error_desc(const std::string& msg)
 	}
 #endif
 	return errstr;
-}
-
-void sinsp::open_int()
-{
-	char error[SCAP_LASTERR_SIZE] = {0};
-
-	//
-	// Reset the thread manager
-	//
-	m_thread_manager->clear();
-
-	//
-	// Start the capture
-	//
-	m_mode = SCAP_MODE_CAPTURE;
-	scap_open_args oargs;
-	oargs.mode = SCAP_MODE_CAPTURE;
-	oargs.fbuffer_size = 0;
-	if(m_input_fd != 0)
-	{
-		oargs.fd = m_input_fd;
-	}
-	else
-	{
-		oargs.fd = 0;
-		oargs.fname = m_input_filename.c_str();
-	}
-	oargs.proc_callback = NULL;
-	oargs.proc_callback_context = NULL;
-	oargs.import_users = m_usergroup_manager.m_import_users;
-	oargs.start_offset = 0;
-	fill_syscalls_of_interest(&oargs);
-
-	add_suppressed_comms(oargs);
-
-	int32_t scap_rc;
-
-	m_h = scap_open(oargs, error, &scap_rc);
-
-	if(m_h == NULL)
-	{
-		throw scap_open_exception(error, scap_rc);
-	}
-
-	if(m_input_fd != 0)
-	{
-		// We can't get a reliable filesize
-		m_filesize = 0;
-	}
-	else
-	{
-		m_filesize = get_file_size(m_input_filename, error);
-
-		if(m_filesize < 0)
-		{
-			throw sinsp_exception(error);
-		}
-	}
-
-	init();
-}
-
-void sinsp::open(const std::string &filename)
-{
-	if(filename.empty())
-	{
-		open();
-		return;
-	}
-
-	m_input_filename = filename;
-
-	g_logger.log("starting offline capture");
-
-	open_int();
-}
-
-void sinsp::fdopen(int fd)
-{
-	m_input_fd = fd;
-
-	g_logger.log("starting offline capture");
-
-	open_int();
 }
 
 void sinsp::close()
@@ -1631,7 +1551,7 @@ bool sinsp::check_suppressed(int64_t tid)
 	return scap_check_suppressed_tid(m_h, tid);
 }
 
-void sinsp::add_suppressed_comms(scap_open_args &oargs)
+void sinsp::add_suppressed_comms(scap_open_args* oargs)
 {
 	uint32_t i = 0;
 
@@ -1640,10 +1560,10 @@ void sinsp::add_suppressed_comms(scap_open_args &oargs)
 	// will immediately follow after which the args won't be used.
 	for(auto &comm : m_suppressed_comms)
 	{
-		oargs.suppressed_comms[i++] = comm.c_str();
+		oargs->suppressed_comms[i++] = comm.c_str();
 	}
 
-	oargs.suppressed_comms[i++] = NULL;
+	oargs->suppressed_comms[i++] = NULL;
 }
 
 void sinsp::set_docker_socket_path(std::string socket_path)
@@ -2589,12 +2509,6 @@ void sinsp::update_mesos_state()
 	}
 }
 #endif // CYGWING_AGENT
-
-void sinsp::set_bpf_probe(const string& bpf_probe)
-{
-	m_bpf = true;
-	m_bpf_probe = bpf_probe;
-}
 
 bool sinsp::is_bpf_enabled()
 {
