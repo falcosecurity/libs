@@ -1833,7 +1833,7 @@ const struct scap_vtable scap_bpf_engine = {
 
 #else // MINIMAL_BUILD
 
-static int32_t init(scap_t* handle, scap_oargs *oargs)
+static int32_t init(scap_t* handle, scap_open_args *oargs)
 {
 	strlcpy(handle->m_lasterr, "The eBPF probe driver is not supported when using a minimal build", SCAP_LASTERR_SIZE);
 	return SCAP_NOT_SUPPORTED;
