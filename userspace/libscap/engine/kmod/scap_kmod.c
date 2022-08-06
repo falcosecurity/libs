@@ -35,9 +35,9 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
-static bool match(scap_open_args* open_args)
+static bool match(scap_open_args* oargs)
 {
-	return !open_args->bpf_probe && !open_args->udig;
+	return oargs->engine == KMOD_ENGINE;
 }
 
 static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -827,4 +827,3 @@ struct scap_vtable scap_kmod_engine = {
 	.get_vtid = scap_kmod_get_vtid,
 	.getpid_global = scap_kmod_getpid_global,
 };
-
