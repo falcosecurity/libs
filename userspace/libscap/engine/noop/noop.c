@@ -94,12 +94,12 @@ int32_t noop_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
 
 uint32_t noop_get_n_devs(struct scap_engine_handle engine)
 {
-	return 0;
+	return SCAP_SUCCESS;
 }
 
 uint64_t noop_get_max_buf_used(struct scap_engine_handle engine)
 {
-	return 0;
+	return SCAP_SUCCESS;
 }
 
 int32_t noop_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
