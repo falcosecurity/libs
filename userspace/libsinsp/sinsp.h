@@ -217,45 +217,22 @@ public:
 
 	~sinsp() override;
 
-	/*!
-	  \brief Start a live event capture.
 
-	  \param timeout_ms the optional read timeout, i.e. the time after which a
-	  call to \ref next() returns even if no events are available.
+	/* Wrappers to open a specific engine. */
+	void open_kmod(uint64_t buffer_dimension);
+	void open_bpf(uint64_t buffer_dimension, const char* bpf_path);
+	void open_udig(uint64_t buffer_dimension);
+	void open_nodriver();
+	void open_savefile(const std::string &filename, int fd);
+	void open_plugin();
+	void open_gvisor(std::string config_path, std::string root_path);
+	void open_modern_bpf(uint64_t buffer_dimension);
+	void open_test_input(scap_test_input_data *data);
 
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	virtual void open(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
-
-	/*!
-	  \brief Start an event capture from a trace file.
-
-	  \param filename the trace file name.
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	void open(const std::string &filename);
-
-	/*!
-	  \brief Start an event capture from a file descriptor.
-
-	  \param fd the file descriptor
-
-	  @throws a sinsp_exception containing the error string is thrown in case
-	   of failure.
-	*/
-	void fdopen(int fd);
-
-	void open_udig(uint32_t timeout_ms = SCAP_TIMEOUT_MS);
-	void open_gvisor(std::string config_path, std::string root_path, uint32_t timeout_ms = SCAP_TIMEOUT_MS);
+	scap_open_args factory_open_args(scap_engine_t engine, scap_mode_t scap_mode);
 
 	std::string generate_gvisor_config(std::string socket_path);
 
-	void open_nodriver();
-
-	void open_test_input(scap_test_input_data *data);
 
 	/*!
 	  \brief Ends a capture and release all resources.
@@ -601,14 +578,6 @@ public:
 	inline bool is_plugin()
 	{
 		return m_mode == SCAP_MODE_PLUGIN;
-	}
-
-	/*!
-	  \brief Returns true if the inspector is configured to collect events from gVisor
-	*/
-	inline bool is_gvisor()
-	{
-		return m_gvisor;
 	}
 
 	/*!
@@ -1000,7 +969,7 @@ private:
 #endif
 
 	void open_int();
-	void open_live_common(uint32_t timeout_ms, scap_mode_t mode);
+	void open_common(scap_open_args* oargs);
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
@@ -1045,7 +1014,7 @@ private:
 		scap_fseek(m_h, filepos);
 	}
 
-	void add_suppressed_comms(scap_open_args &oargs);
+	void add_suppressed_comms(scap_open_args *oargs);
 
 	bool increased_snaplen_port_range_set() const
 	{
@@ -1070,13 +1039,7 @@ private:
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	std::string m_input_filename;
-	bool m_bpf;
-	bool m_udig;
-	bool m_gvisor;
-	std::string m_gvisor_root_path = "";
-	std::string m_gvisor_config_path = "";
 	bool m_is_windows;
-	std::string m_bpf_probe;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_isinternal_events_enabled;
