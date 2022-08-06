@@ -83,13 +83,7 @@ static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
 }
 
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
-scap_t* scap_open_live_int(char *error, int32_t *rc,
-			   proc_entry_callback proc_callback,
-			   void* proc_callback_context,
-			   bool import_users,
-			   const char *bpf_probe,
-			   const char **suppressed_comms,
-			   interesting_ppm_sc_set *ppm_sc_of_interest)
+scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
@@ -111,36 +105,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #else
 
 #ifndef _WIN32
-scap_t* scap_open_live_int(char *error, int32_t *rc,
-			   proc_entry_callback proc_callback,
-			   void* proc_callback_context,
-			   bool import_users,
-			   const char *bpf_probe,
-			   const char **suppressed_comms,
-			   interesting_ppm_sc_set *ppm_sc_of_interest)
+scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
-
-	scap_open_args oargs = {0};
-	oargs.proc_callback = proc_callback;
-	oargs.proc_callback_context = proc_callback_context;
-	oargs.import_users = import_users;
-	oargs.bpf_probe = bpf_probe;
-	memcpy(&oargs.suppressed_comms, suppressed_comms, sizeof(*suppressed_comms));
-
-	if(!ppm_sc_of_interest)
-	{
-		/* Fallback: set all syscalls as interesting. */
-		for(int j = 0; j < PPM_SC_MAX; j++)
-		{
-			oargs.ppm_sc_of_interest.ppm_sc[j] = 1;
-		}
-	} 
-	else 
-	{
-		memcpy(&oargs.ppm_sc_of_interest, ppm_sc_of_interest, sizeof(*ppm_sc_of_interest));
-	}
 
 	//
 	// Allocate the handle
@@ -157,14 +125,27 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-
-	if(scap_bpf_engine.match(&oargs))
+	switch(oargs->engine)
 	{
+	case BPF_ENGINE:
 		handle->m_vtable = &scap_bpf_engine;
-	}
-	else
-	{
+		break;
+	
+	case KMOD_ENGINE:
 		handle->m_vtable = &scap_kmod_engine;
+		break;
+
+#ifdef HAS_ENGINE_MODERN_BPF	
+	case MODERN_BPF_ENGINE:
+		handle->m_vtable = &scap_modern_bpf_engine;
+		break;
+#endif
+
+	default:
+		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine called `scap_open_live_int()`");
+		*rc = SCAP_FAILURE;
+		return NULL;
+		break;
 	}
 
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
@@ -176,8 +157,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	}
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = proc_callback;
-	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
 	//
@@ -212,7 +193,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	// Create the user list
 	//
-	if(import_users)
+	if(oargs->import_users)
 	{
 		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
@@ -239,7 +220,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
 
-	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -249,7 +230,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc,
 	//
 	// Open and initialize all the devices
 	//
-	if((*rc = handle->m_vtable->init(handle, &oargs)) != SCAP_SUCCESS)
+	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 		scap_close(handle);
@@ -452,7 +433,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
 
 #ifdef HAS_ENGINE_TEST_INPUT
-scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
+scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	scap_t* handle = NULL;
 
@@ -476,7 +457,7 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 		return NULL;
 	}
 
-	*rc = handle->m_vtable->init(handle, args);
+	*rc = handle->m_vtable->init(handle, oargs);
 	if(*rc != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
@@ -505,11 +486,11 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 	handle->m_num_suppressed_evts = 0;
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = args->proc_callback;
-	handle->m_proclist.m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -530,7 +511,7 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 	return handle;
 }
 #else
-scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
+scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "the test_input engine is only available for testing");
 	*rc = SCAP_NOT_SUPPORTED;
@@ -539,7 +520,7 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *args)
 #endif
 
 #ifdef HAS_ENGINE_GVISOR
-scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
+scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	scap_t* handle = NULL;
 
@@ -563,7 +544,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 		return NULL;
 	}
 
-	*rc = handle->m_vtable->init(handle, args);
+	*rc = handle->m_vtable->init(handle, oargs);
 	if(*rc != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
@@ -594,11 +575,11 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	handle->m_num_suppressed_evts = 0;
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = args->proc_callback;
-	handle->m_proclist.m_proc_callback_context = args->proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-	if ((*rc = copy_comms(handle, args->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -619,7 +600,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
 	return handle;
 }
 #else
-scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *args)
+scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	snprintf(error, SCAP_LASTERR_SIZE, "gvisor not supported on this build (platform: %s)", PLATFORM_NAME);
 	*rc = SCAP_NOT_SUPPORTED;
@@ -836,7 +817,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 #endif // HAS_CAPTURE
 }
 
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * input_plugin, char* input_plugin_params)
+scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 {
 	scap_t* handle = NULL;
 
@@ -895,144 +876,70 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_source_plugin * inpu
 	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
-	return handle;
-}
-
-#ifdef HAS_ENGINE_MODERN_BPF
-/* Temp workaround until the v-table implementation is completed. */
-scap_t* scap_open_modern_bpf_int(char *error, int32_t *rc, scap_open_args *args)
-{
-	/*
-	 * Allocate the handle
-	 */
-	scap_t* handle = (scap_t*)malloc(sizeof(scap_t));
-	if(!handle)
+	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-
-	/*
-	 * Preliminary initializations
-	 */
-	memset(handle, 0, sizeof(scap_t));
-	handle->m_mode = SCAP_MODE_MODERN_BPF;
-	handle->m_vtable = &scap_modern_bpf_vtable;
-	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
-	if(!handle->m_engine.m_handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		*rc = SCAP_FAILURE;
-		free(handle);
-		return NULL;
-	}
-
-	/*
-	 * Init handle
-	 */
-	if(handle->m_vtable->init)
-	{
-		*rc = handle->m_vtable->init(handle, args);
-		if(*rc != SCAP_SUCCESS)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-			/* Since we use the custom mode `SCAP_MODE_MODERN_BPF` and not 
-			 * `SCAP_MODE_LIVE`, the `scap_close()` is ok! 
-			 */
-			scap_close(handle);
-			return NULL;
-		}
-	}
-
-	/*
-	 * Please note: here we don't scan /proc and all the other stuff.
-	 */
-
-
-	/*
-	 * Start the capture
-	 */
-	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
-	{
+		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
 	}
+
 	return handle;
 }
-#endif
 
-scap_t* scap_open(scap_open_args args, char *error, int32_t *rc)
+scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 {
-	scap_t *handle;
-	switch(args.mode)
+
+#ifdef CYGWING_AGENT
+	if(oargs->mode == SCAP_MODE_LIVE)
 	{
-	case SCAP_MODE_CAPTURE:
-	{
-		return scap_open_offline_int(&args, rc, error);
-	}
-	case SCAP_MODE_LIVE:
-#ifndef CYGWING_AGENT
-		if(args.udig)
-		{
-			return scap_open_udig_int(error, rc, args.proc_callback,
-						args.proc_callback_context,
-						args.import_users,
-						args.suppressed_comms);
-		}
-		else if (args.gvisor)
-		{
-			return scap_open_gvisor_int(error, rc, &args);
-		}
-		else if (args.test_input_data)
-		{
-			return scap_open_test_input_int(error, rc, &args);
-		}
-		{
-			return scap_open_live_int(error, rc, args.proc_callback,
-						args.proc_callback_context,
-						args.import_users,
-						args.bpf_probe,
-						args.suppressed_comms,
-						&args.ppm_sc_of_interest);
-		}
-#else
-		snprintf(error,	SCAP_LASTERR_SIZE, "scap_open: live mode currently not supported on Windows.");
+		snprintf(error,	SCAP_LASTERR_SIZE, "libscap: live mode currently not supported on Windows.");
 		*rc = SCAP_NOT_SUPPORTED;
 		return NULL;
+	}
 #endif
-	case SCAP_MODE_NODRIVER:
-		return scap_open_nodriver_int(error, rc, args.proc_callback,
-					      args.proc_callback_context,
-					      args.import_users);
-	case SCAP_MODE_PLUGIN:
-		handle = scap_open_plugin_int(error, rc, args.input_plugin, args.input_plugin_params);
-		if(handle && handle->m_vtable)
-		{
-			int32_t res = handle->m_vtable->init(handle, &args);
-			if(res != SCAP_SUCCESS)
-			{
-				strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);
-				scap_close(handle);
-				handle = NULL;
-			}
-			*rc = res;
-			return handle;
-		}
-#ifdef HAS_ENGINE_MODERN_BPF
-	case SCAP_MODE_MODERN_BPF:
-	    /* Temp workaround until the v-table implementation
-		 * is completed.
-		 */
-		return scap_open_modern_bpf_int(error, rc, &args);
-#endif		
-	case SCAP_MODE_NONE:
+
+	/* probably at the end of the v-table work we can use just one function
+	 * with an internal switch that selects the right vtable! For the moment
+	 * let's keep different functions.
+	 */
+	switch(oargs->engine)
+	{
+
+	case SAVEFILE_ENGINE:
+		return scap_open_offline_int(oargs, rc, error);
+
+	case UDIG_ENGINE:
+		return scap_open_udig_int(error, rc, oargs->proc_callback,
+								oargs->proc_callback_context,
+								oargs->import_users,
+								oargs->suppressed_comms);
+
+	case GVISOR_ENGINE:
+		return scap_open_gvisor_int(error, rc, oargs);
+
+	case TEST_INPUT_ENGINE:
+		return scap_open_test_input_int(error, rc, oargs);
+
+	case KMOD_ENGINE:
+	case BPF_ENGINE:
+	case MODERN_BPF_ENGINE:
+		return scap_open_live_int(error, rc, oargs);
+
+	case NODRIVER_ENGINE:
+		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
+					      oargs->proc_callback_context,
+					      oargs->import_users);
+
+	case PLUGIN_ENGINE:
+		return scap_open_plugin_int(error, rc, oargs);
+	
+	default:
 		// error
 		break;
 	}
 
 
-	snprintf(error, SCAP_LASTERR_SIZE, "incorrect mode %d", args.mode);
+	snprintf(error, SCAP_LASTERR_SIZE, "incorrect engine %d", oargs->engine);
 	*rc = SCAP_FAILURE;
 	return NULL;
 }
