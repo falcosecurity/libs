@@ -2024,9 +2024,9 @@ void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 	reader->seek(reader, off, SEEK_SET);
 }
 
-static bool match(struct scap_open_args* args)
+static bool match(struct scap_open_args* oargs)
 {
-	return args->mode == SCAP_MODE_CAPTURE;
+	return oargs->engine == SAVEFILE_ENGINE;
 }
 
 static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
@@ -2040,30 +2040,34 @@ static struct savefile_engine* alloc_handle(struct scap* main_handle, char* last
 
 }
 
-static int32_t init(struct scap* main_handle, struct scap_open_args* args)
+static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 {
 	gzFile gzfile;
 	int res;
 	struct savefile_engine *handle = main_handle->m_engine.m_handle;
 
-	if(args->fd != 0)
+	int fd = oargs->scap_file_args.fd;
+	const char* fname = oargs->scap_file_args.fname;
+	uint64_t start_offset = oargs->scap_file_args.start_offset;
+
+	if(fd != 0)
 	{
-		gzfile = gzdopen(args->fd, "rb");
+		gzfile = gzdopen(fd, "rb");
 	}
 	else
 	{
-		gzfile = gzopen(args->fname, "rb");
+		gzfile = gzopen(fname, "rb");
 	}
 
 	if(gzfile == NULL)
 	{
-		if(args->fd != 0)
+		if(fd != 0)
 		{
-			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open fd %d", args->fd);
+			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open fd %d", fd);
 		}
 		else
 		{
-			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open file %s", args->fname);
+			snprintf(main_handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open file %s", fname);
 		}
 		return SCAP_FAILURE;
 	}
@@ -2089,9 +2093,9 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 	//
 	// If this is a merged file, we might have to move the read offset to the next section
 	//
-	if(args->start_offset != 0)
+	if(start_offset != 0)
 	{
-		scap_fseek(main_handle, args->start_offset);
+		scap_fseek(main_handle, start_offset);
 	}
 
 	handle->m_use_last_block_header = false;
@@ -2121,7 +2125,7 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
 	handle->m_reader = reader;
 
-	if(!args->import_users)
+	if(!oargs->import_users)
 	{
 		if(main_handle->m_userlist != NULL)
 		{
