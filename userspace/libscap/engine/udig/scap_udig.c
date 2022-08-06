@@ -856,9 +856,9 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	}
 }
 
-static bool match(scap_open_args* open_args)
+static bool match(scap_open_args* oargs)
 {
-	return open_args->udig;
+	return oargs->engine == UDIG_ENGINE;
 }
 
 static struct udig_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -876,7 +876,8 @@ static void free_handle(struct scap_engine_handle engine)
 	free(engine.m_handle);
 }
 
-static int32_t init(scap_t* main_handle, scap_open_args* open_args)
+/* `oargs` is not used here but we need to keep it to fit v-table interface. */
+static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
 	struct udig_engine *handle = main_handle->m_engine.m_handle;
 	int rc;
