@@ -169,7 +169,7 @@ int main()
 
 	scap_open_args args = {.mode = SCAP_MODE_LIVE};
 
-	scap_t* h = scap_open(args, error, &ret);
+	scap_t* h = scap_open(&args, error, &ret);
 	if(h == NULL)
 	{
 		fprintf(stderr, "%s (%d)\n", error, ret);

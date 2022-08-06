@@ -23,9 +23,7 @@ limitations under the License.
 
 #define KMOD_OPTION "--kmod"
 #define BPF_OPTION "--bpf"
-#ifdef HAS_ENGINE_MODERN_BPF
-	#define MODERN_BPF_OPTION "--modern_bpf"
-#endif
+#define MODERN_BPF_OPTION "--modern_bpf"
 #define SCAP_FILE_OPTION "--scap_file"
 #define SIMPLE_CONSUMER_OPTION "--simple_consumer"
 #define NUM_EVENTS_OPTION "--num_events"
@@ -41,27 +39,18 @@ extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
-/* Possible scap sources for this test program. */
-enum scap_source
-{
-	KERNEL_MODULE = 0,
-	BPF_PROBE = 1,
-	MODERN_BPF_PROBE = 2,
-	SCAP_FILE = 3
-};
 
 /* Configuration variables set through CLI. */
-int source = -1;		  /* scap source to catch events. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 bool simple_consumer = false;	  /* kernel simple consumer mode. */
 int evt_type = -1;		  /* event type to print. */
 
 /* Generic global variables. */
-scap_open_args args = {.mode = SCAP_MODE_LIVE}; /* scap args used in `scap_open`. */
-uint64_t g_nevts = 0;				/* total number of events captured. */
-scap_t* g_h = NULL;				/* global scap handler. */
-uint16_t* lens16 = NULL;			/* pointer used to print the length of event params. */
-char* valptr = NULL;				/* pointer used to print the value of event params. */
+scap_open_args oargs = {.engine = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
+uint64_t g_nevts = 0;				   /* total number of events captured. */
+scap_t* g_h = NULL;				   /* global scap handler. */
+uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
+char* valptr = NULL;				   /* pointer used to print the value of event params. */
 
 /*=============================== PRINT EVENT PARAMS ===========================*/
 
@@ -408,7 +397,7 @@ void print_actual_drivers_syscalls()
 				continue;
 			}
 
-			if(args.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			if(oargs.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
 			{
 				strcpy(str[interesting_syscall++], g_syscall_info_table[i].name);
 			}
@@ -429,18 +418,18 @@ void print_actual_drivers_syscalls()
  */
 void print_supported_syscalls()
 {
-	switch(source)
+	switch(oargs.engine)
 	{
-	case KERNEL_MODULE:
-	case BPF_PROBE:
+	case KMOD_ENGINE:
+	case BPF_ENGINE:
 		print_actual_drivers_syscalls();
 		break;
 
-	case MODERN_BPF_PROBE:
+	case MODERN_BPF_ENGINE:
 		print_modern_probe_syscalls();
 		break;
 
-	case SCAP_FILE:
+	case SAVEFILE_ENGINE:
 	default:
 		printf("Scap source not supported! Bye!");
 	}
@@ -505,9 +494,7 @@ void print_help()
 	printf("------> SCAP SOURCES\n");
 	printf("'%s': enable the kernel module.\n", KMOD_OPTION);
 	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
-#ifdef HAS_ENGINE_MODERN_BPF
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
-#endif
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
 	printf("'%s': enable the simple consumer mode. (default: disabled)\n", SIMPLE_CONSUMER_OPTION);
@@ -524,22 +511,22 @@ void print_help()
 void print_scap_source()
 {
 	printf("\n---------------------- SCAP SOURCE ----------------------\n");
-	switch(source)
+	switch(oargs.engine)
 	{
-	case KERNEL_MODULE:
+	case KMOD_ENGINE:
 		printf("* Kernel module.\n");
 		break;
 
-	case BPF_PROBE:
-		printf("* BPF probe: '%s'\n", args.bpf_probe);
+	case BPF_ENGINE:
+		printf("* BPF probe: '%s'\n", oargs.bpf_args.bpf_probe);
 		break;
 
-	case MODERN_BPF_PROBE:
+	case MODERN_BPF_ENGINE:
 		printf("* Modern BPF probe.\n");
 		break;
 
-	case SCAP_FILE:
-		printf("* Scap file: '%s'.\n", args.fname);
+	case SAVEFILE_ENGINE:
+		printf("* Scap file: '%s'.\n", oargs.scap_file_args.fname);
 		break;
 
 	default:
@@ -561,23 +548,23 @@ void print_configurations()
 
 void print_start_capture()
 {
-	switch(source)
+	switch(oargs.engine)
 	{
-	case KERNEL_MODULE:
+	case KMOD_ENGINE:
 		printf("* OK! Kernel module correctly loaded.\n");
 		break;
 
-	case BPF_PROBE:
+	case BPF_ENGINE:
 		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 		break;
 
-	case MODERN_BPF_PROBE:
+	case MODERN_BPF_ENGINE:
 		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 		break;
 
-	case SCAP_FILE:
+	case SAVEFILE_ENGINE:
 		printf("* OK! Ready to read from scap file.\n");
-		printf("\n* Reading from scap file: '%s' ...\n", args.fname);
+		printf("\n* Reading from scap file: '%s' ...\n", oargs.scap_file_args.fname);
 		return;
 
 	default:
@@ -596,7 +583,8 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], KMOD_OPTION))
 		{
-			source = KERNEL_MODULE;
+			oargs.engine = KMOD_ENGINE;
+			oargs.mode = SCAP_MODE_LIVE;
 		}
 		if(!strcmp(argv[i], BPF_OPTION))
 		{
@@ -605,16 +593,15 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the BPF probe path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			args.bpf_probe = argv[++i];
-			source = BPF_PROBE;
+			oargs.engine = BPF_ENGINE;
+			oargs.mode = SCAP_MODE_LIVE;
+			oargs.bpf_args.bpf_probe = argv[++i];
 		}
-#ifdef HAS_ENGINE_MODERN_BPF
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
-			args.mode = SCAP_MODE_MODERN_BPF;
-			source = MODERN_BPF_PROBE;
+			oargs.engine = MODERN_BPF_ENGINE;
+			oargs.mode = SCAP_MODE_LIVE;
 		}
-#endif
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
 		{
 			if(!(i + 1 < argc))
@@ -622,10 +609,9 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the scap file path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			args.fname = argv[++i];
-			/* we need also to change the mode. */
-			args.mode = SCAP_MODE_CAPTURE;
-			source = SCAP_FILE;
+			oargs.engine = SAVEFILE_ENGINE;
+			oargs.scap_file_args.fname = argv[++i];
+			oargs.mode = SCAP_MODE_CAPTURE;
 		}
 
 		/*=============================== SCAP SOURCES ===========================*/
@@ -634,12 +620,12 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], SIMPLE_CONSUMER_OPTION))
 		{
-			args.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
+			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_UNKNOWN] = 0;
 
 			/* Starting from '1' since we ignore all the unknown syscalls (PPM_SC_UNKNOWN). */
 			for(int j = 1; j < PPM_SC_MAX; j++)
 			{
-				args.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
+				oargs.ppm_sc_of_interest.ppm_sc[j] = !(g_syscall_info_table[j].flags & EF_DROP_SIMPLE_CONS);
 			}
 			simple_consumer = true;
 		}
@@ -690,7 +676,7 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== PRINT ===========================*/
 	}
 
-	if(source == -1)
+	if(oargs.engine == UNKNOWN_ENGINE)
 	{
 		printf("\nSource not specified! Bye!\n");
 		exit(EXIT_FAILURE);
@@ -751,7 +737,7 @@ int main(int argc, char** argv)
 	/* Interesting syscalls by default. */
 	for(int j = 0; j < PPM_SC_MAX; j++)
 	{
-		args.ppm_sc_of_interest.ppm_sc[j] = 1;
+		oargs.ppm_sc_of_interest.ppm_sc[j] = 1;
 	}
 
 	parse_CLI_options(argc, argv);
@@ -760,7 +746,7 @@ int main(int argc, char** argv)
 
 	print_configurations();
 
-	g_h = scap_open(args, error, &res);
+	g_h = scap_open(&oargs, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)
 	{
 		fprintf(stderr, "%s (%d)\n", error, res);
