@@ -48,7 +48,7 @@ extern const struct scap_vtable scap_gvisor_engine;
 #endif
 
 #ifdef HAS_ENGINE_MODERN_BPF
-extern const struct scap_vtable scap_modern_bpf_vtable;
+extern const struct scap_vtable scap_modern_bpf_engine;
 #endif
 
 #ifdef HAS_ENGINE_TEST_INPUT
