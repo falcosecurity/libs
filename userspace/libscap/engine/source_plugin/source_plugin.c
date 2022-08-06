@@ -64,11 +64,11 @@ static struct source_plugin_engine* alloc_handle(scap_t* main_handle, char* last
 	return engine;
 }
 
-static int32_t init(scap_t* main_handle, scap_open_args* open_args)
+static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
 	int32_t rc;
 	struct source_plugin_engine *handle = main_handle->m_engine.m_handle;
-	handle->m_input_plugin = open_args->input_plugin;
+	handle->m_input_plugin = oargs->plugin_args.input_plugin;
 
 	// Set the rc to SCAP_FAILURE now, so in the unlikely event
 	// that a plugin doesn't not actually set a rc, that it gets
@@ -76,7 +76,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* open_args)
 	ss_plugin_rc plugin_rc = SCAP_FAILURE;
 
 	handle->m_input_plugin->handle = handle->m_input_plugin->open(handle->m_input_plugin->state,
-	                                                              open_args->input_plugin_params,
+	                                                              oargs->plugin_args.input_plugin_params,
 	                                                              &plugin_rc);
 
 	rc = plugin_rc_to_scap_rc(plugin_rc);
