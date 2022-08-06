@@ -19,12 +19,6 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 option(USE_MODERN_BPF "Enable modern bpf probe" OFF)
 
-## we need to move this here until we don't enable the modern bpf probe from
-## the `scap-open-args`
-if(USE_MODERN_BPF)
-	add_definitions(-DHAS_ENGINE_MODERN_BPF)
-endif()
-
 if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_definitions(-DHAS_CAPTURE)
@@ -220,6 +214,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap scap_engine_kmod)
 
 	if(USE_MODERN_BPF)
+		add_definitions(-DHAS_ENGINE_MODERN_BPF)
 		add_subdirectory(engine/modern_bpf)
 		target_link_libraries(scap scap_engine_modern_bpf)
 	endif()

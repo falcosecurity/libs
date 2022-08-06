@@ -24,7 +24,6 @@ struct scap;
 
 struct modern_bpf_engine
 {
-	bool m_syscalls_of_interest[SYSCALL_TABLE_SIZE];
 	size_t m_num_cpus;
 	char* m_lasterr;
 };

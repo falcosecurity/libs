@@ -1,4 +1,4 @@
-include_directories(${LIBSCAP_INCLUDE_DIRS})
+include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 
 # Option to build bpf tests
 option(BUILD_MODERN_BPF_TEST "Build tests for modern BPF" OFF)
@@ -30,7 +30,7 @@ if(BUILD_MODERN_BPF_TEST)
 endif()
 
 add_library(scap_engine_modern_bpf
-	modern_bpf.c
+	scap_modern_bpf.c
 )
 
 add_dependencies(scap_engine_modern_bpf pman)
