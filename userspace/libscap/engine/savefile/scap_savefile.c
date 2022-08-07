@@ -19,7 +19,7 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #include <sys/uio.h>
 #else
@@ -1825,7 +1825,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 		if(readsize != sizeof(bh))
 		{
 			int err_no = 0;
-#ifdef WIN32
+#ifdef _WIN32
 			const char* err_str = "read error";
 #else
 			const char* err_str = r->error(r, &err_no);

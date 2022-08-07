@@ -47,7 +47,7 @@ limitations under the License.
 #include "windows_hal.h"
 #endif
 
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
+#ifdef _WIN32
 #define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)
 #endif
 
