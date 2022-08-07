@@ -430,7 +430,7 @@ void sinsp_fdtable::reset_cache()
 void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
 {
 #ifdef HAS_CAPTURE
-#ifndef WIN32
+#ifndef _WIN32
 	if(m_inspector->is_capture())
 	{
 		return;
@@ -443,6 +443,6 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
 		fdi->m_dev = scap_get_device_by_mount_id(m_inspector->m_h, procdir, fdi->m_mount_id);
 		fdi->m_mount_id = 0; // don't try again
 	}
-#endif // WIN32
+#endif // _WIN32
 #endif // HAS_CAPTURE
 }
