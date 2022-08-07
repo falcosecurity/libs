@@ -212,6 +212,10 @@ void event_test::assert_numeric_param(int param_num, T param, enum assertion_ope
 		ASSERT_EQ(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		break;
 
+	case NOT_EQUAL:
+		ASSERT_NE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		break;
+
 	case GREATER_EQUAL:
 		ASSERT_GE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		break;
@@ -246,6 +250,122 @@ void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_
 	assert_param_len(buf_dimension);
 	/* We have to use `memcmp` because we could have bytebuf with string terminator `\0` inside. */
 	ASSERT_EQ(memcmp(m_event_params[m_current_param].valptr, param, buf_dimension), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
+void event_test::assert_addr_info_inet_param(int param_num, uint8_t desired_family, const char* desired_ipv4, const char* desired_port)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Assert ipv4. */
+	assert_ipv4_string(desired_ipv4, 1);
+
+	/* Assert port. */
+	assert_port_string(desired_port, 5);
+
+	/* Assert (family + ipv4 + port) */
+	assert_param_len(FAMILY_SIZE + IPV4_SIZE + PORT_SIZE);
+}
+
+void event_test::assert_addr_info_inet6_param(int param_num, uint8_t desired_family, const char* desired_ipv6, const char* desired_port)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Assert ipv6. */
+	assert_ipv6_string(desired_ipv6, 1);
+
+	/* Assert port. */
+	assert_port_string(desired_port, 17);
+
+	/* Assert (family + ipv6 + port) */
+	assert_param_len(FAMILY_SIZE + IPV6_SIZE + PORT_SIZE);
+}
+
+void event_test::assert_addr_info_unix_param(int param_num, uint8_t desired_family, const char* desired_path)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Assert unix path. */
+	assert_unix_path(desired_path, 1);
+
+	/* Assert (family + unix_path + null terminator) */
+	assert_param_len(FAMILY_SIZE + strlen(desired_path) + 1);
+}
+
+void event_test::assert_tuple_inet_param(int param_num, uint8_t desired_family, const char* desired_src_ipv4, const char* desired_dest_ipv4,
+					 const char* desired_src_port, const char* desired_dest_port)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Assert src ipv4. */
+	assert_ipv4_string(desired_src_ipv4, 1, SOURCE);
+
+	/* Assert dest ipv4. */
+	assert_ipv4_string(desired_dest_ipv4, 5, DEST);
+
+	/* Assert src port. */
+	assert_port_string(desired_src_port, 9, SOURCE);
+
+	/* Assert dest port. */
+	assert_port_string(desired_dest_port, 11, DEST);
+
+	/* Assert (family + ipv4_src + ipv4_dest + port_src + port_dest) */
+	assert_param_len(FAMILY_SIZE + IPV4_SIZE + IPV4_SIZE + PORT_SIZE + PORT_SIZE);
+}
+
+void event_test::assert_tuple_inet6_param(int param_num, uint8_t desired_family, const char* desired_src_ipv6, const char* desired_dest_ipv6,
+					  const char* desired_src_port, const char* desired_dest_port)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Assert src ipv6. */
+	assert_ipv6_string(desired_src_ipv6, 1, SOURCE);
+
+	/* Assert dest ipv6. */
+	assert_ipv6_string(desired_dest_ipv6, 17, DEST);
+
+	/* Assert src port. */
+	assert_port_string(desired_src_port, 33, SOURCE);
+
+	/* Assert dest port. */
+	assert_port_string(desired_dest_port, 35, DEST);
+
+	/* Assert (family + ipv6_src + ipv6_dest + port_src + port_dest)*/
+	assert_param_len(FAMILY_SIZE + IPV6_SIZE + IPV6_SIZE + PORT_SIZE + PORT_SIZE);
+}
+
+void event_test::assert_tuple_unix_param(int param_num, uint8_t desired_family, const char* desired_path)
+{
+	assert_param_boundaries(param_num);
+
+	/* Assert family. */
+	assert_address_family(desired_family, 0);
+
+	/* Here we have the two pointers:
+	 * - source OS pointer.
+	 * - destination OS pointer.
+	 * but we cannot make assertions on that.
+	 */
+
+	/* Assert unix path. */
+	assert_unix_path(desired_path, 17);
+
+	/* Assert (family + 2 (8-byte) pointers + unix_path + null_terminator) */
+	assert_param_len(FAMILY_SIZE + 8 + 8 + strlen(desired_path) + 1);
 }
 
 void event_test::assert_ptrace_addr(int param_num)
@@ -289,4 +409,67 @@ void event_test::assert_param_len(uint16_t expected_size)
 {
 	uint16_t size = m_event_params[m_current_param].len;
 	ASSERT_EQ(size, expected_size) << ">>>>> length of the param is not correct. Param id = " << m_current_param << std::endl;
+}
+
+void event_test::assert_address_family(uint8_t desired_family, int starting_index)
+{
+	uint8_t family = (uint8_t)(m_event_params[m_current_param].valptr[starting_index]);
+	ASSERT_EQ(family, desired_family) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
+void event_test::assert_ipv4_string(const char* desired_ipv4, int starting_index, enum direction dir)
+{
+	char ipv4_string[ADDRESS_LENGTH];
+	if(inet_ntop(AF_INET, (uint8_t*)(m_event_params[m_current_param].valptr + starting_index), ipv4_string, ADDRESS_LENGTH) == NULL)
+	{
+		FAIL() << "'inet_ntop' must not fail. Param id = " << m_current_param << std::endl;
+	}
+
+	if(dir == DEST)
+	{
+		ASSERT_STREQ(ipv4_string, desired_ipv4) << VALUE_NOT_CORRECT << m_current_param << " (dest ipv4)" << std::endl;
+	}
+	else
+	{
+		ASSERT_STREQ(ipv4_string, desired_ipv4) << VALUE_NOT_CORRECT << m_current_param << " (source ipv4)" << std::endl;
+	}
+}
+
+void event_test::assert_port_string(const char* desired_port, int starting_index, enum direction dir)
+{
+	uint16_t port = *(uint16_t*)(m_event_params[m_current_param].valptr + starting_index);
+	const char* port_string = std::to_string(port).c_str();
+
+	if(dir == DEST)
+	{
+		ASSERT_STREQ(port_string, desired_port) << VALUE_NOT_CORRECT << m_current_param << "(dest port)" << std::endl;
+	}
+	else
+	{
+		ASSERT_STREQ(port_string, desired_port) << VALUE_NOT_CORRECT << m_current_param << "(source port)" << std::endl;
+	}
+}
+
+void event_test::assert_ipv6_string(const char* desired_ipv6, int starting_index, enum direction dir)
+{
+	char ipv6_string[ADDRESS_LENGTH];
+	if(inet_ntop(AF_INET6, (uint32_t*)(m_event_params[m_current_param].valptr + starting_index), ipv6_string, ADDRESS_LENGTH) == NULL)
+	{
+		FAIL() << "'inet_ntop' must not fail. Param id = " << m_current_param << std::endl;
+	}
+
+	if(dir == DEST)
+	{
+		ASSERT_STREQ(ipv6_string, desired_ipv6) << VALUE_NOT_CORRECT << m_current_param << "(dest ipv6)" << std::endl;
+	}
+	else
+	{
+		ASSERT_STREQ(ipv6_string, desired_ipv6) << VALUE_NOT_CORRECT << m_current_param << "(source ipv6)" << std::endl;
+	}
+}
+
+void event_test::assert_unix_path(const char* desired_path, int starting_index)
+{
+	const char* unix_path = m_event_params[m_current_param].valptr + starting_index;
+	ASSERT_STREQ(unix_path, desired_path) << VALUE_NOT_CORRECT << m_current_param;
 }

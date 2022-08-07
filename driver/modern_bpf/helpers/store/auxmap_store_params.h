@@ -15,6 +15,27 @@
  */
 #define MAX_PATH_POINTERS 8
 
+/* Maximum length of unix socket path.
+ * We can have at maximum 108 characters plus the `\0` terminator.
+ */
+#define MAX_UNIX_SOCKET_PATH 108 + 1
+
+/* Network components size. */
+#define FAMILY_SIZE sizeof(u8)
+#define IPV4_SIZE sizeof(u32)
+#define IPV6_SIZE 16
+#define PORT_SIZE sizeof(u16)
+#define KERNEL_POINTER sizeof(u64)
+
+/* This enum is used to tell network helpers if the connection outbound
+ * or inbound
+ */
+enum connection_direction
+{
+	OUTBOUND = 0,
+	INBOUND = 1,
+};
+
 /* Concept of auxamp (auxiliary map):
  *
  * For variable size events we cannot directly reserve space into the ringbuf,
@@ -417,6 +438,317 @@ static __always_inline void auxmap__store_path_from_fd(struct auxiliary_map *aux
 	}
 
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size);
+}
+
+/**
+ * @brief Store sockaddr info taken from syscall parameters.
+ * This helper doesn't have the concept of `outbound` and `inbound` connections
+ * since we read from userspace sockaddr struct. We have no to extract
+ * different data in the kernel according to the direction as in
+ * `auxmap__store_socktuple_param`.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param sockaddr_pointer pointer to the sockaddr struct
+ * @param addrlen overall length of the sockaddr struct
+ */
+static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *auxmap, unsigned long sockaddr_pointer, u16 addrlen)
+{
+	u16 final_param_len = 0;
+
+	/* We put the struct sockaddr in our auxmap, since we have to write other
+	 * data in the map, we push this temporary information in the second half
+	 * of the map (so in the second 64 KB), that will never be used unless the
+	 * event is invalid (too big).
+	 *
+	 *
+	 * Please note: we don't increment `payload pos` since we use this counter
+	 * only when we write correct data into our map. Here we use this space
+	 * as scratch, we won't push these extra data to userspace!
+	 *
+	 * AUXMAP:
+	 *
+	 * 						 first half of the
+	 * 						  auxmap ends here
+	 * 						   (first 64 KB)
+	 * 								 |
+	 * 								 v
+	 * -----------------------------------
+	 * |      |                      | X
+	 * -----------------------------------
+	 * 	 	  ^                        ^
+	 *        |                        |
+	 *		we are                  we save
+	 *   writing here           here the sockaddr
+	 *     our data                  struct
+	 */
+
+	/* If we are not able to save the sockaddr return an empty parameter. */
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+			       addrlen,
+			       (void *)sockaddr_pointer))
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	/* Save the pointer to the sockaddr struct in the stack. */
+	struct sockaddr *sockaddr = (struct sockaddr *)&auxmap->data[MAX_PARAM_SIZE];
+	u16 socket_family = sockaddr->sa_family;
+
+	switch(socket_family)
+	{
+	case AF_INET:
+	{
+		/* Map the user-provided address to a sockaddr_in. */
+		struct sockaddr_in *sockaddr_in = (struct sockaddr_in *)sockaddr;
+
+		/* Copy address and port into the stack. */
+		u32 ipv4 = sockaddr_in->sin_addr.s_addr;
+		u16 port = sockaddr_in->sin_port;
+
+		/* Pack the sockaddr info:
+		 * - socket family.
+		 * - ipv4.
+		 * - port.
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+		push__u32(auxmap->data, &auxmap->payload_pos, ipv4);
+		push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port));
+		final_param_len = FAMILY_SIZE + IPV4_SIZE + PORT_SIZE;
+		break;
+	}
+
+	case AF_INET6:
+	{
+		/* Map the user-provided address to a sockaddr_in6. */
+		struct sockaddr_in6 *sockaddr_in6 = (struct sockaddr_in6 *)sockaddr;
+
+		/* Copy address and port into the stack. */
+		u32 ipv6[4] = {0, 0, 0, 0};
+		__builtin_memcpy(&ipv6, sockaddr_in6->sin6_addr.in6_u.u6_addr32, 16);
+		u16 port = sockaddr_in6->sin6_port;
+
+		/* Pack the sockaddr info:
+		 * - socket family.
+		 * - dest_ipv6.
+		 * - dest_port.
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+		push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6);
+		push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port));
+		final_param_len = FAMILY_SIZE + IPV6_SIZE + PORT_SIZE;
+		break;
+	}
+
+	case AF_UNIX:
+	{
+		/* Map the user-provided address to a sockaddr_un. */
+		struct sockaddr_un *sockaddr_un = (struct sockaddr_un *)sockaddr;
+
+		/* Starting at `sockaddr_un` we have the socket family and after it
+		 * the `sun_path`.
+		 *
+		 * Please note exceptions in the `sun_path`:
+		 * Taken from: https://man7.org/linux/man-pages/man7/unix.7.html
+		 *
+		 * An `abstract socket address` is distinguished (from a
+		 * pathname socket) by the fact that sun_path[0] is a null byte
+		 * ('\0').
+		 */
+
+		/* Check the exact point in which we have to start reading our path. */
+		unsigned long start_reading_point;
+		/* We skip the two bytes of socket family. */
+		char first_path_byte = *(char *)sockaddr_un->sun_path;
+		if(first_path_byte == '\0')
+		{
+			/* This is an abstract socket address, we need to skip the initial `\0`. */
+			start_reading_point = (unsigned long)sockaddr_un->sun_path + 1;
+		}
+		else
+		{
+			start_reading_point = (unsigned long)sockaddr_un->sun_path;
+		}
+
+		/* Pack the sockaddr info:
+		 * - socket family.
+		 * - socket_unix_path (sun_path).
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+		u16 written_bytes = push__charbuf(auxmap->data, &auxmap->payload_pos, start_reading_point, MAX_UNIX_SOCKET_PATH, KERNEL);
+		final_param_len = FAMILY_SIZE + written_bytes;
+		break;
+	}
+
+	default:
+		final_param_len = 0;
+		break;
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, final_param_len);
+}
+
+/**
+ * @brief Store socktuple info taken from kernel socket.
+ * We prefer extracting data directly from the kernel to
+ * obtain more precise information.
+ *
+ * Please note:
+ * In outbound connections `local` is the src while `remote` is the dest.
+ * In inbound connections vice versa.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param socket_fd socket from which we extract information about the tuple.
+ * @param direction specifies the connection direction.
+ */
+static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *auxmap, u32 socket_fd, int direction)
+{
+	u16 final_param_len = 0;
+
+	/* Get the socket family directly from the socket */
+	u16 socket_family = 0;
+	struct file *file = NULL;
+	file = extract__file_struct_from_fd(socket_fd);
+	struct socket *socket = BPF_CORE_READ(file, private_data);
+	struct sock *sk = BPF_CORE_READ(socket, sk);
+	BPF_CORE_READ_INTO(&socket_family, socket, ops, family);
+
+	switch(socket_family)
+	{
+	case AF_INET:
+	{
+
+		struct inet_sock *inet = (struct inet_sock *)sk;
+
+		u32 ipv4_local = 0;
+		u16 port_local = 0;
+		u32 ipv4_remote = 0;
+		u16 port_remote = 0;
+		BPF_CORE_READ_INTO(&ipv4_local, inet, inet_saddr);
+		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+		BPF_CORE_READ_INTO(&ipv4_remote, sk, __sk_common.skc_daddr);
+		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+
+		/* Pack the tuple info:
+		 * - socket family
+		 * - src_ipv4
+		 * - dest_ipv4
+		 * - src_port
+		 * - dest_port
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+
+		if(direction == OUTBOUND)
+		{
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_local);
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_remote);
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+		}
+		else
+		{
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_remote);
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_local);
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+		}
+
+		final_param_len = FAMILY_SIZE + IPV4_SIZE + IPV4_SIZE + PORT_SIZE + PORT_SIZE;
+		break;
+	}
+
+	case AF_INET6:
+	{
+		/* Map the user-provided address to a sockaddr_in6. */
+		struct inet_sock *inet = (struct inet_sock *)sk;
+
+		u32 ipv6_local[4] = {0, 0, 0, 0};
+		u16 port_local = 0;
+		u32 ipv6_remote[4] = {0, 0, 0, 0};
+		u16 port_remote = 0;
+
+		BPF_CORE_READ_INTO(&ipv6_local, inet, pinet6, saddr);
+		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+		BPF_CORE_READ_INTO(&ipv6_remote, sk, __sk_common.skc_v6_daddr);
+		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+
+		/* Pack the tuple info:
+		 * - socket family
+		 * - src_ipv6
+		 * - dest_ipv6
+		 * - src_port
+		 * - dest_port
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+
+		if(direction == OUTBOUND)
+		{
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_local);
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_remote);
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+		}
+		else
+		{
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_remote);
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_local);
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+		}
+		final_param_len = FAMILY_SIZE + IPV6_SIZE + IPV6_SIZE + PORT_SIZE + PORT_SIZE;
+		break;
+	}
+
+	case AF_UNIX:
+	{
+		struct unix_sock *socket_local = (struct unix_sock *)sk;
+		struct unix_sock *socket_remote = (struct unix_sock *)BPF_CORE_READ(socket_local, peer);
+		char *path = NULL;
+
+		/* Pack the tuple info:
+		 * - socket family.
+		 * - dest OS pointer.
+		 * - src OS pointer.
+		 * - dest unix_path.
+		 */
+		push__u8(auxmap->data, &auxmap->payload_pos, socket_family_to_scap(socket_family));
+		if(direction == OUTBOUND)
+		{
+			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_remote);
+			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_local);
+			path = BPF_CORE_READ(socket_remote, addr, name[0].sun_path);
+		}
+		else
+		{
+			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_local);
+			push__u64(auxmap->data, &auxmap->payload_pos, (u64)socket_remote);
+			path = BPF_CORE_READ(socket_local, addr, name[0].sun_path);
+		}
+
+		unsigned long start_reading_point;
+		/* We have to skip the two bytes of socket family. */
+		char first_path_byte = *(char *)path;
+		if(first_path_byte == '\0')
+		{
+			/* This is an abstract socket address, we need to skip the initial `\0`. */
+			start_reading_point = (unsigned long)path + 1;
+		}
+		else
+		{
+			start_reading_point = (unsigned long)path;
+		}
+
+		u16 written_bytes = push__charbuf(auxmap->data, &auxmap->payload_pos, start_reading_point, MAX_UNIX_SOCKET_PATH, KERNEL);
+		final_param_len = FAMILY_SIZE + KERNEL_POINTER + KERNEL_POINTER + written_bytes;
+		break;
+	}
+
+	default:
+		final_param_len = 0;
+		break;
+	}
+
+	// if we are not able to catch correct programs we push an empty param.
+	push__param_len(auxmap->data, &auxmap->lengths_pos, final_param_len);
 }
 
 /**

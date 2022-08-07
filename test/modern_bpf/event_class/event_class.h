@@ -9,6 +9,8 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
+#include "network_utils.h"
+#include <arpa/inet.h>
 
 extern "C"
 {
@@ -31,6 +33,12 @@ enum assertion_operators
 	LESS = 3,
 	GREATER_EQUAL = 4,
 	LESS_EQUAL = 5,
+};
+
+enum direction
+{
+	SOURCE = 0,
+	DEST = 1,
 };
 
 /* Syscall return code assertions. */
@@ -249,6 +257,92 @@ public:
 	void assert_bytebuf_param(int param_num, const char* param, int buf_dimension);
 
 	/**
+	 * @brief Assert the values extracted from an INET `sockaddr`:
+	 * - socket family
+	 * - ipv4
+	 * - port
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_ipv4 expected ipv4.
+	 * @param desired_port expected port.
+	 */
+	void assert_addr_info_inet_param(int param_num, uint8_t desired_family, const char* desired_ipv4, const char* desired_port);
+
+	/**
+	 * @brief Assert the values extracted from an INET6 `sockaddr`:
+	 * - socket family
+	 * - ipv6
+	 * - port
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_ipv6 expected ipv6.
+	 * @param desired_port expected port.
+	 */
+	void assert_addr_info_inet6_param(int param_num, uint8_t desired_family, const char* desired_ipv6, const char* desired_port);
+
+	/**
+	 * @brief Assert the values extracted from a UNIX `sockaddr`:
+	 * - socket family
+	 * - unix path
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_path expected unix path.
+	 */
+	void assert_addr_info_unix_param(int param_num, uint8_t desired_family, const char* desired_path);
+
+	/**
+	 * @brief Assert the tuple extracted from a kernel INET socket:
+	 * - socket family
+	 * - src ipv4
+	 * - dest ipv4
+	 * - src port
+	 * - dest port
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_src_ipv4 expected source ipv4.
+	 * @param desired_dest_ipv4 expected dest ipv4.
+	 * @param desired_src_port expected source port.
+	 * @param desired_dest_port expected dest port.
+	 */
+	void assert_tuple_inet_param(int param_num, uint8_t desired_family, const char* desired_src_ipv4,
+				     const char* desired_dest_ipv4, const char* desired_src_port, const char* desired_dest_port);
+
+	/**
+	 * @brief Assert the tuple extracted from a kernel INET6 socket:
+	 * - socket family
+	 * - src ipv6
+	 * - dest ipv6
+	 * - src port
+	 * - dest port
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_src_ipv6 expected source ipv6.
+	 * @param desired_dest_ipv6 expected dest ipv6.
+	 * @param desired_src_port expected source port.
+	 * @param desired_dest_port expected dest port.
+	 */
+	void assert_tuple_inet6_param(int param_num, uint8_t desired_family, const char* desired_src_ipv6, const char* desired_dest_ipv6,
+				      const char* desired_src_port, const char* desired_dest_port);
+
+	/**
+	 * @brief Assert the tuple extracted from a kernel UNIX socket:
+	 * - socket family.
+	 * - dest OS pointer. (we cannot assert it!)
+	 * - src OS pointer. (we cannot assert it!)
+	 * - dest unix_path.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param desired_family expected socket family.
+	 * @param desired_path expected dest unix_path.
+	 */
+	void assert_tuple_unix_param(int param_num, uint8_t desired_family, const char* desired_path);
+
+	/**
 	 * @brief The ptrace `addr` param is a `PT_DYN`, so we need
 	 * a dedicated helper to assert it.
 	 *
@@ -296,4 +390,53 @@ private:
 	 * @param expected_size expected length of the param
 	 */
 	void assert_param_len(uint16_t expected_size);
+
+	/**
+	 * @brief Assert the socket address family as part of a `sockaddr` or a `tuple`.
+	 *
+	 * @param desired_family expected socket family.
+	 * @param starting_index index inside the param where we can find the socket familiy.
+	 */
+	void assert_address_family(uint8_t desired_family, int starting_index);
+
+	/**
+	 * @brief Assert an ipv4 address as part of a `sockaddr` or a `tuple`.
+	 *
+	 * Please note that the BPF instrumentation provides us with the ipv4 as number
+	 * here we convert it to a string and we assert it.
+	 *
+	 * @param desired_ipv4 expected ipv4 address as a string.
+	 * @param starting_index index inside the param where we can find the ipv4 address.
+	 */
+	void assert_ipv4_string(const char* desired_ipv4, int starting_index, enum direction dir = DEST);
+
+	/**
+	 * @brief Assert the port number as part of a `sockaddr` or a `tuple`.
+	 *
+	 * Please note that the BPF instrumentation provides us with the port as number
+	 * here we convert it to a string and we assert it.
+	 *
+	 * @param desired_port expected port number as a string.
+	 * @param starting_index index inside the param where we can find the port number.
+	 */
+	void assert_port_string(const char* desired_port, int starting_index, enum direction dir = DEST);
+
+	/**
+	 * @brief Assert an ipv6 address as part of a `sockaddr` or a `tuple`.
+	 *
+	 * Please note that the BPF instrumentation provides us with the ipv6 as number
+	 * here we convert it to a string and we assert it.
+	 *
+	 * @param desired_ipv6 expected ipv6 address.
+	 * @param starting_index index inside the param where we can find the ipv6 address.
+	 */
+	void assert_ipv6_string(const char* desired_ipv6, int starting_index, enum direction dir = DEST);
+
+	/**
+	 * @brief Assert an unix socket path as part of a `sockaddr` or a `tuple`.
+	 *
+	 * @param desired_path expected unix socket path.
+	 * @param starting_index index inside the param where we can find the unix path.
+	 */
+	void assert_unix_path(const char* desired_path, int starting_index);
 };
