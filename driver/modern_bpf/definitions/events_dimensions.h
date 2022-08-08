@@ -66,5 +66,6 @@
 #define SOCKETPAIR_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
 #define SOCKETPAIR_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 #define ACCEPT_E_SIZE HEADER_LEN
+#define ACCEPT4_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
