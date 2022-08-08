@@ -591,7 +591,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	}
 
 	// See fgetpwent() feature test macros: https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-#if defined HAVE_PWD_H && _DEFAULT_SOURCE
+#if defined HAVE_PWD_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
 	auto passwd_in_container = overlayfs_root + "/etc/passwd";
 	auto pwd_file = fopen(passwd_in_container.c_str(), "r");
 	if(pwd_file)
@@ -605,7 +605,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 #endif
 
 	// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined HAVE_GRP_H && _DEFAULT_SOURCE
+#if defined HAVE_GRP_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
 	auto group_in_container = overlayfs_root + "/etc/group";
 	auto grp_file = fopen(group_in_container.c_str(), "r");
 	if(grp_file)
