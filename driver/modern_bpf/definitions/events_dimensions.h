@@ -63,5 +63,7 @@
 #define CAPSET_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 3 + PARAM_LEN * 4
 #define SOCKET_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
 #define SOCKET_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SOCKETPAIR_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
+#define SOCKETPAIR_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) * 2 + PARAM_LEN * 5
 
 #endif /* __EVENT_DIMENSIONS_H__ */
