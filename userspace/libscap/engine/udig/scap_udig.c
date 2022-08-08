@@ -119,10 +119,6 @@ int32_t udig_alloc_ring(void* ring_id,
 		return SCAP_FAILURE;
 	}
 
-	// Now that we have the address, unmap the double-lenght buffer so we can 
-	// use the two halves.
-	munmap(buf1, (*ringsize) * 2);
-
 	// Map the first ring copy at exactly the beginning of the previously
 	// allocated area, forcing it with MAP_FIXED.
 	*ring = (uint8_t*)mmap(buf1, *ringsize, 
