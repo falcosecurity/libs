@@ -87,6 +87,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_CONNECT_X] = "connect_x",
 	[PPME_SOCKET_SOCKETPAIR_E] = "socketpair_e",
 	[PPME_SOCKET_SOCKETPAIR_X] = "socketpair_x",
+	[PPME_SOCKET_ACCEPT_5_E] = "accept_e",
+	[PPME_SOCKET_ACCEPT_5_X] = "accept_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
