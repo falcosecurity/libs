@@ -226,6 +226,16 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 	endif()
 endif()
 
+# We might need to filter this.
+get_target_property(scap_link_libraries scap LINK_LIBRARIES)
+
+set(scap_link_flags)
+foreach(link_library scap_engine_noop ${scap_link_libraries})
+	list(APPEND scap_link_flags "-l${link_library}")
+endforeach()
+string(REPLACE ";" " " SCAP_LINK_LIBRARIES_FLAGS "${scap_link_flags}")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libscap.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libscap.pc @ONLY)
+
 if (BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)
 	add_subdirectory(examples/02-validatebuffer)
