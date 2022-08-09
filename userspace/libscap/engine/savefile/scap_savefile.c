@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,21 @@ struct iovec {
 #include "scap_savefile.h"
 #include "scap_reader.h"
 #include "../noop/noop.h"
+
+//
+// Read the section header block
+//
+inline static int read_block_header(struct savefile_engine* handle, struct scap_reader *r, block_header* h)
+{
+	int res = sizeof(block_header);
+	if (!handle->m_use_last_block_header)
+	{
+		res = r->read(r, &handle->m_last_block_header, sizeof(block_header));
+	}
+	memcpy(h, &handle->m_last_block_header, sizeof(block_header));
+	handle->m_use_last_block_header = false;
+	return res;
+}
 
 //
 // Load the machine info block
@@ -1622,7 +1637,7 @@ static int32_t scap_read_section_header(scap_reader_t* r, char* error)
 //
 // Parse the headers of a trace file and load the tables
 //
-static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error)
+static int32_t scap_read_init(struct savefile_engine *handle, scap_reader_t* r, scap_machine_info* machine_info_p, struct scap_proclist* proclist_p, scap_addrlist** addrlist_p, scap_userlist** userlist_p, char* error)
 {
 	block_header bh;
 	uint32_t bt;
@@ -1635,7 +1650,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 	//
 	// Read the section header block
 	//
-	if(r->read(r, &bh, sizeof(bh)) != sizeof(bh))
+	if(read_block_header(handle, r, &bh) != sizeof(bh))
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error reading from file (1)");
 		return SCAP_FAILURE;
@@ -1657,7 +1672,7 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 	//
 	while(true)
 	{
-		readsize = r->read(r, &bh, sizeof(bh));
+		readsize = read_block_header(handle, r, &bh);
 
 		//
 		// If we don't find the event block header,
@@ -1719,21 +1734,12 @@ static int32_t scap_read_init(scap_reader_t* r, scap_machine_info* machine_info_
 		case EVF_BLOCK_TYPE_V2:
 		case EV_BLOCK_TYPE_V2_LARGE:
 		case EVF_BLOCK_TYPE_V2_LARGE:
+			//
+			// We're done with the metadata headers.
+			//
 			found_ev = 1;
-
-			//
-			// We're done with the metadata headers. Rewind the file position so we are aligned to start reading the events.
-			//
-			fseekres = r->seek(r, (long)0 - sizeof(bh), SEEK_CUR);
-			if(fseekres != -1)
-			{
-				break;
-			}
-			else
-			{
-				snprintf(error, SCAP_LASTERR_SIZE, "error seeking in file");
-				return SCAP_FAILURE;
-			}
+			handle->m_use_last_block_header = true;
+			break;
 		case IL_BLOCK_TYPE:
 		case IL_BLOCK_TYPE_INT:
 		case IL_BLOCK_TYPE_V2:
@@ -1820,7 +1826,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 		//
 		// Read the block header
 		//
-		readsize = r->read(r, &bh, sizeof(bh));
+		readsize = read_block_header(handle, r, &bh);
 
 		if(readsize != sizeof(bh))
 		{
@@ -1858,7 +1864,7 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 		   bh.block_type != EVF_BLOCK_TYPE_V2_LARGE)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unexpected block type %u", (uint32_t)bh.block_type);
-			handle->m_unexpected_block_readsize = readsize;
+			handle->m_use_last_block_header = true;
 			return SCAP_UNEXPECTED_BLOCK;
 		}
 
@@ -2077,7 +2083,10 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 		scap_fseek(main_handle, args->start_offset);
 	}
 
+	handle->m_use_last_block_header = false;
+
 	res = scap_read_init(
+		handle,
 		reader,
 		&main_handle->m_machine_info,
 		&main_handle->m_proclist,
@@ -2100,7 +2109,6 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* args)
 	}
 	handle->m_reader_evt_buf_size = READER_BUF_SIZE;
 	handle->m_reader = reader;
-	handle->m_unexpected_block_readsize = 0;
 
 	if(!args->import_users)
 	{
@@ -2142,12 +2150,8 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 	struct savefile_engine *engine = handle->m_engine.m_handle;
 	int32_t res;
 
-	if (engine->m_unexpected_block_readsize > 0)
-	{
-		engine->m_reader->seek(engine->m_reader, (int64_t)0 - (int64_t)engine->m_unexpected_block_readsize, SEEK_CUR);
-		engine->m_unexpected_block_readsize = 0;
-	}
 	if((res = scap_read_init(
+		engine,
 		engine->m_reader,
 		&handle->m_machine_info,
 		&handle->m_proclist,
