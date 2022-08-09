@@ -93,6 +93,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_ACCEPT4_5_X] = "accept4_x",
 	[PPME_SOCKET_BIND_E] = "bind_e",
 	[PPME_SOCKET_BIND_X] = "bind_x",
+	[PPME_SOCKET_LISTEN_E] = "listen_e",
+	[PPME_SOCKET_LISTEN_X] = "listen_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
