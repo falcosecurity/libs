@@ -19,6 +19,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stddef.h>
 #include "scap_reader.h"
+#include "scap_savefile.h"
 
 #define SCAP_HANDLE_T struct savefile_engine
 
@@ -31,7 +32,8 @@ struct savefile_engine
 {
 	char* m_lasterr;
 	scap_reader_t* m_reader;
-	uint64_t m_unexpected_block_readsize;
+	block_header m_last_block_header;
+	bool m_use_last_block_header;
 	char* m_reader_evt_buf;
 	size_t m_reader_evt_buf_size;
 	uint32_t m_last_evt_dump_flags;
