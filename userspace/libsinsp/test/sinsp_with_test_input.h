@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <gtest/gtest.h>
+#include <stdexcept>
 
 #include "scap.h"
 #include "sinsp.h"
@@ -35,6 +36,7 @@ protected:
 		m_test_data->threads = nullptr;
 
 		m_test_timestamp = 1566230400000000000;
+		m_last_recorded_timestamp = 0;
 	}
 
 	void TearDown() override
@@ -62,15 +64,23 @@ protected:
 		return ret;
 	}
 
-	// adds an event and advances the inspector to the next event
-	sinsp_evt* add_event_sinsp_next(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
+	// adds an event and advances the inspector to the new timestamp
+	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
 	{
+		scap_evt *scap_event;
+		sinsp_evt *sinsp_event;
 		va_list args;
 		va_start(args, n);
-		add_event_v(ts, tid, event_type, n, args);
+		scap_event = add_event_v(ts, tid, event_type, n, args);
 		va_end(args);
 
-		return next_event();
+		for (sinsp_event = next_event(); sinsp_event != nullptr; sinsp_event = next_event()) {
+			if (sinsp_event->get_ts() == ts) {
+				return sinsp_event;
+			}
+		}
+
+		throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + m_events.size() + std::string(")"));
 	}
 
 	scap_evt* add_event_v(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, va_list args)
@@ -80,6 +90,10 @@ protected:
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args2;
 		va_copy(args2, args);
+
+		if (ts <= m_last_recorded_timestamp) {
+			throw std::runtime_error("the test framework does not currently support equal timestamps or out of order events");
+		}
 
 		int32_t ret = scap_event_encode_params_v(event_buf, &event_size, error, event_type, n, args);
 
@@ -109,6 +123,7 @@ protected:
 		m_events.push_back(event);
 		m_test_data->events = m_events.data();
 		m_test_data->event_count = m_events.size();
+		m_last_recorded_timestamp = ts;
 
 		return event;
 	}
@@ -240,8 +255,8 @@ protected:
 	sinsp_evt *next_event()
 	{
 		sinsp_evt *evt;
-		m_inspector.next(&evt);
-		return evt;
+		auto result = m_inspector.next(&evt);
+		return result == SCAP_SUCCESS ? evt : nullptr;
 	}
 
 	std::unique_ptr<scap_test_input_data> m_test_data;
@@ -252,4 +267,5 @@ protected:
 	std::vector<scap_test_fdinfo_data> m_test_fdinfo_data;
 
 	uint64_t m_test_timestamp;
+	uint64_t m_last_recorded_timestamp;
 };
