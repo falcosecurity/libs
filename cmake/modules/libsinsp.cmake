@@ -100,5 +100,6 @@ if(WITH_CHISEL)
 			COMPONENT "sinsp"
 			FILES_MATCHING PATTERN "*.h")
 endif()
+install(FILES ${PROJECT_BINARY_DIR}/libsinsp/libsinsp.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 endif()

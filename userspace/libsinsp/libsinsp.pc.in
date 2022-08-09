@@ -1,0 +1,11 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_LIBDIR@
+includedir=@CMAKE_INSTALL_PREFIX@/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: libsinsp
+Description: lib for System INSPection
+Version: @FALCOSECURITY_LIBS_VERSION@
+
+Requires: libscap
+Libs: -L${libdir}/@LIBS_PACKAGE_NAME@ -lsinsp @SINSP_PKG_CONFIG_LIBDIRS@ @SINSP_PKG_CONFIG_LIBS@
+Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/userspace/libsinsp @SINSP_PKG_CONFIG_INCLUDES@
