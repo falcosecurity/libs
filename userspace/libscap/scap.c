@@ -898,13 +898,12 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	}
 #endif
 
-	/* probably at the end of the v-table work we can use just one function
+	/* At the end of the `v-table` work we can use just one function
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
 	 */
 	switch(oargs->engine)
 	{
-
 	case SAVEFILE_ENGINE:
 		return scap_open_offline_int(oargs, rc, error);
 
@@ -930,14 +929,13 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 					      oargs->proc_callback_context,
 					      oargs->import_users);
 
-	case PLUGIN_ENGINE:
+	case SOURCE_PLUGIN_ENGINE:
 		return scap_open_plugin_int(error, rc, oargs);
 	
 	default:
 		// error
 		break;
 	}
-
 
 	snprintf(error, SCAP_LASTERR_SIZE, "incorrect engine %d", oargs->engine);
 	*rc = SCAP_FAILURE;

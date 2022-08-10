@@ -30,7 +30,7 @@ using namespace std;
 #define UDIG "udig"
 #define NODRIVER "nodriver"
 #define SCAPFILE "scap-file"
-#define PLUGIN "plugin"
+#define SOURCE_PLUGIN "plugin"
 #define GVISOR "gvisor"
 #define MODERN_BPF "modern-bpf"
 #define TEST_INPUT "test-input"
@@ -72,8 +72,7 @@ Options:
   -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                 Use JSON as the output format.
   -a, --all-threads                          Output information about all threads, not just the main one.
-  -e <engine_name>, --engine <engine_name>   Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", 
-                                             "scap-file", "gvisor", "modern_bpf", "test_input". 
+  -e <engine_name>, --engine <engine_name>   Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "scap-file", "gvisor", "modern_bpf", "test_input". 
   -b <path>, --bpf-path <path>               BPF probe path.
   -d <dim>, --buffer-dim <dim>               Buffer dimension.
   -s <path>, --scap-file-path <path>         Scap file path.
@@ -179,7 +178,7 @@ void open_engine(sinsp& inspector)
 		}
 		inspector.open_savefile(scap_file_path.c_str(), 0);
 	}
-	else if(!engine_string.compare(PLUGIN))
+	else if(!engine_string.compare(SOURCE_PLUGIN))
 	{
 		std::cerr << "Not supported right now." << std::endl;
 		exit(EXIT_SUCCESS);

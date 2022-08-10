@@ -73,6 +73,17 @@ struct iovec;
 #include "scap_procs.h"
 #include "scap_test.h"
 
+/* Include engine-specific params. */
+#include <engine/bpf/bpf_public.h>
+#include <engine/gvisor/gvisor_public.h>
+#include <engine/kmod/kmod_public.h>
+#include <engine/modern_bpf/modern_bpf_public.h>
+#include <engine/nodriver/nodriver_public.h>
+#include <engine/savefile/savefile_public.h>
+#include <engine/source_plugin/source_plugin_public.h>
+#include <engine/test_input/test_input_public.h>
+#include <engine/udig/udig_public.h>
+
 //
 // The minimum API and schema versions the driver has to support before we can use it
 //

@@ -101,7 +101,8 @@ static int32_t get_fdinfos(struct scap_engine_handle handle, const scap_threadin
 static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
 	test_input_engine *engine = main_handle->m_engine.m_handle;
-	engine->m_data = oargs->test_input_args.test_input_data;
+	struct scap_test_input_engine_params *params = oargs->engine_params;
+	engine->m_data = params->test_input_data;
 
 	if (engine->m_data == NULL) {
 		strlcpy(engine->m_lasterr, "No test input data provided", SCAP_LASTERR_SIZE);

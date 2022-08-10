@@ -123,6 +123,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 	m_statsd_port = -1;
+	m_engine = UNKNOWN_ENGINE;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -509,8 +510,9 @@ void sinsp::open_common(scap_open_args* oargs)
 	/* Reset the thread manager */
 	m_thread_manager->clear();
 
-	/* We need to save the actual mode in sinsp. */
+	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
+	m_mode = oargs->engine;
 
 	fill_syscalls_of_interest(oargs);
 	if(!m_filter_proc_table_when_saving)
@@ -545,7 +547,9 @@ scap_open_args sinsp::factory_open_args(scap_engine_t engine, scap_mode_t scap_m
 void sinsp::open_kmod(uint64_t buffer_dimension)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
-	oargs.kmod_args.single_buffer_dim = buffer_dimension;
+	struct scap_kmod_engine_params params;
+	params.single_buffer_dim = buffer_dimension;
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
@@ -558,15 +562,19 @@ void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path)
 	}
 
 	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
-	oargs.bpf_args.single_buffer_dim = buffer_dimension;
-	oargs.bpf_args.bpf_probe = bpf_path;
+	struct scap_bpf_engine_params params;
+	params.single_buffer_dim = buffer_dimension;
+	params.bpf_probe = bpf_path;
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
 void sinsp::open_udig(uint64_t buffer_dimension)
 {
 	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
-	oargs.bpf_args.single_buffer_dim = buffer_dimension;
+	struct scap_udig_engine_params params;
+	params.single_buffer_dim = buffer_dimension;
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
@@ -576,49 +584,54 @@ void sinsp::open_nodriver()
 	open_common(&oargs);
 }
 
-void sinsp::open_savefile(const std::string &filename, int fd)
+void sinsp::open_savefile(const std::string& filename, int fd)
 {
 	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
+	struct scap_savefile_engine_params params;
 
 	m_filter_proc_table_when_saving = true;
 
 	m_input_filename = filename;
 	m_input_fd = fd; /* default is 0. */
-	
+
 	if(m_input_fd != 0)
 	{
 		/* In this case, we can't get a reliable filesize */
-		oargs.scap_file_args.fd = m_input_fd;
-		oargs.scap_file_args.fname = NULL;
+		params.fd = m_input_fd;
+		params.fname = NULL;
 		m_filesize = 0;
 	}
-	else 
+	else
 	{
 		if(filename.empty())
 		{
 			throw sinsp_exception("When you use the 'scap-file' engine you need to provide a path to the scap file.");
 		}
 
-		oargs.scap_file_args.fname = filename.c_str();
-		oargs.scap_file_args.fd = 0;
+		params.fname = filename.c_str();
+		params.fd = 0;
 
 		char error[SCAP_LASTERR_SIZE] = {0};
-		m_filesize = get_file_size(oargs.scap_file_args.fname, error);
+		m_filesize = get_file_size(params.fname, error);
 		if(m_filesize < 0)
 		{
 			throw sinsp_exception(error);
 		}
 	}
-	oargs.scap_file_args.fbuffer_size = 0;
-	oargs.scap_file_args.start_offset = 0;  /* Today this is always `0`. */
+
+	params.start_offset = 0;
+	params.fbuffer_size = 0;
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
 void sinsp::open_plugin()
 {
-	scap_open_args oargs = factory_open_args(PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
-	oargs.plugin_args.input_plugin = &m_input_plugin->as_scap_source();
-	oargs.plugin_args.input_plugin_params = (char*) m_input_plugin_open_params.c_str();
+	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
+	struct scap_source_plugin_engine_params params;
+	params.input_plugin = &m_input_plugin->as_scap_source();
+	params.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
@@ -635,8 +648,10 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 	}
 
 	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
-	oargs.gvisor_args.gvisor_root_path = root_path.c_str();
-	oargs.gvisor_args.gvisor_config_path = config_path.c_str();
+	struct scap_gvisor_engine_params params;
+	params.gvisor_root_path = root_path.c_str();
+	params.gvisor_config_path = config_path.c_str();
+	oargs.engine_params = &params;
 	open_common(&oargs);
 
 	set_get_procs_cpu_from_driver(false);
@@ -645,16 +660,20 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 void sinsp::open_modern_bpf(uint64_t buffer_dimension)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
-	oargs.modern_bpf_args.single_buffer_dim = buffer_dimension;
+	struct scap_modern_bpf_engine_params params;
+	params.single_buffer_dim = buffer_dimension;
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
-void sinsp::open_test_input(scap_test_input_data *data)
+void sinsp::open_test_input(scap_test_input_data* data)
 {
 	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_LIVE);
-	oargs.test_input_args.test_input_data = data;
+	struct scap_test_input_engine_params params;
+	params.test_input_data = data;
+	oargs.engine_params = &params;
 	open_common(&oargs);
-	
+
 	set_get_procs_cpu_from_driver(false);
 }
 
