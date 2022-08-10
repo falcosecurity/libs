@@ -82,7 +82,7 @@ extern "C"
 		UDIG_ENGINE = 3,
 		NODRIVER_ENGINE = 4,
 		SAVEFILE_ENGINE = 5,
-		PLUGIN_ENGINE = 6,
+		SOURCE_PLUGIN_ENGINE = 6,
 		GVISOR_ENGINE = 7,
 		MODERN_BPF_ENGINE = 8,
 		TEST_INPUT_ENGINE = 9,
@@ -90,8 +90,8 @@ extern "C"
 
 	typedef struct scap_open_args
 	{
-		scap_engine_t engine;
-		scap_mode_t mode;
+		scap_engine_t engine;				 ///< engine enum (scap_engine_t).
+		scap_mode_t mode;					 ///< scap-mode required by the engine.
 		proc_entry_callback proc_callback;			 ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
 		void* proc_callback_context;				 ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 		bool import_users;					 ///< true if the user list should be created when opening the capture.
@@ -99,57 +99,8 @@ extern "C"
 									 // events should be returned, with a trailing NULL value.
 									 // You can provide additional comm
 									 // values via scap_suppress_events_comm().
-		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscall of interest
-
-		union
-		{
-			struct
-			{
-				uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
-			} kmod_args;
-
-			struct
-			{
-				uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
-				const char* bpf_probe;	    ///<  The path to the BPF probe object file.
-			} bpf_args;
-
-			struct
-			{
-				uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
-			} udig_args;
-
-			struct
-			{
-				int fd;		       ///< If non-zero, will be used instead of fname.
-				const char* fname;     ///< The name of the file to open.
-				uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
-				uint32_t fbuffer_size; ///< If non-zero, offline captures will read from file using a buffer of this size.
-			} scap_file_args;
-
-			struct
-			{
-				scap_source_plugin* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
-				char* input_plugin_params;	  ///< optional parameters string for the source plugin pointed by src_plugin
-			} plugin_args;
-
-			struct
-			{
-				const char* gvisor_root_path;	///< When using gvisor, the root path used by runsc commands
-				const char* gvisor_config_path; ///< When using gvisor, the path to the configuration file
-			} gvisor_args;
-
-			struct
-			{
-				uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
-			} modern_bpf_args;
-
-			struct
-			{
-				scap_test_input_data* test_input_data; ///<  only used for testing scap consumers by supplying arbitrary test data.
-			} test_input_args;
-		};
-
+		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
+		void* engine_params;			   ///< engine-specific params.
 	} scap_open_args;
 
 #ifdef __cplusplus

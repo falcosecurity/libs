@@ -2045,10 +2045,10 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 	gzFile gzfile;
 	int res;
 	struct savefile_engine *handle = main_handle->m_engine.m_handle;
-
-	int fd = oargs->scap_file_args.fd;
-	const char* fname = oargs->scap_file_args.fname;
-	uint64_t start_offset = oargs->scap_file_args.start_offset;
+	struct scap_savefile_engine_params* params = oargs->engine_params;
+	int fd = params->fd;
+	const char* fname = params->fname;
+	uint64_t start_offset = params->start_offset;
 
 	if(fd != 0)
 	{

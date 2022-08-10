@@ -39,6 +39,9 @@ extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
+/* Engine params */
+struct scap_bpf_engine_params bpf_params;
+struct scap_savefile_engine_params savefile_params;
 
 /* Configuration variables set through CLI. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
@@ -518,7 +521,8 @@ void print_scap_source()
 		break;
 
 	case BPF_ENGINE:
-		printf("* BPF probe: '%s'\n", oargs.bpf_args.bpf_probe);
+		struct scap_bpf_engine_params* params = oargs.engine_params;
+		printf("* BPF probe: '%s'\n", params->bpf_probe);
 		break;
 
 	case MODERN_BPF_ENGINE:
@@ -526,7 +530,8 @@ void print_scap_source()
 		break;
 
 	case SAVEFILE_ENGINE:
-		printf("* Scap file: '%s'.\n", oargs.scap_file_args.fname);
+		struct scap_savefile_engine_params* params = oargs.engine_params;
+		printf("* Scap file: '%s'.\n", params->fname);
 		break;
 
 	default:
@@ -595,7 +600,9 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			oargs.engine = BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
-			oargs.bpf_args.bpf_probe = argv[++i];
+
+			bpf_params.bpf_probe = argv[++i];
+			oargs.engine_params = &bpf_params;
 		}
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
@@ -610,8 +617,10 @@ void parse_CLI_options(int argc, char** argv)
 				exit(EXIT_FAILURE);
 			}
 			oargs.engine = SAVEFILE_ENGINE;
-			oargs.scap_file_args.fname = argv[++i];
 			oargs.mode = SCAP_MODE_CAPTURE;
+
+			savefile_params.fname = argv[++i];
+			oargs.engine_params = &savefile_params;
 		}
 
 		/*=============================== SCAP SOURCES ===========================*/
@@ -687,9 +696,9 @@ void print_stats()
 {
 	scap_stats s;
 	printf("\n---------------------- STATS -----------------------\n");
-	printf("events captured: %" PRIu64 "\n", g_nevts);
+	printf("Events captured: %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
-	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
 	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
@@ -724,9 +733,9 @@ static void signal_callback(int signal)
 int main(int argc, char** argv)
 {
 	char error[SCAP_LASTERR_SIZE];
-	int32_t res;
-	scap_evt* ev;
-	uint16_t cpuid;
+	int32_t res = 0;
+	scap_evt* ev = NULL;
+	uint16_t cpuid = 0;
 
 	if(signal(SIGINT, signal_callback) == SIG_ERR)
 	{
@@ -758,30 +767,30 @@ int main(int argc, char** argv)
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
-		if (res == SCAP_UNEXPECTED_BLOCK)
+		if(res == SCAP_UNEXPECTED_BLOCK)
 		{
 			res = scap_restart_capture(g_h);
-			if (res == SCAP_SUCCESS)
+			if(res == SCAP_SUCCESS)
 			{
 				continue;
 			}
 		}
 
-		if (res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
+		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
 			continue;
 		}
-		else if (res == SCAP_EOF)
+		else if(res == SCAP_EOF)
 		{
 			break;
 		}
-		else if (res != SCAP_SUCCESS)
+		else if(res != SCAP_SUCCESS)
 		{
 			scap_close(g_h);
 			fprintf(stderr, "%s (%d)\n", scap_getlasterr(g_h), res);
 			return -1;
 		}
-		
+
 		if(ev->type == evt_type)
 		{
 			print_event(ev);

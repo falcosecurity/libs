@@ -1748,8 +1748,8 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
 	char error[SCAP_LASTERR_SIZE] = {0};
 	struct scap_engine_handle engine = handle->m_engine;
-
-	strlcpy(bpf_probe_buf, oargs->bpf_args.bpf_probe, SCAP_MAX_PATH_SIZE);
+	struct scap_bpf_engine_params *params = oargs->engine_params;
+	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs

@@ -707,6 +707,14 @@ public:
 	}
 
 	/*!
+	  \brief Returns the engine used by the inspector
+	*/
+	inline scap_engine_t get_engine()
+	{
+		return m_engine;
+	}
+
+	/*!
 	  \brief Set a flag indicating if the command line requested to show container information.
 
 	  \param set true if the command line argument is set to show container information
@@ -1039,6 +1047,7 @@ private:
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	std::string m_input_filename;
+	scap_engine_t m_engine;
 	bool m_is_windows;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
