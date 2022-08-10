@@ -29,7 +29,7 @@ limitations under the License.
 /* Right now this is not used */
 bool scap_modern_bpf__match(scap_open_args* oargs)
 {
-	return oargs->engine == MODERN_BPF_ENGINE;
+	return strncmp(oargs->engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0;
 }
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)

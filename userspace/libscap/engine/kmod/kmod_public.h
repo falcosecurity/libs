@@ -15,6 +15,9 @@ limitations under the License.
 
 #include <stdint.h>
 
+#define KMOD_ENGINE "kmod"
+#define KMOD_ENGINE_LEN 5
+
 #ifdef __cplusplus
 extern "C"
 {

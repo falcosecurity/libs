@@ -79,7 +79,7 @@ static int32_t gvisor_next(struct scap_engine_handle engine, scap_evt **pevent, 
 
 static bool gvisor_match(scap_open_args* oargs)
 {
-	return oargs->engine == GVISOR_ENGINE;
+	return strncmp(oargs->engine_name, GVISOR_ENGINE, GVISOR_ENGINE_LEN) == 0;
 }
 
 static int32_t gvisor_configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)

@@ -15,6 +15,9 @@ limitations under the License.
 
 #include <stdint.h>
 
+#define BPF_ENGINE "bpf"
+#define BPF_ENGINE_LEN 4
+
 #ifdef __cplusplus
 extern "C"
 {

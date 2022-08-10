@@ -74,23 +74,9 @@ extern "C"
 		bool ppm_sc[PPM_SC_MAX];
 	} interesting_ppm_sc_set;
 
-	typedef enum
-	{
-		UNKNOWN_ENGINE = 0,
-		KMOD_ENGINE = 1,
-		BPF_ENGINE = 2,
-		UDIG_ENGINE = 3,
-		NODRIVER_ENGINE = 4,
-		SAVEFILE_ENGINE = 5,
-		SOURCE_PLUGIN_ENGINE = 6,
-		GVISOR_ENGINE = 7,
-		MODERN_BPF_ENGINE = 8,
-		TEST_INPUT_ENGINE = 9,
-	} scap_engine_t;
-
 	typedef struct scap_open_args
 	{
-		scap_engine_t engine;				 ///< engine enum (scap_engine_t).
+		const char* engine_name;				 ///< engine name ("kmod", "bpf", ...).
 		scap_mode_t mode;					 ///< scap-mode required by the engine.
 		proc_entry_callback proc_callback;			 ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
 		void* proc_callback_context;				 ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.

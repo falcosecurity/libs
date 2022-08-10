@@ -33,6 +33,8 @@ limitations under the License.
 #define PRINT_HELP_OPTION "--help"
 
 #define SYSCALL_NAME_MAX_LEN 40
+#define UNKNOWN_ENGINE "unknown"
+#define UNKNOWN_ENGINE_LEN 7
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
@@ -49,7 +51,7 @@ bool simple_consumer = false;	  /* kernel simple consumer mode. */
 int evt_type = -1;		  /* event type to print. */
 
 /* Generic global variables. */
-scap_open_args oargs = {.engine = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
+scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
 uint64_t g_nevts = 0;				   /* total number of events captured. */
 scap_t* g_h = NULL;				   /* global scap handler. */
 uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
@@ -421,19 +423,17 @@ void print_actual_drivers_syscalls()
  */
 void print_supported_syscalls()
 {
-	switch(oargs.engine)
+	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0 ||
+	   strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
 	{
-	case KMOD_ENGINE:
-	case BPF_ENGINE:
 		print_actual_drivers_syscalls();
-		break;
-
-	case MODERN_BPF_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	{
 		print_modern_probe_syscalls();
-		break;
-
-	case SAVEFILE_ENGINE:
-	default:
+	}
+	else
+	{
 		printf("Scap source not supported! Bye!");
 	}
 }
@@ -514,27 +514,26 @@ void print_help()
 void print_scap_source()
 {
 	printf("\n---------------------- SCAP SOURCE ----------------------\n");
-	switch(oargs.engine)
+	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
 	{
-	case KMOD_ENGINE:
 		printf("* Kernel module.\n");
-		break;
-
-	case BPF_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	{
 		struct scap_bpf_engine_params* params = oargs.engine_params;
 		printf("* BPF probe: '%s'\n", params->bpf_probe);
-		break;
-
-	case MODERN_BPF_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	{
 		printf("* Modern BPF probe.\n");
-		break;
-
-	case SAVEFILE_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	{
 		struct scap_savefile_engine_params* params = oargs.engine_params;
 		printf("* Scap file: '%s'.\n", params->fname);
-		break;
-
-	default:
+	}
+	else
+	{
 		printf("* Unknown scap source! Bye!\n");
 		print_help();
 		exit(EXIT_FAILURE);
@@ -553,26 +552,27 @@ void print_configurations()
 
 void print_start_capture()
 {
-	switch(oargs.engine)
+
+	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
 	{
-	case KMOD_ENGINE:
 		printf("* OK! Kernel module correctly loaded.\n");
-		break;
-
-	case BPF_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	{
 		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
-		break;
-
-	case MODERN_BPF_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	{
 		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
-		break;
-
-	case SAVEFILE_ENGINE:
+	}
+	else if(strncmp(oargs.engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	{
 		printf("* OK! Ready to read from scap file.\n");
-		printf("\n* Reading from scap file: '%s' ...\n", oargs.scap_file_args.fname);
+		printf("\n* Reading from scap file...\n");
 		return;
-
-	default:
+	}
+	else
+	{
 		printf("Cannot start the capture! Bye\n");
 		exit(EXIT_FAILURE);
 	}
@@ -588,7 +588,7 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], KMOD_OPTION))
 		{
-			oargs.engine = KMOD_ENGINE;
+			oargs.engine_name = KMOD_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
 		}
 		if(!strcmp(argv[i], BPF_OPTION))
@@ -598,7 +598,7 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the BPF probe path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			oargs.engine = BPF_ENGINE;
+			oargs.engine_name = BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
 
 			bpf_params.bpf_probe = argv[++i];
@@ -606,7 +606,7 @@ void parse_CLI_options(int argc, char** argv)
 		}
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
-			oargs.engine = MODERN_BPF_ENGINE;
+			oargs.engine_name = MODERN_BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
@@ -616,7 +616,7 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the scap file path! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			oargs.engine = SAVEFILE_ENGINE;
+			oargs.engine_name = SAVEFILE_ENGINE;
 			oargs.mode = SCAP_MODE_CAPTURE;
 
 			savefile_params.fname = argv[++i];
@@ -685,7 +685,7 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== PRINT ===========================*/
 	}
 
-	if(oargs.engine == UNKNOWN_ENGINE)
+	if(strncmp(oargs.engine_name, UNKNOWN_ENGINE, UNKNOWN_ENGINE_LEN) == 0)
 	{
 		printf("\nSource not specified! Bye!\n");
 		exit(EXIT_FAILURE);

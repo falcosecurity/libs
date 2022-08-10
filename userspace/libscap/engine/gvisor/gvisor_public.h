@@ -13,6 +13,9 @@ limitations under the License.
 
 #pragma once
 
+#define GVISOR_ENGINE "gvisor"
+#define GVISOR_ENGINE_LEN 7
+
 #ifdef __cplusplus
 extern "C"
 {

@@ -13,24 +13,5 @@ limitations under the License.
 
 #pragma once
 
-#include <stdint.h>
-
-#define SAVEFILE_ENGINE "savefile"
-#define SAVEFILE_ENGINE_LEN 9
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-	struct scap_savefile_engine_params
-	{
-		int fd;		       ///< If non-zero, will be used instead of fname.
-		const char* fname;     ///< The name of the file to open.
-		uint64_t start_offset; ///< Used to start reading a capture file from an arbitrary offset. This is leveraged when opening merged files.
-		uint32_t fbuffer_size; ///< If non-zero, offline captures will read from file using a buffer of this size.
-	};
-
-#ifdef __cplusplus
-};
-#endif
+#define NODRIVER_ENGINE "nodriver"
+#define NODRIVER_ENGINE_LEN 9

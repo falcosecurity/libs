@@ -123,7 +123,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_large_envs_enabled = false;
 	m_increased_snaplen_port_range = DEFAULT_INCREASE_SNAPLEN_PORT_RANGE;
 	m_statsd_port = -1;
-	m_engine = UNKNOWN_ENGINE;
 
 	// Unless the cmd line arg "-pc" or "-pcontainer" is supplied this is false
 	m_print_container_data = false;
@@ -512,7 +511,6 @@ void sinsp::open_common(scap_open_args* oargs)
 
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
-	m_mode = oargs->engine;
 
 	fill_syscalls_of_interest(oargs);
 	if(!m_filter_proc_table_when_saving)
@@ -536,10 +534,10 @@ void sinsp::open_common(scap_open_args* oargs)
 	init();
 }
 
-scap_open_args sinsp::factory_open_args(scap_engine_t engine, scap_mode_t scap_mode)
+scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)
 {
 	scap_open_args oargs{};
-	oargs.engine = engine;
+	oargs.engine_name = engine_name;
 	oargs.mode = scap_mode;
 	return oargs;
 }
