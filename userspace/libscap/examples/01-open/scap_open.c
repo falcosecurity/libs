@@ -108,6 +108,13 @@ void enable_single_tp(const char* tp_basename)
 
 void enable_single_ppm_sc(int ppm_sc_code)
 {
+	if(ppm_sc_code == -1)
+	{
+		/* In this case we won't have any syscall enabled. */
+		ppm_sc_is_set = true;
+		return;
+	}
+
 	if(ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
 	{
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
