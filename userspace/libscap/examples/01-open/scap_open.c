@@ -100,6 +100,13 @@ void enable_single_tp(const char* tp_basename)
 
 void enable_single_ppm_sc(int ppm_sc_code)
 {
+	if(ppm_sc_code == -1)
+	{
+		/* In this case we won't have any syscall enabled. */
+		ppm_sc_is_set = true;
+		return;
+	}
+
 	if(ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
 	{
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
@@ -795,9 +802,9 @@ void print_stats()
 
 	scap_stats s;
 	printf("\n---------------------- STATS -----------------------\n");
-	printf("events captured: %" PRIu64 "\n", g_nevts);
+	printf("Events captured: %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
-	printf("seen by driver: %" PRIu64 "\n", s.n_evts);
+	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
 	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
 	if(tval_result.tv_sec != 0)
 	{
