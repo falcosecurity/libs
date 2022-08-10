@@ -25,16 +25,6 @@ limitations under the License.
 
 using namespace std;
 
-#define KMOD "kmod"
-#define BPF "bpf"
-#define UDIG "udig"
-#define NODRIVER "nodriver"
-#define SCAPFILE "scap-file"
-#define SOURCE_PLUGIN "plugin"
-#define GVISOR "gvisor"
-#define MODERN_BPF "modern-bpf"
-#define TEST_INPUT "test-input"
-
 // Functions used for dumping to stdout
 void plaintext_dump(sinsp& inspector);
 void json_dump(sinsp& inspector);
@@ -144,11 +134,11 @@ void open_engine(sinsp& inspector)
 {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 
-	if(!engine_string.compare(KMOD))
+	if(!engine_string.compare(KMOD_ENGINE))
 	{
 		inspector.open_kmod(buffer_dim);
 	}
-	else if(!engine_string.compare(BPF))
+	else if(!engine_string.compare(BPF_ENGINE))
 	{
 		if(bpf_path.empty())
 		{
@@ -161,15 +151,15 @@ void open_engine(sinsp& inspector)
 		}
 		inspector.open_bpf(buffer_dim, bpf_path.c_str());
 	}
-	else if(!engine_string.compare(UDIG))
+	else if(!engine_string.compare(UDIG_ENGINE))
 	{
 		inspector.open_udig(buffer_dim);
 	}
-	else if(!engine_string.compare(NODRIVER))
+	else if(!engine_string.compare(NODRIVER_ENGINE))
 	{
 		inspector.open_nodriver();
 	}
-	else if(!engine_string.compare(SCAPFILE))
+	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
 		if(scap_file_path.empty())
 		{
@@ -178,21 +168,21 @@ void open_engine(sinsp& inspector)
 		}
 		inspector.open_savefile(scap_file_path.c_str(), 0);
 	}
-	else if(!engine_string.compare(SOURCE_PLUGIN))
+	else if(!engine_string.compare(SOURCE_PLUGIN_ENGINE))
 	{
 		std::cerr << "Not supported right now." << std::endl;
 		exit(EXIT_SUCCESS);
 	}
-	else if(!engine_string.compare(GVISOR))
+	else if(!engine_string.compare(GVISOR_ENGINE))
 	{
 		std::cerr << "Not supported right now." << std::endl;
 		exit(EXIT_SUCCESS);
 	}
-	else if(!engine_string.compare(MODERN_BPF))
+	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
 		inspector.open_modern_bpf(buffer_dim);
 	}
-	else if(!engine_string.compare(TEST_INPUT))
+	else if(!engine_string.compare(TEST_INPUT_ENGINE))
 	{
 		std::cerr << "Not supported right now." << std::endl;
 		exit(EXIT_SUCCESS);

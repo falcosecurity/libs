@@ -87,7 +87,7 @@ struct bpf_map_data {
 
 static bool match(scap_open_args* oargs)
 {
-	return oargs->engine==BPF_ENGINE;
+	return strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0;
 }
 
 static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)

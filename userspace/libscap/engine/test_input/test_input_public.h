@@ -15,6 +15,9 @@ limitations under the License.
 
 #include "../../scap_test.h"
 
+#define TEST_INPUT_ENGINE "test_input"
+#define TEST_INPUT_ENGINE_LEN 11
+
 #ifdef __cplusplus
 extern "C"
 {

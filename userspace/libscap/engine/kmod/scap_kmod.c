@@ -37,7 +37,7 @@ limitations under the License.
 
 static bool match(scap_open_args* oargs)
 {
-	return oargs->engine == KMOD_ENGINE;
+	return strncmp(oargs->engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0;
 }
 
 static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)

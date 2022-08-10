@@ -858,7 +858,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 
 static bool match(scap_open_args* oargs)
 {
-	return oargs->engine == UDIG_ENGINE;
+	return strncmp(oargs->engine_name, UDIG_ENGINE, UDIG_ENGINE_LEN) == 0;
 }
 
 static struct udig_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
