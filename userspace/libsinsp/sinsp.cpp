@@ -771,6 +771,7 @@ void sinsp::open_int()
 	m_mode = SCAP_MODE_CAPTURE;
 	scap_open_args oargs;
 	oargs.mode = SCAP_MODE_CAPTURE;
+	oargs.fbuffer_size = 0;
 	if(m_input_fd != 0)
 	{
 		oargs.fd = m_input_fd;
