@@ -48,9 +48,9 @@ endif()
 # Get modern probe include.
 set(MODERN_PROBE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Note here we use the source directory since we want to avoid conflicts between the `bpf` folder inside
+# Note here we use the libs root directory since we want to avoid conflicts between the `bpf` folder inside
 # `driver` and the `libbpf` includes.
-set(PPM_INCLUDE ${CMAKE_SOURCE_DIR})
+set(PPM_INCLUDE ${LIBSCAP_DIR})
 
 ## Set CLANG FLAGS
 set(CLANG_FLAGS "")

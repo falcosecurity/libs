@@ -19,14 +19,14 @@ set(SKEL_DIR "${CMAKE_BINARY_DIR}/skel_dir")
 file(MAKE_DIRECTORY ${SKEL_DIR})
 
 # Build the BPF skeleton as custom target.
-add_subdirectory(${CMAKE_SOURCE_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
+add_subdirectory(${LIBSCAP_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
 
 # Build `libpman` library.
-add_subdirectory(${CMAKE_SOURCE_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
+add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
 
 # Build modern BPF probe gtest
 if(BUILD_MODERN_BPF_TEST)
-  add_subdirectory(${CMAKE_SOURCE_DIR}/test/modern_bpf ${CMAKE_BINARY_DIR}/test/modern_bpf)
+  add_subdirectory(${LIBSCAP_DIR}/test/modern_bpf ${CMAKE_BINARY_DIR}/test/modern_bpf)
 endif()
 
 add_library(scap_engine_modern_bpf
