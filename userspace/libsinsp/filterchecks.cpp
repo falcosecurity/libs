@@ -90,6 +90,13 @@ int32_t gmt2local(time_t t)
 	return dt;
 }
 
+static inline bool str_match_start(const std::string& val, size_t len, const char* m)
+{
+	return val.compare(0, len, m) == 0;
+}
+
+#define STR_MATCH(s) str_match_start(val, sizeof (s) -1, s)
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_fd implementation
 ///////////////////////////////////////////////////////////////////////////////
@@ -1968,14 +1975,14 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 {
 	string val(str);
 
-	if(string(val, 0, sizeof("arg") - 1) == "arg")
+	if(STR_MATCH("arg"))
 	{
 		//
 		// 'arg' is handled in a custom way
 		//
 		throw sinsp_exception("filter error: proc.arg filter not implemented yet");
 	}
-	else if(string(val, 0, sizeof("proc.apid") - 1) == "proc.apid")
+	else if(STR_MATCH("proc.apid"))
 	{
 		m_field_id = TYPE_APID;
 		m_field = &m_info.m_fields[m_field_id];
@@ -1997,7 +2004,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return res;
 	}
-	else if(string(val, 0, sizeof("proc.aname") - 1) == "proc.aname")
+	else if(STR_MATCH("proc.aname"))
 	{
 		m_field_id = TYPE_ANAME;
 		m_field = &m_info.m_fields[m_field_id];
@@ -2019,7 +2026,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return res;
 	}
-	else if(string(val, 0, sizeof("thread.totexectime") - 1) == "thread.totexectime")
+	else if(STR_MATCH("thread.totexectime"))
 	{
 		//
 		// Allocate thread storage for the value
@@ -2031,15 +2038,15 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
-	else if(string(val, 0, sizeof("thread.cgroup") - 1) == "thread.cgroup" &&
-			string(val, 0, sizeof("thread.cgroups") - 1) != "thread.cgroups")
+	else if(STR_MATCH("thread.cgroup") &&
+			!STR_MATCH("thread.cgroups"))
 	{
 		m_field_id = TYPE_CGROUP;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("thread.cgroup", val, NULL);
 	}
-	else if(string(val, 0, sizeof("thread.cpu") - 1) == "thread.cpu")
+	else if(STR_MATCH("thread.cpu"))
 	{
 		if(alloc_state)
 		{
@@ -3220,15 +3227,14 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 	//
 	// A couple of fields are handled in a custom way
 	//
-	if(string(val, 0, sizeof("evt.arg") - 1) == "evt.arg" &&
-		string(val, 0, sizeof("evt.args") - 1) != "evt.args")
+	if(STR_MATCH("evt.arg")  && !STR_MATCH("evt.args"))
 	{
 		m_field_id = TYPE_ARGSTR;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evt.arg", val, NULL);
 	}
-	else if(string(val, 0, sizeof("evt.rawarg") - 1) == "evt.rawarg")
+	else if(STR_MATCH("evt.rawarg"))
 	{
 		m_field_id = TYPE_ARGRAW;
 		m_customfield = m_info.m_fields[m_field_id];
@@ -3238,18 +3244,18 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 
 		m_customfield.m_type = m_arginfo->type;
 	}
-	else if(string(val, 0, sizeof("evt.around") - 1) == "evt.around")
+	else if(STR_MATCH("evt.around"))
 	{
 		m_field_id = TYPE_AROUND;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evt.around", val, NULL);
 	}
-	else if(string(val, 0, sizeof("evt.latency") - 1) == "evt.latency" ||
-		string(val, 0, sizeof("evt.latency.s") - 1) == "evt.latency.s" ||
-		string(val, 0, sizeof("evt.latency.ns") - 1) == "evt.latency.ns" ||
-		string(val, 0, sizeof("evt.latency.quantized") - 1) == "evt.latency.quantized" ||
-		string(val, 0, sizeof("evt.latency.human") - 1) == "evt.latency.human")
+	else if(STR_MATCH("evt.latency") ||
+		STR_MATCH("evt.latency.s") ||
+		STR_MATCH("evt.latency.ns") ||
+		STR_MATCH("evt.latency.quantized") ||
+		STR_MATCH("evt.latency.human"))
 	{
 		//
 		// These fields need to store the previous event type in the thread state
@@ -3261,17 +3267,17 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 
 		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
-	else if(string(val, 0, sizeof("evt.abspath") - 1) == "evt.abspath")
+	else if(STR_MATCH("evt.abspath"))
 	{
 		m_field_id = TYPE_ABSPATH;
 		m_field = &m_info.m_fields[m_field_id];
 
-		if(string(val, 0, sizeof("evt.abspath.src") - 1) == "evt.abspath.src")
+		if(STR_MATCH("evt.abspath.src"))
 		{
 			m_argid = 1;
 			res = sizeof("evt.abspath.src") - 1;
 		}
-		else if(string(val, 0, sizeof("evt.abspath.dst") - 1) == "evt.abspath.dst")
+		else if(STR_MATCH("evt.abspath.dst"))
 		{
 			m_argid = 2;
 			res = sizeof("evt.abspath.dst") - 1;
@@ -3282,7 +3288,7 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 			res = sizeof("evt.abspath") - 1;
 		}
 	}
-	else if(string(val, 0, sizeof("evt.type.is") - 1) == "evt.type.is")
+	else if(STR_MATCH("evt.type.is"))
 	{
 		m_field_id = TYPE_TYPE_IS;
 		m_field = &m_info.m_fields[m_field_id];
@@ -5016,52 +5022,52 @@ int32_t sinsp_filter_check_tracer::parse_field_name(const char* str, bool alloc_
 	//
 	// A couple of fields are handled in a custom way
 	//
-	if(string(val, 0, sizeof("span.tag") - 1) == "span.tag" &&
-		string(val, 0, sizeof("span.tags") - 1) != "span.tags")
+	if(STR_MATCH("span.tag") &&
+		!STR_MATCH("span.tags"))
 	{
 		m_field_id = TYPE_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.tag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.arg") - 1) == "span.arg" &&
-		string(val, 0, sizeof("span.args") - 1) != "span.args")
+	else if(STR_MATCH("span.arg") &&
+		!STR_MATCH("span.args"))
 	{
 		m_field_id = TYPE_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.arg", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.enterarg") - 1) == "span.enterarg" &&
-		string(val, 0, sizeof("span.enterargs") - 1) != "span.enterargs")
+	else if(STR_MATCH("span.enterarg") &&
+		!STR_MATCH("span.enterargs"))
 	{
 		m_field_id = TYPE_ENTERARG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.enterarg", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.duration.fortag") - 1) == "span.duration.fortag")
+	else if(STR_MATCH("span.duration.fortag"))
 	{
 		m_field_id = TYPE_TAGDURATION;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.duration.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.count.fortag") - 1) == "span.count.fortag")
+	else if(STR_MATCH("span.count.fortag"))
 	{
 		m_field_id = TYPE_TAGCOUNT;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.count.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.childcount.fortag") - 1) == "span.childcount.fortag")
+	else if(STR_MATCH("span.childcount.fortag"))
 	{
 		m_field_id = TYPE_TAGCHILDSCOUNT;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("span.childcount.fortag", val, NULL);
 	}
-	else if(string(val, 0, sizeof("span.idtag") - 1) == "span.idtag")
+	else if(STR_MATCH("span.idtag"))
 	{
 		m_field_id = TYPE_IDTAG;
 		m_field = &m_info.m_fields[m_field_id];
@@ -5615,64 +5621,64 @@ int32_t sinsp_filter_check_evtin::parse_field_name(const char* str, bool alloc_s
 	//
 	// A couple of fields are handled in a custom way
 	//
-	if(string(val, 0, sizeof("evtin.span.tag") - 1) == "evtin.span.tag" &&
-		string(val, 0, sizeof("evtin.span.tags") - 1) != "evtin.span.tags")
+	if(STR_MATCH("evtin.span.tag") &&
+		!STR_MATCH("evtin.span.tags"))
 	{
 		m_field_id = TYPE_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.tag", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.arg") - 1) == "evtin.span.arg" &&
-		string(val, 0, sizeof("evtin.span.args") - 1) != "evtin.span.args")
+	else if(STR_MATCH("evtin.span.arg") &&
+		!STR_MATCH("evtin.span.args"))
 	{
 		m_field_id = TYPE_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.arg", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.p.tag") - 1) == "evtin.span.p.tag" &&
-		string(val, 0, sizeof("evtin.span.p.tags") - 1) != "evtin.span.p.tags")
+	else if(STR_MATCH("evtin.span.p.tag") &&
+		!STR_MATCH("evtin.span.p.tags"))
 	{
 		m_field_id = TYPE_P_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.p.tag", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.p.arg") - 1) == "evtin.span.p.arg" &&
-		string(val, 0, sizeof("evtin.span.p.args") - 1) != "evtin.span.p.args")
+	else if(STR_MATCH("evtin.span.p.arg") &&
+		!STR_MATCH("evtin.span.p.args"))
 	{
 		m_field_id = TYPE_P_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.p.arg", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.s.tag") - 1) == "evtin.span.s.tag" &&
-		string(val, 0, sizeof("evtin.span.s.tags") - 1) != "evtin.span.s.tags")
+	else if(STR_MATCH("evtin.span.s.tag") &&
+		!STR_MATCH("evtin.span.s.tags"))
 	{
 		m_field_id = TYPE_S_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.s.tag", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.s.arg") - 1) == "evtin.span.s.arg" &&
-		string(val, 0, sizeof("evtin.span.s.args") - 1) != "evtin.span.s.args")
+	else if(STR_MATCH("evtin.span.s.arg") &&
+		!STR_MATCH("evtin.span.s.args"))
 	{
 		m_field_id = TYPE_S_ARG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.s.arg", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.m.tag") - 1) == "evtin.span.m.tag" &&
-		string(val, 0, sizeof("evtin.span.m.tags") - 1) != "evtin.span.m.tags")
+	else if(STR_MATCH("evtin.span.m.tag") &&
+		!STR_MATCH("evtin.span.m.tags"))
 	{
 		m_field_id = TYPE_M_TAG;
 		m_field = &m_info.m_fields[m_field_id];
 
 		res = extract_arg("evtin.span.m.tag", val);
 	}
-	else if(string(val, 0, sizeof("evtin.span.m.arg") - 1) == "evtin.span.m.arg" &&
-		string(val, 0, sizeof("evtin.span.m.args") - 1) != "evtin.span.m.args")
+	else if(STR_MATCH("evtin.span.m.arg") &&
+		!STR_MATCH("evtin.span.m.args"))
 	{
 		m_field_id = TYPE_M_ARG;
 		m_field = &m_info.m_fields[m_field_id];
@@ -7360,48 +7366,48 @@ int32_t sinsp_filter_check_k8s::parse_field_name(const char* str, bool alloc_sta
 {
 	string val(str);
 
-	if(string(val, 0, sizeof("k8s.pod.label") - 1) == "k8s.pod.label" &&
-		string(val, 0, sizeof("k8s.pod.labels") - 1) != "k8s.pod.labels")
+	if(STR_MATCH("k8s.pod.label") &&
+		!STR_MATCH("k8s.pod.labels"))
 	{
 		m_field_id = TYPE_K8S_POD_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.pod.label", val);
 	}
-	else if(string(val, 0, sizeof("k8s.rc.label") - 1) == "k8s.rc.label" &&
-		string(val, 0, sizeof("k8s.rc.labels") - 1) != "k8s.rc.labels")
+	else if(STR_MATCH("k8s.rc.label") &&
+		!STR_MATCH("k8s.rc.labels"))
 	{
 		m_field_id = TYPE_K8S_RC_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.rc.label", val);
 	}
-	else if(string(val, 0, sizeof("k8s.rs.label") - 1) == "k8s.rs.label" &&
-		string(val, 0, sizeof("k8s.rs.labels") - 1) != "k8s.rs.labels")
+	else if(STR_MATCH("k8s.rs.label") &&
+		!STR_MATCH("k8s.rs.labels"))
 	{
 		m_field_id = TYPE_K8S_RS_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.rs.label", val);
 	}
-	else if(string(val, 0, sizeof("k8s.svc.label") - 1) == "k8s.svc.label" &&
-		string(val, 0, sizeof("k8s.svc.labels") - 1) != "k8s.svc.labels")
+	else if(STR_MATCH("k8s.svc.label") &&
+		!STR_MATCH("k8s.svc.labels"))
 	{
 		m_field_id = TYPE_K8S_SVC_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.svc.label", val);
 	}
-	else if(string(val, 0, sizeof("k8s.ns.label") - 1) == "k8s.ns.label" &&
-		string(val, 0, sizeof("k8s.ns.labels") - 1) != "k8s.ns.labels")
+	else if(STR_MATCH("k8s.ns.label") &&
+		!STR_MATCH("k8s.ns.labels"))
 	{
 		m_field_id = TYPE_K8S_NS_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("k8s.ns.label", val);
 	}
-	else if(string(val, 0, sizeof("k8s.deployment.label") - 1) == "k8s.deployment.label" &&
-		string(val, 0, sizeof("k8s.deployment.labels") - 1) != "k8s.deployment.labels")
+	else if(STR_MATCH("k8s.deployment.label") &&
+		!STR_MATCH("k8s.deployment.labels"))
 	{
 		m_field_id = TYPE_K8S_DEPLOYMENT_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
@@ -8014,16 +8020,16 @@ int32_t sinsp_filter_check_mesos::parse_field_name(const char* str, bool alloc_s
 {
 	string val(str);
 
-	if(string(val, 0, sizeof("mesos.task.label") - 1) == "mesos.task.label" &&
-		string(val, 0, sizeof("mesos.task.labels") - 1) != "mesos.task.labels")
+	if(STR_MATCH("mesos.task.label") &&
+		!STR_MATCH("mesos.task.labels"))
 	{
 		m_field_id = TYPE_MESOS_TASK_LABEL;
 		m_field = &m_info.m_fields[m_field_id];
 
 		return extract_arg("mesos.task.label", val);
 	}
-	else if(string(val, 0, sizeof("marathon.app.label") - 1) == "marathon.app.label" &&
-		string(val, 0, sizeof("marathon.app.labels") - 1) != "marathon.app.labels")
+	else if(STR_MATCH("marathon.app.label") &&
+		!STR_MATCH("marathon.app.labels"))
 	{
 		m_field_id = TYPE_MARATHON_APP_LABEL;
 		m_field = &m_info.m_fields[m_field_id];

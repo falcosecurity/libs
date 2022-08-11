@@ -546,20 +546,20 @@ bool parser::lex_helper_rgx(string rgx)
 		return true;
 	}
 	regfree(&re);
-#else   // _WIN32
+#else  // _WIN32
 	cmatch match;
 	auto r = regex("^(" + rgx + ")");
-	if (regex_search (cursor(), match, r))
+	if(regex_search(cursor(), match, r))
 	{
 		size_t group_idx = 0;
-		if (match.size() > group_idx && match[group_idx].matched)
+		if(match.size() > group_idx && match[group_idx].matched)
 		{
 			m_last_token = match[group_idx].str();
 			update_pos(m_last_token, m_pos);
 			return true;
 		}
 	}
-#endif  // _WIN32
+#endif // _WIN32
 
 	return false;
 }

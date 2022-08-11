@@ -1140,24 +1140,22 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 	ASSERT(m_info.m_fields != NULL);
 	ASSERT(m_info.m_nfields != -1);
 
-	string val(str);
-
 	m_field_id = 0xffffffff;
 
 	for(j = 0; j < m_info.m_nfields; j++)
 	{
-		string fldname = m_info.m_fields[j].m_name;
-		int32_t fldlen = (uint32_t)fldname.length();
-
-		if(val.compare(0, fldlen, fldname) == 0)
+		auto fldlen = strlen(m_info.m_fields[j].m_name);
+		if(fldlen <= max_fldlen)
 		{
-			if(fldlen > max_fldlen)
-			{
-				m_field_id = j;
-				m_field = &m_info.m_fields[j];
-				max_fldlen = fldlen;
-				max_flags = (m_info.m_fields[j]).m_flags;
-			}
+			continue;
+		}
+
+		if(strncmp(str, m_info.m_fields[j].m_name, fldlen) == 0)
+		{
+			m_field_id = j;
+			m_field = &m_info.m_fields[j];
+			max_fldlen = (int32_t) fldlen;
+			max_flags = (m_info.m_fields[j]).m_flags;
 		}
 	}
 

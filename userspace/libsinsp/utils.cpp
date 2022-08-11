@@ -814,7 +814,8 @@ bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string name)
 {
 	uint32_t maxlen = 0;
-	const struct ppm_param_info* res = NULL;
+	const struct ppm_param_info* res = nullptr;
+	const auto name_len = name.size();
 
 	for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
 	{
@@ -822,18 +823,19 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 
 		for(uint32_t k = 0; k < ei->nparams; k++)
 		{
-			const struct ppm_param_info* pi = &ei->params[k];
+			const ppm_param_info* pi = &ei->params[k];
 			const char* an = pi->name;
-			uint32_t alen = (uint32_t)strlen(an);
-			string subs = string(name, 0, alen);
+			const auto alen = strlen(an);
 
-			if(subs == an)
+			if (alen > name_len || alen <= maxlen)
 			{
-				if(alen > maxlen)
-				{
-					res = pi;
-					maxlen = alen;
-				}
+				continue;
+			}
+
+			if (name.compare(0, alen, pi->name) == 0)
+			{
+				res = pi;
+				maxlen = alen;
 			}
 		}
 	}
