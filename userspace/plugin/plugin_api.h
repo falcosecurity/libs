@@ -114,7 +114,10 @@ typedef struct
 	//   by the framework and passed to the other plugin functions.
 	//   If rc is SS_PLUGIN_FAILURE, this function may return NULL or a state to
 	//   later retrieve the error string.
-	//
+	// 
+	// If a non-NULL ss_plugin_t* state is returned, then subsequent invocations
+	// of init() must not return the same ss_plugin_t* value again, if not after
+	// it has been disposed with destroy() first.
 	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc);
 
 	//
@@ -201,6 +204,9 @@ typedef struct
 		//               passed to next_batch(), close(), event_to_string()
 		//               and extract_fields().
 		//
+		// If a non-NULL ss_instance_t* instance is returned, then subsequent
+		// invocations of open() must not return the same ss_instance_t* value
+		// again, if not after it has been disposed with close() first.
 		ss_instance_t* (*open)(ss_plugin_t* s, const char* params, ss_plugin_rc* rc);
 
 		//
@@ -254,6 +260,11 @@ typedef struct
 		//       when possible, it's recommended as it provides valuable information to the
 		//       user.
 		//
+		// This function can be invoked concurrently by multiple threads,
+		// each with distinct and unique parameter values.
+		// If the returned pointer is non-NULL, then it must be uniquely
+		// attached to the ss_instance_t* parameter value. The pointer must not
+		// be shared across multiple distinct ss_instance_t* values.
 		const char* (*get_progress)(ss_plugin_t* s, ss_instance_t* h, uint32_t* progress_pct);
 
 		//
@@ -270,6 +281,11 @@ typedef struct
 		//   and must not be deallocated or modified until the next call to
 		//   event_to_string().
 		//
+		// This function can be invoked concurrently by multiple threads,
+		// each with distinct and unique parameter values.
+		// If the returned pointer is non-NULL, then it must be uniquely
+		// attached to the ss_plugin_t* parameter value. The pointer must not
+		// be shared across multiple distinct ss_plugin_t* values.
 		const char* (*event_to_string)(ss_plugin_t *s, const ss_plugin_event *evt);
 
 		//
@@ -284,6 +300,11 @@ typedef struct
 		//     next_batch() or close().
 		// Required: yes
 		//
+		// This function can be invoked concurrently by multiple threads,
+		// each with distinct and unique parameter values.
+		// The value of the ss_plugin_event** output parameter must be uniquely
+		// attached to the ss_instance_t* parameter value. The pointer must not
+		// be shared across multiple distinct ss_instance_t* values.
 		ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
 	};
 
@@ -353,6 +374,11 @@ typedef struct
 		//
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 		//
+		// This function can be invoked concurrently by multiple threads,
+		// each with distinct and unique parameter values.
+		// The value of the ss_plugin_extract_field* output parameter must be
+		// uniquely attached to the ss_plugin_t* parameter value. The pointer
+		// must not be shared across multiple distinct ss_plugin_t* values.
 		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
 	};
 } plugin_api;
