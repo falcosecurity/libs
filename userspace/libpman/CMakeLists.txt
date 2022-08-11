@@ -14,9 +14,9 @@ set(PMAN_PRIVATE_INCLUDES
     "${ZLIB_INCLUDES}"
     "${LIBBPF_INCLUDE}"
     "${SKEL_DIR}"
-    "${CMAKE_SOURCE_DIR}/driver/" ## ppm_enum and tables
-    "${CMAKE_SOURCE_DIR}/userspace/libscap" ## scap-stats struct
-    "${CMAKE_SOURCE_DIR}/driver/modern_bpf/" ## bpf-shared structs
+    "${LIBSCAP_DIR}/driver/" ## ppm_enum and tables
+    "${LIBSCAP_DIR}/userspace/libscap" ## scap-stats struct
+    "${LIBSCAP_DIR}/driver/modern_bpf/" ## bpf-shared structs
 )
 
 set(PMAN_PUBLIC_INCLUDES

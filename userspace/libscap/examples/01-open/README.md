@@ -62,8 +62,8 @@ make scap-open
 Optional Cmake options:
 
 * `-DBUILD_BPF=ON`: if you want to test the BPF probe.
-* `-DUSE_MODERN_BPF=ON`: if you want to test the modern BPF probe.
-* `-DMODERN_BPF_DEBUG_MODE=ON`: if you want to test the modern BPF probe in debug mode. (if you use it you need also the previous one `-DUSE_MODERN_BPF=ON`).
+* `-DBUILD_LIBSCAP_MODERN_BPF=ON`: if you want to test the modern BPF probe.
+* `-DMODERN_BPF_DEBUG_MODE=ON`: if you want to test the modern BPF probe in debug mode. (if you use it you need also the previous one `-DBUILD_LIBSCAP_MODERN_BPF=ON`).
 
 You have also to build the driver that you want to use:
 

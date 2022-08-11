@@ -132,7 +132,7 @@ To build the modern eBPF probe, you need:
 
 Then, issue:
 ```bash
-cmake -DUSE_BUNDLED_DEPS=ON -DUSE_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF .. 
+cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF .. 
 make ProbeSkeleton
 ```
 

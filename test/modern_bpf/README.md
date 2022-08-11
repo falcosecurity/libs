@@ -5,7 +5,7 @@
 To build the modern BPF probe tests:
 
 ```bash
-cmake -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON ..
+cmake -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON ..
 make bpf_test
 ```
 

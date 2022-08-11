@@ -1,6 +1,7 @@
 if(NOT HAVE_LIBSCAP)
 set(HAVE_LIBSCAP On)
 
+# This should be renamed in `LIBS_DIR` not `LIBSCAP_DIR`
 if(NOT LIBSCAP_DIR)
 	get_filename_component(LIBSCAP_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
 endif()
