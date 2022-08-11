@@ -2049,6 +2049,7 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 	int fd = params->fd;
 	const char* fname = params->fname;
 	uint64_t start_offset = params->start_offset;
+	uint32_t fbuffer_size = params->fbuffer_size;
 
 	if(fd != 0)
 	{
@@ -2079,9 +2080,9 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	if (args->fbuffer_size > 0)
+	if (fbuffer_size > 0)
 	{
-		scap_reader_t* buffered_reader = scap_reader_open_buffered(reader, args->fbuffer_size, true);
+		scap_reader_t* buffered_reader = scap_reader_open_buffered(reader, fbuffer_size, true);
 		if(!buffered_reader)
 		{
 			reader->close(reader);

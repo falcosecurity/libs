@@ -35,7 +35,7 @@ static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
 string engine_string = "kmod";
 string filter_string = "";
-string scap_file_path = "";
+string file_path = "";
 string bpf_path = "";
 uint64_t buffer_dim = 0;
 
@@ -62,10 +62,10 @@ Options:
   -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                 Use JSON as the output format.
   -a, --all-threads                          Output information about all threads, not just the main one.
-  -e <engine_name>, --engine <engine_name>   Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "scap-file", "gvisor", "modern_bpf", "test_input". 
+  -e <engine_name>, --engine <engine_name>   Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "savefile", "gvisor", "modern_bpf", "test_input". 
   -b <path>, --bpf-path <path>               BPF probe path.
   -d <dim>, --buffer-dim <dim>               Buffer dimension.
-  -s <path>, --scap-file-path <path>         Scap file path.
+  -s <path>, --file-path <path>              Scap file path.
 )";
 	cout << usage << endl;
 }
@@ -82,7 +82,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"engine", required_argument, 0, 'e'},
 		{"bpf-path", required_argument, 0, 'b'},
 		{"buffer-dim", required_argument, 0, 'd'},
-		{"scap-file-path", required_argument, 0, 's'},
+		{"file-path", required_argument, 0, 's'},
 		{0, 0, 0, 0}};
 
 	int op;
@@ -121,7 +121,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			buffer_dim = strtoul(optarg, NULL, 10);
 			break;
 		case 's':
-			scap_file_path = optarg;
+			file_path = optarg;
 			break;
 		default:
 			break;
@@ -161,12 +161,12 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
-		if(scap_file_path.empty())
+		if(file_path.empty())
 		{
-			std::cerr << "You must specify the path to the 'scap-file' if you use the 'scap-file' engine" << std::endl;
+			std::cerr << "You must specify the path to the file if you use the 'savefile' engine" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-		inspector.open_savefile(scap_file_path.c_str(), 0);
+		inspector.open_savefile(file_path.c_str(), 0);
 	}
 	else if(!engine_string.compare(SOURCE_PLUGIN_ENGINE))
 	{

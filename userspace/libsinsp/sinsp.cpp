@@ -603,7 +603,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	{
 		if(filename.empty())
 		{
-			throw sinsp_exception("When you use the 'scap-file' engine you need to provide a path to the scap file.");
+			throw sinsp_exception("When you use the 'savefile' engine you need to provide a path to the file.");
 		}
 
 		params.fname = filename.c_str();
