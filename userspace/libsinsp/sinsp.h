@@ -224,7 +224,7 @@ public:
 	void open_udig(uint64_t buffer_dimension);
 	void open_nodriver();
 	void open_savefile(const std::string &filename, int fd);
-	void open_plugin();
+	void open_plugin(std::string plugin_name, std::string plugin_open_params);
 	void open_gvisor(std::string config_path, std::string root_path);
 	void open_modern_bpf(uint64_t buffer_dimension);
 	void open_test_input(scap_test_input_data *data);
@@ -946,7 +946,6 @@ public:
 	// The created sinsp_plugin is returned.
 	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
 	const sinsp_plugin_manager* get_plugin_manager();
-	void set_input_plugin(const string& name, const string& params);
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
@@ -968,7 +967,7 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
-	void open_int();
+	void set_input_plugin(const string& name, const string& params);
 	void open_common(scap_open_args* oargs);
 	void init();
 	void deinit_state();
