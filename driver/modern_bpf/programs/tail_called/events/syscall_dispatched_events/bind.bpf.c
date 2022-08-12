@@ -58,19 +58,10 @@ int BPF_PROG(bind_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* We return the sockaddr only in case of success. */
-	if(ret == 0)
-	{
-		/* Parameter 2: addr (type: PT_SOCKADDR) */
-		unsigned long sockaddr_ptr = extract__syscall_argument(regs, 1);
-		u16 addrlen = (u16)extract__syscall_argument(regs, 2);
-		auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
-	}
-	else
-	{
-		/* Parameter 2: addr (type: PT_SOCKADDR) */
-		auxmap__store_empty_param(auxmap);
-	}
+	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	unsigned long sockaddr_ptr = extract__syscall_argument(regs, 1);
+	u16 addrlen = (u16)extract__syscall_argument(regs, 2);
+	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
