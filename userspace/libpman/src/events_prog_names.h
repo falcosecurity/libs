@@ -140,6 +140,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SYMLINKAT_X] = "symlinkat_x",
 	[PPME_SYSCALL_UNLINK_2_E] = "unlink_e",
 	[PPME_SYSCALL_UNLINK_2_X] = "unlink_x",
+	[PPME_SYSCALL_UNLINKAT_2_E] = "unlinkat_e",
+	[PPME_SYSCALL_UNLINKAT_2_X] = "unlinkat_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
