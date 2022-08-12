@@ -23,7 +23,7 @@ TEST(SyscallExit, acceptX_INET)
 
 	/* Now we bind the server socket with the server address. */
 	struct sockaddr_in server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(IPV4_PORT_SERVER);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (server)", inet_pton(AF_INET, IPV4_SERVER, &server_addr.sin_addr), NOT_EQUAL, -1);
@@ -41,7 +41,7 @@ TEST(SyscallExit, acceptX_INET)
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	struct sockaddr_in client_addr;
-	bzero(&client_addr, sizeof(client_addr));
+	memset(&client_addr, 0, sizeof(client_addr));
 	client_addr.sin_family = AF_INET;
 	client_addr.sin_port = htons(IPV4_PORT_CLIENT);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (client)", inet_pton(AF_INET, IPV4_CLIENT, &client_addr.sin_addr), NOT_EQUAL, -1);
@@ -119,7 +119,7 @@ TEST(SyscallExit, acceptX_INET6)
 
 	/* Now we bind the server socket with the server address. */
 	struct sockaddr_in6 server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin6_family = AF_INET6;
 	server_addr.sin6_port = htons(IPV6_PORT_SERVER);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (server)", inet_pton(AF_INET6, IPV6_SERVER, &server_addr.sin6_addr), NOT_EQUAL, -1);
@@ -137,7 +137,7 @@ TEST(SyscallExit, acceptX_INET6)
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	struct sockaddr_in6 client_addr;
-	bzero(&client_addr, sizeof(client_addr));
+	memset(&client_addr, 0, sizeof(client_addr));
 	client_addr.sin6_family = AF_INET6;
 	client_addr.sin6_port = htons(IPV6_PORT_CLIENT);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (client)", inet_pton(AF_INET6, IPV6_CLIENT, &client_addr.sin6_addr), NOT_EQUAL, -1);
@@ -211,7 +211,7 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	/* Now we bind the server socket with the server address. */
 	struct sockaddr_un server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	if(strncpy(server_addr.sun_path, UNIX_SERVER, MAX_SUN_PATH) == NULL)
 	{
@@ -226,7 +226,7 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	struct sockaddr_un client_addr;
-	bzero(&client_addr, sizeof(client_addr));
+	memset(&client_addr, 0, sizeof(client_addr));
 	client_addr.sun_family = AF_UNIX;
 	if(strncpy(client_addr.sun_path, UNIX_CLIENT, MAX_SUN_PATH) == NULL)
 	{

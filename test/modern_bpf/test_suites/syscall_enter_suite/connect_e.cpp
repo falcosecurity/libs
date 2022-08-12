@@ -14,7 +14,7 @@ TEST(SyscallEnter, connectE_INET)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	struct sockaddr_in server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(IPV4_PORT_SERVER);
@@ -63,7 +63,7 @@ TEST(SyscallEnter, connectE_INET6)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	struct sockaddr_in6 server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 
 	server_addr.sin6_family = AF_INET6;
 	server_addr.sin6_port = htons(IPV6_PORT_SERVER);
@@ -113,7 +113,7 @@ TEST(SyscallEnter, connectE_UNIX)
 	/* BPF-side, we read the path until we face a `\0` or until we reach
 	 * the maximum length (`MAX_SUN_PATH`).
 	 */
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	if(strncpy(server_addr.sun_path, UNIX_SERVER, MAX_SUN_PATH) == NULL)
 	{
@@ -171,7 +171,7 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 	 */
 
 	struct sockaddr_un server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	/* we use `memcpy` to avoid the warning message from `strncpy` */
 	if(memcpy(server_addr.sun_path, UNIX_LONG_PATH, MAX_SUN_PATH) == NULL)
