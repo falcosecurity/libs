@@ -28,20 +28,9 @@ int BPF_PROG(connect_e,
 	auxmap__store_s64_param(auxmap, (s64)socket_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* We catch information about the destination ip and port or if
-	 * unix socket about the socket pathname. If socket_fd is `<0`, the call
-	 * will surely fail so we are not interested in catching parameters.
-	 */
-	if(socket_fd > 0)
-	{
-		unsigned long sockaddr_ptr = extract__syscall_argument(regs, 1);
-		u16 addrlen = (u16)extract__syscall_argument(regs, 2);
-		auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
-	}
-	else
-	{
-		auxmap__store_empty_param(auxmap);
-	}
+	unsigned long sockaddr_ptr = extract__syscall_argument(regs, 1);
+	u16 addrlen = (u16)extract__syscall_argument(regs, 2);
+	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
