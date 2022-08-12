@@ -606,8 +606,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	/* Get the socket family directly from the socket */
 	u16 socket_family = 0;
-	struct file *file = NULL;
-	file = extract__file_struct_from_fd(socket_fd);
+	struct file *file = extract__file_struct_from_fd(socket_fd);
 	struct socket *socket = BPF_CORE_READ(file, private_data);
 	struct sock *sk = BPF_CORE_READ(socket, sk);
 	BPF_CORE_READ_INTO(&socket_family, socket, ops, family);

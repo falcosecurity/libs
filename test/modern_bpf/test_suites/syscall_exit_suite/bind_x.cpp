@@ -21,7 +21,7 @@ TEST(SyscallExit, bindX_INET)
 	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (port)", syscall(__NR_setsockopt, server_socket_fd, SOL_SOCKET, SO_REUSEPORT, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
 
 	struct sockaddr_in server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(IPV4_PORT_SERVER);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton", inet_pton(AF_INET, IPV4_SERVER, &server_addr.sin_addr), NOT_EQUAL, -1);
@@ -76,7 +76,7 @@ TEST(SyscallExit, bindX_INET6)
 	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (port)", syscall(__NR_setsockopt, server_socket_fd, SOL_SOCKET, SO_REUSEPORT, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
 
 	struct sockaddr_in6 server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sin6_family = AF_INET6;
 	server_addr.sin6_port = htons(IPV6_PORT_SERVER);
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton", inet_pton(AF_INET6, IPV6_SERVER, &server_addr.sin6_addr), NOT_EQUAL, -1);
@@ -127,7 +127,7 @@ TEST(SyscallExit, bindX_UNIX)
 	assert_syscall_state(SYSCALL_SUCCESS, "socket", server_socket_fd, NOT_EQUAL, -1);
 
 	struct sockaddr_un server_addr;
-	bzero(&server_addr, sizeof(server_addr));
+	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX;
 	if(strncpy(server_addr.sun_path, UNIX_SERVER, MAX_SUN_PATH) == NULL)
 	{
