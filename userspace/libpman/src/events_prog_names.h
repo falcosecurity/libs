@@ -123,6 +123,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_IOCTL_3_X] = "ioctl_x",
 	[PPME_SYSCALL_QUOTACTL_E] = "quotactl_e",
 	[PPME_SYSCALL_QUOTACTL_X] = "quotactl_x",
+	[PPME_SYSCALL_UNSHARE_E] = "unshare_e",
+	[PPME_SYSCALL_UNSHARE_X] = "unshare_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
