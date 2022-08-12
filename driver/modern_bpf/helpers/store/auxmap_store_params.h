@@ -483,9 +483,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 	 */
 
 	/* If we are not able to save the sockaddr return an empty parameter. */
-	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
-			       addrlen,
-			       (void *)sockaddr_pointer))
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE], addrlen, (void *)sockaddr_pointer) || addrlen == 0)
 	{
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;

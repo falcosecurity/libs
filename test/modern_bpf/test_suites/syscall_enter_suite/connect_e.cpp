@@ -23,8 +23,8 @@ TEST(SyscallEnter, connectE_INET)
 	/// in something more generic...
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton", inet_pton(AF_INET, IPV4_SERVER, &server_addr.sin_addr), NOT_EQUAL, -1);
 	/*  We pass an invalid socket fd so the `connect` must fail. */
-	int32_t mock_fd = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
+	int32_t mock_fd = -1;
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -70,8 +70,8 @@ TEST(SyscallEnter, connectE_INET6)
 
 	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton", inet_pton(AF_INET6, IPV6_SERVER, &server_addr.sin6_addr), NOT_EQUAL, -1);
 	/*  We pass an invalid socket fd so the `connect` must fail. */
-	int32_t mock_fd = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
+	int32_t mock_fd = -1;
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -120,8 +120,8 @@ TEST(SyscallEnter, connectE_UNIX)
 		FAIL() << "'strncpy' must not fail." << std::endl;
 	}
 	/*  We pass an invalid socket fd so the `connect` must fail. */
-	int32_t mock_fd = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
+	int32_t mock_fd = -1;
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -179,8 +179,8 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 		FAIL() << "'strncpy' must not fail." << std::endl;
 	}
 	/*  We pass an invalid socket fd so the `connect` must fail. */
-	int32_t mock_fd = 5;
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)));
+	int32_t mock_fd = -1;
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -222,7 +222,9 @@ TEST(SyscallEnter, connectE_negative_socket)
 	 * The invalid socket fd, in this case, is negative so the `sockaddr` param will be empty.
 	 */
 	int32_t mock_fd = -1;
-	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, NULL, 0));
+	struct sockaddr *addr = NULL;
+	socklen_t addrlen = 0;
+	assert_syscall_state(SYSCALL_FAILURE, "connect", syscall(__NR_connect, mock_fd, addr, addrlen));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -245,7 +247,7 @@ TEST(SyscallEnter, connectE_negative_socket)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	/* The param must be empty since we pass an invalid socket_id. */
+	/* Since the pointer to the `sockaddr` is `NULL` we expect an empty param here. */
 	evt_test->assert_empty_param(2);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
