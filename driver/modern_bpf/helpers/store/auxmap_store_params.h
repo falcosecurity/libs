@@ -607,7 +607,7 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 	struct file *file = extract__file_struct_from_fd(socket_fd);
 	struct socket *socket = BPF_CORE_READ(file, private_data);
 	struct sock *sk = BPF_CORE_READ(socket, sk);
-	BPF_CORE_READ_INTO(&socket_family, socket, ops, family);
+	BPF_CORE_READ_INTO(&socket_family, sk, __sk_common.skc_family);
 
 	switch(socket_family)
 	{
