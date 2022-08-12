@@ -204,6 +204,7 @@ TEST(SyscallExit, bindX_failure)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
+	/* Since the pointer to the `sockaddr` is `NULL` we expect an empty param here. */
 	evt_test->assert_empty_param(2);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
