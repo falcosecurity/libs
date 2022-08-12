@@ -1258,4 +1258,32 @@
 
 /*=============================== UNIX SOCKET PATH ===========================*/
 
+/*=============================== QUOTACTL SYSCALL ===========================*/
+
+/* `/include/linux/quota.h` from kernel source tree. */
+
+/* QIF_BLIMITS_B are defined in the vmlinux.h */
+
+#define QIF_BLIMITS (1 << QIF_BLIMITS_B)
+#define QIF_SPACE (1 << QIF_SPACE_B)
+#define QIF_ILIMITS (1 << QIF_ILIMITS_B)
+#define QIF_INODES (1 << QIF_INODES_B)
+#define QIF_BTIME (1 << QIF_BTIME_B)
+#define QIF_ITIME (1 << QIF_ITIME_B)
+#define QIF_LIMITS (QIF_BLIMITS | QIF_ILIMITS)
+#define QIF_USAGE (QIF_SPACE | QIF_INODES)
+#define QIF_TIMES (QIF_BTIME | QIF_ITIME)
+#define QIF_ALL (QIF_LIMITS | QIF_USAGE | QIF_TIMES)
+
+/*
+ * Structure used for setting quota information about file via quotactl
+ * Following flags are used to specify which fields are valid
+ */
+#define IIF_BGRACE 1
+#define IIF_IGRACE 2
+#define IIF_FLAGS 4
+#define IIF_ALL (IIF_BGRACE | IIF_IGRACE | IIF_FLAGS)
+
+/*=============================== QUOTACTL SYSCALL ===========================*/
+
 #endif /* __MISSING_DEFINITIONS_H__ */
