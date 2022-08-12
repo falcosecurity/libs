@@ -90,5 +90,6 @@
 #define UNSHARE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define MOUNT_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define UMOUNT2_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define LINK_E_SIZE HEADER_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
