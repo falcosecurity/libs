@@ -132,6 +132,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UMOUNT_X] = "umount2_x",
 	[PPME_SYSCALL_LINK_2_E] = "link_e",
 	[PPME_SYSCALL_LINK_2_X] = "link_x",
+	[PPME_SYSCALL_LINKAT_2_E] = "linkat_e",
+	[PPME_SYSCALL_LINKAT_2_X] = "linkat_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

@@ -91,5 +91,6 @@
 #define MOUNT_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define UMOUNT2_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define LINK_E_SIZE HEADER_LEN
+#define LINKAT_E_SIZE HEADER_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
