@@ -81,5 +81,7 @@
 #define PIPE_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) + PARAM_LEN * 4
 #define BPF_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define BPF_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define FLOCK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
+#define FLOCK_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
