@@ -115,6 +115,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_RENAMEAT2_X] = "renameat2_x",
 	[PPME_SYSCALL_PIPE_E] = "pipe_e",
 	[PPME_SYSCALL_PIPE_X] = "pipe_x",
+	[PPME_SYSCALL_BPF_2_E] = "bpf_e",
+	[PPME_SYSCALL_BPF_2_X] = "bpf_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
