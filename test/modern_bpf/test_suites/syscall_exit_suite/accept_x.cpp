@@ -283,7 +283,16 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	/* Parameter 5: queuemax (type: PT_UINT32) */
 	/* In unix sockets the maximum queue length seems to be 512. */
-	uint32_t unix_max_queue_len = 512;
+	FILE *f = fopen("/proc/sys/net/unix/max_dgram_qlen", "r");
+	if(f == NULL)
+	{
+		FAIL() << "'fopen' must not fail." << std::endl;
+	}
+	int unix_max_queue_len = 0;
+	if(fscanf(f, "%d", &unix_max_queue_len) != 1)
+	{
+		FAIL() << "'fscanf' must not fail." << std::endl;
+	}
 	evt_test->assert_numeric_param(5, (uint32_t)unix_max_queue_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
