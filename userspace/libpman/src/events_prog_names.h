@@ -119,6 +119,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_BPF_2_X] = "bpf_x",
 	[PPME_SYSCALL_FLOCK_E] = "flock_e",
 	[PPME_SYSCALL_FLOCK_X] = "flock_x",
+	[PPME_SYSCALL_IOCTL_3_E] = "ioctl_e",
+	[PPME_SYSCALL_IOCTL_3_X] = "ioctl_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
