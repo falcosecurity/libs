@@ -147,6 +147,17 @@ static __always_inline void extract__dev_and_ino_from_fd(s32 fd, dev_t *dev, u64
 	BPF_CORE_READ_INTO(ino, f, f_inode, i_ino);
 }
 
+/**
+ * @brief Extract the fd rlimit
+ *
+ * @param task pointer to the task struct.
+ * @param fdlimit return value passed by reference.
+ */
+static __always_inline void extract__fdlimit(struct task_struct *task, unsigned long *fdlimit)
+{
+	READ_TASK_FIELD_INTO(fdlimit, task, signal, rlim[RLIMIT_NOFILE].rlim_cur);
+}
+
 /////////////////////////
 // CAPABILITIES EXTRACTION
 ////////////////////////
