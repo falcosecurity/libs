@@ -1,6 +1,20 @@
 #include "event_class.h"
 #include <time.h>
 
+#define MAX_CHARBUF_NUM 16
+#define CGROUP_NUMBER 5
+#define MAX_CGROUP_STRING_LEN 128
+#define MAX_CGROUP_PREFIX_LEN 32
+
+/* This array must follow the same order we use in BPF. */
+const char* cgroup_prefix_array[CGROUP_NUMBER] = {
+	"cpuset=/",
+	"cpu=/",
+	"cpuacct=/",
+	"io=/",
+	"memory=/",
+};
+
 /* Messages. */
 #define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
 #define VALUE_NOT_ZERO ">>>>> value of the param must not be zero. Param id = "
@@ -242,6 +256,53 @@ void event_test::assert_charbuf_param(int param_num, const char* param)
 	assert_param_len(strlen(param) + 1);
 	/* The following assertion compares two C strings, not std::string */
 	ASSERT_STREQ(m_event_params[m_current_param].valptr, param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
+void event_test::assert_charbuf_array_param(int param_num, const char** param)
+{
+	assert_param_boundaries(param_num);
+	uint16_t total_len = 0;
+
+	for(int index = 0; index < MAX_CHARBUF_NUM; index++)
+	{
+		if(param[index] == NULL)
+		{
+			break;
+		}
+		/* We can use `STREQ` because every `charbuf` is `\0` terminated. */
+		ASSERT_STREQ(m_event_params[m_current_param].valptr + total_len, param[index]) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		total_len += strlen(param[index]) + 1;
+	}
+	assert_param_len(total_len);
+}
+
+void event_test::assert_cgroup_param(int param_num)
+{
+	assert_param_boundaries(param_num);
+	uint16_t total_len = 0;
+	/* 'cgroup_string' is composed by 'cgroup_subsytem_name' + 'cgroup_path'.
+	 * Here we can assert only the 'cgroup_subsytem_name' + the presence of the '/' in the path.
+	 * We call 'cgroup_prefix' this substring we have to assert.
+	 */
+	char cgroup_string[MAX_CGROUP_STRING_LEN];
+	char cgroup_prefix[MAX_CGROUP_PREFIX_LEN];
+	int prefix_len = 0;
+
+	for(int index = 0; index < CGROUP_NUMBER; index++)
+	{
+		/* 'strcpy()' takes also the '\0'. */
+		strcpy(cgroup_string, m_event_params[m_current_param].valptr + total_len);
+		/* 'strlen()' does not include the terminating null byte '\0'. */
+		total_len += strlen(cgroup_string) + 1;
+		prefix_len = strlen(cgroup_prefix_array[index]);
+		strncpy(cgroup_prefix, cgroup_string, prefix_len);
+		/* add the NULL terminator.
+		 * Pay attention to buffer overflow if you change the `MAX_CGROUP_PREFIX_LEN`.
+		 */
+		cgroup_prefix[prefix_len] = '\0';
+		ASSERT_STREQ(cgroup_prefix, cgroup_prefix_array[index]) << VALUE_NOT_CORRECT << m_current_param;
+	}
+	assert_param_len(total_len);
 }
 
 void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_dimension)
