@@ -436,3 +436,24 @@ static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm)
 	BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
 	return DO_PAGE_SHIFT(swap_entries);
 }
+
+/////////////////////////
+// TTY EXTRACTION
+////////////////////////
+
+/**
+ * @brief Extract encoded tty
+ *
+ * @param task pointer to task_struct.
+ * @return encoded tty number
+ */
+static __always_inline u32 exctract__tty(struct task_struct *task)
+{
+	int index;
+	int major;
+	int minor_start;
+	READ_TASK_FIELD_INTO(&index, task, signal, tty, index);
+	READ_TASK_FIELD_INTO(&major, task, signal, tty, driver, major);
+	READ_TASK_FIELD_INTO(&minor_start, task, signal, tty, driver, minor_start);
+	return encode_dev(MKDEV(major, minor_start) + index);
+}
