@@ -10,6 +10,9 @@
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
 
+/* Right now a cgroup pathname can have at most 6 components. */
+#define MAX_CGROUP_PATH_POINTERS 6
+
 /* Right now a file path extracted from a file descriptor can
  * have at most `MAX_PATH_POINTERS` components.
  */
@@ -916,4 +919,141 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 		break;
 	}
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
+}
+
+/**
+ * @brief Store in the auxamp all data relative to a particular
+ * `cgroup` subsystem. Data are stored in the following format:
+ *
+ * `cgroup_subsys_name=cgroup_path`
+ *
+ * Please note: This function is used only internally by `auxmap__store_cgroups_param`.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param task pointer to the current task struct.
+ * @param cgrp_sub_id enum taken from vmlinux `cgroup_subsys_id`.
+ * @return total len written in the aux map for this `cgroup` subsystem.
+ */
+static __always_inline u16 store_cgroup_subsys(struct auxiliary_map *auxmap, struct task_struct *task, enum cgroup_subsys_id cgrp_sub_id)
+{
+	u16 total_size = 0;
+
+	/* Write cgroup subsystem name + '=' into the aux map (example "cpuset="). */
+	const char *cgroup_subsys_name_ptr;
+	BPF_CORE_READ_INTO(&cgroup_subsys_name_ptr, task, cgroups, subsys[cgrp_sub_id], ss, name);
+	/* This could be 0.*/
+	total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, (unsigned long)cgroup_subsys_name_ptr, MAX_PARAM_SIZE, KERNEL);
+	if(!total_size)
+	{
+		return 0;
+	}
+	/* In BPF all strings are ended with `\0` so here we overwrite the
+	 * `\0` at the end of the `cgroup` name with `=`.
+	 */
+	push__previous_character(auxmap->data, &auxmap->payload_pos, '=');
+
+	/* Read all pointers to the path components. */
+	struct kernfs_node *kn;
+	BPF_CORE_READ_INTO(&kn, task, cgroups, subsys[cgrp_sub_id], cgroup, kn);
+	unsigned long cgroup_path_pointers[MAX_CGROUP_PATH_POINTERS] = {0};
+	u8 path_components = 0;
+
+	for(int k = 0; k < MAX_CGROUP_PATH_POINTERS; ++k)
+	{
+		if(!kn)
+		{
+			break;
+		}
+		path_components++;
+		BPF_CORE_READ_INTO(&cgroup_path_pointers[k], kn, name);
+		BPF_CORE_READ_INTO(&kn, kn, parent);
+	}
+
+	/* Reconstruct the path in reverse, using previously collected pointers.
+	 * The first component we face must be the root "/". Unfortunately,
+	 * when we read the root component from `struct kernfs_node` we
+	 * obtain only "\0" instead of "/\0" (NOTE: \0 is always present
+	 * at the end of the string, reading with `bpf_probe_read_str()`).
+	 *
+	 * The rationale here is to replace the string terminator '\0'
+	 * with the '/' for every path compotent, excluding the last.
+	 *
+	 * Starting from what we have already inserted ("cpuset="),
+	 * we want to obtain as a final result:
+	 *
+	 *  cpuset=/path_part1/path_part2\0
+	 *
+	 * Without replacing with '/', we would obtain this:
+	 *
+	 *  cpuset=\0path_part1\0path_part2\0
+	 *
+	 * Replacing all '\0' with '/':
+	 *
+	 *  cpuset=/path_part1/path_part2/
+	 *
+	 * As a last step we want to replace the last `/` with
+	 * again the string terminator `\0`, finally obtaining:
+	 *
+	 *  cpuset=/path_part1/path_part2\0
+	 */
+	for(int k = MAX_CGROUP_PATH_POINTERS - 1; k >= 0; --k)
+	{
+		if(cgroup_path_pointers[k])
+		{
+			total_size += push__charbuf(auxmap->data, &auxmap->payload_pos, cgroup_path_pointers[k], MAX_PARAM_SIZE, KERNEL);
+			push__previous_character(auxmap->data, &auxmap->payload_pos, '/');
+		}
+	}
+
+	/* As a result of this for loop we can have three cases:
+	 *
+	 *  1. cpuset=/path_part1/path_part2/
+	 *
+	 *  2. cpuset=/ (please note: the '/' is correct but we miss the final '\0')
+	 *
+	 *  3. cpuset= (path_components=0)
+	 *
+	 * So according to the case we have to perform different actions:
+	 *
+	 *  1. cpuset=/path_part1/path_part2\0 (overwrite last '/' with '\0').
+	 *
+	 *  2. cpuset=/\0 (add the terminator char).
+	 *
+	 *  3. cpuset=\0 (add the terminator char)
+	 *
+	 * We can treat the `2` and the `3` in the same way, adding a char terminator at the end.
+	 */
+	if(path_components <= 1)
+	{
+		push__new_character(auxmap->data, &auxmap->payload_pos, '\0');
+		total_size += 1;
+	}
+	else
+	{
+		push__previous_character(auxmap->data, &auxmap->payload_pos, '\0');
+	}
+
+	return total_size;
+}
+
+/**
+ * @brief Store in the auxamp all the `cgroup` subsystems currently supported:
+ * - cpuset_cgrp_id
+ * - cpu_cgrp_id
+ * - cpuacct_cgrp_id
+ * - io_cgrp_id
+ * - memory_cgrp_id
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param task pointer to the current task struct.
+ */
+static __always_inline void auxmap__store_cgroups_param(struct auxiliary_map *auxmap, struct task_struct *task)
+{
+	uint16_t total_croups_len = 0;
+	total_croups_len += store_cgroup_subsys(auxmap, task, cpuset_cgrp_id);
+	total_croups_len += store_cgroup_subsys(auxmap, task, cpu_cgrp_id);
+	total_croups_len += store_cgroup_subsys(auxmap, task, cpuacct_cgrp_id);
+	total_croups_len += store_cgroup_subsys(auxmap, task, io_cgrp_id);
+	total_croups_len += store_cgroup_subsys(auxmap, task, memory_cgrp_id);
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_croups_len);
 }
