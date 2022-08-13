@@ -49,6 +49,11 @@ enum direction
 #define EXIT_EVENT 0
 #define ENTER_EVENT 1
 
+/* NOTE: if we change the name of this executable
+ * we have to change also this string!
+ */
+#define TEST_EXECUTABLE_NAME "bpf_test"
+
 /////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
 /////////////////////////////////
@@ -240,6 +245,28 @@ public:
 	 * @param param expected value.
 	 */
 	void assert_charbuf_param(int param_num, const char* param);
+
+	/**
+	 * @brief Assert that the parameter is a `charbuf` array and
+	 * compare element per element the array with the one passed as a parameter `param`.
+	 *
+	 * Use this method with the following types:
+	 *	- PT_CHARBUFARRAY
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param param expected value.
+	 */
+	void assert_charbuf_array_param(int param_num, const char** param);
+
+	/**
+	 * @brief 'cgroup_string' is composed by 'cgroup_subsytem_name' + 'cgroup_path'.
+	 * Here we can assert only the 'cgroup_subsytem_name' + the presence of the '/' in the path.
+	 * So we don't need to pass any param we have a static vector of prefixes
+	 * to assert (`cgroup_prefix_array`).
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 */
+	void assert_cgroup_param(int param_num);
 
 	/**
 	 * @brief Assert that the parameter is a `bytebuf` and
