@@ -195,3 +195,36 @@ static __always_inline u64 extract__capability(struct task_struct *task, enum ca
 
 	return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
 }
+
+///////////////////////////
+// CHARBUF EXTRACION
+///////////////////////////
+
+/**
+ * @brief Extract a specif charbuf pointer from an array of charbuf pointers
+ * using `index`.
+ *
+ * Please note: Here we don't care about the result of `bpf_probe_read_...()`
+ * if we obtain a not-valid pointer we will manage it in the caller
+ * functions.
+ *
+ * @param array charbuf pointers array.
+ * @param index at which we want to extract the charbuf pointer.
+ * @param mem from which memory we need to read: user-space or kernel-space.
+ * @return unsigned long return the extracted charbuf pointer or an invalid pointer in
+ * case of failure.
+ */
+static __always_inline unsigned long extract__charbuf_pointer_from_array(unsigned long array, u16 index, enum read_memory mem)
+{
+	char **charbuf_array = (char **)array;
+	char *charbuf_pointer = NULL;
+	if(mem == KERNEL)
+	{
+		bpf_probe_read_kernel(&charbuf_pointer, sizeof(charbuf_pointer), &charbuf_array[index]);
+	}
+	else
+	{
+		bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &charbuf_array[index]);
+	}
+	return (unsigned long)charbuf_pointer;
+}
