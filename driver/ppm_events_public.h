@@ -1172,7 +1172,8 @@ enum ppm_event_type {
 enum extra_event_prog_code
 {
 	T1_EXECVE_X = 0,
-	TAIL_EXTRA_EVENT_PROG_MAX = 1
+	T1_EXECVEAT_X = 1,
+	TAIL_EXTRA_EVENT_PROG_MAX = 2
 };
 
 /*
