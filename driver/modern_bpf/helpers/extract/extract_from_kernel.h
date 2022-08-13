@@ -228,3 +228,128 @@ static __always_inline unsigned long extract__charbuf_pointer_from_array(unsigne
 	}
 	return (unsigned long)charbuf_pointer;
 }
+
+/////////////////////////
+// PIDS EXTRACION
+////////////////////////
+
+/**
+ * @brief Return the pid struct according to the pid type chosen.
+ *
+ * @param task pointer to the task struct.
+ * @param type pid type.
+ * @return struct pid * pointer to the right pid struct.
+ */
+static __always_inline struct pid *extract__task_pid_struct(struct task_struct *task, enum pid_type type)
+{
+	struct pid *task_pid = NULL;
+	switch(type)
+	{
+	/* we cannot take this info from signal struct. */
+	case PIDTYPE_PID:
+		READ_TASK_FIELD_INTO(&task_pid, task, thread_pid);
+		break;
+	default:
+		READ_TASK_FIELD_INTO(&task_pid, task, signal, pids[type]);
+		break;
+	}
+	return task_pid;
+}
+
+/**
+ * @brief Returns the pid namespace in which the specified pid was allocated.
+ *
+ * @param pid pointer to the task pid struct.
+ * @return struct pid_namespace* in which the specified pid was allocated.
+ */
+static __always_inline struct pid_namespace *extract__namespace_of_pid(struct pid *pid)
+{
+	u32 level = 0;
+	struct pid_namespace *ns = NULL;
+	if(pid)
+	{
+		BPF_CORE_READ_INTO(&level, pid, level);
+		BPF_CORE_READ_INTO(&ns, pid, numbers[level].ns);
+	}
+	return ns;
+}
+
+/**
+ * @brief extract the `xid` (where x can be 'p', 't', ...) according to the
+ * `pid struct` passed as parameter.
+ *
+ * @param pid pointer to the pid struct.
+ * @param ns pointer to the namespace struct.
+ * @return pid_t id seen from the pid namespace 'ns'.
+ */
+static __always_inline pid_t extract__xid_nr_seen_by_namespace(struct pid *pid, struct pid_namespace *ns)
+{
+	struct upid upid = {0};
+	pid_t nr = 0;
+	unsigned int pid_level = 0;
+	unsigned int ns_level = 0;
+	BPF_CORE_READ_INTO(&pid_level, pid, level);
+	BPF_CORE_READ_INTO(&ns_level, ns, level);
+
+	if(pid && ns_level <= pid_level)
+	{
+		BPF_CORE_READ_INTO(&upid, pid, numbers[ns_level]);
+		if(upid.ns == ns)
+		{
+			nr = upid.nr;
+		}
+	}
+	return nr;
+}
+
+/*
+ * Definitions taken from `/include/linux/sched.h`.
+ *
+ * the helpers to get the task's different pids as they are seen
+ * from various namespaces. In all these methods 'nr' stands for 'numeric'.
+ *
+ * extract_task_(X)id_nr()     : global id, i.e. the id seen from the init namespace;
+ * extract_task_(X)id_vnr()    : virtual id, i.e. the id seen from the pid namespace of current.
+ *
+ */
+
+/**
+ * @brief Return the `xid` (where x can be `p`, `tg`, `pp` ...) seen from the
+ *  init namespace.
+ *
+ * @param task pointer to task struct.
+ * @param type pid type.
+ * @return `xid` seen from the init namespace.
+ */
+static __always_inline pid_t extract__task_xid_nr(struct task_struct *task, enum pid_type type)
+{
+	switch(type)
+	{
+	case PIDTYPE_PID:
+		return READ_TASK_FIELD(task, pid);
+
+	case PIDTYPE_TGID:
+		return READ_TASK_FIELD(task, tgid);
+
+	case PIDTYPE_PGID:
+		return READ_TASK_FIELD(task, real_parent, pid);
+
+	default:
+		return 0;
+	}
+}
+
+/**
+ * @brief Return the `xid` (where x can be `p`, `tg`, `pp` ...) seen from the
+ *  pid namespace of the current task.
+ *
+ * @param task pointer to task struct.
+ * @param type pid type.
+ * @return `xid` seen from the current task pid namespace.
+ */
+static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enum pid_type type)
+{
+	struct pid *pid_struct = extract__task_pid_struct(task, type);
+	struct pid_namespace *pid_namespace_struct = extract__namespace_of_pid(pid_struct);
+	return extract__xid_nr_seen_by_namespace(pid_struct, pid_namespace_struct);
+}
