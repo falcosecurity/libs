@@ -457,3 +457,18 @@ static __always_inline u32 exctract__tty(struct task_struct *task)
 	READ_TASK_FIELD_INTO(&minor_start, task, signal, tty, driver, minor_start);
 	return encode_dev(MKDEV(major, minor_start) + index);
 }
+
+/////////////////////////
+// LOGINUID EXTRACTION
+////////////////////////
+
+/**
+ * @brief Extract loginuid
+ *
+ * @param task pointer to task struct
+ * @param loginuid return value by reference
+ */
+static __always_inline void extract__loginuid(struct task_struct *task, u32 *loginuid)
+{
+	READ_TASK_FIELD_INTO(loginuid, task, loginuid.val);
+}
