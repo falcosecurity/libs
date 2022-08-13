@@ -9,6 +9,7 @@ file(GLOB_RECURSE SYSCALL_ENTER_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suit
 set(MODERN_BPF_TEST_SOURCES
   ./start_tests.cpp
   ./event_class/event_class.cpp
+  ./flags/capabilities.cpp
   "${SYSCALL_EXIT_TEST_SUITE}"
   "${SYSCALL_ENTER_TEST_SUITE}"
 )
