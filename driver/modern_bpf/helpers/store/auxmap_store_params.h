@@ -308,6 +308,29 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
 }
 
 /**
+ * @brief This helper stores the bytebuf pointed by `bytebuf_pointer`
+ * into the auxmap. The bytebuf has a fixed len `len_to_read`. If we
+ * are not able to read exactly `len_to_read` bytes we will push an
+ * empty param in the map, so param_len=0.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param bytebuf_pointer pointer to the bytebuf to store.
+ * @param len_to_read number of bytes to read.
+ * @param mem from which memory we need to read: user-space or kernel-space.
+ * @return number of bytes read.
+ */
+static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, unsigned long len_to_read, enum read_memory mem)
+{
+	u16 bytebuf_len = push__bytebuf(auxmap->data, &auxmap->payload_pos, bytebuf_pointer, len_to_read, mem);
+	/* If we are not able to push anything with `push__bytebuf`
+	 * `bytebuf_len` will be equal to `0` so we will send an
+	 * empty param to userspace.
+	 */
+	push__param_len(auxmap->data, &auxmap->lengths_pos, bytebuf_len);
+	return bytebuf_len;
+}
+
+/**
  * @brief This helper stores the file path extracted from the `fd`.
  *
  * Please note: Kernel 5.10 introduced a new bpf_helper called `bpf_d_path`
