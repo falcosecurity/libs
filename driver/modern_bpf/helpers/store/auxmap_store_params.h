@@ -331,6 +331,25 @@ static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *aux
 }
 
 /**
+ * @brief Use `auxmap__store_single_charbuf_param_from_array` when
+ * you have to store a charbuf from a charbuf pointer array.
+ * You have to provide the index of the charbuf pointer inside the
+ * array. Indexes start from '0' as usual.
+ * Once we obtain the pointer with `extract__charbuf_pointer_from_array`,
+ * we can store the charbuf with `auxmap__store_charbuf_param`.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param array charbuf pointer array.
+ * @param index position at which we want to extract our charbuf.
+ * @param mem from which memory we need to read: user-space or kernel-space.
+ */
+static __always_inline void auxmap__store_single_charbuf_param_from_array(struct auxiliary_map *auxmap, unsigned long array, u16 index, enum read_memory mem)
+{
+	unsigned long charbuf_pointer = extract__charbuf_pointer_from_array(array, index, mem);
+	auxmap__store_charbuf_param(auxmap, charbuf_pointer, mem);
+}
+
+/**
  * @brief This helper stores the file path extracted from the `fd`.
  *
  * Please note: Kernel 5.10 introduced a new bpf_helper called `bpf_d_path`
