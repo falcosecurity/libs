@@ -36,6 +36,9 @@ enum connection_direction
 	INBOUND = 1,
 };
 
+/* Maximum number of charbuf pointers that we assume an array can have. */
+#define MAX_CHARBUF_POINTERS 16
+
 /* Concept of auxamp (auxiliary map):
  *
  * For variable size events we cannot directly reserve space into the ringbuf,
@@ -347,6 +350,43 @@ static __always_inline void auxmap__store_single_charbuf_param_from_array(struct
 {
 	unsigned long charbuf_pointer = extract__charbuf_pointer_from_array(array, index, mem);
 	auxmap__store_charbuf_param(auxmap, charbuf_pointer, mem);
+}
+
+/**
+ * @brief Use `auxmap__store_multiple_charbufs_param_from_array` when
+ * you have to store multiple charbufs from a charbuf pointer
+ * array. You have to provide an index that states where to start
+ * the charbuf collection. If you want to store all the charbufs
+ * pointed in the array, you can use '0' as 'index'.
+ *
+ * Please note: right now we assume that our arrays have no more
+ * than `MAX_CHARBUF_POINTERS`
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param array charbuf pointer array
+ * @param index position at which we start to collect our charbufs.
+ * @param mem from which memory we need to read: user-space or kernel-space.
+ */
+static __always_inline void auxmap__store_multiple_charbufs_param_from_array(struct auxiliary_map *auxmap, unsigned long array, u16 index, enum read_memory mem)
+{
+	unsigned long charbuf_pointer;
+	u16 charbuf_len = 0;
+	u16 total_len = 0;
+	/* We push in the auxmap all the charbufs that we find.
+	 * We push the overall length only at the end of the
+	 * for loop with `push__param_len`.
+	 */
+	for(; index < MAX_CHARBUF_POINTERS; ++index)
+	{
+		charbuf_pointer = extract__charbuf_pointer_from_array(array, index, mem);
+		charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE, mem);
+		if(!charbuf_len)
+		{
+			break;
+		}
+		total_len += charbuf_len;
+	}
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_len);
 }
 
 /**
