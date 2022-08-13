@@ -11,6 +11,9 @@
 #include <helpers/base/read_from_task.h>
 #include <driver/ppm_flag_helpers.h>
 
+/* Used to convert from page number to KB. */
+#define DO_PAGE_SHIFT(x) (x) << (IOC_PAGE_SHIFT - 10)
+
 /* This enum should simplify the capabilities extraction. */
 enum capability_type
 {
@@ -363,4 +366,73 @@ static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enu
 	struct pid *pid_struct = extract__task_pid_struct(task, type);
 	struct pid_namespace *pid_namespace_struct = extract__namespace_of_pid(pid_struct);
 	return extract__xid_nr_seen_by_namespace(pid_struct, pid_namespace_struct);
+}
+
+/////////////////////////
+// PAGE INFO EXTRACION
+////////////////////////
+
+/**
+ * @brief Extract major page fault number
+ *
+ * @param task pointer to task struct.
+ * @param pgft_maj return value passed by reference.
+ */
+static __always_inline void extract__pgft_maj(struct task_struct *task, unsigned long *pgft_maj)
+{
+	READ_TASK_FIELD_INTO(pgft_maj, task, maj_flt);
+}
+
+/**
+ * @brief Extract minor page fault number
+ *
+ * @param task pointer to task struct.
+ * @param pgft_min return value passed by reference.
+ */
+static __always_inline void extract__pgft_min(struct task_struct *task, unsigned long *pgft_min)
+{
+	READ_TASK_FIELD_INTO(pgft_min, task, min_flt);
+}
+
+/**
+ * @brief Extract total page size
+ *
+ * @param mm pointer to mm_struct.
+ * @return number in KB
+ */
+static __always_inline unsigned long extract__vm_size(struct mm_struct *mm)
+{
+	unsigned long vm_pages = 0;
+	BPF_CORE_READ_INTO(&vm_pages, mm, total_vm);
+	return DO_PAGE_SHIFT(vm_pages);
+}
+
+/**
+ * @brief Extract resident page size
+ *
+ * @param mm pointer to mm_struct.
+ * @return number in KB
+ */
+static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
+{
+	unsigned long file_pages = 0;
+	unsigned long anon_pages = 0;
+	unsigned long shmem_pages = 0;
+	BPF_CORE_READ_INTO(&file_pages, mm, rss_stat.count[MM_FILEPAGES].counter);
+	BPF_CORE_READ_INTO(&anon_pages, mm, rss_stat.count[MM_ANONPAGES].counter);
+	BPF_CORE_READ_INTO(&shmem_pages, mm, rss_stat.count[MM_SHMEMPAGES].counter);
+	return DO_PAGE_SHIFT(file_pages + anon_pages + shmem_pages);
+}
+
+/**
+ * @brief Extract swap page size
+ *
+ * @param mm pointer to mm_struct.
+ * @return number in KB
+ */
+static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm)
+{
+	unsigned long swap_entries = 0;
+	BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
+	return DO_PAGE_SHIFT(swap_entries);
 }
