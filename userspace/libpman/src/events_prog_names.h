@@ -97,9 +97,12 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_LISTEN_X] = "listen_x",
 	[PPME_SYSCALL_EXECVE_19_E] = "execve_e",
 	[PPME_SYSCALL_EXECVE_19_X] = "execve_x",
+	[PPME_SYSCALL_EXECVEAT_E] = "execveat_e",
+	[PPME_SYSCALL_EXECVEAT_X] = "execveat_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
 static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T1_EXECVE_X] = "t1_execve_x",
+	[T1_EXECVEAT_X] = "t1_execveat_x",
 };
