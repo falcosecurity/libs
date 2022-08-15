@@ -748,33 +748,39 @@ send_empty_bytebuf_param:
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
-		if (likely(val != 0)) {
+		if(likely(val != 0))
+		{
 			if (unlikely(val_len >= max_arg_size))
 				return PPM_FAILURE_BUFFER_FULL;
 
-			if (fromuser) {
+			if(fromuser)
+			{
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
 						(const void __user *)(syscall_arg_t)val,
 						val_len);
 
-				if (unlikely(len != 0))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
+				if(unlikely(len != 0))
+				{
+					goto send_empty_sock_param;
+				}
 
 				len = val_len;
-			} else {
+			}
+			else
+			{
 				memcpy(args->buffer + args->arg_data_offset,
 					(void *)(syscall_arg_t)val, val_len);
 
 				len = val_len;
 			}
-		} else {
-			/*
-			 * Handle NULL pointers
-			 */
-			len = 0;
+			/* If we arrive here we have something to send. */
+			break;
 		}
 
+send_empty_sock_param:
+		len = 0;
 		break;
+
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
