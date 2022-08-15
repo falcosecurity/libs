@@ -26,10 +26,6 @@ limitations under the License.
 #include "scap_engines.h"
 #include "engine/kmod/kmod.h"
 
-#if defined(_WIN64) || defined(WIN64) || defined(_WIN32) || defined(WIN32)
-#define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)
-#endif
-
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
 	if(handle->m_vtable)
@@ -125,25 +121,6 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not add fd to hash table");
 		return SCAP_FAILURE;
 	}
-}
-
-const char *scap_strerror_r(char *buf, int errnum)
-{
-	int rc;
-	if((rc = strerror_r(errnum, buf, SCAP_LASTERR_SIZE) != 0))
-	{
-		if(rc != ERANGE)
-		{
-			snprintf(buf, SCAP_LASTERR_SIZE, "Errno %d", errnum);
-		}
-	}
-
-	return buf;
-}
-
-const char *scap_strerror(scap_t *handle, int errnum)
-{
-	return scap_strerror_r(handle->m_strerror_buf, errnum);
 }
 
 int32_t scap_update_suppressed(scap_t *handle,
