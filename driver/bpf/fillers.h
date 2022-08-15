@@ -1669,12 +1669,6 @@ FILLER(sys_execve_e, true)
 	 */
 	val = bpf_syscall_get_argument(data, 0);
 	res = bpf_val_to_ring(data, val);
-	if (res == PPM_FAILURE_INVALID_USER_MEMORY) {
-		char na[] = "<NA>";
-
-		res = bpf_val_to_ring(data, (unsigned long)na);
-	}
-
 	return res;
 }
 
@@ -1706,11 +1700,6 @@ FILLER(sys_execveat_e, true)
 	val = bpf_syscall_get_argument(data, 1);
 
 	res = bpf_val_to_ring(data, val);
-	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
-	{
-		char na[] = "<NA>";
-		res = bpf_val_to_ring(data, (unsigned long)na);
-	}
 	if (res != PPM_SUCCESS)
 	{
 		return res;
@@ -3263,20 +3252,14 @@ FILLER(sys_open_by_handle_at_x, true)
 	}
 	
 	/*
-	 * filepath
+	 * path
 	 */
-	if (retval > 0)
+	char* filepath = NULL;
+	if(retval > 0)
 	{
 		char* filepath = bpf_get_path(data, retval);
-		if (filepath != NULL)
-		{
-			res = bpf_val_to_ring(data,(unsigned long)filepath);
-			return res;	
-		}
 	} 
-
-	char na[] = "<NA>";
-	res = bpf_val_to_ring(data, (unsigned long)na);
+	res = bpf_val_to_ring(data,(unsigned long)filepath);
 	return res;
 }
 

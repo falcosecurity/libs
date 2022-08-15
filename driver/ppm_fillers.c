@@ -1335,11 +1335,10 @@ int f_sys_execve_e(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
-	if (res == PPM_FAILURE_INVALID_USER_MEMORY)
-		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
-
-	if (unlikely(res != PPM_SUCCESS))
+	if(unlikely(res != PPM_SUCCESS))
+	{
 		return res;
+	}
 
 	return add_sentinel(args);
 }
@@ -1370,12 +1369,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	 * pathname
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-	
 	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res == PPM_FAILURE_INVALID_USER_MEMORY))
-	{
-		res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
-	}
 	if (unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -4922,42 +4916,29 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	}
 
 	/*
-	 * filepath
+	 * path
 	 */
+	char *pathname = NULL;
 	if (retval > 0)
 	{
-		char *pathname;
-		// String storage size is exactly one page. PAGE_SIZE = 4096 byte like PATH_MAX in unix conventions. 
+		/* String storage size is exactly one page. 
+		 * PAGE_SIZE = 4096 byte like PATH_MAX in unix conventions.
+		 */
 		char* buf = (char*)args->str_storage;
 
 		struct file *file;
 		file = fget(retval);
-		if (unlikely(!file))
+		if(likely(file))
 		{
-			goto empty_pathname;
-		}
-		
-		// `pathname` will be a pointer inside the the buffer `buf`, where the file path effectively starts.
-		pathname = d_path(&file->f_path, buf, PAGE_SIZE);
-		if (unlikely(!pathname))
-		{
+			/* `pathname` will be a pointer inside the buffer `buf`
+		 	 * where the file path effectively starts.
+		 	 */
+			pathname = d_path(&file->f_path, buf, PAGE_SIZE);
 			fput(file);
-			goto empty_pathname;
 		}
-
-		res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
-		if (likely(res == PPM_SUCCESS))
-		{
-			fput(file);
-			return add_sentinel(args);
-		}
-
-		fput(file);		
 	}
 
-
-empty_pathname:
-	res = val_to_ring(args, (unsigned long)"<NA>", 0, false, 0);
+	res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 	{
 		return res;
