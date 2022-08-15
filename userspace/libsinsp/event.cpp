@@ -739,10 +739,10 @@ char* sinsp_evt::render_fd(int64_t fd, const char** resolved_str, sinsp_evt::par
 
 Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
-	const ppm_param_info* param_info;
-	char* payload;
-	uint32_t payload_len;
-	Json::Value ret;
+	const ppm_param_info* param_info = NULL;
+	char* payload = NULL;
+	uint32_t payload_len = 0;
+	Json::Value ret = Json::nullValue;
 
 	//
 	// Make sure the params are actually loaded
@@ -766,10 +766,17 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
 
+	/* We have an empty parameter. */
+	if(payload_len == 0)
+	{
+		*resolved_str = &m_resolved_paramstr_storage[0];
+		return ret;
+	}
+
 	//
 	// Get the parameter information
 	//
-	if(param_info->type == PT_DYN && param_info->info != NULL && payload_len != 0)
+	if(param_info->type == PT_DYN && param_info->info != NULL)
 	{
 		uint8_t dyn_idx = *(uint8_t*)payload;
 
@@ -898,12 +905,7 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		break;
 
 	case PT_SOCKADDR:
-		if(payload_len == 0)
-		{
-			ret = Json::nullValue;
-			break;
-		}
-		else if(payload[0] == AF_UNIX)
+		if(payload[0] == AF_UNIX)
 		{
 			ASSERT(payload_len > 1);
 
@@ -947,12 +949,6 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		break;
 
 	case PT_SOCKTUPLE:
-		if(payload_len == 0)
-		{
-			ret = Json::nullValue;
-			break;
-		}
-
 		if(payload[0] == PPM_AF_INET)
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
@@ -1462,11 +1458,11 @@ std::string sinsp_evt::get_base_dir(uint32_t id, sinsp_threadinfo *tinfo)
 
 const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_str, sinsp_evt::param_fmt fmt)
 {
-	char* prfmt;
-	const ppm_param_info* param_info;
-	char* payload;
-	uint32_t j;
-	uint32_t payload_len;
+	char* prfmt = NULL;
+	const ppm_param_info* param_info = NULL;
+	char* payload = NULL;
+	uint32_t j = 0;
+	uint32_t payload_len = 0;
 
 	//
 	// Make sure the params are actually loaded
@@ -1492,10 +1488,17 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	payload_len = param->m_len;
 	param_info = &(m_info->params[id]);
 
+	if(payload_len == 0)
+	{
+		snprintf(&m_paramstr_storage[0], m_paramstr_storage.size(), "NULL");
+		*resolved_str = &m_resolved_paramstr_storage[0];
+		return &m_paramstr_storage[0];
+	}
+
 	//
 	// Get the parameter information
 	//
-	if(param_info->type == PT_DYN && param_info->info != NULL && payload_len != 0)
+	if(param_info->type == PT_DYN && param_info->info != NULL)
 	{
 		uint8_t dyn_idx = *(uint8_t*)payload;
 
@@ -1665,9 +1668,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 
 		sinsp_threadinfo* tinfo = get_thread_info();
 
-		if(tinfo && payload_len > 0)
+		if(tinfo)
 		{
-			if(strncmp(payload, "<NA>", 4) != 0)
+			if(strncmp(payload, "<NA>", 5) != 0)
 			{
 				std::string cwd = get_base_dir(id, tinfo);
 
@@ -1749,15 +1752,7 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	}
 	break;
 	case PT_SOCKADDR:
-		if(payload_len == 0)
-		{
-			snprintf(&m_paramstr_storage[0],
-			         m_paramstr_storage.size(),
-			         "NULL");
-
-			break;
-		}
-		else if(payload[0] == AF_UNIX)
+		if(payload[0] == AF_UNIX)
 		{
 			ASSERT(payload_len > 1);
 
@@ -1824,15 +1819,6 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		}
 		break;
 	case PT_SOCKTUPLE:
- 		if(payload_len == 0)
-		{
-			snprintf(&m_paramstr_storage[0],
-			         m_paramstr_storage.size(),
-			         "NULL");
-
-			break;
-		}
-
 		if(payload[0] == PPM_AF_INET)
 		{
 			if(payload_len == 1 + 4 + 2 + 4 + 2)
