@@ -1543,7 +1543,7 @@ void scap_fseek(scap_t *handle, uint64_t off)
 {
 	if(handle->m_vtable->savefile_ops)
 	{
-		return handle->m_vtable->savefile_ops->fseek_capture(handle->m_engine, off);
+		handle->m_vtable->savefile_ops->fseek_capture(handle->m_engine, off);
 	}
 }
 
