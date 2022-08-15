@@ -26,7 +26,7 @@ int BPF_PROG(quotactl_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: cmd (type: PT_FLAGS16) */
-	unsigned long cmd = extract__syscall_argument(regs, 0);
+	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
 	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
 	ringbuf__store_u16(&ringbuf, scap_cmd);
 
@@ -93,7 +93,7 @@ int BPF_PROG(quotactl_x,
 	unsigned long special_pointer = extract__syscall_argument(regs, 1);
 	auxmap__store_charbuf_param(auxmap, special_pointer, USER);
 
-	unsigned long cmd = extract__syscall_argument(regs, 0);
+	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
 	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
 
 	/* The `addr` argument is the address of an optional, command-
