@@ -176,7 +176,7 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
 			(params[i].size == 0 ||
 			(params[i].size == 7 && strncmp(params[i].buf, "(NULL)", 7) == 0)))
 		{
-			/* Overwrite the value and the size of the param. 
+			/* Overwrite the value and the size of the param.
 			 * 5 = strlen("<NA>") + `\0`.
 			 */
 			params[i].buf = "<NA>";

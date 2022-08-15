@@ -1856,7 +1856,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		{
 			char fullpath[SCAP_MAX_PATH_SIZE];
 			parinfo = enter_evt->get_param(0);
-			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
+			if (strncmp(parinfo->m_val, "<NA>", 5) == 0)
 			{
 				evt->m_tinfo->m_exepath = "<NA>";
 			}
@@ -1884,7 +1884,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			 * Get pathname
 			 */
 			parinfo = enter_evt->get_param(1);
-			if (strncmp(parinfo->m_val, "<NA>", 4) == 0)
+			if (strncmp(parinfo->m_val, "<NA>", 5) == 0)
 			{
 				evt->m_tinfo->m_exepath = "<NA>";
 				break;
