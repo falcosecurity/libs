@@ -797,8 +797,8 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					     bool enforce_snaplen)
 {
 	unsigned int len_dyn = 0;
-	unsigned int len;
-	unsigned long curoff_bounded;
+	unsigned int len = 0;
+	unsigned long curoff_bounded = 0;
 
 	curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
@@ -826,62 +826,83 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		if (!data->curarg_already_on_frame) 
 		{
 			int res;
+			/* Return `res<0` only in case of error. */ 
 			res = bpf_probe_read_str(&data->buf[curoff_bounded], 
 						PPM_MAX_ARG_SIZE,
 						(const void *)val);
-			
-			if (res <= 0)
+			if(res >= 0)
 			{
-				char not_available[] = "<NA>";
-				res = bpf_probe_read_str(&data->buf[curoff_bounded],
-							PPM_MAX_ARG_SIZE,
-							(const void *)not_available);
+				len = res;
 			}
-			len = res;
+			else
+			{
+				/* This should be already `0`, but just to be future-proof. */
+				len = 0;
+			}
 		} 
-		else 
+		else
 		{
 			len = val_len;
 		}
 		break;
 	}
 	case PT_BYTEBUF: {
-		if (data->curarg_already_on_frame || (val && val_len))  
+		if(data->curarg_already_on_frame || (val && val_len))
 		{
 			len = val_len;
 
-			if (enforce_snaplen) {
+			if(enforce_snaplen) 
+			{
 				u32 dpi_lookahead_size = DPI_LOOKAHEAD_SIZE;
 				unsigned int sl;
 
-				if (dpi_lookahead_size > len)
+				if(dpi_lookahead_size > len)
+				{
 					dpi_lookahead_size = len;
+				}
 
-				if (!data->curarg_already_on_frame) {
+				if(!data->curarg_already_on_frame) 
+				{
+					/* We need to read the first `dpi_lookahead_size` bytes. 
+					 * If we are not able to read at least `dpi_lookahead_size` 
+					 * we send an empty param `len=0`.
+					 */
 					volatile u16 read_size = dpi_lookahead_size;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-					if (read_size)
-						if (bpf_probe_read(&data->buf[curoff_bounded],
-								   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-								   (void *)val))
+					if(!read_size || bpf_probe_read(&data->buf[curoff_bounded],
+								((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+								(void *)val))
+					{
+						len=0;
+						break;
+					}
 #else
-					if (bpf_probe_read(&data->buf[curoff_bounded],
-							   read_size & SCRATCH_SIZE_HALF,
-							   (void *)val))
-#endif
-						return PPM_FAILURE_INVALID_USER_MEMORY;
+					if(bpf_probe_read(&data->buf[curoff_bounded],
+								read_size & SCRATCH_SIZE_HALF,
+								(void *)val))
+					{
+						len=0;
+						break;
+					}
+#endif /* BPF_FORBIDS_ZERO_ACCESS */
 				}
 
+				/* If `curarg` was already on frame, we are interested only in this computation,
+				 * so we can understand how many bytes of the `curarg` we have to consider.
+				 */
 				sl = bpf_compute_snaplen(data, dpi_lookahead_size);
-				if (len > sl)
+				if(len > sl)
+				{
 					len = sl;
+				}
 			}
 
 			if (len > PPM_MAX_ARG_SIZE)
 				len = PPM_MAX_ARG_SIZE;
 
-			if (!data->curarg_already_on_frame) {
+			if(!data->curarg_already_on_frame)
+			{
 				volatile u16 read_size = len;
 
 				curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
@@ -891,23 +912,28 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 				}
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-				if (read_size)
-					if (bpf_probe_read(&data->buf[curoff_bounded],
-							   ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-							   (void *)val))
+
+				if (!read_size || bpf_probe_read(&data->buf[curoff_bounded],
+							((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+							(void *)val))
+				{
+					len=0;
+					break;
+				}
 #else
 				if (bpf_probe_read(&data->buf[curoff_bounded],
-						   read_size & SCRATCH_SIZE_HALF,
-						   (void *)val))
-#endif
-					return PPM_FAILURE_INVALID_USER_MEMORY;
+							read_size & SCRATCH_SIZE_HALF,
+							(void *)val))
+				{
+					len=0;
+					break;
+				}
+#endif /* BPF_FORBIDS_ZERO_ACCESS */
 			}
 		} 
 		else 
 		{
-			/*
-			 * Handle NULL pointers
-			 */
+			/* Handle NULL pointers */
 			len = 0;
 		}
 		break;

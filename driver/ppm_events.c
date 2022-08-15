@@ -161,7 +161,10 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
  * On some kernels (e.g. 2.6.39), even with preemption disabled, the strncpy_from_user,
  * instead of returning -1 after a page fault, schedules the process, so we drop events
  * because of the preemption. This function reads the user buffer in atomic chunks, and
- * returns when there's an error or the terminator is found
+ * returns when:
+ * 1. there's an error (returns `-1`).
+ * 2. the terminator is found. (the `\0` is computed in the overall length)
+ * 3. we have read `n` bytes. (in this case, we don't have the `\0` but it's ok we will add it in the caller)
  */
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 {
@@ -199,6 +202,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		for (j = 0; j < bytes_to_read; ++j) {
 			++string_length;
 
+			/* Check if `*to` is the `\0`. */
 			if (!*to) {
 				res = string_length;
 				goto strncpy_end;
@@ -617,41 +621,42 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			 // userlevel capture, so we default to ppm_strncpy_from_user
 			fromuser = true;
 #endif
-			if (fromuser) {
+			if (fromuser)
+			{
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(syscall_arg_t)val, max_arg_size);
-
-				if (unlikely(len < 0))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-			} else {
+			}
+			else
+			{
 				len = (int)strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(syscall_arg_t)val,
 								max_arg_size);
-
-				if (++len > (int)max_arg_size)
-					len = max_arg_size;
 			}
 
-			/*
-			 * Make sure the string is null-terminated
-			 */
-			*(char *)(args->buffer + args->arg_data_offset + len) = 0;
-		} else {
-			/*
-			 * Handle NULL pointers
-			 */
-			len = (int)strlcpy(args->buffer + args->arg_data_offset,
-				"(NULL)",
-				max_arg_size);
+			/* Make sure the string is null-terminated */
+			if (likely(len > 0))
+			{
+				if (++len > (int)max_arg_size)
+				{
+					len = max_arg_size;
+				}
 
-			if (++len > (int)max_arg_size)
-				len = max_arg_size;
+				*(char *)(args->buffer + args->arg_data_offset + len) = 0;
+				break;
+			}
 		}
-
+		/* Send an empty param in all these cases:
+		 * - we have a null pointer `val==0`.
+		 * - we have read `0` bytes.
+		 * - we faced an error while reading.
+		 */
+		len = 0;
 		break;
+
 	case PT_BYTEBUF:
 		if (likely(val != 0 && val_len)) {
-			if (fromuser) {
+			if (fromuser)
+			{
 				/*
 				 * Copy the lookahead portion of the buffer that we will use DPI-based
 				 * snaplen calculation
@@ -664,12 +669,15 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				if (unlikely(dpi_lookahead_size >= max_arg_size))
 					return PPM_FAILURE_BUFFER_FULL;
 
+				/* Returns the number of bytes NOT read. */
 				len = (int)ppm_copy_from_user(args->buffer + args->arg_data_offset,
 						(const void __user *)(syscall_arg_t)val,
 						dpi_lookahead_size);
 
-				if (unlikely(len != 0))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
+				if(unlikely(len != 0))
+				{
+					goto send_empty_bytebuf_param;
+				}
 
 				/*
 				 * Check if there's more to copy
@@ -697,12 +705,16 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 								val_len - dpi_lookahead_size);
 
 						if (unlikely(len != 0))
-							return PPM_FAILURE_INVALID_USER_MEMORY;
+						{
+							goto send_empty_bytebuf_param;
+						}
 					}
 				}
 
 				len = val_len;
-			} else {
+			}
+			else
+			{
 				if (likely(args->enforce_snaplen)) {
 #ifdef UDIG
 					u32 sl = args->consumer->snaplen;
@@ -721,14 +733,18 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 
 				len = val_len;
 			}
-		} else {
-			/*
-			 * Handle NULL pointers
-			 */
-			len = 0;
+			/* If we arrive here we have something to send. */
+			break;
 		}
-
+		/* Send an empty param in all these cases:
+		 * - we have a null pointer `val==0` or `val_len==0`.
+		 * - we have read `0` bytes.
+		 * - we faced an error while reading.
+		 */
+send_empty_bytebuf_param:
+		len = 0;
 		break;
+
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
