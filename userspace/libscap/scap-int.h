@@ -251,10 +251,6 @@ int32_t scap_update_suppressed(scap_t *handle,
 			       uint64_t tid, uint64_t ptid,
 			       bool *suppressed);
 
-// Wrapper around strerror using buffer in handle
-const char *scap_strerror(scap_t *handle, int errnum);
-const char *scap_strerror_r(char *buf, int errnum);
-
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);
 

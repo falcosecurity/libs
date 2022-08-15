@@ -24,6 +24,7 @@
 #include "../../driver/ppm_ringbuffer.h"
 #include "ringbuffer/ringbuffer.h"
 #include "engine/noop/noop.h"
+#include "strerror.h"
 
 #define PPM_PORT_STATSD 8125
 

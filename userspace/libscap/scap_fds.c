@@ -21,6 +21,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_savefile.h"
 #include "../common/strlcpy.h"
+#include "strerror.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
