@@ -123,65 +123,6 @@ uint32_t scap_event_decode_params(const scap_evt *e, struct scap_sized_buffer *p
 
 		params[i].buf = param_buf;
 		param_buf += params[i].size;
-
-		/* Here we need to manage a particular case:
-		 * 
-		 *    - PT_CHARBUF
-		 *    - PT_FSRELPATH
-		 *    - PT_BYTEBUF
-		 *    - PT_BYTEBUF
-		 * 
-		 * In the past these params could be `<NA>` or `(NULL)` or empty.
-		 * Now they can be only empty! The ideal solution would be:
-		 * 	params[i].buf = NULL;
-		 *	params[i].size = 0;
-		 * 
-		 * The problem is that userspace is not
-		 * able to manage `NULL` pointers... but it manages `<NA>` so we
-		 * convert all these cases to `<NA>` when they are empty!
-		 * 
-		 * If we read scap-files we could face `(NULL)` params, so also in
-		 * this case we convert them to `<NA>`.
-		 * 
-		 * To be honest there could be another corner case, but right now
-		 * we don't have to manage it:
-		 *    
-		 *    - PT_SOCKADDR
-		 *    - PT_SOCKTUPLE
-		 *    - PT_FDLIST
-		 * 
-		 * Could be empty, so we will have:
-		 * 	params[i].buf = "pointer to the next param";
-		 *	params[i].size = 0;
-		 * 
-		 * However, as we said in the previous case, the ideal outcome would be:
-		 * 	params[i].buf = NULL;
-		 *	params[i].size = 0;
-		 * 
-		 * The difference with the previous case is that the userspace can manage
-		 * these params when they have `params[i].size == 0`, so we don't have
-		 * to use the `<NA>` workaround! We could also introduce the `NULL` and so
-		 * put in place the ideal solution for this parameter, but before doing this
-		 * we need to be sure that the userspace never tries to deference the pointer
-		 * otherwise it will trigger a segmentation fault at run-time. So as a first
-		 * step we would keep them as they are.
-		 */
-		int param_type = event_info->params[i].type;
-		
-		if((param_type == PT_CHARBUF ||
-			param_type == PT_FSRELPATH ||
-			param_type == PT_BYTEBUF ||
-			param_type == PT_FSPATH)
-			&&
-			(params[i].size == 0 ||
-			(params[i].size == 7 && strncmp(params[i].buf, "(NULL)", 7) == 0)))
-		{
-			/* Overwrite the value and the size of the param.
-			 * 5 = strlen("<NA>") + `\0`.
-			 */
-			params[i].buf = "<NA>";
-			params[i].size = 5;
-		}
 	}
 
 	return n;
