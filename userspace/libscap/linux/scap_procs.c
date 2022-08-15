@@ -35,6 +35,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_engines.h"
 #include "engine/kmod/kmod.h"
+#include "strerror.h"
 
 
 int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)

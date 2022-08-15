@@ -46,6 +46,7 @@ limitations under the License.
 #include "compat/bpf.h"
 #include "../common/strlcpy.h"
 #include "noop.h"
+#include "strerror.h"
 
 #ifndef MINIMAL_BUILD
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)

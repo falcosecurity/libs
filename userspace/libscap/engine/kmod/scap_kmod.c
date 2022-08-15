@@ -31,6 +31,7 @@ limitations under the License.
 #include "scap_engine_util.h"
 #include "ringbuffer/ringbuffer.h"
 #include "../common/strlcpy.h"
+#include "strerror.h"
 
 //#define NDEBUG
 #include <assert.h>
