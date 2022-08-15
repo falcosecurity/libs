@@ -305,7 +305,14 @@ int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, siz
 		case PT_FSPATH:
 		case PT_FSRELPATH:
             param.buf = va_arg(args, char*);
-            param.size = strlen(param.buf) + 1;
+			if(param.buf == NULL)
+			{
+				param.size = 0;
+			}
+			else
+			{
+				param.size = strlen(param.buf) + 1;
+			}
 			break;
 
 		case PT_BYTEBUF: /* A raw buffer of bytes not suitable for printing */
