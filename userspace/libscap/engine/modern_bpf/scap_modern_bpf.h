@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include "../../../../driver/ppm_events_public.h"
 
 struct scap;
