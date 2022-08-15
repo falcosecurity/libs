@@ -387,7 +387,7 @@ protected:
 	{
 		if(!(m_flags & PPM_CL_CLONE_FILES))
 		{
-			return &m_fdtable;;
+			return &m_fdtable;
 		}
 		else
 		{
@@ -401,7 +401,7 @@ protected:
 	{
 		if(!(m_flags & PPM_CL_CLONE_FILES))
 		{
-			return &m_fdtable;;
+			return &m_fdtable;
 		}
 		else
 		{

@@ -723,7 +723,14 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			ASSERT((int64_t)tinfo->m_latency >= 0);
 		}
 
-		if(etype == tinfo->m_lastevent_type + 1)
+		if((etype==PPME_SYSCALL_EXECVE_18_X ||
+		   etype==PPME_SYSCALL_EXECVE_19_X)
+		   &&
+		   tinfo->m_lastevent_type == PPME_SYSCALL_EXECVEAT_E)
+		{
+			tinfo->set_lastevent_data_validity(true);
+		}
+		else if(etype == tinfo->m_lastevent_type + 1)
 		{
 			tinfo->set_lastevent_data_validity(true);
 		}
@@ -889,6 +896,26 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	}
 
 	enter_evt->init(exit_evt->m_tinfo->m_lastevent_data, exit_evt->m_tinfo->m_lastevent_cpuid);
+
+	/* The `execveat` syscall is a wrapper of `execve`, when the call 
+	 * succeeds the event returned is simply an `execve` exit event. 
+	 * So if an `execveat` is correctly executed we will have, a 
+	 * `PPME_SYSCALL_EXECVEAT_E` as enter event and a 
+	 * `PPME_SYSCALL_EXECVE_..._X` as exit one. So when we retrieve 
+	 * the enter event in the `parse_execve_exit` method  we cannot 
+	 * only check for the same syscall event, so `PPME_SYSCALL_EXECVE_..._E`, 
+	 * we have also to check for the `PPME_SYSCALL_EXECVEAT_E`.
+	 */
+	if((exit_evt->get_type() == PPME_SYSCALL_EXECVE_18_X ||
+		exit_evt->get_type() == PPME_SYSCALL_EXECVE_19_X)
+		&& 
+		enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
+	{
+#ifdef GATHER_INTERNAL_STATS
+		m_inspector->m_stats.m_n_retrieved_evts++;
+#endif
+		return true;
+	}
 
 	//
 	// Make sure that we're using the right enter event, to prevent inconsistencies when events
@@ -1660,13 +1687,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
 
+	/* Please note here we will never parse an `PPME_SYSCALL_EXECVEAT_X` event since it is 
+	 * generated only in case of failure, here if `retval<0` we return immediately.
+	 * If we remove this `if` we need to support also the `PPME_SYSCALL_EXECVEAT_X` event.
+	 */
 	if(retval < 0)
 	{
 		return;
 	}
 
 	//
-	// We get here when execve or execveat return. The thread has already been added by a previous fork or clone,
+	// We get here when `execve` return. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
 	//
 	if(!evt->m_tinfo)
@@ -1697,7 +1728,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1743,7 +1773,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1792,7 +1821,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1830,7 +1858,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1840,38 +1867,54 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
-	switch(etype)
+	/*
+	 * Get `exepath`
+	 */
+
+	/* We introduced the `filename` argument in the enter event
+	 * only from version `EXECVE_18_E`.
+	 * Moreover if we are not able to retrieve the enter event 
+	 * we can do nothing.
+	 */
+	if((etype == PPME_SYSCALL_EXECVE_18_X ||
+	    etype == PPME_SYSCALL_EXECVE_19_X)
+		&&
+		retrieve_enter_event(enter_evt, evt))
 	{
-	case PPME_SYSCALL_EXECVE_8_X:
-	case PPME_SYSCALL_EXECVE_13_X:
-	case PPME_SYSCALL_EXECVE_14_X:
-	case PPME_SYSCALL_EXECVE_15_X:
-	case PPME_SYSCALL_EXECVE_16_X:
-	case PPME_SYSCALL_EXECVE_17_X:
-		break;
-	case PPME_SYSCALL_EXECVE_18_X:
-	case PPME_SYSCALL_EXECVE_19_X:
-		// Get exepath
-		if (retrieve_enter_event(enter_evt, evt))
+		char fullpath[SCAP_MAX_PATH_SIZE] = {0};
+	
+		/* We need to manage the 2 possible cases:
+		 * - enter event is an `EXECVE`
+		 * - enter event is an `EXECVEAT`
+		 */
+		if(enter_evt->get_type() == PPME_SYSCALL_EXECVE_18_E ||
+		   enter_evt->get_type() == PPME_SYSCALL_EXECVE_19_E)
 		{
-			char fullpath[SCAP_MAX_PATH_SIZE];
+			/*
+			 * Get filename
+			 */
 			parinfo = enter_evt->get_param(0);
-			if (strncmp(parinfo->m_val, "<NA>", 5) == 0)
+			/* This could happen only if we are not able to get the info from the kernel,
+			 * because if the syscall was successful the pathname was surely here the problem
+			 * is that for some reason we were not able to get it with our instrumentation, 
+			 * for example when the `bpf_probe_read()` call fails in BPF.
+			 */
+			if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
 			{
-				evt->m_tinfo->m_exepath = "<NA>";
+				strncpy(fullpath, "<NA>", 5);
 			}
 			else
 			{
+				/* Here the filename can be relative or absolute. */
 				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-											   evt->m_tinfo->m_cwd.c_str(), (uint32_t)evt->m_tinfo->m_cwd.size(),
-											   parinfo->m_val, (uint32_t)parinfo->m_len, m_inspector->m_is_windows);
-				evt->m_tinfo->m_exepath = fullpath;
+												evt->m_tinfo->m_cwd.c_str(),
+												(uint32_t)evt->m_tinfo->m_cwd.size(),
+												parinfo->m_val,
+												(uint32_t)parinfo->m_len,
+												m_inspector->m_is_windows);
 			}
 		}
-		break;
-	case PPME_SYSCALL_EXECVEAT_X:
-		// Get exepath
-		if (retrieve_enter_event(enter_evt, evt))
+		else if(enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
 		{
 			/*
 			 * Get dirfd
@@ -1879,49 +1922,81 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t dirfd = *(int64_t *)parinfo->m_val;
-
-			/*
-			 * Get pathname
-			 */
-			parinfo = enter_evt->get_param(1);
-			if (strncmp(parinfo->m_val, "<NA>", 5) == 0)
-			{
-				evt->m_tinfo->m_exepath = "<NA>";
-				break;
-			}
-			char *pathname = parinfo->m_val;
-			uint32_t namelen = parinfo->m_len;
-
+			
 			/*
 			 * Get flags
 			 */
 			parinfo = enter_evt->get_param(2);
-			ASSERT(parinfo->m_len == sizeof(int32_t));
-			uint32_t flags = *(int32_t *)parinfo->m_val;
-
-			string sdir;
-			parse_dirfd(enter_evt, pathname, dirfd, &sdir);
+			ASSERT(parinfo->m_len == sizeof(uint32_t));
+			uint32_t flags = *(uint32_t *)parinfo->m_val;
 
 			/*
-			 *  If pathname is an empty string and the AT_EMPTY_PATH flag is specified then the file descriptor dirfd specifies the file to be executed (i.e., dirfd refers to an executable file, rather than a directory).
+			 * Get pathname
 			 */
-			if(flags & PPM_EXVAT_AT_EMPTY_PATH && strlen(pathname)==0)
+
+			/* The pathname could be:
+			 * - (1) relative (to dirfd).
+			 * - (2) absolute.
+			 * - (3) empty in the kernel because the user specified the `AT_EMPTY_PATH` flag.
+			 *   In this case, `dirfd` must refer to a file.
+			 *   Please note:
+			 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
+			 * - (4) empty in the kernel because we fail to recover it from the registries.
+			 * 	 Please note:
+			 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
+			 */
+			parinfo = enter_evt->get_param(1);
+			char *pathname = parinfo->m_val;
+			uint32_t namelen = parinfo->m_len;
+
+			/* If the pathname is `<NA>` here we shouldn't have problems during `parse_dirfd`.
+			 * It doesn't start with "/" so it is not considered an absolute path.
+			 */
+			string sdir;
+			parse_dirfd(evt, pathname, dirfd, &sdir);
+
+			/* (4) In this case, we were not able to recover the pathname from the kernel or 
+			 * we are not able to recover information about `dirfd` in our `sinsp` state.
+			 * Fallback to `<NA>`.
+			 */
+			if((!(flags & PPM_EXVAT_AT_EMPTY_PATH) && strncmp(pathname, "<NA>", 5) == 0) ||
+			   sdir.compare("<UNKNOWN>") == 0)
 			{
-				// In this way, the pathname becomes an absolute path and in the 'concatenate_paths' function the dirfd value is not considered.
-				strcpy(pathname, sdir.c_str());
+				/* we copy also the string terminator `\0`. */
+				strncpy(fullpath, "<NA>", 5);
+			} 
+			/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
+			 * to sanitize it. 
+			 */
+			else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
+			{
+				/* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>` 
+				 * as we said in case (3), and we don't want to consider it as a valid
+				 * part of the final path. In this case `sdir` will always be 
+				 * an absolute path.
+				 */
+				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+								"\0", 
+								0,
+								sdir.c_str(), 
+								(uint32_t)sdir.length(), 
+								m_inspector->m_is_windows);
+
 			}
-			char fullpath[SCAP_MAX_PATH_SIZE];
-			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-										   sdir.c_str(), 
-										   (uint32_t)sdir.length(),
-										   pathname, 
-										   namelen, 
-										   m_inspector->m_is_windows);
-			evt->m_tinfo->m_exepath = fullpath;
+			/* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
+			 * - `sdir` + `pathname`
+			 */
+			else
+			{
+				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+											sdir.c_str(), 
+											(uint32_t)sdir.length(),
+											pathname, 
+											namelen, 
+											m_inspector->m_is_windows);
+			}
 		}
-		break;
-	default:
-		ASSERT(false);
+		evt->m_tinfo->m_exepath = fullpath;
 	}
 
 	switch(etype)
@@ -1935,7 +2010,6 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
-	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -1977,7 +2051,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Get capabilities
 	if(evt->get_num_params() > 22)
 	{
-		if(etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X)
+		if(etype == PPME_SYSCALL_EXECVE_19_X)
 		{
 			parinfo = evt->get_param(20);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -2054,9 +2128,23 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	return;
 }
 
+/* Different possible cases:
+ * - the pathname is absolute:
+ *	 sdir = "."
+ * - the pathname is relative:
+ *   - if `dirfd` is `PPM_AT_FDCWD` -> sdir = cwd.
+ *   - if we have no information about `dirfd` -> sdir = "<UNKNOWN>".
+ *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end. 
+ */
 void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir)
 {
-	bool is_absolute = (name[0] == '/');
+	bool is_absolute = false;
+	/* This should never happen but just to be sure. */
+	if(name != NULL)
+	{
+		is_absolute = (name[0] == '/');
+	}
+
 	string tdirstr;
 
 	if(is_absolute)
