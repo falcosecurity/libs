@@ -143,6 +143,8 @@ elseif(APPLE)
 	include_directories(macos)
 endif()
 
+target_link_libraries(scap scap_platform)
+
 add_library(scap_event_schema
 		scap_event.c
 		syscall_info_table.c

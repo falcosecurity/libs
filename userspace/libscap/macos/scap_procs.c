@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,30 +15,19 @@ limitations under the License.
 
 */
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "scap.h"
-#include "../../driver/ppm_ringbuffer.h"
-#include "scap-int.h"
-#include "scap_engines.h"
-#include "engine/kmod/kmod.h"
-
-#include <io.h>
-#define R_OK 4
-#include <process.h>
-#include "windows_hal.h"
+#include "scap_vtable.h"
+#include <unistd.h>
 
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
 {
-	*pid = _getpid();
+	*pid = getpid();
 	return SCAP_SUCCESS;
 }
+
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 {
-	return scap_get_procs_windows(handle, error);
+	return SCAP_NOT_SUPPORTED;
 }
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
