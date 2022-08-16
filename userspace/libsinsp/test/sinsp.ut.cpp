@@ -159,7 +159,7 @@ TEST_F(sinsp_with_test_input, check_charbuf_NULL_param)
 	ASSERT_STREQ(param->m_val, "<NA>");
 }
 
-/* Assert that an empty `PT_BYTEBUF` param is converted to `<NA>` */
+/* Assert that an empty `PT_BYTEBUF` param is NOT converted to `<NA>` */
 TEST_F(sinsp_with_test_input, check_bytebuf_empty_param)
 {
 	add_default_init_thread();
@@ -174,8 +174,7 @@ TEST_F(sinsp_with_test_input, check_bytebuf_empty_param)
 	bytebuf_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PWRITE_X, 2, 0, bytebuf_param);
 	param = evt->get_param(1);
-	ASSERT_EQ(param->m_len, 5);
-	ASSERT_STREQ(param->m_val, "<NA>");
+	ASSERT_EQ(param->m_len, 0);
 }
 
 /* Assert that empty (`PT_SOCKADDR`, `PT_SOCKTUPLE`, `PT_FDLIST`) params are NOT converted to `<NA>` */
