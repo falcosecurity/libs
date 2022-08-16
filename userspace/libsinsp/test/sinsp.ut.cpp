@@ -288,3 +288,171 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 		FAIL();
 	}
 }
+
+/* Assert if the thread `exepath` is set to the right value
+ * if we call `execveat` in the following way:
+ * - valid `dirfd` that points to the file to run.
+ * - `AT_EMPTY_PATH` flag
+ * - an invalid `pathname` (<NA>), this is not considered if `AT_EMPTY_PATH` is specified
+ */
+TEST_F(sinsp_with_test_input, execveat_empty_path_flag)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *file_to_run = "/tmp/file_to_run";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, file_to_run, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", PPM_EXVAT_AT_EMPTY_PATH);
+
+	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
+	 * `AT_EMPTY_PATH` flag.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Assert if the thread `exepath` is set to the right value
+ * if we call `execveat` in the following way:
+ * - valid `dirfd` that points to the directory that contains the file we want to run.
+ * - flags=0.
+ * - a valid `pathname` relative to dirfd.
+ */
+TEST_F(sinsp_with_test_input, execveat_relative_path)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the directory that contains the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *directory = "/tmp/dir";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, directory, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
+
+	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
+	 * specified in the `execveat` enter event.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/dir/file");
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Assert if the thread `exepath` is set to the right value
+ * if we call `execveat` in the following way:
+ * - invalid `dirfd`, it shouldn't be considered if the `pathname` is absolute.
+ * - flags=0.
+ * - a valid absolute `pathname`.
+ */
+TEST_F(sinsp_with_test_input, execveat_absolute_path)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	int invalid_dirfd = 0;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/file", 0);
+
+	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the absolute file path that we passed in the
+	 * `execveat` enter event.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/file");
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Assert if the thread `exepath` is set to the right value
+ * if we call `execveat` in the following way:
+ * - valid `dirfd` that points to the directory that contains the file we want to run.
+ * - flags=0.
+ * - an invalid `pathname` (<NA>).
+ *
+ * This test simulates the case in which we are not able to retrieve the path from the syscall
+ * in the kernel.
+ */
+TEST_F(sinsp_with_test_input, execveat_invalid_path)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the directory that contains the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *directory = "/tmp/dir";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, directory, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
+
+	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
+	 * is invalid and should set `<NA>`.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+	}
+	else
+	{
+		FAIL();
+	}
+}
