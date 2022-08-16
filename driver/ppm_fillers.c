@@ -4877,6 +4877,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int res;
 	int64_t retval;
+	char *pathname = NULL;
 
 	/*
 	 * fd
@@ -4918,7 +4919,6 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	/*
 	 * path
 	 */
-	char *pathname = NULL;
 	if (retval > 0)
 	{
 		/* String storage size is exactly one page. 
