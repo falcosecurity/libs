@@ -503,8 +503,7 @@ private:
 			
 			if((param_type == PT_CHARBUF ||
 				param_type == PT_FSRELPATH ||
-				param_type == PT_FSPATH ||
-				param_type == PT_BYTEBUF)
+				param_type == PT_FSPATH)
 				&&
 				(params[j].size == 0 ||
 				(params[j].size == 7 && strncmp((char*)params[j].buf, "(NULL)", 7) == 0)))
