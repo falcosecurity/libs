@@ -6,6 +6,9 @@ file(GLOB_RECURSE SYSCALL_EXIT_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suite
 ## Syscall_enter suite files.
 file(GLOB_RECURSE SYSCALL_ENTER_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/syscall_enter_suite/*.cpp)
 
+## Sched_proc suite files.
+file(GLOB_RECURSE GENERIC_TRACEPOINTS_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/generic_tracepoints_suite/*.cpp)
+
 set(MODERN_BPF_TEST_SOURCES
   ./start_tests.cpp
   ./event_class/event_class.cpp
@@ -13,6 +16,7 @@ set(MODERN_BPF_TEST_SOURCES
   ./helpers/proc_parsing.cpp
   "${SYSCALL_EXIT_TEST_SUITE}"
   "${SYSCALL_ENTER_TEST_SUITE}"
+  "${GENERIC_TRACEPOINTS_TEST_SUITE}"
 )
 
 set(MODERN_BPF_TEST_INCLUDE

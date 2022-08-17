@@ -54,6 +54,10 @@ static int32_t attach_interesting_tracepoints(bool* tp_array)
 			ret = pman_attach_syscall_exit_dispatcher();
 			break;
 
+		case SCHED_PROC_EXIT:
+			ret = pman_attach_sched_proc_exit();
+			break;
+
 		default:
 			/* Do nothing right now. */
 			break;

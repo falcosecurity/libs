@@ -22,6 +22,7 @@ limitations under the License.
  */
 
 /*=============================== ATTACH PROGRAMS ===============================*/
+
 int pman_attach_syscall_enter_dispatcher()
 {
 	/* The program is already attached. */
@@ -56,11 +57,29 @@ int pman_attach_syscall_exit_dispatcher()
 	return 0;
 }
 
+int pman_attach_sched_proc_exit()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.sched_proc_exit != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.sched_proc_exit = bpf_program__attach(g_state.skel->progs.sched_proc_exit);
+	if(!g_state.skel->links.sched_proc_exit)
+	{
+		pman_print_error("failed to attach the 'sched_proc_exit' program");
+		return errno;
+	}
+	return 0;
+}
+
 int pman_attach_all_programs()
 {
 	int err;
 	err = pman_attach_syscall_enter_dispatcher();
 	err = err ?: pman_attach_syscall_exit_dispatcher();
+	err = err ?: pman_attach_sched_proc_exit();
 	/* add all other programs. */
 	return err;
 }
@@ -91,11 +110,23 @@ int pman_detach_syscall_exit_dispatcher()
 	return 0;
 }
 
+int pman_detach_sched_proc_exit()
+{
+	if(g_state.skel->links.sched_proc_exit && bpf_link__destroy(g_state.skel->links.sched_proc_exit))
+	{
+		pman_print_error("failed to detach the 'sched_proc_exit' program");
+		return errno;
+	}
+	g_state.skel->links.sched_proc_exit = NULL;
+	return 0;
+}
+
 int pman_detach_all_programs()
 {
 	int err;
 	err = pman_detach_syscall_enter_dispatcher();
 	err = err ?: pman_detach_syscall_exit_dispatcher();
+	err = err ?: pman_detach_sched_proc_exit();
 	/* add all other programs. */
 	return err;
 }
