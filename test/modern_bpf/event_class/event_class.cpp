@@ -80,6 +80,7 @@ event_test::~event_test()
 	 * apart from syscall dispatchers.
 	 */
 	pman_detach_sched_proc_exit();
+	pman_detach_sched_switch();
 }
 
 /* This constructor must be used with generic tracepoints
@@ -93,6 +94,10 @@ event_test::event_test(ppm_event_type event_type)
 	{
 	case PPME_PROCEXIT_1_E:
 		pman_attach_sched_proc_exit();
+		break;
+
+	case PPME_SCHEDSWITCH_6_E:
+		pman_attach_sched_switch();
 		break;
 
 	default:
