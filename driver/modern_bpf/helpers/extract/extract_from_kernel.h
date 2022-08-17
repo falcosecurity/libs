@@ -472,3 +472,39 @@ static __always_inline void extract__loginuid(struct task_struct *task, u32 *log
 {
 	READ_TASK_FIELD_INTO(loginuid, task, loginuid.val);
 }
+
+/////////////////////////
+// EXTRACT CLONE FLAGS
+////////////////////////
+
+/**
+ * @brief To extract clone flags we need to read some info in the kernel
+ *
+ * @param task pointer to the task struct.
+ * @param flags internal flag representation.
+ * @return scap flag representation.
+ */
+static __always_inline unsigned long extract__clone_flags(struct task_struct *task, unsigned long flags)
+{
+	unsigned long ppm_flags = clone_flags_to_scap(flags);
+	struct pid *pid = extract__task_pid_struct(task, PIDTYPE_PID);
+	struct pid_namespace *ns = extract__namespace_of_pid(pid);
+	unsigned int ns_level;
+	BPF_CORE_READ_INTO(&ns_level, ns, level);
+
+	if(ns_level != 0)
+	{
+		flags |= PPM_CL_CHILD_IN_PIDNS;
+	}
+	else
+	{
+		struct pid_namespace *ns_children;
+		READ_TASK_FIELD_INTO(&ns_children, task, nsproxy, pid_ns_for_children);
+
+		if(ns_children != ns)
+		{
+			flags |= PPM_CL_CHILD_IN_PIDNS;
+		}
+	}
+	return ppm_flags;
+}
