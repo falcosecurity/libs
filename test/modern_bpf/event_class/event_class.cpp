@@ -61,19 +61,8 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 // CONFIGURATION
 /////////////////////////////////
 
-event_test::event_test(int syscall_id, int event_direction)
+event_test::~event_test()
 {
-	if(event_direction == ENTER_EVENT)
-	{
-		m_event_type = g_syscall_table[syscall_id].enter_event_type;
-	}
-	else
-	{
-		m_event_type = g_syscall_table[syscall_id].exit_event_type;
-	}
-
-	m_current_param = 0;
-
 	/*
 	 * Cleaning phase.
 	 */
@@ -87,11 +76,46 @@ event_test::event_test(int syscall_id, int event_direction)
 	/* 3 - clean all interesting syscalls. */
 	mark_all_64bit_syscalls_as_uninteresting();
 
-	/* 4 - set the current as the only interesting syscall. */
-	mark_single_64bit_syscall_as_interesting(syscall_id);
+	/* 4 - detach all generic tracepoints attached to the kernel
+	 * apart from syscall dispatchers.
+	 */
+	pman_detach_sched_proc_exit();
+}
 
-	/* 5 - detach all bpf programs attached to the kernel a part from syscall dispatchers. */
-	/* Right now we don't have BPF programs to detach here ...*/
+/* This constructor must be used with generic tracepoints
+ * that must attach a dedicated BPF program into the kernel.
+ */
+event_test::event_test(ppm_event_type event_type)
+{
+	m_current_param = 0;
+	m_event_type = event_type;
+	switch(event_type)
+	{
+	case PPME_PROCEXIT_1_E:
+		pman_attach_sched_proc_exit();
+		break;
+
+	default:
+		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
+	}
+}
+
+/* This constructor must be used with syscalls events */
+event_test::event_test(int syscall_id, int event_direction)
+{
+	if(event_direction == ENTER_EVENT)
+	{
+		m_event_type = g_syscall_table[syscall_id].enter_event_type;
+	}
+	else
+	{
+		m_event_type = g_syscall_table[syscall_id].exit_event_type;
+	}
+
+	m_current_param = 0;
+
+	/* Set the current as the only interesting syscall. */
+	mark_single_64bit_syscall_as_interesting(syscall_id);
 }
 
 void event_test::mark_single_64bit_syscall_as_interesting(int interesting_syscall_id)
