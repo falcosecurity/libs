@@ -508,3 +508,29 @@ static __always_inline unsigned long extract__clone_flags(struct task_struct *ta
 	}
 	return ppm_flags;
 }
+
+/////////////////////////
+// UID EXTRACTION
+////////////////////////
+
+/**
+ * @brief Extract euid
+ *
+ * @param task pointer to task struct
+ * @param euid return value by reference
+ */
+static __always_inline void extract__euid(struct task_struct *task, u32 *euid)
+{
+	READ_TASK_FIELD_INTO(euid, task, cred, euid.val);
+}
+
+/**
+ * @brief Extract egid
+ *
+ * @param task pointer to task struct
+ * @param egid return value by reference
+ */
+static __always_inline void extract__egid(struct task_struct *task, u32 *egid)
+{
+	READ_TASK_FIELD_INTO(egid, task, cred, egid.val);
+}
