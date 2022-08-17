@@ -145,6 +145,20 @@ extern "C"
 	 */
 	int pman_detach_sched_proc_exit(void);
 
+	/**
+	 * @brief Attach only the sched_switch tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_sched_switch(void);
+
+	/**
+	 * @brief Detach only the sched_switch tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_detach_sched_switch(void);
+
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
 	/////////////////////////////
