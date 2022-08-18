@@ -157,9 +157,13 @@ void event_test::parse_event()
 // GENERIC EVENT ASSERTIONS
 /////////////////////////////////
 
-void event_test::assert_event_presence()
+void event_test::assert_event_presence(pid_t desired_pid)
 {
-	uint64_t pid = ::getpid();
+	pid_t pid = ::getpid();
+	if(desired_pid != CURRENT_PID)
+	{
+		pid = desired_pid;
+	}
 	int consume_ret = 0;
 	uint16_t cpu_id = 0;
 
@@ -174,7 +178,7 @@ void event_test::assert_event_presence()
 		{
 			FAIL() << "There is no event in the buffer." << std::endl;
 		}
-		if(m_event_header->tid == pid && m_event_header->type == m_event_type)
+		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == m_event_type)
 		{
 			break;
 		}
