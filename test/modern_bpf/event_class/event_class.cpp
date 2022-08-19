@@ -238,6 +238,10 @@ void event_test::assert_numeric_param(int param_num, T param, enum assertion_ope
 		ASSERT_GE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 		break;
 
+	case LESS_EQUAL:
+		ASSERT_LE(*(T*)(m_event_params[m_current_param].valptr), param) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		break;
+
 	default:
 		FAIL() << "Operation currently not supported!";
 		return;
