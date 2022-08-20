@@ -10,6 +10,7 @@ set(MODERN_BPF_TEST_SOURCES
   ./start_tests.cpp
   ./event_class/event_class.cpp
   ./flags/capabilities.cpp
+  ./helpers/proc_parsing.cpp
   "${SYSCALL_EXIT_TEST_SUITE}"
   "${SYSCALL_ENTER_TEST_SUITE}"
 )
