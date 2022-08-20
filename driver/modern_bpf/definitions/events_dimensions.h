@@ -70,5 +70,6 @@
 #define BIND_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define LISTEN_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define LISTEN_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define CLONE_E_SIZE HEADER_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */

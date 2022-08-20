@@ -18,6 +18,7 @@ extern "C"
 {
 #include <libpman.h>
 #include <ppm_events_public.h>
+#include <feature_gates.h>
 }
 
 struct param
