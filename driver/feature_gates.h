@@ -166,6 +166,22 @@ or GPL2.txt for full copies of the license.
 	#define CAPTURE_PAGE_FAULTS
 #endif /* __x86_64__ */
 
+///////////////////////////////
+// CAPTURE_SCHED_PROC_FORK 
+///////////////////////////////
+
+#if defined(__aarch64__) || defined(__s390x__)
+	#define CAPTURE_SCHED_PROC_FORK 
+#endif
+
+///////////////////////////////
+// CAPTURE_SCHED_PROC_EXEC 
+///////////////////////////////
+
+#if defined(__aarch64__)
+	#define CAPTURE_SCHED_PROC_EXEC 
+#endif
+
 #endif /* UDIG */
 
 #endif /* __KERNEL__ */

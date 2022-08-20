@@ -1173,7 +1173,8 @@ enum extra_event_prog_code
 {
 	T1_EXECVE_X = 0,
 	T1_EXECVEAT_X = 1,
-	TAIL_EXTRA_EVENT_PROG_MAX = 2
+	T1_CLONE_X = 2,
+	TAIL_EXTRA_EVENT_PROG_MAX = 3
 };
 
 /*
