@@ -1,11 +1,8 @@
 #include "../../event_class/event_class.h"
 #include "../../flags/flags_definitions.h"
+#include "../../helpers/proc_parsing.h"
 
-#if defined(__NR_execveat) && defined(__NR_getrlimit) && defined(__NR_capget)
-
-#include <sys/resource.h> // to get rlimit_resource
-
-#define MAX_PATH 4096
+#if defined(__NR_execveat) && defined(__NR_capget)
 
 TEST(SyscallExit, execveatX)
 {
@@ -15,97 +12,13 @@ TEST(SyscallExit, execveatX)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* We extract some info from proc before calling the syscall, in this way we are sure that
-	 * the numbers that we will extract	in the BPF are surely greater or equal than the ones extracted now.
-	 */
-	pid_t process_pid = ::getpid();
-	char path_to_read[MAX_PATH];
-
-	/*
-	 * Read some info regarding the stats of the process from `/proc/[pid]/stat`
-	 */
-	snprintf(path_to_read, sizeof(path_to_read), "/proc/%d/stat", process_pid);
-	FILE* stat = fopen(path_to_read, "r");
-	if(stat == NULL)
+	/* Get all the info from proc. */
+	struct proc_info info = {0};
+	pid_t pid = ::getpid();
+	if(!get_proc_info(pid, &info))
 	{
-		FAIL() << "'fopen /proc/[pid]/stat' must not fail: (" << errno << "), " << strerror(errno) << std::endl;
+		FAIL() << "Unable to get all the info from proc" << std::endl;
 	}
-
-	int tty = 0;
-	unsigned long minflt = 0;
-	unsigned long majflt = 0;
-	pid_t ppid = 0; /* The PID of the parent of this process. */
-	pid_t pgid = 0; /* The process group ID of the process. */
-
-	/* we could get the filename of the executable (`comm`) from proc, but it is returned
-	 * in parentheses, so for example "(bpf_test)", so we prefer to use our macro `TEST_EXECUTABLE_NAME`
-	 */
-	if(fscanf(stat, "%*d %*s %*c %d %d %*d %d %*d %*u %lu %*u %lu", &ppid, &pgid, &tty, &minflt, &majflt) < 0)
-	{
-		FAIL() << "'fscanf /proc/[pid]/stat' must not fail: (" << errno << "), " << strerror(errno) << std::endl;
-	}
-	fclose(stat);
-
-	/*
-	 * Read some info regarding the status of the process from `/proc/[pid]/status`
-	 */
-	snprintf(path_to_read, sizeof(path_to_read), "/proc/%d/status", process_pid);
-	FILE* status = fopen(path_to_read, "r");
-	if(status == NULL)
-	{
-		FAIL() << "'fopen /proc/[pid]/status' must not fail: (" << errno << "), " << strerror(errno) << std::endl;
-	}
-
-	char line[MAX_PATH];
-	char prefix[MAX_PATH];
-	uint32_t vm_size = 0;
-	uint32_t vm_rss = 0;
-	uint32_t vm_swap = 0;
-	uint32_t temp = 0;
-	int found = 0;
-	while(fgets(line, MAX_PATH, status) != NULL)
-	{
-		sscanf(line, "%s %d %*s\n", prefix, &temp);
-		if(strncmp(prefix, "VmSize:", 8) == 0)
-		{
-			vm_size = temp;
-			found++;
-		}
-
-		if(strncmp(prefix, "VmRSS:", 7) == 0)
-		{
-			vm_rss = temp;
-			found++;
-		}
-
-		if(strncmp(prefix, "VmSwap:", 8) == 0)
-		{
-			vm_swap = temp;
-			found++;
-		}
-
-		if(found == 3)
-		{
-			break;
-		}
-	}
-	fclose(status);
-
-	/*
-	 * Read `loginuid` from `/proc/[pid]/loginuid`
-	 */
-	snprintf(path_to_read, sizeof(path_to_read), "/proc/%d/loginuid", process_pid);
-	FILE* login = fopen(path_to_read, "r");
-	if(login == NULL)
-	{
-		FAIL() << "'fopen /proc/[pid]/loginuid' must not fail: (" << errno << "), " << strerror(errno) << std::endl;
-	}
-	int loginuid = 0;
-	if(fscanf(login, "%d", &loginuid) != 1)
-	{
-		FAIL() << "'fscanf /proc/[pid]/loginuid' must not fail." << std::endl;
-	}
-	fclose(login);
 
 	/*
 	 * Get the process capabilities.
@@ -123,13 +36,7 @@ TEST(SyscallExit, execveatX)
 	assert_syscall_state(SYSCALL_SUCCESS, "capget", syscall(__NR_capget, hdrp, datap), EQUAL, 0);
 
 	/*
-	 * Get rlimit
-	 */
-	struct rlimit file_rlimit = {0};
-	assert_syscall_state(SYSCALL_SUCCESS, "getrlimit", syscall(__NR_getrlimit, RLIMIT_NOFILE, &file_rlimit), NOT_EQUAL, -1);
-
-	/*
-	 * Call the `execve`
+	 * Call the `execveat`
 	 */
 	int dirfd = AT_FDCWD;
 	char pathname[] = "//**null-file-path**//";
@@ -167,36 +74,38 @@ TEST(SyscallExit, execveatX)
 	evt_test->assert_charbuf_array_param(3, &newargv[1]);
 
 	/* Parameter 4: tid (type: PT_PID) */
-	evt_test->assert_numeric_param(4, (int64_t)process_pid);
+	evt_test->assert_numeric_param(4, (int64_t)pid);
 
 	/* Parameter 5: pid (type: PT_PID) */
 	/* We are the main thread of the process so it's equal to `tid`. */
-	evt_test->assert_numeric_param(5, (int64_t)process_pid);
+	evt_test->assert_numeric_param(5, (int64_t)pid);
 
 	/* Parameter 6: ptid (type: PT_PID) */
-	evt_test->assert_numeric_param(6, (int64_t)ppid);
+	evt_test->assert_numeric_param(6, (int64_t)info.ppid);
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/* leave the current working directory empty like in the old probe. */
 	evt_test->assert_empty_param(7);
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
-	evt_test->assert_numeric_param(8, (uint64_t)file_rlimit.rlim_cur);
+	evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
 
 	/* Parameter 9: pgft_maj (type: PT_UINT64) */
-	evt_test->assert_numeric_param(9, (uint64_t)majflt, GREATER_EQUAL);
+	/* Right now we can't find a precise value to perform the assertion. */
+	evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
 
 	/* Parameter 10: pgft_min (type: PT_UINT64) */
-	evt_test->assert_numeric_param(10, (uint64_t)minflt, GREATER_EQUAL);
+	/* Right now we can't find a precise value to perform the assertion. */
+	evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
 
 	/* Parameter 11: vm_size (type: PT_UINT32) */
-	evt_test->assert_numeric_param(11, (uint32_t)vm_size);
+	evt_test->assert_numeric_param(11, (uint32_t)info.vm_size);
 
 	/* Parameter 12: vm_rss (type: PT_UINT32) */
-	evt_test->assert_numeric_param(12, (uint32_t)vm_rss);
+	evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss);
 
 	/* Parameter 13: vm_swap (type: PT_UINT32) */
-	evt_test->assert_numeric_param(13, (uint32_t)vm_swap);
+	evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
@@ -208,14 +117,14 @@ TEST(SyscallExit, execveatX)
 	evt_test->assert_charbuf_array_param(16, &newenviron[0]);
 
 	/* Parameter 17: tty (type: PT_UINT32) */
-	evt_test->assert_numeric_param(17, (uint32_t)tty);
+	evt_test->assert_numeric_param(17, (uint32_t)info.tty);
 
 	/* Parameter 18: pgid (type: PT_PID) */
 	/* If we run in a namespace different from the init one probably this will fail. */
-	evt_test->assert_numeric_param(18, (int64_t)pgid);
+	evt_test->assert_numeric_param(18, (int64_t)info.pgid);
 
 	/* Parameter 19: loginuid (type: PT_UINT32) */
-	evt_test->assert_numeric_param(19, (uint32_t)loginuid);
+	evt_test->assert_numeric_param(19, (uint32_t)info.loginuid);
 
 	/* Parameter 20: flags (type: PT_UINT32) */
 	/* Right now we send always `0`. */
