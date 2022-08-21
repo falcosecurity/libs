@@ -112,5 +112,7 @@
 #define SETSID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SETRLIMIT_E_SIZE HEADER_LEN + sizeof(uint8_t) + PARAM_LEN
 #define SETRLIMIT_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + PARAM_LEN * 3
+#define PRLIMIT64_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
+#define PRLIMIT64_X_SIZE HEADER_LEN + sizeof(int64_t) * 5 + PARAM_LEN * 5
 
 #endif /* __EVENT_DIMENSIONS_H__ */
