@@ -108,5 +108,7 @@
 #define SETRESGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SETRESUID_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
 #define SETRESUID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SETSID_E_SIZE HEADER_LEN
+#define SETSID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
