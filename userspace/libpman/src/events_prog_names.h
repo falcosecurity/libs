@@ -103,6 +103,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_CLONE_20_X] = "clone_x",
 	[PPME_SYSCALL_CLONE3_E] = "clone3_e",
 	[PPME_SYSCALL_CLONE3_X] = "clone3_x",
+	[PPME_SYSCALL_FORK_20_E] = "fork_e",
+	[PPME_SYSCALL_FORK_20_X] = "fork_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
@@ -111,4 +113,5 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T1_EXECVEAT_X] = "t1_execveat_x",
 	[T1_CLONE_X] = "t1_clone_x",
 	[T1_CLONE3_X] = "t1_clone3_x",
+	[T1_FORK_X] = "t1_fork_x",
 };
