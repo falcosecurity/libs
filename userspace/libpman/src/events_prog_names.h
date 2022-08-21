@@ -144,6 +144,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINKAT_2_X] = "unlinkat_x",
 	[PPME_SYSCALL_SETGID_E] = "setgid_e",
 	[PPME_SYSCALL_SETGID_X] = "setgid_x",
+	[PPME_SYSCALL_SETUID_E] = "setuid_e",
+	[PPME_SYSCALL_SETUID_X] = "setuid_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

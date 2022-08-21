@@ -98,5 +98,7 @@
 #define UNLINKAT_E_SIZE HEADER_LEN
 #define SETGID_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define SETGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SETUID_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define SETUID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
