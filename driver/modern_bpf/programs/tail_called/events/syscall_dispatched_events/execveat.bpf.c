@@ -103,8 +103,7 @@ int BPF_PROG(execveat_x,
 
 	/* Parameter 7: cwd (type: PT_CHARBUF) */
 	/// TODO: right now we leave the current working directory empty like in the old probe.
-	unsigned long cwd_pointer = 0;
-	auxmap__store_charbuf_param(auxmap, cwd_pointer, KERNEL);
+	auxmap__store_empty_param(auxmap);
 
 	/* Parameter 8: fdlimit (type: PT_UINT64) */
 	unsigned long fdlimit = 0;
