@@ -148,6 +148,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SETUID_X] = "setuid_x",
 	[PPME_SYSCALL_SETNS_E] = "setns_e",
 	[PPME_SYSCALL_SETNS_X] = "setns_x",
+	[PPME_SYSCALL_SETPGID_E] = "setpgid_e",
+	[PPME_SYSCALL_SETPGID_X] = "setpgid_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
