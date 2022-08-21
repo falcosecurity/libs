@@ -104,5 +104,7 @@
 #define SETNS_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SETPGID_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
 #define SETPGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define SETRESGID_E_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
+#define SETRESGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
