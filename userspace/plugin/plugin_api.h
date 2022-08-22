@@ -165,9 +165,11 @@ typedef struct
 	// Return value: a string with a version identifier, in the following format:
 	//        "<major>.<minor>.<patch>", e.g. "1.2.3".
 	// This differs from the api version in that this versions the
-	// plugin itself. When reading capture files, the major version of the
-	// plugin that generated events must match the major version of the plugin
-	// used to read events.
+	// plugin itself. Note, increasing the major version signals breaking
+	// changes in the plugin implementation but must not change the
+	// serialization format of the event data. For example, events written
+	// in pre-existing capture files must always be readable by newer versions
+	// of the plugin.
 	//
 	const char *(*get_version)();
 
