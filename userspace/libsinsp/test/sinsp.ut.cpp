@@ -211,6 +211,7 @@ TEST_F(sinsp_with_test_input, check_sockaddr_empty_param)
 	ASSERT_EQ(param->m_len, 0);
 }
 
+/* Assert that invalid params in enter events are not considered in the TOCTOU prevention logic. */
 TEST_F(sinsp_with_test_input, enter_event_retrieval)
 {
 	add_default_init_thread();
@@ -226,14 +227,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	 */
 	dirfd = 3;
 	new_fd = 10;
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, "(NULL)", 0, 0);
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, new_fd, dirfd, expected_string, 0, 0, 0, 0);
-
-	evt = next_event();
-	if(evt->get_type() != PPME_SYSCALL_OPENAT_2_X)
-	{
-		evt = next_event();
-	}
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, "(NULL)", 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, new_fd, dirfd, expected_string, 0, 0, 0, 0);
 
 	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
 	{
@@ -249,14 +244,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	 */
 	dirfd = 5;
 	new_fd = 11;
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 6, new_fd, dirfd, expected_string, 0, 0, 0);
-
-	evt = next_event();
-	if(evt->get_type() != PPME_SYSCALL_OPENAT2_X)
-	{
-		evt = next_event();
-	}
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 6, new_fd, dirfd, expected_string, 0, 0, 0);
 
 	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
 	{
@@ -271,14 +260,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	 * The empty param should be converted to `<NA>` and recognized as an invalid param.
 	 */
 	new_fd = 12;
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
-	add_event(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, new_fd, expected_string, 0, 0, 0, 0);
-
-	evt = next_event();
-	if(evt->get_type() != PPME_SYSCALL_OPEN_X)
-	{
-		evt = next_event();
-	}
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, new_fd, expected_string, 0, 0, 0, 0);
 
 	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
 	{
@@ -293,14 +276,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	 * The empty param should be converted to `<NA>` and recognized as an invalid param.
 	 */
 	new_fd = 13;
-	add_event(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
-	add_event(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, 0);
-
-	evt = next_event();
-	if(evt->get_type() != PPME_SYSCALL_CREAT_X)
-	{
-		evt = next_event();
-	}
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, 0);
 
 	if(evt->get_thread_info() != NULL)
 	{
