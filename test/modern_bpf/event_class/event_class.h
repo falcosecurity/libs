@@ -425,6 +425,17 @@ public:
 	void assert_tuple_unix_param(int param_num, uint8_t desired_family, const char* desired_path);
 
 	/**
+	 * @brief The setsockopt `optval` is a `PT_DYN`, so we need
+	 * a dedicated helper to assert it.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param sockopt scap code that indicates the type of option.
+	 * @param option_value value that changes according to the option involved.
+	 * @param option_len length of the value.
+	 */
+	void assert_setsockopt_val(int param_num, int sockopt, void* option_value, int option_len);
+
+	/**
 	 * @brief The ptrace `addr` param is a `PT_DYN`, so we need
 	 * a dedicated helper to assert it.
 	 *
