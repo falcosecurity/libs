@@ -52,3 +52,25 @@
 #define UNIX_SERVER "/tmp/xyzxe-server"
 
 /*=============================== UNIX ===========================*/
+
+/*=============================== SEND/RECEIVE ===========================*/
+
+/* Sendmsg */
+/* we have also the null terminator because in all our messages
+ * (first, second, third) we have left the last byte for the
+ * null terminator.
+ *
+ * Please note: if we left further space in our message the bpf
+ * side will catch the entire length of the message, so will catch
+ * all these extra bytes as `\0` bytes. Look at example here: the
+ * second message has 38 bytes so the last 2 are `\0`.
+ */
+#define SENDMSG_FIRST_LEN 36
+#define SENDMSG_SECOND_LEN 38
+#define SENDMSG_THIRD_LEN 55
+#define SENDMSG_FULL_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN + SENDMSG_THIRD_LEN
+#define SENDMSG_FULL_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is a third message here."
+#define SENDMSG_NO_SNAPLEN_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN
+#define SENDMSG_NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0"
+
+/*=============================== SEND/RECEIVE ===========================*/

@@ -23,6 +23,9 @@
  */
 #define MAX_UNIX_SOCKET_PATH 108 + 1
 
+/* Max number of iovec structure that we can analize. */
+#define MAX_IOVCNT 32
+
 /* Conversion factors used in setsockopt val. */
 #define SEC_FACTOR 1000000000
 #define USEC_FACTOR 1000
@@ -572,7 +575,7 @@ static __always_inline void auxmap__store_sockaddr_param(struct auxiliary_map *a
 	 */
 
 	/* If we are not able to save the sockaddr return an empty parameter. */
-	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE], addrlen, (void *)sockaddr_pointer) || addrlen == 0)
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE], SAFE_ACCESS(addrlen), (void *)sockaddr_pointer) || addrlen == 0)
 	{
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;
@@ -949,6 +952,118 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	}
 
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
+}
+
+/**
+ * @brief Store the size of an iovec message.
+ * Please note: the size is an unsigned 32 bit value so
+ * internally this helper use the `auxmap__store_u32_param()`
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param msghdr_pointer pointer to `user_msghdr` struct.
+ */
+static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer)
+{
+	/* Read the usr_msghdr struct into the stack, if we fail,
+	 * we return an empty param.
+	 */
+	u32 total_size_to_read = 0;
+	struct user_msghdr msghdr = {0};
+	if(bpf_probe_read_user((void *)&msghdr, sizeof(msghdr), (void *)msghdr_pointer))
+	{
+		auxmap__store_u32_param(auxmap, total_size_to_read);
+		return;
+	}
+
+	u32 total_iovec_size = msghdr.msg_iovlen * sizeof(struct iovec);
+
+	/* We store all the data into the second part of our auxmap
+	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
+	 */
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+			       SAFE_ACCESS(total_iovec_size),
+			       (void *)msghdr.msg_iov))
+	{
+		auxmap__store_u32_param(auxmap, total_size_to_read);
+		return;
+	}
+
+	/* Pointer to iovec structs */
+	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
+	for(int j = 0; j < MAX_IOVCNT; j++)
+	{
+		if(j == msghdr.msg_iovlen)
+		{
+			break;
+		}
+		total_size_to_read += iovec[j].iov_len;
+	}
+	auxmap__store_u32_param(auxmap, total_size_to_read);
+}
+
+/**
+ * @brief Store a message extracted from iovec structs.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param msghdr_pointer pointer to `user_msghdr` struct.
+ * @param len_to_read imposed snaplen.
+ */
+static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer, unsigned long len_to_read)
+{
+	/* Read the usr_msghdr struct into the stack, if we fail,
+	 * we return an empty param.
+	 */
+	u32 total_size_to_read = 0;
+	struct user_msghdr msghdr = {0};
+	if(bpf_probe_read_user((void *)&msghdr, sizeof(msghdr), (void *)msghdr_pointer))
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	u32 total_iovec_size = msghdr.msg_iovlen * sizeof(struct iovec);
+
+	/* We store all the data into the second part of our auxmap
+	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
+	 */
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+			       SAFE_ACCESS(total_iovec_size),
+			       (void *)msghdr.msg_iov))
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	/* Pointer to iovec structs */
+	const struct iovec *iovec = (const struct iovec *)&auxmap->data[MAX_PARAM_SIZE];
+	u64 initial_payload_pos = auxmap->payload_pos;
+	for(int j = 0; j < MAX_IOVCNT; j++)
+	{
+		if(total_size_to_read > len_to_read)
+		{
+			total_size_to_read = len_to_read;
+			break;
+		}
+
+		if(j == msghdr.msg_iovlen)
+		{
+			break;
+		}
+
+		/* Please note: in `recvmsg` syscalls, `iov_len` is equal to the size of
+		 * buffers passed to recvmsg, so in our tests `MAX_RECVMSG_BUF_SIZE`!
+		 */
+
+		u16 bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)iovec[j].iov_base, iovec[j].iov_len, USER);
+		if(!bytes_read)
+		{
+			push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
+			return;
+		}
+		total_size_to_read += bytes_read;
+	}
+	auxmap->payload_pos = initial_payload_pos + total_size_to_read;
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
 }
 
 /**
