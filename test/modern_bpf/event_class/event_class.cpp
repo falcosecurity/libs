@@ -511,6 +511,53 @@ void event_test::assert_tuple_unix_param(int param_num, uint8_t desired_family, 
 	assert_param_len(FAMILY_SIZE + 8 + 8 + strlen(desired_path) + 1);
 }
 
+void event_test::assert_setsockopt_val(int param_num, int sockopt, void* option_value, int option_len)
+{
+	/* 1 byte for the PPM type. */
+	assert_param_boundaries(param_num);
+	uint16_t expected_size = 1;
+	ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), sockopt) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+
+	switch(sockopt)
+	{
+	case PPM_SOCKOPT_IDX_ERRNO:
+		ASSERT_EQ(*(int64_t*)(m_event_params[m_current_param].valptr + 1), *(int64_t*)option_value)
+			<< VALUE_NOT_CORRECT << m_current_param << std::endl;
+		expected_size += 8;
+		break;
+
+	case PPM_SOCKOPT_IDX_TIMEVAL:
+		ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr + 1), *(uint64_t*)option_value) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		expected_size += 8;
+		break;
+
+	case PPM_SOCKOPT_IDX_UINT64:
+		ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr + 1), *(uint64_t*)option_value) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		expected_size += 8;
+		break;
+
+	case PPM_SOCKOPT_IDX_UINT32:
+		ASSERT_EQ(*(uint32_t*)(m_event_params[m_current_param].valptr + 1), *(uint32_t*)option_value) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		expected_size += 4;
+		break;
+
+	case PPM_SOCKOPT_IDX_UNKNOWN:
+		/* if option_len is zero we should have just the `scap` code.*/
+		if(option_len == 0)
+		{
+			assert_param_len(expected_size);
+			break;
+		}
+		ASSERT_EQ(*(uint32_t*)(m_event_params[m_current_param].valptr + 1), *(uint32_t*)option_value) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+		expected_size += 4;
+		break;
+	default:
+		FAIL();
+		break;
+	}
+	assert_param_len(expected_size);
+}
+
 void event_test::assert_ptrace_addr(int param_num)
 {
 	assert_param_boundaries(param_num);

@@ -23,6 +23,10 @@
  */
 #define MAX_UNIX_SOCKET_PATH 108 + 1
 
+/* Conversion factors used in setsockopt val. */
+#define SEC_FACTOR 1000000000
+#define USEC_FACTOR 1000
+
 /* Network components size. */
 #define FAMILY_SIZE sizeof(u8)
 #define IPV4_SIZE sizeof(u32)
@@ -831,6 +835,120 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	// if we are not able to catch correct programs we push an empty param.
 	push__param_len(auxmap->data, &auxmap->lengths_pos, final_param_len);
+}
+
+/**
+ * @brief Store a sockopt param. Right now used by `setsockopt` syscall.
+ * A sockopt is a `PT_DYN` param composed of:
+ * - 1 byte for a scap code that indicates the type of option.
+ * - variable number of bytes according to the option involved (This is
+ *   why this param is marked as `PT_DYN` in the event table).
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param level protocol level
+ * @param optname type of option
+ * @param option_len actual len of the option
+ * @param optval pointer to the option value
+ */
+static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *auxmap, int level, int optname, u16 option_len, unsigned long optval)
+{
+	/* We use a signed int because in some case we have to convert it to a negative value. */
+	s32 val32 = 0;
+	u64 val64 = 0;
+	struct __kernel_timex_timeval tv;
+	u16 total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
+
+	/* Levels different from `SOL_SOCKET` are not supported
+	 * right now.
+	 */
+	if(level != SOL_SOCKET)
+	{
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UNKNOWN);
+		total_size_to_push += push__bytebuf(auxmap->data, &auxmap->payload_pos, optval, option_len, USER);
+		push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
+		return;
+	}
+
+	switch(optname)
+	{
+
+	case SO_ERROR:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_ERRNO);
+		bpf_probe_read_user((void *)&val32, sizeof(val32), (void *)optval);
+		push__s64(auxmap->data, &auxmap->payload_pos, (s64)-val32);
+		total_size_to_push += sizeof(s64);
+		break;
+
+	case SO_RCVTIMEO:
+	case SO_SNDTIMEO:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_TIMEVAL);
+		bpf_probe_read_user((void *)&tv, sizeof(tv), (void *)optval);
+		push__u64(auxmap->data, &auxmap->payload_pos, tv.tv_sec * SEC_FACTOR + tv.tv_usec * USEC_FACTOR);
+		total_size_to_push += sizeof(u64);
+		break;
+
+	case SO_COOKIE:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UINT64);
+		bpf_probe_read_user((void *)&val64, sizeof(val64), (void *)optval);
+		push__u64(auxmap->data, &auxmap->payload_pos, val64);
+		total_size_to_push += sizeof(u64);
+		break;
+
+	case SO_DEBUG:
+	case SO_REUSEADDR:
+	case SO_TYPE:
+	case SO_DONTROUTE:
+	case SO_BROADCAST:
+	case SO_SNDBUF:
+	case SO_RCVBUF:
+	case SO_SNDBUFFORCE:
+	case SO_RCVBUFFORCE:
+	case SO_KEEPALIVE:
+	case SO_OOBINLINE:
+	case SO_NO_CHECK:
+	case SO_PRIORITY:
+	case SO_BSDCOMPAT:
+	case SO_REUSEPORT:
+	case SO_PASSCRED:
+	case SO_RCVLOWAT:
+	case SO_SNDLOWAT:
+	case SO_SECURITY_AUTHENTICATION:
+	case SO_SECURITY_ENCRYPTION_TRANSPORT:
+	case SO_SECURITY_ENCRYPTION_NETWORK:
+	case SO_BINDTODEVICE:
+	case SO_DETACH_FILTER:
+	case SO_TIMESTAMP:
+	case SO_ACCEPTCONN:
+	case SO_PEERSEC:
+	case SO_PASSSEC:
+	case SO_TIMESTAMPNS:
+	case SO_MARK:
+	case SO_TIMESTAMPING:
+	case SO_PROTOCOL:
+	case SO_DOMAIN:
+	case SO_RXQ_OVFL:
+	case SO_WIFI_STATUS:
+	case SO_PEEK_OFF:
+	case SO_NOFCS:
+	case SO_LOCK_FILTER:
+	case SO_SELECT_ERR_QUEUE:
+	case SO_BUSY_POLL:
+	case SO_MAX_PACING_RATE:
+	case SO_BPF_EXTENSIONS:
+	case SO_INCOMING_CPU:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UINT32);
+		bpf_probe_read_user((void *)&val32, sizeof(val32), (void *)optval);
+		push__u32(auxmap->data, &auxmap->payload_pos, val32);
+		total_size_to_push += sizeof(u32);
+		break;
+
+	default:
+		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UNKNOWN);
+		total_size_to_push += push__bytebuf(auxmap->data, &auxmap->payload_pos, optval, option_len, USER);
+		break;
+	}
+
+	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_push);
 }
 
 /**
