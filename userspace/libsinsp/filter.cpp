@@ -29,7 +29,6 @@ limitations under the License.
 #define NOMINMAX
 #endif
 
-#include <regex>
 #include <algorithm>
 
 #include "sinsp.h"
