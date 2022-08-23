@@ -34,9 +34,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install valijson dep ⛓️
+      - name: Install deps ⛓️
         run: |
-          .github/install-valijson.sh
+          .github/install-deps.sh
   
       - name: Build and test 🏗️🧪
         run: |
@@ -84,7 +84,7 @@ jobs:
             
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-valijson.sh
+            .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
@@ -109,7 +109,7 @@ jobs:
 
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-valijson.sh
+            .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
@@ -174,7 +174,7 @@ jobs:
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-valijson.sh
+            .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
@@ -203,7 +203,7 @@ jobs:
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-valijson.sh
+            .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DUSE_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open

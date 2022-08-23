@@ -14,15 +14,16 @@
 
 set -e
 
-echo "=== Building and installing valijson v0.6 ==="
-
-mkdir third_party
+mkdir -p third_party
 cd third_party
+
+# === Valijson === 
+echo "=== Building and installing valijson v0.6 ==="
 
 wget "https://github.com/tristanpenman/valijson/archive/refs/tags/v0.6.tar.gz"
 
 tar xzf v0.6.tar.gz
-cd valijson-0.6
+pushd valijson-0.6
 
 mkdir -p build
 cd build
@@ -35,3 +36,17 @@ cmake \
     ../
 
 make install
+popd
+
+
+# === RE2 === 
+echo "=== Building and installing re2 (v2022-06-01) ==="
+
+wget "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
+tar xzf 2022-06-01.tar.gz
+pushd re2-2022-06-01
+
+# see: https://github.com/google/re2/wiki/Install
+make
+make install
+popd
