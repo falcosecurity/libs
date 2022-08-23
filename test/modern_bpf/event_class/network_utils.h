@@ -55,7 +55,6 @@
 
 /*=============================== SEND/RECEIVE ===========================*/
 
-/* sendmsg/sendto */
 /* we have also the null terminator because in all our messages
  * (first, second, third) we have left the last byte for the
  * null terminator.
@@ -65,15 +64,13 @@
  * all these extra bytes as `\0` bytes. Look at example here: the
  * second message has 38 bytes so the last 2 are `\0`.
  */
-#define SENDMSG_FIRST_LEN 36
-#define SENDMSG_SECOND_LEN 38
-#define SENDMSG_THIRD_LEN 55
-#define SENDMSG_FULL_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN + SENDMSG_THIRD_LEN
-#define SENDMSG_FULL_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is a third message here."
-#define SENDMSG_NO_SNAPLEN_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN
-#define SENDMSG_NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0"
-
-/* recvmsg/recvfrom */
+#define FIRST_MESSAGE_LEN 36
+#define SECOND_MESSAGE_LEN 38
+#define THIRD_MESSAGE_LEN 55
+#define FULL_MESSAGE_LEN FIRST_MESSAGE_LEN + SECOND_MESSAGE_LEN + THIRD_MESSAGE_LEN
+#define FULL_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is a third message here."
+#define NO_SNAPLEN_MESSAGE_LEN FIRST_MESSAGE_LEN + SECOND_MESSAGE_LEN
+#define NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0"
 #define MAX_RECV_BUF_SIZE 100
 
 /*=============================== SEND/RECEIVE ===========================*/

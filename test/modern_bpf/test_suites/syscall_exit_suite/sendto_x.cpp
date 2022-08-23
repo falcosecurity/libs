@@ -41,7 +41,7 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Send a message to the server */
-	char sent_data[SENDMSG_NO_SNAPLEN_LEN] = SENDMSG_NO_SNAPLEN_MESSAGE;
+	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
 	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
@@ -73,7 +73,7 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, SENDMSG_NO_SNAPLEN_MESSAGE, sent_bytes);
+	evt_test->assert_bytebuf_param(2, NO_SNAPLEN_MESSAGE, sent_bytes);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -115,7 +115,7 @@ TEST(SyscallExit, sendtoX_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Send a message to the server */
-	char sent_data[SENDMSG_FULL_LEN] = SENDMSG_FULL_MESSAGE;
+	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
 	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr*)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
@@ -147,7 +147,7 @@ TEST(SyscallExit, sendtoX_snaplen)
 	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
-	evt_test->assert_bytebuf_param(2, SENDMSG_FULL_MESSAGE, DEFAULT_SNAPLEN);
+	evt_test->assert_bytebuf_param(2, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
