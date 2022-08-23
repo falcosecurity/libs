@@ -70,7 +70,8 @@ TEST(SyscallExit, socketpairX_failure)
 	int domain = PF_LOCAL;
 	int type = SOCK_STREAM;
 	int protocol = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "socketpair", syscall(__NR_socketpair, domain, type, protocol, NULL));
+	int32_t* fd = NULL;
+	assert_syscall_state(SYSCALL_FAILURE, "socketpair", syscall(__NR_socketpair, domain, type, protocol, fd));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/

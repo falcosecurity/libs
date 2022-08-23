@@ -154,6 +154,80 @@ void event_test::parse_event()
 }
 
 /////////////////////////////////
+// NETWORK SCAFFOLDING
+/////////////////////////////////
+
+void event_test::client_reuse_address_port(int32_t socketfd)
+{
+	/* Allow the socket to reuse the port and address. */
+	int option_value = 1;
+	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (client address)", syscall(__NR_setsockopt, socketfd, SOL_SOCKET, SO_REUSEADDR, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (client port)", syscall(__NR_setsockopt, socketfd, SOL_SOCKET, SO_REUSEPORT, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
+}
+
+void event_test::server_reuse_address_port(int32_t socketfd)
+{
+	/* Allow the socket to reuse the port and address. */
+	int option_value = 1;
+	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (server address)", syscall(__NR_setsockopt, socketfd, SOL_SOCKET, SO_REUSEADDR, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "setsockopt (server port)", syscall(__NR_setsockopt, socketfd, SOL_SOCKET, SO_REUSEPORT, &option_value, sizeof(option_value)), NOT_EQUAL, -1);
+}
+
+void event_test::client_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port, const char* ipv4_string)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sin_family = AF_INET;
+	sockaddr->sin_port = htons(ipv4_port);
+	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (client)", inet_pton(AF_INET, ipv4_string, &(sockaddr->sin_addr)), NOT_EQUAL, -1);
+}
+
+void event_test::server_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port, const char* ipv4_string)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sin_family = AF_INET;
+	sockaddr->sin_port = htons(ipv4_port);
+	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (server)", inet_pton(AF_INET, ipv4_string, &(sockaddr->sin_addr)), NOT_EQUAL, -1);
+}
+
+void event_test::client_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port, const char* ipv6_string)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sin6_family = AF_INET6;
+	sockaddr->sin6_port = htons(ipv6_port);
+	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (client)", inet_pton(AF_INET6, ipv6_string, &(sockaddr->sin6_addr)), NOT_EQUAL, -1);
+}
+
+void event_test::server_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port, const char* ipv6_string)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sin6_family = AF_INET6;
+	sockaddr->sin6_port = htons(ipv6_port);
+	assert_syscall_state(SYSCALL_SUCCESS, "inet_pton (server)", inet_pton(AF_INET6, ipv6_string, &(sockaddr->sin6_addr)), NOT_EQUAL, -1);
+}
+
+void event_test::client_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sun_family = AF_UNIX;
+
+	if(strncpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH) == NULL)
+	{
+		FAIL() << "'strncpy (client)' must not fail." << std::endl;
+	}
+}
+
+void event_test::server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path)
+{
+	memset(sockaddr, 0, sizeof(*sockaddr));
+	sockaddr->sun_family = AF_UNIX;
+
+	if(strncpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH) == NULL)
+	{
+		FAIL() << "'strncpy (server)' must not fail." << std::endl;
+	}
+}
+
+/////////////////////////////////
 // GENERIC EVENT ASSERTIONS
 /////////////////////////////////
 
