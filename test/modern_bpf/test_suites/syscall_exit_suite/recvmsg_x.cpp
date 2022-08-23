@@ -38,7 +38,7 @@ TEST(SyscallExit, recvmsgX_no_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Send a message to the server */
-	char sent_data[SENDMSG_NO_SNAPLEN_LEN] = SENDMSG_NO_SNAPLEN_MESSAGE;
+	char sent_data[NO_SNAPLEN_MESSAGE_LEN] = NO_SNAPLEN_MESSAGE;
 	uint32_t sendto_flags = 0;
 	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
@@ -98,7 +98,7 @@ TEST(SyscallExit, recvmsgX_no_snaplen)
 	evt_test->assert_numeric_param(2, (uint32_t)received_bytes);
 
 	/* Parameter 3: data (type: PT_BYTEBUF) */
-	evt_test->assert_bytebuf_param(3, SENDMSG_NO_SNAPLEN_MESSAGE, sent_bytes);
+	evt_test->assert_bytebuf_param(3, NO_SNAPLEN_MESSAGE, sent_bytes);
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */
@@ -143,7 +143,7 @@ TEST(SyscallExit, recvmsgX_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Send a message to the server */
-	char sent_data[SENDMSG_FULL_LEN] = SENDMSG_FULL_MESSAGE;
+	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
 	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
@@ -197,13 +197,13 @@ TEST(SyscallExit, recvmsgX_snaplen)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)SENDMSG_FULL_LEN);
+	evt_test->assert_numeric_param(1, (int64_t)FULL_MESSAGE_LEN);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	evt_test->assert_numeric_param(2, (uint32_t)SENDMSG_FULL_LEN);
+	evt_test->assert_numeric_param(2, (uint32_t)FULL_MESSAGE_LEN);
 
 	/* Parameter 3: data (type: PT_BYTEBUF) */
-	evt_test->assert_bytebuf_param(3, SENDMSG_FULL_MESSAGE, DEFAULT_SNAPLEN);
+	evt_test->assert_bytebuf_param(3, FULL_MESSAGE, DEFAULT_SNAPLEN);
 
 	/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 	/* The server performs a 'recvmsg` so the server is the final destination of the packet while the client is the src. */

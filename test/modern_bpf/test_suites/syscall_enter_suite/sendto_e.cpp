@@ -37,7 +37,7 @@ TEST(SyscallEnter, sendtoE)
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
 	/* Send a message to the server */
-	char sent_data[SENDMSG_FULL_LEN] = SENDMSG_FULL_MESSAGE;
+	char sent_data[FULL_MESSAGE_LEN] = FULL_MESSAGE;
 	uint32_t sendto_flags = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", syscall(__NR_sendto, client_socket_fd, sent_data, sizeof(sent_data), sendto_flags, (struct sockaddr*)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
 
@@ -68,7 +68,7 @@ TEST(SyscallEnter, sendtoE)
 	evt_test->assert_numeric_param(1, (int64_t)client_socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32)*/
-	evt_test->assert_numeric_param(2, (uint32_t)SENDMSG_FULL_LEN);
+	evt_test->assert_numeric_param(2, (uint32_t)FULL_MESSAGE_LEN);
 
 	/* Parameter 3: addr (type: PT_SOCKADDR)*/
 	/* The client performs a `sendto` to the server so the src_ipv4 is the client one. */

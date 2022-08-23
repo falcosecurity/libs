@@ -42,9 +42,9 @@ TEST(SyscallEnter, sendmsgE)
 	memset(iov, 0, sizeof(iov));
 	send_msg.msg_name = (struct sockaddr*)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
-	char sent_data_1[SENDMSG_FIRST_LEN] = "hey! there is a first message here.";
-	char sent_data_2[SENDMSG_SECOND_LEN] = "hey! there is a second message here.";
-	char sent_data_3[SENDMSG_THIRD_LEN] = "hey! there is a third message here.";
+	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
+	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
+	char sent_data_3[THIRD_MESSAGE_LEN] = "hey! there is a third message here.";
 	iov[0].iov_base = sent_data_1;
 	iov[0].iov_len = sizeof(sent_data_1);
 	iov[1].iov_base = sent_data_2;
@@ -84,7 +84,7 @@ TEST(SyscallEnter, sendmsgE)
 	evt_test->assert_numeric_param(1, (int64_t)client_socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32)*/
-	evt_test->assert_numeric_param(2, (uint32_t)SENDMSG_FULL_LEN);
+	evt_test->assert_numeric_param(2, (uint32_t)FULL_MESSAGE_LEN);
 
 	/* Parameter 3: addr (type: PT_SOCKADDR)*/
 	/* The client performs a `sendmsg` to the server so the src_ipv4 is the client one. */
