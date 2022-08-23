@@ -32,6 +32,6 @@ limitations under the License.
 #define gzwrite(F, B, S) fwrite(B, 1, S, F)
 #define gzread(F, B, S) fread(B, 1, S, F)
 #define gztell(F) ftell(F)
-inline const char *gzerror(FILE *F, int *E) {*E = ferror(F); return "error reading file descriptor";}
+inline static const char *gzerror(FILE *F, int *E) {*E = ferror(F); return "error reading file descriptor";}
 #define gzseek fseek
 #endif
