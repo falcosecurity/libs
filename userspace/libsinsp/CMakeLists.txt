@@ -200,9 +200,11 @@ set(SINSP_LIBRARIES
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
-	"${CARES_LIB}")
+	"${CARES_LIB}"
+	"${RE2_LIB}")
 
 add_dependencies(sinsp valijson)
+add_dependencies(sinsp re2)
 
 if(WITH_CHISEL AND USE_BUNDLED_LUAJIT)
 	add_dependencies(sinsp luajit)
