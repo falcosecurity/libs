@@ -17,6 +17,7 @@ limitations under the License.
 
 #pragma once
 
+#include <re2/re2.h>
 #include "ast.h"
 
 //
@@ -169,7 +170,7 @@ private:
 	bool lex_num_op();
 	bool lex_str_op();
 	bool lex_list_op();
-	bool lex_helper_rgx(std::string rgx);
+	bool lex_helper_rgx(const re2::RE2& rgx);
 	bool lex_helper_str(const std::string& str);
 	bool lex_helper_str_list(const std::vector<std::string>& list);
 	void depth_push();
