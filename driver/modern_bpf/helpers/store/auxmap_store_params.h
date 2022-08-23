@@ -1050,10 +1050,6 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 			break;
 		}
 
-		/* Please note: in `recvmsg` syscalls, `iov_len` is equal to the size of
-		 * buffers passed to recvmsg, so in our tests `MAX_RECVMSG_BUF_SIZE`!
-		 */
-
 		u16 bytes_read = push__bytebuf(auxmap->data, &auxmap->payload_pos, (unsigned long)iovec[j].iov_base, iovec[j].iov_len, USER);
 		if(!bytes_read)
 		{
