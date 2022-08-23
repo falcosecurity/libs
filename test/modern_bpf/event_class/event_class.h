@@ -190,6 +190,18 @@ public:
 	void client_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path = UNIX_CLIENT);
 	void server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path = UNIX_SERVER);
 
+	/**
+	 * @brief Connect a client to a server that is now ready to receive messages
+	 * and accept new connections.
+	 *
+	 * @param client_socket client socket file descriptor.
+	 * @param client_sockaddr client `sockaddr` struct to fill.
+	 * @param server_socket server socket file descriptor.
+	 * @param server_sockaddr server `sockaddr` struct to fill.
+	 */
+	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr);
+	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
+	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
 	/////////////////////////////////
