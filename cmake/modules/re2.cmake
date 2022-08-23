@@ -23,7 +23,7 @@ else()
 			URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
 			URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
 			CONFIGURE_COMMAND ""
-			BUILD_COMMAND ${CMD_MAKE}
+			BUILD_COMMAND ${CMD_MAKE} -j CXXFLAGS=-std=c++11
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${RE2_LIB}
 			INSTALL_COMMAND ${CMD_MAKE} install DESTDIR=${RE2_SRC})
