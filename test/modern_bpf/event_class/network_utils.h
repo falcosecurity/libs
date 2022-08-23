@@ -71,6 +71,6 @@
 #define SENDMSG_FULL_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN + SENDMSG_THIRD_LEN
 #define SENDMSG_FULL_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0hey! there is a third message here."
 #define SENDMSG_NO_SNAPLEN_LEN SENDMSG_FIRST_LEN + SENDMSG_SECOND_LEN
-#define SENDMSG_NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0\0"
+#define SENDMSG_NO_SNAPLEN_MESSAGE "hey! there is a first message here.\0hey! there is a second message here.\0"
 
 /*=============================== SEND/RECEIVE ===========================*/
