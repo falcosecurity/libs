@@ -10,30 +10,11 @@ TEST(SyscallExit, acceptX_INET)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Create the server socket. */
-	int32_t server_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", server_socket_fd, NOT_EQUAL, -1);
-	evt_test->server_reuse_address_port(server_socket_fd);
-
-	struct sockaddr_in server_addr;
-	evt_test->server_fill_sockaddr_in(&server_addr);
-
-	/* Now we bind the server socket with the server address. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "listen (server)", syscall(__NR_listen, server_socket_fd, QUEUE_LENGTH), NOT_EQUAL, -1);
-
-	/* The server now is ready, we need to create at least one connection from the client. */
-
-	int32_t client_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
-	evt_test->client_reuse_address_port(client_socket_fd);
-
-	struct sockaddr_in client_addr;
-	evt_test->client_fill_sockaddr_in(&client_addr);
-
-	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	struct sockaddr_in client_addr = {0};
+	struct sockaddr_in server_addr = {0};
+	evt_test->connect_ipv4_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
@@ -95,30 +76,11 @@ TEST(SyscallExit, acceptX_INET6)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Create the server socket. */
-	int32_t server_socket_fd = syscall(__NR_socket, AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", server_socket_fd, NOT_EQUAL, -1);
-	evt_test->server_reuse_address_port(server_socket_fd);
-
-	struct sockaddr_in6 server_addr;
-	evt_test->server_fill_sockaddr_in6(&server_addr);
-
-	/* Now we bind the server socket with the server address. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "listen (server)", syscall(__NR_listen, server_socket_fd, QUEUE_LENGTH), NOT_EQUAL, -1);
-
-	/* The server now is ready, we need to create at least one connection from the client. */
-
-	int32_t client_socket_fd = syscall(__NR_socket, AF_INET6, SOCK_STREAM, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
-	evt_test->client_reuse_address_port(client_socket_fd);
-
-	struct sockaddr_in6 client_addr;
-	evt_test->client_fill_sockaddr_in6(&client_addr);
-
-	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	struct sockaddr_in6 client_addr = {0};
+	struct sockaddr_in6 server_addr = {0};
+	evt_test->connect_ipv6_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
@@ -181,28 +143,11 @@ TEST(SyscallExit, acceptX_UNIX)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Create the server socket. */
-	int32_t server_socket_fd = syscall(__NR_socket, AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", server_socket_fd, NOT_EQUAL, -1);
-
-	struct sockaddr_un server_addr;
-	evt_test->server_fill_sockaddr_un(&server_addr);
-
-	/* Now we bind the server socket with the server address. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "listen (server)", syscall(__NR_listen, server_socket_fd, QUEUE_LENGTH), NOT_EQUAL, -1);
-
-	/* The server now is ready, we need to create at least one connection from the client. */
-
-	int32_t client_socket_fd = syscall(__NR_socket, AF_UNIX, SOCK_STREAM, 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
-
-	struct sockaddr_un client_addr;
-	evt_test->client_fill_sockaddr_un(&client_addr);
-
-	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
-	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
-	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+	int32_t client_socket_fd = 0;
+	int32_t server_socket_fd = 0;
+	struct sockaddr_un client_addr = {0};
+	struct sockaddr_un server_addr = {0};
+	evt_test->connect_unix_client_to_server(&client_socket_fd, &client_addr, &server_socket_fd, &server_addr);
 
 	/* We don't want to get any info about the connected socket so `addr` and `addrlen` are NULL. */
 	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
