@@ -35,7 +35,7 @@ cmake \
     -Dvalijson_BUILD_TESTS=OFF \
     ../
 
-make install
+make install -j
 popd
 
 
@@ -47,6 +47,6 @@ tar xzf 2022-06-01.tar.gz
 pushd re2-2022-06-01
 
 # see: https://github.com/google/re2/wiki/Install
-make
-make install
+make -j CXXFLAGS="-O3 -std=c++11"
+make install -j
 popd
