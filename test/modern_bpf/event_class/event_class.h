@@ -11,6 +11,7 @@
 #include <errno.h>
 #include "network_utils.h"
 #include <arpa/inet.h>
+#include <sys/un.h>
 
 #define CURRENT_PID 0
 
@@ -141,6 +142,50 @@ public:
 	 *
 	 */
 	void parse_event();
+
+	/////////////////////////////////
+	// NETWORK SCAFFOLDING
+	/////////////////////////////////
+
+	/**
+	 * @brief Allow sockets to reuse the same port and address.
+	 *
+	 * @param socketfd socket file descriptor.
+	 */
+	void client_reuse_address_port(int32_t socketfd);
+	void server_reuse_address_port(int32_t socketfd);
+
+	/**
+	 * @brief Fill a `sockaddr_in` struct. It uses default values defined
+	 * in `network_utils.h`, if the user doesn't provide them.
+	 *
+	 * @param sockaddr `sockaddr_in` struct to fill.
+	 * @param ipv4_port port as an integer value.
+	 * @param ipv4_string ipv4 as a string.
+	 */
+	void client_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port = IPV4_PORT_CLIENT, const char* ipv4_string = IPV4_CLIENT);
+	void server_fill_sockaddr_in(struct sockaddr_in* sockaddr, int32_t ipv4_port = IPV4_PORT_SERVER, const char* ipv4_string = IPV4_SERVER);
+
+	/**
+	 * @brief Fill a `sockaddr_in6` struct. It uses default values defined
+	 * in `network_utils.h`, if the user doesn't provide them.
+	 *
+	 * @param sockaddr `sockaddr_in6` struct to fill.
+	 * @param ipv6_port port as an integer value.
+	 * @param ipv6_string ipv6 as a string.
+	 */
+	void client_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port = IPV6_PORT_CLIENT, const char* ipv6_string = IPV6_CLIENT);
+	void server_fill_sockaddr_in6(struct sockaddr_in6* sockaddr, int32_t ipv6_port = IPV6_PORT_SERVER, const char* ipv6_string = IPV6_SERVER);
+
+	/**
+	 * @brief Fill a `sockaddr_un` struct. It uses default values defined
+	 * in `network_utils.h`, if the user doesn't provide them.
+	 *
+	 * @param sockaddr `sockaddr_un` struct to fill.
+	 * @param unix_path unix socket path.
+	 */
+	void client_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path = UNIX_CLIENT);
+	void server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path = UNIX_SERVER);
 
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
