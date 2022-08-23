@@ -115,5 +115,6 @@
 #define PRLIMIT64_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define PRLIMIT64_X_SIZE HEADER_LEN + sizeof(int64_t) * 5 + PARAM_LEN * 5
 #define SETSOCKOPT_E_SIZE HEADER_LEN
+#define RECVMSG_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 #endif /* __EVENT_DIMENSIONS_H__ */
