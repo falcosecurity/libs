@@ -2,9 +2,6 @@
 
 #if defined(__NR_connect)
 
-#include <netdb.h>
-#include <sys/un.h>
-
 TEST(SyscallEnter, connectE_INET)
 {
 	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
