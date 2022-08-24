@@ -3,7 +3,7 @@
 #
 option(USE_BUNDLED_RE2 "Enable building of the bundled RE2" ${USE_BUNDLED_DEPS})
 
-if(RE2_INCLUDE AND RE2_LIB)
+if(RE2_INCLUDE)
 	message(STATUS "Using re2: include: ${RE2_INCLUDE}, lib: ${RE2_LIB}")
 elseif(NOT USE_BUNDLED_RE2)
 	find_path(RE2_INCLUDE re2/re2.h PATH_SUFFIXES re2)
@@ -15,18 +15,53 @@ elseif(NOT USE_BUNDLED_RE2)
 	endif()
 else()
 	set(RE2_SRC "${PROJECT_BINARY_DIR}/re2-prefix/src/re2")
-	set(RE2_INCLUDE "${RE2_SRC}/usr/local/include")
-    set(RE2_LIB "${RE2_SRC}/usr/local/lib/libre2.a")
+	set(RE2_INCLUDE "${RE2_SRC}/include")
 	message(STATUS "Using bundled re2 in '${RE2_SRC}'")
-	ExternalProject_Add(re2
+
+	if(NOT WIN32)
+		set(RE2_LIB "${RE2_SRC}/lib/libre2.a")
+		ExternalProject_Add(re2
 			PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
 			URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
 			URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
-			CONFIGURE_COMMAND ""
-			BUILD_COMMAND ${CMD_MAKE} -j CXXFLAGS=-std=c++11
-			BUILD_IN_SOURCE 1
+			BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 			BUILD_BYPRODUCTS ${RE2_LIB}
-			INSTALL_COMMAND ${CMD_MAKE} install DESTDIR=${RE2_SRC})
+			CMAKE_ARGS
+				-DRE2_BUILD_TESTING=OFF
+				-DBUILD_SHARED_LIBS=OFF
+				-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+	else()
+		set(RE2_LIB "${RE2_SRC}/lib/re2.lib")
+		# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
+		if(CMAKE_VERSION VERSION_LESS 3.15.0)
+			ExternalProject_Add(re2
+				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
+				URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
+				URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
+				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
+				BUILD_BYPRODUCTS ${RE2_LIB}
+				CMAKE_ARGS
+					-DCMAKE_CXX_FLAGS_DEBUG="/MTd /Od"
+					-DCMAKE_CXX_FLAGS_RELEASE="/MT"
+					-DRE2_BUILD_TESTING=OFF
+					-DBUILD_SHARED_LIBS=OFF
+					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+		else()
+			ExternalProject_Add(re2
+				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
+				URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
+				URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
+				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
+				BUILD_BYPRODUCTS ${RE2_LIB}
+				CMAKE_ARGS
+					-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW 
+					-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
+					-DRE2_BUILD_TESTING=OFF
+					-DBUILD_SHARED_LIBS=OFF
+					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
+		endif()
+	endif()
+
 	install(FILES "${RE2_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "libs-deps")
 	install(DIRECTORY "${RE2_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"

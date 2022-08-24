@@ -23,6 +23,8 @@ limitations under the License.
 #include "../utils.h"
 #include "../sinsp_exception.h"
 
+#include <re2/re2.h>
+
 // these follow the POSIX standard
 #define RGX_NOTBLANK            "(not[[:space:]]+)"
 #define RGX_IDENTIFIER          "([a-zA-Z]+[a-zA-Z0-9_]*)"

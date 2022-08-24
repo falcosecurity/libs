@@ -17,8 +17,9 @@ limitations under the License.
 
 #pragma once
 
-#include <re2/re2.h>
 #include "ast.h"
+
+namespace re2 { class RE2; };
 
 //
 // Context-free Grammar for Sinsp Filters
