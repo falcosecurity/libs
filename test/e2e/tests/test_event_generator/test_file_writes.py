@@ -4,7 +4,7 @@ from sinspqa import sinsp, event_generator
 from sinspqa.sinsp import assert_events, SinspField
 
 
-def create_expected_arg(directory):
+def create_expected_arg(directory: str) -> str:
     return fr'^fd=3\(<f>{re.escape(directory)}\/created-by-event-generator\) dirfd=-100\(AT_FDCWD\) name={re.escape(directory)}\/created-by-event-generator flags=4358\(O_TRUNC\|O_CREAT\|O_WRONLY\|O_CLOEXEC\) mode=0755 dev=.* ino=\d+ $'
 
 
@@ -52,7 +52,7 @@ parameters = [
 
 
 @pytest.mark.parametrize('run_containers,expected_arg', parameters, indirect=['run_containers'], ids=generate_ids(parameters))
-def test_file_writes(run_containers, expected_arg):
+def test_file_writes(run_containers: dict, expected_arg: str):
     sinsp_container = run_containers['sinsp']
     generator_container = run_containers['generator']
     generator_container.wait()

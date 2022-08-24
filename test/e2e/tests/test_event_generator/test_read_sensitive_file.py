@@ -44,7 +44,7 @@ def generate_ids(parameters: list) -> list:
 
 
 @pytest.mark.parametrize("run_containers,expected_process", parameters, indirect=['run_containers'], ids=generate_ids(parameters))
-def test_read_sensitive_file(run_containers, expected_process):
+def test_read_sensitive_file(run_containers: dict, expected_process: str):
     sinsp_container = run_containers['sinsp']
 
     generator_container = run_containers['generator']

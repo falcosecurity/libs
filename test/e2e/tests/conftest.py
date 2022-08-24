@@ -18,7 +18,7 @@ def docker_client():
 
 
 @pytest.fixture(scope="module")
-def tester_id(docker_client):
+def tester_id(docker_client: docker.client.DockerClient):
     """
     Get the truncated ID of the test runner.
 
@@ -30,7 +30,7 @@ def tester_id(docker_client):
     return get_container_id(tester_container)
 
 
-def wait_container_running(container: docker.models.containers.Container, additional_wait=0, retries=5):
+def wait_container_running(container: docker.models.containers.Container, additional_wait: int = 0, retries: int = 5):
     success = False
 
     for _ in range(retries):
@@ -50,7 +50,7 @@ def wait_container_running(container: docker.models.containers.Container, additi
 
 
 @pytest.fixture(scope="function")
-def run_containers(request, docker_client):
+def run_containers(request, docker_client: docker.client.DockerClient):
     """
     Runs containers, dumps their logs and cleans'em up
     """
