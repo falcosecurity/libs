@@ -58,6 +58,7 @@ else()
 	include(protobuf)
 	include(zlib)
 	include(openssl)
+	include(re2)
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INSTALL_DIR "${GRPC_SRC}/target")
 	set(GRPC_INCLUDE 
@@ -92,7 +93,6 @@ else()
 		set(GRPC_LIBRARIES "")
 		list(APPEND GRPC_LIBRARIES
 			"${GRPC_SRC}/libaddress_sorting.a"
-			"${GRPC_SRC}/third_party/re2/libre2.a"
 			"${GRPC_SRC}/libupb.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_hash.a"
 			"${GRPC_SRC}/third_party/abseil-cpp/absl/hash/libabsl_city.a"
@@ -140,10 +140,10 @@ else()
 		
 		ExternalProject_Add(grpc
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
-			DEPENDS openssl protobuf c-ares zlib
+			DEPENDS openssl protobuf c-ares zlib re2
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
 			GIT_TAG v1.44.0
-			GIT_SUBMODULES "third_party/abseil-cpp third_party/re2"
+			GIT_SUBMODULES "third_party/abseil-cpp"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
 				-DCMAKE_BUILD_TYPE:STRING=Release
@@ -177,6 +177,9 @@ else()
 				# https://cmake.org/cmake/help/v3.6/module/FindZLIB.html
 				-DgRPC_ZLIB_PROVIDER:STRING=package
 				-DZLIB_ROOT:STRING=${ZLIB_SRC}
+				# RE2
+				-DgRPC_RE2_PROVIDER:STRING=package
+				-Dre2_DIR:PATH=${RE2_DIR}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${GRPC_LIB} ${GRPCPP_LIB} ${GPR_LIB} ${GRPC_LIBRARIES}
 			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
