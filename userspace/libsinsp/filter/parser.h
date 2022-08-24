@@ -75,32 +75,6 @@ class SINSP_PUBLIC parser
 {
 public:
 	/*!
-		\brief A struct containing info about the position of the parser
-		relatively to the string input. For example, this can either be used
-		to retrieve context information when an exception is thrown.
-	*/
-	struct pos_info
-	{
-		inline void reset() 
-		{
-			idx = 0;
-			line = 1;
-			col = 1;
-		}
-		
-		inline std::string as_string() const
-		{
-			return "index " + std::to_string(idx) 
-				+ ", line " + std::to_string(line) 
-				+ ", column " + std::to_string(col);
-		}
-
-		uint32_t idx;
-		uint32_t line;
-		uint32_t col;
-	};
-
-	/*!
 		\brief Returns the set of filtering operators supported by libsinsp
 	*/
 	static std::vector<std::string> supported_operators(bool list_only=false);
@@ -115,13 +89,13 @@ public:
 		\brief Retrieves the parser position info.
 		\param pos pos_info struct in which the info is written.
 	*/
-	void get_pos(pos_info& pos) const;
+	void get_pos(ast::pos_info& pos) const;
 
 	/*!
 		\brief Retrieves the parser position info.
 		\return pos_info struct in which the info is written.
 	*/
-	pos_info get_pos() const;
+	ast::pos_info get_pos() const;
 
 	/*!
 		\brief Sets the partial parsing option. Default is true.
@@ -180,7 +154,7 @@ private:
 	bool m_parse_partial;
 	uint32_t m_depth;
 	uint32_t m_max_depth;
-	pos_info m_pos;
+	ast::pos_info m_pos;
 	std::string m_input;
 	std::string m_last_token;
 };
