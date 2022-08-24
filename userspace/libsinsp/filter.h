@@ -105,6 +105,8 @@ public:
 	*/
 	sinsp_filter* compile();
 
+	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
+
 private:
 	void visit(libsinsp::filter::ast::and_expr*) override;
 	void visit(libsinsp::filter::ast::or_expr*) override;
@@ -118,6 +120,7 @@ private:
 	std::string create_filtercheck_name(std::string& name, std::string& arg);
 	gen_event_filter_check* create_filtercheck(std::string& field);
 
+	libsinsp::filter::ast::pos_info m_pos;
 	bool m_ttable_only;
 	bool m_expect_values;
 	boolop m_last_boolop;
