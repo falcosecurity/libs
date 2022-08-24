@@ -49,10 +49,10 @@ TEST(SyscallExit, pipe2X_failure)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: fd1 (type: PT_FD) */
-	evt_test->assert_numeric_param(2, (int64_t)0);
+	evt_test->assert_numeric_param(2, (int64_t)-1);
 
 	/* Parameter 3: fd2 (type: PT_FD) */
-	evt_test->assert_numeric_param(3, (int64_t)0);
+	evt_test->assert_numeric_param(3, (int64_t)-1);
 
 	/* Parameter 4: ino (type: PT_UINT64)*/
 	evt_test->assert_numeric_param(4, (uint64_t)0);
