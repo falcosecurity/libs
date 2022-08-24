@@ -2,7 +2,7 @@
 
 #ifdef __NR_recvmsg
 
-#if defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto)
+#if defined(__NR_accept4) && defined(__NR_connect) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_close) && defined(__NR_setsockopt) && defined(__NR_shutdown) && defined(__NR_sendto)
 
 TEST(SyscallExit, recvmsgX_no_snaplen)
 {
@@ -25,8 +25,8 @@ TEST(SyscallExit, recvmsgX_no_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
-	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
-	assert_syscall_state(SYSCALL_SUCCESS, "accept (server)", connected_socket_fd, NOT_EQUAL, -1);
+	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", connected_socket_fd, NOT_EQUAL, -1);
 
 	struct msghdr recv_msg;
 	struct iovec iov[2];
@@ -111,8 +111,8 @@ TEST(SyscallExit, recvmsgX_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "sendto (client)", sent_bytes, NOT_EQUAL, -1);
 
 	/* The server accepts the connection and receives the message */
-	int connected_socket_fd = syscall(__NR_accept, server_socket_fd, NULL, NULL);
-	assert_syscall_state(SYSCALL_SUCCESS, "accept (server)", connected_socket_fd, NOT_EQUAL, -1);
+	int connected_socket_fd = syscall(__NR_accept4, server_socket_fd, NULL, NULL, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "accept4 (server)", connected_socket_fd, NOT_EQUAL, -1);
 
 	struct msghdr recv_msg;
 	struct iovec iov[2];
