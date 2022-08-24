@@ -1584,6 +1584,7 @@ sinsp_filter* sinsp_filter_compiler::compile()
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr* e)
 {
+	m_pos = e->get_pos();
 	bool nested = m_last_boolop != BO_AND;
 	if (nested)
 	{
@@ -1603,6 +1604,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr* e)
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr* e)
 {
+	m_pos = e->get_pos();
 	bool nested = m_last_boolop != BO_OR;
 	if (nested)
 	{
@@ -1622,6 +1624,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr* e)
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
 {
+	m_pos = e->get_pos();
 	m_last_boolop = (boolop)((uint32_t)m_last_boolop | BO_NOT);
 	m_filter->push_expression(m_last_boolop);
 	m_last_boolop = BO_NONE;
@@ -1631,6 +1634,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr* e)
 {
+	m_pos = e->get_pos();
 	string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
@@ -1661,6 +1665,7 @@ static void add_filtercheck_value(gen_event_filter_check *chk, size_t idx, const
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 {
+	m_pos = e->get_pos();
 	string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
@@ -1685,6 +1690,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr* e)
 {
+	m_pos = e->get_pos();
 	if (!m_expect_values)
 	{
 		// this ensures that identifiers, such as Falco macros, are not left
@@ -1697,6 +1703,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr* e)
 
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 {
+	m_pos = e->get_pos();
 	if (!m_expect_values)
 	{
 		ASSERT(false);
