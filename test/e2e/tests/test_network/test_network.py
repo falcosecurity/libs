@@ -88,7 +88,7 @@ def expected_events(origin: dict, destination: dict) -> list:
 
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_curl_nginx(run_containers):
+def test_curl_nginx(run_containers: dict):
     # Use a specific local port so validation of events is easier
     local_port = 40000
 

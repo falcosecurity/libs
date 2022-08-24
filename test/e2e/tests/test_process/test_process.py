@@ -14,7 +14,7 @@ ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
 
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_process(run_containers, tester_id):
+def test_process(run_containers: dict, tester_id: str):
     """
     Runs a simple test where a bash script is executed and a corresponding sinsp event is found in the provided
     container's logs

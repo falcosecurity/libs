@@ -19,7 +19,7 @@ ids = [
 
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_db_program_spawned_process(run_containers):
+def test_db_program_spawned_process(run_containers: dict):
     sinsp_container = run_containers['sinsp']
     generator_container = run_containers['generator']
 

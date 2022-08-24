@@ -14,7 +14,7 @@ class SinspStreamer:
     Allows streaming of `sinsp-example` logs for analysis.
     """
 
-    def __init__(self, container, timeout=10):
+    def __init__(self, container: docker.models.containers.Container, timeout: int = 10):
         """
         Parameters:
             container (docker.Container): A container object to stream logs from.
@@ -46,7 +46,7 @@ class SinspStreamer:
             if (datetime.now() - start).total_seconds() > self.timeout:
                 break
 
-    def extract_log(self, raw_log):
+    def extract_log(self, raw_log: str):
         """
         Split the docker log timestamp from the log line and return them
 
@@ -103,7 +103,7 @@ class SinspField:
         return SinspField(regex, SinspFieldTypes.REGEX)
 
 
-def parse_log(log):
+def parse_log(log: str) -> dict:
     """
     Parses a log line from the `sinsp-example` binary.
 
@@ -121,7 +121,7 @@ def parse_log(log):
         return None
 
 
-def validate_event(expected_fields, event):
+def validate_event(expected_fields: dict, event: dict) -> bool:
     """
     Checks all `expected_fields` are in the `event`
 
@@ -152,7 +152,7 @@ def validate_event(expected_fields, event):
     return True
 
 
-def assert_events(expected_events, container):
+def assert_events(expected_events: dict, container: docker.models.containers.Container):
     """
     Takes a list of dictionionaries describing the events we want to receive
     from a sinsp-example container and the reads events from the provided
@@ -188,7 +188,7 @@ def sinsp_validation(container: docker.models.containers.Container) -> (bool, st
     assert exit_code == 0, f'container exited with code {exit_code}'
 
 
-def container_spec(image='sinsp-example:latest', args=[], env={}):
+def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: dict = {}) -> dict:
     """
     Generates a dictionary describing how to run the sinsp-example container
 

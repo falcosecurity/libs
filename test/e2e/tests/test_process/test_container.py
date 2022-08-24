@@ -17,7 +17,7 @@ containers = [
 ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_exec_in_container(run_containers):
+def test_exec_in_container(run_containers: dict):
     nginx_container = run_containers['nginx']
     sinsp_container = run_containers['sinsp']
 
