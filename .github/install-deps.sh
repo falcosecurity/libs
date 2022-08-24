@@ -47,6 +47,12 @@ tar xzf 2022-06-01.tar.gz
 pushd re2-2022-06-01
 
 # see: https://github.com/google/re2/wiki/Install
-make -j CXXFLAGS="-O3 -std=c++11"
+mkdir -p build-re2
+cd build-re2
+cmake \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DRE2_BUILD_TESTING=OFF \
+    ..
+make -j
 make install -j
 popd
