@@ -16,6 +16,7 @@ elseif(NOT USE_BUNDLED_RE2)
 else()
 	set(RE2_SRC "${PROJECT_BINARY_DIR}/re2-prefix/src/re2")
 	set(RE2_INCLUDE "${RE2_SRC}/include")
+	set(RE2_DIR "${RE2_SRC}/lib/cmake/re2")
 	message(STATUS "Using bundled re2 in '${RE2_SRC}'")
 
 	if(NOT WIN32)
