@@ -194,7 +194,7 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
                 c->accept(this);
                 children.push_back(std::move(m_last_node));
             }
-            m_last_node = and_expr::create(children);
+            m_last_node = and_expr::create(children, e->get_pos());
         }
 
         void visit(or_expr* e) override
@@ -205,34 +205,34 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
                 c->accept(this);
                 children.push_back(std::move(m_last_node));
             }
-            m_last_node = or_expr::create(children);
+            m_last_node = or_expr::create(children, e->get_pos());
         }
 
         void visit(not_expr* e) override
         {
             e->child->accept(this);
-            m_last_node = not_expr::create(std::move(m_last_node));
+            m_last_node = not_expr::create(std::move(m_last_node), e->get_pos());
         }
 
         void visit(binary_check_expr* e) override
         {
             e->value->accept(this);
-            m_last_node = binary_check_expr::create(e->field, e->arg, e->op, std::move(m_last_node));
+            m_last_node = binary_check_expr::create(e->field, e->arg, e->op, std::move(m_last_node), e->get_pos());
         }
 
         void visit(unary_check_expr* e) override
         {
-            m_last_node = unary_check_expr::create(e->field, e->arg, e->op);
+            m_last_node = unary_check_expr::create(e->field, e->arg, e->op, e->get_pos());
         }
 
         void visit(value_expr* e) override
         {
-            m_last_node = value_expr::create(e->value);
+            m_last_node = value_expr::create(e->value, e->get_pos());
         }
 
         void visit(list_expr* e) override
         {
-            m_last_node = list_expr::create(e->values);
+            m_last_node = list_expr::create(e->values, e->get_pos());
         }
     } visitor;
 

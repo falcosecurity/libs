@@ -67,7 +67,7 @@ static const vector<string> binary_list_ops =
 	"intersects", "in", "pmatch"
 };
 
-static inline void update_pos(const char c, parser::pos_info& pos)
+static inline void update_pos(const char c, ast::pos_info& pos)
 {
 	pos.col++;
 	if (c == '\r' || c == '\n')
@@ -78,7 +78,7 @@ static inline void update_pos(const char c, parser::pos_info& pos)
 	pos.idx++;
 }
 
-static void update_pos(const string& s, parser::pos_info& pos)
+static void update_pos(const string& s, ast::pos_info& pos)
 {
 	for (const auto &c : s)
 	{
@@ -110,16 +110,16 @@ parser::parser(const string& input)
 	m_parse_partial = false;
 }
 
-void parser::get_pos(pos_info& pos) const
+void parser::get_pos(ast::pos_info& pos) const
 {
 	pos.idx = m_pos.idx;
 	pos.col = m_pos.col;
 	pos.line = m_pos.line;
 }
 
-parser::pos_info parser::get_pos() const
+ast::pos_info parser::get_pos() const
 {
-	pos_info info;
+	ast::pos_info info;
 	get_pos(info);
 	return info;
 }
@@ -158,6 +158,8 @@ std::unique_ptr<ast::expr> parser::parse()
 
 std::unique_ptr<ast::expr> parser::parse_or()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	vector<std::unique_ptr<ast::expr>> children;
 	lex_blank();
@@ -187,13 +189,15 @@ std::unique_ptr<ast::expr> parser::parse_or()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return ast::or_expr::create(children);
+		return ast::or_expr::create(children, pos);
 	}
 	return std::move(children[0]);
 }
 
 std::unique_ptr<ast::expr> parser::parse_and()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	std::unique_ptr<ast::expr> child;
 	std::vector<std::unique_ptr<ast::expr>> children;
@@ -223,13 +227,15 @@ std::unique_ptr<ast::expr> parser::parse_and()
 	depth_pop();
 	if (children.size() > 1)
 	{
-		return ast::and_expr::create(children);
+		return ast::and_expr::create(children, pos);
 	}
 	return std::move(children[0]);
 }
 
 std::unique_ptr<ast::expr> parser::parse_not()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	bool is_not = false;
 	std::unique_ptr<ast::expr> child;
@@ -248,7 +254,7 @@ std::unique_ptr<ast::expr> parser::parse_not()
 		child = parse_check();
 	}
 	depth_pop();
-	return is_not ? ast::not_expr::create(std::move(child)) : std::move(child);
+	return is_not ? ast::not_expr::create(std::move(child), pos) : std::move(child);
 }
 
 // this is an internal helper to parse the remainder of a
@@ -269,6 +275,8 @@ std::unique_ptr<ast::expr> parser::parse_embedded_remainder()
 
 std::unique_ptr<ast::expr> parser::parse_check()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	lex_blank();
 	if (lex_helper_str("("))
@@ -299,7 +307,7 @@ std::unique_ptr<ast::expr> parser::parse_check()
 		if (lex_unary_op())
 		{
 			depth_pop();
-			return ast::unary_check_expr::create(field, field_arg, trim_str(m_last_token));
+			return ast::unary_check_expr::create(field, field_arg, trim_str(m_last_token), pos);
 		}
 
 		string op = "";
@@ -331,13 +339,13 @@ std::unique_ptr<ast::expr> parser::parse_check()
 			throw sinsp_exception("expected a valid check operator: one of " + ops);
 		}
 		depth_pop();
-		return ast::binary_check_expr::create(field, field_arg, trim_str(op), std::move(value));
+		return ast::binary_check_expr::create(field, field_arg, trim_str(op), std::move(value), pos);
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token);
+		return ast::value_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a '(' token, a field check, or an identifier");
@@ -345,30 +353,36 @@ std::unique_ptr<ast::expr> parser::parse_check()
 
 std::unique_ptr<ast::value_expr> parser::parse_num_value()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	lex_blank();
 	if (lex_hex_num() || lex_num())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token);
+		return ast::value_expr::create(m_last_token, pos);
 	}
 	throw sinsp_exception("expected a number value");
 }
 
 std::unique_ptr<ast::value_expr> parser::parse_str_value()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	lex_blank();
 	if (lex_quoted_str() || lex_bare_str())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token);
+		return ast::value_expr::create(m_last_token, pos);
 	}
 	throw sinsp_exception("expected a string value");
 }
 
 std::unique_ptr<ast::expr> parser::parse_list_value()
 {
+	auto pos = get_pos();
+
 	depth_push();
 	lex_blank();
 	if (lex_helper_str("("))
@@ -405,13 +419,13 @@ std::unique_ptr<ast::expr> parser::parse_list_value()
 			throw sinsp_exception("expected a ')' token");
 		}
 		depth_pop();
-		return ast::list_expr::create(values);
+		return ast::list_expr::create(values, pos);
 	}
 
 	if (lex_identifier())
 	{
 		depth_pop();
-		return ast::value_expr::create(m_last_token);
+		return ast::value_expr::create(m_last_token, pos);
 	}
 
 	throw sinsp_exception("expected a list or an identifier");
@@ -461,7 +475,7 @@ inline bool parser::lex_quoted_str()
 	{
 		char prev = '\\';
 		char delimiter = *cursor();
-		pos_info pos = m_pos;
+		ast::pos_info pos = m_pos;
 		m_last_token = "";
 		while(*cursor() != '\0')
 		{

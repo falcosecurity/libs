@@ -27,7 +27,7 @@ namespace libsinsp {
 namespace filter {
 namespace ast {
 
-struct expr;
+class expr;
 struct and_expr;
 struct or_expr;
 struct not_expr;
@@ -35,6 +35,34 @@ struct value_expr;
 struct list_expr;
 struct unary_check_expr;
 struct binary_check_expr;
+
+/*!
+	\brief A struct containing info about the position of the parser
+	relatively to the string input. For example, this can either be used
+	to retrieve context information when an exception is thrown.
+*/
+struct pos_info
+{
+	inline void reset()
+	{
+		idx = 0;
+		line = 1;
+		col = 1;
+	}
+
+	inline std::string as_string() const
+	{
+		return "index " + std::to_string(idx)
+			+ ", line " + std::to_string(line)
+			+ ", column " + std::to_string(col);
+	}
+
+	uint32_t idx = 0;
+	uint32_t line = 1;
+	uint32_t col = 1;
+};
+
+static pos_info s_initial_pos;
 
 /*!
     \brief Interface of AST visitors
@@ -115,11 +143,18 @@ protected:
 /*!
     \brief Base interface of AST hierarchy
 */
-struct SINSP_PUBLIC expr
+class SINSP_PUBLIC expr
 {
+public:
     virtual ~expr() = default;
     virtual void accept(expr_visitor*) = 0;
     virtual bool is_equal(const expr* other) const = 0;
+
+    const pos_info& get_pos() const { return m_pos; }
+    void set_pos(const pos_info& pos) { m_pos = pos; }
+
+private:
+    pos_info m_pos;
 };
 
 /*!
@@ -162,9 +197,12 @@ struct SINSP_PUBLIC and_expr: expr
 
     std::vector<std::unique_ptr<expr>> children;
 
-    static std::unique_ptr<and_expr> create(std::vector<std::unique_ptr<expr>> &c)
+    static std::unique_ptr<and_expr> create(std::vector<std::unique_ptr<expr>> &c,
+					    const libsinsp::filter::ast::pos_info &pos = s_initial_pos)
     {
-        return std::unique_ptr<and_expr>(new and_expr(c));
+        std::unique_ptr<and_expr> ret(new and_expr(c));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -200,9 +238,12 @@ struct SINSP_PUBLIC or_expr: expr
 
     std::vector<std::unique_ptr<expr>> children;
 
-    static std::unique_ptr<or_expr> create(std::vector<std::unique_ptr<expr>> &c)
+    static std::unique_ptr<or_expr> create(std::vector<std::unique_ptr<expr>> &c,
+					   const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<or_expr>(new or_expr(c));
+        std::unique_ptr<or_expr> ret(new or_expr(c));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -225,9 +266,12 @@ struct SINSP_PUBLIC not_expr: expr
 
     std::unique_ptr<expr> child;
 
-    static std::unique_ptr<not_expr> create(std::unique_ptr<expr> c)
+    static std::unique_ptr<not_expr> create(std::unique_ptr<expr> c,
+					    const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<not_expr>(new not_expr(std::move(c)));
+        std::unique_ptr<not_expr> ret(new not_expr(std::move(c)));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -250,9 +294,12 @@ struct SINSP_PUBLIC value_expr: expr
 
     std::string value;
 
-    static std::unique_ptr<value_expr> create(const std::string& v)
+    static std::unique_ptr<value_expr> create(const std::string& v,
+					      const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<value_expr>(new value_expr(v));
+        std::unique_ptr<value_expr> ret(new value_expr(v));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -275,9 +322,12 @@ struct SINSP_PUBLIC list_expr: expr
 
     std::vector<std::string> values;
 
-    static std::unique_ptr<list_expr> create(const std::vector<std::string>& v)
+    static std::unique_ptr<list_expr> create(const std::vector<std::string>& v,
+					     const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<list_expr>(new list_expr(v));
+        std::unique_ptr<list_expr> ret(new list_expr(v));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -308,9 +358,12 @@ struct SINSP_PUBLIC unary_check_expr: expr
 
     static std::unique_ptr<unary_check_expr> create(const std::string& f,
         const std::string& a,
-        const std::string& o)
+        const std::string& o,
+        const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<unary_check_expr>(new unary_check_expr(f, a, o));
+	std::unique_ptr<unary_check_expr> ret(new unary_check_expr(f, a, o));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
@@ -345,9 +398,12 @@ struct SINSP_PUBLIC binary_check_expr: expr
         const std::string& f,
         const std::string& a,
         const std::string& o,
-        std::unique_ptr<expr> v)
+        std::unique_ptr<expr> v,
+	const libsinsp::filter::ast::pos_info& pos = s_initial_pos)
     {
-        return std::unique_ptr<binary_check_expr>(new binary_check_expr(f, a, o, v));
+        std::unique_ptr<binary_check_expr> ret(new binary_check_expr(f, a, o, v));
+	ret->set_pos(pos);
+	return ret;
     }
 };
 
