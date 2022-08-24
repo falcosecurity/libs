@@ -256,7 +256,8 @@ static int bpf_load_program(const struct bpf_insn *insns,
 			    enum bpf_prog_type type,
 			    size_t insns_cnt,
 			    char *log_buf,
-			    size_t log_buf_sz)
+			    size_t log_buf_sz,
+			    const char *prog_name)
 {
 	union bpf_attr attr;
 	int fd;
@@ -270,6 +271,9 @@ static int bpf_load_program(const struct bpf_insn *insns,
 	attr.log_buf = (unsigned long) NULL;
 	attr.log_size = 0;
 	attr.log_level = 0;
+	if (prog_name != NULL) {
+		snprintf(attr.prog_name, BPF_OBJ_NAME_LEN, "%s", prog_name);
+	}
 
 	/* Try a first time without catching verifier logs.
 	 * If `log_buf` paramater is NULL it means that we have no intention
@@ -513,6 +517,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	int err;
 	int fd;
 	int id;
+	const char *prog_name = NULL;
 
 	insns_cnt = size / sizeof(struct bpf_insn);
 
@@ -547,7 +552,17 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		return SCAP_FAILURE;
 	}
 
-	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE);
+	/* 'event' looks like "raw_tracepoint/raw_syscalls/sys_enter". Skip
+	 * to the last word after '/', if possible.
+	 */
+	prog_name = strrchr(event, '/');
+	if (prog_name != NULL) {
+		prog_name++;
+	} else {
+		prog_name = event;
+	}
+
+	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, prog_name);
 	if(fd < 0)
 	{
 		fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
