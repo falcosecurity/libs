@@ -57,10 +57,14 @@ int BPF_PROG(pipe_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	s32 pipefd[2] = {0, 0};
+	s32 pipefd[2] = {-1, -1};
 	/* This is a pointer to the vector with the 2 file descriptors. */
 	unsigned long fd_vector_pointer = extract__syscall_argument(regs, 0);
-	bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer);
+	if(bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer) != 0)
+	{
+		pipefd[0] = -1;
+		pipefd[1] = -1;
+	}
 
 	/* Parameter 2: fd1 (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, (s64)pipefd[0]);
