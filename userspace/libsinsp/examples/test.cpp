@@ -100,11 +100,6 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			filter_string = optarg;
 			break;
 		case 'j':
-			// Initialize JSON formatters
-			default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
-			process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
-			net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
-
 			inspector.set_buffer_format(sinsp_evt::PF_JSON);
 			dump = json_dump;
 			break;
@@ -347,9 +342,9 @@ void plaintext_dump(sinsp& inspector)
 void json_dump(sinsp& inspector)
 {
 	// Initialize JSON formatters
-	static sinsp_evt_formatter* default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
-	static sinsp_evt_formatter* process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
-	static sinsp_evt_formatter* net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
+	default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
+	process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
+	net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
 
 	sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
 				  { cout << R"({"error": ")" << error_msg << R"("})" << endl; });
