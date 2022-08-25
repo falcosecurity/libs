@@ -457,10 +457,8 @@ void sinsp::init()
 #if defined(HAS_CAPTURE)
 	if(m_mode == SCAP_MODE_LIVE)
 	{
-		if(scap_getpid_global(m_h, &m_self_pid) != SCAP_SUCCESS)
-		{
-			ASSERT(false);
-		}
+		int32_t res = scap_getpid_global(m_h, &m_self_pid);
+		ASSERT(res == SCAP_SUCCESS || res == SCAP_NOT_SUPPORTED);
 	}
 #endif
 	m_inited = true;
