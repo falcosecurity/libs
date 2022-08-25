@@ -1183,6 +1183,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 uint32_t *scap_get_modifies_state_ppm_sc()
 {
 	static uint32_t minimum_ppm_sc_set[PPM_SC_MAX];
+#ifdef __linux__
 	// Collect EF_MODIFIES_STATE events
 	for (int i = 0; i < PPM_EVENT_MAX; i++)
 	{
@@ -1208,7 +1209,7 @@ uint32_t *scap_get_modifies_state_ppm_sc()
 			minimum_ppm_sc_set[ppm_sc_code] = 1;
 		}
 	}
-
+#endif
 	return minimum_ppm_sc_set;
 }
 
