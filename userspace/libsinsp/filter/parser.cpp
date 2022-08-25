@@ -510,7 +510,7 @@ bool parser::lex_helper_rgx(const re2::RE2& rgx)
 {
 	ASSERT(rgx.ok());
 	re2::StringPiece c(cursor(), m_input.size() - m_pos.idx);
-    if (re2::RE2::Consume(&c, rgx, &m_last_token))
+	if (re2::RE2::Consume(&c, rgx, &m_last_token))
 	{
 		update_pos(m_last_token, m_pos);
 		return true;
