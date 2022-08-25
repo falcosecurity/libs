@@ -355,7 +355,7 @@ struct SINSP_PUBLIC binary_check_expr: expr
 	\brief Return a string representation of an AST.
 	\return A string representation of an AST.
 */
-std::string as_string(ast::expr &e);
+std::string as_string(ast::expr *e);
 
 /*!
 	\brief Creates a deep clone of a filter AST
