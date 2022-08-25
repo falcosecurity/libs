@@ -108,8 +108,8 @@ typedef struct scap_open_args
 	const char *gvisor_root_path; ///< When using gvisor, the root path used by runsc commands
 	const char *gvisor_config_path; ///< When using gvisor, the path to the configuration file
 
-	interesting_ppm_sc_set *ppm_sc_of_interest;
-	interesting_tp_set *tp_of_interest;
+	interesting_ppm_sc_set *ppm_sc_of_interest; ///< Leave it NULL to collect all supported syscalls
+	interesting_tp_set *tp_of_interest; ///< Leave it NULL to attach all supported tracepoints
 
 	scap_source_plugin* input_plugin; ///< use this to configure a source plugin that will produce the events for this capture
 	char* input_plugin_params; ///< optional parameters string for the source plugin pointed by src_plugin

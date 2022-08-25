@@ -563,6 +563,20 @@ void sinsp::fill_tracepoints_of_interest(scap_open_args *oargs)
 	}
 	oargs->tp_of_interest = &tp_of_interest;
 }
+
+std::unordered_set<uint32_t> sinsp::enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest)
+{
+	uint32_t *minimum_syscalls = scap_get_modifies_state_ppm_sc();
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		if (minimum_syscalls[i])
+		{
+			syscalls_of_interest.insert(i);
+		}
+	}
+	return syscalls_of_interest;
+}
+
 #else
 
 void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
@@ -576,6 +590,7 @@ void sinsp::fill_tracepoints_of_interest(scap_open_args *oargs)
 }
 
 #endif
+
 void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 {
 	char error[SCAP_LASTERR_SIZE];

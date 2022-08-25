@@ -821,6 +821,11 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
 /*!
+  \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
+*/
+uint32_t *scap_get_modifies_state_ppm_sc();
+
+/*!
   \brief This function can be used to temporarily interrupt event capture.
 
   \param handle Handle to the capture that will be stopped.

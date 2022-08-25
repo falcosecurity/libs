@@ -987,6 +987,12 @@ private:
 	void add_protodecoders();
 	void fill_syscalls_of_interest(scap_open_args *oargs);
 	void fill_tracepoints_of_interest(scap_open_args *oargs);
+
+	/*!
+	  \brief Enforce minimum set of syscalls required by sinsp state collection
+	*/
+	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = std::unordered_set<uint32_t>(0));
+
 	void remove_thread(int64_t tid, bool force);
 
 	//
