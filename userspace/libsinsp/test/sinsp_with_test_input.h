@@ -181,25 +181,34 @@ protected:
 		tinfo.loginuid = loginuid;
 
 		std::string argsv = "";
-		for (std::string a : args) {
-			argsv += a;
+		if (!args.empty())
+		{
+			for (std::string a : args) {
+				argsv += a;
+				argsv.push_back('\0');
+			}
 			argsv.push_back('\0');
 		}
-		argsv.push_back('\0');
 
 		std::string envv = "";
-		for (std::string a : env) {
-			envv += a;
+		if (!env.empty())
+		{
+			for (std::string a : env) {
+				envv += a;
+				envv.push_back('\0');
+			}
 			envv.push_back('\0');
 		}
-		envv.push_back('\0');
 
 		std::string cgroupsv = "";
-		for (std::string a : cgroups) {
-			cgroupsv += a;
+		if (!cgroups.empty())
+		{
+			for (std::string a : cgroups) {
+				cgroupsv += a;
+				cgroupsv.push_back('\0');
+			}
 			cgroupsv.push_back('\0');
 		}
-		cgroupsv.push_back('\0');
 
 		memcpy(tinfo.args, argsv.data(), argsv.size());
 		tinfo.args_len = argsv.size();
