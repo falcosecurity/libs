@@ -37,13 +37,13 @@ protected:
 
 		std::unique_ptr<ast::expr> e(parser.parse());
 
-		ASSERT_STREQ(as_string(*(e.get())).c_str(), out.c_str());
+		ASSERT_STREQ(as_string(e.get()).c_str(), out.c_str());
 	}
 
 	void bidirectional(const std::string &filter)
 	{
 		std::unique_ptr<ast::expr> e1(parser(filter).parse());
-		std::unique_ptr<ast::expr> e2(parser(as_string(*(e1.get()))).parse());
+		std::unique_ptr<ast::expr> e2(parser(as_string(e1.get())).parse());
 		ASSERT_TRUE(e1->is_equal(e2.get()));
 	}
 
