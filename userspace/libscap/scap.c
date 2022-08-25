@@ -1331,11 +1331,33 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	}
 }
 
-static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t event_id)
+static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_sc)
 {
+	switch(op) {
+	case SCAP_EVENTMASK_ZERO:
+	case SCAP_EVENTMASK_SET:
+	case SCAP_EVENTMASK_UNSET:
+		break;
+
+	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+		break;
+	}
+
+	// Keep syscalls of interest in sync
+	if (op != SCAP_EVENTMASK_ZERO)
+	{
+		set_syscall_of_interest(ppm_sc, handle->syscalls_of_interest, op == SCAP_EVENTMASK_SET);
+	}
+	else
+	{
+		memset(handle->syscalls_of_interest, 0, sizeof(handle->syscalls_of_interest));
+	}
 	if(handle->m_vtable)
 	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, event_id);
+		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);
 	}
 #if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
@@ -1355,12 +1377,8 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_ZERO, 0));
 }
 
-int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id) {
-	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_SET, event_id));
-}
-
-int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id) {
-	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_UNSET, event_id));
+int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled) {
+	return(scap_handle_eventmask(handle, enabled ? SCAP_EVENTMASK_SET : SCAP_EVENTMASK_UNSET, ppm_sc));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)

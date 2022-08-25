@@ -249,7 +249,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
-	// Set interesting syscalls
+	// Set interesting syscalls, switching off any non-requested syscall
 	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 	{
 		if (!handle->syscalls_of_interest[i])
@@ -257,8 +257,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			// Kmod driver event_mask check uses event_types instead of syscall nr
 			enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
 			enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
-			scap_unset_eventmask(handle, enter_ev);
-			scap_unset_eventmask(handle, exit_ev);
+			scap_set_eventmask(handle, enter_ev, false);
+			scap_set_eventmask(handle, exit_ev, false);
 		}
 	}
 
@@ -470,49 +470,50 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id)
+int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
-	//
-	// Tell the driver to change the snaplen
-	//
-
-	switch(op) {
-	case PPM_IOCTL_MASK_ZERO_EVENTS:
-	case PPM_IOCTL_MASK_SET_EVENT:
-	case PPM_IOCTL_MASK_UNSET_EVENT:
-		break;
-
-	default:
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-		ASSERT(false);
-		return SCAP_FAILURE;
-		break;
-	}
-
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if(ioctl(devset->m_devs[0].m_fd, op, event_id))
+	if (op != SCAP_EVENTMASK_ZERO)
 	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
-			 "%s(%d) failed for event type %d",
-			 __FUNCTION__, op, event_id);
-		ASSERT(false);
-		return SCAP_FAILURE;
+		int ioctl_op = op == SCAP_EVENTMASK_SET ? PPM_IOCTL_MASK_SET_EVENT : PPM_IOCTL_MASK_UNSET_EVENT;
+		// Find any syscall table entry that matches requested ppm_sc code
+		// then for any syscall, (un)set its enter and exit events
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			if (g_syscall_code_routing_table[i] == ppm_sc)
+			{
+				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
+				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
+				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, enter_ev))
+				{
+					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+						 "%s(%d) failed for event type %d",
+						 __FUNCTION__, op, enter_ev);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, exit_ev))
+				{
+					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+						 "%s(%d) failed for event type %d",
+						 __FUNCTION__, op, exit_ev);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+			}
+		}
 	}
-
-	uint32_t j;
-
-	//
-	// Force a flush of the read buffers, so we don't capture events with the old snaplen
-	//
-	for(j = 0; j < devset->m_ndevs; j++)
+	else
 	{
-		ringbuffer_readbuf(&devset->m_devs[j],
-				   &devset->m_devs[j].m_sn_next_event,
-				   &devset->m_devs[j].m_sn_len);
-
-		devset->m_devs[j].m_sn_len = 0;
+		if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MASK_ZERO_EVENTS, 0))
+		{
+			snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+				 "%s(%d) failed",
+				 __FUNCTION__, op);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
 	}
-
 	return SCAP_SUCCESS;
 }
 
