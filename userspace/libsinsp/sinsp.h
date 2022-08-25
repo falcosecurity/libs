@@ -865,10 +865,56 @@ public:
 
 	// These make no sense on non-linux env
 #ifdef __linux__
+	/*!
+	\brief Set desired syscalls as interesting, ie: only these syscalls will be collected.
+
+	 	The function can be called both at startup time (before sinsp::open() is called),
+	 	or at runtime, and the change will immediately take effect.
+
+		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
+	 	or even exhibit weird leaks.
+	 	It is up to the client to know what it is doing.
+	*/
 	void set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
+	/*!
+	\brief Set desired tracepoints as interesting, ie: only these tracepoints will be attached.
+
+		The function can be only called at startup time (before sinsp::open() is called).
+
+		Note: playing with this could break sinsp state collection,
+	       	or even exhibit weird leaks.
+		It is up to the client to know what it is doing.
+	*/
 	void set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest);
+	/*!
+	\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
+
+		The function can be called both at startup time (before sinsp::open() is called),
+		or at runtime, and the change will immediately take effect.
+
+		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
+	       	or even exhibit weird leaks.
+		It is up to the client to know what it is doing.
+	*/
 	void mark_syscall_of_interest(uint32_t ppm_sc, bool enabled = true);
+	/*!
+	\brief Mark desired tracepoint as (un)interesting, enabling or disabling it.
+
+		The function can be only called at startup time (before sinsp::open() is called).
+
+		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
+	       	or even exhibit weird leaks.
+		It is up to the client to know what it is doing.
+	*/
 	void mark_tracepoint_of_interest(string &tp, bool enabled = true);
+	/*!
+  	\brief Enforce minimum set of syscalls required by sinsp state collection.
+
+		Note: without using this method, we cannot guarantee that sinsp state
+		will always be up to date, or even work at all.
+	*/
+	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = std::unordered_set<uint32_t>(0));
+
 #endif
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -987,11 +1033,6 @@ private:
 	void add_protodecoders();
 	void fill_syscalls_of_interest(scap_open_args *oargs);
 	void fill_tracepoints_of_interest(scap_open_args *oargs);
-
-	/*!
-	  \brief Enforce minimum set of syscalls required by sinsp state collection
-	*/
-	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = std::unordered_set<uint32_t>(0));
 
 	void remove_thread(int64_t tid, bool force);
 
