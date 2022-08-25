@@ -1648,7 +1648,7 @@ struct ppm_param_info {
 						   if this is a FSRELPATH parameter, it references the related dirfd,
 					   else if this is a dynamic parameter it points to an array of ppm_param_info */
 	uint8_t ninfo; /**< Number of entry in the info array. */
-} _packed;
+};
 
 /*!
   \brief Event information.
@@ -1661,7 +1661,7 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-} _packed;
+};
 
 #if defined _MSC_VER
 #pragma pack(push)
