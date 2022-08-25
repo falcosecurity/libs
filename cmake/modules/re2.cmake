@@ -17,17 +17,21 @@ else()
 	set(RE2_SRC "${PROJECT_BINARY_DIR}/re2-prefix/src/re2")
 	set(RE2_INCLUDE "${RE2_SRC}/include")
 	set(RE2_DIR "${RE2_SRC}/lib/cmake/re2")
+	set(RE2_URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz")
+	set(RE2_URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f")
+
 	message(STATUS "Using bundled re2 in '${RE2_SRC}'")
 
 	if(NOT WIN32)
 		set(RE2_LIB "${RE2_SRC}/lib/libre2.a")
 		ExternalProject_Add(re2
 			PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
-			URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
-			URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
+			URL "${RE2_URL}"
+			URL_HASH "${RE2_URL_HASH}"
 			BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 			BUILD_BYPRODUCTS ${RE2_LIB}
 			CMAKE_ARGS
+				-DCMAKE_INSTALL_LIBDIR=lib
 				-DRE2_BUILD_TESTING=OFF
 				-DBUILD_SHARED_LIBS=OFF
 				-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
@@ -37,26 +41,28 @@ else()
 		if(CMAKE_VERSION VERSION_LESS 3.15.0)
 			ExternalProject_Add(re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
-				URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
-				URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
+				URL "${RE2_URL}"
+				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
 				CMAKE_ARGS
 					-DCMAKE_CXX_FLAGS_DEBUG="/MTd /Od"
 					-DCMAKE_CXX_FLAGS_RELEASE="/MT"
+					-DCMAKE_INSTALL_LIBDIR=lib
 					-DRE2_BUILD_TESTING=OFF
 					-DBUILD_SHARED_LIBS=OFF
 					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
 		else()
 			ExternalProject_Add(re2
 				PREFIX "${PROJECT_BINARY_DIR}/re2-prefix"
-				URL "https://github.com/google/re2/archive/refs/tags/2022-06-01.tar.gz"
-				URL_HASH "SHA256=f89c61410a072e5cbcf8c27e3a778da7d6fd2f2b5b1445cd4f4508bee946ab0f"
+				URL "${RE2_URL}"
+				URL_HASH "${RE2_URL_HASH}"
 				BINARY_DIR "${PROJECT_BINARY_DIR}/re2-prefix/build"
 				BUILD_BYPRODUCTS ${RE2_LIB}
 				CMAKE_ARGS
 					-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW 
 					-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
+					-DCMAKE_INSTALL_LIBDIR=lib
 					-DRE2_BUILD_TESTING=OFF
 					-DBUILD_SHARED_LIBS=OFF
 					-DCMAKE_INSTALL_PREFIX=${RE2_SRC})
