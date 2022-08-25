@@ -171,11 +171,11 @@ const std::string& string_visitor::as_string()
 	return m_str;
 }
 
-std::string libsinsp::filter::ast::as_string(ast::expr &e)
+std::string libsinsp::filter::ast::as_string(ast::expr *e)
 {
 	string_visitor sv;
 
-	e.accept(&sv);
+	e->accept(&sv);
 
 	return sv.as_string();
 }
