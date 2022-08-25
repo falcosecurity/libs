@@ -67,11 +67,10 @@ protected:
 	// adds an event and advances the inspector to the new timestamp
 	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
 	{
-		scap_evt *scap_event;
 		sinsp_evt *sinsp_event;
 		va_list args;
 		va_start(args, n);
-		scap_event = add_event_v(ts, tid, event_type, n, args);
+		add_event_v(ts, tid, event_type, n, args);
 		va_end(args);
 
 		for (sinsp_event = next_event(); sinsp_event != nullptr; sinsp_event = next_event()) {
