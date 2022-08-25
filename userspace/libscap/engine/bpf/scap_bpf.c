@@ -1633,41 +1633,8 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t event_id) {
-	int j;
-	bool quit = false;
+int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc) {
 	struct bpf_engine *handle = engine.m_handle;
-	for(j = 0; j < SYSCALL_TABLE_SIZE && !quit; ++j)
-	{
-		/*
-		 * In case PPM_IOCTL_MASK_ZERO_EVENTS is called, event_id will be 0. Set every syscall to false in that case.
-		 * Otherwise, check {enter,exit} event for each syscall to see if it matches the requested event_id.
-		 */
-		if (event_id == 0 || g_syscall_table[j].enter_event_type == event_id || g_syscall_table[j].exit_event_type == event_id)
-		{
-			switch(op)
-			{
-			case PPM_IOCTL_MASK_ZERO_EVENTS:
-				handle->m_syscalls_of_interest[j] = false;
-				break;
-			case PPM_IOCTL_MASK_SET_EVENT:
-				handle->m_syscalls_of_interest[j] = true;
-				quit = true;
-				break;
-			case PPM_IOCTL_MASK_UNSET_EVENT:
-				handle->m_syscalls_of_interest[j] = false;
-				quit = true;
-				break;
-			default:
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-				ASSERT(false);
-				return SCAP_FAILURE;
-				break;
-			}
-		}
-	}
-
-	// Perhaps we could just update a single element here when op != PPM_IOCTL_MASK_ZERO_EVENTS ?
 	return populate_interesting_syscalls_map(handle);
 }
 

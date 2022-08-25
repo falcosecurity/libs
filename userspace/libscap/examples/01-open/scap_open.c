@@ -130,7 +130,7 @@ void set_enabled_syscalls()
 	if(ppm_sc_is_set)
 	{
 		args.ppm_sc_of_interest = &ppm_sc_of_interest;
-		printf("* Syscall enabled:\n");
+		printf("* Syscalls enabled:\n");
 		for(int j = 0; j < PPM_SC_MAX; j++)
 		{
 			if(args.ppm_sc_of_interest->ppm_sc[j])
