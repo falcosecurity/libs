@@ -27,6 +27,7 @@ limitations under the License.
 
 void set_syscall_of_interest(uint32_t ppm_sc, bool *syscalls_of_interest, bool enable)
 {
+#ifdef __linux__
 	// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
@@ -37,6 +38,7 @@ void set_syscall_of_interest(uint32_t ppm_sc, bool *syscalls_of_interest, bool e
 			// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
 		}
 	}
+#endif
 }
 
 void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool *syscalls_of_interest)

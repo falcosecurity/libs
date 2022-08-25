@@ -1180,6 +1180,38 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
+uint32_t *scap_get_modifies_state_ppm_sc()
+{
+	static uint32_t minimum_ppm_sc_set[PPM_SC_MAX];
+	// Collect EF_MODIFIES_STATE events
+	for (int i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if (g_event_info[i].flags & EF_MODIFIES_STATE)
+		{
+			for (int j = 0; j < SYSCALL_TABLE_SIZE; j++)
+			{
+				if (g_syscall_table[j].exit_event_type == i || g_syscall_table[j].enter_event_type == i)
+				{
+					uint32_t ppm_sc_code = g_syscall_code_routing_table[i];
+					minimum_ppm_sc_set[ppm_sc_code] = 1;
+				}
+			}
+		}
+	}
+
+	// Collect UF_NEVER_DROP syscalls
+	for (int j = 0; j < SYSCALL_TABLE_SIZE; j++)
+	{
+		if (g_syscall_table[j].flags & UF_NEVER_DROP)
+		{
+			uint32_t ppm_sc_code = g_syscall_code_routing_table[j];
+			minimum_ppm_sc_set[ppm_sc_code] = 1;
+		}
+	}
+
+	return minimum_ppm_sc_set;
+}
+
 //
 // Stop capturing the events
 //
