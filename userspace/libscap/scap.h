@@ -924,27 +924,15 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 int32_t scap_clear_eventmask(scap_t* handle);
 
 /*!
-  \brief Set the event into the eventmask so that
-  users can receive the event. Useful for offloading
+  \brief Set the ppm_sc into the eventmask so that
+  users can receive the related syscalls. Useful for offloading
   operations such as evt.type=open
 
   \param handle Handle to the capture instance.
-  \param event id (example PPME_SOCKET_BIND_X)
+  \param ppm_sc id (example PPM_SC_EXECVE)
   \note This function can only be called for live captures.
 */
-int32_t scap_set_eventmask(scap_t* handle, uint32_t event_id);
-
-
-/*!
-  \brief Unset the event into the eventmask so that
-  users can no longer receive the event. It is
-  the opposite of scap_set_eventmask
-
-  \param handle Handle to the capture instance.
-  \param event id (example PPME_SOCKET_BIND_X)
-  \note This function can only be called for live captures.
-*/
-int32_t scap_unset_eventmask(scap_t* handle, uint32_t event_id);
+int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled);
 
 
 /*!

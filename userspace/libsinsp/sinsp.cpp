@@ -461,7 +461,17 @@ void sinsp::set_import_users(bool import_users)
 #ifdef __linux__
 void sinsp::set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
 {
-	m_ppm_sc_of_interest = syscalls_of_interest;
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		// If the value is different, ie: either it was missing and we are adding it
+		// or it was present and we are removing it
+		if (m_ppm_sc_of_interest.find(i) != syscalls_of_interest.find(i))
+		{
+			// if it wasn't present, it means we are actually adding a new syscall
+			bool adding = m_ppm_sc_of_interest.find(i) == m_ppm_sc_of_interest.end();
+			mark_syscall_of_interest(i, adding);
+		}
+	}
 }
 
 void sinsp::set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
@@ -482,11 +492,20 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 	{
 		m_ppm_sc_of_interest.erase(ppm_sc);
 	}
+
+	if (m_inited)
+	{
+		int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
+		if (ret != SCAP_SUCCESS)
+		{
+			throw sinsp_exception(scap_getlasterr(m_h));
+		}
+	}
 }
 
 void sinsp::mark_tracepoint_of_interest(string &tp, bool enabled)
 {
-	uint32_t val = (uint32_t)tp_from_name(tp.c_str());
+	auto val = (uint32_t)tp_from_name(tp.c_str());
 	if (val == -1)
 	{
 		throw sinsp_exception("unexisting tracepoint " + tp);
@@ -500,6 +519,11 @@ void sinsp::mark_tracepoint_of_interest(string &tp, bool enabled)
 	{
 		m_ppm_tp_of_interest.erase(val);
 	}
+	// TODO: unsupported for now
+	// if (m_inited)
+	// {
+	//      int ret = scap_set_tpmask(...)
+	// }
 }
 
 void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
@@ -2088,22 +2112,6 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
 {
 	return m_parser->add_protodecoder(decoder_name);
-}
-
-void sinsp::set_eventmask(uint32_t event_types)
-{
-	if (scap_set_eventmask(m_h, event_types) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-}
-
-void sinsp::unset_eventmask(uint32_t event_id)
-{
-	if (scap_unset_eventmask(m_h, event_id) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
 }
 
 void sinsp::protodecoder_register_reset(sinsp_protodecoder* dec)

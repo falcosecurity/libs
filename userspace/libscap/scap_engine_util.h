@@ -17,5 +17,6 @@ limitations under the License.
 
 #pragma once
 
+void set_syscall_of_interest(uint32_t ppm_sc, bool *syscalls_of_interest, bool enable);
 void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool *syscalls_of_interest);
 int32_t check_api_compatibility(scap_t *handle, char *error);
