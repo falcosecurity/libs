@@ -1143,7 +1143,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 
 	for(j = 0; j < m_info.m_nfields; j++)
 	{
-		auto fldlen = strlen(m_info.m_fields[j].m_name);
+		int32_t fldlen = (int32_t)strlen(m_info.m_fields[j].m_name);
 		if(fldlen <= max_fldlen)
 		{
 			continue;
@@ -1153,7 +1153,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 		{
 			m_field_id = j;
 			m_field = &m_info.m_fields[j];
-			max_fldlen = (int32_t) fldlen;
+			max_fldlen = fldlen;
 			max_flags = (m_info.m_fields[j]).m_flags;
 		}
 	}
