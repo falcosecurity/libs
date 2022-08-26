@@ -469,7 +469,7 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 	}
 }
 
-std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest)
+std::unordered_set<uint32_t> sinsp::enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest)
 {
 	uint32_t *minimum_syscalls = scap_get_modifies_state_ppm_sc();
 	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)

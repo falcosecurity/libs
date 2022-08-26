@@ -832,9 +832,6 @@ public:
 
 	sinsp_parser* get_parser();
 
-	// These make no sense on non-linux env
-#ifdef __linux__
-
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		Please note that this method must be called when the inspector is already open to 
@@ -854,7 +851,7 @@ public:
 		will always be up to date, or even work at all.
 	*/
 	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = {});
-#endif
+
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);

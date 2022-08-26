@@ -903,8 +903,6 @@ int main(int argc, char** argv)
 			print_event(ev);
 		}
 		g_nevts++;
-		printf("topekke %d\n", ev->type);
-		scap_set_eventmask(g_h, 28, false);
 	}
 
 	print_stats();
