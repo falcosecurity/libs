@@ -456,6 +456,7 @@ void sinsp::init()
 	{
 		int32_t res = scap_getpid_global(m_h, &m_self_pid);
 		ASSERT(res == SCAP_SUCCESS || res == SCAP_NOT_SUPPORTED);
+		(void)res;
 	}
 #endif
 	m_inited = true;
