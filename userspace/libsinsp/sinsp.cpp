@@ -482,14 +482,14 @@ std::unordered_set<uint32_t> sinsp::enforce_sinsp_syscalls_of_interest(std::unor
 	return syscalls_of_interest;
 }
 
-void sinsp::fill_syscalls_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest)
+void sinsp::fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest)
 {
-	// Finally, set scap_open_args syscalls_of_interest
 	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
+		/* If the set is empty, fallback to all interesting syscalls */
 		if (syscalls_of_interest.empty())
 		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = 1;
+			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
 		}
 		else
 		{
@@ -500,7 +500,15 @@ void sinsp::fill_syscalls_of_interest(scap_open_args *oargs, const std::unordere
 
 void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<std::string> &tp_of_interest)
 {
-	if (!tp_of_interest.empty())
+	/* If the set is empty, fallback to all interesting tracepoints */
+	if (tp_of_interest.empty())
+	{
+		for (int i = 0; i < TP_VAL_MAX; i++)
+		{
+			oargs->tp_of_interest.tp[i] = true;
+		}
+	}
+	else
 	{
 		for(const auto& tp : tp_of_interest)
 		{
@@ -512,17 +520,10 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 			oargs->tp_of_interest.tp[val] = true;
 		}
 	}
-	else
-	{
-		for (int i = 0; i < TP_VAL_MAX; i++)
-		{
-			oargs->tp_of_interest.tp[i] = true;
-		}
-	}
 
 }
 
-void sinsp::open_common(scap_open_args* oargs, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
+void sinsp::open_common(scap_open_args* oargs)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
 	g_logger.log("Trying to open the right engine!");
@@ -532,9 +533,6 @@ void sinsp::open_common(scap_open_args* oargs, const std::unordered_set<uint32_t
 
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
-
-	fill_syscalls_of_interest(oargs, syscalls_of_interest);
-	fill_tp_of_interest(oargs, tp_of_interest);
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -568,6 +566,12 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 void sinsp::open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
+
+	/* Set interesting syscalls and tracepoints. */
+	fill_ppm_sc_of_interest(&oargs, syscalls_of_interest);
+	fill_tp_of_interest(&oargs, tp_of_interest);
+
+	/* Engine-specific args. */
 	struct scap_kmod_engine_params params;
 	params.single_buffer_dim = buffer_dimension;
 	oargs.engine_params = &params;
@@ -583,6 +587,12 @@ void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std:
 	}
 
 	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
+	
+	/* Set interesting syscalls and tracepoints. */
+	fill_ppm_sc_of_interest(&oargs, syscalls_of_interest);
+	fill_tp_of_interest(&oargs, tp_of_interest);
+
+	/* Engine-specific args. */
 	struct scap_bpf_engine_params params;
 	params.single_buffer_dim = buffer_dimension;
 	params.bpf_probe = bpf_path;
@@ -676,9 +686,15 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interes)
+void sinsp::open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
+
+	/* Set interesting syscalls and tracepoints. */
+	fill_ppm_sc_of_interest(&oargs, syscalls_of_interest);
+	fill_tp_of_interest(&oargs, tp_of_interest);
+
+	/* Engine-specific args. */
 	struct scap_modern_bpf_engine_params params;
 	params.single_buffer_dim = buffer_dimension;
 	oargs.engine_params = &params;
