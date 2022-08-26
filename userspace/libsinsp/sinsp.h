@@ -219,14 +219,14 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	void open_kmod(uint64_t buffer_dimension);
-	void open_bpf(uint64_t buffer_dimension, const char* bpf_path);
-	void open_udig(uint64_t buffer_dimension);
+	void open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
+	void open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
+	void open_udig();
 	void open_nodriver();
 	void open_savefile(const std::string &filename, int fd);
 	void open_plugin(std::string plugin_name, std::string plugin_open_params);
 	void open_gvisor(std::string config_path, std::string root_path);
-	void open_modern_bpf(uint64_t buffer_dimension);
+	void open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine, scap_mode_t scap_mode);
@@ -834,29 +834,6 @@ public:
 
 	// These make no sense on non-linux env
 #ifdef __linux__
-	/*!
-		\brief Set desired syscalls as interesting, ie: only these syscalls will be collected.
-		Please note that this method must be called before opening the inspector otherwise,
-		all the syscall will be set as interesting by default.
-
-		WARNING: playing with this API could break `libsinsp` state collection if you want to
-		be sure that your syscall set doesn't break the `libsinsp` state collection you
-		have to use the `enforce_sinsp_syscalls_of_interest()` API.
-		It is up to the client to know what it is doing!
-	*/
-	void initialize_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
-
-	/*!
-		\brief Set desired tracepoints as interesting, ie: only these tracepoints will be attached.
-		Please note that this method must be called before opening the inspector otherwise,
-		all the tracepoints will be set as interesting by default.
-
-		WARNING: playing with this API could break `libsinsp` state collection if you want to
-		be sure that your tracepoint set doesn't break the `libsinsp` state collection don't
-		use this API, this is only useful in advanced cases where the client needs to know what
-		it is doing!
-	*/
-	void initialize_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest);
 
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
@@ -876,8 +853,7 @@ public:
 		WARNING: without using this method, we cannot guarantee that `libsinsp` state
 		will always be up to date, or even work at all.
 	*/
-	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = std::unordered_set<uint32_t>(0));
-
+	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = {});
 #endif
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -977,7 +953,7 @@ private:
 #endif
 
 	void set_input_plugin(const string& name, const string& params);
-	void open_common(scap_open_args* oargs);
+	void open_common(scap_open_args* oargs, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
@@ -988,6 +964,9 @@ private:
 	void add_protodecoders();
 
 	void remove_thread(int64_t tid, bool force);
+
+	void fill_syscalls_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest);
+	void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<std::string> &tp_of_interest);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
@@ -1129,8 +1108,6 @@ public:
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
-	unordered_set<uint32_t> m_ppm_sc_of_interest;
-	unordered_set<uint32_t> m_ppm_tp_of_interest;
 	//
 	// Internal stats
 	//

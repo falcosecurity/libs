@@ -160,7 +160,7 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(UDIG_ENGINE))
 	{
-		inspector.open_udig(buffer_dim);
+		inspector.open_udig();
 	}
 	else if(!engine_string.compare(NODRIVER_ENGINE))
 	{
