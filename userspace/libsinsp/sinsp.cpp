@@ -73,8 +73,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
-	m_ppm_sc_of_interest(),
-	m_ppm_tp_of_interest(),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -171,6 +169,18 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
+
+	/* Set all syscall interesting by default. */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		m_ppm_sc_of_interest.insert(ppm_sc);
+	}
+
+	/* Set all tracepoints interesting by default. */
+	for(int tp_val = 0; tp_val < TP_VAL_MAX; tp_val++)
+	{
+		m_ppm_tp_of_interest.insert(tp_val);
+	}
 }
 
 sinsp::~sinsp()
@@ -459,26 +469,31 @@ void sinsp::set_import_users(bool import_users)
 }
 
 #ifdef __linux__
-void sinsp::set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
+void sinsp::initialize_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
 {
-	for (int i = 0; i < PPM_SC_MAX; i++)
+	/* Clean the actual set. */
+	m_ppm_sc_of_interest.clear();
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		// If the value is different, ie: either it was missing and we are adding it
-		// or it was present and we are removing it
-		if (m_ppm_sc_of_interest.find(i) != syscalls_of_interest.find(i))
+		if(syscalls_of_interest.find(ppm_sc) != syscalls_of_interest.end())
 		{
-			// if it wasn't present, it means we are actually adding a new syscall
-			bool adding = m_ppm_sc_of_interest.find(i) == m_ppm_sc_of_interest.end();
-			mark_syscall_of_interest(i, adding);
+			m_ppm_sc_of_interest.insert(ppm_sc);
 		}
 	}
 }
 
-void sinsp::set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
+void sinsp::initialize_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
 {
+	m_ppm_tp_of_interest.clear();
 	for (auto tp : tp_of_interest)
 	{
-		mark_tracepoint_of_interest(tp, true);
+		auto val = (uint32_t)tp_from_name(tp.c_str());
+		if (val == -1)
+		{
+			throw sinsp_exception("unexisting tracepoint " + tp);
+		}
+		m_ppm_tp_of_interest.insert(val);
 	}
 }
 
@@ -493,103 +508,26 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 		m_ppm_sc_of_interest.erase(ppm_sc);
 	}
 
-	if (m_inited)
+	int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
+	if (ret != SCAP_SUCCESS)
 	{
-		int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
-		if (ret != SCAP_SUCCESS)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
-}
-
-void sinsp::mark_tracepoint_of_interest(string &tp, bool enabled)
-{
-	auto val = (uint32_t)tp_from_name(tp.c_str());
-	if (val == -1)
-	{
-		throw sinsp_exception("unexisting tracepoint " + tp);
-	}
-
-	if (enabled)
-	{
-		m_ppm_tp_of_interest.insert(val);
-	}
-	else
-	{
-		m_ppm_tp_of_interest.erase(val);
-	}
-	// TODO: unsupported for now
-	// if (m_inited)
-	// {
-	//      int ret = scap_set_tpmask(...)
-	// }
-}
-
-void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
-{
-	// Fallback to set all events as interesting
-	if (m_mode != SCAP_MODE_LIVE  || m_ppm_sc_of_interest.empty())
-	{
-		// Default NULL value will handle everything for us
-		return;
-	}
-
-	static interesting_ppm_sc_set ppm_sc_of_interest;
-
-	// Finally, set scap_open_args syscalls_of_interest
-	for (int i = 0; i < PPM_SC_MAX; i++)
-	{
-		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
-	}
-	oargs->ppm_sc_of_interest = &ppm_sc_of_interest;
-}
-
-void sinsp::fill_tracepoints_of_interest(scap_open_args *oargs)
-{
-	// Fallback to set all events as interesting
-	if (m_mode != SCAP_MODE_LIVE  || m_ppm_tp_of_interest.empty())
-	{
-		// Default NULL value will handle everything for us
-		return;
-	}
-
-	static interesting_tp_set tp_of_interest;
-
-	// Finally, set scap_open_args syscalls_of_interest
-	for (uint32_t i = 0; i < (uint32_t)TP_VAL_MAX; i++)
-	{
-		tp_of_interest.tp[i] = m_ppm_tp_of_interest.find(i) != m_ppm_tp_of_interest.end();
-	}
-	oargs->tp_of_interest = &tp_of_interest;
 }
 
 std::unordered_set<uint32_t> sinsp::enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest)
 {
 	uint32_t *minimum_syscalls = scap_get_modifies_state_ppm_sc();
-	for (int i = 0; i < PPM_SC_MAX; i++)
+	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if (minimum_syscalls[i])
+		if (minimum_syscalls[ppm_sc])
 		{
-			syscalls_of_interest.insert(i);
+			syscalls_of_interest.insert(ppm_sc);
 		}
 	}
 	return syscalls_of_interest;
 }
-
-#else
-
-void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
-{
-	return;
-}
-
-void sinsp::fill_tracepoints_of_interest(scap_open_args *oargs)
-{
-	return;
-}
-
-#endif
+#endif /* __linux__ */
 
 void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 {
@@ -626,10 +564,21 @@ void sinsp::open_live_common(uint32_t timeout_ms, scap_mode_t mode)
 	// only useful for testing
 	oargs.test_input_data = m_test_input_data;
 
-	oargs.ppm_sc_of_interest = NULL;
-	oargs.tp_of_interest = NULL;
-	fill_syscalls_of_interest(&oargs);
-	fill_tracepoints_of_interest(&oargs);
+	/* Populate scap_open args with syscalls of interest. */
+	interesting_ppm_sc_set ppm_sc_of_interest;
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+	}
+	oargs.ppm_sc_of_interest = &ppm_sc_of_interest;
+
+	/* Populate scap_open args with tracepoints of interest. */
+	interesting_tp_set tp_of_interest;
+	for (uint32_t i = 0; i < (uint32_t)TP_VAL_MAX; i++)
+	{
+		tp_of_interest.tp[i] = m_ppm_tp_of_interest.find(i) != m_ppm_tp_of_interest.end();
+	}
+	oargs.tp_of_interest = &tp_of_interest;
 
 	if(!m_filter_proc_table_when_saving)
 	{
@@ -734,10 +683,22 @@ void sinsp::open_nodriver()
 		oargs.proc_callback_context = this;
 	}
 	oargs.import_users = m_usergroup_manager.m_import_users;
-	oargs.ppm_sc_of_interest = NULL;
-	oargs.tp_of_interest = NULL;
-	fill_syscalls_of_interest(&oargs);
-	fill_tracepoints_of_interest(&oargs);
+
+	/* Populate scap_open args with syscalls of interest. */
+	interesting_ppm_sc_set ppm_sc_of_interest;
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+	}
+	oargs.ppm_sc_of_interest = &ppm_sc_of_interest;
+
+	/* Populate scap_open args with tracepoints of interest. */
+	interesting_tp_set tp_of_interest;
+	for (uint32_t i = 0; i < (uint32_t)TP_VAL_MAX; i++)
+	{
+		tp_of_interest.tp[i] = m_ppm_tp_of_interest.find(i) != m_ppm_tp_of_interest.end();
+	}
+	oargs.tp_of_interest = &tp_of_interest;
 
 	int32_t scap_rc;
 	m_h = scap_open(oargs, error, &scap_rc);
@@ -862,10 +823,21 @@ void sinsp::open_int()
 	oargs.import_users = m_usergroup_manager.m_import_users;
 	oargs.start_offset = 0;
 
-	oargs.ppm_sc_of_interest = NULL;
-	oargs.tp_of_interest = NULL;
-	fill_syscalls_of_interest(&oargs);
-	fill_tracepoints_of_interest(&oargs);
+	/* Populate scap_open args with syscalls of interest. */
+	interesting_ppm_sc_set ppm_sc_of_interest;
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+	}
+	oargs.ppm_sc_of_interest = &ppm_sc_of_interest;
+
+	/* Populate scap_open args with tracepoints of interest. */
+	interesting_tp_set tp_of_interest;
+	for (uint32_t i = 0; i < (uint32_t)TP_VAL_MAX; i++)
+	{
+		tp_of_interest.tp[i] = m_ppm_tp_of_interest.find(i) != m_ppm_tp_of_interest.end();
+	}
+	oargs.tp_of_interest = &tp_of_interest;
 
 	add_suppressed_comms(oargs);
 
@@ -945,6 +917,7 @@ void sinsp::close()
 	}
 
 	m_ppm_sc_of_interest.clear();
+	m_ppm_tp_of_interest.clear();
 }
 
 //

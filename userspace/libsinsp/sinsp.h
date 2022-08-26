@@ -866,51 +866,45 @@ public:
 	// These make no sense on non-linux env
 #ifdef __linux__
 	/*!
-	\brief Set desired syscalls as interesting, ie: only these syscalls will be collected.
+		\brief Set desired syscalls as interesting, ie: only these syscalls will be collected.
+		Please note that this method must be called before opening the inspector otherwise,
+		all the syscall will be set as interesting by default.
 
-	 	The function can be called both at startup time (before sinsp::open() is called),
-	 	or at runtime, and the change will immediately take effect.
-
-		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
-	 	or even exhibit weird leaks.
-	 	It is up to the client to know what it is doing.
+		WARNING: playing with this API could break `libsinsp` state collection if you want to
+		be sure that your syscall set doesn't break the `libsinsp` state collection you
+		have to use the `enforce_sinsp_syscalls_of_interest()` API.
+		It is up to the client to know what it is doing!
 	*/
-	void set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
+	void initialize_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest);
+
 	/*!
-	\brief Set desired tracepoints as interesting, ie: only these tracepoints will be attached.
+		\brief Set desired tracepoints as interesting, ie: only these tracepoints will be attached.
+		Please note that this method must be called before opening the inspector otherwise,
+		all the tracepoints will be set as interesting by default.
 
-		The function can be only called at startup time (before sinsp::open() is called).
-
-		Note: playing with this could break sinsp state collection,
-	       	or even exhibit weird leaks.
-		It is up to the client to know what it is doing.
+		WARNING: playing with this API could break `libsinsp` state collection if you want to
+		be sure that your tracepoint set doesn't break the `libsinsp` state collection don't
+		use this API, this is only useful in advanced cases where the client needs to know what
+		it is doing!
 	*/
-	void set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest);
+	void initialize_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest);
+
 	/*!
-	\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
+		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
+		Please note that this method must be called when the inspector is already open to 
+		modify at runtime the interesting syscall set.
 
-		The function can be called both at startup time (before sinsp::open() is called),
-		or at runtime, and the change will immediately take effect.
-
-		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
-	       	or even exhibit weird leaks.
-		It is up to the client to know what it is doing.
+		WARNING: playing with this API could break `libsinsp` state collection, this is only
+		useful in advanced cases where the client needs to know what it is doing!
 	*/
 	void mark_syscall_of_interest(uint32_t ppm_sc, bool enabled = true);
+
 	/*!
-	\brief Mark desired tracepoint as (un)interesting, enabling or disabling it.
+		\brief Provide the minimum set of syscalls required by sinsp state collection.
+		If you call it without arguments it returns a new set with just these syscalls
+		otherwise, it merges the minimum set of syscalls with the one you provided.
 
-		The function can be only called at startup time (before sinsp::open() is called).
-
-		Note: playing with this could break sinsp state collection (see enforce_sinsp_syscalls_of_interest()),
-	       	or even exhibit weird leaks.
-		It is up to the client to know what it is doing.
-	*/
-	void mark_tracepoint_of_interest(string &tp, bool enabled = true);
-	/*!
-  	\brief Enforce minimum set of syscalls required by sinsp state collection.
-
-		Note: without using this method, we cannot guarantee that sinsp state
+		WARNING: without using this method, we cannot guarantee that `libsinsp` state
 		will always be up to date, or even work at all.
 	*/
 	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = std::unordered_set<uint32_t>(0));
@@ -953,14 +947,7 @@ public:
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return ! (flags & sinsp::event_skip_flags());
-	}
-
-	static inline bool should_consider_syscallid(uint16_t scid)
-	{
-		enum ppm_event_flags flags = g_infotables.m_syscall_info_table[scid].flags;
-
-		return ! (flags & sinsp::event_skip_flags());
+		return !(flags & sinsp::event_skip_flags());
 	}
 
 	// Add comm to the list of comms for which the inspector
@@ -1014,7 +1001,7 @@ VISIBILITY_PRIVATE
 
         static inline ppm_event_flags event_skip_flags()
         {
-		return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED | EF_OLD_VERSION);
+			return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED);
         }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
@@ -1031,8 +1018,6 @@ private:
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
-	void fill_syscalls_of_interest(scap_open_args *oargs);
-	void fill_tracepoints_of_interest(scap_open_args *oargs);
 
 	void remove_thread(int64_t tid, bool force);
 
