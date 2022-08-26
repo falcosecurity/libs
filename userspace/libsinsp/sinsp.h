@@ -889,7 +889,7 @@ public:
 	{
 		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
 
-		return !(flags & sinsp::event_skip_flags());
+		return !(flags & (EF_SKIPPARSERESET | EF_UNUSED));
 	}
 
 	// Add comm to the list of comms for which the inspector
@@ -938,12 +938,9 @@ VISIBILITY_PROTECTED
 		m_mode = value;
 	}
 
+/// TODO: do we need this MACRO?
 VISIBILITY_PRIVATE
 
-        static inline ppm_event_flags event_skip_flags()
-        {
-			return (ppm_event_flags) (EF_SKIPPARSERESET | EF_UNUSED);
-        }
 // Doxygen doesn't understand VISIBILITY_PRIVATE
 #ifdef _DOXYGEN
 private:
