@@ -67,18 +67,12 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_TRACERS_CAPTURE:
 		/* Not supported */
 		return SCAP_SUCCESS;
-	case SCAP_PAGE_FAULTS:
-		/* Not supported */
-		return SCAP_SUCCESS;
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
 	case SCAP_EVENTMASK:
 		/* Not supported */
 		return SCAP_SUCCESS;
 	case SCAP_DYNAMIC_SNAPLEN:
-		/* Not supported */
-		return SCAP_SUCCESS;
-	case SCAP_SIMPLEDRIVER_MODE:
 		/* Not supported */
 		return SCAP_SUCCESS;
 	case SCAP_FULLCAPTURE_PORT_RANGE:
