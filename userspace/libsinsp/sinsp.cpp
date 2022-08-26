@@ -73,8 +73,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_lastevent_ts(0),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
-	m_ppm_sc_of_interest(),
-	m_ppm_tp_of_interest(),
 	m_suppressed_comms(),
 	m_inited(false)
 {
@@ -168,6 +166,18 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
+
+	/* Set all syscall interesting by default. */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		m_ppm_sc_of_interest.insert(ppm_sc);
+	}
+
+	/* Set all tracepoints interesting by default. */
+	for(int tp_val = 0; tp_val < TP_VAL_MAX; tp_val++)
+	{
+		m_ppm_tp_of_interest.insert(tp_val);
+	}
 }
 
 sinsp::~sinsp()
@@ -455,26 +465,31 @@ void sinsp::set_import_users(bool import_users)
 }
 
 #ifdef __linux__
-void sinsp::set_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
+void sinsp::initialize_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
 {
-	for (int i = 0; i < PPM_SC_MAX; i++)
+	/* Clean the actual set. */
+	m_ppm_sc_of_interest.clear();
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		// If the value is different, ie: either it was missing and we are adding it
-		// or it was present and we are removing it
-		if (m_ppm_sc_of_interest.find(i) != syscalls_of_interest.find(i))
+		if(syscalls_of_interest.find(ppm_sc) != syscalls_of_interest.end())
 		{
-			// if it wasn't present, it means we are actually adding a new syscall
-			bool adding = m_ppm_sc_of_interest.find(i) == m_ppm_sc_of_interest.end();
-			mark_syscall_of_interest(i, adding);
+			m_ppm_sc_of_interest.insert(ppm_sc);
 		}
 	}
 }
 
-void sinsp::set_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
+void sinsp::initialize_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
 {
+	m_ppm_tp_of_interest.clear();
 	for (auto tp : tp_of_interest)
 	{
-		mark_tracepoint_of_interest(tp, true);
+		auto val = (uint32_t)tp_from_name(tp.c_str());
+		if (val == -1)
+		{
+			throw sinsp_exception("unexisting tracepoint " + tp);
+		}
+		m_ppm_tp_of_interest.insert(val);
 	}
 }
 
@@ -489,13 +504,10 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 		m_ppm_sc_of_interest.erase(ppm_sc);
 	}
 
-	if (m_inited)
+	int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
+	if (ret != SCAP_SUCCESS)
 	{
-		int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
-		if (ret != SCAP_SUCCESS)
-		{
-			throw sinsp_exception(scap_getlasterr(m_h));
-		}
+		throw sinsp_exception(scap_getlasterr(m_h));
 	}
 }
 
@@ -826,6 +838,7 @@ void sinsp::close()
 	}
 
 	m_ppm_sc_of_interest.clear();
+	m_ppm_tp_of_interest.clear();
 }
 
 //
