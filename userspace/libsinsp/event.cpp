@@ -2671,16 +2671,6 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 bool sinsp_evt::should_consider()
 {
 	uint16_t etype = get_type();
-
-	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
-	{
-		sinsp_evt_param *parinfo = get_param(0);
-		ASSERT(parinfo->m_len == sizeof(uint16_t));
-		uint16_t scid = *(uint16_t *)parinfo->m_val;
-
-		return sinsp::should_consider_syscallid(scid);
-	}
-
 	return sinsp::should_consider_evtnum(etype);
 }
 
