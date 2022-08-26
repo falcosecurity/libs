@@ -23,11 +23,6 @@ extern "C"
 {
 #endif
 
-	struct scap_udig_engine_params
-	{
-		uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
-	};
-
 #ifdef __cplusplus
 };
 #endif

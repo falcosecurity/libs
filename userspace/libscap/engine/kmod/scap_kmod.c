@@ -108,7 +108,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	{
 		return rc;
 	}
-	fill_syscalls_of_interest(oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
+
+	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
 
 	//
 	// Allocate the device descriptors.
@@ -254,11 +255,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	{
 		if (!handle->syscalls_of_interest[i])
 		{
-			// Kmod driver event_mask check uses event_types instead of syscall nr
-			enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
-			enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
-			scap_set_eventmask(handle, enter_ev, false);
-			scap_set_eventmask(handle, exit_ev, false);
+			scap_set_eventmask(handle, g_syscall_code_routing_table[i], false);
 		}
 	}
 
@@ -266,7 +263,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	uint32_t tp_of_interest = 0;
 	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		if (!oargs->tp_of_interest || oargs->tp_of_interest->tp[i])
+		if (oargs->tp_of_interest.tp[i])
 		{
 			tp_of_interest |= (1 << i);
 		}

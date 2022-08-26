@@ -32,10 +32,8 @@ limitations under the License.
 #include "../../driver/ppm_tp.h"
 
 #ifdef __cplusplus
-<<<<<<< HEAD
 extern "C"
-=======
-extern "C" {
+{
 #endif
 
 /*!
@@ -102,8 +100,8 @@ typedef struct scap_open_args
 								 // events should be returned, with a trailing NULL value.
 								 // You can provide additional comm
 								 // values via scap_suppress_events_comm().
-	interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
-	interesting_tp_set tp_of_interest; ///< tp of interest
+	interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest. If left empty, no syscalls will be captured
+	interesting_tp_set tp_of_interest; ///< tp of interest. If left empty, no tracepoints will be attached
 	void* engine_params;			   ///< engine-specific params.
 } scap_open_args;
 

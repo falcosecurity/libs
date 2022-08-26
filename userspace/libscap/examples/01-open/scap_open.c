@@ -24,13 +24,7 @@ limitations under the License.
 
 #define KMOD_OPTION "--kmod"
 #define BPF_OPTION "--bpf"
-<<<<<<< HEAD
 #define MODERN_BPF_OPTION "--modern_bpf"
-=======
-#ifdef HAS_ENGINE_MODERN_BPF
-#define MODERN_BPF_OPTION "--modern_bpf"
-#endif
->>>>>>> 43be7c39 (update(scap-open): improve scap-open logging level)
 #define SCAP_FILE_OPTION "--scap_file"
 #define TP_OPTION "--tp"
 #define PPM_SC_OPTION "--ppm_sc"
@@ -56,26 +50,16 @@ struct scap_savefile_engine_params savefile_params;
 /* Configuration variables set through CLI. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
-interesting_tp_set tp_of_interest;
-bool tp_is_set = false;
-interesting_ppm_sc_set ppm_sc_of_interest;
-bool ppm_sc_is_set = false;
+bool ppm_sc_is_set;
+bool tp_is_set;
 
 /* Generic global variables. */
-<<<<<<< HEAD
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
 uint64_t g_nevts = 0;				   /* total number of events captured. */
 scap_t* g_h = NULL;				   /* global scap handler. */
 uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
-char* valptr = NULL;				   /* pointer used to print the value of event params. */
-=======
-scap_open_args args = {.mode = SCAP_MODE_LIVE}; /* scap args used in `scap_open`. */
-uint64_t g_nevts = 0;				/* total number of events captured. */
-scap_t* g_h = NULL;				/* global scap handler. */
-uint16_t* lens16 = NULL;			/* pointer used to print the length of event params. */
-char* valptr = NULL;				/* pointer used to print the value of event params. */
+char* valptr = NULL;				   /* pointer used to print the value of event params. */	/* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
->>>>>>> 43be7c39 (update(scap-open): improve scap-open logging level)
 
 void enable_single_tp(const char* tp_basename)
 {
@@ -85,7 +69,7 @@ void enable_single_tp(const char* tp_basename)
 	{
 		if(strcmp(tp_names[i], tp_basename) == 0)
 		{
-			tp_of_interest.tp[i] = true;
+			oargs.tp_of_interest.tp[i] = true;
 			found = true;
 		}
 	}
@@ -120,7 +104,7 @@ void enable_single_ppm_sc(int ppm_sc_code)
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
 		exit(EXIT_FAILURE);
 	}
-	ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
+	oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
 	ppm_sc_is_set = true;
 }
 
@@ -129,11 +113,10 @@ void set_enabled_syscalls()
 	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
 	if(ppm_sc_is_set)
 	{
-		args.ppm_sc_of_interest = &ppm_sc_of_interest;
 		printf("* Syscalls enabled:\n");
 		for(int j = 0; j < PPM_SC_MAX; j++)
 		{
-			if(args.ppm_sc_of_interest->ppm_sc[j])
+			if(oargs.ppm_sc_of_interest.ppm_sc[j])
 			{
 				printf("- %s\n", g_syscall_info_table[j].name);
 			}
@@ -142,6 +125,11 @@ void set_enabled_syscalls()
 	else
 	{
 		printf("* All syscalls are enabled!\n");
+		for(int j = 0; j < PPM_SC_MAX; j++)
+		{
+			oargs.ppm_sc_of_interest.ppm_sc[j] = true;
+		}
+
 	}
 	printf("------------------------------------------------------------------\n\n");
 }
@@ -151,11 +139,10 @@ void set_enabled_tracepoint()
 	printf("---------------------- ENABLED TRACEPOINTS ----------------------\n");
 	if(tp_is_set)
 	{
-		args.tp_of_interest = &tp_of_interest;
 		printf("* Tracepoints enabled:\n");
 		for(int j = 0; j < TP_VAL_MAX; j++)
 		{
-			if(args.tp_of_interest->tp[j])
+			if(oargs.tp_of_interest.tp[j])
 			{
 				printf("- %s\n", tp_names[j]);
 			}
@@ -164,6 +151,10 @@ void set_enabled_tracepoint()
 	else
 	{
 		printf("* All Tracepoints are enabled!\n");
+		for(int j = 0; j < TP_VAL_MAX; j++)
+		{
+			oargs.tp_of_interest.tp[j] = true;
+		}
 	}
 	printf("-----------------------------------------------------------------\n\n");
 }
@@ -865,15 +856,6 @@ int main(int argc, char** argv)
 
 	parse_CLI_options(argc, argv);
 
-	if (ppm_sc_is_set)
-	{
-		oargs.ppm_sc_of_interest = ppm_sc_of_interest;
-	}
-	if (tp_is_set)
-	{
-		oargs.tp_of_interest = tp_of_interest;
-	}
-
 	print_scap_source();
 
 	print_configurations();
@@ -921,6 +903,8 @@ int main(int argc, char** argv)
 			print_event(ev);
 		}
 		g_nevts++;
+		printf("topekke %d\n", ev->type);
+		scap_set_eventmask(g_h, 28, false);
 	}
 
 	print_stats();

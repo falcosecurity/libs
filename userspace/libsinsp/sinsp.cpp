@@ -166,18 +166,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
-
-	/* Set all syscall interesting by default. */
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		m_ppm_sc_of_interest.insert(ppm_sc);
-	}
-
-	/* Set all tracepoints interesting by default. */
-	for(int tp_val = 0; tp_val < TP_VAL_MAX; tp_val++)
-	{
-		m_ppm_tp_of_interest.insert(tp_val);
-	}
 }
 
 sinsp::~sinsp()
@@ -464,46 +452,16 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
-#ifdef __linux__
-void sinsp::initialize_syscalls_of_interest(std::unordered_set<uint32_t> &syscalls_of_interest)
-{
-	/* Clean the actual set. */
-	m_ppm_sc_of_interest.clear();
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		if(syscalls_of_interest.find(ppm_sc) != syscalls_of_interest.end())
-		{
-			m_ppm_sc_of_interest.insert(ppm_sc);
-		}
-	}
-}
-
-void sinsp::initialize_tracepoints_of_interest(std::unordered_set<std::string> &tp_of_interest)
-{
-	m_ppm_tp_of_interest.clear();
-	for (auto tp : tp_of_interest)
-	{
-		auto val = (uint32_t)tp_from_name(tp.c_str());
-		if (val == -1)
-		{
-			throw sinsp_exception("unexisting tracepoint " + tp);
-		}
-		m_ppm_tp_of_interest.insert(val);
-	}
-}
-
 void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 {
-	if (enabled)
+	if (!m_inited)
 	{
-		m_ppm_sc_of_interest.insert(ppm_sc);
+		throw sinsp_exception("you cannot used this method before opening the inspector.");
 	}
-	else
+	if (ppm_sc >= PPM_SC_MAX || ppm_sc < 0)
 	{
-		m_ppm_sc_of_interest.erase(ppm_sc);
+		throw sinsp_exception("unexistent ppm_sc code.");
 	}
-
 	int ret = scap_set_eventmask(m_h, ppm_sc, enabled);
 	if (ret != SCAP_SUCCESS)
 	{
@@ -511,49 +469,60 @@ void sinsp::mark_syscall_of_interest(uint32_t ppm_sc, bool enabled)
 	}
 }
 
-void sinsp::mark_tracepoint_of_interest(string &tp, bool enabled)
+std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest)
 {
-	auto val = (uint32_t)tp_from_name(tp.c_str());
-	if (val == -1)
+	uint32_t *minimum_syscalls = scap_get_modifies_state_ppm_sc();
+	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		throw sinsp_exception("unexisting tracepoint " + tp);
+		if (minimum_syscalls[ppm_sc])
+		{
+			syscalls_of_interest.insert(ppm_sc);
+		}
 	}
-
-	if (enabled)
-	{
-		m_ppm_tp_of_interest.insert(val);
-	}
-	else
-	{
-		m_ppm_tp_of_interest.erase(val);
-	}
-	// TODO: unsupported for now
-	// if (m_inited)
-	// {
-	//      int ret = scap_set_tpmask(...)
-	// }
+	return syscalls_of_interest;
 }
 
-void sinsp::fill_syscalls_of_interest(scap_open_args *oargs)
+void sinsp::fill_syscalls_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest)
 {
-	// Fallback to set all events as interesting
-	if (m_mode != SCAP_MODE_LIVE  || m_ppm_sc_of_interest.empty())
-	{
-		// Default NULL value will handle everything for us
-		return;
-	}
-
-	static interesting_ppm_sc_set ppm_sc_of_interest;
-
 	// Finally, set scap_open_args syscalls_of_interest
 	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
-		ppm_sc_of_interest.ppm_sc[i] = m_ppm_sc_of_interest.find(i) != m_ppm_sc_of_interest.end();
+		if (syscalls_of_interest.empty())
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = 1;
+		}
+		else
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = syscalls_of_interest.find(i) != syscalls_of_interest.end();
+		}
 	}
-	oargs->ppm_sc_of_interest = &ppm_sc_of_interest;
 }
 
-void sinsp::open_common(scap_open_args* oargs)
+void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<std::string> &tp_of_interest)
+{
+	if (!tp_of_interest.empty())
+	{
+		for(const auto& tp : tp_of_interest)
+		{
+			auto val = (uint32_t)tp_from_name(tp.c_str());
+			if(val == -1)
+			{
+				throw sinsp_exception("unexisting tracepoint " + tp);
+			}
+			oargs->tp_of_interest.tp[val] = true;
+		}
+	}
+	else
+	{
+		for (int i = 0; i < TP_VAL_MAX; i++)
+		{
+			oargs->tp_of_interest.tp[i] = true;
+		}
+	}
+
+}
+
+void sinsp::open_common(scap_open_args* oargs, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
 	g_logger.log("Trying to open the right engine!");
@@ -564,7 +533,9 @@ void sinsp::open_common(scap_open_args* oargs)
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
 
-	fill_syscalls_of_interest(oargs);
+	fill_syscalls_of_interest(oargs, syscalls_of_interest);
+	fill_tp_of_interest(oargs, tp_of_interest);
+
 	if(!m_filter_proc_table_when_saving)
 	{
 		oargs->proc_callback = ::on_new_entry_from_proc;
@@ -594,7 +565,7 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 	return oargs;
 }
 
-void sinsp::open_kmod(uint64_t buffer_dimension)
+void sinsp::open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 	struct scap_kmod_engine_params params;
@@ -604,7 +575,7 @@ void sinsp::open_kmod(uint64_t buffer_dimension)
 }
 
 /* We cannot trust the client to validate arguments we need to do it here. */
-void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path)
+void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interest)
 {
 	if(!bpf_path)
 	{
@@ -619,12 +590,9 @@ void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path)
 	open_common(&oargs);
 }
 
-void sinsp::open_udig(uint64_t buffer_dimension)
+void sinsp::open_udig()
 {
 	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
-	struct scap_udig_engine_params params;
-	params.single_buffer_dim = buffer_dimension;
-	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
@@ -708,7 +676,7 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(uint64_t buffer_dimension)
+void sinsp::open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest, const std::unordered_set<std::string> &tp_of_interes)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 	struct scap_modern_bpf_engine_params params;
@@ -836,9 +804,6 @@ void sinsp::close()
 		delete m_filter;
 		m_filter = NULL;
 	}
-
-	m_ppm_sc_of_interest.clear();
-	m_ppm_tp_of_interest.clear();
 }
 
 //

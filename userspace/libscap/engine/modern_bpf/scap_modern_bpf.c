@@ -146,7 +146,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	handle->m_schema_version = pman_get_probe_schema_ver();
 
 	/// TODO: Here we miss the simple consumer logic. Right now
-	/// all syscalls are interesting.
+	/// all syscalls and tracepoints are interesting.
 
 	return SCAP_SUCCESS;
 }

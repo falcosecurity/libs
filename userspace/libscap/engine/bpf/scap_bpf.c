@@ -1717,7 +1717,9 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 
 	engine.m_handle->m_ncpus = num_cpus;
 
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, engine.m_handle->m_syscalls_of_interest);
+	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
+	// Make internal syscalls of interest point to scap_t syscalls of interest, to keep them updated
+	engine.m_handle->m_syscalls_of_interest = handle->syscalls_of_interest;
 
 	rc = devset_init(&engine.m_handle->m_dev_set, num_cpus, engine.m_handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
