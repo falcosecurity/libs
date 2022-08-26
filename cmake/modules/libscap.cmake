@@ -18,22 +18,35 @@ set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
 
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
-set(LIBSCAP_LIBS "")
-list(APPEND LIBSCAP_LIBS
-	"${PROJECT_BINARY_DIR}/libscap/libscap.a"
-	"${PROJECT_BINARY_DIR}/libscap/libscap_engine_util.a"
-	"${PROJECT_BINARY_DIR}/libscap/libscap_event_schema.a"
-	"${PROJECT_BINARY_DIR}/libscap/libdriver_event_schema.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/bpf/libscap_engine_bpf.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/gvisor/libscap_engine_gvisor.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/kmod/libscap_engine_kmod.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/nodriver/libscap_engine_nodriver.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/noop/libscap_engine_noop.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/savefile/libscap_engine_savefile.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/source_plugin/libscap_engine_source_plugin.a"
-	"${PROJECT_BINARY_DIR}/libscap/engine/udig/libscap_engine_udig.a"
-)
-install(FILES ${LIBSCAP_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+# We can switch to using the MANUALLY_ADDED_DEPENDENCIES when our minimum
+# CMake version is 3.8 or later.
+set(LIBSCAP_LIBS
+	scap
+	scap_engine_nodriver
+	scap_engine_noop
+	scap_engine_savefile
+	scap_engine_source_plugin
+	scap_engine_udig
+	scap_engine_util
+	scap_event_schema)
+
+set(libscap_conditional_libs
+	driver_event_schema
+	scap_engine_bpf
+	scap_engine_gvisor
+	scap_engine_kmod
+	scap_engine_modern_bpf)
+
+foreach(libscap_conditional_lib ${libscap_conditional_libs})
+	if(TARGET ${libscap_conditional_lib})
+		list(APPEND LIBSCAP_LIBS ${libscap_conditional_lib})
+	endif()
+endforeach()
+
+install(TARGETS ${LIBSCAP_LIBS}
+			ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 			COMPONENT "scap" OPTIONAL)
 install(DIRECTORY "${LIBSCAP_INCLUDE_DIR}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 			COMPONENT "scap"
