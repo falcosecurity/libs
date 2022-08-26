@@ -947,7 +947,7 @@ private:
 #endif
 
 	void set_input_plugin(const string& name, const string& params);
-	void open_common(scap_open_args* oargs, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
+	void open_common(scap_open_args* oargs);
 	void init();
 	void deinit_state();
 	void consume_initialstate_events();
@@ -959,7 +959,7 @@ private:
 
 	void remove_thread(int64_t tid, bool force);
 
-	void fill_syscalls_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest);
+	void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest);
 	void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<std::string> &tp_of_interest);
 
 	//
