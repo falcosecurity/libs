@@ -25,7 +25,7 @@ limitations under the License.
 #include "driver_config.h"
 #endif
 
-void set_syscall_of_interest(uint32_t ppm_sc, bool *syscalls_of_interest, bool enable)
+void change_interest_for_single_syscall(uint32_t ppm_sc, bool *syscalls_of_interest, bool enable)
 {
 #ifdef __linux__
 	// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
@@ -35,19 +35,30 @@ void set_syscall_of_interest(uint32_t ppm_sc, bool *syscalls_of_interest, bool e
 		if(g_syscall_code_routing_table[syscall_nr] == ppm_sc)
 		{
 			syscalls_of_interest[syscall_nr] = enable;
-			// DO NOT break as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
+			// DO NOT use `break` here as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
 		}
 	}
 #endif
 }
 
-void fill_syscalls_of_interest(interesting_ppm_sc_set *ppm_sc_of_interest, bool *syscalls_of_interest)
+void init_syscall_of_interest_table(scap_open_args *oargs, bool *syscalls_of_interest)
 {
-	for (int i = 0; i < PPM_SC_MAX; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if (!ppm_sc_of_interest || ppm_sc_of_interest->ppm_sc[i])
+		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
 		{
-			set_syscall_of_interest(i, syscalls_of_interest, true);
+			change_interest_for_single_syscall(ppm_sc, syscalls_of_interest, true);
+		}
+	}
+}
+
+void init_tracepoint_of_interest_table(scap_open_args *oargs, bool *tracepoints_of_interest)
+{
+	for(int t = 0; t < TP_VAL_MAX; t++)
+	{
+		if(oargs->tp_of_interest.tp[t])
+		{
+			tracepoints_of_interest[t] = true;
 		}
 	}
 }
@@ -81,4 +92,3 @@ int32_t check_api_compatibility(scap_t *handle, char *error)
 #endif
 	return SCAP_SUCCESS;
 }
-
