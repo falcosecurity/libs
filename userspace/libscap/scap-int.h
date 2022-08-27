@@ -110,8 +110,6 @@ struct scap
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
 
-	bool syscalls_of_interest[SYSCALL_TABLE_SIZE];
-
 	// API version supported by the driver
 	// If the API version is unavailable for whatever reason,
 	// it's equivalent to version 0.0.0

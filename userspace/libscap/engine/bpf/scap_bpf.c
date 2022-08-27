@@ -662,8 +662,7 @@ static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname
 static int32_t load_bpf_file(
 	struct bpf_engine *handle, const char *path,
 	uint64_t *api_version_p,
-	uint64_t *schema_version_p,
-	interesting_tp_set *tp_of_interest)
+	uint64_t *schema_version_p)
 {
 	int j;
 	int maps_shndx = 0;
@@ -821,7 +820,7 @@ static int32_t load_bpf_file(
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
 		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
-			if (is_tp_enabled(tp_of_interest, shname))
+			if(is_tp_enabled(handle->tracepoints_of_interest, shname))
 			{
 				if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
 				{
@@ -1423,8 +1422,7 @@ int32_t scap_bpf_load(
 	struct bpf_engine *handle,
 	const char *bpf_probe,
 	uint64_t *api_version_p,
-	uint64_t *schema_version_p,
-	interesting_tp_set *tp_of_interest)
+	uint64_t *schema_version_p)
 {
 	int online_cpu;
 	int j;
@@ -1443,7 +1441,7 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p, tp_of_interest) != SCAP_SUCCESS)
+	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1633,8 +1631,22 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc) {
+int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
 	struct bpf_engine *handle = engine.m_handle;
+	if(SCAP_EVENTMASK_SET)
+	{
+		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, true);
+	}
+	else
+	{
+		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, false);
+	}
+
+	/* We can have more than one syscall corresponding to the same `ppm_sc` for this
+	 * reason we need to update again the entire table. As a future work every syscall
+	 * must have is `PPM_SC_CODE`.
+	 */
 	return populate_interesting_syscalls_map(handle);
 }
 
@@ -1705,6 +1717,12 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
+	/* During the initialization we copy the syscalls of interest and the 
+	 * tracepoints of interest from `scap_open_args` to the engine vectors.
+	 */
+	init_syscall_of_interest_table(oargs, engine.m_handle->syscalls_of_interest);
+	init_tracepoint_of_interest_table(oargs, engine.m_handle->tracepoints_of_interest);
+
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
@@ -1717,17 +1735,13 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 
 	engine.m_handle->m_ncpus = num_cpus;
 
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
-	// Make internal syscalls of interest point to scap_t syscalls of interest, to keep them updated
-	engine.m_handle->m_syscalls_of_interest = handle->syscalls_of_interest;
-
 	rc = devset_init(&engine.m_handle->m_dev_set, num_cpus, engine.m_handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
 	}
 
-	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version, &oargs->tp_of_interest);
+	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;

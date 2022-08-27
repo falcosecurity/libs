@@ -107,7 +107,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 #ifndef _WIN32
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 {
-	char filename[SCAP_MAX_PATH_SIZE];
+	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	scap_t* handle = NULL;
 
 	//
@@ -1355,28 +1355,6 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 
 static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_sc)
 {
-	switch(op) {
-	case SCAP_EVENTMASK_ZERO:
-	case SCAP_EVENTMASK_SET:
-	case SCAP_EVENTMASK_UNSET:
-		break;
-
-	default:
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-		ASSERT(false);
-		return SCAP_FAILURE;
-		break;
-	}
-
-	// Keep syscalls of interest in sync
-	if (op != SCAP_EVENTMASK_ZERO)
-	{
-		set_syscall_of_interest(ppm_sc, handle->syscalls_of_interest, op == SCAP_EVENTMASK_SET);
-	}
-	else
-	{
-		memset(handle->syscalls_of_interest, 0, sizeof(handle->syscalls_of_interest));
-	}
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);

@@ -76,15 +76,16 @@ static uint32_t get_max_consumers()
 
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 {
-	uint32_t j;
-	char filename[SCAP_MAX_PATH_SIZE];
-	uint32_t ndevs;
-	int32_t rc;
+	uint32_t j = 0;
+	struct scap_engine_handle engine = handle->m_engine;
+	char filename[SCAP_MAX_PATH_SIZE] = {0};
+	uint32_t ndevs = 0;
+	int32_t rc = 0;
 
-	int len;
-	uint32_t all_scanned_devs;
-	uint64_t api_version;
-	uint64_t schema_version;
+	int len = 0;
+	uint32_t all_scanned_devs = 0;
+	uint64_t api_version = 0;
+	uint64_t schema_version = 0;
 
 	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(handle->m_ncpus == -1)
@@ -103,20 +104,18 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		return SCAP_FAILURE;
 	}
 
-	rc = devset_init(&handle->m_engine.m_handle->m_dev_set, ndevs, handle->m_lasterr);
+	rc = devset_init(&engine.m_handle->m_dev_set, ndevs, handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
 	}
-
-	fill_syscalls_of_interest(&oargs->ppm_sc_of_interest, handle->syscalls_of_interest);
 
 	//
 	// Allocate the device descriptors.
 	//
 	len = RING_BUF_SIZE * 2;
 
-	struct scap_device_set *devset = &handle->m_engine.m_handle->m_dev_set;
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
@@ -250,16 +249,25 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
-	// Set interesting syscalls, switching off any non-requested syscall
+	/* Here we copy the syscalls of interest and the 
+	 * tracepoints of interest from `scap_open_args` to the engine vectors.
+	 */
+
+	/* Disable all not interesting syscalls */
 	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 	{
-		if (!handle->syscalls_of_interest[i])
+		if(oargs->ppm_sc_of_interest.ppm_sc[i])
 		{
-			scap_set_eventmask(handle, g_syscall_code_routing_table[i], false);
+			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_SET, g_syscall_code_routing_table[i]);
+		}
+		else
+		{
+			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_UNSET, g_syscall_code_routing_table[i]);
 		}
 	}
 
-	// Set interesting Tracepoints
+	/* Set interesting Tracepoints */
+	init_tracepoint_of_interest_table(oargs, engine.m_handle->tracepoints_of_interest);
 	uint32_t tp_of_interest = 0;
 	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
@@ -467,8 +475,23 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 	return SCAP_SUCCESS;
 }
 
+/// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
+	/* To be honest the kernel module doesn't have to keep in sync the kernel table with 
+	 * the userspace one, it would be enough to update the kernel one, but in case we want
+	 * to know the actual state we have it.
+	 */
+	struct kmod_engine *handle = engine.m_handle;
+	if(SCAP_EVENTMASK_SET)
+	{
+		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, true);
+	}
+	else
+	{
+		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, false);
+	}
+
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	if (op != SCAP_EVENTMASK_ZERO)
 	{
