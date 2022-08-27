@@ -54,11 +54,11 @@ bool ppm_sc_is_set;
 bool tp_is_set;
 
 /* Generic global variables. */
-scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE}; /* scap oargs used in `scap_open`. */
-uint64_t g_nevts = 0;				   /* total number of events captured. */
-scap_t* g_h = NULL;				   /* global scap handler. */
-uint16_t* lens16 = NULL;			   /* pointer used to print the length of event params. */
-char* valptr = NULL;				   /* pointer used to print the value of event params. */	/* pointer used to print the value of event params. */
+scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
+uint64_t g_nevts = 0;							    /* total number of events captured. */
+scap_t* g_h = NULL;							    /* global scap handler. */
+uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
+char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
 
 void enable_single_tp(const char* tp_basename)
@@ -129,7 +129,6 @@ void set_enabled_syscalls()
 		{
 			oargs.ppm_sc_of_interest.ppm_sc[j] = true;
 		}
-
 	}
 	printf("------------------------------------------------------------------\n\n");
 }
@@ -434,102 +433,101 @@ void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_M
 	printf("Interesting syscalls: %d\n", dim);
 }
 
-/* This are the real interesting syscalls that we want to support in the new probe.
- * - all syscalls associated with events of type `UF_NEVER_DROP`.
- *
- * Please note: if some syscalls miss, probably, you have an old kernel
- * that don't define them. Try to use a newer one.
- */
-void print_modern_probe_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-	enum ppm_syscall_code ppm_syscall_code = 0;
-
-	/* For every syscall of the system. */
-	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
-	{
-		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
-
-		/* TAKE ALWAYS: If the syscall has `UF_NEVER_DROP` flag we cannot use simple consumer. */
-		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP)
-		{
-			if(!g_syscall_info_table[ppm_syscall_code].name)
-			{
-				goto error;
-			}
-			strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
-			continue;
-		}
-
-		/* TAKE NEVER: If we use generic events, we can drop the syscall with the simple consumer logic.*/
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
-		{
-			continue;
-		}
-
-		if(!g_syscall_info_table[ppm_syscall_code].name)
-		{
-			goto error;
-		}
-		strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_syscall_code].name);
-	}
-
-	print_sorted_syscalls(str, interesting_syscall);
-	return;
-
-error:
-	printf("unexpected error, please check with `%s` option", VALIDATION_OPTION);
-}
-
-/*
- * Print syscall supported by actual drivers: `KERNEL_MODULE`, `BPF_PROBE`.
- */
-void print_actual_drivers_syscalls()
+void print_UF_NEVER_DROP_syscalls()
 {
 	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
 	int interesting_syscall = 0;
 
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			if(g_syscall_code_routing_table[syscall_nr] != i)
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
 			{
 				continue;
 			}
 
-			if(oargs.ppm_sc_of_interest.ppm_sc[i] || g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
 			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[i].name);
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
 			}
 		}
 	}
 
+	printf("\n------- Print UF_NEVER_DROP syscalls: \n");
 	print_sorted_syscalls(str, interesting_syscall);
 }
 
-/* Print all supported syscall according to the scap source you have chosen:
- * - `KERNEL_MODULE` or `BPF_PROBE`, print all syscalls supported by these
- *   sources
- * - `MODERN_BPF_PROBE`, print all syscalls that will be supported by
- *   modern BPF probe.
- * - `SCAP_FILE` not supported by this function.
- */
+void print_EF_MODIFIES_STATE_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
+	int interesting_syscall = 0;
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			{
+				continue;
+			}
+
+			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
+			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+			}
+		}
+	}
+
+	printf("\n------- Print EF_MODIFIES_STATE syscalls: \n");
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
+void print_both_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
+	int interesting_syscall = 0;
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			{
+				continue;
+			}
+
+			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+				continue;
+			}
+
+			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
+			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+			}
+		}
+	}
+
+	printf("\n------- Print 'EF_MODIFIES_STATE' and 'UF_NEVER_DROP' syscalls: \n");
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
 void print_supported_syscalls()
 {
-	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0 ||
-	   strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	printf("\n------- Print supported syscalls: \n");
+
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
-		print_actual_drivers_syscalls();
-	}
-	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
-	{
-		print_modern_probe_syscalls();
-	}
-	else
-	{
-		printf("Scap source not supported! Bye!");
+		if(g_syscall_code_routing_table[syscall_nr] == PPM_SC_UNKNOWN)
+		{
+			continue;
+		}
+		int ppm_code = g_syscall_code_routing_table[syscall_nr];
+		printf("- %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
 	}
 }
 
@@ -776,9 +774,13 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
+			print_UF_NEVER_DROP_syscalls();
+			print_EF_MODIFIES_STATE_syscalls();
+			print_both_syscalls();
 			print_supported_syscalls();
 			exit(EXIT_SUCCESS);
 		}
+
 		if(!strcmp(argv[i], PRINT_HELP_OPTION))
 		{
 			print_help();
@@ -882,7 +884,6 @@ int main(int argc, char** argv)
 				continue;
 			}
 		}
-		
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
 			continue;
