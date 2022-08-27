@@ -2668,12 +2668,6 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 	return (scap_dump_flags)dflags;
 }
 
-bool sinsp_evt::should_consider()
-{
-	uint16_t etype = get_type();
-	return sinsp::should_consider_evtnum(etype);
-}
-
 bool sinsp_evt::is_syscall_error() const
 {
 	return (m_errorcode != 0) &&

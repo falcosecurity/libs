@@ -340,14 +340,6 @@ public:
 	bool is_filtered_out();
 	scap_dump_flags get_dump_flags(OUT bool* should_drop);
 
-	/*!
-	  \brief Return whether or not an event should be considered. (Generally, these events are
-	  automatically filtered out, but some events related to internal tracking are
-	  returned by next() anyway).
-	*/
-
-	bool should_consider();
-
 	inline uint16_t get_source() const override
 	{
 		return ESRC_SINSP;
