@@ -250,15 +250,15 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	}
 
 	/* Set interesting Syscalls */
-	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if(oargs->ppm_sc_of_interest.ppm_sc[i])
+		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
 		{
-			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_SET, g_syscall_code_routing_table[i]);
+			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_SET, ppm_sc);
 		}
 		else
 		{
-			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_UNSET, g_syscall_code_routing_table[i]);
+			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_UNSET, ppm_sc);
 		}
 	}
 

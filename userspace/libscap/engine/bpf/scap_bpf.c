@@ -920,35 +920,8 @@ static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE]);
 }
 
-static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap_open_args *oargs)
+static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm_sc, bool value)
 {
-	int j;
-
-	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &j, &(oargs->m_syscalls_of_interest[j]), BPF_ANY) != 0)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_INTERESTING_SYSCALLS_TABLE bpf_map_update_elem < 0");
-			return SCAP_FAILURE;
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
-static int32_t update_interesting_syscalls_map(struct scap_engine_handle *engine, uint32_t op, uint32_t ppm_sc)
-{
-	struct bpf_engine *handle = engine->m_handle;
-	bool enable;
-	if(op == SCAP_EVENTMASK_SET)
-	{
-		enable = true;
-	}
-	else
-	{
-		enable = false;
-	}
-
 	/* We can have more than one syscall corresponding to the same `ppm_sc` for this
 	 * reason we need to check the entire table. As a future work every syscall
 	 * must have is `PPM_SC_CODE`.
@@ -960,13 +933,50 @@ static int32_t update_interesting_syscalls_map(struct scap_engine_handle *engine
 			continue;
 		}
 
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_nr, &enable, BPF_ANY) != 0)
+		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_nr, &value, BPF_ANY) != 0)
 		{
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_INTERESTING_SYSCALLS_TABLE unable to update syscall: %d", syscall_nr);
 			return SCAP_FAILURE;
 		}
 	}
 	return SCAP_SUCCESS;
+}
+
+static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap_open_args *oargs)
+{
+	bool enable;
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
+		{
+			enable = true;
+		}
+		else
+		{
+			enable = false;
+		}
+
+		if(set_single_syscall_of_interest(handle, ppm_sc, enable) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+	return SCAP_SUCCESS;
+}
+
+static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
+	struct bpf_engine *handle = engine.m_handle;
+	bool enable;
+	if(op == SCAP_EVENTMASK_SET)
+	{
+		enable = true;
+	}
+	else
+	{
+		enable = false;
+	}
+	return set_single_syscall_of_interest(handle, ppm_sc, enable);
 }
 
 static int32_t populate_event_table_map(struct bpf_engine *handle)

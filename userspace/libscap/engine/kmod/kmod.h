@@ -26,5 +26,3 @@ struct kmod_engine
 	struct scap_device_set m_dev_set;
 	char* m_lasterr;
 };
-
-#define SCAP_HANDLE_T struct kmod_engine
