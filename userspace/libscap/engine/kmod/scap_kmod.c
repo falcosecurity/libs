@@ -249,11 +249,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
-	/* Here we copy the syscalls of interest and the 
-	 * tracepoints of interest from `scap_open_args` to the engine vectors.
-	 */
-
-	/* Disable all not interesting syscalls */
+	/* Set interesting Syscalls */
 	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 	{
 		if(oargs->ppm_sc_of_interest.ppm_sc[i])
@@ -267,7 +263,6 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	}
 
 	/* Set interesting Tracepoints */
-	init_tracepoint_of_interest_table(oargs, engine.m_handle->tracepoints_of_interest);
 	uint32_t tp_of_interest = 0;
 	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
@@ -478,20 +473,6 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 /// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
-	/* To be honest the kernel module doesn't have to keep in sync the kernel table with 
-	 * the userspace one, it would be enough to update the kernel one, but in case we want
-	 * to know the actual state we have it.
-	 */
-	struct kmod_engine *handle = engine.m_handle;
-	if(SCAP_EVENTMASK_SET)
-	{
-		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, true);
-	}
-	else
-	{
-		change_interest_for_single_syscall(ppm_sc, handle->syscalls_of_interest, false);
-	}
-
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	if (op != SCAP_EVENTMASK_ZERO)
 	{

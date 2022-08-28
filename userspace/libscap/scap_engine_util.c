@@ -25,44 +25,6 @@ limitations under the License.
 #include "driver_config.h"
 #endif
 
-void change_interest_for_single_syscall(uint32_t ppm_sc, bool *syscalls_of_interest, bool enable)
-{
-#ifdef __linux__
-	// We need to convert from PPM_SC to SYSCALL_NR, using the routing table
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
-		// Find the match between the ppm_sc and the syscall_nr
-		if(g_syscall_code_routing_table[syscall_nr] == ppm_sc)
-		{
-			syscalls_of_interest[syscall_nr] = enable;
-			// DO NOT use `break` here as some PPM_SC are used multiple times for different syscalls! (eg: PPM_SC_SETRESUID...)
-		}
-	}
-#endif
-}
-
-void init_syscall_of_interest_table(scap_open_args *oargs, bool *syscalls_of_interest)
-{
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
-		{
-			change_interest_for_single_syscall(ppm_sc, syscalls_of_interest, true);
-		}
-	}
-}
-
-void init_tracepoint_of_interest_table(scap_open_args *oargs, bool *tracepoints_of_interest)
-{
-	for(int t = 0; t < TP_VAL_MAX; t++)
-	{
-		if(oargs->tp_of_interest.tp[t])
-		{
-			tracepoints_of_interest[t] = true;
-		}
-	}
-}
-
 int32_t check_api_compatibility(scap_t *handle, char *error)
 {
 #ifdef PPM_API_CURRENT_VERSION_MAJOR
