@@ -96,12 +96,12 @@ event_test::event_test(int syscall_id, int event_direction)
 
 void event_test::mark_single_64bit_syscall_as_interesting(int interesting_syscall_id)
 {
-	pman_mark_single_64bit_syscall_as_interesting(interesting_syscall_id);
+	pman_mark_single_64bit_syscall(interesting_syscall_id, true);
 }
 
 void event_test::mark_all_64bit_syscalls_as_uninteresting()
 {
-	pman_mark_all_64bit_syscalls_as_uninteresting();
+	pman_clean_all_64bit_interesting_syscalls();
 }
 
 void event_test::enable_capture()

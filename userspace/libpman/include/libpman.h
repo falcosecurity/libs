@@ -282,12 +282,13 @@ extern "C"
 	int pman_finalize_maps_after_loading(void);
 
 	/**
-	 * @brief For every syscall set if it is interesting or not.
+	 * @brief Mark a single syscall as (un)interesting
 	 *
-	 * @param intersting_syscalls array of size `SYSCALL_TABLE_SIZE` that says
-	 * if the single syscall is interesting or not.
+	 * @param syscall_id syscall system id.
+	 * @param interesting true if the syscall must be marked as interesting.
+	 * 
 	 */
-	void pman_fill_64bit_interesting_syscalls_table(bool* intersting_syscalls);
+	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
 
 	/////////////////////////////
 	// TEST HELPERS
@@ -295,16 +296,9 @@ extern "C"
 #ifdef TEST_HELPERS
 
 	/**
-	 * @brief Mark a single syscall as interesting
-	 *
-	 * @param intersting_syscall_id syscall id.
-	 */
-	void pman_mark_single_64bit_syscall_as_interesting(int intersting_syscall_id);
-
-	/**
 	 * @brief Mark all syscalls as uninteresting.
 	 */
-	void pman_mark_all_64bit_syscalls_as_uninteresting(void);
+	void pman_clean_all_64bit_interesting_syscalls(void);
 
 	/**
 	 * @brief Print some statistics about events captured and
