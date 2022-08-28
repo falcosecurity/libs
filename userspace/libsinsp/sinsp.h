@@ -219,14 +219,14 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	void open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
-	void open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
+	void open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	void open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_udig();
 	void open_nodriver();
 	void open_savefile(const std::string &filename, int fd);
 	void open_plugin(std::string plugin_name, std::string plugin_open_params);
 	void open_gvisor(std::string config_path, std::string root_path);
-	void open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &syscalls_of_interest = {}, const std::unordered_set<std::string> &tp_of_interest = {});
+	void open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine, scap_mode_t scap_mode);
@@ -834,23 +834,36 @@ public:
 
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
+		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
+		can match more than one system syscall.
 		Please note that this method must be called when the inspector is already open to 
 		modify at runtime the interesting syscall set.
 
 		WARNING: playing with this API could break `libsinsp` state collection, this is only
 		useful in advanced cases where the client needs to know what it is doing!
 	*/
-	void mark_syscall_of_interest(uint32_t ppm_sc, bool enabled = true);
+	void mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enabled = true);
 
 	/*!
-		\brief Provide the minimum set of syscalls required by sinsp state collection.
+		\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
 		If you call it without arguments it returns a new set with just these syscalls
 		otherwise, it merges the minimum set of syscalls with the one you provided.
 
 		WARNING: without using this method, we cannot guarantee that `libsinsp` state
 		will always be up to date, or even work at all.
 	*/
-	std::unordered_set<uint32_t> enforce_sinsp_syscalls_of_interest(std::unordered_set<uint32_t> syscalls_of_interest = {});
+	std::unordered_set<uint32_t> enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t> ppm_sc_of_interest = {});
+
+	/*!
+		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
+		If you call it without arguments it returns a new set with just these tracepoints
+		otherwise, it merges the minimum set of tracepoints with the one you provided.
+
+		WARNING: without using this method, we cannot guarantee that `libsinsp` state
+		will always be up to date, or even work at all.
+	*/
+	std::unordered_set<uint32_t> enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest = {});
+
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -956,11 +969,10 @@ private:
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
-
 	void remove_thread(int64_t tid, bool force);
 
-	void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &syscalls_of_interest);
-	void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<std::string> &tp_of_interest);
+	void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &ppm_sc_of_interest);
+	void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
