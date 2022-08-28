@@ -24,8 +24,6 @@ struct scap;
 struct kmod_engine
 {
 	struct scap_device_set m_dev_set;
-	bool syscalls_of_interest[SYSCALL_TABLE_SIZE];
-	bool tracepoints_of_interest[TP_VAL_MAX];
 	char* m_lasterr;
 };
 

@@ -34,8 +34,6 @@ limitations under the License.
 struct bpf_engine
 {
 	struct scap_device_set m_dev_set;
-	bool syscalls_of_interest[SYSCALL_TABLE_SIZE];
-	bool tracepoints_of_interest[TP_VAL_MAX];
 	size_t m_ncpus;
 	char* m_lasterr;
 	int m_bpf_prog_fds[BPF_PROGS_MAX];
