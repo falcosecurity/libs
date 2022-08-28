@@ -1169,9 +1169,13 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-uint32_t *scap_get_modifies_state_ppm_sc()
+int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 {
-	static uint32_t minimum_ppm_sc_set[PPM_SC_MAX];
+	if(ppm_sc_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
 #ifdef __linux__
 	// Collect EF_MODIFIES_STATE events
 	for (int i = 0; i < PPM_EVENT_MAX; i++)
@@ -1183,7 +1187,7 @@ uint32_t *scap_get_modifies_state_ppm_sc()
 				if (g_syscall_table[j].exit_event_type == i || g_syscall_table[j].enter_event_type == i)
 				{
 					uint32_t ppm_sc_code = g_syscall_code_routing_table[i];
-					minimum_ppm_sc_set[ppm_sc_code] = 1;
+					ppm_sc_array[ppm_sc_code] = 1;
 				}
 			}
 		}
@@ -1195,11 +1199,30 @@ uint32_t *scap_get_modifies_state_ppm_sc()
 		if (g_syscall_table[j].flags & UF_NEVER_DROP)
 		{
 			uint32_t ppm_sc_code = g_syscall_code_routing_table[j];
-			minimum_ppm_sc_set[ppm_sc_code] = 1;
+			ppm_sc_array[ppm_sc_code] = 1;
 		}
 	}
 #endif
-	return minimum_ppm_sc_set;
+	return SCAP_SUCCESS;
+}
+
+int scap_get_modifies_state_tracepoints(uint32_t* tp_array)
+{
+	if(tp_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	tp_array[SYS_ENTER] = 1;
+	tp_array[SYS_EXIT] = 1;
+	tp_array[SCHED_SWITCH] = 1;
+	tp_array[SCHED_PROC_EXIT] = 1;
+	/* With `aarch64` and `s390x` we need also this, 
+	 * in `x86` they are not considered at all.
+	 */
+	tp_array[SCHED_PROC_EXEC] = 1;
+	tp_array[SCHED_PROC_EXEC] = 1;
+	return SCAP_SUCCESS;
 }
 
 //

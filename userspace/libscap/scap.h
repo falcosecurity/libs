@@ -833,7 +833,12 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
 */
-uint32_t *scap_get_modifies_state_ppm_sc();
+int scap_get_modifies_state_ppm_sc(uint32_t * ppm_sc_array);
+
+/*!
+  \brief Returns the set of minimum tracepoints required by `libsinsp` state.
+*/
+int scap_get_modifies_state_tracepoints(uint32_t * tp_array);
 
 /*!
   \brief This function can be used to temporarily interrupt event capture.
