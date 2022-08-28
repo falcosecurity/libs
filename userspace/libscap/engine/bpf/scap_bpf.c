@@ -944,19 +944,9 @@ static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm
 
 static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap_open_args *oargs)
 {
-	bool enable;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
-		{
-			enable = true;
-		}
-		else
-		{
-			enable = false;
-		}
-
-		if(set_single_syscall_of_interest(handle, ppm_sc, enable) != SCAP_SUCCESS)
+		if(set_single_syscall_of_interest(handle, ppm_sc, oargs->ppm_sc_of_interest.ppm_sc[ppm_sc]) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -967,16 +957,7 @@ static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap
 static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct bpf_engine *handle = engine.m_handle;
-	bool enable;
-	if(op == SCAP_EVENTMASK_SET)
-	{
-		enable = true;
-	}
-	else
-	{
-		enable = false;
-	}
-	return set_single_syscall_of_interest(handle, ppm_sc, enable);
+	return set_single_syscall_of_interest(handle, ppm_sc, op == SCAP_EVENTMASK_SET);
 }
 
 static int32_t populate_event_table_map(struct bpf_engine *handle)
