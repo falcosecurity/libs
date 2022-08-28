@@ -26,6 +26,71 @@ limitations under the License.
 #include "noop.h"
 #include "../common/strlcpy.h"
 
+/*=============================== UTILS ===============================*/
+
+static int32_t attach_interesting_tracepoints(bool* tp_array)
+{
+	int ret = SCAP_SUCCESS;
+	if(tp_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	for(int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
+	{
+		/* If the tracepoint is not interesting, continue */
+		if(!tp_array[tp])
+		{
+			continue;
+		}
+
+		switch(tp)
+		{
+		case SYS_ENTER:
+			ret = pman_attach_syscall_enter_dispatcher();
+			break;
+
+		case SYS_EXIT:
+			ret = pman_attach_syscall_exit_dispatcher();
+			break;
+
+		default:
+			/* Do nothing right now. */
+			break;
+		}
+	}
+	return ret;
+}
+
+static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting)
+{
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		if(g_syscall_code_routing_table[syscall_nr] == ppm_sc)
+		{
+			pman_mark_single_64bit_syscall(syscall_nr, interesting);
+		}
+	}
+}
+
+/// TODO: from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
+static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
+{
+	int ret = SCAP_SUCCESS;
+	if(ppm_sc_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		update_single_64bit_syscall_of_interest(ppm_sc, ppm_sc_array[ppm_sc]);
+	}
+	return ret;
+}
+
+/*=============================== UTILS ===============================*/
+
 /* Right now this is not used */
 bool scap_modern_bpf__match(scap_open_args* oargs)
 {
@@ -70,7 +135,11 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
 	case SCAP_EVENTMASK:
-		/* Not supported */
+		/* We use this setting just to modify the interesting syscalls. */
+		if(arg1 == SCAP_EVENTMASK_SET || arg1 == SCAP_EVENTMASK_UNSET)
+		{
+			update_single_64bit_syscall_of_interest(arg2, arg1 == SCAP_EVENTMASK_SET);
+		}
 		return SCAP_SUCCESS;
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
@@ -129,8 +198,8 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	ret = ret ?: pman_load_probe();
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
-	ret = ret ?: pman_attach_syscall_enter_dispatcher();
-	ret = ret ?: pman_attach_syscall_exit_dispatcher();
+	ret = ret ?: populate_64bit_interesting_syscalls_table(oargs->ppm_sc_of_interest.ppm_sc);
+	ret = ret ?: attach_interesting_tracepoints(oargs->tp_of_interest.tp);
 	if(ret != SCAP_SUCCESS)
 	{
 		return ret;
@@ -138,9 +207,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 	handle->m_api_version = pman_get_probe_api_ver();
 	handle->m_schema_version = pman_get_probe_schema_ver();
-
-	/// TODO: Here we miss the simple consumer logic. Right now
-	/// all syscalls and tracepoints are interesting.
 
 	return SCAP_SUCCESS;
 }

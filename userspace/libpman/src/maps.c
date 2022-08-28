@@ -67,12 +67,7 @@ void pman_set_snaplen(uint32_t desired_snaplen)
 }
 
 #ifdef TEST_HELPERS
-void pman_mark_single_64bit_syscall_as_interesting(int intersting_syscall_id)
-{
-	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = true;
-}
-
-void pman_mark_all_64bit_syscalls_as_uninteresting()
+void pman_clean_all_64bit_interesting_syscalls()
 {
 	/* All syscalls are not interesting. */
 	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
@@ -82,20 +77,9 @@ void pman_mark_all_64bit_syscalls_as_uninteresting()
 }
 #endif
 
-static void set_all_64bit_syscalls_interesting()
+void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {
-	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = true;
-	}
-}
-
-void pman_fill_64bit_interesting_syscalls_table(bool* intersting_syscalls)
-{
-	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = intersting_syscalls[j];
-	}
+	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
 }
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
@@ -275,7 +259,6 @@ int pman_finalize_maps_after_loading()
 	int err;
 
 	/* set bpf global variables. */
-	set_all_64bit_syscalls_interesting();
 	pman_set_snaplen(80);
 
 	/* We have to fill all ours tail tables. */
