@@ -472,8 +472,7 @@ void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
 
 std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t> ppm_sc_of_interest)
 {
-	std::vector<uint32_t> minimum_syscalls;
-	minimum_syscalls.reserve(PPM_SC_MAX);
+	std::vector<uint32_t> minimum_syscalls(PPM_SC_MAX, 0);
 	
 	/* Should never happen but just to be sure. */
 	if(scap_get_modifies_state_ppm_sc(minimum_syscalls.data()) != SCAP_SUCCESS)
@@ -493,9 +492,8 @@ std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_ppm_sc(std::unordered_se
 
 std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest)
 {
-	std::vector<uint32_t> minimum_tracepoints;
-	minimum_tracepoints.reserve(TP_VAL_MAX);
-	
+	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
+
 	/* Should never happen but just to be sure. */
 	if(scap_get_modifies_state_tracepoints(minimum_tracepoints.data()) != SCAP_SUCCESS)
 	{

@@ -22,21 +22,25 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <sys/time.h>
 
+#define SYSCALL_NAME_MAX_LEN 40
+#define UNKNOWN_ENGINE "unknown"
+
+/* SCAP SOURCES */
 #define KMOD_OPTION "--kmod"
 #define BPF_OPTION "--bpf"
 #define MODERN_BPF_OPTION "--modern_bpf"
 #define SCAP_FILE_OPTION "--scap_file"
+
+/* CONFIGURATIONS */
 #define TP_OPTION "--tp"
 #define PPM_SC_OPTION "--ppm_sc"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
+
+/* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
 #define PRINT_HELP_OPTION "--help"
-
-#define SYSCALL_NAME_MAX_LEN 40
-#define UNKNOWN_ENGINE "unknown"
-#define UNKNOWN_ENGINE_LEN 7
 
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
@@ -44,14 +48,14 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
 /* Engine params */
-struct scap_bpf_engine_params bpf_params;
-struct scap_savefile_engine_params savefile_params;
+struct scap_bpf_engine_params bpf_params = {0};
+struct scap_savefile_engine_params savefile_params = {0};
 
 /* Configuration variables set through CLI. */
 uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
-bool ppm_sc_is_set;
-bool tp_is_set;
+bool ppm_sc_is_set = 0;
+bool tp_is_set = 0;
 
 /* Generic global variables. */
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
@@ -61,33 +65,23 @@ uint16_t* lens16 = NULL;						    /* pointer used to print the length of event p
 char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
 
-void enable_single_tp(const char* tp_basename)
+void enable_single_tp(int tp)
 {
-	bool found = false;
-
-	for(int i = 0; i < TP_VAL_MAX && !found; i++)
+	if(tp == -1)
 	{
-		if(strcmp(tp_names[i], tp_basename) == 0)
-		{
-			oargs.tp_of_interest.tp[i] = true;
-			found = true;
-		}
+		/* In this case we won't have any tracepoint enabled. */
+		tp_is_set = true;
+		return;
 	}
 
-	if(!found)
+	if(tp < 0 || tp >= TP_VAL_MAX)
 	{
-		fprintf(stderr, "Tracepoint '%s' not found. Unsupported or wrong parameter?\n", tp_basename);
-		fprintf(stderr, "Please choose between:\n");
-		for(int i = 0; i < TP_VAL_MAX; i++)
-		{
-			fprintf(stderr, "\t* %s\n", tp_names[i]);
-		}
+		fprintf(stderr, "Unexistent tp code: %d. Wrong parameter?\n", tp);
+		print_supported_tracepoints();
 		exit(EXIT_FAILURE);
 	}
-	else
-	{
-		tp_is_set = true;
-	}
+	oargs.tp_of_interest.tp[tp] = true;
+	tp_is_set = true;
 }
 
 void enable_single_ppm_sc(int ppm_sc_code)
@@ -102,13 +96,14 @@ void enable_single_ppm_sc(int ppm_sc_code)
 	if(ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
 	{
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
+		print_supported_syscalls();
 		exit(EXIT_FAILURE);
 	}
 	oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
 	ppm_sc_is_set = true;
 }
 
-void set_enabled_syscalls()
+void check_enabled_syscalls()
 {
 	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
 	if(ppm_sc_is_set)
@@ -133,7 +128,7 @@ void set_enabled_syscalls()
 	printf("------------------------------------------------------------------\n\n");
 }
 
-void set_enabled_tracepoint()
+void check_enabled_tracepoints()
 {
 	printf("---------------------- ENABLED TRACEPOINTS ----------------------\n");
 	if(tp_is_set)
@@ -433,6 +428,7 @@ void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_M
 	printf("Interesting syscalls: %d\n", dim);
 }
 
+/// TODO: Probably we need to remove these 2 methods at the end.
 void print_UF_NEVER_DROP_syscalls()
 {
 	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
@@ -531,9 +527,17 @@ void print_supported_syscalls()
 	}
 }
 
-/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
+void print_supported_tracepoints()
+{
+	printf("\n------- Print supported tracepoints: \n");
 
-/*=============================== PRINT SYSCALLS VALIDATION ===========================*/
+	for(int j = 0; j < TP_VAL_MAX; j++)
+	{
+		printf("- %-25s tp_code: (%d)\n", tp_names[j], j);
+	}
+}
+
+/// TODO: we need to move this validation outside this example
 
 void validate_syscalls()
 {
@@ -580,7 +584,7 @@ void validate_syscalls()
 	}
 }
 
-/*=============================== PRINT SYSCALLS VALIDATION ===========================*/
+/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
 /*=============================== PRINT CAPTURE INFO ===========================*/
 
@@ -593,8 +597,8 @@ void print_help()
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
-	printf("'%s <tp_basename>': enable only requested tracepoint (sys_enter, sys_exit, sched_process_exit, sched_switch, page_fault_user, page_fault_kernel, signal_deliver, sched_process_fork, sched_process_exec). Can be passed multiple times.\n", TP_OPTION);
-	printf("'%s <ppm_sc_code>': enable only requested syscall. Can be passed multiple times.\n", PPM_SC_OPTION);
+	printf("'%s <tp_code>': enable only requested tracepoint (sys_enter, sys_exit, sched_process_exit, sched_switch, page_fault_user, page_fault_kernel, signal_deliver, sched_process_fork, sched_process_exec). Can be passed multiple times.\n", TP_OPTION);
+	printf("'%s <ppm_sc_code>': enable only requested syscall (this is our internal ppm syscall code not the system syscall code). Can be passed multiple times.\n", PPM_SC_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("\n------> VALIDATION OPTIONS\n");
@@ -608,20 +612,20 @@ void print_help()
 void print_scap_source()
 {
 	printf("\n---------------------- SCAP SOURCE ----------------------\n");
-	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
+	if(strcmp(oargs.engine_name, KMOD_ENGINE) == 0)
 	{
 		printf("* Kernel module.\n");
 	}
-	else if(strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
 	{
 		struct scap_bpf_engine_params* params = oargs.engine_params;
 		printf("* BPF probe: '%s'\n", params->bpf_probe);
 	}
-	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		printf("* Modern BPF probe.\n");
 	}
-	else if(strncmp(oargs.engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		struct scap_savefile_engine_params* params = oargs.engine_params;
 		printf("* Scap file: '%s'.\n", params->fname);
@@ -637,28 +641,27 @@ void print_scap_source()
 
 void print_configurations()
 {
-	printf("---------------------- CONFIGURATIONS ----------------------\n");
+	printf("--------------------- CONFIGURATIONS ----------------------\n");
 	printf("* Print single event type: %d (`-1` means no event to print).\n", evt_type);
 	printf("* Run until '%lu' events are catched.\n", num_events);
-	printf("--------------------------------------------------------------\n\n");
+	printf("-----------------------------------------------------------\n\n");
 }
 
 void print_start_capture()
 {
-
-	if(strncmp(oargs.engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
+	if(strcmp(oargs.engine_name, KMOD_ENGINE) == 0)
 	{
 		printf("* OK! Kernel module correctly loaded.\n");
 	}
-	else if(strncmp(oargs.engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
 	{
 		printf("* OK! BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 	}
-	else if(strncmp(oargs.engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		printf("* OK! modern BPF probe correctly loaded: NO VERIFIER ISSUES :)\n");
 	}
-	else if(strncmp(oargs.engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	else if(strcmp(oargs.engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		printf("* OK! Ready to read from scap file.\n");
 		printf("\n* Reading from scap file...\n");
@@ -719,26 +722,27 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== SCAP SOURCES ===========================*/
 
 		/*=============================== CONFIGURATIONS ===========================*/
+
 		if(!strcmp(argv[i], TP_OPTION))
 		{
 			if(!(i + 1 < argc))
 			{
-				printf("\nYou need to specify also the basename of the tracepoint you are interested in! Bye!\n");
+				print_supported_tracepoints();
+				printf("\nYou need to specify also the number of the tracepoint you are interested in! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			enable_single_tp(argv[++i]);
+			enable_single_tp(atoi(argv[++i]));
 		}
-
 		if(!strcmp(argv[i], PPM_SC_OPTION))
 		{
 			if(!(i + 1 < argc))
 			{
+				print_supported_syscalls();
 				printf("\nYou need to specify also the syscall ppm_sc code! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
 			enable_single_ppm_sc(atoi(argv[++i]));
 		}
-
 		if(!strcmp(argv[i], NUM_EVENTS_OPTION))
 		{
 			if(!(i + 1 < argc))
@@ -760,27 +764,22 @@ void parse_CLI_options(int argc, char** argv)
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
-		/*=============================== VALIDATION ===========================*/
+		/*=============================== PRINT ===========================*/
 
 		if(!strcmp(argv[i], VALIDATION_OPTION))
 		{
 			validate_syscalls();
 			exit(EXIT_SUCCESS);
 		}
-
-		/*=============================== VALIDATION ===========================*/
-
-		/*=============================== PRINT ===========================*/
-
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
 			print_UF_NEVER_DROP_syscalls();
 			print_EF_MODIFIES_STATE_syscalls();
 			print_both_syscalls();
 			print_supported_syscalls();
+			print_supported_tracepoints();
 			exit(EXIT_SUCCESS);
 		}
-
 		if(!strcmp(argv[i], PRINT_HELP_OPTION))
 		{
 			print_help();
@@ -790,7 +789,7 @@ void parse_CLI_options(int argc, char** argv)
 		/*=============================== PRINT ===========================*/
 	}
 
-	if(strncmp(oargs.engine_name, UNKNOWN_ENGINE, UNKNOWN_ENGINE_LEN) == 0)
+	if(strcmp(oargs.engine_name, UNKNOWN_ENGINE) == 0)
 	{
 		printf("\nSource not specified! Bye!\n");
 		exit(EXIT_FAILURE);
@@ -845,7 +844,7 @@ static void signal_callback(int signal)
 
 int main(int argc, char** argv)
 {
-	char error[SCAP_LASTERR_SIZE];
+	char error[SCAP_LASTERR_SIZE] = {0};
 	int32_t res = 0;
 	scap_evt* ev = NULL;
 	uint16_t cpuid = 0;
@@ -861,6 +860,10 @@ int main(int argc, char** argv)
 	print_scap_source();
 
 	print_configurations();
+
+	check_enabled_syscalls();
+
+	check_enabled_tracepoints();
 
 	g_h = scap_open(&oargs, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)

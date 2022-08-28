@@ -1215,12 +1215,12 @@ int scap_get_modifies_state_tracepoints(uint32_t* tp_array)
 
 	tp_array[SYS_ENTER] = 1;
 	tp_array[SYS_EXIT] = 1;
-	tp_array[SCHED_SWITCH] = 1;
 	tp_array[SCHED_PROC_EXIT] = 1;
+	tp_array[SCHED_SWITCH] = 1;
 	/* With `aarch64` and `s390x` we need also this, 
 	 * in `x86` they are not considered at all.
 	 */
-	tp_array[SCHED_PROC_EXEC] = 1;
+	tp_array[SCHED_PROC_FORK] = 1;
 	tp_array[SCHED_PROC_EXEC] = 1;
 	return SCAP_SUCCESS;
 }

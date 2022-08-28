@@ -36,7 +36,7 @@ static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
 static bool json_dump_init_success = false;
-string engine_string = "kmod";
+string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
 string filter_string = "";
 string file_path = "";
 string bpf_path = "";
@@ -64,6 +64,7 @@ static void usage()
 Overview: Goal of sinsp-example binary is to test and debug sinsp functionality and print events to STDOUT. All drivers are supported.
 
 Options:
+<<<<<<< HEAD
   -h, --help                                    Print this page.
   -f <filter>, --filter <filter>                Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                    Use JSON as the output format (STDOUT).
@@ -73,6 +74,17 @@ Options:
   -d <dim>, --buffer-dim <dim>                  Buffer dimension.
   -s <path>, --file-path <path>                 Scap file path.
   -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
+=======
+  -h, --help                                 Print this page.
+  -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
+  -j, --json                                 Use JSON as the output format.
+  -a, --all-threads                          Output information about all threads, not just the main one.
+  -b <path>, --bpf <path>               	 BPF probe.
+  -m, --modern_bpf               			 modern BPF probe.
+  -k, --kmod								 Kernel module
+  -s <path>, --scap_file <path>   			 Scap file
+  -d <dim>, --buffer_dim <dim>               Buffer dimension.
+>>>>>>> 06e716b3 (fix(libscap/libsinsp): allow examples to work correctly)
 )";
 	cout << usage << endl;
 }
@@ -86,10 +98,11 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"filter", required_argument, 0, 'f'},
 		{"json", no_argument, 0, 'j'},
 		{"all-threads", no_argument, 0, 'a'},
-		{"engine", required_argument, 0, 'e'},
-		{"bpf-path", required_argument, 0, 'b'},
-		{"buffer-dim", required_argument, 0, 'd'},
-		{"file-path", required_argument, 0, 's'},
+		{"bpf", required_argument, 0, 'b'},
+		{"modern_bpf", no_argument, 0, 'm'},
+		{"kmod", no_argument, 0, 'k'},
+		{"scap_file", required_argument, 0, 's'},
+		{"buffer_dim", required_argument, 0, 'd'},
 		{"output-fields-json", required_argument, 0, 'o'},
 		{0, 0, 0, 0}};
 
@@ -113,17 +126,22 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		case 'a':
 			g_all_threads = true;
 			break;
-		case 'e':
-			engine_string = optarg;
-			break;
 		case 'b':
+			engine_string = BPF_ENGINE;
 			bpf_path = optarg;
+			break;
+		case 'm':
+			engine_string = MODERN_BPF_ENGINE;
+			break;
+		case 'k':
+			engine_string = KMOD_ENGINE;
+			break;
+		case 's':
+			engine_string = SAVEFILE_ENGINE;
+			file_path = optarg;
 			break;
 		case 'd':
 			buffer_dim = strtoul(optarg, NULL, 10);
-			break;
-		case 's':
-			file_path = optarg;
 			break;
 		case 'o':
 			output_fields_json = optarg;
@@ -141,9 +159,13 @@ void open_engine(sinsp& inspector)
 {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 
+	/* Get only necessary tracepoints. */
+	std::unordered_set<uint32_t> tp_set = inspector.enforce_sinsp_state_tracepoints();
+	std::unordered_set<uint32_t> ppm_sc;
+
 	if(!engine_string.compare(KMOD_ENGINE))
 	{
-		inspector.open_kmod(buffer_dim);
+		inspector.open_kmod(buffer_dim, ppm_sc, tp_set);
 	}
 	else if(!engine_string.compare(BPF_ENGINE))
 	{
@@ -156,15 +178,7 @@ void open_engine(sinsp& inspector)
 		{
 			std::cerr << bpf_path << std::endl;
 		}
-		inspector.open_bpf(buffer_dim, bpf_path.c_str());
-	}
-	else if(!engine_string.compare(UDIG_ENGINE))
-	{
-		inspector.open_udig();
-	}
-	else if(!engine_string.compare(NODRIVER_ENGINE))
-	{
-		inspector.open_nodriver();
+		inspector.open_bpf(buffer_dim, bpf_path.c_str(), ppm_sc, tp_set);
 	}
 	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
@@ -175,24 +189,9 @@ void open_engine(sinsp& inspector)
 		}
 		inspector.open_savefile(file_path.c_str(), 0);
 	}
-	else if(!engine_string.compare(SOURCE_PLUGIN_ENGINE))
-	{
-		std::cerr << "Not supported right now." << std::endl;
-		exit(EXIT_SUCCESS);
-	}
-	else if(!engine_string.compare(GVISOR_ENGINE))
-	{
-		std::cerr << "Not supported right now." << std::endl;
-		exit(EXIT_SUCCESS);
-	}
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
-		inspector.open_modern_bpf(buffer_dim);
-	}
-	else if(!engine_string.compare(TEST_INPUT_ENGINE))
-	{
-		std::cerr << "Not supported right now." << std::endl;
-		exit(EXIT_SUCCESS);
+		inspector.open_modern_bpf(buffer_dim, ppm_sc, tp_set);
 	}
 	else
 	{
@@ -255,7 +254,6 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 	sinsp_evt* ev = nullptr;
 
 	int32_t res = inspector.next(&ev);
-
 
 	if(res == SCAP_SUCCESS)
 	{
