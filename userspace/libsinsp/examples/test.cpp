@@ -37,6 +37,7 @@ string engine_string = "kmod";
 string filter_string = "";
 string file_path = "";
 string bpf_path = "";
+string output_fields_json = "";
 uint64_t buffer_dim = 0;
 
 sinsp_evt* get_event(sinsp& inspector);
@@ -57,15 +58,18 @@ static void usage()
 {
 	string usage = R"(Usage: sinsp-example [options]
 
+Overview: Goal of sinsp-example binary is to test and debug sinsp functionality and print events to STDOUT. All drivers are supported.
+
 Options:
-  -h, --help                                 Print this page.
-  -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
-  -j, --json                                 Use JSON as the output format.
-  -a, --all-threads                          Output information about all threads, not just the main one.
-  -e <engine_name>, --engine <engine_name>   Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "savefile", "gvisor", "modern_bpf", "test_input". 
-  -b <path>, --bpf-path <path>               BPF probe path.
-  -d <dim>, --buffer-dim <dim>               Buffer dimension.
-  -s <path>, --file-path <path>              Scap file path.
+  -h, --help                                    Print this page.
+  -f <filter>, --filter <filter>                Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
+  -j, --json                                    Use JSON as the output format (STDOUT).
+  -a, --all-threads                             Output information about all threads, not just the main one.
+  -e <engine_name>, --engine <engine_name>      Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "savefile", "gvisor", "modern_bpf", "test_input".
+  -b <path>, --bpf-path <path>                  BPF probe path.
+  -d <dim>, --buffer-dim <dim>                  Buffer dimension.
+  -s <path>, --file-path <path>                 Scap file path.
+  -o <fields>, --output-fields-json <fields>    Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events when output format set to JSON. * at the beginning prints JSON keys with null values, else no null fields are printed.
 )";
 	cout << usage << endl;
 }
@@ -83,12 +87,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"bpf-path", required_argument, 0, 'b'},
 		{"buffer-dim", required_argument, 0, 'd'},
 		{"file-path", required_argument, 0, 's'},
+		{"output-fields-json", required_argument, 0, 'o'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:ja:e:b:d:s:",
+				"hf:ja:e:b:d:s:o:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -117,6 +122,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 's':
 			file_path = optarg;
+			break;
+		case 'o':
+			output_fields_json = optarg;
 			break;
 		default:
 			break;
@@ -345,6 +353,14 @@ void json_dump(sinsp& inspector)
 	default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
 	process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
 	net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
+
+	// Overwrite output_format defaults with user supplied output fields string
+	if (!output_fields_json.empty())
+	{
+		default_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
+		process_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
+		net_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
+	}
 
 	sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
 				  { cout << R"({"error": ")" << error_msg << R"("})" << endl; });
