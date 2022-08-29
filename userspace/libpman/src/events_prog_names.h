@@ -172,6 +172,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_RECVFROM_X] = "recvfrom_x",
 	[PPME_SYSCALL_FCNTL_E] = "fcntl_e",
 	[PPME_SYSCALL_FCNTL_X] = "fcntl_x",
+	[PPME_SOCKET_SHUTDOWN_E] = "shutdown_e",
+	[PPME_SOCKET_SHUTDOWN_X] = "shutdown_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
