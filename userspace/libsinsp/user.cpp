@@ -49,14 +49,17 @@ struct passwd *__getpwuid(uint32_t uid)
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
 	{
-		while(auto p = fgetpwent(f))
+		struct passwd *p = nullptr;
+		while((p = fgetpwent(f)))
 		{
 			if(uid == p->pw_uid)
 			{
-				return p;
+				break;
 			}
 		}
+
 		fclose(f);
+		return p;
 	}
 #endif
 
@@ -78,14 +81,17 @@ struct group *__getgrgid(uint32_t gid)
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
 	{
-		while(auto p = fgetgrent(f))
+		struct group *p = nullptr;
+		while((p = fgetgrent(f)))
 		{
 			if(gid == p->gr_gid)
 			{
-				return p;
+				break;
 			}
 		}
+
 		fclose(f);
+		return p;
 	}
 #endif
 
