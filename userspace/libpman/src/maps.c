@@ -66,7 +66,6 @@ void pman_set_snaplen(uint32_t desired_snaplen)
 	g_state.skel->bss->g_settings.snaplen = desired_snaplen;
 }
 
-#ifdef TEST_HELPERS
 void pman_clean_all_64bit_interesting_syscalls()
 {
 	/* All syscalls are not interesting. */
@@ -75,7 +74,6 @@ void pman_clean_all_64bit_interesting_syscalls()
 		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = false;
 	}
 }
-#endif
 
 void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {

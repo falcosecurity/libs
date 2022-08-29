@@ -1670,6 +1670,30 @@ static int32_t unsupported_config(struct scap_engine_handle engine, const char* 
 	return SCAP_FAILURE;
 }
 
+static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
+	int32_t ret = SCAP_SUCCESS;
+	switch(op)
+	{
+	case SCAP_EVENTMASK_ZERO:
+		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret==SCAP_SUCCESS; ppm_sc++)
+		{
+			ret = update_interesting_syscalls_map(engine, SCAP_EVENTMASK_UNSET, ppm_sc);
+		}
+		break;
+	
+	case SCAP_EVENTMASK_SET:
+	case SCAP_EVENTMASK_UNSET:
+		ret = update_interesting_syscalls_map(engine, op, ppm_sc);
+		break;
+
+	default:
+		ret = SCAP_FAILURE;
+		break;
+	}
+	return ret;
+}
+
 static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
 	switch(setting)
@@ -1692,7 +1716,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	case SCAP_SNAPLEN:
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:
-		return update_interesting_syscalls_map(engine, arg1, arg2);
+		return scap_bpf_handle_event_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)
 		{
