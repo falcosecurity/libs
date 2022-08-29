@@ -47,10 +47,10 @@ If you build this project from a git working directory, the main [CMakeLists.txt
 Right now our drivers officially support the following architectures:
 
 |             | Kernel module | eBPF probe | Modern eBPF probe |
-| ----------- | ------------- | ---------- | ----------------- |
-| **x86_64**  | >= 2.6        | >= 4.14    | WIP 👷            |
-| **aarch64** | >= 3.4        | >= 4.17    | WIP 👷            |
-| **s390x**   | >= 2.6        | ❌         | ❌                |
+| ----------- | ------------- | ---------- | ---------------- |
+| **x86_64**  | >= 2.6        | >= 4.14    | WIP 👷           |
+| **aarch64** | >= 3.4        | >= 4.17    | WIP 👷           |
+| **s390x**   | >= 2.6        | ❌         | WIP 👷            |
 
 >**Please note**: BPF has some issues with architectures like `s390x`! Some helpers like `bpf_probe_read()` and `bpf_probe_read_str()` are broken on archs with overlapping address ranges.
 
@@ -136,7 +136,7 @@ cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR
 make ProbeSkeleton
 ```
 
-> __Please note__: these are not the requiremtens to use the BPF probe but to build it from source!
+> __Please note__: these are not the requirements to use the BPF probe but to build it from source!
 
 ### gVisor support
 
