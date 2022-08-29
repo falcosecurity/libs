@@ -74,6 +74,54 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
+/// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
+int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	if (op != SCAP_EVENTMASK_ZERO)
+	{
+		int ioctl_op = op == SCAP_EVENTMASK_SET ? PPM_IOCTL_MASK_SET_EVENT : PPM_IOCTL_MASK_UNSET_EVENT;
+		// Find any syscall table entry that matches requested ppm_sc code
+		// then for any syscall, (un)set its enter and exit events
+		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		{
+			if (g_syscall_code_routing_table[i] == ppm_sc)
+			{
+				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
+				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
+				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, enter_ev))
+				{
+					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+						 "%s(%d) failed for event type %d",
+						 __FUNCTION__, op, enter_ev);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, exit_ev))
+				{
+					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+						 "%s(%d) failed for event type %d",
+						 __FUNCTION__, op, exit_ev);
+					ASSERT(false);
+					return SCAP_FAILURE;
+				}
+			}
+		}
+	}
+	else
+	{
+		if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MASK_ZERO_EVENTS, 0))
+		{
+			snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+				 "%s(%d) failed",
+				 __FUNCTION__, op);
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 {
 	uint32_t j = 0;
@@ -466,54 +514,6 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 				   &devset->m_devs[j].m_sn_len);
 
 		devset->m_devs[j].m_sn_len = 0;
-	}
-	return SCAP_SUCCESS;
-}
-
-/// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
-int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
-{
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if (op != SCAP_EVENTMASK_ZERO)
-	{
-		int ioctl_op = op == SCAP_EVENTMASK_SET ? PPM_IOCTL_MASK_SET_EVENT : PPM_IOCTL_MASK_UNSET_EVENT;
-		// Find any syscall table entry that matches requested ppm_sc code
-		// then for any syscall, (un)set its enter and exit events
-		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
-		{
-			if (g_syscall_code_routing_table[i] == ppm_sc)
-			{
-				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
-				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;
-				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, enter_ev))
-				{
-					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
-						 "%s(%d) failed for event type %d",
-						 __FUNCTION__, op, enter_ev);
-					ASSERT(false);
-					return SCAP_FAILURE;
-				}
-				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, exit_ev))
-				{
-					snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
-						 "%s(%d) failed for event type %d",
-						 __FUNCTION__, op, exit_ev);
-					ASSERT(false);
-					return SCAP_FAILURE;
-				}
-			}
-		}
-	}
-	else
-	{
-		if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MASK_ZERO_EVENTS, 0))
-		{
-			snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
-				 "%s(%d) failed",
-				 __FUNCTION__, op);
-			ASSERT(false);
-			return SCAP_FAILURE;
-		}
 	}
 	return SCAP_SUCCESS;
 }

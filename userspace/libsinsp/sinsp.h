@@ -835,7 +835,8 @@ public:
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
-		can match more than one system syscall.
+		can match more than one system syscall. You can find the available
+		`enum ppm_syscall_code` in `driver/ppm_events_public.h`.
 		Please note that this method must be called when the inspector is already open to 
 		modify at runtime the interesting syscall set.
 
@@ -951,7 +952,6 @@ VISIBILITY_PROTECTED
 		m_mode = value;
 	}
 
-/// TODO: do we need this MACRO?
 VISIBILITY_PRIVATE
 
 // Doxygen doesn't understand VISIBILITY_PRIVATE

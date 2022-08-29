@@ -286,19 +286,19 @@ extern "C"
 	 *
 	 * @param syscall_id syscall system id.
 	 * @param interesting true if the syscall must be marked as interesting.
-	 * 
+	 *
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
-
-	/////////////////////////////
-	// TEST HELPERS
-	/////////////////////////////
-#ifdef TEST_HELPERS
 
 	/**
 	 * @brief Mark all syscalls as uninteresting.
 	 */
 	void pman_clean_all_64bit_interesting_syscalls(void);
+
+	/////////////////////////////
+	// TEST HELPERS
+	/////////////////////////////
+#ifdef TEST_HELPERS
 
 	/**
 	 * @brief Print some statistics about events captured and

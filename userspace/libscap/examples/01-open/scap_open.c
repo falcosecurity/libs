@@ -65,6 +65,194 @@ uint16_t* lens16 = NULL;						    /* pointer used to print the length of event p
 char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
 
+/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
+
+void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN], int dim)
+{
+	char temp[SYSCALL_NAME_MAX_LEN];
+
+	/* storing strings in the lexicographical order */
+	for(int i = 0; i < dim; ++i)
+	{
+		for(int j = i + 1; j < dim; ++j)
+		{
+			/* swapping strings if they are not in the lexicographical order */
+			if(strcmp(string_vector[i], string_vector[j]) > 0)
+			{
+				strcpy(temp, string_vector[i]);
+				strcpy(string_vector[i], string_vector[j]);
+				strcpy(string_vector[j], temp);
+			}
+		}
+	}
+
+	printf("\nSyscalls in the lexicographical order: \n");
+	for(int i = 0; i < dim; i++)
+	{
+		printf("[%d] %s\n", i, string_vector[i]);
+	}
+	printf("Interesting syscalls: %d\n", dim);
+}
+
+void print_UF_NEVER_DROP_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
+	int interesting_syscall = 0;
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			{
+				continue;
+			}
+
+			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+			}
+		}
+	}
+
+	printf("\n------- Print UF_NEVER_DROP syscalls: \n");
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
+void print_EF_MODIFIES_STATE_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
+	int interesting_syscall = 0;
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			{
+				continue;
+			}
+
+			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
+			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+			}
+		}
+	}
+
+	printf("\n------- Print EF_MODIFIES_STATE syscalls: \n");
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
+void print_both_syscalls()
+{
+	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
+	int interesting_syscall = 0;
+
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			{
+				continue;
+			}
+
+			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+				continue;
+			}
+
+			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
+			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
+			{
+				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
+			}
+		}
+	}
+
+	printf("\n------- Print 'EF_MODIFIES_STATE' and 'UF_NEVER_DROP' syscalls: \n");
+	print_sorted_syscalls(str, interesting_syscall);
+}
+
+void print_supported_syscalls()
+{
+	printf("\n------- Print supported syscalls: \n");
+
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		if(g_syscall_code_routing_table[syscall_nr] == PPM_SC_UNKNOWN)
+		{
+			continue;
+		}
+		int ppm_code = g_syscall_code_routing_table[syscall_nr];
+		printf("- %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
+	}
+}
+
+void print_supported_tracepoints()
+{
+	printf("\n------- Print supported tracepoints: \n");
+
+	for(int j = 0; j < TP_VAL_MAX; j++)
+	{
+		printf("- %-25s tp_code: (%d)\n", tp_names[j], j);
+	}
+}
+
+/// TODO: we need to move this validation outside this example
+
+void validate_syscalls()
+{
+	enum ppm_syscall_code ppm_syscall_code = 0;
+	bool success = true;
+	/* For every syscall of the system. */
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+
+		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
+		 * `g_syscall_info_table`.
+		 */
+		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP && !g_syscall_info_table[ppm_syscall_code].name)
+		{
+			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
+			success = false;
+			continue;
+		}
+
+		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
+		{
+			continue;
+		}
+
+		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
+		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
+		 */
+		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
+		{
+			printf("ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our `g_syscall_info_table`.\n", ppm_syscall_code);
+			success = false;
+			continue;
+		}
+	}
+
+	if(success)
+	{
+		printf("\n[SUCCESS] Our table are consistent!\n");
+	}
+	else
+	{
+		printf("\n[FAIL] Our table are not consistent!\n");
+	}
+}
+
+/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
+
+/*=============================== SYSCALLS/TRACEPOINTS ===========================*/
+
 void enable_single_tp(int tp)
 {
 	if(tp == -1)
@@ -152,6 +340,8 @@ void check_enabled_tracepoints()
 	}
 	printf("-----------------------------------------------------------------\n\n");
 }
+
+/*=============================== SYSCALLS/TRACEPOINTS ===========================*/
 
 /*=============================== PRINT EVENT PARAMS ===========================*/
 
@@ -398,193 +588,6 @@ void print_event(scap_evt* ev)
 }
 
 /*=============================== PRINT EVENT PARAMS ===========================*/
-
-/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
-
-void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN], int dim)
-{
-	char temp[SYSCALL_NAME_MAX_LEN];
-
-	/* storing strings in the lexicographical order */
-	for(int i = 0; i < dim; ++i)
-	{
-		for(int j = i + 1; j < dim; ++j)
-		{
-			/* swapping strings if they are not in the lexicographical order */
-			if(strcmp(string_vector[i], string_vector[j]) > 0)
-			{
-				strcpy(temp, string_vector[i]);
-				strcpy(string_vector[i], string_vector[j]);
-				strcpy(string_vector[j], temp);
-			}
-		}
-	}
-
-	printf("\nSyscalls in the lexicographical order: \n");
-	for(int i = 0; i < dim; i++)
-	{
-		printf("[%d] %s\n", i, string_vector[i]);
-	}
-	printf("Interesting syscalls: %d\n", dim);
-}
-
-/// TODO: Probably we need to remove these 2 methods at the end.
-void print_UF_NEVER_DROP_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
-			{
-				continue;
-			}
-
-			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-			}
-		}
-	}
-
-	printf("\n------- Print UF_NEVER_DROP syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
-void print_EF_MODIFIES_STATE_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
-			{
-				continue;
-			}
-
-			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
-			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-			}
-		}
-	}
-
-	printf("\n------- Print EF_MODIFIES_STATE syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
-void print_both_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
-			{
-				continue;
-			}
-
-			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-				continue;
-			}
-
-			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
-			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-			}
-		}
-	}
-
-	printf("\n------- Print 'EF_MODIFIES_STATE' and 'UF_NEVER_DROP' syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
-void print_supported_syscalls()
-{
-	printf("\n------- Print supported syscalls: \n");
-
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
-		if(g_syscall_code_routing_table[syscall_nr] == PPM_SC_UNKNOWN)
-		{
-			continue;
-		}
-		int ppm_code = g_syscall_code_routing_table[syscall_nr];
-		printf("- %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
-	}
-}
-
-void print_supported_tracepoints()
-{
-	printf("\n------- Print supported tracepoints: \n");
-
-	for(int j = 0; j < TP_VAL_MAX; j++)
-	{
-		printf("- %-25s tp_code: (%d)\n", tp_names[j], j);
-	}
-}
-
-/// TODO: we need to move this validation outside this example
-
-void validate_syscalls()
-{
-	enum ppm_syscall_code ppm_syscall_code = 0;
-	bool success = true;
-	/* For every syscall of the system. */
-	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
-	{
-
-		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
-		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
-		 * `g_syscall_info_table`.
-		 */
-		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP && !g_syscall_info_table[ppm_syscall_code].name)
-		{
-			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
-			success = false;
-			continue;
-		}
-
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
-		{
-			continue;
-		}
-
-		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
-		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
-		 */
-		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
-		{
-			printf("ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our `g_syscall_info_table`.\n", ppm_syscall_code);
-			success = false;
-			continue;
-		}
-	}
-
-	if(success)
-	{
-		printf("\n[SUCCESS] Our table are consistent!\n");
-	}
-	else
-	{
-		printf("\n[FAIL] Our table are not consistent!\n");
-	}
-}
-
-/*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
 /*=============================== PRINT CAPTURE INFO ===========================*/
 
