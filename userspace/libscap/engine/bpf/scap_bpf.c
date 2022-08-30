@@ -883,23 +883,6 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size)
 	return tmp;
 }
 
-static int32_t populate_syscall_routing_table_map(struct bpf_engine *handle)
-{
-	int j;
-
-	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		long code = g_syscall_code_routing_table[j];
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_CODE_ROUTING_TABLE], &j, &code, BPF_ANY) != 0)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SYSCALL_CODE_ROUTING_TABLE bpf_map_update_elem < 0");
-			return SCAP_FAILURE;
-		}
-	}
-
-	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_SYSCALL_CODE_ROUTING_TABLE]);
-}
-
 static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 {
 	int j;
@@ -1465,11 +1448,6 @@ int32_t scap_bpf_load(
 	}
 
 	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p, oargs) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
-	}
-
-	if(populate_syscall_routing_table_map(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
