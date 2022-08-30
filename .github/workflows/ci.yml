@@ -11,7 +11,7 @@ jobs:
     name: build-libs-linux-amd64 😁
     strategy:
       matrix:
-        name: [system_deps, bundled_deps, system_deps_w_chisels, system_deps_minimal]
+        name: [system_deps, bundled_deps, system_deps_w_chisels, system_deps_minimal, system_deps_asan]
         include:
           - name: system_deps
             cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
@@ -21,6 +21,8 @@ jobs:
             cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
           - name: system_deps_minimal
             cmake_opts: -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
+          - name: system_deps_asan
+            cmake_opts: -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address -DUSE_BUNDLED_DEPS=False
     runs-on: ubuntu-latest
     container:
       image: debian:buster
