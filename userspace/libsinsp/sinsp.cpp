@@ -452,6 +452,8 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
+/*=============================== INTERESTING TRACEPOINTS/SYSCALLS ===============================*/
+
 void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
 {
 	/* This API must be used only after the initialization phase. */
@@ -542,6 +544,44 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 	}
 }
 
+/*=============================== INTERESTING TRACEPOINTS/SYSCALLS ===============================*/
+
+/*=============================== BUFFER DIMENSION VALIDATION ===============================*/
+
+static void validate_driver_buffer_num_pages(uint64_t driver_buffer_num_pages)
+{
+	std::unordered_set<uint32_t> allowed_dimensions;
+	
+	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
+	for(int i = 7; i <= 18; i++)
+	{
+		uint32_t val = 1<<i;
+		allowed_dimensions.insert(val);
+	}
+
+	if(allowed_dimensions.find(driver_buffer_num_pages) == allowed_dimensions.end())
+	{
+		std::ostringstream os;
+		os << "Allowed page numbers are all the powers of 2 from 128 pages (2^7) to 256 Kpages (2^18): {";
+		auto itr = allowed_dimensions.begin();
+		while(itr != allowed_dimensions.end())
+		{
+			os << *itr;
+			if(++itr != allowed_dimensions.end())
+			{
+				os << ", ";
+			}
+		}
+		
+		os << "}";
+		throw sinsp_exception("Chosen number of pages (" + std::to_string(driver_buffer_num_pages) +") is not valid. " + os.str());
+	}
+}
+
+/*=============================== BUFFER DIMENSION VALIDATION ===============================*/
+
+/*=============================== OPEN METHODS ===============================*/
+
 void sinsp::open_common(scap_open_args* oargs)
 {
 	char error[SCAP_LASTERR_SIZE] = {0};
@@ -582,8 +622,11 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 	return oargs;
 }
 
-void sinsp::open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
+	/* Validate buffer dim. */
+	validate_driver_buffer_num_pages(driver_buffer_num_pages);
+
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
@@ -592,28 +635,31 @@ void sinsp::open_kmod(uint64_t buffer_dimension, const std::unordered_set<uint32
 
 	/* Engine-specific args. */
 	struct scap_kmod_engine_params params;
-	params.single_buffer_dim = buffer_dimension;
+	params.buffer_num_pages = driver_buffer_num_pages;
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
-/* We cannot trust the client to validate arguments we need to do it here. */
-void sinsp::open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_bpf(uint64_t driver_buffer_num_pages, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
+	/* Validate buffer dim. */
+	validate_driver_buffer_num_pages(driver_buffer_num_pages);
+
+	/* Validate the BPF path. */
 	if(!bpf_path)
 	{
 		throw sinsp_exception("When you use the 'BPF' engine you need to provide a path to the bpf object file.");
 	}
 
 	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
-	
+
 	/* Set interesting syscalls and tracepoints. */
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
 	fill_tp_of_interest(&oargs, tp_of_interest);
 
 	/* Engine-specific args. */
 	struct scap_bpf_engine_params params;
-	params.single_buffer_dim = buffer_dimension;
+	params.buffer_num_pages = driver_buffer_num_pages;
 	params.bpf_probe = bpf_path;
 	oargs.engine_params = &params;
 	open_common(&oargs);
@@ -705,8 +751,11 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_modern_bpf(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
+	/* Validate buffer dim. */
+	validate_driver_buffer_num_pages(driver_buffer_num_pages);
+
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
@@ -715,7 +764,7 @@ void sinsp::open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<
 
 	/* Engine-specific args. */
 	struct scap_modern_bpf_engine_params params;
-	params.single_buffer_dim = buffer_dimension;
+	params.buffer_num_pages = driver_buffer_num_pages;
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }
@@ -730,6 +779,8 @@ void sinsp::open_test_input(scap_test_input_data* data)
 
 	set_get_procs_cpu_from_driver(false);
 }
+
+/*=============================== OPEN METHODS ===============================*/
 
 std::string sinsp::generate_gvisor_config(std::string socket_path)
 {
