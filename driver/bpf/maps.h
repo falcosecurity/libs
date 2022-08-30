@@ -34,13 +34,6 @@ struct bpf_map_def __bpf_section("maps") tail_map = {
 	.max_entries = PPM_FILLER_MAX,
 };
 
-struct bpf_map_def __bpf_section("maps") syscall_code_routing_table = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(u32),
-	.value_size = sizeof(u64),
-	.max_entries = SYSCALL_TABLE_SIZE,
-};
-
 struct bpf_map_def __bpf_section("maps") syscall_table = {
 	.type = BPF_MAP_TYPE_ARRAY,
 	.key_size = sizeof(u32),

@@ -302,7 +302,6 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 #define SCAP_DRIVER_PROCINFO_INITIAL_SIZE 7
 #define SCAP_DRIVER_PROCINFO_MAX_SIZE 128000
 
-extern const enum ppm_syscall_code g_syscall_code_routing_table[];
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_syscall_desc g_syscall_info_table[];
