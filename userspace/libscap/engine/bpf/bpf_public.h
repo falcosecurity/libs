@@ -25,7 +25,7 @@ extern "C"
 
 	struct scap_bpf_engine_params
 	{
-		uint64_t single_buffer_dim; ///<  dim of a single shared buffer. Usually, we have one buffer for every online CPU.
+		uint64_t buffer_num_pages; ///< Number of pages of a single per CPU buffer. The overall buffer dimension is: `buffer_num_pages * page_dim`.
 		const char* bpf_probe;	    ///<  The path to the BPF probe object file.
 	};
 
