@@ -648,10 +648,9 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 
 	for(idx = 0; idx < max_val && ret == 0; idx++)
 	{
-		ret = 0;
 		new_val = new_tp_set & (1 << idx);
 		curr_val = g_tracepoints_attached & (1 << idx);
-		if((new_val ^ curr_val) == 0)
+		if(new_val == curr_val)
 		{
 			// no change needed
 			continue;

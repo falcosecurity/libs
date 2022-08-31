@@ -300,14 +300,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	/* Set interesting Syscalls */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if(oargs->ppm_sc_of_interest.ppm_sc[ppm_sc])
-		{
-			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_SET, ppm_sc);
-		}
-		else
-		{
-			scap_kmod_handle_event_mask(engine, SCAP_EVENTMASK_UNSET, ppm_sc);
-		}
+		uint32_t op = oargs->ppm_sc_of_interest.ppm_sc[ppm_sc] ? SCAP_EVENTMASK_SET : SCAP_EVENTMASK_UNSET;
+		scap_kmod_handle_event_mask(engine, op, ppm_sc);
 	}
 
 	/* Set interesting Tracepoints */

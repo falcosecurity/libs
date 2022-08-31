@@ -145,35 +145,31 @@ void print_EF_MODIFIES_STATE_syscalls()
 	print_sorted_syscalls(str, interesting_syscall);
 }
 
-void print_both_syscalls()
+void print_sinsp_modifies_state_syscalls()
 {
+	uint32_t ppm_scs[PPM_SC_MAX];
 	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
 	int interesting_syscall = 0;
 
+	scap_get_modifies_state_ppm_sc(ppm_scs);
+
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
+		if (!ppm_scs[ppm_sc])
+		{
+			continue;
+		}
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
 			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
 			{
 				continue;
 			}
-
-			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-				continue;
-			}
-
-			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
-			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
-			{
-				strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
-			}
+			strcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name);
 		}
 	}
 
-	printf("\n------- Print 'EF_MODIFIES_STATE' and 'UF_NEVER_DROP' syscalls: \n");
+	printf("\n------- Print 'scap_get_modifies_state_ppm_sc' syscalls: \n");
 	print_sorted_syscalls(str, interesting_syscall);
 }
 
@@ -204,7 +200,7 @@ void print_supported_tracepoints()
 
 /// TODO: we need to move this validation outside this example
 
-void validate_syscalls()
+bool validate_syscalls()
 {
 	enum ppm_syscall_code ppm_syscall_code = 0;
 	bool success = true;
@@ -216,7 +212,7 @@ void validate_syscalls()
 		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
 		 * `g_syscall_info_table`.
 		 */
-		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP && !g_syscall_info_table[ppm_syscall_code].name)
+		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && !g_syscall_info_table[ppm_syscall_code].name)
 		{
 			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
 			success = false;
@@ -241,12 +237,13 @@ void validate_syscalls()
 
 	if(success)
 	{
-		printf("\n[SUCCESS] Our table are consistent!\n");
+		printf("\n[SUCCESS] Our tables are consistent!\n");
 	}
 	else
 	{
-		printf("\n[FAIL] Our table are not consistent!\n");
+		printf("\n[FAIL] Our tables are not consistent!\n");
 	}
+	return success;
 }
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
@@ -291,7 +288,7 @@ void enable_single_ppm_sc(int ppm_sc_code)
 	ppm_sc_is_set = true;
 }
 
-void check_enabled_syscalls()
+void enable_syscalls_and_print()
 {
 	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
 	if(ppm_sc_is_set)
@@ -316,7 +313,7 @@ void check_enabled_syscalls()
 	printf("------------------------------------------------------------------\n\n");
 }
 
-void check_enabled_tracepoints()
+void enable_tracepoints_and_print()
 {
 	printf("---------------------- ENABLED TRACEPOINTS ----------------------\n");
 	if(tp_is_set)
@@ -771,14 +768,20 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], VALIDATION_OPTION))
 		{
-			validate_syscalls();
-			exit(EXIT_SUCCESS);
+			if (validate_syscalls())
+			{
+				exit(EXIT_SUCCESS);
+			}
+			else
+			{
+				exit(EXIT_FAILURE);
+			}
 		}
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
 			print_UF_NEVER_DROP_syscalls();
 			print_EF_MODIFIES_STATE_syscalls();
-			print_both_syscalls();
+			print_sinsp_modifies_state_syscalls();
 			print_supported_syscalls();
 			print_supported_tracepoints();
 			exit(EXIT_SUCCESS);
@@ -864,9 +867,9 @@ int main(int argc, char** argv)
 
 	print_configurations();
 
-	check_enabled_syscalls();
+	enable_syscalls_and_print();
 
-	check_enabled_tracepoints();
+	enable_tracepoints_and_print();
 
 	g_h = scap_open(&oargs, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)

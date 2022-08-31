@@ -646,17 +646,14 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 
 static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname)
 {
-	if (tp_of_interest)
+	tp_values val = tp_from_name(shname);
+	if(!tp_of_interest || val == -1)
 	{
-		tp_values val = tp_from_name(shname);
-		if(val == -1)
-		{
-			// Not found? Enable it!
-			return true;
-		}
-		return tp_of_interest->tp[val];
+		// Null tp set? Enable everything!
+		// Not found? Enable it!
+		return true;
 	}
-	return true;
+	return tp_of_interest->tp[val];
 }
 
 static int32_t load_bpf_file(
