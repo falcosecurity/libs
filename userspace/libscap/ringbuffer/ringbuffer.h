@@ -23,6 +23,13 @@ limitations under the License.
 #include "barrier.h"
 #include "sleep.h"
 
+static unsigned long per_cpu_buffer_dim;
+
+static inline void set_per_cpu_buffer_dim(unsigned long buf_dim)
+{
+	per_cpu_buffer_dim = buf_dim;
+}
+
 #ifndef GET_BUF_POINTERS
 #define GET_BUF_POINTERS ringbuffer_get_buf_pointers
 static inline void ringbuffer_get_buf_pointers(scap_device* dev, uint64_t* phead, uint64_t* ptail, uint64_t* pread_size)
@@ -33,7 +40,7 @@ static inline void ringbuffer_get_buf_pointers(scap_device* dev, uint64_t* phead
 
 	if(*ptail > *phead)
 	{
-		*pread_size = RING_BUF_SIZE - *ptail + *phead;
+		*pread_size = per_cpu_buffer_dim - *ptail + *phead;
 	}
 	else
 	{
@@ -63,13 +70,13 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 	//
 	mem_barrier();
 
-	if(ttail < RING_BUF_SIZE)
+	if(ttail < per_cpu_buffer_dim)
 	{
 		dev->m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		dev->m_bufinfo->tail = ttail - RING_BUF_SIZE;
+		dev->m_bufinfo->tail = ttail - per_cpu_buffer_dim;
 	}
 
 	dev->m_lastreadsize = 0;
