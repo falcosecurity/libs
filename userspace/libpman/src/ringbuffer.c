@@ -31,7 +31,7 @@ limitations under the License.
 static int ringbuf_array_set_inner_map()
 {
 	int err = 0;
-	int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, SINGLE_RINGBUF_DIMENSION, NULL);
+	int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.single_ringbuf_dimension, NULL);
 	if(inner_map_fd < 0)
 	{
 		pman_print_error("failed to create the dummy inner map");
@@ -103,7 +103,7 @@ static int create_first_ringbuffer_map()
 	}
 
 	/* create the first ringbuf map. */
-	ringbuf_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, SINGLE_RINGBUF_DIMENSION, NULL);
+	ringbuf_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.single_ringbuf_dimension, NULL);
 	if(ringbuf_map_fd <= 0)
 	{
 		pman_print_error("failed to create the first ringbuf map");
@@ -157,7 +157,7 @@ static int create_remaining_ringbuffer_maps()
 	 */
 	for(index = 1; index < g_state.n_cpus; index++)
 	{
-		ringbuf_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, SINGLE_RINGBUF_DIMENSION, NULL);
+		ringbuf_map_fd = bpf_map_create(BPF_MAP_TYPE_RINGBUF, NULL, 0, 0, g_state.single_ringbuf_dimension, NULL);
 		if(ringbuf_map_fd <= 0)
 		{
 			sprintf(error_message, "failed to create the ringbuf map for CPU %d", index);

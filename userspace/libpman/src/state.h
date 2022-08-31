@@ -34,6 +34,7 @@ struct internal_state
 	unsigned long* cons_pos;	/* every ringbuf has a consumer position. */
 	unsigned long* prod_pos;	/* every ringbuf has a producer position. */
 	int32_t inner_ringbuf_map_fd;	/* inner map used to configure the ringbuf array before loading phase. */
+	uint64_t single_ringbuf_dimension; /* dimension of a single per-CPU ringbuffer. */
 };
 
 extern struct internal_state g_state;
