@@ -354,7 +354,7 @@ public:
 			  std::string &rem) const;
 
 	void cgroups_to_iovec(struct iovec **iov, int *iovcnt,
-			      std::string &rem) const;
+			      std::string &rem, const cgroups_t& cgroups) const;
 
 	//
 	// State for filtering
