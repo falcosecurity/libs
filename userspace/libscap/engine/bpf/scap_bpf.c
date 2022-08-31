@@ -109,8 +109,6 @@ static void free_handle(struct scap_engine_handle engine)
 
 # define UINT32_MAX (4294967295U)
 
-static const int BUF_SIZE_PAGES = 2048;
-
 /* Recommended log buffer size. 
  * Taken from libbpf source code: https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
  */
@@ -843,13 +841,13 @@ cleanup:
 	return res;
 }
 
-static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size)
+static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, uint64_t buf_num_pages)
 {
 	int page_size = getpagesize();
-	int ring_size = page_size * BUF_SIZE_PAGES;
+	int ring_size = page_size * buf_num_pages;
 	int header_size = page_size;
 	int total_size = ring_size * 2 + header_size;
-	char buf[SCAP_LASTERR_SIZE];
+	char buf[SCAP_LASTERR_SIZE] = {0};
 
 	*size = 0;
 
@@ -1441,6 +1439,7 @@ int32_t scap_bpf_load(
 	int online_cpu;
 	int j;
 	char buf[SCAP_LASTERR_SIZE];
+	struct scap_bpf_engine_params* bpf_args = oargs->engine_params;
 
 	if(set_runtime_params(handle) != SCAP_SUCCESS)
 	{
@@ -1557,7 +1556,7 @@ int32_t scap_bpf_load(
 		//
 		// Map the ring buffer
 		//
-		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size);
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size, bpf_args->buffer_num_pages);
 		if(dev->m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
