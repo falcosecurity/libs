@@ -28,11 +28,14 @@ using namespace std;
 // Functions used for dumping to stdout
 void plaintext_dump(sinsp& inspector);
 void json_dump(sinsp& inspector);
+void json_dump_init(sinsp& inspector);
+void json_dump_reinit_evt_formatter(sinsp& inspector);
 
 std::function<void(sinsp& inspector)> dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
+static bool json_dump_init_success = false;
 string engine_string = "kmod";
 string filter_string = "";
 string file_path = "";
@@ -69,7 +72,7 @@ Options:
   -b <path>, --bpf-path <path>                  BPF probe path.
   -d <dim>, --buffer-dim <dim>                  Buffer dimension.
   -s <path>, --file-path <path>                 Scap file path.
-  -o <fields>, --output-fields-json <fields>    Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events when output format set to JSON. * at the beginning prints JSON keys with null values, else no null fields are printed.
+  -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
 )";
 	cout << usage << endl;
 }
@@ -93,7 +96,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:ja:e:b:d:s:o:",
+				"hf:jae:b:d:s:o:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -105,8 +108,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			filter_string = optarg;
 			break;
 		case 'j':
-			inspector.set_buffer_format(sinsp_evt::PF_JSON);
-			dump = json_dump;
+			json_dump_init(inspector);
 			break;
 		case 'a':
 			g_all_threads = true;
@@ -125,6 +127,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 'o':
 			output_fields_json = optarg;
+			json_dump_init(inspector);
+			json_dump_reinit_evt_formatter(inspector);
 			break;
 		default:
 			break;
@@ -347,20 +351,32 @@ void plaintext_dump(sinsp& inspector)
 	}
 }
 
+void json_dump_init(sinsp& inspector)
+{
+	if (!json_dump_init_success)
+	{
+		dump = json_dump;
+		inspector.set_buffer_format(sinsp_evt::PF_JSON);
+		// Initialize JSON formatters
+		default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
+		process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
+		net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
+		json_dump_init_success = true;
+	}
+}
+
+void json_dump_reinit_evt_formatter(sinsp& inspector)
+{
+	if (!output_fields_json.empty() && json_dump_init_success)
+	{
+		default_formatter = new sinsp_evt_formatter(&inspector, output_fields_json);
+		process_formatter = new sinsp_evt_formatter(&inspector, output_fields_json);
+		net_formatter = new sinsp_evt_formatter(&inspector, output_fields_json);
+	}
+}
+
 void json_dump(sinsp& inspector)
 {
-	// Initialize JSON formatters
-	default_formatter = new sinsp_evt_formatter(&inspector, DEFAULT_OUTPUT_STR);
-	process_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS);
-	net_formatter = new sinsp_evt_formatter(&inspector, PROCESS_DEFAULTS " %fd.name");
-
-	// Overwrite output_format defaults with user supplied output fields string
-	if (!output_fields_json.empty())
-	{
-		default_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
-		process_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
-		net_formatter->set_format(gen_event_formatter::OF_JSON, output_fields_json);
-	}
 
 	sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
 				  { cout << R"({"error": ")" << error_msg << R"("})" << endl; });
