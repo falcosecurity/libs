@@ -211,6 +211,8 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 			++to;
 		}
 	}
+	/* We read all the `n` bytes. */
+	res = n;
 
 strncpy_end:
 	pagefault_enable();
@@ -636,12 +638,22 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			/* Make sure the string is null-terminated */
 			if (likely(len > 0))
 			{
-				if (++len > (int)max_arg_size)
+				if(*(char *)(args->buffer + args->arg_data_offset + (len-1)) != '\0')
 				{
-					len = max_arg_size;
+					/* If we have not reached the `max_arg_size` we can put a new char with
+					 * the string terminator otherwise, we push the terminator on the last
+					 * available char without adding a new one (so no `len` increment).
+					 */
+					if(len != max_arg_size)
+					{
+						*(char *)(args->buffer + args->arg_data_offset + len) = '\0';
+						len++;
+					}
+					else
+					{
+						*(char *)(args->buffer + args->arg_data_offset + (len-1)) = '\0';
+					}
 				}
-
-				*(char *)(args->buffer + args->arg_data_offset + len) = 0;
 				break;
 			}
 		}
