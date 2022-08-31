@@ -36,6 +36,7 @@ limitations under the License.
 #define PPM_SC_OPTION "--ppm_sc"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
+#define BUFFER_OPTION "--pages"
 
 /* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -48,6 +49,8 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /* Engine params */
 struct scap_bpf_engine_params bpf_params = {0};
+struct scap_kmod_engine_params kmod_params = {0};
+struct scap_modern_bpf_engine_params modern_bpf_params = {0};
 struct scap_savefile_engine_params savefile_params = {0};
 
 /* Configuration variables set through CLI. */
@@ -685,6 +688,7 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			oargs.engine_name = KMOD_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
+			oargs.engine_params = &kmod_params;
 		}
 		if(!strcmp(argv[i], BPF_OPTION))
 		{
@@ -695,7 +699,6 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			oargs.engine_name = BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
-
 			bpf_params.bpf_probe = argv[++i];
 			oargs.engine_params = &bpf_params;
 		}
@@ -703,6 +706,7 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			oargs.engine_name = MODERN_BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
+			oargs.engine_params = &modern_bpf_params;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
 		{
@@ -713,7 +717,6 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			oargs.engine_name = SAVEFILE_ENGINE;
 			oargs.mode = SCAP_MODE_CAPTURE;
-
 			savefile_params.fname = argv[++i];
 			oargs.engine_params = &savefile_params;
 		}
@@ -722,6 +725,18 @@ void parse_CLI_options(int argc, char** argv)
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
+		if(!strcmp(argv[i], BUFFER_OPTION))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the number of pages! Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			uint64_t buffer_num_pages = strtoul(argv[++i], NULL, 10);
+			kmod_params.buffer_num_pages = buffer_num_pages;
+			bpf_params.buffer_num_pages = buffer_num_pages;
+			modern_bpf_params.buffer_num_pages = buffer_num_pages;
+		}
 		if(!strcmp(argv[i], TP_OPTION))
 		{
 			if(!(i + 1 < argc))
