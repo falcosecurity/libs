@@ -1,6 +1,6 @@
 #pragma once
 
-/* | name | name | */
+/* | name | path | */
 #define TP_FIELDS \
 	X(SYS_ENTER, "sys_enter")    \
 	X(SYS_EXIT, "sys_exit")      \

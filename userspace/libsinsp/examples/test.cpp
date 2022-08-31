@@ -64,17 +64,6 @@ static void usage()
 Overview: Goal of sinsp-example binary is to test and debug sinsp functionality and print events to STDOUT. All drivers are supported.
 
 Options:
-<<<<<<< HEAD
-  -h, --help                                    Print this page.
-  -f <filter>, --filter <filter>                Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
-  -j, --json                                    Use JSON as the output format (STDOUT).
-  -a, --all-threads                             Output information about all threads, not just the main one.
-  -e <engine_name>, --engine <engine_name>      Specify the engine name to open possible values are: "kmod", "bpf", "udig", "nodriver", "savefile", "gvisor", "modern_bpf", "test_input".
-  -b <path>, --bpf-path <path>                  BPF probe path.
-  -d <dim>, --buffer-dim <dim>                  Buffer dimension.
-  -s <path>, --file-path <path>                 Scap file path.
-  -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
-=======
   -h, --help                                 Print this page.
   -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                 Use JSON as the output format.
@@ -84,7 +73,7 @@ Options:
   -k, --kmod								 Kernel module
   -s <path>, --scap_file <path>   			 Scap file
   -d <dim>, --buffer_dim <dim>               Buffer dimension.
->>>>>>> 06e716b3 (fix(libscap/libsinsp): allow examples to work correctly)
+  -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
 )";
 	cout << usage << endl;
 }

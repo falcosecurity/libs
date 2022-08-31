@@ -289,10 +289,12 @@ static __always_inline bool is_syscall_interesting(int id)
 	bool *enabled = bpf_map_lookup_elem(&interesting_syscalls_table, &id);
 
 	if (!enabled)
-
+	{
 		bpf_printk("no syscall_info for %d\n", id);
+		return false;
+	}
 
-	return enabled && *enabled;
+	return *enabled;
 }
 
 static __always_inline const struct ppm_event_info *get_event_info(enum ppm_event_type event_type)
