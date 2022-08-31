@@ -1200,11 +1200,10 @@ void sinsp_threadinfo::add_to_iovec(const string &str,
 // iov will be allocated and must be freed. rem is used to hold a
 // possibly truncated final argument.
 void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
-				       std::string &rem) const
+				       std::string &rem, const cgroups_t& cgroups) const
 {
 	uint32_t alen = SCAP_MAX_ARGS_SIZE;
 	static const string eq = "=";
-	auto cgroups = this->cgroups();
 
 	// We allocate an iovec big enough to hold all the cgroups and
 	// intermediate '=' signs. Based on alen, we might not use all
@@ -1641,6 +1640,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		int argscnt, envscnt, cgroupscnt;
 		string argsrem, envsrem, cgroupsrem;
 		uint32_t entrylen = 0;
+		auto cg = tinfo.cgroups();
 
 		if((sctinfo = scap_proc_alloc(m_inspector->m_h)) == NULL)
 		{
@@ -1651,7 +1651,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		thread_to_scap(tinfo, sctinfo);
 		tinfo.args_to_iovec(&args_iov, &argscnt, argsrem);
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
-		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem);
+		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem, cg);
 
 		if(scap_write_proclist_entry_bufs(m_inspector->m_h, proclist_dumper, sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
