@@ -17,11 +17,6 @@
  */
 #define AUXILIARY_MAP_SIZE 128 * 1024
 
-/* The actual dimension of every single ringbuf is 8 MB.
- * Right now, this macro is used only by the userspace.
- */
-#define SINGLE_RINGBUF_DIMENSION 8 * 1024 * 1024
-
 /**
  * @brief General settings shared among all the CPUs.
  *
