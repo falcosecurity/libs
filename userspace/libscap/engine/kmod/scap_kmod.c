@@ -74,6 +74,27 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
+static int32_t enforce_into_kmod_single_buffer_dim(scap_t *handle, unsigned long bpf_dim)
+{
+	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/per_cpu_buffer_dim", "w");
+	if(pfile == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open the 'per_cpu_buffer_dim' parameter file: %s", scap_strerror(handle, errno));
+		return SCAP_FAILURE;
+	}
+
+	if(fprintf(pfile, "%lu", bpf_dim) < 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/per_cpu_buffer_dim: %s", scap_strerror(handle, errno));
+		fclose(pfile);
+		return SCAP_FAILURE;
+	}
+
+	fclose(pfile);
+	return SCAP_SUCCESS;
+}
+
+
 /// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
@@ -126,11 +147,12 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 {
 	uint32_t j = 0;
 	struct scap_engine_handle engine = handle->m_engine;
+	struct scap_kmod_engine_params* params  = oargs->engine_params;
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	uint32_t ndevs = 0;
 	int32_t rc = 0;
 
-	int len = 0;
+	int mapped_len = 0;
 	uint32_t all_scanned_devs = 0;
 	uint64_t api_version = 0;
 	uint64_t schema_version = 0;
@@ -158,10 +180,25 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		return rc;
 	}
 
+	/* Obtain the single buffer dimension */
+	long page_size = sysconf(_SC_PAGESIZE);
+	if(page_size <= 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_PAGESIZE: %s", scap_strerror(handle, errno));
+		return SCAP_FAILURE;
+	}
+	unsigned long single_buffer_dim = page_size * params->buffer_num_pages;
+	set_per_cpu_buffer_dim(single_buffer_dim);
+	
+	/* We need to enforce the buffer dim before opening the devices
+	 * otherwise this dimension will be not set during the opening phase!
+	 */
+	enforce_into_kmod_single_buffer_dim(handle, single_buffer_dim);
+
 	//
 	// Allocate the device descriptors.
 	//
-	len = RING_BUF_SIZE * 2;
+	mapped_len = single_buffer_dim * 2;
 
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
@@ -257,7 +294,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		// Map the ring buffer
 		//
 		dev->m_buffer = (char*)mmap(0,
-					    len,
+					    mapped_len,
 					    PROT_READ,
 					    MAP_SHARED,
 					    dev->m_fd,
@@ -271,7 +308,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
 			return SCAP_FAILURE;
 		}
-		dev->m_buffer_size = len;
+		dev->m_buffer_size = mapped_len;
 
 		//
 		// Map the ppm_ring_buffer_info that contains the buffer pointers
@@ -286,7 +323,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		if(dev->m_bufinfo == MAP_FAILED)
 		{
 			// we cleanup this fd and then we let scap_close() take care of the other ones
-			munmap(dev->m_buffer, len);
+			munmap(dev->m_buffer, mapped_len);
 			close(dev->m_fd);
 
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
