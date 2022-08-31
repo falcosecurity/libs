@@ -39,15 +39,16 @@ extern "C"
 	/////////////////////////////
 
 	/**
-	 * @brief Set libbpf inital configurations:
-	 * - libbpf strict mode.
-	 * - libbpf logging function according to the verbosity.
+	 * @brief Set `libpman` initial state:
+	 * - set `libbpf` strict mode.
+	 * - set `libbpf` logging function according to the verbosity.
 	 * - set available number of CPUs.
+	 * - set dimension of a single per-CPU ring buffer.
 	 *
 	 * @param verbosity use `true` if you want to activate libbpf verbosity.
 	 * @return `0` on success, `-1` in case of error.
 	 */
-	int pman_set_libbpf_configuration(bool verbosity);
+	int pman_init_state(bool verbosity, uint64_t single_buf_dim);
 
 	/**
 	 * @brief Return the number of available CPUs on the system, not the

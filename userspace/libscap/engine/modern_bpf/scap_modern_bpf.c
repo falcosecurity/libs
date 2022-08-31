@@ -191,12 +191,22 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 {
 	int ret = 0;
 	struct scap_engine_handle engine = handle->m_engine;
+	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
 	bool libbpf_verbosity = false;
 
-	/* Configure libbpf library used under the hood. */
-	if(pman_set_libbpf_configuration(libbpf_verbosity))
+	/* Obtain the single buffer dimension */
+	long page_size = sysconf(_SC_PAGESIZE);
+	if(page_size <= 0)
 	{
-		snprintf(handle->m_engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "Unable to get configure libbpf.");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to get the system page size: %s", strerror(errno));
+		return SCAP_FAILURE;
+	}
+	unsigned long single_buffer_dim = page_size * params->buffer_num_pages;
+
+	/* Initialize the libpman internal state */
+	if(pman_init_state(libbpf_verbosity, single_buffer_dim))
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure libbpf.");
 		return SCAP_FAILURE;
 	}
 

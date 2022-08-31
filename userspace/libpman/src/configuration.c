@@ -44,7 +44,7 @@ static void setup_libbpf_logging(bool verbosity)
 	}
 }
 
-int pman_set_libbpf_configuration(bool verbosity)
+int pman_init_state(bool verbosity, uint64_t single_buf_dim)
 {
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -56,13 +56,16 @@ int pman_set_libbpf_configuration(bool verbosity)
 	/* Set libbpf verbosity. */
 	setup_libbpf_logging(verbosity);
 
-	/* Set available number of CPUs inside the internal state. */
+	/* Set the available number of CPUs inside the internal state. */
 	g_state.n_cpus = libbpf_num_possible_cpus();
 	if(g_state.n_cpus <= 0)
 	{
 		pman_print_error("no available cpus");
 		return -1;
 	}
+
+	/* Set the dimension of a single per-CPU ring buffer. */
+	g_state.single_ringbuf_dimension = single_buf_dim;
 	return 0;
 }
 

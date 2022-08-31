@@ -6,6 +6,9 @@
 #include <libpman.h>
 #include <gtest/gtest.h>
 
+/* Dimension of every single ring buffer in these tests is 8 MB. */
+#define SINGLE_RINGBUF_DIMENSION 8 * 1024 * 1024
+
 void print_setup_phase_message()
 {
 	std::cout << std::endl;
@@ -52,7 +55,7 @@ int main(int argc, char** argv)
 	::testing::InitGoogleTest(&argc, argv);
 
 	/* Configure and load BPF probe. */
-	ret = pman_set_libbpf_configuration(libbpf_verbosity);
+	ret = pman_init_state(libbpf_verbosity, SINGLE_RINGBUF_DIMENSION);
 	ret = ret ?: pman_open_probe();
 	ret = ret ?: pman_prepare_ringbuf_array_before_loading();
 	ret = ret ?: pman_prepare_maps_before_loading();
