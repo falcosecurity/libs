@@ -212,7 +212,7 @@ long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 		}
 	}
 	/* We read all the `n` bytes. */
-	res = n;
+	res = string_length;
 
 strncpy_end:
 	pagefault_enable();
