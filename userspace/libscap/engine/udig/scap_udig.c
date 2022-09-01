@@ -97,6 +97,9 @@ int32_t udig_alloc_ring(void* ring_id,
 		}
 	}
 
+	/* Set the dimension of the per-cpu buffer. */
+	set_per_cpu_buffer_dim((unsigned long)*ringsize);
+
 	//
 	// Map the ring. This is a multi-step process because we want to map two
 	// consecutive copies of the same memory to reuse the driver fillers, which
