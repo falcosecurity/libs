@@ -53,7 +53,7 @@ def test_db_program_spawned_process(run_containers: dict):
         },
         {
             "container.id": generator_id,
-            "evt.args": SinspField.regex_field(r'^res=0 exe=/bin/ls args= tid=\d+\(ls\) pid=\d+\(ls\) ptid=\d+\(mysqld\) .* tty=0 pgid=1\(sinsp-example\) loginuid=-1 flags=1\(EXE_WRITABLE\) cap_inheritable=0 cap_permitted=3FFFFFFFFF cap_effective=3FFFFFFFFF $'),
+            "evt.args": SinspField.regex_field(r'^res=0 exe=/bin/ls args=NULL tid=\d+\(ls\) pid=\d+\(ls\) ptid=\d+\(mysqld\) .* tty=0 pgid=1\(sinsp-example\) loginuid=-1 flags=1\(EXE_WRITABLE\) cap_inheritable=0 cap_permitted=3FFFFFFFFF cap_effective=3FFFFFFFFF $'),
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),

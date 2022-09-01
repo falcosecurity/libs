@@ -225,11 +225,16 @@ def generate_specs(image: str = 'sinsp-example:latest', args: list = []) -> list
         A dictionary describing how to run the sinsp-example container
     """
     specs = []
+    bpf_args = args.copy()
+    bpf_args.extend([
+        '-e', 'bpf',
+        '-b', os.environ.get('BPF_PROBE'),
+    ])
 
     specs.append(container_spec(
         image, args, {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE')}))
     specs.append(container_spec(
-        image, args, {'BPF_PROBE': os.environ.get('BPF_PROBE')}))
+        image, bpf_args, {'BPF_PROBE': os.environ.get('BPF_PROBE')}))
 
     return specs
 

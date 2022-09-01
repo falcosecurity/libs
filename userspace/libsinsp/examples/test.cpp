@@ -204,51 +204,46 @@ void open_engine(sinsp& inspector)
 #define insmod(fd, opts, flags) syscall(__NR_finit_module, fd, opts, flags)
 #define rmmod(name, flags) syscall(__NR_delete_module, name, flags)
 
-static bool using_ebpf()
-{
-    char *bpf_probe = getenv("BPF_PROBE");
-
-    return bpf_probe != NULL && *bpf_probe;
-}
-
 static void remove_module()
 {
-    if (rmmod("scap", 0) != 0)
-        cerr << "[ERROR] Failed to remove kernel module" << strerror(errno) << endl;
+	if (rmmod("scap", 0) != 0)
+	{
+		cerr << "[ERROR] Failed to remove kernel module" << strerror(errno) << endl;
+	}
 }
 
 static bool insert_module()
 {
-    // Check if we are configured to run with the eBPF probe
-    if (using_ebpf())
-        return true;
+	// Check if we are configured to run with the eBPF probe
+	if(engine_string.compare(KMOD_ENGINE))
+		return true;
 
-    char *driver_path = getenv("KERNEL_MODULE");
-    if (driver_path == NULL || *driver_path == '\0')
-    {
-        // We don't have a path set, assuming the kernel module is already there
-        return true;
-    }
+	char *driver_path = getenv("KERNEL_MODULE");
+	if (driver_path == NULL || *driver_path == '\0')
+	{
+		// We don't have a path set, assuming the kernel module is already there
+		return true;
+	}
 
-    int res;
-    int fd = open(driver_path, O_RDONLY);
-    if (fd < 0)
-        goto error;
+	int res;
+	int fd = open(driver_path, O_RDONLY);
+	if (fd < 0)
+		goto error;
 
-    res = insmod(fd, "", 0);
-    if (res != 0)
-        goto error;
+	res = insmod(fd, "", 0);
+	if (res != 0)
+		goto error;
 
-    atexit(remove_module);
+	atexit(remove_module);
 
-    return true;
+	return true;
 
 error:
-    cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
+	cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
 
-    close(fd);
+	close(fd);
 
-    return false;
+	return false;
 }
 #endif
 
@@ -266,15 +261,15 @@ int main(int argc, char** argv)
 	parse_CLI_options(inspector, argc, argv);
 
 #ifdef __linux__
-    // Try inserting the kernel module
-    bool res = insert_module();
-    if (!res)
-    {
-        return -1;
-    }
+	// Try inserting the kernel module
+	bool res = insert_module();
+	if (!res)
+	{
+		return -1;
+	}
 #endif
 
-    signal(SIGPIPE, sigint_handler);
+	signal(SIGPIPE, sigint_handler);
 #endif
 
 	signal(SIGINT, sigint_handler);

@@ -8,6 +8,7 @@ RUN apt-get update && \
     libjsoncpp1 \
     openssl \
     libb64-0d \
+    libre2-5 \
     libtbb2
 
 COPY /sinsp-example /usr/local/bin/sinsp-example
