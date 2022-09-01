@@ -45,7 +45,6 @@ limitations under the License.
 extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
-extern const enum ppm_syscall_code g_syscall_code_routing_table[SYSCALL_TABLE_SIZE];
 
 /* Engine params */
 struct scap_bpf_engine_params bpf_params = {0};
@@ -103,7 +102,7 @@ void print_UF_NEVER_DROP_syscalls()
 	{
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
 			{
 				continue;
 			}
@@ -128,7 +127,7 @@ void print_EF_MODIFIES_STATE_syscalls()
 	{
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
 			{
 				continue;
 			}
@@ -161,7 +160,7 @@ void print_sinsp_modifies_state_syscalls()
 		}
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
 			{
 				continue;
 			}
@@ -179,11 +178,11 @@ void print_supported_syscalls()
 
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
-		if(g_syscall_code_routing_table[syscall_nr] == PPM_SC_UNKNOWN)
+		if(g_syscall_table[syscall_nr].ppm_sc == PPM_SC_UNKNOWN)
 		{
 			continue;
 		}
-		int ppm_code = g_syscall_code_routing_table[syscall_nr];
+		int ppm_code = g_syscall_table[syscall_nr].ppm_sc;
 		printf("- %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
 	}
 }
@@ -208,7 +207,7 @@ bool validate_syscalls()
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
 	{
 
-		ppm_syscall_code = g_syscall_code_routing_table[syscall_id];
+		ppm_syscall_code = g_syscall_table[syscall_id].ppm_sc;
 		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
 		 * `g_syscall_info_table`.
 		 */
