@@ -41,7 +41,7 @@ string filter_string = "";
 string file_path = "";
 string bpf_path = "";
 string output_fields_json = "";
-uint64_t buffer_dim = 0;
+uint64_t num_pages = 0;
 
 sinsp_evt* get_event(sinsp& inspector);
 
@@ -72,7 +72,7 @@ Options:
   -m, --modern_bpf               			 modern BPF probe.
   -k, --kmod								 Kernel module
   -s <path>, --scap_file <path>   			 Scap file
-  -d <dim>, --buffer_dim <dim>               Buffer dimension.
+  -p <#pages>, --pages <#pages>              Number of pages that every per-CPU buffer will have.
   -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
 )";
 	cout << usage << endl;
@@ -91,14 +91,14 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"modern_bpf", no_argument, 0, 'm'},
 		{"kmod", no_argument, 0, 'k'},
 		{"scap_file", required_argument, 0, 's'},
-		{"buffer_dim", required_argument, 0, 'd'},
+		{"pages", required_argument, 0, 'p'},
 		{"output-fields-json", required_argument, 0, 'o'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jae:b:d:s:o:",
+				"hf:jae:b:p:s:o:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -129,8 +129,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			engine_string = SAVEFILE_ENGINE;
 			file_path = optarg;
 			break;
-		case 'd':
-			buffer_dim = strtoul(optarg, NULL, 10);
+		case 'p':
+			num_pages = strtoul(optarg, NULL, 10);
 			break;
 		case 'o':
 			output_fields_json = optarg;
@@ -154,7 +154,7 @@ void open_engine(sinsp& inspector)
 
 	if(!engine_string.compare(KMOD_ENGINE))
 	{
-		inspector.open_kmod(buffer_dim, ppm_sc, tp_set);
+		inspector.open_kmod(num_pages, ppm_sc, tp_set);
 	}
 	else if(!engine_string.compare(BPF_ENGINE))
 	{
@@ -167,7 +167,7 @@ void open_engine(sinsp& inspector)
 		{
 			std::cerr << bpf_path << std::endl;
 		}
-		inspector.open_bpf(buffer_dim, bpf_path.c_str(), ppm_sc, tp_set);
+		inspector.open_bpf(num_pages, bpf_path.c_str(), ppm_sc, tp_set);
 	}
 	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
@@ -180,7 +180,7 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
-		inspector.open_modern_bpf(buffer_dim, ppm_sc, tp_set);
+		inspector.open_modern_bpf(num_pages, ppm_sc, tp_set);
 	}
 	else
 	{
