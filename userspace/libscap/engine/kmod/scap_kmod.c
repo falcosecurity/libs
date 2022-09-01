@@ -85,7 +85,7 @@ int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t o
 		// then for any syscall, (un)set its enter and exit events
 		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 		{
-			if (g_syscall_code_routing_table[i] == ppm_sc)
+			if (g_syscall_table[i].ppm_sc == ppm_sc)
 			{
 				enum ppm_event_type enter_ev = g_syscall_table[i].enter_event_type;
 				enum ppm_event_type exit_ev = g_syscall_table[i].exit_event_type;

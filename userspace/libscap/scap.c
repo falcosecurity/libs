@@ -1186,7 +1186,7 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 			{
 				if (g_syscall_table[syscall_nr].exit_event_type == event_nr || g_syscall_table[syscall_nr].enter_event_type == event_nr)
 				{
-					uint32_t ppm_sc_code = g_syscall_code_routing_table[syscall_nr];
+					uint32_t ppm_sc_code = g_syscall_table[syscall_nr].ppm_sc;
 					ppm_sc_array[ppm_sc_code] = 1;
 				}
 			}
@@ -1198,7 +1198,11 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 	{
 		if (g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
 		{
+<<<<<<< HEAD
 			uint32_t ppm_sc_code = g_syscall_code_routing_table[syscall_nr];
+=======
+			uint32_t ppm_sc_code = g_syscall_table[j].ppm_sc;
+>>>>>>> 164707b3 (chore(userspace/libscap): cleanup residual references to routing table.)
 			ppm_sc_array[ppm_sc_code] = 1;
 		}
 	}

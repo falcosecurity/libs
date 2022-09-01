@@ -908,7 +908,7 @@ static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm
 	 */
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
-		if(g_syscall_code_routing_table[syscall_nr] != ppm_sc)
+		if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
 		{
 			continue;
 		}

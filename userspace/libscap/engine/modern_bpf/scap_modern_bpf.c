@@ -66,7 +66,7 @@ static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting
 {
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
-		if(g_syscall_code_routing_table[syscall_nr] == ppm_sc)
+		if (g_syscall_table[syscall_nr].ppm_sc == ppm_sc)
 		{
 			pman_mark_single_64bit_syscall(syscall_nr, interesting);
 		}
