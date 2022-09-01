@@ -1178,15 +1178,15 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 
 #ifdef __linux__
 	// Collect EF_MODIFIES_STATE events
-	for (int i = 0; i < PPM_EVENT_MAX; i++)
+	for (int event_nr = 0; event_nr < PPM_EVENT_MAX; event_nr++)
 	{
-		if (g_event_info[i].flags & EF_MODIFIES_STATE)
+		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE)
 		{
-			for (int j = 0; j < SYSCALL_TABLE_SIZE; j++)
+			for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 			{
-				if (g_syscall_table[j].exit_event_type == i || g_syscall_table[j].enter_event_type == i)
+				if (g_syscall_table[syscall_nr].exit_event_type == event_nr || g_syscall_table[syscall_nr].enter_event_type == event_nr)
 				{
-					uint32_t ppm_sc_code = g_syscall_code_routing_table[i];
+					uint32_t ppm_sc_code = g_syscall_code_routing_table[syscall_nr];
 					ppm_sc_array[ppm_sc_code] = 1;
 				}
 			}
@@ -1194,11 +1194,11 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 	}
 
 	// Collect UF_NEVER_DROP syscalls
-	for (int j = 0; j < SYSCALL_TABLE_SIZE; j++)
+	for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
-		if (g_syscall_table[j].flags & UF_NEVER_DROP)
+		if (g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
 		{
-			uint32_t ppm_sc_code = g_syscall_code_routing_table[j];
+			uint32_t ppm_sc_code = g_syscall_code_routing_table[syscall_nr];
 			ppm_sc_array[ppm_sc_code] = 1;
 		}
 	}
