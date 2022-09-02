@@ -39,6 +39,7 @@ EXPORTS
 		scap_clear_eventmask
 		scap_set_eventmask
 		scap_unset_eventmask
+		scap_set_tpmask
 		scap_number_of_bytes_to_write
 		scap_event_get_dump_flags
 		scap_enable_dynamic_snaplen
