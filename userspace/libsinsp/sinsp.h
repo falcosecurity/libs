@@ -845,6 +845,8 @@ public:
 	*/
 	void mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enabled = true);
 
+	void mark_tp_of_interest(uint32_t tp, bool enabled = true);
+
 	/*!
 		\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
 		If you call it without arguments it returns a new set with just these syscalls

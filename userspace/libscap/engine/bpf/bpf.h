@@ -31,16 +31,22 @@ limitations under the License.
 
 #define BPF_MAPS_MAX 32
 
+struct bpf_prog {
+	int fd;
+	int efd;
+	char name[NAME_MAX];
+};
+
 struct bpf_engine
 {
 	struct scap_device_set m_dev_set;
 	size_t m_ncpus;
 	char* m_lasterr;
-	int m_bpf_prog_fds[BPF_PROGS_MAX];
+	struct bpf_prog m_bpf_progs[BPF_PROGS_MAX];
 	int m_bpf_prog_cnt;
-	int m_bpf_event_fd[BPF_PROGS_MAX];
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
+	char m_filepath[PATH_MAX];
 };
 
 #define SCAP_HANDLE_T struct bpf_engine

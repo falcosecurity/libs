@@ -744,7 +744,18 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			}
 			else
 			{
-				pr_err("can't create the %s tracepoint\n", tp_names[idx]);
+				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+		else
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached &= ~(1 << idx);
+			}
+			else
+			{
+				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
 			}
 		}
 	}
@@ -905,6 +916,12 @@ cleanup_ioctl_procinfo:
 		unsigned long long __user *out = (unsigned long long __user *) arg;
 		ret = 0;
 		if(put_user(PPM_SCHEMA_CURRENT_VERSION, out))
+			ret = -EINVAL;
+		goto cleanup_ioctl_nolock;
+	} else if (cmd == PPM_IOCTL_GET_TPMASK) {
+		u32 __user *out = (u32 __user *) arg;
+		ret = 0;
+		if(put_user(g_tracepoints_attached, out))
 			ret = -EINVAL;
 		goto cleanup_ioctl_nolock;
 	}

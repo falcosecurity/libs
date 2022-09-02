@@ -459,11 +459,21 @@ void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
 	{
 		throw sinsp_exception("you cannot use this method before opening the inspector!");
 	}
-	if (ppm_sc >= PPM_SC_MAX || ppm_sc < 0)
-	{
-		throw sinsp_exception("inexistent ppm_sc code: " + std::to_string(ppm_sc));
-	}
 	int ret = scap_set_eventmask(m_h, ppm_sc, enable);
+	if (ret != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+void sinsp::mark_tp_of_interest(uint32_t tp, bool enable)
+{
+	/* This API must be used only after the initialization phase. */
+	if (!m_inited)
+	{
+		throw sinsp_exception("you cannot use this method before opening the inspector!");
+	}
+	int ret = scap_set_tpmask(m_h, tp, enable);
 	if (ret != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
