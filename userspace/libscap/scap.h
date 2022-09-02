@@ -972,6 +972,16 @@ int32_t scap_clear_eventmask(scap_t* handle);
 */
 int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled);
 
+/*!
+  \brief Set the tp into the tpmask so that
+  users can attach the related tracepoint.
+
+  \param handle Handle to the capture instance.
+  \param tp id (example SYS_ENTER)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled);
+
 
 /*!
   \brief Get the root directory of the system. This usually changes

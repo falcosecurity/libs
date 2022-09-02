@@ -1458,6 +1458,13 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 		break;
 	}
 
+	if (ppm_sc >= PPM_SC_MAX)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);
@@ -1477,6 +1484,50 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled) {
 	return(scap_handle_eventmask(handle, enabled ? SCAP_EVENTMASK_SET : SCAP_EVENTMASK_UNSET, ppm_sc));
+}
+
+static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
+{
+	switch(op)
+	{
+	case SCAP_TPMASK_SET:
+	case SCAP_TPMASK_UNSET:
+		break;
+
+	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+		break;
+	}
+
+	if (tp >= TP_VAL_MAX)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, tp);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_TPMASK, op, tp);
+	}
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "tpmask not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+	if (handle == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "manipulating tpmask not supported on this scap mode");
+	return SCAP_FAILURE;
+#endif // HAS_CAPTURE
+}
+
+int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled) {
+	return(scap_handle_tpmask(handle, enabled ? SCAP_TPMASK_SET : SCAP_TPMASK_UNSET, tp));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)

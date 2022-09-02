@@ -120,7 +120,8 @@ set(SINSP_SOURCES
 	value_parser.cpp
 	user.cpp
 	gvisor_config.cpp
-	sinsp_ppm_sc.cpp)
+	sinsp_ppm_sc.cpp
+	sinsp_tp.cpp)
 
 if(WITH_CHISEL)
 	list(APPEND SINSP_SOURCES

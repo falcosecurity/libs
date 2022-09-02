@@ -29,6 +29,87 @@ limitations under the License.
 
 /*=============================== UTILS ===============================*/
 
+static int32_t update_single_tp_of_interest(int tp, bool interesting)
+{
+	int ret = SCAP_SUCCESS;
+	switch(tp)
+	{
+	case SYS_ENTER:
+		if (interesting)
+		{
+			ret = pman_attach_syscall_enter_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_enter_dispatcher();
+		}
+		break;
+
+	case SYS_EXIT:
+		if (interesting)
+		{
+			ret = pman_attach_syscall_exit_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_exit_dispatcher();
+		}
+		break;
+	case SCHED_PROC_EXIT:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_exit();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exit();
+		}
+		break;
+
+	case SCHED_SWITCH:
+		if (interesting)
+		{
+			ret = pman_attach_sched_switch();
+		}
+		else
+		{
+			ret = pman_detach_sched_switch();
+		}
+		break;
+
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	case SCHED_PROC_EXEC:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_exec();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exec();
+		}
+		break;
+#endif
+
+#ifdef CAPTURE_SCHED_PROC_FORK
+	case SCHED_PROC_FORK:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_fork();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_fork();
+		}
+		break;
+#endif
+
+	default:
+		/* Do nothing right now. */
+		break;
+	}
+	return ret;
+}
+
 static int32_t attach_interesting_tracepoints(bool* tp_array)
 {
 	int ret = SCAP_SUCCESS;
@@ -44,41 +125,7 @@ static int32_t attach_interesting_tracepoints(bool* tp_array)
 		{
 			continue;
 		}
-
-		switch(tp)
-		{
-		case SYS_ENTER:
-			ret = pman_attach_syscall_enter_dispatcher();
-			break;
-
-		case SYS_EXIT:
-			ret = pman_attach_syscall_exit_dispatcher();
-			break;
-
-		case SCHED_PROC_EXIT:
-			ret = pman_attach_sched_proc_exit();
-			break;
-
-		case SCHED_SWITCH:
-			ret = pman_attach_sched_switch();
-			break;
-
-		case SCHED_PROC_EXEC:
-#ifdef CAPTURE_SCHED_PROC_EXEC
-			ret = pman_attach_sched_proc_exec();
-#endif
-			break;
-
-		case SCHED_PROC_FORK:
-#ifdef CAPTURE_SCHED_PROC_FORK
-			ret = pman_attach_sched_proc_fork();
-#endif
-			break;
-
-		default:
-			/* Do nothing right now. */
-			break;
-		}
+		ret = update_single_tp_of_interest(tp, true);
 	}
 	return ret;
 }
@@ -168,6 +215,8 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 			pman_clean_all_64bit_interesting_syscalls();
 		}
 		return SCAP_SUCCESS;
+	case SCAP_TPMASK:
+		return update_single_tp_of_interest(arg2, arg1 == SCAP_TPMASK_SET);
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;
