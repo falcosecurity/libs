@@ -22,7 +22,7 @@ jobs:
           - name: system_deps_minimal
             cmake_opts: -DUSE_BUNDLED_DEPS=False -DMINIMAL_BUILD=True
           - name: system_deps_asan
-            cmake_opts: -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address -DUSE_BUNDLED_DEPS=False
+            cmake_opts: -E env LDFLAGS="-lpthread" cmake -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address -DUSE_BUNDLED_DEPS=False
     runs-on: ubuntu-latest
     container:
       image: debian:buster
