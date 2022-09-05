@@ -20,8 +20,8 @@ else()
 		message(STATUS "Using bundled c-ares in '${CARES_SRC}'")
 		ExternalProject_Add(c-ares
 			PREFIX "${PROJECT_BINARY_DIR}/c-ares-prefix"
-			URL "https://c-ares.haxx.se/download/c-ares-1.17.1.tar.gz"
-			URL_HASH "SHA256=d73dd0f6de824afd407ce10750ea081af47eba52b8a6cb307d220131ad93fc40"
+			URL "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz"
+			URL_HASH "SHA256=1a7d52a8a84a9fbffb1be9133c0f6e17217d91ea5a6fa61f6b4729cda78ebbcf"
 			CONFIGURE_COMMAND CPPFLAGS=-DCARES_STATICLIB ./configure --disable-shared --prefix=${CARES_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
