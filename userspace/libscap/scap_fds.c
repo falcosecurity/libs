@@ -120,6 +120,9 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
+	case SCAP_FD_BPF:
+	case SCAP_FD_USERFAULTFD:
+	case SCAP_FD_IOURING:
 		res += (uint32_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE) + 2;    // 2 is the length field before the string
 		break;
 	default:
@@ -233,6 +236,9 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 	case SCAP_FD_INOTIFY:
 	case SCAP_FD_TIMERFD:
 	case SCAP_FD_NETLINK:
+	case SCAP_FD_BPF:
+	case SCAP_FD_USERFAULTFD:
+	case SCAP_FD_IOURING:
 		stlen = (uint16_t)strnlen(fdi->info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && scap_dump_write(d, fdi->info.fname, stlen) != stlen))
@@ -641,7 +647,22 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 		{
 			fdi->type = SCAP_FD_TIMERFD;
 		}
-
+		else if (0 == strcmp(link_name, "anon_inode:[io_uring]"))
+		{
+			fdi->type = SCAP_FD_IOURING;
+		}
+		else if (0 == strcmp(link_name, "anon_inode:[userfaultfd]"))
+		{
+			fdi->type = SCAP_FD_USERFAULTFD;
+		}
+		// anon_inode:bpf-map
+		// anon_inode:bpf_link
+		// anon_inode:bpf-prog
+		// anon_inode:bpf_iter
+		else if (0 == strncmp(link_name, "anon_inode:[bpf", strlen("anon_inode:[bpf")))
+		{
+			fdi->type = SCAP_FD_BPF;
+		}
 
 		if(SCAP_FD_UNSUPPORTED == fdi->type)
 		{

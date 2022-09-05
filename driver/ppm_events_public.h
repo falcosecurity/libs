@@ -1549,8 +1549,8 @@ enum ppm_event_category {
 
 enum ppm_event_flags {
 	EF_NONE = 0,
-	EF_CREATES_FD = (1 << 0), /* This event creates an FD (e.g. open) */
-	EF_DESTROYS_FD = (1 << 1), /* This event destroys an FD (e.g. close) */
+	EF_CREATES_FD = (1 << 0), /* This event creates an FD (e.g. open). NOTE: a parser MUST always be created when this flag is set, to parse fd and add it to threadinfo list of fds */
+	EF_DESTROYS_FD = (1 << 1), /* This event destroys an FD (e.g. close). NOTE: a parser MUST always be created when this flag is set, to parse fd and erasing it from threadinfo list (using sinsp_parser::erase_fd) */
 	EF_USES_FD = (1 << 2), /* This event operates on an FD. */
 	EF_READS_FROM_FD = (1 << 3), /* This event reads data from an FD. */
 	EF_WRITES_TO_FD = (1 << 4), /* This event writes data to an FD. */

@@ -85,6 +85,12 @@ template<> char sinsp_fdinfo_t::get_typechar()
 		return CHAR_FD_TIMERFD;
 	case SCAP_FD_NETLINK:
 		return CHAR_FD_NETLINK;
+	case SCAP_FD_BPF:
+		return CHAR_FD_BPF;
+	case SCAP_FD_USERFAULTFD:
+		return CHAR_FD_USERFAULTFD;
+	case SCAP_FD_IOURING:
+		return CHAR_FD_IO_URING;
 	default:
 //		ASSERT(false);
 		return '?';
@@ -122,6 +128,12 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 		return (char*)"timerfd";
 	case SCAP_FD_NETLINK:
 		return (char*)"netlink";
+	case SCAP_FD_BPF:
+		return (char*)"bpf";
+	case SCAP_FD_USERFAULTFD:
+		return (char*)"userfaultfd";
+	case SCAP_FD_IOURING:
+		return (char*)"io_uring";
 	default:
 		return (char*)"<NA>";
 	}

@@ -501,6 +501,15 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_GROUP_DELETED_E:
 		parse_group_evt(evt);
 		break;
+	case PPME_SYSCALL_BPF_2_X:
+		parse_bpf_exit(evt);
+		break;
+	case PPME_SYSCALL_USERFAULTFD_X:
+		parse_userfaultfd_exit(evt);
+		break;
+	case PPME_SYSCALL_IO_URING_SETUP_X:
+		parse_io_uring_setup_exit(evt);
+		break;
 	default:
 		break;
 	}
@@ -4665,6 +4674,117 @@ void sinsp_parser::parse_timerfd_create_exit(sinsp_evt *evt)
 		// Populate the new fdi
 		//
 		fdi.m_type = SCAP_FD_TIMERFD;
+		fdi.m_name = "";
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
+	}
+}
+
+void sinsp_parser::parse_bpf_exit(sinsp_evt* evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	//
+	// Check if the syscall was successful
+	//
+	if(retval >= 0)
+	{
+		sinsp_fdinfo_t fdi;
+
+		//
+		// Populate the new fdi
+		//
+		fdi.m_type = SCAP_FD_BPF;
+		fdi.m_name = "";
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
+	}
+}
+
+void sinsp_parser::parse_userfaultfd_exit(sinsp_evt* evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	//
+	// Check if the syscall was successful
+	//
+	if(retval >= 0)
+	{
+		sinsp_fdinfo_t fdi;
+
+		//
+		// Populate the new fdi
+		//
+		fdi.m_type = SCAP_FD_USERFAULTFD;
+		fdi.m_name = "";
+
+		//
+		// Add the fd to the table.
+		//
+		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
+	}
+}
+
+void sinsp_parser::parse_io_uring_setup_exit(sinsp_evt* evt)
+{
+	sinsp_evt_param *parinfo;
+	int64_t retval;
+
+	//
+	// Extract the return value
+	//
+	parinfo = evt->get_param(0);
+	retval = *(int64_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	//
+	// Check if the syscall was successful
+	//
+	if(retval >= 0)
+	{
+		sinsp_fdinfo_t fdi;
+
+		//
+		// Populate the new fdi
+		//
+		fdi.m_type = SCAP_FD_IOURING;
 		fdi.m_name = "";
 
 		//
