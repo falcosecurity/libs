@@ -121,6 +121,9 @@ private:
 	void parse_dup_exit(sinsp_evt* evt);
 	void parse_signalfd_exit(sinsp_evt* evt);
 	void parse_timerfd_create_exit(sinsp_evt* evt);
+	void parse_bpf_exit(sinsp_evt* evt);
+	void parse_userfaultfd_exit(sinsp_evt* evt);
+	void parse_io_uring_setup_exit(sinsp_evt* evt);
 	void parse_inotify_init_exit(sinsp_evt* evt);
 	void parse_getrlimit_setrlimit_exit(sinsp_evt* evt);
 	void parse_prlimit_exit(sinsp_evt* evt);
