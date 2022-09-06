@@ -75,6 +75,15 @@ From this point on:
    - if any, the version patch number must be bumped  to git tag the release branch again.
 - All kinds of PRs are allowed to be merged in the `master` branch again.
 
+## Exceptions
+
+Exceptions are allowed for compelling reasons. Notably:
+
+- During the code freeze phase, PRs to complete or disable features in the code may be exceptionally merged
+- Hotfixes releases can happen anytime and without following the full process. In such cases, patches are merged into the relevant release branch (or a release branch is created if needed), then a new version is git tagged, and the hotfix is directly released.
+
+Exceptions to the [versioning rules](#versioning) are never allowed.
+
 ## Versioning
 
 ### Drivers versioning
