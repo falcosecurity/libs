@@ -1,30 +1,83 @@
-# Release Processes
+# Release Process
 
-As per the [Versioning and release process of the libs artifacts](https://github.com/falcosecurity/libs/blob/master/proposals/20210524-versioning-and-release-of-the-libs-artifacts.md), this repository includes different groups of artifacts that needs to be versioned and released. Moreover, those artifacts follows different versioning schemas (see the [Driver SemVer](https://github.com/falcosecurity/libs/blob/master/proposals/20210818-driver-semver.md) and [Versioning schema](https://github.com/falcosecurity/libs/blob/master/proposals/20220203-versioning-schema-amendment.md)) proposals).
+As per the [Versioning and release process of the libs artifacts](https://github.com/falcosecurity/libs/blob/master/proposals/20210524-versioning-and-release-of-the-libs-artifacts.md), this repository includes different components which are versioned (see the [Driver SemVer](https://github.com/falcosecurity/libs/blob/master/proposals/20210818-driver-semver.md) and [Versioning schema](https://github.com/falcosecurity/libs/blob/master/proposals/20220203-versioning-schema-amendment.md)) proposals) and released individually.
 
-We have two separate release processes which occur **independently** of each other: 
+The two releases, which may occur either concurrently or independently of each other, are: 
+
 - The **drivers release**
+
+    The [drivers versioning](#drivers-versioning) process happens in this repository, but their release process is mainly automated and managed in our [test-infra](https://github.com/falcosecurity/test-infra). Building is implemented there as per the [Driverkit Build Grid](https://github.com/falcosecurity/test-infra/tree/master/driverkit), and drivers are published to https://download.falco.org/?prefix=driver/. Drivers distribution is implemented and maintained only to satisfy Falco's needs.
+        
 - The **libs release** (ie. _libsinp_ and _libscap_)
 
-The [drivers versioning](#Drivers-versioning) process happens in this repository, but their release process is mainly automated and managed in our [test-infra](https://github.com/falcosecurity/test-infra). Building is implemented there as per the [Driverkit Build Grid](https://github.com/falcosecurity/test-infra/tree/master/driverkit), and drivers are published to https://download.falco.org/?prefix=driver/.
+    The [libs versioning](#libs-versioning) process happens in this repository. This release process is currently limited to the versioning only: and no artifacts are built nor distributed.
 
->_Note that not all versioned releases will be built and distributed. Drivers distribution is indeed implemented and maintained only to satisfy Falco's needs._
+Commonly, we plan a release process when needed by [Falco](https://github.com/falcosecurity/falco). In such cases, we usually release both drivers and libs versions simultaneously. Other releases may occur for hotfixes or at the discretion of maintainers. Releases are mainly used to signal points in time where the source code is assumed to be consistent and stable.
 
-The libs release process is currently under development and limited to the versioning process only. The [libs versioning](#Libs-versioning) process happens in this repository.
+Releases are planned using [GitHub milestones](https://github.com/falcosecurity/libs/milestones). The due date indicate when consumers should expected a tagged release.
 
+Completed releases are denoted by a _git tag_ and a corresponding [GitHub release](https://github.com/falcosecurity/libs/releases).
 
-## Release procedure
+## Release team
 
-Regardless if it is a driver or a libs release when initiating a new release, we do the following process:
+The release team consists of a *release manager* and other contributors from the community. Usually, we seek volunteers during our [community calls](https://github.com/falcosecurity/community#community-calls) or in the #falco channel in slack](https://kubernetes.slack.com/messages/falco), and then decide together the release planning.
 
-1. We decide together (usually in the #falco channel in [slack](https://kubernetes.slack.com/messages/falco)) if the source code is in a shape good enough to be released
-2. We double-check if the versioning rules have been respected (see sections below), then we pick the next version number to tag (i.e., a _git tag_)
-3. A person with repository rights creates a [new release using the GitHub UI](https://github.com/falcosecurity/libs/releases/new) (a git tag will be automatically created)
+The release manager's responsibility is to coordinate the release process and track its progress. 
 
-> _At the time of writing, no other steps are needed since the whole release process is still in development. This document will be updated once the definitive process is fully implemented._
+Note that the release manager does not need to be a maintainer. However, two [maintainers](https://github.com/falcosecurity/libs/blob/master/OWNERS) with repository rights must be part of the team to approve PRs, do the git tags, manage GitHub milestones, etc.
 
+## Release Phases
 
-## Drivers versioning
+Regardless if it is a driver or a libs release when initiating a new release, we follow a streamlined process inspired by the [Kubernetes Release Phases](https://github.com/kubernetes/sig-release/blob/master/releases/release_phases.md).
+
+### Preparation
+
+In the preparation phase, all enhancements expected to go into the release should be merged before the code freeze.
+
+When close to the code freeze starting period, maintainers should evaluate which PRs can't be merged in time and eventually postpone them to the subsequent milestone.
+
+It's recommended to start the preparation phase ~4 weeks before the release due date. 
+
+### Code freeze
+
+Code freeze happens ~1 week before the release due date, and should last no more than ~5 days. Shorter freeze period are encouraged.
+
+At this point, no new-feature PRs are allowed to be merged.
+
+[Versioning](#versioning) rules must be double-checked and eventually enforced at this stage.
+
+### Release branch
+
+During the code freeze period, a *release branch* (e.g., `release-x.y.z`) is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
+
+The release branch name must include the release version. If the process consists of both drivers and libs releases, the libs one is used.
+
+In this phase:
+
+ - A PR must be opened in our [test-infra](https://github.com/falcosecurity/test-infra/blob/master/config/config.yaml) repository to set the newly created branch as protected.
+
+ - A release candidate tag should be created in the release branch for testing purposes.
+
+ - Accurate testing is performed on the release candidate. It's highly recommended to use Falco as a consumer when testing libs and drivers.
+
+ - If necessary, bug fixing or testing PRs can be merged on the `master` branch. In such a case, relevant commits are cherry-picked and ported to the release branch and a new release candidate is created.
+
+### Thaw
+
+Once maintainers are trustful that the release candidate is in good shape, or after ~5 days from the code freeze, we enter the Thaw phase. 
+
+From a technical perspective, this means that now the `master` and release branches diverge. 
+
+Now, the release branch is git tagged with the targeted version.
+
+From this point on:
+- Only bug fix PRs are allowed to be merged in the release branch 
+   - if any, the version patch number must be bumped  to git tag the release branch again.
+- All kinds of PRs are allowed to be merged in the `master` branch again.
+
+## Versioning
+
+### Drivers versioning
 
 The *driver version number* represents the build version of kernel-space drivers (i.e., the kernel module, the eBPF probe, and possibly any other kernel-space artifact).
 
@@ -48,7 +101,7 @@ The *driver version number* represents the build version of kernel-space drivers
 
 > _Note that `API_VERSION` and `SCHEMA_VERSION` are only used internally. On the other hand, only the **driver version number** will be used **to tag a new release**._
 
-## Libs versioning
+### Libs versioning
 
 The *libs version number* represents a software version of the user-space libraries (i.e., libscap, libsinsp, and possibly any other further user-space library), and it is not tied to the drivers version numbering.
 
