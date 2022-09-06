@@ -456,3 +456,47 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 		FAIL();
 	}
 }
+
+TEST_F(sinsp_with_test_input, creates_fd_generic)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, -1, NULL, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, 5);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_E, 2, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_X, 1, 6);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "timerfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "t");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, 7);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 1, 8);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "bpf");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "b");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "8");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_USERFAULTFD_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_USERFAULTFD_X, 2, 9, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "userfaultfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "u");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "9");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_IO_URING_SETUP_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_IO_URING_SETUP_X, 8, 10, 0, 0, 0, 0, 0, 0, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "io_uring");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "r");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "10");
+}
