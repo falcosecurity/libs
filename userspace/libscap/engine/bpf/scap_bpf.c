@@ -850,7 +850,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, 
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s", scap_strerror_r(buf, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
 		return MAP_FAILED;
 	}
 
@@ -858,7 +858,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, 
 	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s", scap_strerror_r(buf, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}
@@ -869,7 +869,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, 
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s", scap_strerror_r(buf, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}

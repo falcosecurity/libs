@@ -305,7 +305,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			// we cleanup this fd and then we let scap_close() take care of the other ones
 			close(dev->m_fd);
 
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s", filename);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s. (If you get memory allocation errors try to reduce the buffer dimension)", filename);
 			return SCAP_FAILURE;
 		}
 		dev->m_buffer_size = mapped_len;
@@ -326,7 +326,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			munmap(dev->m_buffer, mapped_len);
 			close(dev->m_fd);
 
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s", filename);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer info for device %s. (If you get memory allocation errors try to reduce the buffer dimension)", filename);
 			return SCAP_FAILURE;
 		}
 		dev->m_bufinfo_size = sizeof(struct ppm_ring_buffer_info);

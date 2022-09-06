@@ -121,7 +121,7 @@ static int create_first_ringbuffer_map()
 	g_state.rb_manager = ring_buffer__new(ringbuf_map_fd, NULL, NULL, NULL);
 	if(!g_state.rb_manager)
 	{
-		pman_print_error("failed to instantiate the ringbuf manager");
+		pman_print_error("failed to instantiate the ringbuf manager. (If you get memory allocation errors try to reduce the buffer dimension)");
 		goto clean_create_first_ringbuffer_map;
 	}
 	return 0;
