@@ -30,6 +30,8 @@ Note that the release manager does not need to be a maintainer. However, two [ma
 
 Regardless if it is a driver or a libs release when initiating a new release, we follow a streamlined process inspired by the [Kubernetes Release Phases](https://github.com/kubernetes/sig-release/blob/master/releases/release_phases.md).
 
+![release-process-overview](docs/img/release-process.svg "Code Freeze to Thaw")
+
 ### Preparation
 
 In the preparation phase, all enhancements expected to go into the release should be merged before the code freeze.
