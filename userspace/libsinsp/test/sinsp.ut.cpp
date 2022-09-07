@@ -477,7 +477,7 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, 7);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, 7);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
