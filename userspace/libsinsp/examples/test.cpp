@@ -214,7 +214,7 @@ static void remove_module()
 
 static bool insert_module()
 {
-	// Check if we are configured to run with the eBPF probe
+	// Check if we are configured to run with the kernel module
 	if(engine_string.compare(KMOD_ENGINE))
 		return true;
 
@@ -241,7 +241,10 @@ static bool insert_module()
 error:
 	cerr << "[ERROR] Failed to insert kernel module: " << strerror(errno) << endl;
 
-	close(fd);
+	if (fd > 0)
+	{
+		close(fd);
+	}
 
 	return false;
 }
