@@ -1429,7 +1429,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 			}
 		}
 
-		// Shallow-copy the cached values to values
+		// Shallow-copy the m_cached values to values
 		values = m_extraction_cache_entry->m_res;
 
 		return !m_extraction_cache_entry->m_res.empty();
@@ -1442,6 +1442,7 @@ bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value
 
 bool sinsp_filter_check::compare(gen_event *evt)
 {
+	m_hits++;
 	if(m_cache_metrics != NULL)
 	{
 		m_cache_metrics->m_num_eval++;
@@ -1464,12 +1465,23 @@ bool sinsp_filter_check::compare(gen_event *evt)
 			}
 		}
 
+		if (m_eval_cache_entry->m_res)
+		{
+			m_matched_true++;
+		}
+		m_cached++;
 
 		return m_eval_cache_entry->m_res;
 	}
 	else
 	{
-		return compare((sinsp_evt *) evt);
+		auto res = compare((sinsp_evt *) evt);
+		if (res)
+		{
+			m_matched_true++;
+		}
+
+		return res;
 	}
 }
 
