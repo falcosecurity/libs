@@ -1,6 +1,7 @@
 # falcosecurity/libs
 
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
+[![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
 
 As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
 Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more information.  
