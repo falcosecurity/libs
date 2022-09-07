@@ -323,8 +323,8 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_STIME*/ { EC_TIME, (enum ppm_event_flags)(EF_NONE), "stime" },
 	/*PPM_SC__LLSEEK*/	{ EC_FILE, (enum ppm_event_flags)(EF_NONE), "llseek" },
 	/*PPM_SC_WAITPID*/ { EC_WAIT, (enum ppm_event_flags)(EF_NONE), "waitpid" },
-	/*PPM_SC_PREAD64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "pread64" },
-	/*PPM_SC_PWRITE64*/ { EC_FILE, (enum ppm_event_flags)(EF_NONE), "pwrite64" },
+	/*PPM_SC_PREAD64*/ { EC_IO_READ, (enum ppm_event_flags)(EF_NONE), "pread64" },
+	/*PPM_SC_PWRITE64*/ { EC_IO_WRITE, (enum ppm_event_flags)(EF_NONE), "pwrite64" },
 	/*PPM_SC_ARCH_PRCTL*/ { EC_PROCESS, (enum ppm_event_flags)(EF_NONE), "arch_prctl" },
 	/*PPM_SC_SHMAT*/ { EC_IPC, (enum ppm_event_flags)(EF_NONE), "shmat" },
 	/*PPM_SC_SIGRETURN*/ { EC_SIGNAL, (enum ppm_event_flags)(EF_NONE), "sigreturn" }, /* return from signal handler and cleanup stack frame */
