@@ -843,6 +843,22 @@ cleanup:
 
 static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, uint64_t buf_num_pages)
 {
+   /* Each data page is mapped twice to allow "virtual"
+	* continuous read of samples wrapping around the end of ring
+	* buffer area:
+	* 
+	* ------------------------------------------------------
+	* | meta pages |  real data pages  |  same data pages  |
+	* ------------------------------------------------------
+	* |            | 1 2 3 4 5 6 7 8 9 | 1 2 3 4 5 6 7 8 9 |
+	* ------------------------------------------------------
+	* |            | TA             DA | TA             DA |
+	* ------------------------------------------------------
+	*                               ^^^^^^^
+	*                                  |
+	* Here, no need to worry about special handling of wrapped-around
+	* data due to double-mapped data pages.
+	*/
 	int page_size = getpagesize();
 	int ring_size = page_size * buf_num_pages;
 	int header_size = page_size;
