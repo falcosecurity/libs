@@ -83,7 +83,10 @@ def run_containers(request, docker_client: docker.client.DockerClient):
             'signal': stop_signal
         }
 
-        wait_container_running(handle, additional_wait)
+        try:
+            wait_container_running(handle, additional_wait)
+        except TimeoutError as e:
+            print(f'{name} failed to start, the test will fail')
 
     yield containers
 

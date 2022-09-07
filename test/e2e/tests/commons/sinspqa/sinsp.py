@@ -152,18 +152,21 @@ def validate_event(expected_fields: dict, event: dict) -> bool:
     return True
 
 
-def assert_events(expected_events: dict, container: docker.models.containers.Container):
+def assert_events(expected_events: dict,
+                  container: docker.models.containers.Container,
+                  timeout: int = 10):
     """
-    Takes a list of dictionionaries describing the events we want to receive
+    Takes a list of dictionaries describing the events we want to receive
     from a sinsp-example container and the reads events from the provided
     container handle until either all events are found or a timeout occurs.
 
     Parameters:
         expected_fields (dict): A dictionary holding the values expected in the event.
         container (docker.Container): A container object to stream logs from.
+        timeout (int): The seconds to wait for the events to be asserted
     """
 
-    reader = SinspStreamer(container)
+    reader = SinspStreamer(container, timeout=timeout)
 
     for event in expected_events:
         success = False
