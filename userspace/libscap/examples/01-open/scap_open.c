@@ -58,6 +58,7 @@ uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
 bool ppm_sc_is_set = 0;
 bool tp_is_set = 0;
+uint64_t buffer_num_pages = 2048; /* This should generate a 8 MB buffer. */
 
 /* Generic global variables. */
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
@@ -603,6 +604,7 @@ void print_help()
 	printf("'%s <ppm_sc_code>': enable only requested syscall (this is our internal ppm syscall code not the system syscall code). Can be passed multiple times.\n", PPM_SC_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
+	printf("'%s <num_pages>': number of pages of a single per CPU buffer. The overall buffer dimension is: `buffer_num_pages * page_dim`. (default: 2048 pages)\n", BUFFER_OPTION);
 	printf("\n------> VALIDATION OPTIONS\n");
 	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
@@ -688,6 +690,7 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			oargs.engine_name = KMOD_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
+			kmod_params.buffer_num_pages = buffer_num_pages;
 			oargs.engine_params = &kmod_params;
 		}
 		if(!strcmp(argv[i], BPF_OPTION))
@@ -700,12 +703,14 @@ void parse_CLI_options(int argc, char** argv)
 			oargs.engine_name = BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
 			bpf_params.bpf_probe = argv[++i];
+			bpf_params.buffer_num_pages = buffer_num_pages;
 			oargs.engine_params = &bpf_params;
 		}
 		if(!strcmp(argv[i], MODERN_BPF_OPTION))
 		{
 			oargs.engine_name = MODERN_BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
+			modern_bpf_params.buffer_num_pages = buffer_num_pages;
 			oargs.engine_params = &modern_bpf_params;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
@@ -732,7 +737,7 @@ void parse_CLI_options(int argc, char** argv)
 				printf("\nYou need to specify also the number of pages! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
-			uint64_t buffer_num_pages = strtoul(argv[++i], NULL, 10);
+			buffer_num_pages = strtoul(argv[++i], NULL, 10);
 			kmod_params.buffer_num_pages = buffer_num_pages;
 			bpf_params.buffer_num_pages = buffer_num_pages;
 			modern_bpf_params.buffer_num_pages = buffer_num_pages;
