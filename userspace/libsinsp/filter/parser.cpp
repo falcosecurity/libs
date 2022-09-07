@@ -353,10 +353,11 @@ std::unique_ptr<ast::expr> parser::parse_check()
 
 std::unique_ptr<ast::value_expr> parser::parse_num_value()
 {
-	auto pos = get_pos();
-
 	depth_push();
 	lex_blank();
+
+	auto pos = get_pos();
+
 	if (lex_hex_num() || lex_num())
 	{
 		depth_pop();
@@ -367,10 +368,11 @@ std::unique_ptr<ast::value_expr> parser::parse_num_value()
 
 std::unique_ptr<ast::value_expr> parser::parse_str_value()
 {
-	auto pos = get_pos();
-
 	depth_push();
 	lex_blank();
+
+	auto pos = get_pos();
+
 	if (lex_quoted_str() || lex_bare_str())
 	{
 		depth_pop();
@@ -381,10 +383,11 @@ std::unique_ptr<ast::value_expr> parser::parse_str_value()
 
 std::unique_ptr<ast::expr> parser::parse_list_value()
 {
-	auto pos = get_pos();
-
 	depth_push();
 	lex_blank();
+
+	auto pos = get_pos();
+
 	if (lex_helper_str("("))
 	{
 		bool should_be_empty = false;
