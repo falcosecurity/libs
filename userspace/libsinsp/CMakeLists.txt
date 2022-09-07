@@ -300,6 +300,12 @@ endif() # NOT WIN32
 
 target_link_libraries(sinsp ${SINSP_LIBRARIES})
 
+if(APPLE)
+	target_link_libraries(sinsp "-framework CoreFoundation")
+	target_link_libraries(sinsp "-framework SystemConfiguration")
+	set_target_properties(sinsp PROPERTIES LINK_FLAGS "-Wl,-F/Library/Frameworks")
+endif()
+
 option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
