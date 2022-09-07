@@ -59,6 +59,12 @@ enum boolop
 	BO_ANDNOT = 5,
 };
 
+namespace std
+{
+std::string to_string(cmpop);
+std::string to_string(boolop);
+}
+
 enum evt_src
 {
 	ESRC_NONE = 0,
@@ -101,6 +107,10 @@ public:
 
 	boolop m_boolop;
 	cmpop m_cmpop;
+
+	size_t m_hits = 0;
+	size_t m_cached = 0;
+	size_t m_matched_true = 0;
 
 	virtual int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering) = 0;
 	virtual void add_filter_value(const char* str, uint32_t len, uint32_t i = 0 ) = 0;

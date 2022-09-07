@@ -62,14 +62,61 @@ void gen_event_filter_expression::add_check(gen_event_filter_check* chk)
 	m_checks.push_back(chk);
 }
 
+std::string std::to_string(boolop b)
+{
+	switch (b)
+	{
+	case BO_NONE:
+		return "NONE";
+	case BO_NOT:
+		return "NOT";
+	case BO_OR:
+		return "OR";
+	case BO_AND:
+		return "AND";
+	case BO_ORNOT:
+		return "OR_NOT";
+	case BO_ANDNOT:
+		return "AND_NOT";
+	};
+	return "<unset>";
+}
+
+std::string std::to_string(cmpop c)
+{
+	switch (c)
+	{
+	case CO_NONE: return "NONE";
+	case CO_EQ: return "EQ";
+	case CO_NE: return "NE";
+	case CO_LT: return "LT";
+	case CO_LE: return "LE";
+	case CO_GT: return "GT";
+	case CO_GE: return "GE";
+	case CO_CONTAINS: return "CONTAINS";
+	case CO_IN: return "IN";
+	case CO_EXISTS: return "EXISTS";
+	case CO_ICONTAINS: return "ICONTAINS";
+	case CO_STARTSWITH: return "STARTSWITH";
+	case CO_GLOB: return "GLOB";
+	case CO_PMATCH: return "PMATCH";
+	case CO_ENDSWITH: return "ENDSWITH";
+	case CO_INTERSECTS: return "INTERSECTS";
+	case CO_BCONTAINS: return "BCONTAINS";
+	case CO_BSTARTSWITH: return "BSTARTSWITH";
+	}
+	return "<unset>";
+};
+
 bool gen_event_filter_expression::compare(gen_event *evt)
 {
-	uint32_t j;
-	uint32_t size = (uint32_t)m_checks.size();
 	bool res = true;
-	gen_event_filter_check* chk = NULL;
 
-	for(j = 0; j < size; j++)
+	gen_event_filter_check* chk = nullptr;
+	++m_hits;
+
+	auto size = m_checks.size();
+	for(size_t j = 0; j < size; j++)
 	{
 		chk = m_checks[j];
 		ASSERT(chk != NULL);
@@ -128,7 +175,10 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 		}
 	}
  done:
-
+	if (res)
+	{
+		m_matched_true++;
+	}
 	return res;
 }
 
