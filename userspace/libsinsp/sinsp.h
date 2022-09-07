@@ -945,6 +945,12 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
+	std::unordered_set<uint32_t> simple_ppm_sc_set();
+	std::unordered_set<uint32_t> io_ppm_sc_set();
+	std::unordered_set<uint32_t> net_ppm_sc_set();
+	std::unordered_set<uint32_t> proc_ppm_sc_set();
+	std::unordered_set<uint32_t> sys_ppm_sc_set();
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
