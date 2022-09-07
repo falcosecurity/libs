@@ -446,3 +446,282 @@ TEST(parser, expr_multi_negation)
 		ast.get()
 	);
 }
+
+struct pos_visitor : public expr_visitor
+{
+public:
+	void visit(and_expr* e) override
+	{
+		visit_logical_op("and", e->get_pos(), e->children);
+	};
+
+	virtual void visit(or_expr* e) override
+	{
+		visit_logical_op("or", e->get_pos(), e->children);
+	}
+
+	virtual void visit(not_expr* e) override
+	{
+		m_str += "not";
+		add_pos(e->get_pos());
+
+		e->child->accept(this);
+	}
+
+	virtual void visit(value_expr* e) override
+	{
+		m_str += "value";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(list_expr* e) override
+	{
+		m_str += "list";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(unary_check_expr* e) override
+	{
+		m_str += "unary";
+		add_pos(e->get_pos());
+	}
+
+	virtual void visit(binary_check_expr* e) override
+	{
+		m_str += "binary";
+		add_pos(e->get_pos());
+
+		e->value->accept(this);
+	}
+
+	const std::string& as_string() {
+		return m_str;
+	};
+
+private:
+
+	void visit_logical_op(const char* op,
+			      const pos_info& pos,
+			      const std::vector<std::unique_ptr<expr>> &children)
+	{
+		m_str += op;
+		add_pos(pos);
+
+		for(auto&c : children)
+		{
+			c->accept(this);
+		}
+	}
+
+	void add_pos(const pos_info& pos)
+	{
+		m_str += std::to_string(pos.idx) + " " +
+			std::to_string(pos.line) + " " +
+			std::to_string(pos.col);
+	}
+
+	std::string m_str;
+};
+
+TEST(parser, position_unary_check)
+{
+	parser parser("proc.name exists");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "unary0 1 1");
+}
+
+TEST(parser, position_binary_check)
+{
+	parser parser("proc.name=nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1value10 1 11");
+}
+
+TEST(parser, position_binary_check_params)
+{
+	parser parser("proc.aname[3]=nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1value14 1 15");
+}
+
+TEST(parser, position_binary_check_space_before)
+{
+	parser parser("proc.name =nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1value11 1 12");
+}
+
+TEST(parser, position_binary_check_space_after)
+{
+	parser parser("proc.name= nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1value11 1 12");
+}
+
+TEST(parser, position_binary_check_space_both)
+{
+	parser parser("proc.name = nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1value12 1 13");
+}
+
+TEST(parser, position_binary_check_list)
+{
+	parser parser("proc.name in (nginx, apache)");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1list13 1 14");
+}
+
+TEST(parser, position_binary_check_list_space_after)
+{
+	parser parser("proc.name in ( nginx, apache)");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "binary0 1 1list13 1 14");
+}
+
+TEST(parser, position_not)
+{
+	parser parser("not proc.name=nginx");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "not0 1 1binary4 1 5value14 1 15");
+}
+
+TEST(parser, position_or)
+{
+	parser parser("proc.name=nginx or proc.name=apache");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1binary0 1 1value10 1 11binary19 1 20value29 1 30");
+}
+
+TEST(parser, position_or_parens)
+{
+	parser parser("(proc.name=nginx or proc.name=apache)");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "or1 1 2binary1 1 2value11 1 12binary20 1 21value30 1 31");
+}
+
+TEST(parser, position_and)
+{
+	parser parser("proc.name=nginx and proc.name=apache");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "and0 1 1binary0 1 1value10 1 11binary20 1 21value30 1 31");
+}
+
+TEST(parser, position_and_parens)
+{
+	parser parser("(proc.name=nginx and proc.name=apache)");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "and1 1 2binary1 1 2value11 1 12binary21 1 22value31 1 32");
+}
+
+TEST(parser, position_complex)
+{
+	parser parser("(proc.aname[2]=nginx and evt.type in (connect,accept)) or (not fd.name exists) or (proc.name=apache and evt.type=switch)");
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and1 1 2binary1 1 2value15 1 16binary25 1 26list37 1 38not59 1 60unary63 1 64and83 1 84binary83 1 84value93 1 94binary104 1 105value113 1 114");
+}
+
+TEST(parser, position_complex_multiline)
+{
+	const char* str = R"EOF(
+(proc.aname[2]=nginx
+     and evt.type in (connect,accept))
+   or (not fd.name exists)
+   or (proc.name=apache
+       and evt.type=switch))EOF";
+
+	parser parser(str);
+
+	auto expr = parser.parse();
+
+	pos_visitor pv;
+
+	expr->accept(&pv);
+
+	EXPECT_STREQ(pv.as_string().c_str(), "or0 1 1and2 2 2binary2 2 2value16 2 16binary31 3 10list43 3 22not68 4 8unary72 4 12and95 5 8binary95 5 8value105 5 18binary123 6 12value132 6 21");
+}
+
