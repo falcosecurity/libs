@@ -290,6 +290,24 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		// (for subsequent devices it's a no-op thanks to the check above)
 		handle->m_schema_version = schema_version;
 
+
+	   /* Each data page is mapped twice to allow "virtual"
+		* continuous read of samples wrapping around the end of ring
+		* buffer area:
+		* 
+		* ------------------------------------------------------
+		* | meta pages |  real data pages  |  same data pages  |
+		* ------------------------------------------------------
+		* |            | 1 2 3 4 5 6 7 8 9 | 1 2 3 4 5 6 7 8 9 |
+		* ------------------------------------------------------
+		* |            | TA             DA | TA             DA |
+		* ------------------------------------------------------
+		*                               ^^^^^^^
+		*                                  |
+		* Here, no need to worry about special handling of wrapped-around
+		* data due to double-mapped data pages.
+		*/
+
 		//
 		// Map the ring buffer
 		//

@@ -2938,7 +2938,7 @@ MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
 module_param(per_cpu_buffer_dim, ulong, 0644);
-MODULE_PARM_DESC(per_cpu_buffer_dim, "This is the dimension of a single per-CPU buffer");
+MODULE_PARM_DESC(per_cpu_buffer_dim, "This is the dimension of a single per-CPU buffer. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
