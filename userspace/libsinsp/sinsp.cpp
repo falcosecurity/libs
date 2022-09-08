@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -2197,22 +2197,43 @@ void sinsp::init_k8s_ssl(const string *ssl_cert)
 void sinsp::make_k8s_client()
 {
 	bool is_live = m_k8s_api_server && !m_k8s_api_server->empty();
-	m_k8s_client = new k8s(m_k8s_api_server ? *m_k8s_api_server : std::string()
-		,is_live // capture
+
+	m_k8s_client = new k8s(
+		
+		// uri
+		m_k8s_api_server ? *m_k8s_api_server : std::string()
+
+		// For the k8s client, "is_captured" actually means: 
+        // "Please, put k8s events data in a deque so we can consume them later."
+		// 
+		// is_captured
+		,is_live
+
+		// ssl
+		// bt
+		// block
 #ifdef HAS_CAPTURE
 		,m_k8s_ssl
 		,m_k8s_bt
 		,true // blocking
 #endif // HAS_CAPTURE
-		,nullptr
+
+		// event_filter
+		,nullptr 
+
+		// extensions
 #ifdef HAS_CAPTURE
 		,m_ext_list_ptr
 #else
 		,nullptr
 #endif // HAS_CAPTURE
-		,false // events_only
+
+		// events_only
+		,false 
+
+		// node_selector
 #ifdef HAS_CAPTURE
-		,m_k8s_node_name ? *m_k8s_node_name : std::string() // node_selector
+		,m_k8s_node_name ? *m_k8s_node_name : std::string()
 #endif // HAS_CAPTURE
 	);
 }
