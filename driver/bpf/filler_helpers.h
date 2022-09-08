@@ -96,7 +96,7 @@ static __always_inline char *bpf_get_path(struct filler_data *data, int fd)
 	for(i = 1; i < MAX_PATH_COMPONENTS && i <= nreads && res >= 0; i++)
 	{
 		path_level = (nreads-i) & (MAX_PATH_COMPONENTS-1);	
-		res = bpf_probe_read_str(&filepath[curoff_bounded], MAX_PATH_LENGTH,
+		res = bpf_probe_read_kernel_str(&filepath[curoff_bounded], MAX_PATH_LENGTH,
 				(const void*)pointers_buf[path_level]);	
 		curoff_bounded = (curoff_bounded+res-1) & SCRATCH_SIZE_HALF;
 		if(i>1 && i<nreads && res>0)
@@ -255,9 +255,9 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 			if (len > 0)
-				bpf_probe_read(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
+				bpf_probe_read_user(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
 #else
-			bpf_probe_read(sunaddr, len, addr->name);
+			bpf_probe_read_user(sunaddr, len, addr->name);
 #endif
 		}
 
@@ -280,9 +280,9 @@ static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 		return 0;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-	if (bpf_probe_read(kaddr, ((len - 1) & 0xff) + 1, uaddr))
+	if (bpf_probe_read_user(kaddr, ((len - 1) & 0xff) + 1, uaddr))
 #else
-	if (bpf_probe_read(kaddr, len & 0xff, uaddr))
+	if (bpf_probe_read_user(kaddr, len & 0xff, uaddr))
 #endif
 		return -EFAULT;
 
@@ -363,7 +363,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		int addrlen;
 
 		val = bpf_syscall_get_argument(data, 1);
-		if (bpf_probe_read(&mh, sizeof(mh), (void *)val)) {
+		if (bpf_probe_read_user(&mh, sizeof(mh), (void *)val)) {
 			usrsockaddr = NULL;
 			addrlen = 0;
 		} else {
@@ -464,7 +464,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 }
 
 static __always_inline int unix_socket_path(char *dest, const char *user_ptr, size_t size) {
-	int res = bpf_probe_read_str(dest,
+	int res = bpf_probe_read_user_str(dest,
 				     size,
 				     user_ptr);
 	/*
@@ -477,9 +477,9 @@ static __always_inline int unix_socket_path(char *dest, const char *user_ptr, si
 	 */
 	if (res == 1) {
 		dest[0] = '@';
-		res = bpf_probe_read_str(dest + 1,
-					 size - 1, // account for '@'
-					 user_ptr + 1);
+		res = bpf_probe_read_user_str(dest + 1,
+					      size - 1, // account for '@'
+					      user_ptr + 1);
 		res++; // account for '@'
 	}
 	return res;
@@ -836,9 +836,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 		{
 			int res;
 			/* Return `res<0` only in case of error. */ 
-			res = bpf_probe_read_str(&data->buf[curoff_bounded], 
-						PPM_MAX_ARG_SIZE,
-						(const void *)val);
+			res = bpf_probe_read_user_str(&data->buf[curoff_bounded],
+						     PPM_MAX_ARG_SIZE,
+						     (const void *)val);
 			if(res >= 0)
 			{
 				len = res;
@@ -879,7 +879,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					volatile u16 read_size = dpi_lookahead_size;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-					if(!read_size || bpf_probe_read(&data->buf[curoff_bounded],
+					if(!read_size || bpf_probe_read_user(&data->buf[curoff_bounded],
 								((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 								(void *)val))
 					{
@@ -887,7 +887,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 						break;
 					}
 #else
-					if(bpf_probe_read(&data->buf[curoff_bounded],
+					if(bpf_probe_read_user(&data->buf[curoff_bounded],
 								read_size & SCRATCH_SIZE_HALF,
 								(void *)val))
 					{
@@ -922,7 +922,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 
-				if (!read_size || bpf_probe_read(&data->buf[curoff_bounded],
+				if (!read_size || bpf_probe_read_user(&data->buf[curoff_bounded],
 							((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
 							(void *)val))
 				{
@@ -930,7 +930,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					break;
 				}
 #else
-				if (bpf_probe_read(&data->buf[curoff_bounded],
+				if (bpf_probe_read_user(&data->buf[curoff_bounded],
 							read_size & SCRATCH_SIZE_HALF,
 							(void *)val))
 				{
