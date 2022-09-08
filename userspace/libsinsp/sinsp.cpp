@@ -2415,6 +2415,11 @@ void sinsp::k8s_discover_ext()
 						k8s_ext_list_t ext_list;
 						for(const auto& ext : exts)
 						{
+							if (m_k8s_allowed_ext.find(ext) == m_k8s_allowed_ext.end()) 
+							{
+								// skip not allowed extension
+								continue;
+							} 
 							ext_list.insert(ext);
 							ostr << std::endl << ext;
 						}
