@@ -273,7 +273,7 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 static __always_inline int bpf_addr_to_kernel(void *uaddr, int ulen,
 					      struct sockaddr *kaddr)
 {
-	int len = _READ(ulen);
+	int len = _READ_USER(ulen);
 	if (len < 0 || len > sizeof(struct sockaddr_storage))
 		return -EINVAL;
 	if (len == 0)
