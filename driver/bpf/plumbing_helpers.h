@@ -16,10 +16,16 @@ or GPL2.txt for full copies of the license.
 #include "types.h"
 #include "builtins.h"
 
-#define _READ(P) ({ typeof(P) _val;				\
-		    memset(&_val, 0, sizeof(_val));		\
-		    bpf_probe_read(&_val, sizeof(_val), &P);	\
-		    _val;					\
+#define _READ(P) ({ typeof(P) _val;					\
+		    memset(&_val, 0, sizeof(_val));			\
+		    bpf_probe_read_kernel(&_val, sizeof(_val), &P);	\
+		    _val;						\
+		 })
+#define _READ_KERNEL(P) _READ(P)
+#define _READ_USER(P) ({ typeof(P) _val;				\
+			 memset(&_val, 0, sizeof(_val));		\
+			 bpf_probe_read_user(&_val, sizeof(_val), &P);	\
+			 _val;						\
 		 })
 
 #ifdef BPF_DEBUG
