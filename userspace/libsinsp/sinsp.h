@@ -1137,6 +1137,11 @@ public:
 	bool m_k8s_api_detected = false;
 	unique_ptr<k8s_api_handler> m_k8s_ext_handler;
 	k8s_ext_list_ptr_t m_ext_list_ptr;
+	k8s_ext_list_t m_k8s_allowed_ext = {
+		// "daemonsets", // not enabled by default because not fully implemented (no state/cache, no filters) 
+		"deployments",
+		"replicasets"
+	};
 	bool m_k8s_ext_detect_done = false;
 #endif // HAS_CAPTURE
 	k8s* m_k8s_client;
