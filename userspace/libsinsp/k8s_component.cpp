@@ -241,7 +241,35 @@ std::string k8s_component::get_selector(type t)
 	switch (t)
 	{
 	case K8S_PODS:
-		return "?fieldSelector=status.phase%3DRunning";
+	    // See https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-phase
+	    // Keep "Pending" and "Running" phases, discard others.
+		// Note that "Pending" should allow us to obtain pod metadata before the containers starts,
+		// thus before any syscall events for that pod.
+		return "?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded";
+
+	// Assuming only resources with `replicas` != 0 have active pods.
+	// Note `replicas` may have differt meanings.
+
+	case K8S_REPLICATIONCONTROLLERS:
+		// Replicas is the most recently oberved number of replicas.
+		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicationcontrollerstatus-v1-core
+
+	case K8S_REPLICASETS:
+		// Replicas is the most recently oberved number of replicas.
+		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicasetstatus-v1-apps
+
+	case K8S_DEPLOYMENTS:
+		// Total number of non-terminated pods targeted by this deployment (their labels match the selector).
+		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#deploymentstatus-v1-apps
+
+		return "?fieldSelector=status.replicas!%3D0";
+
+	// todo(leogr): K8S_DAEMONSETS is here only for consistency, but not actually used
+	case K8S_DAEMONSETS:
+	    // numberReady is the number of nodes that should be running the daemon pod 
+		// and have one or more of the daemon pod running with a Ready Condition.
+		return "?fieldSelector=status.numberReady!%3D0";
+
 	default:
 		break;
 	}
