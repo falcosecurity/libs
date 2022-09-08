@@ -7262,7 +7262,7 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 sinsp_filter_check_k8s::sinsp_filter_check_k8s()
 {
 	m_info.m_name = "k8s";
-	m_info.m_desc = "Kubernetes related context. Available when configured to fetch k8s meta-data from API Server.";
+	m_info.m_desc = "Kubernetes related context. Available with all fields only when configured to fetch from the K8s API Server. Otherwise, only `k8s.pod.*` fields are populated.";
 	m_info.m_fields = sinsp_filter_check_k8s_fields;
 	m_info.m_nfields = sizeof(sinsp_filter_check_k8s_fields) / sizeof(sinsp_filter_check_k8s_fields[0]);
 	m_info.m_flags = filter_check_info::FL_WORKS_ON_THREAD_TABLE;
