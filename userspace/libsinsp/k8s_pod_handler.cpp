@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -91,8 +91,8 @@ k8s_pod_handler::k8s_pod_handler(k8s_state_t& state
 	):
 		k8s_handler("k8s_pod_handler", true,
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-					url, 
-					"/api/v1/pods?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded"
+					url,
+					"/api/v1/pods" + k8s_component::get_selector(k8s_component::K8S_PODS)
 					+ (node_selector.size() == 0 ? "" : ",spec.nodeName=" + node_selector),
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,

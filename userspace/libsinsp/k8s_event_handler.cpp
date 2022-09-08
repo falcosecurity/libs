@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -84,7 +84,8 @@ k8s_event_handler::k8s_event_handler(k8s_state_t& state
 	,filter_ptr_t event_filter):
 		k8s_handler("k8s_event_handler", true,
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-					url, "/api/v1/events",
+					url, 
+					"/api/v1/events" + k8s_component::get_selector(k8s_component::K8S_EVENTS),
 					STATE_FILTER, EVENT_FILTER, "", collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,

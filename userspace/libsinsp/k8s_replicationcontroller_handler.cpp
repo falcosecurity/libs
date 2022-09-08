@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,7 +90,8 @@ k8s_replicationcontroller_handler::k8s_replicationcontroller_handler(k8s_state_t
 	):
 		k8s_handler("k8s_replicationcontroller_handler", true,
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-					url, "/api/v1/replicationcontrollers",
+					url, 
+					"/api/v1/replicationcontrollers" + k8s_component::get_selector(k8s_component::K8S_REPLICATIONCONTROLLERS),
 					STATE_FILTER, EVENT_FILTER, NULL_FILTER, collector,
 					http_version, 1000L, ssl, bt, true,
 					connect, dependency_handler, blocking_socket,
