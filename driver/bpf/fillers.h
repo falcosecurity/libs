@@ -1992,7 +1992,7 @@ static __always_inline int bpf_accumulate_argv_or_env(struct filler_data *data,
 
 	#pragma unroll
 	for (j = 0; j < FAILED_ARGS_ENV_ITEMS_MAX; ++j) {
-		arg = _READ(argv[j]);
+		arg = _READ_USER(argv[j]);
 		if (!arg)
 			break;
 
