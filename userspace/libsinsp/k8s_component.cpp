@@ -249,26 +249,19 @@ std::string k8s_component::get_selector(type t)
 
 	// Assuming only resources with `replicas` != 0 have active pods.
 	// Note `replicas` may have differt meanings.
+	//https://hoelz.ro/blog/which-fields-can-you-use-with-kubernetes-field-selectors
 
 	case K8S_REPLICATIONCONTROLLERS:
 		// Replicas is the most recently oberved number of replicas.
 		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicationcontrollerstatus-v1-core
+		// https://github.com/kubernetes/kubernetes/blob/9188d556899af46eb0b29febc7f10625e2fa0f38/pkg/registry/core/replicationcontroller/strategy.go#L193
+		return "?fieldSelector=status.replicas!=0";
 
-	case K8S_REPLICASETS:
-		// Replicas is the most recently oberved number of replicas.
-		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicasetstatus-v1-apps
-
-	case K8S_DEPLOYMENTS:
-		// Total number of non-terminated pods targeted by this deployment (their labels match the selector).
-		// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#deploymentstatus-v1-apps
-
-		return "?fieldSelector=status.replicas!%3D0";
-
-	// todo(leogr): K8S_DAEMONSETS is here only for consistency, but not actually used
-	case K8S_DAEMONSETS:
-	    // numberReady is the number of nodes that should be running the daemon pod 
-		// and have one or more of the daemon pod running with a Ready Condition.
-		return "?fieldSelector=status.numberReady!%3D0";
+	// case K8S_REPLICASETS:
+	// 	// Replicas is the most recently oberved number of replicas.
+	// 	// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicasetstatus-v1-apps
+	// 	// https://github.com/kubernetes/kubernetes/blob/v1.24.0/pkg/registry/apps/replicaset/strategy.go#L181
+	// 	// todo(leogr): not work
 
 	default:
 		break;
