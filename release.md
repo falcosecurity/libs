@@ -34,11 +34,16 @@ Regardless if it is a driver or a libs release when initiating a new release, we
 
 ### Preparation
 
-In the preparation phase, all enhancements expected to go into the release should be merged before the code freeze.
+Approximately 4 weeks before the release due date, maintainers evaluate pending features and determine which features shall be integrated into the upcoming release based on a set of criteria, such as, but not limited to:
 
-When close to the code freeze starting period, maintainers should evaluate which PRs can't be merged in time and eventually postpone them to the subsequent milestone.
+ - Severity of the bug
+ - Type of feature (nice-to-have refactor vs adding significant new capabilities or improves stability or performance)
+ - Amount of user-facing changes
+ - Non user-facing changes that can affect resource utilization (CPU, memory usage ...)
+ - Amount of testing required to ensure stability and safety
+ - TODO: add more criteria
 
-It's recommended to start the preparation phase ~4 weeks before the release due date. 
+In this phase, all enhancements expected to go into the release should be merged before the code freeze.
 
 ### Code freeze
 
@@ -48,6 +53,7 @@ At this point, no new-feature PRs are allowed to be merged.
 
 [Versioning](#versioning) rules must be double-checked and eventually enforced at this stage.
 
+Not yet merged PRs must be moved to the subsequent milestone.
 ### Release branch
 
 During the code freeze period, a *release branch* (e.g., `release-x.y.z`) is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
