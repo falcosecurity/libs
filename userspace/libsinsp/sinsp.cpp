@@ -2196,7 +2196,7 @@ void sinsp::init_k8s_ssl(const string *ssl_cert)
 
 void sinsp::make_k8s_client()
 {
-	bool is_live = m_k8s_api_server && !m_k8s_api_server->empty();
+	bool enable_capture = NULL != m_dumper && m_k8s_api_server && !m_k8s_api_server->empty();
 
 	m_k8s_client = new k8s(
 		
@@ -2207,7 +2207,7 @@ void sinsp::make_k8s_client()
         // "Please, put k8s events data in a deque so we can consume them later."
 		// 
 		// is_captured
-		,is_live
+		,enable_capture
 
 		// ssl
 		// bt
