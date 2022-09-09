@@ -54,15 +54,21 @@ During the code freeze period, a *release branch* (e.g., `release-x.y.z`) is cre
 
 The release branch name must include the release version. If the process consists of both drivers and libs releases, the libs one is used.
 
-In this phase:
+Once the release brach has been created:
 
  - A PR must be opened in our [test-infra](https://github.com/falcosecurity/test-infra/blob/master/config/config.yaml) repository to set the newly created branch as protected.
 
  - A release candidate tag should be created in the release branch for testing purposes.
 
- - Accurate testing is performed on the release candidate. It's highly recommended to use Falco as a consumer when testing libs and drivers.
+ - Accurate testing is performed on the release candidate. Testing steps and criteria for passing each steps are outlined in [TBA doc]. It's highly recommended to use Falco as a consumer of the libs and drivers and perform automated and manual testing.
 
- - If necessary, bug fixing or testing PRs can be merged on the `master` branch. In such a case, relevant commits are cherry-picked and ported to the release branch and a new release candidate is created.
+ - If necessary, PRs to address the following issues are still allowed to be merged on the `master` branch:
+   - bugs that affect stability, safety, performance
+   - bugs in core features
+   - broken functionalities (including the possibility of reverting the previous behavior)
+   - improvements to the testing suite or the CI if necessary to unblock the release
+ 
+   In such a case, relevant commits must be cherry-picked and ported to the release branch, and then a new release candidate is tagged.
 
 ### Thaw
 
