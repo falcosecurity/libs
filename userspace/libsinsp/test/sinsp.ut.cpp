@@ -215,74 +215,131 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	open_inspector();
 	sinsp_evt* evt = NULL;
 	const char* expected_string = "/tmp/the_file";
-	int dirfd = 0;
-	int new_fd = 0;
+	int dirfd = 3;
+	int new_fd = 100;
+
+	std::vector<const char*> invalid_inputs = {"<NA>", "(NULL)", NULL};
+
+	auto describe_filename = [](const char* filename)
+	{
+		std::string description;
+		if (filename == NULL) {
+			description.append("with literal NULL (0) as filename");
+		} else {
+			description.append("with filename: \"");
+			description.append(filename);
+			description.append("\"");
+		}
+
+		return description;
+	};
 
 	/* Check `openat` syscall.
 	 * `(NULL)` should be converted to `<NA>` and recognized as an invalid param.
 	 */
-	dirfd = 3;
-	new_fd = 10;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, "(NULL)", 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, new_fd, dirfd, expected_string, 0, 0, 0, 0);
+	for (const char *enter_filename : invalid_inputs)
+	{
+		std::string test_context = std::string("openat ") + describe_filename(enter_filename);
 
-	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-	{
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string);
-	}
-	else
-	{
-		FAIL();
-	}
+		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, enter_filename, 0, 0);
+		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, new_fd, dirfd, expected_string, 0, 0, 0, 0);
+		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
+		{
+			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
+		}
+		else
+		{
+			FAIL() << test_context;
+		}
 
-	/* Check `openat2` syscall.
-	 * `<NA>` should be recognized as an invalid param.
-	 */
-	dirfd = 5;
-	new_fd = 11;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 6, new_fd, dirfd, expected_string, 0, 0, 0);
-
-	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-	{
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string);
-	}
-	else
-	{
-		FAIL();
+		dirfd++;
+		new_fd++;
 	}
 
-	/* Check `open` syscall.
-	 * The empty param should be converted to `<NA>` and recognized as an invalid param.
-	 */
-	new_fd = 12;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, new_fd, expected_string, 0, 0, 0, 0);
+	/* Check `openat2` syscall. */
+	for (const char *enter_filename : invalid_inputs)
+	{
+		std::string test_context = std::string("openat2 ") + describe_filename(enter_filename);
 
-	if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-	{
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string);
-	}
-	else
-	{
-		FAIL();
+		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
+		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 6, new_fd, dirfd, expected_string, 0, 0, 0);
+		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
+		{
+			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
+		}
+		else
+		{
+			FAIL() << test_context;
+		}
+
+		dirfd++;
+		new_fd++;
 	}
 
-	/* Check `creat` syscall.
-	 * The empty param should be converted to `<NA>` and recognized as an invalid param.
-	 */
-	new_fd = 13;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, 0);
+	/* Check `open` syscall. */
+	for (const char *enter_filename : invalid_inputs)
+	{
+		std::string test_context = std::string("open ") + describe_filename(enter_filename);
 
-	if(evt->get_thread_info() != NULL)
-	{
-		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string);
+		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
+		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, new_fd, expected_string, 0, 0, 0, 0);
+		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
+		{
+			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
+		}
+		else
+		{
+			FAIL() << test_context;
+		}
+
+		new_fd++;
 	}
-	else
+
+	/* Check `creat` syscall. */
+	for (const char *enter_filename : invalid_inputs)
 	{
-		FAIL();
+		std::string test_context = std::string("creat ") + describe_filename(enter_filename);
+
+		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
+		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, 0);
+		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
+		{
+			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
+		}
+		else
+		{
+			FAIL() << test_context;
+		}
+
+		new_fd++;
 	}
+
+}
+
+TEST_F(sinsp_with_test_input, test_file_name_toctou)
+{
+	// for more information see https://github.com/falcosecurity/falco/security/advisories/GHSA-6v9j-2vm2-ghf7
+
+	add_default_init_thread();
+
+	sinsp_evt *evt;
+	open_inspector();
+
+	add_event(increasing_ts(), 3, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 3, PPME_SYSCALL_OPEN_X, 6, 1, "/tmp/some_other_file", 0, 0, 0, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+
+	add_event(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, 3, "/tmp/the_file", 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, 2, 2, "/tmp/some_other_file", 0, 0, 0, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+
+	add_event(increasing_ts(), 2, PPME_SYSCALL_CREAT_E, 2, "/tmp/the_file", 0);
+	evt = add_event_advance_ts(increasing_ts(), 2, PPME_SYSCALL_CREAT_X, 5, 4, "/tmp/some_other_file", 0, 0, 0);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 }
 
 /* Assert if the thread `exepath` is set to the right value
