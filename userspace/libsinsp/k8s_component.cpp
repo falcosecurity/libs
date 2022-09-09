@@ -245,11 +245,12 @@ std::string k8s_component::get_selector(type t)
 	    // Keep "Pending" and "Running" phases, discard others.
 		// Note that "Pending" should allow us to obtain pod metadata before the containers starts,
 		// thus before any syscall events for that pod.
-		return "?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded";
+		// return "?fieldSelector=status.phase!=Failed,status.phase!=Unknown,status.phase!=Succeeded";
+	    return "";
 
 	// Assuming only resources with `replicas` != 0 have active pods.
 	// Note `replicas` may have differt meanings.
-	//https://hoelz.ro/blog/which-fields-can-you-use-with-kubernetes-field-selectors
+	// https://hoelz.ro/blog/which-fields-can-you-use-with-kubernetes-field-selectors
 
 	case K8S_REPLICATIONCONTROLLERS:
 		// Replicas is the most recently oberved number of replicas.
