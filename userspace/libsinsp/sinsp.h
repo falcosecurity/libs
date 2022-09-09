@@ -945,10 +945,31 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
+	/*!
+	  \brief Simple set of syscalls that enforce minimum sinsp state set,
+	  plus some valuable syscalls.
+	  It has same effect of old `simple_consumer` mode.
+	*/
 	std::unordered_set<uint32_t> simple_ppm_sc_set();
+	/*!
+	  \brief Set of syscalls valuable for IO.
+	  Does not enforce minimum sinsp state set.
+	*/
 	std::unordered_set<uint32_t> io_ppm_sc_set();
+	/*!
+	  \brief Set of syscalls valuable for networking.
+	  Does not enforce minimum sinsp state set.
+	*/
 	std::unordered_set<uint32_t> net_ppm_sc_set();
+	/*!
+	  \brief Set of syscalls valuable for process state tracking.
+	  Does not enforce minimum sinsp state set.
+	*/
 	std::unordered_set<uint32_t> proc_ppm_sc_set();
+	/*!
+	  \brief Set of syscalls valuable for system state tracking (signals, memory...)
+	  Does not enforce minimum sinsp state set.
+	*/
 	std::unordered_set<uint32_t> sys_ppm_sc_set();
 
 VISIBILITY_PROTECTED

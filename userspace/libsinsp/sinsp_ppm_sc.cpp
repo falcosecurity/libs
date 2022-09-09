@@ -19,7 +19,7 @@ limitations under the License.
 
 std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 {
-	return std::unordered_set<uint32_t>{
+	return enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t>{
 		PPM_SC_ACCEPT,
 		PPM_SC_ACCEPT4,
 		PPM_SC_BIND,
@@ -32,7 +32,6 @@ std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 		PPM_SC_CLONE3,
 		PPM_SC_CLOSE,
 		PPM_SC_CONNECT,
-		PPM_SC_COPY_FILE_RANGE, // REMOVE?
 		PPM_SC_CREAT,
 		PPM_SC_DUP,
 		PPM_SC_DUP2,
@@ -44,10 +43,11 @@ std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 		PPM_SC_FCHDIR,
 		PPM_SC_FCHMOD,
 		PPM_SC_FCHMODAT,
-		PPM_SC_FCNTL, // 64 TOO?
+		PPM_SC_FCNTL,
+		PPM_SC_FCNTL64,
 		PPM_SC_FLOCK,
 		PPM_SC_FORK,
-		PPM_SC_GETSOCKOPT, // do we need this?
+		PPM_SC_GETSOCKOPT,
 		PPM_SC_INOTIFY_INIT,
 		PPM_SC_INOTIFY_INIT1,
 		PPM_SC_IOCTL,
@@ -77,14 +77,18 @@ std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 		PPM_SC_SECCOMP,
 		PPM_SC_SENDMSG,
 		PPM_SC_SENDTO,
-		PPM_SC_SETGID, // 32?
+		PPM_SC_SETGID,
+		PPM_SC_SETGID32,
 		PPM_SC_SETNS,
-		PPM_SC_SETPGID,	  // 32?
-		PPM_SC_SETRESGID, // 32?
-		PPM_SC_SETRESUID, // 32?
+		PPM_SC_SETPGID,
+		PPM_SC_SETRESGID,
+		PPM_SC_SETRESGID32,
+		PPM_SC_SETRESUID,
+		PPM_SC_SETRESUID32,
 		PPM_SC_SETRLIMIT,
 		PPM_SC_SETSID,
 		PPM_SC_SETUID,
+		PPM_SC_SETUID32,
 		PPM_SC_SHUTDOWN,
 		PPM_SC_SIGNALFD,
 		PPM_SC_SIGNALFD4,
@@ -102,7 +106,7 @@ std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 		PPM_SC_UNSHARE,
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
-	};
+	});
 }
 
 std::unordered_set<uint32_t> sinsp::io_ppm_sc_set()
