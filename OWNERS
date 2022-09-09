@@ -6,6 +6,8 @@ approvers:
   - andreagit97
   - molter73
   - lucaguerra
+reviewers:
+  - hbrueckner
 emeritus_approvers:
   - fntlnz
   - leodido
