@@ -363,6 +363,7 @@ const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX] = {
 	/*PPM_SC_IO_URING_ENTER*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "io_uring_enter" },
 	/*PPM_SC_IO_URING_REGISTER*/ { EC_IO_OTHER, (enum ppm_event_flags)(EF_NONE), "io_uring_register" },
 	/*PPM_SC_MLOCK2*/ {EC_MEMORY, (enum ppm_event_flags)(EF_NONE), "mlock2"}, /* mlock2 locks part of the calling process's virtual address space int RAM*/
+	/*PPM_SC_GETEGID32*/ {EC_USER, (enum ppm_event_flags)(EF_NONE), "getegid32"},
 };
 
 bool validate_info_table_size()
