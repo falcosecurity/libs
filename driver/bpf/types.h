@@ -209,6 +209,10 @@ struct perf_event_sample {
 
 #endif /* __KERNEL__ */
 
+
+/* WARNING: This enum must follow the order in which BPF maps are defined in
+ * `driver/bpf/maps.h`.
+ */
 enum scap_map_types {
 	SCAP_PERF_MAP = 0,
 	SCAP_TAIL_MAP = 1,
