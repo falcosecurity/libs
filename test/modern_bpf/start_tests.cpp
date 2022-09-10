@@ -72,7 +72,7 @@ int main(int argc, char** argv)
 
 	/* Ensure that nothing is running before starting tests. */
 	pman_disable_capture();
-	pman_mark_all_64bit_syscalls_as_uninteresting();
+	pman_clean_all_64bit_interesting_syscalls();
 
 	print_start_test_message();
 
