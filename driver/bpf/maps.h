@@ -83,6 +83,13 @@ struct bpf_map_def __bpf_section("maps") local_state_map = {
 	.max_entries = 0,
 };
 
+struct bpf_map_def __bpf_section("maps") interesting_syscalls_table = {
+	.type = BPF_MAP_TYPE_ARRAY,
+	.key_size = sizeof(u32),
+	.value_size = sizeof(bool),
+	.max_entries = SYSCALL_TABLE_SIZE,
+};
+
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
 struct bpf_map_def __bpf_section("maps") stash_map = {
 	.type = BPF_MAP_TYPE_HASH,
@@ -91,13 +98,6 @@ struct bpf_map_def __bpf_section("maps") stash_map = {
 	.max_entries = 65535,
 };
 #endif
-
-struct bpf_map_def __bpf_section("maps") interesting_syscalls_table = {
-	.type = BPF_MAP_TYPE_ARRAY,
-	.key_size = sizeof(u32),
-	.value_size = sizeof(bool),
-	.max_entries = SYSCALL_TABLE_SIZE,
-};
 
 #endif // __KERNEL__
 
