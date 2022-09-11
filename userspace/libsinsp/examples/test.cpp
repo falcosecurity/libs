@@ -50,7 +50,7 @@ string filter_string = "";
 string file_path = "";
 string bpf_path = "";
 string output_fields_json = "";
-uint64_t num_pages = 0;
+uint64_t num_pages = 2048; /* This will generate a 8 MB buffer in systems with a page size of 4 KB. */
 
 sinsp_evt* get_event(sinsp& inspector);
 
