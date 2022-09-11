@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/stat.h>
@@ -510,7 +511,8 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 
 static void validate_driver_buffer_num_pages(uint64_t driver_buffer_num_pages)
 {
-	std::unordered_set<uint32_t> allowed_dimensions;
+	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
+	std::unordered_set<double> allowed_dimensions = {pow(2,7), pow(2,8), pow(2,9), pow(2,10), pow(2,11), pow(2,12), pow(2,13), pow(2,14), pow(2,15), pow(2,16), pow(2,17), pow(2,18)};
 	
    /* If you face some memory allocation issues, please remember that:
 	*
@@ -530,13 +532,6 @@ static void validate_driver_buffer_num_pages(uint64_t driver_buffer_num_pages)
 	* Here, no need to worry about special handling of wrapped-around
 	* data due to double-mapped data pages.
 	*/
-
-	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
-	for(int i = 7; i <= 18; i++)
-	{
-		uint32_t val = 1<<i;
-		allowed_dimensions.insert(val);
-	}
 
 	if(allowed_dimensions.find(driver_buffer_num_pages) == allowed_dimensions.end())
 	{
