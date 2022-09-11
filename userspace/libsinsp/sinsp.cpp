@@ -507,53 +507,6 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 
 /*=============================== INTERESTING TRACEPOINTS/SYSCALLS ===============================*/
 
-/*=============================== BUFFER DIMENSION VALIDATION ===============================*/
-
-static void validate_driver_buffer_num_pages(uint64_t driver_buffer_num_pages)
-{
-	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
-	std::unordered_set<double> allowed_dimensions = {pow(2,7), pow(2,8), pow(2,9), pow(2,10), pow(2,11), pow(2,12), pow(2,13), pow(2,14), pow(2,15), pow(2,16), pow(2,17), pow(2,18)};
-	
-   /* If you face some memory allocation issues, please remember that:
-	*
-	* Each data page is mapped twice to allow "virtual"
-	* continuous read of samples wrapping around the end of ring
-	* buffer area:
-	* 
-	* ------------------------------------------------------
-	* | meta pages |  real data pages  |  same data pages  |
-	* ------------------------------------------------------
-	* |            | 1 2 3 4 5 6 7 8 9 | 1 2 3 4 5 6 7 8 9 |
-	* ------------------------------------------------------
-	* |            | TA             DA | TA             DA |
-	* ------------------------------------------------------
-	*                               ^^^^^^^
-	*                                  |
-	* Here, no need to worry about special handling of wrapped-around
-	* data due to double-mapped data pages.
-	*/
-
-	if(allowed_dimensions.find(driver_buffer_num_pages) == allowed_dimensions.end())
-	{
-		std::ostringstream os;
-		os << "Allowed page numbers are all the powers of 2 from 128 pages (2^7) to 256 Kpages (2^18): {";
-		auto itr = allowed_dimensions.begin();
-		while(itr != allowed_dimensions.end())
-		{
-			os << *itr;
-			if(++itr != allowed_dimensions.end())
-			{
-				os << ", ";
-			}
-		}
-		
-		os << "}";
-		throw sinsp_exception("Chosen number of pages (" + std::to_string(driver_buffer_num_pages) +") is not valid. " + os.str());
-	}
-}
-
-/*=============================== BUFFER DIMENSION VALIDATION ===============================*/
-
 /*=============================== OPEN METHODS ===============================*/
 
 void sinsp::open_common(scap_open_args* oargs)
@@ -598,9 +551,6 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 
 void sinsp::open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
-	/* Validate buffer dim. */
-	validate_driver_buffer_num_pages(driver_buffer_num_pages);
-
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
@@ -616,9 +566,6 @@ void sinsp::open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set
 
 void sinsp::open_bpf(uint64_t driver_buffer_num_pages, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
-	/* Validate buffer dim. */
-	validate_driver_buffer_num_pages(driver_buffer_num_pages);
-
 	/* Validate the BPF path. */
 	if(!bpf_path)
 	{
@@ -727,9 +674,6 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 
 void sinsp::open_modern_bpf(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
-	/* Validate buffer dim. */
-	validate_driver_buffer_num_pages(driver_buffer_num_pages);
-
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
