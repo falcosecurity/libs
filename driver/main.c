@@ -147,7 +147,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 static void record_event_all_consumers(enum ppm_event_type event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap);
-static int init_ring_buffer(struct ppm_ring_buffer_context *ring);
+static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long per_cpu_buffer_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 4, 0))
@@ -205,11 +205,11 @@ static const struct file_operations g_ppm_fops = {
 /*
  * GLOBALS
  */
+#define DEFAULT_SINGLE_RINGBUF_SIZE 8 * 1024 * 1024;
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
-static unsigned long per_cpu_buffer_dim = 0; // dimension of a single per-CPU buffer. We initialize it to `0` but this must be set by userspace before opening the buffers.
-
+static unsigned long g_per_cpu_buffer_dim = DEFAULT_SINGLE_RINGBUF_SIZE; // dimension of a single per-CPU buffer.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
@@ -396,6 +396,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		}
 
 		consumer->consumer_id = consumer_id;
+		consumer->per_cpu_buffer_dim = g_per_cpu_buffer_dim;
 
 		/*
 		 * Initialize the ring buffers array
@@ -439,7 +440,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 			pr_info("initializing ring buffer for CPU %u\n", cpu);
 
-			if (!init_ring_buffer(ring)) {
+			if (!init_ring_buffer(ring, consumer->per_cpu_buffer_dim)) {
 				pr_err("can't initialize the ring buffer for CPU %u\n", cpu);
 				ret = -ENOMEM;
 				goto err_init_ring_buffer;
@@ -1273,7 +1274,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 			ret = 0;
 			goto cleanup_mmap;
 		}
-		else if(length == per_cpu_buffer_dim * 2)
+		else if(length == consumer->per_cpu_buffer_dim * 2)
 		{
 			long mlength;
 
@@ -1861,16 +1862,16 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	if (ttail > head)
 		freespace = ttail - head - 1;
 	else
-		freespace = per_cpu_buffer_dim + ttail - head - 1;
+		freespace = consumer->per_cpu_buffer_dim + ttail - head - 1;
 
-	usedspace = per_cpu_buffer_dim - freespace - 1;
-	delta_from_end = per_cpu_buffer_dim + (2 * PAGE_SIZE) - head - 1;
+	usedspace = consumer->per_cpu_buffer_dim - freespace - 1;
+	delta_from_end = consumer->per_cpu_buffer_dim + (2 * PAGE_SIZE) - head - 1;
 
-	ASSERT(freespace <= per_cpu_buffer_dim);
-	ASSERT(usedspace <= per_cpu_buffer_dim);
-	ASSERT(ttail <= per_cpu_buffer_dim);
-	ASSERT(head <= per_cpu_buffer_dim);
-	ASSERT(delta_from_end < per_cpu_buffer_dim + (2 * PAGE_SIZE));
+	ASSERT(freespace <= consumer->per_cpu_buffer_dim);
+	ASSERT(usedspace <= consumer->per_cpu_buffer_dim);
+	ASSERT(ttail <= consumer->per_cpu_buffer_dim);
+	ASSERT(head <= consumer->per_cpu_buffer_dim);
+	ASSERT(delta_from_end < consumer->per_cpu_buffer_dim + (2 * PAGE_SIZE));
 	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
 #ifdef _HAS_SOCKETCALL
 	/*
@@ -2058,20 +2059,20 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		next = head + event_size;
 
-		if (unlikely(next >= per_cpu_buffer_dim)) {
+		if (unlikely(next >= consumer->per_cpu_buffer_dim)) {
 			/*
 			 * If something has been written in the cushion space at the end of
 			 * the buffer, copy it to the beginning and wrap the head around.
 			 * Note, we don't check that the copy fits because we assume that
 			 * filler_callback failed if the space was not enough.
 			 */
-			if (next > per_cpu_buffer_dim) {
+			if (next > consumer->per_cpu_buffer_dim) {
 				memcpy(ring->buffer,
-				ring->buffer + per_cpu_buffer_dim,
-				next - per_cpu_buffer_dim);
+				ring->buffer + consumer->per_cpu_buffer_dim,
+				next - consumer->per_cpu_buffer_dim);
 			}
 
-			next -= per_cpu_buffer_dim;
+			next -= consumer->per_cpu_buffer_dim;
 		}
 
 		/*
@@ -2105,7 +2106,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		vpr_info("consumer:%p CPU:%d, use:%lu, ev:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 			   consumer->consumer_id,
 		       smp_processor_id(),
-		       (usedspace * 100) / per_cpu_buffer_dim,
+		       (usedspace * 100) / consumer->per_cpu_buffer_dim,
 		       ring_info->n_evts,
 		       ring_info->n_drops_buffer,
 		       ring_info->n_drops_buffer_clone_fork_enter,
@@ -2428,7 +2429,7 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 }
 #endif
 
-static int init_ring_buffer(struct ppm_ring_buffer_context *ring)
+static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long per_cpu_buffer_dim)
 {
 	unsigned int j;
 
@@ -2937,8 +2938,43 @@ MODULE_INFO(build_commit, DRIVER_COMMIT);
 MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
-module_param(per_cpu_buffer_dim, ulong, 0644);
-MODULE_PARM_DESC(per_cpu_buffer_dim, "This is the dimension of a single per-CPU buffer. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
+static int set_g_per_cpu_buffer_dim(const char *val, const struct kernel_param *kp)
+{
+	unsigned long dim = 0;
+	int ret;
+
+	ret = kstrtoul(val, 10, &dim);
+	if(ret != 0)
+	{
+		pr_err("parsing of 'g_per_cpu_buffer_dim' failed!\n");
+		return -EINVAL;
+	}
+
+	/* Validate the ring buffers dimension
+	 * The single buffer dimension must be:
+	 * - greater than 0. (this is implicit in the last condition, but just to be future proof)
+	 * - a multiple of the actual PAGE_SIZE.
+	 * - a power of 2.
+	 * - greater or equal than `128 * PAGE_SIZE` (this is the minimum size we accept).
+	 */
+	if(dim == 0 ||
+	   dim % PAGE_SIZE != 0 ||
+	   (dim & (dim - 1)) != 0 ||
+	   dim < 128 * PAGE_SIZE)
+	{
+		pr_err("the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%d)!\n", dim, PAGE_SIZE);
+		return -EINVAL;
+	}
+	return param_set_ulong(val, kp);
+}
+
+static const struct kernel_param_ops g_per_cpu_buffer_dim_ops = {
+	.set	= set_g_per_cpu_buffer_dim,
+	.get	= param_get_ulong,
+};
+
+module_param_cb(g_per_cpu_buffer_dim, &g_per_cpu_buffer_dim_ops, &g_per_cpu_buffer_dim, 0644);
+MODULE_PARM_DESC(g_per_cpu_buffer_dim, "This is the dimension of a single per-CPU buffer. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
