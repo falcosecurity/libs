@@ -512,6 +512,25 @@ static void validate_driver_buffer_num_pages(uint64_t driver_buffer_num_pages)
 {
 	std::unordered_set<uint32_t> allowed_dimensions;
 	
+   /* If you face some memory allocation issues, please remember that:
+	*
+	* Each data page is mapped twice to allow "virtual"
+	* continuous read of samples wrapping around the end of ring
+	* buffer area:
+	* 
+	* ------------------------------------------------------
+	* | meta pages |  real data pages  |  same data pages  |
+	* ------------------------------------------------------
+	* |            | 1 2 3 4 5 6 7 8 9 | 1 2 3 4 5 6 7 8 9 |
+	* ------------------------------------------------------
+	* |            | TA             DA | TA             DA |
+	* ------------------------------------------------------
+	*                               ^^^^^^^
+	*                                  |
+	* Here, no need to worry about special handling of wrapped-around
+	* data due to double-mapped data pages.
+	*/
+
 	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
 	for(int i = 7; i <= 18; i++)
 	{
