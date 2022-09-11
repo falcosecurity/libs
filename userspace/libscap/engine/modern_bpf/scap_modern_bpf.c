@@ -25,6 +25,7 @@ limitations under the License.
 #include "scap_procs.h"
 #include "noop.h"
 #include "../common/strlcpy.h"
+#include "ringbuffer/ringbuffer.h"
 
 /*=============================== UTILS ===============================*/
 
@@ -194,6 +195,12 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
 	bool libbpf_verbosity = false;
 
+	/* Validate the number of buffer pages. */
+	if(check_per_cpu_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
 	/* Obtain the single buffer dimension */
 	long page_size = sysconf(_SC_PAGESIZE);
 	if(page_size <= 0)
@@ -203,10 +210,13 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	}
 	unsigned long single_buffer_dim = page_size * params->buffer_num_pages;
 
+	/* This variable is not used in modern BPF right now, but just to be future proof we set it. */
+	set_per_cpu_buffer_dim(single_buffer_dim);
+
 	/* Initialize the libpman internal state */
 	if(pman_init_state(libbpf_verbosity, single_buffer_dim))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure libbpf.");
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
 	}
 

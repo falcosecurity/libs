@@ -2962,7 +2962,7 @@ static int set_g_per_cpu_buffer_dim(const char *val, const struct kernel_param *
 	   (dim & (dim - 1)) != 0 ||
 	   dim < 128 * PAGE_SIZE)
 	{
-		pr_err("the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%d)!\n", dim, PAGE_SIZE);
+		pr_err("the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%lu)!\n", dim, PAGE_SIZE);
 		return -EINVAL;
 	}
 	return param_set_ulong(val, kp);

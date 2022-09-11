@@ -1733,6 +1733,12 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
+	/* Validate the number of buffer pages. */
+	if(check_per_cpu_buffer_num_pages(engine.m_handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
 	//
 	// Find out how many devices we have to open, which equals to the number of CPUs
 	//
