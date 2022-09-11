@@ -25,10 +25,12 @@ limitations under the License.
 
 extern unsigned long per_cpu_buffer_dim;
 
-static inline void set_per_cpu_buffer_dim(unsigned long buf_dim)
-{
-	per_cpu_buffer_dim = buf_dim;
-}
+/* Set the dimension of a single per-CPU buffer. */
+void set_per_cpu_buffer_dim(unsigned long buf_dim);
+
+/* Check buffer number of pages. */
+int32_t check_per_cpu_buffer_num_pages(char* error, unsigned long buf_num_pages);
+
 
 #ifndef GET_BUF_POINTERS
 #define GET_BUF_POINTERS ringbuffer_get_buf_pointers
