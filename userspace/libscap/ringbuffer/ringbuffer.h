@@ -23,7 +23,7 @@ limitations under the License.
 #include "barrier.h"
 #include "sleep.h"
 
-static unsigned long per_cpu_buffer_dim;
+extern unsigned long per_cpu_buffer_dim;
 
 static inline void set_per_cpu_buffer_dim(unsigned long buf_dim)
 {

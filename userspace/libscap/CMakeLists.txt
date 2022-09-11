@@ -159,7 +159,8 @@ endif()
 
 add_library(scap_engine_util
 	scap_engine_util.c
-	ringbuffer/devset.c)
+	ringbuffer/devset.c
+	ringbuffer/ringbuffer.c)
 
 target_link_libraries(scap scap_engine_util)
 
