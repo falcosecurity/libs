@@ -58,7 +58,7 @@ uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 int evt_type = -1;		  /* event type to print. */
 bool ppm_sc_is_set = 0;
 bool tp_is_set = 0;
-uint64_t buffer_num_pages = 2048; /* This should generate a 8 MB buffer. */
+uint64_t buffer_num_pages = 2048; /* This will generate a 8 MB buffer in systems with a page size of 4 KB. */
 
 /* Generic global variables. */
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */

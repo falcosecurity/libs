@@ -117,23 +117,6 @@ static int create_first_ringbuffer_map()
 		goto clean_create_first_ringbuffer_map;
 	}
 
-	/* create the ringbuf manager with the first map. */
-	/* Each data page is mapped twice to allow "virtual"
-	 * continuous read of samples wrapping around the end of ring
-	 * buffer area:
-	 * 
-	 * ------------------------------------------------------
-	 * | meta pages |  real data pages  |  same data pages  |
-	 * ------------------------------------------------------
-	 * |            | 1 2 3 4 5 6 7 8 9 | 1 2 3 4 5 6 7 8 9 |
-	 * ------------------------------------------------------
-	 * |            | TA             DA | TA             DA |
-	 * ------------------------------------------------------
-	 *                               ^^^^^^^
-	 *                                  |
-	 * Here, no need to worry about special handling of wrapped-around
-	 * data due to double-mapped data pages.
-	 */
 	g_state.rb_manager = ring_buffer__new(ringbuf_map_fd, NULL, NULL, NULL);
 	if(!g_state.rb_manager)
 	{
