@@ -418,6 +418,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_fsconfig
 	[__NR_fsconfig - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FSCONFIG_E, PPME_SYSCALL_FSCONFIG_X, PPM_SC_FSCONFIG},
 #endif
+#ifdef __NR_epoll_create
+	[__NR_epoll_create - SYSCALL_TABLE_ID0] =               {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE_E, PPME_SYSCALL_EPOLL_CREATE_X, PPM_SC_EPOLL_CREATE},
+#endif
+#ifdef __NR_epoll_create1
+	[__NR_epoll_create1 - SYSCALL_TABLE_ID0] = {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE1_E, PPME_SYSCALL_EPOLL_CREATE1_X, PPM_SC_EPOLL_CREATE1},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -579,7 +585,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_utimensat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_UTIMENSAT},
 	[__NR_timerfd_settime - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD_SETTIME},
 	[__NR_timerfd_gettime - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD_GETTIME},
-	[__NR_epoll_create1 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_CREATE1},
 	[__NR_rt_tgsigqueueinfo - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_TGSIGQUEUEINFO},
 	[__NR_perf_event_open - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PERF_EVENT_OPEN},
 #ifdef __NR_fanotify_init
@@ -890,9 +895,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_uselib
 	[__NR_uselib - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_USELIB},
-#endif
-#ifdef __NR_epoll_create
-	[__NR_epoll_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_CREATE},
 #endif
 #ifdef __NR_lchown
 	[__NR_lchown - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LCHOWN},
@@ -1219,6 +1221,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_fsconfig
 	[__NR_ia32_fsconfig - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FSCONFIG_E, PPME_SYSCALL_FSCONFIG_X, PPM_SC_FSCONFIG},
 #endif
+#ifdef __NR_ia32_epoll_create
+	[__NR_ia32_epoll_create - SYSCALL_TABLE_ID0] =               {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE_E, PPME_SYSCALL_EPOLL_CREATE_X, PPM_SC_EPOLL_CREATE},
+#endif
+#ifdef __NR_ia32_epoll_create1
+	[__NR_ia32_epoll_create1 - SYSCALL_TABLE_ID0] = {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE1_E, PPME_SYSCALL_EPOLL_CREATE1_X, PPM_SC_EPOLL_CREATE1},
+#endif
 	[__NR_ia32_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_ia32_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_ia32_time
@@ -1380,7 +1388,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_utimensat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_UTIMENSAT},
 	[__NR_ia32_timerfd_settime - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD_SETTIME},
 	[__NR_ia32_timerfd_gettime - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD_GETTIME},
-	[__NR_ia32_epoll_create1 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_CREATE1},
 	[__NR_ia32_rt_tgsigqueueinfo - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_TGSIGQUEUEINFO},
 	[__NR_ia32_perf_event_open - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PERF_EVENT_OPEN},
 #ifdef __NR_ia32_fanotify_init
@@ -1679,9 +1686,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_pselect6
 	[__NR_ia32_pselect6 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PSELECT6},
-#endif
-#ifdef __NR_ia32_epoll_create
-	[__NR_ia32_epoll_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_CREATE},
 #endif
 #ifdef __NR_ia32_lchown
 	[__NR_ia32_lchown - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LCHOWN},

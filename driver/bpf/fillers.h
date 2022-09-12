@@ -3676,6 +3676,46 @@ FILLER(sys_fsconfig_x, true)
 	return res;
 }
 
+FILLER(sys_epoll_create_e, true)
+{
+	unsigned long size;
+
+	/*
+	 * size
+	 */
+	size = bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, size);
+}
+
+FILLER(sys_epoll_create_x, true)
+{
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	return bpf_val_to_ring(data, retval);
+}
+
+FILLER(sys_epoll_create1_e, true)
+{
+	unsigned long flags;
+
+	/*
+	 * flags
+	 */
+	flags = bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, epoll_create1_flags_to_scap(flags));
+}
+
+FILLER(sys_epoll_create1_x, true)
+{
+	unsigned long retval;
+	unsigned long res;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	return bpf_val_to_ring(data, retval);
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;
