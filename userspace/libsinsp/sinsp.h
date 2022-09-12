@@ -223,8 +223,8 @@ public:
 	void open_bpf(uint64_t buffer_dimension, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_udig();
 	void open_nodriver();
-	void open_savefile(const std::string &filename, int fd);
-	void open_plugin(std::string plugin_name, std::string plugin_open_params);
+	void open_savefile(const std::string &filename, int fd = 0);
+	void open_plugin(std::string plugin_name, std::string plugin_open_params = "");
 	void open_gvisor(std::string config_path, std::string root_path);
 	void open_modern_bpf(uint64_t buffer_dimension, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
