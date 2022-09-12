@@ -6,6 +6,13 @@ else()
   set(DEBUG "")
 endif()
 
+include(compute_versions RESULT_VARIABLE RESULT)
+if(RESULT STREQUAL NOTFOUND)
+  message(FATAL_ERROR "problem with compute_versions.cmake in ${CMAKE_MODULE_PATH}")
+endif()
+compute_versions(../API_VERSION ../SCHEMA_VERSION)
+configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_config.h)
+
 #### TODO: we could add checks on the minimum required clang version.
 find_program(CLANG_EXE NAMES clang DOC "Path to clang executable")
 
