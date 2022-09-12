@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, openat2X_success)
 {
-	auto evt_test = new event_test(__NR_openat2, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -67,7 +67,7 @@ TEST(SyscallExit, openat2X_success)
 
 TEST(SyscallExit, openat2X_failure)
 {
-	auto evt_test = new event_test(__NR_openat2, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_openat2, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

@@ -5,7 +5,7 @@
 #if defined(__NR_fstat) && defined(__NR_unlinkat) && defined(__NR_close)
 TEST(SyscallExit, creatX_success)
 {
-	auto evt_test = new event_test(__NR_creat, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_creat, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -66,7 +66,7 @@ TEST(SyscallExit, creatX_success)
 
 TEST(SyscallExit, creatX_failure)
 {
-	auto evt_test = new event_test(__NR_creat, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_creat, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

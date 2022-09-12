@@ -22,6 +22,20 @@ const char* cgroup_prefix_array[CGROUP_NUMBER] = {
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
 /////////////////////////////////
+// RETRIEVE EVENT CLASS
+/////////////////////////////////
+
+std::unique_ptr<event_test> get_generic_event_test(ppm_event_type event_type)
+{
+	return (std::unique_ptr<event_test>)new event_test(event_type);
+}
+
+std::unique_ptr<event_test> get_syscall_event_test(int syscall_id, int event_direction)
+{
+	return (std::unique_ptr<event_test>)new event_test(syscall_id, event_direction);
+}
+
+/////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
 /////////////////////////////////
 

@@ -3,7 +3,7 @@
 #ifdef __NR_tgkill
 TEST(SyscallEnter, tgkillE)
 {
-	auto evt_test = new event_test(__NR_tgkill, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_tgkill, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

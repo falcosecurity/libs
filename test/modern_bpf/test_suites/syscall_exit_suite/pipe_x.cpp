@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, pipeX_success)
 {
-	auto evt_test = new event_test(__NR_pipe, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_pipe, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -60,7 +60,7 @@ TEST(SyscallExit, pipeX_success)
 
 TEST(SyscallExit, pipeX_failure)
 {
-	auto evt_test = new event_test(__NR_pipe, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_pipe, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

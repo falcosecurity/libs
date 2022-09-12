@@ -3,7 +3,7 @@
 #ifdef __NR_fchmodat
 TEST(SyscallEnter, fchmodatE)
 {
-	auto evt_test = new event_test(__NR_fchmodat, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_fchmodat, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

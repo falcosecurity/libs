@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, bindX_INET)
 {
-	auto evt_test = new event_test(__NR_bind, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -54,7 +54,7 @@ TEST(SyscallExit, bindX_INET)
 
 TEST(SyscallExit, bindX_INET6)
 {
-	auto evt_test = new event_test(__NR_bind, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -103,7 +103,7 @@ TEST(SyscallExit, bindX_INET6)
 #ifdef __NR_unlinkat
 TEST(SyscallExit, bindX_UNIX)
 {
-	auto evt_test = new event_test(__NR_bind, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -152,7 +152,7 @@ TEST(SyscallExit, bindX_UNIX)
 
 TEST(SyscallExit, bindX_failure)
 {
-	auto evt_test = new event_test(__NR_bind, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_bind, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

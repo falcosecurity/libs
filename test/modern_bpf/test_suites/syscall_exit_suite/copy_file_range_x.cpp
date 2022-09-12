@@ -3,7 +3,7 @@
 #ifdef __NR_copy_file_range
 TEST(SyscallExit, copy_file_rangeX)
 {
-	auto evt_test = new event_test(__NR_copy_file_range, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_copy_file_range, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

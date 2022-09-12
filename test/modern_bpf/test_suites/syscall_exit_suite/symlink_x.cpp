@@ -3,7 +3,7 @@
 #ifdef __NR_symlink
 TEST(SyscallExit, symlinkX)
 {
-	auto evt_test = new event_test(__NR_symlink, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_symlink, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

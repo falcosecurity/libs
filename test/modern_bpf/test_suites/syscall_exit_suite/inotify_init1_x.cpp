@@ -9,7 +9,7 @@ TEST(SyscallExit, inotify_init1X)
 	 * like `inotify_init`. The same BPF program will be used for both the syscalls.
 	 */
 
-	auto evt_test = new event_test(__NR_inotify_init1, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_inotify_init1, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

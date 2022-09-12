@@ -3,7 +3,7 @@
 #ifdef __NR_link
 TEST(SyscallExit, linkX)
 {
-	auto evt_test = new event_test(__NR_link, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_link, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

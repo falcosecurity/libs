@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, recvmsgX_no_snaplen)
 {
-	auto evt_test = new event_test(__NR_recvmsg, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -92,7 +92,7 @@ TEST(SyscallExit, recvmsgX_no_snaplen)
 
 TEST(SyscallExit, recvmsgX_snaplen)
 {
-	auto evt_test = new event_test(__NR_recvmsg, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -179,7 +179,7 @@ TEST(SyscallExit, recvmsgX_snaplen)
 
 TEST(SyscallExit, recvmsgX_fail)
 {
-	auto evt_test = new event_test(__NR_recvmsg, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_recvmsg, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

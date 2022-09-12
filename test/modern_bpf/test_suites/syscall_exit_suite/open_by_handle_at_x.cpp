@@ -115,7 +115,7 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 
 TEST(SyscallExit, open_by_handle_atX_success)
 {
-	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -162,7 +162,7 @@ TEST(SyscallExit, open_by_handle_atX_success)
 
 TEST(SyscallExit, open_by_handle_atX_success_mp)
 {
-	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -209,7 +209,7 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 
 TEST(SyscallExit, open_by_handle_atX_failure)
 {
-	auto evt_test = new event_test(__NR_open_by_handle_at, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

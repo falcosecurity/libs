@@ -8,7 +8,7 @@ TEST(SyscallEnter, pipe2E)
 	 * like `pipe`. The same BPF program will be used for both the syscalls.
 	 */
 
-	auto evt_test = new event_test(__NR_pipe2, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_pipe2, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

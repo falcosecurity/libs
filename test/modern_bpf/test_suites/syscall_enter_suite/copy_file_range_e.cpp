@@ -3,7 +3,7 @@
 #ifdef __NR_copy_file_range
 TEST(SyscallEnter, copy_file_rangeE)
 {
-	auto evt_test = new event_test(__NR_copy_file_range, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_copy_file_range, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

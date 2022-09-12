@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, openX_success)
 {
-	auto evt_test = new event_test(__NR_open, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -71,7 +71,7 @@ TEST(SyscallExit, openX_success)
 
 TEST(SyscallExit, openX_failure)
 {
-	auto evt_test = new event_test(__NR_open, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

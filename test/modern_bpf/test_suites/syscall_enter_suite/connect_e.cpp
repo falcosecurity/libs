@@ -4,7 +4,7 @@
 
 TEST(SyscallEnter, connectE_INET)
 {
-	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
@@ -45,7 +45,7 @@ TEST(SyscallEnter, connectE_INET)
 
 TEST(SyscallEnter, connectE_INET6)
 {
-	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
@@ -86,7 +86,7 @@ TEST(SyscallEnter, connectE_INET6)
 
 TEST(SyscallEnter, connectE_UNIX)
 {
-	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
@@ -136,7 +136,7 @@ TEST(SyscallEnter, connectE_UNIX)
 
 TEST(SyscallEnter, connectE_UNIX_max_path)
 {
-	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
@@ -182,7 +182,7 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 
 TEST(SyscallEnter, connectE_negative_socket)
 {
-	auto evt_test = new event_test(__NR_connect, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

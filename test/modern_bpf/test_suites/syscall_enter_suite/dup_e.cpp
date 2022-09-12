@@ -3,7 +3,7 @@
 #if defined(__NR_dup) && defined(__NR_openat) && defined(__NR_close)
 TEST(SyscallEnter, dupE)
 {
-	auto evt_test = new event_test(__NR_dup, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_dup, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

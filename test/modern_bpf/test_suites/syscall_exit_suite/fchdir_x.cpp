@@ -3,7 +3,7 @@
 #ifdef __NR_fchdir
 TEST(SyscallExit, fchdirX)
 {
-	auto evt_test = new event_test(__NR_fchdir, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_fchdir, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

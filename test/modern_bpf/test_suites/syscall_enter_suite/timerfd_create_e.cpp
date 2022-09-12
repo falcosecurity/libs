@@ -3,7 +3,7 @@
 #ifdef __NR_timerfd_create
 TEST(SyscallEnter, timerfd_createE)
 {
-	auto evt_test = new event_test(__NR_timerfd_create, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_timerfd_create, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

@@ -6,7 +6,7 @@
 
 TEST(SyscallEnter, clone3E)
 {
-	auto evt_test = new event_test(__NR_clone3, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_clone3, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

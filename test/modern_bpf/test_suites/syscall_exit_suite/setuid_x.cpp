@@ -3,7 +3,7 @@
 #ifdef __NR_setuid
 TEST(SyscallExit, setuidX)
 {
-	auto evt_test = new event_test(__NR_setuid, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setuid, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

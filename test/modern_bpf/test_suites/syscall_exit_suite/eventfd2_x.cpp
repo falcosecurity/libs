@@ -9,7 +9,7 @@ TEST(SyscallExit, eventfd2X)
 	 * like `eventfd`. The same BPF program will be used for both the syscalls.
 	 */
 
-	auto evt_test = new event_test(__NR_eventfd2, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_eventfd2, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

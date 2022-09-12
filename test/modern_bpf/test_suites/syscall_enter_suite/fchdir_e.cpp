@@ -3,7 +3,7 @@
 #ifdef __NR_fchdir
 TEST(SyscallEnter, fchdirE)
 {
-	auto evt_test = new event_test(__NR_fchdir, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_fchdir, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
