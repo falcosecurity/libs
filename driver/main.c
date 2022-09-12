@@ -598,7 +598,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 			tracepoint_synchronize_unregister();
 #endif
-			g_tracepoints_attached = 0;
 
 			/*
 			 * Reset tracepoint counter
@@ -744,7 +743,18 @@ static int force_tp_set(u32 new_tp_set, u32 max_val)
 			}
 			else
 			{
-				pr_err("can't create the %s tracepoint\n", tp_names[idx]);
+				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+		else
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached &= ~(1 << idx);
+			}
+			else
+			{
+				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
 			}
 		}
 	}
