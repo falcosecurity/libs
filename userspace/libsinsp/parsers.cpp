@@ -1287,6 +1287,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		tinfo->m_cap_effective = ptinfo->m_cap_effective;
 
+		// Copy full exe ino fields from parent
+		tinfo->m_exe_ino = ptinfo->m_exe_ino;
+
+		tinfo->m_exe_ino_ctime = ptinfo->m_exe_ino_ctime;
+
+		tinfo->m_exe_ino_mtime = ptinfo->m_exe_ino_mtime;
+
+		tinfo->m_exe_ino_ctime_duration_clone_ts = ptinfo->m_exe_ino_ctime_duration_clone_ts;
+
 		if(!(flags & PPM_CL_CLONE_THREAD))
 		{
 			tinfo->m_env = ptinfo->m_env;
@@ -2104,6 +2113,27 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = evt->get_param(22);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 			evt->m_tinfo->m_cap_effective = *(uint64_t *)parinfo->m_val;
+		}
+	}
+
+	// Get exe ino fields
+	if(evt->get_num_params() > 25)
+	{
+		parinfo = evt->get_param(23);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_exe_ino = *(uint64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(24);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_exe_ino_ctime = *(uint64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(25);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		evt->m_tinfo->m_exe_ino_mtime = *(uint64_t *)parinfo->m_val;
+
+		if(evt->m_tinfo->m_clone_ts != 0)
+		{
+			evt->m_tinfo->m_exe_ino_ctime_duration_clone_ts = evt->m_tinfo->m_clone_ts - evt->m_tinfo->m_exe_ino_ctime;
 		}
 	}
 

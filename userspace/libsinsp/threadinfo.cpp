@@ -90,6 +90,10 @@ void sinsp_threadinfo::init()
 	m_cap_inheritable = 0;
 	m_cap_permitted = 0;
 	m_cap_effective = 0;
+	m_exe_ino = 0;
+	m_exe_ino_ctime = 0;
+	m_exe_ino_mtime = 0;
+	m_exe_ino_ctime_duration_clone_ts = 0;
 
 	memset(&m_user, 0, sizeof(scap_userinfo));
 	memset(&m_group, 0, sizeof(scap_groupinfo));
@@ -418,6 +422,11 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_cap_permitted = pi->cap_permitted;
 	m_cap_effective = pi->cap_effective;
 	m_cap_inheritable = pi->cap_inheritable;
+
+	m_exe_ino = pi->exe_ino;
+	m_exe_ino_ctime = pi->exe_ino_ctime;
+	m_exe_ino_mtime = pi->exe_ino_mtime;
+	m_exe_ino_ctime_duration_clone_ts = pi->exe_ino_ctime_duration_clone_ts;
 
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;

@@ -1908,6 +1908,10 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Chars in cmd args", "The total count of characters / length of all cmd args combined excluding whitespaces."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.pvpid", "Parent Virtual Process ID", "the id of the parent process generating the event as seen from its current PID namespace."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "true if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.exe_ino", "Inode number of executable image file on disk", "The inode number of the executable image file on disk. Can be directly correlated with file operation event's field fd.ino as alternative to using file paths."},
+	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime", "Last status change time (ctime - epoch ns) of exe file on disk", "Last status change time (ctime - epoch nanoseconds) of executable image file on disk (inode->ctime). Time is changed by writing or by setting inode information e.g. owner, group, link count, mode etc."},
+	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.mtime", "Last modification time (mtime - epoch ns) of exe file on disk", "Last modification time (mtime - epoch nanoseconds) of executable image file on disk (inode->mtime). Time is changed by file modifications, e.g. by mknod, truncate, utime, write of more than zero bytes etc. For tracking changes in owner, group, link count or mode, use proc.exe_ino.ctime instead."},
+	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_proc_start", "Time delta in ns - proc clone ts minus ctime exe file", "Time delta between process clone ts and ctime exe file in ns, aka duration of time passed after modifying the status of the executable image and then spawning a new process using the changed executable image."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2783,6 +2787,31 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				return NULL;
 			}
 		}
+	case TYPE_EXE_INO:
+		// Inode 0 is used as a NULL value to indicate that there is no inode.
+		if(tinfo->m_exe_ino == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_exe_ino);
+	case TYPE_EXE_INO_CTIME:
+		if(tinfo->m_exe_ino_ctime == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_exe_ino_ctime);
+	case TYPE_EXE_INO_MTIME:
+		if(tinfo->m_exe_ino_mtime == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_exe_ino_mtime);
+	case TYPE_EXE_INO_CTIME_DURATION_CLONE_TS:
+		if(tinfo->m_exe_ino_ctime_duration_clone_ts == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_exe_ino_ctime_duration_clone_ts);
 	default:
 		ASSERT(false);
 		return NULL;

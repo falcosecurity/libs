@@ -306,6 +306,10 @@ public:
 	uint64_t m_cap_permitted; ///< permitted capabilities
 	uint64_t m_cap_effective; ///< effective capabilities
 	uint64_t m_cap_inheritable; ///< inheritable capabilities
+	uint64_t m_exe_ino; ///< executable inode ino
+	uint64_t m_exe_ino_ctime; ///< executable inode ctime (last status change time)
+	uint64_t m_exe_ino_mtime; ///< executable inode mtime (last modification time)
+	uint64_t m_exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
 	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
@@ -318,7 +322,7 @@ public:
 	std::string m_root;
 	size_t m_program_hash; ///< Unique hash of the current program
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
-	int32_t m_tty;
+	int32_t m_tty; ///< Number of controlling terminal
 
 
 	// In some cases, a threadinfo has a category that identifies
