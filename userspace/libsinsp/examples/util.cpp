@@ -52,7 +52,7 @@ std::string get_event_category(ppm_event_category category)
 //
 std::string get_event_type(uint16_t type)
 {
-	if (type > 1 && type < PPM_EVENT_MAX)
+	if (type < PPM_EVENT_MAX && type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{
 		return g_infotables.m_event_info[type].name;
 	}
