@@ -27,7 +27,7 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__ /* Kernel module - BPF probe */
 
-#include <linux/version.h>
+#include "ppm_version.h"
 
 ///////////////////////////////
 // CAPTURE_SCHED_PROC_FORK 
@@ -136,7 +136,8 @@ or GPL2.txt for full copies of the license.
 // USE_BPF_PROBE_KERNEL_USER_VARIANTS
 ///////////////////////////////
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,5,0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,5,0)) || \
+    (defined(PPM_RHEL_RELEASE_CODE) && (PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 5)))
 	#define USE_BPF_PROBE_KERNEL_USER_VARIANTS
 #endif
 
