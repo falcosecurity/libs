@@ -35,6 +35,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_parser.ut.cpp
 	filter_op_bcontains.ut.cpp
 	filter_compiler.ut.cpp
+	user.ut.cpp
 )
 
 if(NOT MINIMAL_BUILD)
