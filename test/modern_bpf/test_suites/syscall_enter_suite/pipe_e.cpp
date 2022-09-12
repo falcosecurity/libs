@@ -3,7 +3,7 @@
 #ifdef __NR_pipe
 TEST(SyscallEnter, pipeE)
 {
-	auto evt_test = new event_test(__NR_pipe, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_pipe, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

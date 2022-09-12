@@ -3,7 +3,7 @@
 #ifdef __NR_symlinkat
 TEST(SyscallExit, symlinkatX)
 {
-	auto evt_test = new event_test(__NR_symlinkat, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_symlinkat, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

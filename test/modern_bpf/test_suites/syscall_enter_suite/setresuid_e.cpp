@@ -3,7 +3,7 @@
 #ifdef __NR_setresuid
 TEST(SyscallEnter, setresuidE)
 {
-	auto evt_test = new event_test(__NR_setresuid, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setresuid, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

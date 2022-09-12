@@ -3,7 +3,7 @@
 #ifdef __NR_setgid
 TEST(SyscallEnter, setgidE)
 {
-	auto evt_test = new event_test(__NR_setgid, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setgid, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

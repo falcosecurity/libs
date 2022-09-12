@@ -6,7 +6,7 @@
 
 TEST(SyscallEnter, socketE)
 {
-	auto evt_test = new event_test(__NR_socket, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_socket, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

@@ -9,7 +9,7 @@
 
 TEST(GenericTracepoints, sched_proc_exit)
 {
-	auto evt_test = new event_test(PPME_PROCEXIT_1_E);
+	auto evt_test = get_generic_event_test(PPME_PROCEXIT_1_E);
 
 	evt_test->enable_capture();
 
@@ -74,7 +74,5 @@ TEST(GenericTracepoints, sched_proc_exit)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(4);
-
-	delete evt_test;
 }
 #endif

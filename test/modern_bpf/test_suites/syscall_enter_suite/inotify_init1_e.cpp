@@ -9,7 +9,7 @@ TEST(SyscallEnter, inotify_init1E)
 	 * like `inotify_init`. The same BPF program will be used for both the syscalls.
 	 */
 
-	auto evt_test = new event_test(__NR_inotify_init1, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_inotify_init1, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

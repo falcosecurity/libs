@@ -3,7 +3,7 @@
 #ifdef __NR_flock
 TEST(SyscallEnter, flockE)
 {
-	auto evt_test = new event_test(__NR_flock, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_flock, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

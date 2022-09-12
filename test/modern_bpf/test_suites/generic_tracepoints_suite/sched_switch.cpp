@@ -7,7 +7,7 @@
 
 TEST(GenericTracepoints, sched_switch)
 {
-	auto evt_test = new event_test(PPME_SCHEDSWITCH_6_E);
+	auto evt_test = get_generic_event_test(PPME_SCHEDSWITCH_6_E);
 
 	evt_test->enable_capture();
 
@@ -91,6 +91,5 @@ TEST(GenericTracepoints, sched_switch)
 
 	evt_test->assert_num_params_pushed(6);
 
-	delete evt_test;
 }
 #endif

@@ -7,7 +7,7 @@
 
 TEST(SyscallExit, clone3X_father)
 {
-	auto evt_test = new event_test(__NR_clone3, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -138,7 +138,7 @@ TEST(SyscallExit, clone3X_father)
 #ifndef CAPTURE_SCHED_PROC_FORK
 TEST(SyscallExit, clone3X_child)
 {
-	auto evt_test = new event_test(__NR_clone3, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_clone3, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

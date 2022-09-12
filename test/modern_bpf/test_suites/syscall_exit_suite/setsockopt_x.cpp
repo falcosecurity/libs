@@ -11,7 +11,7 @@
 
 TEST(SyscallExit, setsockoptX_SO_ERROR)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -69,7 +69,7 @@ TEST(SyscallExit, setsockoptX_SO_ERROR)
 
 TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -122,11 +122,13 @@ TEST(SyscallExit, setsockoptX_SO_RCVTIMEO)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, setsockoptX_SO_COOKIE)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -176,11 +178,13 @@ TEST(SyscallExit, setsockoptX_SO_COOKIE)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, setsockoptX_SO_PASSCRED)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -230,11 +234,13 @@ TEST(SyscallExit, setsockoptX_SO_PASSCRED)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -284,11 +290,13 @@ TEST(SyscallExit, setsockoptX_UNKNOWN_OPTION)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -338,11 +346,13 @@ TEST(SyscallExit, setsockoptX_SOL_UNKNOWN)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 TEST(SyscallExit, setsockoptX_ZERO_OPTLEN)
 {
-	auto evt_test = new event_test(__NR_setsockopt, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -392,6 +402,8 @@ TEST(SyscallExit, setsockoptX_ZERO_OPTLEN)
 	evt_test->assert_numeric_param(6, (uint32_t)option_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(6);
 }
 
 #endif

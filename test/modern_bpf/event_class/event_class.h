@@ -553,3 +553,11 @@ private:
 	 */
 	void assert_unix_path(const char* desired_path, int starting_index);
 };
+
+/////////////////////////////////
+// RETRIEVE EVENT CLASS
+/////////////////////////////////
+
+std::unique_ptr<event_test> get_generic_event_test(ppm_event_type event_type);
+
+std::unique_ptr<event_test> get_syscall_event_test(int syscall_id, int event_direction);

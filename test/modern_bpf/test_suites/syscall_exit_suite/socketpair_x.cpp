@@ -6,7 +6,7 @@
 
 TEST(SyscallExit, socketpairX_success)
 {
-	auto evt_test = new event_test(__NR_socketpair, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_socketpair, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -61,7 +61,7 @@ TEST(SyscallExit, socketpairX_success)
 
 TEST(SyscallExit, socketpairX_failure)
 {
-	auto evt_test = new event_test(__NR_socketpair, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_socketpair, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

@@ -3,7 +3,7 @@
 #ifdef __NR_unlink
 TEST(SyscallEnter, unlinkE)
 {
-	auto evt_test = new event_test(__NR_unlink, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_unlink, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

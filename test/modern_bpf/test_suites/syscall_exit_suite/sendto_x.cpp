@@ -9,7 +9,7 @@
  */
 TEST(SyscallExit, sendtoX_no_snaplen)
 {
-	auto evt_test = new event_test(__NR_sendto, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -64,7 +64,7 @@ TEST(SyscallExit, sendtoX_no_snaplen)
 /* Here we need to truncate our message since it is greater than `snaplen` */
 TEST(SyscallExit, sendtoX_snaplen)
 {
-	auto evt_test = new event_test(__NR_sendto, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -119,7 +119,7 @@ TEST(SyscallExit, sendtoX_snaplen)
 
 TEST(SyscallExit, sendtoX_fail)
 {
-	auto evt_test = new event_test(__NR_sendto, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_sendto, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -158,6 +158,8 @@ TEST(SyscallExit, sendtoX_fail)
 	evt_test->assert_empty_param(2);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
 }
 
 #endif /* __NR_sendmsg */

@@ -3,7 +3,7 @@
 #ifdef __NR_open_by_handle_at
 TEST(SyscallEnter, open_by_handle_atE)
 {
-	auto evt_test = new event_test(__NR_open_by_handle_at, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

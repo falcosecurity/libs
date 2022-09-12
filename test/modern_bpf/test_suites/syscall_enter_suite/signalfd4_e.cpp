@@ -12,7 +12,7 @@ TEST(SyscallEnter, signalfd4E)
 	 * like `signalfd`. The same BPF program will be used for both the syscalls.
 	 */
 
-	auto evt_test = new event_test(__NR_signalfd4, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_signalfd4, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

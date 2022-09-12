@@ -3,7 +3,7 @@
 #ifdef __NR_setns
 TEST(SyscallEnter, setnsE)
 {
-	auto evt_test = new event_test(__NR_setns, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_setns, ENTER_EVENT);
 
 	evt_test->enable_capture();
 

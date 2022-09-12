@@ -3,7 +3,7 @@
 #if defined(__NR_eventfd) && defined(__NR_close)
 TEST(SyscallEnter, eventfdE)
 {
-	auto evt_test = new event_test(__NR_eventfd, ENTER_EVENT);
+	auto evt_test = get_syscall_event_test(__NR_eventfd, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
