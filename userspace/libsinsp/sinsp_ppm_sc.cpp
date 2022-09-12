@@ -17,9 +17,9 @@ limitations under the License.
 
 #include <sinsp.h>
 
-std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
+std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	return enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t>{
+	auto simple_set = enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t>{
 		PPM_SC_ACCEPT,
 		PPM_SC_ACCEPT4,
 		PPM_SC_BIND,
@@ -107,11 +107,12 @@ std::unordered_set<uint32_t> sinsp::simple_ppm_sc_set()
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
 	});
+	ppm_sc_set.insert(simple_set.begin(), simple_set.end());
+	return ppm_sc_set;
 }
 
-std::unordered_set<uint32_t> sinsp::io_ppm_sc_set()
+std::unordered_set<uint32_t> sinsp::io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	std::unordered_set<uint32_t> ppm_sc_set;
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
 		if(g_infotables.m_syscall_info_table[i].category == EC_IO_READ ||
@@ -125,9 +126,8 @@ std::unordered_set<uint32_t> sinsp::io_ppm_sc_set()
 	return ppm_sc_set;
 }
 
-std::unordered_set<uint32_t> sinsp::net_ppm_sc_set()
+std::unordered_set<uint32_t> sinsp::net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	std::unordered_set<uint32_t> ppm_sc_set;
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
 		if(g_infotables.m_syscall_info_table[i].category == EC_NET)
@@ -138,9 +138,8 @@ std::unordered_set<uint32_t> sinsp::net_ppm_sc_set()
 	return ppm_sc_set;
 }
 
-std::unordered_set<uint32_t> sinsp::proc_ppm_sc_set()
+std::unordered_set<uint32_t> sinsp::proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	std::unordered_set<uint32_t> ppm_sc_set;
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
 		if(g_infotables.m_syscall_info_table[i].category == EC_PROCESS)
@@ -151,15 +150,13 @@ std::unordered_set<uint32_t> sinsp::proc_ppm_sc_set()
 	return ppm_sc_set;
 }
 
-std::unordered_set<uint32_t> sinsp::sys_ppm_sc_set()
+std::unordered_set<uint32_t> sinsp::sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	std::unordered_set<uint32_t> ppm_sc_set;
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
 		if(g_infotables.m_syscall_info_table[i].category == EC_SYSTEM ||
 		   g_infotables.m_syscall_info_table[i].category == EC_MEMORY ||
-		   g_infotables.m_syscall_info_table[i].category == EC_SIGNAL ||
-		   g_infotables.m_syscall_info_table[i].category == EC_OTHER)
+		   g_infotables.m_syscall_info_table[i].category == EC_SIGNAL)
 		{
 			ppm_sc_set.insert(i);
 		}
