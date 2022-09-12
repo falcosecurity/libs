@@ -832,6 +832,7 @@ public:
 
 	sinsp_parser* get_parser();
 
+	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
@@ -855,6 +856,42 @@ public:
 	*/
 	std::unordered_set<uint32_t> enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t> ppm_sc_of_interest = {});
 
+	/*!
+	  \brief Enforce simple set of syscalls with all the security-valuable syscalls.
+	  It has same effect of old `simple_consumer` mode.
+	  Does enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
+	  valuable for IO.
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
+	  valuable for networking.
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
+	  valuable for process state tracking.
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
+	  valuable for system state tracking (signals, memory...)
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*=============================== Tracepoint set related ===============================*/
 	/*!
 		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
 		If you call it without arguments it returns a new set with just these tracepoints
@@ -944,37 +981,6 @@ public:
 	const sinsp_plugin_manager* get_plugin_manager();
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
-
-	/*!
-	  \brief Enforce simple set of syscalls with all the security-valuable syscalls.
-	  It has same effect of old `simple_consumer` mode.
-	  Does enforce minimum sinsp state set.
-	*/
-	std::unordered_set<uint32_t> enforce_simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for IO.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<uint32_t> enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for networking.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<uint32_t> enforce_net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for process state tracking.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<uint32_t> enforce_proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for system state tracking (signals, memory...)
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
