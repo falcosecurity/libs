@@ -72,7 +72,7 @@ static int (*bpf_xdp_adjust_head)(void *ctx, int offset) =
 static int (*bpf_probe_read_str)(void *dst, u64 size, const void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read_str;
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,5,0)
+#if defined(USE_BPF_PROBE_KERNEL_USER_VARIANTS)
 static int (*bpf_probe_read_user)(void *dst, u32 size, const void *unsafe_ptr) =
 	(void *)BPF_FUNC_probe_read_user;
 static int (*bpf_probe_read_kernel)(void *dst, u32 size, const void *unsafe_ptr) =
