@@ -2766,17 +2766,15 @@ FILLER(proc_startupdate_3, true)
 /* This filler avoids a bpf stack overflow on old kernels (like 4.14). */
 FILLER(execve_family_flags, true)
 {
-	struct task_struct *task = NULL;
-	struct cred *cred;
 	kernel_cap_t cap;
-	uint32_t flags = 0;
-	int res = 0;
 	unsigned long val;
+	int res = 0;
+	uint32_t flags = 0;
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
 
-	task = (struct task_struct *)bpf_get_current_task();
-	cred = (struct cred *)_READ(task->cred);
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct cred *cred = (struct cred *)_READ(task->cred);
 
 	struct inode *inode = get_exe_inode(task);
 
@@ -2803,9 +2801,7 @@ FILLER(execve_family_flags, true)
 
 	// write all additional flags for execve family here...
 
-	/*
-	 * flags
-	 */
+	/* Parameter 20: flags (type: PT_FLAGS32) */
 	res = bpf_val_to_ring_type(data, flags, PT_UINT32);
 	if (res != PPM_SUCCESS)
 	{
@@ -2815,23 +2811,51 @@ FILLER(execve_family_flags, true)
 	/*
 	 * capabilities
 	 */
+
+	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
 	cap = _READ(cred->cap_inheritable);
 	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
 	res = bpf_val_to_ring(data, capabilities_to_scap(val));
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
 
+	/* Parameter 22: cap_permitted (type: PT_UINT64) */
 	cap = _READ(cred->cap_permitted);
 	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
 	res = bpf_val_to_ring(data, capabilities_to_scap(val));
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
 
+	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	cap = _READ(cred->cap_effective);
 	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
 	res = bpf_val_to_ring(data, capabilities_to_scap(val));
 	if(unlikely(res != PPM_SUCCESS))
 		return res;
+
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	unsigned long i_ino = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, i_ino, PT_UINT64);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	struct timespec64 i_ctime = _READ(inode->i_ctime);
+	res = bpf_val_to_ring_type(data, i_ctime.tv_sec * 1000000000 + i_ctime.tv_nsec, PT_ABSTIME);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	struct timespec64 i_mtime = _READ(inode->i_mtime);
+	res = bpf_val_to_ring_type(data, i_mtime.tv_sec * 1000000000 + i_mtime.tv_nsec, PT_ABSTIME);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
 
 	return res;
 }
@@ -6444,9 +6468,11 @@ FILLER(sched_prog_exec_3, false)
 
 FILLER(sched_prog_exec_4, false)
 {
-
+	kernel_cap_t cap;
+	unsigned long val;
 	int res = 0;
 	uint32_t flags = 0;
+	bool exe_writable = false;
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
 
@@ -6479,9 +6505,6 @@ FILLER(sched_prog_exec_4, false)
 		return res;
 	}
 
-	kernel_cap_t cap;
-	unsigned long val;
-
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
 	cap = _READ(cred->cap_inheritable);
 	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
@@ -6504,6 +6527,34 @@ FILLER(sched_prog_exec_4, false)
 	cap = _READ(cred->cap_effective);
 	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
 	res = bpf_val_to_ring(data, capabilities_to_scap(val));
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	unsigned long i_ino = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, i_ino, PT_UINT64);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	struct timespec64 i_ctime = _READ(inode->i_ctime);
+	res = bpf_val_to_ring_type(data, i_ctime.tv_sec * 1000000000 + i_ctime.tv_nsec, PT_ABSTIME);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	struct timespec64 i_mtime = _READ(inode->i_mtime);
+	res = bpf_val_to_ring_type(data, i_mtime.tv_sec * 1000000000 + i_mtime.tv_nsec, PT_ABSTIME);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
 
 	return res;
 }
