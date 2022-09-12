@@ -31,13 +31,16 @@ limitations under the License.
 #include <grp.h>
 #endif
 
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+std::string sinsp_usergroup_manager::s_host_root;
+#endif
+
 namespace {
 
 #ifdef HAVE_PWD_H
 struct passwd *__getpwuid(uint32_t uid)
 {
-	static std::string host_root(scap_get_host_root());
-	if(host_root.empty())
+	if(sinsp_usergroup_manager::s_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -50,7 +53,7 @@ struct passwd *__getpwuid(uint32_t uid)
 // See fgetpwent() feature test macros:
 // https://man7.org/linux/man-pages/man3/fgetpwent.3.html
 #if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
-	static std::string filename(host_root + "/etc/passwd");
+	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -76,8 +79,7 @@ struct passwd *__getpwuid(uint32_t uid)
 #ifdef HAVE_GRP_H
 struct group *__getgrgid(uint32_t gid)
 {
-	static std::string host_root(scap_get_host_root());
-	if(host_root.empty())
+	if(sinsp_usergroup_manager::s_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -89,7 +91,7 @@ struct group *__getgrgid(uint32_t gid)
 
 // See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
 #if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
-	static std::string filename(host_root + "/etc/group");
+	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -120,6 +122,9 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
 	m_last_flush_time_ns(0),
 	m_inspector(inspector)
 {
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+	s_host_root = std::string(scap_get_host_root());
+#endif
 }
 
 void sinsp_usergroup_manager::init()

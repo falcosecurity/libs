@@ -127,6 +127,10 @@ public:
 	//
 	bool m_import_users;
 
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+	static std::string s_host_root;
+#endif
+
 private:
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);

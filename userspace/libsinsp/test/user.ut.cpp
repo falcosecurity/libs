@@ -15,7 +15,10 @@ limitations under the License.
 
 */
 
+#include <fstream>
 #include <gtest/gtest.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "sinsp_with_test_input.h"
 #include "user.h"
@@ -76,3 +79,88 @@ TEST_F(usergroup_manager_test, add_rm)
 	mgr.rm_group(container_id, 0);
 	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
 }
+
+TEST_F(usergroup_manager_test, system_lookup)
+{
+	std::string container_id{""};
+
+	sinsp_usergroup_manager mgr(&m_inspector);
+
+	mgr.add_user(container_id, 0, 0, nullptr, nullptr, nullptr);
+	auto* user = mgr.get_user(container_id, 0);
+	ASSERT_NE(user, nullptr);
+	ASSERT_EQ(user->uid, 0);
+	ASSERT_EQ(user->gid, 0);
+	ASSERT_EQ(std::string(user->name), "root");
+	ASSERT_EQ(std::string(user->homedir), "/root");
+	ASSERT_EQ(std::string(user->shell).empty(), false);
+
+	mgr.add_group(container_id, 0, nullptr);
+	auto* group = mgr.get_group(container_id, 0);
+	ASSERT_NE(group, nullptr);
+	ASSERT_EQ(group->gid, 0);
+	ASSERT_EQ(std::string(group->name), "root");
+}
+
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+class usergroup_manager_host_root_test : public sinsp_with_test_input
+{
+protected:
+	void SetUp() override
+	{
+		char pwd_buf[SCAP_MAX_PATH_SIZE];
+		auto pwd = getcwd(pwd_buf, SCAP_MAX_PATH_SIZE);
+		ASSERT_NE(pwd, nullptr);
+		m_host_root = pwd_buf;
+		m_host_root += "/host";
+
+		ASSERT_EQ(mkdir(m_host_root.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
+		std::string etc = m_host_root + "/etc";
+		ASSERT_EQ(mkdir(etc.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
+
+		{
+			ofstream ofs(etc + "/passwd");
+			ofs << "toor:x:0:0:toor:/toor:/bin/ash";
+			ofs.close();
+		}
+		{
+			ofstream ofs(etc + "/group");
+			ofs << "toor:x:0:toor";
+			ofs.close();
+		}
+	}
+
+	void TearDown() override
+	{
+		unlink((m_host_root + "/etc/passwd").c_str());
+		unlink((m_host_root + "/etc/group").c_str());
+		rmdir((m_host_root + "/etc").c_str());
+		rmdir(m_host_root.c_str());
+	}
+
+	std::string m_host_root;
+};
+
+TEST_F(usergroup_manager_host_root_test, host_root_lookup)
+{
+	std::string container_id{""};
+
+	sinsp_usergroup_manager mgr(&m_inspector);
+	sinsp_usergroup_manager::s_host_root = m_host_root;
+
+	mgr.add_user(container_id, 0, 0, nullptr, nullptr, nullptr);
+	auto* user = mgr.get_user(container_id, 0);
+	ASSERT_NE(user, nullptr);
+	ASSERT_EQ(user->uid, 0);
+	ASSERT_EQ(user->gid, 0);
+	ASSERT_EQ(std::string(user->name), "toor");
+	ASSERT_EQ(std::string(user->homedir), "/toor");
+	ASSERT_EQ(std::string(user->shell), "/bin/ash");
+
+	mgr.add_group(container_id, 0, nullptr);
+	auto* group = mgr.get_group(container_id, 0);
+	ASSERT_NE(group, nullptr);
+	ASSERT_EQ(group->gid, 0);
+	ASSERT_EQ(std::string(group->name), "toor");
+}
+#endif
