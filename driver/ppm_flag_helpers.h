@@ -1881,6 +1881,16 @@ static __always_inline u32 dup3_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
+{
+	uint32_t res = 0;
+#ifdef EPOLL_CLOEXEC
+	if (flags & EPOLL_CLOEXEC)
+		res |= PPM_EPOLL_CLOEXEC;
+#endif
+	return res;
+}
+
 #endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */

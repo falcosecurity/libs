@@ -5239,7 +5239,6 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	unsigned long value_pointer = 0;
 	unsigned long aux = 0;
 
-
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	ret = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, ret, 0, false, 0);
@@ -5345,6 +5344,62 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	/* Parameter 7: aux (type: PT_INT32) */
 	res = val_to_ring(args, aux, 0, true, 0);
 	CHECK_RES(res);
+}
+
+int f_sys_epoll_create_e(struct event_filler_arguments *args)
+{
+	unsigned long size;
+	int res;
+
+	/*
+	 * size
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &size);
+	res = val_to_ring(args, size, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_epoll_create_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	int res;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_epoll_create1_e(struct event_filler_arguments *args)
+{
+	unsigned long flags;
+	int res;
+
+	/*
+	 * flags
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &flags);
+	res = val_to_ring(args, epoll_create1_flags_to_scap(flags), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_epoll_create1_x(struct event_filler_arguments *args)
+{
+	int64_t retval;
+	int res;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 
 	return add_sentinel(args);
 }

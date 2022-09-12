@@ -431,6 +431,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_IO_URING_SETUP_X:
 		parse_single_param_fd_exit(evt, SCAP_FD_IOURING);
 		break;
+	case PPME_SYSCALL_EPOLL_CREATE_X:
+	case PPME_SYSCALL_EPOLL_CREATE1_X:
+		parse_single_param_fd_exit(evt, SCAP_FD_EVENTPOLL);
+		break;
 	case PPME_SYSCALL_GETRLIMIT_X:
 	case PPME_SYSCALL_SETRLIMIT_X:
 		parse_getrlimit_setrlimit_exit(evt);
