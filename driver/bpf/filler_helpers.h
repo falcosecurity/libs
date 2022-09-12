@@ -807,6 +807,26 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 	return size;
 }
 
+static __always_inline int __bpf_read_val_into(struct filler_data *data,
+					       unsigned long curoff_bounded,
+					       unsigned long val,
+					       volatile u16 read_size,
+					       enum read_memory mem)
+{
+	int rc;
+
+	if (mem == KERNEL)
+		rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
+				((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+				(void *)val);
+	else
+		rc = bpf_probe_read_user(&data->buf[curoff_bounded],
+				((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+				(void *)val);
+
+	return rc;
+}
+
 static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					     unsigned long val,
 					     unsigned long val_len,
@@ -894,31 +914,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 					if (read_size)
-						if (mem == KERNEL)
-						{
-							rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
-									  ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-									  (void *)val);
-						}
-						else
-						{
-							rc = bpf_probe_read_user(&data->buf[curoff_bounded],
-									  ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-									  (void *)val);
-						}
+						rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
 #else
-					if (mem == KERNEL)
-					{
-						rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
-								  read_size & SCRATCH_SIZE_HALF,
-								  (void *)val);
-					}
-					else
-					{
-						rc = bpf_probe_read_user(&data->buf[curoff_bounded],
-								  read_size & SCRATCH_SIZE_HALF,
-								  (void *)val);
-					}
+					rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
 #endif
 					if (rc)
 					{
@@ -953,31 +951,9 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 				if (read_size)
-					if (mem == KERNEL)
-					{
-						rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
-								  ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-								  (void *)val);
-					}
-					else
-					{
-						rc = bpf_probe_read_user(&data->buf[curoff_bounded],
-								  ((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
-								  (void *)val);
-					}
+					rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
 #else
-					if (mem == KERNEL)
-					{
-						rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
-								  read_size & SCRATCH_SIZE_HALF,
-								  (void *)val);
-					}
-					else
-					{
-						rc = bpf_probe_read_user(&data->buf[curoff_bounded],
-								  read_size & SCRATCH_SIZE_HALF,
-								  (void *)val);
-					}
+				rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
 #endif
 				if (rc)
 				{
