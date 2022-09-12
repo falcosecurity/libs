@@ -452,44 +452,6 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
-void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
-{
-	/* This API must be used only after the initialization phase. */
-	if (!m_inited)
-	{
-		throw sinsp_exception("you cannot use this method before opening the inspector!");
-	}
-	if (ppm_sc >= PPM_SC_MAX || ppm_sc < 0)
-	{
-		throw sinsp_exception("inexistent ppm_sc code: " + std::to_string(ppm_sc));
-	}
-	int ret = scap_set_eventmask(m_h, ppm_sc, enable);
-	if (ret != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-}
-
-std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t> ppm_sc_of_interest)
-{
-	std::vector<uint32_t> minimum_syscalls(PPM_SC_MAX, 0);
-	
-	/* Should never happen but just to be sure. */
-	if(scap_get_modifies_state_ppm_sc(minimum_syscalls.data()) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception("'minimum_syscalls' is an unexpected NULL vector!");
-	}
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		if(minimum_syscalls[ppm_sc])
-		{
-			ppm_sc_of_interest.insert(ppm_sc);
-		}
-	}
-	return ppm_sc_of_interest;
-}
-
 std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest)
 {
 	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
