@@ -833,6 +833,7 @@ public:
 	sinsp_parser* get_parser();
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
@@ -891,7 +892,10 @@ public:
 	*/
 	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
+	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+
 	/*=============================== Tracepoint set related ===============================*/
+
 	/*!
 		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
 		If you call it without arguments it returns a new set with just these tracepoints
@@ -902,6 +906,7 @@ public:
 	*/
 	std::unordered_set<uint32_t> enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest = {});
 
+	/*=============================== Tracepoint set related ===============================*/
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
