@@ -270,20 +270,24 @@ typedef struct scap_threadinfo
 	uint64_t cap_permitted; ///< permitted capabilities
 	uint64_t cap_effective; ///< effective capabilities
 	uint64_t cap_inheritable; ///< inheritable capabilities
+	uint64_t exe_ino; ///< executable inode ino
+	uint64_t exe_ino_ctime; ///< executable inode ctime (last status change time)
+	uint64_t exe_ino_mtime; ///< executable inode mtime (last modification time)
+	uint64_t exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
 	uint32_t vmsize_kb; ///< total virtual memory (as kb)
 	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
 	uint64_t pfmajor; ///< number of major page faults since start
 	uint64_t pfminor; ///< number of minor page faults since start
-	int64_t vtid;
-	int64_t vpid;
+	int64_t vtid;  ///< The virtual id of this thread.
+	int64_t vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
 	char root[SCAP_MAX_PATH_SIZE+1];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
-	uint64_t clone_ts;
-	int32_t tty;
+	uint64_t clone_ts; ///< When the clone that started this process happened.
+	int32_t tty; ///< Number of controlling terminal
     int32_t loginuid; ///< loginuid (auid)
 
 	UT_hash_handle hh; ///< makes this structure hashable
