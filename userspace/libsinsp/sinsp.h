@@ -946,35 +946,35 @@ public:
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
 	/*!
-	  \brief Simple set of syscalls with all the security-valuable syscalls.
+	  \brief Enforce simple set of syscalls with all the security-valuable syscalls.
 	  It has same effect of old `simple_consumer` mode.
 	  Does enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<uint32_t> enforce_simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 	/*!
-	  \brief Enrich passed set of syscalls with the ones
+	  \brief Enforce passed set of syscalls with the ones
 	  valuable for IO.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<uint32_t> enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 	/*!
-	  \brief Enrich passed set of syscalls with the ones
+	  \brief Enforce passed set of syscalls with the ones
 	  valuable for networking.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<uint32_t> enforce_net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 	/*!
-	  \brief Enrich passed set of syscalls with the ones
+	  \brief Enforce passed set of syscalls with the ones
 	  valuable for process state tracking.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<uint32_t> enforce_proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 	/*!
-	  \brief Enrich passed set of syscalls with the ones
+	  \brief Enforce passed set of syscalls with the ones
 	  valuable for system state tracking (signals, memory...)
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
