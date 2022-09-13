@@ -431,6 +431,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mlock2
 	[__NR_mlock2 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MLOCK2_E, PPME_SYSCALL_MLOCK2_X, PPM_SC_MLOCK2},
 #endif
+#ifdef __NR_fsconfig
+	[__NR_fsconfig - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FSCONFIG_E, PPME_SYSCALL_FSCONFIG_X, PPM_SC_FSCONFIG},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -1049,6 +1052,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_mlock2
 	[__NR_ia32_mlock2 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MLOCK2_E, PPME_SYSCALL_MLOCK2_X, PPM_SC_MLOCK2},
+#endif
+#ifdef __NR_ia32_fsconfig
+	[__NR_ia32_fsconfig - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_FSCONFIG_E, PPME_SYSCALL_FSCONFIG_X, PPM_SC_FSCONFIG},
 #endif
 	[__NR_ia32_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_ia32_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
