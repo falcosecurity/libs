@@ -3570,6 +3570,143 @@ FILLER(sys_munlockall_x, true)
 	return res;
 }
 
+FILLER(sys_fsconfig_x, true)
+{
+	unsigned long val;
+	unsigned long retval;
+	unsigned long res;
+	int aux;
+	int cmd;
+	const char *key;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * fs_fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cmd
+	 */
+	cmd = bpf_syscall_get_argument(data, 1);
+	cmd = fsconfig_cmds_to_scap(cmd);
+	res = bpf_val_to_ring(data, cmd);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * key
+	 */
+	key = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, key);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	aux = bpf_syscall_get_argument(data, 4);
+
+	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+	switch (cmd)
+	{
+	case PPM_FSCONFIG_SET_FLAG:
+		// Only key must be set
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = bpf_val_to_ring(data, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		res = bpf_val_to_ring(data, aux);
+		break;
+	case PPM_FSCONFIG_SET_STRING:
+		// value is a NUL-terminated string; aux is 0
+		/*
+		 * value -> string
+		 */
+		val = bpf_syscall_get_argument(data, 3);
+		res = bpf_val_to_ring_type(data, val, PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * aux -> should be 0
+		 */
+		res = bpf_val_to_ring(data, aux);
+		break;
+	case PPM_FSCONFIG_SET_BINARY:
+		// value points to a blob; aux is its size
+		/*
+		 * value -> bytebuf
+		 */
+		val = bpf_syscall_get_argument(data, 3);
+		res = __bpf_val_to_ring(data, val, aux, PT_BYTEBUF, -1, true);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * aux -> bytebuf size
+		 */
+		res = bpf_val_to_ring(data, aux);
+		break;
+	case PPM_FSCONFIG_SET_PATH:
+	case PPM_FSCONFIG_SET_PATH_EMPTY:
+		// value is a NUL-terminated string; aux is a fd
+		/*
+		 * value -> string
+		 */
+		val = bpf_syscall_get_argument(data, 3);
+		res = bpf_val_to_ring_type(data, val, PT_CHARBUF);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * aux -> fd
+		 */
+		res = bpf_val_to_ring(data, aux);
+		break;
+	case PPM_FSCONFIG_SET_FD:
+		// value must be NULL; aux is a fd
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = bpf_val_to_ring(data, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * aux -> fd
+		 */
+		res = bpf_val_to_ring(data, aux);
+		break;
+	case PPM_FSCONFIG_CMD_CREATE:
+	case PPM_FSCONFIG_CMD_RECONFIGURE:
+		// key, value and aux should be 0
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = bpf_val_to_ring(data, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+
+		/*
+		 * aux -> should be 0; push what we got
+		 */
+		res = bpf_val_to_ring(data, aux);
+		break;
+	}
+
+	return res;
+}
+
 FILLER(sys_sendfile_e, true)
 {
 	unsigned long val;

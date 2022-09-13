@@ -1573,6 +1573,18 @@ static __always_inline u32 execveat_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 fsconfig_cmds_to_scap(unsigned long cmd)
+{
+	/*
+	 * fsconfig opcodes are defined via enum in uapi/linux/mount.h.
+	 * It is userspace API (thus stable) and arch independent.
+	 * Therefore we map them 1:1; if any unmapped flag arrives,
+	 * we will just print its value to userspace without mapping it to a string flag.
+	 * We then need to append new flags to both flags_table and ppm_events_public PPM_ flags.
+	 */
+	return cmd;
+}
+
 static __always_inline u32 mlockall_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
