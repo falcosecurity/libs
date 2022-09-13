@@ -48,9 +48,9 @@ TEST_F(usergroup_manager_test, add_rm)
 	ASSERT_NE(user, nullptr);
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
-	ASSERT_EQ(std::string(user->name), "test");
-	ASSERT_EQ(std::string(user->homedir), "/test");
-	ASSERT_EQ(std::string(user->shell), "/bin/test");
+	ASSERT_STREQ(user->name, "test");
+	ASSERT_STREQ(user->homedir, "/test");
+	ASSERT_STREQ(user->shell, "/bin/test");
 
 	auto* userlist = mgr.get_userlist(container_id);
 	{
@@ -64,7 +64,7 @@ TEST_F(usergroup_manager_test, add_rm)
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
-	ASSERT_EQ(std::string(group->name), "test");
+	ASSERT_STREQ(group->name, "test");
 
 	auto* grouplist = mgr.get_grouplist(container_id);
 	{
@@ -91,15 +91,15 @@ TEST_F(usergroup_manager_test, system_lookup)
 	ASSERT_NE(user, nullptr);
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
-	ASSERT_EQ(std::string(user->name), "root");
-	ASSERT_EQ(std::string(user->homedir), "/root");
+	ASSERT_STREQ(user->name, "root");
+	ASSERT_STREQ(user->homedir, "/root");
 	ASSERT_EQ(std::string(user->shell).empty(), false);
 
 	mgr.add_group(container_id, 0, nullptr);
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
-	ASSERT_EQ(std::string(group->name), "root");
+	ASSERT_STREQ(group->name, "root");
 }
 
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
@@ -153,14 +153,14 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup)
 	ASSERT_NE(user, nullptr);
 	ASSERT_EQ(user->uid, 0);
 	ASSERT_EQ(user->gid, 0);
-	ASSERT_EQ(std::string(user->name), "toor");
-	ASSERT_EQ(std::string(user->homedir), "/toor");
-	ASSERT_EQ(std::string(user->shell), "/bin/ash");
+	ASSERT_STREQ(user->name, "toor");
+	ASSERT_STREQ(user->homedir, "/toor");
+	ASSERT_STREQ(user->shell, "/bin/ash");
 
 	mgr.add_group(container_id, 0, nullptr);
 	auto* group = mgr.get_group(container_id, 0);
 	ASSERT_NE(group, nullptr);
 	ASSERT_EQ(group->gid, 0);
-	ASSERT_EQ(std::string(group->name), "toor");
+	ASSERT_STREQ(group->name, "toor");
 }
 #endif
