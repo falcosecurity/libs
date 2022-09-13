@@ -174,6 +174,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCNTL_X] = "fcntl_x",
 	[PPME_SOCKET_SHUTDOWN_E] = "shutdown_e",
 	[PPME_SOCKET_SHUTDOWN_X] = "shutdown_x",
+	[PPME_SYSCALL_FSCONFIG_E] = "fsconfig_e",
+	[PPME_SYSCALL_FSCONFIG_X] = "fsconfig_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
