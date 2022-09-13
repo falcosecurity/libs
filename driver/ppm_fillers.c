@@ -5227,6 +5227,117 @@ int f_sys_munlockall_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_fsconfig_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int64_t retval;
+	unsigned long res;
+	unsigned long aux;
+	unsigned long cmd;
+	unsigned long key;
+
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+	/*
+	 * fs_fd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	res = val_to_ring(args, val, 0, true, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * cmd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &cmd);
+	cmd = fsconfig_cmds_to_scap(cmd);
+	res = val_to_ring(args, cmd, 0, true, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * key
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &key);
+	res = val_to_ring(args, key, 0, true, 0);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &aux);
+
+	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+	switch (cmd)
+	{
+	case PPM_FSCONFIG_SET_FLAG:
+		// Only key must be set
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = val_to_ring(args, 0, 0, true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	case PPM_FSCONFIG_SET_STRING:
+		// value is a NUL-terminated string; aux is 0
+		/*
+		 * value -> string
+		 */
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+		res = val_to_ring(args, val, strlen((const char *)val), true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	case PPM_FSCONFIG_SET_BINARY:
+		// value points to a blob; aux is its size
+		/*
+		 * value -> bytebuf
+		 */
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+		res = val_to_ring(args, val, aux, true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	case PPM_FSCONFIG_SET_PATH:
+	case PPM_FSCONFIG_SET_PATH_EMPTY:
+		// value is a NUL-terminated string; aux is a fd
+		/*
+		 * value -> string
+		 */
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+		res = val_to_ring(args, val, strlen((const char *)val), true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	case PPM_FSCONFIG_SET_FD:
+		// value must be NULL; aux is a fd
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = val_to_ring(args, 0, 0, true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	case PPM_FSCONFIG_CMD_CREATE:
+	case PPM_FSCONFIG_CMD_RECONFIGURE:
+		// key, value and aux should be 0
+		/*
+		 * Force-set NULL as userptr, because we don't know
+		 * what to expect from a read.
+		 */
+		res = val_to_ring(args, 0, 0, true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		break;
+	}
+
+	res = val_to_ring(args, aux, 0, true, 0);
+	return res;
+}
+
 int f_sys_dup_e(struct event_filler_arguments *args)
 {
 	int res;
