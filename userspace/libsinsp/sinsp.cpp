@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/stat.h>
@@ -505,8 +504,6 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 	}
 }
 
-/*=============================== INTERESTING TRACEPOINTS/SYSCALLS ===============================*/
-
 /*=============================== OPEN METHODS ===============================*/
 
 void sinsp::open_common(scap_open_args* oargs)
@@ -549,7 +546,7 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 	return oargs;
 }
 
-void sinsp::open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
@@ -559,12 +556,12 @@ void sinsp::open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set
 
 	/* Engine-specific args. */
 	struct scap_kmod_engine_params params;
-	params.buffer_num_pages = driver_buffer_num_pages;
+	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
-void sinsp::open_bpf(uint64_t driver_buffer_num_pages, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_bpf(const char* bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	/* Validate the BPF path. */
 	if(!bpf_path)
@@ -580,7 +577,7 @@ void sinsp::open_bpf(uint64_t driver_buffer_num_pages, const char* bpf_path, con
 
 	/* Engine-specific args. */
 	struct scap_bpf_engine_params params;
-	params.buffer_num_pages = driver_buffer_num_pages;
+	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.bpf_probe = bpf_path;
 	oargs.engine_params = &params;
 	open_common(&oargs);
@@ -672,7 +669,7 @@ void sinsp::open_gvisor(std::string config_path, std::string root_path)
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
@@ -682,7 +679,7 @@ void sinsp::open_modern_bpf(uint64_t driver_buffer_num_pages, const std::unorder
 
 	/* Engine-specific args. */
 	struct scap_modern_bpf_engine_params params;
-	params.buffer_num_pages = driver_buffer_num_pages;
+	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }

@@ -46,9 +46,10 @@ extern "C"
 	 * - set dimension of a single per-CPU ring buffer.
 	 *
 	 * @param verbosity use `true` if you want to activate libbpf verbosity.
+	 * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
 	 * @return `0` on success, `-1` in case of error.
 	 */
-	int pman_init_state(bool verbosity, uint64_t single_buf_dim);
+	int pman_init_state(bool verbosity, unsigned long buf_bytes_dim);
 
 	/**
 	 * @brief Return the number of available CPUs on the system, not the

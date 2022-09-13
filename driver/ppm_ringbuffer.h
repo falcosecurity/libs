@@ -12,7 +12,22 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 #include <linux/types.h>
+#else
+#include <stdbool.h>
 #endif
+
+/* This method validates the per-CPU buffer bytes dimension:
+ * The single buffer dimension must be:
+ * - greater than `2 * PAGE_SIZE`.
+ * - a multiple of the system PAGE_SIZE.
+ * - a power of 2.
+ * 
+ * Returns true if the buffer has a valid dimension.
+ */
+static inline bool validate_buffer_bytes_dim(unsigned long buf_bytes_dim, unsigned long page_size)
+{
+	return ((buf_bytes_dim > (2 * page_size)) && ((buf_bytes_dim % page_size) == 0) && ((buf_bytes_dim & (buf_bytes_dim - 1)) == 0));
+}
 
 /*
  * This gets mapped to user level, so we want to keep it as clean as possible

@@ -209,7 +209,7 @@ static const struct file_operations g_ppm_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
-static unsigned long g_per_cpu_buffer_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
+static unsigned long g_buffer_bytes_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
 static struct tracepoint *tp_sys_exit;
@@ -2950,17 +2950,7 @@ static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp
 		return -EINVAL;
 	}
 
-	/* Validate the ring buffers dimension
-	 * The single buffer dimension must be:
-	 * - greater than 0. (this is implicit in the last condition, but just to be future proof)
-	 * - a multiple of the actual PAGE_SIZE.
-	 * - a power of 2.
-	 * - greater or equal than `128 * PAGE_SIZE` (this is the minimum size we accept).
-	 */
-	if(dim == 0 ||
-	   dim % PAGE_SIZE != 0 ||
-	   (dim & (dim - 1)) != 0 ||
-	   dim < 2 * PAGE_SIZE)
+	if(!validate_buffer_bytes_dim(dim, PAGE_SIZE))
 	{
 		pr_err("the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%lu)!\n", dim, PAGE_SIZE);
 		return -EINVAL;
@@ -2974,7 +2964,7 @@ static const struct kernel_param_ops g_buffer_bytes_dim_ops = {
 };
 
 module_param_cb(g_buffer_bytes_dim, &g_buffer_bytes_dim_ops, &g_buffer_bytes_dim, 0644);
-MODULE_PARM_DESC(g_buffer_bytes_dim, "This is the dimension of a single per-CPU buffer. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
+MODULE_PARM_DESC(g_buffer_bytes_dim, "This is the dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)

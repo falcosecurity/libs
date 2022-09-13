@@ -25,7 +25,7 @@ extern "C"
 
 	struct scap_kmod_engine_params
 	{
-		uint64_t buffer_num_pages; ///< Number of pages of a single per CPU buffer. The overall buffer dimension is: `buffer_num_pages * page_dim`. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.
+		unsigned long buffer_bytes_dim; ///< Dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.
 	};
 
 #ifdef __cplusplus

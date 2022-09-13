@@ -15,37 +15,18 @@ limitations under the License.
 
 */
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
 #include <scap.h>
+#include "../../../driver/ppm_ringbuffer.h"
 
-/* Dimension of a single per-CPU buffer. */
-unsigned long per_cpu_buffer_dim;
+/* Dimension of a single per-CPU buffer in bytes. */
+unsigned long global_buffer_bytes_dim;
 
-void set_per_cpu_buffer_dim(unsigned long buf_dim)
+int32_t check_and_set_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
 {
-	per_cpu_buffer_dim = buf_dim;
-}
-
-int32_t check_buffer_num_pages(char* last_err, unsigned long buf_num_pages)
-{
-	int allowed_num_pages_values[] = {
-		1 << 7,
-		1 << 8,
-		1 << 9,
-		1 << 10,
-		1 << 11,
-		1 << 12,
-		1 << 13,
-		1 << 14,
-		1 << 15,
-		1 << 16,
-		1 << 17,
-		1 << 18,
-	};
-	bool found = false;
-
 	/* If you face some memory allocation issues, please remember that:
 	 *
 	 * Each data page is mapped twice to allow "virtual"
@@ -65,22 +46,25 @@ int32_t check_buffer_num_pages(char* last_err, unsigned long buf_num_pages)
 	 * data due to double-mapped data pages.
 	 */
 
-	for(int i = 0; i < sizeof(allowed_num_pages_values) / sizeof(allowed_num_pages_values[0]); i++)
-	{
-		if(allowed_num_pages_values[i] == buf_num_pages)
-		{
-			found = true;
-			break;
-		}
-	}
-
-	if(!found)
+	unsigned long page_size = scap_get_system_page_size();
+	if(page_size == SCAP_FAILURE)
 	{
 		if(last_err != NULL)
 		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "Allowed page numbers are all the powers of 2 from 128 pages (2^7) to 256 Kpages (2^18): '%lu' is not a valid value", buf_num_pages);
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the system page size: %s", strerror(errno));
 		}
 		return SCAP_FAILURE;
 	}
+
+	if(!validate_buffer_bytes_dim(buf_bytes_dim, page_size))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "the specified per-CPU ring buffer dimension (%lu) is not allowed! Please use a power of 2 and a multiple of the actual page_size (%lu)!", buf_bytes_dim, page_size);
+		}
+		return SCAP_FAILURE;
+	}
+
+	global_buffer_bytes_dim = buf_bytes_dim;
 	return SCAP_SUCCESS;
 }
