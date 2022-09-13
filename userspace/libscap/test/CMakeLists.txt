@@ -39,6 +39,12 @@ target_link_libraries(unit-test-libscap
 	scap
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
+	target_link_libraries(unit-test-libscap
+		gcov
+	)
+endif()
+
 add_custom_target(run-unit-test-libscap
 	DEPENDS unit-test-libscap
 	COMMAND unit-test-libscap
