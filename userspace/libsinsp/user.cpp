@@ -617,7 +617,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	{
 		while(auto p = fgetpwent(pwd_file))
 		{
-			m_inspector->m_usergroup_manager.add_user(container_id, p->pw_uid, p->pw_gid, p->pw_name, p->pw_dir, p->pw_shell, true);
+			add_user(container_id, p->pw_uid, p->pw_gid, p->pw_name, p->pw_dir, p->pw_shell, true);
 		}
 		fclose(pwd_file);
 	}
@@ -631,7 +631,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	{
 		while(auto g = fgetgrent(grp_file))
 		{
-			m_inspector->m_usergroup_manager.add_group(container_id, g->gr_gid, g->gr_name, true);
+			add_group(container_id, g->gr_gid, g->gr_name, true);
 		}
 		fclose(grp_file);
 	}
