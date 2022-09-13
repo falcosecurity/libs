@@ -28,8 +28,11 @@ extern unsigned long per_cpu_buffer_dim;
 /* Set the dimension of a single per-CPU buffer. */
 void set_per_cpu_buffer_dim(unsigned long buf_dim);
 
-/* Check buffer number of pages. */
-int32_t check_per_cpu_buffer_num_pages(char* error, unsigned long buf_num_pages);
+/* Check buffer number of pages. 
+ * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
+ * constraint to all our drivers (also the kernel module) just for conformity.
+ */
+int32_t check_buffer_num_pages(char* error, unsigned long buf_num_pages);
 
 
 #ifndef GET_BUF_POINTERS

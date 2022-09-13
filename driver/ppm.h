@@ -76,7 +76,7 @@ struct ppm_consumer_t {
 	uint16_t fullcapture_port_range_start;
 	uint16_t fullcapture_port_range_end;
 	uint16_t statsd_port;
-	unsigned long per_cpu_buffer_dim; /* Every consumer will have is per-CPU buffer dim. */
+	unsigned long buffer_bytes_dim; /* Every consumer will have its per-CPU buffer dim in bytes. */
 	DECLARE_BITMAP(events_mask, PPM_EVENT_MAX);
 };
 #endif // UDIG

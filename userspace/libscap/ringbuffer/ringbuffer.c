@@ -20,8 +20,6 @@ limitations under the License.
 #include <math.h>
 #include <scap.h>
 
-#define MAX_ALLOWED_VALUES 12
-
 /* Dimension of a single per-CPU buffer. */
 unsigned long per_cpu_buffer_dim;
 
@@ -30,10 +28,22 @@ void set_per_cpu_buffer_dim(unsigned long buf_dim)
 	per_cpu_buffer_dim = buf_dim;
 }
 
-int32_t check_per_cpu_buffer_num_pages(char* last_err, unsigned long buf_num_pages)
+int32_t check_buffer_num_pages(char* last_err, unsigned long buf_num_pages)
 {
-	/* Allowed page numbers are all the power of 2 from 128(2^7) pages to 256Kpages(2^18) */
-	int allowed_num_pages_values[MAX_ALLOWED_VALUES] = {pow(2, 7), pow(2, 8), pow(2, 9), pow(2, 10), pow(2, 11), pow(2, 12), pow(2, 13), pow(2, 14), pow(2, 15), pow(2, 16), pow(2, 17), pow(2, 18)};
+	int allowed_num_pages_values[] = {
+		1 << 7,
+		1 << 8,
+		1 << 9,
+		1 << 10,
+		1 << 11,
+		1 << 12,
+		1 << 13,
+		1 << 14,
+		1 << 15,
+		1 << 16,
+		1 << 17,
+		1 << 18,
+	};
 	bool found = false;
 
 	/* If you face some memory allocation issues, please remember that:
@@ -55,7 +65,7 @@ int32_t check_per_cpu_buffer_num_pages(char* last_err, unsigned long buf_num_pag
 	 * data due to double-mapped data pages.
 	 */
 
-	for(int i = 0; i < MAX_ALLOWED_VALUES; i++)
+	for(int i = 0; i < sizeof(allowed_num_pages_values) / sizeof(allowed_num_pages_values[0]); i++)
 	{
 		if(allowed_num_pages_values[i] == buf_num_pages)
 		{

@@ -196,7 +196,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	bool libbpf_verbosity = false;
 
 	/* Validate the number of buffer pages. */
-	if(check_per_cpu_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	if(check_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
