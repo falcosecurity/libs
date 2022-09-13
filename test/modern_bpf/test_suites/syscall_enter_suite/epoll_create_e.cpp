@@ -10,7 +10,7 @@ TEST(SyscallEnter, epoll_createE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t size = 1024;
-	int32_t fd = syscall(__NR_epoll_create1, size);
+	int32_t fd = syscall(__NR_epoll_create, size);
 	assert_syscall_state(SYSCALL_SUCCESS, "epoll_create", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
 
