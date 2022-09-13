@@ -44,7 +44,7 @@ static void setup_libbpf_logging(bool verbosity)
 	}
 }
 
-int pman_init_state(bool verbosity, uint64_t single_buf_dim)
+int pman_init_state(bool verbosity, uint64_t buf_bytes_dim)
 {
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
@@ -65,7 +65,7 @@ int pman_init_state(bool verbosity, uint64_t single_buf_dim)
 	}
 
 	/* Set the dimension of a single per-CPU ring buffer. */
-	g_state.single_ringbuf_dimension = single_buf_dim;
+	g_state.buffer_bytes_dim = buf_bytes_dim;
 	return 0;
 }
 

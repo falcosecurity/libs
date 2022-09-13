@@ -76,16 +76,16 @@ static uint32_t get_max_consumers()
 
 static int32_t enforce_into_kmod_single_buffer_dim(scap_t *handle, unsigned long buffer_dim)
 {
-	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_per_cpu_buffer_dim", "w");
+	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim", "w");
 	if(pfile == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open the 'g_per_cpu_buffer_dim' parameter file: %s", scap_strerror(handle, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open the 'g_buffer_bytes_dim' parameter file: %s", scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
 	if(fprintf(pfile, "%lu", buffer_dim) < 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_per_cpu_buffer_dim: %s", scap_strerror(handle, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim: %s", scap_strerror(handle, errno));
 		fclose(pfile);
 		return SCAP_FAILURE;
 	}
@@ -158,7 +158,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	uint64_t schema_version = 0;
 
 	/* Validate the number of buffer pages. */
-	if(check_per_cpu_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	if(check_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
