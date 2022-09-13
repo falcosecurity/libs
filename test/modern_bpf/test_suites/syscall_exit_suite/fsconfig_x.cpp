@@ -43,8 +43,8 @@ TEST(SyscallExit, fsconfigX)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 	evt_test->assert_numeric_param(2, (int64_t)fd);
 	evt_test->assert_numeric_param(3, PPM_FSCONFIG_SET_FLAG);
-	evt_test->assert_charbuf_param(4, key);
-	evt_test->assert_bytebuf_param(5, value, strlen(value));
+	evt_test->assert_empty_param(4);
+	evt_test->assert_empty_param(5);
 	evt_test->assert_empty_param(6);
 	evt_test->assert_numeric_param(7, aux);
 
