@@ -83,7 +83,6 @@ int main(int argc, char** argv)
 
 cleanup_tests:
 	print_teardown_test_message();
-	pman_detach_all_programs();
 	pman_close_probe();
 	std::cout << "* BPF probe correctly detached! Bye!" << std::endl;
 	return ret;

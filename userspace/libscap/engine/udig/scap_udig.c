@@ -97,8 +97,10 @@ int32_t udig_alloc_ring(void* ring_id,
 		}
 	}
 
-	/* Set the dimension of the per-cpu buffer. */
-	set_per_cpu_buffer_dim((unsigned long)*ringsize);
+	if(check_and_set_buffer_bytes_dim(error, (unsigned long)*ringsize) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
 
 	//
 	// Map the ring. This is a multi-step process because we want to map two

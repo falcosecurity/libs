@@ -74,7 +74,7 @@ static uint32_t get_max_consumers()
 	return 0;
 }
 
-static int32_t enforce_into_kmod_single_buffer_dim(scap_t *handle, unsigned long buffer_dim)
+static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long buf_bytes_dim)
 {
 	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim", "w");
 	if(pfile == NULL)
@@ -83,7 +83,7 @@ static int32_t enforce_into_kmod_single_buffer_dim(scap_t *handle, unsigned long
 		return SCAP_FAILURE;
 	}
 
-	if(fprintf(pfile, "%lu", buffer_dim) < 0)
+	if(fprintf(pfile, "%lu", buf_bytes_dim) < 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim: %s", scap_strerror(handle, errno));
 		fclose(pfile);
@@ -157,26 +157,16 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	uint64_t api_version = 0;
 	uint64_t schema_version = 0;
 
-	/* Validate the number of buffer pages. */
-	if(check_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	unsigned long single_buffer_dim = params->buffer_bytes_dim;
+	if(check_and_set_buffer_bytes_dim(handle->m_lasterr, single_buffer_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
-
-	/* Obtain the single buffer dimension */
-	long page_size = sysconf(_SC_PAGESIZE);
-	if(page_size <= 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_PAGESIZE: %s", scap_strerror(handle, errno));
-		return SCAP_FAILURE;
-	}
-	unsigned long single_buffer_dim = page_size * params->buffer_num_pages;
-	set_per_cpu_buffer_dim(single_buffer_dim);
 	
 	/* We need to enforce the buffer dim before opening the devices
 	 * otherwise this dimension will be not set during the opening phase!
 	 */
-	if(enforce_into_kmod_single_buffer_dim(handle, single_buffer_dim) != SCAP_SUCCESS)
+	if(enforce_into_kmod_buffer_bytes_dim(handle, single_buffer_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}

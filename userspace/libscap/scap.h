@@ -121,6 +121,11 @@ struct iovec;
 //
 #define SCAP_LASTERR_SIZE 256
 
+// 
+// This is the dimension we used before introducing the variable buffer size.
+//
+#define DEFAULT_DRIVER_BUFFER_BYTES_DIM 8 * 1024 * 1024
+
 /*!
   \brief Statistics about an in progress capture
 */
@@ -842,6 +847,11 @@ int scap_get_modifies_state_ppm_sc(uint32_t * ppm_sc_array);
   \brief Returns the set of minimum tracepoints required by `libsinsp` state.
 */
 int scap_get_modifies_state_tracepoints(uint32_t * tp_array);
+
+/*!
+  \brief Get the system page size.
+*/
+unsigned long scap_get_system_page_size();
 
 /*!
   \brief This function can be used to temporarily interrupt event capture.

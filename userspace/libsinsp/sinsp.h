@@ -219,14 +219,14 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	void open_kmod(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	void open_bpf(uint64_t driver_buffer_num_pages, const char* bpf_path, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	void open_bpf(const char* bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_udig();
 	void open_nodriver();
-	void open_savefile(const std::string &filename, int fd);
+	void open_savefile(const std::string &filename, int fd = 0);
 	void open_plugin(std::string plugin_name, std::string plugin_open_params);
 	void open_gvisor(std::string config_path, std::string root_path);
-	void open_modern_bpf(uint64_t driver_buffer_num_pages, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine, scap_mode_t scap_mode);

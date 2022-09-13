@@ -23,16 +23,13 @@ limitations under the License.
 #include "barrier.h"
 #include "sleep.h"
 
-extern unsigned long per_cpu_buffer_dim;
+extern unsigned long global_buffer_bytes_dim;
 
-/* Set the dimension of a single per-CPU buffer. */
-void set_per_cpu_buffer_dim(unsigned long buf_dim);
-
-/* Check buffer number of pages. 
+/* Check buffer dimension in bytes. 
  * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
- * constraint to all our drivers (also the kernel module) just for conformity.
+ * constraint to all our drivers (also the kernel module and udig) just for conformity.
  */
-int32_t check_buffer_num_pages(char* error, unsigned long buf_num_pages);
+int32_t check_and_set_buffer_bytes_dim(char* error, unsigned long buf_bytes_dim);
 
 
 #ifndef GET_BUF_POINTERS
@@ -45,7 +42,7 @@ static inline void ringbuffer_get_buf_pointers(scap_device* dev, uint64_t* phead
 
 	if(*ptail > *phead)
 	{
-		*pread_size = per_cpu_buffer_dim - *ptail + *phead;
+		*pread_size = global_buffer_bytes_dim - *ptail + *phead;
 	}
 	else
 	{
@@ -75,13 +72,13 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 	//
 	mem_barrier();
 
-	if(ttail < per_cpu_buffer_dim)
+	if(ttail < global_buffer_bytes_dim)
 	{
 		dev->m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		dev->m_bufinfo->tail = ttail - per_cpu_buffer_dim;
+		dev->m_bufinfo->tail = ttail - global_buffer_bytes_dim;
 	}
 
 	dev->m_lastreadsize = 0;

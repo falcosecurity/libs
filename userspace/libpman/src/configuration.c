@@ -44,7 +44,7 @@ static void setup_libbpf_logging(bool verbosity)
 	}
 }
 
-int pman_init_state(bool verbosity, uint64_t buf_bytes_dim)
+int pman_init_state(bool verbosity, unsigned long buf_bytes_dim)
 {
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features

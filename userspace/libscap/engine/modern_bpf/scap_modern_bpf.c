@@ -195,26 +195,13 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
 	bool libbpf_verbosity = false;
 
-	/* Validate the number of buffer pages. */
-	if(check_buffer_num_pages(handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	if(check_and_set_buffer_bytes_dim(handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
-
-	/* Obtain the single buffer dimension */
-	long page_size = sysconf(_SC_PAGESIZE);
-	if(page_size <= 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to get the system page size: %s", strerror(errno));
-		return SCAP_FAILURE;
-	}
-	unsigned long single_buffer_dim = page_size * params->buffer_num_pages;
-
-	/* This variable is not used in modern BPF right now, but just to be future proof we set it. */
-	set_per_cpu_buffer_dim(single_buffer_dim);
 
 	/* Initialize the libpman internal state */
-	if(pman_init_state(libbpf_verbosity, single_buffer_dim))
+	if(pman_init_state(libbpf_verbosity, params->buffer_bytes_dim))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
@@ -245,7 +232,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 int32_t scap_modern_bpf__close(struct scap_engine_handle engine)
 {
-	pman_detach_all_programs();
 	pman_close_probe();
 	return SCAP_SUCCESS;
 }

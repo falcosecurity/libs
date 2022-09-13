@@ -833,16 +833,13 @@ cleanup:
 	return res;
 }
 
-static void *perf_event_mmap(struct bpf_engine *handle, int fd, uint32_t *size, uint64_t buf_num_pages)
+static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *size, unsigned long buf_bytes_dim)
 {
 	int page_size = getpagesize();
-	int ring_size = page_size * buf_num_pages;
+	unsigned long ring_size = buf_bytes_dim;
 	int header_size = page_size;
-	int total_size = ring_size * 2 + header_size;
+	unsigned long total_size = ring_size * 2 + header_size;
 	char buf[SCAP_LASTERR_SIZE] = {0};
-
-	/* This variable is not used in BPF right now, but just to be future proof we set it. */
-	set_per_cpu_buffer_dim(ring_size);
 
 	*size = 0;
 
@@ -1551,7 +1548,7 @@ int32_t scap_bpf_load(
 		//
 		// Map the ring buffer
 		//
-		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size, bpf_args->buffer_num_pages);
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size, bpf_args->buffer_bytes_dim);
 		if(dev->m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
@@ -1725,8 +1722,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
-	/* Validate the number of buffer pages. */
-	if(check_buffer_num_pages(engine.m_handle->m_lasterr, params->buffer_num_pages) != SCAP_SUCCESS)
+	if(check_and_set_buffer_bytes_dim(engine.m_handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
