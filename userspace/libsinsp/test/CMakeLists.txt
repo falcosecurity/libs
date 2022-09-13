@@ -49,6 +49,12 @@ target_link_libraries(unit-test-libsinsp
 	sinsp
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
+	target_link_libraries(unit-test-libsinsp
+		gcov
+	)
+endif()
+
 add_custom_target(run-unit-test-libsinsp
 	DEPENDS unit-test-libsinsp
 	COMMAND unit-test-libsinsp
