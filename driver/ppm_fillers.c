@@ -5273,66 +5273,80 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	case PPM_FSCONFIG_SET_FLAG:
 		// Only key must be set
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
 		 */
 		res = val_to_ring(args, 0, 0, true, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = val_to_ring(args, 0, 0, true, 0);
 		break;
 	case PPM_FSCONFIG_SET_STRING:
 		// value is a NUL-terminated string; aux is 0
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
 		/*
 		 * value -> string
+		 * Push empty value_ptr
+		 * Push value_str
 		 */
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		res = val_to_ring(args, val, strlen((const char *)val), true, 0);
+		res = val_to_ring(args, 0, 0, true, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = val_to_ring(args, val, 0, true, 0);
 		break;
 	case PPM_FSCONFIG_SET_BINARY:
 		// value points to a blob; aux is its size
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
 		/*
 		 * value -> bytebuf
+		 * push value_ptr
+		 * push empty value_str
 		 */
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
 		res = val_to_ring(args, val, aux, true, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = val_to_ring(args, 0, 0, true, 0);
 		break;
 	case PPM_FSCONFIG_SET_PATH:
 	case PPM_FSCONFIG_SET_PATH_EMPTY:
 		// value is a NUL-terminated string; aux is a fd
-		/*
-		 * value -> string
-		 */
 		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		res = val_to_ring(args, val, strlen((const char *)val), true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		break;
-	case PPM_FSCONFIG_SET_FD:
-		// value must be NULL; aux is a fd
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Push empty value_ptr
+		 * Push value_str
 		 */
 		res = val_to_ring(args, 0, 0, true, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = val_to_ring(args, val, 0, true, 0);
+		break;
+	case PPM_FSCONFIG_SET_FD:
+		// value must be NULL; aux is a fd
+		/*
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
+		 */
+		res = val_to_ring(args, 0, 0, true, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		res = val_to_ring(args, 0, 0, true, 0);
 		break;
 	case PPM_FSCONFIG_CMD_CREATE:
 	case PPM_FSCONFIG_CMD_RECONFIGURE:
 		// key, value and aux should be 0
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
 		 */
 		res = val_to_ring(args, 0, 0, true, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = val_to_ring(args, 0, 0, true, 0);
 		break;
 	}
+
+	if (res != PPM_SUCCESS)
+		return res;
 
 	res = val_to_ring(args, aux, 0, true, 0);
 	return res;

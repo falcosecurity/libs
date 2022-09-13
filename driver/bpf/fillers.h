@@ -3616,66 +3616,79 @@ FILLER(sys_fsconfig_x, true)
 	case PPM_FSCONFIG_SET_FLAG:
 		// Only key must be set
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
 		 */
 		res = bpf_val_to_ring(data, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = bpf_val_to_ring(data, 0);
 		break;
 	case PPM_FSCONFIG_SET_STRING:
 		// value is a NUL-terminated string; aux is 0
+		val = bpf_syscall_get_argument(data, 3);
 		/*
 		 * value -> string
+		 * Push empty value_ptr
+		 * Push value_str
 		 */
-		val = bpf_syscall_get_argument(data, 3);
-		res = bpf_val_to_ring_type(data, val, PT_CHARBUF);
+		res = bpf_val_to_ring(data, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = bpf_val_to_ring(data, val);
 		break;
 	case PPM_FSCONFIG_SET_BINARY:
 		// value points to a blob; aux is its size
+		val = bpf_syscall_get_argument(data, 3);
 		/*
 		 * value -> bytebuf
+		 * push value_ptr
+		 * push empty value_str
 		 */
-		val = bpf_syscall_get_argument(data, 3);
 		res = __bpf_val_to_ring(data, val, aux, PT_BYTEBUF, -1, true);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = bpf_val_to_ring(data, 0);
 		break;
 	case PPM_FSCONFIG_SET_PATH:
 	case PPM_FSCONFIG_SET_PATH_EMPTY:
 		// value is a NUL-terminated string; aux is a fd
-		/*
-		 * value -> string
-		 */
 		val = bpf_syscall_get_argument(data, 3);
-		res = bpf_val_to_ring_type(data, val, PT_CHARBUF);
-		if (res != PPM_SUCCESS)
-			return res;
-		break;
-	case PPM_FSCONFIG_SET_FD:
-		// value must be NULL; aux is a fd
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Push empty value_ptr
+		 * Push value_str
 		 */
 		res = bpf_val_to_ring(data, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = bpf_val_to_ring(data, val);
+		break;
+	case PPM_FSCONFIG_SET_FD:
+		// value must be NULL; aux is a fd
+		/*
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
+		 */
+		res = bpf_val_to_ring(data, 0);
+		if (res != PPM_SUCCESS)
+			return res;
+		res = bpf_val_to_ring(data, 0);
 		break;
 	case PPM_FSCONFIG_CMD_CREATE:
 	case PPM_FSCONFIG_CMD_RECONFIGURE:
 		// key, value and aux should be 0
 		/*
-		 * Force-set NULL as userptr, because we don't know
-		 * what to expect from a read.
+		 * Force-set NULL as both value_ptr and value_str,
+		 * because we don't know what to expect from a read.
 		 */
 		res = bpf_val_to_ring(data, 0);
 		if (res != PPM_SUCCESS)
 			return res;
+		res = bpf_val_to_ring(data, 0);
 		break;
 	}
+	if (res != PPM_SUCCESS)
+		return res;
 
 	res = bpf_val_to_ring(data, aux);
 	return res;
