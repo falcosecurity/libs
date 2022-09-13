@@ -1533,7 +1533,8 @@ enum ppm_syscall_code {
 	PPM_SC_IO_URING_REGISTER = 332,
 	PPM_SC_MLOCK2 = 333,
 	PPM_SC_GETEGID32 = 334,
-	PPM_SC_MAX = 335,
+	PPM_SC_FSCONFIG = 335,
+	PPM_SC_MAX = 336,
 };
 
 /*
