@@ -24,9 +24,9 @@ int BPF_PROG(epoll_create1_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: size (type: PT_FLAGS32) */
+	/* Parameter 1: flags (type: PT_FLAGS32) */
 	s32 flags = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s32(&ringbuf, flags);
+	ringbuf__store_s32(&ringbuf, epoll_create1_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
