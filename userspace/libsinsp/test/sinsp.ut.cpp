@@ -706,6 +706,18 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "io_uring");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "r");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "10");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, 11);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "eventpoll");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "l");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "11");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE1_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE1_X, 1, 12);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "eventpoll");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "l");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 }
 
 TEST_F(sinsp_with_test_input, spawn_process)
