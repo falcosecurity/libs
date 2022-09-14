@@ -3690,7 +3690,6 @@ FILLER(sys_epoll_create_e, true)
 FILLER(sys_epoll_create_x, true)
 {
 	unsigned long retval;
-	unsigned long res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	return bpf_val_to_ring(data, retval);
@@ -3710,7 +3709,6 @@ FILLER(sys_epoll_create1_e, true)
 FILLER(sys_epoll_create1_x, true)
 {
 	unsigned long retval;
-	unsigned long res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
 	return bpf_val_to_ring(data, retval);
