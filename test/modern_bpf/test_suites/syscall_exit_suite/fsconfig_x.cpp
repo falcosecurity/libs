@@ -80,7 +80,7 @@ TEST(SyscallExit, fsconfigX_failure)
 	int fd = 0;
 	uint32_t cmd = FSCONFIG_SET_FLAG;
 	const char* key = "//**invalid-key**//";
-	const char* value = "test-value";
+	const char* value = "//**invalid-value**//";
 	int aux = 100;
 	assert_syscall_state(SYSCALL_FAILURE, "fsconfig", syscall(__NR_fsconfig, fd, cmd, key, value, aux));
 	int64_t errno_value = -errno;

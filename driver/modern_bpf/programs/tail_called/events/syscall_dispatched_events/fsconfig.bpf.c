@@ -70,7 +70,6 @@ int BPF_PROG(fsconfig_x,
 	unsigned long key_pointer = extract__syscall_argument(regs, 2);
 	auxmap__store_charbuf_param(auxmap, key_pointer, USER);
 
-	unsigned long value_pointer = extract__syscall_argument(regs, 3);
 	int aux = extract__syscall_argument(regs, 4);
 
 	if(ret < 0)
@@ -85,6 +84,8 @@ int BPF_PROG(fsconfig_x,
 	}
 	else
 	{
+		unsigned long value_pointer = extract__syscall_argument(regs, 3);
+
 		/* According to the command we need to understand what value we have to push to userspace. */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
 		switch(scap_cmd)

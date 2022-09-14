@@ -5262,7 +5262,6 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, key_pointer, 0, true, 0);
 	CHECK_RES(res);
 
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &value_pointer);
 	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &aux);
 
 	if(ret < 0)
@@ -5279,6 +5278,8 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	}
 	else
 	{
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &value_pointer);
+
 		/* According to the command we need to understand what value we have to push to userspace. */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
 		switch(scap_cmd)
@@ -5341,6 +5342,7 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 		}
 	}
 
+	/* Parameter 7: aux (type: PT_INT32) */
 	res = val_to_ring(args, aux, 0, true, 0);
 	CHECK_RES(res);
 
