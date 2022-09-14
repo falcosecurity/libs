@@ -3575,7 +3575,7 @@ FILLER(sys_fsconfig_x, true)
 	unsigned long res = 0;
 
 	/* Parameter 1: ret (type: PT_ERRNO) */
-	unsigned long ret = bpf_syscall_get_retval(data->ctx);
+	int64_t ret = bpf_syscall_get_retval(data->ctx);
 	res = bpf_val_to_ring(data, ret);
 	CHECK_RES(res);
 
@@ -3596,7 +3596,6 @@ FILLER(sys_fsconfig_x, true)
 	res = bpf_val_to_ring(data, key_pointer);
 	CHECK_RES(res);
 
-	unsigned long value_pointer = bpf_syscall_get_argument(data, 3);
 	int aux = bpf_syscall_get_argument(data, 4);
 
 	if(ret < 0)
@@ -3613,6 +3612,8 @@ FILLER(sys_fsconfig_x, true)
 	}
 	else
 	{
+		unsigned long value_pointer = bpf_syscall_get_argument(data, 3);
+
 		/* According to the command we need to understand what value we have to push to userspace. */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
 		switch(scap_cmd)
@@ -3675,6 +3676,7 @@ FILLER(sys_fsconfig_x, true)
 		}
 	}
 
+	/* Parameter 7: aux (type: PT_INT32) */
 	res = bpf_val_to_ring(data, aux);
 	return res;
 }
