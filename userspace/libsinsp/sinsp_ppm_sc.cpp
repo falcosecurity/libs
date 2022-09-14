@@ -201,3 +201,32 @@ std::unordered_set<uint32_t> sinsp::enforce_sys_ppm_sc_set(std::unordered_set<ui
 	}
 	return ppm_sc_set;
 }
+
+std::unordered_set<uint32_t> sinsp::get_event_set_from_ppm_sc_set(const std::unordered_set<uint32_t> &ppm_sc_set)
+{
+	std::vector<uint32_t> events_array(PPM_EVENT_MAX, 0);
+	std::vector<uint32_t> ppm_sc_array(PPM_SC_MAX, 0);
+	std::unordered_set<uint32_t> events_set;
+
+	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
+	for (auto itr = ppm_sc_set.begin(); itr != ppm_sc_set.end(); itr++)
+	{
+		ppm_sc_array[*itr] = 1;
+	}
+
+	if(scap_get_events_from_ppm_sc(ppm_sc_array.data(), events_array.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception("`ppm_sc_array` or `events_array` is an unexpected NULL vector!");
+	}
+
+	for(uint32_t event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
+	{
+		/* True means it is associated with a `ppm_sc` */
+		if(events_array[event_num])
+		{
+			events_set.insert(event_num);
+		}
+	}
+
+	return events_set;
+}
