@@ -1206,6 +1206,36 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 	return SCAP_SUCCESS;
 }
 
+int scap_get_events_from_ppm_sc(IN uint32_t * ppm_sc_array, OUT uint32_t* events_array)
+{
+	if(ppm_sc_array == NULL || events_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+#ifdef __linux__
+	for(int ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
+	{
+		if(!ppm_sc_array[ppm_code])
+		{
+			continue;
+		}
+		
+		/* If we arrive here we want to know the events associated with this ppm_code. */
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
+			if(pair.ppm_sc == ppm_code)
+			{
+				events_array[pair.enter_event_type] = 1;
+				events_array[pair.exit_event_type] = 1;
+			}
+		}
+	}
+#endif
+	return SCAP_SUCCESS;
+}
+
 int scap_get_modifies_state_tracepoints(uint32_t* tp_array)
 {
 	if(tp_array == NULL)

@@ -892,6 +892,16 @@ public:
 	*/
 	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
+	/**
+	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
+	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
+	 * associated with a set of `ppm_sc` you have to pass the entire set of `ppm_sc`.
+	 * 
+	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
+	 * @return set of events associated with the provided `ppm_sc` set.
+	 */
+	std::unordered_set<uint32_t> get_event_set_from_ppm_sc_set(const std::unordered_set<uint32_t> &ppm_sc_of_interest);
+
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*=============================== Tracepoint set related ===============================*/
