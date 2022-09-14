@@ -1227,11 +1227,15 @@ int scap_get_modifies_state_tracepoints(uint32_t* tp_array)
 
 unsigned long scap_get_system_page_size()
 {
-	long page_size = sysconf(_SC_PAGESIZE);
+	long page_size = 0;
+#ifdef __linux__
+	page_size = sysconf(_SC_PAGESIZE);
 	if(page_size <= 0)
 	{
 		return SCAP_FAILURE;
 	}
+#endif
+	/// TODO: if needed we have to implement how to recover the page size in not Linux systems
 	return page_size;
 }
 
