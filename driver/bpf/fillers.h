@@ -49,6 +49,13 @@ struct timeval {
 #define timeval64 timeval
 #endif
 
+/* Check if the res is different from `PPM_SUCCCES` */
+#define CHECK_RES(x)           \
+	if(x != PPM_SUCCESS) \
+	{                      \
+		return x;    \
+	}                      \
+
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
@@ -3572,123 +3579,108 @@ FILLER(sys_munlockall_x, true)
 
 FILLER(sys_fsconfig_x, true)
 {
-	unsigned long val;
-	unsigned long retval;
-	unsigned long res;
-	int aux;
-	int cmd;
-	const char *key;
+	unsigned long res = 0;
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * fs_fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	unsigned long ret = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, ret);
+	CHECK_RES(res);
 
-	/*
-	 * cmd
-	 */
-	cmd = bpf_syscall_get_argument(data, 1);
-	cmd = fsconfig_cmds_to_scap(cmd);
-	res = bpf_val_to_ring(data, cmd);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 2: fd (type: PT_FD) */
+	/* This is the file-system fd */
+	unsigned long fd = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, fd);
+	CHECK_RES(res);
 
-	/*
-	 * key
-	 */
-	key = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, key);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
+	u32 cmd = bpf_syscall_get_argument(data, 1);
+	u32 scap_cmd = fsconfig_cmds_to_scap(cmd);
+	res = bpf_val_to_ring(data, scap_cmd);
+	CHECK_RES(res);
 
-	aux = bpf_syscall_get_argument(data, 4);
+	/* Parameter 4: key (type: PT_CHARBUF) */
+	unsigned long key_pointer = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, key_pointer);
+	CHECK_RES(res);
 
-	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-	switch (cmd)
+	unsigned long value_pointer = bpf_syscall_get_argument(data, 3);
+	int aux = bpf_syscall_get_argument(data, 4);
+
+	if(ret < 0)
 	{
-	case PPM_FSCONFIG_SET_FLAG:
-		// Only key must be set
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
+		/* If the syscall fails we push empty params to userspace. */
+
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
 		res = bpf_val_to_ring(data, 0);
-		if (res != PPM_SUCCESS)
-			return res;
+		CHECK_RES(res);
+
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		res = bpf_val_to_ring(data, 0);
-		break;
-	case PPM_FSCONFIG_SET_STRING:
-		// value is a NUL-terminated string; aux is 0
-		val = bpf_syscall_get_argument(data, 3);
-		/*
-		 * value -> string
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		res = bpf_val_to_ring(data, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = bpf_val_to_ring(data, val);
-		break;
-	case PPM_FSCONFIG_SET_BINARY:
-		// value points to a blob; aux is its size
-		val = bpf_syscall_get_argument(data, 3);
-		/*
-		 * value -> bytebuf
-		 * push value_ptr
-		 * push empty value_str
-		 */
-		res = __bpf_val_to_ring(data, val, aux, PT_BYTEBUF, -1, true);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = bpf_val_to_ring(data, 0);
-		break;
-	case PPM_FSCONFIG_SET_PATH:
-	case PPM_FSCONFIG_SET_PATH_EMPTY:
-		// value is a NUL-terminated string; aux is a fd
-		val = bpf_syscall_get_argument(data, 3);
-		/*
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		res = bpf_val_to_ring(data, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = bpf_val_to_ring(data, val);
-		break;
-	case PPM_FSCONFIG_SET_FD:
-		// value must be NULL; aux is a fd
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		res = bpf_val_to_ring(data, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = bpf_val_to_ring(data, 0);
-		break;
-	case PPM_FSCONFIG_CMD_CREATE:
-	case PPM_FSCONFIG_CMD_RECONFIGURE:
-		// key, value and aux should be 0
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		res = bpf_val_to_ring(data, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = bpf_val_to_ring(data, 0);
-		break;
+		CHECK_RES(res);
 	}
-	if (res != PPM_SUCCESS)
-		return res;
+	else
+	{
+		/* According to the command we need to understand what value we have to push to userspace. */
+		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+		switch(scap_cmd)
+		{
+		case PPM_FSCONFIG_SET_FLAG:
+		case PPM_FSCONFIG_SET_FD:
+		case PPM_FSCONFIG_CMD_CREATE:
+		case PPM_FSCONFIG_CMD_RECONFIGURE:
+			/* Since `value` is NULL we send two empty params. */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+			break;
+
+		case PPM_FSCONFIG_SET_STRING:
+		case PPM_FSCONFIG_SET_PATH:
+		case PPM_FSCONFIG_SET_PATH_EMPTY:
+			/* `value` is a NUL-terminated string.
+			 * Push `value_charbuf` but not `value_bytebuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = bpf_val_to_ring(data, value_pointer);
+			CHECK_RES(res);
+			break;
+
+		case PPM_FSCONFIG_SET_BINARY:
+			/* `value` points to a binary blob and `aux` indicates its size.
+			 * Push `value_bytebuf` but not `value_charbuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = __bpf_val_to_ring(data, value_pointer, aux, PT_BYTEBUF, -1, true);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+
+			break;
+
+		default:
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = bpf_val_to_ring(data, 0);
+			CHECK_RES(res);
+			break;
+		}
+	}
 
 	res = bpf_val_to_ring(data, aux);
 	return res;
