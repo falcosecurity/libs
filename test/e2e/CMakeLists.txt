@@ -10,6 +10,13 @@ endif()
 
 set(E2E_CONTEXT ${CMAKE_CURRENT_BINARY_DIR}/ctx)
 
+# When running in CI, dump the reports in /tmp/
+if(DEFINED ENV{CI})
+    set(E2E_REPORT /tmp/)
+else()
+    set(E2E_REPORT ${CMAKE_CURRENT_BINARY_DIR})
+endif()
+
 add_custom_target(e2e-context
 	COMMAND mkdir -p ${E2E_CONTEXT}
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_BINARY_DIR}/libsinsp/examples/sinsp-example ${E2E_CONTEXT}
@@ -38,7 +45,7 @@ add_custom_target(e2e-tests
 		-e KERNEL_MODULE=/driver/scap.ko
 		-e BPF_PROBE=/driver/probe.o
 		-v /var/run/docker.sock:/var/run/docker.sock
-		-v ${CMAKE_CURRENT_BINARY_DIR}/report:/report
+		-v ${E2E_REPORT}/report:/report
 		sinsp-e2e-tester:latest
 	DEPENDS e2e-containers
 )
