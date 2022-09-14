@@ -5229,127 +5229,122 @@ int f_sys_munlockall_x(struct event_filler_arguments *args)
 
 int f_sys_fsconfig_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int64_t retval;
-	unsigned long res;
-	unsigned long aux;
-	unsigned long cmd;
-	unsigned long key;
+	unsigned long res = 0;
 
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
-	res = val_to_ring(args, retval, 0, false, 0);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * fs_fd
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (res != PPM_SUCCESS)
-		return res;
+	int64_t ret = 0;
+	unsigned long fd = 0;
+	unsigned long cmd = 0;
+	unsigned long scap_cmd = 0;
+	unsigned long key_pointer = 0;
+	unsigned long value_pointer = 0;
+	unsigned long aux = 0;
 
-	/*
-	 * cmd
-	 */
+
+	/* Parameter 1: ret (type: PT_ERRNO) */
+	ret = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, ret, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	/* This is the file-system fd */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &fd);
+	res = val_to_ring(args, fd, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &cmd);
-	cmd = fsconfig_cmds_to_scap(cmd);
-	res = val_to_ring(args, cmd, 0, true, 0);
-	if (res != PPM_SUCCESS)
-		return res;
+	scap_cmd = fsconfig_cmds_to_scap(cmd);
+	res = val_to_ring(args, scap_cmd, 0, true, 0);
+	CHECK_RES(res);
 
-	/*
-	 * key
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &key);
-	res = val_to_ring(args, key, 0, true, 0);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 4: key (type: PT_CHARBUF) */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &key_pointer);
+	res = val_to_ring(args, key_pointer, 0, true, 0);
+	CHECK_RES(res);
 
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &value_pointer);
 	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &aux);
 
-	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-	switch (cmd)
+	if(ret < 0)
 	{
-	case PPM_FSCONFIG_SET_FLAG:
-		// Only key must be set
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
+		/* If the syscall fails we push empty params to userspace. */
+
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
 		res = val_to_ring(args, 0, 0, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
+		CHECK_RES(res);
+
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		res = val_to_ring(args, 0, 0, true, 0);
-		break;
-	case PPM_FSCONFIG_SET_STRING:
-		// value is a NUL-terminated string; aux is 0
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		/*
-		 * value -> string
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		res = val_to_ring(args, 0, 0, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = val_to_ring(args, val, 0, true, 0);
-		break;
-	case PPM_FSCONFIG_SET_BINARY:
-		// value points to a blob; aux is its size
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		/*
-		 * value -> bytebuf
-		 * push value_ptr
-		 * push empty value_str
-		 */
-		res = val_to_ring(args, val, aux, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = val_to_ring(args, 0, 0, true, 0);
-		break;
-	case PPM_FSCONFIG_SET_PATH:
-	case PPM_FSCONFIG_SET_PATH_EMPTY:
-		// value is a NUL-terminated string; aux is a fd
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		/*
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		res = val_to_ring(args, 0, 0, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = val_to_ring(args, val, 0, true, 0);
-		break;
-	case PPM_FSCONFIG_SET_FD:
-		// value must be NULL; aux is a fd
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		res = val_to_ring(args, 0, 0, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = val_to_ring(args, 0, 0, true, 0);
-		break;
-	case PPM_FSCONFIG_CMD_CREATE:
-	case PPM_FSCONFIG_CMD_RECONFIGURE:
-		// key, value and aux should be 0
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		res = val_to_ring(args, 0, 0, true, 0);
-		if (res != PPM_SUCCESS)
-			return res;
-		res = val_to_ring(args, 0, 0, true, 0);
-		break;
+		CHECK_RES(res);
+	}
+	else
+	{
+		/* According to the command we need to understand what value we have to push to userspace. */
+		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+		switch(scap_cmd)
+		{
+		case PPM_FSCONFIG_SET_FLAG:
+		case PPM_FSCONFIG_SET_FD:
+		case PPM_FSCONFIG_CMD_CREATE:
+		case PPM_FSCONFIG_CMD_RECONFIGURE:
+			/* Since `value` is NULL we send two empty params. */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+			break;
+
+		case PPM_FSCONFIG_SET_STRING:
+		case PPM_FSCONFIG_SET_PATH:
+		case PPM_FSCONFIG_SET_PATH_EMPTY:
+			/* `value` is a NUL-terminated string.
+			 * Push `value_charbuf` but not `value_bytebuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = val_to_ring(args, value_pointer, 0, true, 0);
+			CHECK_RES(res);
+			break;
+
+		case PPM_FSCONFIG_SET_BINARY:
+			/* `value` points to a binary blob and `aux` indicates its size.
+			 * Push `value_bytebuf` but not `value_charbuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = val_to_ring(args, value_pointer, aux, true, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+			break;
+
+		default:
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			res = val_to_ring(args, 0, 0, true, 0);
+			CHECK_RES(res);
+			break;
+		}
 	}
 
-	if (res != PPM_SUCCESS)
-		return res;
-
 	res = val_to_ring(args, aux, 0, true, 0);
-	return res;
+	CHECK_RES(res);
+
+	return add_sentinel(args);
 }
 
 int f_sys_dup_e(struct event_filler_arguments *args)
