@@ -53,92 +53,92 @@ int BPF_PROG(fsconfig_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: ret (type: PT_FD) */
+	/* Parameter 1: ret (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-    /* This is the file-system fd */
+	/* This is the file-system fd */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
 	auxmap__store_s64_param(auxmap, (s64)fd);
 
-	/* Parameter 3: flags (type: PT_FLAGS32) */
+	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
 	u32 cmd = (u32)extract__syscall_argument(regs, 1);
-	cmd = fsconfig_cmds_to_scap(cmd);
-	auxmap__store_u32_param(auxmap, cmd);
+	u32 scap_cmd = fsconfig_cmds_to_scap(cmd);
+	auxmap__store_u32_param(auxmap, scap_cmd);
 
 	/* Parameter 4: key (type: PT_CHARBUF) */
-	unsigned long key = (unsigned long)extract__syscall_argument(regs, 2);
-	auxmap__store_charbuf_param(auxmap, key, USER);
+	unsigned long key_pointer = extract__syscall_argument(regs, 2);
+	auxmap__store_charbuf_param(auxmap, key_pointer, USER);
 
-	s32 aux = (s32)extract__syscall_argument(regs, 4);
+	unsigned long value_pointer = extract__syscall_argument(regs, 3);
+	int aux = extract__syscall_argument(regs, 4);
 
-	unsigned long value;
-	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-	switch (cmd)
+	if(ret < 0)
 	{
-	case PPM_FSCONFIG_SET_FLAG:
-		// Only key must be set
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
+		/* If the syscall fails we push empty params to userspace. */
+
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
 		auxmap__store_empty_param(auxmap);
+
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		auxmap__store_empty_param(auxmap);
-		break;
-	case PPM_FSCONFIG_SET_STRING:
-		// value is a NUL-terminated string; aux is 0
-		value = (unsigned long)extract__syscall_argument(regs, 3);
-		/*
-		 * value -> string
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		auxmap__store_empty_param(auxmap);
-		auxmap__store_charbuf_param(auxmap, value, USER);
-		break;
-	case PPM_FSCONFIG_SET_BINARY:
-		// value points to a blob; aux is its size
-		value = (unsigned long)extract__syscall_argument(regs, 3);
-		/*
-		 * value -> bytebuf
-		 * push value_ptr
-		 * push empty value_str
-		 */
-		auxmap__store_bytebuf_param(auxmap, value, aux, USER);
-		auxmap__store_empty_param(auxmap);
-		break;
-	case PPM_FSCONFIG_SET_PATH:
-	case PPM_FSCONFIG_SET_PATH_EMPTY:
-		// value is a NUL-terminated string; aux is a fd
-		value = (unsigned long)extract__syscall_argument(regs, 3);
-		/*
-		 * Push empty value_ptr
-		 * Push value_str
-		 */
-		auxmap__store_empty_param(auxmap);
-		auxmap__store_charbuf_param(auxmap, value, USER);
-		break;
-	case PPM_FSCONFIG_SET_FD:
-		// value must be NULL; aux is a fd
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		auxmap__store_empty_param(auxmap);
-		auxmap__store_empty_param(auxmap);
-		break;
-	case PPM_FSCONFIG_CMD_CREATE:
-	case PPM_FSCONFIG_CMD_RECONFIGURE:
-		// key, value and aux should be 0
-		/*
-		 * Force-set NULL as both value_ptr and value_str,
-		 * because we don't know what to expect from a read.
-		 */
-		auxmap__store_empty_param(auxmap);
-		auxmap__store_empty_param(auxmap);
-		break;
+	}
+	else
+	{
+		/* According to the command we need to understand what value we have to push to userspace. */
+		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+		switch(scap_cmd)
+		{
+		case PPM_FSCONFIG_SET_FLAG:
+		case PPM_FSCONFIG_SET_FD:
+		case PPM_FSCONFIG_CMD_CREATE:
+		case PPM_FSCONFIG_CMD_RECONFIGURE:
+			/* Since `value` is NULL we send two empty params. */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			auxmap__store_empty_param(auxmap);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			auxmap__store_empty_param(auxmap);
+			break;
+
+		case PPM_FSCONFIG_SET_STRING:
+		case PPM_FSCONFIG_SET_PATH:
+		case PPM_FSCONFIG_SET_PATH_EMPTY:
+			/* `value` is a NUL-terminated string.
+			 * Push `value_charbuf` but not `value_bytebuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			auxmap__store_empty_param(auxmap);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			auxmap__store_charbuf_param(auxmap, value_pointer, USER);
+			break;
+
+		case PPM_FSCONFIG_SET_BINARY:
+			/* `value` points to a binary blob and `aux` indicates its size.
+			 * Push `value_bytebuf` but not `value_charbuf` (empty).
+			 */
+
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			auxmap__store_bytebuf_param(auxmap, value_pointer, aux, USER);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			auxmap__store_empty_param(auxmap);
+			break;
+
+		default:
+			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+			auxmap__store_empty_param(auxmap);
+
+			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+			auxmap__store_empty_param(auxmap);
+			break;
+		}
 	}
 
+	/* Parameter 7: aux (type: PT_INT32) */
 	auxmap__store_s32_param(auxmap, aux);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

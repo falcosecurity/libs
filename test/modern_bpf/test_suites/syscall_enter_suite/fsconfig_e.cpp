@@ -3,21 +3,18 @@
 #if defined(__NR_fsconfig)
 TEST(SyscallEnter, fsconfigE)
 {
-
 	auto evt_test = get_syscall_event_test(__NR_fsconfig, ENTER_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-    int fd = 0;
-    uint32_t cmd = 0;
-    const char* key = NULL;
-    const char* value = NULL;
-    int aux = 0;
-	int32_t ret = syscall(__NR_fsconfig, fd, cmd, key, value, aux);
-	assert_syscall_state(SYSCALL_FAILURE, "fsconfig", ret);
-	syscall(__NR_close, fd);
+	int fd = 0;
+	uint32_t cmd = 0;
+	const char* key = NULL;
+	const char* value = NULL;
+	int aux = 0;
+	assert_syscall_state(SYSCALL_FAILURE, "fsconfig", syscall(__NR_fsconfig, fd, cmd, key, value, aux));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
