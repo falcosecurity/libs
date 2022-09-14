@@ -49,13 +49,6 @@ struct timeval {
 #define timeval64 timeval
 #endif
 
-/* Check if the res is different from `PPM_SUCCCES` */
-#define CHECK_RES(x)           \
-	if(x != PPM_SUCCESS) \
-	{                      \
-		return x;    \
-	}                      \
-
 #define FILLER_RAW(x)							\
 static __always_inline int __bpf_##x(struct filler_data *data);		\
 									\
