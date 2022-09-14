@@ -579,7 +579,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd, BPF_ANY);
 		if(err < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failure populating program array");
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failure populating program array: %s (Errno: %d)", scap_strerror_r(buf, errno), errno);
 			return SCAP_FAILURE;
 		}
 
