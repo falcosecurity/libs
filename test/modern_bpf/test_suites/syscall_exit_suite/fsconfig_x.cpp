@@ -11,11 +11,8 @@ TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	/* Look at https://elixir.bootlin.com/linux/latest/source/samples/vfs/test-fsmount.c#L103 */
-
-	/* Mount a publically available AFS filesystem */
-	int fd = syscall(__NR_fsopen, "afs", 0);
-	assert_syscall_state(SYSCALL_SUCCESS, "fsopen", fd, NOT_EQUAL, -1);
+	int fd = syscall(__NR_fspick, AT_FDCWD, "/sys/kernel/tracing", 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "fspick", fd, NOT_EQUAL, -1);
 
 	uint32_t cmd = FSCONFIG_SET_STRING;
 	const char* key = "source";
