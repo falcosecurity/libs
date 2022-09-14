@@ -528,10 +528,18 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, prog_name);
 	if(fd < 0)
 	{
-		fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: bpf_load_program() err=%d event=%s", errno, event);
-		free(error);
-		return SCAP_FAILURE;
+		/* It is possible than some old kernels don't support the prog_name so in case
+		 * of loading failure, we try again the loading without the name. See it in libbpf:
+		 * https://github.com/torvalds/linux/blob/master/tools/lib/bpf/libbpf.c#L4926
+		 */
+		fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, NULL);
+		if(fd < 0)
+		{
+			fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: bpf_load_program() err=%d event=%s", errno, event);
+			free(error);
+			return SCAP_FAILURE;
+		}
 	}
 
 	free(error);
