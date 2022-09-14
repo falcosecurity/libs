@@ -44,11 +44,53 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:buster
+      volumes:
+        - /tmp/report/:/tmp/report/
+        - /usr/src:/usr/src
+        - /lib/modules:/lib/modules
+        - /usr/include/bpf:/usr/include/bpf
+        - /dev:/dev
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
-    
+          apt update && apt install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            build-essential \
+            git \
+            clang \
+            llvm \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            libelf-dev \
+            wget \
+            libb64-dev \
+            libc-ares-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libtbb-dev \
+            libjq-dev \
+            libjsoncpp-dev \
+            libgrpc++-dev \
+            protobuf-compiler-grpc \
+            libgtest-dev \
+            libprotobuf-dev \
+            liblua5.1-dev \
+            curl \
+            gnupg \
+            lsb-release
+
+          # install docker-ce-cli, required for e2e tests
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+          apt-get update
+          apt-get install -y docker-ce-cli
+
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
         with:
@@ -62,8 +104,21 @@ jobs:
         run: |
           mkdir -p build
           cd build && cmake ${{ matrix.cmake_opts }} ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+          KERNELDIR=/lib/modules/$(uname -r)/build make -j4
           make run-unit-tests
+
+      - name: Run e2e tests
+        if: ${{ matrix.name != 'system_deps_minimal' }}
+        run: |
+          make -C build/ e2e-tests
+
+      - name: Archive test reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ${{ matrix.name }}_report
+          path: |
+            /tmp/report/
 
   build-libs-linux-amd64-asan:
     name: build-libs-linux-amd64-asan 🧐
