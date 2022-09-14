@@ -3600,7 +3600,25 @@ FILLER(sys_fsconfig_x, true)
 
 	if(ret < 0)
 	{
-		/* If the syscall fails we push empty params to userspace. */
+		/* This differs from the implementation of the other 2 drivers (modern bpf, kmod)
+		 * because we hit the max instruction size for a program. So to avoid it we use this
+		 * workaround to fall into the `default` case of the switch, since we need to send
+		 * empty params.
+		 */
+		scap_cmd = (uint32_t)-1;
+	}
+
+	unsigned long value_pointer = bpf_syscall_get_argument(data, 3);
+
+	/* According to the command we need to understand what value we have to push to userspace. */
+	/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
+	switch(scap_cmd)
+	{
+	case PPM_FSCONFIG_SET_FLAG:
+	case PPM_FSCONFIG_SET_FD:
+	case PPM_FSCONFIG_CMD_CREATE:
+	case PPM_FSCONFIG_CMD_RECONFIGURE:
+		/* Since `value` is NULL we send two empty params. */
 
 		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
 		res = bpf_val_to_ring(data, 0);
@@ -3609,71 +3627,48 @@ FILLER(sys_fsconfig_x, true)
 		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
 		res = bpf_val_to_ring(data, 0);
 		CHECK_RES(res);
-	}
-	else
-	{
-		unsigned long value_pointer = bpf_syscall_get_argument(data, 3);
+		break;
 
-		/* According to the command we need to understand what value we have to push to userspace. */
-		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
-		switch(scap_cmd)
-		{
-		case PPM_FSCONFIG_SET_FLAG:
-		case PPM_FSCONFIG_SET_FD:
-		case PPM_FSCONFIG_CMD_CREATE:
-		case PPM_FSCONFIG_CMD_RECONFIGURE:
-			/* Since `value` is NULL we send two empty params. */
+	case PPM_FSCONFIG_SET_STRING:
+	case PPM_FSCONFIG_SET_PATH:
+	case PPM_FSCONFIG_SET_PATH_EMPTY:
+		/* `value` is a NUL-terminated string.
+		 * Push `value_charbuf` but not `value_bytebuf` (empty).
+		 */
 
-			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
 
-			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
-			break;
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+		res = bpf_val_to_ring(data, value_pointer);
+		CHECK_RES(res);
+		break;
 
-		case PPM_FSCONFIG_SET_STRING:
-		case PPM_FSCONFIG_SET_PATH:
-		case PPM_FSCONFIG_SET_PATH_EMPTY:
-			/* `value` is a NUL-terminated string.
-			 * Push `value_charbuf` but not `value_bytebuf` (empty).
-			 */
+	case PPM_FSCONFIG_SET_BINARY:
+		/* `value` points to a binary blob and `aux` indicates its size.
+		 * Push `value_bytebuf` but not `value_charbuf` (empty).
+		 */
 
-			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+		res = __bpf_val_to_ring(data, value_pointer, aux, PT_BYTEBUF, -1, true);
+		CHECK_RES(res);
 
-			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
-			res = bpf_val_to_ring(data, value_pointer);
-			CHECK_RES(res);
-			break;
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
 
-		case PPM_FSCONFIG_SET_BINARY:
-			/* `value` points to a binary blob and `aux` indicates its size.
-			 * Push `value_bytebuf` but not `value_charbuf` (empty).
-			 */
+		break;
 
-			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
-			res = __bpf_val_to_ring(data, value_pointer, aux, PT_BYTEBUF, -1, true);
-			CHECK_RES(res);
+	default:
+		/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
 
-			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
-
-			break;
-
-		default:
-			/* Parameter 5: value_bytebuf (type: PT_BYTEBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
-
-			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
-			res = bpf_val_to_ring(data, 0);
-			CHECK_RES(res);
-			break;
-		}
+		/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
+		break;
 	}
 
 	/* Parameter 7: aux (type: PT_INT32) */
