@@ -1169,11 +1169,19 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
+int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
 {
 	if(ppm_sc_array == NULL)
 	{
 		return SCAP_FAILURE;
+	}
+
+	/* Clear the array before using it.
+	 * This is not necessary but just to be future-proof.
+	 */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		ppm_sc_array[ppm_sc] = 0;
 	}
 
 #ifdef __linux__
@@ -1206,11 +1214,19 @@ int scap_get_modifies_state_ppm_sc(uint32_t* ppm_sc_array)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_events_from_ppm_sc(IN uint32_t * ppm_sc_array, OUT uint32_t* events_array)
+int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX])
 {
 	if(ppm_sc_array == NULL || events_array == NULL)
 	{
 		return SCAP_FAILURE;
+	}
+
+	/* Clear the array before using it.
+	 * This is not necessary but just to be future-proof.
+	 */
+	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
+	{
+		events_array[event_num] = 0;
 	}
 
 #ifdef __linux__
@@ -1236,11 +1252,19 @@ int scap_get_events_from_ppm_sc(IN uint32_t * ppm_sc_array, OUT uint32_t* events
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_tracepoints(uint32_t* tp_array)
+int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
 {
 	if(tp_array == NULL)
 	{
 		return SCAP_FAILURE;
+	}
+
+	/* Clear the array before using it.
+	 * This is not necessary but just to be future-proof.
+	 */
+	for(int tp_num = 0; tp_num < TP_VAL_MAX; tp_num++)
+	{
+		tp_array[tp_num] = 0;
 	}
 
 	tp_array[SYS_ENTER] = 1;
