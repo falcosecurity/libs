@@ -1179,10 +1179,7 @@ int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
 	/* Clear the array before using it.
 	 * This is not necessary but just to be future-proof.
 	 */
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		ppm_sc_array[ppm_sc] = 0;
-	}
+	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
 
 #ifdef __linux__
 	// Collect EF_MODIFIES_STATE events
@@ -1224,10 +1221,7 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 	/* Clear the array before using it.
 	 * This is not necessary but just to be future-proof.
 	 */
-	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
-	{
-		events_array[event_num] = 0;
-	}
+	memset(events_array, 0, sizeof(*events_array) * PPM_EVENT_MAX);
 
 #ifdef __linux__
 	for(int ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
@@ -1262,10 +1256,7 @@ int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
 	/* Clear the array before using it.
 	 * This is not necessary but just to be future-proof.
 	 */
-	for(int tp_num = 0; tp_num < TP_VAL_MAX; tp_num++)
-	{
-		tp_array[tp_num] = 0;
-	}
+	memset(tp_array, 0, sizeof(*tp_array) * TP_VAL_MAX);
 
 	tp_array[SYS_ENTER] = 1;
 	tp_array[SYS_EXIT] = 1;
