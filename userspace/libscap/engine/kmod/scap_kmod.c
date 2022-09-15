@@ -158,7 +158,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	uint64_t schema_version = 0;
 
 	unsigned long single_buffer_dim = params->buffer_bytes_dim;
-	if(check_and_set_buffer_bytes_dim(handle->m_lasterr, single_buffer_dim) != SCAP_SUCCESS)
+	if(check_buffer_bytes_dim(handle->m_lasterr, single_buffer_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -307,7 +307,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error mapping the ring buffer for device %s. (If you get memory allocation errors try to reduce the buffer dimension)", filename);
 			return SCAP_FAILURE;
 		}
-		dev->m_buffer_size = mapped_len;
+		dev->m_buffer_size = single_buffer_dim;
+		dev->m_mmap_size = mapped_len;
 
 		//
 		// Map the ppm_ring_buffer_info that contains the buffer pointers
