@@ -41,7 +41,7 @@ int ud_shm_open(const char *name, int flag, mode_t mode);
 ///////////////////////////////////////////////////////////////////////////////
 int32_t udig_alloc_ring(void* ring_id, 
 	uint8_t** ring, 
-	uint32_t *ringsize,
+	unsigned long *ringsize,
 	char *error)
 {
 	int* ring_fd = (int*)ring_id;
@@ -62,7 +62,7 @@ int32_t udig_alloc_ring(void* ring_id,
 			return SCAP_FAILURE;
 		}
 
-		*ringsize = (uint32_t)rstat.st_size;
+		*ringsize = rstat.st_size;
 	}
 	else
 	{
@@ -97,7 +97,7 @@ int32_t udig_alloc_ring(void* ring_id,
 		}
 	}
 
-	if(check_and_set_buffer_bytes_dim(error, (unsigned long)*ringsize) != SCAP_SUCCESS)
+	if(check_and_set_buffer_bytes_dim(error, *ringsize) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -342,7 +342,7 @@ int32_t udig_begin_capture(struct scap_engine_handle engine, char *error)
 ///////////////////////////////////////////////////////////////////////////////
 int32_t udig_alloc_ring(HANDLE* ring_handle,
 	uint8_t** ring,
-	uint32_t* ringsize,
+	unsigned long* ringsize,
 	char* error)
 {
 	*ring_handle = NULL;
@@ -369,7 +369,7 @@ int32_t udig_alloc_ring(HANDLE* ring_handle,
 		MEMORY_BASIC_INFORMATION info;
 		SIZE_T szBufferSize = VirtualQueryEx(GetCurrentProcess(), pdbuf, &info, sizeof(info));
 
-		*ringsize = (uint32_t)info.RegionSize;
+		*ringsize = info.RegionSize;
 
 		UnmapViewOfFile(pdbuf);
 	}
