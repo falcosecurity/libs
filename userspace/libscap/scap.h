@@ -841,17 +841,17 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
 */
-int scap_get_modifies_state_ppm_sc(uint32_t * ppm_sc_array);
+int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Take an array of `ppm_sc` as input and provide the associated array of events as output.
 */
-int scap_get_events_from_ppm_sc(IN uint32_t* ppm_sc_array, OUT uint32_t* events_array);
+int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX]);
 
 /*!
   \brief Returns the set of minimum tracepoints required by `libsinsp` state.
 */
-int scap_get_modifies_state_tracepoints(uint32_t * tp_array);
+int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX]);
 
 /*!
   \brief Get the system page size.
