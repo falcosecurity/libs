@@ -31,7 +31,8 @@ typedef struct scap_device
 	int m_fd;
 	int m_bufinfo_fd; // used by udig
 	char* m_buffer;
-	unsigned long m_buffer_size; // used by udig
+	unsigned long m_buffer_size;
+	unsigned long m_mmap_size; // generally 2 * m_buffer_size, but bpf does weird things
 	uint32_t m_lastreadsize;
 	char* m_sn_next_event; // Pointer to the next event available for scap_next
 	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event

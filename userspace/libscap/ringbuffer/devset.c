@@ -58,10 +58,10 @@ void devset_free(struct scap_device_set *devset)
 		{
 #ifdef _DEBUG
 			int ret;
-			ret = munmap(dev->m_buffer, dev->m_buffer_size);
+			ret = munmap(dev->m_buffer, dev->m_mmap_size);
 			ASSERT(ret == 0);
 #else
-			munmap(dev->m_buffer, dev->m_buffer_size);
+			munmap(dev->m_buffer, dev->m_mmap_size);
 #endif
 		}
 
