@@ -166,8 +166,6 @@ void k8s_handler::make_http()
 		m_handler->set_path(m_path);
 		m_handler->set_id(m_id);
 		m_collector->set_steady_state(true);
-		m_watching = true;
-		m_blocking_socket = false;
 		m_handler->close_on_chunked_end(false);
 
 		m_req_sent = false;
@@ -360,6 +358,9 @@ void k8s_handler::check_state()
 			}
 			m_handler->set_socket_option(SOCK_NONBLOCK);
 			make_http();
+			// Switch to the watching mode and remove the blocking socket mode.
+			m_watching = true;
+			m_blocking_socket = false;
 		}
 		if(m_watching && m_id.find("_state") == std::string::npos && m_handler->wants_send())
 		{
@@ -410,7 +411,24 @@ void k8s_handler::collect_data()
 				send_data_request();
 				if(m_blocking_socket && !m_watching)
 				{
-					receive_response();
+					try
+					{
+						receive_response();
+					}
+					catch(const sinsp_exception& ex)
+					{
+						std::cout << "k8s_handler ("<<m_id<<"::collect_data()["<<uri(m_url).to_string(false)<<"] an error occurred while receiving data from "<<m_id<<
+						", m_blocking_socket="<<std::to_string(m_blocking_socket)<<", m_watching="<< std::to_string(m_watching)<<", "<<ex.what()<<std::endl;
+						g_logger.log("k8s_handler (" + m_id + ")::collect_data() error [" + uri(m_url).to_string(false) + "], receiving data "
+									 "from " + m_path + "... m_blocking_socket=" + std::to_string(m_blocking_socket) + ", m_watching=" + std::to_string(m_watching) + " " + ex.what(),
+							 		 sinsp_logger::SEV_ERROR);
+						// If a temporary error occurred while receiving the response, we set the state of the handler to be able to retry the
+						// next time the collect_data() is called.
+						m_watching = false;
+						m_connect_logged = false;
+						m_blocking_socket = true;
+						return;
+					}
 					process_events();
 					return;
 				}
