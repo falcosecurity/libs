@@ -24,6 +24,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "filterchecks.h"
 #include "../../common/strlcpy.h"
+#include "test_utils.h"
 
 class sinsp_with_test_input : public ::testing::Test {
 protected:
@@ -182,30 +183,21 @@ protected:
 		std::string argsv = "";
 		if (!args.empty())
 		{
-			for (std::string a : args) {
-				argsv += a;
-				argsv.push_back('\0');
-			}
+			argsv = test_utils::to_null_delimited(args);
 			argsv.push_back('\0');
 		}
 
 		std::string envv = "";
 		if (!env.empty())
 		{
-			for (std::string a : env) {
-				envv += a;
-				envv.push_back('\0');
-			}
+			envv = test_utils::to_null_delimited(env);
 			envv.push_back('\0');
 		}
 
 		std::string cgroupsv = "";
 		if (!cgroups.empty())
 		{
-			for (std::string a : cgroups) {
-				cgroupsv += a;
-				cgroupsv.push_back('\0');
-			}
+			cgroupsv = test_utils::to_null_delimited(cgroups);
 			cgroupsv.push_back('\0');
 		}
 
@@ -227,7 +219,7 @@ protected:
 
 	void add_default_init_thread()
 	{
-		scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0);
+		scap_threadinfo tinfo = create_threadinfo(1, 1, 0, 1, 1, 1, "init", "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, {}, "/root/");
 
 		std::vector<scap_fdinfo> fdinfos;
 		scap_fdinfo fdinfo;
