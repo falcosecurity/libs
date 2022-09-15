@@ -571,7 +571,7 @@ struct udig_ring_buffer_status {
 
 typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
 
-int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, uint32_t *ringsize, char *error);
+int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, unsigned long *ringsize, char *error);
 int32_t udig_alloc_ring_descriptors(void* ring_descs_id,
 	struct ppm_ring_buffer_info** ring_info,
 	struct udig_ring_buffer_status** ring_status,
