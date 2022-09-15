@@ -1,6 +1,6 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_fsconfig) && defined(__NR_fsopen)
+#if defined(__NR_fsconfig) && defined(__NR_fspick)
 #include <linux/mount.h>
 
 TEST(SyscallExit, fsconfigX_FSCONFIG_SET_STRING)
