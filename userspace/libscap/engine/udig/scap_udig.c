@@ -97,7 +97,7 @@ int32_t udig_alloc_ring(void* ring_id,
 		}
 	}
 
-	if(check_and_set_buffer_bytes_dim(error, *ringsize) != SCAP_SUCCESS)
+	if(check_buffer_bytes_dim(error, *ringsize) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -892,6 +892,8 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 	{
 		return SCAP_FAILURE;
 	}
+
+	handle->m_dev_set.m_devs[0].m_mmap_size = 2 * handle->m_dev_set.m_devs[0].m_buffer_size;
 
 	// Set close-on-exec for the fd
 #ifndef _WIN32

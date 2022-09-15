@@ -23,13 +23,11 @@ limitations under the License.
 #include "barrier.h"
 #include "sleep.h"
 
-extern unsigned long global_buffer_bytes_dim;
-
 /* Check buffer dimension in bytes. 
  * Our 2 eBPF probes require that this number is a power of 2! Right now we force this
  * constraint to all our drivers (also the kernel module and udig) just for conformity.
  */
-int32_t check_and_set_buffer_bytes_dim(char* error, unsigned long buf_bytes_dim);
+int32_t check_buffer_bytes_dim(char* error, unsigned long buf_bytes_dim);
 
 
 #ifndef GET_BUF_POINTERS
@@ -42,7 +40,7 @@ static inline void ringbuffer_get_buf_pointers(scap_device* dev, uint64_t* phead
 
 	if(*ptail > *phead)
 	{
-		*pread_size = global_buffer_bytes_dim - *ptail + *phead;
+		*pread_size = dev->m_buffer_size - *ptail + *phead;
 	}
 	else
 	{
@@ -72,13 +70,13 @@ static inline void ringbuffer_advance_tail(struct scap_device* dev)
 	//
 	mem_barrier();
 
-	if(ttail < global_buffer_bytes_dim)
+	if(ttail < dev->m_buffer_size)
 	{
 		dev->m_bufinfo->tail = ttail;
 	}
 	else
 	{
-		dev->m_bufinfo->tail = ttail - global_buffer_bytes_dim;
+		dev->m_bufinfo->tail = ttail - dev->m_buffer_size;
 	}
 
 	dev->m_lastreadsize = 0;

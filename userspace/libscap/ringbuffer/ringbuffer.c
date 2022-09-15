@@ -22,10 +22,7 @@ limitations under the License.
 #include <scap.h>
 #include "../../../driver/ppm_ringbuffer.h"
 
-/* Dimension of a single per-CPU buffer in bytes. */
-unsigned long global_buffer_bytes_dim;
-
-int32_t check_and_set_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
+int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
 {
 	/* If you face some memory allocation issues, please remember that:
 	 *
@@ -65,6 +62,5 @@ int32_t check_and_set_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_d
 		return SCAP_FAILURE;
 	}
 
-	global_buffer_bytes_dim = buf_bytes_dim;
 	return SCAP_SUCCESS;
 }

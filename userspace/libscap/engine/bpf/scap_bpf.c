@@ -1548,7 +1548,8 @@ int32_t scap_bpf_load(
 		//
 		// Map the ring buffer
 		//
-		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_buffer_size, bpf_args->buffer_bytes_dim);
+		dev->m_buffer = perf_event_mmap(handle, pmu_fd, &dev->m_mmap_size, bpf_args->buffer_bytes_dim);
+		dev->m_buffer_size = bpf_args->buffer_bytes_dim;
 		if(dev->m_buffer == MAP_FAILED)
 		{
 			return SCAP_FAILURE;
@@ -1722,7 +1723,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
 
-	if(check_and_set_buffer_bytes_dim(engine.m_handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
+	if(check_buffer_bytes_dim(engine.m_handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
