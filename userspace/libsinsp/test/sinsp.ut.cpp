@@ -18,6 +18,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 
 #include "sinsp_with_test_input.h"
+#include "test_utils.h"
 
 using namespace libsinsp;
 
@@ -552,4 +553,34 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "io_uring");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "r");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "10");
+}
+
+TEST_F(sinsp_with_test_input, spawn_process)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
+	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	std::vector<std::string> cgroups = {"cpuset=/", "cpu=/user.slice", "cpuacct=/user.slice", "io=/user.slice", "memory=/user.slice/user-1000.slice/session-1.scope", "devices=/user.slice", "freezer=/", "net_cls=/", "perf_event=/", "net_prio=/", "hugetlb=/", "pids=/user.slice/user-1000.slice/session-1.scope", "rdma=/", "misc=/"};
+	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
+	std::string envv = test_utils::to_null_delimited(env);
+	std::vector<std::string> args = {"--help"};
+	std::string argsv = test_utils::to_null_delimited(args);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", 1024, 0, 68633, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", 1024, 0, 1, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_pid, child_tid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+
+	// check that the cwd is inherited from the parent (default process has /root/)
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
+	// check that the name is updated
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
+	// check that pname is taken from the parent process
+	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 }
