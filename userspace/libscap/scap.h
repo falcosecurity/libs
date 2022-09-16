@@ -985,8 +985,6 @@ const char* scap_get_host_root();
 */
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
-bool scap_get_bpf_enabled(scap_t* handle);
-
 /*!
   \brief stop returning events for all subsequently spawned
   processes with the provided comm, as well as their children.
