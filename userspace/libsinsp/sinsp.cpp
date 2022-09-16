@@ -504,6 +504,18 @@ void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 	}
 }
 
+std::unordered_set<uint32_t> sinsp::get_all_tp()
+{
+	std::unordered_set<uint32_t> ppm_tp_array;
+
+	for(uint32_t tp = 0; tp < TP_VAL_MAX; tp++)
+	{
+		ppm_tp_array.insert(tp);
+	}
+
+	return ppm_tp_array;
+}
+
 /*=============================== OPEN METHODS ===============================*/
 
 void sinsp::open_common(scap_open_args* oargs)
