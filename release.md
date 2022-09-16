@@ -20,7 +20,7 @@ Completed releases are denoted by a _git tag_ and a corresponding [GitHub releas
 
 ## Release team
 
-The release team consists of a *release manager* and other contributors from the community. Usually, we seek volunteers during our [community calls](https://github.com/falcosecurity/community#community-calls) or in the #falco channel in slack](https://kubernetes.slack.com/messages/falco), and then decide together the release planning.
+The release team consists of a *release manager* and other contributors from the community. Usually, we seek volunteers during our [community calls](https://github.com/falcosecurity/community#community-calls) or in the [#falco channel on Slack](https://kubernetes.slack.com/messages/falco), and then decide together the release planning.
 
 The release manager's responsibility is to coordinate the release process and track its progress. 
 
