@@ -561,10 +561,10 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordere
 	open_common(&oargs);
 }
 
-void sinsp::open_bpf(const char* bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	/* Validate the BPF path. */
-	if(!bpf_path)
+	if(bpf_path.empty())
 	{
 		throw sinsp_exception("When you use the 'BPF' engine you need to provide a path to the bpf object file.");
 	}
@@ -578,7 +578,7 @@ void sinsp::open_bpf(const char* bpf_path, unsigned long driver_buffer_bytes_dim
 	/* Engine-specific args. */
 	struct scap_bpf_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
-	params.bpf_probe = bpf_path;
+	params.bpf_probe = bpf_path.data();
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }
@@ -636,7 +636,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 	open_common(&oargs);
 }
 
-void sinsp::open_plugin(std::string plugin_name, std::string plugin_open_params)
+void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params)
 {
 	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
 	struct scap_source_plugin_engine_params params;
@@ -647,7 +647,7 @@ void sinsp::open_plugin(std::string plugin_name, std::string plugin_open_params)
 	open_common(&oargs);
 }
 
-void sinsp::open_gvisor(std::string config_path, std::string root_path)
+void sinsp::open_gvisor(const std::string& config_path, const std::string& root_path)
 {
 	if(config_path.empty())
 	{
@@ -2541,20 +2541,6 @@ void sinsp::update_mesos_state()
 	}
 }
 #endif // CYGWING_AGENT
-
-bool sinsp::is_bpf_enabled()
-{
-	// At the inspector level, bpf can be explicitly enabled via
-	// sinsp::set_bpf_probe, but what's most important is whether
-	// it's enabled at the libscap level, which can also be done
-	// via the environment.
-	if(m_h)
-	{
-		return scap_get_bpf_enabled(m_h);
-	}
-
-	return false;
-}
 
 void sinsp::disable_automatic_threadtable_purging()
 {
