@@ -22,6 +22,8 @@ limitations under the License.
 
 namespace test_utils {
 
+// transform a list of strings into a single string where each element is delimited by a null (0) byte.
+// the last element will also be null-terminated unless the input list is empty.
 std::string to_null_delimited(std::vector<std::string> list);
 
 } // namespace test_utils
