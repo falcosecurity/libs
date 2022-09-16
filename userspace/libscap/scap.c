@@ -1061,7 +1061,7 @@ scap_os_platform scap_get_os_platform(scap_t* handle)
 
 uint32_t scap_get_ndevs(scap_t* handle)
 {
-	if(handle && handle->m_vtable)
+	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_n_devs(handle->m_engine);
 	}
@@ -1081,7 +1081,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
-	if(handle && handle->m_vtable)
+	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_max_buf_used(handle->m_engine);
 	}
@@ -1091,11 +1091,6 @@ uint64_t scap_max_buf_used(scap_t* handle)
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res = SCAP_FAILURE;
-	if(handle == NULL)
-	{
-		return res;
-	}
-
 	if(handle->m_vtable)
 	{
 		res = handle->m_vtable->next(handle->m_engine, pevent, pcpuid);
@@ -1136,11 +1131,6 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 //
 scap_threadinfo* scap_get_proc_table(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return NULL;
-	}
-
 	return handle->m_proclist.m_proclist;
 }
 
@@ -1149,11 +1139,6 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle)
 //
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
@@ -1329,11 +1314,6 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->start_capture(handle->m_engine);
@@ -1351,11 +1331,6 @@ int32_t scap_start_capture(scap_t* handle)
 
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
@@ -1372,11 +1347,6 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
@@ -1393,11 +1363,6 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
@@ -1417,11 +1382,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 //
 scap_addrlist* scap_get_ifaddr_list(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return NULL;
-	}
-
 	return handle->m_addrlist;
 }
 
@@ -1430,11 +1390,6 @@ scap_addrlist* scap_get_ifaddr_list(scap_t* handle)
 //
 scap_userlist* scap_get_user_list(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return NULL;
-	}
-
 	return handle->m_userlist;
 }
 
@@ -1443,7 +1398,7 @@ scap_userlist* scap_get_user_list(scap_t* handle)
 //
 const scap_machine_info* scap_get_machine_info(scap_t* handle)
 {
-	if(handle && handle->m_machine_info.num_cpus != (uint32_t)-1)
+	if(handle->m_machine_info.num_cpus != (uint32_t)-1)
 	{
 		return (const scap_machine_info*)&handle->m_machine_info;
 	}
@@ -1458,11 +1413,6 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle)
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
@@ -1479,11 +1429,6 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 
 int64_t scap_get_readfile_offset(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return -1;
-	}
-
 	if(handle->m_vtable->savefile_ops)
 	{
 		return handle->m_vtable->savefile_ops->get_readfile_offset(handle->m_engine);
@@ -1551,11 +1496,6 @@ uint32_t scap_event_get_dump_flags(scap_t* handle)
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
@@ -1572,11 +1512,6 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
@@ -1637,11 +1572,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return NULL;
-	}
-
 #if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
@@ -1658,17 +1588,12 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 
 void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
 {
-	if(handle == NULL)
-	{
-		return;
-	}
-
 	handle->refresh_proc_table_when_saving = refresh;
 }
 
 uint64_t scap_ftell(scap_t *handle)
 {
-	if(handle && handle->m_vtable->savefile_ops)
+	if(handle->m_vtable->savefile_ops)
 	{
 		return handle->m_vtable->savefile_ops->ftell_capture(handle->m_engine);
 	}
@@ -1680,7 +1605,7 @@ uint64_t scap_ftell(scap_t *handle)
 
 void scap_fseek(scap_t *handle, uint64_t off)
 {
-	if(handle && handle->m_vtable->savefile_ops)
+	if(handle->m_vtable->savefile_ops)
 	{
 		handle->m_vtable->savefile_ops->fseek_capture(handle->m_engine, off);
 	}
@@ -1688,11 +1613,6 @@ void scap_fseek(scap_t *handle, uint64_t off)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
@@ -1710,11 +1630,6 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 #ifdef CYGWING_AGENT
 wh_t* scap_get_wmi_handle(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return NULL;
-	}
-
 	return handle->m_whh;
 }
 #endif
@@ -1731,11 +1646,6 @@ bool scap_get_bpf_enabled(scap_t *handle)
 
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	// If the comm is already present in the list, do nothing
 	uint32_t i;
 	for(i=0; i<handle->m_num_suppressed_comms; i++)
@@ -1762,11 +1672,6 @@ int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 
 bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 {
-	if(handle == NULL)
-	{
-		return false;
-	}
-
 	scap_tid *stid;
 	HASH_FIND_INT64(handle->m_suppressed_tids, &tid, stid);
 
@@ -1775,11 +1680,6 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
@@ -1796,11 +1696,6 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
@@ -1850,20 +1745,10 @@ bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long requ
 
 uint64_t scap_get_driver_api_version(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return 0;
-	}
-
 	return handle->m_api_version;
 }
 
 uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return 0;
-	}
-
 	return handle->m_schema_version;
 }
