@@ -1289,11 +1289,6 @@ unsigned long scap_get_system_page_size()
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->stop_capture(handle->m_engine);
