@@ -49,11 +49,10 @@ In this phase, all enhancements expected to go into the release should be merged
 
 Code freeze happens ~1 week before the release due date, and should last no more than ~5 days. Shorter freeze period are encouraged.
 
-At this point, no new-feature PRs are allowed to be merged.
+At this point, no new-feature PRs are allowed to be merged ([exceptions](#exceptions) apply). 
 
 [Versioning](#versioning) rules must be double-checked and eventually enforced at this stage.
 
-Not yet merged PRs must be moved to the subsequent milestone.
 ### Release branch
 
 During the code freeze period, a *release branch* (e.g., `release-x.y.z`) is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
@@ -68,13 +67,10 @@ Once the release brach has been created:
 
  - Accurate testing is performed on the release candidate. Testing steps and criteria for passing each steps are outlined in [TBA doc]. It's highly recommended to use Falco as a consumer of the libs and drivers and perform automated and manual testing.
 
- - If necessary, PRs to address the following issues are still allowed to be merged on the `master` branch:
-   - bugs that affect stability, safety, performance
-   - bugs in core features
-   - broken functionalities (including the possibility of reverting the previous behavior)
-   - improvements to the testing suite or the CI if necessary to unblock the release
- 
-   In such a case, relevant commits must be cherry-picked and ported to the release branch, and then a new release candidate is tagged.
+  - If necessary, PRs may be exceptionally merged on the `master` branch (see the [Exceptions](#exceptions) section below) as a last resort to unblock a release.
+    In such a case, relevant commits must be cherry-picked and ported to the release branch, and then a new release candidate is tagged.
+   
+  - Not yet merged PRs must be moved to the subsequent milestone.
 
 ### Thaw
 
@@ -93,7 +89,11 @@ From this point on:
 
 Exceptions are allowed for compelling reasons. Notably:
 
-- During the code freeze phase, PRs to complete or disable features in the code may be exceptionally merged
+- During the code freeze phase, PRs might be exceptionally merged:
+   - to complete already planned features for that milestone
+   - to fix bugs in core features or that affect stability, safety, performance
+   - to address broken functionalities (including the possibility of reverting the previous behavior)
+   - improvements to the testing suite or the CI if necessary to unblock the release
 - Hotfixes releases can happen anytime and without following the full process. In such cases, patches are merged into the relevant release branch (or a release branch is created if needed), then a new version is git tagged, and the hotfix is directly released.
 
 Exceptions to the [versioning rules](#versioning) are never allowed.
