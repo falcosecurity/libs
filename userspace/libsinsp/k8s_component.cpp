@@ -248,7 +248,7 @@ std::string k8s_component::get_selector(type t)
 
 	case K8S_REPLICATIONCONTROLLERS:
 	    // Assuming only resources with `replicas` != 0 have active pods.
-		// Replicas is the most recently oberved number of replicas.
+		// Replicas is the most recently observed number of replicas.
 		// See: 
 		//  - https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicationcontrollerstatus-v1-core
 		//  - https://github.com/kubernetes/kubernetes/blob/9188d556899af46eb0b29febc7f10625e2fa0f38/pkg/registry/core/replicationcontroller/strategy.go#L193
@@ -256,7 +256,7 @@ std::string k8s_component::get_selector(type t)
 
 	// todo(leogr): not work
     // case K8S_REPLICASETS:
-	//  	// Replicas is the most recently oberved number of replicas.
+	//  	// Replicas is the most recently observed number of replicas.
 	//  	// https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#replicasetstatus-v1-apps
 	//  	// https://github.com/kubernetes/kubernetes/blob/v1.24.0/pkg/registry/apps/replicaset/strategy.go#L181
 	// 	return "?fieldSelector=status.replicas!=0";
