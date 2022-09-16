@@ -76,10 +76,11 @@ static uint32_t get_max_consumers()
 
 static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long buf_bytes_dim)
 {
-	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim", "w");
+	const char* file_name = "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim";
+	FILE *pfile = fopen(file_name, "w");
 	if(pfile == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open the 'g_buffer_bytes_dim' parameter file: %s", scap_strerror(handle, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please remember to inject the kernel module if you haven't done it.", file_name, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
