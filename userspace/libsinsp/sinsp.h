@@ -892,6 +892,12 @@ public:
 	*/
 	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
+	/*!
+	  \brief Get all the available ppm_sc.
+	  Does enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> get_all_ppm_sc();
+
 	/**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
 	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
@@ -905,6 +911,11 @@ public:
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*=============================== Tracepoint set related ===============================*/
+
+	/*!
+	  \brief Get all the available tracepoints.
+	*/
+	std::unordered_set<uint32_t> get_all_tp();
 
 	/*!
 		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.

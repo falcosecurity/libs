@@ -230,3 +230,15 @@ std::unordered_set<uint32_t> sinsp::get_event_set_from_ppm_sc_set(const std::uno
 
 	return events_set;
 }
+
+std::unordered_set<uint32_t> sinsp::get_all_ppm_sc()
+{
+	std::unordered_set<uint32_t> ppm_sc_array;
+
+	for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		ppm_sc_array.insert(ppm_sc);
+	}
+
+	return ppm_sc_array;
+}
