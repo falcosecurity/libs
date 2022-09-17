@@ -355,7 +355,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_IO_URING_ENTER_E */ {"io_uring_enter", EC_IO_OTHER, EF_NONE, 0},
 	/* PPME_SYSCALL_IO_URING_ENTER_X */ {"io_uring_enter", EC_IO_OTHER, EF_USES_FD | EF_WRITES_TO_FD, 6, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"to_submit", PT_UINT32, PF_DEC}, {"min_complete", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, io_uring_enter_flags}, {"sig", PT_SIGSET, PF_DEC}}},
 	/* PPME_SYSCALL_IO_URING_REGISTER_E */ {"io_uring_register", EC_IO_OTHER, EF_NONE, 0},
-	/* PPME_SYSCALL_TO_URING_REGISTER_X */ {"io_uring_register", EC_IO_OTHER, EF_USES_FD | EF_MODIFIES_STATE, 5, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC }, {"opcode", PT_ENUMFLAGS16, PF_DEC,  io_uring_register_opcodes}, {"arg", PT_UINT64, PF_HEX}, {"nr_args", PT_UINT32, PF_DEC}}},
+	/* PPME_SYSCALL_IO_URING_REGISTER_X */ {"io_uring_register", EC_IO_OTHER, EF_USES_FD, 5, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC }, {"opcode", PT_ENUMFLAGS16, PF_DEC,  io_uring_register_opcodes}, {"arg", PT_UINT64, PF_HEX}, {"nr_args", PT_UINT32, PF_DEC}}},
 	/* PPME_SYSCALL_MLOCK_E */ {"mlock", EC_MEMORY, EF_NONE, 0},
 	/* PPME_SYSCALL_MLOCK_X */ {"mlock", EC_MEMORY, EF_NONE, 3, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_UINT64, PF_HEX}, {"len", PT_UINT64, PF_DEC}}},
 	/* PPME_SYSCALL_MUNLOCK_E */ {"munlock", EC_MEMORY, EF_NONE, 0},
