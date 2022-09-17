@@ -233,14 +233,14 @@ std::unordered_set<uint32_t> sinsp::get_event_set_from_ppm_sc_set(const std::uno
 
 std::unordered_set<uint32_t> sinsp::get_all_ppm_sc()
 {
-	std::unordered_set<uint32_t> ppm_sc_array;
+	std::unordered_set<uint32_t> ppm_sc_set;
 
 	for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		ppm_sc_array.insert(ppm_sc);
+		ppm_sc_set.insert(ppm_sc);
 	}
 
-	return ppm_sc_array;
+	return ppm_sc_set;
 }
 
 std::unordered_set<std::string> sinsp::get_syscalls_names(const std::unordered_set<uint32_t>& ppm_sc_set)

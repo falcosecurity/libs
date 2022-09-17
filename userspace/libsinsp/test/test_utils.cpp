@@ -31,4 +31,17 @@ std::string to_null_delimited(const std::vector<std::string> list)
 	return res;
 }
 
+template<typename T>
+std::set<T> unorderedToOrdered(std::unordered_set<T> unordered_set)
+{
+	std::set<T> s;
+	for(const auto& val : unordered_set)
+	{
+		s.insert(val);
+	}
+	return s;
+}
+template std::set<uint32_t> unorderedToOrdered(std::unordered_set<uint32_t> unordered_set);
+template std::set<std::string> unorderedToOrdered(std::unordered_set<std::string> unordered_set);
+
 } // namespace test_utils

@@ -19,11 +19,17 @@ limitations under the License.
 
 #include <string>
 #include <vector>
+#include <set>
+#include <unordered_set>
 
 namespace test_utils {
 
 // transform a list of strings into a single string where each element is delimited by a null (0) byte.
 // the last element will also be null-terminated unless the input list is empty.
 std::string to_null_delimited(std::vector<std::string> list);
+
+// This helper is used to convert an unordered set into an ordered set.
+template<typename T>
+std::set<T> unorderedToOrdered(std::unordered_set<T> unordered_set);
 
 } // namespace test_utils

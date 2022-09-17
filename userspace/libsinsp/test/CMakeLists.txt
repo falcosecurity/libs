@@ -37,6 +37,8 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_bcontains.ut.cpp
 	filter_compiler.ut.cpp
 	user.ut.cpp
+	interesting_syscalls.cpp
+	interesting_tracepoints.cpp
 )
 
 if(NOT MINIMAL_BUILD)
