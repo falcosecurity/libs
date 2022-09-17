@@ -242,3 +242,25 @@ std::unordered_set<uint32_t> sinsp::get_all_ppm_sc()
 
 	return ppm_sc_array;
 }
+
+std::unordered_set<std::string> sinsp::get_syscalls_names(const std::unordered_set<uint32_t>& ppm_sc_set)
+{
+	std::unordered_set<std::string> ppm_sc_names_set;
+	for(const auto& it : ppm_sc_set)
+	{
+		std::string ppm_sc_name = g_infotables.m_syscall_info_table[it].name;
+		ppm_sc_names_set.insert(ppm_sc_name);
+	}
+	return ppm_sc_names_set;
+}
+
+std::unordered_set<std::string> sinsp::get_events_names(const std::unordered_set<uint32_t>& events_set)
+{
+	std::unordered_set<std::string> events_names_set;
+	for(const auto& it : events_set)
+	{
+		std::string event_name = g_infotables.m_event_info[it].name;
+		events_names_set.insert(event_name);
+	}
+	return events_names_set;
+}

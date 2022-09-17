@@ -898,6 +898,16 @@ public:
 	*/
 	std::unordered_set<uint32_t> get_all_ppm_sc();
 
+	/*!
+	  \brief Get the name of all the ppm_sc provided in the set.
+	*/
+	std::unordered_set<std::string> get_syscalls_names(const std::unordered_set<uint32_t>& ppm_sc_set);
+
+	/*!
+	  \brief Get the name of all the events provided in the set.
+	*/
+	std::unordered_set<std::string> get_events_names(const std::unordered_set<uint32_t>& events_set);
+
 	/**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
 	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
@@ -916,6 +926,11 @@ public:
 	  \brief Get all the available tracepoints.
 	*/
 	std::unordered_set<uint32_t> get_all_tp();
+
+	/*!
+	  \brief Get the name of all the ppm_sc provided in the set.
+	*/
+	std::unordered_set<std::string> get_tracepoint_names(const std::unordered_set<uint32_t>& tp_set);
 
 	/*!
 		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
