@@ -472,6 +472,17 @@ std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tracepoints(std::unorder
 	return tp_of_interest;
 }
 
+std::unordered_set<std::string> sinsp::get_tracepoint_names(const std::unordered_set<uint32_t>& tp_set)
+{
+	std::unordered_set<std::string> tp_names_set;
+	for(const auto& it : tp_set)
+	{
+		std::string tp_name = tp_names[it];
+		tp_names_set.insert(tp_name);
+	}
+	return tp_names_set;
+}
+
 void sinsp::fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &ppm_sc_of_interest)
 {
 	for (int i = 0; i < PPM_SC_MAX; i++)
