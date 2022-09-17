@@ -137,7 +137,6 @@ std::unordered_set<uint32_t> sinsp::enforce_simple_ppm_sc_set(std::unordered_set
 		PPM_SC_TGKILL,
 		PPM_SC_TIMERFD_CREATE,
 		PPM_SC_TKILL,
-		PPM_SC_UMOUNT,
 		PPM_SC_UMOUNT2,
 		PPM_SC_UNLINK,
 		PPM_SC_UNLINKAT,

@@ -241,10 +241,6 @@ std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 	PPM_SC_TIMERFD_CREATE,
 #endif
 
-#ifdef __NR_umount
-	PPM_SC_UMOUNT,
-#endif
-
 #ifdef __NR_umount2
 	PPM_SC_UMOUNT2,
 #endif
