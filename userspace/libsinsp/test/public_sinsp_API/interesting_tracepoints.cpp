@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include <sinsp.h>
-#include "test_utils.h"
+#include "../test_utils.h"
 
 std::set<uint32_t> ordered_sinsp_state_tracepoint_set{
 	SYS_ENTER,

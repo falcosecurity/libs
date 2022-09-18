@@ -18,7 +18,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include <sinsp.h>
 #include <sys/syscall.h>
-#include "test_utils.h"
+#include "../test_utils.h"
 
 std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 #ifdef __NR_accept

@@ -23,6 +23,9 @@ endif() # MINIMAL_BUILD
 include_directories("..")
 include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver)
 
+## Public libsinsp API
+file(GLOB_RECURSE PUBLIC_SINSP_API_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/public_sinsp_API/*.cpp)
+
 set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
@@ -37,8 +40,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_bcontains.ut.cpp
 	filter_compiler.ut.cpp
 	user.ut.cpp
-	interesting_syscalls.cpp
-	interesting_tracepoints.cpp
+	"${PUBLIC_SINSP_API_SUITE}"
 )
 
 if(NOT MINIMAL_BUILD)
