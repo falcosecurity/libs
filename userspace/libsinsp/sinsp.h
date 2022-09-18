@@ -984,6 +984,57 @@ public:
 		return (flags & EF_OLD_VERSION);
 	}
 
+	/**
+	 * @brief Return true if the event belongs to the `EC_SYSCALL` category
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EC_SYSCALL` category.
+	 */
+	static inline bool is_syscall_event(uint16_t event_type)
+	{
+		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+		return (category & EC_SYSCALL);
+	}
+
+	/**
+	 * @brief Return true if the event belongs to the `EC_TRACEPOINT` category
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EC_TRACEPOINT` category.
+	 */
+	static inline bool is_tracepoint_event(uint16_t event_type)
+	{
+		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+		return (category & EC_TRACEPOINT);
+	}
+
+	/**
+	 * @brief Return true if the event belongs to the `EC_INTERNAL` category
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EC_INTERNAL` category.
+	 */
+	static inline bool is_internal_event(uint16_t event_type)
+	{
+		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+		return (category & EC_INTERNAL);
+	}
+
+	/**
+	 * @brief Return true if the event belongs to the `EC_UNKNOWN` category
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EC_UNKNOWN` category.
+	 */
+	static inline bool is_unknown_event(uint16_t event_type)
+	{
+		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+		/* Please note this is not an `&` but an `==` if one event has 
+		 * the `EC_UNKNOWN` category, it must have only this category!
+		 */
+		return (category == EC_UNKNOWN);
+	}
+
 	/*=============================== Events related ===============================*/
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
