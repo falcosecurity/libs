@@ -43,6 +43,8 @@ std::string get_event_category(ppm_event_category category)
         case EC_WAIT: return "WAIT";
         case EC_SCHEDULER: return "SCHEDULER";
         case EC_INTERNAL: return "INTERNAL";
+        case EC_SYSCALL: return "SYSCALL";
+        case EC_TRACEPOINT: return "TRACEPOINT";
         default: return "ERROR CONDITION";
     };
 }

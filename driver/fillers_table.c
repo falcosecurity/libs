@@ -277,7 +277,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #ifndef WDIG
 #ifdef CAPTURE_PAGE_FAULTS
 	[PPME_PAGE_FAULT_E] = {FILLER_REF(sys_pagefault_e)},
-	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)},
+	[PPME_PAGE_FAULT_X] = {FILLER_REF(sys_empty)}, /* `PPME_PAGE_FAULT_X` is never generated probably we don't need a filler! */
 #endif
 	[PPME_SYSCALL_BPF_2_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{0} } },
 	[PPME_SYSCALL_BPF_2_X] = {FILLER_REF(sys_bpf_x)},
