@@ -229,7 +229,7 @@ public:
 	void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
 
-	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
+	scap_open_args factory_open_args(const std::string& engine_name, scap_mode_t scap_mode);
 
 	std::string generate_gvisor_config(std::string socket_path);
 
@@ -944,6 +944,48 @@ public:
 
 	/*=============================== Tracepoint set related ===============================*/
 
+	/*=============================== Engine related ===============================*/
+
+	/**
+	 * @brief Check if the current engine is the one passed as parameter.
+	 * 
+	 * @param engine_name engine that we want to check.
+	 * @return true if the passed engine is the active one otherwise false.
+	 */
+	bool check_current_engine(const std::string& engine_name);
+
+	/*=============================== Engine related ===============================*/
+
+	/*=============================== Events related ===============================*/
+
+	/**
+	 * @brief If the event type has one of the following flags return true:
+	 * - `EF_SKIPPARSERESET`
+	 * - `EF_UNUSED`
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has at least one of these flags.
+	 */
+	static inline bool is_unused_event(uint16_t event_type)
+	{
+		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+		return (flags & (EF_SKIPPARSERESET | EF_UNUSED));
+	}
+
+	/**
+	 * @brief Return true if the event has the `EF_OLD_VERSION` flag
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EF_OLD_VERSION` flag.
+	 */
+	static inline bool is_old_version_event(uint16_t event_type)
+	{
+		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+		return (flags & EF_OLD_VERSION);
+	}
+
+	/*=============================== Events related ===============================*/
+
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
 	void add_meta_event(sinsp_evt *metaevt);
@@ -973,13 +1015,6 @@ public:
 		return scap_get_wmi_handle(m_h);
 	}
 #endif
-
-	static inline bool should_consider_evtnum(uint16_t etype)
-	{
-		enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
-
-		return !(flags & (EF_SKIPPARSERESET | EF_UNUSED));
-	}
 
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
@@ -1098,7 +1133,7 @@ private:
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
-
+	std::string m_engine_name;
 	scap_mode_t m_mode = SCAP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd

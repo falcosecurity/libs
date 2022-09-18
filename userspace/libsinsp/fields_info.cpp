@@ -96,11 +96,13 @@ void list_events(sinsp* inspector, bool markdown)
 
 		if(markdown)
 		{
-			if(sinsp::should_consider_evtnum(j))
+			if(sinsp::is_unused_event(j) || sinsp::is_old_version_event(j))
+			{
+				printf("No");
+			}
+			else
 			{
 				printf("Yes");
-			} else {
-				printf("No");
 			}
 
 			printf(" | %c | **%s**(", dir, ei.name);
