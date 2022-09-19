@@ -137,8 +137,8 @@ or GPL2.txt for full copies of the license.
 ///////////////////////////////
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,5,0)) || \
-    (defined(PPM_RHEL_RELEASE_CODE) && (PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 5)))
-	#define USE_BPF_PROBE_KERNEL_USER_VARIANTS
+	((PPM_RHEL_RELEASE_CODE > 0) && (PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 5)))
+		#define USE_BPF_PROBE_KERNEL_USER_VARIANTS
 #endif
 
 #elif defined(__USE_VMLINUX__) /* modern BPF probe */
