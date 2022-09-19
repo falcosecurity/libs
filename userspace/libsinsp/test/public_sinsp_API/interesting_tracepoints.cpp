@@ -37,7 +37,7 @@ std::set<uint32_t> ordered_sinsp_state_tracepoint_set{
 TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_basic)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
-	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_tp());
+	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_tp());
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(ordered_sinsp_state_tracepoint_set.size(), ordered_final_tracepoints_set.size());
@@ -63,7 +63,7 @@ TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
 	additional_tracepoints.insert(SIGNAL_DELIVER);
 	ordered_tracepoint_matching_set.insert(SIGNAL_DELIVER);
 
-	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_tp(additional_tracepoints));
+	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_tp(additional_tracepoints));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(ordered_tracepoint_matching_set.size(), ordered_final_tracepoints_set.size());
@@ -102,7 +102,7 @@ TEST(interesting_tracepoints, get_tp_names)
 	tp_set.insert(SCHED_PROC_FORK);
 	orderd_tracepoints_names_matching_set.insert("sched_process_fork");
 
-	auto orderd_tracepoints_names_final_set = test_utils::unorderedToOrdered(inspector->get_tp_names(tp_set));
+	auto orderd_tracepoints_names_final_set = test_utils::unordered_set_to_ordered(inspector->get_tp_names(tp_set));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(orderd_tracepoints_names_matching_set.size(), orderd_tracepoints_names_final_set.size());

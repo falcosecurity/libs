@@ -30,6 +30,6 @@ std::string to_null_delimited(std::vector<std::string> list);
 
 // This helper is used to convert an unordered set into an ordered set.
 template<typename T>
-std::set<T> unorderedToOrdered(std::unordered_set<T> unordered_set);
+std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
 
 } // namespace test_utils

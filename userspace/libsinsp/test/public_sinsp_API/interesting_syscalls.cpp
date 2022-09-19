@@ -263,7 +263,7 @@ std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
-	std::set<uint32_t> ordered_final_ppm_sc_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_ppm_sc());
+	std::set<uint32_t> ordered_final_ppm_sc_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_ppm_sc());
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(ordered_sinsp_state_ppm_sc_set.size(), ordered_final_ppm_sc_set.size());
@@ -296,7 +296,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 	ordered_ppm_sc_matching_set.insert(PPM_SC_READ);
 #endif
 
-	std::set<uint32_t> ordered_ppm_sc_final_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_ppm_sc(additional_syscalls));
+	std::set<uint32_t> ordered_ppm_sc_final_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_ppm_sc(additional_syscalls));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(ordered_ppm_sc_matching_set.size(), ordered_ppm_sc_final_set.size());
@@ -351,7 +351,7 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 #endif
 	};
 
-	std::set<uint32_t> ordered_final_event_set = test_utils::unorderedToOrdered(inspector->get_event_set_from_ppm_sc_set(ppm_sc_set));
+	std::set<uint32_t> ordered_final_event_set = test_utils::unordered_set_to_ordered(inspector->get_event_set_from_ppm_sc_set(ppm_sc_set));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(ordered_matching_event_set.size(), ordered_final_event_set.size());
@@ -391,7 +391,7 @@ TEST(interesting_syscalls, get_syscalls_names)
 	ppm_sc_set.insert(PPM_SC_READ);
 	orderd_syscall_names_matching_set.insert("read");
 
-	auto orderd_syscall_names_final_set = test_utils::unorderedToOrdered(inspector->get_syscalls_names(ppm_sc_set));
+	auto orderd_syscall_names_final_set = test_utils::unordered_set_to_ordered(inspector->get_syscalls_names(ppm_sc_set));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(orderd_syscall_names_matching_set.size(), orderd_syscall_names_final_set.size());
@@ -423,7 +423,7 @@ TEST(interesting_syscalls, get_events_names)
 	events_set.insert(PPME_SYSCALL_DUP_1_X);
 	orderd_events_names_matching_set.insert("dup");
 
-	auto orderd_events_names_final_set = test_utils::unorderedToOrdered(inspector->get_events_names(events_set));
+	auto orderd_events_names_final_set = test_utils::unordered_set_to_ordered(inspector->get_events_names(events_set));
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(orderd_events_names_final_set.size(), orderd_events_names_matching_set.size());
