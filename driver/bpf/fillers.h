@@ -2158,6 +2158,17 @@ static __always_inline struct inode *get_exe_inode(struct task_struct *task)
 	return _READ(exe_file->f_inode);
 }
 
+static __always_inline unsigned long long bpf_ctime_mtime_ns(struct timespec64 time)
+{
+	unsigned long long epoch;
+	time64_t tv_sec = time.tv_sec;
+	if (tv_sec > 0)
+	{
+		epoch = tv_sec * (uint64_t) 1000000000 + time.tv_nsec;
+	}
+	return epoch;
+}
+
 static __always_inline bool get_exe_writable(struct inode *inode, struct cred *cred)
 {
 	umode_t i_mode = _READ(inode->i_mode);
@@ -2558,6 +2569,7 @@ FILLER(proc_startupdate_3, true)
 		pid_t vpid;
 		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
 		int pidns_level = _READ(pidns->level);
+		unsigned long long pidns_init_start_time;
 
 		/*
 		 * flags
@@ -2643,6 +2655,21 @@ FILLER(proc_startupdate_3, true)
 		 */
 		vpid = bpf_task_tgid_vnr(task);
 		res = bpf_val_to_ring_type(data, vpid, PT_PID);
+
+		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+		if (pidns)
+		{
+		struct task_struct *child_reaper = (struct task_struct *)_READ(pidns->child_reaper);
+			if (child_reaper)
+			{
+				pidns_init_start_time = _READ(child_reaper->start_time);
+			}
+		}
+		res = bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
+		if (res != PPM_SUCCESS)
+		{
+			return res;
+		}
 
 	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
 	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X) {
@@ -2775,6 +2802,8 @@ FILLER(execve_family_flags, true)
 
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
+	unsigned long long epoch;
+	struct timespec64 time;
 
 	struct inode *inode = get_exe_inode(task);
 
@@ -2834,24 +2863,26 @@ FILLER(execve_family_flags, true)
 		return res;
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	unsigned long i_ino = _READ(inode->i_ino);
-	res = bpf_val_to_ring_type(data, i_ino, PT_UINT64);
+	val = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, val, PT_UINT64);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 i_ctime = _READ(inode->i_ctime);
-	res = bpf_val_to_ring_type(data, i_ctime.tv_sec * 1000000000 + i_ctime.tv_nsec, PT_ABSTIME);
+	time = _READ(inode->i_ctime);
+	epoch = bpf_ctime_mtime_ns(time);
+	res = bpf_val_to_ring_type(data, epoch, PT_ABSTIME);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 i_mtime = _READ(inode->i_mtime);
-	res = bpf_val_to_ring_type(data, i_mtime.tv_sec * 1000000000 + i_mtime.tv_nsec, PT_ABSTIME);
+	time = _READ(inode->i_mtime);
+	epoch = bpf_ctime_mtime_ns(time);
+	res = bpf_val_to_ring_type(data, epoch, PT_ABSTIME);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
@@ -6475,6 +6506,8 @@ FILLER(sched_prog_exec_4, false)
 	bool exe_writable = false;
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
+	unsigned long long epoch;
+	struct timespec64 time;
 
 	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
@@ -6533,24 +6566,26 @@ FILLER(sched_prog_exec_4, false)
 	}
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	unsigned long i_ino = _READ(inode->i_ino);
-	res = bpf_val_to_ring_type(data, i_ino, PT_UINT64);
+	val = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, val, PT_UINT64);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 i_ctime = _READ(inode->i_ctime);
-	res = bpf_val_to_ring_type(data, i_ctime.tv_sec * 1000000000 + i_ctime.tv_nsec, PT_ABSTIME);
+	time = _READ(inode->i_ctime);
+	epoch = bpf_ctime_mtime_ns(time);
+	res = bpf_val_to_ring_type(data, epoch, PT_ABSTIME);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
 	}
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 i_mtime = _READ(inode->i_mtime);
-	res = bpf_val_to_ring_type(data, i_mtime.tv_sec * 1000000000 + i_mtime.tv_nsec, PT_ABSTIME);
+	time = _READ(inode->i_mtime);
+	epoch = bpf_ctime_mtime_ns(time);
+	res = bpf_val_to_ring_type(data, epoch, PT_ABSTIME);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
