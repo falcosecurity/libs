@@ -20,6 +20,9 @@ limitations under the License.
 #include <sys/syscall.h>
 #include "../test_utils.h"
 
+/* Please note this set must be kept in sync if we update the sinsp internal state set
+ * otherwise some of the following checks will fail.
+ */
 std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 #ifdef __NR_accept
 	PPM_SC_ACCEPT,
@@ -257,7 +260,7 @@ std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
  * the `libsinsp` state ppm_sc set.
  */
-TEST(InterestingSyscalls, enforce_sinsp_state_basic)
+TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::set<uint32_t> ordered_final_ppm_sc_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_ppm_sc());
@@ -277,7 +280,7 @@ TEST(InterestingSyscalls, enforce_sinsp_state_basic)
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly merges
  * the provided set with the `libsinsp` state set.
  */
-TEST(InterestingSyscalls, enforce_sinsp_state_with_additions)
+TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::unordered_set<uint32_t> additional_syscalls;
@@ -312,7 +315,7 @@ TEST(InterestingSyscalls, enforce_sinsp_state_with_additions)
 /* This test asserts that `get_event_set_from_ppm_sc_set` correctly returns the events
  * associated with the provided `ppm_sc_set`.
  */
-TEST(InterestingSyscalls, get_event_set_from_ppm_sc_set)
+TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 
@@ -364,7 +367,7 @@ TEST(InterestingSyscalls, get_event_set_from_ppm_sc_set)
 
 /* This test asserts that `get_all_ppm_sc` correctly retrieves all the available syscalls
  */
-TEST(InterestingSyscalls, get_all_ppm_sc)
+TEST(interesting_syscalls, get_all_ppm_sc)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	auto ppm_sc_set = inspector->get_all_ppm_sc();
@@ -375,7 +378,7 @@ TEST(InterestingSyscalls, get_all_ppm_sc)
 
 /* This test asserts that `get_syscalls_names` correctly retrieves all the syscalls names
  */
-TEST(InterestingSyscalls, get_syscalls_names)
+TEST(interesting_syscalls, get_syscalls_names)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::set<std::string> orderd_syscall_names_matching_set;
@@ -404,7 +407,7 @@ TEST(InterestingSyscalls, get_syscalls_names)
 
 /* This test asserts that `get_events_names` correctly retrieves all the events names
  */
-TEST(InterestingSyscalls, get_events_names)
+TEST(interesting_syscalls, get_events_names)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::set<std::string> orderd_events_names_matching_set;

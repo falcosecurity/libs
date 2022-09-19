@@ -11,7 +11,7 @@
  * This test will not pass if we forget to update the event table
  * with one of these event categories!
  */
-TEST(EventTable, check_events_category)
+TEST(event_table, check_events_category)
 {
 	int num_syscall_events = 0;
 	int num_tracepoint_events = 0;
