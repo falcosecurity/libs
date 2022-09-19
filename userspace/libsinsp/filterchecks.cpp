@@ -1908,10 +1908,12 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Chars in cmd args", "The total count of characters / length of all cmd args combined excluding whitespaces."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.pvpid", "Parent Virtual Process ID", "the id of the parent process generating the event as seen from its current PID namespace."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "true if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
-	{PT_INT64, EPF_NONE, PF_DEC, "proc.exe_ino", "Inode number of executable image file on disk", "The inode number of the executable image file on disk. Can be directly correlated with file operation event's field fd.ino as alternative to using file paths."},
+	{PT_INT64, EPF_NONE, PF_DEC, "proc.exe_ino", "Inode number of executable image file on disk", "The inode number of the executable image file on disk. Can be correlated with fd.ino."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime", "Last status change time (ctime - epoch ns) of exe file on disk", "Last status change time (ctime - epoch nanoseconds) of executable image file on disk (inode->ctime). Time is changed by writing or by setting inode information e.g. owner, group, link count, mode etc."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.mtime", "Last modification time (mtime - epoch ns) of exe file on disk", "Last modification time (mtime - epoch nanoseconds) of executable image file on disk (inode->mtime). Time is changed by file modifications, e.g. by mknod, truncate, utime, write of more than zero bytes etc. For tracking changes in owner, group, link count or mode, use proc.exe_ino.ctime instead."},
-	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_proc_start", "Time delta in ns - proc clone ts minus ctime exe file", "Time delta between process clone ts and ctime exe file in ns, aka duration of time passed after modifying the status of the executable image and then spawning a new process using the changed executable image."},
+	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_proc_start", "Number of nanoseconds between ctime exe file and proc clone ts", "Number of nanoseconds between modifying status of executable image and spawning a new process using the changed executable image."},
+	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_pidns_start", "Number of nanoseconds between pidns start ts and ctime exe file", "Number of nanoseconds between pid namespace start ts and ctime exe file if pidns start predates ctime."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.pidns_init_start_ts", "Start ts of pid namespace (epoch ns)", "Start ts (epoch ns) of pid namespace; approximate start ts of container if pid in container or start ts of host if pid in host namespace."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -2812,6 +2814,18 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			return NULL;
 		}
 		RETURN_EXTRACT_VAR(tinfo->m_exe_ino_ctime_duration_clone_ts);
+	case TYPE_EXE_INO_CTIME_DURATION_PIDNS_START:
+		if(tinfo->m_exe_ino_ctime_duration_pidns_start == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_exe_ino_ctime_duration_pidns_start);
+	case TYPE_PIDNS_INIT_START_TS:
+		if(tinfo->m_pidns_init_start_ts == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_pidns_init_start_ts);
 	default:
 		ASSERT(false);
 		return NULL;
@@ -6268,7 +6282,9 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.image.digest", "Registry Digest", "the container image registry digest (e.g. sha256:d977378f890d445c15e51795296e4e5062f109ce6da83e0a355fc4ad8699d27)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "Health Check", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "Liveness", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"}
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
+	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since the container start ts", "Number of nanoseconds since the container start ts."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -6748,7 +6764,20 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = "NONE";
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
-
+	case TYPE_CONTAINER_START_TS:
+		if(tinfo->m_container_id.empty() || tinfo->m_pidns_init_start_ts == 0)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(tinfo->m_pidns_init_start_ts);
+	case TYPE_CONTAINER_DURATION:
+		if(tinfo->m_container_id.empty() || tinfo->m_clone_ts == 0)
+		{
+			return NULL;
+		}
+		m_s64val = evt->get_ts() - tinfo->m_pidns_init_start_ts;
+		ASSERT(m_s64val > 0);
+		RETURN_EXTRACT_VAR(m_s64val);
 	default:
 		ASSERT(false);
 		break;
