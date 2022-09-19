@@ -76,6 +76,7 @@ void sinsp_threadinfo::init()
 	m_pfminor = 0;
 	m_vtid = -1;
 	m_vpid = -1;
+	m_pidns_init_start_ts = 0;
 	m_main_thread.reset();
 	m_lastevent_fd = 0;
 	m_last_latency_entertime = 0;
@@ -94,6 +95,7 @@ void sinsp_threadinfo::init()
 	m_exe_ino_ctime = 0;
 	m_exe_ino_mtime = 0;
 	m_exe_ino_ctime_duration_clone_ts = 0;
+	m_exe_ino_ctime_duration_pidns_start = 0;
 
 	memset(&m_user, 0, sizeof(scap_userinfo));
 	memset(&m_group, 0, sizeof(scap_groupinfo));
@@ -427,6 +429,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_exe_ino_ctime = pi->exe_ino_ctime;
 	m_exe_ino_mtime = pi->exe_ino_mtime;
 	m_exe_ino_ctime_duration_clone_ts = pi->exe_ino_ctime_duration_clone_ts;
+	m_exe_ino_ctime_duration_pidns_start = pi->exe_ino_ctime_duration_pidns_start;
 
 	m_vmsize_kb = pi->vmsize_kb;
 	m_vmrss_kb = pi->vmrss_kb;
@@ -436,6 +439,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
+	m_pidns_init_start_ts = pi->pidns_init_start_ts;
 	m_clone_ts = pi->clone_ts;
 	m_tty = pi->tty;
 	m_category = CAT_NONE;

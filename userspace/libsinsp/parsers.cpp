@@ -1638,6 +1638,17 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo->m_clone_ts = evt->get_ts();
 
 	//
+	// Get pid namespace start ts - convert monotonic time in ns to epoch ts
+	//
+
+	if(evt->get_num_params() > 20)
+	{
+		parinfo = evt->get_param(20);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		tinfo->m_pidns_init_start_ts = *(uint64_t *)parinfo->m_val + m_inspector->m_boot_ts_epoch;
+	}
+
+	//
 	// Add the new thread to the table
 	//
 	bool thread_added = m_inspector->add_thread(tinfo);
@@ -2134,6 +2145,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		if(evt->m_tinfo->m_clone_ts != 0)
 		{
 			evt->m_tinfo->m_exe_ino_ctime_duration_clone_ts = evt->m_tinfo->m_clone_ts - evt->m_tinfo->m_exe_ino_ctime;
+		}
+
+		if(evt->m_tinfo->m_pidns_init_start_ts != 0 && (evt->m_tinfo->m_exe_ino_ctime > evt->m_tinfo->m_pidns_init_start_ts))
+		{
+			evt->m_tinfo->m_exe_ino_ctime_duration_pidns_start = evt->m_tinfo->m_exe_ino_ctime - evt->m_tinfo->m_pidns_init_start_ts;
 		}
 	}
 

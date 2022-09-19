@@ -390,6 +390,8 @@ public:
 		TYPE_EXE_INO_CTIME = 58,
 		TYPE_EXE_INO_MTIME = 59,
 		TYPE_EXE_INO_CTIME_DURATION_CLONE_TS = 60,
+		TYPE_EXE_INO_CTIME_DURATION_PIDNS_START = 61,
+		TYPE_PIDNS_INIT_START_TS = 62,
 	};
 
 	sinsp_filter_check_thread();
@@ -804,6 +806,8 @@ public:
 		TYPE_CONTAINER_HEALTHCHECK,
 		TYPE_CONTAINER_LIVENESS_PROBE,
 		TYPE_CONTAINER_READINESS_PROBE,
+		TYPE_CONTAINER_START_TS,
+		TYPE_CONTAINER_DURATION,
 	};
 
 	sinsp_filter_check_container();
@@ -819,6 +823,7 @@ private:
 	uint32_t m_u32val;
 	int32_t m_argid;
 	string m_argstr;
+	int64_t m_s64val;
 };
 
 //

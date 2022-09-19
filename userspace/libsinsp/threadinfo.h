@@ -310,6 +310,7 @@ public:
 	uint64_t m_exe_ino_ctime; ///< executable inode ctime (last status change time)
 	uint64_t m_exe_ino_mtime; ///< executable inode mtime (last modification time)
 	uint64_t m_exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
+	uint64_t m_exe_ino_ctime_duration_pidns_start; ///< duration in ns between pidns start ts and executable inode ctime (last status change time) if pidns start predates ctime
 	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
@@ -319,6 +320,7 @@ public:
 	int64_t m_vtid;  ///< The virtual id of this thread.
 	int64_t m_vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	int64_t m_vpgid; // The virtual process group id, as seen from its pid namespace
+	uint64_t m_pidns_init_start_ts; ///<The pid_namespace init task (child_reaper) start_time ts.
 	std::string m_root;
 	size_t m_program_hash; ///< Unique hash of the current program
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
