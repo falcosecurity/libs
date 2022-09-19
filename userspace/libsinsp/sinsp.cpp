@@ -323,6 +323,8 @@ void sinsp::init()
 		m_num_cpus = 0;
 	}
 
+	m_boot_ts_epoch = sinsp_utils::get_host_boot_time_ns();
+
 	//
 	// XXX
 	// This will need to be integrated in the machine info
