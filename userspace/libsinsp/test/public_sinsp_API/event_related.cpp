@@ -2,7 +2,7 @@
 #include <sinsp.h>
 
 /* Check the `is_unused_event` API works correctly */
-TEST(Events, check_unused_events)
+TEST(events, check_unused_events)
 {
 	/* `PPME_SYSCALL_EXECVE_8_E` has the `EF_OLD_VERSION` flag */
 	ASSERT_EQ(sinsp::is_unused_event(PPME_SYSCALL_EXECVE_8_E), false);
@@ -18,7 +18,7 @@ TEST(Events, check_unused_events)
 }
 
 /* Check the `is_old_version_event` API works correctly */
-TEST(Events, check_old_version_events)
+TEST(events, check_old_version_events)
 {
 	/* `PPME_SYSCALL_EXECVE_8_E` has only the `EF_OLD_VERSION` flag */
 	ASSERT_EQ(sinsp::is_old_version_event(PPME_SYSCALL_EXECVE_14_E), true);
@@ -28,7 +28,7 @@ TEST(Events, check_old_version_events)
 }
 
 /* Check if the events category is correct */
-TEST(Events, check_events_category)
+TEST(events, check_events_category)
 {
 	/* Assert that the API works good */
 	ASSERT_EQ(sinsp::is_syscall_event(PPME_SYSCALL_EXECVE_8_E), true);

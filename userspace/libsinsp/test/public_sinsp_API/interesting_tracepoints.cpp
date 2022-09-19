@@ -19,6 +19,9 @@ limitations under the License.
 #include <sinsp.h>
 #include "../test_utils.h"
 
+/* Please note this set must be kept in sync if we update the sinsp internal state set
+ * otherwise some of the following checks will fail.
+ */
 std::set<uint32_t> ordered_sinsp_state_tracepoint_set{
 	SYS_ENTER,
 	SYS_EXIT,
@@ -31,7 +34,7 @@ std::set<uint32_t> ordered_sinsp_state_tracepoint_set{
 /* This test asserts that `enforce_sinsp_state_tracepoints` correctly retrieves
  * the `libsinsp` state tracepoint set.
  */
-TEST(InterestingTracepoints, enforce_sinsp_state_tracepoints_basic)
+TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_basic)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unorderedToOrdered(inspector->enforce_sinsp_state_tracepoints());
@@ -48,7 +51,7 @@ TEST(InterestingTracepoints, enforce_sinsp_state_tracepoints_basic)
 	}
 }
 
-TEST(InterestingTracepoints, enforce_sinsp_state_tracepoints_with_additions)
+TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::unordered_set<uint32_t> additional_tracepoints;
@@ -76,7 +79,7 @@ TEST(InterestingTracepoints, enforce_sinsp_state_tracepoints_with_additions)
 
 /* This test asserts that `get_all_tp` correctly retrieves all the available tracepoints
  */
-TEST(InterestingSyscalls, get_all_tp)
+TEST(interesting_tracepoints, get_all_tp)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	auto tp_set = inspector->get_all_tp();
@@ -87,7 +90,7 @@ TEST(InterestingSyscalls, get_all_tp)
 
 /* This test asserts that `get_tracepoint_names` correctly retrieves all the tracepoints names
  */
-TEST(InterestingSyscalls, get_tracepoint_names)
+TEST(interesting_tracepoints, get_tracepoint_names)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 	std::set<std::string> orderd_tracepoints_names_matching_set;

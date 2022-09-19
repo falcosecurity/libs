@@ -4,7 +4,7 @@
 /* Check that an exception is thrown since the BPF path doesn't exist, moreover
  * check that the engine name is set to BPF.
  */
-TEST(ScapEngine, check_BPF_engine_name)
+TEST(scap_engine, check_BPF_engine_name)
 {
 	std::unique_ptr<sinsp> inspector(new sinsp());
 
