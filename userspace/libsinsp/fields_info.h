@@ -24,5 +24,9 @@ class sinsp;
 //
 // Printer functions
 //
+
+/* This function is DEPRECATED, it must be implemented by the consumers. This function will be removed in the next libs release. */
 void list_fields(bool verbose, bool markdown=false);
+
+/* This function is DEPRECATED, it must be implemented by the consumers. This function will be removed in the next libs release. */
 void list_events(sinsp* inspector, bool markdown=false);

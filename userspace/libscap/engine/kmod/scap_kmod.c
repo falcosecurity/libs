@@ -80,7 +80,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	FILE *pfile = fopen(file_name, "w");
 	if(pfile == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please remember to inject the kernel module if you haven't done it.", file_name, scap_strerror(handle, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please ensure the kernel module is already loaded.", file_name, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
@@ -810,7 +810,7 @@ int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, 
 }
 
 struct scap_vtable scap_kmod_engine = {
-	.name = "kmod",
+	.name = KMOD_ENGINE,
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 

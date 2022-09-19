@@ -48,6 +48,7 @@ static void list_fields_markdown(std::list<gen_event_filter_factory::filter_fiel
 	}
 }
 
+/* This function is DEPRECATED, it must be implemented by the consumers. This function will be removed in the next libs release. */
 void list_fields(bool verbose, bool markdown)
 {
 	vector<const filter_check_info*> fc_plugins;
@@ -70,6 +71,7 @@ void list_fields(bool verbose, bool markdown)
 	}
 }
 
+/* This function is DEPRECATED, it must be implemented by the consumers. This function will be removed in the next libs release. */
 void list_events(sinsp* inspector, bool markdown)
 {
 	uint32_t j, k;
@@ -96,14 +98,7 @@ void list_events(sinsp* inspector, bool markdown)
 
 		if(markdown)
 		{
-			if(sinsp::is_unused_event(j) || sinsp::is_old_version_event(j))
-			{
-				printf("No");
-			}
-			else
-			{
-				printf("Yes");
-			}
+			printf("Yes");
 
 			printf(" | %c | **%s**(", dir, ei.name);
 

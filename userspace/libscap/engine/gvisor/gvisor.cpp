@@ -151,7 +151,7 @@ static int32_t gvisor_getpid_global(struct scap_engine_handle engine, int64_t* p
 #endif
 
 extern const struct scap_vtable scap_gvisor_engine = {
-	.name = "gvisor",
+	.name = GVISOR_ENGINE,
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 

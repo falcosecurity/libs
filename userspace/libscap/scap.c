@@ -1629,6 +1629,15 @@ wh_t* scap_get_wmi_handle(scap_t* handle)
 }
 #endif
 
+bool scap_check_current_engine(scap_t *handle, const char* engine_name)
+{
+	if(engine_name && handle && handle->m_vtable)
+	{
+		return strcmp(handle->m_vtable->name, engine_name) == 0;
+	}
+	return false;
+}
+
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 {
 	// If the comm is already present in the list, do nothing

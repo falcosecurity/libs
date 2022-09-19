@@ -986,6 +986,11 @@ const char* scap_get_host_root();
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
 
 /*!
+  \brief Check if the current engine name matches the provided engine_name
+*/
+bool scap_check_current_engine(scap_t *handle, const char* engine_name);
+
+/*!
   \brief stop returning events for all subsequently spawned
   processes with the provided comm, as well as their children.
   This includes fork()/clone()ed processes that might later
