@@ -814,14 +814,24 @@ static __always_inline int __bpf_read_val_into(struct filler_data *data,
 					       enum read_memory mem)
 {
 	int rc;
+	int read_size_bound;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	if (read_size == 0)
+		return -1;
+
+	read_size_bound = ((read_size - 1) & SCRATCH_SIZE_HALF) + 1;
+#else
+	read_size_bound = read_size & SCRATCH_SIZE_HALF;
+#endif
 
 	if (mem == KERNEL)
 		rc = bpf_probe_read_kernel(&data->buf[curoff_bounded],
-				((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+				read_size_bound,
 				(void *)val);
 	else
 		rc = bpf_probe_read_user(&data->buf[curoff_bounded],
-				((read_size - 1) & SCRATCH_SIZE_HALF) + 1,
+				read_size_bound,
 				(void *)val);
 
 	return rc;
@@ -912,12 +922,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					volatile u16 read_size = dpi_lookahead_size;
 					int rc;
 
-#ifdef BPF_FORBIDS_ZERO_ACCESS
-					if (read_size)
-						rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
-#else
 					rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
-#endif
 					if (rc)
 					{
 						len=0;
@@ -949,12 +954,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 				}
 
-#ifdef BPF_FORBIDS_ZERO_ACCESS
-				if (read_size)
-					rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
-#else
 				rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
-#endif
 				if (rc)
 				{
 					len=0;
