@@ -229,7 +229,7 @@ public:
 	void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	void open_test_input(scap_test_input_data *data);
 
-	scap_open_args factory_open_args(const std::string& engine_name, scap_mode_t scap_mode);
+	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
 
 	std::string generate_gvisor_config(std::string socket_path);
 
@@ -930,7 +930,7 @@ public:
 	/*!
 	  \brief Get the name of all the ppm_sc provided in the set.
 	*/
-	std::unordered_set<std::string> get_tracepoint_names(const std::unordered_set<uint32_t>& tp_set);
+	std::unordered_set<std::string> get_tp_names(const std::unordered_set<uint32_t>& tp_set);
 
 	/*!
 		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
@@ -940,7 +940,7 @@ public:
 		WARNING: without using this method, we cannot guarantee that `libsinsp` state
 		will always be up to date, or even work at all.
 	*/
-	std::unordered_set<uint32_t> enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest = {});
+	std::unordered_set<uint32_t> enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest = {});
 
 	/*=============================== Tracepoint set related ===============================*/
 
@@ -1184,7 +1184,6 @@ private:
 	scap_t* m_h;
 	uint64_t m_nevts;
 	int64_t m_filesize;
-	std::string m_engine_name;
 	scap_mode_t m_mode = SCAP_MODE_NONE;
 
 	// If non-zero, reading from this fd and m_input_filename contains "fd

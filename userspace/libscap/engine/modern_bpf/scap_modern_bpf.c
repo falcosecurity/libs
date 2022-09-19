@@ -260,7 +260,7 @@ int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, 
 }
 
 struct scap_vtable scap_modern_bpf_engine = {
-	.name = "modern_bpf",
+	.name = MODERN_BPF_ENGINE,
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 

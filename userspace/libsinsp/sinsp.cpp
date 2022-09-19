@@ -452,7 +452,7 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
-std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tracepoints(std::unordered_set<uint32_t> tp_of_interest)
+std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest)
 {
 	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
 
@@ -472,7 +472,7 @@ std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tracepoints(std::unorder
 	return tp_of_interest;
 }
 
-std::unordered_set<std::string> sinsp::get_tracepoint_names(const std::unordered_set<uint32_t>& tp_set)
+std::unordered_set<std::string> sinsp::get_tp_names(const std::unordered_set<uint32_t>& tp_set)
 {
 	std::unordered_set<std::string> tp_names_set;
 	for(const auto& it : tp_set)
@@ -561,18 +561,17 @@ void sinsp::open_common(scap_open_args* oargs)
 	init();
 }
 
-scap_open_args sinsp::factory_open_args(const std::string& engine_name, scap_mode_t scap_mode)
+scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)
 {
 	scap_open_args oargs{};
-	oargs.engine_name = engine_name.data();
+	oargs.engine_name = engine_name;
 	oargs.mode = scap_mode;
 	return oargs;
 }
 
 void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
-	m_engine_name = KMOD_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
@@ -593,8 +592,7 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 		throw sinsp_exception("When you use the 'BPF' engine you need to provide a path to the bpf object file.");
 	}
 
-	m_engine_name = BPF_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(BPF_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
@@ -610,22 +608,19 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 
 void sinsp::open_udig()
 {
-	m_engine_name = UDIG_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
 	open_common(&oargs);
 }
 
 void sinsp::open_nodriver()
 {
-	m_engine_name = NODRIVER_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_NODRIVER);
+	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
 	open_common(&oargs);
 }
 
 void sinsp::open_savefile(const std::string& filename, int fd)
 {
-	m_engine_name = SAVEFILE_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_CAPTURE);
+	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
 	struct scap_savefile_engine_params params;
 
 	m_filter_proc_table_when_saving = true;
@@ -666,8 +661,7 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 
 void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params)
 {
-	m_engine_name = SOURCE_PLUGIN_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_PLUGIN);
+	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
 	struct scap_source_plugin_engine_params params;
 	set_input_plugin(plugin_name, plugin_open_params);
 	params.input_plugin = &m_input_plugin->as_scap_source();
@@ -688,8 +682,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the root path.");
 	}
 
-	m_engine_name = GVISOR_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
 	struct scap_gvisor_engine_params params;
 	params.gvisor_root_path = root_path.c_str();
 	params.gvisor_config_path = config_path.c_str();
@@ -701,8 +694,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 
 void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
-	m_engine_name = MODERN_BPF_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
 	/* Set interesting syscalls and tracepoints. */
 	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
@@ -717,8 +709,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, const std::un
 
 void sinsp::open_test_input(scap_test_input_data* data)
 {
-	m_engine_name = TEST_INPUT_ENGINE;
-	scap_open_args oargs = factory_open_args(m_engine_name, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_LIVE);
 	struct scap_test_input_engine_params params;
 	params.test_input_data = data;
 	oargs.engine_params = &params;
@@ -733,7 +724,7 @@ void sinsp::open_test_input(scap_test_input_data* data)
 
 bool sinsp::check_current_engine(const std::string& engine_name)
 {
-	return m_engine_name.compare(engine_name) == 0;
+	return scap_check_current_engine(m_h, engine_name.data());
 }
 
 /*=============================== Engine related ===============================*/

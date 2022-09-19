@@ -227,7 +227,7 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 }
 
 const struct scap_vtable scap_source_plugin_engine = {
-	.name = "source_plugin",
+	.name = SOURCE_PLUGIN_ENGINE,
 	.mode = SCAP_MODE_PLUGIN,
 	.savefile_ops = NULL,
 

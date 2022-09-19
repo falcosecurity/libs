@@ -2205,7 +2205,7 @@ static struct scap_savefile_vtable savefile_ops = {
 };
 
 struct scap_vtable scap_savefile_engine = {
-	.name = "savefile",
+	.name = SAVEFILE_ENGINE,
 	.mode = SCAP_MODE_CAPTURE,
 	.savefile_ops = &savefile_ops,
 
