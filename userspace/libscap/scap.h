@@ -274,6 +274,7 @@ typedef struct scap_threadinfo
 	uint64_t exe_ino_ctime; ///< executable inode ctime (last status change time)
 	uint64_t exe_ino_mtime; ///< executable inode mtime (last modification time)
 	uint64_t exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
+	uint64_t exe_ino_ctime_duration_pidns_start; ///< duration in ns between pidns start ts and executable inode ctime (last status change time) if pidns start predates ctime
 	uint32_t vmsize_kb; ///< total virtual memory (as kb)
 	uint32_t vmrss_kb; ///< resident non-swapped memory (as kb)
 	uint32_t vmswap_kb; ///< swapped memory (as kb)
@@ -281,6 +282,7 @@ typedef struct scap_threadinfo
 	uint64_t pfminor; ///< number of minor page faults since start
 	int64_t vtid;  ///< The virtual id of this thread.
 	int64_t vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
+	uint64_t pidns_init_start_ts; ///<The pid_namespace init task start_time ts.
 	char cgroups[SCAP_MAX_CGROUPS_SIZE];
 	uint16_t cgroups_len;
 	char root[SCAP_MAX_PATH_SIZE+1];
