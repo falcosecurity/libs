@@ -1251,6 +1251,7 @@ private:
 	bool m_is_dumping;
 	bool m_filter_proc_table_when_saving;
 	const scap_machine_info* m_machine_info;
+	uint64_t m_boot_ts_epoch;
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;

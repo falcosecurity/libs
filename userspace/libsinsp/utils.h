@@ -112,6 +112,7 @@ public:
 	static void get_filtercheck_fields_info(std::vector<const filter_check_info*>& list);
 
 	static uint64_t get_current_time_ns();
+	static uint64_t get_host_boot_time_ns();
 
 	static bool glob_match(const char *pattern, const char *string);
 
