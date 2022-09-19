@@ -1301,6 +1301,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		}
 	}
 
+	/* Here we shouldn't receive unknown events */
+	ASSERT(!sinsp::is_unknown_event(evt->get_type()))
+
 	uint64_t ts = evt->get_ts();
 
 	if(m_firstevent_ts == 0 &&
