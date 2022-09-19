@@ -299,7 +299,6 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_UNSHARE_E */ {"unshare", EC_PROCESS | EC_SYSCALL, EF_NONE, 1, {{"flags", PT_FLAGS32, PF_HEX, clone_flags} } },
 	/* PPME_SYSCALL_UNSHARE_X */ {"unshare", EC_PROCESS | EC_SYSCALL, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_INFRASTRUCTURE_EVENT_E */{"infra", EC_INTERNAL, EF_SKIPPARSERESET, 4, {{"source", PT_CHARBUF, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"description", PT_CHARBUF, PF_NA}, {"scope", PT_CHARBUF, PF_NA} } },
-<<<<<<< HEAD
 	/* PPME_INFRASTRUCTURE_EVENT_X */{"NA4", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_18_E */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"filename", PT_FSPATH, PF_NA} } },
 	/* PPME_SYSCALL_EXECVE_18_X */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 17, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA}, {"tty", PT_INT32, PF_DEC} } },
@@ -385,8 +384,8 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_BPF_2_X */{"bpf", EC_OTHER | EC_SYSCALL, EF_CREATES_FD, 1, { {"fd", PT_FD, PF_DEC} } },
 	/* PPME_SYSCALL_MLOCK2_E */{"mlock2", EC_MEMORY | EC_SYSCALL, EF_NONE, 0},
 	/* PPME_SYSCALL_MLOCK2_X */{"mlock2", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_UINT64, PF_HEX}, {"len", PT_UINT64, PF_DEC}, {"flags", PT_UINT32, PF_HEX, mlockall_flags}}},
-	/* PPME_SYSCALL_FSCONFIG_E */{"fsconfig", EC_SYSTEM, EF_NONE, 0},
-	/* PPME_SYSCALL_FSCONFIG_X */{"fsconfig", EC_SYSTEM, EF_USES_FD, 7, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"cmd", PT_ENUMFLAGS32, PF_DEC, fsconfig_cmds}, {"key", PT_CHARBUF, PF_NA}, {"value_bytebuf", PT_BYTEBUF, PF_NA}, {"value_charbuf", PT_CHARBUF, PF_NA}, {"aux", PT_INT32, PF_DEC}}},
+	/* PPME_SYSCALL_FSCONFIG_E */{"fsconfig", EC_SYSTEM | EC_SYSCALL, EF_NONE, 0},
+	/* PPME_SYSCALL_FSCONFIG_X */{"fsconfig", EC_SYSTEM | EC_SYSCALL, EF_USES_FD, 7, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"cmd", PT_ENUMFLAGS32, PF_DEC, fsconfig_cmds}, {"key", PT_CHARBUF, PF_NA}, {"value_bytebuf", PT_BYTEBUF, PF_NA}, {"value_charbuf", PT_CHARBUF, PF_NA}, {"aux", PT_INT32, PF_DEC}}},
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
