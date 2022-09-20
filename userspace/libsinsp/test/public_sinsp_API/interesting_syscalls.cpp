@@ -263,6 +263,14 @@ std::set<uint32_t> ordered_sinsp_state_ppm_sc_set{
 #ifdef __NR_vfork
 	PPM_SC_VFORK,
 #endif
+
+#ifdef __NR_epoll_create
+	PPM_SC_EPOLL_CREATE,
+#endif
+
+#ifdef __NR_epoll_create1
+	PPM_SC_EPOLL_CREATE1,
+#endif
 };
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
