@@ -37,6 +37,7 @@ limitations under the License.
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
+#define SIMPLE_SET_OPTION "--simple_set"
 
 /* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -59,6 +60,90 @@ int evt_type = -1;		  /* event type to print. */
 bool ppm_sc_is_set = 0;
 bool tp_is_set = 0;
 unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+
+int simple_set[] = {
+	PPM_SC_ACCEPT,
+	PPM_SC_ACCEPT4,
+	PPM_SC_BIND,
+	PPM_SC_BPF,
+	PPM_SC_CAPSET,
+	PPM_SC_CHDIR,
+	PPM_SC_CHMOD,
+	PPM_SC_CHROOT,
+	PPM_SC_CLONE,
+	PPM_SC_CLONE3,
+	PPM_SC_CLOSE,
+	PPM_SC_CONNECT,
+	PPM_SC_COPY_FILE_RANGE,
+	PPM_SC_CREAT,
+	PPM_SC_DUP,
+	PPM_SC_DUP2,
+	PPM_SC_DUP3,
+	PPM_SC_EVENTFD,
+	PPM_SC_EVENTFD2,
+	PPM_SC_EXECVE,
+	PPM_SC_EXECVEAT,
+	PPM_SC_FCHDIR,
+	PPM_SC_FCHMOD,
+	PPM_SC_FCHMODAT,
+	PPM_SC_FCNTL,
+	PPM_SC_FLOCK,
+	PPM_SC_FORK,
+	PPM_SC_INOTIFY_INIT,
+	PPM_SC_INOTIFY_INIT1,
+	PPM_SC_IOCTL,
+	PPM_SC_KILL,
+	PPM_SC_LINK,
+	PPM_SC_LINKAT,
+	PPM_SC_LISTEN,
+	PPM_SC_MKDIR,
+	PPM_SC_MKDIRAT,
+	PPM_SC_MOUNT,
+	PPM_SC_OPEN,
+	PPM_SC_OPEN_BY_HANDLE_AT,
+	PPM_SC_OPENAT,
+	PPM_SC_OPENAT2,
+	PPM_SC_PIPE,
+	PPM_SC_PIPE2,
+	PPM_SC_PRLIMIT64,
+	PPM_SC_PTRACE,
+	PPM_SC_QUOTACTL,
+	PPM_SC_RECVFROM,
+	PPM_SC_RECVMSG,
+	PPM_SC_RENAME,
+	PPM_SC_RENAMEAT,
+	PPM_SC_RENAMEAT2,
+	PPM_SC_RMDIR,
+	PPM_SC_SECCOMP,
+	PPM_SC_SENDMMSG,
+	PPM_SC_SENDTO,
+	PPM_SC_SETGID,
+	PPM_SC_SETNS,
+	PPM_SC_SETPGID,
+	PPM_SC_SETRESGID,
+	PPM_SC_SETRESUID,
+	PPM_SC_SETRLIMIT,
+	PPM_SC_SETSID,
+	PPM_SC_SETSOCKOPT,
+	PPM_SC_SETUID,
+	PPM_SC_SHUTDOWN,
+	PPM_SC_SIGNALFD,
+	PPM_SC_SIGNALFD4,
+	PPM_SC_SOCKET,
+	PPM_SC_SOCKETPAIR,
+	PPM_SC_SYMLINK,
+	PPM_SC_SYMLINKAT,
+	PPM_SC_TGKILL,
+	PPM_SC_TIMERFD_CREATE,
+	PPM_SC_TKILL,
+	PPM_SC_UMOUNT2,
+	PPM_SC_UNLINK,
+	PPM_SC_UNLINKAT,
+	PPM_SC_UNSHARE,
+	PPM_SC_USERFAULTFD,
+	PPM_SC_VFORK,
+	-1
+};
 
 /* Generic global variables. */
 scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
@@ -339,6 +424,21 @@ void enable_tracepoints_and_print()
 		}
 	}
 	printf("-----------------------------------------------------------------\n\n");
+}
+
+void enable_simple_set()
+{
+	/* Enable only sys_enter and sys_exit */
+	oargs.tp_of_interest.tp[SYS_ENTER] = true;
+	oargs.tp_of_interest.tp[SYS_EXIT] = true;
+
+	int i = 0;
+	for (i = 0; simple_set[i] != -1; i++)
+	{
+		oargs.ppm_sc_of_interest.ppm_sc[simple_set[i]] = true;
+	}
+	tp_is_set = true;
+	ppm_sc_is_set = true;
 }
 
 /*=============================== SYSCALLS/TRACEPOINTS ===========================*/
@@ -780,6 +880,10 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			evt_type = strtoul(argv[++i], NULL, 10);
 		}
+		if(!strcmp(argv[i], SIMPLE_SET_OPTION))
+		{
+			enable_simple_set();
+		}
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
@@ -857,6 +961,7 @@ void print_stats()
 	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
 	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
 	printf("-----------------------------------------------------\n");
+	printf("\n[SCAP-OPEN]: Bye!\n");
 }
 
 /*=============================== PRINT CAPTURE INFO ===========================*/
@@ -874,6 +979,7 @@ int main(int argc, char** argv)
 	scap_evt* ev = NULL;
 	uint16_t cpuid = 0;
 
+	printf("\n[SCAP-OPEN]: Hello!\n");
 	if(signal(SIGINT, signal_callback) == SIG_ERR)
 	{
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
