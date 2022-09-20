@@ -634,4 +634,5 @@ const struct ppm_name_value fsconfig_cmds[] = {
 
 const struct ppm_name_value epoll_create1_flags[] = {
 	{"EPOLL_CLOEXEC", PPM_EPOLL_CLOEXEC},
+	{0, 0},
 };
