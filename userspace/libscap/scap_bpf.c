@@ -646,7 +646,13 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			}
 
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open event %s", event);
-			return SCAP_UNKNOWN_KPROBE;
+			if(is_kprobe || is_kretprobe)
+			{
+				return SCAP_UNKNOWN_KPROBE;
+			}else
+			{
+				return SCAP_FAILURE;
+			}
 		}
 
 		err = read(efd, buf, sizeof(buf));
