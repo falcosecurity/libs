@@ -44,7 +44,7 @@ enum scap_eventmask_op {
 };
 
 enum scap_tpmask_op {
-	SCAP_TPMASK_SET = 0x8306, //< enable a to
+	SCAP_TPMASK_SET = 0x8306, //< enable a tp
 	SCAP_TPMASK_UNSET = 0x8307, //< disable a tp
 };
 
