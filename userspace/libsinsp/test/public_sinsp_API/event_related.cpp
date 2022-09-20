@@ -42,4 +42,7 @@ TEST(events, check_events_category)
 
 	ASSERT_EQ(sinsp::is_unknown_event(PPME_SCHEDSWITCH_1_X), true);
 	ASSERT_EQ(sinsp::is_unknown_event(PPME_SYSCALL_CLONE_20_E), false);
+
+	ASSERT_EQ(sinsp::is_plugin_event(PPME_PLUGINEVENT_E), true);
+	ASSERT_EQ(sinsp::is_plugin_event(PPME_SYSCALL_CLONE_20_E), false);
 }
