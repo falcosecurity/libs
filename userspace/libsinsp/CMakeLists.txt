@@ -70,6 +70,8 @@ if(NOT WIN32)
 	include(tbb)
 endif()
 
+include(abseil)
+
 set(SINSP_SOURCES
 	filter/ast.cpp
 	filter/escaping.cpp
