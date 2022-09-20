@@ -12,7 +12,7 @@
  * TP_PROTO(struct pt_regs *regs, long id),
  */
 SEC("tp_btf/sys_enter")
-int BPF_PROG(dispatch_syscall_enter_events,
+int BPF_PROG(sys_enter,
 	     struct pt_regs *regs,
 	     long syscall_id)
 {
