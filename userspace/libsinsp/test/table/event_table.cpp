@@ -4,7 +4,8 @@
 /* These numbers must be updated when we add new events */
 #define SYSCALL_EVENTS_NUM 328
 #define TRACEPOINT_EVENTS_NUM 7
-#define INTERNAL_EVENTS_NUM 20
+#define INTERNAL_EVENTS_NUM 19
+#define PLUGIN_EVENTS_NUM 1
 #define UNKNOWN_EVENTS_NUM 19
 
 /* Check if the events category is correct in our event table.
@@ -16,6 +17,7 @@ TEST(event_table, check_events_category)
 	int num_syscall_events = 0;
 	int num_tracepoint_events = 0;
 	int num_internal_events = 0;
+	int num_plugin_events = 0;
 	int num_unknown_events = 0;
 
 	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
@@ -35,6 +37,11 @@ TEST(event_table, check_events_category)
 			num_internal_events++;
 		}
 
+		if(g_infotables.m_event_info[event_num].category & EC_PLUGIN)
+		{
+			num_plugin_events++;
+		}
+
 		/* Please note this is not an `&` but an `==` if one event has
 		 * the `EC_UNKNOWN` category, it must have only this category!
 		 */
@@ -47,5 +54,7 @@ TEST(event_table, check_events_category)
 	ASSERT_EQ(num_syscall_events, SYSCALL_EVENTS_NUM);
 	ASSERT_EQ(num_tracepoint_events, TRACEPOINT_EVENTS_NUM);
 	ASSERT_EQ(num_internal_events, INTERNAL_EVENTS_NUM);
+	ASSERT_EQ(num_plugin_events, PLUGIN_EVENTS_NUM);
 	ASSERT_EQ(num_unknown_events, UNKNOWN_EVENTS_NUM);
+	ASSERT_EQ(num_syscall_events + num_tracepoint_events + num_internal_events + num_plugin_events + num_unknown_events, PPM_EVENT_MAX);
 }
