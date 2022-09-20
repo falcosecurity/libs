@@ -694,7 +694,6 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCK_ONFAULT	(1<<0)
 
 /*
-<<<<<<< HEAD
  * Fsconfig flags
  */
 #define PPM_FSCONFIG_SET_FLAG	0
@@ -705,11 +704,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_FSCONFIG_SET_FD	5
 #define PPM_FSCONFIG_CMD_CREATE	6
 #define PPM_FSCONFIG_CMD_RECONFIGURE	7
-=======
+
+/*
  * Epoll_create1 flags
  */
 #define PPM_EPOLL_CLOEXEC       (1 << 0)
->>>>>>> 279e9250 (new(driver,userspace/libsinsp): added support for state modifying `epoll_create` and `epoll_create1`.)
 
 /*
  * SuS says limits have to be unsigned.
@@ -1858,11 +1857,8 @@ extern const struct ppm_name_value io_uring_enter_flags[];
 extern const struct ppm_name_value io_uring_register_opcodes[];
 extern const struct ppm_name_value mlockall_flags[];
 extern const struct ppm_name_value mlock2_flags[];
-<<<<<<< HEAD
 extern const struct ppm_name_value fsconfig_cmds[];
-=======
 extern const struct ppm_name_value epoll_create1_flags[];
->>>>>>> 279e9250 (new(driver,userspace/libsinsp): added support for state modifying `epoll_create` and `epoll_create1`.)
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
