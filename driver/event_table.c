@@ -164,7 +164,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_DROP_X */{"drop", EC_INTERNAL, EF_SKIPPARSERESET, 1, {{"ratio", PT_UINT32, PF_DEC} } },
 	/* PPME_SYSCALL_FCNTL_E */{"fcntl", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD | EF_MODIFIES_STATE, 2, {{"fd", PT_FD, PF_DEC}, {"cmd", PT_ENUMFLAGS8, PF_DEC, fcntl_commands} } },
 	/* PPME_SYSCALL_FCNTL_X */{"fcntl", EC_IO_OTHER | EC_SYSCALL, EF_USES_FD | EF_MODIFIES_STATE, 1, {{"res", PT_FD, PF_DEC} } },
-	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER | EC_TRACEPOINT, EF_NONE, 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
+	/* PPME_SCHEDSWITCH_6_E */{"switch", EC_SCHEDULER | EC_TRACEPOINT, EF_NONE, 6, {{"next", PT_PID, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } }, /// TODO: do we need SKIPPARSERESET flag?
 	/* PPME_SCHEDSWITCH_6_X */{"NA2", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SYSCALL_EXECVE_13_E */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 0},
 	/* PPME_SYSCALL_EXECVE_13_X */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 13, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC} } },
@@ -284,7 +284,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_TRACER_X */{ "tracer", EC_OTHER | EC_INTERNAL, EF_NONE, 3, { { "id", PT_INT64, PF_DEC }, { "tags", PT_CHARBUFARRAY, PF_NA }, { "args", PT_CHARBUF_PAIR_ARRAY, PF_NA } } },
 	/* PPME_MESOS_E */{"mesos", EC_INTERNAL, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	/* PPME_MESOS_X */{"NA4", EC_UNKNOWN, EF_UNUSED, 0},
-	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS | EC_INTERNAL, EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_E */{"container", EC_PROCESS | EC_INTERNAL, EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"json", PT_CHARBUF, PF_NA} } }, /// TODO: do we need SKIPPARSERESET flag?
 	/* PPME_CONTAINER_JSON_X */{"container", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SYSCALL_SETSID_E */{"setsid", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 0},
 	/* PPME_SYSCALL_SETSID_X */{"setsid", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"res", PT_PID, PF_DEC} } },
@@ -336,7 +336,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_USERFAULTFD_X */{"userfaultfd", EC_FILE | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, file_flags} } },
 	/* PPME_PLUGINEVENT_E */{"pluginevent", EC_OTHER | EC_PLUGIN, EF_LARGE_PAYLOAD, 2, {{"plugin ID", PT_UINT32, PF_DEC}, {"event_data", PT_BYTEBUF, PF_NA} } },
 	/* PPME_NA1 */{"pluginevent", EC_UNKNOWN, EF_UNUSED, 0},
-	/* PPME_CONTAINER_JSON_2_E */{"container", EC_PROCESS | EC_INTERNAL, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD, 1, {{"json", PT_CHARBUF, PF_NA} } },
+	/* PPME_CONTAINER_JSON_2_E */{"container", EC_PROCESS | EC_INTERNAL, EF_MODIFIES_STATE | EF_LARGE_PAYLOAD, 1, {{"json", PT_CHARBUF, PF_NA} } }, /// TODO: do we need SKIPPARSERESET flag?
 	/* PPME_CONTAINER_JSON_2_X */{"container", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SYSCALL_OPENAT2_E */{"openat2", EC_FILE | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"resolve", PT_FLAGS32, PF_HEX, openat2_flags} } },
 	/* PPME_SYSCALL_OPENAT2_X */{"openat2", EC_FILE | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 6, {{"fd", PT_FD, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"name", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT}, {"resolve", PT_FLAGS32, PF_HEX, openat2_flags} } },
