@@ -26,15 +26,15 @@ limitations under the License.
 int pman_attach_syscall_enter_dispatcher()
 {
 	/* The program is already attached. */
-	if(g_state.skel->links.dispatch_syscall_enter_events != NULL)
+	if(g_state.skel->links.sys_enter != NULL)
 	{
 		return 0;
 	}
 
-	g_state.skel->links.dispatch_syscall_enter_events = bpf_program__attach(g_state.skel->progs.dispatch_syscall_enter_events);
-	if(!g_state.skel->links.dispatch_syscall_enter_events)
+	g_state.skel->links.sys_enter = bpf_program__attach(g_state.skel->progs.sys_enter);
+	if(!g_state.skel->links.sys_enter)
 	{
-		pman_print_error("failed to attach the 'dispatch_syscall_enter_events' program");
+		pman_print_error("failed to attach the 'sys_enter' program");
 		return errno;
 	}
 	return 0;
@@ -43,15 +43,15 @@ int pman_attach_syscall_enter_dispatcher()
 int pman_attach_syscall_exit_dispatcher()
 {
 	/* The program is already attached. */
-	if(g_state.skel->links.dispatch_syscall_exit_events != NULL)
+	if(g_state.skel->links.sys_exit != NULL)
 	{
 		return 0;
 	}
 
-	g_state.skel->links.dispatch_syscall_exit_events = bpf_program__attach(g_state.skel->progs.dispatch_syscall_exit_events);
-	if(!g_state.skel->links.dispatch_syscall_exit_events)
+	g_state.skel->links.sys_exit = bpf_program__attach(g_state.skel->progs.sys_exit);
+	if(!g_state.skel->links.sys_exit)
 	{
-		pman_print_error("failed to attach the 'dispatch_syscall_exit_events' program");
+		pman_print_error("failed to attach the 'sys_exit' program");
 		return errno;
 	}
 	return 0;
@@ -108,23 +108,23 @@ int pman_attach_all_programs()
 
 int pman_detach_syscall_enter_dispatcher()
 {
-	if(g_state.skel->links.dispatch_syscall_enter_events && bpf_link__destroy(g_state.skel->links.dispatch_syscall_enter_events))
+	if(g_state.skel->links.sys_enter && bpf_link__destroy(g_state.skel->links.sys_enter))
 	{
-		pman_print_error("failed to detach the 'dispatch_syscall_enter_events' program");
+		pman_print_error("failed to detach the 'sys_enter' program");
 		return errno;
 	}
-	g_state.skel->links.dispatch_syscall_enter_events = NULL;
+	g_state.skel->links.sys_enter = NULL;
 	return 0;
 }
 
 int pman_detach_syscall_exit_dispatcher()
 {
-	if(g_state.skel->links.dispatch_syscall_exit_events && bpf_link__destroy(g_state.skel->links.dispatch_syscall_exit_events))
+	if(g_state.skel->links.sys_exit && bpf_link__destroy(g_state.skel->links.sys_exit))
 	{
-		pman_print_error("failed to detach the 'dispatch_syscall_exit_events' program");
+		pman_print_error("failed to detach the 'sys_exit' program");
 		return errno;
 	}
-	g_state.skel->links.dispatch_syscall_exit_events = NULL;
+	g_state.skel->links.sys_exit = NULL;
 	return 0;
 }
 

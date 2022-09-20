@@ -12,7 +12,7 @@
  * TP_PROTO(struct pt_regs *regs, long ret),
  */
 SEC("tp_btf/sys_exit")
-int BPF_PROG(dispatch_syscall_exit_events,
+int BPF_PROG(sys_exit,
 	     struct pt_regs *regs,
 	     long ret)
 {
