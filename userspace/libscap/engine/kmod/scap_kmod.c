@@ -124,7 +124,6 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 }
 
 
-/// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
 int32_t scap_kmod_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;

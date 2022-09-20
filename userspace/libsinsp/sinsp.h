@@ -847,8 +847,6 @@ public:
 	*/
 	void mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enabled = true);
 
-	void mark_tp_of_interest(uint32_t tp, bool enabled = true);
-
 	/*!
 		\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
 		If you call it without arguments it returns a new set with just these syscalls
@@ -923,6 +921,18 @@ public:
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*=============================== Tracepoint set related ===============================*/
+
+	/*!
+		\brief Mark desired tracepoint as (un)interesting, attaching or detaching it.
+		This method receives a `tp` code. You can find the available
+		`enum ppm_syscall_code` in `driver/ppm_tp.h`.
+		Please note that this method must be called when the inspector is already open to
+		modify at runtime the interesting tracepoint set.
+
+		WARNING: playing with this API could break `libsinsp` state collection, this is only
+		useful in advanced cases where the client needs to know what it is doing!
+	*/
+	void mark_tp_of_interest(uint32_t tp, bool enabled = true);
 
 	/*!
 	  \brief Get all the available tracepoints.
