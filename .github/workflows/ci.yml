@@ -44,6 +44,262 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:buster
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          .github/install-deps.sh
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && cmake ${{ matrix.cmake_opts }} ../
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+          make run-unit-tests
+
+  build-libs-linux-amd64-asan:
+    name: build-libs-linux-amd64-asan 🧐
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          .github/install-deps.sh
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && LDFLAGS="-lpthread" cmake -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address -DUSE_BUNDLED_DEPS=False ../
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+          make run-unit-tests
+
+  build-libs-others-amd64:
+    name: build-libs-others-amd64 😨
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && cmake -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
+          cmake --build .
+
+  build-libs-arm64:
+    name: build-libs-arm64 🥶 (system_deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run aarch64 build 🏎️
+        with:
+          arch: aarch64
+          distro: buster
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-arm64
+
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+            make run-unit-tests
+
+  build-libs-s390x:
+    name: build-libs-s390x 😁 (system_deps)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run s390x build 🏗️
+        with:
+          arch: s390x
+          distro: ubuntu22.04
+          githubToken: ${{ github.token }}
+
+          install: |
+            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic
+
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
+            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
+            make run-unit-tests
+
+  build-and-test-modern-bpf-x86:
+    name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
+
+      - name: Build scap-open 🏗️
+        run: |
+          mkdir -p build
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make scap-open
+
+      - name: Run scap-open 🏎️
+        run: |
+          cd build
+          sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
+
+      - name: Build bpf_test 🏗️
+        run: |
+          cd build
+          make bpf_test
+
+      - name: Running tests 🧪
+        run: |
+          cd build
+          sudo ./test/modern_bpf/bpf_test --verbose
+
+  build-modern-bpf-arm64:
+    name: build-modern-bpf-arm64 🙃 (system_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run aarch64 build 🏎️
+        with:
+          arch: aarch64
+          distro: archarm_latest
+          githubToken: ${{ github.token }}
+
+          install: |
+            pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml libpcap
+
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make scap-open
+            make bpf_test
+
+  build-modern-bpf-s390x:
+    name: build-modern-bpf-s390x 😁 (system_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
+    steps:
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: uraimo/run-on-arch-action@v2.2.0
+        name: Run s390x build 🏗️
+        with:
+          arch: s390x
+          distro: fedora_latest
+          githubToken: ${{ github.token }}
+
+          install: |
+            dnf install -y bpftool c-ares-devel clang cmake curl-devel git grpc-devel grpc-plugins gtest-devel jq-devel jsoncpp-devel libb64-devel libbpf-devel libcap-devel openssl-devel protobuf-devel tbb-devel wget
+
+          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
+          run: |
+            git config --global --add safe.directory ${{ github.workspace }}
+            .github/install-deps.sh
+            mkdir -p build
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make scap-open
+            make bpf_test
+
+  build-libs-driverkit:
+    name: build-libs-driverkit
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    container:
+      image: falcosecurity/driverkit:v0.10.1
+    if: needs.paths-filter.outputs.driver_changed == 'true'
+    steps:
+      - name: Test driver build on linux 2.6.32
+        run: |
+          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-2.6.32-754.el6.x86_64.rpm
+
+      - name: Test driver build on linux 3.x
+        run: |
+          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-3.10.0-957.el7.x86_64.rpm
+
+      - name: Test driver build on linux 4.x
+        run: |
+          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-4.18.0-305.25.1.el8_4.x86_64.rpm
+
+      - name: Test driver build on linux 5.x
+        run: |
+          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  --kernelurls https://download.falco.org/fixtures/libs/linux-headers-5.19.12.arch1-1-x86_64.pkg.tar.zst
+
+  run-e2e-tests-amd64:
+    name: run-e2e-tests-amd64
+    strategy:
+      matrix:
+        name: [system_deps, bundled_deps, system_deps_w_chisels, system_deps_minimal]
+        include:
+          - name: system_deps
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+          - name: bundled_deps
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+          - name: system_deps_w_chisels
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
       volumes:
         - /tmp/report/:/tmp/report/
         - /usr/src:/usr/src
@@ -99,18 +355,13 @@ jobs:
       - name: Install deps ⛓️
         run: |
           .github/install-deps.sh
-  
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
           cd build && cmake ${{ matrix.cmake_opts }} ../
           KERNELDIR=/lib/modules/$(uname -r)/build make -j4
-          make run-unit-tests
-
-      - name: Run e2e tests
-        if: ${{ matrix.name != 'system_deps_minimal' }}
-        run: |
-          make -C build/ e2e-tests
+          make  e2e-tests
 
       - name: Archive test reports
         uses: actions/upload-artifact@v3
@@ -119,223 +370,3 @@ jobs:
           name: ${{ matrix.name }}_report
           path: |
             /tmp/report/
-
-  build-libs-linux-amd64-asan:
-    name: build-libs-linux-amd64-asan 🧐
-    runs-on: ubuntu-latest
-    container:
-      image: debian:buster
-    steps:
-      - name: Install deps ⛓️
-        run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
-    
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Install deps ⛓️
-        run: |
-          .github/install-deps.sh
-  
-      - name: Build and test 🏗️🧪
-        run: |
-          mkdir -p build
-          cd build && LDFLAGS="-lpthread" cmake -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address -DUSE_BUNDLED_DEPS=False ../
-          KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-          make run-unit-tests
-
-  build-libs-others-amd64:
-    name: build-libs-others-amd64 😨
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-  
-      - name: Build and test 🏗️🧪
-        run: |
-          mkdir -p build
-          cd build && cmake -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
-          cmake --build .
-
-  build-libs-arm64:
-    name: build-libs-arm64 🥶 (system_deps)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run aarch64 build 🏎️
-        with:
-          arch: aarch64
-          distro: buster
-          githubToken: ${{ github.token }}
-
-          install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-arm64
-            
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
-            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-            make run-unit-tests
-
-  build-libs-s390x:
-    name: build-libs-s390x 😁 (system_deps)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run s390x build 🏗️
-        with:
-          arch: s390x
-          distro: ubuntu22.04
-          githubToken: ${{ github.token }}
-
-          install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic
-
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
-            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-            make run-unit-tests
-
-  build-and-test-modern-bpf-x86:
-    name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
-    runs-on: ubuntu-22.04
-    needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
-    steps:
-
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Install deps ⛓️
-        run: |
-          sudo apt update 
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
-
-      - name: Build scap-open 🏗️
-        run: |
-          mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-          make scap-open
-
-      - name: Run scap-open 🏎️
-        run: |
-          cd build
-          sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
-
-      - name: Build bpf_test 🏗️
-        run: |
-          cd build 
-          make bpf_test
-
-      - name: Running tests 🧪
-        run: |
-          cd build 
-          sudo ./test/modern_bpf/bpf_test --verbose
-
-  build-modern-bpf-arm64:
-    name: build-modern-bpf-arm64 🙃 (system_deps)
-    runs-on: ubuntu-22.04
-    needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
-    steps:
-
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run aarch64 build 🏎️
-        with:
-          arch: aarch64
-          distro: archarm_latest
-          githubToken: ${{ github.token }}
-
-          install: |
-            pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml libpcap
-            
-          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-            make scap-open
-            make bpf_test
-
-  build-modern-bpf-s390x:
-    name: build-modern-bpf-s390x 😁 (system_deps)
-    runs-on: ubuntu-22.04
-    needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
-    steps:
-
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run s390x build 🏗️
-        with:
-          arch: s390x
-          distro: fedora_latest
-          githubToken: ${{ github.token }}
-
-          install: |
-            dnf install -y bpftool c-ares-devel clang cmake curl-devel git grpc-devel grpc-plugins gtest-devel jq-devel jsoncpp-devel libb64-devel libbpf-devel libcap-devel openssl-devel protobuf-devel tbb-devel wget
-
-          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-            make scap-open
-            make bpf_test
-            
-  build-libs-driverkit:
-    name: build-libs-driverkit
-    runs-on: ubuntu-latest
-    needs: paths-filter
-    container:
-      image: falcosecurity/driverkit:v0.10.1
-    if: needs.paths-filter.outputs.driver_changed == 'true'
-    steps:
-      - name: Test driver build on linux 2.6.32 
-        run: |
-          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-2.6.32-754.el6.x86_64.rpm
-          
-      - name: Test driver build on linux 3.x
-        run: |
-          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-3.10.0-957.el7.x86_64.rpm
-    
-      - name: Test driver build on linux 4.x
-        run: |
-          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-4.18.0-305.25.1.el8_4.x86_64.rpm
-     
-      - name: Test driver build on linux 5.x
-        run: |
-          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  --kernelurls https://download.falco.org/fixtures/libs/linux-headers-5.19.12.arch1-1-x86_64.pkg.tar.zst
