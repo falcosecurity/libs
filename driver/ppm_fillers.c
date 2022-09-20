@@ -5344,6 +5344,8 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	/* Parameter 7: aux (type: PT_INT32) */
 	res = val_to_ring(args, aux, 0, true, 0);
 	CHECK_RES(res);
+
+	return add_sentinel(args);
 }
 
 int f_sys_epoll_create_e(struct event_filler_arguments *args)
