@@ -71,7 +71,7 @@ struct iovec;
 #define SCAP_SUCCESS 0
 #define SCAP_FAILURE 1
 #define SCAP_TIMEOUT -1
-#define SCAP_UNKNOW_KPROBE -2
+#define SCAP_UNKNOWN_KPROBE -2
 #define SCAP_ILLEGAL_INPUT 3
 #define SCAP_NOTFOUND 4
 #define SCAP_INPUT_TOO_SMALL 5
