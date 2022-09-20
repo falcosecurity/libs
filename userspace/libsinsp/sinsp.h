@@ -1035,6 +1035,18 @@ public:
 		return (category == EC_UNKNOWN);
 	}
 
+	/**
+	 * @brief Return true if the event belongs to the `EC_PLUGIN` category
+	 * 
+	 * @param event_type type of event we want to check
+	 * @return true if the event type has the `EC_PLUGIN` category.
+	 */
+	static inline bool is_plugin_event(uint16_t event_type)
+	{
+		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+		return (category & EC_PLUGIN);
+	}
+
 	/*=============================== Events related ===============================*/
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);

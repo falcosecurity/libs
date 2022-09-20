@@ -45,6 +45,7 @@ std::string get_event_category(ppm_event_category category)
         case EC_INTERNAL: return "INTERNAL";
         case EC_SYSCALL: return "SYSCALL";
         case EC_TRACEPOINT: return "TRACEPOINT";
+        case EC_PLUGIN: return "PLUGIN";
         default: return "ERROR CONDITION";
     };
 }
