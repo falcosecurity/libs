@@ -566,7 +566,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			if(err < 0 && errno != 17)
 			{
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to create kprobe '%s' error '%s'\n", event, strerror(errno));
-				return SCAP_FAILURE;
+				return SCAP_UNKNOW_KPROBE;
 			}
 
 			strcpy(buf, "/sys/kernel/debug/tracing/events/kprobes/");
@@ -646,7 +646,7 @@ static int32_t load_tracepoint(scap_t* handle, const char *event, struct bpf_ins
 			}
 
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open event %s", event);
-			return SCAP_FAILURE;
+			return SCAP_UNKNOW_KPROBE;
 		}
 
 		err = read(efd, buf, sizeof(buf));
@@ -833,7 +833,12 @@ static int32_t load_bpf_file(scap_t *handle, const char *path)
 		   memcmp(shname, "kprobe/", sizeof("kprobe/") - 1) == 0 ||
 		   memcmp(shname, "kretprobe/", sizeof("kretprobe/") - 1) == 0)
 		{
-			if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
+			int load_result = load_tracepoint(handle, shname, data->d_buf, data->d_size);
+			if(load_result == SCAP_UNKNOW_KPROBE)
+			{
+				continue ;
+			}
+			if(load_result != SCAP_SUCCESS)
 			{
 				goto cleanup;
 			}
