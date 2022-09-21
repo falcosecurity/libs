@@ -182,7 +182,7 @@ static int32_t check_minimum_kernel_version(char* last_err)
 	{
 		if(last_err != NULL)
 		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get major, minor, patch with sscanf: %s", strerror(errno));
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to parse info.release '%s'. %s", info.release, strerror(errno));
 		}
 		return SCAP_FAILURE;
 	}
