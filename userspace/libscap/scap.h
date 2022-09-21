@@ -1134,6 +1134,12 @@ int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version);
 
 /**
+ * Apply the `semver` checks on current and required versions.
+ */  
+bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,
+							uint32_t required_major, uint32_t required_minor, uint32_t required_patch);
+
+/**
  * Get API version supported by the driver
  */
 uint64_t scap_get_driver_api_version(scap_t* handle);

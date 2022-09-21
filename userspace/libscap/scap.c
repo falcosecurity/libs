@@ -1708,6 +1708,26 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 #endif
 }
 
+bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,
+							uint32_t required_major, uint32_t required_minor, uint32_t required_patch)
+{
+	if(current_major != required_major)
+	{
+		return false;
+	}
+
+	if(current_minor < required_minor)
+	{
+		return false;
+	}
+	if(current_minor == required_minor && current_patch < required_patch)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version)
 {
 	unsigned long driver_major = PPM_API_VERSION_MAJOR(driver_api_version);
@@ -1717,24 +1737,7 @@ bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long requ
 	unsigned long required_minor = PPM_API_VERSION_MINOR(required_api_version);
 	unsigned long required_patch = PPM_API_VERSION_PATCH(required_api_version);
 
-	if(driver_major != required_major)
-	{
-		// major numbers disagree
-		return false;
-	}
-
-	if(driver_minor < required_minor)
-	{
-		// driver's minor version is < ours
-		return false;
-	}
-	if(driver_minor == required_minor && driver_patch < required_patch)
-	{
-		// driver's minor versions match and patch level is < ours
-		return false;
-	}
-
-	return true;
+	return scap_apply_semver_check(driver_major, driver_minor, driver_patch, required_major, required_minor, required_patch);
 }
 
 uint64_t scap_get_driver_api_version(scap_t* handle)
