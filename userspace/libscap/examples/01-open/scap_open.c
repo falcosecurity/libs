@@ -152,6 +152,7 @@ scap_t* g_h = NULL;							    /* global scap handler. */
 uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
 char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
+unsigned long number_of_timeouts = 0; /* Times in which there were no events in the buffer. */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -941,6 +942,7 @@ void print_stats()
 		printf("Number of events/per-second: %ld\n", g_nevts / tval_result.tv_sec);
 	}
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
+	printf("Number of timeouts: %ld\n", number_of_timeouts);
 	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_exit);
@@ -1020,6 +1022,7 @@ int main(int argc, char** argv)
 		}
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
+			number_of_timeouts++;
 			continue;
 		}
 		else if(res == SCAP_EOF)
