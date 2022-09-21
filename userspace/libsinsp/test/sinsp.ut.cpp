@@ -19,6 +19,8 @@ limitations under the License.
 
 #include "sinsp_with_test_input.h"
 #include "test_utils.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 using namespace libsinsp;
 
@@ -583,4 +585,71 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
 	// check that pname is taken from the parent process
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
+}
+
+TEST_F(sinsp_with_test_input, ipv4_connect)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	sockaddr_in src, dest;
+	dest.sin_family = AF_INET;
+	dest.sin_port = htons(443);
+	inet_aton("142.251.111.147", &dest.sin_addr);
+
+	src.sin_family = AF_INET;
+	src.sin_port = htons(54321);
+	inet_aton("172.40.111.222", &src.sin_addr);
+
+	std::vector<uint8_t> dest_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, 0x80002, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 7);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 7, scap_const_sized_buffer{dest_sockaddr.data(), dest_sockaddr.size()});
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "172.40.111.222:54321->142.251.111.147:443");
+}
+
+TEST_F(sinsp_with_test_input, ipv6_multiple_connects)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	sockaddr_in6 src, dest1, dest2;
+	dest1.sin6_family = AF_INET6;
+	dest1.sin6_port = htons(53);
+	inet_pton(dest1.sin6_family, "2001:4860:4860::8888", &dest1.sin6_addr);
+
+	dest2.sin6_family = AF_INET6;
+	dest2.sin6_port = htons(2345);
+	inet_pton(dest2.sin6_family, "::1", &dest2.sin6_addr);
+
+	src.sin6_family = AF_INET6;
+	src.sin6_port = htons(38255);
+	inet_pton(src.sin6_family, "::1", &src.sin6_addr);
+
+	std::vector<uint8_t> dest1_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest1));
+	std::vector<uint8_t> dest2_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest2));
+	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest2_sockaddr.data(), dest2_sockaddr.size()});
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest2));
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest1_sockaddr.data(), dest1_sockaddr.size()});
+	// check that upon entry to the new connect the fd name is the same as during the last connection
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->::1:2345");
+
+	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest1));
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, 3, 6, null_buf);
+
+	// check that the socket name upon the next entry event has been properly updated
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->2001:4860:4860::8888:53");
 }
