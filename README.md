@@ -123,7 +123,11 @@ To build the modern eBPF probe, you need:
     Usage: bpftool gen object OUTPUT_FILE INPUT_FILE [INPUT_FILE...]    <---
            bpftool gen skeleton FILE [name OBJECT_NAME]                 <---
            bpftool gen help
-    ``` 
+    ```
+  If you want to use the `bpftool` mirror repo, version [`6.7`](https://github.com/libbpf/bpftool/releases/tag/v6.7.0) should be enough.
+  
+  If you want to compile it directly from the kernel tree you should pick at least the `5.13` tag.
+
 * BTF exposed by your kernel, you can check it through `ls /sys/kernel/btf/vmlinux`. You should see this line:
 
     ```
