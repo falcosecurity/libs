@@ -25,7 +25,12 @@ limitations under the License.
 #include "scap_procs.h"
 #include "noop.h"
 #include "../common/strlcpy.h"
+#include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
+
+#define REQUIRED_MAJOR 5
+#define REQUIRED_MINOR 8
+#define REQUIRED_PATCH 0
 
 /*=============================== UTILS ===============================*/
 
@@ -82,7 +87,7 @@ static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting
 	}
 }
 
-/// TODO: from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
+/// TODO: in the next future, from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
 static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
 {
 	int ret = SCAP_SUCCESS;
@@ -96,6 +101,43 @@ static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
 		update_single_64bit_syscall_of_interest(ppm_sc, ppm_sc_array[ppm_sc]);
 	}
 	return ret;
+}
+
+static int32_t check_minimum_kernel_version(char* last_err)
+{
+	uint32_t major = 0;
+	uint32_t minor = 0;
+	uint32_t patch = 0;
+
+	struct utsname info;
+	if(uname(&info) != 0)
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the kernel version with uname: %s", strerror(errno));
+		}
+		return SCAP_FAILURE;
+	}
+
+	if(sscanf(info.release, "%u.%u.%u", &major, &minor, &patch) != 3)
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get major, minor, patch with sscanf: %s", strerror(errno));
+		}
+		return SCAP_FAILURE;
+	}
+
+	if(!scap_apply_semver_check(major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
+		}
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
 }
 
 /*=============================== UTILS ===============================*/
@@ -195,7 +237,18 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
 	bool libbpf_verbosity = false;
 
+	/* Some checks to test if we can use the modern BPF probe
+	 * - check the ring-buffer dimension in bytes.
+	 * - check the minimum required kernel version.
+	 * 
+	 * Please note the presence of BTF is directly checked by `libbpf` see `bpf_object__load_vmlinux_btf` method.
+	 */
 	if(check_buffer_bytes_dim(handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	if(check_minimum_kernel_version(handle->m_lasterr) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
