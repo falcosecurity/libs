@@ -19,6 +19,8 @@ limitations under the License.
 
 #include "sinsp_with_test_input.h"
 #include "test_utils.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 using namespace libsinsp;
 
@@ -52,6 +54,8 @@ TEST_F(sinsp_with_test_input, file_open)
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
+	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
 }
 
 TEST_F(sinsp_with_test_input, dup_dup2_dup3)
@@ -511,6 +515,23 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 	}
 }
 
+// Check that the path in case of execve is correctly overwritten in case it was not possible to collect it from the
+// entry event but it is possible to collect it from the exit event
+TEST_F(sinsp_with_test_input, execve_invalid_path_entry)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_E, 1, "<NA>");
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "/bin/test-exe", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "test-exe", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
+}
+
 /* Same as `execveat_empty_path_flag` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
  * since on s390x architectures the `execveat` syscall correctly returns a `PPME_SYSCALL_EXECVEAT_X`
  * exit event in case of success.
@@ -664,6 +685,7 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390)
 	}
 }
 
+
 TEST_F(sinsp_with_test_input, creates_fd_generic)
 {
 	add_default_init_thread();
@@ -718,6 +740,12 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "eventpoll");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "l");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, 0, 3, 4, 81976492);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
 }
 
 TEST_F(sinsp_with_test_input, spawn_process)
@@ -746,8 +774,12 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
 	// check that the name is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
-	// check that pname is taken from the parent process
+
+	// check that parent/ancestor info are taken from the parent process
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
 }
 
 TEST_F(sinsp_with_test_input, check_event_category)
@@ -812,6 +844,278 @@ TEST_F(sinsp_with_test_input, setuid_setgid)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 1, (int64_t) -1);
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+}
+
+// check parsing of container events (possibly from capture files)
+#ifndef MINIMAL_BUILD // MINIMAL_BUILD does not support containers at all
+TEST_F(sinsp_with_test_input, spawn_process_container)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
+	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	std::vector<std::string> cgroups = {"cgroups=cpuset=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "cpu=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "cpuacct=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "io=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "memory=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "devices=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "freezer=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "net_cls=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "perf_event=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "net_prio=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "hugetlb=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "pids=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "rdma=/docker/f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066", "misc=/"};
+	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
+	std::string envv = test_utils::to_null_delimited(env);
+	std::vector<std::string> args = {"--help"};
+	std::string argsv = test_utils::to_null_delimited(args);
+
+	std::string container = R"({"container":{"Mounts":[],"cpu_period":100000,"cpu_quota":0,"cpu_shares":1024,"cpuset_cpu_count":0,"created_time":1663770709,"env":[],"full_id":"f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066","id":"f9c7a020960a","image":"ubuntu","imagedigest":"sha256:a0d9e826ab87bd665cfc640598a871b748b4b70a01a4f3d174d4fb02adad07a9","imageid":"597ce1600cf4ac5f449b66e75e840657bb53864434d6bd82f00b172544c32ee2","imagerepo":"ubuntu","imagetag":"latest","ip":"172.17.0.2","is_pod_sandbox":false,"labels":null,"lookup_state":1,"memory_limit":0,"metadata_deadline":0,"name":"eloquent_mirzakhani","port_mappings":[],"privileged":false,"swap_limit":0,"type":0}})";
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", 1024, 0, 68633, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", 1024, 0, 1, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, 1, 1);
+	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container.c_str());
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+
+	// check that the container has been correctly detected and the short ID is correct
+	ASSERT_EQ(get_field_as_string(evt, "container.id"), "f9c7a020960a");
+	// check that metadata is correctly parsed from the container event
+	ASSERT_EQ(get_field_as_string(evt, "container.image"), "ubuntu");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "1");
+}
+#endif // MINIMAL_BUILD
+
+TEST_F(sinsp_with_test_input, ipv4_connect)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	sockaddr_in src, dest;
+	dest.sin_family = AF_INET;
+	dest.sin_port = htons(443);
+	inet_aton("142.251.111.147", &dest.sin_addr);
+
+	src.sin_family = AF_INET;
+	src.sin_port = htons(54321);
+	inet_aton("172.40.111.222", &src.sin_addr);
+
+	std::vector<uint8_t> dest_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, 0x80002, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 7);
+	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "false");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 7, scap_const_sized_buffer{dest_sockaddr.data(), dest_sockaddr.size()});
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "172.40.111.222:54321->142.251.111.147:443");
+	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "true");
+}
+
+TEST_F(sinsp_with_test_input, ipv6_multiple_connects)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	sockaddr_in6 src, dest1, dest2;
+	dest1.sin6_family = AF_INET6;
+	dest1.sin6_port = htons(53);
+	inet_pton(dest1.sin6_family, "2001:4860:4860::8888", &dest1.sin6_addr);
+
+	dest2.sin6_family = AF_INET6;
+	dest2.sin6_port = htons(2345);
+	inet_pton(dest2.sin6_family, "::1", &dest2.sin6_addr);
+
+	src.sin6_family = AF_INET6;
+	src.sin6_port = htons(38255);
+	inet_pton(src.sin6_family, "::1", &src.sin6_addr);
+
+	std::vector<uint8_t> dest1_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest1));
+	std::vector<uint8_t> dest2_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest2));
+	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest2_sockaddr.data(), dest2_sockaddr.size()});
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest2));
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest1_sockaddr.data(), dest1_sockaddr.size()});
+	// check that upon entry to the new connect the fd name is the same as during the last connection
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->::1:2345");
+
+	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest1));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name_changed"), "true");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, 3, 6, null_buf);
+	// check that the socket name upon the next entry event has been properly updated
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->2001:4860:4860::8888:53");
+}
+
+// test a basic server connection
+TEST_F(sinsp_with_test_input, bind_listen_accept_ipv4)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+
+	sockaddr_in src, dest, serv;
+	serv.sin_family = AF_INET;
+	serv.sin_port = htons(80);
+	inet_aton("0.0.0.0", &serv.sin_addr);
+
+	const char* local_server = "192.168.0.2";
+	const char* remote_client = "192.168.0.3";
+
+	dest.sin_family = AF_INET;
+	dest.sin_port = htons(80);
+	inet_aton(local_server, &dest.sin_addr);
+
+	src.sin_family = AF_INET;
+	src.sin_port = htons(40556);
+	inet_aton(remote_client, &src.sin_addr);
+
+	std::vector<uint8_t> sa = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&serv));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, 3);
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, 0, scap_const_sized_buffer{sa.data(), sa.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "0.0.0.0:80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, 3, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, 0);
+
+	std::vector<uint8_t> st = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, 4, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "192.168.0.3:40556->192.168.0.2:80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), local_server);
+	ASSERT_EQ(get_field_as_string(evt, "fd.cip"), remote_client);
+	ASSERT_EQ(get_field_as_string(evt, "fd.rip"), remote_client);
+	ASSERT_EQ(get_field_as_string(evt, "fd.lip"), local_server);
+	ASSERT_EQ(get_field_as_string(evt, "fd.cport"), "40556");
+	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), "80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), "80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.rport"), "40556");
+	ASSERT_EQ(get_field_as_string(evt, "fd.l4proto"), "tcp");
+}
+
+// test a basic server connection with ipv6
+TEST_F(sinsp_with_test_input, bind_listen_accept_ipv6)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+
+	sockaddr_in6 src, dest, serv;
+	serv.sin6_family = AF_INET6;
+	serv.sin6_port = htons(80);
+	inet_pton(AF_INET6, "::", &serv.sin6_addr);
+
+	const char* local_server = "2001:db8:3333:4444:5555:6666:7777:8888";
+	const char* remote_client = "2001:db8:3333:4444:5555:6666:7777:1111";
+
+	dest.sin6_family = AF_INET6;
+	dest.sin6_port = htons(80);
+	inet_pton(AF_INET6, local_server, &dest.sin6_addr);
+
+	src.sin6_family = AF_INET6;
+	src.sin6_port = htons(40556);
+	inet_pton(AF_INET6, remote_client, &src.sin6_addr);
+
+	std::vector<uint8_t> sa = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&serv));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, 3);
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, 0, scap_const_sized_buffer{sa.data(), sa.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), ":::80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, 3, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, 0);
+
+	std::vector<uint8_t> st = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, 4, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+
+	std::string fdname = std::string(remote_client) + ":40556->" + std::string(local_server) + ":80";
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
+	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), local_server);
+	ASSERT_EQ(get_field_as_string(evt, "fd.cip"), remote_client);
+	ASSERT_EQ(get_field_as_string(evt, "fd.rip"), remote_client);
+	ASSERT_EQ(get_field_as_string(evt, "fd.lip"), local_server);
+	ASSERT_EQ(get_field_as_string(evt, "fd.cport"), "40556");
+	ASSERT_EQ(get_field_as_string(evt, "fd.sport"), "80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), "80");
+	ASSERT_EQ(get_field_as_string(evt, "fd.rport"), "40556");
+}
+
+// test user tracking with setresuid
+TEST_F(sinsp_with_test_input, setresuid_setresgid)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt;
+
+	// set a new user ID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_E, 3, 600, 600, 600);
+	// check that upon entry we have the default user ID
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
+
+	// check that the user ID is updated if the call is successful. The expected user is the EUID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_X, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
+
+	// check that the new user ID is retained
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_E, 3, 0, 0, 0);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
+
+	// check that the user ID is not updated after an unsuccessful setuid call
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESUID_X, 1, (int64_t) -1);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "600");
+
+	// set a new group ID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESGID_E, 3, 600, 600, 600);
+	// check that upon entry we have the default user ID
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
+
+	// check that the group ID is updated if the call is successful. The expected user is the EGID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETRESGID_X, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+}
+
+TEST_F(sinsp_with_test_input, chdir_fchdir)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, 0, "/tmp/target-directory");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory/");
+
+	// generate a fd associated with the directory we wish to change to
+	int64_t dirfd = 3;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/target-directory-fd", 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, "/tmp/target-directory-fd", 0, 0, 0, 0);
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHDIR_E, 1, dirfd);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHDIR_X, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory-fd/");
 }
 
 // Falco libs allow pid over 32bit, those are used to hold extra values in the high bits.

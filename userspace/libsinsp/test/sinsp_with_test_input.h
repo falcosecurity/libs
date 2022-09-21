@@ -65,19 +65,29 @@ protected:
 		return ret;
 	}
 
+	sinsp_evt* advance_ts_get_event(uint64_t ts)
+	{
+		sinsp_evt *sinsp_event;
+		for (sinsp_event = next_event(); sinsp_event != nullptr; sinsp_event = next_event()) {
+			if (sinsp_event->get_ts() == ts) {
+				return sinsp_event;
+			}
+		}
+
+		return nullptr;
+	}
+
 	// adds an event and advances the inspector to the new timestamp
 	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
 	{
-		sinsp_evt *sinsp_event;
 		va_list args;
 		va_start(args, n);
 		add_event_v(ts, tid, event_type, n, args);
 		va_end(args);
 
-		for (sinsp_event = next_event(); sinsp_event != nullptr; sinsp_event = next_event()) {
-			if (sinsp_event->get_ts() == ts) {
-				return sinsp_event;
-			}
+		sinsp_evt *sinsp_event = advance_ts_get_event(ts);
+		if (sinsp_event != nullptr) {
+			return sinsp_event;
 		}
 
 		throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + m_events.size() + std::string(")"));
@@ -255,8 +265,14 @@ protected:
 	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name)
 	{
 		std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-		chk->parse_field_name(field_name.c_str(), true, false);
-		std::string result = chk->tostring(evt);
+		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
+		if (parse_result <= 0) {
+			throw sinsp_exception("The field " + field_name + " is not a valid field.");
+		}
+		const char* result = chk->tostring(evt);
+		if (result == nullptr) {
+			throw sinsp_exception("The field " + field_name + " is NULL");
+		}
 		return result;
 	}
 

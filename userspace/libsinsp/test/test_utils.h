@@ -21,6 +21,7 @@ limitations under the License.
 #include <vector>
 #include <set>
 #include <unordered_set>
+#include <netinet/in.h>
 
 namespace test_utils {
 
@@ -31,5 +32,10 @@ std::string to_null_delimited(std::vector<std::string> list);
 // This helper is used to convert an unordered set into an ordered set.
 template<typename T>
 std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
+
+std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
+std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
+
+void print_bytes(uint8_t *buf, size_t size);
 
 } // namespace test_utils
