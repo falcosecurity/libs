@@ -153,6 +153,7 @@ uint16_t* lens16 = NULL;						    /* pointer used to print the length of event p
 char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
 struct timeval tval_start, tval_end, tval_result;
 unsigned long number_of_timeouts = 0; /* Times in which there were no events in the buffer. */
+unsigned long number_of_scap_next = 0; /* Times in which the 'scap-next' method is called. */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -943,6 +944,7 @@ void print_stats()
 	}
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
 	printf("Number of timeouts: %ld\n", number_of_timeouts);
+	printf("Number of 'next' calls: %ld\n", number_of_scap_next);
 	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_exit);
@@ -1012,6 +1014,7 @@ int main(int argc, char** argv)
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
+		number_of_scap_next++;
 		if(res == SCAP_UNEXPECTED_BLOCK)
 		{
 			res = scap_restart_capture(g_h);
