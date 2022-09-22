@@ -258,7 +258,10 @@ protected:
 	{
 		std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname(field_name, &m_inspector, false));
 		chk->parse_field_name(field_name.c_str(), true, false);
-		std::string result = chk->tostring(evt);
+		const char* result = chk->tostring(evt);
+		if (result == nullptr) {
+			throw sinsp_exception("The field " + field_name + " is NULL");
+		}
 		return result;
 	}
 
