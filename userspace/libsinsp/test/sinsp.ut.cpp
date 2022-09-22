@@ -704,3 +704,45 @@ TEST_F(sinsp_with_test_input, ipv6_multiple_connects)
 	// check that the socket name upon the next entry event has been properly updated
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->2001:4860:4860::8888:53");
 }
+
+// test a basic server connection
+TEST_F(sinsp_with_test_input, bind_listen_accept_ipv4)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+
+	sockaddr_in src, dest, serv;
+	serv.sin_family = AF_INET;
+	serv.sin_port = htons(8080);
+	inet_aton("0.0.0.0", &serv.sin_addr);
+
+	dest.sin_family = AF_INET;
+	dest.sin_port = htons(8080);
+	inet_aton("127.0.0.1", &dest.sin_addr);
+
+	src.sin_family = AF_INET;
+	src.sin_port = htons(40556);
+	inet_aton("127.0.0.1", &src.sin_addr);
+
+	std::vector<uint8_t> sa = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&serv));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, 3);
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, 0, scap_const_sized_buffer{sa.data(), sa.size()});
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "0.0.0.0:8080");
+	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, 3, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, 0);
+
+	std::vector<uint8_t> st = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, 4, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "127.0.0.1:40556->127.0.0.1:8080");
+}
