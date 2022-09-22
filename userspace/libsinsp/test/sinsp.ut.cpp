@@ -588,6 +588,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 }
 
 // check parsing of container events (possibly from capture files)
+#ifndef MINIMAL_BUILD // MINIMAL_BUILD does not support containers at all
 TEST_F(sinsp_with_test_input, spawn_process_container)
 {
 	add_default_init_thread();
@@ -613,9 +614,12 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
 
+	// check that the container has been correctly detected and the short ID is correct
+	ASSERT_EQ(get_field_as_string(evt, "container.id"), "f9c7a020960a");
 	// check that metadata is correctly parsed from the container event
 	ASSERT_EQ(get_field_as_string(evt, "container.image"), "ubuntu");
 }
+#endif // MINIMAL_BUILD
 
 TEST_F(sinsp_with_test_input, ipv4_connect)
 {
