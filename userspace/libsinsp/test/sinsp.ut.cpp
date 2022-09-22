@@ -513,6 +513,23 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 	}
 }
 
+// Check that the path in case of execve is correctly overwritten in case it was not possible to collect it from the
+// entry event but it is possible to collect it from the exit event
+TEST_F(sinsp_with_test_input, execve_invalid_path_entry)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_E, 1, "<NA>");
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVE_19_X, 23, 0, "/bin/test-exe", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "test-exe", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
+}
+
 TEST_F(sinsp_with_test_input, creates_fd_generic)
 {
 	add_default_init_thread();
