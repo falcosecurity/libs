@@ -39,12 +39,22 @@ int main(int argc, char** argv)
 {
 	int ret;
 	bool libbpf_verbosity = false;
+	unsigned long buffer_dim = 8 * 1024; /* Should be enough */
 
 	for(int i = 0; i < argc; i++)
 	{
 		if(!strcmp(argv[i], "--verbose"))
 		{
 			libbpf_verbosity = true;
+		}
+		if(!strcmp(argv[i], "--buffer_dim"))
+		{
+			if(!(i + 1 < argc))
+			{
+				std::cout << "\nYou need to specify also the dimension of buffer in bytes! Bye!" << std::endl;
+				exit(EXIT_FAILURE);
+			}
+			buffer_dim = strtoul(argv[++i], NULL, 10);;
 		}
 	}
 
@@ -53,7 +63,7 @@ int main(int argc, char** argv)
 	::testing::InitGoogleTest(&argc, argv);
 
 	/* Configure and load BPF probe. */
-	ret = pman_init_state(libbpf_verbosity, DEFAULT_DRIVER_BUFFER_BYTES_DIM);
+	ret = pman_init_state(libbpf_verbosity, buffer_dim);
 	ret = ret ?: pman_open_probe();
 	ret = ret ?: pman_prepare_ringbuf_array_before_loading();
 	ret = ret ?: pman_prepare_maps_before_loading();
