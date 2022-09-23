@@ -55,6 +55,8 @@ limitations under the License.
 #include "sleep.h"
 #include "scap_engines.h"
 
+#define SECOND_TO_NS 1000000000
+
 //#define NDEBUG
 #include <assert.h>
 
@@ -1745,4 +1747,42 @@ uint64_t scap_get_driver_api_version(scap_t* handle)
 uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
 	return handle->m_schema_version;
+}
+
+int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
+{
+#ifdef __linux__
+	struct timespec ts_uptime = {0};
+	struct timespec tv_now = {0};
+	uint64_t now = 0;
+	uint64_t uptime = 0;
+
+	/* Get the actual time */
+	if(clock_gettime(CLOCK_REALTIME, &tv_now))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_REALTIME'");
+		}
+		return SCAP_FAILURE;
+	}
+	now = tv_now.tv_sec * (uint64_t)SECOND_TO_NS + tv_now.tv_nsec;
+
+	/* Get the uptime since the boot */
+	if(clock_gettime(CLOCK_BOOTTIME, &ts_uptime))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_BOOTTIME'");
+		}
+		return SCAP_FAILURE;
+	}
+	uptime = ts_uptime.tv_sec * (uint64_t)SECOND_TO_NS + ts_uptime.tv_nsec;
+
+	/* Compute the boot time as the difference between actual time and the uptime. */
+	*boot_time = now - uptime;
+#else
+	*boot_time = 0;
+#endif
+	return SCAP_SUCCESS;
 }
