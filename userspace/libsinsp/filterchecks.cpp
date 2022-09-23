@@ -4865,7 +4865,7 @@ uint8_t* sinsp_filter_check_user::extract(sinsp_evt *evt, OUT uint32_t* len, boo
 ///////////////////////////////////////////////////////////////////////////////
 const filtercheck_field_info sinsp_filter_check_group_fields[] =
 {
-	{PT_UINT64, EPF_NONE, PF_ID, "group.gid", "Group ID", "group ID."},
+	{PT_UINT32, EPF_NONE, PF_ID, "group.gid", "Group ID", "group ID."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "group.name", "Group Name", "group name."},
 };
 
