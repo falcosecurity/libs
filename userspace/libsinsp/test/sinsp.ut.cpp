@@ -584,3 +584,43 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	// check that pname is taken from the parent process
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 }
+
+// test user tracking with setuid
+TEST_F(sinsp_with_test_input, setuid_setgid)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt;
+
+	// set a new user ID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, 500);
+	// check that upon entry we have the default user ID
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "0");
+
+	// check that the user ID is updated if the call is successful
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
+
+	// set a new group ID
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 600);
+	// check that upon entry we have the default group ID
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "0");
+
+	// check that the group ID is updated if the call is successful
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+
+	// check that the new user ID and group ID are retained
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_E, 1, 0);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+
+	// check that the user ID is not updated after an unsuccessful setuid call
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETUID_X, 1, (int64_t) -1);
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "500");
+
+	// same for group ID
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 1, (int64_t) -1);
+	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+}
