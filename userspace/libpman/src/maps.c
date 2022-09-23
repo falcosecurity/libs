@@ -66,6 +66,11 @@ void pman_set_snaplen(uint32_t desired_snaplen)
 	g_state.skel->bss->g_settings.snaplen = desired_snaplen;
 }
 
+void pman_set_boot_time(uint64_t boot_time)
+{
+	g_state.skel->bss->g_settings.boot_time = boot_time;
+}
+
 void pman_clean_all_64bit_interesting_syscalls()
 {
 	/* All syscalls are not interesting. */

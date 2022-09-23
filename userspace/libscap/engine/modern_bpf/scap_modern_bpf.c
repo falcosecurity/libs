@@ -224,6 +224,14 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
+	/* Set the boot time */
+	uint64_t boot_time = 0;
+	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+	pman_set_boot_time(boot_time);
+
 	handle->m_api_version = pman_get_probe_api_ver();
 	handle->m_schema_version = pman_get_probe_schema_ver();
 
