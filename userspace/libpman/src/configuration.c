@@ -66,6 +66,10 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim)
 
 	/* Set the dimension of a single per-CPU ring buffer. */
 	g_state.buffer_bytes_dim = buf_bytes_dim;
+
+	/* These will be used during the ring buffer consumption phase. */
+	g_state.last_ring_read = -1;
+	g_state.last_event_size = 0;
 	return 0;
 }
 

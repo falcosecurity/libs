@@ -186,15 +186,15 @@ extern "C"
 	int pman_finalize_ringbuf_array_after_loading(void);
 
 	/**
-	 * @brief Search for one event to read in all the ringbufs.
+	 * @brief Search for the event with the lowest timestamp in
+	 * all the ring buffers.
 	 *
 	 * @param event_ptr in case of success return a pointer
 	 * to the event, otherwise return NULL.
 	 * @param cpu_id in case of success returns the id of the CPU
-	 * on which we have found the event, otherwise return NULL
-	 * @return `0` if an event is found otherwise returns `-1`
+	 * on which we have found the event, otherwise return `-1`.
 	 */
-	int pman_consume_one_from_buffers(void** event_ptr, uint16_t* cpu_id);
+	void pman_consume_first_from_buffers(void** event_ptr, int16_t *cpu_id);
 
 	/////////////////////////////
 	// CAPTURE (EXCHANGE VALUES WITH BPF SIDE)
@@ -331,6 +331,17 @@ extern "C"
 #ifdef TEST_HELPERS
 
 	/**
+	 * @brief Search for one event to read in all the ringbufs.
+	 *
+	 * @param event_ptr in case of success return a pointer
+	 * to the event, otherwise return NULL.
+	 * @param cpu_id in case of success returns the id of the CPU
+	 * on which we have found the event, otherwise return NULL
+	 * @return `0` if an event is found otherwise returns `-1`
+	 */
+	int pman_consume_one_from_buffers(void** event_ptr, uint16_t* cpu_id);
+
+	/**
 	 * @brief Print some statistics about events captured and
 	 * events dropped
 	 *
@@ -355,6 +366,24 @@ extern "C"
 	 * @return name of the BPF program associated with the event type
 	 */
 	const char* pman_get_event_prog_name(int event_type);
+
+	/**
+	 * @brief Return `true` if all ring buffers are full. To state
+	 * that a ring buffer is full we check that the free space is less
+	 * than the `threshold`
+	 * 
+	 * @param threshold used to check if a buffer is full
+	 * @return `true` if all buffers are full, otherwise `false`
+	 */
+	bool pman_are_all_ringbuffers_full(unsigned long threshold);
+
+	/**
+	 * @brief Get the producer pos for the required ring
+	 * 
+	 * @param ring_num ring for which we want to obtain the producer pos
+	 * @return producer pos as an unsigned long
+	 */
+	unsigned long pman_get_producer_pos(int ring_num);
 #endif
 
 #ifdef __cplusplus

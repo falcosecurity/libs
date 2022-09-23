@@ -123,8 +123,8 @@ static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
 
 static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	/// TODO: we need to extract the events in order like in the old probe.
-	if(pman_consume_one_from_buffers((void**)pevent, pcpuid))
+	pman_consume_first_from_buffers((void**)pevent, pcpuid);
+	if((*pevent) == NULL)
 	{
 		return SCAP_TIMEOUT;
 	}
