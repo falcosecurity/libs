@@ -245,6 +245,14 @@ extern "C"
 	void pman_set_snaplen(uint32_t desired_snaplen);
 
 	/**
+	 * @brief Set the boot_time so all the events generated
+	 * by the probe can provide a full timestamp based on Epoch.
+	 *
+	 * @param boot_time system boot_time from Epoch.
+	 */
+	void pman_set_boot_time(uint64_t boot_time);
+
+	/**
 	 * @brief Get API version to check it a runtime.
 	 *
 	 * @return API version
