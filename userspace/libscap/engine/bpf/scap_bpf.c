@@ -1299,38 +1299,6 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-//
-// This is completely horrible, revisit this shameful code
-// with a proper solution
-//
-static int32_t set_boot_time(struct bpf_engine *handle, uint64_t *boot_time)
-{
-	struct timespec ts_uptime;
-	struct timeval tv_now;
-	uint64_t now;
-	uint64_t uptime;
-
-	if(gettimeofday(&tv_now, NULL))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "gettimeofday");
-		return SCAP_FAILURE;
-	}
-
-	now = tv_now.tv_sec * (uint64_t) 1000000000 + tv_now.tv_usec * 1000;
-
-	if(clock_gettime(CLOCK_BOOTTIME, &ts_uptime))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "clock_gettime");
-		return SCAP_FAILURE;
-	}
-
-	uptime = ts_uptime.tv_sec * (uint64_t) 1000000000 + ts_uptime.tv_nsec;
-
-	*boot_time = now - uptime;
-
-	return SCAP_SUCCESS;
-}
-
 static int32_t set_runtime_params(struct bpf_engine *handle)
 {
 	struct rlimit rl;
@@ -1401,7 +1369,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	struct scap_bpf_settings settings;
 
 	uint64_t boot_time = 0;
-	if(set_boot_time(handle, &boot_time) != SCAP_SUCCESS)
+	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
