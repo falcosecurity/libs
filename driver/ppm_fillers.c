@@ -805,6 +805,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	const struct cred *cred;
+	struct file *exe_file = NULL;
 
 #ifdef __NR_clone3
 	struct clone_args cl_args;
@@ -1064,6 +1065,7 @@ cgroups_error:
 		int64_t in_pidns = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		struct pid_namespace *pidns = task_active_pid_ns(current);
+		struct task_struct *child_reaper;
 #endif
 
 		/*
@@ -1137,6 +1139,26 @@ cgroups_error:
 		 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		res = val_to_ring(args, task_tgid_vnr(current), 0, false, 0);
+#else
+		/* Not relevant in old kernels */
+		res = val_to_ring(args, 0, 0, false, 0);
+#endif
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+
+		/*
+		 * pid_namespace init task start_time monotonic time in ns
+		 */
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		if (pidns)
+		{
+			child_reaper = pidns->child_reaper;
+			if (child_reaper)
+				{
+					val = child_reaper->start_time;
+				}
+		}
+		res = val_to_ring(args, val, 0, false, 0);
 #else
 		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -1310,12 +1332,12 @@ cgroups_error:
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		/*
-		 * capabilities
-		 */
 		if(args->event_type == PPME_SYSCALL_EXECVE_19_X ||
 		   args->event_type == PPME_SYSCALL_EXECVEAT_X)
 		{
+			/*
+			* capabilities
+			*/
 			cred = get_current_cred();
 
 			val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
@@ -1334,10 +1356,68 @@ cgroups_error:
 				goto out;
 			
 			put_cred(cred);
+
+			/*
+			* exe ino fields
+			*/
+			exe_file = ppm_get_mm_exe_file(mm);
+
+			if (exe_file) {
+				if (file_inode(exe_file)) {
+					/*
+					* exe ino
+					*/
+					val = file_inode(exe_file)->i_ino;
+				}
+			}
+			res = val_to_ring(args, val, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto exe_file_out;
+
+			if (!exe_file) {
+				exe_file = ppm_get_mm_exe_file(mm);
+			}
+
+			if (exe_file) {
+				if (file_inode(exe_file)) {
+					/*
+					* exe_file ctime (last status change time, epoch value in nanoseconds)
+					*/
+					val = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+				}
+			}
+
+			res = val_to_ring(args, val, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto exe_file_out;
+
+			if (!exe_file) {
+				exe_file = ppm_get_mm_exe_file(mm);
+			}
+
+			if (exe_file) {
+				if (file_inode(exe_file)) {
+					/*
+					* exe_file mtime (last modification time, epoch value in nanoseconds)
+					*/
+					val = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+				}
+			}
+
+			res = val_to_ring(args, val, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				goto exe_file_out;
+
+			fput(exe_file);
+
 		}
 	}
 
 	return add_sentinel(args);
+
+exe_file_out:
+	fput(exe_file);
+	return res;
 
 out:
 	put_cred(cred);
@@ -6854,7 +6934,62 @@ cgroups_error:
 	}
 
 	put_cred(cred);
+
+	/*
+	* exe ino fields
+	*/
+	exe_file = ppm_get_mm_exe_file(mm);
+
+	if (exe_file) {
+		if (file_inode(exe_file)) {
+
+			/* Parameter 24: exe_file ino (type: PT_UINT64) */
+			val = file_inode(exe_file)->i_ino;
+		}
+	}
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		goto exe_file_out;
+
+	if (!exe_file) {
+			exe_file = ppm_get_mm_exe_file(mm);
+		}
+
+	if (exe_file) {
+		if (file_inode(exe_file)) {
+
+			/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+			val = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+		}
+	}
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		goto exe_file_out;
+
+	if (!exe_file) {
+			exe_file = ppm_get_mm_exe_file(mm);
+		}
+
+	if (exe_file) {
+		if (file_inode(exe_file)) {
+
+			/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+			val = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+		}
+	}
+
+	res = val_to_ring(args, val, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		goto exe_file_out;
+
+	fput(exe_file);
+
 	return add_sentinel(args);
+
+exe_file_out:
+	fput(exe_file);
+	return res;
 
 out:
 	put_cred(cred);
