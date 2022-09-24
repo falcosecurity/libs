@@ -197,4 +197,8 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 #ifdef CAPTURE_SCHED_PROC_FORK
 	[T1_SCHED_PROC_FORK] = "t1_sched_p_fork",
 #endif
+	[T2_CLONE_X] = "t2_clone_x",
+	[T2_CLONE3_X] = "t2_clone3_x",
+	[T2_FORK_X] = "t2_fork_x",
+	[T2_VFORK_X] = "t2_vfork_x",
 };

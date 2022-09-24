@@ -238,6 +238,11 @@ int BPF_PROG(t1_execve_x,
 	extract__loginuid(task, &loginuid);
 	auxmap__store_s32_param(auxmap, (s32)loginuid);
 
+	struct mm_struct *mm = NULL;
+	READ_TASK_FIELD_INTO(&mm, task, mm);
+
+	struct inode *exe_inode = extract__exe_inode_from_task(mm);
+
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	/// TODO: still to implement! See what we do in the old probe.
 	u32 flags = 0;
@@ -258,6 +263,20 @@ int BPF_PROG(t1_execve_x,
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	u64 cap_effective = extract__capability(task, CAP_EFFECTIVE);
 	auxmap__store_u64_param(auxmap, cap_effective);
+
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	u64 ino = 0;
+	extract__ino_from_inode(exe_inode, &ino);
+	auxmap__store_u64_param(auxmap, (u64)ino);
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	struct timespec64 time;
+	BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
+	auxmap__store_u64_param(auxmap, (u64)(time.tv_sec * (u64) 1000000000 + time.tv_nsec));
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
+	auxmap__store_u64_param(auxmap, (u64)(time.tv_sec * (u64) 1000000000 + time.tv_nsec));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

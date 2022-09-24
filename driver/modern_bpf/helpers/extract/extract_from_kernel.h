@@ -131,6 +131,43 @@ static __always_inline void extract__ino_from_fd(s32 fd, u64 *ino)
 }
 
 /**
+ * @brief Return the `f_inode` of task exe_file.
+ *
+ * @param mm pointer to task mm struct.
+ * @return `f_inode` of task exe_file.
+ */
+static __always_inline struct inode *extract__exe_inode_from_task(struct mm_struct *mm)
+{
+	struct inode *inode = NULL;
+	if (mm)
+	{
+		struct file *exe_file;
+		BPF_CORE_READ_INTO(&exe_file, mm, exe_file);
+		if (exe_file)
+		{
+			BPF_CORE_READ_INTO(&inode, exe_file, f_inode);
+		}
+	}
+	return inode;
+}
+
+/**
+ * @brief Return the `i_ino` from f_inode.
+ *
+ * @param mm pointer to inode struct.
+ * @param ino pointer to the inode number we have to fill.
+ * @return `i_ino` from f_inode.
+ */
+static __always_inline void extract__ino_from_inode(struct inode *f_inode, u64 *ino)
+{
+	if(!f_inode)
+	{
+		return;
+	}
+	BPF_CORE_READ_INTO(ino, f_inode, i_ino);
+}
+
+/**
  * \brief Extract the device number and the inode number from a file descriptor.
  *
  * @param fd generic file descriptor.
@@ -333,6 +370,31 @@ static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enu
 	struct pid *pid_struct = extract__task_pid_struct(task, type);
 	struct pid_namespace *pid_namespace_struct = extract__namespace_of_pid(pid_struct);
 	return extract__xid_nr_seen_by_namespace(pid_struct, pid_namespace_struct);
+}
+
+/**
+ * @brief Return the `start_time` of init task struct from pid namespace seen from
+ *  pid namespace of the current task. Monotonic time in nanoseconds.
+ *
+ * @param task pointer to task struct.
+ * @param type pid type.
+ * @return `start_time` of init task struct from pid namespace seen from current task pid namespace.
+ */
+static __always_inline u64 extract__task_pidns_start_time(struct task_struct *task, enum pid_type type)
+{
+	struct pid *pid_struct = extract__task_pid_struct(task, PIDTYPE_TGID);
+	struct pid_namespace *pid_namespace = extract__namespace_of_pid(pid_struct);
+	struct task_struct *child_reaper = NULL;
+	u64 pidns_start_time = 0;
+	if(pid_namespace)
+	{
+		BPF_CORE_READ_INTO(&child_reaper, pid_namespace, child_reaper);
+		if (child_reaper)
+		{
+			BPF_CORE_READ_INTO(&pidns_start_time, child_reaper, start_time);
+		}
+	}
+	return pidns_start_time;
 }
 
 /////////////////////////
