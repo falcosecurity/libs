@@ -32,6 +32,7 @@ struct perf_lost_sample {
 	uint64_t lost;
 };
 
+/* Return only the raw data of the event skipping the header and the size. */
 static inline scap_evt *scap_bpf_evt_from_perf_sample(void *evt)
 {
 	struct perf_event_sample *perf_evt = (struct perf_event_sample *) evt;
@@ -76,6 +77,11 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip
 	struct perf_event_mmap_page *header = (struct perf_event_mmap_page *) dev->m_buffer;
 
 	base = ((char *) header) + header->data_offset;
+
+	/* if `skip_current` is true it means that we need to increment the position
+	 * and this `begin` points to an event that we have already read. If `false`
+	 * `begin` points to an event that we still have to read.
+	 */
 	begin = cur_evt;
 
 	while(*len)
@@ -111,6 +117,7 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip
 			ASSERT(false);
 		}
 
+		/* Move the pointer inside the block to the next event */
 		if(begin + e->size > base + header->data_size)
 		{
 			begin = begin + e->size - header->data_size;
@@ -124,12 +131,14 @@ static inline int32_t scap_bpf_advance_to_evt(struct scap_device *dev, bool skip
 			begin += e->size;
 		}
 
+		/* Decrease the size of the block since we have just read an event */
 		*len -= e->size;
 	}
 
 	return SCAP_SUCCESS;
 }
 
+/* This helper increments the consumer position */
 static inline void scap_bpf_advance_tail(struct scap_device *dev)
 {
 	struct perf_event_mmap_page *header;
@@ -141,6 +150,7 @@ static inline void scap_bpf_advance_tail(struct scap_device *dev)
 	// clang-format on
 
 	ASSERT(dev->m_lastreadsize > 0);
+	/* `header->data_tail` is the consumer position. */
 	header->data_tail += dev->m_lastreadsize;
 	dev->m_lastreadsize = 0;
 }
@@ -158,7 +168,11 @@ static inline int32_t scap_bpf_readbuf(struct scap_device *dev, char **buf, uint
 	ASSERT(dev->m_lastreadsize == 0);
 	scap_bpf_get_buf_pointers(dev, &head, &tail, &read_size);
 
+	/* This contains the dimension of the block and it will be used to increment 
+	 * the consumer position in `scap_bpf_advance_tail`.
+	 */
 	dev->m_lastreadsize = read_size;
+	/* position of the consumer */
 	p = ((char *) header) + header->data_offset + tail % header->data_size;
 	*len = read_size;
 
