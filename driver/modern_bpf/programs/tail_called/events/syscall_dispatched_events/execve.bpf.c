@@ -79,7 +79,7 @@ int BPF_PROG(execve_x,
 		/* We need to extract the len of `exe` arg so we can undestand
 		 * the overall length of the remaining args.
 		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, KERNEL);
+		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		/* Here we read the whole array starting from the pointer to the first
@@ -87,7 +87,7 @@ int BPF_PROG(execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len, KERNEL);
+		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len, USER);
 	}
 	else
 	{
@@ -203,7 +203,7 @@ int BPF_PROG(t1_execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len, KERNEL);
+		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len, USER);
 	}
 	else
 	{
