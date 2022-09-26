@@ -89,6 +89,9 @@ enum read_memory
 /* Paramater maximum size */
 #define MAX_PARAM_SIZE MAX_EVENT_SIZE - 1
 
+/* ARGS or ENV maximum size */
+#define ARGS_ENV_SIZE_MAX 4096
+
 /* Helper used to please the verifier during reading
  * operations like `bpf_probe_read_str()`.
  */
@@ -253,11 +256,20 @@ static __always_inline u16 push__charbuf(u8 *data, u64 *payload_pos, unsigned lo
  */
 static __always_inline u16 push__bytebuf(u8 *data, u64 *payload_pos, unsigned long bytebuf_pointer, u16 len_to_read, enum read_memory mem)
 {
+	u16 total_len = 0;
+	if (len_to_read > ARGS_ENV_SIZE_MAX)
+	{
+		total_len = ARGS_ENV_SIZE_MAX;
+	}
+	else
+	{
+		total_len = len_to_read;
+	}
 
 	if(mem == KERNEL)
 	{
 		if(bpf_probe_read_kernel(&data[SAFE_ACCESS(*payload_pos)],
-						      len_to_read,
+						      total_len,
 						      (void *)bytebuf_pointer) != 0)
 		{
 			return 0;
@@ -267,13 +279,13 @@ static __always_inline u16 push__bytebuf(u8 *data, u64 *payload_pos, unsigned lo
 	else
 	{
 		if(bpf_probe_read_user(&data[SAFE_ACCESS(*payload_pos)],
-						    len_to_read,
+						    total_len,
 						    (void *)bytebuf_pointer) != 0)
 		{
 			return 0;
 		}
 	}
 
-	*payload_pos += len_to_read;
-	return len_to_read;
+	*payload_pos += total_len;
+	return total_len;
 }
