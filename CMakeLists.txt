@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )")
 endif()
 
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 3.5.1)
 
 project(falcosecurity-libs)
 
