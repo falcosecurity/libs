@@ -474,9 +474,9 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 }
 
 static __always_inline int unix_socket_path(char *dest, const char *user_ptr, size_t size) {
-	int res = bpf_probe_read_user_str(dest,
-				     size,
-				     user_ptr);
+	int res = bpf_probe_read_kernel_str(dest,
+				            size,
+				            user_ptr);
 	/*
   	 * Extract from: https://man7.org/linux/man-pages/man7/unix.7.html
 	 * an abstract socket address is distinguished (from a
@@ -487,9 +487,9 @@ static __always_inline int unix_socket_path(char *dest, const char *user_ptr, si
 	 */
 	if (res == 1) {
 		dest[0] = '@';
-		res = bpf_probe_read_user_str(dest + 1,
-					      size - 1, // account for '@'
-					      user_ptr + 1);
+		res = bpf_probe_read_kernel_str(dest + 1,
+					        size - 1, // account for '@'
+					        user_ptr + 1);
 		res++; // account for '@'
 	}
 	return res;
