@@ -257,7 +257,11 @@ static __always_inline u16 push__charbuf(u8 *data, u64 *payload_pos, unsigned lo
 static __always_inline u16 push__bytebuf(u8 *data, u64 *payload_pos, unsigned long bytebuf_pointer, u16 len_to_read, enum read_memory mem)
 {
 	u16 total_len = 0;
-	if (len_to_read > ARGS_ENV_SIZE_MAX)
+	if (len_to_read < 1)
+	{
+		return 0;
+	}
+	else if (len_to_read > ARGS_ENV_SIZE_MAX)
 	{
 		total_len = ARGS_ENV_SIZE_MAX;
 	}
