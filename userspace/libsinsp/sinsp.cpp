@@ -401,8 +401,6 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
-	m_usergroup_manager.init();
-
 	// If we are in capture, this is already called by consume_initialstate_events
 	if (!is_capture() && m_external_event_processor)
 	{
@@ -546,6 +544,9 @@ void sinsp::open_common(scap_open_args* oargs)
 		oargs->proc_callback_context = this;
 	}
 	oargs->import_users = m_usergroup_manager.m_import_users;
+	// We need to subscribe to container manager notifiers beore
+	// scap starts scanning proc.
+	m_usergroup_manager.init();
 
 	add_suppressed_comms(oargs);
 
