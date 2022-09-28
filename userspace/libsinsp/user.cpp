@@ -139,6 +139,11 @@ void sinsp_usergroup_manager::init()
 		m_inspector->m_container_manager.subscribe_on_new_container([&](const sinsp_container_info&cinfo, sinsp_threadinfo *tinfo) -> void {
 		        load_from_container(cinfo.m_id, cinfo.m_overlayfs_root);
 	       });
+
+		for (auto &c : *m_inspector->m_container_manager.get_containers())
+		{
+			load_from_container(c.second->m_id, c.second->m_overlayfs_root);
+		}
 	}
 }
 
@@ -231,6 +236,10 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 
 scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding user: container: %s, name: %s",
+			container_id.c_str(), name);
+
 	if (!m_import_users)
 	{
 		return nullptr;
@@ -310,6 +319,9 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 
 scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding group: container: %s, name: %s",
+			container_id.c_str(), name);
 	if (!m_import_users)
 	{
 		return nullptr;
