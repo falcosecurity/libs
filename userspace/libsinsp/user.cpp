@@ -298,6 +298,9 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"removing user: container: %s, uid: %d",
+			container_id.c_str(), uid);
 	bool res = false;
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (usr)
@@ -364,6 +367,9 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"removing group: container: %s, gid: %d",
+			container_id.c_str(), gid);
 	bool res = false;
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (gr)
