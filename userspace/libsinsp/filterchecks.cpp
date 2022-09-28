@@ -2142,6 +2142,14 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 	return NULL;
 }
 
+// Some syscall sources, such as the gVisor integration, cannot match events to host PIDs and TIDs.
+// The event will retain the PID field which is consistent with the rest of sinsp logic, but it won't represent
+// a real PID and so it should not be displayed to the user.
+inline bool should_extract_xid(int64_t xid)
+{
+	return xid >= -1 && xid <= UINT32_MAX;
+}
+
 uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 	*len = 0;
@@ -2158,9 +2166,17 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	switch(m_field_id)
 	{
 	case TYPE_TID:
-		m_u64val = evt->get_tid();
-		RETURN_EXTRACT_VAR(m_u64val);
+		m_s64val = evt->get_tid();
+		if (!should_extract_xid(m_s64val))
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_VAR(m_s64val);
 	case TYPE_PID:
+		if (!should_extract_xid(tinfo->m_pid))
+		{
+			return NULL;
+		}
 		RETURN_EXTRACT_VAR(tinfo->m_pid);
 	case TYPE_SID:
 		RETURN_EXTRACT_VAR(tinfo->m_sid);
@@ -2341,6 +2357,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_PPID:
 		if(tinfo->is_main_thread())
 		{
+			if (!should_extract_xid(tinfo->m_ptid))
+			{
+				return NULL;
+			}
 			RETURN_EXTRACT_VAR(tinfo->m_ptid);
 		}
 		else
@@ -2349,6 +2369,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(mt != NULL)
 			{
+				if (!should_extract_xid(mt->m_ptid))
+				{
+					return NULL;
+				}
 				RETURN_EXTRACT_VAR(mt->m_ptid);
 			}
 			else
@@ -2416,7 +2440,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 					return NULL;
 				}
 			}
-
+			
+			if (!should_extract_xid(mt->m_pid))
+			{
+				return NULL;
+			}
 			RETURN_EXTRACT_VAR(mt->m_pid);
 		}
 	case TYPE_ANAME:
