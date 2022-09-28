@@ -876,11 +876,7 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 	try
 	{
 		auto lowerdir = root["GraphDriver"]["Data"]["LowerDir"].asString();
-		while (lowerdir.find_first_of(':') != std::string::npos)
-		{
-			lowerdir = lowerdir.substr(lowerdir.find_first_of(':') + 1);
-		}
-		container.m_overlayfs_root = lowerdir;
+		container.m_overlayfs_root = lowerdir.substr(lowerdir.find_last_of(':') + 1);
 
 	}
 	catch (const std::exception &)
