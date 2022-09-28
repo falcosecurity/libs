@@ -127,7 +127,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
 #endif
 }
 
-void sinsp_usergroup_manager::init()
+void sinsp_usergroup_manager::subscribe_container_mgr()
 {
 	if (m_import_users)
 	{

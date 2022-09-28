@@ -61,9 +61,9 @@ class sinsp_usergroup_manager
 public:
 	explicit sinsp_usergroup_manager(sinsp* inspector);
 
-	// Do not call init() in capture mode, because
+	// Do not call subscribe_container_mgr() in capture mode, because
 	// events shall not be sent as they will be loaded from capture file.
-	void init();
+	void subscribe_container_mgr();
 
 	void dump_users_groups(scap_dumper_t* dumper);
 
