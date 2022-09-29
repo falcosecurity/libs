@@ -677,11 +677,6 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
 	}
 
-	if(root_path.empty())
-	{
-		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the root path.");
-	}
-
 	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
 	struct scap_gvisor_engine_params params;
 	params.gvisor_root_path = root_path.c_str();
