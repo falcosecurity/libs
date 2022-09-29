@@ -16,7 +16,9 @@ or GPL2.txt for full copies of the license.
 #include <net/sock.h>
 #include <net/af_unix.h>
 #include <net/compat.h>
+#include <net/ipv6.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/file.h>
@@ -238,15 +240,100 @@ int32_t dpi_lookahead_init(void)
 #ifndef UDIG
 inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
-	int ret = sock->ops->getname(sock, sock_address, peer);
-	if (ret >= 0)
-		ret = 0;
-	return ret;
-#else
-	int sockaddr_len;
-	return sock->ops->getname(sock, sock_address, &sockaddr_len, peer);
-#endif
+	/*
+	 * Avoid calling sock->ops->getname(), because in certain kernel versions,
+	 * the getname functions may take a lock, which violates the limitations of
+	 * the RCU lock execution environment which is used by the kernel module.
+	 *
+	 * For efficiency, only fill in sockaddr fields actually used by the
+	 * kernel module logic; in particular, skip filling in
+	 * - sin_zero
+	 * - sin6_scope_id
+	 * - sin6_flowinfo
+	 */
+	struct sock *sk = sock->sk;
+
+	switch(sk->sk_family) {
+	case AF_INET:
+	{
+		struct sockaddr_in *sin = (struct sockaddr_in *)sock_address;
+		struct inet_sock *inet = (struct inet_sock *)sk;
+
+		sin->sin_family = AF_INET;
+		if (peer) {
+			if (!inet->inet_dport ||
+			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
+				return -ENOTCONN;
+			}
+			sin->sin_port = inet->inet_dport;
+			sin->sin_addr.s_addr = inet->inet_daddr;
+		} else {
+			u32 addr = inet->inet_rcv_saddr;
+			if (!addr) {
+				addr = inet->inet_saddr;
+			}
+			sin->sin_port = inet->inet_sport;
+			sin->sin_addr.s_addr = addr;
+		}
+		break;
+	}
+	case AF_INET6:
+	{
+		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)sock_address;
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		struct ipv6_pinfo *np = (struct ipv6_pinfo *)inet->pinet6;
+
+		sin->sin6_family = AF_INET6;
+		if (peer) {
+			if ((!inet->inet_dport) ||
+			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
+				return -ENOTCONN;
+			}
+			sin->sin6_port = inet->inet_dport;
+			sin->sin6_addr = sk->sk_v6_daddr;
+		} else {
+			sin->sin6_addr = sk->sk_v6_rcv_saddr;
+			if (ipv6_addr_any(&sin->sin6_addr)) {
+				sin->sin6_addr = np->saddr;
+			}
+			sin->sin6_port = inet->inet_sport;
+		}
+		break;
+	}
+
+	case AF_UNIX:
+	{
+		struct sockaddr_un *sunaddr = (struct sockaddr_un *)sock_address;
+		struct unix_sock *u;
+		struct unix_address *u_addr = NULL;
+
+		if (peer) {
+			sk = ((struct unix_sock *)sk)->peer;
+			if (!sk) {
+				return -ENOTCONN;
+			}
+		}
+
+		u = (struct unix_sock *)sk;
+		u_addr = u->addr;
+		if (!u_addr) {
+			sunaddr->sun_family = AF_UNIX;
+			sunaddr->sun_path[0] = 0;
+		} else {
+			unsigned int len = u_addr->len;
+			if (unlikely(len > sizeof(struct sockaddr_storage))) {
+				len = sizeof(struct sockaddr_storage);
+			}
+			memcpy(sunaddr, u_addr->name, len);
+		}
+		break;
+	}
+
+	default:
+		return -ENOTCONN;
+	}
+
+	return 0;
 }
 
 /**
