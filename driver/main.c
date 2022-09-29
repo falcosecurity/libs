@@ -2941,14 +2941,28 @@ MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp)
 {
 	unsigned long dim = 0;
-	int ret;
 
+	/* `kstrtoul` is defined only on these kernels. */ 
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 37)
+	int ret = 0;
 	ret = kstrtoul(val, 10, &dim);
 	if(ret != 0)
 	{
 		pr_err("parsing of 'g_buffer_bytes_dim' failed!\n");
 		return -EINVAL;
 	}
+#else
+	/* You can find more info about the simple_strtoull behavior here! 
+	 * https://elixir.bootlin.com/linux/latest/source/arch/x86/boot/string.c#L120
+	 */
+	char* endp = NULL;
+	dim = simple_strtoull(val, &endp, 10);
+	if(!endp || (*endp != '\0'))
+	{
+		pr_err("parsing of 'g_buffer_bytes_dim' failed!\n");
+		return -EINVAL;
+	}
+#endif
 
 	if(!validate_buffer_bytes_dim(dim, PAGE_SIZE))
 	{
@@ -2958,12 +2972,7 @@ static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp
 	return param_set_ulong(val, kp);
 }
 
-static const struct kernel_param_ops g_buffer_bytes_dim_ops = {
-	.set	= set_g_buffer_bytes_dim,
-	.get	= param_get_ulong,
-};
-
-module_param_cb(g_buffer_bytes_dim, &g_buffer_bytes_dim_ops, &g_buffer_bytes_dim, 0644);
+module_param_call(g_buffer_bytes_dim, set_g_buffer_bytes_dim, param_get_ulong, &g_buffer_bytes_dim, 0644);
 MODULE_PARM_DESC(g_buffer_bytes_dim, "This is the dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
