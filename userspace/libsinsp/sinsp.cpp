@@ -1506,7 +1506,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(evt->m_filtered_out)
 	{
-		ppm_event_category cat = evt->get_info_category();
+		ppm_event_category cat = evt->get_category();
 
 		// Skip the event, unless we're in internal events
 		// mode and the category of this event is internal.
