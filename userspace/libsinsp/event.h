@@ -210,7 +210,7 @@ public:
 	*/
 	inline ppm_event_category get_info_category() const
 	{
-		return m_info->category;
+		return get_category();
 	}
 
 	/*!
@@ -238,7 +238,11 @@ public:
 	*/
 	inline ppm_event_category get_category() const
 	{
-		return m_info->category;
+		// Bits >= EC_SYSCALL are used as "origin" flags;
+		// we don't care about them here;
+		// they were added for future usages
+		const int bitmask = EC_SYSCALL - 1;
+		return static_cast<ppm_event_category>(m_info->category & bitmask);
 	}
 
 	/*!
