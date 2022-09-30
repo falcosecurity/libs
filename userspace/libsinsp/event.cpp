@@ -2558,7 +2558,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 		// For EC_IO and EC_WAIT events, we dig into the fd state to get the category
 		// and fdtype
 		//
-		if(cat->m_category & EC_IO_BASE)
+		if(is_IO_category())
 		{
 			if(!m_fdinfo)
 			{
@@ -2605,7 +2605,6 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 						cat->m_subcategory = SC_OTHER;
 						break;
 					default:
-//						ASSERT(false);
 						cat->m_subcategory = SC_UNKNOWN;
 						break;
 				}

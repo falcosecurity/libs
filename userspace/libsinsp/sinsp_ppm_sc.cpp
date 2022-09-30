@@ -152,10 +152,10 @@ std::unordered_set<uint32_t> sinsp::enforce_io_ppm_sc_set(std::unordered_set<uin
 {
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_IO_READ ||
-		   g_infotables.m_syscall_info_table[i].category == EC_IO_WRITE ||
-		   g_infotables.m_syscall_info_table[i].category == EC_IO_OTHER ||
-		   g_infotables.m_syscall_info_table[i].category == EC_FILE)
+		if(g_infotables.m_syscall_info_table[i].category & EC_IO_READ ||
+		   g_infotables.m_syscall_info_table[i].category & EC_IO_WRITE ||
+		   g_infotables.m_syscall_info_table[i].category & EC_IO_OTHER ||
+		   g_infotables.m_syscall_info_table[i].category & EC_FILE)
 		{
 			ppm_sc_set.insert(i);
 		}
@@ -167,7 +167,7 @@ std::unordered_set<uint32_t> sinsp::enforce_net_ppm_sc_set(std::unordered_set<ui
 {
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_NET)
+		if(g_infotables.m_syscall_info_table[i].category & EC_NET)
 		{
 			ppm_sc_set.insert(i);
 		}
@@ -179,7 +179,7 @@ std::unordered_set<uint32_t> sinsp::enforce_proc_ppm_sc_set(std::unordered_set<u
 {
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_PROCESS)
+		if(g_infotables.m_syscall_info_table[i].category & EC_PROCESS)
 		{
 			ppm_sc_set.insert(i);
 		}
@@ -191,9 +191,9 @@ std::unordered_set<uint32_t> sinsp::enforce_sys_ppm_sc_set(std::unordered_set<ui
 {
 	for(int i = 0; i < PPM_SC_MAX; i++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_SYSTEM ||
-		   g_infotables.m_syscall_info_table[i].category == EC_MEMORY ||
-		   g_infotables.m_syscall_info_table[i].category == EC_SIGNAL)
+		if(g_infotables.m_syscall_info_table[i].category & EC_SYSTEM ||
+		   g_infotables.m_syscall_info_table[i].category & EC_MEMORY ||
+		   g_infotables.m_syscall_info_table[i].category & EC_SIGNAL)
 		{
 			ppm_sc_set.insert(i);
 		}

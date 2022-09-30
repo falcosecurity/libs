@@ -3946,50 +3946,55 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		sinsp_evt::category cat;
 		evt->get_category(&cat);
 
-		switch(cat.m_category)
+		if(cat.m_category & EC_OTHER)
 		{
-		case EC_UNKNOWN:
-			m_strstorage = "unknown";
-			break;
-		case EC_OTHER:
 			m_strstorage = "other";
-			break;
-		case EC_FILE:
+		}
+		else if(cat.m_category & EC_FILE)
+		{
 			m_strstorage = "file";
-			break;
-		case EC_NET:
+		}
+		else if(cat.m_category & EC_NET)
+		{
 			m_strstorage = "net";
-			break;
-		case EC_IPC:
+		}
+		else if(cat.m_category & EC_IPC)
+		{
 			m_strstorage = "IPC";
-			break;
-		case EC_MEMORY:
+		}
+		else if(cat.m_category & EC_MEMORY)
+		{
 			m_strstorage = "memory";
-			break;
-		case EC_PROCESS:
+		}
+		else if(cat.m_category & EC_PROCESS)
+		{
 			m_strstorage = "process";
-			break;
-		case EC_SLEEP:
+		}
+		else if(cat.m_category & EC_SLEEP)
+		{
 			m_strstorage = "sleep";
-			break;
-		case EC_SYSTEM:
+		}
+		else if(cat.m_category & EC_SYSTEM)
+		{
 			m_strstorage = "system";
-			break;
-		case EC_SIGNAL:
+		}
+		else if(cat.m_category & EC_SIGNAL)
+		{
 			m_strstorage = "signal";
-			break;
-		case EC_USER:
+		}
+		else if(cat.m_category & EC_USER)
+		{
 			m_strstorage = "user";
-			break;
-		case EC_TIME:
+		}
+		else if(cat.m_category & EC_TIME)
+		{
 			m_strstorage = "time";
-			break;
-		case EC_PROCESSING:
+		}
+		else if(cat.m_category & EC_PROCESSING)
+		{
 			m_strstorage = "processing";
-			break;
-		case EC_IO_READ:
-		case EC_IO_WRITE:
-		case EC_IO_OTHER:
+		}
+		else if(evt->is_IO_category())
 		{
 			switch(cat.m_subcategory)
 			{
@@ -4013,16 +4018,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				break;
 			}
 		}
-		break;
-		case EC_WAIT:
+		else if(cat.m_category & EC_WAIT)
+		{
 			m_strstorage = "wait";
-			break;
-		case EC_SCHEDULER:
+		}
+		else if(cat.m_category & EC_SCHEDULER)
+		{
 			m_strstorage = "scheduler";
-			break;
-		default:
+		}
+		else
+		{
 			m_strstorage = "unknown";
-			break;
 		}
 
 		RETURN_EXTRACT_STRING(m_strstorage);
@@ -4139,7 +4145,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			return (uint8_t*)argstr;
 		}
 	case TYPE_BUFLEN:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->m_fdinfo && evt->is_IO_category())
 		{
 			return extract_buflen(evt, len);
 		}
@@ -4449,7 +4455,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		}
 	case TYPE_COUNT_ERROR_MEMORY:
 		{
-			if(evt->get_category() == EC_MEMORY)
+			if(evt->get_category() & EC_MEMORY)
 			{
 				return extract_error_count(evt, len);
 			}
@@ -4491,7 +4497,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SOCKET_ACCEPT4_X ||
 					etype == PPME_SOCKET_ACCEPT4_5_X ||
 					etype == PPME_SOCKET_CONNECT_X ||
-					evt->get_category() == EC_MEMORY))
+					evt->get_category() & EC_MEMORY))
 				{
 					return extract_error_count(evt, len);
 				}
@@ -4541,21 +4547,21 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_ABSPATH:
 		return extract_abspath(evt, len);
 	case TYPE_BUFLEN_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_READ)
 		{
 			return extract_buflen(evt, len);
 		}
 
 		break;
 	case TYPE_BUFLEN_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_WRITE)
 		{
 			return extract_buflen(evt, len);
 		}
 
 		break;
 	case TYPE_BUFLEN_FILE:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->m_fdinfo && evt->is_IO_category())
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
@@ -4565,7 +4571,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_FILE_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_READ)
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
@@ -4575,7 +4581,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_FILE_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_WRITE)
 		{
 			if(evt->m_fdinfo->m_type == SCAP_FD_FILE || evt->m_fdinfo->m_type == SCAP_FD_FILE_V2)
 			{
@@ -4585,7 +4591,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET:
-		if(evt->m_fdinfo && evt->get_category() & EC_IO_BASE)
+		if(evt->m_fdinfo && evt->is_IO_category())
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
@@ -4597,7 +4603,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET_IN:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_READ)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_READ)
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
@@ -4609,7 +4615,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 
 		break;
 	case TYPE_BUFLEN_NET_OUT:
-		if(evt->m_fdinfo && evt->get_category() == EC_IO_WRITE)
+		if(evt->m_fdinfo && evt->get_category() & EC_IO_WRITE)
 		{
 			scap_fd_type etype = evt->m_fdinfo->m_type;
 
@@ -8319,4 +8325,3 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	return NULL;
 }
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-

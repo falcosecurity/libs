@@ -242,6 +242,14 @@ public:
 	}
 
 	/*!
+	  \brief Return `true` if the event belongs to the IO category.
+	*/
+	inline bool is_IO_category()
+	{
+		return m_info->category & EC_IO_READ || m_info->category & EC_IO_WRITE || m_info->category & EC_IO_OTHER;
+	}
+
+	/*!
 	  \brief Get the ID of the thread that generated the event.
 	*/
 	int64_t get_tid();
