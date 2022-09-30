@@ -20,42 +20,100 @@ limitations under the License.
 //
 // Get the string representation of a ppm_event_category
 //
-std::string get_event_category(ppm_event_category category)
+std::string get_event_category_name(ppm_event_category category)
 {
-    switch(category)
-    {
-        case EC_UNKNOWN: return "UNKNOWN";
-        case EC_OTHER: return "OTHER";
-        case EC_FILE: return "FILE";
-        case EC_NET: return "NET";
-        case EC_IPC: return "IPC";
-        case EC_MEMORY: return "MEMORY";
-        case EC_PROCESS: return "PROCESS";
-        case EC_SLEEP: return "SLEEP";
-        case EC_SYSTEM: return "SYSTEM";
-        case EC_SIGNAL: return "SIGNAL";
-        case EC_USER: return "USER";
-        case EC_TIME: return "TIME";
-        case EC_PROCESSING: return "PROCESSING";
-        case EC_IO_READ: return "IO_READ";
-        case EC_IO_WRITE: return "IO_WRITE";
-        case EC_IO_OTHER: return "IO_OTHER";
-        case EC_WAIT: return "WAIT";
-        case EC_SCHEDULER: return "SCHEDULER";
-        case EC_INTERNAL: return "INTERNAL";
-        case EC_SYSCALL: return "SYSCALL";
-        case EC_TRACEPOINT: return "TRACEPOINT";
-        case EC_PLUGIN: return "PLUGIN";
-        default: return "ERROR CONDITION";
-    };
+	if(category == EC_UNKNOWN)
+	{
+		return "UNKNOWN";
+	}
+	else if(category & EC_OTHER)
+	{
+		return "OTHER";
+	}
+	else if(category & EC_FILE)
+	{
+		return "FILE";
+	}
+	else if(category & EC_NET)
+	{
+		return "NET";
+	}
+	else if(category & EC_IPC)
+	{
+		return "IPC";
+	}
+	else if(category & EC_MEMORY)
+	{
+		return "MEMORY";
+	}
+	else if(category & EC_PROCESS)
+	{
+		return "PROCESS";
+	}
+	else if(category & EC_SLEEP)
+	{
+		return "SLEEP";
+	}
+	else if(category & EC_SYSTEM)
+	{
+		return "SYSTEM";
+	}
+	else if(category & EC_SIGNAL)
+	{
+		return "SIGNAL";
+	}
+	else if(category & EC_USER)
+	{
+		return "USER";
+	}
+	else if(category & EC_TIME)
+	{
+		return "TIME";
+	}
+	else if(category & EC_PROCESSING)
+	{
+		return "PROCESSING";
+	}
+	else if(category & EC_IO_READ)
+	{
+		return "IO_READ";
+	}
+	else if(category & EC_IO_WRITE)
+	{
+		return "IO_WRITE";
+	}
+	else if(category & EC_IO_OTHER)
+	{
+		return "IO_OTHER";
+	}
+	else if(category & EC_WAIT)
+	{
+		return "WAIT";
+	}
+	else if(category & EC_SCHEDULER)
+	{
+		return "SCHEDULER";
+	}
+	/* This is useful because there are events that have only the INTERNAL category
+	 * Categories like `EC_SYSCALL`, `EC_TRACEPOINT, `EC_PLUGIN` are always used with another
+	 * category.
+	 */
+	else if(category & EC_INTERNAL)
+	{
+		return "INTERNAL";
+	}
+	else
+	{
+		return "ERROR CONDITION";
+	}
 }
 
 //
 // Get the string representation of a ppm_event_type
 //
-std::string get_event_type(uint16_t type)
+std::string get_event_type_name(uint16_t type)
 {
-	if (type < PPM_EVENT_MAX && type != PPME_GENERIC_E && type != PPME_GENERIC_X)
+	if(type < PPM_EVENT_MAX && type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{
 		return g_infotables.m_event_info[type].name;
 	}
