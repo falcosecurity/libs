@@ -228,6 +228,7 @@ public:
 	/*!
 	  \brief Return the event category.
 	*/
+	/// TODO: in the next future we need to rename this into `get_syscall_category_from_event`
 	inline ppm_event_category get_category() const
 	{
 		/* Every event category is composed of 2 parts:
