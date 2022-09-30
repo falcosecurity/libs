@@ -1293,7 +1293,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 
 	/* Here we shouldn't receive unknown events */
-	ASSERT(!sinsp::is_unknown_event(evt->get_type()))
+	ASSERT(!sinsp::is_not_generated_event(evt->get_type()))
 
 	uint64_t ts = evt->get_ts();
 
