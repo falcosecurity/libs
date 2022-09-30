@@ -1014,7 +1014,7 @@ public:
 	 * @param event_type type of event we want to check
 	 * @return true if the event type has the `EC_GENERICAL` category.
 	 */
-	static inline bool is_additional_event(uint16_t event_type)
+	static inline bool is_generical_event(uint16_t event_type)
 	{
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_GENERICAL);
