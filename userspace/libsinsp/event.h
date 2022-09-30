@@ -238,9 +238,18 @@ public:
 	*/
 	inline ppm_event_category get_category() const
 	{
-		// Bits >= EC_SYSCALL are used as "origin" flags;
-		// we don't care about them here;
-		// they were added for future usages
+		/* Every event category is composed of 2 parts:
+		 * 1. The highest bits represent the event category:
+		 *   - `EC_SYSCALL`
+		 *   - `EC_TRACEPOINT
+		 *   - `EC_PLUGIN`
+		 *   - `EC_GENERICAL`
+		 * 
+		 * 2. The lowest bits represent the syscall category
+		 * to which the specific event belongs.
+		 * 
+		 * This function removes the highest bits, so we consider only the syscall category.
+		 */
 		const int bitmask = EC_SYSCALL - 1;
 		return static_cast<ppm_event_category>(m_info->category & bitmask);
 	}
