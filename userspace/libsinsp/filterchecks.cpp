@@ -1913,7 +1913,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.mtime", "Last modification time (mtime - epoch ns) of exe file on disk", "Last modification time (mtime - epoch nanoseconds) of executable image file on disk (inode->mtime). Time is changed by file modifications, e.g. by mknod, truncate, utime, write of more than zero bytes etc. For tracking changes in owner, group, link count or mode, use proc.exe_ino.ctime instead."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_proc_start", "Number of nanoseconds between ctime exe file and proc clone ts", "Number of nanoseconds between modifying status of executable image and spawning a new process using the changed executable image."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime_duration_pidns_start", "Number of nanoseconds between pidns start ts and ctime exe file", "Number of nanoseconds between pid namespace start ts and ctime exe file if pidns start predates ctime."},
-	{PT_UINT64, EPF_NONE, PF_DEC, "proc.pidns_init_start_ts", "Start ts of pid namespace (epoch ns)", "Start ts (epoch ns) of pid namespace; approximate start ts of container if pid in container or start ts of host if pid in host namespace."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "proc.pidns_init_start_ts", "Start ts of pid namespace (epoch ns)", "Approximate start ts (epoch ns) of pid namespace (container or non container pid namespace)."},
 };
 
 sinsp_filter_check_thread::sinsp_filter_check_thread()
@@ -6283,8 +6283,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.healthcheck", "Health Check", "The container's health check. Will be the null value (\"N/A\") if no healthcheck configured, \"NONE\" if configured but explicitly not created, and the healthcheck command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.liveness_probe", "Liveness", "The container's liveness probe. Will be the null value (\"N/A\") if no liveness probe configured, the liveness probe command line otherwise"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
-	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
-	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since the container start ts", "Number of nanoseconds since the container start ts."},
+	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Approximate container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
