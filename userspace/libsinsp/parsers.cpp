@@ -1645,7 +1645,13 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		parinfo = evt->get_param(20);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		tinfo->m_pidns_init_start_ts = *(uint64_t *)parinfo->m_val + m_inspector->m_boot_ts_epoch;
+		if (tinfo->m_vpid != tinfo->m_pid)
+		{
+			tinfo->m_pidns_init_start_ts = *(uint64_t *)parinfo->m_val + m_inspector->m_boot_ts_epoch;
+		} else
+		{
+			tinfo->m_pidns_init_start_ts = m_inspector->m_boot_ts_epoch;
+		}
 	}
 
 	//
