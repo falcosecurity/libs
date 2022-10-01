@@ -39,6 +39,7 @@ limitations under the License.
 #include <algorithm>
 #include <functional>
 #include <errno.h>
+#include <sys/stat.h>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -859,6 +860,17 @@ uint64_t sinsp_utils::get_current_time_ns()
 
 uint64_t sinsp_utils::get_host_boot_time_ns()
 {
+	char proc_dir[PPM_MAX_PATH_SIZE];
+	struct stat targetstat;
+
+	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/1/", scap_get_host_root());
+	if (stat(proc_dir, &targetstat) == 0)
+	{
+		// This approach is constant between agent re-boots
+		return targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
+	}
+
+	// Fall-back method from scap_bpf
 	struct timespec ts_uptime;
 	uint64_t now;
 	uint64_t uptime;
