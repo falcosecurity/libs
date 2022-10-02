@@ -81,10 +81,10 @@ int BPF_PROG(execveat_x,
 	unsigned long argv = extract__syscall_argument(regs, 2);
 
 	/* Parameter 2: exe (type: PT_CHARBUF) */
-	auxmap__store_single_charbuf_param_from_array(auxmap, argv, 0, USER);
+	auxmap__store_execve_exe(auxmap, (char **)argv);
 
 	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-	auxmap__store_multiple_charbufs_param_from_array(auxmap, argv, 1, USER);
+	auxmap__store_execve_args(auxmap, (char **)argv, 1);
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
@@ -167,7 +167,7 @@ int BPF_PROG(t1_execveat_x,
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	unsigned long envp = extract__syscall_argument(regs, 3);
-	auxmap__store_multiple_charbufs_param_from_array(auxmap, envp, 0, USER);
+	auxmap__store_execve_args(auxmap, (char **)envp, 0);
 
 	/* Parameter 17: tty (type: PT_INT32) */
 	u32 tty = exctract__tty(task);
