@@ -1279,10 +1279,25 @@ static __always_inline u16 store_cgroup_subsys(struct auxiliary_map *auxmap, str
 static __always_inline void auxmap__store_cgroups_param(struct auxiliary_map *auxmap, struct task_struct *task)
 {
 	uint16_t total_croups_len = 0;
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpuset_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpu_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpuacct_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, io_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, memory_cgrp_id);
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpuset_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpuset_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpu_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpu_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpuacct_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpuacct_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, io_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, io_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, memory_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, memory_cgrp_id));
+	}
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_croups_len);
 }
