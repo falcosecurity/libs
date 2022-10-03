@@ -649,7 +649,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E)
+	if(etype == PPME_CONTAINER_JSON_E ||
+	   etype == PPME_CONTAINER_JSON_2_E ||
+	   etype == PPME_USER_ADDED_E ||
+	   etype == PPME_USER_DELETED_E ||
+	   etype == PPME_GROUP_ADDED_E ||
+	   etype == PPME_GROUP_DELETED_E)
 	{
 		evt->m_tinfo = nullptr;
 		return true;
