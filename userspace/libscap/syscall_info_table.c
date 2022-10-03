@@ -46,6 +46,8 @@ static void load_syscall_info_table() {
 		}
 		// try to load category from event_table, else EC_UNKNOWN
 		g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
+#ifdef __linux__
+		// Syscall table is only present on linux
 		int j;
 		for (j = 0; j < SYSCALL_TABLE_SIZE; j++) {
 			if (g_syscall_table[j].ppm_sc == i) {
@@ -53,6 +55,7 @@ static void load_syscall_info_table() {
 				break;
 			}
 		}
+#endif
 	}
 }
 
