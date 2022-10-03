@@ -1021,15 +1021,18 @@ public:
 	}
 
 	/**
-	 * @brief Return true if the event belongs to the `EC_NOT_GENERATED` category
+	 * @brief Return true if the event belongs to the `EC_UNKNOWN` category
 	 * 
 	 * @param event_type type of event we want to check
-	 * @return true if the event type has the `EC_NOT_GENERATED` category.
+	 * @return true if the event type has the `EC_UNKNOWN` category.
 	 */
-	static inline bool is_not_generated_event(uint16_t event_type)
+	static inline bool is_unknown_event(uint16_t event_type)
 	{
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_NOT_GENERATED);
+		/* Please note this is not an `&` but an `==` if one event has 
+		 * the `EC_UNKNOWN` category, it must have only this category!
+		 */
+		return (category == EC_UNKNOWN);
 	}
 
 	/**

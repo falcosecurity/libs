@@ -246,7 +246,6 @@ public:
 		 *   - `EC_TRACEPOINT
 		 *   - `EC_PLUGIN`
 		 *   - `EC_GENERICAL`
-		 *   - `EC_NOT_GENERATED`
 		 * 
 		 * 2. The lowest bits represent the syscall category
 		 * to which the specific event belongs.
