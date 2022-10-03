@@ -303,7 +303,7 @@ bool validate_syscalls()
 		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
 		 * `g_syscall_info_table`.
 		 */
-		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && !g_syscall_info_table[ppm_syscall_code].name)
+		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && g_syscall_info_table[ppm_syscall_code].name[0] == 0)
 		{
 			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
 			success = false;

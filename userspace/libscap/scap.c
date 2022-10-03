@@ -1240,6 +1240,17 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 	return SCAP_SUCCESS;
 }
 
+int scap_native_id_to_ppm_sc(int native_id)
+{
+#ifdef __linux__
+	if (native_id < 0 || native_id >= SYSCALL_TABLE_SIZE)
+	{
+		return -1;
+	}
+	return g_syscall_table[native_id].ppm_sc;
+#endif
+}
+
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
 {
 	if(tp_array == NULL)
