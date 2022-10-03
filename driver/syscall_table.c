@@ -697,13 +697,13 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_shmat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SHMAT},
 #endif
 #ifdef __NR_rt_sigreturn
-	[__NR_rt_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGRETURN},
+	[__NR_rt_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_SIGRETURN},
 #endif
 #ifdef __NR_fallocate
 	[__NR_fallocate - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FALLOCATE},
 #endif
 #ifdef __NR_newfstatat
-	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSSTAT},
+	[__NR_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSTATAT},
 #endif
 #ifdef __NR_finit_module
 	[__NR_finit_module - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FINIT_MODULE},
@@ -1394,13 +1394,13 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_shmat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SHMAT},
 #endif
 #ifdef __NR_ia32_rt_sigreturn
-	[__NR_ia32_rt_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGRETURN},
+	[__NR_ia32_rt_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_RT_SIGRETURN},
 #endif
 #ifdef __NR_ia32_fallocate
 	[__NR_ia32_fallocate - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FALLOCATE},
 #endif
 #ifdef __NR_ia32_newfstatat
-	[__NR_ia32_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSSTAT},
+	[__NR_ia32_newfstatat - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_NEWFSTATAT},
 #endif
 #ifdef __NR_ia32_finit_module
 	[__NR_ia32_finit_module - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FINIT_MODULE},
