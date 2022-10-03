@@ -673,3 +673,47 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "3");
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "3");
 }
+
+TEST_F(sinsp_with_test_input, open_by_handle_at)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file.txt");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/tmp/the_file.txt");
+}
+
+TEST_F(sinsp_with_test_input, path_too_long)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	std::stringstream long_path_ss;
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'A');
+
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'B');
+
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'C');
+
+	std::string long_path = long_path_ss.str();
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, long_path.c_str(), PPM_O_RDWR, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, 3, long_path.c_str(), PPM_O_RDWR, 0, 5, 123);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, long_path.c_str());
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/PATH_TOO_LONG");
+}
