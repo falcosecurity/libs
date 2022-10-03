@@ -3474,7 +3474,10 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 			// Get the file path directly from the ring buffer.
 			//
 			parinfo = evt->get_param(3);
-			strcpy(fullname, parinfo->m_val);
+
+			sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, "", 0,
+				parinfo->m_val, parinfo->m_len, m_inspector->m_is_windows);
+
 			m_strstorage = fullname;
 			RETURN_EXTRACT_STRING(m_strstorage);
 		}
