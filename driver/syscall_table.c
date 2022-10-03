@@ -720,6 +720,81 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_socketcall
 	[__NR_socketcall - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SOCKETCALL },
 #endif
+#ifdef __NR_fspick
+	[__NR_fspick - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSPICK},
+#endif
+#ifdef __NR_fsmount
+	[__NR_fsmount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSMOUNT},
+#endif
+#ifdef __NR_fsopen
+	[__NR_fsopen - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSOPEN},
+#endif
+#ifdef __NR_open_tree
+	[__NR_open_tree - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OPEN_TREE},
+#endif
+#ifdef __NR_move_mount
+	[__NR_move_mount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOVE_MOUNT},
+#endif
+#ifdef __NR_mount_setattr
+	[__NR_mount_setattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOUNT_SETATTR},
+#endif
+#ifdef __NR_memfd_create
+	[__NR_memfd_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_CREATE},
+#endif
+#ifdef __NR_memfd_secret
+	[__NR_memfd_secret - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_SECRET},
+#endif
+#ifdef __NR_ioperm
+	[__NR_ioperm - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IOPERM},
+#endif
+#ifdef __NR_kexec_file_load
+	[__NR_kexec_file_load - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_KEXEC_FILE_LOAD},
+#endif
+#ifdef __NR_pidfd_getfd
+	[__NR_pidfd_getfd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_GET_FD},
+#endif
+#ifdef __NR_pidfd_open
+	[__NR_pidfd_open - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_OPEN},
+#endif
+#ifdef __NR_pidfd_send_signal
+	[__NR_pidfd_send_signal - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_SEND_SIGNAL},
+#endif
+#ifdef __NR_pkey_alloc
+	[__NR_pkey_alloc - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_ALLOC},
+#endif
+#ifdef __NR_pkey_mprotect
+	[__NR_pkey_mprotect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_MPROTECT},
+#endif
+#ifdef __NR_pkey_free
+	[__NR_pkey_free - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_FREE},
+#endif
+#ifdef __NR_landlock_create_ruleset
+	[__NR_landlock_create_ruleset - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_CREATE_RULESET},
+#endif
+#ifdef __NR_quotactl_fd
+	[__NR_quotactl_fd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_QUOTACTL_FD},
+#endif
+#ifdef __NR_landlock_restrict_self
+	[__NR_landlock_restrict_self - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_RESTRICT_SELF},
+#endif
+#ifdef __NR_landlock_add_rule
+	[__NR_landlock_add_rule - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_ADD_RULE},
+#endif
+#ifdef __NR_epoll_pwait2
+	[__NR_epoll_pwait2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_PWAIT2},
+#endif
+#ifdef __NR_migrate_pages
+	[__NR_migrate_pages - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MIGRATE_PAGES},
+#endif
+#ifdef __NR_move_pages
+	[__NR_move_pages - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOVE_PAGES},
+#endif
+#ifdef __NR_preadv2
+	[__NR_preadv2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PREADV2},
+#endif
+#ifdef __NR_pwritev2
+	[__NR_pwritev2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PWRITEV2},
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1339,6 +1414,81 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_fadvise64
 	[__NR_ia32_fadvise64 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FADVISE64},
 #endif
+#ifdef __NR_ia32_fspick
+	[__NR_ia32_fspick - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSPICK},
+#endif
+#ifdef __NR_ia32_fsmount
+	[__NR_ia32_fsmount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSMOUNT},
+#endif
+#ifdef __NR_ia32_fsopen
+	[__NR_ia32_fsopen - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_FSOPEN},
+#endif
+#ifdef __NR_ia32_open_tree
+	[__NR_ia32_open_tree - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OPEN_TREE},
+#endif
+#ifdef __NR_ia32_move_mount
+	[__NR_ia32_move_mount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOVE_MOUNT},
+#endif
+#ifdef __NR_ia32_mount_setattr
+	[__NR_ia32_mount_setattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOUNT_SETATTR},
+#endif
+#ifdef __NR_ia32_memfd_create
+	[__NR_ia32_memfd_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_CREATE},
+#endif
+#ifdef __NR_ia32_memfd_secret
+	[__NR_ia32_memfd_secret - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_SECRET},
+#endif
+#ifdef __NR_ia32_ioperm
+	[__NR_ia32_ioperm - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IOPERM},
+#endif
+#ifdef __NR_ia32_kexec_file_load
+	[__NR_ia32_kexec_file_load - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_KEXEC_FILE_LOAD},
+#endif
+#ifdef __NR_ia32_pidfd_getfd
+	[__NR_ia32_pidfd_getfd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_GET_FD},
+#endif
+#ifdef __NR_ia32_pidfd_open
+	[__NR_ia32_pidfd_open - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_OPEN},
+#endif
+#ifdef __NR_ia32_pidfd_send_signal
+	[__NR_ia32_pidfd_send_signal - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PIDFD_SEND_SIGNAL},
+#endif
+#ifdef __NR_ia32_pkey_alloc
+	[__NR_ia32_pkey_alloc - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_ALLOC},
+#endif
+#ifdef __NR_ia32_pkey_mprotect
+	[__NR_ia32_pkey_mprotect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_MPROTECT},
+#endif
+#ifdef __NR_ia32_pkey_free
+	[__NR_ia32_pkey_free - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PKEY_FREE},
+#endif
+#ifdef __NR_ia32_landlock_create_ruleset
+	[__NR_ia32_landlock_create_ruleset - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_CREATE_RULESET},
+#endif
+#ifdef __NR_ia32_quotactl_fd
+	[__NR_ia32_quotactl_fd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_QUOTACTL_FD},
+#endif
+#ifdef __NR_ia32_landlock_restrict_self
+	[__NR_ia32_landlock_restrict_self - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_RESTRICT_SELF},
+#endif
+#ifdef __NR_ia32_landlock_add_rule
+	[__NR_ia32_landlock_add_rule - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LANDLOCK_ADD_RULE},
+#endif
+#ifdef __NR_ia32_epoll_pwait2
+	[__NR_ia32_epoll_pwait2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EPOLL_PWAIT2},
+#endif
+#ifdef __NR_ia32_migrate_pages
+	[__NR_ia32_migrate_pages - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MIGRATE_PAGES},
+#endif
+#ifdef __NR_ia32_move_pages
+	[__NR_ia32_move_pages - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOVE_PAGES},
+#endif
+#ifdef __NR_ia32_preadv2
+	[__NR_ia32_preadv2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PREADV2},
+#endif
+#ifdef __NR_ia32_pwritev2
+	[__NR_ia32_pwritev2 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_PWRITEV2},
+#endif	
 };
 
 #endif /* CONFIG_IA32_EMULATION */

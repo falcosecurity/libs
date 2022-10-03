@@ -159,7 +159,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		{
 			sinsp_evt_param *parinfo = evt->get_param(0);
 			uint16_t evid = *(uint16_t *)parinfo->m_val;
-			flags = g_infotables.m_syscall_info_table[evid].flags;
+			flags = EF_NONE;
 		}
 		else
 		{
