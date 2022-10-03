@@ -2543,6 +2543,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		 */
 		parinfo = evt->get_param(3);
 		name = parinfo->m_val;
+		namelen = parinfo->m_len;
+
+		// since open_by_handle_at returns an absolute path we will always start at /
+		sdir = "";
 	}
 	else
 	{
@@ -2556,15 +2560,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//mode = *(uint32_t*)parinfo->m_val;
 
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	if (etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
-	{
-		sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
-			name, namelen, m_inspector->m_is_windows);
-	}
-	else
-	{
-		strcpy(fullpath, name);
-	}
+
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(),
+		name, namelen, m_inspector->m_is_windows);
 
 	if(fd >= 0)
 	{
