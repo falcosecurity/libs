@@ -585,6 +585,35 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 }
 
+TEST_F(sinsp_with_test_input, check_event_category)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	/* Check that `EC_SYSCALL` category is not considered */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+	ASSERT_EQ(evt->get_category(), EC_FILE);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
+
+	/* Check that `EC_TRACEPOINT` category is not considered */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, 0, 0, 0, 0);
+	ASSERT_EQ(evt->get_category(), EC_PROCESS);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
+
+	/* Check that `EC_METAEVENT` category is not considered */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_E, 2, 0, "data");
+	ASSERT_EQ(evt->get_category(), EC_OTHER);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "other");
+
+	/* Check that `EC_UNKNOWN` category is not considered */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_X, 0);
+	ASSERT_EQ(evt->get_category(), EC_UNKNOWN);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "unknown");
+}
+
 // test user tracking with setuid
 TEST_F(sinsp_with_test_input, setuid_setgid)
 {
