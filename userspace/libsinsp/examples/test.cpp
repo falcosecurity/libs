@@ -394,7 +394,7 @@ void plaintext_dump(sinsp& inspector)
 
 			cout << "[PPID=" << parent_pid << "]:"
 			     << "[PID=" << thread->m_pid << "]:"
-			     << "[TYPE=" << get_event_type_name(ev->get_type()) << "]:"
+			     << "[TYPE=" << get_event_type_name(inspector, ev) << "]:"
 			     << "[EXE=" << thread->get_exepath() << "]:"
 			     << "[CMD=" << cmdline << "]"
 			     << endl;
