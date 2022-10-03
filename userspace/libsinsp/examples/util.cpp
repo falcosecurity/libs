@@ -22,11 +22,7 @@ limitations under the License.
 //
 std::string get_event_category_name(ppm_event_category category)
 {
-    /* Should be enforced by the caller but just to be sure */
-    const int bitmask = EC_SYSCALL - 1;
-    ppm_event_category syscall_category = static_cast<ppm_event_category>(category & bitmask);
-
-    switch(syscall_category)
+    switch(category)
     {
         case EC_UNKNOWN: return "UNKNOWN";
         case EC_OTHER: return "OTHER";
