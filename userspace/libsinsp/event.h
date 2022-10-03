@@ -206,6 +206,15 @@ public:
 	}
 
 	/*!
+	  \brief Get the event's category.
+	  [DEPRECATED] use `get_category()` instead of this method.
+	*/
+	inline ppm_event_category get_info_category() const
+	{
+		return get_category();
+	}
+
+	/*!
 	  \brief Return the event direction: in or out.
 	*/
 	event_direction get_direction() const;
