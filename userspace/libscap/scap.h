@@ -522,8 +522,7 @@ typedef struct scap_dumper scap_dumper_t;
 */
 struct ppm_syscall_desc {
 	enum ppm_event_category category; /**< System call category. */
-	enum ppm_event_flags flags;
-	char *name; /**< System call name, e.g. 'open'. */
+	char name[PPM_MAX_NAME_LEN]; /**< System call name, e.g. 'open'. */
 };
 
 /*!

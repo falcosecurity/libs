@@ -44,24 +44,25 @@ limitations under the License.
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
 #define PRINT_HELP_OPTION "--help"
 
-extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
+static const struct ppm_syscall_desc *g_syscall_info_table;
+
 /* Engine params */
-struct scap_bpf_engine_params bpf_params = {0};
-struct scap_kmod_engine_params kmod_params = {0};
-struct scap_modern_bpf_engine_params modern_bpf_params = {0};
-struct scap_savefile_engine_params savefile_params = {0};
+static struct scap_bpf_engine_params bpf_params;
+static struct scap_kmod_engine_params kmod_params;
+static struct scap_modern_bpf_engine_params modern_bpf_params;
+static struct scap_savefile_engine_params savefile_params;
 
 /* Configuration variables set through CLI. */
-uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
-int evt_type = -1;		  /* event type to print. */
-bool ppm_sc_is_set = 0;
-bool tp_is_set = 0;
-unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+static uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
+static int evt_type = -1;		  /* event type to print. */
+static bool ppm_sc_is_set = 0;
+static bool tp_is_set = 0;
+static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
-int simple_set[] = {
+static int simple_set[] = {
 	PPM_SC_ACCEPT,
 	PPM_SC_ACCEPT4,
 	PPM_SC_BIND,
@@ -146,14 +147,14 @@ int simple_set[] = {
 };
 
 /* Generic global variables. */
-scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
-uint64_t g_nevts = 0;							    /* total number of events captured. */
-scap_t* g_h = NULL;							    /* global scap handler. */
-uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
-char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
-struct timeval tval_start, tval_end, tval_result;
-unsigned long number_of_timeouts = 0; /* Times in which there were no events in the buffer. */
-unsigned long number_of_scap_next = 0; /* Times in which the 'scap-next' method is called. */
+static scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
+static uint64_t g_nevts = 0;							    /* total number of events captured. */
+static scap_t* g_h = NULL;							    /* global scap handler. */
+static uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
+static char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
+static struct timeval tval_start, tval_end, tval_result;
+static unsigned long number_of_timeouts; /* Times in which there were no events in the buffer. */
+static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -989,6 +990,8 @@ int main(int argc, char** argv)
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
 		return EXIT_FAILURE;
 	}
+
+	g_syscall_info_table = scap_get_syscall_info_table();
 
 	parse_CLI_options(argc, argv);
 

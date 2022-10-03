@@ -35,7 +35,6 @@ limitations under the License.
 //
 const struct ppm_event_info* scap_get_event_info_table()
 {
-	ASSERT(validate_info_table_size());
 	return g_event_info;
 }
 

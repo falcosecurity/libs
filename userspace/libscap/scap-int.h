@@ -302,9 +302,7 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
-extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
-extern bool validate_info_table_size();
 
 //
 // udig stuff
