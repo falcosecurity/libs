@@ -6,7 +6,7 @@
 #define TRACEPOINT_EVENTS_NUM 7
 #define GENERICAL_EVENTS_NUM 19
 #define PLUGIN_EVENTS_NUM 1
-#define NOT_GENERATED_EVENTS_NUM 19
+#define UNKNOWN_EVENTS_NUM 19
 
 /* Check if the events category is correct in our event table.
  * This test will not pass if we forget to update the event table
@@ -18,7 +18,7 @@ TEST(event_table, check_events_category)
 	int num_tracepoint_events = 0;
 	int num_generical_events = 0;
 	int num_plugin_events = 0;
-	int num_not_generated_events = 0;
+	int num_unknown_events = 0;
 
 	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
 	{
@@ -42,9 +42,9 @@ TEST(event_table, check_events_category)
 			num_plugin_events++;
 		}
 
-		if(g_infotables.m_event_info[event_num].category == EC_NOT_GENERATED)
+		if(g_infotables.m_event_info[event_num].category == EC_UNKNOWN)
 		{
-			num_not_generated_events++;
+			num_unknown_events++;
 		}
 	}
 
@@ -52,8 +52,8 @@ TEST(event_table, check_events_category)
 	ASSERT_EQ(num_tracepoint_events, TRACEPOINT_EVENTS_NUM);
 	ASSERT_EQ(num_generical_events, GENERICAL_EVENTS_NUM);
 	ASSERT_EQ(num_plugin_events, PLUGIN_EVENTS_NUM);
-	ASSERT_EQ(num_not_generated_events, NOT_GENERATED_EVENTS_NUM);
-	ASSERT_EQ(num_syscall_events + num_tracepoint_events + num_generical_events + num_plugin_events + num_not_generated_events, PPM_EVENT_MAX);
+	ASSERT_EQ(num_unknown_events, UNKNOWN_EVENTS_NUM);
+	ASSERT_EQ(num_syscall_events + num_tracepoint_events + num_generical_events + num_plugin_events + num_unknown_events, PPM_EVENT_MAX);
 }
 
 /* The event category is composed of 2 parts:
@@ -62,7 +62,6 @@ TEST(event_table, check_events_category)
  *   - `EC_TRACEPOINT
  *   - `EC_PLUGIN`
  *   - `EC_GENERICAL`
- *   - `EC_NOT_GENERATED`
  *
  * 2. The lowest bits represent the syscall category
  * to which the specific event belongs.
