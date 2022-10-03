@@ -50,11 +50,20 @@ std::string get_event_category_name(ppm_event_category category)
 //
 // Get the string representation of a ppm_event_type
 //
-std::string get_event_type_name(uint16_t type)
+std::string get_event_type_name(sinsp& inspector, sinsp_evt* ev)
 {
-	if (type < PPM_EVENT_MAX && type != PPME_GENERIC_E && type != PPME_GENERIC_X)
+	uint16_t type = ev->get_type();
+	if (type >= PPM_EVENT_MAX)
+	{
+		return "UNKNOWN " + to_string(type);
+	}
+	if (type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{
 		return g_infotables.m_event_info[type].name;
 	}
-	return "UNKNOWN " + to_string(type);
+
+	auto tables = inspector.get_event_info_tables();
+	sinsp_evt_param *parinfo = ev->get_param(0);
+	uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
+	return tables->m_syscall_info_table[ppm_sc].name;
 }

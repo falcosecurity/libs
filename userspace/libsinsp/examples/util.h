@@ -25,4 +25,4 @@ std::string get_event_category_name(ppm_event_category category);
 //
 // Get the string representation of a ppm_event_type
 //
-std::string get_event_type_name(uint16_t type);
+std::string get_event_type_name(sinsp& inspector, sinsp_evt* ev);
