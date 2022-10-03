@@ -686,6 +686,11 @@ TEST_F(sinsp_with_test_input, open_by_handle_at)
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file.txt");
 	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/tmp/the_file.txt");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 6, 7, PPM_O_RDWR, "<NA>");
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "<NA>");
 }
 
 TEST_F(sinsp_with_test_input, path_too_long)
