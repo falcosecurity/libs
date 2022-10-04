@@ -549,7 +549,7 @@ inline void sinsp_tracerparser::delete_char(char* p)
 inline void sinsp_tracerparser::parse_simple(char* evtstr)
 {
 	char* p = evtstr;
-	uint32_t delta;
+	uint32_t delta = 0;
 
 	//
 	// Extract the type
