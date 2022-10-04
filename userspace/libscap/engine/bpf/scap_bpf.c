@@ -321,7 +321,7 @@ static int32_t load_elf_maps_section(struct bpf_engine *handle, struct bpf_map_d
 				     int maps_shndx, Elf *elf, Elf_Data *symbols,
 				     int strtabidx, int *nr_maps)
 {
-	Elf_Data *data_maps;
+	Elf_Data *data_maps = NULL;
 	GElf_Sym *sym;
 	Elf_Scn *scn;
 	int i;
