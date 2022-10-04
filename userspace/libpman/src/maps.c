@@ -98,7 +98,7 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 	bpf_prog = bpf_object__find_program_by_name(g_state.skel->obj, bpf_prog_name);
 	if(!bpf_prog)
 	{
-		sprintf(error_message, "unable to find BPF program '%s'", bpf_prog_name);
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to find BPF program '%s'", bpf_prog_name);
 		pman_print_error((const char*)error_message);
 		goto clean_add_program_to_tail_table;
 	}
@@ -106,14 +106,14 @@ static int add_bpf_program_to_tail_table(int tail_table_fd, const char* bpf_prog
 	bpf_prog_fd = bpf_program__fd(bpf_prog);
 	if(bpf_prog_fd <= 0)
 	{
-		sprintf(error_message, "unable to get the fd for BPF program '%s'", bpf_prog_name);
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the fd for BPF program '%s'", bpf_prog_name);
 		pman_print_error((const char*)error_message);
 		goto clean_add_program_to_tail_table;
 	}
 
 	if(bpf_map_update_elem(tail_table_fd, &key, &bpf_prog_fd, BPF_ANY))
 	{
-		sprintf(error_message, "unable to update the tail table with BPF program '%s'", bpf_prog_name);
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to update the tail table with BPF program '%s'", bpf_prog_name);
 		pman_print_error((const char*)error_message);
 		goto clean_add_program_to_tail_table;
 	}
