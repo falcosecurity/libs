@@ -43,7 +43,7 @@ public:
 	uint32_t m_bcast;
 	string m_name;
 private:
-	static void convert_to_string(char * dest, const uint32_t addr);
+	static void convert_to_string(char * dest, size_t len, const uint32_t addr);
 };
 
 //
