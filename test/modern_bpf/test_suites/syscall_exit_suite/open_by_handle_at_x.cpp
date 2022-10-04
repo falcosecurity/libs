@@ -1,3 +1,4 @@
+#include "../../../../userspace/common/strlcpy.h"
 #include "../../event_class/event_class.h"
 #include <sys/mount.h>
 
@@ -86,7 +87,7 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 */
 	if(use_mountpoint)
 	{
-		strcpy(fspath, dir_name);
+		strlcpy(fspath, dir_name, MAX_FSPATH_LEN);
 	}
 	else
 	{
