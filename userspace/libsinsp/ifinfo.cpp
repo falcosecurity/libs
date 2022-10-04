@@ -35,10 +35,11 @@ sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t b
 	m_name = name;
 }
 
-void sinsp_ipv4_ifinfo::convert_to_string(char * dest, const uint32_t addr)
+void sinsp_ipv4_ifinfo::convert_to_string(char * dest, size_t len, const uint32_t addr)
 {
-	sprintf(
+	snprintf(
 		dest,
+		len,
 		"%d.%d.%d.%d",
 		(addr & 0xFF),
 		((addr & 0xFF00) >> 8),
@@ -49,7 +50,7 @@ void sinsp_ipv4_ifinfo::convert_to_string(char * dest, const uint32_t addr)
 string sinsp_ipv4_ifinfo::address() const
 {
 	char str_addr[16];
-	convert_to_string(str_addr, m_addr);
+	convert_to_string(str_addr, sizeof(str_addr), m_addr);
 	return string(str_addr);
 }
 
@@ -60,9 +61,9 @@ string sinsp_ipv4_ifinfo::to_string() const
 	char s_netmask[16];
 	char s_bcast[16];
 
-	convert_to_string(str_addr, m_addr);
-	convert_to_string(s_netmask, m_netmask);
-	convert_to_string(s_bcast, m_bcast);
+	convert_to_string(str_addr, sizeof(str_addr), m_addr);
+	convert_to_string(s_netmask, sizeof(str_addr), m_netmask);
+	convert_to_string(s_bcast, sizeof(str_addr), m_bcast);
 	snprintf(s, sizeof(s), "%s inet %s netmask %s broadcast %s", m_name.c_str(), str_addr, s_netmask, s_bcast);
 	return string(s);
 }
