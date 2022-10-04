@@ -23,6 +23,7 @@ limitations under the License.
 #include <iphlpapi.h>
 
 #include "../common/types.h"
+#include "../common/strlcpy.h"
 #define DRAGENT_WIN_HAL_C_ONLY
 #include "win_hal/win_hal_public.h"
 #include "scap.h"
@@ -268,7 +269,7 @@ int32_t scap_create_userlist_windows(scap_t* handle)
 		}
 		else
 		{
-			strcpy(handle->m_userlist->users[j].name, "NA");
+			strlcpy(handle->m_userlist->users[j].name, "NA", WH_MAX_PATH_SIZE+1);
 		}
 
 		//
@@ -290,7 +291,7 @@ int32_t scap_create_userlist_windows(scap_t* handle)
 	// Only one fake group, since windows doesn't have unix groups
 	//
 	handle->m_userlist->groups[0].gid = 0;
-	strcpy(handle->m_userlist->groups[0].name, "NA");
+	strlcpy(handle->m_userlist->groups[0].name, "NA", WH_MAX_PATH_SIZE + 1);
 
 	return SCAP_SUCCESS;
 }
@@ -576,7 +577,7 @@ static int32_t addprocess_windows(wh_procinfo* wpi, scap_t* handle, char* error)
 			switch(wfd->type)
 			{
 			case WH_FD_FILE:
-				strncpy(fdi->info.fname, 
+				strlcpy(fdi->info.fname, 
 					wfd->info.fname + 4, // the +4 removes the "\\?\" from the beginning of the string
 					SCAP_MAX_PATH_SIZE - 1);
 				fdi->info.fname[SCAP_MAX_PATH_SIZE - 1] = 0;
