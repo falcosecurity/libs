@@ -2938,12 +2938,15 @@ MODULE_INFO(build_commit, DRIVER_COMMIT);
 MODULE_INFO(api_version, PPM_API_CURRENT_VERSION_STRING);
 MODULE_INFO(schema_version, PPM_SCHEMA_CURRENT_VERSION_STRING);
 
+/* the `const` qualifier will be discarded on old kernel versions (<`2.6.36`) */
 static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp)
 {
 	unsigned long dim = 0;
 
-	/* `kstrtoul` is defined only on these kernels. */ 
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 37)
+	/* `kstrtoul` is defined only on these kernels.
+	 * https://elixir.bootlin.com/linux/v2.6.39/source/include/linux/kernel.h#L197
+	 */ 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
 	int ret = 0;
 	ret = kstrtoul(val, 10, &dim);
 	if(ret != 0)
@@ -2972,7 +2975,16 @@ static int set_g_buffer_bytes_dim(const char *val, const struct kernel_param *kp
 	return param_set_ulong(val, kp);
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+/* `struct kernel_param_ops` and `module_param_cb` are defined only on kernels >= `2.6.36` */
+static const struct kernel_param_ops g_buffer_bytes_dim_ops = {
+	.set	= set_g_buffer_bytes_dim,
+	.get	= param_get_ulong,
+};
+module_param_cb(g_buffer_bytes_dim, &g_buffer_bytes_dim_ops, &g_buffer_bytes_dim, 0644);
+#else
 module_param_call(g_buffer_bytes_dim, set_g_buffer_bytes_dim, param_get_ulong, &g_buffer_bytes_dim, 0644);
+#endif
 MODULE_PARM_DESC(g_buffer_bytes_dim, "This is the dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.");
 module_param(max_consumers, uint, 0444);
 MODULE_PARM_DESC(max_consumers, "Maximum number of consumers that can simultaneously open the devices");
