@@ -517,9 +517,9 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	{
 		m_user.uid = uid;
 		m_user.gid = m_group.gid;
-		strcpy(m_user.name, "<NA>");
-		strcpy(m_user.homedir, "<NA>");
-		strcpy(m_user.shell, "<NA>");
+		strlcpy(m_user.name, "<NA>", sizeof(m_user.name));
+		strlcpy(m_user.homedir, "<NA>", sizeof(m_user.homedir));
+		strlcpy(m_user.shell, "<NA>", sizeof(m_user.shell));
 	}
 }
 
@@ -539,7 +539,7 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	else
 	{
 		m_group.gid = gid;
-		strcpy(m_group.name, "<NA>");
+		strlcpy(m_group.name, "<NA>", sizeof(m_group.name));
 	}
 	// Force-sync user.gid and group id
 	m_user.gid = m_group.gid;
@@ -562,9 +562,9 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 	{
 		m_loginuser.uid = loginuid;
 		m_loginuser.gid = m_group.gid;
-		strcpy(m_loginuser.name, "<NA>");
-		strcpy(m_loginuser.homedir, "<NA>");
-		strcpy(m_loginuser.shell, "<NA>");
+		strlcpy(m_loginuser.name, "<NA>", sizeof(m_loginuser.name));
+		strlcpy(m_loginuser.homedir, "<NA>", sizeof(m_loginuser.homedir));
+		strlcpy(m_loginuser.shell, "<NA>", sizeof(m_loginuser.shell));
 	}
 }
 
