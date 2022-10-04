@@ -1040,7 +1040,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 
 			if(NULL == inet_ntop(AF_INET6, rawval, address, INET6_ADDRSTRLEN))
 			{
-				strcpy(address, "<NA>");
+				strlcpy(address, "<NA>", INET6_ADDRSTRLEN);
 			}
 
 			strlcpy(m_getpropertystr_storage, address, sizeof(m_getpropertystr_storage));
@@ -1097,7 +1097,7 @@ char* sinsp_filter_check::tostring(sinsp_evt* evt)
 			res += rawval_to_string(val.ptr, m_field->m_type, m_field->m_print_format, val.len);
 		}
 		res += ")";
-		strncpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage) - 1);
+		strlcpy(m_getpropertystr_storage, res.c_str(), sizeof(m_getpropertystr_storage));
 		return m_getpropertystr_storage;
 	}
 	return rawval_to_string(m_extracted_values[0].ptr, m_field->m_type, m_field->m_print_format, m_extracted_values[0].len);
