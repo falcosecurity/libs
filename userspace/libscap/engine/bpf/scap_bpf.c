@@ -548,7 +548,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	}
 
 	handle->m_bpf_progs[handle->m_bpf_prog_cnt].fd = fd;
-	strncpy(handle->m_bpf_progs[handle->m_bpf_prog_cnt].name, full_event, NAME_MAX);
+	strlcpy(handle->m_bpf_progs[handle->m_bpf_prog_cnt].name, full_event, NAME_MAX);
 	handle->m_bpf_prog_cnt++;
 
 	if(memcmp(event, "filler/", sizeof("filler/") - 1) == 0)
@@ -599,9 +599,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	}
 	else
 	{
-		strcpy(buf, "/sys/kernel/debug/tracing/events/");
-		strcat(buf, event);
-		strcat(buf, "/id");
+		snprintf(buf, sizeof(buf), "/sys/kernel/debug/tracing/events/%s/id", event);
 
 		efd = open(buf, O_RDONLY, 0);
 		if(efd < 0)
