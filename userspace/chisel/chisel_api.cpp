@@ -29,6 +29,7 @@ limitations under the License.
 #endif
 #include <json/json.h>
 
+#include "../common/strlcpy.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "chisel.h"
@@ -170,7 +171,7 @@ uint32_t lua_cbacks::rawval_to_lua_stack(lua_State *ls, uint8_t* rawval, ppm_par
 
 				if(NULL == inet_ntop(AF_INET6, ip->m_b, address, 100))
 				{
-					strcpy(address, "<NA>");
+					strlcpy(address, "<NA>", sizeof(address));
 				}
 
 				strlcpy(ch->m_lua_fld_storage,
@@ -980,14 +981,14 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 					// Now convert the raw sip/cip to strings
 					if(NULL == inet_ntop(af, sip, sipbuf, sizeof(sipbuf)))
 					{
-						strcpy(sipbuf, "<NA>");
+						strlcpy(sipbuf, "<NA>", sizeof(sipbuf));
 					}
 
 					if(cip)
 					{
 						if(NULL == inet_ntop(af, cip, cipbuf, sizeof(cipbuf)))
 						{
-							strcpy(cipbuf, "<NA>");
+							strlcpy(cipbuf, "<NA>", sizeof(cipbuf));
 						}
 					}
 
