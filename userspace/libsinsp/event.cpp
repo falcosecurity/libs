@@ -238,7 +238,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 	for(j = 0; j < srclen; j += 8 * sizeof(uint16_t))
 	{
 		k = 0;
-		k += sprintf(row + k, "\n\t0x%.4x:", j);
+		k += snprintf(row + k, sizeof(row) - k, "\n\t0x%.4x:", j);
 
 		ptr = &src[j];
 		num_chunks = 0;
@@ -248,11 +248,11 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 
 			if(ptr == src + srclen - 1)
 			{
-				k += sprintf(row + k, " %.2x", *(((uint8_t*)&chunk) + 1));
+				k += snprintf(row + k, sizeof(row) - k, " %.2x", *(((uint8_t*)&chunk) + 1));
 			}
 			else
 			{
-				k += sprintf(row + k, " %.4x", chunk);
+				k += snprintf(row + k, sizeof(row) - k, " %.4x", chunk);
 			}
 
 			num_chunks++;
@@ -295,7 +295,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 			truncated = true;
 			break;
 		}
-		strcpy(dst + l, row);
+		strlcpy(dst + l, row, dstlen - l);
 		l += row_len;
 	}
 
