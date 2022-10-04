@@ -22,17 +22,19 @@ limitations under the License.
     #include <dlfcn.h>
     typedef void* library_handle_t;
 #endif
+
+#include "../common/strlcpy.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "plugin_loader.h"
 
-static inline void add_str_prefix(char* s, const char* prefix)
+static inline void add_err_prefix(char* s, const char* prefix)
 {
     char tmp[PLUGIN_MAX_ERRLEN];
-    strncpy(tmp, prefix, PLUGIN_MAX_ERRLEN - 1);
-    strncat(tmp, s, PLUGIN_MAX_ERRLEN - 1);
-    strcpy(s, tmp);
+    size_t prefix_len = strlcpy(tmp, prefix, PLUGIN_MAX_ERRLEN);
+    strlcpy(&tmp[prefix_len], s, PLUGIN_MAX_ERRLEN - prefix_len);
+    strlcpy(s, tmp, PLUGIN_MAX_ERRLEN);
 }
 
 static void* getsym(library_handle_t handle, const char* name)
@@ -51,7 +53,7 @@ static void* getsym(library_handle_t handle, const char* name)
 plugin_handle_t* plugin_load(const char* path, char* err)
 {
     // alloc and init memory
-    strcpy(err, "");
+    err[0] = '\0';
     plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
 
     // open dynamic library
@@ -65,7 +67,7 @@ plugin_handle_t* plugin_load(const char* path, char* err)
         LPTSTR msg_buf = 0;
         if (FormatMessageA(flg, 0, GetLastError(), 0, (LPTSTR) &msg_buf, 0, NULL) && msg_buf)
         {
-            strncpy(err, msg_buf, PLUGIN_MAX_ERRLEN -1 );
+            strlcpy(err, msg_buf, PLUGIN_MAX_ERRLEN);
             LocalFree(msg_buf);
         }
     }
@@ -73,14 +75,14 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     ret->handle = dlopen(path, RTLD_LAZY);
     if (ret->handle == NULL)
     {
-        strncpy(err, (const char*) dlerror(), PLUGIN_MAX_ERRLEN - 1);
+        strlcpy(err, (const char*) dlerror(), PLUGIN_MAX_ERRLEN);
     }
 #endif
 
     // return NULL if library loading had errors
     if (ret->handle == NULL)
     {
-        add_str_prefix(err, "can't load plugin dynamic library: ");
+        add_err_prefix(err, "can't load plugin dynamic library: ");
         free(ret);
         return NULL;
     }
@@ -155,7 +157,7 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
     const char *ver, *failmsg;
     if (h->api.get_required_api_version == NULL)
     {
-        strncpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN - 1);
+        strlcpy(err, "plugin_get_required_api_version symbol not implemented", PLUGIN_MAX_ERRLEN);
         return false;
     }
 
