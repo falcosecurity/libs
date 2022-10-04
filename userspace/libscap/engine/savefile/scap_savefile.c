@@ -29,6 +29,7 @@ struct iovec {
 };
 #endif
 
+#include "../common/strlcpy.h"
 #include "savefile.h"
 #include "scap.h"
 #include "scap-int.h"
@@ -2182,7 +2183,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 	{
 		char error[SCAP_LASTERR_SIZE];
 		snprintf(error, SCAP_LASTERR_SIZE, "could not restart capture: %s", scap_getlasterr(handle));
-		strncpy(handle->m_lasterr, error, SCAP_LASTERR_SIZE);
+		strlcpy(handle->m_lasterr, error, SCAP_LASTERR_SIZE);
 	}
 	return res;
 }
