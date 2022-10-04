@@ -50,7 +50,7 @@ int pman_print_stats()
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
-			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
@@ -98,7 +98,7 @@ int pman_get_scap_stats(void *scap_stats_struct)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
-			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
@@ -129,7 +129,7 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
-			sprintf(error_message, "unbale to get the counter map for CPU %d", index);
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
