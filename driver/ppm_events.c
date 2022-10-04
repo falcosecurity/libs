@@ -240,10 +240,14 @@ int32_t dpi_lookahead_init(void)
 #ifndef UDIG
 inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 	/*
 	 * Avoid calling sock->ops->getname(), because in certain kernel versions,
 	 * the getname functions may take a lock, which violates the limitations of
 	 * the RCU lock execution environment which is used by the kernel module.
+	 *
+	 * An example is the usage of `BPF_CGROUP_RUN_SA_PROG_LOCK` since kernel version `5.8.0`
+	 * https://elixir.bootlin.com/linux/v5.8/source/net/ipv4/af_inet.c#L785
 	 *
 	 * For efficiency, only fill in sockaddr fields actually used by the
 	 * kernel module logic; in particular, skip filling in
@@ -334,6 +338,15 @@ inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int 
 	}
 
 	return 0;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+	int ret = sock->ops->getname(sock, sock_address, peer);
+	if (ret >= 0)
+		ret = 0;
+	return ret;
+#else
+	int sockaddr_len;
+	return sock->ops->getname(sock, sock_address, &sockaddr_len, peer);
+#endif
 }
 
 /**
