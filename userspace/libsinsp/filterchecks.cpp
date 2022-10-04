@@ -5189,28 +5189,31 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae, OUT 
 	}
 
 	char* p = m_storage;
+	size_t storage_len = 0;
 
 	for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
 		namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin();
 		nameit != pae->m_argnames.end();
 		++nameit, ++namesit, ++valit, ++valsit)
 	{
-		strcpy(p, *nameit);
-		p += (*namesit);
-		*p++ = '=';
+		strlcpy(p + storage_len, *nameit, m_storage_size - storage_len);
+		storage_len += (*namesit);
+		m_storage[storage_len] = '=';
+		storage_len++;
 
-		memcpy(p, *valit, (*valsit));
-		p += (*valsit);
-		*p++ = ',';
+		memcpy(p + storage_len, *valit, (*valsit));
+		storage_len += (*valsit);
+		m_storage[storage_len] = ',';
+		storage_len++;
 	}
 
-	if(p != m_storage)
+	if (storage_len == 0)
 	{
-		*--p = 0;
+		m_storage[0] = '\0';
 	}
 	else
 	{
-		*p = 0;
+		m_storage[storage_len - 1] = '\0';
 	}
 
 	RETURN_EXTRACT_CSTR(m_storage);
@@ -5886,28 +5889,31 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 		}
 
 		char* p = m_storage;
+		size_t storage_len = 0;
 
 		for(nameit = pae->m_argnames.begin(), valit = pae->m_argvals.begin(),
 			namesit = pae->m_argnamelens.begin(), valsit = pae->m_argvallens.begin();
 			nameit != pae->m_argnames.end();
 			++nameit, ++namesit, ++valit, ++valsit)
 		{
-			strcpy(p, *nameit);
-			p += (*namesit);
-			*p++ = ':';
+			strlcpy(p + storage_len, *nameit, m_storage_size - storage_len);
+			storage_len += (*namesit);
+			m_storage[storage_len] = ':';
+			storage_len++;
 
-			memcpy(p, *valit, (*valsit));
-			p += (*valsit);
-			*p++ = ',';
+			memcpy(p + storage_len, *valit, (*valsit));
+			storage_len += (*valsit);
+			m_storage[storage_len] = ',';
+			storage_len++;
 		}
 
-		if(p != m_storage)
+		if (storage_len == 0)
 		{
-			*--p = 0;
+			m_storage[0] = '\0';
 		}
 		else
 		{
-			*p = 0;
+			m_storage[storage_len - 1] = '\0';
 		}
 
 		RETURN_EXTRACT_CSTR(m_storage);
