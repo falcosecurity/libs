@@ -1,3 +1,5 @@
+
+#include "../../../userspace/common/strlcpy.h"
 #include "event_class.h"
 #include <time.h>
 
@@ -309,10 +311,7 @@ void event_test::client_fill_sockaddr_un(struct sockaddr_un* sockaddr, const cha
 	memset(sockaddr, 0, sizeof(*sockaddr));
 	sockaddr->sun_family = AF_UNIX;
 
-	if(strncpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH) == NULL)
-	{
-		FAIL() << "'strncpy (client)' must not fail." << std::endl;
-	}
+	strlcpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH);
 }
 
 void event_test::server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const char* unix_path)
@@ -320,10 +319,7 @@ void event_test::server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const cha
 	memset(sockaddr, 0, sizeof(*sockaddr));
 	sockaddr->sun_family = AF_UNIX;
 
-	if(strncpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH) == NULL)
-	{
-		FAIL() << "'strncpy (server)' must not fail." << std::endl;
-	}
+	strlcpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH);
 }
 
 void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr)
@@ -535,16 +531,11 @@ void event_test::assert_cgroup_param(int param_num)
 
 	for(int index = 0; index < CGROUP_NUMBER; index++)
 	{
-		/* 'strcpy()' takes also the '\0'. */
-		strcpy(cgroup_string, m_event_params[m_current_param].valptr + total_len);
-		/* 'strlen()' does not include the terminating null byte '\0'. */
-		total_len += strlen(cgroup_string) + 1;
+		total_len += strlcpy(cgroup_string, m_event_params[m_current_param].valptr + total_len, sizeof(cgroup_string));
+		total_len += 1;
+
 		prefix_len = strlen(cgroup_prefix_array[index]);
-		strncpy(cgroup_prefix, cgroup_string, prefix_len);
-		/* add the NULL terminator.
-		 * Pay attention to buffer overflow if you change the `MAX_CGROUP_PREFIX_LEN`.
-		 */
-		cgroup_prefix[prefix_len] = '\0';
+		strlcpy(cgroup_prefix, cgroup_string, prefix_len);
 		ASSERT_STREQ(cgroup_prefix, cgroup_prefix_array[index]) << VALUE_NOT_CORRECT << m_current_param;
 	}
 	assert_param_len(total_len);
