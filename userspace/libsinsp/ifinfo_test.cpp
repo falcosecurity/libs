@@ -54,10 +54,11 @@ sinsp_ipv4_ifinfo make_ipv4_localhost()
 }
 
 
-void convert_to_string(char* dest, uint32_t addr)
+void convert_to_string(char* dest, size_t len, uint32_t addr)
 {
-	sprintf(
+	snprintf(
 		dest, 
+		len,
 		"%d.%d.%d.%d", 
 		(addr & 0xFF),
 		((addr & 0xFF00) >> 8),
@@ -69,7 +70,7 @@ void convert_to_string(char* dest, uint32_t addr)
 
 #define EXPECT_ADDR_EQ(dotted_notation,addr) {\
 	char buf[17];\
-	convert_to_string(buf,addr);\
+	convert_to_string(buf,17,addr);\
 	EXPECT_STREQ(dotted_notation,buf);\
 };
 
