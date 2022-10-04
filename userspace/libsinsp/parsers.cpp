@@ -1934,7 +1934,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			 */
 			if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
 			{
-				strncpy(fullpath, "<NA>", 5);
+				strlcpy(fullpath, "<NA>", 5);
 			}
 			else
 			{
@@ -1996,7 +1996,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			   sdir.compare("<UNKNOWN>") == 0)
 			{
 				/* we copy also the string terminator `\0`. */
-				strncpy(fullpath, "<NA>", 5);
+				strlcpy(fullpath, "<NA>", 5);
 			} 
 			/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
 			 * to sanitize it. 
