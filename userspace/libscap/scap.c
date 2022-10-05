@@ -1246,6 +1246,23 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 	return SCAP_SUCCESS;
 }
 
+bool scap_is_generable_event(uint16_t event_type)
+{
+	ASSERT(event_type < PPM_EVENT_MAX);
+
+#ifdef __linux__
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
+		if(pair.enter_event_type == event_type || pair.exit_event_type == event_type)
+		{
+			return true;
+		}
+	}
+#endif
+	return false;
+}
+
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
 {
 	if(tp_array == NULL)
