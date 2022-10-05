@@ -963,11 +963,12 @@ public:
 	 * - `EF_SKIPPARSERESET`
 	 * - `EF_UNUSED`
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has at least one of these flags.
 	 */
 	static inline bool is_unused_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 		return (flags & (EF_SKIPPARSERESET | EF_UNUSED));
 	}
@@ -975,11 +976,12 @@ public:
 	/**
 	 * @brief Return true if the event has the `EF_OLD_VERSION` flag
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EF_OLD_VERSION` flag.
 	 */
 	static inline bool is_old_version_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 		return (flags & EF_OLD_VERSION);
 	}
@@ -987,11 +989,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_SYSCALL` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_SYSCALL` category.
 	 */
 	static inline bool is_syscall_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_SYSCALL);
 	}
@@ -999,11 +1002,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_TRACEPOINT` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_TRACEPOINT` category.
 	 */
 	static inline bool is_tracepoint_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_TRACEPOINT);
 	}
@@ -1011,11 +1015,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_METAEVENT` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_METAEVENT` category.
 	 */
 	static inline bool is_metaevent(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_METAEVENT);
 	}
@@ -1023,11 +1028,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_UNKNOWN` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_UNKNOWN` category.
 	 */
 	static inline bool is_unknown_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		/* Please note this is not an `&` but an `==` if one event has 
 		 * the `EC_UNKNOWN` category, it must have only this category!
@@ -1038,13 +1044,26 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_PLUGIN` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_PLUGIN` category.
 	 */
 	static inline bool is_plugin_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_PLUGIN);
+	}
+
+	/**
+	 * @brief Return true if the event is generable by the live system instrumentation.
+	 * 
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+	 * @return true if the event is generable by the live system.
+	 */
+	static inline bool is_generable_event(uint16_t event_type)
+	{
+		ASSERT(event_type < PPM_EVENT_MAX);
+		return scap_is_generable_event(event_type);
 	}
 
 	/*=============================== Events related ===============================*/
