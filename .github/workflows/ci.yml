@@ -5,6 +5,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      driver_changed: ${{ steps.filter.outputs.driver }}
+      libscap_changed: ${{ steps.filter.outputs.libscap }}
+      libsinsp_changed: ${{ steps.filter.outputs.libsinsp }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          driver:
+            - 'driver/**'
+          libscap:
+            - 'userspace/libscap/**'
+          libsinsp:
+            - 'userspace/libsinsp/**'
+
   build-libs-linux-amd64:
     name: build-libs-linux-amd64 😁
     strategy:
@@ -142,6 +161,8 @@ jobs:
   build-and-test-modern-bpf-x86:
     name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -178,6 +199,8 @@ jobs:
   build-modern-bpf-arm64:
     name: build-modern-bpf-arm64 🙃 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -207,6 +230,8 @@ jobs:
   build-modern-bpf-s390x:
     name: build-modern-bpf-s390x 😁 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -232,19 +257,6 @@ jobs:
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
             make bpf_test
-  
-  paths-filter:
-    runs-on: ubuntu-latest
-    outputs:
-      driver_changed: ${{ steps.filter.outputs.driver }}
-    steps:
-    - uses: actions/checkout@v2
-    - uses: dorny/paths-filter@v2
-      id: filter
-      with:
-        filters: |
-          driver:
-            - 'driver/**'
             
   build-libs-driverkit:
     name: build-libs-driverkit
@@ -252,7 +264,7 @@ jobs:
     needs: paths-filter
     container:
       image: falcosecurity/driverkit:master
-    if: needs.paths-filter.outputs.driver_changed == 'true'  
+    if: needs.paths-filter.outputs.driver_changed == 'true'
     steps:
       - name: Test driver build on linux 2.6.32 
         run: |
