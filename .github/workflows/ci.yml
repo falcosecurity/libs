@@ -2,6 +2,9 @@ name: CI Build
 on:
   pull_request:
   push:
+    branches:
+      - master
+      - 'release/**'
   workflow_dispatch:
 
 jobs:
@@ -162,7 +165,7 @@ jobs:
     name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -200,7 +203,7 @@ jobs:
     name: build-modern-bpf-arm64 🙃 (system_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -231,7 +234,7 @@ jobs:
     name: build-modern-bpf-s390x 😁 (system_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' && needs.paths-filter.outputs.libscap_changed == 'true'
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
