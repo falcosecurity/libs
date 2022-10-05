@@ -1308,11 +1308,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		get_procs_cpu_from_driver(ts);
 	}
 
-	//
-	// Store a couple of values that we'll need later inside the event.
-	//
-	m_nevts++;
-	evt->m_evtnum = m_nevts;
+	// this is used by things like the k8s and mesos clients
 	m_lastevent_ts = ts;
 
 	if (m_automatic_threadtable_purging)
@@ -1459,6 +1455,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 #else
 	m_parser->process_event(evt);
 #endif
+
+	// set the event number
+	m_nevts++;
+	evt->m_evtnum = m_nevts;
 
 	//
 	// If needed, dump the event to file
