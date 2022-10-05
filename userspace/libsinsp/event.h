@@ -415,6 +415,7 @@ private:
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+		m_evtnum = 0;
 	}
 	inline void init()
 	{
