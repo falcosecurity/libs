@@ -22,9 +22,9 @@ else()
         libbpf
         PREFIX "${PROJECT_BINARY_DIR}/libbpf-prefix"
         DEPENDS zlib
-        URL "https://github.com/libbpf/libbpf/archive/refs/tags/v0.8.0.tar.gz"
+        URL "https://github.com/libbpf/libbpf/archive/refs/tags/v1.0.1.tar.gz"
         URL_HASH
-        "SHA256=f4480242651a93c101ece320030f6b2b9b437f622f807719c13cb32569a6d65a"
+        "SHA256=3d6afde67682c909e341bf194678a8969f17628705af25f900d5f68bd299cb03"
         CONFIGURE_COMMAND mkdir -p build root
         BUILD_COMMAND BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root make -C ${LIBBPF_SRC}/libbpf/src install
         INSTALL_COMMAND ""
