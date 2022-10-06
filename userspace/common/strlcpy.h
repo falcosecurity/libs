@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <sys/types.h>
 #include <string.h>
+#include "common_config.h"
 
 #pragma once
 
