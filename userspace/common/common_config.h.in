@@ -1,0 +1,12 @@
+/*
+
+Copyright (C) 2022 The Falco Authors.
+
+This file is dual licensed under either the MIT or GPL 2. See MIT.txt
+or GPL2.txt for full copies of the license.
+
+*/
+#pragma once
+
+/* Define to 1 if our C library has strlcpy */
+#cmakedefine HAVE_STRLCPY 1
