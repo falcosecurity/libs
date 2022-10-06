@@ -279,7 +279,7 @@ jobs:
     
       - name: Test driver build on linux 4.x
         run: |
-          driverkit docker --kernelrelease 4.18.0-373.el8.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
+          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
      
       - name: Test driver build on linux 5.x
         run: |
