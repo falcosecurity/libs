@@ -140,6 +140,10 @@ public:
 
 	void create_engines();
 
+	// When resolving containers, only use the specified list of
+	// container engines.
+	void set_active_container_engines(const std::set<sinsp_container_type>& active_engines);
+
 	/**
 	 * Update the container_info associated with the given type and container_id
 	 * to include the size of the container layer. This is not filled in the
@@ -196,11 +200,13 @@ public:
 		return engine_lookup == container_lookups->second.end();
 	}
 private:
+	bool is_container_engine_active(sinsp_container_type ctype);
 	std::string container_to_json(const sinsp_container_info& container_info);
 	bool container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo);
 	std::string get_docker_env(const Json::Value &env_vars, const std::string &mti);
 
 	std::list<std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engines;
+	std::set<sinsp_container_type> m_active_container_engines;
 	std::map<sinsp_container_type, std::shared_ptr<libsinsp::container_engine::container_engine_base>> m_container_engine_by_type;
 
 	sinsp* m_inspector;

@@ -43,6 +43,9 @@ limitations under the License.
 using namespace libsinsp;
 
 sinsp_container_manager::sinsp_container_manager(sinsp* inspector, bool static_container, const std::string static_id, const std::string static_name, const std::string static_image) :
+	m_active_container_engines({CT_DOCKER, CT_LXC, CT_LIBVIRT_LXC, CT_MESOS, CT_RKT,
+			CT_CUSTOM, CT_CRI, CT_CONTAINERD, CT_CRIO, CT_BPM,
+			CT_STATIC, CT_PODMAN}),
 	m_inspector(inspector),
 	m_last_flush_time_ns(0),
 	m_static_container(static_container),
@@ -151,6 +154,11 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	identify_category(tinfo);
 
 	return matches;
+}
+
+bool sinsp_container_manager::is_container_engine_active(sinsp_container_type ctype)
+{
+	return m_active_container_engines.find(ctype) != m_active_container_engines.end();
 }
 
 string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
@@ -551,7 +559,10 @@ void sinsp_container_manager::subscribe_on_remove_container(remove_container_cb 
 
 void sinsp_container_manager::create_engines()
 {
-	if (m_static_container)
+	m_container_engines.clear();
+	m_container_engine_by_type.clear();
+
+	if (m_static_container && is_container_engine_active(CT_STATIC))
 	{
 		auto engine = std::make_shared<container_engine::static_container>(*this,
 																		   m_static_id,
@@ -563,6 +574,7 @@ void sinsp_container_manager::create_engines()
 	}
 #ifndef MINIMAL_BUILD
 #ifdef CYGWING_AGENT
+	if(is_container_engine_active(CT_DOCKER))
 	{
 		auto docker_engine = std::make_shared<container_engine::docker_win>(*this, m_inspector /*wmi source*/);
 		m_container_engines.push_back(docker_engine);
@@ -570,11 +582,13 @@ void sinsp_container_manager::create_engines()
 	}
 #else
 #ifndef _WIN32
+	if(is_container_engine_active(CT_PODMAN))
 	{
 		auto podman_engine = std::make_shared<container_engine::podman>(*this);
 		m_container_engines.push_back(podman_engine);
 		m_container_engine_by_type[CT_PODMAN] = podman_engine;
 	}
+	if(is_container_engine_active(CT_DOCKER))
 	{
 		auto docker_engine = std::make_shared<container_engine::docker_linux>(*this);
 		m_container_engines.push_back(docker_engine);
@@ -582,6 +596,11 @@ void sinsp_container_manager::create_engines()
 	}
 
 #if defined(HAS_CAPTURE)
+	// Although there are separate container types using the same
+	// engine, we enable all 3 as a group, if any are enabled.
+	if(is_container_engine_active(CT_CRI) ||
+	   is_container_engine_active(CT_CRIO) ||
+	   is_container_engine_active(CT_CONTAINERD))
 	{
 		auto cri_engine = std::make_shared<container_engine::cri>(*this);
 		m_container_engines.push_back(cri_engine);
@@ -590,27 +609,32 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_CONTAINERD] = cri_engine;
 	}
 #endif
+	if(is_container_engine_active(CT_LXC))
 	{
 		auto lxc_engine = std::make_shared<container_engine::lxc>(*this);
 		m_container_engines.push_back(lxc_engine);
 		m_container_engine_by_type[CT_LXC] = lxc_engine;
 	}
+	if(is_container_engine_active(CT_LIBVIRT_LXC))
 	{
 		auto libvirt_lxc_engine = std::make_shared<container_engine::libvirt_lxc>(*this);
 		m_container_engines.push_back(libvirt_lxc_engine);
 		m_container_engine_by_type[CT_LIBVIRT_LXC] = libvirt_lxc_engine;
 	}
 
+	if(is_container_engine_active(CT_MESOS))
 	{
 		auto mesos_engine = std::make_shared<container_engine::mesos>(*this);
 		m_container_engines.push_back(mesos_engine);
 		m_container_engine_by_type[CT_MESOS] = mesos_engine;
 	}
+	if(is_container_engine_active(CT_RKT))
 	{
 		auto rkt_engine = std::make_shared<container_engine::rkt>(*this);
 		m_container_engines.push_back(rkt_engine);
 		m_container_engine_by_type[CT_RKT] = rkt_engine;
 	}
+	if(is_container_engine_active(CT_BPM))
 	{
 		auto bpm_engine = std::make_shared<container_engine::bpm>(*this);
 		m_container_engines.push_back(bpm_engine);
@@ -619,6 +643,12 @@ void sinsp_container_manager::create_engines()
 #endif // _WIN32
 #endif // CYGWING_AGENT
 #endif // MINIMAL_BUILD
+}
+
+void sinsp_container_manager::set_active_container_engines(const std::set<sinsp_container_type>& active_engines)
+{
+	m_active_container_engines = active_engines;
+	create_engines();
 }
 
 void sinsp_container_manager::update_container_with_size(sinsp_container_type type,
