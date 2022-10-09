@@ -168,6 +168,7 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
  * 2. the terminator is found. (the `\0` is computed in the overall length)
  * 3. we have read `n` bytes. (in this case, we don't have the `\0` but it's ok we will add it in the caller)
  */
+/// TODO: we need to change the return value to `int` and the third param from `unsigned long n` to 'uint32_t n`
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 {
 	long string_length = 0;
@@ -730,6 +731,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			}
 			else
 			{
+				/* WARNING: `strlcpy` could return a `len` greater than `max_arg_size` */
 				len = (int)strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(syscall_arg_t)val,
 								max_arg_size);
@@ -738,6 +740,11 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			/* Make sure the string is null-terminated */
 			if (likely(len > 0))
 			{
+				if(len > max_arg_size)
+				{
+					len = max_arg_size;
+				}
+
 				if(*(char *)(args->buffer + args->arg_data_offset + (len-1)) != '\0')
 				{
 					/* If we have not reached the `max_arg_size` we can put a new char with
