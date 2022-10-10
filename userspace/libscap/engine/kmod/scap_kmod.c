@@ -77,21 +77,49 @@ static uint32_t get_max_consumers()
 static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long buf_bytes_dim)
 {
 	const char* file_name = "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim";
-	FILE *pfile = fopen(file_name, "w");
-	if(pfile == NULL)
+
+	/* Here we check if the dimension provided by the kernel module is the same as the user-provided one. 
+	 * In this way we can avoid writing under the `/sys/module/...` file.
+	 */
+	FILE *read_file = fopen(file_name, "r");
+	if(read_file == NULL)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please ensure the kernel module is already loaded.", file_name, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
-	if(fprintf(pfile, "%lu", buf_bytes_dim) < 0)
+	unsigned long kernel_buf_bytes_dim = 0;
+	int ret = fscanf(read_file, "%lu", &kernel_buf_bytes_dim);
+	if(ret != 1)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim: %s", scap_strerror(handle, errno));
-		fclose(pfile);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to read the syscall buffer dim from '%s': %s.", file_name, scap_strerror(handle, errno));
+		fclose(read_file);
+		return SCAP_FAILURE;
+	}
+	fclose(read_file);
+
+	/* We have no to update the file writing on it, the dimension is the same. */
+	if(kernel_buf_bytes_dim == buf_bytes_dim)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	/* Fallback to write on the file if the dim is different */ 
+	FILE *write_file = fopen(file_name, "w");
+	if(write_file == NULL)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Probably the /sys/module filesystem is read-only!", file_name, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
-	fclose(pfile);
+	if(fprintf(write_file, "%lu", buf_bytes_dim) < 0)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim: %s", scap_strerror(handle, errno));
+		fclose(write_file);
+		return SCAP_FAILURE;
+	}
+
+	fclose(write_file);
 	return SCAP_SUCCESS;
 }
 
