@@ -724,10 +724,17 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			 // userlevel capture, so we default to ppm_strncpy_from_user
 			fromuser = true;
 #endif
-			if (fromuser)
+			if(fromuser)
 			{
 				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
 					(const char __user *)(syscall_arg_t)val, max_arg_size);
+
+				if(unlikely(len < 0))
+				{
+					len = 0;
+					break;
+				}
+				*(char *)(args->buffer + args->arg_data_offset + max_arg_size - 1) = '\0';
 			}
 			else
 			{
@@ -735,34 +742,13 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 				len = (int)strlcpy(args->buffer + args->arg_data_offset,
 								(const char *)(syscall_arg_t)val,
 								max_arg_size);
-			}
 
-			/* Make sure the string is null-terminated */
-			if (likely(len > 0))
-			{
-				if(len > max_arg_size)
+				if(++len >= max_arg_size)
 				{
 					len = max_arg_size;
 				}
-
-				if(*(char *)(args->buffer + args->arg_data_offset + (len-1)) != '\0')
-				{
-					/* If we have not reached the `max_arg_size` we can put a new char with
-					 * the string terminator otherwise, we push the terminator on the last
-					 * available char without adding a new one (so no `len` increment).
-					 */
-					if(len != max_arg_size)
-					{
-						*(char *)(args->buffer + args->arg_data_offset + len) = '\0';
-						len++;
-					}
-					else
-					{
-						*(char *)(args->buffer + args->arg_data_offset + (len-1)) = '\0';
-					}
-				}
-				break;
 			}
+			break;
 		}
 		/* Send an empty param in all these cases:
 		 * - we have a null pointer `val==0`.
