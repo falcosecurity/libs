@@ -1054,18 +1054,6 @@ public:
 		return (category & EC_PLUGIN);
 	}
 
-	/**
-	 * @brief Return true if the event is generable by the live system instrumentation.
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event is generable by the live system.
-	 */
-	static inline bool is_generable_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		return scap_is_generable_event(event_type);
-	}
-
 	/*=============================== Events related ===============================*/
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
