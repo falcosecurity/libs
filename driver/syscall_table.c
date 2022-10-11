@@ -50,6 +50,20 @@ or GPL2.txt for full copies of the license.
 #if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
 #include "ppm_compat_unistd_32.h"
 #endif
+#else
+/*
+ * In userspace, we always need to compile the full syscall table,
+ * faking full support; this allows userspace code to be
+ * able to manage all syscalls->events mappings,
+ * even if the driver won't be able to send all syscalls.
+ */
+#ifdef __x86_64__
+#include "syscall_compat_x86_64.h"
+#elif __aarch64__
+#include "syscall_compat_aarch64.h"
+#elif __s390x__
+#include "syscall_compat_s390x.h"
+#endif /* __x86_64__ */
 #endif /* __KERNEL__ */
 
 /*
