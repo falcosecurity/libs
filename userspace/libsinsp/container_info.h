@@ -335,6 +335,10 @@ public:
 
 	std::string m_container_user;
 
+#ifdef HAS_ANALYZER
+	std::string m_sysdig_agent_conf;
+#endif
+
 	uint64_t m_metadata_deadline;
 
 	/**
