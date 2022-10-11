@@ -607,11 +607,6 @@ TEST_F(sinsp_with_test_input, check_event_category)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_E, 2, 0, "data");
 	ASSERT_EQ(evt->get_category(), EC_OTHER);
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "other");
-
-	/* Check that `EC_UNKNOWN` category is not considered */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_X, 0);
-	ASSERT_EQ(evt->get_category(), EC_UNKNOWN);
-	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "unknown");
 }
 
 // test user tracking with setuid
