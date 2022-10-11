@@ -245,7 +245,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EXECVE_16_E */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 0},
 	/* PPME_SYSCALL_EXECVE_16_X */{"execve", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE | EF_OLD_VERSION, 16, {{"res", PT_ERRNO, PF_DEC}, {"exe", PT_CHARBUF, PF_NA}, {"args", PT_BYTEBUF, PF_NA}, {"tid", PT_PID, PF_DEC}, {"pid", PT_PID, PF_DEC}, {"ptid", PT_PID, PF_DEC}, {"cwd", PT_CHARBUF, PF_NA}, {"fdlimit", PT_UINT64, PF_DEC}, {"pgft_maj", PT_UINT64, PF_DEC}, {"pgft_min", PT_UINT64, PF_DEC}, {"vm_size", PT_UINT32, PF_DEC}, {"vm_rss", PT_UINT32, PF_DEC}, {"vm_swap", PT_UINT32, PF_DEC}, {"comm", PT_CHARBUF, PF_NA}, {"cgroups", PT_BYTEBUF, PF_NA}, {"env", PT_BYTEBUF, PF_NA} } },
 	/* PPME_SIGNALDELIVER_E */ {"signaldeliver", EC_SIGNAL | EC_TRACEPOINT, EF_NONE, 3, {{"spid", PT_PID, PF_DEC}, {"dpid", PT_PID, PF_DEC}, {"sig", PT_SIGTYPE, PF_DEC} } },
-	/* PPME_SIGNALDELIVER_X */ {"signaldeliver", EC_SIGNAL | EC_TRACEPOINT, EF_UNUSED, 0 },
+	/* PPME_SIGNALDELIVER_X */ {"signaldeliver", EC_UNKNOWN, EF_UNUSED, 0 },
 	/* PPME_PROCINFO_E */{"procinfo", EC_INTERNAL | EC_METAEVENT, EF_SKIPPARSERESET, 2, {{"cpu_usr", PT_UINT64, PF_DEC}, {"cpu_sys", PT_UINT64, PF_DEC} } },
 	/* PPME_PROCINFO_X */{"NA2", EC_UNKNOWN, EF_UNUSED, 0},
 	/* PPME_SYSCALL_GETDENTS_E */{"getdents", EC_FILE | EC_SYSCALL, EF_USES_FD, 1, {{"fd", PT_FD, PF_NA} } },
