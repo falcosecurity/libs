@@ -960,7 +960,6 @@ public:
 
 	/**
 	 * @brief If the event type has one of the following flags return true:
-	 * - `EF_SKIPPARSERESET`
 	 * - `EF_UNUSED`
 	 * 
 	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
@@ -970,7 +969,21 @@ public:
 	{
 		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
-		return (flags & (EF_SKIPPARSERESET | EF_UNUSED));
+		return (flags & EF_UNUSED);
+	}
+
+	/**
+	 * @brief If the event type has one of the following flags return true:
+	 * - `EF_SKIPPARSERESET`
+	 * 
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+	 * @return true if the event type has at least one of these flags.
+	 */
+	static inline bool is_skip_parse_reset_event(uint16_t event_type)
+	{
+		ASSERT(event_type < PPM_EVENT_MAX);
+		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+		return (flags & EF_SKIPPARSERESET);
 	}
 
 	/**
