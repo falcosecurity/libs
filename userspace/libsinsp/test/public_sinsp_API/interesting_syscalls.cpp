@@ -19,6 +19,14 @@ limitations under the License.
 #include <sinsp.h>
 #include <sys/syscall.h>
 #include "../test_utils.h"
+// We need to include syscall compat tables
+#ifdef __x86_64__
+#include "syscall_compat_x86_64.h"
+#elif __aarch64__
+#include "syscall_compat_aarch64.h"
+#elif __s390x__
+#include "syscall_compat_s390x.h"
+#endif /* __x86_64__ */
 
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
