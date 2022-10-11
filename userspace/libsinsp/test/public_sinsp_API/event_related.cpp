@@ -10,9 +10,6 @@ TEST(events, check_unused_events)
 	/* `PPME_SCHEDSWITCH_6_X` has the `EF_UNUSED` flag */
 	ASSERT_EQ(sinsp::is_unused_event(PPME_SCHEDSWITCH_6_X), true);
 
-	/* `PPME_DROP_E` has the `EF_SKIPPARSERESET` flag */
-	ASSERT_EQ(sinsp::is_unused_event(PPME_DROP_E), true);
-
 	/* `PPME_SYSCALL_QUOTACTL_E` has no flags in this set */
 	ASSERT_EQ(sinsp::is_unused_event(PPME_SYSCALL_QUOTACTL_E), false);
 }
