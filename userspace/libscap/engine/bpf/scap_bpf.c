@@ -1470,19 +1470,32 @@ int32_t scap_bpf_load(
 			fp = fopen(filename, "r");
 			if(fp == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s: %s", filename, scap_strerror_r(buf, errno));
-				return SCAP_FAILURE;
+				// When missing NUMA properties, CPUs do not expose online information.
+				// Fallback at considering them online if we can at least reach their folder.
+				// This is useful for example for raspPi devices.
+				// See: https://github.com/kubernetes/kubernetes/issues/95039
+				snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/", j);
+				if (access(filename, F_OK) == 0)
+				{
+					online = 1;
+				}
+				else
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %sonline: %s", filename, scap_strerror_r(buf, errno));
+					return SCAP_FAILURE;
+				}
 			}
-
-			if(fscanf(fp, "%d", &online) != 1)
+			else
 			{
+				if(fscanf(fp, "%d", &online) != 1)
+				{
+					fclose(fp);
+
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror_r(buf, errno));
+					return SCAP_FAILURE;
+				}
 				fclose(fp);
-
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror_r(buf, errno));
-				return SCAP_FAILURE;
 			}
-
-			fclose(fp);
 
 			if(!online)
 			{
