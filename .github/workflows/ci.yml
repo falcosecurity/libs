@@ -266,7 +266,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: paths-filter
     container:
-      image: falcosecurity/driverkit:master
+      image: falcosecurity/driverkit:v0.10.0
     if: needs.paths-filter.outputs.driver_changed == 'true'
     steps:
       - name: Test driver build on linux 2.6.32 
