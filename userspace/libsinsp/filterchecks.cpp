@@ -3921,10 +3921,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		{
 			uint8_t* evname;
 			uint16_t etype = evt->m_pevt->type;
-			enum ppm_event_flags flags = g_infotables.m_event_info[etype].flags;
-
-			if(etype == PPME_SCHEDSWITCH_6_E ||
-				(flags & EC_INTERNAL) || (flags & EF_SKIPPARSERESET))
+			if(!sinsp::is_syscall_event(etype))
 			{
 				return NULL;
 			}
