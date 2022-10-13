@@ -127,7 +127,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
 #endif
 }
 
-void sinsp_usergroup_manager::init()
+void sinsp_usergroup_manager::subscribe_container_mgr()
 {
 	if (m_import_users)
 	{
@@ -231,6 +231,10 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 
 scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding user: container: %s, name: %s",
+			container_id.c_str(), name);
+
 	if (!m_import_users)
 	{
 		return nullptr;
@@ -294,6 +298,9 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"removing user: container: %s, uid: %d",
+			container_id.c_str(), uid);
 	bool res = false;
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (usr)
@@ -310,6 +317,9 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 
 scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding group: container: %s, name: %s",
+			container_id.c_str(), name);
 	if (!m_import_users)
 	{
 		return nullptr;
@@ -357,6 +367,9 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
 {
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"removing group: container: %s, gid: %d",
+			container_id.c_str(), gid);
 	bool res = false;
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (gr)

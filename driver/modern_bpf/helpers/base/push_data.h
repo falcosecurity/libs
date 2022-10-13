@@ -253,25 +253,23 @@ static __always_inline u16 push__charbuf(u8 *data, u64 *payload_pos, unsigned lo
  */
 static __always_inline u16 push__bytebuf(u8 *data, u64 *payload_pos, unsigned long bytebuf_pointer, u16 len_to_read, enum read_memory mem)
 {
-
-	int written_bytes = 0;
-
 	if(mem == KERNEL)
 	{
-		written_bytes = bpf_probe_read_kernel(&data[SAFE_ACCESS(*payload_pos)],
+		if(bpf_probe_read_kernel(&data[SAFE_ACCESS(*payload_pos)],
 						      len_to_read,
-						      (char *)bytebuf_pointer);
+						      (void *)bytebuf_pointer) != 0)
+		{
+			return 0;
+		}
 	}
 	else
 	{
-		written_bytes = bpf_probe_read_user(&data[SAFE_ACCESS(*payload_pos)],
+		if(bpf_probe_read_user(&data[SAFE_ACCESS(*payload_pos)],
 						    len_to_read,
-						    (char *)bytebuf_pointer);
-	}
-
-	if(written_bytes != 0)
-	{
-		return 0;
+						    (void *)bytebuf_pointer) != 0)
+		{
+			return 0;
+		}
 	}
 
 	*payload_pos += len_to_read;

@@ -361,7 +361,7 @@ void plaintext_dump(sinsp& inspector)
 			}
 			else if(ev->get_category() == EC_NET)
 			{
-				cout << get_event_category(ev->get_category()) << "]:";
+				cout << get_event_category_name(ev->get_category()) << "]:";
 				sinsp_fdinfo_t* fd_info = ev->get_fd_info();
 
 				// event subcategory should contain SC_NET if ipv4/ipv6
@@ -372,7 +372,7 @@ void plaintext_dump(sinsp& inspector)
 			}
 			else if(ev->get_category() == EC_IO_READ || ev->get_category() == EC_IO_WRITE)
 			{
-				cout << get_event_category(ev->get_category()) << "]:";
+				cout << get_event_category_name(ev->get_category()) << "]:";
 
 				sinsp_fdinfo_t* fd_info = ev->get_fd_info();
 				if(nullptr != fd_info && (fd_info->get_l4proto() != SCAP_L4_UNKNOWN && fd_info->get_l4proto() != SCAP_L4_NA))
@@ -382,7 +382,7 @@ void plaintext_dump(sinsp& inspector)
 			}
 			else
 			{
-				cout << get_event_category(ev->get_category()) << "]:";
+				cout << get_event_category_name(ev->get_category()) << "]:";
 			}
 
 			sinsp_threadinfo* p_thr = thread->get_parent_thread();
@@ -394,7 +394,7 @@ void plaintext_dump(sinsp& inspector)
 
 			cout << "[PPID=" << parent_pid << "]:"
 			     << "[PID=" << thread->m_pid << "]:"
-			     << "[TYPE=" << get_event_type(ev->get_type()) << "]:"
+			     << "[TYPE=" << get_event_type_name(ev->get_type()) << "]:"
 			     << "[EXE=" << thread->get_exepath() << "]:"
 			     << "[CMD=" << cmdline << "]"
 			     << endl;
@@ -402,7 +402,7 @@ void plaintext_dump(sinsp& inspector)
 	}
 	else
 	{
-		cout << "[EVENT]:[" << get_event_category(ev->get_category()) << "]:"
+		cout << "[EVENT]:[" << get_event_category_name(ev->get_category()) << "]:"
 		     << ev->get_name() << endl;
 	}
 }

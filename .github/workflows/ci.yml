@@ -2,9 +2,31 @@ name: CI Build
 on:
   pull_request:
   push:
+    branches:
+      - master
+      - 'release/**'
   workflow_dispatch:
 
 jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      driver_changed: ${{ steps.filter.outputs.driver }}
+      libscap_changed: ${{ steps.filter.outputs.libscap }}
+      libsinsp_changed: ${{ steps.filter.outputs.libsinsp }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          driver:
+            - 'driver/**'
+          libscap:
+            - 'userspace/libscap/**'
+          libsinsp:
+            - 'userspace/libsinsp/**'
+
   build-libs-linux-amd64:
     name: build-libs-linux-amd64 😁
     strategy:
@@ -142,6 +164,8 @@ jobs:
   build-and-test-modern-bpf-x86:
     name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -178,6 +202,8 @@ jobs:
   build-modern-bpf-arm64:
     name: build-modern-bpf-arm64 🙃 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -207,6 +233,8 @@ jobs:
   build-modern-bpf-s390x:
     name: build-modern-bpf-s390x 😁 (system_deps)
     runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
 
       - name: Checkout Libs ⤵️
@@ -232,3 +260,27 @@ jobs:
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
             make bpf_test
+            
+  build-libs-driverkit:
+    name: build-libs-driverkit
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    container:
+      image: falcosecurity/driverkit:v0.10.1
+    if: needs.paths-filter.outputs.driver_changed == 'true'
+    steps:
+      - name: Test driver build on linux 2.6.32 
+        run: |
+          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
+          
+      - name: Test driver build on linux 3.x
+        run: |
+          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
+    
+      - name: Test driver build on linux 4.x
+        run: |
+          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
+     
+      - name: Test driver build on linux 5.x
+        run: |
+          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  

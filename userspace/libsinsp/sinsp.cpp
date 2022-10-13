@@ -401,8 +401,6 @@ void sinsp::init()
 	//
 	m_thread_manager->fix_sockets_coming_from_proc();
 
-	m_usergroup_manager.init();
-
 	// If we are in capture, this is already called by consume_initialstate_events
 	if (!is_capture() && m_external_event_processor)
 	{
@@ -546,6 +544,9 @@ void sinsp::open_common(scap_open_args* oargs)
 		oargs->proc_callback_context = this;
 	}
 	oargs->import_users = m_usergroup_manager.m_import_users;
+	// We need to subscribe to container manager notifiers before
+	// scap starts scanning proc.
+	m_usergroup_manager.subscribe_container_mgr();
 
 	add_suppressed_comms(oargs);
 
@@ -675,11 +676,6 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	if(config_path.empty())
 	{
 		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
-	}
-
-	if(root_path.empty())
-	{
-		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the root path.");
 	}
 
 	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
@@ -1312,11 +1308,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		get_procs_cpu_from_driver(ts);
 	}
 
-	//
-	// Store a couple of values that we'll need later inside the event.
-	//
-	m_nevts++;
-	evt->m_evtnum = m_nevts;
+	// this is used by things like the k8s and mesos clients
 	m_lastevent_ts = ts;
 
 	if (m_automatic_threadtable_purging)
@@ -1464,6 +1456,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_parser->process_event(evt);
 #endif
 
+	// set the event number
+	m_nevts++;
+	evt->m_evtnum = m_nevts;
+
 	//
 	// If needed, dump the event to file
 	//
@@ -1510,7 +1506,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(evt->m_filtered_out)
 	{
-		ppm_event_category cat = evt->get_info_category();
+		ppm_event_category cat = evt->get_category();
 
 		// Skip the event, unless we're in internal events
 		// mode and the category of this event is internal.

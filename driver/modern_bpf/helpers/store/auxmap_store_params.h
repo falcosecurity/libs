@@ -334,7 +334,11 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
  */
 static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, unsigned long len_to_read, enum read_memory mem)
 {
-	u16 bytebuf_len = push__bytebuf(auxmap->data, &auxmap->payload_pos, bytebuf_pointer, len_to_read, mem);
+	u16 bytebuf_len = 0;
+	if (len_to_read > 0)
+	{
+		bytebuf_len = push__bytebuf(auxmap->data, &auxmap->payload_pos, bytebuf_pointer, len_to_read, mem);
+	}
 	/* If we are not able to push anything with `push__bytebuf`
 	 * `bytebuf_len` will be equal to `0` so we will send an
 	 * empty param to userspace.

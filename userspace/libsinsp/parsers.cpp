@@ -649,7 +649,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		query_os = true;
 	}
 
-	if(etype == PPME_CONTAINER_JSON_E || etype == PPME_CONTAINER_JSON_2_E)
+	if(etype == PPME_CONTAINER_JSON_E ||
+	   etype == PPME_CONTAINER_JSON_2_E ||
+	   etype == PPME_USER_ADDED_E ||
+	   etype == PPME_USER_DELETED_E ||
+	   etype == PPME_GROUP_ADDED_E ||
+	   etype == PPME_GROUP_DELETED_E)
 	{
 		evt->m_tinfo = nullptr;
 		return true;
@@ -1622,6 +1627,16 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	bool thread_added = m_inspector->add_thread(tinfo);
 
 	//
+	// Refresh user / loginuser / group
+	//
+	if(tinfo->m_container_id.empty() == false)
+	{
+		tinfo->set_user(tinfo->m_user.uid);
+		tinfo->set_loginuser(tinfo->m_loginuser.uid);
+		tinfo->set_group(tinfo->m_group.gid);
+	}
+
+	//
 	// If there's a listener, invoke it
 	//
 	if(m_fd_listener)
@@ -1723,6 +1738,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Get the exe
 	parinfo = evt->get_param(1);
 	evt->m_tinfo->m_exe = parinfo->m_val;
+
+	auto container_id = evt->m_tinfo->m_container_id;
 
 	switch(etype)
 	{
@@ -2108,6 +2125,17 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Recompute the program hash
 	//
 	evt->m_tinfo->compute_program_hash();
+
+	//
+	// Refresh user / loginuser / group
+	// if we happen to change container id
+	//
+	if(container_id != evt->m_tinfo->m_container_id)
+	{
+		evt->m_tinfo->set_user(evt->m_tinfo->m_user.uid);
+		evt->m_tinfo->set_loginuser(evt->m_tinfo->m_loginuser.uid);
+		evt->m_tinfo->set_group(evt->m_tinfo->m_group.gid);
+	}
 
 	//
 	// If there's a listener, invoke it
@@ -2520,6 +2548,10 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		 */
 		parinfo = evt->get_param(3);
 		name = parinfo->m_val;
+		namelen = parinfo->m_len;
+
+		// since open_by_handle_at returns an absolute path we will always start at /
+		sdir = "";
 	}
 	else
 	{
@@ -2533,15 +2565,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	//mode = *(uint32_t*)parinfo->m_val;
 
 	char fullpath[SCAP_MAX_PATH_SIZE];
-	if (etype != PPME_SYSCALL_OPEN_BY_HANDLE_AT_X)
-	{
-		sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(), 
-			name, namelen, m_inspector->m_is_windows);
-	}
-	else
-	{
-		strcpy(fullpath, name);
-	}
+
+	sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE, sdir.c_str(), (uint32_t)sdir.length(),
+		name, namelen, m_inspector->m_is_windows);
 
 	if(fd >= 0)
 	{
@@ -5531,7 +5557,18 @@ void sinsp_parser::parse_chroot_exit(sinsp_evt *evt)
 		}
 		// Root change, let's detect if we are on a container
 		ASSERT(m_inspector);
+		auto container_id = evt->m_tinfo->m_container_id;
 		m_inspector->m_container_manager.resolve_container(evt->m_tinfo, m_inspector->is_live());
+		//
+		// Refresh user / loginuser / group
+		// if we happen to change container id
+		//
+		if(container_id != evt->m_tinfo->m_container_id)
+		{
+			evt->m_tinfo->set_user(evt->m_tinfo->m_user.uid);
+			evt->m_tinfo->set_loginuser(evt->m_tinfo->m_loginuser.uid);
+			evt->m_tinfo->set_group(evt->m_tinfo->m_group.gid);
+		}
 	}
 }
 

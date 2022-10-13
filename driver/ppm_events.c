@@ -16,7 +16,9 @@ or GPL2.txt for full copies of the license.
 #include <net/sock.h>
 #include <net/af_unix.h>
 #include <net/compat.h>
+#include <net/ipv6.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/file.h>
@@ -166,6 +168,7 @@ unsigned long ppm_copy_from_user(void *to, const void __user *from, unsigned lon
  * 2. the terminator is found. (the `\0` is computed in the overall length)
  * 3. we have read `n` bytes. (in this case, we don't have the `\0` but it's ok we will add it in the caller)
  */
+/// TODO: we need to change the return value to `int` and the third param from `unsigned long n` to 'uint32_t n`
 long ppm_strncpy_from_user(char *to, const char __user *from, unsigned long n)
 {
 	long string_length = 0;
@@ -238,7 +241,105 @@ int32_t dpi_lookahead_init(void)
 #ifndef UDIG
 inline int sock_getname(struct socket* sock, struct sockaddr* sock_address, int peer)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+	/*
+	 * Avoid calling sock->ops->getname(), because in certain kernel versions,
+	 * the getname functions may take a lock, which violates the limitations of
+	 * the RCU lock execution environment which is used by the kernel module.
+	 *
+	 * An example is the usage of `BPF_CGROUP_RUN_SA_PROG_LOCK` since kernel version `5.8.0`
+	 * https://elixir.bootlin.com/linux/v5.8/source/net/ipv4/af_inet.c#L785
+	 *
+	 * For efficiency, only fill in sockaddr fields actually used by the
+	 * kernel module logic; in particular, skip filling in
+	 * - sin_zero
+	 * - sin6_scope_id
+	 * - sin6_flowinfo
+	 */
+	struct sock *sk = sock->sk;
+
+	switch(sk->sk_family) {
+	case AF_INET:
+	{
+		struct sockaddr_in *sin = (struct sockaddr_in *)sock_address;
+		struct inet_sock *inet = (struct inet_sock *)sk;
+
+		sin->sin_family = AF_INET;
+		if (peer) {
+			if (!inet->inet_dport ||
+			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
+				return -ENOTCONN;
+			}
+			sin->sin_port = inet->inet_dport;
+			sin->sin_addr.s_addr = inet->inet_daddr;
+		} else {
+			u32 addr = inet->inet_rcv_saddr;
+			if (!addr) {
+				addr = inet->inet_saddr;
+			}
+			sin->sin_port = inet->inet_sport;
+			sin->sin_addr.s_addr = addr;
+		}
+		break;
+	}
+	case AF_INET6:
+	{
+		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)sock_address;
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		struct ipv6_pinfo *np = (struct ipv6_pinfo *)inet->pinet6;
+
+		sin->sin6_family = AF_INET6;
+		if (peer) {
+			if ((!inet->inet_dport) ||
+			    ((1 << sk->sk_state) & (TCPF_CLOSE | TCPF_SYN_SENT))) {
+				return -ENOTCONN;
+			}
+			sin->sin6_port = inet->inet_dport;
+			sin->sin6_addr = sk->sk_v6_daddr;
+		} else {
+			sin->sin6_addr = sk->sk_v6_rcv_saddr;
+			if (ipv6_addr_any(&sin->sin6_addr)) {
+				sin->sin6_addr = np->saddr;
+			}
+			sin->sin6_port = inet->inet_sport;
+		}
+		break;
+	}
+
+	case AF_UNIX:
+	{
+		struct sockaddr_un *sunaddr = (struct sockaddr_un *)sock_address;
+		struct unix_sock *u;
+		struct unix_address *u_addr = NULL;
+
+		if (peer) {
+			sk = ((struct unix_sock *)sk)->peer;
+			if (!sk) {
+				return -ENOTCONN;
+			}
+		}
+
+		u = (struct unix_sock *)sk;
+		u_addr = u->addr;
+		if (!u_addr) {
+			sunaddr->sun_family = AF_UNIX;
+			sunaddr->sun_path[0] = 0;
+		} else {
+			unsigned int len = u_addr->len;
+			if (unlikely(len > sizeof(struct sockaddr_storage))) {
+				len = sizeof(struct sockaddr_storage);
+			}
+			memcpy(sunaddr, u_addr->name, len);
+		}
+		break;
+	}
+
+	default:
+		return -ENOTCONN;
+	}
+
+	return 0;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)
 	int ret = sock->ops->getname(sock, sock_address, peer);
 	if (ret >= 0)
 		ret = 0;
@@ -618,51 +719,65 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH:
-		if (likely(val != 0)) {
-#ifdef WDIG // strlcpy does not exist on Windows, where in any case we only have 
-			 // userlevel capture, so we default to ppm_strncpy_from_user
-			fromuser = true;
-#endif
-			if (fromuser)
-			{
-				len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
-					(const char __user *)(syscall_arg_t)val, max_arg_size);
-			}
-			else
-			{
-				len = (int)strlcpy(args->buffer + args->arg_data_offset,
-								(const char *)(syscall_arg_t)val,
-								max_arg_size);
-			}
+		if(unlikely(val == 0))
+		{
+			/* Send an empty param when we have a null pointer `val==0` */
+			len = 0;
+			break;
+		}
 
-			/* Make sure the string is null-terminated */
-			if (likely(len > 0))
+#ifdef WDIG // strlcpy does not exist on Windows, where in any case we only have 
+			// userlevel capture, so we default to ppm_strncpy_from_user
+		fromuser = true;
+#endif
+
+		if(fromuser)
+		{
+			len = ppm_strncpy_from_user(args->buffer + args->arg_data_offset,
+				(const char __user *)(syscall_arg_t)val, max_arg_size);
+
+			if(unlikely(len < 0))
 			{
-				if(*(char *)(args->buffer + args->arg_data_offset + (len-1)) != '\0')
-				{
-					/* If we have not reached the `max_arg_size` we can put a new char with
-					 * the string terminator otherwise, we push the terminator on the last
-					 * available char without adding a new one (so no `len` increment).
-					 */
-					if(len != max_arg_size)
-					{
-						*(char *)(args->buffer + args->arg_data_offset + len) = '\0';
-						len++;
-					}
-					else
-					{
-						*(char *)(args->buffer + args->arg_data_offset + (len-1)) = '\0';
-					}
-				}
+				len = 0;
 				break;
 			}
+			/* Two possible cases here:
+			 *
+			 * 1. `len < max_arg_size`, the terminator is always there, and `len` takes it into account,
+			 *    so we need to do nothing. We just push a `\0` to an empty byte to avoid an if
+			 *    case.
+			 *
+			 * 2. `len == max_arg_size`, the terminator is not there but we cannot push an additional
+			 *    char for this reason we overwrite the last char and we don't increment `len`.
+			 */
+			*(char *)(args->buffer + args->arg_data_offset + max_arg_size - 1) = '\0';
 		}
-		/* Send an empty param in all these cases:
-		 * - we have a null pointer `val==0`.
-		 * - we have read `0` bytes.
-		 * - we faced an error while reading.
-		 */
-		len = 0;
+		else
+		{
+			len = (int)strlcpy(args->buffer + args->arg_data_offset,
+							(const char *)(syscall_arg_t)val,
+							max_arg_size);
+			/* WARNING: `strlcpy` returns the length of the string it tries to create
+			 * so `len` could also be greater than `max_arg_size`, but please note that the copied
+			 * charbuf is at max `max_arg_size` (where the last byte is used for the `\0`).
+			 * The copied string is always `\0` terminated but the returned `len` doesn't
+			 * take into consideration the `\0` like `strlen()` function.
+			 *
+			 * Two possible cases here:
+			 *
+			 * 1. `len < max_arg_size`, the terminator is always there, but `len` doesn't take it into account,
+			 *    so we need to increment the `len`. Note that if the source string has exactly `max_arg_size`
+			 *    characters the returned `len` is `max_arg_size-1` so we need to do `len++` to obtain the copied size.
+			 *
+			 * 2. `len >= max_arg_size`, the source string is greater than `max_arg_size`. `strlcpy` copied
+			 *    `max_arg_size - 1` and added the `\0` at the end, so our final copied `len` is `max_arg_size` we have just
+			 *    to resize it and we have done.
+			 */
+			if(++len >= max_arg_size)
+			{
+				len = max_arg_size;
+			}
+		}
 		break;
 
 	case PT_BYTEBUF:

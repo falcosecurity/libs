@@ -20,7 +20,7 @@ limitations under the License.
 //
 // Get the string representation of a ppm_event_category
 //
-std::string get_event_category(ppm_event_category category)
+std::string get_event_category_name(ppm_event_category category)
 {
     switch(category)
     {
@@ -43,9 +43,6 @@ std::string get_event_category(ppm_event_category category)
         case EC_WAIT: return "WAIT";
         case EC_SCHEDULER: return "SCHEDULER";
         case EC_INTERNAL: return "INTERNAL";
-        case EC_SYSCALL: return "SYSCALL";
-        case EC_TRACEPOINT: return "TRACEPOINT";
-        case EC_PLUGIN: return "PLUGIN";
         default: return "ERROR CONDITION";
     };
 }
@@ -53,7 +50,7 @@ std::string get_event_category(ppm_event_category category)
 //
 // Get the string representation of a ppm_event_type
 //
-std::string get_event_type(uint16_t type)
+std::string get_event_type_name(uint16_t type)
 {
 	if (type < PPM_EVENT_MAX && type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{

@@ -2552,7 +2552,7 @@ void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 		// This event has a real filler.
 		// The category can be found in the info struct.
 		//
-		cat->m_category = m_info->category;
+		cat->m_category = get_category();
 
 		//
 		// For EC_IO and EC_WAIT events, we dig into the fd state to get the category
@@ -2650,7 +2650,7 @@ scap_dump_flags sinsp_evt::get_dump_flags(OUT bool* should_drop)
 
 		if(*should_drop)
 		{
-			ppm_event_category ecat = get_info_category();
+			ppm_event_category ecat = get_category();
 			if(ecat & EC_INTERNAL)
 			{
 				*should_drop = false;

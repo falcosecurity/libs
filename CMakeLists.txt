@@ -75,11 +75,13 @@ include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
 
 if(HAVE_STRLCPY)
-	message(STATUS "Existing strlcpy found, will *not* use local definition by setting -DHAVE_STRLCPY.")
-	add_definitions(-DHAVE_STRLCPY)
+	message(STATUS "Existing strlcpy found, will *not* use local definition")
 else()
 	message(STATUS "No strlcpy found, will use local definition")
 endif()
+
+configure_file(userspace/common/common_config.h.in ${PROJECT_BINARY_DIR}/common/common_config.h)
+include_directories(${PROJECT_BINARY_DIR}/common)
 
 include(CompilerFlags)
 

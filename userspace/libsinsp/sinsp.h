@@ -219,15 +219,15 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	void open_udig();
-	void open_nodriver();
-	void open_savefile(const std::string &filename, int fd = 0);
-	void open_plugin(const std::string &plugin_name, const std::string &plugin_open_params);
-	void open_gvisor(const std::string &config_path, const std::string &root_path);
-	void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	void open_test_input(scap_test_input_data *data);
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_udig();
+	virtual void open_nodriver();
+	virtual void open_savefile(const std::string &filename, int fd = 0);
+	virtual void open_plugin(const std::string &plugin_name, const std::string &plugin_open_params);
+	virtual void open_gvisor(const std::string &config_path, const std::string &root_path);
+	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
 
@@ -960,26 +960,41 @@ public:
 
 	/**
 	 * @brief If the event type has one of the following flags return true:
-	 * - `EF_SKIPPARSERESET`
 	 * - `EF_UNUSED`
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has at least one of these flags.
 	 */
 	static inline bool is_unused_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
-		return (flags & (EF_SKIPPARSERESET | EF_UNUSED));
+		return (flags & EF_UNUSED);
+	}
+
+	/**
+	 * @brief If the event type has one of the following flags return true:
+	 * - `EF_SKIPPARSERESET`
+	 * 
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+	 * @return true if the event type has at least one of these flags.
+	 */
+	static inline bool is_skip_parse_reset_event(uint16_t event_type)
+	{
+		ASSERT(event_type < PPM_EVENT_MAX);
+		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+		return (flags & EF_SKIPPARSERESET);
 	}
 
 	/**
 	 * @brief Return true if the event has the `EF_OLD_VERSION` flag
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EF_OLD_VERSION` flag.
 	 */
 	static inline bool is_old_version_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
 		return (flags & EF_OLD_VERSION);
 	}
@@ -987,11 +1002,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_SYSCALL` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_SYSCALL` category.
 	 */
 	static inline bool is_syscall_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_SYSCALL);
 	}
@@ -999,35 +1015,38 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_TRACEPOINT` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_TRACEPOINT` category.
 	 */
 	static inline bool is_tracepoint_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_TRACEPOINT);
 	}
 
 	/**
-	 * @brief Return true if the event belongs to the `EC_INTERNAL` category
+	 * @brief Return true if the event belongs to the `EC_METAEVENT` category
 	 * 
-	 * @param event_type type of event we want to check
-	 * @return true if the event type has the `EC_INTERNAL` category.
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+	 * @return true if the event type has the `EC_METAEVENT` category.
 	 */
-	static inline bool is_internal_event(uint16_t event_type)
+	static inline bool is_metaevent(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_INTERNAL);
+		return (category & EC_METAEVENT);
 	}
 
 	/**
 	 * @brief Return true if the event belongs to the `EC_UNKNOWN` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_UNKNOWN` category.
 	 */
 	static inline bool is_unknown_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		/* Please note this is not an `&` but an `==` if one event has 
 		 * the `EC_UNKNOWN` category, it must have only this category!
@@ -1038,11 +1057,12 @@ public:
 	/**
 	 * @brief Return true if the event belongs to the `EC_PLUGIN` category
 	 * 
-	 * @param event_type type of event we want to check
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
 	 * @return true if the event type has the `EC_PLUGIN` category.
 	 */
 	static inline bool is_plugin_event(uint16_t event_type)
 	{
+		ASSERT(event_type < PPM_EVENT_MAX);
 		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
 		return (category & EC_PLUGIN);
 	}

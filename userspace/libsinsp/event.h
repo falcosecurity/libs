@@ -206,11 +206,12 @@ public:
 	}
 
 	/*!
-	\brief Get the event's category.
+	  \brief Get the event's category.
+	  [DEPRECATED] use `get_category()` instead of this method.
 	*/
 	inline ppm_event_category get_info_category() const
 	{
-		return m_info->category;
+		return get_category();
 	}
 
 	/*!
@@ -236,9 +237,23 @@ public:
 	/*!
 	  \brief Return the event category.
 	*/
+	/// TODO: in the next future we need to rename this into `get_syscall_category_from_event`
 	inline ppm_event_category get_category() const
 	{
-		return m_info->category;
+		/* Every event category is composed of 2 parts:
+		 * 1. The highest bits represent the event category:
+		 *   - `EC_SYSCALL`
+		 *   - `EC_TRACEPOINT
+		 *   - `EC_PLUGIN`
+		 *   - `EC_METAEVENT`
+		 * 
+		 * 2. The lowest bits represent the syscall category
+		 * to which the specific event belongs.
+		 * 
+		 * This function removes the highest bits, so we consider only the syscall category.
+		 */
+		const int bitmask = EC_SYSCALL - 1;
+		return static_cast<ppm_event_category>(m_info->category & bitmask);
 	}
 
 	/*!
@@ -400,12 +415,14 @@ private:
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+		m_evtnum = 0;
 	}
 	inline void init()
 	{
 		init_keep_threadinfo();
 		m_tinfo_ref.reset();
 		m_tinfo = NULL;
+		m_evtnum = 0;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
@@ -431,6 +448,7 @@ private:
 		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
 		m_tinfo = threadinfo;
 		m_fdinfo = fdinfo;
+		m_evtnum = 0;
 	}
 	inline void load_params()
 	{

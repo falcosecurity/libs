@@ -585,6 +585,30 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 }
 
+TEST_F(sinsp_with_test_input, check_event_category)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	/* Check that `EC_SYSCALL` category is not considered */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+	ASSERT_EQ(evt->get_category(), EC_FILE);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
+
+	/* Check that `EC_TRACEPOINT` category is not considered */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, 0, 0, 0, 0);
+	ASSERT_EQ(evt->get_category(), EC_PROCESS);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
+
+	/* Check that `EC_METAEVENT` category is not considered */
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_E, 2, 0, "data");
+	ASSERT_EQ(evt->get_category(), EC_OTHER);
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "other");
+}
+
 // test user tracking with setuid
 TEST_F(sinsp_with_test_input, setuid_setgid)
 {
@@ -623,4 +647,102 @@ TEST_F(sinsp_with_test_input, setuid_setgid)
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_E, 1, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SETGID_X, 1, (int64_t) -1);
 	ASSERT_EQ(get_field_as_string(evt, "group.gid"), "600");
+}
+
+// Falco libs allow pid over 32bit, those are used to hold extra values in the high bits.
+// For example, this is used in gVisor to save the sandbox ID.
+// These PIDs are not meaningful to the user and should not be displayed
+TEST_F(sinsp_with_test_input, pid_over_32bit)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	uint64_t parent_pid = 1, parent_tid = 1;
+	uint64_t child_pid = 0x0000000100000010, child_tid = 0x0000000100000010;
+	uint64_t child_vpid = 2, child_vtid = 2;
+	uint64_t child2_pid = 0x0000000100000100, child2_tid = 0x0000000100000100;
+	uint64_t child2_vpid = 3, child2_vtid = 3;
+	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	std::vector<std::string> cgroups = {"cpuset=/", "cpu=/user.slice", "cpuacct=/user.slice", "io=/user.slice", "memory=/user.slice/user-1000.slice/session-1.scope", "devices=/user.slice", "freezer=/", "net_cls=/", "perf_event=/", "net_prio=/", "hugetlb=/", "pids=/user.slice/user-1000.slice/session-1.scope", "rdma=/", "misc=/"};
+	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
+	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
+	std::string envv = test_utils::to_null_delimited(env);
+	std::vector<std::string> args = {"--help"};
+	std::string argsv = test_utils::to_null_delimited(args);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", 1024, 0, 68633, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", 1024, 0, 1, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_vpid, child_vtid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+
+	ASSERT_FALSE(field_exists(evt, "proc.pid"));
+	ASSERT_FALSE(field_exists(evt, "thread.tid"));
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "2");
+	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "2");
+
+	// spawn a child process to verify ppid/apid
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_E, 0);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, child2_tid, "/bin/test-exe", empty_bytebuf, child_pid, child_tid, child_tid, "", 1024, 0, 68633, 12088, 7208, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_vpid, child_vtid);
+	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "/bin/test-exe", empty_bytebuf, child2_pid, child2_tid, child_tid, "", 1024, 0, 1, 12088, 3764, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child2_vpid, child2_vtid);
+	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe2");
+	evt = add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe2", scap_const_sized_buffer{argsv.data(), argsv.size()}, child2_tid, child2_pid, child_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe2", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, child_pid, 1000, 1);
+
+	ASSERT_FALSE(field_exists(evt, "proc.pid"));
+	ASSERT_FALSE(field_exists(evt, "thread.tid"));
+	ASSERT_FALSE(field_exists(evt, "proc.ppid"));
+	ASSERT_FALSE(field_exists(evt, "proc.apid[1]"));
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "3");
+	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "3");
+}
+
+TEST_F(sinsp_with_test_input, open_by_handle_at)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file.txt");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/tmp/the_file.txt");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 6, 7, PPM_O_RDWR, "<NA>");
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "<NA>");
+}
+
+TEST_F(sinsp_with_test_input, path_too_long)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	std::stringstream long_path_ss;
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'A');
+
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'B');
+
+	long_path_ss << "/";
+	long_path_ss << std::string(1000, 'C');
+
+	std::string long_path = long_path_ss.str();
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, long_path.c_str(), PPM_O_RDWR, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, 3, long_path.c_str(), PPM_O_RDWR, 0, 5, 123);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, long_path.c_str());
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
+	ASSERT_EQ(get_field_as_string(evt, "evt.abspath"), "/PATH_TOO_LONG");
 }
