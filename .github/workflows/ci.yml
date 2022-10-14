@@ -271,16 +271,16 @@ jobs:
     steps:
       - name: Test driver build on linux 2.6.32 
         run: |
-          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
+          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-2.6.32-754.el6.x86_64.rpm
           
       - name: Test driver build on linux 3.x
         run: |
-          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
+          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-3.10.0-957.el7.x86_64.rpm
     
       - name: Test driver build on linux 4.x
         run: |
-          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
+          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-4.18.0-305.25.1.el8_4.x86_64.rpm
      
       - name: Test driver build on linux 5.x
         run: |
-          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  
+          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  --kernelurls https://download.falco.org/fixtures/libs/linux-headers-5.19.12.arch1-1-x86_64.pkg.tar.zst
