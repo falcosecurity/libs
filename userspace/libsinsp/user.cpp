@@ -32,7 +32,16 @@ limitations under the License.
 #endif
 
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+
 std::string sinsp_usergroup_manager::s_host_root;
+
+// See fgetpwent() / fgetgrent() feature test macros:
+// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
+// https://man7.org/linux/man-pages/man3/fgetgrent.3.html
+#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
+#define HAVE_FGET__ENT
+#endif
+
 #endif
 
 namespace {
@@ -50,9 +59,8 @@ struct passwd *__getpwuid(uint32_t uid)
 	// If we have a host root and we can use fgetpwent,
 	// we take the entry directly from file
 
-// See fgetpwent() feature test macros:
-// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
+
+#ifdef HAVE_FGET__ENT
 	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
@@ -88,9 +96,7 @@ struct group *__getgrgid(uint32_t gid)
 
 	// If we have a host root and we can use fgetgrent,
 	// we take the entry directly from file
-
-// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
+#ifdef HAVE_FGET__ENT
 	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
@@ -627,8 +633,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 		return;
 	}
 
-	// See fgetpwent() feature test macros: https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-#if defined HAVE_PWD_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
 	auto passwd_in_container = overlayfs_root + "/etc/passwd";
 	auto pwd_file = fopen(passwd_in_container.c_str(), "r");
 	if(pwd_file)
@@ -641,8 +646,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	}
 #endif
 
-	// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined HAVE_GRP_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
 	auto group_in_container = overlayfs_root + "/etc/group";
 	auto grp_file = fopen(group_in_container.c_str(), "r");
 	if(grp_file)
