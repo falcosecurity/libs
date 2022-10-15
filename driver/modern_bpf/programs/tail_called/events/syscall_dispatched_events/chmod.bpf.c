@@ -58,7 +58,7 @@ int BPF_PROG(chmod_x,
 
 	/* Parameter 2: filename (type: PT_FSPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: mode (type: PT_MODE) */
 	unsigned long mode = extract__syscall_argument(regs, 1);

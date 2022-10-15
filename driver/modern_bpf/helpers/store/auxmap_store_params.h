@@ -10,7 +10,14 @@
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
 
-/* Right now a cgroup pathname can have at most 6 components. */
+/*=============================== FIXED CONSTRAINTS ===============================*/
+
+/* These are some of the constraints we want to impose during our
+ * store operations. One day these could become const global variables
+ * that could be set by the userspace.
+ */
+
+/* Right now a `cgroup` pathname can have at most 6 components. */
 #define MAX_CGROUP_PATH_POINTERS 6
 
 /* Right now a file path extracted from a file descriptor can
@@ -18,15 +25,35 @@
  */
 #define MAX_PATH_POINTERS 8
 
-/* Maximum length of unix socket path.
- * We can have at maximum 108 characters plus the `\0` terminator.
+/* Maximum length of `unix` socket path.
+ * We can have a maximum of 108 characters plus the `\0` terminator.
  */
 #define MAX_UNIX_SOCKET_PATH 108 + 1
 
-/* Max number of iovec structure that we can analize. */
+/* Maximum number of `iovec` structures that we can analyze. */
 #define MAX_IOVCNT 32
 
-/* Conversion factors used in setsockopt val. */
+/* Maximum number of charbuf pointers that we assume an array can have. */
+#define MAX_CHARBUF_POINTERS 16
+
+/* Proc name */
+#define MAX_PROC_EXE 4096
+
+/* Proc arguments or environment variables.
+ * Must be always a power of 2 because we can also use it as a mask!
+ */
+#define MAX_PROC_ARG_ENV 4096
+
+/* PATH_MAX supported by the operating system: 4096 */
+#define MAX_PATH 4096
+
+/*=============================== FIXED CONSTRAINTS ===============================*/
+
+/*=============================== COMMON DEFINITIONS ===============================*/
+
+/* Some auxiliary definitions we use during our store operations */
+
+/* Conversion factors used in `setsockopt` val. */
 #define SEC_FACTOR 1000000000
 #define USEC_FACTOR 1000
 
@@ -46,11 +73,7 @@ enum connection_direction
 	INBOUND = 1,
 };
 
-/* Maximum number of charbuf pointers that we assume an array can have. */
-#define MAX_CHARBUF_POINTERS 16
-
-/* Maximum length of an `execve` arg. */
-#define MAX_EXECVE_ARG_LEN 4096
+/*=============================== COMMON DEFINITIONS ===============================*/
 
 /* Concept of auxamp (auxiliary map):
  *
@@ -303,18 +326,27 @@ static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap
 
 /**
  * @brief This helper stores the charbuf pointed by `charbuf_pointer`
- * into the auxmap. The charbuf can have a maximum length
- * of `MAX_PARAM_SIZE`. For more details, look at the underlying
+ * into the auxmap. We read until we find a `\0`, if the charbuf length
+ * is greater than `len_to_read`, we read up to `len_to_read-1` bytes
+ * and add the `\0`. For more details, look at the underlying
  * `push__charbuf` method
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param charbuf_pointer pointer to the charbuf to store.
+ * @param len_to_read upper bound limit.
  * @param mem from which memory we need to read: user-space or kernel-space.
  * @return number of bytes read.
  */
-static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer, enum read_memory mem)
+static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer, u16 len_to_read, enum read_memory mem)
 {
-	u16 charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE, mem);
+	u16 charbuf_len = 0;
+	/* This check is just for performance reasons. Is useless to check
+	 * `len_to_read > 0` here, since `len_to_read` is just the upper bound.
+	 */
+	if(charbuf_pointer)
+	{
+		charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, len_to_read, mem);
+	}
 	/* If we are not able to push anything with `push__charbuf`
 	 * `charbuf_len` will be equal to `0` so we will send an
 	 * empty param to userspace.
@@ -335,10 +367,11 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
  * @param mem from which memory we need to read: user-space or kernel-space.
  * @return number of bytes read.
  */
-static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, unsigned long len_to_read, enum read_memory mem)
+static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, u16 len_to_read, enum read_memory mem)
 {
 	u16 bytebuf_len = 0;
-	if (len_to_read > 0)
+	/* This check is just for performance reasons. */
+	if(bytebuf_pointer && len_to_read > 0)
 	{
 		bytebuf_len = push__bytebuf(auxmap->data, &auxmap->payload_pos, bytebuf_pointer, len_to_read, mem);
 	}
@@ -369,7 +402,7 @@ static __always_inline void auxmap__store_execve_exe(struct auxiliary_map *auxma
 		return;
 	}
 
-	exe_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_EXECVE_ARG_LEN, USER);
+	exe_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_EXE, USER);
 	push__param_len(auxmap->data, &auxmap->lengths_pos, exe_len);
 }
 
@@ -400,7 +433,7 @@ static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxm
 		{
 			break;
 		}
-		arg_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_EXECVE_ARG_LEN, USER);
+		arg_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_ARG_ENV, USER);
 		if(!arg_len)
 		{
 			break;

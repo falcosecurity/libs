@@ -62,7 +62,7 @@ int BPF_PROG(umount2_x,
 
 	/* Parameter 2: name (type: PT_FSPATH) */
 	unsigned long target_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, target_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
