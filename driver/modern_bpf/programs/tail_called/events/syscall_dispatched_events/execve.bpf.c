@@ -25,7 +25,7 @@ int BPF_PROG(execve_e,
 
 	/* Parameter 1: filename (type: PT_FSPATH) */
 	unsigned long filename_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, filename_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, filename_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -79,7 +79,7 @@ int BPF_PROG(execve_x,
 		/* We need to extract the len of `exe` arg so we can undestand
 		 * the overall length of the remaining args.
 		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, USER);
+		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		/* Here we read the whole array starting from the pointer to the first
@@ -87,7 +87,7 @@ int BPF_PROG(execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len, USER);
+		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
 	}
 	else
 	{
@@ -155,7 +155,7 @@ int BPF_PROG(execve_x,
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, KERNEL);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, MAX_PROC_EXE, KERNEL);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

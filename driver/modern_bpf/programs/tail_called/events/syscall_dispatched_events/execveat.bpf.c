@@ -33,7 +33,7 @@ int BPF_PROG(execveat_e,
 
 	/* Parameter 2: pathname (type: PT_FSRELPATH) */
 	unsigned long pathname_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, pathname_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, pathname_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	unsigned long flags = extract__syscall_argument(regs, 4);
@@ -136,7 +136,7 @@ int BPF_PROG(execveat_x,
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, KERNEL);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, MAX_PROC_EXE, KERNEL);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

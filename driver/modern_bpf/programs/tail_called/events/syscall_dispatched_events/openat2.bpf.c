@@ -34,7 +34,7 @@ int BPF_PROG(openat2_e,
 
 	/* Parameter 2: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);
@@ -91,7 +91,7 @@ int BPF_PROG(openat2_x,
 
 	/* Parameter 3: name (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);

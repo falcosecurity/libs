@@ -91,7 +91,7 @@ int BPF_PROG(quotactl_x,
 	 * the filesystem being manipulated.
 	 */
 	unsigned long special_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, special_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, special_pointer, MAX_PATH, USER);
 
 	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
 	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
@@ -106,7 +106,7 @@ int BPF_PROG(quotactl_x,
 	if(scap_cmd == PPM_Q_QUOTAON)
 	{
 		/* Parameter 3: quotafilepath (type: PT_CHARBUF) */
-		auxmap__store_charbuf_param(auxmap, addr_pointer, USER);
+		auxmap__store_charbuf_param(auxmap, addr_pointer, MAX_PATH, USER);
 	}
 	else
 	{
