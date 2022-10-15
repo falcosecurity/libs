@@ -19,6 +19,12 @@ Here there is a useful reference to GoogleTest doc describing the [advanced run 
 sudo ./test/modern_bpf/bpf_test --gtest_list_tests
 ```
 
+- Unless you want to assert also internal behaviors like the ring buffer consumption avoid running the `Local` suite with:
+
+```bash
+sudo ./test/modern_bpf/bpf_test --gtest_filter=-'Local.*'
+```
+
 - Type the following command to run a specific Test Case (for example, here we test the close exit event in the test suite `SyscallExit`):
 
 ```bash
