@@ -28,22 +28,45 @@ TEST(Local, ring_buffer_overwrite)
 	 */
 
 	auto evt_test = get_syscall_event_test(__NR_close, ENTER_EVENT);
+	evt_test->disable_capture();
+	evt_test->clear_ring_buffers();
 	evt_test->enable_capture();
 
 	while(!evt_test->are_all_ringbuffers_full(THRESHOLD))
 	{
 	};
 
+	/* Remove some events from the buffer (in this case 10)
+	 * and keep the pointer to an event to see if this is overwritten
+	 */
 	struct ppm_evt_hdr* evt = NULL;
 	int16_t cpu_id = 0;
+	
+	for(int i=0; i<10; i++)
+	{
+		evt = evt_test->get_event_from_ringbuffer(&cpu_id);
+		ASSERT_EQ(evt == NULL, false);
+	}
+
+	/* Check that the pointer to this event is not overwritten */
 	evt = evt_test->get_event_from_ringbuffer(&cpu_id);
 	ASSERT_EQ(evt == NULL, false);
-
 	uint64_t prev_ts = evt->ts;
+	uint64_t prev_tid = evt->tid;
+	uint32_t prev_len = evt->len;
+	uint16_t prev_type = evt->type;
+	uint32_t prev_nparams = evt->nparams;
+
 	while(!evt_test->are_all_ringbuffers_full(THRESHOLD))
 	{
 	};
+
+	/* We assert that the event header is not overwritten */
 	ASSERT_EQ(prev_ts, evt->ts);
+	ASSERT_EQ(prev_tid, evt->tid);
+	ASSERT_EQ(prev_len, evt->len);
+	ASSERT_EQ(prev_type, evt->type);
+	ASSERT_EQ(prev_nparams, evt->nparams);
 }
 #endif
 
