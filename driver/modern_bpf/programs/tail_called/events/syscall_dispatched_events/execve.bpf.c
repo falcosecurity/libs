@@ -203,7 +203,7 @@ int BPF_PROG(t1_execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len, USER);
+		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len & (MAX_PROC_ARG_ENV - 1), USER);
 	}
 	else
 	{
