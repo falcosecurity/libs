@@ -3896,7 +3896,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				{
 					// try to enforce a forward compatibility for syscalls added
 					// after a scap file was generated,
-					// by looking up using nativeID
+					// by looking up using nativeID.
+					// Of course, this will only reliably work for
+					// same architecture scap capture->replay.
 					parinfo = evt->get_param(1);
 					ASSERT(parinfo->m_len == sizeof(uint16_t));
 					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
