@@ -1531,12 +1531,6 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 		// Identify the process descriptor
 		//
 		HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
-		if(tinfo == NULL)
-		{
-			snprintf(error, SCAP_LASTERR_SIZE, "corrupted trace file. FD block references TID %"PRIu64", which doesn't exist.",
-					 tid);
-			return SCAP_FAILURE;
-		}
 	}
 	else
 	{
@@ -1556,6 +1550,14 @@ static int32_t scap_read_fdlist(scap_reader_t* r, uint32_t block_length, uint32_
 		//
 		if(proclist->m_proc_callback == NULL)
 		{
+			if(tinfo == NULL)
+			{
+				//
+				// We have the fdinfo but no associated tid, skip it
+				//
+				continue;
+			}
+
 			//
 			// Parsed successfully. Allocate the new entry and copy the temp one into into it.
 			//
