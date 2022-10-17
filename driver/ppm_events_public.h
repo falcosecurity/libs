@@ -1201,7 +1201,7 @@ enum extra_event_prog_code
  */
 
 #define PPM_SC_FIELDS \
-        PPM_SC_X(UNKNOWN, 0) \
+	PPM_SC_X(UNKNOWN, 0) \
 	PPM_SC_X(RESTART_SYSCALL, 1) \
 	PPM_SC_X(EXIT, 2) \
 	PPM_SC_X(READ, 3) \

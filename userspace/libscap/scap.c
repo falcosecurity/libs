@@ -1257,6 +1257,7 @@ int scap_native_id_to_ppm_sc(int native_id)
 	}
 	return g_syscall_table[native_id].ppm_sc;
 #endif
+	return -1;
 }
 
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
