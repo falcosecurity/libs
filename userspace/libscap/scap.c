@@ -1115,7 +1115,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		if(suppressed)
 		{
 			handle->m_num_suppressed_evts++;
-			return SCAP_TIMEOUT;
+			return SCAP_FILTERED_EVENT;
 		}
 		else
 		{
