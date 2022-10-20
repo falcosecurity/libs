@@ -442,7 +442,7 @@ static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxm
 		total_len += arg_len;
 	}
 	/* the sum of all env variables lengths should be `<= MAX_PROC_ARG_ENV` */
-	total_len = total_len & (MAX_PROC_ARG_ENV -1);
+	total_len = total_len & (MAX_PROC_ARG_ENV - 1);
 	auxmap->payload_pos = initial_payload_pos + total_len;
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_len);
 }

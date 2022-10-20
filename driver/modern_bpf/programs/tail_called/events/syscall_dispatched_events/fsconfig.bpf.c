@@ -114,7 +114,7 @@ int BPF_PROG(fsconfig_x,
 			auxmap__store_empty_param(auxmap);
 
 			/* Parameter 6: value_charbuf (type: PT_CHARBUF) */
-			auxmap__store_charbuf_param(auxmap, value_pointer, MAX_PARAM_SIZE, USER);
+			auxmap__store_charbuf_param(auxmap, value_pointer, MAX_PATH, USER);
 			break;
 
 		case PPM_FSCONFIG_SET_BINARY:
