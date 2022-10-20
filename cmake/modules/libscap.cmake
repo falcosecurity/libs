@@ -10,6 +10,18 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 include(ExternalProject)
 
+include(CheckSymbolExists)
+check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+
+if(HAVE_STRLCPY)
+	message(STATUS "Existing strlcpy found, will *not* use local definition")
+else()
+	message(STATUS "No strlcpy found, will use local definition")
+endif()
+
+configure_file(${LIBSCAP_DIR}/userspace/common/common_config.h.in ${PROJECT_BINARY_DIR}/common/common_config.h)
+include_directories(${PROJECT_BINARY_DIR}/common)
+
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 get_filename_component(DRIVER_CONFIG_DIR ${CMAKE_BINARY_DIR}/driver/src ABSOLUTE)
