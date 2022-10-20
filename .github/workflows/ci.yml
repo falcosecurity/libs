@@ -196,8 +196,8 @@ jobs:
 
       - name: Running tests 🧪
         run: |
-          cd build 
-          sudo ./test/modern_bpf/bpf_test --verbose --gtest_filter=-'Local.*'
+          cd build
+          sudo ./test/modern_bpf/bpf_test --verbose
 
   build-modern-bpf-arm64:
     name: build-modern-bpf-arm64 🙃 (system_deps)
