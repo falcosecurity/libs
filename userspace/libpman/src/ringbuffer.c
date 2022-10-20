@@ -208,7 +208,9 @@ static inline void *ringbuf__get_first_ring_event(struct ring *r, int pos)
 	int len = 0;
 	void *sample = NULL;
 
-	/* If the consumer reaches the producer update its position. */
+	/* If the consumer reaches the producer update the producer position to
+	 * get the newly collected events. 
+	 */
 	if(g_state.cons_pos[pos] >= g_state.prod_pos[pos])
 	{
 		g_state.prod_pos[pos] = smp_load_acquire(r->producer_pos);
