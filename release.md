@@ -22,7 +22,7 @@ Completed releases are denoted by a _git tag_ and a corresponding [GitHub releas
 
 The release team consists of a *release manager* and other contributors from the community. Usually, we seek volunteers during our [community calls](https://github.com/falcosecurity/community#community-calls) or in the [#falco channel on Slack](https://kubernetes.slack.com/messages/falco), and then decide together the release planning.
 
-The release manager's responsibility is to coordinate the release process and track its progress. 
+The release manager's responsibility is to coordinate the release process. The release manager will create a GitHub issue to track the progress and announce the [release phases](#release-phases).
 
 Note that the release manager does not need to be a maintainer. However, two [maintainers](https://github.com/falcosecurity/libs/blob/master/OWNERS) with repository rights must be part of the team to approve PRs, do the git tags, manage GitHub milestones, etc.
 
