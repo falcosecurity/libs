@@ -33,6 +33,15 @@ limitations under the License.
 
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 
+//
+// NOTE: at the time of writing 16 would have been enough, being
+// the format `mnt:[<unsigned>]`, but the only call to `ns_get_name`
+// I could find in the kernel was using a buffer of 50, so 50 it is.
+//
+#define NS_MNT_SIZE 50
+
+#include <unistd.h>
+
 std::string sinsp_usergroup_manager::s_host_root;
 
 // See fgetpwent() / fgetgrent() feature test macros:
@@ -41,6 +50,69 @@ std::string sinsp_usergroup_manager::s_host_root;
 #if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
 #define HAVE_FGET__ENT
 #endif
+
+const char *get_root_ns_mnt()
+{
+	static char *s_root_ns_mnt = nullptr;
+	static bool CANNOT_READ_ROOT_NS_MNT{false};
+
+	if(CANNOT_READ_ROOT_NS_MNT)
+	{
+		return nullptr;
+	}
+
+	if(s_root_ns_mnt)
+	{
+		return s_root_ns_mnt;
+	}
+
+	char root_ns_mnt[NS_MNT_SIZE];
+	memset(root_ns_mnt, 0, NS_MNT_SIZE);
+	if(-1 == readlink((sinsp_usergroup_manager::s_host_root + "/proc/1/ns/mnt").c_str(), root_ns_mnt, NS_MNT_SIZE))
+	{
+		g_logger.format(sinsp_logger::SEV_WARNING,
+				"Cannot read host init ns/mnt");
+		CANNOT_READ_ROOT_NS_MNT = true;
+
+		return nullptr;
+	}
+
+	auto size = strlen(root_ns_mnt) + 1;
+	s_root_ns_mnt = (char *)malloc(size);
+	strncpy(s_root_ns_mnt, root_ns_mnt, size);
+	return s_root_ns_mnt;
+}
+
+//
+// Return true if still in the root mount namespace, or in case of any error
+//
+bool in_root_ns_mnt(int64_t pid)
+{
+	const char *root_ns_mnt = get_root_ns_mnt();
+	if(root_ns_mnt == nullptr)
+	{
+		return true;
+	}
+
+	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/ns/mnt";
+
+	char proc_ns_mnt[NS_MNT_SIZE];
+	bzero(proc_ns_mnt, NS_MNT_SIZE);
+	if(-1 == readlink(path.c_str(), proc_ns_mnt, NS_MNT_SIZE))
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"Cannot read process ns/mnt");
+		return true;
+	}
+
+	if(0 == strncmp(root_ns_mnt, proc_ns_mnt, NS_MNT_SIZE))
+	{
+		// Still in the host namespace
+		return true;
+	}
+
+	return false;
+}
 
 #endif
 
@@ -235,6 +307,42 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 	return res;
 }
 
+scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(
+	userinfo_map &map,
+	uint32_t uid,
+	uint32_t gid,
+	const char *name,
+	const char *home,
+	const char *shell)
+{
+	ASSERT(name);
+	ASSERT(home);
+	ASSERT(shell);
+
+	auto &usr = map[uid];
+	usr.uid = uid;
+	usr.gid = gid;
+	strlcpy(usr.name, name, MAX_CREDENTIALS_STR_LEN);
+	strlcpy(usr.homedir, home, SCAP_MAX_PATH_SIZE);
+	strlcpy(usr.shell, shell, SCAP_MAX_PATH_SIZE);
+
+	return &usr;
+}
+
+scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
+	groupinfo_map &map,
+	uint32_t gid,
+	const char *name)
+{
+	ASSERT(name);
+
+	auto &grp = map[gid];
+	grp.gid = gid;
+	strlcpy(grp.name, name, MAX_CREDENTIALS_STR_LEN);
+
+	return &grp;
+}
+
 scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -249,57 +357,108 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
-#ifdef HAVE_PWD_H
-		struct passwd *p = nullptr;
-		if (container_id.empty() && !name)
+		bool do_notify{false};
+		if (name)
 		{
+			usr = userinfo_map_insert(
+				m_userlist[container_id],
+				uid,
+				gid,
+				name,
+				home,
+				shell);
+			do_notify = true;
+		}
+		else if (container_id.empty())
+		{
+#ifdef HAVE_PWD_H
 			// On Host, try to load info from db
-			p = __getpwuid(uid);
+			auto* p = __getpwuid(uid);
 			if (p)
 			{
-				name = p->pw_name;
-				home = p->pw_dir;
-				shell = p->pw_shell;
+				usr = userinfo_map_insert(
+					m_userlist[container_id],
+					p->pw_uid,
+					p->pw_gid,
+					p->pw_name,
+					p->pw_dir,
+					p->pw_shell);
+				do_notify = true;
 			}
-		}
 #endif
-
-		if (name == NULL)
-		{
-			name = "<NA>";
-		}
-		if (home == NULL)
-		{
-			home = "<NA>";
-		}
-		if (shell == NULL)
-		{
-			shell = "<NA>";
 		}
 
-		auto &userlist = m_userlist[container_id];
-		userlist[uid].uid = uid;
-		userlist[uid].gid = gid;
-		strlcpy(userlist[uid].name, name, MAX_CREDENTIALS_STR_LEN);
-		strlcpy(userlist[uid].homedir, home, SCAP_MAX_PATH_SIZE);
-		strlcpy(userlist[uid].shell, shell, SCAP_MAX_PATH_SIZE);
-
-		if (notify)
+		if (notify && do_notify)
 		{
-			notify_user_changed(&userlist[uid], container_id);
+			notify_user_changed(usr, container_id);
 		}
-
-		usr = &userlist[uid];
 	}
-	else  if (name != NULL)
+	else if (name != NULL)
 	{
 		// Update user if it was already there
 		strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
 		strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
 		strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
-
 	}
 	return usr;
+}
+
+scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
+{
+	ASSERT(!container_id.empty());
+	ASSERT(uid != 0);
+
+	auto userlist_it = m_userlist.find(container_id);
+	if(userlist_it != m_userlist.end())
+	{
+		// userlist for this container exists
+		auto it = userlist_it->second.find(uid);
+		// not an expected condition to miss, but handle it anyway
+		return (it == userlist_it->second.end())
+			       ? nullptr
+			       : &it->second;
+	}
+
+	scap_userinfo *retval{nullptr};
+
+#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
+
+	if(in_root_ns_mnt(pid))
+	{
+		return nullptr;
+	}
+
+	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/root/etc/passwd";
+	auto pwd_file = fopen(path.c_str(), "r");
+	if(pwd_file)
+	{
+		auto &userlist = m_userlist[container_id];
+		while(auto p = fgetpwent(pwd_file))
+		{
+			// Here we cache all container users
+			auto *usr = userinfo_map_insert(
+				userlist,
+				p->pw_uid,
+				p->pw_gid,
+				p->pw_name,
+				p->pw_dir,
+				p->pw_shell);
+
+			if(notify)
+			{
+				notify_user_changed(usr, container_id);
+			}
+
+			if(uid == p->pw_uid)
+			{
+				retval = usr;
+			}
+		}
+		fclose(pwd_file);
+	}
+#endif
+
+	return retval;
 }
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
@@ -334,41 +493,89 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
+		bool do_notify{false};
+		if (name)
+		{
+			gr = groupinfo_map_insert(m_grouplist[container_id], gid, name);
+			do_notify = true;
+		}
+		else if (container_id.empty())
+		{
 #ifdef HAVE_GRP_H
-		struct group *p = nullptr;
-		if (container_id.empty() && !name)
-		{
 			// On Host, try to load info from db
-			p = __getgrgid(gid);
-			if (p)
+			auto* g = __getgrgid(gid);
+			if (g)
 			{
-				name = p->gr_name;
+				gr = groupinfo_map_insert(m_grouplist[container_id], g->gr_gid, g->gr_name);
+				do_notify = true;
 			}
-		}
 #endif
-
-		if (name == NULL)
-		{
-			name = "<NA>";
 		}
 
-		auto &grplist = m_grouplist[container_id];
-		grplist[gid].gid = gid;
-		strlcpy(grplist[gid].name, name, MAX_CREDENTIALS_STR_LEN);
-
-		if (notify)
+		if (notify && do_notify)
 		{
-			notify_group_changed(&grplist[gid], container_id, true);
+			notify_group_changed(gr, container_id, true);
 		}
-		gr = &grplist[gid];
 	}
-	else  if (name != NULL)
+	else if (name != NULL)
 	{
 		// Update group if it was already there
 		strlcpy(gr->name, name, MAX_CREDENTIALS_STR_LEN);
 
 	}
 	return gr;
+}
+
+scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify)
+{
+	ASSERT(!container_id.empty());
+	ASSERT(gid != 0);
+
+	auto grouplist_it = m_grouplist.find(container_id);
+	if(grouplist_it != m_grouplist.end())
+	{
+		// grouplist for this container exists
+		auto it = grouplist_it->second.find(gid);
+		// not an expected condition to miss, but handle it anyway
+		return (it == grouplist_it->second.end())
+			       ? nullptr
+			       : &it->second;
+	}
+
+	scap_groupinfo *retval{nullptr};
+
+#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
+
+	if(in_root_ns_mnt(pid))
+	{
+		return nullptr;
+	}
+
+	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/root/etc/group";
+	auto group_file = fopen(path.c_str(), "r");
+	if(group_file)
+	{
+		auto &grouplist = m_grouplist[container_id];
+		while(auto g = fgetgrent(group_file))
+		{
+			// Here we cache all container groups
+			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, g->gr_name);
+
+			if(notify)
+			{
+				notify_group_changed(gr, container_id, true);
+			}
+
+			if(gid == g->gr_gid)
+			{
+				retval = gr;
+			}
+		}
+		fclose(group_file);
+	}
+#endif
+
+	return retval;
 }
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
@@ -630,6 +837,12 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	if (overlayfs_root.empty())
 	{
 		// Avoid loading from host
+		return;
+	}
+
+	if(m_userlist.find(container_id) != m_userlist.end())
+	{
+		// userlist for this container already exists
 		return;
 	}
 
