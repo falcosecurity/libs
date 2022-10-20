@@ -806,6 +806,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	int available = STR_STORAGE_SIZE;
 	const struct cred *cred;
 	struct file *exe_file = NULL;
+	unsigned long long time = 0;
 
 #ifdef __NR_clone3
 	struct clone_args cl_args;
@@ -1155,10 +1156,10 @@ cgroups_error:
 			child_reaper = pidns->child_reaper;
 			if (child_reaper)
 				{
-					val = child_reaper->start_time;
+					time = child_reaper->start_time;
 				}
 		}
-		res = val_to_ring(args, val, 0, false, 0);
+		res = val_to_ring(args, time, 0, false, 0);
 #else
 		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -1383,11 +1384,11 @@ cgroups_error:
 					/*
 					* exe_file ctime (last status change time, epoch value in nanoseconds)
 					*/
-					val = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+					time = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
 				}
 			}
 
-			res = val_to_ring(args, val, 0, false, 0);
+			res = val_to_ring(args, time, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				goto exe_file_out;
 
@@ -1400,11 +1401,11 @@ cgroups_error:
 					/*
 					* exe_file mtime (last modification time, epoch value in nanoseconds)
 					*/
-					val = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+					time = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 				}
 			}
 
-			res = val_to_ring(args, val, 0, false, 0);
+			res = val_to_ring(args, time, 0, false, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				goto exe_file_out;
 

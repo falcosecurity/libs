@@ -2569,7 +2569,7 @@ FILLER(proc_startupdate_3, true)
 		pid_t vpid;
 		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
 		int pidns_level = _READ(pidns->level);
-		unsigned long long pidns_init_start_time;
+		unsigned long long pidns_init_start_time = 0;
 
 		/*
 		 * flags
@@ -6844,6 +6844,7 @@ FILLER(sched_prog_fork_3, false)
 	struct task_struct *child = (struct task_struct *)original_ctx->child;
 	struct task_struct *parent = (struct task_struct *)original_ctx->parent;
 	uint32_t flags = 0;
+	unsigned long long pidns_init_start_time = 0;
 
 	/* Since Linux 2.5.35, the flags mask must also include
 	 * CLONE_SIGHAND if CLONE_THREAD is specified (and note that,
@@ -6916,8 +6917,26 @@ FILLER(sched_prog_fork_3, false)
 	/* Parameter 20: vpid (type: PT_PID) */
 	pid_t vpid = bpf_task_tgid_vnr(child);
 	res = bpf_val_to_ring_type(data, vpid, PT_PID);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
 
-	return res;
+	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+	if (pidns)
+	{
+	struct task_struct *child_reaper = (struct task_struct *)_READ(pidns->child_reaper);
+		if (child_reaper)
+		{
+			pidns_init_start_time = _READ(child_reaper->start_time);
+		}
+	}
+	res = bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
+	if (res != PPM_SUCCESS)
+	{
+		return res;
+	}
+
 }
 #endif
 
