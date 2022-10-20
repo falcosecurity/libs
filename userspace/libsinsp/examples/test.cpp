@@ -318,7 +318,7 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 		return ev;
 	}
 
-	if(res != SCAP_TIMEOUT)
+	if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT)
 	{
 		handle_error(inspector.getlasterr());
 		std::this_thread::sleep_for(std::chrono::seconds(g_backoff_timeout_secs));
