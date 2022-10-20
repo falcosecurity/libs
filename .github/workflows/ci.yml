@@ -365,7 +365,7 @@ jobs:
 
       - name: Archive test reports
         uses: actions/upload-artifact@v3
-        if: always()
+        if: failure()
         with:
           name: ${{ matrix.name }}_report
           path: |
