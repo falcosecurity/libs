@@ -1279,6 +1279,20 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				return SCAP_TIMEOUT;
 
 			}
+			else if(res == SCAP_FILTERED_EVENT)
+			{
+				// This will happen if SCAP has filtered the event in userspace (tid suppression).
+				// A valid event was read from the driver, but we are choosing to not report it to
+				// the client at the client's request.
+				// However, we still need to return here so that the client doesn't time out the
+				// request.
+				if(m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
+					*puevt = NULL;
+					return res;
+				}
+			}
 			else
 			{
 				m_lasterr = scap_getlasterr(m_h);
