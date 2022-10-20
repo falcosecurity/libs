@@ -30,6 +30,8 @@ endif()
 
 include(ExternalProject)
 
+include(find_static_library)
+
 if(WIN32 OR NOT MINIMAL_BUILD)
 	include(zlib)
 endif()
