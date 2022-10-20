@@ -73,11 +73,11 @@ int BPF_PROG(mount_x,
 
 	/* Parameter 2: dev (type: PT_CHARBUF) */
 	unsigned long source_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, source_pointer, MAX_PARAM_SIZE, USER);
+	auxmap__store_charbuf_param(auxmap, source_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: dir (type: PT_FSPATH) */
 	unsigned long target_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PARAM_SIZE, USER);
+	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PATH, USER);
 
 	/* Parameter 4: type (type: PT_CHARBUF) */
 	unsigned long fstype_pointer = extract__syscall_argument(regs, 2);
