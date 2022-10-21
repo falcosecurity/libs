@@ -51,6 +51,11 @@ int BPF_PROG(execveat_e,
 
 /*=============================== EXIT EVENT ===========================*/
 
+/* Note: On aarch64 and x86 architectures this BPF program is called only when
+ * `execveat` fails, in case of success the `execve_x` bpf program is called.
+ * The exception is `s390x` where this program (`execveat_x`) is called also when
+ * the call is successful.
+ */
 SEC("tp_btf/sys_exit")
 int BPF_PROG(execveat_x,
 	     struct pt_regs *regs,
@@ -70,21 +75,52 @@ int BPF_PROG(execveat_x,
 
 	struct task_struct *task = get_current_task();
 
-	/* This is a charbuf pointer array.
-	 * Every element of `argv` array is a pointer to a charbuf.
-	 * Here the first pointer points to `exe` param while all
-	 * the others point to the different args.
-	 *
-	 * Please note: this bpf program is called only if the `execveat` fails
-	 * so we cannot get arguments from the kernel memory.
+	/* In case of success we take `exe` and `args` directly from the kernel
+	 * otherwise we get them from the syscall arguments.
 	 */
-	unsigned long argv = extract__syscall_argument(regs, 2);
+	if(ret == 0)
+	{
+		unsigned long arg_start_pointer = 0;
+		unsigned long arg_end_pointer = 0;
 
-	/* Parameter 2: exe (type: PT_CHARBUF) */
-	auxmap__store_execve_exe(auxmap, (char **)argv);
+		/* `arg_start` points to the memory area where arguments start.
+		 * We directly read charbufs from there, not pointers to charbufs!
+		 * We will store charbufs directly from memory.
+		 */
+		READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
+		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
 
-	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-	auxmap__store_execve_args(auxmap, (char **)argv, 1);
+		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+
+		/* Parameter 2: exe (type: PT_CHARBUF) */
+		/* We need to extract the len of `exe` arg so we can undestand
+		 * the overall length of the remaining args.
+		 */
+		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+
+		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+		/* Here we read the whole array starting from the pointer to the first
+		 * element. We could also read the array element per element but
+		 * since we know the total len we read it as a `bytebuf`.
+		 * The `\0` after every argument are preserved.
+		 */
+		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+	}
+	else
+	{
+		/* This is a charbuf pointer array.
+		 * Every element of `argv` array is a pointer to a charbuf.
+		 * Here the first pointer points to `exe` param while all
+		 * the others point to the different args.
+		 */
+		unsigned long argv = extract__syscall_argument(regs, 2);
+
+		/* Parameter 2: exe (type: PT_CHARBUF) */
+		auxmap__store_execve_exe(auxmap, (char **)argv);
+
+		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+		auxmap__store_execve_args(auxmap, (char **)argv, 1);
+	}
 
 	/* Parameter 4: tid (type: PT_PID) */
 	/* this is called `tid` but it is the `pid`. */
@@ -165,9 +201,33 @@ int BPF_PROG(t1_execveat_x,
 	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
 	auxmap__store_cgroups_param(auxmap, task);
 
-	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
-	unsigned long envp = extract__syscall_argument(regs, 3);
-	auxmap__store_execve_args(auxmap, (char **)envp, 0);
+	/* In case of success we take `env` directly from the kernel
+	 * otherwise we get them from the syscall arguments.
+	 */
+	if(ret == 0)
+	{
+		unsigned long env_start_pointer = 0;
+		unsigned long env_end_pointer = 0;
+
+		READ_TASK_FIELD_INTO(&env_start_pointer, task, mm, env_start);
+		READ_TASK_FIELD_INTO(&env_end_pointer, task, mm, env_end);
+
+		unsigned long total_env_len = env_end_pointer - env_start_pointer;
+
+		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
+		/* Here we read all the array starting from the pointer to the first
+		 * element. We could also read the array element per element but
+		 * since we know the total len we read it as a `bytebuf`.
+		 * The `\0` after every argument are preserved.
+		 */
+		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len & (MAX_PROC_ARG_ENV - 1), USER);
+	}
+	else
+	{
+		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
+		unsigned long envp = extract__syscall_argument(regs, 3);
+		auxmap__store_execve_args(auxmap, (char **)envp, 0);
+	}
 
 	/* Parameter 17: tty (type: PT_INT32) */
 	u32 tty = exctract__tty(task);
