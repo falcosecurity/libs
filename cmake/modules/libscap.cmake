@@ -44,6 +44,10 @@ list(APPEND LIBSCAP_LIBS
 	"${PROJECT_BINARY_DIR}/libscap/engine/savefile/libscap_engine_savefile.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/source_plugin/libscap_engine_source_plugin.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/udig/libscap_engine_udig.a"
+if(BUILD_LIBSCAP_MODERN_BPF)
+	"${PROJECT_BINARY_DIR}/libscap/engine/modern_bpf/libscap_engine_modern_bpf.a"
+	"${PROJECT_BINARY_DIR}/libpman/libpman.a"
+endif()
 )
 install(FILES ${LIBSCAP_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "scap" OPTIONAL)
