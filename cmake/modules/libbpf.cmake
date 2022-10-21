@@ -31,6 +31,10 @@ else()
         UPDATE_COMMAND ""
     )
     message(STATUS "Using bundled libbpf: include'${LIBBPF_INCLUDE}', lib: ${LIBBPF_LIB}")
+    install(FILES "${LIBBPF_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+            COMPONENT "libs-deps")
+    install(DIRECTORY "${LIBBPF_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+            COMPONENT "libs-deps")
 endif()
 
 include_directories(${LIBBPF_INCLUDE})
