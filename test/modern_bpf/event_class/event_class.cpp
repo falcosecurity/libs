@@ -396,44 +396,12 @@ void event_test::connect_unix_client_to_server(int32_t* client_socket, struct so
 
 void event_test::assert_event_presence(pid_t pid_to_search, int event_to_search)
 {
-	int16_t cpu_id = 0;
-	pid_t pid = 0;
-	uint16_t evt_type = 0;
+	assert_event_in_buffers(pid_to_search, event_to_search, true);
+}
 
-	if(pid_to_search == CURRENT_PID)
-	{
-		pid = ::getpid();
-	}
-	else
-	{
-		pid = pid_to_search;
-	}
-
-	if(event_to_search == CURRENT_EVENT_TYPE)
-	{
-		evt_type = m_event_type;
-	}
-	else
-	{
-		evt_type = event_to_search;
-	}
-
-	/* We need the while loop because in the buffers there could be different events
-	 * with the type we are searching for. Even if we explicitly create only one event
-	 * of this type, the system could create other events of the same type during the test!
-	 */
-	while(true)
-	{
-		get_event_from_ringbuffer(&cpu_id);
-		if(m_event_header == NULL)
-		{
-			FAIL() << "There is no event '" << evt_type << "' in the buffer." << std::endl;
-		}
-		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == evt_type)
-		{
-			break;
-		}
-	}
+void event_test::assert_event_absence(pid_t pid_to_search, int event_to_search)
+{
+	assert_event_in_buffers(pid_to_search, event_to_search, false);
 }
 
 void event_test::assert_header()
@@ -839,4 +807,60 @@ void event_test::assert_unix_path(const char* desired_path, int starting_index)
 {
 	const char* unix_path = m_event_params[m_current_param].valptr + starting_index;
 	ASSERT_STREQ(unix_path, desired_path) << VALUE_NOT_CORRECT << m_current_param;
+}
+
+void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_search, bool presence)
+{
+	int16_t cpu_id = 0;
+	pid_t pid = 0;
+	uint16_t evt_type = 0;
+
+	if(pid_to_search == CURRENT_PID)
+	{
+		pid = ::getpid();
+	}
+	else
+	{
+		pid = pid_to_search;
+	}
+
+	if(event_to_search == CURRENT_EVENT_TYPE)
+	{
+		evt_type = m_event_type;
+	}
+	else
+	{
+		evt_type = event_to_search;
+	}
+
+	/* We need the while loop because in the buffers there could be different events
+	 * with the type we are searching for. Even if we explicitly create only one event
+	 * of this type, the system could create other events of the same type during the test!
+	 */
+	while(true)
+	{
+		get_event_from_ringbuffer(&cpu_id);
+		if(m_event_header == NULL)
+		{
+			if(presence)
+			{
+				FAIL() << "There is no event '" << evt_type << "' in the buffers." << std::endl;
+			}
+			else
+			{
+				break;
+			}
+		}
+		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == evt_type)
+		{
+			if(presence)
+			{
+				break;
+			}
+			else
+			{
+				FAIL() << "There is an event '" << evt_type << "' in the buffers, but it shouldn't be there" << std::endl;
+			}
+		}
+	}
 }
