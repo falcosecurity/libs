@@ -2,7 +2,9 @@
 #include "../../flags/flags_definitions.h"
 #include "../../helpers/proc_parsing.h"
 
-#if defined(__NR_execve) && defined(__NR_capget)
+#if defined(__NR_execve) && defined(__NR_capget) && defined(__NR_clone3) && defined(__NR_wait4)
+
+#include <linux/sched.h>
 
 TEST(SyscallExit, execveX_failure)
 {
@@ -140,10 +142,6 @@ TEST(SyscallExit, execveX_failure)
 	evt_test->assert_num_params_pushed(23);
 }
 
-#if !defined(CAPTURE_SCHED_PROC_EXEC) && defined(__NR_clone3) && defined(__NR_wait4)
-
-#include <linux/sched.h>
-
 TEST(SyscallExit, execveX_success)
 {
 	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
@@ -187,6 +185,10 @@ TEST(SyscallExit, execveX_success)
 
 	evt_test->disable_capture();
 
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	/* We search for a child event. */
+	evt_test->assert_event_absence(ret_pid);
+#else
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
@@ -240,7 +242,6 @@ TEST(SyscallExit, execveX_success)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(23);
-}
 #endif
-
+}
 #endif
