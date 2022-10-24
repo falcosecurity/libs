@@ -15,7 +15,8 @@ or GPL2.txt for full copies of the license.
  * These feature gates are used by: 
  * - kernel module
  * - BPF probe
- * - userspace 
+ * - userspace
+ * - modern BPF probe
  * to compile out some features. The userspace is in charge of 
  * filling the BPF maps that's why it also needs these macros.
  * 
@@ -129,6 +130,16 @@ or GPL2.txt for full copies of the license.
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3, 12, 0)) && defined(CONFIG_X86)
 	#define CAPTURE_PAGE_FAULTS
+#endif
+
+#elif defined(__USE_VMLINUX__) /* modern BPF probe */
+
+///////////////////////////////
+// CAPTURE_SCHED_PROC_EXEC 
+///////////////////////////////
+
+#if defined(__TARGET_ARCH_arm64)
+	#define CAPTURE_SCHED_PROC_EXEC 
 #endif
 
 #else /* Userspace */
