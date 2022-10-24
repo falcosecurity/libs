@@ -53,7 +53,7 @@ int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinf
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
+int32_t scap_proc_fill_info_from_stats(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	uint32_t pidinfo_nfound = 0;
@@ -99,7 +99,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	if(f == NULL)
 	{
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, errno, "open status file %s failed", filename);
+		return scap_errprintf(error, errno, "open status file %s failed", filename);
 	}
 
 	while(fgets(line, sizeof(line), f) != NULL)
@@ -290,7 +290,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	if(f == NULL)
 	{
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, errno, "read stat file %s failed", filename);
+		return scap_errprintf(error, errno, "read stat file %s failed", filename);
 	}
 
 	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
@@ -298,7 +298,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		return scap_errprintf(handle->m_lasterr, errno, "Could not read from stat file %s", filename);
+		return scap_errprintf(error, errno, "Could not read from stat file %s", filename);
 	}
 	line[ssres] = 0;
 
@@ -307,7 +307,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		return scap_errprintf(handle->m_lasterr, 0, "Could not find closing bracket in stat file %s", filename);
+		return scap_errprintf(error, 0, "Could not find closing bracket in stat file %s", filename);
 	}
 
 	//
@@ -327,7 +327,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		return scap_errprintf(handle->m_lasterr, 0, "Could not read expected fields from stat file %s", filename);
+		return scap_errprintf(error, 0, "Could not read expected fields from stat file %s", filename);
 	}
 
 	tinfo->pfmajor = pfmajor;
@@ -864,7 +864,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// extract the user id and ppid from /proc/pid/status
 	//
-	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle, dir_name, tinfo))
+	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle->m_lasterr, dir_name, tinfo))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill uid and pid for %s (%s)",
