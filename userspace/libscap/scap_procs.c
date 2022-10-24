@@ -642,20 +642,20 @@ static int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinf
 	// implemented in the thread_seteuid() and thread_setegid() functions.
 	//
 
-	if(thread_seteuid(uid) != -1 && thread_setegid(gid) != -1) {
+	if(thread_seteuid(uid) >= 0 && thread_setegid(gid) >= 0) {
 		if(faccessat(0, proc_exe_path, W_OK, AT_EACCESS) == 0) {
 			tinfo->exe_writable = true;
 		}
 	}
 
-	if(thread_seteuid(orig_uid) == -1)
+	if(thread_seteuid(orig_uid) < 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original euid from %d to %d",
 			uid, orig_uid);
 		return SCAP_FAILURE;
 	}
 
-	if(thread_setegid(orig_gid) == -1)
+	if(thread_setegid(orig_gid) < 0)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original egid from %d to %d",
 			gid, orig_gid);
