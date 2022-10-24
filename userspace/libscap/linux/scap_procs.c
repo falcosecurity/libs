@@ -534,7 +534,7 @@ int32_t scap_proc_fill_root(char* error, struct scap_threadinfo* tinfo, const ch
 	}
 }
 
-int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	uint32_t loginuid;
 	char loginuid_path[SCAP_MAX_PATH_SIZE];
@@ -544,13 +544,13 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	if(f == NULL)
 	{
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, errno, "Open loginuid file %s failed", loginuid_path);
+		return scap_errprintf(error, errno, "Open loginuid file %s failed", loginuid_path);
 	}
 	if (fgets(line, sizeof(line), f) == NULL)
 	{
 		ASSERT(false);
 		fclose(f);
-		return scap_errprintf(handle->m_lasterr, errno, "Could not read loginuid from %s", loginuid_path);
+		return scap_errprintf(error, errno, "Could not read loginuid from %s", loginuid_path);
 	}
 
 	fclose(f);
@@ -563,7 +563,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	else
 	{
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, 0, "Could not read loginuid from %s", loginuid_path);
+		return scap_errprintf(error, 0, "Could not read loginuid from %s", loginuid_path);
 	}
 }
 
@@ -913,7 +913,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// set the loginuid
 	//
-	if(SCAP_FAILURE == scap_proc_fill_loginuid(handle, tinfo, dir_name))
+	if(SCAP_FAILURE == scap_proc_fill_loginuid(handle->m_lasterr, tinfo, dir_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill loginuid for %s (%s)",
