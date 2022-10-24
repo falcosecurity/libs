@@ -520,7 +520,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t pid, int64_t *vpid)
 	return SCAP_FAILURE;
 }
 
-int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_root(char* error, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char root_path[SCAP_MAX_PATH_SIZE];
 	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
@@ -530,7 +530,7 @@ int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo, const
 	}
 	else
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "readlink %s failed", root_path);
+		return scap_errprintf(error, errno, "readlink %s failed", root_path);
 	}
 }
 
@@ -903,7 +903,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// set the current root of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_root(handle, tinfo, dir_name))
+	if(SCAP_FAILURE == scap_proc_fill_root(handle->m_lasterr, tinfo, dir_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill root for %s (%s)",
