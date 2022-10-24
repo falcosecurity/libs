@@ -154,6 +154,9 @@ TEST(SyscallExit, forkX_child)
 
 		evt_test->disable_capture();
 
+#ifdef CAPTURE_SCHED_PROC_FORK
+		evt_test->assert_event_absence(pid);
+#else
 		evt_test->assert_event_presence(pid);
 
 		if(HasFatalFailure())
@@ -234,7 +237,7 @@ TEST(SyscallExit, forkX_child)
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
 		evt_test->assert_num_params_pushed(20);
-
+#endif
 		if(HasFailure())
 		{
 			exit(EXIT_FAILURE);

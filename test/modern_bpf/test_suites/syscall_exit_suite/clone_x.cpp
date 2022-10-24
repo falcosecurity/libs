@@ -218,7 +218,7 @@ TEST(SyscallExit, cloneX_child)
  * default behavior among different architectures... you can find more
  * info in `driver/feature_gates.h`.
  */
-#ifdef __aarch64__
+#ifdef CAPTURE_SCHED_PROC_FORK
 		evt_test->assert_event_absence(pid);
 #else
 		evt_test->assert_event_presence(pid);

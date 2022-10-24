@@ -43,6 +43,19 @@ int BPF_PROG(clone3_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
+
+/* We already catch the clone3 child event with our `sched_process_fork` tracepoint,
+ * for this reason we don't need also this instrumentation. Please note that we use
+ * the aforementioned tracepoint only for the child event but we need to catch also
+ * the father event or the failure case, for this reason we check the `ret==0`
+ */
+#ifdef CAPTURE_SCHED_PROC_FORK
+	if(ret == 0)
+	{
+		return 0;
+	}
+#endif
+
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{
