@@ -100,6 +100,9 @@ event_test::~event_test()
 	 */
 	pman_detach_sched_proc_exit();
 	pman_detach_sched_switch();
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	pman_detach_sched_proc_exec();
+#endif
 }
 
 /* This constructor must be used with generic tracepoints
@@ -117,6 +120,12 @@ event_test::event_test(ppm_event_type event_type)
 
 	case PPME_SCHEDSWITCH_6_E:
 		pman_attach_sched_switch();
+		break;
+
+	case PPME_SYSCALL_EXECVE_19_X:
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		pman_attach_sched_proc_exec();
+#endif
 		break;
 
 	default:

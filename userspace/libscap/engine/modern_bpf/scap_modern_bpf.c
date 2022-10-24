@@ -63,6 +63,12 @@ static int32_t attach_interesting_tracepoints(bool* tp_array)
 			ret = pman_attach_sched_switch();
 			break;
 
+		case SCHED_PROC_EXEC:
+#ifdef CAPTURE_SCHED_PROC_EXEC
+			ret = pman_attach_sched_proc_exec();
+#endif
+			break;
+
 		default:
 			/* Do nothing right now. */
 			break;

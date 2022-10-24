@@ -1191,7 +1191,8 @@ enum extra_event_prog_code
 	T1_CLONE3_X = 3,
 	T1_FORK_X = 4,
 	T1_VFORK_X = 5,
-	TAIL_EXTRA_EVENT_PROG_MAX = 6
+	T1_SCHED_PROC_EXEC = 6,
+	TAIL_EXTRA_EVENT_PROG_MAX = 7
 };
 
 /*
