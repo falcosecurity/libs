@@ -1192,7 +1192,8 @@ enum extra_event_prog_code
 	T1_FORK_X = 4,
 	T1_VFORK_X = 5,
 	T1_SCHED_PROC_EXEC = 6,
-	TAIL_EXTRA_EVENT_PROG_MAX = 7
+	T1_SCHED_PROC_FORK = 7,
+	TAIL_EXTRA_EVENT_PROG_MAX = 8
 };
 
 /*

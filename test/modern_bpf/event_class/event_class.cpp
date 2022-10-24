@@ -103,6 +103,9 @@ event_test::~event_test()
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	pman_detach_sched_proc_exec();
 #endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	pman_detach_sched_proc_fork();
+#endif
 }
 
 /* This constructor must be used with generic tracepoints
@@ -125,6 +128,12 @@ event_test::event_test(ppm_event_type event_type)
 	case PPME_SYSCALL_EXECVE_19_X:
 #ifdef CAPTURE_SCHED_PROC_EXEC
 		pman_attach_sched_proc_exec();
+#endif
+		break;
+
+	case PPME_SYSCALL_CLONE_20_X:
+#ifdef CAPTURE_SCHED_PROC_FORK
+		pman_attach_sched_proc_fork();
 #endif
 		break;
 

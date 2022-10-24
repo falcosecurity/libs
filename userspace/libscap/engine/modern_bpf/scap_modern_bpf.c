@@ -69,6 +69,12 @@ static int32_t attach_interesting_tracepoints(bool* tp_array)
 #endif
 			break;
 
+		case SCHED_PROC_FORK:
+#ifdef CAPTURE_SCHED_PROC_FORK
+			ret = pman_attach_sched_proc_fork();
+#endif
+			break;
+
 		default:
 			/* Do nothing right now. */
 			break;

@@ -142,6 +142,14 @@ or GPL2.txt for full copies of the license.
 	#define CAPTURE_SCHED_PROC_EXEC 
 #endif
 
+///////////////////////////////
+// CAPTURE_SCHED_PROC_FORK 
+///////////////////////////////
+
+#if defined(__TARGET_ARCH_arm64) || defined(__TARGET_ARCH_s390)
+	#define CAPTURE_SCHED_PROC_FORK 
+#endif
+
 #else /* Userspace */
 
 /* Please note: the userspace loads the filler table for the bpf probe

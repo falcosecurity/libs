@@ -111,6 +111,25 @@ int pman_attach_sched_proc_exec()
 }
 #endif
 
+#ifdef CAPTURE_SCHED_PROC_FORK
+int pman_attach_sched_proc_fork()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.sched_p_fork != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.sched_p_fork = bpf_program__attach(g_state.skel->progs.sched_p_fork);
+	if(!g_state.skel->links.sched_p_fork)
+	{
+		pman_print_error("failed to attach the 'sched_proc_fork' program");
+		return errno;
+	}
+	return 0;
+}
+#endif
+
 int pman_attach_all_programs()
 {
 	int err;
@@ -120,6 +139,9 @@ int pman_attach_all_programs()
 	err = err ?: pman_attach_sched_switch();
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	err = err ?: pman_attach_sched_proc_exec();
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	err = err ?: pman_attach_sched_proc_fork();
 #endif
 	/* add all other programs. */
 	return err;
@@ -186,6 +208,19 @@ int pman_detach_sched_proc_exec()
 }
 #endif
 
+#ifdef CAPTURE_SCHED_PROC_FORK
+int pman_detach_sched_proc_fork()
+{
+	if(g_state.skel->links.sched_p_fork && bpf_link__destroy(g_state.skel->links.sched_p_fork))
+	{
+		pman_print_error("failed to detach the 'sched_proc_fork' program");
+		return errno;
+	}
+	g_state.skel->links.sched_p_fork = NULL;
+	return 0;
+}
+#endif
+
 int pman_detach_all_programs()
 {
 	int err;
@@ -195,6 +230,9 @@ int pman_detach_all_programs()
 	err = err ?: pman_detach_sched_switch();
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	err = err ?: pman_detach_sched_proc_exec();
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	err = err ?: pman_detach_sched_proc_fork();
 #endif	
 	/* add all other programs. */
 	return err;
