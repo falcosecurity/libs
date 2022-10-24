@@ -36,7 +36,7 @@ limitations under the License.
 #include "strerror.h"
 
 
-int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
+int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -46,7 +46,7 @@ int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_thread
 	target_res = readlink(filename, tinfo->cwd, sizeof(tinfo->cwd) - 1);
 	if(target_res <= 0)
 	{
-		return scap_errprintf(handle->m_lasterr, errno, "readlink %s failed", filename);
+		return scap_errprintf(error, errno, "readlink %s failed", filename);
 	}
 
 	tinfo->cwd[target_res] = '\0';
@@ -854,7 +854,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// set the current working directory of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_cwd(handle, dir_name, tinfo))
+	if(SCAP_FAILURE == scap_proc_fill_cwd(handle->m_lasterr, dir_name, tinfo))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cwd for %s (%s)",
