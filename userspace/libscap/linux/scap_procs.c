@@ -567,7 +567,7 @@ int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, cons
 	}
 }
 
-int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
+int32_t scap_proc_fill_exe_writable(char* error, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
 {
 	char proc_exe_path[SCAP_MAX_PATH_SIZE];
 	struct stat targetstat;
@@ -612,18 +612,48 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 	int ret;
 	if((ret = thread_seteuid(orig_uid)) < 0)
 	{
-		return scap_errprintf(handle->m_lasterr, -ret, "Could not restore original euid from %d to %d",
+		return scap_errprintf(error, -ret, "Could not restore original euid from %d to %d",
 			uid, orig_uid);
 	}
 
 	if((ret = thread_setegid(orig_gid)) < 0)
 	{
-		return scap_errprintf(handle->m_lasterr, -ret, "Could not restore original egid from %d to %d",
+		return scap_errprintf(error, -ret, "Could not restore original egid from %d to %d",
 			gid, orig_gid);
-		return SCAP_FAILURE;
 	}
 
 	return SCAP_SUCCESS;
+}
+
+
+static int scap_get_cgroup_version(const char* procdirname)
+{
+	char dir_name[256];
+	int cgroup_version = -1;
+	FILE* f;
+	char line[SCAP_MAX_ENV_SIZE];
+
+	snprintf(dir_name, sizeof(dir_name), "%s/filesystems", procdirname);
+	f = fopen(dir_name, "r");
+	if (f)
+	{
+		while(fgets(line, sizeof(line), f) != NULL)
+		{
+			// NOTE: we do not support mixing cgroups v1 v2 controllers.
+			// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
+			if (strstr(line, "cgroup2"))
+			{
+				return 2;
+			}
+			if (strstr(line, "cgroup"))
+			{
+				cgroup_version = 1;
+			}
+		}
+		fclose(f);
+	}
+
+	return cgroup_version;
 }
 
 //
@@ -648,26 +678,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 
 	if (handle->m_cgroup_version == 0)
 	{
-		snprintf(dir_name, sizeof(dir_name), "%s/filesystems", procdirname);
-		f = fopen(dir_name, "r");
-		if (f)
-		{
-			while(fgets(line, sizeof(line), f) != NULL)
-			{
-				// NOTE: we do not support mixing cgroups v1 v2 controllers.
-				// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
-				if (strstr(line, "cgroup2"))
-				{
-					handle->m_cgroup_version = 2;
-					break;
-				}
-				if (strstr(line, "cgroup"))
-				{
-					handle->m_cgroup_version = 1;
-				}
-			}
-			fclose(f);
-		} else
+		handle->m_cgroup_version = scap_get_cgroup_version(procdirname);
+		if(handle->m_cgroup_version < 1)
 		{
 			ASSERT(false);
 			return scap_errprintf(error, errno, "failed to fetch cgroup version information");
@@ -939,7 +951,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
 
-	if(SCAP_FAILURE == scap_proc_fill_exe_writable(handle, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
+	if(SCAP_FAILURE == scap_proc_fill_exe_writable(handle->m_lasterr, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill exe writable access for %s (%s)",
