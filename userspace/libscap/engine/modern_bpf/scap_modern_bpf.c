@@ -126,8 +126,8 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_
 	pman_consume_first_from_buffers((void**)pevent, pcpuid);
 	if((*pevent) == NULL)
 	{
-		/* Sleep 500 ms */
-		usleep(5*100000);
+		/* Sleep 500 us */
+		usleep(500);
 		return SCAP_TIMEOUT;
 	}
 	return SCAP_SUCCESS;
