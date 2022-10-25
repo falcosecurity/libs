@@ -934,7 +934,7 @@ void print_stats()
 
 	scap_stats s;
 	printf("\n---------------------- STATS -----------------------\n");
-	printf("Events captured: %" PRIu64 "\n", g_nevts);
+	printf("Events correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
 	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
 	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
