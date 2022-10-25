@@ -474,7 +474,14 @@ void chisel_table::process_event(sinsp_evt* evt)
 		else
 		{
 			// todo: Do something better here. For now, only support single-value extracted fields
+			// Set the val in the m_premerge_fld_pointers; note: at this stage,
+			// m_fld_pointers points to m_premerge_fld_pointers.
+			// This is only used to eventually compute the field len for BYTE_BUF
+			pfld->m_val = m_premerge_extractors[j]->m_check->m_extracted_values[0].ptr;
+			// Compute len
+			// NOTE: this internally uses m_fld_pointers thus the m_val must be already set, as above.
 			pfld->m_len = get_field_len(j);
+			// Finally, create the buffer copy and store it to val.
 			pfld->m_val = m_buffer->copy(m_premerge_extractors[j]->m_check->m_extracted_values[0].ptr, pfld->m_len);
 			pfld->m_cnt = 1;
 		}
