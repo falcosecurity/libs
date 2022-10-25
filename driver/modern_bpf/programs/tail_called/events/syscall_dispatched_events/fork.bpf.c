@@ -162,7 +162,7 @@ int BPF_PROG(fork_x,
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, MAX_PROC_EXE, KERNEL);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, TASK_COMM_LEN, KERNEL);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

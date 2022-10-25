@@ -399,7 +399,7 @@ TEST(GenericTracepoints, sched_proc_fork_case_fork)
 		evt_test->assert_cgroup_param(15);
 
 		/* Parameter 16: flags (type: PT_FLAGS32) */
-		evt_test->assert_numeric_param(16, (uint32_t)(uint32_t)0);
+		evt_test->assert_numeric_param(16, (uint32_t)0);
 
 		/* Parameter 17: uid (type: PT_UINT32) */
 		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
