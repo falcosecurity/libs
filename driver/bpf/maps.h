@@ -113,6 +113,104 @@ struct bpf_map_def __bpf_section("maps") stash_tuple_map = {
 	.max_entries = 65535,
 };
 
+enum offcpu_type {
+    ON, // 0
+    DISK, // 1
+    NET, // 2
+    LOCK, // 3
+    IDLE, // 4
+    OTHER,
+    EPOLL
+};
+
+#define NUM 16
+#define HALF_NUM (NUM >> 1)
+struct info_t {
+    u32 pid;
+    u32 tid;
+    u64 start_ts;
+    u64 end_ts;
+    u32 index;
+    u64 times_specs[NUM];
+    u64 rq[HALF_NUM];
+    u8 time_type[NUM];
+};
+
+#define TYPE_NUM 8
+struct time_aggregate_t {
+    u32 pid;
+    u32 tid;
+    char comm[TASK_COMM_LEN]; // 16
+    u64 start_time;
+    // on_total_time, off_total_time;
+    u64 total_times[2];
+    // net, io, futex, idle, other
+    // 0, 1, 2, 3, 4
+    u64 time_specs[TYPE_NUM]; // 展开成各个参数；1 + 2 + 4
+};
+
+struct bpf_map_def __bpf_section("maps") on_start_ts = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(u64),
+        .max_entries = 65535,
+};
+
+struct bpf_map_def __bpf_section("maps") off_start_ts = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(u64),
+        .max_entries = 65535,
+};
+
+struct bpf_map_def __bpf_section("maps") cpu_runq = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(u64),
+        .max_entries = 65535,
+};
+
+struct bpf_map_def __bpf_section("maps") type_map = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(enum offcpu_type),
+        .max_entries = 65535,
+};
+
+struct bpf_map_def __bpf_section("maps") syscall_map = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(enum offcpu_type),
+        .max_entries = 1000,
+};
+
+struct bpf_map_def __bpf_section("maps") aggregate_time = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(struct time_aggregate_t),
+        .max_entries = 65535,
+};
+
+struct bpf_map_def __bpf_section("maps") cpu_analysis_pid_whitelist = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(bool),
+        .max_entries = 1000,
+};
+
+struct bpf_map_def __bpf_section("maps") cpu_analysis_pid_blacklist = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(bool),
+        .max_entries = 1000,
+};
+
+struct bpf_map_def __bpf_section("maps") cpu_records = {
+        .type = BPF_MAP_TYPE_HASH,
+        .key_size = sizeof(u32),
+        .value_size = sizeof(struct info_t),
+        .max_entries = 1000,
+};
 #endif // __KERNEL__
 
 #endif

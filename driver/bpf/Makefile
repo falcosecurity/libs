@@ -20,7 +20,7 @@ KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 FILTERED_KBUILD_CPPFLAGS=$(shell echo " ${KBUILD_CPPFLAGS} " | sed 's/ -fmacro-prefix-map[^ ]* / /')
 
 # DEBUG = -DBPF_DEBUG
-
+CPU = -DCPU_ANALYSIS
 all:
 	$(MAKE) -C $(KERNELDIR) M=$$PWD
 
@@ -41,6 +41,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(FILTERED_KBUILD_CPPFLAGS) \
 		$(KBUILD_EXTRA_CPPFLAGS) \
 		$(DEBUG) \
+		$(CPU) \
 		-D__KERNEL__ \
 		-D__BPF_TRACING__ \
 		-Wno-gnu-variable-sized-type-not-at-end \

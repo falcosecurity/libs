@@ -29,7 +29,7 @@ or GPL2.txt for full copies of the license.
             bpf_probe_read((void *)dst, size, (char *)ctx + __offset);		\
         } while (0);
 
-
+//#define BPF_DEBUG
 #ifdef BPF_DEBUG
 #define bpf_printk(fmt, ...)					\
 	do {							\
@@ -38,6 +38,216 @@ or GPL2.txt for full copies of the license.
 	} while (0)
 #else
 #define bpf_printk(fmt, ...)
+#endif
+
+static __always_inline void call_filler(void *ctx,
+					void *stack_ctx,
+					enum ppm_event_type evt_type,
+					struct sysdig_bpf_settings *settings,
+					enum syscall_flags drop_flags);
+static __always_inline bool prepare_filler(void *ctx,
+					   void *stack_ctx,
+					   enum ppm_event_type evt_type,
+					   struct sysdig_bpf_settings *settings,
+					   enum syscall_flags drop_flags);
+static __always_inline int bpf_cpu_analysis(void *ctx, u32 tid);
+#ifdef CPU_ANALYSIS
+static __always_inline void clear_map(u32 tid)
+{
+	bpf_map_delete_elem(&type_map, &tid);
+	bpf_map_delete_elem(&on_start_ts, &tid);
+	bpf_map_delete_elem(&off_start_ts, &tid);
+//    bpf_map_delete_elem(&aggregate_time, &tid);
+	bpf_map_delete_elem(&cpu_records, &tid);
+}
+
+static __always_inline bool check_filter(u32 pid)
+{
+	return true;
+	bool *flag = bpf_map_lookup_elem(&cpu_analysis_pid_blacklist, &pid);
+	if (flag != 0 && *flag == 1) {
+		return false;
+	}
+	flag = bpf_map_lookup_elem(&cpu_analysis_pid_whitelist, &pid);
+	if (flag != 0 && *flag == 1) {
+		return true;
+	}
+	return false;
+}
+static __always_inline enum offcpu_type get_syscall_type(int syscall_id) {
+	enum offcpu_type *typep;
+	typep = bpf_map_lookup_elem(&syscall_map, &syscall_id);
+	if (typep != 0)
+		return *typep;
+
+	enum offcpu_type type;
+	switch(syscall_id) {
+		case __NR_read :
+		case __NR_pread64 :
+		case __NR_readv :
+		case __NR_preadv :
+		case __NR_write :
+		case __NR_pwrite64 :
+		case __NR_writev :
+		case __NR_pwritev :
+		case __NR_sync :
+		case __NR_sync_file_range :
+		case __NR_fsync :
+		case __NR_msync :
+		case __NR_open :
+		case __NR_close :
+			type = DISK;
+			break;
+		case __NR_recvfrom :
+		case __NR_recvmmsg :
+		case __NR_recvmsg :
+		case __NR_sendto :
+		case __NR_sendmsg :
+		case __NR_sendmmsg :
+		case __NR_connect :
+		case __NR_accept :
+			type = NET;
+			break;
+		case __NR_futex :
+			type = LOCK;
+			break;
+		case __NR_pselect6 :
+		case __NR_select :
+		case __NR_nanosleep :
+		case __NR_io_getevents :
+			// yield
+			type = IDLE;
+			break;
+		case __NR_poll :
+		case __NR_ppoll :
+		case __NR_epoll_pwait :
+		case __NR_epoll_wait :
+			type = EPOLL;
+			break;
+		default:
+			type = OTHER;
+	}
+	bpf_map_update_elem(&syscall_map, &syscall_id, &type, BPF_ANY);
+	return type;
+}
+
+static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 latency, u64 delta, u8 is_on)
+{
+	struct info_t *infop;
+	infop = bpf_map_lookup_elem(&cpu_records, &tid);
+	if (infop == 0) { // try init
+		// init
+		struct info_t info = {0};
+		info.pid = pid;
+		info.tid = tid;
+		info.start_ts = settings->boot_time + start_ts;
+		info.index = 0;
+		bpf_map_update_elem(&cpu_records, &tid, &info, BPF_ANY);
+		infop = bpf_map_lookup_elem(&cpu_records, &tid);
+	}
+
+	if (infop != 0) {
+		if (infop->index < NUM) {
+			infop->times_specs[infop->index & (NUM - 1)] = delta;
+			if (is_on == 0) {
+				// get the type of offcpu
+				enum offcpu_type *typep, type;
+				typep = bpf_map_lookup_elem(&type_map, &tid);
+				if (typep == 0) {
+					type = OTHER;
+				} else {
+					type = *typep;
+				}
+				infop->time_type[infop->index & (NUM - 1)] = (u8)type;
+				infop->rq[(infop->index / 2) & (HALF_NUM - 1)] = latency;
+			}
+			infop->index++;
+		}
+		// update end_ts
+		infop->end_ts = settings->boot_time + bpf_ktime_get_ns();
+		// cache
+		bpf_map_update_elem(&cpu_records, &tid, infop, BPF_ANY);
+	}
+}
+
+static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 delta, u8 is_on)
+{
+	struct info_t *infop;
+	infop = bpf_map_lookup_elem(&cpu_records, &tid);
+	if (infop == 0) { // try init
+		// init
+		struct info_t info = {0};
+		info.pid = pid;
+		info.tid = tid;
+		info.start_ts = settings->boot_time + start_ts;
+		info.index = 0;
+		bpf_map_update_elem(&cpu_records, &tid, &info, BPF_ANY);
+		infop = bpf_map_lookup_elem(&cpu_records, &tid);
+	}
+
+	if (infop != 0) {
+	int offset_ts = infop->end_ts - infop->start_ts;
+		if (infop->index > 0 && (infop->index == NUM || offset_ts > 2000000000)) {
+		//bpf_printk("start_ts %llu", infop->start_ts);
+			// perf out
+			if (prepare_filler(ctx, ctx, PPME_CPU_ANALYSIS_E, settings, 0)) {
+				bpf_cpu_analysis(ctx, infop->tid);
+			}
+			// clear
+			infop->start_ts = settings->boot_time + start_ts;
+			infop->index = 0;
+			memset(infop->time_type, 0, sizeof(infop->time_type));
+			memset(infop->times_specs, 0, sizeof(infop->times_specs));
+			memset(infop->rq, 0, sizeof(infop->rq));
+		}
+		if (infop->index < NUM) {
+			infop->times_specs[infop->index & (NUM - 1)] = delta;
+			if (is_on == 0) {
+				// get the type of offcpu
+				enum offcpu_type *typep, type;
+				typep = bpf_map_lookup_elem(&type_map, &tid);
+				if (typep == 0) {
+					type = OTHER;
+				} else {
+					type = *typep;
+				}
+				infop->time_type[infop->index & (NUM - 1)] = (u8)type;
+			}
+			infop->index++;
+		}
+		// update end_ts
+		infop->end_ts = settings->boot_time + bpf_ktime_get_ns();
+		// cache
+		bpf_map_update_elem(&cpu_records, &tid, infop, BPF_ANY);
+	}
+}
+
+static __always_inline void aggregate(u32 pid, u32 tid, u64 start_time, u64 current_interval, bool is_on)
+{
+	struct time_aggregate_t* p_time = bpf_map_lookup_elem(&aggregate_time, &pid);
+	if (p_time == 0) {
+		struct time_aggregate_t time_aggregate = {};
+		time_aggregate.start_time = start_time;
+		bpf_map_update_elem(&aggregate_time, &pid, &time_aggregate, BPF_ANY);
+		p_time = bpf_map_lookup_elem(&aggregate_time, &pid);
+	}
+	if (p_time != 0) {
+		if (is_on) {
+			p_time->total_times[0] += current_interval;
+		} else {
+			enum offcpu_type *typep, type;
+			typep = bpf_map_lookup_elem(&type_map, &tid);
+			if (typep == 0) {
+				type = OTHER;
+			} else {
+				type = *typep;
+			}
+			p_time->total_times[1] += current_interval;
+			p_time->time_specs[((int)type - 1) & (TYPE_NUM - 1)] += current_interval;
+		}
+		bpf_map_update_elem(&aggregate_time, &pid, p_time, BPF_ANY);
+	}
+}
 #endif
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -455,7 +665,7 @@ static __always_inline void call_filler(void *ctx,
 	unsigned int cpu;
 
 	if (evt_type < PPM_EVENT_MAX && !settings->events_mask[evt_type]) {
-	    return;
+		return;
 	}
 
 	cpu = bpf_get_smp_processor_id();
@@ -505,6 +715,10 @@ static __always_inline bool prepare_filler(void *ctx,
 	unsigned long long pid;
 	unsigned long long ts;
 	unsigned int cpu;
+
+	if (evt_type < PPM_EVENT_MAX && !settings->events_mask[evt_type]) {
+		return false;
+	}
 
 	cpu = bpf_get_smp_processor_id();
 

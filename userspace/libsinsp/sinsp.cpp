@@ -1470,6 +1470,16 @@ void sinsp::remove_thread(int64_t tid, bool force)
 	m_thread_manager->remove_thread(tid, force);
 }
 
+bool sinsp::add_pid_vtid_info(uint64_t pid, uint64_t tid, uint64_t vtid)
+{
+	return put_pid_vtid_map(m_h, pid, tid, vtid);
+}
+
+uint64_t sinsp::get_pid_vtid_info(uint64_t pid, uint64_t vtid)
+{
+	return get_pid_vtid_map(m_h, pid, vtid);
+}
+
 bool sinsp::suppress_events_comm(const std::string &comm)
 {
 	if(m_suppressed_comms.size() >= SCAP_MAX_SUPPRESSED_COMMS)

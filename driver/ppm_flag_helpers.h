@@ -879,6 +879,52 @@ static __always_inline u16 poll_events_to_scap(short revents)
 	return res;
 }
 
+static __always_inline u16 epoll_events_to_scap(short revents)
+{
+	u16 res = 0;
+#ifdef EPOLLIN
+	if (revents & EPOLLIN)
+		res |= PPM_EPOLLIN;
+#endif
+#ifdef EPOLLPRI
+	if (revents & EPOLLPRI)
+		res |= PPM_EPOLLPRI;
+#endif
+#ifdef EPOLLOUT
+	if (revents & EPOLLOUT)
+		res |= PPM_EPOLLOUT;
+#endif
+#ifdef EPOLLRDHUP
+	if (revents & EPOLLRDHUP)
+		res |= PPM_EPOLLRDHUP;
+#endif
+#ifdef EPOLLERR
+	if (revents & EPOLLERR)
+		res |= PPM_EPOLLERR;
+#endif
+#ifdef EPOLLHUP
+	if (revents & EPOLLHUP)
+		res |= PPM_EPOLLHUP;
+#endif
+#ifdef EPOLLET
+	if (revents & EPOLLET)
+		res |= PPM_EPOLLET;
+#endif
+#ifdef EPOLLONESHOT
+	if (revents & EPOLLONESHOT)
+		res |= PPM_EPOLLONESHOT;
+#endif
+#ifdef EPOLLWAKEUP
+	if (revents & EPOLLWAKEUP)
+		res |= PPM_EPOLLWAKEUP;
+#endif
+#ifdef EPOLLEXCLUSIVE
+	if (revents & EPOLLEXCLUSIVE)
+		res |= PPM_EPOLLEXCLUSIVE;
+#endif
+	return res;
+}
+
 static __always_inline u16 futex_op_to_scap(unsigned long op)
 {
 	u16 res = 0;

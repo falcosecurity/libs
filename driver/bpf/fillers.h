@@ -25,7 +25,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/tty.h>
 #include <linux/audit.h>
 #include <linux/tcp.h>
-
+#include <linux/eventpoll.h>
 
 /*
  * Linux 5.6 kernels no longer include the old 32-bit timeval
@@ -344,7 +344,86 @@ FILLER(sys_write_x, true)
 
 	return res;
 }
+#define EPOLL_MAXFDS 16
+static __always_inline int bpf_epoll_parse_fds(struct filler_data *data)
+{
+    unsigned long ret = bpf_syscall_get_retval(data->ctx);
+    unsigned int size = ret * sizeof(struct epoll_event);
+    if (size > SCRATCH_SIZE_MAX)
+		return PPM_FAILURE_BUFFER_FULL;
+    struct epoll_event *events = (struct epoll_event*) data->tmp_scratch;
+    unsigned long val = bpf_syscall_get_argument(data, 1);
 
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+	if (size)
+		if (bpf_probe_read(events,
+				   ((size - 1) & SCRATCH_SIZE_MAX) + 1,
+				   (void *)val))
+#else
+	if (bpf_probe_read(events, size & SCRATCH_SIZE_MAX, (void *)val))
+#endif
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+		return PPM_FAILURE_BUFFER_FULL;
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Declare parameter as volatile to force re-evaluation
+ */
+	volatile unsigned long off;
+#else /* SYSDIG */
+	unsigned long off;
+#endif /* SYSDIG */
+
+    int j;
+	off = data->state->tail_ctx.curoff + sizeof(u16);
+	unsigned int fds_count = 0;
+
+	#pragma unroll
+	for (j = 0; j < EPOLL_MAXFDS; ++j) {
+		if (off > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		if (j == ret)
+			break;
+
+		u16 flags = epoll_events_to_scap(events[j].events);
+		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = (int)events[j].data;
+		off += sizeof(s64);
+		if (off > SCRATCH_SIZE_HALF)
+			return PPM_FAILURE_BUFFER_FULL;
+
+		*(s16 *)&data->buf[off & SCRATCH_SIZE_HALF] = flags;
+		*(s16 *)&data->buf[off & SCRATCH_SIZE_HALF] = 0;
+		off += sizeof(s16);
+		++fds_count;
+	}
+
+	*((u16 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = fds_count;
+	data->curarg_already_on_frame = true;
+	return __bpf_val_to_ring(data, 0, off - data->state->tail_ctx.curoff, PT_FDLIST, -1, false);
+}
+FILLER(sys_epoll_wait_x, true)
+{
+    long retval;
+	int res;
+
+	/*
+	 * res
+	 */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * fds
+	 */
+	res = bpf_epoll_parse_fds(data);
+
+	return res;
+}
 #define POLL_MAXFDS 16
 
 static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
@@ -4740,8 +4819,8 @@ FILLER(net_dev_start_xmit_e, false)
 	struct sk_buff *skb;
 	char dev_name[16] = {0};
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	skb = args->skb;
-	bpf_probe_read((void *)dev_name, 16, args->dev->name);
+	skb = ctx->skb;
+	bpf_probe_read((void *)dev_name, 16, ctx->dev->name);
 #else
 	skb = (struct sk_buff*) ctx->skbaddr;
 	TP_DATA_LOC_READ(dev_name, name, 16);
@@ -4772,7 +4851,7 @@ FILLER(netif_receive_skb_e, false)
 	struct sk_buff *skb;
 	char dev_name[16] = {0};
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	skb = args->skb;
+	skb = ctx->skb;
 	struct net_device *dev;
 	dev = _READ(skb->dev);
 	bpf_probe_read((void *)dev_name, 16, dev->name);
@@ -4848,5 +4927,62 @@ FILLER(tcp_receive_reset_e, false)
 		return res;
 	return 0;
 }
+static __always_inline int __bpf_cpu_analysis(struct filler_data *data, u32 tid)
+{
+    int res;
+    struct info_t *infop = bpf_map_lookup_elem(&cpu_records, &tid);
+    if (infop == 0)
+        return 0;
 
+    // {"start_ts", PT_ABSTIME, PF_DEC},
+    res = bpf_val_to_ring(data, infop->start_ts);
+    // {"end_ts", PT_ABSTIME, PF_DEC},
+    res = bpf_val_to_ring(data, infop->end_ts);
+    // {"cnt", PT_UINT32, PF_DEC},
+    res = bpf_val_to_ring(data, infop->index);
+    // {"time_specs", PT_BYTEBUF, PF_NA},
+    int size = sizeof(infop->times_specs);
+    memcpy(&data->buf[(data->state->tail_ctx.curoff) & SCRATCH_SIZE_HALF], &infop->times_specs, size);
+    data->curarg_already_on_frame = true;
+    res = bpf_val_to_ring_len(data, 0, size);
+    // {"runq_latency", PT_BYTEBUF, PF_NA},
+    size = sizeof(infop->rq);
+    memcpy(&data->buf[(data->state->tail_ctx.curoff) & SCRATCH_SIZE_HALF], &infop->rq, size);
+    data->curarg_already_on_frame = true;
+    res = bpf_val_to_ring_len(data, 0, size);
+    // {"time_type", PT_BYTEBUF, PF_NA}}
+    size = sizeof(infop->time_type);
+    memcpy(&data->buf[(data->state->tail_ctx.curoff) & SCRATCH_SIZE_HALF], &infop->time_type, size);
+    data->curarg_already_on_frame = true;
+    res = bpf_val_to_ring_len(data, 0, size);
+
+    return 0;
+}
+
+static __always_inline int bpf_cpu_analysis(void *ctx, u32 tid)
+{
+    struct filler_data data;
+    int res;
+
+    res = init_filler_data(ctx, &data, false);
+    if (res == PPM_SUCCESS) {
+        if (!data.state->tail_ctx.len)
+            write_evt_hdr(&data);
+        res = __bpf_cpu_analysis(&data, tid);
+    }
+
+    if (res == PPM_SUCCESS)
+        res = push_evt_frame(ctx, &data);
+
+    if (data.state)
+        data.state->tail_ctx.prev_res = res;
+
+    bpf_kp_terminate_filler(&data);
+    return 0;
+}
+
+FILLER(cpu_analysis_e, false)
+{
+    return 0;
+}
 #endif

@@ -214,6 +214,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 			if(sscanf(line, "NSpid: %*u %" PRIu64, &vtid) == 1)
 			{
 				tinfo->vtid = vtid;
+				put_pid_vtid_map(handle, tinfo->pid, tinfo->tid, tinfo->vtid);
 			}
 			else
 			{

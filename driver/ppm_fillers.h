@@ -115,15 +115,17 @@ or GPL2.txt for full copies of the license.
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_x)			\
 	FN(sys_linkat_x)			\
-	FN(tcp_rcv_established_e)		\
+	FN(tcp_rcv_established_e)   \
 	FN(tcp_drop_e)				\
-    	FN(tcp_retransmit_skb_e)   	        \
-	FN(netif_receive_skb_e)			\
-	FN(net_dev_start_xmit_e)                \
-        FN(tcp_connect_x)			\
-	FN(tcp_set_state_e)        	\
-        FN(tcp_receive_reset_e)			\
-	FN(tcp_send_reset_e)			\
+	FN(tcp_retransmit_skb_e)   	\
+	FN(netif_receive_skb_e)	    \
+	FN(net_dev_start_xmit_e)    \
+	FN(tcp_connect_x)			\
+	FN(tcp_set_state_e)    \
+	FN(tcp_receive_reset_e)		\
+	FN(tcp_send_reset_e)		\
+	FN(cpu_analysis_e)          \
+	FN(sys_epoll_wait_x)        \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

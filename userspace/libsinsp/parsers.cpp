@@ -1488,6 +1488,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	{
 		tinfo->m_vtid = vtid;
 		tinfo->m_vpid = vpid;
+		m_inspector->add_pid_vtid_info(tinfo->m_pid, tinfo->m_tid ,tinfo->m_vtid);
 	}
 	else
 	{

@@ -99,7 +99,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FSTAT64_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_FSTAT64_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_EPOLLWAIT_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{2} } },
-	[PPME_SYSCALL_EPOLLWAIT_X] = {FILLER_REF(sys_single_x)},
+	[PPME_SYSCALL_EPOLLWAIT_X] = {FILLER_REF(sys_epoll_wait_x)},
 	[PPME_SYSCALL_POLL_E] = {FILLER_REF(sys_poll_e)},
 	[PPME_SYSCALL_POLL_X] = {FILLER_REF(sys_poll_x)},
 	[PPME_SYSCALL_SELECT_E] = {FILLER_REF(sys_empty)},
@@ -315,6 +315,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_TCP_CONNECT_X] = {FILLER_REF(tcp_connect_x)},
 	[PPME_TCP_SET_STATE_E] = {FILLER_REF(tcp_set_state_e)},
 	[PPME_TCP_SEND_RESET_E] = {FILLER_REF(tcp_send_reset_e)},
-	[PPME_TCP_RECEIVE_RESET_E] = {FILLER_REF(tcp_receive_reset_e)}
+	[PPME_TCP_RECEIVE_RESET_E] = {FILLER_REF(tcp_receive_reset_e)},
+	[PPME_CPU_ANALYSIS_E] = {FILLER_REF(cpu_analysis_e)}
 #endif /* WDIG */
 };

@@ -211,6 +211,20 @@ or GPL2.txt for full copies of the license.
 #define PPM_POLLWRBAND (1 << 10)
 
 /*
+ * epoll() flags
+ */
+#define PPM_EPOLLIN (1 << 0)
+#define PPM_EPOLLOUT (1 << 1)
+#define PPM_EPOLLRDHUP (1 << 2)
+#define PPM_EPOLLPRI (1 << 3)
+#define PPM_EPOLLERR (1 << 4)
+#define PPM_EPOLLHUP (1 << 5)
+#define PPM_EPOLLET (1 << 6)
+#define PPM_EPOLLONESHOT (1 << 7)
+#define PPM_EPOLLWAKEUP (1 << 8)
+#define PPM_EPOLLEXCLUSIVE (1 << 9)
+
+/*
  * mount() flags
  */
 #define PPM_MS_RDONLY       (1<<0)
@@ -985,7 +999,9 @@ enum ppm_event_type {
 	PPME_TCP_RECEIVE_RESET_X = 339,
 	PPME_TCP_SEND_RESET_E = 340,
 	PPME_TCP_SEND_RESET_X = 341,
-	PPM_EVENT_MAX = 342
+	PPME_CPU_ANALYSIS_E = 342,
+	PPME_CPU_ANALYSIS_X = 343,
+	PPM_EVENT_MAX = 344
 };
 /*@}*/
 

@@ -171,6 +171,8 @@ struct scap
 	// The active set of threads that are suppressed
 	scap_tid *m_suppressed_tids;
 
+	pid_vtid_info *m_pid_vtid_info;
+
 	// The number of events that were skipped due to the comm
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
