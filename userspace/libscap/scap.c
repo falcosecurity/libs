@@ -24,25 +24,11 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #endif // _WIN32
 
 #include "scap.h"
 #include "../common/strlcpy.h"
-#ifdef HAS_CAPTURE
-#if !defined(_WIN32) && !defined(CYGWING_AGENT)
-#include "driver_config.h"
-#endif // _WIN32 && CYGWING_AGENT
-#endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
-#include "scap_savefile.h"
 #include "scap-int.h"
 #include "scap_engine_util.h"
 
@@ -51,8 +37,6 @@ limitations under the License.
 #include "windows_hal.h"
 #endif
 
-#include "gettimeofday.h"
-#include "sleep.h"
 #include "scap_engines.h"
 
 #define SECOND_TO_NS 1000000000
