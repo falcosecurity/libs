@@ -55,6 +55,8 @@ Right now our drivers officially support the following architectures:
 
 >**Please note**: BPF has some issues with architectures like `s390x`! Some helpers like `bpf_probe_read()` and `bpf_probe_read_str()` are broken on archs with overlapping address ranges.
 
+**For a list of supported syscalls through specific events, please refer to [_report_](./driver/report.md).**
+
 ## Build
 
 Libs relies upon `cmake` build system.  
