@@ -111,23 +111,31 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	if(strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	if (false)
+	{
+
+	}
+#ifdef HAS_ENGINE_BPF
+	else if(strcmp(oargs->engine_name, BPF_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_bpf_engine;
 	}
-	else if(strncmp(oargs->engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
+#endif
+#ifdef HAS_ENGINE_KMOD
+	else if(strcmp(oargs->engine_name, KMOD_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_kmod_engine;
 	}
+#endif
 #ifdef HAS_ENGINE_MODERN_BPF
-	else if(strncmp(oargs->engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs->engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_modern_bpf_engine;
 	}
 #endif /* HAS_ENGINE_MODERN_BPF */
 	else
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine called `scap_open_live_int()`");
+		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine '%s' called `scap_open_live_int()`", oargs->engine_name);
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -886,38 +894,38 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
 	 */
-	if(strncmp(engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		return scap_open_offline_int(oargs, rc, error);
 	}
-	else if(strncmp(engine_name, UDIG_ENGINE, UDIG_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
 		return scap_open_udig_int(error, rc, oargs->proc_callback,
 								oargs->proc_callback_context,
 								oargs->import_users,
 								oargs->suppressed_comms);
 	}
-	else if(strncmp(engine_name, GVISOR_ENGINE, GVISOR_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
 		return scap_open_gvisor_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, TEST_INPUT_ENGINE, TEST_INPUT_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
 		return scap_open_test_input_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0 ||
-			strncmp(engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0 ||
-			strncmp(engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, KMOD_ENGINE) == 0 ||
+			strcmp(engine_name, BPF_ENGINE) == 0 ||
+			strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		return scap_open_live_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, NODRIVER_ENGINE, NODRIVER_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
 					      oargs->import_users);
 	}
-	else if(strncmp(engine_name, SOURCE_PLUGIN_ENGINE, SOURCE_PLUGIN_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		return scap_open_plugin_int(error, rc, oargs);
 	}

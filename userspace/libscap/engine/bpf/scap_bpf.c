@@ -87,7 +87,7 @@ struct bpf_map_data {
 
 static bool match(scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, BPF_ENGINE) == 0;
 }
 
 static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -104,8 +104,6 @@ static void free_handle(struct scap_engine_handle engine)
 {
 	free(engine.m_handle);
 }
-
-#ifndef MINIMAL_BUILD
 
 # define UINT32_MAX (4294967295U)
 
@@ -1781,36 +1779,3 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_vtid = noop_get_vxid,
 	.getpid_global = scap_os_getpid_global,
 };
-
-#else // MINIMAL_BUILD
-
-static int32_t init(scap_t* handle, scap_open_args *oargs)
-{
-	strlcpy(handle->m_lasterr, "The eBPF probe driver is not supported when using a minimal build", SCAP_LASTERR_SIZE);
-	return SCAP_NOT_SUPPORTED;
-}
-
-const struct scap_vtable scap_bpf_engine = {
-	.name = "bpf",
-	.mode = SCAP_MODE_LIVE,
-	.savefile_ops = NULL,
-
-	.match = match,
-	.alloc_handle = alloc_handle,
-	.init = init,
-	.free_handle = free_handle,
-	.close = noop_close_engine,
-	.next = noop_next,
-	.start_capture = noop_start_capture,
-	.stop_capture = noop_stop_capture,
-	.configure = noop_configure,
-	.get_stats = noop_get_stats,
-	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
-	.get_n_devs = noop_get_n_devs,
-	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
-	.get_vpid = noop_get_vxid,
-	.get_vtid = noop_get_vxid,
-	.getpid_global = noop_getpid_global,
-};
-#endif // MINIMAL_BUILD

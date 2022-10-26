@@ -16,7 +16,6 @@ limitations under the License.
 #include "../../plugin_info.h"
 
 #define SOURCE_PLUGIN_ENGINE "source_plugin"
-#define SOURCE_PLUGIN_ENGINE_LEN 14
 
 #ifdef __cplusplus
 extern "C"

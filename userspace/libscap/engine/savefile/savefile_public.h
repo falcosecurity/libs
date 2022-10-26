@@ -16,7 +16,6 @@ limitations under the License.
 #include <stdint.h>
 
 #define SAVEFILE_ENGINE "savefile"
-#define SAVEFILE_ENGINE_LEN 9
 
 #ifdef __cplusplus
 extern "C"
