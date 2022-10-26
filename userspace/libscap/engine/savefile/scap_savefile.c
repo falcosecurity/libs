@@ -2031,7 +2031,7 @@ void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 
 static bool match(struct scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, SAVEFILE_ENGINE) == 0;
 }
 
 static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)

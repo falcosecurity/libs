@@ -14,4 +14,3 @@ limitations under the License.
 #pragma once
 
 #define NODRIVER_ENGINE "nodriver"
-#define NODRIVER_ENGINE_LEN 9

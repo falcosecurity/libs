@@ -16,7 +16,6 @@ limitations under the License.
 #include <stdint.h>
 
 #define UDIG_ENGINE "udig"
-#define UDIG_ENGINE_LEN 5
 
 #ifdef __cplusplus
 extern "C"
