@@ -925,7 +925,7 @@ public:
 	/*!
 		\brief Mark desired tracepoint as (un)interesting, attaching or detaching it.
 		This method receives a `tp` code. You can find the available
-		`enum ppm_syscall_code` in `driver/ppm_tp.h`.
+		`enum tp_values` in `driver/ppm_tp.h`.
 		Please note that this method must be called when the inspector is already open to
 		modify at runtime the interesting tracepoint set.
 
