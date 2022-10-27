@@ -3,33 +3,38 @@ from sinspqa import sinsp
 from sinspqa.sinsp import assert_events
 from sinspqa.docker import get_container_id
 
-sinsp_filters = ["-f", "evt.category=process and not container.id=host"]
+sinsp_args = [
+    "-f", "evt.category=process and not container.id=host",
+    "-o", "%container.id %evt.args %evt.category %evt.type %proc.cmdline %proc.exe %user.uid %user.name %group.gid %group.name"
+]
 
 containers = [
     {
         'sinsp': sinsp_container,
-        'nginx': {
-            'image': 'nginx:1.14-alpine',
+        'app': {
+            'image': 'hashicorp/http-echo:alpine',
+            'args': ['-text=hello'],
+            'user': '11:100'
         }
-    } for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+    } for sinsp_container in sinsp.generate_specs(args=sinsp_args)
 ]
 
 ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
 def test_exec_in_container(run_containers: dict):
-    nginx_container = run_containers['nginx']
+    app_container = run_containers['app']
     sinsp_container = run_containers['sinsp']
 
-    container_id = get_container_id(nginx_container)
+    container_id = get_container_id(app_container)
 
-    nginx_container.exec_run("sleep 5")
-    nginx_container.exec_run("sh -c ls")
+    app_container.exec_run("sleep 5")
+    app_container.exec_run("sh -c ls")
 
     expected_events = [
         {
             'container.id': container_id,
-            'evt.args': 'filename=/usr/sbin/nginx ',
+            'evt.args': 'filename=/http-echo ',
             'evt.category': 'process',
             'evt.type': 'execve',
             'proc.exe': 'runc',
@@ -38,8 +43,12 @@ def test_exec_in_container(run_containers: dict):
             'container.id': container_id,
             'evt.category': 'process',
             'evt.type': 'execve',
-            'proc.exe': 'nginx',
-            'proc.cmdline': 'nginx -g daemon off;'
+            'proc.exe': '/http-echo',
+            'proc.cmdline': 'http-echo -text=hello',
+            'user.uid': 11,
+            'user.name': 'operator',
+            'group.gid': 100,
+            'group.name': 'users',
         }, {
             'container.id': container_id,
             'evt.category': 'process',

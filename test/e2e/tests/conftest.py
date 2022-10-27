@@ -66,6 +66,7 @@ def run_containers(request, docker_client: docker.client.DockerClient):
         additional_wait = container.get('init_wait', 0)
         post_validation = container.get('post_validation', None)
         stop_signal = container.get('signal', None)
+        user = container.get('user', '')
 
         handle = docker_client.containers.run(
             image,
@@ -74,7 +75,8 @@ def run_containers(request, docker_client: docker.client.DockerClient):
             detach=True,
             privileged=privileged,
             mounts=mounts,
-            environment=environment
+            environment=environment,
+            user=user
         )
 
         containers[name] = handle
