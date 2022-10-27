@@ -382,7 +382,7 @@ static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enu
  */
 static __always_inline u64 extract__task_pidns_start_time(struct task_struct *task, enum pid_type type)
 {
-	struct pid *pid_struct = extract__task_pid_struct(task, PIDTYPE_TGID);
+	struct pid *pid_struct = extract__task_pid_struct(task, type);
 	struct pid_namespace *pid_namespace = extract__namespace_of_pid(pid_struct);
 	struct task_struct *child_reaper = NULL;
 	u64 pidns_start_time = 0;

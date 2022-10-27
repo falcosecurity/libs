@@ -212,10 +212,6 @@ int BPF_PROG(t1_vfork_x,
 	pid_t vpid = extract__task_xid_vnr(task, PIDTYPE_TGID);
 	auxmap__store_s64_param(auxmap, (s64)vpid);
 
-	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-	// u64 pidns_init_start_time = extract__task_pidns_start_time(task, PIDTYPE_TGID);
-	auxmap__store_u64_param(auxmap, (u64)130L);
-
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* We have to split here the bpf program, otherwise, it is too large
