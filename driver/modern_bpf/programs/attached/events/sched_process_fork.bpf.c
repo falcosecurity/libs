@@ -215,9 +215,33 @@ int BPF_PROG(t1_sched_p_fork,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* We have to split here the bpf program, otherwise, it is too large
+	 * for the verifier (limit 1000000 instructions).
+	 */
+	bpf_tail_call(ctx, &extra_event_prog_tail_table, T2_SCHED_PROC_FORK);
+	return 0;
+}
+
+SEC("tp_btf/sched_process_fork")
+int BPF_PROG(t2_sched_p_fork,
+	     struct task_struct *parent, struct task_struct *child)
+{
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap)
+	{
+		return 0;
+	}
+
+	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, (u64)extract__task_pidns_start_time(child, PIDTYPE_TGID));
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
 	auxmap__finalize_event_header(auxmap);
 
 	auxmap__submit_event(auxmap);
 	return 0;
+
 }
+
 #endif /* CAPTURE_SCHED_PROC_EXEC */
