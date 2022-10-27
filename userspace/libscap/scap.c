@@ -1231,8 +1231,17 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 			struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
 			if(pair.ppm_sc == ppm_code)
 			{
-				events_array[pair.enter_event_type] = 1;
-				events_array[pair.exit_event_type] = 1;
+				int enter_evt = pair.enter_event_type;
+				int exit_evt = pair.exit_event_type;
+				// Workaround for syscall table entries with just
+				// a .ppm_sc set: force-set exit event as PPME_GENERIC_X,
+				// that is the one actually sent by drivers in that case.
+				if (enter_evt == exit_evt && enter_evt == PPME_GENERIC_E)
+				{
+					exit_evt = PPME_GENERIC_X;
+				}
+				events_array[enter_evt] = 1;
+				events_array[exit_evt] = 1;
 			}
 		}
 	}
