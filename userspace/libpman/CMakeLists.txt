@@ -1,5 +1,3 @@
-include(find_static_library)
-
 set(PMAN_SOURCES
     src/capture.c
     src/maps.c
@@ -12,8 +10,9 @@ set(PMAN_SOURCES
 )
 
 set(PMAN_PRIVATE_INCLUDES
-    "${ZLIB_INCLUDES}"
+    "${ZLIB_INCLUDE}"
     "${LIBBPF_INCLUDE}"
+    "${LIBELF_INCLUDE}"
     "${SKEL_DIR}"
     "${LIBSCAP_DIR}/driver/" ## ppm_enum and tables
     "${LIBSCAP_DIR}/userspace/libscap" ## scap-stats struct
@@ -24,17 +23,11 @@ set(PMAN_PUBLIC_INCLUDES
     "./include"
 )
 
-set(LIBELF "elf")
-# With `BUNDLED_DEPS`, we enforce the usage of a static library
-if(USE_BUNDLED_DEPS)
-    find_static_library("elf" LIBELF)
-endif()
-
-set(PMAN_PRIVATE_LINK_LIBRARIES
+set(PMAN_LINK_LIBRARIES
     "${LIBBPF_LIB}"
+    "${LIBELF_LIB}"
     "${ZLIB_LIB}"
     scap_event_schema
-    ${LIBELF}
 )
 
 set(PMAN_DEPENDENCIES
@@ -59,8 +52,8 @@ target_include_directories(pman
 )
 
 target_link_libraries(pman
-    PRIVATE
-    ${PMAN_PRIVATE_LINK_LIBRARIES}
+    PUBLIC
+    ${PMAN_LINK_LIBRARIES}
 )
 
 add_dependencies(pman ${PMAN_DEPENDENCIES})
