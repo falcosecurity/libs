@@ -55,7 +55,7 @@ limitations under the License.
 
 #if defined(HAS_CAPTURE)
 #if !defined(CYGWING_AGENT) && !defined(_WIN32)
-static int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
+int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
 	char filename[SCAP_MAX_PATH_SIZE];
@@ -74,7 +74,7 @@ static int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
+int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	uint32_t pidinfo_nfound = 0;
@@ -405,7 +405,7 @@ static int32_t scap_proc_fill_flimit(scap_t *handle, uint64_t tid, struct scap_t
 }
 #endif
 
-static int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
@@ -553,7 +553,7 @@ static int32_t scap_get_vpid(scap_t* handle, int64_t pid, int64_t *vpid)
 	return SCAP_FAILURE;
 }
 
-static int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char root_path[SCAP_MAX_PATH_SIZE];
 	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
@@ -569,7 +569,7 @@ static int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo
 	}
 }
 
-static int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	uint32_t loginuid;
 	char loginuid_path[SCAP_MAX_PATH_SIZE];
@@ -609,7 +609,7 @@ static int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* t
 	}
 }
 
-static int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
+int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinfo,  uint32_t uid, uint32_t gid, const char *procdirname, const char *exetarget)
 {
 	char proc_exe_path[SCAP_MAX_PATH_SIZE];
 	struct stat targetstat;
@@ -1056,7 +1056,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 //
 // Read a single thread info from /proc
 //
-static int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
 {
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
