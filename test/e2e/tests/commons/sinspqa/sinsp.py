@@ -202,8 +202,10 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
         A dictionary describing how to run the sinsp-example container
     """
     mounts = [
-        docker.types.Mount("/dev", "/dev", type="bind",
-                           consistency="delegated", read_only=True)
+        docker.types.Mount("/host/dev", "/dev", type="bind",
+                           consistency="delegated", read_only=True),
+        docker.types.Mount("/host/proc", "/proc", type="bind",
+                           consistency="delegated", read_only=True),
     ]
 
     return {
@@ -212,6 +214,8 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
         'mounts': mounts,
         'env': env,
         'privileged': True,
+        'pid_mode': 'host',
+        'network_mode': 'host',
         'init_wait': 2,
         'post_validation': sinsp_validation,
     }
