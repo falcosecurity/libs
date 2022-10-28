@@ -141,12 +141,12 @@ def validate_event(expected_fields: dict, event: dict) -> bool:
 
         expected = expected_fields[k]
 
-        if isinstance(expected, str) or expected is None:
-            if expected == event[k]:
+        if isinstance(expected, SinspField):
+            if expected.compare(str(event[k])):
                 continue
             return False
 
-        if not expected.compare(str(event[k])):
+        if expected != event[k]:
             return False
 
     return True
