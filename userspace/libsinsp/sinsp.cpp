@@ -166,6 +166,8 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
+
+	m_do_exec_hashing = true;
 }
 
 sinsp::~sinsp()

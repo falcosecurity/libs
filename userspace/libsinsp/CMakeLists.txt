@@ -156,6 +156,7 @@ if(NOT MINIMAL_BUILD)
 		k8s_state.cpp
 		marathon_component.cpp
 		marathon_http.cpp
+		md5_calculator.cpp
 		mesos_auth.cpp
 		mesos.cpp
 		mesos_collector.cpp

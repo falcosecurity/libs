@@ -38,6 +38,8 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
+#include "md5_calculator.h"
+
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
 #endif
@@ -65,6 +67,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
+	init_metaevt(m_exe_hash_metaevents_state, PPME_SYSCALL_EXE_HASH_E, SP_EVT_BUF_SIZE);
 	m_drop_event_flags = EF_NONE;
 }
 
@@ -85,6 +88,7 @@ sinsp_parser::~sinsp_parser()
 
 	free(m_k8s_metaevents_state.m_piscapevt);
 	free(m_mesos_metaevents_state.m_piscapevt);
+	free(m_exe_hash_metaevents_state.m_piscapevt);
 
 	if(m_inspector->m_partial_tracers_pool != NULL)
 	{
@@ -2168,6 +2172,11 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// count.
 	evt->m_tinfo->m_nchilds = 0;
 
+	if(m_inspector->m_do_exec_hashing)
+	{
+		schedule_exehash_event(evt->m_tinfo);
+	}
+
 	return;
 }
 
@@ -2341,6 +2350,44 @@ void sinsp_parser::schedule_mesos_events()
 #endif // HAS_CAPTURE
 }
 #endif // #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+
+void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string hash)
+{
+	std::size_t tot_len = sizeof(scap_evt) +
+			sizeof(uint16_t) +
+			8 +
+			sizeof(uint16_t) +
+			hash.size() + 1;
+
+	if(tot_len > state->m_scap_buf_size)
+	{
+		ASSERT(false);
+		sinsp_parser::init_scapevt(*state, PPME_SYSCALL_EXE_HASH_E, tot_len);
+	}
+
+	state->m_piscapevt->len = tot_len;
+	state->m_piscapevt->tid = tinfo->m_tid;
+	state->m_piscapevt->ts = m_inspector->m_lastevent_ts;
+
+	state->m_piscapevt->nparams = 2;
+	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
+	plen[0] = 8;
+	plen[1] = (uint16_t)hash.size() + 1;
+	uint8_t* edata = (uint8_t*)plen + 2 * sizeof(uint16_t);
+	*(int64_t*)edata = res;
+	edata += 8;
+	memcpy(edata, hash.c_str(), plen[1]);
+}
+
+void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
+{
+	m_inspector->remove_meta_event_callback();
+	string hash;
+	int64_t hres = md5_calculator::hash_file(tinfo->m_exepath, &hash);
+
+	fill_exehash_event_payload(&m_exe_hash_metaevents_state, hres, tinfo, hash);
+	m_inspector->add_meta_event(&m_exe_hash_metaevents_state.m_metaevt);
+}
 
 void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 {

@@ -65,6 +65,8 @@ public:
 
 	void schedule_k8s_events();
 	void schedule_mesos_events();
+	void fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string hash);
+	void schedule_exehash_event(sinsp_threadinfo* tinfo);
 
 	//
 	// Protocol decoders callback lists
@@ -195,6 +197,9 @@ private:
 	metaevents_state m_mesos_metaevents_state;
 
 	stack<uint8_t*> m_tmp_events_buffer;
+
+	metaevents_state m_exe_hash_metaevents_state;
+
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;

@@ -1450,6 +1450,8 @@ public:
 	bool m_inited;
 	static std::atomic<int> instance_count;
 
+	bool m_do_exec_hashing;
+
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_parsers;
