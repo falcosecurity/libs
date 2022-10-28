@@ -67,6 +67,8 @@ def run_containers(request, docker_client: docker.client.DockerClient):
         post_validation = container.get('post_validation', None)
         stop_signal = container.get('signal', None)
         user = container.get('user', '')
+        pid_mode = container.get('pid_mode', '')
+        network_mode = container.get('network_mode', '')
 
         handle = docker_client.containers.run(
             image,
@@ -76,7 +78,9 @@ def run_containers(request, docker_client: docker.client.DockerClient):
             privileged=privileged,
             mounts=mounts,
             environment=environment,
-            user=user
+            user=user,
+            pid_mode=pid_mode,
+            network_mode=network_mode,
         )
 
         containers[name] = handle
