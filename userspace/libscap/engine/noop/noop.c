@@ -27,7 +27,6 @@ struct noop_engine
 
 #include "noop.h"
 #include "scap.h"
-#include "scap-int.h"
 #include "../common/strlcpy.h"
 
 struct noop_engine* noop_alloc_handle(scap_t* main_handle, char* lasterr_ptr)

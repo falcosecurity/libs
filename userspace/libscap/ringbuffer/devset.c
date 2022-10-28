@@ -13,7 +13,7 @@
 
 #include "../../common/strlcpy.h"
 #include "../scap.h"
-#include "../scap-int.h"
+#include "scap_assert.h"
 
 int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr)
 {

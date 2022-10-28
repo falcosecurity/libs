@@ -44,17 +44,6 @@ typedef struct wh_t wh_t;
 #endif
 
 //
-// Read buffer timeout constants
-//
-#ifdef _WIN32
-#define BUFFER_EMPTY_WAIT_TIME_US_START 1000
-#else
-#define BUFFER_EMPTY_WAIT_TIME_US_START 500
-#endif
-#define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
-#define BUFFER_EMPTY_THRESHOLD_B 20000
-
-//
 // Process flags
 //
 #define PF_CLONING 1
