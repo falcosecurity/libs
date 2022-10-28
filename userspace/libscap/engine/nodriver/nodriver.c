@@ -22,7 +22,6 @@ limitations under the License.
 #include "noop.h"
 
 #include "scap.h"
-#include "scap-int.h"
 #include "../common/strlcpy.h"
 #include "gettimeofday.h"
 #include "sleep.h"

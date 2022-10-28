@@ -20,6 +20,17 @@ limitations under the License.
 #include <stdint.h>
 #include <stddef.h>
 
+//
+// Read buffer timeout constants
+//
+#ifdef _WIN32
+#define BUFFER_EMPTY_WAIT_TIME_US_START 1000
+#else
+#define BUFFER_EMPTY_WAIT_TIME_US_START 500
+#endif
+#define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
+#define BUFFER_EMPTY_THRESHOLD_B 20000
+
 struct ppm_ring_buffer_info;
 struct udig_ring_buffer_status;
 
