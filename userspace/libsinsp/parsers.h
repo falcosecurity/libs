@@ -22,6 +22,7 @@ limitations under the License.
 #include "sinsp.h"
 
 class sinsp_fd_listener;
+class md5_calculator;
 
 class metaevents_state
 {
@@ -198,6 +199,7 @@ private:
 
 	stack<uint8_t*> m_tmp_events_buffer;
 
+	md5_calculator* m_md5_calculator;
 	metaevents_state m_exe_hash_metaevents_state;
 
 	friend class sinsp_analyzer;

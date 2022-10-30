@@ -69,6 +69,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_exe_hash_metaevents_state, PPME_SYSCALL_EXE_HASH_E, SP_EVT_BUF_SIZE);
 	m_drop_event_flags = EF_NONE;
+	m_md5_calculator = new md5_calculator();
 }
 
 sinsp_parser::~sinsp_parser()
@@ -94,6 +95,8 @@ sinsp_parser::~sinsp_parser()
 	{
 		delete m_inspector->m_partial_tracers_pool;
 	}
+
+	delete m_md5_calculator;
 }
 
 void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
@@ -2381,10 +2384,33 @@ void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t r
 
 void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 {
+	//
+	// Remove any meta event callback that could have been left here from a previous
+	// event.
+	//
 	m_inspector->remove_meta_event_callback();
-	string hash;
-	int64_t hres = md5_calculator::hash_file(tinfo->m_exepath, &hash);
 
+	//
+	// Retrieve the main thread of the newly executed process. This in theory is not
+	// necessary, because execve always returns in the main thread, even if it's
+	// invoked from a child thread. However, doing this doesn't hurt and you never
+	// know.
+	//
+	auto mt = tinfo->get_main_thread();
+	if(mt == NULL)
+	{
+		return;
+	}
+
+	//
+	// Go has the thread executable
+	//
+	string hash;
+	int64_t hres = m_md5_calculator->hash_proc_executable(mt, &hash);
+
+	//
+	// Create the exehash meta event that will be sent out after this execve.
+	//
 	fill_exehash_event_payload(&m_exe_hash_metaevents_state, hres, tinfo, hash);
 	m_inspector->add_meta_event(&m_exe_hash_metaevents_state.m_metaevt);
 }

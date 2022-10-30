@@ -23,13 +23,17 @@ limitations under the License.
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 
-#include <string>
-
 class md5_calculator
 {
 public:
-	md5_calculator();
+	md5_calculator()
+	{
+	}
 	static int64_t hash_file(string filename, OUT string* hash);
+	static int64_t hash_proc_executable(sinsp_threadinfo* tinfo, OUT string* hash);
+
+private:
+
 };
 
 #endif // WIN32

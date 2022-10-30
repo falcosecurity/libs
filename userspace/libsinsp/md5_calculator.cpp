@@ -43,7 +43,7 @@ int64_t md5_calculator::hash_file(string filename, OUT string* hash)
 	int fd = open(filename.c_str(), O_RDONLY);
 	if(fd == -1)
 	{
-		return errno;
+		return -errno;
 	}
 
 	//
@@ -53,18 +53,32 @@ int64_t md5_calculator::hash_file(string filename, OUT string* hash)
 	if(fsres == -1)
 	{
 		close(fd);
-		return errno;
+		return -errno;
 	}
 	size = s.st_size;
 
-	uint8_t* filebuf = (uint8_t*) mmap (0, size, PROT_READ, MAP_PRIVATE, fd, 0);
+	//
+	// Map the file into memory. Memory mapping the file instead of reading it
+	// has multiple benefits:
+	// - it minimizes stack memory usage or allocations
+	// - it makes the hashing code simpler
+	// - it allows to generate less system calls, and therefore pollute less the
+	//   activity of the system
+	//
+	uint8_t* filebuf = (uint8_t*) mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
+	//
+	// Do the hashing using openssl
+	//
 	MD5_Init(&mdContext);
 	MD5_Update(&mdContext, filebuf, size);
 	MD5_Final(digest, &mdContext);
 
 	close(fd);
 
+	//
+	// Convert the binary hash into a human-readable MD5 string
+	//
 	char tmps[3];
 	tmps[2]	= 0;
 	for(auto j = 0; j < MD5_DIGEST_LENGTH; j++)
@@ -74,27 +88,38 @@ int64_t md5_calculator::hash_file(string filename, OUT string* hash)
 	}
 
 	return 0;
+}
 
-//	for (int i = 0; i < size; i++) {
-//		char c;
-//
-//		c = filebuf[i];
-//		putchar(c);
-//	}
+int64_t md5_calculator::hash_proc_executable(sinsp_threadinfo* tinfo, OUT string* hash)
+{
+	string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/root" + tinfo->m_exepath;
+	int64_t res = hash_file(fexepath, hash);
 
+	//
+	// If the file doesn't exist, it means that the process has already exited.
+	// In such situation we try to navigate the ancestor list, looking for
+	// a process still alive in the container that we can use to access the
+	// file.
+	//
+	if(res == -ENOENT)
+	{
+		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
+		if(ptinfo == NULL)
+		{
+			*hash = "";
+			return -ECHILD;
+		}
 
-//	int fd = open(filename.c_str(), O_RDONLY);
-//	if(fd == -1)
-//	{
-//		return errno;
-//	}
-//
-//	MD5_Init (&mdContext);
-//	while ((bytes = fread (data, 1, 1024, inFile)) != 0)
-//		MD5_Update (&mdContext, data, bytes);
-//	MD5_Final (c,&mdContext);
-//	//for(i = 0; i < MD5_DIGEST_LENGTH; i++) printf("%02x", c[i]);
-//	close (fd);
+		if(ptinfo->m_container_id != ptinfo->m_container_id)
+		{
+			*hash = "";
+			return -ENODEV;
+		}
+
+		return hash_proc_executable(ptinfo, OUT hash);
+	}
+
+	return res;
 }
 
 #endif // WIN32
