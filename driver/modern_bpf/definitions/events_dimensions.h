@@ -126,7 +126,7 @@
 #define FSCONFIG_E_SIZE HEADER_LEN
 #define EPOLL_CREATE_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
 #define EPOLL_CREATE_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define EPOLL_CREATE1_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
+#define EPOLL_CREATE1_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define EPOLL_CREATE1_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 /* Generic tracepoints events. */
