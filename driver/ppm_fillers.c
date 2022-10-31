@@ -6984,7 +6984,7 @@ cgroups_error:
 	 * nevertheless has tid == vtid,  so we need to generate this
 	 * custom flag `PPM_CL_CHILD_IN_PIDNS`.
 	 */
-	if(pidns != &init_pid_ns || pid_ns_for_children(child) != pidns)
+	if(pidns != &init_pid_ns)
 	{
 		flags |= PPM_CL_CHILD_IN_PIDNS;
 	}
