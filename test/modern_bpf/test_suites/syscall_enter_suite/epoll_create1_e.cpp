@@ -1,4 +1,5 @@
 #include "../../event_class/event_class.h"
+#include <sys/epoll.h>
 
 #if defined(__NR_epoll_create1) && defined(__NR_close)
 TEST(SyscallEnter, epoll_create1E)
@@ -9,7 +10,7 @@ TEST(SyscallEnter, epoll_create1E)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	int32_t flags = 0;
+	int32_t flags = EPOLL_CLOEXEC;
 	int32_t fd = syscall(__NR_epoll_create1, flags);
 	assert_syscall_state(SYSCALL_SUCCESS, "epoll_create1", fd, NOT_EQUAL, -1);
 	syscall(__NR_close, fd);
@@ -32,7 +33,7 @@ TEST(SyscallEnter, epoll_create1E)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(1, flags);
+	evt_test->assert_numeric_param(1, PPM_EPOLL_CLOEXEC);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
