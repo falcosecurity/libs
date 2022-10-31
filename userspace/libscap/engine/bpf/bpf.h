@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
+#include <limits.h>
 #include "../../ringbuffer/devset.h"
 #include "../../../../driver/ppm_events_public.h"
 
