@@ -110,6 +110,15 @@ public:
 		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
 	}
 
+	/*
+	  \brief returns true if there is a loop detected in the thread parent state.
+	  Needs traverse_parent_state() to have been called first.
+	*/
+	inline bool parent_loop_detected() const
+	{
+		return m_parent_loop_detected;
+	}
+
 	/*!
 	  \brief Get the main thread of the process containing this thread.
 	*/
