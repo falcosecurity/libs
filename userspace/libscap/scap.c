@@ -199,12 +199,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 		handle->m_userlist = NULL;
 	}
 
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_suppressed_comms = NULL;
@@ -361,12 +355,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_suppressed_comms = NULL;
@@ -464,12 +452,6 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 
 	handle->m_ncpus = 1;
 
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_suppressed_comms = NULL;
@@ -553,12 +535,6 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	// XXX - interface list initialization and user list initalization goes here if necessary
 
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_suppressed_comms = NULL;
@@ -656,16 +632,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 		scap_close(handle);
 		return NULL;
 	}
-
-	//
-	// Add the fake process for kernel threads
-	//
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 
 	handle->m_num_suppressed_comms = 0;
 	handle->m_num_suppressed_evts = 0;
@@ -784,12 +750,6 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	//
@@ -860,12 +820,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
-	handle->m_fake_kernel_proc.tid = -1;
-	handle->m_fake_kernel_proc.pid = -1;
-	handle->m_fake_kernel_proc.flags = 0;
-	snprintf(handle->m_fake_kernel_proc.comm, SCAP_MAX_PATH_SIZE, "kernel");
-	snprintf(handle->m_fake_kernel_proc.exe, SCAP_MAX_PATH_SIZE, "kernel");
-	handle->m_fake_kernel_proc.args[0] = 0;
 	handle->refresh_proc_table_when_saving = true;
 
 	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
