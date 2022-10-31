@@ -72,7 +72,6 @@ struct scap
 
 	struct scap_proclist m_proclist;
 	scap_mountinfo* m_dev_list;
-	scap_threadinfo m_fake_kernel_proc;
 	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
