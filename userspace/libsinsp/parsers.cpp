@@ -157,8 +157,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		uint16_t etype = evt->m_pevt->type;
 		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			uint16_t evid = *(uint16_t *)parinfo->m_val;
 			flags = EF_NONE;
 		}
 		else
