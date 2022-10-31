@@ -7041,14 +7041,14 @@ cgroups_error:
 	}
 
 	/* Parameter 19: vtid (type: PT_PID) */
-	res = val_to_ring(args, task_pid_vnr(child), 0, false, 0);
+	res = val_to_ring(args, task_pid_nr_ns(child, pidns), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
 	}
 
 	/* Parameter 20: vpid (type: PT_PID) */
-	res = val_to_ring(args, task_tgid_vnr(child), 0, false, 0);
+	res = val_to_ring(args, task_tgid_nr_ns(child, pidns), 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
