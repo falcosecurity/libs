@@ -33,7 +33,7 @@ limitations under the License.
 
 #define IO_BUF_SIZE = 65536;
 
-int64_t md5_calculator::hash_file(string filename, OUT string* hash)
+int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 {
 	uint64_t size;
 	struct stat s;
@@ -90,10 +90,25 @@ int64_t md5_calculator::hash_file(string filename, OUT string* hash)
 	return 0;
 }
 
-int64_t md5_calculator::hash_proc_executable(sinsp_threadinfo* tinfo, OUT string* hash)
+int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum)
 {
-	string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/root" + tinfo->m_exepath;
-	int64_t res = hash_file(fexepath, hash);
+	string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/root" + exepath;
+	//string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/exe";
+	string cache_key = tinfo->m_container_id + exepath;
+
+	//
+	// Do we have this executable in the cache? If yes, just return the cache entry.
+	//
+	auto it = m_cache.find(cache_key);
+	if(it != m_cache.end())
+	{
+		*checksum = it->second.m_checksum;
+		// Refresh the cache entry timestamp
+		it->second.m_ts = std::chrono::system_clock::now();
+		return 0;
+	}
+
+	int64_t res = checksum_file(fexepath, checksum);
 
 	//
 	// If the file doesn't exist, it means that the process has already exited.
@@ -106,21 +121,58 @@ int64_t md5_calculator::hash_proc_executable(sinsp_threadinfo* tinfo, OUT string
 		sinsp_threadinfo* ptinfo = tinfo->get_parent_thread();
 		if(ptinfo == NULL)
 		{
-			*hash = "";
+			*checksum = "";
 			return -ECHILD;
 		}
 
 		if(ptinfo->m_container_id != ptinfo->m_container_id)
 		{
-			*hash = "";
+			*checksum = "";
 			return -ENODEV;
 		}
 
-		return hash_proc_executable(ptinfo, OUT hash);
+		return checksum_executable(ptinfo, exepath, checksum);
+	}
+
+	//
+	// Succcess.
+	// Add the executable to the cache
+	//
+	if(res == 0)
+	{
+		add_to_cache(&cache_key, checksum);
 	}
 
 	return res;
 }
 
+void md5_calculator::add_to_cache(string* cache_key, string* checksum)
+{
+	//
+	// Cache full?
+	// If yes, remove the oldest entry
+	//
+	if(m_cache.size() >= MAX_CHECKSUM_CACHE_ENTRIES)
+	{
+		unordered_map<string, md5_cache_entry>::iterator oldest_it = m_cache.begin();
+		for(auto it = m_cache.begin(); it != m_cache.end(); ++it)
+		{
+			if(it->second.m_ts < oldest_it->second.m_ts)
+			{
+				oldest_it = it;
+			}
+		}
+
+		m_cache.erase(oldest_it);
+	}
+
+	//
+	// Add the cache entry
+	//
+	md5_cache_entry ce;
+	ce.m_checksum = *checksum;
+	ce.m_ts =  std::chrono::system_clock::now();
+	m_cache[*cache_key] = ce;
+}
 #endif // WIN32
 #endif // HAS_CAPTURE

@@ -2403,10 +2403,10 @@ void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 	}
 
 	//
-	// Go has the thread executable
+	// Perform the executable's checksuming
 	//
 	string hash;
-	int64_t hres = m_md5_calculator->hash_proc_executable(mt, &hash);
+	int64_t hres = m_md5_calculator->checksum_executable(mt, mt->m_exepath, &hash);
 
 	//
 	// Create the exehash meta event that will be sent out after this execve.

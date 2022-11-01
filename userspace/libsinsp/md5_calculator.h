@@ -23,17 +23,23 @@ limitations under the License.
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 
+class md5_cache_entry
+{
+public:
+	string m_checksum;
+	chrono::time_point<chrono::system_clock> m_ts;
+};
+
 class md5_calculator
 {
 public:
-	md5_calculator()
-	{
-	}
-	static int64_t hash_file(string filename, OUT string* hash);
-	static int64_t hash_proc_executable(sinsp_threadinfo* tinfo, OUT string* hash);
+	int64_t checksum_file(string filename, OUT string* hash);
+	int64_t checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
 
 private:
+	void add_to_cache(string* cache_key, string* checksum);
 
+	unordered_map<string, md5_cache_entry> m_cache;
 };
 
 #endif // WIN32

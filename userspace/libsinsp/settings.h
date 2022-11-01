@@ -105,3 +105,9 @@ static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 #define K8S_DATA_MAX_B 100 * 1024 * 1024
 #define K8S_DATA_CHUNK_WAIT_US 1000
 #define METADATA_DATA_WATCH_FREQ_SEC 1
+
+//
+// Maximum size of the executable checksum cache.
+// Each entry has a string containing a FS path as the key, and around 40 bytes as the value.
+//
+#define MAX_CHECKSUM_CACHE_ENTRIES 3
