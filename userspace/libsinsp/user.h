@@ -21,10 +21,14 @@ limitations under the License.
 #include <unordered_map>
 #include <string>
 #include "container_info.h"
+#include "procfs_utils.h"
 #include "scap.h"
 
 class sinsp;
 class sinsp_evt;
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+namespace libsinsp { namespace procfs_utils { class ns_helper; }}
+#endif
 
 /*
  * Basic idea:
@@ -131,10 +135,6 @@ public:
 	//
 	bool m_import_users;
 
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-	static std::string s_host_root;
-#endif
-
 private:
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
@@ -163,6 +163,17 @@ private:
 	std::unordered_map<std::string, groupinfo_map> m_grouplist;
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
+
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+	const std::string &m_host_root;
+	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
+#endif
+#ifdef HAVE_PWD_H
+	struct passwd *__getpwuid(uint32_t uid);
+#endif
+#ifdef HAVE_GRP_H
+	struct group *__getgrgid(uint32_t gid);
+#endif
 };
 
 #endif // FALCOSECURITY_LIBS_USER_H
