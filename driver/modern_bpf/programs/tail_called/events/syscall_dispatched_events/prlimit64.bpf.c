@@ -20,7 +20,7 @@ int BPF_PROG(prlimit64_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PRLIMIT_E, PRLIMIT64_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PRLIMIT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,7 +54,7 @@ int BPF_PROG(prlimit64_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PRLIMIT_X, PRLIMIT64_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PRLIMIT_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

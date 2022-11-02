@@ -21,7 +21,7 @@ int BPF_PROG(recvfrom_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_RECVFROM_E, RECVFROM_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_RECVFROM_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

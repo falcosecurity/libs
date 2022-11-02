@@ -21,7 +21,7 @@ int BPF_PROG(vfork_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_VFORK_20_E, VFORK_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_VFORK_20_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

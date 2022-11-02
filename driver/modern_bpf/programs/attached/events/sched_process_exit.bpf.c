@@ -29,7 +29,7 @@ int BPF_PROG(sched_proc_exit,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_PROCEXIT_1_E, PROC_EXIT_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_PROCEXIT_1_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

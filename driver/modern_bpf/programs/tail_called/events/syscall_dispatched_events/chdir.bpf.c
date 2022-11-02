@@ -21,7 +21,7 @@ int BPF_PROG(chdir_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CHDIR_E, CHDIR_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CHDIR_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

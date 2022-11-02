@@ -20,7 +20,7 @@ int BPF_PROG(epoll_create1_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_EPOLL_CREATE1_E, EPOLL_CREATE1_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_EPOLL_CREATE1_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,7 +50,7 @@ int BPF_PROG(epoll_create1_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_EPOLL_CREATE1_X, EPOLL_CREATE1_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_EPOLL_CREATE1_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

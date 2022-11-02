@@ -22,7 +22,7 @@ int BPF_PROG(pipe_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_E, PIPE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,7 +50,7 @@ int BPF_PROG(pipe_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_X, PIPE_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

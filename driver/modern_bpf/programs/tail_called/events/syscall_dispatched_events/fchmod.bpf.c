@@ -20,7 +20,7 @@ int BPF_PROG(fchmod_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_E, FCHMOD_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -49,7 +49,7 @@ int BPF_PROG(fchmod_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_X, FCHMOD_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

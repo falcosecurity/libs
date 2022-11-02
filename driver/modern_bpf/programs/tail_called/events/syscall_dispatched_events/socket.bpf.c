@@ -20,7 +20,7 @@ int BPF_PROG(socket_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SOCKET_E, SOCKET_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SOCKET_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -61,7 +61,7 @@ int BPF_PROG(socket_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SOCKET_X, SOCKET_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SOCKET_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

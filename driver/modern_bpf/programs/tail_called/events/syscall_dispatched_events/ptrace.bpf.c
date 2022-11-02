@@ -21,7 +21,7 @@ int BPF_PROG(ptrace_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PTRACE_E, PTRACE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PTRACE_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

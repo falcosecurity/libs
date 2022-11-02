@@ -22,7 +22,7 @@ int BPF_PROG(inotify_init_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_E, INOTIFY_INIT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -56,7 +56,7 @@ int BPF_PROG(inotify_init_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_X, INOTIFY_INIT_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

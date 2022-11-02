@@ -20,7 +20,7 @@ int BPF_PROG(setgid_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETGID_E, SETGID_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETGID_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,7 +50,7 @@ int BPF_PROG(setgid_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETGID_X, SETGID_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETGID_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

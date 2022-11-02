@@ -21,7 +21,7 @@ int BPF_PROG(unlink_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNLINK_2_E, UNLINK_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNLINK_2_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

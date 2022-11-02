@@ -21,7 +21,7 @@ int BPF_PROG(fchmodat_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMODAT_E, FCHMODAT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMODAT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

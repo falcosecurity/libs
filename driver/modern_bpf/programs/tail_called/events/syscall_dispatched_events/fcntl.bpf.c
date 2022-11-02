@@ -20,8 +20,7 @@ int BPF_PROG(fcntl_e,
 		return 0;
 	}
 
-	/// TODO: we can remove the size from here.
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCNTL_E, FCNTL_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCNTL_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -55,7 +54,7 @@ int BPF_PROG(fcntl_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCNTL_X, FCNTL_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCNTL_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

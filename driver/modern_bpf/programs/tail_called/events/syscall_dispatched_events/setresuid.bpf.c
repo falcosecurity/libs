@@ -20,7 +20,7 @@ int BPF_PROG(setresuid_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRESUID_E, SETRESUID_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRESUID_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -58,7 +58,7 @@ int BPF_PROG(setresuid_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRESUID_X, SETRESUID_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRESUID_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -20,7 +20,7 @@ int BPF_PROG(tgkill_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TGKILL_E, TGKILL_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TGKILL_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -58,7 +58,7 @@ int BPF_PROG(tgkill_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TGKILL_X, TGKILL_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TGKILL_X);
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO)*/

@@ -21,7 +21,7 @@ int BPF_PROG(mount_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MOUNT_E, MOUNT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MOUNT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

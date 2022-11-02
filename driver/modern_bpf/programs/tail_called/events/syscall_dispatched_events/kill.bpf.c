@@ -20,7 +20,7 @@ int BPF_PROG(kill_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_KILL_E, KILL_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_KILL_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,7 +54,7 @@ int BPF_PROG(kill_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_KILL_X, KILL_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_KILL_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

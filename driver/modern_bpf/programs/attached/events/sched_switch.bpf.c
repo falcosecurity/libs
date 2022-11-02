@@ -23,7 +23,7 @@ int BPF_PROG(sched_switch,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SCHEDSWITCH_6_E, SCHED_SWITCH_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SCHEDSWITCH_6_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -20,7 +20,7 @@ int BPF_PROG(userfaultfd_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_USERFAULTFD_E, USERFAULTFD_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_USERFAULTFD_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -48,7 +48,7 @@ int BPF_PROG(userfaultfd_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_USERFAULTFD_X, USERFAULTFD_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_USERFAULTFD_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -20,7 +20,7 @@ int BPF_PROG(seccomp_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SECCOMP_E, SECCOMP_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SECCOMP_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,7 +50,7 @@ int BPF_PROG(seccomp_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SECCOMP_X, SECCOMP_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SECCOMP_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
