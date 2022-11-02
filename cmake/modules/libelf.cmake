@@ -6,7 +6,8 @@ option(USE_BUNDLED_LIBELF "Enable building of the bundled libelf" ${USE_BUNDLED_
 if(LIBELF_INCLUDE)
     # we already have LIBELF
 elseif(NOT USE_BUNDLED_LIBELF)
-    find_library(LIBELF_LIB NAMES elf)
+    find_path(LIBELF_INCLUDE elf.h PATH_SUFFIXES elf)
+    find_library(LIBELF_LIB NAMES libelf.a libelf.so)
     if(LIBELF_LIB)
         message(STATUS "Found LIBELF: include: ${LIBELF_INCLUDE}, lib: ${LIBELF_LIB}")
     else()
