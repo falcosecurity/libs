@@ -2406,7 +2406,12 @@ void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 	// Perform the executable's checksuming
 	//
 	string hash;
+
+	auto start = std::chrono::high_resolution_clock::now();
 	int64_t hres = m_md5_calculator->checksum_executable(mt, mt->m_exepath, &hash);
+	auto finish = std::chrono::high_resolution_clock::now();
+	auto delta = (finish - start).count();
+
 
 	//
 	// Create the exehash meta event that will be sent out after this execve.

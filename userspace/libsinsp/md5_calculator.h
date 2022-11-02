@@ -23,10 +23,16 @@ limitations under the License.
 #ifdef HAS_CAPTURE
 #ifndef WIN32
 
+#define HASHING_CHUNK_SIZE 32 * 1024 * 1024
+#define HASHING_MAX_EXE_SIZE 300 * 1024 * 1024
+#define HASHING_MAX_HASHING_TIME_NS 3LL * 1000000000
+#define HASHING_USE_CACHE
+
 class md5_cache_entry
 {
 public:
 	string m_checksum;
+	int64_t m_res;
 	chrono::time_point<chrono::system_clock> m_ts;
 };
 
@@ -37,7 +43,7 @@ public:
 	int64_t checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
 
 private:
-	void add_to_cache(string* cache_key, string* checksum);
+	void add_to_cache(string* cache_key, string* checksum, int64_t res);
 
 	unordered_map<string, md5_cache_entry> m_cache;
 };

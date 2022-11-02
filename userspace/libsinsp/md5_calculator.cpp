@@ -57,10 +57,16 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	}
 	size = s.st_size;
 
+	if(size > HASHING_MAX_EXE_SIZE)
+	{
+		close(fd);
+		return -EFBIG;
+	}
+
 	//
 	// Map the file into memory. Memory mapping the file instead of reading it
 	// has multiple benefits:
-	// - it minimizes stack memory usage or allocations
+	// - it minimizes stack memory usage and avoids memory allocations
 	// - it makes the hashing code simpler
 	// - it allows to generate less system calls, and therefore pollute less the
 	//   activity of the system
@@ -71,7 +77,24 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	// Do the hashing using openssl
 	//
 	MD5_Init(&mdContext);
-	MD5_Update(&mdContext, filebuf, size);
+
+//	MD5_Update(&mdContext, filebuf, size);
+
+	uint64_t pos = 0;
+	auto tstart = std::chrono::high_resolution_clock::now();
+	for(pos = 0; pos + HASHING_CHUNK_SIZE < size; pos += HASHING_CHUNK_SIZE)
+	{
+		MD5_Update(&mdContext, filebuf + pos, HASHING_CHUNK_SIZE);
+		auto tcur = std::chrono::high_resolution_clock::now();
+		auto td = (tcur - tstart).count();
+		if(td > HASHING_MAX_HASHING_TIME_NS)
+		{
+			close(fd);
+			return -ETIME;
+		}
+	}
+	MD5_Update(&mdContext, filebuf + pos, size - pos);
+
 	MD5_Final(digest, &mdContext);
 
 	close(fd);
@@ -92,21 +115,31 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 
 int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum)
 {
+	//
+	// We use /proc/<pid>/root to navigate into the process file system and read the
+	// executable. This works for containers as well since, for a container,
+	// /proc/<pid>/root lets us access the container FS.
+	// An even simpler way to access the executable would be /proc/<pid>/exe. We
+	// don't use it because it has the disadvantage of not allowing ancestor list
+	// navigation (see below). Also, based on my benchmarks, it doesn't give any
+	// performance advantage.
+	//
 	string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/root" + exepath;
-	//string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/exe";
 	string cache_key = tinfo->m_container_id + exepath;
 
 	//
 	// Do we have this executable in the cache? If yes, just return the cache entry.
 	//
+#ifdef HASHING_USE_CACHE
 	auto it = m_cache.find(cache_key);
 	if(it != m_cache.end())
 	{
 		*checksum = it->second.m_checksum;
 		// Refresh the cache entry timestamp
 		it->second.m_ts = std::chrono::system_clock::now();
-		return 0;
+		return it->second.m_res;
 	}
+#endif
 
 	int64_t res = checksum_file(fexepath, checksum);
 
@@ -138,15 +171,12 @@ int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exep
 	// Succcess.
 	// Add the executable to the cache
 	//
-	if(res == 0)
-	{
-		add_to_cache(&cache_key, checksum);
-	}
+	add_to_cache(&cache_key, checksum, res);
 
 	return res;
 }
 
-void md5_calculator::add_to_cache(string* cache_key, string* checksum)
+void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
 {
 	//
 	// Cache full?
@@ -171,6 +201,7 @@ void md5_calculator::add_to_cache(string* cache_key, string* checksum)
 	//
 	md5_cache_entry ce;
 	ce.m_checksum = *checksum;
+	ce.m_res = res;
 	ce.m_ts =  std::chrono::system_clock::now();
 	m_cache[*cache_key] = ce;
 }

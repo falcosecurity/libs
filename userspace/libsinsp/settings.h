@@ -110,4 +110,4 @@ static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 // Maximum size of the executable checksum cache.
 // Each entry has a string containing a FS path as the key, and around 40 bytes as the value.
 //
-#define MAX_CHECKSUM_CACHE_ENTRIES 3
+#define MAX_CHECKSUM_CACHE_ENTRIES 1024
