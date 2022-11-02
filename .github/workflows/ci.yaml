@@ -11,7 +11,7 @@ jobs:
         flavor:  [ regular, bundled-deps, with-chisels, minimal ]
         include:
           - flavor: regular
-            build-args: '-DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False'
+            build-args: '-DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DUSE_BUNDLED_VALIJSON=True'
           - flavor: bundled-deps
             build-args: '-DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True'
           - flavor: with-chisels
@@ -50,6 +50,7 @@ jobs:
             protobuf-compiler-grpc \
             libgtest-dev \
             libprotobuf-dev \
+            libre2-dev \
             linux-headers-$(uname -r) \
             && apt-get clean
         env:
