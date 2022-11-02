@@ -15,7 +15,8 @@
  */
 static __always_inline struct task_struct *get_current_task()
 {
-	if(bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf)
+	if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf)
+		&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf))
 	{
 		return (struct task_struct *)bpf_get_current_task_btf();
 	}
@@ -33,7 +34,8 @@ static __always_inline struct task_struct *get_current_task()
 #define READ_TASK_FIELD(src, a, ...)                                                            \
 	({                                                                                      \
 		___type((src), a, ##__VA_ARGS__) __r;                                           \
-		if(bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf) \
+		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) \
+			&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf)) \
 		{                                                                               \
 			__r = ___arrow((src), a, ##__VA_ARGS__);                                \
 		}                                                                               \
@@ -65,7 +67,8 @@ static __always_inline struct task_struct *get_current_task()
  */
 #define READ_TASK_FIELD_INTO(dst, src, a, ...)                                                  \
 	({                                                                                      \
-		if(bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf) \
+		if(bpf_core_enum_value_exists(enum bpf_func_id, BPF_FUNC_get_current_task_btf) \
+			&& (bpf_core_enum_value(enum bpf_func_id, BPF_FUNC_get_current_task_btf) == BPF_FUNC_get_current_task_btf)) \
 		{                                                                               \
 			*dst = ___arrow((src), a, ##__VA_ARGS__);                               \
 		}                                                                               \
