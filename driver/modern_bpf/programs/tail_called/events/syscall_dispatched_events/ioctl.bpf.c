@@ -20,7 +20,7 @@ int BPF_PROG(ioctl_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IOCTL_3_E, IOCTL_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IOCTL_3_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -58,7 +58,7 @@ int BPF_PROG(ioctl_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IOCTL_3_X, IOCTL_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IOCTL_3_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

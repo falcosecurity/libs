@@ -21,7 +21,7 @@ int BPF_PROG(open_by_handle_at_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, OPEN_BY_HANDLE_AT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

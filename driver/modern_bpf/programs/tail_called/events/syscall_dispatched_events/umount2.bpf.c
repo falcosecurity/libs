@@ -22,7 +22,7 @@ int BPF_PROG(umount2_e,
 	}
 
 	/// TODO: This event should be called `PPME_SYSCALL_UMOUNT2_E`.
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UMOUNT_E, UMOUNT2_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UMOUNT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

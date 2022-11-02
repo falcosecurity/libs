@@ -20,7 +20,7 @@ int BPF_PROG(capset_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CAPSET_E, CAPSET_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CAPSET_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -48,7 +48,7 @@ int BPF_PROG(capset_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CAPSET_X, CAPSET_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CAPSET_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

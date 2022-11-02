@@ -21,7 +21,7 @@ int BPF_PROG(linkat_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_LINKAT_2_E, LINKAT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_LINKAT_2_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

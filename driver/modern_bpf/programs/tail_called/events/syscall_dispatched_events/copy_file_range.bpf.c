@@ -20,7 +20,7 @@ int BPF_PROG(copy_file_range_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_COPY_FILE_RANGE_E, COPY_FILE_RANGE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_COPY_FILE_RANGE_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -58,7 +58,7 @@ int BPF_PROG(copy_file_range_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_COPY_FILE_RANGE_X, COPY_FILE_RANGE_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_COPY_FILE_RANGE_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -21,7 +21,7 @@ int BPF_PROG(chmod_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CHMOD_E, CHMOD_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CHMOD_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

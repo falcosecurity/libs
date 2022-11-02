@@ -21,7 +21,7 @@ int BPF_PROG(symlinkat_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SYMLINKAT_E, SYMLINKAT_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SYMLINKAT_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

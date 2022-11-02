@@ -20,7 +20,7 @@ int BPF_PROG(shutdown_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_E, SHUTDOWN_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,7 +54,7 @@ int BPF_PROG(shutdown_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_X, SHUTDOWN_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

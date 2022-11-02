@@ -21,7 +21,7 @@ int BPF_PROG(fsconfig_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FSCONFIG_E, FSCONFIG_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FSCONFIG_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

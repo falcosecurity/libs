@@ -126,7 +126,7 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
  * @param event_type type of the event that we are storing into the ringbuf.
  * @param event_size exact size of the fixed-size event.
  */
-static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *ringbuf, u32 event_type, u32 event_size)
+static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *ringbuf, u32 event_type)
 {
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)ringbuf->data;
 	u8 nparams = maps__get_event_num_params(event_type);
@@ -134,7 +134,7 @@ static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *r
 	hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
 	hdr->type = event_type;
 	hdr->nparams = nparams;
-	hdr->len = event_size;
+	hdr->len = ringbuf->reserved_event_size;
 
 	ringbuf->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(u16);
 	ringbuf->lengths_pos = sizeof(struct ppm_evt_hdr);

@@ -21,7 +21,7 @@ int BPF_PROG(clone_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CLONE_20_E, CLONE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_CLONE_20_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

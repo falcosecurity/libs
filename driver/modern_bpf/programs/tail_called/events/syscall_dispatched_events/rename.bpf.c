@@ -21,7 +21,7 @@ int BPF_PROG(rename_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_RENAME_E, RENAME_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_RENAME_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

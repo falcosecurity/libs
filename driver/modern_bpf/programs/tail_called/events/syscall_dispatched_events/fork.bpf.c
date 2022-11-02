@@ -21,7 +21,7 @@ int BPF_PROG(fork_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FORK_20_E, FORK_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FORK_20_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

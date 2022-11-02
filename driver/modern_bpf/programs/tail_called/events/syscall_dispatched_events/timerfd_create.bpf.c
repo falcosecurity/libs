@@ -20,7 +20,7 @@ int BPF_PROG(timerfd_create_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TIMERFD_CREATE_E, TIMERFD_CREATE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TIMERFD_CREATE_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,7 +54,7 @@ int BPF_PROG(timerfd_create_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TIMERFD_CREATE_X, TIMERFD_CREATE_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_TIMERFD_CREATE_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

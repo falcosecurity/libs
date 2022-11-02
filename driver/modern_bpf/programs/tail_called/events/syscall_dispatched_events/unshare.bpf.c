@@ -20,7 +20,7 @@ int BPF_PROG(unshare_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNSHARE_E, UNSHARE_E_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNSHARE_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,7 +50,7 @@ int BPF_PROG(unshare_x,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNSHARE_X, UNSHARE_X_SIZE);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UNSHARE_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
