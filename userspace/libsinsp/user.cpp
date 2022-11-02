@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "user.h"
 #include "event.h"
+#include "procfs_utils.h"
 #include "utils.h"
 #include "logger.h"
 #include "sinsp.h"
@@ -33,17 +34,6 @@ limitations under the License.
 
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 
-//
-// NOTE: at the time of writing 16 would have been enough, being
-// the format `mnt:[<unsigned>]`, but the only call to `ns_get_name`
-// I could find in the kernel was using a buffer of 50, so 50 it is.
-//
-#define NS_MNT_SIZE 50
-
-#include <unistd.h>
-
-std::string sinsp_usergroup_manager::s_host_root;
-
 // See fgetpwent() / fgetgrent() feature test macros:
 // https://man7.org/linux/man-pages/man3/fgetpwent.3.html
 // https://man7.org/linux/man-pages/man3/fgetgrent.3.html
@@ -51,77 +41,12 @@ std::string sinsp_usergroup_manager::s_host_root;
 #define HAVE_FGET__ENT
 #endif
 
-const char *get_root_ns_mnt()
-{
-	static char *s_root_ns_mnt = nullptr;
-	static bool CANNOT_READ_ROOT_NS_MNT{false};
-
-	if(CANNOT_READ_ROOT_NS_MNT)
-	{
-		return nullptr;
-	}
-
-	if(s_root_ns_mnt)
-	{
-		return s_root_ns_mnt;
-	}
-
-	char root_ns_mnt[NS_MNT_SIZE];
-	memset(root_ns_mnt, 0, NS_MNT_SIZE);
-	if(-1 == readlink((sinsp_usergroup_manager::s_host_root + "/proc/1/ns/mnt").c_str(), root_ns_mnt, NS_MNT_SIZE))
-	{
-		g_logger.format(sinsp_logger::SEV_WARNING,
-				"Cannot read host init ns/mnt");
-		CANNOT_READ_ROOT_NS_MNT = true;
-
-		return nullptr;
-	}
-
-	auto size = strlen(root_ns_mnt) + 1;
-	s_root_ns_mnt = (char *)malloc(size);
-	strncpy(s_root_ns_mnt, root_ns_mnt, size);
-	return s_root_ns_mnt;
-}
-
-//
-// Return true if still in the root mount namespace, or in case of any error
-//
-bool in_root_ns_mnt(int64_t pid)
-{
-	const char *root_ns_mnt = get_root_ns_mnt();
-	if(root_ns_mnt == nullptr)
-	{
-		return true;
-	}
-
-	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/ns/mnt";
-
-	char proc_ns_mnt[NS_MNT_SIZE];
-	bzero(proc_ns_mnt, NS_MNT_SIZE);
-	if(-1 == readlink(path.c_str(), proc_ns_mnt, NS_MNT_SIZE))
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"Cannot read process ns/mnt");
-		return true;
-	}
-
-	if(0 == strncmp(root_ns_mnt, proc_ns_mnt, NS_MNT_SIZE))
-	{
-		// Still in the host namespace
-		return true;
-	}
-
-	return false;
-}
-
 #endif
 
-namespace {
-
 #ifdef HAVE_PWD_H
-struct passwd *__getpwuid(uint32_t uid)
+struct passwd *sinsp_usergroup_manager::__getpwuid(uint32_t uid)
 {
-	if(sinsp_usergroup_manager::s_host_root.empty())
+	if(m_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -130,10 +55,8 @@ struct passwd *__getpwuid(uint32_t uid)
 
 	// If we have a host root and we can use fgetpwent,
 	// we take the entry directly from file
-
-
 #ifdef HAVE_FGET__ENT
-	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/passwd");
+	static std::string filename(m_host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -157,9 +80,9 @@ struct passwd *__getpwuid(uint32_t uid)
 #endif
 
 #ifdef HAVE_GRP_H
-struct group *__getgrgid(uint32_t gid)
+struct group *sinsp_usergroup_manager::__getgrgid(uint32_t gid)
 {
-	if(sinsp_usergroup_manager::s_host_root.empty())
+	if(m_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -169,7 +92,7 @@ struct group *__getgrgid(uint32_t gid)
 	// If we have a host root and we can use fgetgrent,
 	// we take the entry directly from file
 #ifdef HAVE_FGET__ENT
-	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/group");
+	static std::string filename(m_host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -191,19 +114,21 @@ struct group *__getgrgid(uint32_t gid)
 	return NULL;
 }
 #endif
-}
 
 using namespace std;
 
-sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
-	m_import_users(true),
-	m_last_flush_time_ns(0),
-	m_inspector(inspector)
-{
+// clang-format off
+sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
+	: m_import_users(true)
+	, m_last_flush_time_ns(0)
+	, m_inspector(inspector)
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-	s_host_root = std::string(scap_get_host_root());
+	, m_host_root(m_inspector->get_host_root())
+	, m_ns_helper(new libsinsp::procfs_utils::ns_helper(m_host_root))
 #endif
+{
 }
+// clang-format on
 
 void sinsp_usergroup_manager::subscribe_container_mgr()
 {
@@ -423,12 +348,12 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 
 #if defined HAVE_PWD_H && defined HAVE_FGET__ENT
 
-	if(in_root_ns_mnt(pid))
+	if(false == m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return nullptr;
 	}
 
-	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/root/etc/passwd";
+	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";
 	auto pwd_file = fopen(path.c_str(), "r");
 	if(pwd_file)
 	{
@@ -546,12 +471,12 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 
 #if defined HAVE_GRP_H && defined HAVE_FGET__ENT
 
-	if(in_root_ns_mnt(pid))
+	if(false == m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return nullptr;
 	}
 
-	std::string path = sinsp_usergroup_manager::s_host_root + "/proc/" + std::to_string(pid) + "/root/etc/group";
+	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/group";
 	auto group_file = fopen(path.c_str(), "r");
 	if(group_file)
 	{
