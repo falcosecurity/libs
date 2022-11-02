@@ -40,8 +40,8 @@ Syscalls that are not mapped to any event, are instead mapped to the `generic` o
 | dup                     | ✔         |
 | dup2                    | ✔         |
 | dup3                    | ✔         |
-| epoll_create            | ❌        |
-| epoll_create1           | ❌        |
+| epoll_create            | ✔         |
+| epoll_create1           | ✔         |
 | epoll_ctl               | ❌        |
 | epoll_ctl_old           | ❌        |
 | epoll_pwait             | ❌        |
