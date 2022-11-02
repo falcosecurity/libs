@@ -282,7 +282,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
-		bool do_notify{false};
+		bool inserted{false};
 		if (name)
 		{
 			usr = userinfo_map_insert(
@@ -292,7 +292,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 				name,
 				home,
 				shell);
-			do_notify = true;
+			inserted = true;
 		}
 		else if (container_id.empty())
 		{
@@ -308,12 +308,12 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 					p->pw_name,
 					p->pw_dir,
 					p->pw_shell);
-				do_notify = true;
+				inserted = true;
 			}
 #endif
 		}
 
-		if (notify && do_notify)
+		if (notify && inserted)
 		{
 			notify_user_changed(usr, container_id);
 		}
@@ -418,11 +418,11 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
-		bool do_notify{false};
+		bool inserted{false};
 		if (name)
 		{
 			gr = groupinfo_map_insert(m_grouplist[container_id], gid, name);
-			do_notify = true;
+			inserted = true;
 		}
 		else if (container_id.empty())
 		{
@@ -432,12 +432,12 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 			if (g)
 			{
 				gr = groupinfo_map_insert(m_grouplist[container_id], g->gr_gid, g->gr_name);
-				do_notify = true;
+				inserted = true;
 			}
 #endif
 		}
 
-		if (notify && do_notify)
+		if (notify && inserted)
 		{
 			notify_group_changed(gr, container_id, true);
 		}
