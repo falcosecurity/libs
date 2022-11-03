@@ -10,6 +10,18 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 include(ExternalProject)
 
+include(CheckSymbolExists)
+check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+
+if(HAVE_STRLCPY)
+	message(STATUS "Existing strlcpy found, will *not* use local definition")
+else()
+	message(STATUS "No strlcpy found, will use local definition")
+endif()
+
+configure_file(${LIBSCAP_DIR}/userspace/common/common_config.h.in ${PROJECT_BINARY_DIR}/common/common_config.h)
+include_directories(${PROJECT_BINARY_DIR}/common)
+
 add_definitions(-DPLATFORM_NAME="${CMAKE_SYSTEM_NAME}")
 
 get_filename_component(DRIVER_CONFIG_DIR ${CMAKE_BINARY_DIR}/driver/src ABSOLUTE)
@@ -32,6 +44,10 @@ list(APPEND LIBSCAP_LIBS
 	"${PROJECT_BINARY_DIR}/libscap/engine/savefile/libscap_engine_savefile.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/source_plugin/libscap_engine_source_plugin.a"
 	"${PROJECT_BINARY_DIR}/libscap/engine/udig/libscap_engine_udig.a"
+if(BUILD_LIBSCAP_MODERN_BPF)
+	"${PROJECT_BINARY_DIR}/libscap/engine/modern_bpf/libscap_engine_modern_bpf.a"
+	"${PROJECT_BINARY_DIR}/libpman/libpman.a"
+endif()
 )
 install(FILES ${LIBSCAP_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 			COMPONENT "scap" OPTIONAL)

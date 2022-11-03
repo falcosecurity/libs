@@ -10,7 +10,14 @@
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
 
-/* Right now a cgroup pathname can have at most 6 components. */
+/*=============================== FIXED CONSTRAINTS ===============================*/
+
+/* These are some of the constraints we want to impose during our
+ * store operations. One day these could become const global variables
+ * that could be set by the userspace.
+ */
+
+/* Right now a `cgroup` pathname can have at most 6 components. */
 #define MAX_CGROUP_PATH_POINTERS 6
 
 /* Right now a file path extracted from a file descriptor can
@@ -18,15 +25,35 @@
  */
 #define MAX_PATH_POINTERS 8
 
-/* Maximum length of unix socket path.
- * We can have at maximum 108 characters plus the `\0` terminator.
+/* Maximum length of `unix` socket path.
+ * We can have a maximum of 108 characters plus the `\0` terminator.
  */
 #define MAX_UNIX_SOCKET_PATH 108 + 1
 
-/* Max number of iovec structure that we can analize. */
+/* Maximum number of `iovec` structures that we can analyze. */
 #define MAX_IOVCNT 32
 
-/* Conversion factors used in setsockopt val. */
+/* Maximum number of charbuf pointers that we assume an array can have. */
+#define MAX_CHARBUF_POINTERS 16
+
+/* Proc name */
+#define MAX_PROC_EXE 4096
+
+/* Proc arguments or environment variables.
+ * Must be always a power of 2 because we can also use it as a mask!
+ */
+#define MAX_PROC_ARG_ENV 4096
+
+/* PATH_MAX supported by the operating system: 4096 */
+#define MAX_PATH 4096
+
+/*=============================== FIXED CONSTRAINTS ===============================*/
+
+/*=============================== COMMON DEFINITIONS ===============================*/
+
+/* Some auxiliary definitions we use during our store operations */
+
+/* Conversion factors used in `setsockopt` val. */
 #define SEC_FACTOR 1000000000
 #define USEC_FACTOR 1000
 
@@ -46,8 +73,7 @@ enum connection_direction
 	INBOUND = 1,
 };
 
-/* Maximum number of charbuf pointers that we assume an array can have. */
-#define MAX_CHARBUF_POINTERS 16
+/*=============================== COMMON DEFINITIONS ===============================*/
 
 /* Concept of auxamp (auxiliary map):
  *
@@ -300,18 +326,27 @@ static __always_inline void auxmap__store_u64_param(struct auxiliary_map *auxmap
 
 /**
  * @brief This helper stores the charbuf pointed by `charbuf_pointer`
- * into the auxmap. The charbuf can have a maximum length
- * of `MAX_PARAM_SIZE`. For more details, look at the underlying
+ * into the auxmap. We read until we find a `\0`, if the charbuf length
+ * is greater than `len_to_read`, we read up to `len_to_read-1` bytes
+ * and add the `\0`. For more details, look at the underlying
  * `push__charbuf` method
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
  * @param charbuf_pointer pointer to the charbuf to store.
+ * @param len_to_read upper bound limit.
  * @param mem from which memory we need to read: user-space or kernel-space.
  * @return number of bytes read.
  */
-static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer, enum read_memory mem)
+static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *auxmap, unsigned long charbuf_pointer, u16 len_to_read, enum read_memory mem)
 {
-	u16 charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE, mem);
+	u16 charbuf_len = 0;
+	/* This check is just for performance reasons. Is useless to check
+	 * `len_to_read > 0` here, since `len_to_read` is just the upper bound.
+	 */
+	if(charbuf_pointer)
+	{
+		charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, len_to_read, mem);
+	}
 	/* If we are not able to push anything with `push__charbuf`
 	 * `charbuf_len` will be equal to `0` so we will send an
 	 * empty param to userspace.
@@ -332,10 +367,11 @@ static __always_inline u16 auxmap__store_charbuf_param(struct auxiliary_map *aux
  * @param mem from which memory we need to read: user-space or kernel-space.
  * @return number of bytes read.
  */
-static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, unsigned long len_to_read, enum read_memory mem)
+static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *auxmap, unsigned long bytebuf_pointer, u16 len_to_read, enum read_memory mem)
 {
 	u16 bytebuf_len = 0;
-	if (len_to_read > 0)
+	/* This check is just for performance reasons. */
+	if(bytebuf_pointer && len_to_read > 0)
 	{
 		bytebuf_len = push__bytebuf(auxmap->data, &auxmap->payload_pos, bytebuf_pointer, len_to_read, mem);
 	}
@@ -348,58 +384,66 @@ static __always_inline u16 auxmap__store_bytebuf_param(struct auxiliary_map *aux
 }
 
 /**
- * @brief Use `auxmap__store_single_charbuf_param_from_array` when
- * you have to store a charbuf from a charbuf pointer array.
- * You have to provide the index of the charbuf pointer inside the
- * array. Indexes start from '0' as usual.
- * Once we obtain the pointer with `extract__charbuf_pointer_from_array`,
- * we can store the charbuf with `auxmap__store_charbuf_param`.
+ * @brief Use `auxmap__store_execve_exe` when you have to store the
+ * `exe` name from an execve-family syscall.
+ * By convention, `exe` is `argv[0]`, this is the reason why here we pass the `argv` array.
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param array charbuf pointer array.
- * @param index position at which we want to extract our charbuf.
- * @param mem from which memory we need to read: user-space or kernel-space.
+ * @param array charbuf pointer array, obtained directly from the syscall (`argv`).
  */
-static __always_inline void auxmap__store_single_charbuf_param_from_array(struct auxiliary_map *auxmap, unsigned long array, u16 index, enum read_memory mem)
+static __always_inline void auxmap__store_execve_exe(struct auxiliary_map *auxmap, char **array)
 {
-	unsigned long charbuf_pointer = extract__charbuf_pointer_from_array(array, index, mem);
-	auxmap__store_charbuf_param(auxmap, charbuf_pointer, mem);
+	unsigned long charbuf_pointer = 0;
+	u16 exe_len = 0;
+
+	if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[0]))
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, exe_len);
+		return;
+	}
+
+	exe_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_EXE, USER);
+	push__param_len(auxmap->data, &auxmap->lengths_pos, exe_len);
 }
 
 /**
- * @brief Use `auxmap__store_multiple_charbufs_param_from_array` when
- * you have to store multiple charbufs from a charbuf pointer
- * array. You have to provide an index that states where to start
- * the charbuf collection. If you want to store all the charbufs
- * pointed in the array, you can use '0' as 'index'.
+ * @brief Use `auxmap__store_execve_args` when you have to store
+ * `argv` or `envp` params from an execve-family syscall.
+ * You have to provide an index that states where to start
+ * the charbuf collection. This is becuase with `argv` we want to avoid
+ * the first param (`argv[0]`), since it is already collected with
+ * `auxmap__store_execve_exe`.
  *
  * Please note: right now we assume that our arrays have no more
  * than `MAX_CHARBUF_POINTERS`
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param array charbuf pointer array
+ * @param array charbuf pointer array, obtained directly from the syscall (`argv` or `envp`).
  * @param index position at which we start to collect our charbufs.
- * @param mem from which memory we need to read: user-space or kernel-space.
  */
-static __always_inline void auxmap__store_multiple_charbufs_param_from_array(struct auxiliary_map *auxmap, unsigned long array, u16 index, enum read_memory mem)
+static __always_inline void auxmap__store_execve_args(struct auxiliary_map *auxmap, char **array, u16 index)
 {
-	unsigned long charbuf_pointer;
-	u16 charbuf_len = 0;
+	unsigned long charbuf_pointer = 0;
+	u16 arg_len = 0;
 	u16 total_len = 0;
-	/* We push in the auxmap all the charbufs that we find.
-	 * We push the overall length only at the end of the
-	 * for loop with `push__param_len`.
-	 */
+	u64 initial_payload_pos = auxmap->payload_pos;
+
 	for(; index < MAX_CHARBUF_POINTERS; ++index)
 	{
-		charbuf_pointer = extract__charbuf_pointer_from_array(array, index, mem);
-		charbuf_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PARAM_SIZE, mem);
-		if(!charbuf_len)
+		if(bpf_probe_read_user(&charbuf_pointer, sizeof(charbuf_pointer), &array[index]))
 		{
 			break;
 		}
-		total_len += charbuf_len;
+		arg_len = push__charbuf(auxmap->data, &auxmap->payload_pos, charbuf_pointer, MAX_PROC_ARG_ENV, USER);
+		if(!arg_len)
+		{
+			break;
+		}
+		total_len += arg_len;
 	}
+	/* the sum of all env variables lengths should be `<= MAX_PROC_ARG_ENV` */
+	total_len = total_len & (MAX_PROC_ARG_ENV - 1);
+	auxmap->payload_pos = initial_payload_pos + total_len;
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_len);
 }
 
@@ -1283,10 +1327,25 @@ static __always_inline u16 store_cgroup_subsys(struct auxiliary_map *auxmap, str
 static __always_inline void auxmap__store_cgroups_param(struct auxiliary_map *auxmap, struct task_struct *task)
 {
 	uint16_t total_croups_len = 0;
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpuset_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpu_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, cpuacct_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, io_cgrp_id);
-	total_croups_len += store_cgroup_subsys(auxmap, task, memory_cgrp_id);
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpuset_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpuset_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpu_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpu_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, cpuacct_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, cpuacct_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, io_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, io_cgrp_id));
+	}
+	if(bpf_core_enum_value_exists(enum cgroup_subsys_id, memory_cgrp_id))
+	{
+		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, memory_cgrp_id));
+	}
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_croups_len);
 }

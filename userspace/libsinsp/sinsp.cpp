@@ -450,81 +450,6 @@ void sinsp::set_import_users(bool import_users)
 	m_usergroup_manager.m_import_users = import_users;
 }
 
-std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest)
-{
-	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
-
-	/* Should never happen but just to be sure. */
-	if(scap_get_modifies_state_tracepoints(minimum_tracepoints.data()) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception("'minimum_tracepoints' is an unexpected NULL vector!");
-	}
-
-	for(int tp = 0; tp < TP_VAL_MAX; tp++)
-	{
-		if(minimum_tracepoints[tp])
-		{
-			tp_of_interest.insert(tp);
-		}
-	}
-	return tp_of_interest;
-}
-
-std::unordered_set<std::string> sinsp::get_tp_names(const std::unordered_set<uint32_t>& tp_set)
-{
-	std::unordered_set<std::string> tp_names_set;
-	for(const auto& it : tp_set)
-	{
-		std::string tp_name = tp_names[it];
-		tp_names_set.insert(tp_name);
-	}
-	return tp_names_set;
-}
-
-void sinsp::fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &ppm_sc_of_interest)
-{
-	for (int i = 0; i < PPM_SC_MAX; i++)
-	{
-		/* If the set is empty, fallback to all interesting syscalls */
-		if (ppm_sc_of_interest.empty())
-		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
-		}
-		else
-		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.find(i) != ppm_sc_of_interest.end();
-		}
-	}
-}
-
-void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest)
-{
-	for(int i = 0; i < TP_VAL_MAX; i++)
-	{
-		/* If the set is empty, fallback to all interesting tracepoints */
-		if (tp_of_interest.empty())
-		{
-			oargs->tp_of_interest.tp[i] = true;
-		}
-		else
-		{
-			oargs->tp_of_interest.tp[i] = tp_of_interest.find(i) != tp_of_interest.end();
-		}
-	}
-}
-
-std::unordered_set<uint32_t> sinsp::get_all_tp()
-{
-	std::unordered_set<uint32_t> ppm_tp_array;
-
-	for(uint32_t tp = 0; tp < TP_VAL_MAX; tp++)
-	{
-		ppm_tp_array.insert(tp);
-	}
-
-	return ppm_tp_array;
-}
-
 /*=============================== OPEN METHODS ===============================*/
 
 void sinsp::open_common(scap_open_args* oargs)
@@ -1279,6 +1204,20 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 				return SCAP_TIMEOUT;
 
 			}
+			else if(res == SCAP_FILTERED_EVENT)
+			{
+				// This will happen if SCAP has filtered the event in userspace (tid suppression).
+				// A valid event was read from the driver, but we are choosing to not report it to
+				// the client at the client's request.
+				// However, we still need to return here so that the client doesn't time out the
+				// request.
+				if(m_external_event_processor)
+				{
+					m_external_event_processor->process_event(NULL, libsinsp::EVENT_RETURN_FILTERED);
+					*puevt = NULL;
+					return res;
+				}
+			}
 			else
 			{
 				m_lasterr = scap_getlasterr(m_h);
@@ -1513,7 +1452,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		if(!(m_isinternal_events_enabled && (cat & EC_INTERNAL)))
 		{
 			*puevt = evt;
-			return SCAP_TIMEOUT;
+			return SCAP_FILTERED_EVENT;
 		}
 	}
 

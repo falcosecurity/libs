@@ -35,6 +35,11 @@ std::unique_ptr<event_test> get_syscall_event_test(int syscall_id, int event_dir
 	return (std::unique_ptr<event_test>)new event_test(syscall_id, event_direction);
 }
 
+std::unique_ptr<event_test> get_syscall_event_test()
+{
+	return (std::unique_ptr<event_test>)new event_test();
+}
+
 /////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
 /////////////////////////////////
@@ -95,6 +100,12 @@ event_test::~event_test()
 	 */
 	pman_detach_sched_proc_exit();
 	pman_detach_sched_switch();
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	pman_detach_sched_proc_exec();
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	pman_detach_sched_proc_fork();
+#endif
 }
 
 /* This constructor must be used with generic tracepoints
@@ -112,6 +123,18 @@ event_test::event_test(ppm_event_type event_type)
 
 	case PPME_SCHEDSWITCH_6_E:
 		pman_attach_sched_switch();
+		break;
+
+	case PPME_SYSCALL_EXECVE_19_X:
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		pman_attach_sched_proc_exec();
+#endif
+		break;
+
+	case PPME_SYSCALL_CLONE_20_X:
+#ifdef CAPTURE_SCHED_PROC_FORK
+		pman_attach_sched_proc_fork();
+#endif
 		break;
 
 	default:
@@ -137,6 +160,19 @@ event_test::event_test(int syscall_id, int event_direction)
 	mark_single_64bit_syscall_as_interesting(syscall_id);
 }
 
+/* This constructor must be used with syscalls events when you
+ * want to enable all syscalls.
+ */
+event_test::event_test()
+{
+	m_current_param = 0;
+
+	for(int sys_num = 0; sys_num < SYSCALL_TABLE_SIZE; sys_num++)
+	{
+		mark_single_64bit_syscall_as_interesting(sys_num);
+	}
+}
+
 void event_test::mark_single_64bit_syscall_as_interesting(int interesting_syscall_id)
 {
 	pman_mark_single_64bit_syscall(interesting_syscall_id, true);
@@ -159,13 +195,33 @@ void event_test::disable_capture()
 
 void event_test::clear_ring_buffers()
 {
-	int consume_ret = 1;
-	uint16_t cpu_id = 0;
-	void* event = NULL;
-	while(consume_ret != -1)
+	int16_t cpu_id = 0;
+	while(get_event_from_ringbuffer(&cpu_id) != NULL)
 	{
-		consume_ret = pman_consume_one_from_buffers(&event, &cpu_id);
+	};
+}
+
+bool event_test::are_all_ringbuffers_full(unsigned long threshold)
+{
+	return pman_are_all_ringbuffers_full(threshold);
+}
+
+struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(int16_t* cpu_id)
+{
+	m_event_header = NULL;
+	uint16_t attempts = 0;
+
+	/* Try 2 times just to be sure that all the buffers are empty. */
+	while(attempts <= 1)
+	{
+		pman_consume_first_from_buffers((void**)&m_event_header, cpu_id);
+		if(m_event_header != NULL)
+		{
+			return m_event_header;
+		}
+		attempts++;
 	}
+	return m_event_header;
 }
 
 void event_test::parse_event()
@@ -356,32 +412,14 @@ void event_test::connect_unix_client_to_server(int32_t* client_socket, struct so
 // GENERIC EVENT ASSERTIONS
 /////////////////////////////////
 
-void event_test::assert_event_presence(pid_t desired_pid)
+void event_test::assert_event_presence(pid_t pid_to_search, int event_to_search)
 {
-	pid_t pid = ::getpid();
-	if(desired_pid != CURRENT_PID)
-	{
-		pid = desired_pid;
-	}
-	int consume_ret = 0;
-	uint16_t cpu_id = 0;
+	assert_event_in_buffers(pid_to_search, event_to_search, true);
+}
 
-	/* We need the while loop because in the buffers there could be different events
-	 * with the type we are searching for. Even if we explicitly create only one event
-	 * of this type, the system could create other events of the same type during the test!
-	 */
-	while(true)
-	{
-		consume_ret = pman_consume_one_from_buffers((void**)&m_event_header, &cpu_id);
-		if(consume_ret == -1 || m_event_header == NULL)
-		{
-			FAIL() << "There is no event in the buffer." << std::endl;
-		}
-		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == m_event_type)
-		{
-			break;
-		}
-	}
+void event_test::assert_event_absence(pid_t pid_to_search, int event_to_search)
+{
+	assert_event_in_buffers(pid_to_search, event_to_search, false);
 }
 
 void event_test::assert_header()
@@ -787,4 +825,60 @@ void event_test::assert_unix_path(const char* desired_path, int starting_index)
 {
 	const char* unix_path = m_event_params[m_current_param].valptr + starting_index;
 	ASSERT_STREQ(unix_path, desired_path) << VALUE_NOT_CORRECT << m_current_param;
+}
+
+void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_search, bool presence)
+{
+	int16_t cpu_id = 0;
+	pid_t pid = 0;
+	uint16_t evt_type = 0;
+
+	if(pid_to_search == CURRENT_PID)
+	{
+		pid = ::getpid();
+	}
+	else
+	{
+		pid = pid_to_search;
+	}
+
+	if(event_to_search == CURRENT_EVENT_TYPE)
+	{
+		evt_type = m_event_type;
+	}
+	else
+	{
+		evt_type = event_to_search;
+	}
+
+	/* We need the while loop because in the buffers there could be different events
+	 * with the type we are searching for. Even if we explicitly create only one event
+	 * of this type, the system could create other events of the same type during the test!
+	 */
+	while(true)
+	{
+		get_event_from_ringbuffer(&cpu_id);
+		if(m_event_header == NULL)
+		{
+			if(presence)
+			{
+				FAIL() << "There is no event '" << evt_type << "' in the buffers." << std::endl;
+			}
+			else
+			{
+				break;
+			}
+		}
+		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == evt_type)
+		{
+			if(presence)
+			{
+				break;
+			}
+			else
+			{
+				FAIL() << "There is an event '" << evt_type << "' in the buffers, but it shouldn't be there" << std::endl;
+			}
+		}
+	}
 }

@@ -55,6 +55,8 @@ Right now our drivers officially support the following architectures:
 
 >**Please note**: BPF has some issues with architectures like `s390x`! Some helpers like `bpf_probe_read()` and `bpf_probe_read_str()` are broken on archs with overlapping address ranges.
 
+**For a list of supported syscalls through specific events, please refer to [_report_](./driver/report.md).**
+
 ## Build
 
 Libs relies upon `cmake` build system.  
@@ -123,7 +125,11 @@ To build the modern eBPF probe, you need:
     Usage: bpftool gen object OUTPUT_FILE INPUT_FILE [INPUT_FILE...]    <---
            bpftool gen skeleton FILE [name OBJECT_NAME]                 <---
            bpftool gen help
-    ``` 
+    ```
+  If you want to use the `bpftool` mirror repo, version [`6.7`](https://github.com/libbpf/bpftool/releases/tag/v6.7.0) should be enough.
+  
+  If you want to compile it directly from the kernel tree you should pick at least the `5.13` tag.
+
 * BTF exposed by your kernel, you can check it through `ls /sys/kernel/btf/vmlinux`. You should see this line:
 
     ```

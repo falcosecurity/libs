@@ -37,7 +37,7 @@ limitations under the License.
 
 static bool match(scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, KMOD_ENGINE) == 0;
 }
 
 static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -124,7 +124,46 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 }
 
 
-/// TODO: we need to pass directly the system syscall number not the `ppm_sc` here.
+int32_t scap_kmod_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp)
+{
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+
+	uint32_t curr_set;
+	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_GET_TPMASK, &curr_set))
+	{
+		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+			 "%s(%d) failed",
+			 __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	uint32_t new_set;
+	if (op == SCAP_TPMASK_SET)
+	{
+		new_set = curr_set | (1 << tp);
+	}
+	else
+	{
+		new_set = curr_set & ~(1 << tp);
+	}
+	if(new_set == curr_set)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MANAGE_TP, new_set))
+	{
+		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE,
+			 "%s(%d) failed for tpmask %d",
+			 __FUNCTION__, op, new_set);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+	return SCAP_SUCCESS;
+}
+
+/// TODO: it would be better to pass directly the system syscall number not the `ppm_sc` here.
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
@@ -371,19 +410,10 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	}
 
 	/* Set interesting Tracepoints */
-	uint32_t tp_of_interest = 0;
 	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		if (oargs->tp_of_interest.tp[i])
-		{
-			tp_of_interest |= (1 << i);
-		}
-	}
-	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MANAGE_TP, tp_of_interest))
-	{
-		strncpy(handle->m_lasterr, "PPM_IOCTL_MANAGE_TP failed", SCAP_LASTERR_SIZE);
-		ASSERT(false);
-		return SCAP_FAILURE;
+		uint32_t op = oargs->tp_of_interest.tp[i] ? SCAP_TPMASK_SET : SCAP_TPMASK_UNSET;
+		scap_kmod_handle_tp_mask(engine, op, i);
 	}
 
 	return SCAP_SUCCESS;
@@ -729,6 +759,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_kmod_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:
 		return scap_kmod_handle_event_mask(engine, arg1, arg2);
+	case SCAP_TPMASK:
+		return scap_kmod_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)
 		{

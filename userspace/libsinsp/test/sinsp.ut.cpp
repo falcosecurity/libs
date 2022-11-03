@@ -511,6 +511,159 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 	}
 }
 
+/* Same as `execveat_empty_path_flag` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
+ * since on s390x architectures the `execveat` syscall correctly returns a `PPME_SYSCALL_EXECVEAT_X`
+ * exit event in case of success.
+ */
+TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *file_to_run = "/tmp/s390x/file_to_run";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, file_to_run, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, file_to_run, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", PPM_EXVAT_AT_EMPTY_PATH);
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
+	 * `AT_EMPTY_PATH` flag.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Same as `execveat_relative_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
+ * since on s390x architectures the `execveat` syscall correctly returns a `PPME_SYSCALL_EXECVEAT_X`
+ * exit event in case of success.
+ */
+TEST_F(sinsp_with_test_input, execveat_relative_path_s390)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the directory that contains the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *directory = "/tmp/s390x/dir";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, directory, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "file", 0);
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
+	 * specified in the `execveat` enter event.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390x/dir/file");
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Same as `execveat_absolute_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
+ * since on s390x architectures the `execveat` syscall correctly returns a `PPME_SYSCALL_EXECVEAT_X`
+ * exit event in case of success.
+ */
+TEST_F(sinsp_with_test_input, execveat_absolute_path_s390)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	int invalid_dirfd = 0;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/s390/file", 0);
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be the absolute file path that we passed in the
+	 * `execveat` enter event.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390/file");
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
+/* Same as `execveat_invalid_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
+ * since on s390x architectures the `execveat` syscall correctly returns a `PPME_SYSCALL_EXECVEAT_X`
+ * exit event in case of success.
+ */
+TEST_F(sinsp_with_test_input, execveat_invalid_path_s390)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt *evt = NULL;
+
+	/* We generate a `dirfd` associated with the directory that contains the file that
+	 * we want to run with the `execveat`,
+	 */
+	int64_t dirfd = 3;
+	const char *directory = "/tmp/s390/dir";
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, directory, 0, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, dirfd, directory, 0, 0, 0, 0);
+
+	/* Now we call the `execveat_e` event,`sinsp` will store this enter
+	 * event in the thread storage, in this way the exit event can use it.
+	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, dirfd, "<NA>", 0);
+
+	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_X, 23, 0, "<NA>", empty_bytebuf, 1, 1, 1, "<NA>", 0, 0, 0, 0, 0, 0, "<NA>", empty_bytebuf, empty_bytebuf, 0, 0, 0, 0, 0, 0, 0);
+
+	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
+	 * is invalid and should set `<NA>`.
+	 */
+	if(evt->get_thread_info())
+	{
+		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+	}
+	else
+	{
+		FAIL();
+	}
+}
+
 TEST_F(sinsp_with_test_input, creates_fd_generic)
 {
 	add_default_init_thread();
@@ -553,6 +706,18 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "io_uring");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "r");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "10");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE_X, 1, 11);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "eventpoll");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "l");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "11");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE1_E, 1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EPOLL_CREATE1_X, 1, 12);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "eventpoll");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "l");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 }
 
 TEST_F(sinsp_with_test_input, spawn_process)

@@ -26,11 +26,15 @@ else()
         URL_HASH
         "SHA256=3d6afde67682c909e341bf194678a8969f17628705af25f900d5f68bd299cb03"
         CONFIGURE_COMMAND mkdir -p build root
-        BUILD_COMMAND BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root make -C ${LIBBPF_SRC}/libbpf/src install
+        BUILD_COMMAND BUILD_STATIC_ONLY=y OBJDIR=${LIBBPF_BUILD_DIR}/build DESTDIR=${LIBBPF_BUILD_DIR}/root make -C ${LIBBPF_SRC}/libbpf/src install install_uapi_headers
         INSTALL_COMMAND ""
         UPDATE_COMMAND ""
     )
     message(STATUS "Using bundled libbpf: include'${LIBBPF_INCLUDE}', lib: ${LIBBPF_LIB}")
+    install(FILES "${LIBBPF_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+            COMPONENT "libs-deps")
+    install(DIRECTORY "${LIBBPF_INCLUDE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
+            COMPONENT "libs-deps")
 endif()
 
 include_directories(${LIBBPF_INCLUDE})

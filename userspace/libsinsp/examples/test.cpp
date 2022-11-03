@@ -318,7 +318,7 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 		return ev;
 	}
 
-	if(res != SCAP_TIMEOUT)
+	if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT)
 	{
 		handle_error(inspector.getlasterr());
 		std::this_thread::sleep_for(std::chrono::seconds(g_backoff_timeout_secs));
@@ -394,7 +394,7 @@ void plaintext_dump(sinsp& inspector)
 
 			cout << "[PPID=" << parent_pid << "]:"
 			     << "[PID=" << thread->m_pid << "]:"
-			     << "[TYPE=" << get_event_type_name(ev->get_type()) << "]:"
+			     << "[TYPE=" << get_event_type_name(inspector, ev) << "]:"
 			     << "[EXE=" << thread->get_exepath() << "]:"
 			     << "[CMD=" << cmdline << "]"
 			     << endl;

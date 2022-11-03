@@ -166,12 +166,6 @@ TEST(SyscallExit, cloneX_father)
 	evt_test->assert_num_params_pushed(20);
 }
 
-/* In some architectures we are not able to catch the `clone exit child
- * event` from the `sys_exit` tracepoint. This is because there is no
- * default behavior among different architectures... you can find more
- * info in `driver/feature_gates.h`.
- */
-#ifndef CAPTURE_SCHED_PROC_FORK
 TEST(SyscallExit, cloneX_child)
 {
 	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
@@ -219,6 +213,14 @@ TEST(SyscallExit, cloneX_child)
 
 		evt_test->disable_capture();
 
+/* In some architectures we are not able to catch the `clone exit child
+ * event` from the `sys_exit` tracepoint. This is because there is no
+ * default behavior among different architectures... you can find more
+ * info in `driver/feature_gates.h`.
+ */
+#ifdef CAPTURE_SCHED_PROC_FORK
+		evt_test->assert_event_absence(pid);
+#else
 		evt_test->assert_event_presence(pid);
 
 		if(HasFatalFailure())
@@ -299,7 +301,7 @@ TEST(SyscallExit, cloneX_child)
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
 		evt_test->assert_num_params_pushed(20);
-
+#endif
 		if(HasFailure())
 		{
 			exit(EXIT_FAILURE);
@@ -326,5 +328,3 @@ TEST(SyscallExit, cloneX_child)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }
 #endif /* CAPTURE_SCHED_PROC_FORK */
-
-#endif

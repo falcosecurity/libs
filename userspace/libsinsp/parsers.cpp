@@ -157,9 +157,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		uint16_t etype = evt->m_pevt->type;
 		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 		{
-			sinsp_evt_param *parinfo = evt->get_param(0);
-			uint16_t evid = *(uint16_t *)parinfo->m_val;
-			flags = g_infotables.m_syscall_info_table[evid].flags;
+			flags = EF_NONE;
 		}
 		else
 		{
@@ -430,6 +428,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_IO_URING_SETUP_X:
 		parse_single_param_fd_exit(evt, SCAP_FD_IOURING);
+		break;
+	case PPME_SYSCALL_EPOLL_CREATE_X:
+	case PPME_SYSCALL_EPOLL_CREATE1_X:
+		parse_single_param_fd_exit(evt, SCAP_FD_EVENTPOLL);
 		break;
 	case PPME_SYSCALL_GETRLIMIT_X:
 	case PPME_SYSCALL_SETRLIMIT_X:
@@ -1711,9 +1713,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	retval = *(int64_t *)parinfo->m_val;
 
-	/* Please note here we will never parse an `PPME_SYSCALL_EXECVEAT_X` event since it is 
-	 * generated only in case of failure, here if `retval<0` we return immediately.
-	 * If we remove this `if` we need to support also the `PPME_SYSCALL_EXECVEAT_X` event.
+	/* Some architectures like s390x send a `PPME_SYSCALL_EXECVEAT_X` exit event
+	 * when the `execveat` syscall succeeds, for this reason, we need to manage also
+	 * this event in the parser.
 	 */
 	if(retval < 0)
 	{
@@ -1721,7 +1723,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	}
 
 	//
-	// We get here when `execve` return. The thread has already been added by a previous fork or clone,
+	// We get here when `execve` or `execveat` return. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
 	//
 	if(!evt->m_tinfo)
@@ -1754,6 +1756,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the comm
 		parinfo = evt->get_param(13);
 		evt->m_tinfo->m_comm = parinfo->m_val;
@@ -1799,6 +1802,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the pgflt_maj
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
@@ -1847,6 +1851,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the environment
 		parinfo = evt->get_param(15);
 		evt->m_tinfo->set_env(parinfo->m_val, parinfo->m_len);
@@ -1884,6 +1889,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_17_X:
 	case PPME_SYSCALL_EXECVE_18_X:
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the tty
 		parinfo = evt->get_param(16);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
@@ -1903,7 +1909,8 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	 * we can do nothing.
 	 */
 	if((etype == PPME_SYSCALL_EXECVE_18_X ||
-	    etype == PPME_SYSCALL_EXECVE_19_X)
+		etype == PPME_SYSCALL_EXECVE_19_X ||
+		etype == PPME_SYSCALL_EXECVEAT_X)
 		&&
 		retrieve_enter_event(enter_evt, evt))
 	{
@@ -2036,6 +2043,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_EXECVE_18_X:
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
+	case PPME_SYSCALL_EXECVEAT_X:
 		// Get the vpgid
 		parinfo = evt->get_param(17);
 		ASSERT(parinfo->m_len == sizeof(int64_t));
@@ -2077,7 +2085,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Get capabilities
 	if(evt->get_num_params() > 22)
 	{
-		if(etype == PPME_SYSCALL_EXECVE_19_X)
+		if(etype == PPME_SYSCALL_EXECVE_19_X || etype == PPME_SYSCALL_EXECVEAT_X)
 		{
 			parinfo = evt->get_param(20);
 			ASSERT(parinfo->m_len == sizeof(uint64_t));

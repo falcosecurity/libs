@@ -44,24 +44,25 @@ limitations under the License.
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
 #define PRINT_HELP_OPTION "--help"
 
-extern const struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
+static const struct ppm_syscall_desc *g_syscall_info_table;
+
 /* Engine params */
-struct scap_bpf_engine_params bpf_params = {0};
-struct scap_kmod_engine_params kmod_params = {0};
-struct scap_modern_bpf_engine_params modern_bpf_params = {0};
-struct scap_savefile_engine_params savefile_params = {0};
+static struct scap_bpf_engine_params bpf_params;
+static struct scap_kmod_engine_params kmod_params;
+static struct scap_modern_bpf_engine_params modern_bpf_params;
+static struct scap_savefile_engine_params savefile_params;
 
 /* Configuration variables set through CLI. */
-uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
-int evt_type = -1;		  /* event type to print. */
-bool ppm_sc_is_set = 0;
-bool tp_is_set = 0;
-unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+static uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
+static int evt_type = -1;		  /* event type to print. */
+static bool ppm_sc_is_set = 0;
+static bool tp_is_set = 0;
+static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
-int simple_set[] = {
+static int simple_set[] = {
 	PPM_SC_ACCEPT,
 	PPM_SC_ACCEPT4,
 	PPM_SC_BIND,
@@ -146,12 +147,14 @@ int simple_set[] = {
 };
 
 /* Generic global variables. */
-scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
-uint64_t g_nevts = 0;							    /* total number of events captured. */
-scap_t* g_h = NULL;							    /* global scap handler. */
-uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
-char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
-struct timeval tval_start, tval_end, tval_result;
+static scap_open_args oargs = {.engine_name = UNKNOWN_ENGINE};			    /* scap oargs used in `scap_open`. */
+static uint64_t g_nevts = 0;							    /* total number of events captured. */
+static scap_t* g_h = NULL;							    /* global scap handler. */
+static uint16_t* lens16 = NULL;						    /* pointer used to print the length of event params. */
+static char* valptr = NULL; /* pointer used to print the value of event params. */ /* pointer used to print the value of event params. */
+static struct timeval tval_start, tval_end, tval_result;
+static unsigned long number_of_timeouts; /* Times in which there were no events in the buffer. */
+static unsigned long number_of_scap_next; /* Times in which the 'scap-next' method is called. */
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -300,7 +303,7 @@ bool validate_syscalls()
 		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
 		 * `g_syscall_info_table`.
 		 */
-		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && !g_syscall_info_table[ppm_syscall_code].name)
+		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && g_syscall_info_table[ppm_syscall_code].name[0] == 0)
 		{
 			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
 			success = false;
@@ -932,7 +935,7 @@ void print_stats()
 
 	scap_stats s;
 	printf("\n---------------------- STATS -----------------------\n");
-	printf("Events captured: %" PRIu64 "\n", g_nevts);
+	printf("Events correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
 	scap_get_stats(g_h, &s);
 	printf("Seen by driver: %" PRIu64 "\n", s.n_evts);
 	printf("Time elapsed: %ld s\n", tval_result.tv_sec);
@@ -941,6 +944,8 @@ void print_stats()
 		printf("Number of events/per-second: %ld\n", g_nevts / tval_result.tv_sec);
 	}
 	printf("Number of dropped events: %" PRIu64 "\n", s.n_drops);
+	printf("Number of timeouts: %ld\n", number_of_timeouts);
+	printf("Number of 'next' calls: %ld\n", number_of_scap_next);
 	printf("Number of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_enter syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_enter);
 	printf("Number of dropped events caused by full buffer (n_drops_buffer_clone_fork_exit syscall category): %" PRIu64 "\n", s.n_drops_buffer_clone_fork_exit);
@@ -986,6 +991,8 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
+	g_syscall_info_table = scap_get_syscall_info_table();
+
 	parse_CLI_options(argc, argv);
 
 	print_scap_source();
@@ -1010,6 +1017,7 @@ int main(int argc, char** argv)
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
+		number_of_scap_next++;
 		if(res == SCAP_UNEXPECTED_BLOCK)
 		{
 			res = scap_restart_capture(g_h);
@@ -1020,6 +1028,7 @@ int main(int argc, char** argv)
 		}
 		if(res == SCAP_TIMEOUT || res == SCAP_FILTERED_EVENT)
 		{
+			number_of_timeouts++;
 			continue;
 		}
 		else if(res == SCAP_EOF)

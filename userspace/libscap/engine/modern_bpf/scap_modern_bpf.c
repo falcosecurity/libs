@@ -29,6 +29,87 @@ limitations under the License.
 
 /*=============================== UTILS ===============================*/
 
+static int32_t update_single_tp_of_interest(int tp, bool interesting)
+{
+	int ret = SCAP_SUCCESS;
+	switch(tp)
+	{
+	case SYS_ENTER:
+		if (interesting)
+		{
+			ret = pman_attach_syscall_enter_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_enter_dispatcher();
+		}
+		break;
+
+	case SYS_EXIT:
+		if (interesting)
+		{
+			ret = pman_attach_syscall_exit_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_exit_dispatcher();
+		}
+		break;
+	case SCHED_PROC_EXIT:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_exit();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exit();
+		}
+		break;
+
+	case SCHED_SWITCH:
+		if (interesting)
+		{
+			ret = pman_attach_sched_switch();
+		}
+		else
+		{
+			ret = pman_detach_sched_switch();
+		}
+		break;
+
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	case SCHED_PROC_EXEC:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_exec();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exec();
+		}
+		break;
+#endif
+
+#ifdef CAPTURE_SCHED_PROC_FORK
+	case SCHED_PROC_FORK:
+		if (interesting)
+		{
+			ret = pman_attach_sched_proc_fork();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_fork();
+		}
+		break;
+#endif
+
+	default:
+		/* Do nothing right now. */
+		break;
+	}
+	return ret;
+}
+
 static int32_t attach_interesting_tracepoints(bool* tp_array)
 {
 	int ret = SCAP_SUCCESS;
@@ -44,29 +125,7 @@ static int32_t attach_interesting_tracepoints(bool* tp_array)
 		{
 			continue;
 		}
-
-		switch(tp)
-		{
-		case SYS_ENTER:
-			ret = pman_attach_syscall_enter_dispatcher();
-			break;
-
-		case SYS_EXIT:
-			ret = pman_attach_syscall_exit_dispatcher();
-			break;
-
-		case SCHED_PROC_EXIT:
-			ret = pman_attach_sched_proc_exit();
-			break;
-
-		case SCHED_SWITCH:
-			ret = pman_attach_sched_switch();
-			break;
-
-		default:
-			/* Do nothing right now. */
-			break;
-		}
+		ret = update_single_tp_of_interest(tp, true);
 	}
 	return ret;
 }
@@ -103,7 +162,7 @@ static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
 /* Right now this is not used */
 bool scap_modern_bpf__match(scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, MODERN_BPF_ENGINE) == 0;
 }
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
@@ -123,9 +182,11 @@ static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
 
 static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
-	/// TODO: we need to extract the events in order like in the old probe.
-	if(pman_consume_one_from_buffers((void**)pevent, pcpuid))
+	pman_consume_first_from_buffers((void**)pevent, pcpuid);
+	if((*pevent) == NULL)
 	{
+		/* Sleep 500 us */
+		usleep(500);
 		return SCAP_TIMEOUT;
 	}
 	return SCAP_SUCCESS;
@@ -154,6 +215,8 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 			pman_clean_all_64bit_interesting_syscalls();
 		}
 		return SCAP_SUCCESS;
+	case SCAP_TPMASK:
+		return update_single_tp_of_interest(arg2, arg1 == SCAP_TPMASK_SET);
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;
@@ -223,6 +286,14 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	{
 		return ret;
 	}
+
+	/* Set the boot time */
+	uint64_t boot_time = 0;
+	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+	pman_set_boot_time(boot_time);
 
 	handle->m_api_version = pman_get_probe_api_ver();
 	handle->m_schema_version = pman_get_probe_schema_ver();

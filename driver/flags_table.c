@@ -629,5 +629,10 @@ const struct ppm_name_value fsconfig_cmds[] = {
 	{"FSCONFIG_SET_FD", PPM_FSCONFIG_SET_FD},
 	{"FSCONFIG_CMD_CREATE", PPM_FSCONFIG_CMD_CREATE},
 	{"FSCONFIG_CMD_RECONFIGURE", PPM_FSCONFIG_CMD_RECONFIGURE},
-	{0,0},
+	{0, 0},
+};
+
+const struct ppm_name_value epoll_create1_flags[] = {
+	{"EPOLL_CLOEXEC", PPM_EPOLL_CLOEXEC},
+	{0, 0},
 };

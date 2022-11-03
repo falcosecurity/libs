@@ -17,6 +17,22 @@ limitations under the License.
 
 #include <sinsp.h>
 
+void sinsp::fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &ppm_sc_of_interest)
+{
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		/* If the set is empty, fallback to all interesting syscalls */
+		if (ppm_sc_of_interest.empty())
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
+		}
+		else
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.find(i) != ppm_sc_of_interest.end();
+		}
+	}
+}
+
 void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
 {
 	/* This API must be used only after the initialization phase. */

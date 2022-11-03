@@ -25,7 +25,7 @@ int BPF_PROG(execve_e,
 
 	/* Parameter 1: filename (type: PT_FSPATH) */
 	unsigned long filename_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, filename_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, filename_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -44,6 +44,19 @@ int BPF_PROG(execve_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
+
+/* On some recent kernels the execve/execveat issue is solved:
+ * https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?h=linux-5.15.y&id=42eede3ae05bbf32cb0d87940b466ec5a76aca3f
+ * BTW we already catch the event with our `sched_process_exec` tracepoint, for this reason we don't need also this instrumentation.
+ * Please note that we still need to catch the syscall failure for this reason we check the `ret==0`.
+ */
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	if(ret == 0)
+	{
+		return 0;
+	}
+#endif
+
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{
@@ -79,7 +92,7 @@ int BPF_PROG(execve_x,
 		/* We need to extract the len of `exe` arg so we can undestand
 		 * the overall length of the remaining args.
 		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, USER);
+		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		/* Here we read the whole array starting from the pointer to the first
@@ -87,7 +100,7 @@ int BPF_PROG(execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len, USER);
+		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
 	}
 	else
 	{
@@ -99,10 +112,10 @@ int BPF_PROG(execve_x,
 		unsigned long argv = extract__syscall_argument(regs, 1);
 
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		auxmap__store_single_charbuf_param_from_array(auxmap, argv, 0, USER);
+		auxmap__store_execve_exe(auxmap, (char **)argv);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		auxmap__store_multiple_charbufs_param_from_array(auxmap, argv, 1, USER);
+		auxmap__store_execve_args(auxmap, (char **)argv, 1);
 	}
 
 	/* Parameter 4: tid (type: PT_PID) */
@@ -155,7 +168,7 @@ int BPF_PROG(execve_x,
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, KERNEL);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, TASK_COMM_LEN, KERNEL);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -203,13 +216,13 @@ int BPF_PROG(t1_execve_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len, USER);
+		auxmap__store_bytebuf_param(auxmap, env_start_pointer, total_env_len & (MAX_PROC_ARG_ENV - 1), USER);
 	}
 	else
 	{
 		/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 		unsigned long envp = extract__syscall_argument(regs, 2);
-		auxmap__store_multiple_charbufs_param_from_array(auxmap, envp, 0, USER);
+		auxmap__store_execve_args(auxmap, (char **)envp, 0);
 	}
 
 	/* Parameter 17: tty (type: PT_INT32) */

@@ -161,6 +161,8 @@ struct scap_ns_socket_list
 
 // Read the full event buffer for the given processor
 int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
+// Read a single thread info from /proc
+int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error);
 // Scan process information from engine vtable
@@ -220,6 +222,8 @@ int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, s
 void scap_fd_free_fdinfo(scap_fdinfo **fdi);
 
 int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
+
+int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname);
 
 bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_entries, char* error);
 
@@ -302,9 +306,7 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
-extern const struct ppm_syscall_desc g_syscall_info_table[];
 extern const struct ppm_event_entry g_ppm_events[];
-extern bool validate_info_table_size();
 
 //
 // udig stuff

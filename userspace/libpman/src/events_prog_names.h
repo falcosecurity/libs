@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <ppm_events_public.h>
+#include <feature_gates.h>
 
 /* For every event here we have the name of the corresponding bpf program. */
 static const char* event_prog_names[PPM_EVENT_MAX] = {
@@ -176,6 +177,10 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SHUTDOWN_X] = "shutdown_x",
 	[PPME_SYSCALL_FSCONFIG_E] = "fsconfig_e",
 	[PPME_SYSCALL_FSCONFIG_X] = "fsconfig_x",
+	[PPME_SYSCALL_EPOLL_CREATE_E] = "epoll_create_e",
+	[PPME_SYSCALL_EPOLL_CREATE_X] = "epoll_create_x",
+	[PPME_SYSCALL_EPOLL_CREATE1_E] = "epoll_create1_e",
+	[PPME_SYSCALL_EPOLL_CREATE1_X] = "epoll_create1_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
@@ -186,4 +191,10 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T1_CLONE3_X] = "t1_clone3_x",
 	[T1_FORK_X] = "t1_fork_x",
 	[T1_VFORK_X] = "t1_vfork_x",
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	[T1_SCHED_PROC_EXEC] = "t1_sched_p_exec",
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	[T1_SCHED_PROC_FORK] = "t1_sched_p_fork",
+#endif
 };

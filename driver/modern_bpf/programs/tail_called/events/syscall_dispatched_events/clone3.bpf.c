@@ -43,6 +43,19 @@ int BPF_PROG(clone3_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
+
+/* We already catch the clone3 child event with our `sched_process_fork` tracepoint,
+ * for this reason we don't need also this instrumentation. Please note that we use
+ * the aforementioned tracepoint only for the child event but we need to catch also
+ * the father event or the failure case, for this reason we check the `ret==0`
+ */
+#ifdef CAPTURE_SCHED_PROC_FORK
+	if(ret == 0)
+	{
+		return 0;
+	}
+#endif
+
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{
@@ -78,7 +91,7 @@ int BPF_PROG(clone3_x,
 		/* We need to extract the len of `exe` arg so we can understand
 		 * the overall length of the remaining args.
 		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, USER);
+		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
 		/* Here we read all the array starting from the pointer to the first
@@ -86,7 +99,7 @@ int BPF_PROG(clone3_x,
 		 * since we know the total len we read it as a `bytebuf`.
 		 * The `\0` after every argument are preserved.
 		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, total_args_len - exe_arg_len, USER);
+		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
 	}
 	else
 	{
@@ -147,7 +160,7 @@ int BPF_PROG(clone3_x,
 	auxmap__store_u32_param(auxmap, vm_swap);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
-	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, KERNEL);
+	auxmap__store_charbuf_param(auxmap, (unsigned long)task->comm, TASK_COMM_LEN, KERNEL);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

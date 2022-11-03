@@ -48,7 +48,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
-    
+
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
         with:
@@ -57,7 +57,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           .github/install-deps.sh
-  
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
@@ -74,7 +74,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
-    
+
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
         with:
@@ -83,7 +83,7 @@ jobs:
       - name: Install deps ⛓️
         run: |
           .github/install-deps.sh
-  
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
@@ -102,7 +102,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-  
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
@@ -127,7 +127,7 @@ jobs:
 
           install: |
             apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-arm64
-            
+
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
             .github/install-deps.sh
@@ -175,7 +175,7 @@ jobs:
 
       - name: Install deps ⛓️
         run: |
-          sudo apt update 
+          sudo apt update
           sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
 
       - name: Build scap-open 🏗️
@@ -191,12 +191,12 @@ jobs:
 
       - name: Build bpf_test 🏗️
         run: |
-          cd build 
+          cd build
           make bpf_test
 
       - name: Running tests 🧪
         run: |
-          cd build 
+          cd build
           sudo ./test/modern_bpf/bpf_test --verbose
 
   build-modern-bpf-arm64:
@@ -220,7 +220,7 @@ jobs:
 
           install: |
             pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml libpcap
-            
+
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
             git config --global --add safe.directory ${{ github.workspace }}
@@ -260,7 +260,7 @@ jobs:
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
             make bpf_test
-            
+
   build-libs-driverkit:
     name: build-libs-driverkit
     runs-on: ubuntu-latest
@@ -269,18 +269,104 @@ jobs:
       image: falcosecurity/driverkit:v0.10.1
     if: needs.paths-filter.outputs.driver_changed == 'true'
     steps:
-      - name: Test driver build on linux 2.6.32 
+      - name: Test driver build on linux 2.6.32
         run: |
-          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
-          
+          driverkit docker --kernelrelease 2.6.32-754.el6.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-2.6.32-754.el6.x86_64.rpm
+
       - name: Test driver build on linux 3.x
         run: |
-          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug
-    
+          driverkit docker --kernelrelease 3.10.0-957.el7.x86_64 --target centos --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-3.10.0-957.el7.x86_64.rpm
+
       - name: Test driver build on linux 4.x
         run: |
-          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
-     
+          driverkit docker --kernelrelease 4.18.0-305.25.1.el8_4.x86_64 --target centos --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls https://download.falco.org/fixtures/libs/kernel-devel-4.18.0-305.25.1.el8_4.x86_64.rpm
+
       - name: Test driver build on linux 5.x
         run: |
-          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  
+          driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  --kernelurls https://download.falco.org/fixtures/libs/linux-headers-5.19.12.arch1-1-x86_64.pkg.tar.zst
+
+  run-e2e-tests-amd64:
+    name: run-e2e-tests-amd64
+    strategy:
+      matrix:
+        name: [system_deps, bundled_deps, system_deps_w_chisels]
+        include:
+          - name: system_deps
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False
+          - name: bundled_deps
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
+          - name: system_deps_w_chisels
+            cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
+      volumes:
+        - /tmp/report/:/tmp/report/
+        - /usr/src:/usr/src
+        - /lib/modules:/lib/modules
+        - /usr/include/bpf:/usr/include/bpf
+        - /dev:/dev
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          apt update && apt install -y --no-install-recommends \
+            ca-certificates \
+            cmake \
+            build-essential \
+            git \
+            clang \
+            llvm \
+            pkg-config \
+            autoconf \
+            automake \
+            libtool \
+            libelf-dev \
+            wget \
+            libb64-dev \
+            libc-ares-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libtbb-dev \
+            libjq-dev \
+            libjsoncpp-dev \
+            libgrpc++-dev \
+            protobuf-compiler-grpc \
+            libgtest-dev \
+            libprotobuf-dev \
+            liblua5.1-dev \
+            curl \
+            gnupg \
+            lsb-release
+
+          # install docker-ce-cli, required for e2e tests
+          mkdir -p /etc/apt/keyrings
+          curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+            $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+          apt-get update
+          apt-get install -y docker-ce-cli
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install deps ⛓️
+        run: |
+          .github/install-deps.sh
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && cmake ${{ matrix.cmake_opts }} ../
+          KERNELDIR=/lib/modules/$(uname -r)/build make -j4
+          make  e2e-tests
+
+      - name: Archive test reports
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: ${{ matrix.name }}_report
+          path: |
+            /tmp/report/

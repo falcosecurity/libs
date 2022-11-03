@@ -2,7 +2,7 @@
 #include <sinsp.h>
 
 /* These numbers must be updated when we add new events */
-#define SYSCALL_EVENTS_NUM 328
+#define SYSCALL_EVENTS_NUM 332
 #define TRACEPOINT_EVENTS_NUM 6
 #define METAEVENTS_NUM 19
 #define PLUGIN_EVENTS_NUM 1

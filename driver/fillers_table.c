@@ -337,5 +337,9 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MLOCK2_X] = {FILLER_REF(sys_mlock2_x)},
 	[PPME_SYSCALL_FSCONFIG_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_FSCONFIG_X] = {FILLER_REF(sys_fsconfig_x)},
+	[PPME_SYSCALL_EPOLL_CREATE_E] = {FILLER_REF(sys_epoll_create_e)},
+	[PPME_SYSCALL_EPOLL_CREATE_X] = {FILLER_REF(sys_epoll_create_x)},
+	[PPME_SYSCALL_EPOLL_CREATE1_E] = {FILLER_REF(sys_epoll_create1_e)},
+	[PPME_SYSCALL_EPOLL_CREATE1_X] = {FILLER_REF(sys_epoll_create1_x)},
 #endif /* WDIG */
 };

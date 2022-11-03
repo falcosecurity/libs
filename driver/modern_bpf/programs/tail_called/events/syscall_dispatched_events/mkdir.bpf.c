@@ -60,7 +60,7 @@ int BPF_PROG(mkdir_x,
 
 	/* Parameter 2: path (type: PT_FSPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

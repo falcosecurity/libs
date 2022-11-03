@@ -87,7 +87,7 @@ struct bpf_map_data {
 
 static bool match(scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, BPF_ENGINE) == 0;
 }
 
 static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -104,8 +104,6 @@ static void free_handle(struct scap_engine_handle engine)
 {
 	free(engine.m_handle);
 }
-
-#ifndef MINIMAL_BUILD
 
 # define UINT32_MAX (4294967295U)
 
@@ -494,6 +492,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		return SCAP_FAILURE;
 	}
 
+	const char *full_event = event;
 	if(memcmp(event, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 	{
 		raw_tp = true;
@@ -547,7 +546,9 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		return SCAP_FAILURE;
 	}
 
-	handle->m_bpf_prog_fds[handle->m_bpf_prog_cnt++] = fd;
+	handle->m_bpf_progs[handle->m_bpf_prog_cnt].fd = fd;
+	strncpy(handle->m_bpf_progs[handle->m_bpf_prog_cnt].name, full_event, NAME_MAX);
+	handle->m_bpf_prog_cnt++;
 
 	if(memcmp(event, "filler/", sizeof("filler/") - 1) == 0)
 	{
@@ -645,7 +646,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 
 	// by this point m_bpf_prog_cnt has already been checked for
 	// being inbounds, so this is safe.
-	handle->m_bpf_event_fd[handle->m_bpf_prog_cnt - 1] = efd;
+	handle->m_bpf_progs[handle->m_bpf_prog_cnt - 1].efd = efd;
 
 	return SCAP_SUCCESS;
 }
@@ -663,7 +664,7 @@ static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname
 }
 
 static int32_t load_bpf_file(
-	struct bpf_engine *handle, const char *path,
+	struct bpf_engine *handle,
 	uint64_t *api_version_p,
 	uint64_t *schema_version_p,
 	scap_open_args *oargs)
@@ -697,11 +698,11 @@ static int32_t load_bpf_file(
 		return SCAP_FAILURE;
 	}
 
-	int program_fd = open(path, O_RDONLY, 0);
+	int program_fd = open(handle->m_filepath, O_RDONLY, 0);
 	if(program_fd < 0)
 	{
 		char buf[SCAP_LASTERR_SIZE];
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", path, scap_strerror_r(buf, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", handle->m_filepath, scap_strerror_r(buf, errno));
 		return SCAP_FAILURE;
 	}
 
@@ -826,9 +827,21 @@ static int32_t load_bpf_file(
 		{
 			if(is_tp_enabled(&(oargs->tp_of_interest), shname))
 			{
-				if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
+				bool already_attached = false;
+				for (int i = 0; i < handle->m_bpf_prog_cnt && !already_attached; i++)
 				{
-					goto cleanup;
+					if (strcmp(handle->m_bpf_progs[i].name, shname) == 0)
+					{
+						already_attached = true;
+					}
+				}
+
+				if (!already_attached)
+				{
+					if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
+					{
+						goto cleanup;
+					}
 				}
 			}
 		}
@@ -1257,6 +1270,19 @@ int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
+static void close_prog(struct bpf_prog *prog)
+{
+	if(prog->efd > 0)
+	{
+		close(prog->efd);
+	}
+	if(prog->fd > 0)
+	{
+		close(prog->fd);
+	}
+	memset(prog, 0, sizeof(*prog));
+}
+
 int32_t scap_bpf_close(struct scap_engine_handle engine)
 {
 	struct bpf_engine *handle = engine.m_handle;
@@ -1266,22 +1292,9 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 
 	devset_free(devset);
 
-	for(j = 0; j < sizeof(handle->m_bpf_event_fd) / sizeof(handle->m_bpf_event_fd[0]); ++j)
+	for(j = 0; j < sizeof(handle->m_bpf_progs) / sizeof(handle->m_bpf_progs[0]); ++j)
 	{
-		if(handle->m_bpf_event_fd[j] > 0)
-		{
-			close(handle->m_bpf_event_fd[j]);
-			handle->m_bpf_event_fd[j] = 0;
-		}
-	}
-
-	for(j = 0; j < sizeof(handle->m_bpf_prog_fds) / sizeof(handle->m_bpf_prog_fds[0]); ++j)
-	{
-		if(handle->m_bpf_prog_fds[j] > 0)
-		{
-			close(handle->m_bpf_prog_fds[j]);
-			handle->m_bpf_prog_fds[j] = 0;
-		}
+		close_prog(&handle->m_bpf_progs[j]);
 	}
 
 	for(j = 0; j < sizeof(handle->m_bpf_map_fds) / sizeof(handle->m_bpf_map_fds[0]); ++j)
@@ -1295,38 +1308,6 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 
 	handle->m_bpf_prog_cnt = 0;
 	handle->m_bpf_prog_array_map_idx = -1;
-
-	return SCAP_SUCCESS;
-}
-
-//
-// This is completely horrible, revisit this shameful code
-// with a proper solution
-//
-static int32_t set_boot_time(struct bpf_engine *handle, uint64_t *boot_time)
-{
-	struct timespec ts_uptime;
-	struct timeval tv_now;
-	uint64_t now;
-	uint64_t uptime;
-
-	if(gettimeofday(&tv_now, NULL))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "gettimeofday");
-		return SCAP_FAILURE;
-	}
-
-	now = tv_now.tv_sec * (uint64_t) 1000000000 + tv_now.tv_usec * 1000;
-
-	if(clock_gettime(CLOCK_BOOTTIME, &ts_uptime))
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "clock_gettime");
-		return SCAP_FAILURE;
-	}
-
-	uptime = ts_uptime.tv_sec * (uint64_t) 1000000000 + ts_uptime.tv_nsec;
-
-	*boot_time = now - uptime;
 
 	return SCAP_SUCCESS;
 }
@@ -1401,7 +1382,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	struct scap_bpf_settings settings;
 
 	uint64_t boot_time = 0;
-	if(set_boot_time(handle, &boot_time) != SCAP_SUCCESS)
+	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1454,7 +1435,8 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	if(load_bpf_file(handle, bpf_probe, api_version_p, schema_version_p, oargs) != SCAP_SUCCESS)
+	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
+	if(load_bpf_file(handle, api_version_p, schema_version_p, oargs) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1504,19 +1486,32 @@ int32_t scap_bpf_load(
 			fp = fopen(filename, "r");
 			if(fp == NULL)
 			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s: %s", filename, scap_strerror_r(buf, errno));
-				return SCAP_FAILURE;
+				// When missing NUMA properties, CPUs do not expose online information.
+				// Fallback at considering them online if we can at least reach their folder.
+				// This is useful for example for raspPi devices.
+				// See: https://github.com/kubernetes/kubernetes/issues/95039
+				snprintf(filename, sizeof(filename), "/sys/devices/system/cpu/cpu%d/", j);
+				if (access(filename, F_OK) == 0)
+				{
+					online = 1;
+				}
+				else
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %sonline: %s", filename, scap_strerror_r(buf, errno));
+					return SCAP_FAILURE;
+				}
 			}
-
-			if(fscanf(fp, "%d", &online) != 1)
+			else
 			{
+				if(fscanf(fp, "%d", &online) != 1)
+				{
+					fclose(fp);
+
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror_r(buf, errno));
+					return SCAP_FAILURE;
+				}
 				fclose(fp);
-
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror_r(buf, errno));
-				return SCAP_FAILURE;
 			}
-
-			fclose(fp);
 
 			if(!online)
 			{
@@ -1653,13 +1648,64 @@ static int32_t unsupported_config(struct scap_engine_handle engine, const char* 
 	return SCAP_FAILURE;
 }
 
+static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp)
+{
+	struct bpf_engine *handle = engine.m_handle;
+
+	int prg_idx = -1;
+	for (int i = 0; i < handle->m_bpf_prog_cnt; i++)
+	{
+		const tp_values val = tp_from_name(handle->m_bpf_progs[i].name);
+		if (val == tp)
+		{
+			prg_idx = i;
+			break;
+		}
+	}
+
+	// We want to unload a never loaded tracepoint
+	if (prg_idx == -1 && op != SCAP_TPMASK_SET)
+	{
+		return SCAP_SUCCESS;
+	}
+	// We want to load an already loaded tracepoint
+	if (prg_idx >= 0 && op != SCAP_TPMASK_UNSET)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	if (op == SCAP_TPMASK_UNSET)
+	{
+		// Algo:
+		// Close the event and tracepoint fds,
+		// reduce number of prog cnt
+		// move left remaining array elements
+		// reset last array element
+		close_prog(&handle->m_bpf_progs[prg_idx]);
+		handle->m_bpf_prog_cnt--;
+		size_t byte_size = (handle->m_bpf_prog_cnt - prg_idx) * sizeof(handle->m_bpf_progs[prg_idx]);
+		if (byte_size > 0)
+		{
+			memmove(&handle->m_bpf_progs[prg_idx], &handle->m_bpf_progs[prg_idx + 1], byte_size);
+		}
+		memset(&handle->m_bpf_progs[handle->m_bpf_prog_cnt], 0, sizeof(handle->m_bpf_progs[handle->m_bpf_prog_cnt]));
+		return SCAP_SUCCESS;
+	}
+
+	uint64_t api_version_p;
+	uint64_t schema_version_p;
+	scap_open_args oargs = {0};
+	oargs.tp_of_interest.tp[tp] = 1;
+	return load_bpf_file(handle, &api_version_p, &schema_version_p, &oargs);
+}
+
 static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	int32_t ret = SCAP_SUCCESS;
 	switch(op)
 	{
 	case SCAP_EVENTMASK_ZERO:
-		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret==SCAP_SUCCESS; ppm_sc++)
+		for(ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret==SCAP_SUCCESS; ppm_sc++)
 		{
 			ret = update_interesting_syscalls_map(engine, SCAP_EVENTMASK_UNSET, ppm_sc);
 		}
@@ -1700,6 +1746,8 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:
 		return scap_bpf_handle_event_mask(engine, arg1, arg2);
+	case SCAP_TPMASK:
+		return scap_bpf_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)
 		{
@@ -1813,36 +1861,3 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_vtid = noop_get_vxid,
 	.getpid_global = scap_os_getpid_global,
 };
-
-#else // MINIMAL_BUILD
-
-static int32_t init(scap_t* handle, scap_open_args *oargs)
-{
-	strlcpy(handle->m_lasterr, "The eBPF probe driver is not supported when using a minimal build", SCAP_LASTERR_SIZE);
-	return SCAP_NOT_SUPPORTED;
-}
-
-const struct scap_vtable scap_bpf_engine = {
-	.name = "bpf",
-	.mode = SCAP_MODE_LIVE,
-	.savefile_ops = NULL,
-
-	.match = match,
-	.alloc_handle = alloc_handle,
-	.init = init,
-	.free_handle = free_handle,
-	.close = noop_close_engine,
-	.next = noop_next,
-	.start_capture = noop_start_capture,
-	.stop_capture = noop_stop_capture,
-	.configure = noop_configure,
-	.get_stats = noop_get_stats,
-	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
-	.get_n_devs = noop_get_n_devs,
-	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
-	.get_vpid = noop_get_vxid,
-	.get_vtid = noop_get_vxid,
-	.getpid_global = noop_getpid_global,
-};
-#endif // MINIMAL_BUILD

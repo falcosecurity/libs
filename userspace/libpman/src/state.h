@@ -35,6 +35,8 @@ struct internal_state
 	unsigned long* prod_pos;	/* every ringbuf has a producer position. */
 	int32_t inner_ringbuf_map_fd;	/* inner map used to configure the ringbuf array before loading phase. */
 	unsigned long buffer_bytes_dim; /* dimension of a single per-CPU ringbuffer in bytes. */
+	int last_ring_read; /* Last ring from which we have correctly read an event. Could be `-1` if there were no successful reads. */
+	unsigned long last_event_size; /* Last event correctly read. Could be `0` if there were no successful reads. */
 };
 
 extern struct internal_state g_state;

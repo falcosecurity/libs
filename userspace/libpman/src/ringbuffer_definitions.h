@@ -41,6 +41,7 @@ struct ring_buffer
 	int ring_cnt;
 };
 
+/* This is done to write on multiples of 8 bytes. */
 static inline int roundup_len(uint32_t len)
 {
 	/* clear out top 2 bits (discard and busy, if set) */

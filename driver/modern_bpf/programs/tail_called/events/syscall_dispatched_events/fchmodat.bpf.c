@@ -66,7 +66,7 @@ int BPF_PROG(fchmodat_x,
 
 	/* Parameter 3: filename (type: PT_FSRELPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, path_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/* Parameter 4: mode (type: PT_MODE) */
 	unsigned long mode = extract__syscall_argument(regs, 2);
@@ -80,6 +80,5 @@ int BPF_PROG(fchmodat_x,
 
 	return 0;
 }
-
 
 /*=============================== EXIT EVENT ===========================*/

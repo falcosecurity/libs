@@ -43,6 +43,11 @@ enum scap_eventmask_op {
 	SCAP_EVENTMASK_UNSET = 0x7307, //< disable an event
 };
 
+enum scap_tpmask_op {
+	SCAP_TPMASK_SET = 0x8306, //< enable a tp
+	SCAP_TPMASK_UNSET = 0x8307, //< disable a tp
+};
+
 /**
  * @brief settings configurable for scap engines
  */
@@ -64,7 +69,7 @@ enum scap_setting {
 	 */
 	SCAP_SNAPLEN,
 	/**
-	 * @brief enable/disable individual events
+	 * @brief enable/disable individual syscalls
 	 * arg1: scap_eventmask_op
 	 * arg2: event id (ignored for SCAP_EVENTMASK_ZERO)
 	 */
@@ -85,6 +90,12 @@ enum scap_setting {
 	 * arg1: statsd port
 	 */
 	SCAP_STATSD_PORT,
+	/**
+	 * @brief enable/disable individual tracepoints
+	 * arg1: scap_tpmask_op
+	 * arg2: tp id
+	 */
+	SCAP_TPMASK,
 };
 
 struct scap_savefile_vtable {

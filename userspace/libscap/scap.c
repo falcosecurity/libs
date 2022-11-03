@@ -24,25 +24,11 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/ioctl.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <sys/time.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #endif // _WIN32
 
 #include "scap.h"
 #include "../common/strlcpy.h"
-#ifdef HAS_CAPTURE
-#if !defined(_WIN32) && !defined(CYGWING_AGENT)
-#include "driver_config.h"
-#endif // _WIN32 && CYGWING_AGENT
-#endif // HAS_CAPTURE
 #include "../../driver/ppm_ringbuffer.h"
-#include "scap_savefile.h"
 #include "scap-int.h"
 #include "scap_engine_util.h"
 
@@ -51,9 +37,9 @@ limitations under the License.
 #include "windows_hal.h"
 #endif
 
-#include "gettimeofday.h"
-#include "sleep.h"
 #include "scap_engines.h"
+
+#define SECOND_TO_NS 1000000000
 
 //#define NDEBUG
 #include <assert.h>
@@ -125,23 +111,31 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	if(strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	if (false)
+	{
+
+	}
+#ifdef HAS_ENGINE_BPF
+	else if(strcmp(oargs->engine_name, BPF_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_bpf_engine;
 	}
-	else if(strncmp(oargs->engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
+#endif
+#ifdef HAS_ENGINE_KMOD
+	else if(strcmp(oargs->engine_name, KMOD_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_kmod_engine;
 	}
+#endif
 #ifdef HAS_ENGINE_MODERN_BPF
-	else if(strncmp(oargs->engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(oargs->engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		handle->m_vtable = &scap_modern_bpf_engine;
 	}
 #endif /* HAS_ENGINE_MODERN_BPF */
 	else
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine called `scap_open_live_int()`");
+		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine '%s' called `scap_open_live_int()`", oargs->engine_name);
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
@@ -900,38 +894,38 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
 	 */
-	if(strncmp(engine_name, SAVEFILE_ENGINE, SAVEFILE_ENGINE_LEN) == 0)
+	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		return scap_open_offline_int(oargs, rc, error);
 	}
-	else if(strncmp(engine_name, UDIG_ENGINE, UDIG_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
 		return scap_open_udig_int(error, rc, oargs->proc_callback,
 								oargs->proc_callback_context,
 								oargs->import_users,
 								oargs->suppressed_comms);
 	}
-	else if(strncmp(engine_name, GVISOR_ENGINE, GVISOR_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
 		return scap_open_gvisor_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, TEST_INPUT_ENGINE, TEST_INPUT_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
 		return scap_open_test_input_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0 ||
-			strncmp(engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0 ||
-			strncmp(engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, KMOD_ENGINE) == 0 ||
+			strcmp(engine_name, BPF_ENGINE) == 0 ||
+			strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		return scap_open_live_int(error, rc, oargs);
 	}
-	else if(strncmp(engine_name, NODRIVER_ENGINE, NODRIVER_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
 					      oargs->import_users);
 	}
-	else if(strncmp(engine_name, SOURCE_PLUGIN_ENGINE, SOURCE_PLUGIN_ENGINE_LEN) == 0)
+	else if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		return scap_open_plugin_int(error, rc, oargs);
 	}
@@ -1115,7 +1109,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 		if(suppressed)
 		{
 			handle->m_num_suppressed_evts++;
-			return SCAP_TIMEOUT;
+			return SCAP_FILTERED_EVENT;
 		}
 		else
 		{
@@ -1237,13 +1231,35 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 			struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
 			if(pair.ppm_sc == ppm_code)
 			{
-				events_array[pair.enter_event_type] = 1;
-				events_array[pair.exit_event_type] = 1;
+				int enter_evt = pair.enter_event_type;
+				int exit_evt = pair.exit_event_type;
+				// Workaround for syscall table entries with just
+				// a .ppm_sc set: force-set exit event as PPME_GENERIC_X,
+				// that is the one actually sent by drivers in that case.
+				if (enter_evt == exit_evt && enter_evt == PPME_GENERIC_E)
+				{
+					exit_evt = PPME_GENERIC_X;
+				}
+				events_array[enter_evt] = 1;
+				events_array[exit_evt] = 1;
 			}
 		}
 	}
 #endif
 	return SCAP_SUCCESS;
+}
+
+int scap_native_id_to_ppm_sc(int native_id)
+{
+#ifdef __linux__
+	if (native_id < 0 || native_id >= SYSCALL_TABLE_SIZE)
+	{
+		return -1;
+	}
+	return g_syscall_table[native_id].ppm_sc;
+#else
+	return -1;
+#endif
 }
 
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
@@ -1456,6 +1472,13 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 		break;
 	}
 
+	if (ppm_sc >= PPM_SC_MAX)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);
@@ -1475,6 +1498,50 @@ int32_t scap_clear_eventmask(scap_t* handle) {
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled) {
 	return(scap_handle_eventmask(handle, enabled ? SCAP_EVENTMASK_SET : SCAP_EVENTMASK_UNSET, ppm_sc));
+}
+
+static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
+{
+	switch(op)
+	{
+	case SCAP_TPMASK_SET:
+	case SCAP_TPMASK_UNSET:
+		break;
+
+	default:
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
+		ASSERT(false);
+		return SCAP_FAILURE;
+		break;
+	}
+
+	if (tp >= TP_VAL_MAX)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, tp);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_TPMASK, op, tp);
+	}
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "tpmask not supported on %s", PLATFORM_NAME);
+	return SCAP_FAILURE;
+#else
+	if (handle == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "manipulating tpmask not supported on this scap mode");
+	return SCAP_FAILURE;
+#endif // HAS_CAPTURE
+}
+
+int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled) {
+	return(scap_handle_tpmask(handle, enabled ? SCAP_TPMASK_SET : SCAP_TPMASK_UNSET, tp));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)
@@ -1745,4 +1812,42 @@ uint64_t scap_get_driver_api_version(scap_t* handle)
 uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
 	return handle->m_schema_version;
+}
+
+int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
+{
+#ifdef __linux__
+	struct timespec ts_uptime = {0};
+	struct timespec tv_now = {0};
+	uint64_t now = 0;
+	uint64_t uptime = 0;
+
+	/* Get the actual time */
+	if(clock_gettime(CLOCK_REALTIME, &tv_now))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_REALTIME'");
+		}
+		return SCAP_FAILURE;
+	}
+	now = tv_now.tv_sec * (uint64_t)SECOND_TO_NS + tv_now.tv_nsec;
+
+	/* Get the uptime since the boot */
+	if(clock_gettime(CLOCK_BOOTTIME, &ts_uptime))
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_BOOTTIME'");
+		}
+		return SCAP_FAILURE;
+	}
+	uptime = ts_uptime.tv_sec * (uint64_t)SECOND_TO_NS + ts_uptime.tv_nsec;
+
+	/* Compute the boot time as the difference between actual time and the uptime. */
+	*boot_time = now - uptime;
+#else
+	*boot_time = 0;
+#endif
+	return SCAP_SUCCESS;
 }

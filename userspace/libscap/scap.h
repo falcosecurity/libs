@@ -522,8 +522,7 @@ typedef struct scap_dumper scap_dumper_t;
 */
 struct ppm_syscall_desc {
 	enum ppm_event_category category; /**< System call category. */
-	enum ppm_event_flags flags;
-	char *name; /**< System call name, e.g. 'open'. */
+	char name[PPM_MAX_NAME_LEN]; /**< System call name, e.g. 'open'. */
 };
 
 /*!
@@ -849,6 +848,11 @@ int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX]);
 int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX]);
 
 /*!
+  \brief Convert a native syscall nr to ppm_sc
+*/
+int scap_native_id_to_ppm_sc(int native_id);
+
+/*!
   \brief Returns the set of minimum tracepoints required by `libsinsp` state.
 */
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX]);
@@ -971,6 +975,16 @@ int32_t scap_clear_eventmask(scap_t* handle);
   \note This function can only be called for live captures.
 */
 int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled);
+
+/*!
+  \brief Set the tp into the tpmask so that
+  users can attach the related tracepoint.
+
+  \param handle Handle to the capture instance.
+  \param tp id (example SYS_ENTER)
+  \note This function can only be called for live captures.
+*/
+int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled);
 
 
 /*!
@@ -1142,6 +1156,13 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  * Get schema version supported by the driver
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
+
+/**
+ * This helper returns the system boot time computed as the actual time - the uptime of the system since the boot.
+ * We need to use this helper in drivers like BPF, because in BPF we are not able to obtain the current system time
+ * since Epoch, so we need to compute it as `time_from_the_boot(bpf_ktime_get_boot_ns) + boot_time`.
+ */
+int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time);
 
 #ifdef __cplusplus
 }

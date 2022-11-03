@@ -58,7 +58,7 @@ int BPF_PROG(symlinkat_x,
 
 	/* Parameter 2: target (type: PT_CHARBUF) */
 	unsigned long target_pointer = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, target_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, target_pointer, MAX_PATH, USER);
 
 	/* Parameter 3: linkdirfd (type: PT_FD) */
 	s32 linkdirfd = (s32)extract__syscall_argument(regs, 1);
@@ -70,7 +70,7 @@ int BPF_PROG(symlinkat_x,
 
 	/* Parameter 4: linkpath (type: PT_FSRELPATH) */
 	unsigned long linkpath_pointer = extract__syscall_argument(regs, 2);
-	auxmap__store_charbuf_param(auxmap, linkpath_pointer, USER);
+	auxmap__store_charbuf_param(auxmap, linkpath_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

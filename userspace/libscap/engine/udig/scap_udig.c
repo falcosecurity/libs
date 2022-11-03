@@ -119,10 +119,6 @@ int32_t udig_alloc_ring(void* ring_id,
 		return SCAP_FAILURE;
 	}
 
-	// Now that we have the address, unmap the double-lenght buffer so we can 
-	// use the two halves.
-	munmap(buf1, (*ringsize) * 2);
-
 	// Map the first ring copy at exactly the beginning of the previously
 	// allocated area, forcing it with MAP_FIXED.
 	*ring = (uint8_t*)mmap(buf1, *ringsize, 
@@ -830,6 +826,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	case SCAP_SNAPLEN:
 		return udig_set_snaplen(engine, arg1);
 	case SCAP_EVENTMASK:
+	case SCAP_TPMASK:
 	case SCAP_DYNAMIC_SNAPLEN:
 	case SCAP_STATSD_PORT:
 	case SCAP_FULLCAPTURE_PORT_RANGE:
@@ -847,7 +844,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 
 static bool match(scap_open_args* oargs)
 {
-	return strncmp(oargs->engine_name, UDIG_ENGINE, UDIG_ENGINE_LEN) == 0;
+	return strcmp(oargs->engine_name, UDIG_ENGINE) == 0;
 }
 
 static struct udig_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
