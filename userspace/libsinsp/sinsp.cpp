@@ -1183,7 +1183,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 	{
 		m_meinfo.m_cur_procinfo_evt = -1;
 
-		m_meinfo.m_piscapevt->ts = m_next_flush_time_ns - (ONE_SECOND_IN_NS + 1);
+		m_meinfo.m_piscapevt->ts = ts;
 		add_meta_event_callback(&schedule_next_threadinfo_evt, &m_meinfo);
 		schedule_next_threadinfo_evt(this, &m_meinfo);
 	}
