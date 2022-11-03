@@ -31,6 +31,7 @@ limitations under the License.
 #include "settings.h"
 #include "plugin_info.h"
 #include "scap_assert.h"
+#include "scap_suppress.h"
 #include "scap_zlib.h"
 
 #ifdef __cplusplus
@@ -42,14 +43,6 @@ extern "C" {
 //
 #define PF_CLONING 1
 
-typedef struct scap_tid
-{
-	uint64_t tid;
-
-	UT_hash_handle hh; ///< makes this structure hashable
-} scap_tid;
-
-
 //
 // The open instance handle
 //
@@ -57,6 +50,7 @@ struct scap
 {
 	const struct scap_vtable *m_vtable;
 	struct scap_engine_handle m_engine;
+	struct scap_suppress m_suppress;
 
 	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];
@@ -70,17 +64,6 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 	uint32_t m_fd_lookup_limit;
 	uint8_t m_cgroup_version;
-
-	// The set of process names that are suppressed
-	char **m_suppressed_comms;
-	uint32_t m_num_suppressed_comms;
-
-	// The active set of threads that are suppressed
-	scap_tid *m_suppressed_tids;
-
-	// The number of events that were skipped due to the comm
-	// matching an entry in m_suppressed_comms.
-	uint64_t m_num_suppressed_evts;
 
 	// API version supported by the driver
 	// If the API version is unavailable for whatever reason,
@@ -184,21 +167,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 // tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
 int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent,
 			      bool *suppressed);
-
-// Possibly add or remove the provided comm, tid combination to the
-// set of suppressed processes. If the ptid is currently in the
-// suppressed set, the tid will always be added to the suppressed
-// set. Otherwise, the tid will be added if the comm matches an entry
-// in suppressed_comms.
-//
-// Sets *suppressed to whether, after this check, the tid is suppressed.
-//
-// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
-// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
-int32_t scap_update_suppressed(scap_t *handle,
-			       const char *comm,
-			       uint64_t tid, uint64_t ptid,
-			       bool *suppressed);
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);

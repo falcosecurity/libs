@@ -44,25 +44,6 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
-static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
-{
-	if(suppressed_comms)
-	{
-		uint32_t i;
-		const char *comm;
-		for(i = 0, comm = suppressed_comms[i]; comm && i < SCAP_MAX_SUPPRESSED_COMMS; i++, comm = suppressed_comms[i])
-		{
-			int32_t res;
-			if((res = scap_suppress_events_comm(handle, comm)) != SCAP_SUCCESS)
-			{
-				return res;
-			}
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
@@ -139,12 +120,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 		handle->m_userlist = NULL;
 	}
 
-	handle->m_suppressed_comms = NULL;
-	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
-	handle->m_num_suppressed_evts = 0;
-
-	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -188,11 +164,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 #endif // HAS_LIVE_CAPTURE
 
 #ifdef HAS_ENGINE_UDIG
-scap_t* scap_open_udig_int(char *error, int32_t *rc,
-			   proc_entry_callback proc_callback,
-			   void* proc_callback_context,
-			   bool import_users,
-			   const char **suppressed_comms)
+scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -222,9 +194,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		return NULL;
 	}
 
-	// TODO: we don't have open_args here. thankfully the udig init method
-	//       doesn't need them
-	*rc = handle->m_vtable->init(handle, NULL);
+	*rc = handle->m_vtable->init(handle, oargs);
 	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
@@ -233,8 +203,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	}
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = proc_callback;
-	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
 	//
@@ -263,7 +233,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Create the user list
 	//
-	if(import_users)
+	if(oargs->import_users)
 	{
 		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
@@ -277,12 +247,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
-	handle->m_suppressed_comms = NULL;
-	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
-	handle->m_num_suppressed_evts = 0;
-
-	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -358,17 +323,12 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	handle->m_suppressed_comms = NULL;
-	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
-	handle->m_num_suppressed_evts = 0;
-
 	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -431,17 +391,12 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	// XXX - interface list initialization and user list initalization goes here if necessary
 
-	handle->m_suppressed_comms = NULL;
-	handle->m_num_suppressed_comms = 0;
-	handle->m_suppressed_tids = NULL;
-	handle->m_num_suppressed_evts = 0;
-
 	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -500,8 +455,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
-	handle->m_suppressed_comms = NULL;
-	handle->m_suppressed_tids = NULL;
 
 	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
@@ -515,10 +468,7 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 		return NULL;
 	}
 
-	handle->m_num_suppressed_comms = 0;
-	handle->m_num_suppressed_evts = 0;
-
-	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -705,10 +655,7 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
-		return scap_open_udig_int(error, rc, oargs->proc_callback,
-								oargs->proc_callback_context,
-								oargs->import_users,
-								oargs->suppressed_comms);
+		return scap_open_udig_int(error, rc, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
@@ -815,30 +762,7 @@ uint32_t scap_restart_capture(scap_t* handle)
 void scap_close(scap_t* handle)
 {
 	scap_deinit_state(handle);
-
-	if(handle->m_suppressed_comms)
-	{
-		uint32_t i;
-		for(i=0; i < handle->m_num_suppressed_comms; i++)
-		{
-			free(handle->m_suppressed_comms[i]);
-		}
-		free(handle->m_suppressed_comms);
-		handle->m_suppressed_comms = NULL;
-	}
-
-	if(handle->m_suppressed_tids)
-	{
-		struct scap_tid *tid;
-		struct scap_tid *ttid;
-		HASH_ITER(hh, handle->m_suppressed_tids, tid, ttid)
-		{
-			HASH_DEL(handle->m_suppressed_tids, tid);
-			free(tid);
-		}
-
-		handle->m_suppressed_tids = NULL;
-	}
+	scap_suppress_close(&handle->m_suppress);
 
 	if(handle->m_vtable)
 	{
@@ -924,7 +848,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 
 		if(suppressed)
 		{
-			handle->m_num_suppressed_evts++;
+			handle->m_suppress.m_num_suppressed_evts++;
 			return SCAP_FILTERED_EVENT;
 		}
 		else
@@ -968,8 +892,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;
-	stats->n_suppressed = handle->m_num_suppressed_evts;
-	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppressed_tids);
+	stats->n_suppressed = handle->m_suppress.m_num_suppressed_evts;
+	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppress.m_suppressed_tids);
 
 	if(handle->m_vtable)
 	{
@@ -1462,36 +1386,12 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name)
 
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 {
-	// If the comm is already present in the list, do nothing
-	uint32_t i;
-	for(i=0; i<handle->m_num_suppressed_comms; i++)
-	{
-		if(strcmp(handle->m_suppressed_comms[i], comm) == 0)
-		{
-			return SCAP_SUCCESS;
-		}
-	}
-
-	if(handle->m_num_suppressed_comms >= SCAP_MAX_SUPPRESSED_COMMS)
-	{
-		return SCAP_FAILURE;
-	}
-
-	handle->m_num_suppressed_comms++;
-	handle->m_suppressed_comms = (char **) realloc(handle->m_suppressed_comms,
-						       handle->m_num_suppressed_comms * sizeof(char *));
-
-	handle->m_suppressed_comms[handle->m_num_suppressed_comms-1] = strdup(comm);
-
-	return SCAP_SUCCESS;
+	return scap_suppress_events_comm_impl(&handle->m_suppress, comm);
 }
 
 bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 {
-	scap_tid *stid;
-	HASH_FIND_INT64(handle->m_suppressed_tids, &tid, stid);
-
-	return (stid != NULL);
+	return scap_check_suppressed_tid_impl(&handle->m_suppress, tid);
 }
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
