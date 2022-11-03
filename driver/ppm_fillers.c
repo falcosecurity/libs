@@ -5444,4 +5444,12 @@ int f_net_dev_xmit_e(struct event_filler_arguments *args)
 	return 0;
 }
 
+int f_cpu_analysis_e(struct event_filler_arguments *args){
+	return 0;
+}
+
+int f_sys_epoll_wait_x(struct event_filler_arguments *args){
+	return 0;
+}
+
 #endif /* WDIG */
