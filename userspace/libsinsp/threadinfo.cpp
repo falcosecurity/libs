@@ -150,11 +150,6 @@ void sinsp_threadinfo::fix_sockets_coming_from_proc()
 	}
 }
 
-#define STR_AS_NUM_JAVA 0x6176616a
-#define STR_AS_NUM_RUBY 0x79627572
-#define STR_AS_NUM_PERL 0x6c726570
-#define STR_AS_NUM_NODE 0x65646f6e
-
 #define MAX_PROG_HASH_LEN 1024
 
 void sinsp_threadinfo::compute_program_hash()
@@ -189,22 +184,9 @@ void sinsp_threadinfo::compute_program_hash()
 	// For some specific processes (essentially the scripting languages)
 	// we include the arguments in the scripts hash as well
 	//
-	if(m_comm.size() == 4)
+	if(sinsp_utils::is_intepreter(m_comm))
 	{
-		uint32_t ncomm = *(uint32_t*)m_comm.c_str();
-
-		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
-			ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
-		{
-			m_program_hash_scripts = m_program_hash;
-		}
-	}
-	else if(m_comm.size() >= 6)
-	{
-		if(m_comm.substr(0, 6) == "python")
-		{
-			m_program_hash_scripts = m_program_hash;
-		}
+		m_program_hash_scripts = m_program_hash;
 	}
 }
 

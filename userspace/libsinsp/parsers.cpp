@@ -2354,11 +2354,13 @@ void sinsp_parser::schedule_mesos_events()
 }
 #endif // #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
-void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string hash)
+void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string exepath, string hash)
 {
 	std::size_t tot_len = sizeof(scap_evt) +
 			sizeof(uint16_t) +
 			8 +
+			sizeof(uint16_t) +
+			exepath.size() + 1 +
 			sizeof(uint16_t) +
 			hash.size() + 1;
 
@@ -2372,14 +2374,17 @@ void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t r
 	state->m_piscapevt->tid = tinfo->m_tid;
 	state->m_piscapevt->ts = m_inspector->m_lastevent_ts;
 
-	state->m_piscapevt->nparams = 2;
+	state->m_piscapevt->nparams = 3;
 	uint16_t* plen = (uint16_t*)((char *)state->m_piscapevt + sizeof(struct ppm_evt_hdr));
 	plen[0] = 8;
-	plen[1] = (uint16_t)hash.size() + 1;
-	uint8_t* edata = (uint8_t*)plen + 2 * sizeof(uint16_t);
+	plen[1] = (uint16_t)exepath.size() + 1;
+	plen[2] = (uint16_t)hash.size() + 1;
+	uint8_t* edata = (uint8_t*)plen + 3 * sizeof(uint16_t);
 	*(int64_t*)edata = res;
 	edata += 8;
-	memcpy(edata, hash.c_str(), plen[1]);
+	memcpy(edata, exepath.c_str(), plen[1]);
+	edata += plen[1];
+	memcpy(edata, hash.c_str(), plen[2]);
 }
 
 void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
@@ -2405,18 +2410,18 @@ void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 	//
 	// Perform the executable's checksuming
 	//
+	string exename;
 	string hash;
 
 	auto start = std::chrono::high_resolution_clock::now();
-	int64_t hres = m_md5_calculator->checksum_executable(mt, mt->m_exepath, &hash);
+	int64_t hres = m_md5_calculator->checksum_executable(mt, &exename, &hash);
 	auto finish = std::chrono::high_resolution_clock::now();
 	auto delta = (finish - start).count();
-
 
 	//
 	// Create the exehash meta event that will be sent out after this execve.
 	//
-	fill_exehash_event_payload(&m_exe_hash_metaevents_state, hres, tinfo, hash);
+	fill_exehash_event_payload(&m_exe_hash_metaevents_state, hres, tinfo, exename, hash);
 	m_inspector->add_meta_event(&m_exe_hash_metaevents_state.m_metaevt);
 }
 

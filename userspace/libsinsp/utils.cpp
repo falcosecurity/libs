@@ -1634,6 +1634,34 @@ uint64_t sinsp_utils::get_max_caps()
 	return ((uint64_t)1 << capabilities.size()) - 1;
 }
 
+#define STR_AS_NUM_JAVA 0x6176616a
+#define STR_AS_NUM_RUBY 0x79627572
+#define STR_AS_NUM_PERL 0x6c726570
+#define STR_AS_NUM_NODE 0x65646f6e
+
+bool sinsp_utils::is_intepreter(string executable_name)
+{
+	if(executable_name.size() == 4)
+	{
+		uint32_t ncomm = *(uint32_t*)executable_name.c_str();
+
+		if(ncomm == STR_AS_NUM_JAVA || ncomm == STR_AS_NUM_RUBY ||
+		   ncomm == STR_AS_NUM_PERL || ncomm == STR_AS_NUM_NODE)
+		{
+			return true;
+		}
+	}
+	else if(executable_name.size() >= 6)
+	{
+		if(executable_name.substr(0, 6) == "python")
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////

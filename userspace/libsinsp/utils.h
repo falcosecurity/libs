@@ -154,6 +154,12 @@ public:
 	static std::string caps_to_string(const uint64_t caps);
 	
 	static uint64_t get_max_caps();
+
+	//
+	// Determine if an executable name is a scripting language interpreter (e.g. python,
+	// perl...)
+	//
+	static bool is_intepreter(std::string executable_name);
 };
 
 ///////////////////////////////////////////////////////////////////////////////

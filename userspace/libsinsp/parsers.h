@@ -66,7 +66,7 @@ public:
 
 	void schedule_k8s_events();
 	void schedule_mesos_events();
-	void fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string hash);
+	void fill_exehash_event_payload(metaevents_state* state, int64_t res, sinsp_threadinfo* tinfo, string exepath, string hash);
 	void schedule_exehash_event(sinsp_threadinfo* tinfo);
 
 	//

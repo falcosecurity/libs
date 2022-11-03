@@ -39,11 +39,12 @@ public:
 class md5_calculator
 {
 public:
-	int64_t checksum_file(string filename, OUT string* hash);
-	int64_t checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
+	int64_t checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, OUT string* checksum);
 
 private:
+	int64_t checksum_file(string filename, OUT string* hash);
 	void add_to_cache(string* cache_key, string* checksum, int64_t res);
+	int64_t checksum_exepath(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
 
 	unordered_map<string, md5_cache_entry> m_cache;
 };

@@ -113,7 +113,70 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	return 0;
 }
 
-int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum)
+int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, OUT string* checksum)
+{
+	*exepath = tinfo->m_exepath;
+
+	string comm = tinfo->m_comm;
+	if(sinsp_utils::is_intepreter(comm) ||
+		comm == "sh" ||
+		comm == "bash" ||
+		comm == "zsh" ||
+		comm == "csh" ||
+		comm == "tcsh")
+	{
+		if(tinfo->m_args.size() > 0)
+		{
+			char fullpath[SCAP_MAX_PATH_SIZE];
+			string tcwd = tinfo->get_cwd();
+			string a0 = tinfo->m_args[0];
+
+			if(sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+										   tcwd.c_str(),
+										   tcwd.size(),
+										   a0.c_str(),
+										   a0.size(),
+										   false))
+			{
+				*exepath = fullpath;
+			}
+		}
+	}
+
+	return checksum_exepath(tinfo, *exepath, checksum);
+}
+
+void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
+{
+	//
+	// Cache full?
+	// If yes, remove the oldest entry
+	//
+	if(m_cache.size() >= MAX_CHECKSUM_CACHE_ENTRIES)
+	{
+		unordered_map<string, md5_cache_entry>::iterator oldest_it = m_cache.begin();
+		for(auto it = m_cache.begin(); it != m_cache.end(); ++it)
+		{
+			if(it->second.m_ts < oldest_it->second.m_ts)
+			{
+				oldest_it = it;
+			}
+		}
+
+		m_cache.erase(oldest_it);
+	}
+
+	//
+	// Add the cache entry
+	//
+	md5_cache_entry ce;
+	ce.m_checksum = *checksum;
+	ce.m_res = res;
+	ce.m_ts =  std::chrono::system_clock::now();
+	m_cache[*cache_key] = ce;
+}
+
+int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum)
 {
 	//
 	// We use /proc/<pid>/root to navigate into the process file system and read the
@@ -121,8 +184,9 @@ int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exep
 	// /proc/<pid>/root lets us access the container FS.
 	// An even simpler way to access the executable would be /proc/<pid>/exe. We
 	// don't use it because it has the disadvantage of not allowing ancestor list
-	// navigation (see below). Also, based on my benchmarks, it doesn't give any
-	// performance advantage.
+	// navigation (see below). Also, it doesn't work for intepreted scripts.
+	// Based on my benchmarks, BTW, using exe doesn't offer any performance
+	// advantage.
 	//
 	string fexepath = "/proc/" + to_string(tinfo->m_pid) + "/root" + exepath;
 	string cache_key = tinfo->m_container_id + exepath;
@@ -164,7 +228,7 @@ int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exep
 			return -ENODEV;
 		}
 
-		return checksum_executable(ptinfo, exepath, checksum);
+		return checksum_exepath(ptinfo, exepath, checksum);
 	}
 
 	//
@@ -176,34 +240,5 @@ int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, string exep
 	return res;
 }
 
-void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
-{
-	//
-	// Cache full?
-	// If yes, remove the oldest entry
-	//
-	if(m_cache.size() >= MAX_CHECKSUM_CACHE_ENTRIES)
-	{
-		unordered_map<string, md5_cache_entry>::iterator oldest_it = m_cache.begin();
-		for(auto it = m_cache.begin(); it != m_cache.end(); ++it)
-		{
-			if(it->second.m_ts < oldest_it->second.m_ts)
-			{
-				oldest_it = it;
-			}
-		}
-
-		m_cache.erase(oldest_it);
-	}
-
-	//
-	// Add the cache entry
-	//
-	md5_cache_entry ce;
-	ce.m_checksum = *checksum;
-	ce.m_res = res;
-	ce.m_ts =  std::chrono::system_clock::now();
-	m_cache[*cache_key] = ce;
-}
 #endif // WIN32
 #endif // HAS_CAPTURE
