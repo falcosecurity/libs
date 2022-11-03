@@ -120,65 +120,6 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 }
 
-int32_t scap_update_suppressed(scap_t *handle,
-			       const char *comm,
-			       uint64_t tid, uint64_t ptid,
-			       bool *suppressed)
-{
-	uint32_t i;
-	scap_tid *stid;
-
-	*suppressed = false;
-
-	HASH_FIND_INT64(handle->m_suppressed_tids, &ptid, stid);
-
-	if(stid != NULL)
-	{
-		*suppressed = true;
-	}
-	else
-	{
-		for(i=0; i < handle->m_num_suppressed_comms; i++)
-		{
-			if(strcmp(handle->m_suppressed_comms[i], comm) == 0)
-			{
-				*suppressed = true;
-				break;
-			}
-		}
-	}
-
-	// Also check to see if the tid is already in the set of
-	// suppressed tids.
-
-	HASH_FIND_INT64(handle->m_suppressed_tids, &tid, stid);
-
-	if(*suppressed && stid == NULL)
-	{
-		stid = (scap_tid *) malloc(sizeof(scap_tid));
-		stid->tid = tid;
-		int32_t uth_status = SCAP_SUCCESS;
-
-		HASH_ADD_INT64(handle->m_suppressed_tids, tid, stid);
-
-		if(uth_status != SCAP_SUCCESS)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't add tid to suppressed hash table");
-			free(stid);
-			return SCAP_FAILURE;
-		}
-		*suppressed = true;
-	}
-	else if (!*suppressed && stid != NULL)
-	{
-		HASH_DEL(handle->m_suppressed_tids, stid);
-		free(stid);
-		*suppressed = false;
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed)
 {
 	uint16_t *lens;
@@ -234,7 +175,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 		comm = valptr;
 
-		if((res = scap_update_suppressed(handle,
+		if((res = scap_update_suppressed(&handle->m_suppress,
 						 comm,
 						 pevent->tid, *ptid,
 						 suppressed)) != SCAP_SUCCESS)
@@ -247,14 +188,14 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 	default:
 
-		HASH_FIND_INT64(handle->m_suppressed_tids, &(pevent->tid), stid);
+		HASH_FIND_INT64(handle->m_suppress.m_suppressed_tids, &(pevent->tid), stid);
 
 		// When threads exit they are always removed and no longer suppressed.
 		if(pevent->type == PPME_PROCEXIT_1_E)
 		{
 			if(stid != NULL)
 			{
-				HASH_DEL(handle->m_suppressed_tids, stid);
+				HASH_DEL(handle->m_suppress.m_suppressed_tids, stid);
 				free(stid);
 				*suppressed = true;
 			}
