@@ -221,7 +221,7 @@ int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d
 	return SCAP_SUCCESS;
 }
 
-void scap_fd_free_table(scap_t *handle, scap_fdinfo **fds)
+void scap_fd_free_table(scap_fdinfo **fds)
 {
 	struct scap_fdinfo *fdi;
 	struct scap_fdinfo *tfdi;
@@ -241,7 +241,7 @@ void scap_fd_free_proc_fd_table(scap_t *handle, scap_threadinfo *tinfo)
 {
 	if(tinfo->fdlist)
 	{
-		scap_fd_free_table(handle, &tinfo->fdlist);
+		scap_fd_free_table(&tinfo->fdlist);
 	}
 }
 
