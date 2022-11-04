@@ -156,7 +156,7 @@ void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
 void scap_fd_free_table(scap_fdinfo** fds);
 void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
 // Free a process' fd table
-void scap_fd_free_proc_fd_table(scap_t* handle, scap_threadinfo* pi);
+void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 // Calculate the length on disk of an fd entry's info
 uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 // Write the given fd info to disk
