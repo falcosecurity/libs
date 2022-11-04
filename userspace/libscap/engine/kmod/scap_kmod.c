@@ -91,7 +91,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 			// let the issue be gracefully managed during the api version check against the driver.
 			return SCAP_SUCCESS;
 		}
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please ensure the kernel module is already loaded.", file_name, scap_strerror(handle, errno));
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s.", file_name, scap_strerror(handle, errno));
 		return SCAP_FAILURE;
 	}
 
