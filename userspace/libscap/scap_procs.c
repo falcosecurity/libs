@@ -43,7 +43,7 @@ void scap_proc_delete(scap_t* handle, scap_threadinfo* proc)
 	//
 	// First, free the fd table for this process descriptor
 	//
-	scap_fd_free_proc_fd_table(handle, proc);
+	scap_fd_free_proc_fd_table(proc);
 
 	//
 	// Second, remove the process descriptor from the table
@@ -84,7 +84,7 @@ struct scap_threadinfo *scap_proc_alloc(scap_t *handle)
 
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 {
-	scap_fd_free_proc_fd_table(handle, proc);
+	scap_fd_free_proc_fd_table(proc);
 	free(proc);
 }
 

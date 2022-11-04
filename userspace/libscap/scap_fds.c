@@ -237,7 +237,7 @@ void scap_fd_free_table(scap_fdinfo **fds)
 	}
 }
 
-void scap_fd_free_proc_fd_table(scap_t *handle, scap_threadinfo *tinfo)
+void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 {
 	if(tinfo->fdlist)
 	{
