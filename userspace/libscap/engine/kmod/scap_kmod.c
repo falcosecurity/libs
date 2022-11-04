@@ -84,8 +84,9 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	FILE *read_file = fopen(file_name, "r");
 	if(read_file == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please ensure the kernel module is already loaded.", file_name, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		// It is most probably a wrong API version of the driver;
+		// let the issue be gracefully managed during the api version check against the driver.
+		return SCAP_SUCCESS;
 	}
 
 	unsigned long kernel_buf_bytes_dim = 0;
