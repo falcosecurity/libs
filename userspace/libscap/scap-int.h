@@ -153,7 +153,7 @@ void scap_proc_free_table(scap_t* handle);
 void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
 // Return the process info entry given a tid
 // Free an fd table and set it to NULL when done
-void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
+void scap_fd_free_table(scap_fdinfo** fds);
 void scap_fd_free_ns_sockets_list(scap_t* handle, struct scap_ns_socket_list** sockets);
 // Free a process' fd table
 void scap_fd_free_proc_fd_table(scap_t* handle, scap_threadinfo* pi);

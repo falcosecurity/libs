@@ -2108,7 +2108,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// copied from the parent
 	// XXX validate this
 	//
-	//  scap_fd_free_table(handle, tinfo);
+	//  scap_fd_free_table(tinfo);
 
 	//
 	// Clear the flags for this thread, making sure to propagate the inverted

@@ -60,7 +60,7 @@ void scap_fd_free_ns_sockets_list(scap_t *handle, struct scap_ns_socket_list **s
 		HASH_ITER(hh, *sockets, fdi, tfdi)
 		{
 			HASH_DEL(*sockets, fdi);
-			scap_fd_free_table(handle, &fdi->sockets);
+			scap_fd_free_table(&fdi->sockets);
 			free(fdi);
 		}
 		*sockets = NULL;
@@ -1097,7 +1097,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	snprintf(filename, sizeof(filename), "%stcp", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
 	{
-		scap_fd_free_table(handle, &sockets->sockets);
+		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 tcp sockets (%s)", handle->m_lasterr);
 		return SCAP_FAILURE;
 	}
@@ -1105,7 +1105,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_UDP, &sockets->sockets) == SCAP_FAILURE)
 	{
-		scap_fd_free_table(handle, &sockets->sockets);
+		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 udp sockets (%s)", handle->m_lasterr);
 		return SCAP_FAILURE;
 	}
@@ -1113,7 +1113,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
 	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_RAW, &sockets->sockets) == SCAP_FAILURE)
 	{
-		scap_fd_free_table(handle, &sockets->sockets);
+		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 raw sockets (%s)", handle->m_lasterr);
 		return SCAP_FAILURE;
 	}
@@ -1121,7 +1121,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
 	if(scap_fd_read_unix_sockets_from_proc_fs(handle, filename, &sockets->sockets) == SCAP_FAILURE)
 	{
-		scap_fd_free_table(handle, &sockets->sockets);
+		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read unix sockets (%s)", handle->m_lasterr);
 		return SCAP_FAILURE;
 	}
@@ -1129,7 +1129,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	snprintf(filename, sizeof(filename), "%snetlink", netroot);
 	if(scap_fd_read_netlink_sockets_from_proc_fs(handle, filename, &sockets->sockets) == SCAP_FAILURE)
 	{
-		scap_fd_free_table(handle, &sockets->sockets);
+		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read netlink sockets (%s)", handle->m_lasterr);
 		return SCAP_FAILURE;
 	}
@@ -1140,7 +1140,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
     {
 		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
 		{
-			scap_fd_free_table(handle, &sockets->sockets);
+			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 tcp sockets (%s)", handle->m_lasterr);
 			return SCAP_FAILURE;
 		}
@@ -1148,7 +1148,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 		snprintf(filename, sizeof(filename), "%sudp6", netroot);
 		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_UDP, &sockets->sockets) == SCAP_FAILURE)
 		{
-			scap_fd_free_table(handle, &sockets->sockets);
+			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 udp sockets (%s)", handle->m_lasterr);
 			return SCAP_FAILURE;
 		}
@@ -1156,7 +1156,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 		snprintf(filename, sizeof(filename), "%sraw6", netroot);
 		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_RAW, &sockets->sockets) == SCAP_FAILURE)
 		{
-			scap_fd_free_table(handle, &sockets->sockets);
+			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 raw sockets (%s)", handle->m_lasterr);
 			return SCAP_FAILURE;
 		}
