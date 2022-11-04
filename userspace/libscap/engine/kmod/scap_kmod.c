@@ -78,15 +78,21 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 {
 	const char* file_name = "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim";
 
+	errno = 0;
 	/* Here we check if the dimension provided by the kernel module is the same as the user-provided one. 
 	 * In this way we can avoid writing under the `/sys/module/...` file.
 	 */
 	FILE *read_file = fopen(file_name, "r");
 	if(read_file == NULL)
 	{
-		// It is most probably a wrong API version of the driver;
-		// let the issue be gracefully managed during the api version check against the driver.
-		return SCAP_SUCCESS;
+		if (errno == ENOENT)
+		{
+			// It is most probably a wrong API version of the driver;
+			// let the issue be gracefully managed during the api version check against the driver.
+			return SCAP_SUCCESS;
+		}
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to open '%s': %s. Please ensure the kernel module is already loaded.", file_name, scap_strerror(handle, errno));
+		return SCAP_FAILURE;
 	}
 
 	unsigned long kernel_buf_bytes_dim = 0;
