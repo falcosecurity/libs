@@ -285,7 +285,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_ncpus = 1;
 
 	handle->m_vtable = &scap_udig_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
@@ -450,8 +449,6 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	handle->m_ncpus = 1;
-
 	handle->refresh_proc_table_when_saving = true;
 
 	handle->m_suppressed_comms = NULL;
@@ -530,8 +527,6 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-
-	handle->m_ncpus = 1;
 
 	// XXX - interface list initialization and user list initalization goes here if necessary
 

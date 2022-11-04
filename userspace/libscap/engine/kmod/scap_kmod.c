@@ -226,6 +226,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	struct scap_kmod_engine_params* params  = oargs->engine_params;
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	uint32_t ndevs = 0;
+	uint32_t ncpus;
 	int32_t rc = 0;
 
 	int mapped_len = 0;
@@ -247,8 +248,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		return SCAP_FAILURE;
 	}
 
-	handle->m_ncpus = sysconf(_SC_NPROCESSORS_CONF);
-	if(handle->m_ncpus == -1)
+	ncpus = sysconf(_SC_NPROCESSORS_CONF);
+	if(ncpus == -1)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror(handle, errno));
 		return SCAP_FAILURE;
@@ -276,7 +277,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	mapped_len = single_buffer_dim * 2;
 
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < handle->m_ncpus; ++all_scanned_devs)
+	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
 
