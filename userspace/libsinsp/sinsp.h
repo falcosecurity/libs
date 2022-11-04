@@ -1138,6 +1138,14 @@ public:
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
+	/*!
+	  \brief Enable/disable executable hashing.
+	*/
+	void set_exec_hashing(bool exec_hashing_enabled)
+	{
+		m_exec_hashing_enabled = exec_hashing_enabled;
+	}
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1450,7 +1458,7 @@ public:
 	bool m_inited;
 	static std::atomic<int> instance_count;
 
-	bool m_do_exec_hashing;
+	bool m_exec_hashing_enabled;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

@@ -2175,7 +2175,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// count.
 	evt->m_tinfo->m_nchilds = 0;
 
-	if(m_inspector->m_do_exec_hashing)
+	if(m_inspector->m_exec_hashing_enabled)
 	{
 		schedule_exehash_event(evt->m_tinfo);
 	}
@@ -2412,11 +2412,7 @@ void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 	//
 	string exename;
 	string hash;
-
-	auto start = std::chrono::high_resolution_clock::now();
 	int64_t hres = m_md5_calculator->checksum_executable(mt, &exename, &hash);
-	auto finish = std::chrono::high_resolution_clock::now();
-	auto delta = (finish - start).count();
 
 	//
 	// Create the exehash meta event that will be sent out after this execve.

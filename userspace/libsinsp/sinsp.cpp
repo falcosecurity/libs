@@ -167,7 +167,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	m_plugin_manager = new sinsp_plugin_manager();
 
-	m_do_exec_hashing = true;
+	m_exec_hashing_enabled = false;
 }
 
 sinsp::~sinsp()
