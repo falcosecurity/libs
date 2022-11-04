@@ -32,6 +32,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_linux_int.h"
 #include "strerror.h"
 
 
@@ -1015,7 +1016,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 
 	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
 	{
-		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
+		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 
 	return res;
@@ -1118,7 +1119,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	closedir(dir_p);
 	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
 	{
-		scap_fd_free_ns_sockets_list(handle, &sockets_by_ns);
+		scap_fd_free_ns_sockets_list(&sockets_by_ns);
 	}
 	return res;
 }

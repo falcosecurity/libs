@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_linux_int.h"
 #include "strlcpy.h"
 #include "strerror.h"
 #include <sys/stat.h>
@@ -50,7 +51,7 @@ limitations under the License.
 
 #define SOCKET_SCAN_BUFFER_SIZE 1024 * 1024
 
-void scap_fd_free_ns_sockets_list(scap_t *handle, struct scap_ns_socket_list **sockets)
+void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list **sockets)
 {
 	struct scap_ns_socket_list *fdi;
 	struct scap_ns_socket_list *tfdi;
