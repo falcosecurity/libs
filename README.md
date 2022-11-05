@@ -162,10 +162,15 @@ cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_SKEL_DIR=
 Libscap contains additional library functions to allow integration with system call events coming from [gVisor](https://gvisor.dev).
 Compilation of this functionality can be disabled with `-DBUILD_LIBSCAP_GVISOR=Off`.
 
-## Test drivers
+## Test drivers and userspace sinsp
 
-Libscap ships a small example that is quite handy to quickly check that drivers are working fine.
-Look at the `scap-open` program [documentation](./userspace/libscap/examples/01-open/README.md).
+- `libscap` ships a small example that is quite handy to quickly check that drivers are working fine. Explore the `scap-open` program [documentation](./userspace/libscap/examples/01-open/README.md).
+- `libsinsp` ships another small example to quickly test userspace `sinsp`. Explore the `sinsp-example` program [documentation](./userspace/libsinsp/examples/README.md).
+
+## Test Suites (drivers and userspace sinsp)
+
+`libs` features dedicated test suites (unit tests, e2e tests, localhost VM testing) for additional driver and userspace functionality tests. 
+Navigate the [test](test/) folder to learn more about each test suite.
 
 ## Contribute
 
