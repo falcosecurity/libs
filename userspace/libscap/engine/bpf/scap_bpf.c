@@ -337,8 +337,7 @@ static int32_t load_elf_maps_section(struct bpf_engine *handle, struct bpf_map_d
 
 	if(!scn || !data_maps)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Failed to get Elf_Data from maps section %d", maps_shndx);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "Failed to get Elf_Data from maps section %d", maps_shndx);
 	}
 
 	*nr_maps = 0;
@@ -402,9 +401,7 @@ static int32_t load_maps(struct bpf_engine *handle, struct bpf_map_data *maps, i
 
 		if(handle->m_bpf_map_fds[j] < 0)
 		{
-			char buf[SCAP_LASTERR_SIZE];
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't create map: %s", scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -handle->m_bpf_map_fds[j], "can't create map %d", j);
 		}
 
 		if(maps[j].def.type == BPF_MAP_TYPE_PROG_ARRAY)
@@ -441,8 +438,7 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 
 		if(insn[insn_idx].code != (BPF_LD | BPF_IMM | BPF_DW))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid relocation for insn[%d].code 0x%x", insn_idx, insn[insn_idx].code);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d].code 0x%x", insn_idx, insn[insn_idx].code);
 		}
 
 		insn[insn_idx].src_reg = BPF_PSEUDO_MAP_FD;
@@ -462,8 +458,7 @@ static int32_t parse_relocations(struct bpf_engine *handle, Elf_Data *data, Elf_
 		}
 		else
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid relocation for insn[%d] no map_data match\n", insn_idx);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "invalid relocation for insn[%d] no map_data match\n", insn_idx);
 		}
 	}
 
@@ -475,7 +470,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	struct perf_event_attr attr = {};
 	enum bpf_prog_type program_type;
 	size_t insns_cnt;
-	char buf[SCAP_LASTERR_SIZE];
+	char buf[SCAP_MAX_PATH_SIZE];
 	bool raw_tp;
 	int efd;
 	int err;
@@ -493,8 +488,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	char *error = malloc(BPF_LOG_SIZE);
 	if(!error)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "malloc(BPF_LOG_BUF_SIZE)");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "malloc(BPF_LOG_BUF_SIZE) failed");
 	}
 
 	const char *full_event = event;
@@ -513,8 +507,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 
 	if(*event == 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event name cannot be empty");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "event name cannot be empty");
 	}
 
 	/* 'event' looks like "raw_tracepoint/raw_syscalls/sys_enter". Skip
@@ -538,17 +531,15 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		if(fd < 0)
 		{
 			fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: bpf_load_program() err=%d event=%s", errno, event);
 			free(error);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -fd, "libscap: bpf_load_program() event=%s", event);
 		}
 	}
 
 	free(error);
 
 	if (handle->m_bpf_prog_cnt + 1 >= BPF_PROGS_MAX) {
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "libscap: too many programs recorded: %d (limit is %d)", handle->m_bpf_prog_cnt + 1 ,BPF_PROGS_MAX);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "libscap: too many programs recorded: %d (limit is %d)", handle->m_bpf_prog_cnt + 1 ,BPF_PROGS_MAX);
 	}
 
 	handle->m_bpf_progs[handle->m_bpf_prog_cnt].fd = fd;
@@ -562,20 +553,17 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		event += sizeof("filler/") - 1;
 		if(*event == 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "filler name cannot be empty");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "filler name cannot be empty");
 		}
 
 		prog_id = lookup_filler_id(event);
 		if(prog_id == -1)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid filler name: %s", event);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "invalid filler name: %s", event);
 		}
 		else if (prog_id >= BPF_PROGS_MAX)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "program ID exceeds BPF_PROG_MAX limit (%d/%d)", prog_id, BPF_PROGS_MAX);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "program ID exceeds BPF_PROG_MAX limit (%d/%d)", prog_id, BPF_PROGS_MAX);
 		}
 
 		/* Fill the tail table. The key is our filler internal code extracted
@@ -585,8 +573,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		err = bpf_map_update_elem(handle->m_bpf_map_fds[handle->m_bpf_prog_array_map_idx], &prog_id, &fd, BPF_ANY);
 		if(err < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failure populating program array: %s (Errno: %d)", scap_strerror_r(buf, errno), errno);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -err, "failure populating program array");
 		}
 
 		return SCAP_SUCCESS;
@@ -597,8 +584,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		efd = bpf_raw_tracepoint_open(event, fd);
 		if(efd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF_RAW_TRACEPOINT_OPEN: event %s: %s", event, scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -efd, "BPF_RAW_TRACEPOINT_OPEN: event %s", event);
 		}
 	}
 	else
@@ -614,16 +600,15 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 				return SCAP_SUCCESS;
 			}
 
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open event %s", event);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, errno, "failed to open event %s", event);
 		}
 
 		err = read(efd, buf, sizeof(buf));
 		if(err < 0 || err >= sizeof(buf))
 		{
+			int err = errno;
 			close(efd);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read from '%s' failed '%s'", event, scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, err, "read from '%s' failed", event);
 		}
 
 		close(efd);
@@ -635,15 +620,14 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		efd = sys_perf_event_open(&attr, -1, 0, -1, 0);
 		if(efd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event %d fd %d err %s", id, efd, scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -efd, "event %d", id);
 		}
 
 		if(ioctl(efd, PERF_EVENT_IOC_SET_BPF, fd))
 		{
+			int err = errno;
 			close(efd);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_SET_BPF: %s", scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, err, "PERF_EVENT_IOC_SET_BPF");
 		}
 	}
 
@@ -690,14 +674,12 @@ static int32_t load_bpf_file(
 
 	if(uname(&osname))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't call uname()");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "can't call uname()");
 	}
 
 	if(elf_version(EV_CURRENT) == EV_NONE)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid ELF version");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "invalid ELF version");
 	}
 
 	if (!handle->elf)
@@ -705,21 +687,19 @@ static int32_t load_bpf_file(
 		handle->program_fd = open(handle->m_filepath, O_RDONLY, 0);
 		if(handle->program_fd < 0)
 		{
-			char buf[SCAP_LASTERR_SIZE];
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", handle->m_filepath, scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "can't open BPF probe '%s'", handle->m_filepath);
 		}
 
 		handle->elf = elf_begin(handle->program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
 		if(!handle->elf)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
+			scap_errprintf(handle->m_lasterr, 0, "can't read ELF format");
 			goto end;
 		}
 
 		if(gelf_getehdr(handle->elf, &handle->ehdr) != &handle->ehdr)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF header");
+			scap_errprintf(handle->m_lasterr, 0, "can't read ELF header");
 			goto end;
 		}
 
@@ -877,7 +857,6 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	unsigned long ring_size = buf_bytes_dim;
 	int header_size = page_size;
 	unsigned long total_size = ring_size * 2 + header_size;
-	char buf[SCAP_LASTERR_SIZE] = {0};
 
 	*size = 0;
 
@@ -888,7 +867,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	void *tmp = mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	if(tmp == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (1): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
+		scap_errprintf(handle->m_lasterr, errno, "mmap (1) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		return MAP_FAILED;
 	}
 
@@ -896,7 +875,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	void *p1 = mmap(tmp + ring_size, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p1 == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (2): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
+		scap_errprintf(handle->m_lasterr, errno, "mmap (2) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}
@@ -907,7 +886,7 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 	void *p2 = mmap(tmp, ring_size + header_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
 	if(p2 == MAP_FAILED)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "mmap (3): %s. (If you get memory allocation errors try to reduce the buffer dimension)", scap_strerror_r(buf, errno));
+		scap_errprintf(handle->m_lasterr, errno, "mmap (3) failed (If you get memory allocation errors try to reduce the buffer dimension)");
 		munmap(tmp, total_size);
 		return MAP_FAILED;
 	}
@@ -922,14 +901,14 @@ static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *s
 static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 {
 	int j;
+	int ret;
 
 	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
 	{
 		const struct syscall_evt_pair *p = &g_syscall_table[j];
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE], &j, p, BPF_ANY) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SYSCALL_TABLE], &j, p, BPF_ANY)) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SYSCALL_TABLE bpf_map_update_elem < 0");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SYSCALL_TABLE bpf_map_update_elem");
 		}
 	}
 
@@ -938,6 +917,8 @@ static int32_t populate_syscall_table_map(struct bpf_engine *handle)
 
 static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm_sc, bool value)
 {
+	int ret;
+
 	/* We can have more than one syscall corresponding to the same `ppm_sc` for this
 	 * reason we need to check the entire table. As a future work every syscall
 	 * must have is `PPM_SC_CODE`.
@@ -949,10 +930,9 @@ static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm
 			continue;
 		}
 
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_nr, &value, BPF_ANY) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_INTERESTING_SYSCALLS_TABLE], &syscall_nr, &value, BPF_ANY)) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_INTERESTING_SYSCALLS_TABLE unable to update syscall: %d", syscall_nr);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_INTERESTING_SYSCALLS_TABLE unable to update syscall: %d", syscall_nr);
 		}
 	}
 	return SCAP_SUCCESS;
@@ -979,14 +959,14 @@ static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine,
 static int32_t populate_event_table_map(struct bpf_engine *handle)
 {
 	int j;
+	int ret;
 
 	for(j = 0; j < PPM_EVENT_MAX; ++j)
 	{
 		const struct ppm_event_info *e = &g_event_info[j];
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_EVENT_INFO_TABLE], &j, e, BPF_ANY) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_EVENT_INFO_TABLE], &j, e, BPF_ANY)) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_EVENT_INFO_TABLE bpf_map_update_elem < 0");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_EVENT_INFO_TABLE bpf_map_update_elem");
 		}
 	}
 
@@ -996,14 +976,14 @@ static int32_t populate_event_table_map(struct bpf_engine *handle)
 static int32_t populate_fillers_table_map(struct bpf_engine *handle)
 {
 	int j;
+	int ret;
 
 	for(j = 0; j < PPM_EVENT_MAX; ++j)
 	{
 		const struct ppm_event_entry *e = &g_ppm_events[j];
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_FILLERS_TABLE], &j, e, BPF_ANY) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_FILLERS_TABLE], &j, e, BPF_ANY)) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_FILLERS_TABLE bpf_map_update_elem < 0");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_FILLERS_TABLE bpf_map_update_elem ");
 		}
 	}
 
@@ -1055,8 +1035,8 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	if(calibrate_socket_file_ops() != SCAP_SUCCESS)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "calibrate_socket_file_ops");
-		return SCAP_FAILURE;
+		// if we're here, errno should come from the failed socket() call in calibrate_socket_ops()
+		return scap_errprintf(handle->m_lasterr, errno, "calibrate_socket_file_ops");
 	}
 
 	return SCAP_SUCCESS;
@@ -1078,24 +1058,22 @@ int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
 	if(snaplen > RW_MAX_SNAPLEN)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "snaplen can't exceed %d\n", RW_MAX_SNAPLEN);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "snaplen can't exceed %d\n", RW_MAX_SNAPLEN);
 	}
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.snaplen = snaplen;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1106,19 +1084,18 @@ int32_t scap_bpf_set_fullcapture_port_range(struct scap_engine_handle engine, ui
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.fullcapture_port_range_start = range_start;
 	settings.fullcapture_port_range_end = range_end;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1129,19 +1106,18 @@ int32_t scap_bpf_set_statsd_port(struct scap_engine_handle engine, const uint16_
 	struct scap_bpf_settings settings = {};
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.statsd_port = port;
 
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1152,18 +1128,17 @@ int32_t scap_bpf_disable_dynamic_snaplen(struct scap_engine_handle engine)
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.do_dynamic_snaplen = false;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1184,25 +1159,23 @@ int32_t scap_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t 
 		case 128:
 			break;
 		default:
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid sampling ratio size");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "invalid sampling ratio size");
 	}
 
 	struct scap_bpf_settings settings;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.sampling_ratio = sampling_ratio;
 	settings.dropping_mode = true;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1213,19 +1186,18 @@ int32_t scap_bpf_stop_dropping_mode(struct scap_engine_handle engine)
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.sampling_ratio = 1;
 	settings.dropping_mode = false;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1236,18 +1208,17 @@ int32_t scap_bpf_enable_dynamic_snaplen(struct scap_engine_handle engine)
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.do_dynamic_snaplen = true;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1258,18 +1229,17 @@ int32_t scap_bpf_enable_tracers_capture(struct scap_engine_handle engine)
 	struct scap_bpf_settings settings;
 	struct bpf_engine *handle = engine.m_handle;
 	int k = 0;
+	int ret;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_lookup_elem");
 	}
 
 	settings.tracers_enabled = true;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1335,8 +1305,7 @@ static int32_t set_runtime_params(struct bpf_engine *handle)
 	rl.rlim_cur = rl.rlim_max;
 	if(setrlimit(RLIMIT_MEMLOCK, &rl))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setrlimit failed");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "setrlimit failed");
 	}
 
 	FILE *f = fopen("/proc/sys/net/core/bpf_jit_enable", "w");
@@ -1351,9 +1320,9 @@ static int32_t set_runtime_params(struct bpf_engine *handle)
 
 	if(fprintf(f, "1") != 1)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_enable");
+		int err = errno;
 		fclose(f);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, err, "Can't write to /proc/sys/net/core/bpf_jit_enable");
 	}
 
 	fclose(f);
@@ -1361,15 +1330,14 @@ static int32_t set_runtime_params(struct bpf_engine *handle)
 	f = fopen("/proc/sys/net/core/bpf_jit_harden", "w");
 	if(!f)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_harden");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Can't open /proc/sys/net/core/bpf_jit_harden");
 	}
 
 	if(fprintf(f, "0") != 1)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_harden");
+		int err = errno;
 		fclose(f);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, err, "Can't write to /proc/sys/net/core/bpf_jit_harden");
 	}
 
 	fclose(f);
@@ -1377,15 +1345,14 @@ static int32_t set_runtime_params(struct bpf_engine *handle)
 	f = fopen("/proc/sys/net/core/bpf_jit_kallsyms", "w");
 	if(!f)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't open /proc/sys/net/core/bpf_jit_kallsyms");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Can't open /proc/sys/net/core/bpf_jit_kallsyms");
 	}
 
 	if(fprintf(f, "1") != 1)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can't write to /proc/sys/net/core/bpf_jit_kallsyms");
+		int err = errno;
 		fclose(f);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, err, "Can't write to /proc/sys/net/core/bpf_jit_kallsyms");
 	}
 
 	fclose(f);
@@ -1416,10 +1383,11 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.statsd_port = 8125;
 
 	int k = 0;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
+	int ret;
+
+	if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY)) != 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, -ret, "SCAP_SETTINGS_MAP bpf_map_update_elem");
 	}
 
 	return SCAP_SUCCESS;
@@ -1434,7 +1402,6 @@ int32_t scap_bpf_load(
 {
 	int online_cpu;
 	int j;
-	char buf[SCAP_LASTERR_SIZE];
 	struct scap_bpf_engine_params* bpf_args = oargs->engine_params;
 
 	if(set_runtime_params(handle) != SCAP_SUCCESS)
@@ -1498,6 +1465,7 @@ int32_t scap_bpf_load(
 			.config = PERF_COUNT_SW_BPF_OUTPUT,
 		};
 		int pmu_fd;
+		int ret;
 		struct scap_device *dev;
 
 		if(j > 0)
@@ -1522,18 +1490,17 @@ int32_t scap_bpf_load(
 				}
 				else
 				{
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %sonline: %s", filename, scap_strerror_r(buf, errno));
-					return SCAP_FAILURE;
+					return scap_errprintf(handle->m_lasterr, errno, "can't open %sonline", filename);
 				}
 			}
 			else
 			{
 				if(fscanf(fp, "%d", &online) != 1)
 				{
+					int err = errno;
 					fclose(fp);
 
-					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read %s: %s", filename, scap_strerror_r(buf, errno));
-					return SCAP_FAILURE;
+					return scap_errprintf(handle->m_lasterr, err, "can't read %s", filename);
 				}
 				fclose(fp);
 			}
@@ -1546,8 +1513,7 @@ int32_t scap_bpf_load(
 
 		if(online_cpu >= handle->m_dev_set.m_ndevs)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "too many online processors: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "too many online processors: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
 		}
 
 		dev = &handle->m_dev_set.m_devs[online_cpu];
@@ -1555,22 +1521,19 @@ int32_t scap_bpf_load(
 		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
 		if(pmu_fd < 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "pmu_fd < 0: %s", scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -pmu_fd, "pmu_fd");
 		}
 
 		dev->m_fd = pmu_fd;
 
-		if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY) != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY)) != 0)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_PERF_MAP bpf_map_update_elem < 0: %s", scap_strerror_r(buf, errno));
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_PERF_MAP bpf_map_update_elem");
 		}
 
 		if(ioctl(pmu_fd, PERF_EVENT_IOC_ENABLE, 0))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "PERF_EVENT_IOC_ENABLE");
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, errno, "PERF_EVENT_IOC_ENABLE");
 		}
 
 		//
@@ -1588,8 +1551,7 @@ int32_t scap_bpf_load(
 
 	if(online_cpu != handle->m_dev_set.m_ndevs)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "processors online: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
 	}
 
 	if(set_default_settings(handle) != SCAP_SUCCESS)
@@ -1604,14 +1566,14 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
+	int ret;
 
 	for(j = 0; j < handle->m_ncpus; j++)
 	{
 		struct scap_bpf_per_cpu_state v;
-		if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &j, &v))
+		if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &j, &v)))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Error looking up local state %d\n", j);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", j);
 		}
 
 		stats->n_evts += v.n_evts;
@@ -1644,14 +1606,14 @@ int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* re
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int j;
+	int sys_ret;
 
 	for(j = 0; j < handle->m_ncpus; j++)
 	{
 		struct scap_bpf_per_cpu_state v;
-		if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &j, &v))
+		if((sys_ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &j, &v)))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Error looking up local state %d\n", j);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, -sys_ret, "Error looking up local state %d\n", j);
 		}
 
 		ret[j] = v.n_evts;
@@ -1797,7 +1759,6 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 {
 	int32_t rc = 0;
 	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
-	char error[SCAP_LASTERR_SIZE] = {0};
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_bpf_engine_params *params = oargs->engine_params;
 	strlcpy(bpf_probe_buf, params->bpf_probe, SCAP_MAX_PATH_SIZE);
@@ -1813,8 +1774,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(num_cpus == -1)
 	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_CONF: %s", scap_strerror_r(error, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "_SC_NPROCESSORS_CONF");
 	}
 
 	engine.m_handle->m_ncpus = num_cpus;
@@ -1822,8 +1782,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	ssize_t num_devs = sysconf(_SC_NPROCESSORS_ONLN);
 	if(num_devs == -1)
 	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "_SC_NPROCESSORS_ONLN: %s", scap_strerror_r(error, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "_SC_NPROCESSORS_ONLN");
 	}
 
 	rc = devset_init(&engine.m_handle->m_dev_set, num_devs, engine.m_handle->m_lasterr);
