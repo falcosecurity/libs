@@ -53,14 +53,10 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag)
 	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
 	 * `AT_EMPTY_PATH` flag.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), file_to_run);
 }
 
 
@@ -97,14 +93,10 @@ TEST_F(sinsp_with_test_input, execveat_relative_path)
 	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
 	 * specified in the `execveat` enter event.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/dir/file");
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/dir/file");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/dir/file");
 }
 
 /* Assert if the thread `exepath` is set to the right value
@@ -143,14 +135,10 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path)
 	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
 	 * is invalid and should set `<NA>`.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "<NA>");
 }
 
 /* Assert if the thread `exepath` is set to the right value
@@ -179,14 +167,10 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path)
 	/* The `exepath` should be the absolute file path that we passed in the
 	 * `execveat` enter event.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/file");
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/file");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/file");
 }
 
 /* Same as `execveat_empty_path_flag` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
@@ -219,14 +203,10 @@ TEST_F(sinsp_with_test_input, execveat_empty_path_flag_s390)
 	/* The `exepath` should be the file pointed by the `dirfd` since `execveat` is called with
 	 * `AT_EMPTY_PATH` flag.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), file_to_run);
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), file_to_run);
 }
 
 /* Same as `execveat_relative_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
@@ -259,14 +239,11 @@ TEST_F(sinsp_with_test_input, execveat_relative_path_s390)
 	/* The `exepath` should be the directory pointed by the `dirfd` + the pathname
 	 * specified in the `execveat` enter event.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390x/dir/file");
-	}
-	else
-	{
-		FAIL();
-	}
+
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390x/dir/file");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/s390x/dir/file");
 }
 
 /* Same as `execveat_absolute_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
@@ -292,14 +269,10 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path_s390)
 	/* The `exepath` should be the absolute file path that we passed in the
 	 * `execveat` enter event.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390/file");
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "/tmp/s390/file");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/tmp/s390/file");
 }
 
 /* Same as `execveat_invalid_path` but with `PPME_SYSCALL_EXECVEAT_X` as exit event
@@ -332,14 +305,10 @@ TEST_F(sinsp_with_test_input, execveat_invalid_path_s390)
 	/* The `exepath` should be `<NA>`, sinsp should recognize that the `pathname`
 	 * is invalid and should set `<NA>`.
 	 */
-	if(evt->get_thread_info())
-	{
-		ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
-	}
-	else
-	{
-		FAIL();
-	}
+	ASSERT_NE(evt->get_thread_info(), nullptr);
+	ASSERT_STREQ(evt->get_thread_info()->m_exepath.c_str(), "<NA>");
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "<NA>");
 }
 
 TEST_F(sinsp_with_test_input, spawn_process)
