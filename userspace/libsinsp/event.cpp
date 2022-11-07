@@ -62,28 +62,51 @@ extern sinsp_evttables g_infotables;
 // sinsp_evt implementation
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_evt::sinsp_evt() :
-	m_pevt_storage(NULL),
-	m_paramstr_storage(256), m_resolved_paramstr_storage(1024)
+		m_inspector(NULL),
+		m_pevt(NULL),
+		m_poriginal_evt(NULL),
+		m_pevt_storage(NULL),
+		m_cpuid(0),
+		m_evtnum(0),
+		m_flags(EF_NONE),
+		m_params_loaded(false),
+		m_info(NULL),
+		m_paramstr_storage(256),
+		m_resolved_paramstr_storage(1024),
+		m_tinfo(NULL),
+		m_fdinfo(NULL),
+		m_fdinfo_name_changed(false),
+		m_iosize(0),
+		m_errorcode(0),
+		m_rawbuf_str_len(0),
+		m_filtered_out(false),
+		m_event_info_table(g_infotables.m_event_info)
 {
-	m_flags = EF_NONE;
-	m_tinfo = NULL;
-#ifdef _DEBUG
-	m_filtered_out = false;
-#endif
-	m_event_info_table = g_infotables.m_event_info;
+
 }
 
 sinsp_evt::sinsp_evt(sinsp *inspector) :
-	m_pevt_storage(NULL),
-	m_paramstr_storage(1024), m_resolved_paramstr_storage(1024)
+		m_inspector(inspector),
+		m_pevt(NULL),
+		m_poriginal_evt(NULL),
+		m_pevt_storage(NULL),
+		m_cpuid(0),
+		m_evtnum(0),
+		m_flags(EF_NONE),
+		m_params_loaded(false),
+		m_info(NULL),
+		m_paramstr_storage(1024),
+		m_resolved_paramstr_storage(1024),
+		m_tinfo(NULL),
+		m_fdinfo(NULL),
+		m_fdinfo_name_changed(false),
+		m_iosize(0),
+		m_errorcode(0),
+		m_rawbuf_str_len(0),
+		m_filtered_out(false),
+		m_event_info_table(g_infotables.m_event_info)
 {
-	m_inspector = inspector;
-	m_flags = EF_NONE;
-	m_tinfo = NULL;
-#ifdef _DEBUG
-	m_filtered_out = false;
-#endif
-	m_event_info_table = g_infotables.m_event_info;
+	
 }
 
 sinsp_evt::~sinsp_evt()
