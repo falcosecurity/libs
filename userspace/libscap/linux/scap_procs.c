@@ -45,9 +45,7 @@ int32_t scap_proc_fill_cwd(scap_t *handle, char* procdirname, struct scap_thread
 	target_res = readlink(filename, tinfo->cwd, sizeof(tinfo->cwd) - 1);
 	if(target_res <= 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "readlink %s failed (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "readlink %s failed", filename);
 	}
 
 	tinfo->cwd[target_res] = '\0';
@@ -100,9 +98,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	if(f == NULL)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "open status file %s failed (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "open status file %s failed", filename);
 	}
 
 	while(fgets(line, sizeof(line), f) != NULL)
@@ -293,9 +289,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	if(f == NULL)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "read stat file %s failed (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "read stat file %s failed", filename);
 	}
 
 	size_t ssres = fread(line, 1, sizeof(line) - 1, f);
@@ -303,9 +297,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read from stat file %s (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not read from stat file %s", filename);
 	}
 	line[ssres] = 0;
 
@@ -314,9 +306,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find closing bracket in stat file %s",
-			 filename);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "Could not find closing bracket in stat file %s", filename);
 	}
 
 	//
@@ -336,9 +326,7 @@ int32_t scap_proc_fill_info_from_stats(scap_t *handle, char* procdirname, struct
 	{
 		ASSERT(false);
 		fclose(f);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read expected fields from stat file %s",
-			 filename);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "Could not read expected fields from stat file %s", filename);
 	}
 
 	tinfo->pfmajor = pfmajor;
@@ -402,9 +390,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		}
 
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "open cgroup file %s failed (%s)",
-			 filename, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "open cgroup file %s failed", filename);
 	}
 
 	while(fgets(line, sizeof(line), f) != NULL)
@@ -423,9 +409,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		{
 			ASSERT(false);
 			fclose(f);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Did not find id in cgroup file %s",
-				 filename);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "Did not find id in cgroup file %s", filename);
 		}
 
 		// subsys
@@ -434,9 +418,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		{
 			ASSERT(false);
 			fclose(f);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Did not find subsys in cgroup file %s",
-				 filename);
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, 0, "Did not find subsys in cgroup file %s", filename);
 		}
 
 		// Hack to detect empty fields, because strtok does not support it
@@ -486,9 +468,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 			{
 				ASSERT(false);
 				fclose(f);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Did not find cgroup in cgroup file %s",
-					 filename);
-				return SCAP_FAILURE;
+				return scap_errprintf(handle->m_lasterr, 0, "Did not find cgroup in cgroup file %s", filename);
 			}
 		}
 
@@ -543,9 +523,7 @@ int32_t scap_proc_fill_root(scap_t *handle, struct scap_threadinfo* tinfo, const
 	}
 	else
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "readlink %s failed (%s)",
-			 root_path, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "readlink %s failed", root_path);
 	}
 }
 
@@ -559,17 +537,13 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	if(f == NULL)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Open loginuid file %s failed (%s)",
-			 loginuid_path, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Open loginuid file %s failed", loginuid_path);
 	}
 	if (fgets(line, sizeof(line), f) == NULL)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read loginuid from %s (%s)",
-			 loginuid_path, scap_strerror(handle, errno));
 		fclose(f);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not read loginuid from %s", loginuid_path);
 	}
 
 	fclose(f);
@@ -582,9 +556,7 @@ int32_t scap_proc_fill_loginuid(scap_t *handle, struct scap_threadinfo* tinfo, c
 	else
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not read loginuid from %s",
-			 loginuid_path);
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, 0, "Could not read loginuid from %s", loginuid_path);
 	}
 }
 
@@ -630,16 +602,16 @@ int32_t scap_proc_fill_exe_writable(scap_t* handle, struct scap_threadinfo* tinf
 		}
 	}
 
-	if(thread_seteuid(orig_uid) < 0)
+	int ret;
+	if((ret = thread_seteuid(orig_uid)) < 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original euid from %d to %d",
+		return scap_errprintf(handle->m_lasterr, -ret, "Could not restore original euid from %d to %d",
 			uid, orig_uid);
-		return SCAP_FAILURE;
 	}
 
-	if(thread_setegid(orig_gid) < 0)
+	if((ret = thread_setegid(orig_gid)) < 0)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not restore original egid from %d to %d",
+		return scap_errprintf(handle->m_lasterr, -ret, "Could not restore original egid from %d to %d",
 			gid, orig_gid);
 		return SCAP_FAILURE;
 	}
@@ -691,8 +663,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		} else
 		{
 			ASSERT(false);
-			snprintf(error, SCAP_LASTERR_SIZE, "failed to fetch cgroup version information");
-			return SCAP_FAILURE;
+			return scap_errprintf(error, errno, "failed to fetch cgroup version information");
 		}
 	}
 
@@ -745,8 +716,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	if((tinfo = scap_proc_alloc(handle)) == NULL)
 	{
 		// Error message saved in handle->m_lasterr
-		snprintf(error, SCAP_LASTERR_SIZE, "can't allocate procinfo struct: %s", handle->m_lasterr);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't allocate procinfo struct: %s", handle->m_lasterr);
 	}
 
 	tinfo->tid = tid;
@@ -766,9 +736,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	f = fopen(filename, "r");
 	if(f == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open %s (error %s)", filename, scap_strerror(handle, errno));
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, errno, "can't open %s", filename);
 	}
 	else
 	{
@@ -776,11 +745,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 
 		if(fgets(line, SCAP_MAX_PATH_SIZE, f) == NULL)
 		{
-			snprintf(error, SCAP_LASTERR_SIZE, "can't read from %s (%s)",
-				 filename, scap_strerror(handle, errno));
 			fclose(f);
 			free(tinfo);
-			return SCAP_FAILURE;
+			return scap_errprintf(error, errno, "can't read from %s", filename);
 		}
 
 		line[SCAP_MAX_PATH_SIZE - 1] = 0;
@@ -791,9 +758,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	bool suppressed;
 	if ((res = scap_update_suppressed(handle, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't update set of suppressed tids (%s)", handle->m_lasterr);
 		free(tinfo);
-		return res;
+		return scap_errprintf(error, 0, "can't update set of suppressed tids (%s)", handle->m_lasterr);
 	}
 
 	if (suppressed && !procinfo)
@@ -810,10 +776,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	f = fopen(filename, "r");
 	if(f == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open cmdline file %s (%s)",
-			 filename, scap_strerror(handle, errno));
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, errno, "can't open cmdline file %s", filename);
 	}
 	else
 	{
@@ -854,10 +818,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	f = fopen(filename, "r");
 	if(f == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't open environ file %s (%s)",
-			 filename, scap_strerror(handle, errno));
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, errno, "can't open environ file %s", filename);
 	}
 	else
 	{
@@ -887,10 +849,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_cwd(handle, dir_name, tinfo))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cwd for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill cwd for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	//
@@ -898,10 +859,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle, dir_name, tinfo))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill uid and pid for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill uid and pid for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	//
@@ -909,18 +869,16 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_flimit(handle, tinfo->tid, tinfo))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill flimit for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill flimit for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	if(scap_proc_fill_cgroups(handle, tinfo, dir_name) == SCAP_FAILURE)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill cgroups for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	// These values should be read already from /status file, leave these
@@ -940,10 +898,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_root(handle, tinfo, dir_name))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill root for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill root for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	//
@@ -951,10 +908,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(SCAP_FAILURE == scap_proc_fill_loginuid(handle, tinfo, dir_name))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill loginuid for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill loginuid for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	if(stat(dir_name, &dirstat) == 0)
@@ -978,10 +934,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 
 	if(SCAP_FAILURE == scap_proc_fill_exe_writable(handle, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "can't fill exe writable access for %s (%s)",
-			 dir_name, handle->m_lasterr);
 		free(tinfo);
-		return SCAP_FAILURE;
+		return scap_errprintf(error, 0, "can't fill exe writable access for %s (%s)",
+			 dir_name, handle->m_lasterr);
 	}
 
 	//
@@ -998,9 +953,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			HASH_ADD_INT64(handle->m_proclist.m_proclist, tid, tinfo);
 			if(uth_status != SCAP_SUCCESS)
 			{
-				snprintf(error, SCAP_LASTERR_SIZE, "process table allocation error (2)");
 				free(tinfo);
-				return SCAP_FAILURE;
+				return scap_errprintf(error, 0, "process table allocation error (2)");
 			}
 		}
 		else
@@ -1050,7 +1004,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, add_error);
 	if(res != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
+		scap_errprintf(error, 0, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
 	}
 
 	if(sockets_by_ns != NULL && sockets_by_ns != (void*)-1)
@@ -1079,8 +1033,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 
 	if(dir_p == NULL)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error opening the %s directory (%s)",
-			 procdirname, scap_strerror(handle, errno));
+		scap_errprintf(error, errno, "error opening the %s directory", procdirname);
 		return SCAP_NOTFOUND;
 	}
 
@@ -1113,8 +1066,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if(tinfo != NULL)
 		{
 			ASSERT(false);
-			snprintf(error, SCAP_LASTERR_SIZE, "duplicate process %"PRIu64, tid);
-			res = SCAP_FAILURE;
+			res = scap_errprintf(error, 0, "duplicate process %"PRIu64, tid);
 			break;
 		}
 
@@ -1181,11 +1133,8 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 	FILE* f = fopen(filename, "r");
 	if(f == NULL)
 	{
-		char buf[SCAP_LASTERR_SIZE];
 		ASSERT(false);
-		snprintf(error, SCAP_LASTERR_SIZE, "can not open status file %s (%s)",
-			 filename, scap_strerror_r(buf, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(error, errno, "can not open status file %s", filename);
 	}
 
 	while(fgets(line, sizeof(line), f) != NULL)
@@ -1198,9 +1147,7 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 	}
 
 	fclose(f);
-	snprintf(error, SCAP_LASTERR_SIZE, "could not find tgid in status file %s",
-		 filename);
-	return SCAP_FAILURE;
+	return scap_errprintf(error, 0, "could not find tgid in status file %s", filename);
 }
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
@@ -1322,7 +1269,7 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 	dir_p = opendir(procdirname);
 	if(dir_p == NULL)
 	{
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", procdirname);
+		scap_errprintf(lasterr, errno, "error opening the %s directory", procdirname);
 		goto error;
 	}
 
@@ -1342,7 +1289,7 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 		taskdir_p = opendir(tasksdirname);
 		if(taskdir_p == NULL)
 		{
-			snprintf(lasterr, SCAP_LASTERR_SIZE, "error opening the %s directory", tasksdirname);
+			scap_errprintf(lasterr, errno, "error opening the %s directory", tasksdirname);
 			continue;
 		}
 
