@@ -33,7 +33,12 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
 	cgroup_list_counter.ut.cpp
-	sinsp.ut.cpp
+	events_file.ut.cpp
+	events_net.ut.cpp
+	events_param.ut.cpp
+	events_proc.ut.cpp
+	events_user.ut.cpp
+	external_processor.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
 	plugin_manager.ut.cpp
