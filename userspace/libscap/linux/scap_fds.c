@@ -78,9 +78,7 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
 	if (r <= 0)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "Could not read link %s (%s)",
-			 fname, scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(error, errno, "Could not read link %s", fname);
 	}
 	link_name[r] = '\0';
 	if(1 != sscanf(link_name, "pipe:[%"PRIi64"]", &ino))
@@ -432,10 +430,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 	if(NULL == f)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not open sockets file %s (%s)",
-			 filename,
-			 scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not open sockets file %s", filename);
 	}
 	while(NULL != fgets(line, sizeof(line), f))
 	{
@@ -562,11 +557,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 	if(NULL == f)
 	{
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not open netlink sockets file %s (%s)",
-			 filename,
-			 scap_strerror(handle, errno));
-
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not open netlink sockets file %s", filename);
 	}
 	while(NULL != fgets(line, sizeof(line), f))
 	{
@@ -715,10 +706,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 	{
 		ASSERT(false);
 		free(scan_buf);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not open ipv4 sockets dir %s (%s)",
-			 dir,
-			 scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not open ipv4 sockets dir %s", dir);
 	}
 
 	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
@@ -897,10 +885,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	{
 		ASSERT(false);
 		free(scan_buf);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not open ipv6 sockets dir %s (%s)",
-			 dir,
-			 scap_strerror(handle, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Could not open ipv6 sockets dir %s", dir);
 	}
 
 	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
