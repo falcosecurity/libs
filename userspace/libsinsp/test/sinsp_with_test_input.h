@@ -257,7 +257,11 @@ protected:
 	bool field_exists(sinsp_evt *evt, const std::string& field_name)
 	{
 		std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-		chk->parse_field_name(field_name.c_str(), true, false);
+		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
+		if (parse_result <= 0) {
+			throw sinsp_exception("The field " + field_name + " is not a valid field.");
+		}
+
 		std::vector<extract_value_t> values;
 		return chk->extract(evt, values);
 	}
@@ -269,10 +273,12 @@ protected:
 		if (parse_result <= 0) {
 			throw sinsp_exception("The field " + field_name + " is not a valid field.");
 		}
+
 		const char* result = chk->tostring(evt);
 		if (result == nullptr) {
 			throw sinsp_exception("The field " + field_name + " is NULL");
 		}
+
 		return result;
 	}
 
