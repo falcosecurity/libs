@@ -128,8 +128,8 @@ TEST(SyscallEnter, connectE_UNIX)
 	evt_test->assert_num_params_pushed(2);
 }
 
-/* This is long 109 chars, so no null terminator will be put inside the `sun_path` during the socket call.
- * The BPF prog can read at least `108` chars so instead of the `*`, it will put the `\0`.
+/* This is 109 chars long, so no null terminator will be put inside the `sun_path` during the socket call.
+ * The BPF prog can read at most `108` chars so instead of the `*`, it will put the `\0`.
  */
 #define UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg*"
 #define EXPECTED_UNIX_LONG_PATH "/unix_socket/test/too_long/too_long/too_long/too_long/unix_socket/test/too_long/too_long/too_long/too_longgg"
