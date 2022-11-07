@@ -898,9 +898,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 	// Set close-on-exec for the fd
 #ifndef _WIN32
 	if(fcntl(handle->m_dev_set.m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-		char buf[SCAP_LASTERR_SIZE];
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Can not set close-on-exec flag for fd for udig device (%s)", scap_strerror_r(buf, errno));
-		return SCAP_FAILURE;
+		return scap_errprintf(handle->m_lasterr, errno, "Can not set close-on-exec flag for fd for udig device");
 	}
 #endif
 
