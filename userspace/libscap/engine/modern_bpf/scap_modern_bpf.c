@@ -185,9 +185,14 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_
 	pman_consume_first_from_buffers((void**)pevent, pcpuid);
 	if((*pevent) == NULL)
 	{
-		/* Sleep 500 us */
-		usleep(500);
+		/* The first time we sleep 500 us, if we have consecutive timeouts we can reach also 30 ms. */
+		usleep(engine.m_handle->m_retry_us);
+		engine.m_handle->m_retry_us = MIN(engine.m_handle->m_retry_us * 2, BUFFER_EMPTY_WAIT_TIME_US_MAX);
 		return SCAP_TIMEOUT;
+	}
+	else
+	{
+		engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 	}
 	return SCAP_SUCCESS;
 }
@@ -269,6 +274,9 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
 	}
+
+	/* Set an initial sleep time in case of timeouts. */
+	engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
 
 	/* Return the number of system available CPUs, not online CPUs. */
 	engine.m_handle->m_num_cpus = pman_get_cpus_number();
