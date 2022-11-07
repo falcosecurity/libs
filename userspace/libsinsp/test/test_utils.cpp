@@ -67,6 +67,20 @@ void print_bytes(uint8_t *buf, size_t size)
 	printf("\n");
 }
 
+std::string describe_string(const char* nullable_string)
+{
+	std::string description;
+	if (nullable_string == nullptr) {
+		description.append("literal NULL");
+	} else {
+		description.append("\"");
+		description.append(nullable_string);
+		description.append("\"");
+	}
+
+	return description;
+}
+
 inline void vecbuf_append(std::vector<uint8_t> &dest, void* src, size_t size)
 {
 	uint8_t *src_bytes = reinterpret_cast<uint8_t*>(src);

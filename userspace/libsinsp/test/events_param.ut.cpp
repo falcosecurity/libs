@@ -25,7 +25,7 @@ limitations under the License.
 */
 
 /* Assert that empty (`PT_CHARBUF`, `PT_FSPATH`, `PT_FSRELPATH`) params are converted to `<NA>` */
-TEST_F(sinsp_with_test_input, check_charbuf_empty_param)
+TEST_F(sinsp_with_test_input, charbuf_empty_param)
 {
 	add_default_init_thread();
 
@@ -36,7 +36,12 @@ TEST_F(sinsp_with_test_input, check_charbuf_empty_param)
 	/* `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
 	 * A `NULL` `PT_CHARBUF` param is always converted to `<NA>`.
 	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, 0, NULL);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "<NA>");
+
+	// this, and the following similar checks, verify that the internal state is set as we need right now.
+	// if the internal state changes we can remove or update this check
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 5);
 	ASSERT_STREQ(param->m_val, "<NA>");
@@ -45,6 +50,8 @@ TEST_F(sinsp_with_test_input, check_charbuf_empty_param)
 	 * A `NULL` `PT_FSPATH` param is always converted to `<NA>`.
 	 */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 2, NULL, 0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "<NA>");
+
 	param = evt->get_param(0);
 	ASSERT_EQ(param->m_len, 5);
 	ASSERT_STREQ(param->m_val, "<NA>");
@@ -53,13 +60,15 @@ TEST_F(sinsp_with_test_input, check_charbuf_empty_param)
 	 * A `NULL` `PT_FSRELPATH` param is always converted to `<NA>`.
 	 */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, 0, NULL, 0);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.pathname"), "<NA>");
+
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 5);
 	ASSERT_STREQ(param->m_val, "<NA>");
 }
 
 /* Assert that a `PT_CHARBUF` with `len==1` (just the `\0`) is not changed. */
-TEST_F(sinsp_with_test_input, check_charbuf_len_1)
+TEST_F(sinsp_with_test_input, param_charbuf_len_1)
 {
 	add_default_init_thread();
 
@@ -70,7 +79,10 @@ TEST_F(sinsp_with_test_input, check_charbuf_len_1)
 	/* `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF`.
 	 * An empty `PT_CHARBUF` param ("") is not converted to `<NA>` since the length is 1.
 	 */
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, 0, "");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "");
+
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 1);
 	ASSERT_STREQ(param->m_val, "");
@@ -80,7 +92,7 @@ TEST_F(sinsp_with_test_input, check_charbuf_len_1)
  * Only scap-file could send a `PT_CHARBUF` with "(NULL)", in our
  * actual drivers this value is no more supported.
  */
-TEST_F(sinsp_with_test_input, check_charbuf_NULL_param)
+TEST_F(sinsp_with_test_input, charbuf_NULL_param)
 {
 	add_default_init_thread();
 
@@ -90,13 +102,15 @@ TEST_F(sinsp_with_test_input, check_charbuf_NULL_param)
 
 	/* `PPME_SYSCALL_CHDIR_X` is a simple event that uses a `PT_CHARBUF` */
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, 0, "(NULL)");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.path"), "<NA>");
+
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 5);
 	ASSERT_STREQ(param->m_val, "<NA>");
 }
 
 /* Assert that an empty `PT_BYTEBUF` param is NOT converted to `<NA>` */
-TEST_F(sinsp_with_test_input, check_bytebuf_empty_param)
+TEST_F(sinsp_with_test_input, bytebuf_empty_param)
 {
 	add_default_init_thread();
 
@@ -109,12 +123,14 @@ TEST_F(sinsp_with_test_input, check_bytebuf_empty_param)
 	bytebuf_param.buf = NULL;
 	bytebuf_param.size = 0;
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PWRITE_X, 2, 0, bytebuf_param);
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.data"), "NULL"); // "NULL" is the string representation output of the empty buffer
+
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 0);
 }
 
 /* Assert that empty (`PT_SOCKADDR`, `PT_SOCKTUPLE`, `PT_FDLIST`) params are NOT converted to `<NA>` */
-TEST_F(sinsp_with_test_input, check_sockaddr_empty_param)
+TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 {
 	add_default_init_thread();
 
@@ -147,7 +163,7 @@ TEST_F(sinsp_with_test_input, check_sockaddr_empty_param)
 	ASSERT_EQ(param->m_len, 0);
 }
 
-TEST_F(sinsp_with_test_input, test_file_name_toctou)
+TEST_F(sinsp_with_test_input, filename_toctou)
 {
 	// for more information see https://github.com/falcosecurity/falco/security/advisories/GHSA-6v9j-2vm2-ghf7
 
@@ -182,38 +198,21 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 
 	std::vector<const char*> invalid_inputs = {"<NA>", "(NULL)", NULL};
 
-	auto describe_filename = [](const char* filename)
-	{
-		std::string description;
-		if (filename == NULL) {
-			description.append("with literal NULL (0) as filename");
-		} else {
-			description.append("with filename: \"");
-			description.append(filename);
-			description.append("\"");
-		}
-
-		return description;
-	};
-
 	/* Check `openat` syscall.
 	 * `(NULL)` should be converted to `<NA>` and recognized as an invalid param.
 	 */
 	for (const char *enter_filename : invalid_inputs)
 	{
-		std::string test_context = std::string("openat ") + describe_filename(enter_filename);
+		std::string test_context = std::string("openat with filename ") + test_utils::describe_string(enter_filename);
 
 		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_E, 4, dirfd, enter_filename, 0, 0);
 		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_2_X, 7, new_fd, dirfd, expected_string, 0, 0, 0, 0);
-		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-		{
-			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
-			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
-		}
-		else
-		{
-			FAIL() << test_context;
-		}
+
+		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
+		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
+
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		dirfd++;
 		new_fd++;
@@ -222,19 +221,16 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	/* Check `openat2` syscall. */
 	for (const char *enter_filename : invalid_inputs)
 	{
-		std::string test_context = std::string("openat2 ") + describe_filename(enter_filename);
+		std::string test_context = std::string("openat2 with filename ") + test_utils::describe_string(enter_filename);
 
 		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_E, 5, dirfd, "<NA>", 0, 0, 0);
 		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT2_X, 6, new_fd, dirfd, expected_string, 0, 0, 0);
-		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-		{
-			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
-			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
-		}
-		else
-		{
-			FAIL() << test_context;
-		}
+
+		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
+		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
+
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		dirfd++;
 		new_fd++;
@@ -243,19 +239,16 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	/* Check `open` syscall. */
 	for (const char *enter_filename : invalid_inputs)
 	{
-		std::string test_context = std::string("open ") + describe_filename(enter_filename);
+		std::string test_context = std::string("open with filename ") + test_utils::describe_string(enter_filename);
 
 		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, NULL, 0, 0);
 		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, new_fd, expected_string, 0, 0, 0, 0);
-		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-		{
-			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
-			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
-		}
-		else
-		{
-			FAIL() << test_context;
-		}
+
+		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
+		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
+
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		new_fd++;
 	}
@@ -263,19 +256,16 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	/* Check `creat` syscall. */
 	for (const char *enter_filename : invalid_inputs)
 	{
-		std::string test_context = std::string("creat ") + describe_filename(enter_filename);
+		std::string test_context = std::string("creat with filename ") + test_utils::describe_string(enter_filename);
 
 		add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_E, 3, NULL, 0);
 		evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CREAT_X, 5, new_fd, expected_string, 0, 0, 0);
-		if(evt->get_thread_info() && evt->get_thread_info()->get_fd(new_fd))
-		{
-			ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
-			ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
-		}
-		else
-		{
-			FAIL() << test_context;
-		}
+
+		ASSERT_NE(evt->get_thread_info(), nullptr) << test_context;
+		ASSERT_NE(evt->get_thread_info()->get_fd(new_fd), nullptr) << test_context;
+
+		ASSERT_EQ(evt->get_thread_info()->get_fd(new_fd)->m_name, expected_string) << test_context;
+		ASSERT_EQ(get_field_as_string(evt, "fd.name"), expected_string) << test_context;
 
 		new_fd++;
 	}
@@ -300,7 +290,7 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry)
 }
 
 
-TEST_F(sinsp_with_test_input, check_event_category)
+TEST_F(sinsp_with_test_input, event_category)
 {
 	add_default_init_thread();
 
