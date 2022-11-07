@@ -18,11 +18,6 @@ limitations under the License.
 
 #pragma once
 
-typedef struct scap scap_t;
-
-const char *scap_strerror_r(char *buf, int errnum);
-const char *scap_strerror(scap_t *handle, int errnum);
-
 #ifdef __GNUC__
 int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...) __attribute__ ((format (printf, 3, 4)));
 #define scap_errprintf scap_errprintf_unchecked

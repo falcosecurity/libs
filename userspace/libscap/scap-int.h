@@ -66,9 +66,6 @@ struct scap
 	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
-	// Used for scap_strerror
-	char m_strerror_buf[SCAP_LASTERR_SIZE];
-
 	struct scap_proclist m_proclist;
 	scap_mountinfo* m_dev_list;
 	uint64_t m_evtcnt;
