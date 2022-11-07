@@ -27,6 +27,7 @@ struct scap;
 struct modern_bpf_engine
 {
 	size_t m_num_cpus;
+	unsigned long m_retry_us;
 	char* m_lasterr;
 	interesting_tp_set open_tp_set;
 };
