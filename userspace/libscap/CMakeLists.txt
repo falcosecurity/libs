@@ -103,6 +103,10 @@ target_link_libraries(scap
 	"${ZLIB_LIB}")
 endif()
 
+add_library(scap_error strerror.c)
+
+target_link_libraries(scap scap_error)
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 

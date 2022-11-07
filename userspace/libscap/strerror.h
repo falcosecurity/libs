@@ -22,3 +22,14 @@ typedef struct scap scap_t;
 
 const char *scap_strerror_r(char *buf, int errnum);
 const char *scap_strerror(scap_t *handle, int errnum);
+
+#ifdef __GNUC__
+int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...) __attribute__ ((format (printf, 3, 4)));
+#define scap_errprintf scap_errprintf_unchecked
+#else
+
+#include <stdio.h>
+
+#define scap_errprintf(BUF, ERRNUM, ...) ((void)sizeof(printf(__VA_ARGS__)), scap_errprintf_unchecked(BUF, ERRNUM, __VA_ARGS__))
+int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...);
+#endif
