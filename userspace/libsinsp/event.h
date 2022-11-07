@@ -415,14 +415,12 @@ private:
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
-		m_evtnum = 0;
 	}
 	inline void init()
 	{
 		init_keep_threadinfo();
 		m_tinfo_ref.reset();
 		m_tinfo = NULL;
-		m_evtnum = 0;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
@@ -435,7 +433,6 @@ private:
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_cpuid = cpuid;
-		m_evtnum = 0;
 		m_poriginal_evt = NULL;
 	}
 	inline void init(scap_evt *scap_event,
@@ -448,7 +445,6 @@ private:
 		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
 		m_tinfo = threadinfo;
 		m_fdinfo = fdinfo;
-		m_evtnum = 0;
 	}
 	inline void load_params()
 	{
