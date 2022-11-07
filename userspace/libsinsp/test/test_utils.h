@@ -38,4 +38,6 @@ std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
 
 void print_bytes(uint8_t *buf, size_t size);
 
+std::string describe_string(const char* nullable_string);
+
 } // namespace test_utils
