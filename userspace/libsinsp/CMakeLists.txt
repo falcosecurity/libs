@@ -123,6 +123,10 @@ set(SINSP_SOURCES
 	sinsp_ppm_sc.cpp
 	sinsp_tp.cpp)
 
+if(NOT WIN32)
+	list(APPEND SINSP_SOURCES procfs_utils.cpp)
+endif()
+
 if(WITH_CHISEL)
 	list(APPEND SINSP_SOURCES
 		../chisel/chisel_api.cpp
@@ -180,7 +184,6 @@ if(NOT MINIMAL_BUILD)
 		container_engine/mesos.cpp
 		container_engine/rkt.cpp
 		container_engine/bpm.cpp
-		procfs_utils.cpp
 		runc.cpp)
 	endif()
 
