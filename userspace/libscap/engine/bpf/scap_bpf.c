@@ -1024,17 +1024,17 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	struct bpf_engine* handle = engine.m_handle;
 
 	/* Enable requested tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
+	int ret = SCAP_SUCCESS;
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
 		if (handle->open_tp_set.tp[i])
 		{
-			if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
-			{
-				ASSERT(false);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable requested tracepoint %i\n", i);
-				return SCAP_FAILURE;
-			}
+			ret = scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i);
 		}
+	}
+	if (ret != SCAP_SUCCESS)
+	{
+		return ret;
 	}
 
 	if(calibrate_socket_file_ops() != SCAP_SUCCESS)
@@ -1049,20 +1049,13 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
-	struct bpf_engine* handle = engine.m_handle;
-
 	/* Disable all tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
+	int ret = SCAP_SUCCESS;
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i) != SCAP_SUCCESS)
-		{
-			ASSERT(false);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to disable tracepoints");
-			return SCAP_FAILURE;
-		}
+		ret = scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
 	}
-
-	return SCAP_SUCCESS;
+	return ret;
 }
 
 int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)

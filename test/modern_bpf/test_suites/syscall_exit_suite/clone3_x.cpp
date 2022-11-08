@@ -146,6 +146,8 @@ TEST(SyscallExit, clone3X_child)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
+	evt_test->disable_capture();
+
 	/* Child performs assertions on itself. */
 	if(ret_pid == 0)
 	{
@@ -164,8 +166,6 @@ TEST(SyscallExit, clone3X_child)
 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
-		evt_test->disable_capture();
 
 /* In some architectures we are not able to catch the `clone exit child
  * event` from the `sys_exit` tracepoint. This is because there is no

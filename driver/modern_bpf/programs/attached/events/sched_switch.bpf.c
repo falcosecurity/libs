@@ -1,5 +1,4 @@
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: /include/linux/events/sched.h
  * TP_PROTO(bool preempt, struct task_struct *prev,
@@ -10,11 +9,6 @@ int BPF_PROG(sched_switch,
 	     bool preempt, struct task_struct *prev,
 	     struct task_struct *next)
 {
-	if(!attached_programs__capture_enabled())
-	{
-		return 0;
-	}
-
 	/// TODO: we could avoid switches from kernel threads to kernel threads (?).
 
 	struct ringbuf_struct ringbuf;

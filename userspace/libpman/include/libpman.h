@@ -106,6 +106,12 @@ extern "C"
 	int pman_detach_all_programs(void);
 
 	/**
+	 * @brief Update single program state,
+	 * attaching or detaching it.
+	 */
+	int pman_update_single_program(int tp, bool enabled);
+
+	/**
 	 * @brief Attach only the syscall_exit_dispatcher
 	 *
 	 * @return `0` on success, `errno` in case of error.
@@ -232,13 +238,13 @@ extern "C"
 	 * @brief Enable BPF-capture if we have previously
 	 * disabled it.
 	 */
-	void pman_enable_capture(void);
+	int pman_enable_capture(bool *tp_set);
 
 	/**
 	 * @brief Disable BPF capture for example when we
 	 * want to dump a particular event.
 	 */
-	void pman_disable_capture(void);
+	int pman_disable_capture(void);
 
 	/**
 	 * @brief Receive a pointer to `struct scap_stats` and fill it

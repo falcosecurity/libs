@@ -6,7 +6,6 @@
  */
 
 #include <helpers/interfaces/variable_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: /include/trace/events/sched.h
  * TP_PROTO(struct task_struct *parent,
@@ -19,11 +18,6 @@ SEC("tp_btf/sched_process_fork")
 int BPF_PROG(sched_p_fork,
 	     struct task_struct *parent, struct task_struct *child)
 {
-	if(!attached_programs__capture_enabled())
-	{
-		return 0;
-	}
-
 	struct task_struct *task = get_current_task();
 	uint32_t flags = 0;
 	READ_TASK_FIELD_INTO(&flags, task, flags);
