@@ -234,7 +234,6 @@ struct scap_bpf_settings {
 	void *socket_file_ops;
 	uint32_t snaplen;
 	uint32_t sampling_ratio;
-	bool capture_enabled;
 	bool do_dynamic_snaplen;
 	bool dropping_mode;
 	bool is_dropping;
