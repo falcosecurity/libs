@@ -18,14 +18,28 @@ limitations under the License.
 #include "state.h"
 #include <scap.h>
 
-void pman_enable_capture()
+int pman_enable_capture(bool *tp_set)
 {
-	g_state.skel->bss->g_settings.capture_enabled = true;
+	if (!tp_set)
+	{
+		return pman_attach_all_programs();
+	}
+
+	int ret = 0;
+	/* Enable requested tracepoints */
+	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	{
+		if (tp_set[i])
+		{
+			ret = pman_update_single_program(i, true);
+		}
+	}
+	return ret;
 }
 
-void pman_disable_capture()
+int pman_disable_capture()
 {
-	g_state.skel->bss->g_settings.capture_enabled = false;
+	return pman_detach_all_programs();
 }
 
 #ifdef TEST_HELPERS

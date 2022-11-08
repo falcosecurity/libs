@@ -23,7 +23,6 @@
  */
 struct capture_settings
 {
-	bool capture_enabled; /* communicate if the capture is enabled or not. */
 	uint64_t boot_time;   /* boot time. */
 	uint32_t snaplen;     /* we use it when we want to read a maximum size from a event and no more. */
 };

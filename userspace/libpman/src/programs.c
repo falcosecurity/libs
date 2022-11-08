@@ -17,10 +17,92 @@ limitations under the License.
 
 #include "state.h"
 #include <feature_gates.h>
+#include <ppm_tp.h>
 
 /* Some notes about how a bpf program must be detached without unloading it:
  * https://lore.kernel.org/bpf/CAEf4BzZ8=dV0wvggAKnD64yXnhcXhdf1ovCT_LBd17RtJJXrdA@mail.gmail.com/T/
  */
+
+int pman_update_single_program(int tp, bool enabled)
+{
+	int ret = 0;
+	switch(tp)
+	{
+	case SYS_ENTER:
+		if (enabled)
+		{
+			ret = pman_attach_syscall_enter_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_enter_dispatcher();
+		}
+		break;
+
+	case SYS_EXIT:
+		if (enabled)
+		{
+			ret = pman_attach_syscall_exit_dispatcher();
+		}
+		else
+		{
+			ret = pman_detach_syscall_exit_dispatcher();
+		}
+		break;
+	case SCHED_PROC_EXIT:
+		if (enabled)
+		{
+			ret = pman_attach_sched_proc_exit();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exit();
+		}
+		break;
+
+	case SCHED_SWITCH:
+		if (enabled)
+		{
+			ret = pman_attach_sched_switch();
+		}
+		else
+		{
+			ret = pman_detach_sched_switch();
+		}
+		break;
+
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	case SCHED_PROC_EXEC:
+		if (enabled)
+		{
+			ret = pman_attach_sched_proc_exec();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_exec();
+		}
+		break;
+#endif
+
+#ifdef CAPTURE_SCHED_PROC_FORK
+	case SCHED_PROC_FORK:
+		if (enabled)
+		{
+			ret = pman_attach_sched_proc_fork();
+		}
+		else
+		{
+			ret = pman_detach_sched_proc_fork();
+		}
+		break;
+#endif
+
+	default:
+		/* Do nothing right now. */
+		break;
+	}
+	return ret;
+}
 
 /*=============================== ATTACH PROGRAMS ===============================*/
 
@@ -132,19 +214,12 @@ int pman_attach_sched_proc_fork()
 
 int pman_attach_all_programs()
 {
-	int err;
-	err = pman_attach_syscall_enter_dispatcher();
-	err = err ?: pman_attach_syscall_exit_dispatcher();
-	err = err ?: pman_attach_sched_proc_exit();
-	err = err ?: pman_attach_sched_switch();
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	err = err ?: pman_attach_sched_proc_exec();
-#endif
-#ifdef CAPTURE_SCHED_PROC_FORK
-	err = err ?: pman_attach_sched_proc_fork();
-#endif
-	/* add all other programs. */
-	return err;
+	int ret = 0;
+	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	{
+		ret = pman_update_single_program(i, true);
+	}
+	return ret;
 }
 
 /*=============================== ATTACH PROGRAMS ===============================*/
@@ -223,19 +298,13 @@ int pman_detach_sched_proc_fork()
 
 int pman_detach_all_programs()
 {
-	int err;
-	err = pman_detach_syscall_enter_dispatcher();
-	err = err ?: pman_detach_syscall_exit_dispatcher();
-	err = err ?: pman_detach_sched_proc_exit();
-	err = err ?: pman_detach_sched_switch();
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	err = err ?: pman_detach_sched_proc_exec();
-#endif
-#ifdef CAPTURE_SCHED_PROC_FORK
-	err = err ?: pman_detach_sched_proc_fork();
-#endif	
-	/* add all other programs. */
-	return err;
+	int ret = 0;
+	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	{
+		ret = pman_update_single_program(i, false);
+
+	}
+	return ret;
 }
 
 /*=============================== DETACH PROGRAMS ===============================*/

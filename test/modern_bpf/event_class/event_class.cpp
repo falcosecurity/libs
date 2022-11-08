@@ -96,18 +96,6 @@ event_test::~event_test()
 
 	/* 3 - clean all interesting syscalls. */
 	mark_all_64bit_syscalls_as_uninteresting();
-
-	/* 4 - detach all generic tracepoints attached to the kernel
-	 * apart from syscall dispatchers.
-	 */
-	pman_detach_sched_proc_exit();
-	pman_detach_sched_switch();
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	pman_detach_sched_proc_exec();
-#endif
-#ifdef CAPTURE_SCHED_PROC_FORK
-	pman_detach_sched_proc_fork();
-#endif
 }
 
 /* This constructor must be used with generic tracepoints
@@ -117,28 +105,17 @@ event_test::event_test(ppm_event_type event_type)
 {
 	m_current_param = 0;
 	m_event_type = event_type;
+	m_event_direction = BOTH_EVENT;
 	switch(event_type)
 	{
 	case PPME_PROCEXIT_1_E:
-		pman_attach_sched_proc_exit();
 		break;
-
 	case PPME_SCHEDSWITCH_6_E:
-		pman_attach_sched_switch();
 		break;
-
 	case PPME_SYSCALL_EXECVE_19_X:
-#ifdef CAPTURE_SCHED_PROC_EXEC
-		pman_attach_sched_proc_exec();
-#endif
 		break;
-
 	case PPME_SYSCALL_CLONE_20_X:
-#ifdef CAPTURE_SCHED_PROC_FORK
-		pman_attach_sched_proc_fork();
-#endif
 		break;
-
 	default:
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
 	}
@@ -147,7 +124,8 @@ event_test::event_test(ppm_event_type event_type)
 /* This constructor must be used with syscalls events */
 event_test::event_test(int syscall_id, int event_direction)
 {
-	if(event_direction == ENTER_EVENT)
+	m_event_direction = event_direction;
+	if(m_event_direction == ENTER_EVENT)
 	{
 		m_event_type = g_syscall_table[syscall_id].enter_event_type;
 	}
@@ -168,6 +146,8 @@ event_test::event_test(int syscall_id, int event_direction)
 event_test::event_test()
 {
 	m_current_param = 0;
+	m_event_type = PPM_EVENT_MAX;
+	m_event_direction = BOTH_EVENT;
 
 	for(int sys_num = 0; sys_num < SYSCALL_TABLE_SIZE; sys_num++)
 	{
@@ -187,7 +167,33 @@ void event_test::mark_all_64bit_syscalls_as_uninteresting()
 
 void event_test::enable_capture()
 {
-	pman_enable_capture();
+	bool tp_set[TP_VAL_MAX] = {0};
+	switch(m_event_type)
+	{
+	case PPME_PROCEXIT_1_E:
+		tp_set[SCHED_PROC_EXIT] = 1;
+		break;
+	case PPME_SCHEDSWITCH_6_E:
+		tp_set[SCHED_SWITCH] = 1;
+		break;
+	case PPME_SYSCALL_EXECVE_19_X:
+		tp_set[SCHED_PROC_EXEC] = 1;
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+		tp_set[SCHED_PROC_FORK] = 1;
+		break;
+	default:
+		if (m_event_direction & ENTER_EVENT)
+		{
+			tp_set[SYS_ENTER] = 1;
+		}
+		if (m_event_direction & EXIT_EVENT)
+		{
+			tp_set[SYS_EXIT] = 1;
+		}
+		break;
+	}
+	pman_enable_capture(tp_set);
 }
 
 void event_test::disable_capture()

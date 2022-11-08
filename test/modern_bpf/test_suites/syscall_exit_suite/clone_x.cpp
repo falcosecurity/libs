@@ -82,7 +82,6 @@ TEST(SyscallExit, cloneX_father)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
-
 	evt_test->assert_event_presence();
 
 	if(HasFatalFailure())

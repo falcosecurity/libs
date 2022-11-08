@@ -20,6 +20,7 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdlib.h>
 #include "../../../../driver/ppm_events_public.h"
+#include "scap_open.h"
 
 struct scap;
 
@@ -27,6 +28,5 @@ struct modern_bpf_engine
 {
 	size_t m_num_cpus;
 	char* m_lasterr;
+	interesting_tp_set open_tp_set;
 };
-
-#define SCAP_HANDLE_T struct modern_bpf_engine

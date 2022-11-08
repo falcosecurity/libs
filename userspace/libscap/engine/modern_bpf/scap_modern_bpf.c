@@ -20,6 +20,7 @@ limitations under the License.
 #include <libpman.h>
 
 #include "scap_modern_bpf.h"
+#define SCAP_HANDLE_T struct modern_bpf_engine
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_procs.h"
@@ -33,107 +34,6 @@ limitations under the License.
 #define REQUIRED_PATCH 0
 
 /*=============================== UTILS ===============================*/
-
-static int32_t update_single_tp_of_interest(int tp, bool interesting)
-{
-	int ret = SCAP_SUCCESS;
-	switch(tp)
-	{
-	case SYS_ENTER:
-		if (interesting)
-		{
-			ret = pman_attach_syscall_enter_dispatcher();
-		}
-		else
-		{
-			ret = pman_detach_syscall_enter_dispatcher();
-		}
-		break;
-
-	case SYS_EXIT:
-		if (interesting)
-		{
-			ret = pman_attach_syscall_exit_dispatcher();
-		}
-		else
-		{
-			ret = pman_detach_syscall_exit_dispatcher();
-		}
-		break;
-	case SCHED_PROC_EXIT:
-		if (interesting)
-		{
-			ret = pman_attach_sched_proc_exit();
-		}
-		else
-		{
-			ret = pman_detach_sched_proc_exit();
-		}
-		break;
-
-	case SCHED_SWITCH:
-		if (interesting)
-		{
-			ret = pman_attach_sched_switch();
-		}
-		else
-		{
-			ret = pman_detach_sched_switch();
-		}
-		break;
-
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	case SCHED_PROC_EXEC:
-		if (interesting)
-		{
-			ret = pman_attach_sched_proc_exec();
-		}
-		else
-		{
-			ret = pman_detach_sched_proc_exec();
-		}
-		break;
-#endif
-
-#ifdef CAPTURE_SCHED_PROC_FORK
-	case SCHED_PROC_FORK:
-		if (interesting)
-		{
-			ret = pman_attach_sched_proc_fork();
-		}
-		else
-		{
-			ret = pman_detach_sched_proc_fork();
-		}
-		break;
-#endif
-
-	default:
-		/* Do nothing right now. */
-		break;
-	}
-	return ret;
-}
-
-static int32_t attach_interesting_tracepoints(bool* tp_array)
-{
-	int ret = SCAP_SUCCESS;
-	if(tp_array == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
-	for(int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
-	{
-		/* If the tracepoint is not interesting, continue */
-		if(!tp_array[tp])
-		{
-			continue;
-		}
-		ret = update_single_tp_of_interest(tp, true);
-	}
-	return ret;
-}
 
 static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting)
 {
@@ -264,7 +164,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		}
 		return SCAP_SUCCESS;
 	case SCAP_TPMASK:
-		return update_single_tp_of_interest(arg2, arg1 == SCAP_TPMASK_SET);
+		return pman_update_single_program(arg2, arg1 == SCAP_TPMASK_SET);
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;
@@ -289,14 +189,13 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
-	pman_enable_capture();
-	return SCAP_SUCCESS;
+	struct modern_bpf_engine* handle = engine.m_handle;
+	return pman_enable_capture(handle->open_tp_set.tp);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
 {
-	pman_disable_capture();
-	return SCAP_SUCCESS;
+	return pman_disable_capture();
 }
 
 int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
@@ -340,11 +239,14 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
 	ret = ret ?: populate_64bit_interesting_syscalls_table(oargs->ppm_sc_of_interest.ppm_sc);
-	ret = ret ?: attach_interesting_tracepoints(oargs->tp_of_interest.tp);
+	// Do not attach tracepoints at this stage.
 	if(ret != SCAP_SUCCESS)
 	{
 		return ret;
 	}
+
+	/* Store interesting Tracepoints */
+	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
 
 	/* Set the boot time */
 	uint64_t boot_time = 0;

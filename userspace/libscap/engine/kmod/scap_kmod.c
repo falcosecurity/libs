@@ -488,12 +488,12 @@ return SCAP_SUCCESS;
 int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 {
 	/* Disable all tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
+	int ret = SCAP_SUCCESS;
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
+		ret = scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
 	}
-
-	return SCAP_SUCCESS;
+	return ret;
 }
 
 //
@@ -504,20 +504,16 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 	struct kmod_engine* handle = engine.m_handle;
 
 	/* Enable requested tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
+	int ret = SCAP_SUCCESS;
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
 		if (handle->open_tp_set.tp[i])
 		{
-			if (scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
-			{
-				ASSERT(false);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable requested tracepoint %i\n", i);
-				return SCAP_FAILURE;
-			}
+			ret = scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_SET, i);
 		}
 	}
 
-	return SCAP_SUCCESS;
+	return ret;
 }
 
 static int32_t scap_kmod_set_dropping_mode(struct scap_engine_handle engine, int request, uint32_t sampling_ratio)

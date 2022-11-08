@@ -1,5 +1,4 @@
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/attached_programs.h>
 #include <driver/systype_compat.h>
 
 /* From linux tree: /include/trace/events/sched.h
@@ -9,11 +8,6 @@ SEC("tp_btf/sched_process_exit")
 int BPF_PROG(sched_proc_exit,
 	     struct task_struct *task)
 {
-	if(!attached_programs__capture_enabled())
-	{
-		return 0;
-	}
-
 	uint32_t flags = 0;
 	READ_TASK_FIELD_INTO(&flags, task, flags);
 
