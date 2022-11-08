@@ -215,7 +215,7 @@ struct scap_vtable {
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @return SCAP_SUCCESS or a failure code
 	 */
-	int32_t (*start_capture)(struct scap_engine_handle engine, scap_open_args* open_arg);
+	int32_t (*start_capture)(struct scap_engine_handle engine);
 
 	/**
 	 * @brief stop a running capture

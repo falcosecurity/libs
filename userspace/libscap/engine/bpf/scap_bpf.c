@@ -1018,23 +1018,9 @@ static int32_t calibrate_socket_file_ops()
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_start_capture(struct scap_engine_handle engine, scap_open_args* open_args)
+int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
-
-	/* Enable interesting tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
-	{
-		if (open_args->tp_of_interest.tp[i])
-		{
-			if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
-			{
-				ASSERT(false);
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable tracepoint %d\n", i);
-				return SCAP_FAILURE;
-			}
-		}
-	}
 
 	if(calibrate_socket_file_ops() != SCAP_SUCCESS)
 	{
@@ -1431,9 +1417,9 @@ int32_t scap_bpf_load(
 	}
 
 	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
-	// Initially do not attach any tracepoint; they will be attached when starting the capture
-	interesting_tp_set initial_tp_set = {0};
-	if(load_bpf_file(handle, api_version_p, schema_version_p, &initial_tp_set) != SCAP_SUCCESS)
+
+	// Enable requested tracepoints immediately
+	if(load_bpf_file(handle, api_version_p, schema_version_p, &oargs->tp_of_interest) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
