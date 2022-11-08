@@ -80,7 +80,7 @@ extern "C"
 	 * Set any tracepoint idx to true to enable its tracing at driver level,
 	 * otherwise a tp is not attached (so called "uninteresting tracepoint").
 	 */
-	 typedef struct
+	typedef struct
 	{
 		bool tp[TP_VAL_MAX];
 	} interesting_tp_set;
