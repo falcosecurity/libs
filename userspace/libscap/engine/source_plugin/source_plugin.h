@@ -48,5 +48,3 @@ struct source_plugin_engine
 	ss_plugin_rc m_input_plugin_last_batch_res;
 
 };
-
-#define SCAP_HANDLE_T struct source_plugin_engine

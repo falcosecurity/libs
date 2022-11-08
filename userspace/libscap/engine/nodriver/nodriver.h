@@ -24,5 +24,3 @@ struct nodriver_engine
 {
 	char* m_lasterr;
 };
-
-#define SCAP_HANDLE_T struct nodriver_engine

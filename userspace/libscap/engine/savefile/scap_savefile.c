@@ -30,6 +30,7 @@ struct iovec {
 #endif
 
 #include "../common/strlcpy.h"
+#define SCAP_HANDLE_T struct savefile_engine
 #include "savefile.h"
 #include "scap.h"
 #include "scap-int.h"
