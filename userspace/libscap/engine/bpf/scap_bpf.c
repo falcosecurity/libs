@@ -71,6 +71,8 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 #include "ringbuffer/ringbuffer.h"
 #endif
 
+static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp);
+
 //
 // Some of this code is taken from the kernel samples under samples/bpf,
 // namely the parsing of the ELF objects, which is very tedious and not
@@ -108,7 +110,7 @@ static void free_handle(struct scap_engine_handle engine)
 
 # define UINT32_MAX (4294967295U)
 
-/* Recommended log buffer size. 
+/* Recommended log buffer size.
  * Taken from libbpf source code: https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
  */
 static const int BPF_LOG_SIZE = UINT32_MAX >> 8; /* verifier maximum in kernels <= 5.1 */
@@ -141,7 +143,7 @@ static int32_t lookup_filler_id(const char *filler_name)
 {
 	int j;
 
-	/* In our table we must have a filler_name corresponding to the final 
+	/* In our table we must have a filler_name corresponding to the final
 	 * part of the elf section.
 	 */
 	for(j = 0; j < sizeof(g_filler_names) / sizeof(g_filler_names[0]); ++j)
@@ -246,7 +248,7 @@ static int bpf_load_program(const struct bpf_insn *insns,
 		return fd;
 	}
 
-	/* Try a second time catching verifier logs. This step is performed 
+	/* Try a second time catching verifier logs. This step is performed
 	 * only if we have a buffer for collecting them (so only if we
 	 * pass to `bpf_load_program()` function a `log_buf`!= NULL).
 	 */
@@ -574,7 +576,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 			return SCAP_FAILURE;
 		}
 
-		/* Fill the tail table. The key is our filler internal code extracted 
+		/* Fill the tail table. The key is our filler internal code extracted
 		 * from `g_filler_names` in `lookup_filler_id` function. The value
 		 * is the program fd.
 		 */
@@ -666,7 +668,7 @@ static int32_t load_bpf_file(
 	struct bpf_engine *handle,
 	uint64_t *api_version_p,
 	uint64_t *schema_version_p,
-	scap_open_args *oargs)
+	interesting_tp_set *tp_of_interest)
 {
 	int j;
 	int maps_shndx = 0;
@@ -824,7 +826,7 @@ static int32_t load_bpf_file(
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
 		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
-			if(is_tp_enabled(&(oargs->tp_of_interest), shname))
+			if(is_tp_enabled(tp_of_interest, shname))
 			{
 				bool already_attached = false;
 				for (int i = 0; i < handle->m_bpf_prog_cnt && !already_attached; i++)
@@ -989,7 +991,7 @@ static int32_t populate_fillers_table_map(struct bpf_engine *handle)
 		}
 	}
 
-	/* Even if the filler ppm code is defined it could happen that there 
+	/* Even if the filler ppm code is defined it could happen that there
 	 * is no filler implementation, some fillers are architecture-specifc.
 	 * For example `sched_prog_exec` filler exists only on `ARM64` while
 	 * `sys_pagefault_e` exists only on `x86`.
@@ -1016,23 +1018,22 @@ static int32_t calibrate_socket_file_ops()
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
+int32_t scap_bpf_start_capture(struct scap_engine_handle engine, scap_open_args* open_args)
 {
 	struct bpf_engine* handle = engine.m_handle;
-	struct scap_bpf_settings settings;
-	int k = 0;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	/* Enable interesting tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
-	}
-
-	settings.capture_enabled = true;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		if (open_args->tp_of_interest.tp[i])
+		{
+			if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
+			{
+				ASSERT(false);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable tracepoint %d\n", i);
+				return SCAP_FAILURE;
+			}
+		}
 	}
 
 	if(calibrate_socket_file_ops() != SCAP_SUCCESS)
@@ -1048,20 +1049,16 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
-	struct scap_bpf_settings settings;
-	int k = 0;
 
-	if(bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings) != 0)
+	/* Disable all tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_lookup_elem < 0");
-		return SCAP_FAILURE;
-	}
-
-	settings.capture_enabled = false;
-	if(bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings, BPF_ANY) != 0)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "SCAP_SETTINGS_MAP bpf_map_update_elem < 0");
-		return SCAP_FAILURE;
+		if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i) != SCAP_SUCCESS)
+		{
+			ASSERT(false);
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to disable tracepoints");
+			return SCAP_FAILURE;
+		}
 	}
 
 	return SCAP_SUCCESS;
@@ -1390,7 +1387,6 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.socket_file_ops = NULL;
 	settings.snaplen = RW_SNAPLEN;
 	settings.sampling_ratio = 1;
-	settings.capture_enabled = false;
 	settings.do_dynamic_snaplen = false;
 	settings.dropping_mode = false;
 	settings.is_dropping = false;
@@ -1435,7 +1431,9 @@ int32_t scap_bpf_load(
 	}
 
 	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
-	if(load_bpf_file(handle, api_version_p, schema_version_p, oargs) != SCAP_SUCCESS)
+	// Initially do not attach any tracepoint; they will be attached when starting the capture
+	interesting_tp_set initial_tp_set = {0};
+	if(load_bpf_file(handle, api_version_p, schema_version_p, &initial_tp_set) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1693,9 +1691,9 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 
 	uint64_t api_version_p;
 	uint64_t schema_version_p;
-	scap_open_args oargs = {0};
-	oargs.tp_of_interest.tp[tp] = 1;
-	return load_bpf_file(handle, &api_version_p, &schema_version_p, &oargs);
+	interesting_tp_set new_tp_set = {0};
+	new_tp_set.tp[tp] = 1;
+	return load_bpf_file(handle, &api_version_p, &schema_version_p, &new_tp_set);
 }
 
 static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
@@ -1709,7 +1707,7 @@ static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint
 			ret = update_interesting_syscalls_map(engine, SCAP_EVENTMASK_UNSET, ppm_sc);
 		}
 		break;
-	
+
 	case SCAP_EVENTMASK_SET:
 	case SCAP_EVENTMASK_UNSET:
 		ret = update_interesting_syscalls_map(engine, op, ppm_sc);

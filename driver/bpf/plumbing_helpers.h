@@ -528,9 +528,9 @@ static __always_inline void reset_tail_ctx(struct scap_bpf_per_cpu_state *state,
 static __always_inline void call_filler(void *ctx,
 					void *stack_ctx,
 					enum ppm_event_type evt_type,
-					struct scap_bpf_settings *settings,
 					enum syscall_flags drop_flags)
 {
+	struct scap_bpf_settings *settings;
 	const struct ppm_event_entry *filler_info;
 	struct scap_bpf_per_cpu_state *state;
 	unsigned long long pid;
@@ -541,6 +541,10 @@ static __always_inline void call_filler(void *ctx,
 
 	state = get_local_state(cpu);
 	if (!state)
+		return;
+
+	settings = get_bpf_settings();
+	if (!settings)
 		return;
 
 	if (!acquire_local_state(state))
