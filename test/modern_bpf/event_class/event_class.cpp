@@ -531,11 +531,11 @@ void event_test::assert_cgroup_param(int param_num)
 
 	for(int index = 0; index < CGROUP_NUMBER; index++)
 	{
-		total_len += strlcpy(cgroup_string, m_event_params[m_current_param].valptr + total_len, sizeof(cgroup_string));
-		total_len += 1;
+		strlcpy(cgroup_string, m_event_params[m_current_param].valptr + total_len, MAX_CGROUP_STRING_LEN);
+		total_len += strlen(cgroup_string) + 1;
 
 		prefix_len = strlen(cgroup_prefix_array[index]);
-		strlcpy(cgroup_prefix, cgroup_string, prefix_len);
+		strlcpy(cgroup_prefix, cgroup_string, prefix_len + 1);
 		ASSERT_STREQ(cgroup_prefix, cgroup_prefix_array[index]) << VALUE_NOT_CORRECT << m_current_param;
 	}
 	assert_param_len(total_len);
