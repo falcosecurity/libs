@@ -70,7 +70,7 @@ void convert_to_string(char* dest, size_t len, uint32_t addr)
 
 #define EXPECT_ADDR_EQ(dotted_notation,addr) {\
 	char buf[17];\
-	convert_to_string(buf,17,addr);\
+	convert_to_string(buf, sizeof(buf), addr);\
 	EXPECT_STREQ(dotted_notation,buf);\
 };
 
