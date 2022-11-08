@@ -36,6 +36,7 @@ limitations under the License.
 
 #include "gvisor.h"
 #include "parsers.h"
+#include "compat/misc.h"
 #include "../../driver/ppm_events_public.h"
 #include "../../../common/strlcpy.h"
 
