@@ -48,5 +48,11 @@ struct bpf_engine
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
 	char m_filepath[PATH_MAX];
+
+	/* ELF related */
+	int program_fd;
+	Elf *elf;
+	GElf_Ehdr ehdr;
+
 	interesting_tp_set open_tp_set;
 };

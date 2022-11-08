@@ -669,8 +669,7 @@ static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname
 static int32_t load_bpf_file(
 	struct bpf_engine *handle,
 	uint64_t *api_version_p,
-	uint64_t *schema_version_p,
-	interesting_tp_set *tp_of_interest)
+	uint64_t *schema_version_p)
 {
 	int j;
 	int maps_shndx = 0;
@@ -701,126 +700,144 @@ static int32_t load_bpf_file(
 		return SCAP_FAILURE;
 	}
 
-	int program_fd = open(handle->m_filepath, O_RDONLY, 0);
-	if(program_fd < 0)
+	if (!handle->elf)
 	{
-		char buf[SCAP_LASTERR_SIZE];
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", handle->m_filepath, scap_strerror_r(buf, errno));
-		return SCAP_FAILURE;
-	}
-
-	Elf *elf = elf_begin(program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
-	if(!elf)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
-		goto cleanup;
-	}
-
-	GElf_Ehdr ehdr;
-	if(gelf_getehdr(elf, &ehdr) != &ehdr)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF header");
-		goto cleanup;
-	}
-
-	for(j = 0; j < ehdr.e_shnum; ++j)
-	{
-		if(get_elf_section(elf, j, &ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
+		handle->program_fd = open(handle->m_filepath, O_RDONLY, 0);
+		if(handle->program_fd < 0)
 		{
-			continue;
+			char buf[SCAP_LASTERR_SIZE];
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open BPF probe '%s': %s", handle->m_filepath, scap_strerror_r(buf, errno));
+			return SCAP_FAILURE;
 		}
 
-		if(strcmp(shname, "maps") == 0)
+		handle->elf = elf_begin(handle->program_fd, ELF_C_READ_MMAP_PRIVATE, NULL);
+		if(!handle->elf)
 		{
-			maps_shndx = j;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF format");
+			goto end;
 		}
-		else if(shdr.sh_type == SHT_SYMTAB)
+
+		if(gelf_getehdr(handle->elf, &handle->ehdr) != &handle->ehdr)
 		{
-			strtabidx = shdr.sh_link;
-			symbols = data;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't read ELF header");
+			goto end;
 		}
-		else if(strcmp(shname, "kernel_version") == 0) {
-			if(strcmp(osname.release, data->d_buf))
-			{
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe is compiled for %s, but running version is %s",
-					 (char *) data->d_buf, osname.release);
-				goto cleanup;
-			}
-		}
-		else if(strcmp(shname, "api_version") == 0) {
-			got_api_version = true;
-			memcpy(api_version_p, data->d_buf, sizeof(*api_version_p));
-		}
-		else if(strcmp(shname, "schema_version") == 0) {
-			got_schema_version = true;
-			memcpy(schema_version_p, data->d_buf, sizeof(*schema_version_p));
-		}
-		else if(strcmp(shname, "license") == 0)
+
+		for(j = 0; j < handle->ehdr.e_shnum; ++j)
 		{
-			license = data->d_buf;
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
-		}
-	}
-
-	if(!got_api_version)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing api_version section");
-		goto cleanup;
-	}
-
-	if(!got_schema_version)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing schema_version section");
-		goto cleanup;
-	}
-
-	if(!symbols)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing SHT_SYMTAB section");
-		goto cleanup;
-	}
-
-	if(maps_shndx)
-	{
-		if(load_elf_maps_section(handle, maps, maps_shndx, elf, symbols, strtabidx, &nr_maps) != SCAP_SUCCESS)
-		{
-			goto cleanup;
-		}
-
-		if(load_maps(handle, maps, nr_maps) != SCAP_SUCCESS)
-		{
-			goto cleanup;
-		}
-	}
-
-	for(j = 0; j < ehdr.e_shnum; ++j)
-	{
-		if(get_elf_section(elf, j, &ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
-		{
-			continue;
-		}
-
-		if(shdr.sh_type == SHT_REL)
-		{
-			struct bpf_insn *insns;
-
-			if(get_elf_section(elf, shdr.sh_info, &ehdr, &shname_prog, &shdr_prog, &data_prog) != SCAP_SUCCESS)
+			if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
 			{
 				continue;
 			}
 
-			insns = (struct bpf_insn *) data_prog->d_buf;
+			if(strcmp(shname, "maps") == 0)
+			{
+				maps_shndx = j;
+			}
+			else if(shdr.sh_type == SHT_SYMTAB)
+			{
+				strtabidx = shdr.sh_link;
+				symbols = data;
+			}
+			else if(strcmp(shname, "kernel_version") == 0)
+			{
+				if(strcmp(osname.release, data->d_buf))
+				{
+					snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe is compiled for %s, but running version is %s",
+						 (char *)data->d_buf, osname.release);
+					goto end;
+				}
+			}
+			else if(strcmp(shname, "api_version") == 0)
+			{
+				got_api_version = true;
+				memcpy(api_version_p, data->d_buf, sizeof(*api_version_p));
+			}
+			else if(strcmp(shname, "schema_version") == 0)
+			{
+				got_schema_version = true;
+				memcpy(schema_version_p, data->d_buf, sizeof(*schema_version_p));
+			}
+			else if(strcmp(shname, "license") == 0)
+			{
+				license = data->d_buf;
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "BPF probe license is %s", license);
+			}
+		}
 
-			if(parse_relocations(handle, data, symbols, &shdr, insns, maps, nr_maps))
+		if(!got_api_version)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing api_version section");
+			goto end;
+		}
+
+		if(!got_schema_version)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing schema_version section");
+			goto end;
+		}
+
+		if(!symbols)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "missing SHT_SYMTAB section");
+			goto end;
+		}
+
+		if(maps_shndx)
+		{
+			if(load_elf_maps_section(handle, maps, maps_shndx, handle->elf, symbols, strtabidx, &nr_maps) != SCAP_SUCCESS)
+			{
+				goto end;
+			}
+
+			if(load_maps(handle, maps, nr_maps) != SCAP_SUCCESS)
+			{
+				goto end;
+			}
+		}
+
+		for(j = 0; j < handle->ehdr.e_shnum; ++j)
+		{
+			if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
 			{
 				continue;
 			}
+
+			if(shdr.sh_type == SHT_REL)
+			{
+				struct bpf_insn *insns;
+
+				if(get_elf_section(handle->elf, shdr.sh_info, &handle->ehdr, &shname_prog, &shdr_prog, &data_prog) != SCAP_SUCCESS)
+				{
+					continue;
+				}
+
+				insns = (struct bpf_insn *)data_prog->d_buf;
+
+				if(parse_relocations(handle, data, symbols, &shdr, insns, maps, nr_maps))
+				{
+					continue;
+				}
+			}
 		}
 	}
+	res = SCAP_SUCCESS;
+end:
+	return res;
+}
 
-	for(j = 0; j < ehdr.e_shnum; ++j)
+static int load_tracepoints(struct bpf_engine *handle,
+			    interesting_tp_set *tp_of_interest)
+{
+	int j;
+	int32_t res = SCAP_FAILURE;
+	GElf_Shdr shdr;
+	Elf_Data *data;
+	char *shname;
+
+	for(j = 0; j < handle->ehdr.e_shnum; ++j)
 	{
-		if(get_elf_section(elf, j, &ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
+		if(get_elf_section(handle->elf, j, &handle->ehdr, &shname, &shdr, &data) != SCAP_SUCCESS)
 		{
 			continue;
 		}
@@ -843,17 +860,14 @@ static int32_t load_bpf_file(
 				{
 					if(load_tracepoint(handle, shname, data->d_buf, data->d_size) != SCAP_SUCCESS)
 					{
-						goto cleanup;
+						goto end;
 					}
 				}
 			}
 		}
 	}
-
 	res = SCAP_SUCCESS;
-cleanup:
-	elf_end(elf);
-	close(program_fd);
+end:
 	return res;
 }
 
@@ -1300,6 +1314,11 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	handle->m_bpf_prog_cnt = 0;
 	handle->m_bpf_prog_array_map_idx = -1;
 
+	elf_end(handle->elf);
+	handle->elf = NULL;
+	close(handle->program_fd);
+	handle->program_fd = -1;
+
 	return SCAP_SUCCESS;
 }
 
@@ -1427,15 +1446,16 @@ int32_t scap_bpf_load(
 
 	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
 
-	/* Store interesting Tracepoints */
-	memcpy(&handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
-
-	/* Start with all tracepoints disabled */
-	interesting_tp_set initial_tp_set = {0};
-	if(load_bpf_file(handle, api_version_p, schema_version_p, &initial_tp_set) != SCAP_SUCCESS)
+	if(load_bpf_file(handle, api_version_p, schema_version_p) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
+
+	/* Store interesting Tracepoints */
+	memcpy(&handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
+	/* Start with all tracepoints disabled */
+	interesting_tp_set initial_tp_set = {0};
+	load_tracepoints(handle, &initial_tp_set);
 
 	if(populate_syscall_table_map(handle) != SCAP_SUCCESS)
 	{
@@ -1688,11 +1708,9 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 		return SCAP_SUCCESS;
 	}
 
-	uint64_t api_version_p;
-	uint64_t schema_version_p;
 	interesting_tp_set new_tp_set = {0};
 	new_tp_set.tp[tp] = 1;
-	return load_bpf_file(handle, &api_version_p, &schema_version_p, &new_tp_set);
+	return load_tracepoints(handle, &new_tp_set);
 }
 
 static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
