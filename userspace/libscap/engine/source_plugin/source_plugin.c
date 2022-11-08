@@ -15,6 +15,8 @@ limitations under the License.
 
 */
 
+#define SCAP_HANDLE_T struct source_plugin_engine
+
 #include <stdlib.h>
 #include <stdio.h>
 

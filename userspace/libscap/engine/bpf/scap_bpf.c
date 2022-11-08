@@ -33,8 +33,9 @@ limitations under the License.
 #include <time.h>
 #include <dirent.h>
 
-#include "bpf.h"
 #define SCAP_HANDLE_T struct bpf_engine
+
+#include "bpf.h"
 #include "engine_handle.h"
 #include "scap.h"
 #include "scap-int.h"

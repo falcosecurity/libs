@@ -17,6 +17,8 @@
 #include <windows.h>
 #endif // _WIN32
 
+#define SCAP_HANDLE_T struct udig_engine
+
 #include "../common/strlcpy.h"
 #include "udig.h"
 #include "scap.h"

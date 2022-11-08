@@ -32,5 +32,3 @@ struct udig_engine
 	HANDLE m_win_descs_handle;
 #endif
 };
-
-#define SCAP_HANDLE_T struct udig_engine
