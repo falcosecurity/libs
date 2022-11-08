@@ -418,12 +418,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		scap_kmod_handle_event_mask(engine, op, ppm_sc);
 	}
 
-	/* Set interesting Tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
-	{
-		uint32_t op = oargs->tp_of_interest.tp[i] ? SCAP_TPMASK_SET : SCAP_TPMASK_UNSET;
-		scap_kmod_handle_tp_mask(engine, op, i);
-	}
+	/* Store interesting Tracepoints */
+	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
 
 	return SCAP_SUCCESS;
 }
@@ -491,23 +487,10 @@ return SCAP_SUCCESS;
 //
 int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 {
-	uint32_t j;
-
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	//
-	// Disable capture on all the rings
-	//
-	for(j = 0; j < devset->m_ndevs; j++)
+	/* Disable all tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		struct scap_device *dev = &devset->m_devs[j];
-		{
-			if(ioctl(dev->m_fd, PPM_IOCTL_DISABLE_CAPTURE))
-			{
-				snprintf(engine.m_handle->m_lasterr,	SCAP_LASTERR_SIZE, "scap_stop_capture failed for device %" PRIu32, j);
-				ASSERT(false);
-				return SCAP_FAILURE;
-			}
-		}
+		scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
 	}
 
 	return SCAP_SUCCESS;
@@ -518,15 +501,19 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 //
 int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 {
-	uint32_t j;
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	for(j = 0; j < devset->m_ndevs; j++)
+	struct kmod_engine* handle = engine.m_handle;
+
+	/* Enable requested tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
 	{
-		if(ioctl(devset->m_devs[j].m_fd, PPM_IOCTL_ENABLE_CAPTURE))
+		if (handle->open_tp_set.tp[i])
 		{
-			snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_capture failed for device %" PRIu32, j);
-			ASSERT(false);
-			return SCAP_FAILURE;
+			if (scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
+			{
+				ASSERT(false);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable requested tracepoint %i\n", i);
+				return SCAP_FAILURE;
+			}
 		}
 	}
 

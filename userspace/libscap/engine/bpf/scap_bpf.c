@@ -34,6 +34,7 @@ limitations under the License.
 #include <dirent.h>
 
 #include "bpf.h"
+#define SCAP_HANDLE_T struct bpf_engine
 #include "engine_handle.h"
 #include "scap.h"
 #include "scap-int.h"
@@ -1022,6 +1023,20 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
 
+	/* Enable requested tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
+	{
+		if (handle->open_tp_set.tp[i])
+		{
+			if (scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i) != SCAP_SUCCESS)
+			{
+				ASSERT(false);
+				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to enable requested tracepoint %i\n", i);
+				return SCAP_FAILURE;
+			}
+		}
+	}
+
 	if(calibrate_socket_file_ops() != SCAP_SUCCESS)
 	{
 		ASSERT(false);
@@ -1418,8 +1433,12 @@ int32_t scap_bpf_load(
 
 	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
 
-	// Enable requested tracepoints immediately
-	if(load_bpf_file(handle, api_version_p, schema_version_p, &oargs->tp_of_interest) != SCAP_SUCCESS)
+	/* Store interesting Tracepoints */
+	memcpy(&handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
+
+	/* Start with all tracepoints disabled */
+	interesting_tp_set initial_tp_set = {0};
+	if(load_bpf_file(handle, api_version_p, schema_version_p, &initial_tp_set) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}

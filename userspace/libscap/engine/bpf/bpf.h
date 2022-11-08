@@ -20,7 +20,7 @@ limitations under the License.
 #include <stdbool.h>
 #include <limits.h>
 #include "../../ringbuffer/devset.h"
-#include "../../../../driver/ppm_events_public.h"
+#include "scap_open.h"
 
 //
 // ebpf defs
@@ -48,6 +48,5 @@ struct bpf_engine
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
 	char m_filepath[PATH_MAX];
+	interesting_tp_set open_tp_set;
 };
-
-#define SCAP_HANDLE_T struct bpf_engine
