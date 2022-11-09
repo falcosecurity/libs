@@ -35,10 +35,12 @@ namespace libsinsp
  * value source.  Subclasses will override the the run_impl() method and
  * implement the concrete value lookup behavior.  In that method, subclasses
  * will use use dequeue_next_key() method to get the key that it will use to
- * collect the value(s), collect the appropriate value(s), and call the
- * store_value() method to save the value.  The run_impl() method should
- * continue to dequeue and process values while the dequeue_next_key() method
- * returns true.
+ * collect the value(s), collect the appropriate value(s), and either:
+ *   - call the store_value() method to save the value.
+ *   - call the defer_lookup() method to retry the lookup after a delay.
+ *
+ * The run_impl() method should continue to dequeue and process values
+ * while the dequeue_next_key() method returns true.
  *
  * The constructor for this class accepts a maximum wait time; this specifies
  * how long client code is willing to wait for a synchronous response (i.e.,
@@ -241,6 +243,19 @@ protected:
 	 * @param[in] value The collected value.
 	 */
 	void store_value(const key_type& key, const value_type& value);
+
+	/**
+	 * Defer the lookup for the given key for delay ms. This puts
+	 * the key back on the request queue with a deadline of now +
+	 * delay ms to allow the run_impl thread to retry the lookup
+	 * later.
+	 *
+	 * If value_ptr is non-NULL, the contents will be saved and provided
+	 * to the next call of dequeue_next_key().
+	 */
+	void defer_lookup(const key_type& key,
+			  value_type* value_ptr,
+			 std::chrono::milliseconds delay);
 
 	/**
 	 * Concrete subclasses must override this method to perform the
