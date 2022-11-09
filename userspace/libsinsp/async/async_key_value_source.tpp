@@ -256,7 +256,8 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 	if(!m_request_queue.empty())
 	{
 		auto top_element = m_request_queue.top();
-		if(top_element.first < std::chrono::steady_clock::now())
+		auto now = std::chrono::steady_clock::now();
+		if(top_element.first < now)
 		{
 			key_found = true;
 			key = std::move(top_element.second);
@@ -267,6 +268,14 @@ bool async_key_value_source<key_type, value_type>::dequeue_next_key(key_type& ke
 			{
 				*value_ptr = m_value_map[key].m_value;
 			}
+		}
+		else
+		{
+			std::chrono::duration<double> dur = top_element.first - now;
+			g_logger.log("async_key_value_source: Waiting " +
+				     std::to_string(dur.count()) +
+				     " before dequeuing top job",
+				     sinsp_logger::SEV_DEBUG);
 		}
 	}
 
@@ -308,6 +317,29 @@ void async_key_value_source<key_type, value_type>::store_value(
 		itr->second.m_available = true;
 		itr->second.m_available_condition.notify_one();
 	}
+}
+
+template<typename key_type, typename value_type>
+void async_key_value_source<key_type, value_type>::defer_lookup(
+		const key_type& key,
+		value_type* value_ptr,
+		std::chrono::milliseconds delay)
+{
+	std::lock_guard<std::mutex> guard(m_mutex);
+
+	auto start_time = std::chrono::steady_clock::now() + delay;
+
+	g_logger.log("async_key_value_source: defer_lookup re-adding to request queue delay=" +
+		     std::to_string(delay.count()),
+		     sinsp_logger::SEV_DEBUG);
+
+	m_request_queue.push(std::make_pair(start_time, key));
+	m_request_set.insert(key);
+	if(value_ptr)
+	{
+		m_value_map[key].m_value = *value_ptr;
+	}
+	m_queue_not_empty_condition.notify_one();
 }
 
 /**
