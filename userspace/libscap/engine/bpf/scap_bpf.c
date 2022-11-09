@@ -1455,7 +1455,10 @@ int32_t scap_bpf_load(
 	memcpy(&handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
 	/* Start with all tracepoints disabled */
 	interesting_tp_set initial_tp_set = {0};
-	load_tracepoints(handle, &initial_tp_set);
+	if (load_tracepoints(handle, &initial_tp_set) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
 
 	if(populate_syscall_table_map(handle) != SCAP_SUCCESS)
 	{
