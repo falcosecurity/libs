@@ -306,7 +306,8 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 		if(!m_async_source)
 		{
-			auto async_source = new cri_async_source(cache, m_cri.get(), s_cri_timeout);
+			uint64_t max_wait_ms = 10000;
+			auto async_source = new cri_async_source(cache, m_cri.get(), max_wait_ms);
 			m_async_source = std::unique_ptr<cri_async_source>(async_source);
 		}
 
@@ -318,10 +319,16 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		const bool async = s_async && cache->async_allowed();
 		if(async)
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri_async (%s): Starting asynchronous lookup",
+					container_id.c_str());
 			done = m_async_source->lookup(key, result);
 		}
 		else
 		{
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri_async (%s): Starting synchronous lookup",
+					container_id.c_str());
 			done = m_async_source->lookup_sync(key, result);
 		}
 
