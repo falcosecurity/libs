@@ -43,7 +43,6 @@ typedef u64 nanoseconds;
 struct ppm_ring_buffer_context {
 	bool cpu_online;
 	bool open;
-	bool capture_enabled;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
 #ifndef WDIG
@@ -58,6 +57,7 @@ struct ppm_ring_buffer_context {
 
 #ifndef UDIG
 struct ppm_consumer_t {
+	u8 id; // numeric id for the consumer (ie: registration index)
 	struct task_struct *consumer_id;
 #ifdef __percpu
 	struct ppm_ring_buffer_context __percpu *ring_buffers;
@@ -78,6 +78,7 @@ struct ppm_consumer_t {
 	uint16_t statsd_port;
 	unsigned long buffer_bytes_dim; /* Every consumer will have its per-CPU buffer dim in bytes. */
 	DECLARE_BITMAP(events_mask, PPM_EVENT_MAX);
+	u32 tracepoints_attached;
 };
 #endif // UDIG
 
