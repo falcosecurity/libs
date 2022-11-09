@@ -86,6 +86,8 @@ MODULE_AUTHOR("the Falco authors");
 #define _PAGE_ENC 0
 #endif
 
+#define TP_VAL_INTERNAL TP_VAL_MAX
+
 struct ppm_device {
 	dev_t dev;
 	struct cdev cdev;
@@ -136,17 +138,19 @@ struct event_data_t {
  */
 static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
-static int force_tp_set(u32 new_tp_set, u32 max_val);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
                                  enum ppm_event_type event_type,
                                  enum syscall_flags drop_flags,
                                  nanoseconds ns,
-                                 struct event_data_t *event_datap);
+                                 struct event_data_t *event_datap,
+				 tp_values tp_type);
 static void record_event_all_consumers(enum ppm_event_type event_type,
                                        enum syscall_flags drop_flags,
-                                       struct event_data_t *event_datap);
+                                       struct event_data_t *event_datap,
+				       tp_values tp_type);
+static void cleanup_consumer_tracepoints(struct ppm_consumer_t *consumer);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long buffer_bytes_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -177,7 +181,8 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 
 /* tracepoints `page_fault_user/kernel` don't exist on some architectures.*/
 #ifdef CAPTURE_PAGE_FAULTS
-TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
+TRACEPOINT_PROBE(page_fault_user_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
+TRACEPOINT_PROBE(page_fault_kern_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code);
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
@@ -209,6 +214,7 @@ static const struct file_operations g_ppm_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
+static u32 g_tracepoints_refs[TP_VAL_MAX];
 static unsigned long g_buffer_bytes_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -296,16 +302,205 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 #endif
 }
 
-static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
+static int compat_set_tracepoint(void *func, const char *probename, struct tracepoint *tp, bool enabled)
+{
+	int ret = 0;
+	if (enabled)
+	{
+		ret = compat_register_trace(func, probename, tp);
+	}
+	else
+	{
+		compat_unregister_trace(func, probename, tp);
+	}
+	return ret;
+}
+
+static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val)
+{
+	u32 idx;
+	u32 new_val;
+	u32 curr_val;
+	int cpu;
+	int ret;
+	u32 stored_tp_set;
+
+	ret = 0;
+	stored_tp_set = g_tracepoints_attached;
+	for(idx = 0; idx < max_val && ret == 0; idx++)
+	{
+		new_val = new_tp_set & (1 << idx);
+		curr_val = g_tracepoints_attached & (1 << idx);
+
+		if (new_val)
+		{
+			// If enable is requested, set ref bit
+			g_tracepoints_refs[idx] |= 1 << consumer->id;
+		}
+		else
+		{
+			// If disable is requested, unset ref bit
+			g_tracepoints_refs[idx] &= ~(1 << consumer->id);
+		}
+
+		if(new_val == curr_val)
+		{
+			// no change needed, we just update the refs
+			continue;
+		}
+
+		if (g_tracepoints_refs[idx] != (1 << consumer->id) && g_tracepoints_refs[idx] != 0)
+		{
+			// we are neither the first to request this tp
+			// nor the last to unrequest it
+			continue;
+		}
+
+		switch(idx)
+		{
+		case SYS_ENTER:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+#else
+				ret = register_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+#else
+				unregister_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			break;
+		case SYS_EXIT:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+#else
+				ret = register_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+#else
+				unregister_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			break;
+		case SCHED_PROC_EXIT:
+			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
+			break;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+		case SCHED_SWITCH:
+			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
+			break;
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+		case PAGE_FAULT_USER:
+			if (!g_fault_tracepoint_disabled)
+			{
+				ret = compat_set_tracepoint(page_fault_user_probe, tp_names[idx], tp_page_fault_user, new_val);
+			}
+			break;
+		case PAGE_FAULT_KERN:
+			if (!g_fault_tracepoint_disabled)
+			{
+				ret = compat_set_tracepoint(page_fault_kern_probe, tp_names[idx], tp_page_fault_kernel, new_val);
+			}
+			break;
+#endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+		case SIGNAL_DELIVER:
+			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+		case SCHED_PROC_FORK:
+			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		case SCHED_PROC_EXEC:
+			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
+			break;
+#endif
+		default:
+			// unmanaged idx
+			break;
+		}
+
+		if (new_val)
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached |= 1 << idx;
+			}
+			else
+			{
+				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+		else
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached &= ~(1 << idx);
+			}
+			else
+			{
+				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+	}
+
+	if (ret != 0)
+	{
+		// Error: reset first idx-1 bits to their old value.
+		// This means that we are requesting to reset first
+		// idx-1 tracepoints, that are the succedeed ones before the error.
+		force_tp_set(consumer, stored_tp_set, idx - 1);
+	}
+
+	if (g_tracepoints_attached == 0)
+	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		tracepoint_synchronize_unregister();
+#endif
+
+		/*
+		 * Reset tracepoint counter
+		 */
+		for_each_possible_cpu(cpu)
+		{
+			per_cpu(g_n_tracepoint_hit, cpu) = 0;
+		}
+	}
+	return ret;
+}
+
+static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id, u8 *id)
 {
 	struct ppm_consumer_t *el = NULL;
+	u8 idx = 0;
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(el, &g_consumer_list, node) {
 		if (el->consumer_id == consumer_id) {
 			rcu_read_unlock();
+			if (id)
+			{
+				*id = idx;
+			}
 			return el;
 		}
+		idx++;
 	}
 	rcu_read_unlock();
 
@@ -327,6 +522,9 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	if (open_rings == 0) {
 		pr_info("deallocating consumer %p\n", consumer->consumer_id);
 
+		// Clean up tracepoints references for this consumer
+		cleanup_consumer_tracepoints(consumer);
+
 		if (remove_from_list) {
 			list_del_rcu(&consumer->node);
 			synchronize_rcu();
@@ -343,13 +541,61 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 	}
 }
 
+static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, u32 tp_set)
+{
+	int i;
+	u32 stored_tp_refs[TP_VAL_MAX];
+
+	memcpy(stored_tp_refs, g_tracepoints_refs, sizeof(g_tracepoints_refs));
+	if (force_tp_set(consumer, tp_set, TP_VAL_MAX) == 0)
+	{
+		// no error, we can store tp_set
+		consumer->tracepoints_attached = tp_set;
+	}
+	else
+	{
+		/*
+		 * In case of error, we check the stored refs
+		 * to see if anything changed;
+		 * then we store properly attached
+		 * tracepoints bits for the consumer.
+		 */
+		for(i = 0; i < TP_VAL_MAX; i++)
+		{
+			if(stored_tp_refs[i] != g_tracepoints_refs[i])
+			{
+				// Something changed!
+				if (stored_tp_refs[i] & (1 << consumer->id))
+				{
+					// we had the bit set; therefore we now haven't it.
+					// So we have one less ref for this tp;
+					// it means we were able to detach this tp!
+					consumer->tracepoints_attached &= ~(1 << i);
+				}
+				else
+				{
+					// we hadn't the bit set; therefore we now have it.
+					// So we have one more ref for this tp;
+					// it means we were able to attach this tp!
+					consumer->tracepoints_attached |= 1 << i;
+				}
+			}
+		}
+	}
+}
+
+static void cleanup_consumer_tracepoints(struct ppm_consumer_t *consumer)
+{
+	set_consumer_tracepoints(consumer, 0);
+}
+
 /*
  * user I/O functions
  */
 static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
-	u32 val;
+	u8 idx;
 	int in_list = false;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
@@ -368,7 +614,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id);
+	consumer = ppm_find_consumer(consumer_id, &idx);
 	if (!consumer) {
 		unsigned int cpu;
 		unsigned int num_consumers = 0;
@@ -395,8 +641,10 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto cleanup_open;
 		}
 
+		consumer->id = idx;
 		consumer->consumer_id = consumer_id;
 		consumer->buffer_bytes_dim = g_buffer_bytes_dim;
+		consumer->tracepoints_attached = 0;
 
 		/*
 		 * Initialize the ring buffers array
@@ -498,25 +746,8 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	reset_ring_buffer(ring);
 	ring->open = true;
 
-	if (g_tracepoints_attached == 0) {
-		pr_info("starting capture\n");
-
-		/*
-		 * Enable the tracepoints
-		 */
-		val = (1 << TP_VAL_MAX) - 1;
-		ret = force_tp_set(val, TP_VAL_MAX);
-		if (ret != 0)
-		{
-			goto err_tp_set;
-		}
-	}
-
 	ret = 0;
 	goto cleanup_open;
-
-err_tp_set:
-	ring->open = false;
 
 err_init_ring_buffer:
 	check_remove_consumer(consumer, in_list);
@@ -529,7 +760,6 @@ cleanup_open:
 
 static int ppm_release(struct inode *inode, struct file *filp)
 {
-	int cpu;
 	int ret;
 	struct ppm_ring_buffer_context *ring;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -542,7 +772,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id);
+	consumer = ppm_find_consumer(consumer_id, NULL);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
 		ret = -EBUSY;
@@ -561,8 +791,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 		ret = -EBUSY;
 		goto cleanup_release;
 	}
-
-	ring->capture_enabled = false;
 
 	vpr_info("closing ring %d, consumer:%p evt:%llu, dr_buf:%llu, dr_buf_clone_fork_e:%llu, dr_buf_clone_fork_x:%llu, dr_buf_execve_e:%llu, dr_buf_execve_x:%llu, dr_buf_connect_e:%llu, dr_buf_connect_x:%llu, dr_buf_open_e:%llu, dr_buf_open_x:%llu, dr_buf_dir_file_e:%llu, dr_buf_dir_file_x:%llu, dr_buf_other_e:%llu, dr_buf_other_x:%llu, dr_pf:%llu, pr:%llu, cs:%llu\n",
 	       ring_no,
@@ -593,23 +821,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	 * The last closed device stops event collection
 	 */
 	if (list_empty(&g_consumer_list)) {
-		if (g_tracepoints_attached != 0) {
-			pr_info("no more consumers, stopping capture\n");
-
-			force_tp_set(0, TP_VAL_MAX);
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-			tracepoint_synchronize_unregister();
-#endif
-
-			/*
-			 * Reset tracepoint counter
-			 */
-			for_each_possible_cpu(cpu) {
-				per_cpu(g_n_tracepoint_hit, cpu) = 0;
-			}
-		} else {
-			ASSERT(false);
-		}
+		pr_info("no more consumers, stopping capture\n");
 	}
 
 	ret = 0;
@@ -617,157 +829,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 cleanup_release:
 	mutex_unlock(&g_consumer_mutex);
 
-	return ret;
-}
-
-static int compat_set_tracepoint(void *func, const char *probename, struct tracepoint *tp, bool enabled)
-{
-	int ret = 0;
-	if (enabled)
-	{
-		ret = compat_register_trace(func, probename, tp);
-	}
-	else
-	{
-		compat_unregister_trace(func, probename, tp);
-	}
-	return ret;
-}
-
-static int force_tp_set(u32 new_tp_set, u32 max_val)
-{
-	u32 idx;
-	u32 new_val;
-	u32 curr_val;
-	int ret = 0;
-
-	if (new_tp_set == g_tracepoints_attached)
-	{
-		// ok already equal
-		return ret;
-	}
-
-	for(idx = 0; idx < max_val && ret == 0; idx++)
-	{
-		new_val = new_tp_set & (1 << idx);
-		curr_val = g_tracepoints_attached & (1 << idx);
-		if(new_val == curr_val)
-		{
-			// no change needed
-			continue;
-		}
-
-		switch(idx)
-		{
-		case SYS_ENTER:
-			if(new_val)
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
-#else
-				ret = register_trace_syscall_enter(syscall_enter_probe);
-#endif
-			}
-			else
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
-#else
-				unregister_trace_syscall_enter(syscall_enter_probe);
-#endif
-			}
-			break;
-		case SYS_EXIT:
-			if(new_val)
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
-#else
-				ret = register_trace_syscall_exit(syscall_exit_probe);
-#endif
-			}
-			else
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
-#else
-				unregister_trace_syscall_exit(syscall_exit_probe);
-#endif
-			}
-			break;
-		case SCHED_PROC_EXIT:
-			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
-			break;
-#ifdef CAPTURE_CONTEXT_SWITCHES
-		case SCHED_SWITCH:
-			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
-			break;
-#endif
-#ifdef CAPTURE_PAGE_FAULTS
-		case PAGE_FAULT_USER:
-			if (!g_fault_tracepoint_disabled)
-			{
-				ret = compat_set_tracepoint(page_fault_probe, tp_names[idx], tp_page_fault_user, new_val);
-			}
-			break;
-		case PAGE_FAULT_KERN:
-			if (!g_fault_tracepoint_disabled)
-			{
-				ret = compat_set_tracepoint(page_fault_probe, tp_names[idx], tp_page_fault_kernel, new_val);
-			}
-			break;
-#endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-		case SIGNAL_DELIVER:
-			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
-			break;
-#endif
-#ifdef CAPTURE_SCHED_PROC_FORK
-		case SCHED_PROC_FORK:
-			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
-			break;
-#endif
-#ifdef CAPTURE_SCHED_PROC_EXEC
-		case SCHED_PROC_EXEC:
-			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
-			break;
-#endif
-		default:
-			// unmanaged idx
-			break;
-		}
-
-		if (new_val)
-		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached |= 1 << idx;
-			}
-			else
-			{
-				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
-			}
-		}
-		else
-		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached &= ~(1 << idx);
-			}
-			else
-			{
-				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
-			}
-		}
-	}
-
-	if (ret != 0)
-	{
-		// Error: reset first idx-1 bits to 0.
-		// This means that we are requesting to unregister first
-		// idx-1 tracepoints, that are the succedeed ones before the error.
-		force_tp_set(0, idx - 1);
-	}
 	return ret;
 }
 
@@ -919,17 +980,11 @@ cleanup_ioctl_procinfo:
 		if(put_user(PPM_SCHEMA_CURRENT_VERSION, out))
 			ret = -EINVAL;
 		goto cleanup_ioctl_nolock;
-	} else if (cmd == PPM_IOCTL_GET_TPMASK) {
-		u32 __user *out = (u32 __user *) arg;
-		ret = 0;
-		if(put_user(g_tracepoints_attached, out))
-			ret = -EINVAL;
-		goto cleanup_ioctl_nolock;
 	}
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id);
+	consumer = ppm_find_consumer(consumer_id, NULL);
 	if (!consumer) {
 		pr_err("ioctl: unknown consumer %p\n", consumer_id);
 		ret = -EBUSY;
@@ -937,50 +992,6 @@ cleanup_ioctl_procinfo:
 	}
 
 	switch (cmd) {
-	case PPM_IOCTL_DISABLE_CAPTURE:
-	{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		int ring_no = iminor(filp->f_path.dentry->d_inode);
-#else
-		int ring_no = iminor(filp->f_dentry->d_inode);
-#endif
-		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
-
-		if (!ring) {
-			ASSERT(false);
-			ret = -ENODEV;
-			goto cleanup_ioctl;
-		}
-
-		ring->capture_enabled = false;
-
-		vpr_info("PPM_IOCTL_DISABLE_CAPTURE for ring %d, consumer %p\n", ring_no, consumer_id);
-
-		ret = 0;
-		goto cleanup_ioctl;
-	}
-	case PPM_IOCTL_ENABLE_CAPTURE:
-	{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		int ring_no = iminor(filp->f_path.dentry->d_inode);
-#else
-		int ring_no = iminor(filp->f_dentry->d_inode);
-#endif
-		struct ppm_ring_buffer_context *ring = per_cpu_ptr(consumer->ring_buffers, ring_no);
-
-		if (!ring) {
-			ASSERT(false);
-			ret = -ENODEV;
-			goto cleanup_ioctl;
-		}
-
-		ring->capture_enabled = true;
-
-		vpr_info("PPM_IOCTL_ENABLE_CAPTURE for ring %d, consumer %p\n", ring_no, consumer_id);
-
-		ret = 0;
-		goto cleanup_ioctl;
-	}
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
 		struct event_data_t event_data;
@@ -999,7 +1010,7 @@ cleanup_ioctl_procinfo:
 		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
 		event_data.event_info.context_data.sched_next = (void *)0;
 
-		record_event_consumer(consumer, PPME_SCAPEVENT_E, UF_NEVER_DROP, ppm_nsecs(), &event_data);
+		record_event_consumer(consumer, PPME_SCAPEVENT_E, UF_NEVER_DROP, ppm_nsecs(), &event_data, TP_VAL_INTERNAL);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1198,7 +1209,16 @@ cleanup_ioctl_procinfo:
 	}
 	case PPM_IOCTL_MANAGE_TP:
 	{
-		ret = force_tp_set((u32)arg, TP_VAL_MAX);
+		set_consumer_tracepoints(consumer, (u32)arg);
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_GET_TPMASK:
+	{
+		u32 __user *out = (u32 __user *)arg;
+		ret = 0;
+		if(put_user(consumer->tracepoints_attached, out))
+			ret = -EINVAL;
 		goto cleanup_ioctl;
 	}
 	default:
@@ -1220,7 +1240,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id);
+	consumer = ppm_find_consumer(consumer_id, NULL);
 	if (!consumer) {
 		pr_err("mmap: unknown consumer %p\n", consumer_id);
 		ret = -EIO;
@@ -1480,7 +1500,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ns, &event_data) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ns, &event_data, TP_VAL_INTERNAL) == 0) {
 		consumer->need_to_insert_drop_e = 1;
 	} else {
 		if (consumer->need_to_insert_drop_e == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1638,7 +1658,7 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer,
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ns, &event_data) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ns, &event_data, TP_VAL_INTERNAL) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
 		if (consumer->need_to_insert_drop_x == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1760,14 +1780,15 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 
 static void record_event_all_consumers(enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
-	struct event_data_t *event_datap)
+	struct event_data_t *event_datap,
+	tp_values tp_type)
 {
 	struct ppm_consumer_t *consumer;
 	nanoseconds ns = ppm_nsecs();
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer(consumer, event_type, drop_flags, ns, event_datap);
+		record_event_consumer(consumer, event_type, drop_flags, ns, event_datap, tp_type);
 	}
 	rcu_read_unlock();
 }
@@ -1779,7 +1800,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum ppm_event_type event_type,
 	enum syscall_flags drop_flags,
 	nanoseconds ns,
-	struct event_data_t *event_datap)
+	struct event_data_t *event_datap,
+	tp_values tp_type)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -1795,6 +1817,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
+
+	if (tp_type < TP_VAL_INTERNAL && !(consumer->tracepoints_attached & (1 << tp_type)))
+	{
+		return res;
+	}
 
 	if (!test_bit(event_type, consumer->events_mask))
 		return res;
@@ -1821,11 +1848,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	ASSERT(ring);
 
 	ring_info = ring->info;
-	if (!ring->capture_enabled) {
-		put_cpu();
-		return res;
-	}
-
 	ring_info->n_evts++;
 	if (event_datap->category == PPMC_CONTEXT_SWITCH && event_datap->event_info.context_data.sched_prev != NULL) {
 		if (event_type != PPME_SCAPEVENT_E && event_type != PPME_CPU_HOTPLUG_E) {
@@ -2211,9 +2233,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data);
+			record_event_all_consumers(type, drop_flags, &event_data, SYS_ENTER);
 		else
-			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data);
+			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, SYS_ENTER);
 	}
 }
 
@@ -2277,9 +2299,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data);
+			record_event_all_consumers(type, drop_flags, &event_data, SYS_EXIT);
 		else
-			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data);
+			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, SYS_EXIT);
 	}
 }
 
@@ -2309,7 +2331,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 	event_data.event_info.context_data.sched_prev = p;
 	event_data.event_info.context_data.sched_next = p;
 
-	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data);
+	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data, SCHED_PROC_EXIT);
 }
 
 #include <linux/ip.h>
@@ -2337,7 +2359,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 	 * Need to indicate ATOMIC (i.e. interrupt) context to avoid the event
 	 * handler calling printk() and potentially deadlocking the system.
 	 */
-	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data);
+	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data, SCHED_SWITCH);
 }
 #endif
 
@@ -2366,12 +2388,12 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 		event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
-	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data);
+	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data, SIGNAL_DELIVER);
 }
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
+static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, tp_values tp_type)
 {
 	struct event_data_t event_data;
 
@@ -2392,7 +2414,17 @@ TRACEPOINT_PROBE(page_fault_probe, unsigned long address, struct pt_regs *regs, 
 	event_data.event_info.fault_data.regs = regs;
 	event_data.event_info.fault_data.error_code = error_code;
 
-	record_event_all_consumers(PPME_PAGE_FAULT_E, UF_ALWAYS_DROP, &event_data);
+	record_event_all_consumers(PPME_PAGE_FAULT_E, UF_ALWAYS_DROP, &event_data, tp_type);
+}
+
+TRACEPOINT_PROBE(page_fault_user_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
+{
+	return page_fault_probe(address, regs, error_code, PAGE_FAULT_USER);
+}
+
+TRACEPOINT_PROBE(page_fault_kern_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
+{
+	return page_fault_probe(address, regs, error_code, PAGE_FAULT_KERN);
 }
 #endif
 
@@ -2410,7 +2442,7 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 	}
 
 	event_data.category = PPMC_SCHED_PROC_EXEC;
-	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data);
+	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data, SCHED_PROC_EXEC);
 }
 #endif 
 
@@ -2426,12 +2458,12 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 	 */
 	if(unlikely(current->flags & PF_KTHREAD))
 	{
-    	return;
+    	        return;
 	}
 
 	event_data.category = PPMC_SCHED_PROC_FORK;
 	event_data.event_info.sched_proc_fork_data.child = child;
-	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data);
+	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data, SCHED_PROC_FORK);
 }
 #endif
 
@@ -2511,7 +2543,6 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 	 * see ppm_open
 	 */
 	ring->open = false;
-	ring->capture_enabled = false;
 	ring->info->head = 0;
 	ring->info->tail = 0;
 	ring->nevents = 0;
@@ -2689,7 +2720,7 @@ static int do_cpu_callback(unsigned long cpu, long sd_action)
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)cpu;
 		event_data.event_info.context_data.sched_next = (void *)sd_action;
-		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data);
+		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, TP_VAL_INTERNAL);
 	}
 	return 0;
 }
@@ -2872,10 +2903,12 @@ int scap_init(void)
 	register_cpu_notifier(&cpu_notifier);
 #endif
 
-	/*
-	 * All ok. Final initializations.
-	 */
+	// Initialize globals
 	g_tracepoints_attached = 0;
+	for (j = 0; j < TP_VAL_MAX; j++)
+	{
+		g_tracepoints_refs[j] = 0;
+	}
 
 	return 0;
 
