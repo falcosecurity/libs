@@ -210,8 +210,6 @@ TEST(SyscallExit, cloneX_child)
 			exit(EXIT_FAILURE);
 		}
 
-		evt_test->disable_capture();
-
 /* In some architectures we are not able to catch the `clone exit child
  * event` from the `sys_exit` tracepoint. This is because there is no
  * default behavior among different architectures... you can find more
@@ -312,6 +310,8 @@ TEST(SyscallExit, cloneX_child)
 
 		exit(EXIT_SUCCESS);
 	}
+
+	evt_test->disable_capture();
 
 	assert_syscall_state(SYSCALL_SUCCESS, "clone", ret_pid, NOT_EQUAL, -1);
 

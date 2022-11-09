@@ -146,8 +146,6 @@ TEST(SyscallExit, clone3X_child)
 	cl_args.exit_signal = SIGCHLD;
 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	evt_test->disable_capture();
-
 	/* Child performs assertions on itself. */
 	if(ret_pid == 0)
 	{
@@ -265,6 +263,8 @@ TEST(SyscallExit, clone3X_child)
 			exit(EXIT_SUCCESS);
 		}
 	}
+
+	evt_test->disable_capture();
 
 	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
 

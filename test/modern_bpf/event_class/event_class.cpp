@@ -88,13 +88,15 @@ event_test::~event_test()
 	 * Cleaning phase.
 	 */
 
-	/* 1 - disable the capture of all events. */
-	pman_disable_capture();
+	/*
+	 * NOTE: we always expect disable_capture to be manually called,
+	 * just like enable_capture is.
+	 */
 
-	/* 2 - clean all the ring_buffers until they are empty. */
+	/* 1 - clean all the ring_buffers until they are empty. */
 	clear_ring_buffers();
 
-	/* 3 - clean all interesting syscalls. */
+	/* 2 - clean all interesting syscalls. */
 	mark_all_64bit_syscalls_as_uninteresting();
 }
 
@@ -106,7 +108,7 @@ event_test::event_test(ppm_event_type event_type)
 	m_current_param = 0;
 	m_event_type = event_type;
 	m_event_direction = BOTH_EVENT;
-	switch(event_type)
+	switch(m_event_type)
 	{
 	case PPME_PROCEXIT_1_E:
 		break;
@@ -118,6 +120,7 @@ event_test::event_test(ppm_event_type event_type)
 		break;
 	default:
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
+		break;
 	}
 }
 
@@ -177,11 +180,21 @@ void event_test::enable_capture()
 		tp_set[SCHED_SWITCH] = 1;
 		break;
 	case PPME_SYSCALL_EXECVE_19_X:
-		tp_set[SCHED_PROC_EXEC] = 1;
-		break;
+		// If event direction is BOTH, we are coming from a
+		// generic event_test::event_test(ppm_event_type event_type)
+		if (m_event_direction == BOTH_EVENT)
+		{
+			tp_set[SCHED_PROC_EXEC] = 1;
+			break;
+		}
 	case PPME_SYSCALL_CLONE_20_X:
-		tp_set[SCHED_PROC_FORK] = 1;
-		break;
+		// If event direction is BOTH, we are coming from a
+		// generic event_test::event_test(ppm_event_type event_type)
+		if (m_event_direction == BOTH_EVENT)
+		{
+			tp_set[SCHED_PROC_FORK] = 1;
+			break;
+		}
 	default:
 		if (m_event_direction & ENTER_EVENT)
 		{
@@ -194,6 +207,7 @@ void event_test::enable_capture()
 		break;
 	}
 	pman_enable_capture(tp_set);
+	clear_ring_buffers();
 }
 
 void event_test::disable_capture()
