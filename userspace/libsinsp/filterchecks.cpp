@@ -6287,6 +6287,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
 	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Approximate container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's ip address in string format as retrieved from the container engine."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
@@ -6780,6 +6781,25 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		m_s64val = evt->get_ts() - tinfo->m_pidns_init_start_ts;
 		ASSERT(m_s64val > 0);
 		RETURN_EXTRACT_VAR(m_s64val);
+	case TYPE_CONTAINER_IP_NAME:
+		if(tinfo->m_container_id.empty())
+		{
+			return NULL;
+		}
+		else
+		{
+			const sinsp_container_info::ptr_t container_info =
+				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+			if(!container_info)
+			{
+				return NULL;
+			}
+			m_u32val = htonl(container_info->m_container_ip);
+			char addrbuff[100];
+			inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
+			m_tstr = addrbuff;
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 	default:
 		ASSERT(false);
 		break;
