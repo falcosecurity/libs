@@ -1908,129 +1908,147 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	 * Moreover if we are not able to retrieve the enter event 
 	 * we can do nothing.
 	 */
-	if((etype == PPME_SYSCALL_EXECVE_18_X ||
-		etype == PPME_SYSCALL_EXECVE_19_X ||
-		etype == PPME_SYSCALL_EXECVEAT_X)
-		&&
-		retrieve_enter_event(enter_evt, evt))
-	{
-		char fullpath[SCAP_MAX_PATH_SIZE] = {0};
-	
-		/* We need to manage the 2 possible cases:
-		 * - enter event is an `EXECVE`
-		 * - enter event is an `EXECVEAT`
-		 */
-		if(enter_evt->get_type() == PPME_SYSCALL_EXECVE_18_E ||
-		   enter_evt->get_type() == PPME_SYSCALL_EXECVE_19_E)
-		{
-			/*
-			 * Get filename
-			 */
-			parinfo = enter_evt->get_param(0);
-			/* This could happen only if we are not able to get the info from the kernel,
-			 * because if the syscall was successful the pathname was surely here the problem
-			 * is that for some reason we were not able to get it with our instrumentation, 
-			 * for example when the `bpf_probe_read()` call fails in BPF.
-			 */
-			if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
-			{
-				strncpy(fullpath, "<NA>", 5);
-			}
-			else
-			{
-				/* Here the filename can be relative or absolute. */
-				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-												evt->m_tinfo->m_cwd.c_str(),
-												(uint32_t)evt->m_tinfo->m_cwd.size(),
-												parinfo->m_val,
-												(uint32_t)parinfo->m_len,
-												m_inspector->m_is_windows);
-			}
-		}
-		else if(enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
-		{
-			/*
-			 * Get dirfd
-			 */
-			parinfo = enter_evt->get_param(0);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			int64_t dirfd = *(int64_t *)parinfo->m_val;
-			
-			/*
-			 * Get flags
-			 */
-			parinfo = enter_evt->get_param(2);
-			ASSERT(parinfo->m_len == sizeof(uint32_t));
-			uint32_t flags = *(uint32_t *)parinfo->m_val;
+        if(etype == PPME_SYSCALL_EXECVE_18_X ||
+                etype == PPME_SYSCALL_EXECVE_19_X ||
+                etype == PPME_SYSCALL_EXECVEAT_X)
+        {
+                char fullpath[SCAP_MAX_PATH_SIZE] = {0};
+                char buf[SCAP_MAX_PATH_SIZE] = {0};
 
-			/*
-			 * Get pathname
-			 */
+                snprintf(buf,
+                         sizeof(buf),
+                         "%s/proc/%s/exe",
+                         scap_get_host_root(),
+                         std::to_string(evt->m_tinfo->m_pid).c_str());
 
-			/* The pathname could be:
-			 * - (1) relative (to dirfd).
-			 * - (2) absolute.
-			 * - (3) empty in the kernel because the user specified the `AT_EMPTY_PATH` flag.
-			 *   In this case, `dirfd` must refer to a file.
-			 *   Please note:
-			 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
-			 * - (4) empty in the kernel because we fail to recover it from the registries.
-			 * 	 Please note:
-			 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
-			 */
-			parinfo = enter_evt->get_param(1);
-			char *pathname = parinfo->m_val;
-			uint32_t namelen = parinfo->m_len;
+                int n = readlink(buf, fullpath, sizeof(fullpath));
+                if(n >= 0)
+                {
+                        if(n == sizeof(fullpath))
+                        {
+                                n--;
+                        }
+                        fullpath[n] = '\0';
+                }
+                else if (retrieve_enter_event(enter_evt, evt)) //can't read from /proc, read from the event params
+                {
 
-			/* If the pathname is `<NA>` here we shouldn't have problems during `parse_dirfd`.
-			 * It doesn't start with "/" so it is not considered an absolute path.
-			 */
-			string sdir;
-			parse_dirfd(evt, pathname, dirfd, &sdir);
+                        /* We need to manage the 2 possible cases:
+                         * - enter event is an `EXECVE`
+                         * - enter event is an `EXECVEAT`
+                         */
+                        if(enter_evt->get_type() == PPME_SYSCALL_EXECVE_18_E ||
+                           enter_evt->get_type() == PPME_SYSCALL_EXECVE_19_E)
+                        {
+                                /*
+                                 * Get filename
+                                 */
+                                parinfo = enter_evt->get_param(0);
+                                /* This could happen only if we are not able to get the info from the kernel,
+                                 * because if the syscall was successful the pathname was surely here the problem
+                                 * is that for some reason we were not able to get it with our instrumentation, 
+                                 * for example when the `bpf_probe_read()` call fails in BPF.
+                                 */
+                                if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
+                                {
+                                        strncpy(fullpath, "<NA>", 5);
+                                }
+                                else
+                                {
+                                        /* Here the filename can be relative or absolute. */
+                                        sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+                                                                                                        evt->m_tinfo->m_cwd.c_str(),
+                                                                                                        (uint32_t)evt->m_tinfo->m_cwd.size(),
+                                                                                                        parinfo->m_val,
+                                                                                                        (uint32_t)parinfo->m_len,
+                                                                                                        m_inspector->m_is_windows);
+                                }
+                        }
+                        else if(enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
+                        {
+                                /*
+                                 * Get dirfd
+                                 */
+                                parinfo = enter_evt->get_param(0);
+                                ASSERT(parinfo->m_len == sizeof(int64_t));
+                                int64_t dirfd = *(int64_t *)parinfo->m_val;
 
-			/* (4) In this case, we were not able to recover the pathname from the kernel or 
-			 * we are not able to recover information about `dirfd` in our `sinsp` state.
-			 * Fallback to `<NA>`.
-			 */
-			if((!(flags & PPM_EXVAT_AT_EMPTY_PATH) && strncmp(pathname, "<NA>", 5) == 0) ||
-			   sdir.compare("<UNKNOWN>") == 0)
-			{
-				/* we copy also the string terminator `\0`. */
-				strncpy(fullpath, "<NA>", 5);
-			} 
-			/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
-			 * to sanitize it. 
-			 */
-			else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
-			{
-				/* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>` 
-				 * as we said in case (3), and we don't want to consider it as a valid
-				 * part of the final path. In this case `sdir` will always be 
-				 * an absolute path.
-				 */
-				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-								"\0", 
-								0,
-								sdir.c_str(), 
-								(uint32_t)sdir.length(), 
-								m_inspector->m_is_windows);
+                                /*
+                                 * Get flags
+                                 */
+                                parinfo = enter_evt->get_param(2);
+                                ASSERT(parinfo->m_len == sizeof(uint32_t));
+                                uint32_t flags = *(uint32_t *)parinfo->m_val;
 
-			}
-			/* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
-			 * - `sdir` + `pathname`
-			 */
-			else
-			{
-				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-											sdir.c_str(), 
-											(uint32_t)sdir.length(),
-											pathname, 
-											namelen, 
-											m_inspector->m_is_windows);
-			}
-		}
-		evt->m_tinfo->m_exepath = fullpath;
-	}
+                                /*
+                                 * Get pathname
+                                 */
+
+                                /* The pathname could be:
+                                 * - (1) relative (to dirfd).
+                                 * - (2) absolute.
+                                 * - (3) empty in the kernel because the user specified the `AT_EMPTY_PATH` flag.
+                                 *   In this case, `dirfd` must refer to a file.
+                                 *   Please note:
+                                 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
+                                 * - (4) empty in the kernel because we fail to recover it from the registries.
+                                 *       Please note:
+                                 *   The path is empty in the kernel but in userspace, we will obtain a `<NA>`.
+                                 */
+                                parinfo = enter_evt->get_param(1);
+                                char *pathname = parinfo->m_val;
+                                uint32_t namelen = parinfo->m_len;
+
+                                /* If the pathname is `<NA>` here we shouldn't have problems during `parse_dirfd`.
+                                 * It doesn't start with "/" so it is not considered an absolute path.
+                                 */
+                                string sdir;
+                                parse_dirfd(evt, pathname, dirfd, &sdir);
+
+                                /* (4) In this case, we were not able to recover the pathname from the kernel or 
+                                 * we are not able to recover information about `dirfd` in our `sinsp` state.
+                                 * Fallback to `<NA>`.
+                                 */
+                                if((!(flags & PPM_EXVAT_AT_EMPTY_PATH) && strncmp(pathname, "<NA>", 5) == 0) ||
+                                   sdir.compare("<UNKNOWN>") == 0)
+                                {
+                                        /* we copy also the string terminator `\0`. */
+                                        strncpy(fullpath, "<NA>", 5);
+                                }
+                                /* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
+                                 * to sanitize it. 
+                                 */
+                                else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
+                                {
+                                        /* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>` 
+                                         * as we said in case (3), and we don't want to consider it as a valid
+                                         * part of the final path. In this case `sdir` will always be 
+                                         * an absolute path.
+                                         */
+                                        sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+                                                                        "\0",
+                                                                        0,
+                                                                        sdir.c_str(),
+                                                                        (uint32_t)sdir.length(),
+                                                                        m_inspector->m_is_windows);
+
+                                }
+                                /* (2)/(1) If it is relative or absolute we craft the `fullpath` as usual:
+                                 * - `sdir` + `pathname`
+                                 */
+                                else
+                                {
+                                        sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+                                                                                                sdir.c_str(),
+                                                                                                (uint32_t)sdir.length(),
+                                                                                                pathname,
+                                                                                                namelen,
+                                                                                                m_inspector->m_is_windows);
+                                }
+                        }
+                }
+                evt->m_tinfo->m_exepath = fullpath;
+        }
 
 	switch(etype)
 	{
