@@ -95,9 +95,10 @@ void container_async_source<key_type>::run_impl()
 	while(this->dequeue_next_key(key, &res))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"%s_async (%s): Source dequeued key",
+				"%s_async (%s): Source dequeued key attempt=%u",
 				name(),
-				container_id(key).c_str());
+				container_id(key).c_str(),
+				res.m_lookup.retry_no());
 
 		lookup_sync(key, res);
 
@@ -127,15 +128,9 @@ void container_async_source<key_type>::run_impl()
 					container_id(key).c_str(),
 					res.m_lookup.retry_no());
 
-			this->lookup_delayed(
-				key,
-				res,
-				std::chrono::milliseconds(res.m_lookup.delay()),
-				std::bind(
-					&container_async_source::source_callback,
-					this,
-					std::placeholders::_1,
-					std::placeholders::_2));
+			this->defer_lookup(key,
+					   &res,
+					   std::chrono::milliseconds(res.m_lookup.delay()));
 		}
 
 		// Reset res
