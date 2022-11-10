@@ -35,6 +35,7 @@ struct iovec {
 #include "scap-int.h"
 #include "scap_platform.h"
 #include "scap_savefile.h"
+#include "savefile_platform.h"
 #include "scap_reader.h"
 #include "../noop/noop.h"
 
@@ -2037,6 +2038,41 @@ void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 {
 	scap_reader_t* reader = engine.m_handle->m_reader;
 	reader->seek(reader, off, SEEK_SET);
+}
+
+static int32_t scap_savefile_early_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
+{
+    return SCAP_SUCCESS;
+}
+
+static int32_t scap_savefile_close_platform(struct scap_platform* platform)
+{
+	return SCAP_SUCCESS;
+}
+
+static void scap_savefile_free_platform(struct scap_platform* platform)
+{
+	free(platform);
+}
+
+static const struct scap_platform_vtable scap_savefile_platform_vtable = {
+	.early_init_platform = scap_savefile_early_init_platform,
+	.init_platform = NULL,
+	.close_platform = scap_savefile_close_platform,
+	.free_platform = scap_savefile_free_platform,
+};
+
+struct scap_platform* scap_savefile_alloc_platform()
+{
+    struct scap_savefile_platform* platform = calloc(sizeof(*platform), 1);
+
+	if(platform == NULL)
+	{
+		return NULL;
+	}
+
+	platform->m_generic.m_vtable = &scap_savefile_platform_vtable;
+	return &platform->m_generic;
 }
 
 static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
