@@ -1262,10 +1262,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		// Delayed removal of threads from the thread table, so that
 		// things like exit() or close() can be parsed.
 		//
-		if(m_tid_to_remove != -1)
+		// Note: remove_thread() may itself identify another thread that
+		// needs removal.
+		while (m_tid_to_remove != -1)
 		{
-			remove_thread(m_tid_to_remove, false);
+			uint64_t remove_tid = m_tid_to_remove;
 			m_tid_to_remove = -1;
+			remove_thread(remove_tid, false);
 		}
 
 		if(!is_capture())
