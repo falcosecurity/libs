@@ -168,8 +168,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 
 #ifdef CYGWING_AGENT
 	handle->m_whh = NULL;
-	handle->m_win_buf_handle = NULL;
-	handle->m_win_descs_handle = NULL;
 #endif
 
 	//
@@ -368,9 +366,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		scap_close(handle);
 		return NULL;
 	}
-
-	handle->m_win_buf_handle = NULL;
-	handle->m_win_descs_handle = NULL;
 #endif
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
@@ -610,8 +605,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	handle->m_fd_lookup_limit = 0;
 #if CYGWING_AGENT || _WIN32
 	handle->m_whh = NULL;
-	handle->m_win_buf_handle = NULL;
-	handle->m_win_descs_handle = NULL;
 #endif
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
@@ -713,9 +706,6 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 		*rc = SCAP_FAILURE;
 		return NULL;
 	}
-
-	handle->m_win_buf_handle = NULL;
-	handle->m_win_descs_handle = NULL;
 #endif
 
 	//

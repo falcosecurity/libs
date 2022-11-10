@@ -84,8 +84,6 @@ struct scap
 	// Abstraction layer for windows
 #if CYGWING_AGENT || _WIN32
 	wh_t* m_whh;
-	void* m_win_buf_handle;
-	void* m_win_descs_handle;
 #endif
 
 	// The set of process names that are suppressed
