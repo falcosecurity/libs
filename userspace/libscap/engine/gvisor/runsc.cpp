@@ -16,14 +16,16 @@ limitations under the License.
 
 #include <unistd.h>
 #include <sys/wait.h>
+#include <ext/stdio_filebuf.h>
+#include <iostream>
+#include <fstream>
+#include <string>
 
 #include "gvisor.h"
 
 namespace scap_gvisor {
 
 namespace runsc {
-
-constexpr size_t max_line_size = 8192;
 
 result runsc(char *argv[])
 {
@@ -39,7 +41,6 @@ result runsc(char *argv[])
 	pid_t pid = vfork();
 	if(pid > 0)
 	{
-		char line[max_line_size];
 		int status;
 		
 		close(pipefds[1]);
@@ -50,18 +51,14 @@ result runsc(char *argv[])
 			return res;
 		}
 
-		FILE *f = fdopen(pipefds[0], "r");
-		if(!f)
-		{
-			return res;
-		}
+		__gnu_cxx::stdio_filebuf<char> filebuf(pipefds[0], std::ios::in);
+		std::string line;
+		std::istream is(&filebuf);
 
-		while(fgets(line, max_line_size, f))
+		while(std::getline(is, line))
 		{
 			res.output.emplace_back(std::string(line));
 		}
-
-		fclose(f);
 	}
 	else
 	{
