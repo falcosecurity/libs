@@ -372,6 +372,14 @@ uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 	for(const auto &sandbox : sandboxes)
 	{
 		runsc::result procfs_res = runsc::trace_procfs(m_root_path, sandbox);
+
+		// We may be unable to read procfs for several reasons, e.g. the pause container on k8s or a sandbox that was
+		// being removed
+		if (procfs_res.error != 0)
+		{
+			continue;
+		}
+
 		for(const auto &line : procfs_res.output)
 		{
 			// skip first line of the output and empty lines
