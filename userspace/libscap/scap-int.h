@@ -44,6 +44,7 @@ struct scap
 	const struct scap_vtable *m_vtable;
 	struct scap_engine_handle m_engine;
 	struct scap_suppress m_suppress;
+	struct scap_platform *m_platform;
 
 	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];

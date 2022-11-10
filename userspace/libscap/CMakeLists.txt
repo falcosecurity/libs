@@ -60,6 +60,7 @@ list(APPEND targetfiles
 	scap_fds.c
 	scap_iflist.c
 	scap_savefile.c
+	scap_platform.c
 	scap_procs.c
 	scap_userlist.c
 	scap_machine_agent.c
