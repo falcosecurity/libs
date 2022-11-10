@@ -57,7 +57,7 @@ struct ppm_ring_buffer_context {
 
 #ifndef UDIG
 struct ppm_consumer_t {
-	u8 id; // numeric id for the consumer (ie: registration index)
+	unsigned int id; // numeric id for the consumer (ie: registration index)
 	struct task_struct *consumer_id;
 #ifdef __percpu
 	struct ppm_ring_buffer_context __percpu *ring_buffers;
