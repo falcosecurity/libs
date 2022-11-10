@@ -485,22 +485,16 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max
 	return ret;
 }
 
-static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id, u8 *id)
+static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
 {
 	struct ppm_consumer_t *el = NULL;
-	u8 idx = 0;
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(el, &g_consumer_list, node) {
 		if (el->consumer_id == consumer_id) {
 			rcu_read_unlock();
-			if (id)
-			{
-				*id = idx;
-			}
 			return el;
 		}
-		idx++;
 	}
 	rcu_read_unlock();
 
@@ -595,7 +589,6 @@ static void cleanup_consumer_tracepoints(struct ppm_consumer_t *consumer)
 static int ppm_open(struct inode *inode, struct file *filp)
 {
 	int ret;
-	u8 idx;
 	int in_list = false;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	int ring_no = iminor(filp->f_path.dentry->d_inode);
@@ -614,7 +607,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id, &idx);
+	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		unsigned int cpu;
 		unsigned int num_consumers = 0;
@@ -641,7 +634,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 			goto cleanup_open;
 		}
 
-		consumer->id = idx;
+		consumer->id = num_consumers;
 		consumer->consumer_id = consumer_id;
 		consumer->buffer_bytes_dim = g_buffer_bytes_dim;
 		consumer->tracepoints_attached = 0;
@@ -772,7 +765,7 @@ static int ppm_release(struct inode *inode, struct file *filp)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id, NULL);
+	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("release: unknown consumer %p\n", consumer_id);
 		ret = -EBUSY;
@@ -816,13 +809,6 @@ static int ppm_release(struct inode *inode, struct file *filp)
 	ring->open = false;
 
 	check_remove_consumer(consumer, true);
-
-	/*
-	 * The last closed device stops event collection
-	 */
-	if (list_empty(&g_consumer_list)) {
-		pr_info("no more consumers, stopping capture\n");
-	}
 
 	ret = 0;
 
@@ -984,7 +970,7 @@ cleanup_ioctl_procinfo:
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id, NULL);
+	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("ioctl: unknown consumer %p\n", consumer_id);
 		ret = -EBUSY;
@@ -1240,7 +1226,7 @@ static int ppm_mmap(struct file *filp, struct vm_area_struct *vma)
 
 	mutex_lock(&g_consumer_mutex);
 
-	consumer = ppm_find_consumer(consumer_id, NULL);
+	consumer = ppm_find_consumer(consumer_id);
 	if (!consumer) {
 		pr_err("mmap: unknown consumer %p\n", consumer_id);
 		ret = -EIO;
