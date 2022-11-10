@@ -1314,10 +1314,16 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 	handle->m_bpf_prog_cnt = 0;
 	handle->m_bpf_prog_array_map_idx = -1;
 
-	elf_end(handle->elf);
-	handle->elf = NULL;
-	close(handle->program_fd);
-	handle->program_fd = -1;
+	if (handle->elf)
+	{
+		elf_end(handle->elf);
+		handle->elf = NULL;
+	}
+	if (handle->program_fd > 0)
+	{
+		close(handle->program_fd);
+		handle->program_fd = -1;
+	}
 
 	return SCAP_SUCCESS;
 }
