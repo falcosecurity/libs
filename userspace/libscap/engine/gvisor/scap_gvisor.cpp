@@ -382,7 +382,7 @@ uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
 		for(const auto &line : procfs_res.output)
 		{
 			// skip first line of the output and empty lines
-			if(line.find("PROCFS DUMP") != std::string::npos || line.compare("\n") == 0)
+			if(line.find("PROCFS DUMP") != std::string::npos || std::all_of(line.begin(), line.end(), isspace))
 			{
 				continue;
 			}
