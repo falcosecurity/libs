@@ -35,7 +35,6 @@ struct iovec {
 #include <set>
 #include "fdinfo.h"
 #include "internal_metrics.h"
-#include "sinsp_cpuarch.h"
 
 class sinsp_delays_info;
 class sinsp_tracerparser;
@@ -49,9 +48,6 @@ typedef struct erase_fd_params
 	sinsp_fdinfo_t* m_fdinfo;
 	uint64_t m_ts;
 }erase_fd_params;
-
-#define LIBSINSP_CPUARCH_THREAD_EVENT_BUG_FLAG_INIT_CLONE_EXIT_PENDING (1 << 0)
-#define LIBSINSP_CPUARCH_THREAD_EVENT_BUG_FLAG_EXECVE_EXIT_PENDING     (1 << 1)
 
 /** @defgroup state State management
  *  @{
@@ -357,11 +353,6 @@ public:
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
 	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table.
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
-
-#if LIBSINSP_CPUARCH_THREAD_EVENT_BUGS != 0
-	// State for processing of CPU architecture-specific thread event bugs
-	uint32_t m_cpuarch_thread_event_bug_flags;
-#endif
 
 	//
 	// Parser for the user events. Public so that filter fields can access it
