@@ -331,6 +331,7 @@ int32_t scap_proc_scan_vtable(char *error, scap_t *handle)
 	res = handle->m_vtable->get_threadinfos(handle->m_engine, &n_tinfos, &tinfos);
 	if (res != SCAP_SUCCESS)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "cannot get system thread information: %s", handle->m_lasterr);
 		return res;
 	}
 

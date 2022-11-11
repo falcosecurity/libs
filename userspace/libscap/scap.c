@@ -552,6 +552,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
 	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error while starting capture: %s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
 	}
