@@ -1227,7 +1227,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	scap_fdinfo *fdi = NULL;
 	uint64_t net_ns;
 	ssize_t r;
-	uint16_t fd_added = 0;
+	uint32_t fd_added = 0;
 
 	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfd", procdir);
 	dir_p = opendir(fd_dir_name);
@@ -1354,5 +1354,3 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	closedir(dir_p);
 	return res;
 }
-
-
