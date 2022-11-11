@@ -396,14 +396,14 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 	tinfo->cgroups_len = 0;
 	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
 
-	if(access(filename, R_OK) == -1)
-	{
-		return SCAP_SUCCESS;
-	}
-
 	FILE* f = fopen(filename, "r");
 	if(f == NULL)
 	{
+		if(errno == ENOENT || errno == EACCES)
+		{
+			return SCAP_SUCCESS;
+		}
+
 		ASSERT(false);
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "open cgroup file %s failed (%s)",
 			 filename, scap_strerror(handle, errno));
