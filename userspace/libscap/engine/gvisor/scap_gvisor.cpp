@@ -287,11 +287,10 @@ int32_t engine::start_capture()
 		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, true);
 		if(trace_create_res.error)
 		{
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
-			return SCAP_FAILURE;
+			// some sandboxes may not be traced, we can skip them safely
+			continue;
 		}
 	}
-
 
 	// Catch all sandboxes that might have been created in the meantime
 	runsc::result new_sandboxes_res = runsc::list(m_root_path);
@@ -320,8 +319,8 @@ int32_t engine::start_capture()
 		runsc::result trace_create_res = runsc::trace_create(m_root_path, m_trace_session_path, sandbox, false);
 		if(trace_create_res.error)
 		{
-			snprintf(m_lasterr, SCAP_LASTERR_SIZE, "Cannot create session for sandbox %s", sandbox.c_str());
-			return SCAP_FAILURE;
+			// some sandboxes may not be traced, we can skip them safely
+			continue;
 		}
 	}
 
