@@ -138,6 +138,7 @@ struct event_data_t {
  */
 static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
+static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
@@ -300,189 +301,6 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 #else
 	tracepoint_probe_unregister(tp, func, NULL);
 #endif
-}
-
-static int compat_set_tracepoint(void *func, const char *probename, struct tracepoint *tp, bool enabled)
-{
-	int ret = 0;
-	if (enabled)
-	{
-		ret = compat_register_trace(func, probename, tp);
-	}
-	else
-	{
-		compat_unregister_trace(func, probename, tp);
-	}
-	return ret;
-}
-
-static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val)
-{
-	u32 idx;
-	u32 new_val;
-	u32 curr_val;
-	int cpu;
-	int ret;
-	u32 stored_tp_set;
-
-	ret = 0;
-	stored_tp_set = g_tracepoints_attached;
-	for(idx = 0; idx < max_val && ret == 0; idx++)
-	{
-		new_val = new_tp_set & (1 << idx);
-		curr_val = g_tracepoints_attached & (1 << idx);
-
-		if (new_val)
-		{
-			// If enable is requested, set ref bit
-			g_tracepoints_refs[idx] |= 1 << consumer->id;
-		}
-		else
-		{
-			// If disable is requested, unset ref bit
-			g_tracepoints_refs[idx] &= ~(1 << consumer->id);
-		}
-
-		if(new_val == curr_val)
-		{
-			// no change needed, we just update the refs
-			continue;
-		}
-
-		if (g_tracepoints_refs[idx] != (1 << consumer->id) && g_tracepoints_refs[idx] != 0)
-		{
-			// we are neither the first to request this tp
-			// nor the last to unrequest it
-			continue;
-		}
-
-		switch(idx)
-		{
-		case SYS_ENTER:
-			if(new_val)
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
-#else
-				ret = register_trace_syscall_enter(syscall_enter_probe);
-#endif
-			}
-			else
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
-#else
-				unregister_trace_syscall_enter(syscall_enter_probe);
-#endif
-			}
-			break;
-		case SYS_EXIT:
-			if(new_val)
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
-#else
-				ret = register_trace_syscall_exit(syscall_exit_probe);
-#endif
-			}
-			else
-			{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
-#else
-				unregister_trace_syscall_exit(syscall_exit_probe);
-#endif
-			}
-			break;
-		case SCHED_PROC_EXIT:
-			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
-			break;
-#ifdef CAPTURE_CONTEXT_SWITCHES
-		case SCHED_SWITCH:
-			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
-			break;
-#endif
-#ifdef CAPTURE_PAGE_FAULTS
-		case PAGE_FAULT_USER:
-			if (!g_fault_tracepoint_disabled)
-			{
-				ret = compat_set_tracepoint(page_fault_user_probe, tp_names[idx], tp_page_fault_user, new_val);
-			}
-			break;
-		case PAGE_FAULT_KERN:
-			if (!g_fault_tracepoint_disabled)
-			{
-				ret = compat_set_tracepoint(page_fault_kern_probe, tp_names[idx], tp_page_fault_kernel, new_val);
-			}
-			break;
-#endif
-#ifdef CAPTURE_SIGNAL_DELIVERIES
-		case SIGNAL_DELIVER:
-			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
-			break;
-#endif
-#ifdef CAPTURE_SCHED_PROC_FORK
-		case SCHED_PROC_FORK:
-			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
-			break;
-#endif
-#ifdef CAPTURE_SCHED_PROC_EXEC
-		case SCHED_PROC_EXEC:
-			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
-			break;
-#endif
-		default:
-			// unmanaged idx
-			break;
-		}
-
-		if (new_val)
-		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached |= 1 << idx;
-			}
-			else
-			{
-				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
-			}
-		}
-		else
-		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached &= ~(1 << idx);
-			}
-			else
-			{
-				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
-			}
-		}
-	}
-
-	if (ret != 0)
-	{
-		// Error: reset first idx-1 bits to their old value.
-		// This means that we are requesting to reset first
-		// idx-1 tracepoints, that are the succedeed ones before the error.
-		force_tp_set(consumer, stored_tp_set, idx - 1);
-	}
-
-	if (g_tracepoints_attached == 0)
-	{
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		tracepoint_synchronize_unregister();
-#endif
-
-		/*
-		 * Reset tracepoint counter
-		 */
-		for_each_possible_cpu(cpu)
-		{
-			per_cpu(g_n_tracepoint_hit, cpu) = 0;
-		}
-	}
-	return ret;
 }
 
 static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
@@ -815,6 +633,189 @@ static int ppm_release(struct inode *inode, struct file *filp)
 cleanup_release:
 	mutex_unlock(&g_consumer_mutex);
 
+	return ret;
+}
+
+static int compat_set_tracepoint(void *func, const char *probename, struct tracepoint *tp, bool enabled)
+{
+	int ret = 0;
+	if (enabled)
+	{
+		ret = compat_register_trace(func, probename, tp);
+	}
+	else
+	{
+		compat_unregister_trace(func, probename, tp);
+	}
+	return ret;
+}
+
+static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val)
+{
+	u32 idx;
+	u32 new_val;
+	u32 curr_val;
+	int cpu;
+	int ret;
+	u32 stored_tp_set;
+
+	ret = 0;
+	stored_tp_set = g_tracepoints_attached;
+	for(idx = 0; idx < max_val && ret == 0; idx++)
+	{
+		new_val = new_tp_set & (1 << idx);
+		curr_val = g_tracepoints_attached & (1 << idx);
+
+		if (new_val)
+		{
+			// If enable is requested, set ref bit
+			g_tracepoints_refs[idx] |= 1 << consumer->id;
+		}
+		else
+		{
+			// If disable is requested, unset ref bit
+			g_tracepoints_refs[idx] &= ~(1 << consumer->id);
+		}
+
+		if(new_val == curr_val)
+		{
+			// no change needed, we just update the refs
+			continue;
+		}
+
+		if (g_tracepoints_refs[idx] != (1 << consumer->id) && g_tracepoints_refs[idx] != 0)
+		{
+			// we are neither the first to request this tp
+			// nor the last to unrequest it
+			continue;
+		}
+
+		switch(idx)
+		{
+		case SYS_ENTER:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+#else
+				ret = register_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+#else
+				unregister_trace_syscall_enter(syscall_enter_probe);
+#endif
+			}
+			break;
+		case SYS_EXIT:
+			if(new_val)
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+#else
+				ret = register_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			else
+			{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+#else
+				unregister_trace_syscall_exit(syscall_exit_probe);
+#endif
+			}
+			break;
+		case SCHED_PROC_EXIT:
+			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
+			break;
+#ifdef CAPTURE_CONTEXT_SWITCHES
+		case SCHED_SWITCH:
+			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
+			break;
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+		case PAGE_FAULT_USER:
+			if (!g_fault_tracepoint_disabled)
+			{
+				ret = compat_set_tracepoint(page_fault_user_probe, tp_names[idx], tp_page_fault_user, new_val);
+			}
+			break;
+		case PAGE_FAULT_KERN:
+			if (!g_fault_tracepoint_disabled)
+			{
+				ret = compat_set_tracepoint(page_fault_kern_probe, tp_names[idx], tp_page_fault_kernel, new_val);
+			}
+			break;
+#endif
+#ifdef CAPTURE_SIGNAL_DELIVERIES
+		case SIGNAL_DELIVER:
+			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+		case SCHED_PROC_FORK:
+			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
+			break;
+#endif
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		case SCHED_PROC_EXEC:
+			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
+			break;
+#endif
+		default:
+			// unmanaged idx
+			break;
+		}
+
+		if (new_val)
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached |= 1 << idx;
+			}
+			else
+			{
+				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+		else
+		{
+			if (ret == 0)
+			{
+				g_tracepoints_attached &= ~(1 << idx);
+			}
+			else
+			{
+				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
+			}
+		}
+	}
+
+	if (ret != 0)
+	{
+		// Error: reset first idx-1 bits to their old value.
+		// This means that we are requesting to reset first
+		// idx-1 tracepoints, that are the succedeed ones before the error.
+		force_tp_set(consumer, stored_tp_set, idx - 1);
+	}
+
+	if (g_tracepoints_attached == 0)
+	{
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+		tracepoint_synchronize_unregister();
+#endif
+
+		/*
+		 * Reset tracepoint counter
+		 */
+		for_each_possible_cpu(cpu)
+		{
+			per_cpu(g_n_tracepoint_hit, cpu) = 0;
+		}
+	}
 	return ret;
 }
 
