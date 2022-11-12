@@ -138,6 +138,8 @@ or GPL2.txt for full copies of the license.
         FN(sys_epoll_create_x)                  \
         FN(sys_epoll_create1_e)                 \
         FN(sys_epoll_create1_x)                 \
+	FN(sys_security_file_mprotect_e)	\
+	FN(sys_security_file_mprotect_x)	\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

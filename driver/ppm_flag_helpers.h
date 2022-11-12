@@ -1891,6 +1891,21 @@ static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
 	return res;
 }
 
+static __always_inline uint32_t pgprot_flags_to_scap(unsigned long flags)
+{
+	uint32_t res = 0;
+	if (flags & PROT_READ)
+		res |= PPM_PGPROT_READ;
+
+	if (flags & PROT_EXEC)
+		res |= PPM_PGPROT_EXEC;
+
+	if (flags & PROT_WRITE)
+		res |= PPM_PGPROT_WRITE;
+
+	return res;	
+}
+
 #endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */

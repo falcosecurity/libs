@@ -902,6 +902,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_alarm
 	[__NR_alarm - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_ALARM},
 #endif
+#ifdef __NR_security_file_mprotect
+	[__NR_security_file_mprotect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SECURITY_FILE_MPROTECT},
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1701,6 +1704,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_uselib
 	[__NR_ia32_uselib - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_USELIB},
+#endif
+#ifdef __NR_ia32_security_file_mprotect
+	[__NR_ia32_security_file_mprotect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SECURITY_FILE_MPROTECT},
 #endif
 };
 

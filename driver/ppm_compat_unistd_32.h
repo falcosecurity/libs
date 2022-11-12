@@ -365,10 +365,11 @@
 #define __NR_ia32_io_uring_enter 357
 #define __NR_ia32_io_uring_register 358
 #define __NR_ia32_mlock2    359
+#define __NR_ia32_security_file_mprotect 360
 
 #ifdef __KERNEL__
 
-#define NR_ia32_syscalls 360
+#define NR_ia32_syscalls 361
 
 #define __ARCH_WANT_IPC_PARSE_VERSION
 #define __ARCH_WANT_OLD_READDIR

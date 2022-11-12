@@ -973,6 +973,111 @@ FILLER(sys_mmap_e, true)
 	return res;
 }
 
+FILLER(sys_security_file_mprotect_e, true)
+{
+	unsigned long val;
+	int res;
+	struct vm_area_struct vma;
+	unsigned long vm_start;
+	unsigned long vm_end;
+	pgprot_t vm_page_prot;
+	unsigned long reqprot;
+	unsigned long prot;
+
+	/*
+	 * vma
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	if (bpf_probe_read(&vma, sizeof(struct vm_area_struct), (void *)val)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	// vm_start
+	res = bpf_val_to_ring(data, vma.vm_start);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// vm_end
+	res = bpf_val_to_ring(data, vma.vm_end);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// vm_page_prot
+	res = bpf_val_to_ring(data, prot_flags_to_scap(vma.vm_page_prot.pgprot));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * reqprot
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * prot
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+}
+
+FILLER(sys_security_file_mprotect_x, true)
+{
+	unsigned long val;
+	int res;
+	struct vm_area_struct vma;
+	unsigned long vm_start;
+	unsigned long vm_end;
+	pgprot_t vm_page_prot;
+	unsigned long reqprot;
+	unsigned long prot;
+
+	/*
+	 * vma
+	 */
+	val = bpf_syscall_get_argument(data, 1);
+	if (bpf_probe_read(&vma, sizeof(struct vm_area_struct), (void *)val)) {
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+	}
+
+	// vm_start
+	res = bpf_val_to_ring(data, vma.vm_start);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// vm_end
+	res = bpf_val_to_ring(data, vma.vm_end);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// vm_page_prot
+	res = bpf_val_to_ring(data, prot_flags_to_scap(vma.vm_page_prot.pgprot));
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * reqprot
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * prot
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, val);
+	if (res != PPM_SUCCESS)
+		return res;
+
+}
+
+
 FILLER(sys_mprotect_e, true)
 {
 	unsigned long val;

@@ -6499,6 +6499,68 @@ out:
 	return res;
 }
 
+int f_sys_security_file_mprotect_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	struct vm_area_struct vma;
+
+	/*
+	 * vma
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	res = ppm_copy_from_user(&vma, (void *)val, sizeof(struct vm_area_struct));
+	if (unlikely(res != 0))
+		return PPM_FAILURE_INVALID_USER_MEMORY;
+
+	// vm_start	
+	res = val_to_ring(args, vma.vm_start, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// vm_end	
+	res = val_to_ring(args, vma.vm_end, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// vm_page_prot
+	res = val_to_ring(args, prot_flags_to_scap(vma.vm_page_prot.pgprot), 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;	
+
+	/*
+	 * reqprot
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * prot
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
+int f_sys_security_file_mprotect_x(struct event_filler_arguments *args)
+{
+	int res;
+	int64_t retval;
+	
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+	
+	return add_sentinel(args);
+}
+
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
