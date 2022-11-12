@@ -978,8 +978,6 @@ FILLER(sys_security_file_mprotect_e, true)
 	unsigned long val;
 	int res;
 	struct vm_area_struct vma;
-	unsigned long vm_start;
-	unsigned long vm_end;
 
 	/*
 	 * vma
@@ -996,6 +994,16 @@ FILLER(sys_security_file_mprotect_e, true)
 
 	// vm_end
 	res = bpf_val_to_ring(data, vma.vm_end);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// start_brk
+	res = bpf_val_to_ring(data, vma.vm_mm.start_brk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// brk
+	res = bpf_val_to_ring(data, vma.vm_mm.brk);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1027,8 +1035,6 @@ FILLER(sys_security_file_mprotect_x, true)
 	unsigned long val;
 	int res;
 	struct vm_area_struct vma;
-	unsigned long vm_start;
-	unsigned long vm_end;
 
 	/*
 	 * vma
@@ -1047,6 +1053,25 @@ FILLER(sys_security_file_mprotect_x, true)
 	res = bpf_val_to_ring(data, vma.vm_end);
 	if (res != PPM_SUCCESS)
 		return res;
+
+	// start_brk
+	unsigned long start_brk = 0;
+	if (vma.vm_mm) {
+		start_brk = vma.vm_mm->start_brk;
+	}
+	res = bpf_val_to_ring(data, start_brk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// brk
+	unsigned long brk = 0;
+	if (vma.vm_mm) {
+		brk = vma.vm_mm->brk;
+	}
+	res = bpf_val_to_ring(data, brk);
+	if (res != PPM_SUCCESS)
+		return res;
+	}
 
 	// vm_page_prot
 	res = bpf_val_to_ring(data, prot_flags_to_scap(vma.vm_page_prot.pgprot));

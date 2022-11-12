@@ -6523,10 +6523,28 @@ int f_sys_security_file_mprotect_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	// start_brk
+	unsigned long start_brk = 0;
+	if (vma.vm_mm) {
+		start_brk = vma.vm_mm->start_brk;
+	}
+	res = val_to_ring(args, start_brk, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// brk
+	unsigned long brk = 0;
+	if (vma.vm_mm) {
+		brk = vma.vm_mm->brk;
+	}
+	res = val_to_ring(args, brk, 0, true, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
 	// vm_page_prot
 	res = val_to_ring(args, prot_flags_to_scap(vma.vm_page_prot.pgprot), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
-		return res;	
+		return res;
 
 	/*
 	 * reqprot
