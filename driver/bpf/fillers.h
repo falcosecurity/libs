@@ -980,9 +980,6 @@ FILLER(sys_security_file_mprotect_e, true)
 	struct vm_area_struct vma;
 	unsigned long vm_start;
 	unsigned long vm_end;
-	pgprot_t vm_page_prot;
-	unsigned long reqprot;
-	unsigned long prot;
 
 	/*
 	 * vma
@@ -1032,9 +1029,6 @@ FILLER(sys_security_file_mprotect_x, true)
 	struct vm_area_struct vma;
 	unsigned long vm_start;
 	unsigned long vm_end;
-	pgprot_t vm_page_prot;
-	unsigned long reqprot;
-	unsigned long prot;
 
 	/*
 	 * vma
