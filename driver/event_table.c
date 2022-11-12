@@ -390,7 +390,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EPOLL_CREATE_X */{"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, { {"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_E */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, epoll_create1_flags} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_X */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC} } },
-	/* PPME_SYSCALL_FILE_MPROTECT_E */{"security_file_mprotect", EC_SECURITY | EC_SYSCALL, EF_NONE, 5, {{"vm_start", PT_INT64, PF_HEX}, {"vm_end", PT_INT64, PF_HEX}, {"vm_page_prot", PT_FLAGS32, PF_HEX, prot_flags}, {"reqprot", PT_FLAGS32, PF_HEX, prot_flags}, {"prot", PT_FLAGS32, PF_HEX, prot_flags} } }, 
+	/* PPME_SYSCALL_FILE_MPROTECT_E */{"security_file_mprotect", EC_SECURITY | EC_SYSCALL, EF_NONE, 5, {{"vm_start", PT_INT64, PF_HEX}, {"vm_end", PT_INT64, PF_HEX}, {"start_brk", PT_INT64, PF_HEX}, {"brk", PT_INT64, PF_HEX}, {"vm_page_prot", PT_FLAGS32, PF_HEX, prot_flags}, {"reqprot", PT_FLAGS32, PF_HEX, prot_flags}, {"prot", PT_FLAGS32, PF_HEX, prot_flags} } }, 
 	/* PPME_SYSCALL_FILE_MPROTECT_X */{"security_file_mprotect", EC_SECURITY | EC_SYSCALL, EF_NONE, 1, {{"res", PT_ERRNO, PF_DEC}}}
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
