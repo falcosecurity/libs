@@ -997,13 +997,55 @@ FILLER(sys_security_file_mprotect_e, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	// start_brk
-	res = bpf_val_to_ring(data, vma.vm_mm.start_brk);
+	unsigned long start_code = 0;
+	unsigned long end_code = 0;
+	unsigned long start_data = 0;
+	unsigned long end_data = 0;
+	unsigned long start_brk = 0;
+	unsigned long brk = 0;
+	unsigned long start_stack = 0;
+	if (vma.vm_mm) {
+		start_code = vma.vm_mm->start_code;
+		end_code = vma.vm_mm->end_code;
+		start_data = vma.vm_mm->start_data;
+		end_data = vma.vm_mm->end_data;
+		start_brk = vma.vm_mm->start_brk;
+		brk = vma.vm_mm->brk;
+		start_stack = vma.vm_mm->start_stack;
+	}
+
+	// start_code
+	res = bpf_val_to_ring(data, start_code);
 	if (res != PPM_SUCCESS)
 		return res;
 
+	// end_code
+	res = bpf_val_to_ring(data, end_code);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// start_data
+	res = bpf_val_to_ring(data, start_data);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// end_data
+	res = bpf_val_to_ring(data, end_data);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// start_brk
+	res = bpf_val_to_ring(data, start_brk);
+	if (res != PPM_SUCCESS)
+		return res;
+	
 	// brk
-	res = bpf_val_to_ring(data, vma.vm_mm.brk);
+	res = bpf_val_to_ring(data, brk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	// start_stack
+	res = bpf_val_to_ring(data, start_stack);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1027,7 +1069,8 @@ FILLER(sys_security_file_mprotect_e, true)
 	res = bpf_val_to_ring(data, val);
 	if (res != PPM_SUCCESS)
 		return res;
-
+	
+	return res;
 }
 
 FILLER(sys_security_file_mprotect_x, true)
@@ -1127,6 +1170,7 @@ FILLER(sys_security_file_mprotect_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
+	return res;
 }
 
 
