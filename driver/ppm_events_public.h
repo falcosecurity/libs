@@ -105,13 +105,6 @@ or GPL2.txt for full copies of the license.
 #define PPM_O_TMPFILE	(1 << 13)
 
 /*
- * Page flags
- */
-#define PPM_PGPROT_READ 0
-#define PPM_PGPROT_WRITE (1 << 0)
-#define PPM_PGPROT_EXEC  (1 << 1)
-
-/*
  * File modes
  */
 #define PPM_S_NONE  0
@@ -716,13 +709,6 @@ or GPL2.txt for full copies of the license.
  * Epoll_create1 flags
  */
 #define PPM_EPOLL_CLOEXEC       (1 << 0)
-
-/*
- * struct vm_area_struct flags
- */
-#define VMA_VM_START	(1 << 0)
-#define VMA_VM_END	(1 << 2)
-
 
 /*
  * SuS says limits have to be unsigned.
