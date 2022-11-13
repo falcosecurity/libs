@@ -6528,7 +6528,7 @@ int f_sys_security_file_mprotect_e(struct event_filler_arguments *args)
 	unsigned long start_data = 0;
 	unsigned long end_data = 0;
 	unsigned long start_brk = 0;
-	unsigned long brk = 0;
+	unsigned long end_brk = 0;
 	unsigned long start_stack = 0;
 	if (vma.vm_mm) {
 		start_code = vma.vm_mm->start_code;
@@ -6536,7 +6536,7 @@ int f_sys_security_file_mprotect_e(struct event_filler_arguments *args)
 		start_data = vma.vm_mm->start_data;
 		end_data = vma.vm_mm->end_data;
 		start_brk = vma.vm_mm->start_brk;
-		brk = vma.vm_mm->brk;
+		end_brk = vma.vm_mm->brk;
 		start_stack = vma.vm_mm->start_stack;
 	}
 
@@ -6565,8 +6565,8 @@ int f_sys_security_file_mprotect_e(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	// brk
-	res = val_to_ring(args, brk, 0, true, 0);
+	// end_brk
+	res = val_to_ring(args, end_brk, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
