@@ -57,10 +57,10 @@ int BPF_PROG(security_file_mprotect_e,
 	auxmap__store_u64_param(auxmap, start_code);
 
 	/* Parameter 4: end_code (type: PT_UINT64) */
-	auxmap__store_u64_param(auxmap, end_code)
+	auxmap__store_u64_param(auxmap, end_code);
 
-		/* Parameter 5: start_data (type: PT_UINT64) */
-		auxmap__store_u64_param(auxmap, start_data);
+	/* Parameter 5: start_data (type: PT_UINT64) */
+	auxmap__store_u64_param(auxmap, start_data);
 
 	/* Parameter 6: end_data (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, end_data);
