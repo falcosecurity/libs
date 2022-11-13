@@ -11,8 +11,8 @@
 
 SEC("tp_btf/sys_enter")
 int BPF_PROG(security_file_mprotect_e,
-	     struct pt_regs *regs,
-	     long id)
+		 struct pt_regs *regs,
+		 long id)
 {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -74,13 +74,13 @@ int BPF_PROG(security_file_mprotect_e,
 	/* Parameter 9: start_stack (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, start_stack);
 
-    /* Parameter 10: reqprot */
-    unsigned long reqprot = extract__syscall_argument(regs, 2);
-    auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
+	/* Parameter 10: reqprot */
+	unsigned long reqprot = extract__syscall_argument(regs, 2);
+	auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
 
-    /* Parameter 11: prot */
-    unsigned long prot = extract__syscall_argument(regs, 3);
-    auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
+	/* Parameter 11: prot */
+	unsigned long prot = extract__syscall_argument(regs, 3);
+	auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -96,8 +96,8 @@ int BPF_PROG(security_file_mprotect_e,
 /*=============================== EXIT EVENT ===========================*/
 SEC("tp_btf/sys_exit")
 int BPF_PROG(security_file_mprotect_x,
-	     struct pt_regs *regs,
-	     long id)
+		 struct pt_regs *regs,
+		 long id)
 {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
@@ -159,13 +159,13 @@ int BPF_PROG(security_file_mprotect_x,
 	/* Parameter 9: start_stack (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, start_stack);
 
-    /* Parameter 10: reqprot */
-    unsigned long reqprot = extract__syscall_argument(regs, 2);
-    auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
+	/* Parameter 10: reqprot */
+	unsigned long reqprot = extract__syscall_argument(regs, 2);
+	auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
 
-    /* Parameter 11: prot */
-    unsigned long prot = extract__syscall_argument(regs, 3);
-    auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
+	/* Parameter 11: prot */
+	unsigned long prot = extract__syscall_argument(regs, 3);
+	auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
