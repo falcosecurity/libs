@@ -1102,7 +1102,7 @@ FILLER(sys_security_file_mprotect_x, true)
 	unsigned long start_data = 0;
 	unsigned long end_data = 0;
 	unsigned long start_brk = 0;
-	unsigned long brk = 0;
+	unsigned long end_brk = 0;
 	unsigned long start_stack = 0;
 	if (vma.vm_mm) {
 		start_code = vma.vm_mm->start_code;
@@ -1110,7 +1110,7 @@ FILLER(sys_security_file_mprotect_x, true)
 		start_data = vma.vm_mm->start_data;
 		end_data = vma.vm_mm->end_data;
 		start_brk = vma.vm_mm->start_brk;
-		brk = vma.vm_mm->brk;
+		end_brk = vma.vm_mm->brk;
 		start_stack = vma.vm_mm->start_stack;
 	}
 
@@ -1139,8 +1139,8 @@ FILLER(sys_security_file_mprotect_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 	
-	// brk
-	res = bpf_val_to_ring(data, brk);
+	// end_brk
+	res = bpf_val_to_ring(data, end_brk);
 	if (res != PPM_SUCCESS)
 		return res;
 
