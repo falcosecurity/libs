@@ -74,6 +74,14 @@ int BPF_PROG(security_file_mprotect_e,
 	/* Parameter 9: start_stack (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, start_stack);
 
+    /* Parameter 10: reqprot */
+    unsigned long reqprot = extract__syscall_argument(regs, 2);
+    auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
+
+    /* Parameter 11: prot */
+    unsigned long prot = extract__syscall_argument(regs, 3);
+    auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);
@@ -150,6 +158,14 @@ int BPF_PROG(security_file_mprotect_x,
 
 	/* Parameter 9: start_stack (type: PT_UINT64) */
 	auxmap__store_u64_param(auxmap, start_stack);
+
+    /* Parameter 10: reqprot */
+    unsigned long reqprot = extract__syscall_argument(regs, 2);
+    auxmap__store_u64_param(auxmap, prot_flags_to_scap(reqprot));
+
+    /* Parameter 11: prot */
+    unsigned long prot = extract__syscall_argument(regs, 3);
+    auxmap__store_u64_param(auxmap, prot_flags_to_scap(prot));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
