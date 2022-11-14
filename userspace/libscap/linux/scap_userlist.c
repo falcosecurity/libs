@@ -37,6 +37,7 @@ int32_t scap_create_userlist(scap_t* handle)
 	uint32_t grpcnt, grpidx;
 	struct passwd *p;
 	struct group *g;
+	struct scap_userlist *userlist;
 
 	//
 	// If the list of users was already allocated for this handle (for example because this is
@@ -57,24 +58,25 @@ int32_t scap_create_userlist(scap_t* handle)
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(1)");
 		return SCAP_FAILURE;
 	}
+	userlist = handle->m_userlist;
 
-	handle->m_userlist->totsavelen = 0;
+	userlist->totsavelen = 0;
 	usercnt = 32; // initial user count; will be realloc'd if needed
-	handle->m_userlist->users = (scap_userinfo*)malloc(usercnt * sizeof(scap_userinfo));
-	if(handle->m_userlist->users == NULL)
+	userlist->users = (scap_userinfo*)malloc(usercnt * sizeof(scap_userinfo));
+	if(userlist->users == NULL)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
-		free(handle->m_userlist);
+		free(userlist);
 		return SCAP_FAILURE;		
 	}
 
 	grpcnt = 32; // initial group count; will be realloc'd if needed
-	handle->m_userlist->groups = (scap_groupinfo*)malloc(grpcnt * sizeof(scap_groupinfo));
-	if(handle->m_userlist->groups == NULL)
+	userlist->groups = (scap_groupinfo*)malloc(grpcnt * sizeof(scap_groupinfo));
+	if(userlist->groups == NULL)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
-		free(handle->m_userlist->users);
-		free(handle->m_userlist);
+		free(userlist->users);
+		free(userlist);
 		return SCAP_FAILURE;		
 	}
 
@@ -97,10 +99,10 @@ int32_t scap_create_userlist(scap_t* handle)
 		if(f == NULL)
 		{
 			// if we don't have it inside the host root, we'll proceed without a list
-			free(handle->m_userlist->users);
-			free(handle->m_userlist->groups);
-			free(handle->m_userlist);
-			handle->m_userlist = NULL;
+			free(userlist->users);
+			free(userlist->groups);
+			free(userlist);
+			userlist = NULL;
 			return SCAP_SUCCESS;
 		}
 	}
@@ -114,17 +116,17 @@ int32_t scap_create_userlist(scap_t* handle)
 		if (useridx == usercnt)
 		{
 			usercnt<<=1;
-			void *tmp = realloc(handle->m_userlist->users, usercnt * sizeof(scap_userinfo));
+			void *tmp = realloc(userlist->users, usercnt * sizeof(scap_userinfo));
 			if (tmp)
 			{
-				handle->m_userlist->users = tmp;
+				userlist->users = tmp;
 			}
 			else
 			{
 				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
-				free(handle->m_userlist->users);
-				free(handle->m_userlist->groups);
-				free(handle->m_userlist);
+				free(userlist->users);
+				free(userlist->groups);
+				free(userlist);
 				if(file_lookup)
 				{
 					fclose(f);
@@ -137,7 +139,7 @@ int32_t scap_create_userlist(scap_t* handle)
 			}
 		}
 
-		scap_userinfo *user = &handle->m_userlist->users[useridx];
+		scap_userinfo *user = &userlist->users[useridx];
 		user->uid = p->pw_uid;
 		user->gid = p->pw_gid;
 		
@@ -168,7 +170,7 @@ int32_t scap_create_userlist(scap_t* handle)
 			*user->shell = '\0';
 		}
 
-		handle->m_userlist->totsavelen += 
+		userlist->totsavelen += 
 			sizeof(uint8_t) + // type
 			sizeof(uint32_t) +  // uid
 			sizeof(uint32_t) +  // gid
@@ -186,11 +188,11 @@ int32_t scap_create_userlist(scap_t* handle)
 		endpwent();
 	}
 
-	handle->m_userlist->nusers = useridx;
+	userlist->nusers = useridx;
 	if (useridx < usercnt)
 	{
 		// Reduce array size
-		handle->m_userlist->users = realloc(handle->m_userlist->users, useridx * sizeof(scap_userinfo));
+		userlist->users = realloc(userlist->users, useridx * sizeof(scap_userinfo));
 	}
 
 	// groups
@@ -202,9 +204,9 @@ int32_t scap_create_userlist(scap_t* handle)
 		{
 			// if we reached this point we had passwd but we don't have group
 			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "failed to open %s", filename);
-			free(handle->m_userlist->users);
-			free(handle->m_userlist->groups);
-			free(handle->m_userlist);
+			free(userlist->users);
+			free(userlist->groups);
+			free(userlist);
 			return SCAP_FAILURE;
 		}
 	}
@@ -218,17 +220,17 @@ int32_t scap_create_userlist(scap_t* handle)
 		if (grpidx == grpcnt)
 		{
 			grpcnt<<=1;
-			void *tmp = realloc(handle->m_userlist->groups, grpcnt * sizeof(scap_groupinfo));
+			void *tmp = realloc(userlist->groups, grpcnt * sizeof(scap_groupinfo));
 			if (tmp)
 			{
-				handle->m_userlist->groups = tmp;
+				userlist->groups = tmp;
 			}
 			else
 			{
 				snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
-				free(handle->m_userlist->users);
-				free(handle->m_userlist->groups);
-				free(handle->m_userlist);
+				free(userlist->users);
+				free(userlist->groups);
+				free(userlist);
 				if(file_lookup)
 				{
 					fclose(f);
@@ -240,7 +242,7 @@ int32_t scap_create_userlist(scap_t* handle)
 				return SCAP_FAILURE;
 			}
 		}
-		scap_groupinfo *group = &handle->m_userlist->groups[grpidx];
+		scap_groupinfo *group = &userlist->groups[grpidx];
 		group->gid = g->gr_gid;
 
 		if(g->gr_name)
@@ -252,7 +254,7 @@ int32_t scap_create_userlist(scap_t* handle)
 			*group->name = '\0';
 		}
 
-		handle->m_userlist->totsavelen += 
+		userlist->totsavelen += 
 			sizeof(uint8_t) + // type
 			sizeof(uint32_t) +  // gid
 			strlen(group->name) + 2;
@@ -267,11 +269,11 @@ int32_t scap_create_userlist(scap_t* handle)
 		endgrent();
 	}
 
-	handle->m_userlist->ngroups = grpidx;
+	userlist->ngroups = grpidx;
 	if (grpidx < grpcnt)
 	{
 		// Reduce array size
-		handle->m_userlist->groups = realloc(handle->m_userlist->groups, grpidx * sizeof(scap_groupinfo));
+		userlist->groups = realloc(userlist->groups, grpidx * sizeof(scap_groupinfo));
 	}
 	return SCAP_SUCCESS;
 }
