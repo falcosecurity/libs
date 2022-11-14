@@ -138,7 +138,7 @@ struct event_data_t {
  */
 static int ppm_open(struct inode *inode, struct file *filp);
 static int ppm_release(struct inode *inode, struct file *filp);
-static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val);
+static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
@@ -151,7 +151,6 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap,
 				       tp_values tp_type);
-static void cleanup_consumer_tracepoints(struct ppm_consumer_t *consumer);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long buffer_bytes_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -303,6 +302,27 @@ static void compat_unregister_trace(void *func, const char *probename, struct tr
 #endif
 }
 
+static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, u32 tp_set)
+{
+	int i;
+	int bits_processed;
+
+	vpr_info("consumer %p | requested tp set: %d\n", consumer->consumer_id, tp_set);
+	bits_processed = force_tp_set(consumer, tp_set);
+	for(i = 0; i < bits_processed; i++)
+	{
+		if (tp_set & (1 << i))
+		{
+			consumer->tracepoints_attached |= 1 << i;
+		}
+		else
+		{
+			consumer->tracepoints_attached &= ~(1 << i);
+		}
+	}
+	vpr_info("consumer %p | set tp set: %d\n", consumer->consumer_id, consumer->tracepoints_attached);
+}
+
 static struct ppm_consumer_t *ppm_find_consumer(struct task_struct *consumer_id)
 {
 	struct ppm_consumer_t *el = NULL;
@@ -335,7 +355,7 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 		pr_info("deallocating consumer %p\n", consumer->consumer_id);
 
 		// Clean up tracepoints references for this consumer
-		cleanup_consumer_tracepoints(consumer);
+		set_consumer_tracepoints(consumer, 0);
 
 		if (remove_from_list) {
 			list_del_rcu(&consumer->node);
@@ -351,54 +371,6 @@ static void check_remove_consumer(struct ppm_consumer_t *consumer, int remove_fr
 
 		vfree(consumer);
 	}
-}
-
-static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, u32 tp_set)
-{
-	int i;
-	u32 stored_tp_refs[TP_VAL_MAX];
-
-	memcpy(stored_tp_refs, g_tracepoints_refs, sizeof(g_tracepoints_refs));
-	if (force_tp_set(consumer, tp_set, TP_VAL_MAX) == 0)
-	{
-		// no error, we can store tp_set
-		consumer->tracepoints_attached = tp_set;
-	}
-	else
-	{
-		/*
-		 * In case of error, we check the stored refs
-		 * to see if anything changed;
-		 * then we store properly attached
-		 * tracepoints bits for the consumer.
-		 */
-		for(i = 0; i < TP_VAL_MAX; i++)
-		{
-			if(stored_tp_refs[i] != g_tracepoints_refs[i])
-			{
-				// Something changed!
-				if (stored_tp_refs[i] & (1 << consumer->id))
-				{
-					// we had the bit set; therefore we now haven't it.
-					// So we have one less ref for this tp;
-					// it means we were able to detach this tp!
-					consumer->tracepoints_attached &= ~(1 << i);
-				}
-				else
-				{
-					// we hadn't the bit set; therefore we now have it.
-					// So we have one more ref for this tp;
-					// it means we were able to attach this tp!
-					consumer->tracepoints_attached |= 1 << i;
-				}
-			}
-		}
-	}
-}
-
-static void cleanup_consumer_tracepoints(struct ppm_consumer_t *consumer)
-{
-	set_consumer_tracepoints(consumer, 0);
 }
 
 /*
@@ -650,43 +622,49 @@ static int compat_set_tracepoint(void *func, const char *probename, struct trace
 	return ret;
 }
 
-static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max_val)
+static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 {
 	u32 idx;
 	u32 new_val;
 	u32 curr_val;
 	int cpu;
 	int ret;
-	u32 stored_tp_set;
 
 	ret = 0;
-	stored_tp_set = g_tracepoints_attached;
-	for(idx = 0; idx < max_val && ret == 0; idx++)
+	for(idx = 0; idx < TP_VAL_MAX && ret == 0; idx++)
 	{
 		new_val = new_tp_set & (1 << idx);
 		curr_val = g_tracepoints_attached & (1 << idx);
 
-		if (new_val)
-		{
-			// If enable is requested, set ref bit
-			g_tracepoints_refs[idx] |= 1 << consumer->id;
-		}
-		else
-		{
-			// If disable is requested, unset ref bit
-			g_tracepoints_refs[idx] &= ~(1 << consumer->id);
-		}
-
 		if(new_val == curr_val)
 		{
+			if (new_val)
+			{
+				// If enable is requested, set ref bit
+				g_tracepoints_refs[idx] |= 1 << consumer->id;
+			}
+			else
+			{
+				// If disable is requested, unset ref bit
+				g_tracepoints_refs[idx] &= ~(1 << consumer->id);
+			}
 			// no change needed, we just update the refs
 			continue;
 		}
 
-		if (g_tracepoints_refs[idx] != (1 << consumer->id) && g_tracepoints_refs[idx] != 0)
+		if (new_val && g_tracepoints_refs[idx] != 0)
 		{
-			// we are neither the first to request this tp
-			// nor the last to unrequest it
+			// we are not the first to request this tp;
+			// set ref bit and continue
+			g_tracepoints_refs[idx] |= 1 << consumer->id;
+			continue;
+		}
+
+		if (!new_val && g_tracepoints_refs[idx] != (1 << consumer->id))
+		{
+			// we are not the last to unrequest this tp;
+			// unset ref bit and continue
+			g_tracepoints_refs[idx] &= ~(1 << consumer->id);
 			continue;
 		}
 
@@ -775,6 +753,8 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max
 			if (ret == 0)
 			{
 				g_tracepoints_attached |= 1 << idx;
+				g_tracepoints_refs[idx] |= 1 << consumer->id;
+				vpr_info("attached tracepoint %s\n", tp_names[idx]);
 			}
 			else
 			{
@@ -786,20 +766,14 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max
 			if (ret == 0)
 			{
 				g_tracepoints_attached &= ~(1 << idx);
+				g_tracepoints_refs[idx] &= ~(1 << consumer->id);
+				vpr_info("detached tracepoint %s\n", tp_names[idx]);
 			}
 			else
 			{
 				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
 			}
 		}
-	}
-
-	if (ret != 0)
-	{
-		// Error: reset first idx-1 bits to their old value.
-		// This means that we are requesting to reset first
-		// idx-1 tracepoints, that are the succedeed ones before the error.
-		force_tp_set(consumer, stored_tp_set, idx - 1);
 	}
 
 	if (g_tracepoints_attached == 0)
@@ -816,7 +790,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set, u32 max
 			per_cpu(g_n_tracepoint_hit, cpu) = 0;
 		}
 	}
-	return ret;
+	return idx;
 }
 
 static long ppm_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
