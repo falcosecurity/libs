@@ -21,11 +21,6 @@ limitations under the License.
 #include "scap_reader.h"
 #include "scap_savefile.h"
 
-typedef struct _scap_machine_info scap_machine_info;
-struct scap_proclist;
-struct scap_addrlist;
-struct scap_userlist;
-
 struct savefile_engine
 {
 	char* m_lasterr;
