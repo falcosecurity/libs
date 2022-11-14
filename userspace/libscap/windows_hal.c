@@ -303,6 +303,7 @@ int32_t scap_create_iflist_windows(scap_t* handle)
 	DWORD dwRetVal = 0;
 	uint32_t ifcnt4 = 0;
 	uint32_t ifcnt6 = 0;
+	scap_addrlist* addrlist;
 
 	ULONG ulOutBufLen = sizeof (IP_ADAPTER_INFO);
 	pAdapterInfo = (IP_ADAPTER_INFO *) malloc(sizeof (IP_ADAPTER_INFO));
@@ -383,50 +384,51 @@ int32_t scap_create_iflist_windows(scap_t* handle)
 		free(adapter_addresses);
 		return SCAP_FAILURE;
 	}
+	addrlist = handle->m_addrlist;
 
 	if(ifcnt4 != 0)
 	{
-		handle->m_addrlist->v4list = (scap_ifinfo_ipv4*)malloc(ifcnt4 * sizeof(scap_ifinfo_ipv4));
-		if(!handle->m_addrlist->v4list)
+		addrlist->v4list = (scap_ifinfo_ipv4*)malloc(ifcnt4 * sizeof(scap_ifinfo_ipv4));
+		if(!addrlist->v4list)
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(2)");
 			free(adapter_addresses);
-			free(handle->m_addrlist);
+			free(addrlist);
 			return SCAP_FAILURE;
 		}
 	}
 	else
 	{
-		handle->m_addrlist->v4list = NULL;
+		addrlist->v4list = NULL;
 	}
 
 	if(ifcnt6 != 0)
 	{
-		handle->m_addrlist->v6list = (scap_ifinfo_ipv6*)malloc(ifcnt6 * sizeof(scap_ifinfo_ipv6));
-		if(!handle->m_addrlist->v6list)
+		addrlist->v6list = (scap_ifinfo_ipv6*)malloc(ifcnt6 * sizeof(scap_ifinfo_ipv6));
+		if(!addrlist->v6list)
 		{
 			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(3)");
-			if(handle->m_addrlist->v4list)
+			if(addrlist->v4list)
 			{
-				free(handle->m_addrlist->v4list);
+				free(addrlist->v4list);
 			}
 			free(adapter_addresses);
-			free(handle->m_addrlist);
+			free(addrlist);
 			return SCAP_FAILURE;
 		}
 	}
 	else
 	{
-		handle->m_addrlist->v6list = NULL;
+		addrlist->v6list = NULL;
 	}
 
-	handle->m_addrlist->n_v4_addrs = ifcnt4;
-	handle->m_addrlist->n_v6_addrs = ifcnt6;
+	addrlist->n_v4_addrs = ifcnt4;
+	addrlist->n_v6_addrs = ifcnt6;
 
 	//
 	// Second pass: populate the arrays
 	//
-	handle->m_addrlist->totlen = 0;
+	addrlist->totlen = 0;
 	ifcnt4 = 0;
 	ifcnt6 = 0;
 
@@ -445,28 +447,28 @@ int32_t scap_create_iflist_windows(scap_t* handle)
 			int family = ua->Address.lpSockaddr->sa_family;
 			if(family == AF_INET)
 			{
-				handle->m_addrlist->v4list[ifcnt4].type = SCAP_II_IPV4;
+				addrlist->v4list[ifcnt4].type = SCAP_II_IPV4;
 
 				void* tempAddrPtr = &((struct sockaddr_in *)ua->Address.lpSockaddr->sa_data)->sin_addr;
-				handle->m_addrlist->v4list[ifcnt4].addr = *(uint32_t*)tempAddrPtr;
+				addrlist->v4list[ifcnt4].addr = *(uint32_t*)tempAddrPtr;
 
 				if(ua->OnLinkPrefixLength != 0)
 				{
-					ConvertLengthToIpv4Mask(ua->OnLinkPrefixLength, &handle->m_addrlist->v4list[ifcnt4].netmask);
+					ConvertLengthToIpv4Mask(ua->OnLinkPrefixLength, &addrlist->v4list[ifcnt4].netmask);
 				}
 				else
 				{
-					handle->m_addrlist->v4list[ifcnt4].netmask = 0;
+					addrlist->v4list[ifcnt4].netmask = 0;
 				}
 
 				// XXX Not implemented on Windows yet
-				handle->m_addrlist->v4list[ifcnt4].bcast = 0;
+				addrlist->v4list[ifcnt4].bcast = 0;
 
-				handle->m_addrlist->v4list[ifcnt4].ifnamelen = (uint16_t)wcstombs(handle->m_addrlist->v4list[ifcnt4].ifname, aa->FriendlyName, SCAP_MAX_PATH_SIZE);
+				addrlist->v4list[ifcnt4].ifnamelen = (uint16_t)wcstombs(addrlist->v4list[ifcnt4].ifname, aa->FriendlyName, SCAP_MAX_PATH_SIZE);
 
-				handle->m_addrlist->v4list[ifcnt4].linkspeed = 0;
+				addrlist->v4list[ifcnt4].linkspeed = 0;
 
-				handle->m_addrlist->totlen += (sizeof(scap_ifinfo_ipv4) + handle->m_addrlist->v4list[ifcnt4].ifnamelen - SCAP_MAX_PATH_SIZE);
+				addrlist->totlen += (sizeof(scap_ifinfo_ipv4) + addrlist->v4list[ifcnt4].ifnamelen - SCAP_MAX_PATH_SIZE);
 				ifcnt4++;
 			}
 			else if(family == AF_INET6)
