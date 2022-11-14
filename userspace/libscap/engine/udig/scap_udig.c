@@ -705,38 +705,29 @@ int32_t udig_start_dropping_mode(struct scap_engine_handle engine, uint32_t samp
 	return SCAP_SUCCESS;
 }
 
+static void scap_close_udig_dev(struct scap_device* dev)
+{
+#ifdef _WIN32
+	if(dev->m_buffer != INVALID_MAPPING)
+	{
+		udig_free_ring((uint8_t*)dev->m_buffer, dev->m_buffer_size);
+	}
+	if(dev->m_bufinfo != INVALID_MAPPING)
+	{
+		udig_free_ring_descriptors((uint8_t*)dev->m_bufinfo);
+	}
+	devset_close(dev->m_fd);
+	devset_close(dev->m_bufinfo_fd);
+#else
+	devset_close_device(dev);
+#endif
+}
+
 void scap_close_udig(struct scap_engine_handle engine)
 {
 	struct udig_engine *handle = engine.m_handle;
 
-	if(handle->m_dev_set.m_devs[0].m_buffer != MAP_FAILED)
-	{
-		udig_free_ring((uint8_t*)handle->m_dev_set.m_devs[0].m_buffer, handle->m_dev_set.m_devs[0].m_buffer_size);
-	}
-	if(handle->m_dev_set.m_devs[0].m_bufinfo != MAP_FAILED)
-	{
-		udig_free_ring_descriptors((uint8_t*)handle->m_dev_set.m_devs[0].m_bufinfo);
-	}
-#ifdef _WIN32
-	if(handle->m_win_buf_handle != NULL)
-	{
-		CloseHandle(handle->m_win_buf_handle);
-	}
-	if(handle->m_win_descs_handle != NULL)
-	{
-		CloseHandle(handle->m_win_descs_handle);
-	}
-#else
-	if(handle->m_dev_set.m_devs[0].m_fd != -1)
-	{
-		close(handle->m_dev_set.m_devs[0].m_fd);
-	}
-	if(handle->m_dev_set.m_devs[0].m_bufinfo_fd != -1)
-	{
-		close(handle->m_dev_set.m_devs[0].m_bufinfo_fd);
-	}
-#endif
-
+	scap_close_udig_dev(&handle->m_dev_set.m_devs[0]);
 	free(handle->m_dev_set.m_devs);
 	handle->m_dev_set.m_devs = NULL;
 }
@@ -865,6 +856,44 @@ static void free_handle(struct scap_engine_handle engine)
 	free(engine.m_handle);
 }
 
+static int32_t scap_udig_alloc_dev(struct scap_device* dev, char* error)
+{
+	//
+	// Map the ring buffer.
+	//
+	if(udig_alloc_ring(
+		&dev->m_fd,
+		(uint8_t**)&dev->m_buffer,
+		&dev->m_buffer_size,
+		error) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	dev->m_mmap_size = 2 * dev->m_buffer_size;
+
+	// Set close-on-exec for the fd
+#ifndef _WIN32
+	if(fcntl(dev->m_fd, F_SETFD, FD_CLOEXEC) == -1) {
+		return scap_errprintf(error, errno, "Can not set close-on-exec flag for fd for udig device");
+	}
+#endif
+
+	//
+	// Map the ppm_ring_buffer_info that contains the buffer pointers
+	//
+	if(udig_alloc_ring_descriptors(
+		&dev->m_bufinfo_fd,
+		&dev->m_bufinfo,
+		&dev->m_bufstatus,
+		error) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 /* `oargs` is not used here but we need to keep it to fit v-table interface. */
 static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
@@ -877,48 +906,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	//
-	// Map the ring buffer.
-	//
-	if(udig_alloc_ring(
-#if CYGWING_AGENT || _WIN32
-		&(handle->m_win_buf_handle),
-#else
-		&(handle->m_dev_set.m_devs[0].m_fd),
-#endif
-		(uint8_t**)&handle->m_dev_set.m_devs[0].m_buffer,
-		&handle->m_dev_set.m_devs[0].m_buffer_size,
-		handle->m_lasterr) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
-	}
-
-	handle->m_dev_set.m_devs[0].m_mmap_size = 2 * handle->m_dev_set.m_devs[0].m_buffer_size;
-
-	// Set close-on-exec for the fd
-#ifndef _WIN32
-	if(fcntl(handle->m_dev_set.m_devs[0].m_fd, F_SETFD, FD_CLOEXEC) == -1) {
-		return scap_errprintf(handle->m_lasterr, errno, "Can not set close-on-exec flag for fd for udig device");
-	}
-#endif
-
-	//
-	// Map the ppm_ring_buffer_info that contains the buffer pointers
-	//
-	if(udig_alloc_ring_descriptors(
-#if CYGWING_AGENT || _WIN32
-		&(handle->m_win_descs_handle),
-#else
-		&(handle->m_dev_set.m_devs[0].m_bufinfo_fd),
-#endif
-		&handle->m_dev_set.m_devs[0].m_bufinfo,
-		&handle->m_dev_set.m_devs[0].m_bufstatus,
-		handle->m_lasterr) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
-	}
-
-	return SCAP_SUCCESS;
+	return scap_udig_alloc_dev(&handle->m_dev_set.m_devs[0], handle->m_lasterr);
 }
 
 static uint32_t get_n_devs(struct scap_engine_handle engine)
