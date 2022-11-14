@@ -4,13 +4,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#ifndef _WIN32
-#include <sys/mman.h>
-#include <unistd.h>
-#else
-#define MAP_FAILED	((void *) -1)
-#endif
-
 #include "strlcpy.h"
 #include "../scap.h"
 #include "scap_assert.h"
@@ -28,11 +21,11 @@ int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *laste
 
 	for(size_t j = 0; j < num_devs; ++j)
 	{
-		devset->m_devs[j].m_buffer = MAP_FAILED;
-		devset->m_devs[j].m_bufinfo = MAP_FAILED;
-		devset->m_devs[j].m_bufstatus = MAP_FAILED;
-		devset->m_devs[j].m_fd = -1;
-		devset->m_devs[j].m_bufinfo_fd = -1;
+		devset->m_devs[j].m_buffer = INVALID_MAPPING;
+		devset->m_devs[j].m_bufinfo = INVALID_MAPPING;
+		devset->m_devs[j].m_bufstatus = INVALID_MAPPING;
+		devset->m_devs[j].m_fd = INVALID_FD;
+		devset->m_devs[j].m_bufinfo_fd = INVALID_FD;
 		devset->m_devs[j].m_lastreadsize = 0;
 		devset->m_devs[j].m_sn_len = 0;
 	}
@@ -40,6 +33,14 @@ int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *laste
 	devset->m_lasterr = lasterr;
 
 	return SCAP_SUCCESS;
+}
+
+void devset_close_device(struct scap_device *dev)
+{
+	devset_munmap(dev->m_buffer, dev->m_mmap_size);
+	devset_munmap(dev->m_bufinfo, dev->m_bufinfo_size);
+	devset_close(dev->m_fd);
+	devset_close(dev->m_bufinfo_fd);
 }
 
 void devset_free(struct scap_device_set *devset)
@@ -53,27 +54,7 @@ void devset_free(struct scap_device_set *devset)
 	for(j = 0; j < devset->m_ndevs; j++)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
-#ifndef _WIN32
-		if(dev->m_buffer != MAP_FAILED)
-		{
-#ifdef _DEBUG
-			int ret;
-			ret = munmap(dev->m_buffer, dev->m_mmap_size);
-			ASSERT(ret == 0);
-#else
-			munmap(dev->m_buffer, dev->m_mmap_size);
-#endif
-		}
-
-		if(dev->m_bufinfo != MAP_FAILED)
-		{
-			munmap(dev->m_bufinfo, dev->m_bufinfo_size);
-		}
-#endif
-		if(dev->m_fd > 0)
-		{
-			close(dev->m_fd);
-		}
+		devset_close_device(dev);
 	}
 	free(devset->m_devs);
 }

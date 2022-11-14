@@ -20,6 +20,19 @@ limitations under the License.
 #include <stdint.h>
 #include <stddef.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#define INVALID_FD NULL
+#define INVALID_MAPPING NULL
+#else // !_WIN32
+#include <sys/mman.h>
+#include <unistd.h>
+#define INVALID_FD (-1)
+#define INVALID_MAPPING MAP_FAILED
+#endif // !_WIN32
+
+#include "scap_assert.h"
+
 //
 // Read buffer timeout constants
 //
@@ -39,8 +52,13 @@ struct udig_ring_buffer_status;
 //
 typedef struct scap_device
 {
+#ifdef _WIN32
+	HANDLE m_fd;
+	HANDLE m_bufinfo_fd; // used by udig
+#else
 	int m_fd;
 	int m_bufinfo_fd; // used by udig
+#endif
 	char* m_buffer;
 	unsigned long m_buffer_size;
 	unsigned long m_mmap_size; // generally 2 * m_buffer_size, but bpf does weird things
@@ -68,4 +86,41 @@ struct scap_device_set
 };
 
 int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr);
+void devset_close_device(struct scap_device *dev);
 void devset_free(struct scap_device_set *devset);
+
+#ifndef _WIN32
+static inline void devset_munmap(void* addr, size_t size)
+{
+	if(addr != INVALID_MAPPING)
+	{
+		int ret = munmap(addr, size);
+		ASSERT(ret == 0);
+		(void) ret;
+	}
+}
+
+static inline void devset_close(int fd)
+{
+	if(fd != INVALID_FD)
+	{
+		close(fd);
+	}
+}
+#else // _WIN32
+static inline void devset_munmap(void* addr, size_t size)
+{
+	if(addr != INVALID_MAPPING)
+	{
+		UnmapViewOfFile(addr);
+	}
+}
+
+static inline void devset_close(HANDLE fd)
+{
+	if(fd != INVALID_FD)
+	{
+		CloseHandle(fd);
+	}
+}
+#endif // _WIN32
