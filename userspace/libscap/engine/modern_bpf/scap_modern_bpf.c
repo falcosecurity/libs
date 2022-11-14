@@ -187,16 +187,22 @@ static int32_t check_minimum_kernel_version(char* last_err)
 		return SCAP_FAILURE;
 	}
 
-	if(!scap_apply_semver_check(major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH))
+	if(major > REQUIRED_MAJOR)
 	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
-		}
-		return SCAP_FAILURE;
+		return SCAP_SUCCESS;
 	}
 
-	return SCAP_SUCCESS;
+	if(major == REQUIRED_MAJOR && minor > REQUIRED_MINOR)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	if(major == REQUIRED_MAJOR && minor == REQUIRED_MINOR && patch >= REQUIRED_PATCH)
+	{
+		return SCAP_SUCCESS;
+	}
+	snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
+	return SCAP_FAILURE;
 }
 
 /*=============================== UTILS ===============================*/
