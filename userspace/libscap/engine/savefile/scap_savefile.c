@@ -2154,7 +2154,7 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 		&main_handle->m_machine_info,
 		&main_handle->m_proclist,
 		&platform->m_addrlist,
-		&main_handle->m_userlist,
+		&platform->m_userlist,
 		main_handle->m_lasterr
 	);
 
@@ -2175,10 +2175,10 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 
 	if(!oargs->import_users)
 	{
-		if(main_handle->m_userlist != NULL)
+		if(platform->m_userlist != NULL)
 		{
-			scap_free_userlist(main_handle->m_userlist);
-			main_handle->m_userlist = NULL;
+			scap_free_userlist(platform->m_userlist);
+			platform->m_userlist = NULL;
 		}
 	}
 
@@ -2222,7 +2222,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 		&handle->m_machine_info,
 		&handle->m_proclist,
 		&platform->m_addrlist,
-		&handle->m_userlist,
+		&platform->m_userlist,
 		handle->m_lasterr)) != SCAP_SUCCESS)
 	{
 		char error[SCAP_LASTERR_SIZE];

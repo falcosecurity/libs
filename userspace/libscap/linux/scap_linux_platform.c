@@ -52,6 +52,16 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, struct scap_eng
 		return rc;
 	}
 
+	if(oargs->import_users)
+	{
+		rc = scap_linux_create_userlist(platform);
+		if(rc != SCAP_SUCCESS)
+		{
+			scap_linux_free_platform(platform);
+			return rc;
+		}
+	}
+
 	return SCAP_SUCCESS;
 }
 
