@@ -1,12 +1,13 @@
 {
     "trace_session": {
       "name": "Default",
+      "ignore_missing": true,
       "points": [
         {
-          "name": "container/start", 
+          "name": "container/start",
           "context_fields": [
             "cwd",
-			      "time"
+            "time"
           ]
         },
         {
@@ -75,7 +76,7 @@
           "context_fields": [
             "container_id",
             "group_id",
-            "thread_id", 
+            "thread_id",
             "task_start_time",
             "time"
           ]
@@ -85,7 +86,7 @@
           "context_fields": [
             "container_id",
             "group_id",
-            "thread_id", 
+            "thread_id",
             "task_start_time",
             "time"
           ]
@@ -95,7 +96,7 @@
           "context_fields": [
             "container_id",
             "group_id",
-            "thread_id", 
+            "thread_id",
             "task_start_time",
             "time"
           ]
@@ -105,7 +106,7 @@
           "context_fields": [
             "container_id",
             "group_id",
-            "thread_id", 
+            "thread_id",
             "task_start_time",
             "time"
           ]
