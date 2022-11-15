@@ -110,6 +110,7 @@ std::string generate(std::string socket_path)
 
 	Json::Value trace_session;
 	trace_session["name"] = "Default";
+	trace_session["ignore_missing"] = true;
 	trace_session["points"] = points;
 	trace_session["sinks"] = sinks;
 
