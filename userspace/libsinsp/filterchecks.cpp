@@ -2562,11 +2562,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		{
 			if(m_checksum_table == NULL)
 			{
-				m_checksum_table = new checksum_table();
-				for(auto f : m_inspector->m_exec_hashing_checksum_files)
-				{
-					m_checksum_table->add_from_file(f);
-				}
+				m_checksum_table = new checksum_table(m_inspector);
 			}
 
 			sinsp_evt_param* param = evt->get_param(2);
@@ -2575,7 +2571,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			auto it = m_checksum_table->m_table.find(key);
 			if(it != m_checksum_table->m_table.end())
 			{
-				RETURN_EXTRACT_STRING(it->second.m_filename);
+				RETURN_EXTRACT_STRING(it->second);
 			}
 		}
 

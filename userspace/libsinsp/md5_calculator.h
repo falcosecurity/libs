@@ -54,22 +54,19 @@ private:
 	unordered_map<string, md5_cache_entry> m_cache;
 };
 
-class checksum_table_entry
-{
-public:
-	string m_filename;
-	string m_category;
-};
-
 //
 // This is the table that maps MD5 hashes to malware info.
 //
 class checksum_table
 {
 public:
-	bool add_from_file(string filename);
+	checksum_table(sinsp* inspector);
+	unordered_map<string, string> m_table;
 
-	unordered_map<string, checksum_table_entry> m_table;
+private:
+	void add_from_file(string filename);
+
+	sinsp* m_inspector = NULL;
 };
 
 #endif // WIN32

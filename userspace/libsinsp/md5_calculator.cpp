@@ -247,44 +247,63 @@ int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath
 ///////////////////////////////////////////////////////////////////////////////
 // checksum_table implementation
 ///////////////////////////////////////////////////////////////////////////////
-bool checksum_table::add_from_file(string filename)
+checksum_table::checksum_table(sinsp* inspector)
 {
-	Json::Value root;
-	Json::Reader reader;
-	string json;
+	m_inspector = inspector;
 
-	ifstream fs(filename);
-
-	if(reader.parse(fs, root) == false)
+	for(auto f : m_inspector->m_exec_hashing_checksum_files)
 	{
-		throw sinsp_exception("file " + filename + " doesn't contain valid json");
+		add_from_file(f);
+	}
+}
+
+void checksum_table::add_from_file(string filename)
+{
+	FILE* f = fopen(filename.c_str(), "r");
+	if(f == NULL)
+	{
+		ASSERT(false); // The existence of the file should have been validated before
+		throw sinsp_exception("can't open signatures file " + filename);
 	}
 
-	for(auto it : root)
+	char line[1024];
+	while(fgets(line, sizeof(line), f) != NULL)
 	{
-		string key = it["MD5"].asString();
-		if(key == "")
+		// skip comments
+		if(line[0] == '#')
 		{
-			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (1)");
+			continue;
 		}
 
-		checksum_table_entry val;
-		val.m_category = it["category"].asString();
-		if(val.m_category == "")
+		string sline(line);
+		trim(sline);
+
+		// split the line into fields
+		vector<string> fields = sinsp_split(string(sline), ',');
+
+		// Check that the line is well formed
+		if(fields.size() != 2)
 		{
-			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (2)");
+			fclose(f);
+			throw sinsp_exception("malformed line in signatures file " + filename + ": " + sline);
 		}
 
-		val.m_filename = it["filename"].asString();
-		if(val.m_filename == "")
+		string(hash) = fields[0];
+		trim(hash);
+		string category = fields[1];
+		trim(category);
+
+
+		if(hash.size() != 64 || category.empty())
 		{
-			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (3)");
+			fclose(f);
+			throw sinsp_exception("invalid line in signatures file " + filename + ": " + sline);
 		}
 
-		m_table[key] = val;
+		m_table[hash] = category;
 	}
 
-	return true;
+	fclose(f);
 }
 
 #endif // WIN32
