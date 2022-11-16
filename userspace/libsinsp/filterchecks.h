@@ -20,6 +20,7 @@ limitations under the License.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
+#include "md5_calculator.h"
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 #include "k8s.h"
 #include "mesos.h"
@@ -351,42 +352,45 @@ public:
 		TYPE_VMSIZE = 20,
 		TYPE_VMRSS = 21,
 		TYPE_VMSWAP = 22,
-		TYPE_PFMAJOR = 23,
-		TYPE_PFMINOR = 24,
-		TYPE_TID = 25,
-		TYPE_ISMAINTHREAD = 26,
-		TYPE_EXECTIME = 27,
-		TYPE_TOTEXECTIME = 28,
-		TYPE_CGROUPS = 29,
-		TYPE_CGROUP = 30,
-		TYPE_VTID = 31,
-		TYPE_VPID = 32,
-		TYPE_THREAD_CPU = 33,
-		TYPE_THREAD_CPU_USER = 34,
-		TYPE_THREAD_CPU_SYSTEM = 35,
-		TYPE_THREAD_VMSIZE = 36,
-		TYPE_THREAD_VMRSS = 37,
-		TYPE_THREAD_VMSIZE_B = 38,
-		TYPE_THREAD_VMRSS_B = 39,
-		TYPE_SID = 40,
-		TYPE_SNAME = 41,
-		TYPE_TTY = 42,
-		TYPE_EXEPATH = 43,
-		TYPE_NAMETID = 44,
-		TYPE_VPGID = 45,
-		TYPE_IS_CONTAINER_HEALTHCHECK = 46,
-		TYPE_IS_CONTAINER_LIVENESS_PROBE = 47,
-		TYPE_IS_CONTAINER_READINESS_PROBE = 48,
-		TYPE_IS_EXE_WRITABLE = 49,
-		TYPE_CAP_PERMITTED = 50,
-		TYPE_CAP_INHERITABLE = 51,
-		TYPE_CAP_EFFECTIVE = 52,
-		TYPE_CMDNARGS = 53,
-		TYPE_CMDLENARGS = 54,
-		TYPE_PVPID = 55,
+		TYPE_HASH_FILENAME = 23,
+		TYPE_HASH_CATEGORY = 24,
+		TYPE_PFMAJOR = 25,
+		TYPE_PFMINOR = 26,
+		TYPE_TID = 27,
+		TYPE_ISMAINTHREAD = 28,
+		TYPE_EXECTIME = 29,
+		TYPE_TOTEXECTIME = 30,
+		TYPE_CGROUPS = 31,
+		TYPE_CGROUP = 32,
+		TYPE_VTID = 33,
+		TYPE_VPID = 34,
+		TYPE_THREAD_CPU = 35,
+		TYPE_THREAD_CPU_USER = 36,
+		TYPE_THREAD_CPU_SYSTEM = 37,
+		TYPE_THREAD_VMSIZE = 38,
+		TYPE_THREAD_VMRSS = 39,
+		TYPE_THREAD_VMSIZE_B = 40,
+		TYPE_THREAD_VMRSS_B = 41,
+		TYPE_SID = 42,
+		TYPE_SNAME = 43,
+		TYPE_TTY = 44,
+		TYPE_EXEPATH = 45,
+		TYPE_NAMETID = 46,
+		TYPE_VPGID = 47,
+		TYPE_IS_CONTAINER_HEALTHCHECK = 48,
+		TYPE_IS_CONTAINER_LIVENESS_PROBE = 49,
+		TYPE_IS_CONTAINER_READINESS_PROBE = 50,
+		TYPE_IS_EXE_WRITABLE = 51,
+		TYPE_CAP_PERMITTED = 52,
+		TYPE_CAP_INHERITABLE = 53,
+		TYPE_CAP_EFFECTIVE = 54,
+		TYPE_CMDNARGS = 55,
+		TYPE_CMDLENARGS = 56,
+		TYPE_PVPID = 57,
 	};
 
 	sinsp_filter_check_thread();
+	~sinsp_filter_check_thread();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
@@ -409,6 +413,7 @@ private:
 	vector<uint64_t> m_last_proc_switch_times;
 	uint32_t m_th_state_id;
 	uint64_t m_cursec_ts;
+	checksum_table* m_checksum_table = NULL;
 };
 
 //

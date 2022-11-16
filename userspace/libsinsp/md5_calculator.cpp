@@ -27,12 +27,16 @@ limitations under the License.
 #include <openssl/md5.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <fstream>
 
 #include "sinsp.h"
 #include "md5_calculator.h"
 
 #define IO_BUF_SIZE = 65536;
 
+///////////////////////////////////////////////////////////////////////////////
+// md5_calculator implementation
+///////////////////////////////////////////////////////////////////////////////
 int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 {
 	uint64_t size;
@@ -238,6 +242,49 @@ int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath
 	add_to_cache(&cache_key, checksum, res);
 
 	return res;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// checksum_table implementation
+///////////////////////////////////////////////////////////////////////////////
+bool checksum_table::add_from_file(string filename)
+{
+	Json::Value root;
+	Json::Reader reader;
+	string json;
+
+	ifstream fs(filename);
+
+	if(reader.parse(fs, root) == false)
+	{
+		throw sinsp_exception("file " + filename + " doesn't contain valid json");
+	}
+
+	for(auto it : root)
+	{
+		string key = it["MD5"].asString();
+		if(key == "")
+		{
+			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (1)");
+		}
+
+		checksum_table_entry val;
+		val.m_category = it["category"].asString();
+		if(val.m_category == "")
+		{
+			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (2)");
+		}
+
+		val.m_filename = it["filename"].asString();
+		if(val.m_filename == "")
+		{
+			throw sinsp_exception("file " + filename + " doesn't contains a malformed checksum table (3)");
+		}
+
+		m_table[key] = val;
+	}
+
+	return true;
 }
 
 #endif // WIN32

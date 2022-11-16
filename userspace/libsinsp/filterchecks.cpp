@@ -1872,6 +1872,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmsize", "VM Size", "total virtual memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmrss", "VM RSS", "resident non-swapped memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "VM Swap", "swapped memory for the process (as kb)."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.hash.filename", "Hash Filename", "for events of type exehash, if file hashes are available, the file name corresponding to the process' executable hash."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.hash.category", "Hash Category", "for events of type exehash, if file hashes are available, the threat category corresponding to the hash, e.g. trojan.linux/kinsing."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfmajor", "Major Page Faults", "number of major page faults since thread start."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfminor", "Minor Page Faults", "number of minor page faults since thread start."},
 	{PT_INT64, EPF_NONE, PF_ID, "thread.tid", "Thread ID", "the id of the thread generating the event."},
@@ -1917,6 +1919,14 @@ sinsp_filter_check_thread::sinsp_filter_check_thread()
 
 	m_u64val = 0;
 	m_cursec_ts = 0;
+}
+
+sinsp_filter_check_thread::~sinsp_filter_check_thread()
+{
+	if(m_checksum_table != NULL)
+	{
+		delete m_checksum_table;
+	}
 }
 
 sinsp_filter_check* sinsp_filter_check_thread::allocate_new()
@@ -2546,6 +2556,30 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_VMSWAP:
 		m_u64val = tinfo->m_vmswap_kb;
 		RETURN_EXTRACT_VAR(m_u64val);
+	case TYPE_HASH_FILENAME:
+	case TYPE_HASH_CATEGORY:
+		if(evt->get_type() == PPME_SYSCALL_EXE_HASH_E)
+		{
+			if(m_checksum_table == NULL)
+			{
+				m_checksum_table = new checksum_table();
+				for(auto f : m_inspector->m_exec_hashing_checksum_files)
+				{
+					m_checksum_table->add_from_file(f);
+				}
+			}
+
+			sinsp_evt_param* param = evt->get_param(2);
+			char* key = (char *)param->m_val;
+
+			auto it = m_checksum_table->m_table.find(key);
+			if(it != m_checksum_table->m_table.end())
+			{
+				RETURN_EXTRACT_STRING(it->second.m_filename);
+			}
+		}
+
+		return NULL;
 	case TYPE_THREAD_VMSIZE:
 		if(tinfo->is_main_thread())
 		{

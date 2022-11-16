@@ -36,6 +36,11 @@ public:
 	chrono::time_point<chrono::system_clock> m_ts;
 };
 
+//
+// This is the class that performs the checksum calculation.
+// It includes a cache to avoid repeated calculation of files that have already
+// been processed.
+//
 class md5_calculator
 {
 public:
@@ -47,6 +52,24 @@ private:
 	int64_t checksum_exepath(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
 
 	unordered_map<string, md5_cache_entry> m_cache;
+};
+
+class checksum_table_entry
+{
+public:
+	string m_filename;
+	string m_category;
+};
+
+//
+// This is the table that maps MD5 hashes to malware info.
+//
+class checksum_table
+{
+public:
+	bool add_from_file(string filename);
+
+	unordered_map<string, checksum_table_entry> m_table;
 };
 
 #endif // WIN32

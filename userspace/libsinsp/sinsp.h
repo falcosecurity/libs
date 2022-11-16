@@ -1141,9 +1141,10 @@ public:
 	/*!
 	  \brief Enable/disable executable hashing.
 	*/
-	void set_exec_hashing(bool exec_hashing_enabled)
+	void set_exec_hashing(bool exec_hashing_enabled, vector<string> checksum_files)
 	{
 		m_exec_hashing_enabled = exec_hashing_enabled;
+		m_exec_hashing_checksum_files = checksum_files;
 	}
 
 VISIBILITY_PROTECTED
@@ -1459,6 +1460,7 @@ public:
 	static std::atomic<int> instance_count;
 
 	bool m_exec_hashing_enabled;
+	vector<string> m_exec_hashing_checksum_files;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;
