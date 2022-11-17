@@ -74,7 +74,7 @@ libsinsp::procfs_utils::ns_helper::ns_helper(const std::string& host_root):
 {
 	// (try to) init m_host_init_ns_mnt
 	char buf[NS_MNT_SIZE] = {0};
-	if(-1 == readlink((m_host_root + "/proc/1/ns/mnt").c_str(), buf, NS_MNT_SIZE))
+	if(-1 == readlink((m_host_root + "/proc/1/ns/mnt").c_str(), buf, NS_MNT_SIZE - 1))
 	{
 		g_logger.format(sinsp_logger::SEV_WARNING,
 				"Cannot read host init ns/mnt");
@@ -107,7 +107,7 @@ bool libsinsp::procfs_utils::ns_helper::in_own_ns_mnt(int64_t pid) const
 	std::string path = m_host_root + "/proc/" + std::to_string(pid) + "/ns/mnt";
 
 	char proc_ns_mnt[NS_MNT_SIZE] = {0};
-	if(-1 == readlink(path.c_str(), proc_ns_mnt, NS_MNT_SIZE))
+	if(-1 == readlink(path.c_str(), proc_ns_mnt, NS_MNT_SIZE-1))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
 				"Cannot read process ns/mnt");
