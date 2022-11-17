@@ -152,8 +152,6 @@ TEST(SyscallExit, forkX_child)
 			exit(EXIT_FAILURE);
 		}
 
-		evt_test->disable_capture();
-
 #ifdef CAPTURE_SCHED_PROC_FORK
 		evt_test->assert_event_absence(pid);
 #else
@@ -260,6 +258,8 @@ TEST(SyscallExit, forkX_child)
 	{
 		FAIL() << "Something in the child failed." << std::endl;
 	}
+
+	evt_test->disable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }

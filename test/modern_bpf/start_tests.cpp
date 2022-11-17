@@ -70,11 +70,6 @@ int main(int argc, char** argv)
 	ret = ret ?: pman_load_probe();
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
-	/* Syscall dispatchers are always attached.
-	 * Generic tracepoints will be attached only in the dedicated test cases.
-	 */
-	ret = ret ?: pman_attach_syscall_enter_dispatcher();
-	ret = ret ?: pman_attach_syscall_exit_dispatcher();
 	if(ret)
 	{
 		std::cout << "\n* Error in the bpf probe setup, TESTS not started!" << std::endl;

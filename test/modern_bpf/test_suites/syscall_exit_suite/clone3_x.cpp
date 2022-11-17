@@ -264,8 +264,6 @@ TEST(SyscallExit, clone3X_child)
 		}
 	}
 
-	evt_test->disable_capture();
-
 	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
 
 	int status = 0;
@@ -276,6 +274,8 @@ TEST(SyscallExit, clone3X_child)
 	{
 		FAIL() << "Something in the child failed." << std::endl;
 	}
+
+	evt_test->disable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }
