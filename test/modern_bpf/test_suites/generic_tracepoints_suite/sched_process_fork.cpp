@@ -41,8 +41,6 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone3)
 			exit(EXIT_FAILURE);
 		}
 
-		evt_test->disable_capture();
-
 		evt_test->assert_event_presence(pid);
 
 		if(HasFatalFailure())
@@ -145,6 +143,8 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone3)
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
+	evt_test->disable_capture();
+
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }
 #endif /* __NR_clone3 */
@@ -195,8 +195,6 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone)
 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
-		evt_test->disable_capture();
 
 		evt_test->assert_event_presence(pid);
 
@@ -300,6 +298,8 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone)
 		FAIL() << "Something in the child failed." << std::endl;
 	}
 
+	evt_test->disable_capture();
+
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }
 #endif /* __NR_clone */
@@ -333,8 +333,6 @@ TEST(GenericTracepoints, sched_proc_fork_case_fork)
 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
 			exit(EXIT_FAILURE);
 		}
-
-		evt_test->disable_capture();
 
 		evt_test->assert_event_presence(pid);
 
@@ -437,6 +435,8 @@ TEST(GenericTracepoints, sched_proc_fork_case_fork)
 	{
 		FAIL() << "Something in the child failed." << std::endl;
 	}
+
+	evt_test->disable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }

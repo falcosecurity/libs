@@ -82,6 +82,7 @@ TEST(SyscallExit, cloneX_father)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
+
 	evt_test->assert_event_presence();
 
 	if(HasFatalFailure())
@@ -311,8 +312,6 @@ TEST(SyscallExit, cloneX_child)
 		exit(EXIT_SUCCESS);
 	}
 
-	evt_test->disable_capture();
-
 	assert_syscall_state(SYSCALL_SUCCESS, "clone", ret_pid, NOT_EQUAL, -1);
 
 	int status = 0;
@@ -323,6 +322,8 @@ TEST(SyscallExit, cloneX_child)
 	{
 		FAIL() << "Something in the child failed." << std::endl;
 	}
+
+	evt_test->disable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 }

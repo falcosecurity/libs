@@ -55,9 +55,8 @@ enum direction
 #define SYSCALL_SUCCESS 1
 
 /* Event direction. */
-#define EXIT_EVENT 1 << 0
-#define ENTER_EVENT 1 << 1
-#define BOTH_EVENT (1 << 2) - 1 // mask for both
+#define EXIT_EVENT 0
+#define ENTER_EVENT 1
 
 /* NOTE: if we change the name of this executable
  * we have to change also this string!
@@ -538,7 +537,7 @@ private:
 	struct ppm_evt_hdr* m_event_header;	  /* header of the event. */
 	uint32_t m_event_len;			  /* total event length. */
 	uint32_t m_current_param;		  /* current param that we are analyzing in a single assert method. */
-	int m_event_direction;                    /* requested event direction */
+	std::vector<uint8_t> m_tp_set;		  /* Set of tracepoints that must be enabled for the specific test. */
 
 	/**
 	 * @brief Performs two main actions:
