@@ -77,7 +77,7 @@ libsinsp::procfs_utils::ns_helper::ns_helper(const std::string& host_root):
 	if(-1 == readlink((m_host_root + "/proc/1/ns/mnt").c_str(), buf, NS_MNT_SIZE - 1))
 	{
 		g_logger.format(sinsp_logger::SEV_WARNING,
-				"Cannot read host init ns/mnt");
+				"Cannot read host init ns/mnt: %d", errno);
 		m_cannot_read_host_init_ns_mnt = true;
 	}
 	else
