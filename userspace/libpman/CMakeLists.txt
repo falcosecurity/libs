@@ -17,6 +17,7 @@ set(PMAN_PRIVATE_INCLUDES
     "${LIBSCAP_DIR}/driver/" ## ppm_enum and tables
     "${LIBSCAP_DIR}/userspace/libscap" ## scap-stats struct
     "${LIBSCAP_DIR}/driver/modern_bpf/" ## bpf-shared structs
+    "./include"
 )
 
 set(PMAN_PUBLIC_INCLUDES

@@ -18,6 +18,7 @@ limitations under the License.
 #include "state.h"
 #include <feature_gates.h>
 #include <ppm_tp.h>
+#include <libpman.h>
 
 /* Some notes about how a bpf program must be detached without unloading it:
  * https://lore.kernel.org/bpf/CAEf4BzZ8=dV0wvggAKnD64yXnhcXhdf1ovCT_LBd17RtJJXrdA@mail.gmail.com/T/

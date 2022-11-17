@@ -67,6 +67,8 @@ TEST(Local, ring_buffer_overwrite)
 	ASSERT_EQ(prev_len, evt->len);
 	ASSERT_EQ(prev_type, evt->type);
 	ASSERT_EQ(prev_nparams, evt->nparams);
+
+	evt_test->disable_capture();
 }
 #endif
 

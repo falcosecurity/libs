@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "state.h"
 #include <scap.h>
+#include <libpman.h>
 
 int pman_enable_capture(bool *tp_set)
 {
