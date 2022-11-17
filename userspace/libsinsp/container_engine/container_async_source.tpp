@@ -95,21 +95,29 @@ void container_async_source<key_type>::run_impl()
 	while(this->dequeue_next_key(key, &res))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"%s_async (%s): Source dequeued key",
+				"%s_async (%s): Source dequeued key attempt=%u",
 				name(),
-				container_id(key).c_str());
+				container_id(key).c_str(),
+				res.m_lookup.retry_no());
 
 		lookup_sync(key, res);
 
-		// For security reasons we store the value regardless of the lookup status on the
-		// first attempt, so we can track the container activity even without its metadata.
-		// For subsequent attempts we store it only if successful.
-		if(res.m_lookup.first_attempt() || res.m_lookup.is_successful())
+		if(!res.m_lookup.should_retry())
 		{
+			// Either the fetch was successful or the
+			// maximum number of retries have occurred.
+			if(!res.m_lookup.is_successful())
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"%s_async (%s): Could not look up container info after %u retries",
+						name(),
+						container_id(key).c_str(),
+						res.m_lookup.retry_no());
+			}
+
 			this->store_value(key, res);
 		}
-
-		if(res.m_lookup.should_retry())
+		else
 		{
 			// Make a new attempt
 			res.m_lookup.attempt_increment();
@@ -120,15 +128,9 @@ void container_async_source<key_type>::run_impl()
 					container_id(key).c_str(),
 					res.m_lookup.retry_no());
 
-			this->lookup_delayed(
-				key,
-				res,
-				std::chrono::milliseconds(res.m_lookup.delay()),
-				std::bind(
-					&container_async_source::source_callback,
-					this,
-					std::placeholders::_1,
-					std::placeholders::_2));
+			this->defer_lookup(key,
+					   &res,
+					   std::chrono::milliseconds(res.m_lookup.delay()));
 		}
 
 		// Reset res
