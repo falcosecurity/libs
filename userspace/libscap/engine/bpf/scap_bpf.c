@@ -1564,7 +1564,7 @@ int32_t scap_bpf_load(
 
 	if(online_cpu != handle->m_dev_set.m_ndevs)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", j, handle->m_dev_set.m_ndevs);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "processors online: %d, expected: %d", online_cpu, handle->m_dev_set.m_ndevs);
 		return SCAP_FAILURE;
 	}
 
@@ -1786,7 +1786,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	}
 
 	//
-	// Find out how many devices we have to open, which equals to the number of CPUs
+	// Find out how many devices we have to open, which equals to the number of online CPUs
 	//
 	ssize_t num_cpus = sysconf(_SC_NPROCESSORS_CONF);
 	if(num_cpus == -1)
