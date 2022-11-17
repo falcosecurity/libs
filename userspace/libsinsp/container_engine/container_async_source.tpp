@@ -102,15 +102,22 @@ void container_async_source<key_type>::run_impl()
 
 		lookup_sync(key, res);
 
-		// For security reasons we store the value regardless of the lookup status on the
-		// first attempt, so we can track the container activity even without its metadata.
-		// For subsequent attempts we store it only if successful.
-		if(res.m_lookup.first_attempt() || res.m_lookup.is_successful())
+		if(!res.m_lookup.should_retry())
 		{
+			// Either the fetch was successful or the
+			// maximum number of retries have occurred.
+			if(!res.m_lookup.is_successful())
+			{
+				g_logger.format(sinsp_logger::SEV_DEBUG,
+						"%s_async (%s): Could not look up container info after %u retries",
+						name(),
+						container_id(key).c_str(),
+						res.m_lookup.retry_no());
+			}
+
 			this->store_value(key, res);
 		}
-
-		if(res.m_lookup.should_retry())
+		else
 		{
 			// Make a new attempt
 			res.m_lookup.attempt_increment();

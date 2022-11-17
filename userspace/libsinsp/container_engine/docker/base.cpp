@@ -65,10 +65,16 @@ void docker_base::parse_docker(const docker_lookup_request& request, container_c
 	bool done;
 	if (cache->async_allowed())
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): Starting asynchronous lookup",
+				request.container_id.c_str());
 		done = m_docker_info_source->lookup(request, result);
 	}
 	else
 	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async (%s): Starting synchronous lookup",
+				request.container_id.c_str());
 		done = m_docker_info_source->lookup_sync(request, result);
 	}
 	if (done)

@@ -338,6 +338,20 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		}
 		else
 		{
+			// We don't log any warning when the inspector
+			// is doing its initial scan from /proc + any
+			// container lookups. Those don't have
+			// retries.
+			if(!container_info.is_successful() && m_inspector->m_inited)
+			{
+				// This means that the container
+				// engine made multiple attempts to
+				// look up the info and all attempts
+				// failed. Log that as a warning.
+				g_logger.format(sinsp_logger::SEV_WARNING,
+						"notify_new_container (%s): Saving empty container info after repeated failed lookups",
+						container_info.m_id.c_str());
+			}
 			add_container(std::make_shared<sinsp_container_info>(container_info), tinfo);
 		}
 		return;
