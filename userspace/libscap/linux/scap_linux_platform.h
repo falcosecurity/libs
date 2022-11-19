@@ -60,6 +60,7 @@ struct scap_linux_platform
 	struct scap_platform m_generic;
 
 	char* m_lasterr;
+	int m_cgroup_version;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;

@@ -20,8 +20,11 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_linux_int.h"
+#include "strerror.h"
 
+#include <errno.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static int32_t scap_linux_close_platform(struct scap_platform* platform)
 {
@@ -33,10 +36,47 @@ static void scap_linux_free_platform(struct scap_platform* platform)
 	free(platform);
 }
 
+static int scap_get_cgroup_version()
+{
+	char dir_name[256];
+	int cgroup_version = -1;
+	FILE* f;
+	char line[SCAP_MAX_ENV_SIZE];
+
+	snprintf(dir_name, sizeof(dir_name), "%s/proc/filesystems", scap_get_host_root());
+	f = fopen(dir_name, "r");
+	if (f)
+	{
+		while(fgets(line, sizeof(line), f) != NULL)
+		{
+			// NOTE: we do not support mixing cgroups v1 v2 controllers.
+			// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
+			if (strstr(line, "cgroup2"))
+			{
+				return 2;
+			}
+			if (strstr(line, "cgroup"))
+			{
+				cgroup_version = 1;
+			}
+		}
+		fclose(f);
+	}
+
+	return cgroup_version;
+}
+
 int32_t scap_linux_early_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 	linux_platform->m_lasterr = lasterr;
+
+	linux_platform->m_cgroup_version = scap_get_cgroup_version();
+	if(linux_platform->m_cgroup_version < 1)
+	{
+		ASSERT(false);
+		return scap_errprintf(lasterr, errno, "failed to fetch cgroup version information");
+	}
 
 	return SCAP_SUCCESS;
 }

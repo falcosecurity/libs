@@ -669,36 +669,6 @@ int32_t scap_proc_fill_exe_writable(char* error, struct scap_threadinfo* tinfo, 
 }
 
 
-static int scap_get_cgroup_version(const char* procdirname)
-{
-	char dir_name[256];
-	int cgroup_version = -1;
-	FILE* f;
-	char line[SCAP_MAX_ENV_SIZE];
-
-	snprintf(dir_name, sizeof(dir_name), "%s/filesystems", procdirname);
-	f = fopen(dir_name, "r");
-	if (f)
-	{
-		while(fgets(line, sizeof(line), f) != NULL)
-		{
-			// NOTE: we do not support mixing cgroups v1 v2 controllers.
-			// Neither docker nor podman support this: https://github.com/docker/for-linux/issues/1256
-			if (strstr(line, "cgroup2"))
-			{
-				return 2;
-			}
-			if (strstr(line, "cgroup"))
-			{
-				cgroup_version = 1;
-			}
-		}
-		fclose(f);
-	}
-
-	return cgroup_version;
-}
-
 //
 // Add a process to the list by parsing its entry under /proc
 //
@@ -718,17 +688,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
-
-
-	if (handle->m_cgroup_version == 0)
-	{
-		handle->m_cgroup_version = scap_get_cgroup_version(procdirname);
-		if(handle->m_cgroup_version < 1)
-		{
-			ASSERT(false);
-			return scap_errprintf(error, errno, "failed to fetch cgroup version information");
-		}
-	}
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -937,7 +896,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 	}
 
-	if(scap_proc_fill_cgroups(handle->m_lasterr, handle->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
+	if(scap_proc_fill_cgroups(handle->m_lasterr, linux_platform->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
