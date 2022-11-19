@@ -165,8 +165,8 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 //
 // Returns SCAP_FAILURE if we tried to add the tid to the suppressed
 // tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
-int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent,
-			      bool *suppressed);
+int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
+			      bool *suppressed, char *error);
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);

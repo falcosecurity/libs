@@ -120,7 +120,7 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 }
 
-int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed)
+int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, bool *suppressed, char *error)
 {
 	uint16_t *lens;
 	char *valptr;
@@ -150,7 +150,7 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 		if(pevent->nparams < 14)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find process comm in event argument list");
+			snprintf(error, SCAP_LASTERR_SIZE, "Could not find process comm in event argument list");
 			return SCAP_FAILURE;
 		}
 
@@ -169,13 +169,13 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 		if(ptid == NULL)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not find ptid in event argument list");
+			snprintf(error, SCAP_LASTERR_SIZE, "Could not find ptid in event argument list");
 			return SCAP_FAILURE;
 		}
 
 		comm = valptr;
 
-		if((res = scap_update_suppressed(&handle->m_suppress,
+		if((res = scap_update_suppressed(suppress,
 						 comm,
 						 pevent->tid, *ptid,
 						 suppressed)) != SCAP_SUCCESS)
@@ -188,14 +188,14 @@ int32_t scap_check_suppressed(scap_t *handle, scap_evt *pevent, bool *suppressed
 
 	default:
 
-		HASH_FIND_INT64(handle->m_suppress.m_suppressed_tids, &(pevent->tid), stid);
+		HASH_FIND_INT64(suppress->m_suppressed_tids, &(pevent->tid), stid);
 
 		// When threads exit they are always removed and no longer suppressed.
 		if(pevent->type == PPME_PROCEXIT_1_E)
 		{
 			if(stid != NULL)
 			{
-				HASH_DEL(handle->m_suppress.m_suppressed_tids, stid);
+				HASH_DEL(suppress->m_suppressed_tids, stid);
 				free(stid);
 				*suppressed = true;
 			}
