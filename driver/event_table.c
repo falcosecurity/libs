@@ -386,7 +386,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_MLOCK2_X */{"mlock2", EC_MEMORY | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"addr", PT_UINT64, PF_HEX}, {"len", PT_UINT64, PF_DEC}, {"flags", PT_UINT32, PF_HEX, mlockall_flags}}},
 	/* PPME_SYSCALL_FSCONFIG_E */{"fsconfig", EC_SYSTEM | EC_SYSCALL, EF_NONE, 0},
 	/* PPME_SYSCALL_FSCONFIG_X */{"fsconfig", EC_SYSTEM | EC_SYSCALL, EF_USES_FD, 7, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"cmd", PT_ENUMFLAGS32, PF_DEC, fsconfig_cmds}, {"key", PT_CHARBUF, PF_NA}, {"value_bytebuf", PT_BYTEBUF, PF_NA}, {"value_charbuf", PT_CHARBUF, PF_NA}, {"aux", PT_INT32, PF_DEC}}},
-    /* PPME_SYSCALL_EXE_HASH_E */{"exehash", EC_METAEVENT, EF_SKIPPARSERESET, 3, {{"res", PT_ERRNO, PF_DEC}, {"exepath", PT_CHARBUF, PF_NA}, {"md5", PT_CHARBUF, PF_NA} } },
+    /* PPME_SYSCALL_EXE_HASH_E */{"exehash", EC_METAEVENT, EF_SKIPPARSERESET, 3, {{"res", PT_ERRNO, PF_DEC}, {"exepath", PT_CHARBUF, PF_NA}, {"hash", PT_CHARBUF, PF_NA} } },
     /* PPME_SYSCALL_EXE_HASH_X */{"NA6", EC_UNKNOWN, EF_UNUSED, 0},
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.

@@ -38,7 +38,7 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "md5_calculator.h"
+#include "file_hash_calculator.h"
 
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
@@ -69,7 +69,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_exe_hash_metaevents_state, PPME_SYSCALL_EXE_HASH_E, SP_EVT_BUF_SIZE);
 	m_drop_event_flags = EF_NONE;
-	m_md5_calculator = new md5_calculator();
+	m_exe_hash_calculator = new file_hash_calculator();
 }
 
 sinsp_parser::~sinsp_parser()
@@ -96,7 +96,7 @@ sinsp_parser::~sinsp_parser()
 		delete m_inspector->m_partial_tracers_pool;
 	}
 
-	delete m_md5_calculator;
+	delete m_exe_hash_calculator;
 }
 
 void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
@@ -2412,7 +2412,10 @@ void sinsp_parser::schedule_exehash_event(sinsp_threadinfo* tinfo)
 	//
 	string exename;
 	string hash;
-	int64_t hres = m_md5_calculator->checksum_executable(mt, &exename, &hash);
+	int64_t hres = m_exe_hash_calculator->checksum_executable(mt,
+															  &exename,
+															  file_hash_calculator::HT_SHA256,
+															  &hash);
 
 	//
 	// Create the exehash meta event that will be sent out after this execve.

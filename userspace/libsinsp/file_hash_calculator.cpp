@@ -24,25 +24,27 @@ limitations under the License.
 
 #include <stdio.h>
 #include <fcntl.h>
-#include <openssl/md5.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <fstream>
+#include <openssl/md5.h>
+#include <openssl/sha.h>
 
 #include "sinsp.h"
-#include "md5_calculator.h"
+#include "file_hash_calculator.h"
 
-#define IO_BUF_SIZE = 65536;
+#define MAX_DIGEST_LEN (max(SHA256_DIGEST_LENGTH, MD5_DIGEST_LENGTH))
 
 ///////////////////////////////////////////////////////////////////////////////
-// md5_calculator implementation
+// file_hash_calculator implementation
 ///////////////////////////////////////////////////////////////////////////////
-int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
+int64_t file_hash_calculator::checksum_file(string filename, hash_type type, OUT string* hash)
 {
 	uint64_t size;
 	struct stat s;
-	MD5_CTX mdContext;
-	unsigned char digest[MD5_DIGEST_LENGTH];
+	MD5_CTX cmd5;
+	SHA256_CTX csha;
+	unsigned char digest[MAX_DIGEST_LEN];
 
 	int fd = open(filename.c_str(), O_RDONLY);
 	if(fd == -1)
@@ -78,9 +80,10 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	uint8_t* filebuf = (uint8_t*) mmap(0, size, PROT_READ, MAP_PRIVATE, fd, 0);
 
 	//
-	// Do the hashing using openssl
+	// Do the hashing, using openssl
 	//
-	MD5_Init(&mdContext);
+	(type == HT_SHA256) ? SHA256_Init(&csha) : MD5_Init(&cmd5);
+
 
 //	MD5_Update(&mdContext, filebuf, size);
 
@@ -88,7 +91,9 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	auto tstart = std::chrono::high_resolution_clock::now();
 	for(pos = 0; pos + HASHING_CHUNK_SIZE < size; pos += HASHING_CHUNK_SIZE)
 	{
-		MD5_Update(&mdContext, filebuf + pos, HASHING_CHUNK_SIZE);
+		(type == HT_SHA256) ? SHA256_Update(&csha, filebuf + pos, HASHING_CHUNK_SIZE) :
+			MD5_Update(&cmd5, filebuf + pos, HASHING_CHUNK_SIZE);
+
 		auto tcur = std::chrono::high_resolution_clock::now();
 		auto td = (tcur - tstart).count();
 		if(td > HASHING_MAX_HASHING_TIME_NS)
@@ -97,9 +102,11 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 			return -ETIME;
 		}
 	}
-	MD5_Update(&mdContext, filebuf + pos, size - pos);
 
-	MD5_Final(digest, &mdContext);
+	(type == HT_SHA256) ? SHA256_Update(&csha, filebuf + pos, size - pos) :
+		MD5_Update(&cmd5, filebuf + pos, size - pos);
+
+	(type == HT_SHA256) ? SHA256_Final(digest, &csha) : MD5_Final(digest, &cmd5);
 
 	close(fd);
 
@@ -108,7 +115,8 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	//
 	char tmps[3];
 	tmps[2]	= 0;
-	for(auto j = 0; j < MD5_DIGEST_LENGTH; j++)
+	uint32_t digest_len = (type == HT_SHA256) ? SHA256_DIGEST_LENGTH : MD5_DIGEST_LENGTH;
+	for(uint32_t j = 0; j < digest_len; j++)
 	{
 		sprintf(tmps, "%02x", digest[j]);
 		(*hash) += tmps;
@@ -117,7 +125,10 @@ int64_t md5_calculator::checksum_file(string filename, OUT string* hash)
 	return 0;
 }
 
-int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, OUT string* checksum)
+int64_t file_hash_calculator::checksum_executable(sinsp_threadinfo* tinfo,
+											OUT string* exepath,
+											hash_type type,
+											OUT string* checksum)
 {
 	*exepath = tinfo->m_exepath;
 
@@ -147,10 +158,10 @@ int64_t md5_calculator::checksum_executable(sinsp_threadinfo* tinfo, OUT string*
 		}
 	}
 
-	return checksum_exepath(tinfo, *exepath, checksum);
+	return checksum_exepath(tinfo, *exepath, type, checksum);
 }
 
-void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
+void file_hash_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
 {
 	//
 	// Cache full?
@@ -158,7 +169,7 @@ void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t r
 	//
 	if(m_cache.size() >= MAX_CHECKSUM_CACHE_ENTRIES)
 	{
-		unordered_map<string, md5_cache_entry>::iterator oldest_it = m_cache.begin();
+		unordered_map<string, hash_cache_entry>::iterator oldest_it = m_cache.begin();
 		for(auto it = m_cache.begin(); it != m_cache.end(); ++it)
 		{
 			if(it->second.m_ts < oldest_it->second.m_ts)
@@ -173,14 +184,14 @@ void md5_calculator::add_to_cache(string* cache_key, string* checksum, int64_t r
 	//
 	// Add the cache entry
 	//
-	md5_cache_entry ce;
+	hash_cache_entry ce;
 	ce.m_checksum = *checksum;
 	ce.m_res = res;
 	ce.m_ts =  std::chrono::system_clock::now();
 	m_cache[*cache_key] = ce;
 }
 
-int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum)
+int64_t file_hash_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath, hash_type type, OUT string* checksum)
 {
 	//
 	// We use /proc/<pid>/root to navigate into the process file system and read the
@@ -209,7 +220,7 @@ int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath
 	}
 #endif
 
-	int64_t res = checksum_file(fexepath, checksum);
+	int64_t res = checksum_file(fexepath, type, checksum);
 
 	//
 	// If the file doesn't exist, it means that the process has already exited.
@@ -232,7 +243,7 @@ int64_t md5_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath
 			return -ENODEV;
 		}
 
-		return checksum_exepath(ptinfo, exepath, checksum);
+		return checksum_exepath(ptinfo, exepath, type, checksum);
 	}
 
 	//
@@ -288,7 +299,7 @@ void checksum_table::add_from_file(string filename)
 			throw sinsp_exception("malformed line in signatures file " + filename + ": " + sline);
 		}
 
-		string(hash) = fields[0];
+		string hash = fields[0];
 		trim(hash);
 		string category = fields[1];
 		trim(category);

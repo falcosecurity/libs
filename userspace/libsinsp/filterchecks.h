@@ -20,7 +20,7 @@ limitations under the License.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
-#include "md5_calculator.h"
+#include "file_hash_calculator.h"
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 #include "k8s.h"
 #include "mesos.h"
@@ -352,7 +352,7 @@ public:
 		TYPE_VMSIZE = 20,
 		TYPE_VMRSS = 21,
 		TYPE_VMSWAP = 22,
-		TYPE_HASH_FILENAME = 23,
+		TYPE_HASH_IS_MALWARE = 23,
 		TYPE_HASH_CATEGORY = 24,
 		TYPE_PFMAJOR = 25,
 		TYPE_PFMINOR = 26,

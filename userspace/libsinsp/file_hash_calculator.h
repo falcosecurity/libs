@@ -28,7 +28,7 @@ limitations under the License.
 #define HASHING_MAX_HASHING_TIME_NS 3LL * 1000000000
 #define HASHING_USE_CACHE
 
-class md5_cache_entry
+class hash_cache_entry
 {
 public:
 	string m_checksum;
@@ -41,17 +41,24 @@ public:
 // It includes a cache to avoid repeated calculation of files that have already
 // been processed.
 //
-class md5_calculator
+class file_hash_calculator
 {
 public:
-	int64_t checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, OUT string* checksum);
+	enum hash_type
+	{
+		HT_NONE,
+		HT_MD5,
+		HT_SHA256
+	};
+
+	int64_t checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, hash_type type, OUT string* checksum);
 
 private:
-	int64_t checksum_file(string filename, OUT string* hash);
+	int64_t checksum_file(string filename, hash_type type, OUT string* hash);
 	void add_to_cache(string* cache_key, string* checksum, int64_t res);
-	int64_t checksum_exepath(sinsp_threadinfo* tinfo, string exepath, OUT string* checksum);
+	int64_t checksum_exepath(sinsp_threadinfo* tinfo, string exepath, hash_type type, OUT string* checksum);
 
-	unordered_map<string, md5_cache_entry> m_cache;
+	unordered_map<string, hash_cache_entry> m_cache;
 };
 
 //
