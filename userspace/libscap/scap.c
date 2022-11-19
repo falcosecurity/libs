@@ -619,6 +619,8 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
 		}
 
+		((struct scap_linux_platform*)platform)->m_linux_vtable = &scap_kmod_linux_vtable;
+
 		return scap_init_live_int(handle, oargs, &scap_kmod_engine, platform);
 	}
 #endif

@@ -45,6 +45,9 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, struct scap_eng
 {
 	int rc;
 
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+	linux_platform->m_engine = engine;
+
 	rc = scap_linux_create_iflist(platform);
 	if(rc != SCAP_SUCCESS)
 	{

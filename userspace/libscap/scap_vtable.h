@@ -276,30 +276,6 @@ struct scap_vtable {
 	int32_t (*get_fdinfos)(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
 
 	/**
-	 * @brief get the vpid of a process
-	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param pid the pid of the process to check
-	 * @param vpid output parameter, pointer to the vpid
-	 * @return SCAP_SUCCESS or a failure code
-	 *
-	 * `vpid` is the pid as seen by the process itself, i.e. within its
-	 * PID namespace
-	 */
-	int32_t (*get_vpid)(struct scap_engine_handle engine, uint64_t pid, int64_t *vpid);
-
-	/**
-	 * @brief get the vtid of a process
-	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param tid the tid of the process to check
-	 * @param vtid output parameter, pointer to the vtid
-	 * @return SCAP_SUCCESS or a failure code
-	 *
-	 * `vtid` is the tid as seen by the process itself, i.e. within its
-	 * PID namespace
-	 */
-	int32_t (*get_vtid)(struct scap_engine_handle engine, uint64_t tid, int64_t *vtid);
-
-	/**
 	 * @brief get the current process id in the init pid namespace
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param pid output parameter, pointer to the pid
