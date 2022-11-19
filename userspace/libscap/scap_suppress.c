@@ -20,7 +20,8 @@ limitations under the License.
 
 #include "scap_suppress.h"
 
-#include "scap.h"
+#include "scap_const.h"
+#include "scap_limits.h"
 
 int32_t scap_suppress_events_comm_impl(struct scap_suppress *suppress, const char *comm)
 {
