@@ -68,7 +68,7 @@ void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list **sockets)
 	}
 }
 
-int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
+int32_t scap_fd_handle_pipe(struct scap_proclist* proclist, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
 	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
@@ -94,7 +94,7 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 	strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 
 	fdi->ino = ino;
-	return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
+	return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
 }
 
 static inline uint32_t open_flags_to_scap(unsigned long flags)
@@ -1267,7 +1267,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
 				break;
 			}
-			res = scap_fd_handle_pipe(handle, f_name, tinfo, fdi, error);
+			res = scap_fd_handle_pipe(&handle->m_proclist, f_name, tinfo, fdi, error);
 			break;
 		case S_IFREG:
 		case S_IFBLK:
