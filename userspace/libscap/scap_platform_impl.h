@@ -55,6 +55,10 @@ struct scap_platform_vtable
 	// platform->m_addrlist
 	int32_t (*refresh_addr_list)(struct scap_platform* platform);
 
+	// given a mount id, return the device major:minor
+	// XXX this is Linux-specific
+	uint32_t (*get_device_by_mount_id)(struct scap_platform*, const char *procdir, unsigned long requested_mount_id);
+
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`
 	int32_t (*close_platform)(struct scap_platform* platform);

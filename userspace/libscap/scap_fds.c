@@ -97,31 +97,16 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinf
 }
 
 //
-// Delete a device entry
-//
-void scap_dev_delete(scap_t* handle, scap_mountinfo* dev)
-{
-	//
-	// First, remove the process descriptor from the table
-	//
-	HASH_DEL(handle->m_dev_list, dev);
-
-	//
-	// Second, free the memory
-	//
-	free(dev);
-}
-
-//
 // Free the device table
 //
-void scap_free_device_table(scap_t* handle)
+void scap_free_device_table(scap_mountinfo* dev_list)
 {
 	scap_mountinfo *dev, *tdev;
 
-	HASH_ITER(hh, handle->m_dev_list, dev, tdev)
+	HASH_ITER(hh, dev_list, dev, tdev)
 	{
-		scap_dev_delete(handle, dev);
+		HASH_DEL(dev_list, dev);
+		free(dev);
 	}
 }
 

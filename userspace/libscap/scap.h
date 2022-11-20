@@ -298,7 +298,7 @@ typedef struct scap_threadinfo
 /*!
   \brief Mount information
 */
-typedef struct {
+typedef struct scap_mountinfo {
 	uint64_t mount_id; ///< mount id from /proc/self/mountinfo
 	uint32_t dev; ///< device number
 	UT_hash_handle hh; ///< makes this structure hashable
@@ -979,12 +979,10 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
 
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
-void scap_dev_delete(scap_t* handle, scap_mountinfo* dev);
 int32_t scap_stop_dropping_mode(scap_t* handle);
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
-void scap_free_device_table(scap_t* handle);
 int32_t scap_refresh_proc_table(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);

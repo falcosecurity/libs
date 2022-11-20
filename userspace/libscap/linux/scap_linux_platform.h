@@ -29,6 +29,8 @@ extern "C" {
 #include "scap_platform.h"
 #include "engine_handle.h"
 
+struct scap_mountinfo;
+
 struct scap_linux_vtable {
 	/**
 	 * @brief get the vpid of a process
@@ -61,6 +63,7 @@ struct scap_linux_platform
 
 	char* m_lasterr;
 	int m_cgroup_version;
+	struct scap_mountinfo* m_dev_list;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;

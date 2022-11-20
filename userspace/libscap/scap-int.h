@@ -49,7 +49,6 @@ struct scap
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
 	struct scap_proclist m_proclist;
-	scap_mountinfo* m_dev_list;
 	uint64_t m_evtcnt;
 	scap_machine_info m_machine_info;
 	scap_agent_info m_agent_info;
@@ -87,8 +86,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
 int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
-// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
-uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id);
 // Allocate and return the list of interfaces on this system
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
@@ -105,6 +102,8 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo, const char* procdirname);
 
 bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_entries, char* error);
+
+void scap_free_device_table(scap_mountinfo* dev_list);
 
 // Determine whether or not the provided event should be suppressed,
 // based on its event type and parameters. May update the set of

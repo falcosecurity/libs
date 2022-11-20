@@ -28,6 +28,15 @@ limitations under the License.
 
 static int32_t scap_linux_close_platform(struct scap_platform* platform)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	// Free the device table
+	if(linux_platform->m_dev_list != NULL)
+	{
+		scap_free_device_table(linux_platform->m_dev_list);
+		linux_platform->m_dev_list = NULL;
+	}
+
 	return SCAP_SUCCESS;
 }
 
@@ -112,6 +121,7 @@ static const struct scap_platform_vtable scap_linux_platform = {
 	.early_init_platform = scap_linux_early_init_platform,
 	.init_platform = scap_linux_init_platform,
 	.refresh_addr_list = scap_linux_create_iflist,
+	.get_device_by_mount_id = scap_linux_get_device_by_mount_id,
 	.close_platform = scap_linux_close_platform,
 	.free_platform = scap_linux_free_platform,
 };
