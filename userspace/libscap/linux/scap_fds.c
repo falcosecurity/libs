@@ -269,7 +269,7 @@ void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir)
 	fclose(finfo);
 }
 
-int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, const char *procdir, char *error)
+int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, const char *procdir, char *error)
 {
 	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
@@ -339,7 +339,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 		strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 	}
 
-	return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
+	return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
 }
 
 int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
@@ -1280,7 +1280,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFDIR:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_DIRECTORY);
@@ -1290,7 +1290,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFSOCK:
 			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNKNOWN);
@@ -1317,7 +1317,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		}
 
