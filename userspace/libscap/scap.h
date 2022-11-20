@@ -938,7 +938,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_free_device_table(scap_t* handle);
 void scap_refresh_iflist(scap_t* handle);
-void scap_refresh_proc_table(scap_t* handle);
+int32_t scap_refresh_proc_table(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);

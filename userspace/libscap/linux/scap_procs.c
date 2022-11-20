@@ -1424,14 +1424,14 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	return false;
 }
 
-void scap_refresh_proc_table(scap_t* handle)
+int32_t scap_refresh_proc_table(scap_t* handle)
 {
 	if(handle->m_proclist.m_proclist)
 	{
 		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
 	}
-	scap_proc_scan_proc_dir(handle, handle->m_lasterr);
+	return scap_proc_scan_proc_dir(handle, handle->m_lasterr);
 }
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
