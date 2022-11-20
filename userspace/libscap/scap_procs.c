@@ -289,7 +289,7 @@ int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, sc
 
 	for (i = 0; i < n_fdinfos; i++)
 	{
-		res = scap_fd_allocate_fdinfo(handle, &fdi, fdinfos[i].fd, fdinfos[i].type);
+		res = scap_fd_allocate_fdinfo(&fdi, fdinfos[i].fd, fdinfos[i].type);
 		if (res != SCAP_SUCCESS)
 		{
 			snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fdinfos[i].fd);

@@ -180,7 +180,7 @@ int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
 // Allocate a file descriptor
-int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
+int32_t scap_fd_allocate_fdinfo(scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
 // Free a file descriptor
 void scap_fd_free_fdinfo(scap_fdinfo **fdi);
 
