@@ -1105,9 +1105,7 @@ static inline int32_t scap_dump_rescan_proc(scap_t *handle)
 #ifdef __linux__
 	proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
 	handle->m_proclist.m_proc_callback = NULL;
-
-	scap_proc_free_table(&handle->m_proclist);
-	ret = scap_proc_scan_proc_dir(handle, handle->m_lasterr);
+	ret = scap_refresh_proc_table(handle);
 	handle->m_proclist.m_proc_callback = tcb;
 #endif
 	return ret;
