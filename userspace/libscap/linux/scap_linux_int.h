@@ -19,4 +19,6 @@ limitations under the License.
 
 struct scap_ns_socket_list;
 
+// read all sockets and add them to the socket table hashed by their ino
+int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);
 void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list** sockets);
