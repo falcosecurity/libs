@@ -1245,6 +1245,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	uint64_t net_ns;
 	ssize_t r;
 	uint32_t fd_added = 0;
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	if (num_fds_ret != NULL)
 	{
@@ -1278,7 +1279,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	}
 
 	while((dir_entry_p = readdir(dir_p)) != NULL &&
-		(handle->m_fd_lookup_limit == 0 || fd_added < handle->m_fd_lookup_limit))
+		(linux_platform->m_fd_lookup_limit == 0 || fd_added < linux_platform->m_fd_lookup_limit))
 	{
 		fdi = NULL;
 		snprintf(f_name, SCAP_MAX_PATH_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
