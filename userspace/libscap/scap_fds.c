@@ -276,7 +276,7 @@ void scap_fd_remove(scap_t *handle, scap_threadinfo *tinfo, int64_t fd)
 // Add the file descriptor info pointed by fdi to the fd table for process tinfo.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 //
-int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
+int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinfo *tinfo, scap_fdinfo *fdi, char *error)
 {
 	int32_t uth_status = SCAP_SUCCESS;
 	scap_fdinfo *tfdi;
@@ -302,7 +302,7 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	//
 	// Add the fd to the table, or fire the notification callback
 	//
-	if(handle->m_proclist.m_proc_callback == NULL)
+	if(proclist->m_proc_callback == NULL)
 	{
 		HASH_ADD_INT64(tinfo->fdlist, fd, fdi);
 		if(uth_status != SCAP_SUCCESS)
@@ -313,9 +313,9 @@ int32_t scap_add_fd_to_proc_table(scap_t *handle, scap_threadinfo *tinfo, scap_f
 	}
 	else
 	{
-		handle->m_proclist.m_proc_callback(
-			handle->m_proclist.m_proc_callback_context,
-			handle->m_proclist.m_main_handle, tinfo->tid, tinfo, fdi);
+		proclist->m_proc_callback(
+			proclist->m_proc_callback_context,
+			proclist->m_main_handle, tinfo->tid, tinfo, fdi);
 	}
 
 	return SCAP_SUCCESS;

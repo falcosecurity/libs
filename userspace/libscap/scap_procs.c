@@ -299,7 +299,7 @@ int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, sc
 		// copy the contents
 		*fdi = fdinfos[i];
 
-		res = scap_add_fd_to_proc_table(handle, dst_tinfo, fdi, error);
+		res = scap_add_fd_to_proc_table(&handle->m_proclist, dst_tinfo, fdi, error);
 		if (res != SCAP_SUCCESS)
 		{
 			scap_fd_free_fdinfo(&fdi);
