@@ -735,10 +735,10 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// This is a real user level process. Allocate the procinfo structure.
 	//
-	if((tinfo = scap_proc_alloc(handle)) == NULL)
+	tinfo = (struct scap_threadinfo*) calloc(1, sizeof(scap_threadinfo));
+	if(tinfo == NULL)
 	{
-		// Error message saved in handle->m_lasterr
-		return scap_errprintf(error, 0, "can't allocate procinfo struct: %s", handle->m_lasterr);
+		return scap_errprintf(error, errno, "can't allocate procinfo struct");
 	}
 
 	tinfo->tid = tid;
@@ -869,21 +869,21 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// set the current working directory of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_cwd(handle->m_lasterr, dir_name, tinfo))
+	if(SCAP_FAILURE == scap_proc_fill_cwd(linux_platform->m_lasterr, dir_name, tinfo))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cwd for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
 	//
 	// extract the user id and ppid from /proc/pid/status
 	//
-	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(handle->m_lasterr, dir_name, tinfo))
+	if(SCAP_FAILURE == scap_proc_fill_info_from_stats(linux_platform->m_lasterr, dir_name, tinfo))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill uid and pid for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
 	//
@@ -893,17 +893,17 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill flimit for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
-	if(scap_proc_fill_cgroups(handle->m_lasterr, linux_platform->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
+	if(scap_proc_fill_cgroups(linux_platform->m_lasterr, linux_platform->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
-	if(scap_proc_fill_pidns_start_ts(handle->m_lasterr, tinfo, dir_name) == SCAP_FAILURE)
+	if(scap_proc_fill_pidns_start_ts(linux_platform->m_lasterr, tinfo, dir_name) == SCAP_FAILURE)
 	{
 		// ignore errors
 		// the thread may not have /proc visible so we shouldn't kill the scan if this fails
@@ -924,21 +924,21 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// set the current root of the process
 	//
-	if(SCAP_FAILURE == scap_proc_fill_root(handle->m_lasterr, tinfo, dir_name))
+	if(SCAP_FAILURE == scap_proc_fill_root(linux_platform->m_lasterr, tinfo, dir_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill root for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
 	//
 	// set the loginuid
 	//
-	if(SCAP_FAILURE == scap_proc_fill_loginuid(handle->m_lasterr, tinfo, dir_name))
+	if(SCAP_FAILURE == scap_proc_fill_loginuid(linux_platform->m_lasterr, tinfo, dir_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill loginuid for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
 	// Container start time for host processes will be equal to when the
@@ -964,18 +964,18 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
 
-	if(SCAP_FAILURE == scap_proc_fill_exe_ino_ctime_mtime(handle->m_lasterr, tinfo, dir_name, target_name))
+	if(SCAP_FAILURE == scap_proc_fill_exe_ino_ctime_mtime(linux_platform->m_lasterr, tinfo, dir_name, target_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill exe writable access for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
-	if(SCAP_FAILURE == scap_proc_fill_exe_writable(handle->m_lasterr, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
+	if(SCAP_FAILURE == scap_proc_fill_exe_writable(linux_platform->m_lasterr, tinfo, tinfo->uid, tinfo->gid, dir_name, target_name))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill exe writable access for %s (%s)",
-			 dir_name, handle->m_lasterr);
+			 dir_name, linux_platform->m_lasterr);
 	}
 
 	//
