@@ -213,7 +213,7 @@ uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsign
 	return 0;
 }
 
-void scap_fd_flags_file(scap_t *handle, scap_fdinfo *fdi, const char *procdir)
+void scap_fd_flags_file(scap_fdinfo *fdi, const char *procdir)
 {
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_PATH_SIZE];
@@ -331,7 +331,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 	}
 	else if(fdi->type == SCAP_FD_FILE_V2)
 	{
-		scap_fd_flags_file(handle, fdi, procdir);
+		scap_fd_flags_file(fdi, procdir);
 		strlcpy(fdi->info.regularinfo.fname, link_name, sizeof(fdi->info.regularinfo.fname));
 	}
 	else
