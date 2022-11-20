@@ -169,8 +169,6 @@ void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
 int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
-// read all sockets and add them to the socket table hashed by their ino
-int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets, char *error);
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
 uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id);
 // Allocate and return the list of interfaces on this system
