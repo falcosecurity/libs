@@ -383,7 +383,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
 {
 	int32_t rc;
-	struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
 
 	//
 	// Get boot_time
@@ -426,10 +425,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	//
 
 	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-	if(!engine_params || !engine_params->full_proc_scan)
-	{
-		handle->m_minimal_scan = true;
-	}
 
 	//
 	// Extract agent information
@@ -627,6 +622,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		if(!engine_params || !engine_params->full_proc_scan)
 		{
 			((struct scap_linux_platform*)platform)->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
+			((struct scap_linux_platform*)platform)->m_minimal_scan = true;
 		}
 
 		return scap_init_nodriver_int(handle, oargs, platform);

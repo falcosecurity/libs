@@ -1013,7 +1013,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(tinfo->pid == tinfo->tid)
 	{
-		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
+		res = scap_fd_scan_fd_dir(linux_platform, &handle->m_proclist, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
 	}
 
 	if(free_tinfo)
@@ -1069,6 +1069,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	uint64_t total_num_fds = 0;
 	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	dir_p = opendir(procdirname);
 
@@ -1169,7 +1170,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// See if this process includes tasks that need to be added
 		// Note the use of recursion will re-enter this function for the childdir.
 		//
-		if(parenttid == -1 && !handle->m_minimal_scan)
+		if(parenttid == -1 && !linux_platform->m_minimal_scan)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
 			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)

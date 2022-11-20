@@ -53,7 +53,6 @@ struct scap
 	scap_machine_info m_machine_info;
 	scap_agent_info m_agent_info;
 	struct ppm_proclist_info* m_driver_procinfo;
-	bool m_minimal_scan;
 
 	// /proc scan parameters
 	uint64_t m_proc_scan_timeout_ms;
