@@ -342,7 +342,7 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 	return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
 }
 
-int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
+int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
 {
 	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
@@ -397,7 +397,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	{
 		// it's a kind of socket, but we don't support it right now
 		fdi->type = SCAP_FD_UNSUPPORTED;
-		return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
+		return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
 	}
 
 	//
@@ -409,7 +409,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		memcpy(&(fdi->info), &(tfdi->info), sizeof(fdi->info));
 		fdi->ino = ino;
 		fdi->type = tfdi->type;
-		return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
+		return scap_add_fd_to_proc_table(proclist, tinfo, fdi, error);
 	}
 	else
 	{
@@ -1300,7 +1300,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
 				break;
 			}
-			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
+			res = scap_fd_handle_socket(&handle->m_proclist, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
 			if(handle->m_proclist.m_proc_callback == NULL)
 			{
 				// we can land here if we've got a netlink socket
