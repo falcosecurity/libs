@@ -162,7 +162,7 @@ uint32_t scap_fd_info_len(scap_fdinfo* fdi);
 int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper, uint32_t len);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
-int32_t scap_add_fd_to_proc_table(scap_t* handle, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
+int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
 // Remove the given fd from the process table of the process pointed by pi
 void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // read the file descriptors for a given process directory

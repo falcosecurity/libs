@@ -94,7 +94,7 @@ int32_t scap_fd_handle_pipe(scap_t *handle, char *fname, scap_threadinfo *tinfo,
 	strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 
 	fdi->ino = ino;
-	return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
+	return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
 }
 
 static inline uint32_t open_flags_to_scap(unsigned long flags)
@@ -339,7 +339,7 @@ int32_t scap_fd_handle_regular_file(scap_t *handle, char *fname, scap_threadinfo
 		strlcpy(fdi->info.fname, link_name, sizeof(fdi->info.fname));
 	}
 
-	return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
+	return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
 }
 
 int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinfo, scap_fdinfo *fdi, char* procdir, uint64_t net_ns, struct scap_ns_socket_list **sockets_by_ns, char *error)
@@ -397,7 +397,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	{
 		// it's a kind of socket, but we don't support it right now
 		fdi->type = SCAP_FD_UNSUPPORTED;
-		return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
+		return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
 	}
 
 	//
@@ -409,7 +409,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 		memcpy(&(fdi->info), &(tfdi->info), sizeof(fdi->info));
 		fdi->ino = ino;
 		fdi->type = tfdi->type;
-		return scap_add_fd_to_proc_table(handle, tinfo, fdi, error);
+		return scap_add_fd_to_proc_table(&handle->m_proclist, tinfo, fdi, error);
 	}
 	else
 	{
