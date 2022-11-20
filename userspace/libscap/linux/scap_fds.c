@@ -682,7 +682,7 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(scap_t *handle, const char* fi
 	return uth_status;
 }
 
-int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, int l4proto, scap_fdinfo **sockets)
+int32_t scap_fd_read_ipv4_sockets_from_proc_fs(const char *dir, int l4proto, scap_fdinfo **sockets, char *error)
 {
 	FILE *f;
 	int32_t uth_status = SCAP_SUCCESS;
@@ -697,7 +697,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 	scan_buf = (char*)malloc(SOCKET_SCAN_BUFFER_SIZE);
 	if(scan_buf == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scan_buf allocation error");
+		snprintf(error, SCAP_LASTERR_SIZE, "scan_buf allocation error");
 		return SCAP_FAILURE;
 	}
 
@@ -706,7 +706,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 	{
 		ASSERT(false);
 		free(scan_buf);
-		return scap_errprintf(handle->m_lasterr, errno, "Could not open ipv4 sockets dir %s", dir);
+		return scap_errprintf(error, errno, "Could not open ipv4 sockets dir %s", dir);
 	}
 
 	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
@@ -841,7 +841,7 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t *handle, const char *dir, 
 			if(uth_status != SCAP_SUCCESS)
 			{
 				uth_status = SCAP_FAILURE;
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ipv4 socket allocation error");
+				snprintf(error, SCAP_LASTERR_SIZE, "ipv4 socket allocation error");
 				free(fdinfo);
 				break;
 			}
@@ -1096,7 +1096,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%stcp", netroot);
-	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_TCP, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 tcp sockets (%s)", handle->m_lasterr);
@@ -1104,7 +1104,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%sudp", netroot);
-	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_UDP, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_UDP, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 udp sockets (%s)", handle->m_lasterr);
@@ -1112,7 +1112,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%sraw", netroot);
-	if(scap_fd_read_ipv4_sockets_from_proc_fs(handle, filename, SCAP_L4_RAW, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_ipv4_sockets_from_proc_fs(filename, SCAP_L4_RAW, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv4 raw sockets (%s)", handle->m_lasterr);
