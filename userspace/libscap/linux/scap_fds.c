@@ -860,7 +860,7 @@ int32_t scap_fd_is_ipv6_server_socket(uint32_t ip6_addr[4])
 	return 0 == ip6_addr[0] && 0 == ip6_addr[1] && 0 == ip6_addr[2] && 0 == ip6_addr[3];
 }
 
-int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4proto, scap_fdinfo **sockets)
+int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir, int l4proto, scap_fdinfo **sockets, char *error)
 {
 	FILE *f;
 	int32_t uth_status = SCAP_SUCCESS;
@@ -875,7 +875,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	scan_buf = (char*)malloc(SOCKET_SCAN_BUFFER_SIZE);
 	if(scan_buf == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scan_buf allocation error");
+		snprintf(error, SCAP_LASTERR_SIZE, "scan_buf allocation error");
 		return SCAP_FAILURE;
 	}
 
@@ -885,7 +885,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 	{
 		ASSERT(false);
 		free(scan_buf);
-		return scap_errprintf(handle->m_lasterr, errno, "Could not open ipv6 sockets dir %s", dir);
+		return scap_errprintf(error, errno, "Could not open ipv6 sockets dir %s", dir);
 	}
 
 	while((rsize = fread(scan_buf, 1, SOCKET_SCAN_BUFFER_SIZE, f))  != 0)
@@ -1061,7 +1061,7 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(scap_t *handle, char *dir, int l4
 			if(uth_status != SCAP_SUCCESS)
 			{
 				uth_status = SCAP_FAILURE;
-				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "ipv6 socket allocation error");
+				snprintf(error, SCAP_LASTERR_SIZE, "ipv6 socket allocation error");
 				break;
 			}
 
@@ -1139,7 +1139,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
     /* We assume if there is /proc/net/tcp6 that ipv6 is available */
     if(access(filename, R_OK) == 0)
     {
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_TCP, &sockets->sockets) == SCAP_FAILURE)
+		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename, SCAP_L4_TCP, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 		{
 			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 tcp sockets (%s)", handle->m_lasterr);
@@ -1147,7 +1147,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 		}
 
 		snprintf(filename, sizeof(filename), "%sudp6", netroot);
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_UDP, &sockets->sockets) == SCAP_FAILURE)
+		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename, SCAP_L4_UDP, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 		{
 			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 udp sockets (%s)", handle->m_lasterr);
@@ -1155,7 +1155,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 		}
 
 		snprintf(filename, sizeof(filename), "%sraw6", netroot);
-		if(scap_fd_read_ipv6_sockets_from_proc_fs(handle, filename, SCAP_L4_RAW, &sockets->sockets) == SCAP_FAILURE)
+		if(scap_fd_read_ipv6_sockets_from_proc_fs(filename, SCAP_L4_RAW, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 		{
 			scap_fd_free_table(&sockets->sockets);
 			snprintf(error, SCAP_LASTERR_SIZE, "Could not read ipv6 raw sockets (%s)", handle->m_lasterr);
