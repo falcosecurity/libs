@@ -1262,7 +1262,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		switch(sb.st_mode & S_IFMT)
 		{
 		case S_IFIFO:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FIFO);
+			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_FIFO);
 			if(SCAP_FAILURE == res)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
@@ -1274,7 +1274,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 		case S_IFBLK:
 		case S_IFCHR:
 		case S_IFLNK:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FILE_V2);
+			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_FILE_V2);
 			if(SCAP_FAILURE == res)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fd);
@@ -1284,7 +1284,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFDIR:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_DIRECTORY);
+			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_DIRECTORY);
 			if(SCAP_FAILURE == res)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for dir fd %" PRIu64, fd);
@@ -1294,7 +1294,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFSOCK:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNKNOWN);
+			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_UNKNOWN);
 			if(SCAP_FAILURE == res)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
@@ -1311,7 +1311,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 			}
 			break;
 		default:
-			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
+			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_UNSUPPORTED);
 			if(SCAP_FAILURE == res)
 			{
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for unsupported fd %" PRIu64, fd);

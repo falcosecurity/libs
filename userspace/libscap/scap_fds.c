@@ -350,13 +350,12 @@ void scap_free_device_table(scap_t* handle)
 	}
 }
 
-int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type)
+int32_t scap_fd_allocate_fdinfo(scap_fdinfo **fdi, int64_t fd, scap_fd_type type)
 {
 	ASSERT(NULL == *fdi);
 	*fdi = (scap_fdinfo *)malloc(sizeof(scap_fdinfo));
 	if(*fdi == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "fd table allocation error (2)");
 		return SCAP_FAILURE;
 	}
 	(*fdi)->type = type;
