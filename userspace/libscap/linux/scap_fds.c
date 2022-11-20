@@ -417,7 +417,7 @@ int32_t scap_fd_handle_socket(scap_t *handle, char *fname, scap_threadinfo *tinf
 	}
 }
 
-int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filename, scap_fdinfo **sockets)
+int32_t scap_fd_read_unix_sockets_from_proc_fs(const char* filename, scap_fdinfo **sockets, char *error)
 {
 	FILE *f;
 	char line[SCAP_MAX_PATH_SIZE];
@@ -430,7 +430,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 	if(NULL == f)
 	{
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, errno, "Could not open sockets file %s", filename);
+		return scap_errprintf(error, errno, "Could not open sockets file %s", filename);
 	}
 	while(NULL != fgets(line, sizeof(line), f))
 	{
@@ -531,7 +531,7 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(scap_t *handle, const char* filen
 		HASH_ADD_INT64((*sockets), ino, fdinfo);
 		if(uth_status != SCAP_SUCCESS)
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unix socket allocation error");
+			snprintf(error, SCAP_LASTERR_SIZE, "unix socket allocation error");
 			fclose(f);
 			free(fdinfo);
 			return SCAP_FAILURE;
@@ -1120,7 +1120,7 @@ int32_t scap_fd_read_sockets(scap_t *handle, char* procdir, struct scap_ns_socke
 	}
 
 	snprintf(filename, sizeof(filename), "%sunix", netroot);
-	if(scap_fd_read_unix_sockets_from_proc_fs(handle, filename, &sockets->sockets) == SCAP_FAILURE)
+	if(scap_fd_read_unix_sockets_from_proc_fs(filename, &sockets->sockets, handle->m_lasterr) == SCAP_FAILURE)
 	{
 		scap_fd_free_table(&sockets->sockets);
 		snprintf(error, SCAP_LASTERR_SIZE, "Could not read unix sockets (%s)", handle->m_lasterr);
