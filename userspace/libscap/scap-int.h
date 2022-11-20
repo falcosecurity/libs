@@ -66,8 +66,6 @@ struct scap
 // Internal library functions
 //
 
-// Read a single thread info from /proc
-int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error);
 // Scan process information from engine vtable
