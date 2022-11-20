@@ -127,6 +127,7 @@ static const struct scap_platform_vtable scap_linux_platform = {
 	.refresh_addr_list = scap_linux_create_iflist,
 	.get_device_by_mount_id = scap_linux_get_device_by_mount_id,
 	.get_proc = scap_linux_proc_get,
+	.refresh_proc_table = scap_linux_refresh_proc_table,
 	.close_platform = scap_linux_close_platform,
 	.free_platform = scap_linux_free_platform,
 };

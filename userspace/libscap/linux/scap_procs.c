@@ -1273,6 +1273,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 	return res;
 }
 
+// this should go away soon
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 {
 	char procdirname[SCAP_MAX_PATH_SIZE];
@@ -1378,14 +1379,19 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	return false;
 }
 
-int32_t scap_refresh_proc_table(scap_t* handle)
+int32_t scap_linux_refresh_proc_table(struct scap_platform* platform, struct scap_proclist* proclist)
 {
-	if(handle->m_proclist.m_proclist)
+	char procdirname[SCAP_MAX_PATH_SIZE];
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	if(proclist->m_proclist)
 	{
-		scap_proc_free_table(&handle->m_proclist);
-		handle->m_proclist.m_proclist = NULL;
+		scap_proc_free_table(proclist);
+		proclist->m_proclist = NULL;
 	}
-	return scap_proc_scan_proc_dir(handle, handle->m_lasterr);
+
+	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
+	return _scap_proc_scan_proc_dir_impl(linux_platform, proclist, procdirname, -1, linux_platform->m_lasterr);
 }
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
