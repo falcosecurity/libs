@@ -66,6 +66,7 @@ static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 	.init_platform = scap_gvisor_init_platform,
 	.refresh_addr_list = NULL,
 	.get_device_by_mount_id = NULL,
+	.get_proc = NULL,
 	.close_platform = scap_gvisor_close_platform,
 	.free_platform = scap_gvisor_free_platform,
 };

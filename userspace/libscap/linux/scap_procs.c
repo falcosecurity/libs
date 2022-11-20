@@ -1310,22 +1310,14 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 	return scap_errprintf(error, 0, "could not find tgid in status file %s", filename);
 }
 
-struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
+struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, struct scap_proclist* proclist, int64_t tid, bool scan_sockets)
 {
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
-
-	//
-	// No /proc parsing for offline captures
-	//
-	if(handle->m_mode == SCAP_MODE_CAPTURE)
-	{
-		return NULL;
-	}
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_read_thread(linux_platform, &handle->m_proclist, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(linux_platform, proclist, filename, tid, &tinfo, linux_platform->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		free(tinfo);
 		return NULL;

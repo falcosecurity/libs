@@ -37,6 +37,7 @@ extern "C" {
 struct scap_addrlist;
 struct scap_open_args;
 struct scap_platform;
+struct scap_proclist;
 struct scap_userlist;
 
 // a method table for platform-specific operations
@@ -58,6 +59,7 @@ struct scap_platform_vtable
 	// given a mount id, return the device major:minor
 	// XXX this is Linux-specific
 	uint32_t (*get_device_by_mount_id)(struct scap_platform*, const char *procdir, unsigned long requested_mount_id);
+	struct scap_threadinfo* (*get_proc)(struct scap_platform*, struct scap_proclist* proclist, int64_t tid, bool scan_sockets);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`
