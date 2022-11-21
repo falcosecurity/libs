@@ -1273,17 +1273,6 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 	return res;
 }
 
-// this should go away soon
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
-{
-	char procdirname[SCAP_MAX_PATH_SIZE];
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
-
-	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
-	return _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_platform->m_proclist, procdirname, -1, error);
-}
-
-
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
