@@ -28,7 +28,6 @@ limitations under the License.
 #include <tuples.h>
 #include <scap.h>
 #include "json/json.h"
-#include "strlcpy.h"
 #include "../common/types.h"
 #include "sinsp_public.h"
 

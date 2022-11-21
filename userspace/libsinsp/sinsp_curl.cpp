@@ -31,6 +31,7 @@ limitations under the License.
 #include <fcntl.h>
 #include <unistd.h>
 #include <cstring>
+#include "strlcpy.h"
 
 sinsp_curl_http_headers::sinsp_curl_http_headers():
 	m_curl_header_list(NULL)

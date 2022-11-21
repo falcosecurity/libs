@@ -17,6 +17,7 @@ limitations under the License.
 #include "logger.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
+#include "strlcpy.h"
 
 #ifndef _WIN32
 #include <sys/time.h>
