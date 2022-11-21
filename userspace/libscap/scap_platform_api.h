@@ -92,6 +92,9 @@ int32_t scap_refresh_proc_table(struct scap* handle);
 */
 struct scap_threadinfo* scap_get_proc_table(struct scap* handle);
 
+// Check if the given thread exists in /proc
+bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const char* comm);
+
 #ifdef __cplusplus
 };
 #endif
