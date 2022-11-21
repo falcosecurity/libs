@@ -118,9 +118,12 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone3)
 		/* Parameter 20: vpid (type: PT_PID) */
 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
+		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		evt_test->assert_num_params_pushed(20);
+		evt_test->assert_num_params_pushed(21);
 
 		if(HasFailure())
 		{
@@ -273,9 +276,12 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone)
 		/* Parameter 20: vpid (type: PT_PID) */
 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
+		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		evt_test->assert_num_params_pushed(20);
+		evt_test->assert_num_params_pushed(21);
 
 		if(HasFailure())
 		{
@@ -411,9 +417,12 @@ TEST(GenericTracepoints, sched_proc_fork_case_fork)
 		/* Parameter 20: vpid (type: PT_PID) */
 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
+		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+
 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		evt_test->assert_num_params_pushed(20);
+		evt_test->assert_num_params_pushed(21);
 
 		if(HasFailure())
 		{
