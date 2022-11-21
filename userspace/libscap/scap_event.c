@@ -28,7 +28,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 
 //
 // Get the event info table

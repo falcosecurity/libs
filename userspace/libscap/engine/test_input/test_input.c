@@ -36,7 +36,7 @@ typedef struct test_input_engine test_input_engine;
 
 #include "scap.h"
 #include "scap-int.h"
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 
 static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {

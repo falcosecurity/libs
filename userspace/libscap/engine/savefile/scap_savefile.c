@@ -29,7 +29,6 @@ struct iovec {
 };
 #endif
 
-#include "../common/strlcpy.h"
 #define SCAP_HANDLE_T struct savefile_engine
 #include "savefile.h"
 #include "scap.h"
@@ -37,6 +36,8 @@ struct iovec {
 #include "scap_savefile.h"
 #include "scap_reader.h"
 #include "../noop/noop.h"
+
+#include "strlcpy.h"
 
 //
 // Read the section header block

@@ -1,5 +1,5 @@
 
-#include "../../../userspace/common/strlcpy.h"
+#include "strlcpy.h"
 #include "event_class.h"
 #include <time.h>
 

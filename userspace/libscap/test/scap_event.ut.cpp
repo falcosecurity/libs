@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "scap.h"
 #include <gtest/gtest.h>
-#include "../../common/strlcpy.h"
+#include "strlcpy.h"
 
 // fills the buffer with ASCII data to catch bugs 
 static void fill_buffer(scap_sized_buffer buf)

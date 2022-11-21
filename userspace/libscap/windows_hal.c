@@ -23,7 +23,7 @@ limitations under the License.
 #include <iphlpapi.h>
 
 #include "../common/types.h"
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 #define DRAGENT_WIN_HAL_C_ONLY
 #include "win_hal/win_hal_public.h"
 #include "scap.h"

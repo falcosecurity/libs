@@ -19,7 +19,6 @@
 
 #define SCAP_HANDLE_T struct udig_engine
 
-#include "../common/strlcpy.h"
 #include "udig.h"
 #include "scap.h"
 #include "scap-int.h"
@@ -27,6 +26,7 @@
 #include "ringbuffer/ringbuffer.h"
 #include "engine/noop/noop.h"
 #include "strerror.h"
+#include "strlcpy.h"
 
 #define PPM_PORT_STATSD 8125
 

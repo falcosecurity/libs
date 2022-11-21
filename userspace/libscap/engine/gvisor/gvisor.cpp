@@ -34,7 +34,7 @@ namespace scap_gvisor {
 #include <sys/epoll.h>
 #include <sys/stat.h>
 
-#include "../../../common/strlcpy.h"
+#include "strlcpy.h"
 
 #ifdef __cplusplus
 extern "C"{

@@ -1,4 +1,4 @@
-#include "../../../../userspace/common/strlcpy.h"
+#include "strlcpy.h"
 #include "../../event_class/event_class.h"
 #include <sys/mount.h>
 
