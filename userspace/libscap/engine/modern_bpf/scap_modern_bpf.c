@@ -25,7 +25,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_procs.h"
 #include "noop.h"
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 

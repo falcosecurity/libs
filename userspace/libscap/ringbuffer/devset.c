@@ -11,7 +11,7 @@
 #define MAP_FAILED	((void *) -1)
 #endif
 
-#include "../../common/strlcpy.h"
+#include "strlcpy.h"
 #include "../scap.h"
 #include "scap_assert.h"
 

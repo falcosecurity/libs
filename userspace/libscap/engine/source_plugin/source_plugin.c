@@ -25,7 +25,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 #include "gettimeofday.h"
 
 static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)

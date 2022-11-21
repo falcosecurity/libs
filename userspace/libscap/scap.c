@@ -27,7 +27,7 @@ limitations under the License.
 #endif // _WIN32
 
 #include "scap.h"
-#include "../common/strlcpy.h"
+#include "strlcpy.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 #include "scap_engine_util.h"

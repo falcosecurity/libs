@@ -23,7 +23,7 @@ limitations under the License.
 #include "scap.h"
 #include "sinsp.h"
 #include "filterchecks.h"
-#include "../../common/strlcpy.h"
+#include "strlcpy.h"
 #include "test_utils.h"
 
 class sinsp_with_test_input : public ::testing::Test {

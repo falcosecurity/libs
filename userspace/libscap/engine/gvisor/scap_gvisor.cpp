@@ -31,7 +31,7 @@ limitations under the License.
 #include "gvisor.h"
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
-#include "../../../common/strlcpy.h"
+#include "strlcpy.h"
 
 namespace scap_gvisor {
 

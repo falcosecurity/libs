@@ -38,10 +38,9 @@ limitations under the License.
 #include "parsers.h"
 #include "compat/misc.h"
 #include "../../driver/ppm_events_public.h"
-#include "../../../common/strlcpy.h"
+#include "strlcpy.h"
 
 #include "userspace_flag_helpers.h"
-#include "../common/strlcpy.h"
 
 #include "pkg/sentry/seccheck/points/syscall.pb.h"
 #include "pkg/sentry/seccheck/points/sentry.pb.h"

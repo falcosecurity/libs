@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "scap.h"
 #include <gtest/gtest.h>
-#include "../../common/strlcpy.h"
+#include "strlcpy.h"
 
 #include "google/protobuf/any.pb.h"
 #include "pkg/sentry/seccheck/points/syscall.pb.h"

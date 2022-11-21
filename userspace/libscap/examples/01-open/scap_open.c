@@ -21,7 +21,7 @@ limitations under the License.
 #include <scap.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
-#include "../../../common/strlcpy.h"
+#include "strlcpy.h"
 
 #define SYSCALL_NAME_MAX_LEN 40
 #define UNKNOWN_ENGINE "unknown"
