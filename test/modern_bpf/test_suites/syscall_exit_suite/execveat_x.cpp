@@ -141,9 +141,18 @@ TEST(SyscallExit, execveatX_failure)
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	evt_test->assert_numeric_param(23, (uint64_t)capabilities_to_scap(((unsigned long)data[1].effective << 32) | data[0].effective));
 
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(23);
+	evt_test->assert_num_params_pushed(26);
 }
 
 /* All architectures return an `EXECVEAT_X` event when the syscall fails, but only
@@ -246,9 +255,18 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Right now we send always `0`. */
 	evt_test->assert_numeric_param(20, (uint32_t)0);
 
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(23);
+	evt_test->assert_num_params_pushed(26);
 #else
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);
@@ -359,9 +377,18 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Right now we send always `0`. */
 	evt_test->assert_numeric_param(20, (uint32_t)0);
 
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(23);
+	evt_test->assert_num_params_pushed(26);
 #endif
 }
 #endif
