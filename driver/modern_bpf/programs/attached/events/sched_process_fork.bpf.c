@@ -233,7 +233,7 @@ int BPF_PROG(t2_sched_p_fork,
 	}
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-	auxmap__store_u64_param(auxmap, (u64)extract__task_pidns_start_time(child, PIDTYPE_TGID));
+	auxmap__store_u64_param(auxmap, (u64)extract__task_pidns_start_time(child, PIDTYPE_TGID, 0));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

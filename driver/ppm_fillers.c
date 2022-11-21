@@ -792,7 +792,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 #ifdef UDIG
 	return udig_proc_startupdate(args);
 #else /* UDIG */
-	unsigned long val;
+	unsigned long val = 0;
 	int res = 0;
 	unsigned int exe_len = 0;  /* the length of the executable string */
 	int args_len = 0; /*the combined length of the arguments string + executable string */
@@ -1151,21 +1151,17 @@ cgroups_error:
 		 * pid_namespace init task start_time monotonic time in ns
 		 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		if (pidns)
+		if (retval == 0 && pidns)
 		{
 			child_reaper = pidns->child_reaper;
-			if (child_reaper)
-				{
-					time = child_reaper->start_time;
-				}
+			time = child_reaper->start_time;
 		}
 		res = val_to_ring(args, time, 0, false, 0);
 #else
 		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
 #endif
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
+		CHECK_RES(res);
 
 	} else if (args->event_type == PPME_SYSCALL_EXECVE_19_X || 
 			   args->event_type == PPME_SYSCALL_EXECVEAT_X) {

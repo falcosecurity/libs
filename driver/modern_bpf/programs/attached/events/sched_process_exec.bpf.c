@@ -201,13 +201,13 @@ int BPF_PROG(t1_sched_p_exec,
 	auxmap__store_u64_param(auxmap, (u64)ino);
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-	struct timespec64 time;
+	struct timespec64 time = { 0, 0 };
 	BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	auxmap__store_u64_param(auxmap, (u64)(time.tv_sec * (u64) 1000000000 + time.tv_nsec));
+	auxmap__store_u64_param(auxmap, (u64)extract__epoch_ns_from_time(time));
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	auxmap__store_u64_param(auxmap, (u64)(time.tv_sec * (u64) 1000000000 + time.tv_nsec));
+	auxmap__store_u64_param(auxmap, (u64)extract__epoch_ns_from_time(time));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
