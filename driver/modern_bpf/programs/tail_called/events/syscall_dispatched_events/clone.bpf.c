@@ -248,7 +248,7 @@ int BPF_PROG(t2_clone_x,
 	struct task_struct *task = get_current_task();
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-	auxmap__store_u64_param(auxmap, (u64)extract__task_pidns_start_time(task, PIDTYPE_TGID));
+	auxmap__store_u64_param(auxmap, (u64)extract__task_pidns_start_time(task, PIDTYPE_TGID, ret));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
