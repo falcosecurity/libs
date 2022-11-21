@@ -20,9 +20,6 @@ limitations under the License.
 
 #pragma once
 
-#ifdef HAS_CAPTURE
-#ifndef WIN32
-
 #define HASHING_CHUNK_SIZE 32 * 1024 * 1024
 #define HASHING_MAX_EXE_SIZE 300 * 1024 * 1024
 #define HASHING_MAX_HASHING_TIME_NS 3LL * 1000000000
@@ -51,12 +48,12 @@ public:
 		HT_SHA256
 	};
 
+	int64_t checksum_process_file(sinsp_threadinfo* tinfo, string exepath, hash_type type, bool dont_cache, OUT string* checksum);
 	int64_t checksum_executable(sinsp_threadinfo* tinfo, OUT string* exepath, hash_type type, OUT string* checksum);
 
 private:
 	int64_t checksum_file(string filename, hash_type type, OUT string* hash);
 	void add_to_cache(string* cache_key, string* checksum, int64_t res);
-	int64_t checksum_exepath(sinsp_threadinfo* tinfo, string exepath, hash_type type, OUT string* checksum);
 
 	unordered_map<string, hash_cache_entry> m_cache;
 };
@@ -68,13 +65,13 @@ class checksum_table
 {
 public:
 	checksum_table(sinsp* inspector);
-	unordered_map<string, string> m_table;
+	void load_files();
+	bool get(string filename, OUT string* category);
 
 private:
 	void add_from_file(string filename);
 
 	sinsp* m_inspector = NULL;
+	unordered_map<string, string> m_table;
+	bool m_loaded = false;
 };
-
-#endif // WIN32
-#endif // HAS_CAPTURE

@@ -113,6 +113,8 @@ class sinsp_partial_tracer;
 class mesos;
 class sinsp_plugin;
 class sinsp_plugin_manager;
+class file_hash_calculator;
+class checksum_table;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -1461,6 +1463,8 @@ public:
 
 	bool m_exec_hashing_enabled;
 	vector<string> m_exec_hashing_checksum_files;
+	file_hash_calculator* m_exe_hash_calculator;
+	checksum_table* m_checksum_table;
 
 	friend class sinsp_parser;
 	friend class sinsp_analyzer;

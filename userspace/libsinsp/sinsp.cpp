@@ -168,6 +168,8 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_plugin_manager = new sinsp_plugin_manager();
 
 	m_exec_hashing_enabled = false;
+	m_exe_hash_calculator = new file_hash_calculator();
+	m_checksum_table = new checksum_table(this);
 }
 
 sinsp::~sinsp()
@@ -224,6 +226,9 @@ sinsp::~sinsp()
 	}
 #endif
 #endif
+
+	delete m_exe_hash_calculator;
+	delete m_checksum_table;
 }
 
 void sinsp::add_protodecoders()

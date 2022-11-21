@@ -281,6 +281,10 @@ public:
 		TYPE_DEV_MINOR = 40,
 		TYPE_INO = 41,
 		TYPE_FDNAMERAW = 42,
+		TYPE_FILE_SHA256 = 43,
+		TYPE_FILE_MD5 = 44,
+		TYPE_FILE_HASH_IS_MALWARE = 45,
+		TYPE_FILE_HASH_CATEGORY = 46,
 	};
 
 	enum fd_type
@@ -413,7 +417,6 @@ private:
 	vector<uint64_t> m_last_proc_switch_times;
 	uint32_t m_th_state_id;
 	uint64_t m_cursec_ts;
-	checksum_table* m_checksum_table = NULL;
 };
 
 //

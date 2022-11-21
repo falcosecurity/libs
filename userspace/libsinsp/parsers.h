@@ -22,7 +22,6 @@ limitations under the License.
 #include "sinsp.h"
 
 class sinsp_fd_listener;
-class file_hash_calculator;
 
 class metaevents_state
 {
@@ -199,7 +198,6 @@ private:
 
 	stack<uint8_t*> m_tmp_events_buffer;
 
-	file_hash_calculator* m_exe_hash_calculator;
 	metaevents_state m_exe_hash_metaevents_state;
 
 	friend class sinsp_analyzer;

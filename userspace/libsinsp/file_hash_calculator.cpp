@@ -19,9 +19,6 @@ limitations under the License.
 // NOTE: this uses mmap and will only work on Linux
 //
 
-#ifdef HAS_CAPTURE
-#ifndef WIN32
-
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -40,6 +37,9 @@ limitations under the License.
 ///////////////////////////////////////////////////////////////////////////////
 int64_t file_hash_calculator::checksum_file(string filename, hash_type type, OUT string* hash)
 {
+#if (not defined HAS_CAPTURE) or defined WIN32
+	throw sinsp_exception("file checksum not implemented on this platform");
+#else // (not defined HAS_CAPTURE) or defined WIN32
 	uint64_t size;
 	struct stat s;
 	MD5_CTX cmd5;
@@ -123,6 +123,7 @@ int64_t file_hash_calculator::checksum_file(string filename, hash_type type, OUT
 	}
 
 	return 0;
+#endif // (not defined HAS_CAPTURE) or defined WIN32
 }
 
 int64_t file_hash_calculator::checksum_executable(sinsp_threadinfo* tinfo,
@@ -158,7 +159,7 @@ int64_t file_hash_calculator::checksum_executable(sinsp_threadinfo* tinfo,
 		}
 	}
 
-	return checksum_exepath(tinfo, *exepath, type, checksum);
+	return checksum_process_file(tinfo, *exepath, type, false, checksum);
 }
 
 void file_hash_calculator::add_to_cache(string* cache_key, string* checksum, int64_t res)
@@ -191,7 +192,11 @@ void file_hash_calculator::add_to_cache(string* cache_key, string* checksum, int
 	m_cache[*cache_key] = ce;
 }
 
-int64_t file_hash_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string exepath, hash_type type, OUT string* checksum)
+int64_t file_hash_calculator::checksum_process_file(sinsp_threadinfo* tinfo,
+													string exepath,
+													hash_type type,
+													bool dont_cache,
+													OUT string* checksum)
 {
 	//
 	// We use /proc/<pid>/root to navigate into the process file system and read the
@@ -243,14 +248,17 @@ int64_t file_hash_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string e
 			return -ENODEV;
 		}
 
-		return checksum_exepath(ptinfo, exepath, type, checksum);
+		return checksum_process_file(ptinfo, exepath, type, dont_cache, checksum);
 	}
 
 	//
 	// Succcess.
 	// Add the executable to the cache
 	//
-	add_to_cache(&cache_key, checksum, res);
+	if(!dont_cache)
+	{
+		add_to_cache(&cache_key, checksum, res);
+	}
 
 	return res;
 }
@@ -261,11 +269,6 @@ int64_t file_hash_calculator::checksum_exepath(sinsp_threadinfo* tinfo, string e
 checksum_table::checksum_table(sinsp* inspector)
 {
 	m_inspector = inspector;
-
-	for(auto f : m_inspector->m_exec_hashing_checksum_files)
-	{
-		add_from_file(f);
-	}
 }
 
 void checksum_table::add_from_file(string filename)
@@ -317,5 +320,29 @@ void checksum_table::add_from_file(string filename)
 	fclose(f);
 }
 
-#endif // WIN32
-#endif // HAS_CAPTURE
+void checksum_table::load_files()
+{
+	for(auto f : m_inspector->m_exec_hashing_checksum_files)
+	{
+		add_from_file(f);
+	}
+
+	m_loaded = true;
+}
+
+bool checksum_table::get(string filename, OUT string* category)
+{
+	if(!m_loaded)
+	{
+		load_files();
+	}
+
+	auto it = m_table.find(filename);
+	if(it == m_table.end())
+	{
+		return false;
+	}
+
+	*category = it->second;
+	return true;
+}
