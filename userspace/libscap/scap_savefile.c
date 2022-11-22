@@ -983,6 +983,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
+		free(res);
 		res = NULL;
 	}
 
