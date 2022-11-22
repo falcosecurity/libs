@@ -93,6 +93,7 @@ struct scap_platform
 
 	scap_agent_info m_agent_info;
 	scap_machine_info m_machine_info;
+	struct ppm_proclist_info* m_driver_procinfo;
 };
 
 #ifdef __cplusplus

@@ -260,7 +260,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 	}
 
 	handle->m_evtcnt = 0;
-	handle->m_driver_procinfo = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
@@ -511,20 +510,10 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	return handle;
 }
 
-static inline void scap_deinit_state(scap_t* handle)
-{
-	if(handle->m_driver_procinfo)
-	{
-		free(handle->m_driver_procinfo);
-		handle->m_driver_procinfo = NULL;
-	}
-}
-
 uint32_t scap_restart_capture(scap_t* handle)
 {
 	if(handle->m_vtable->savefile_ops)
 	{
-		scap_deinit_state(handle);
 		return handle->m_vtable->savefile_ops->restart_capture(handle);
 	}
 	else
@@ -536,8 +525,6 @@ uint32_t scap_restart_capture(scap_t* handle)
 
 void scap_deinit(scap_t* handle)
 {
-	scap_deinit_state(handle);
-
 	if(handle->m_platform)
 	{
 		scap_platform_close(handle->m_platform);
