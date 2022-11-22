@@ -2163,12 +2163,10 @@ static __always_inline struct inode *get_exe_inode(struct task_struct *task)
 		return NULL;
 	}
 
-	struct inode *inode = _READ(exe_file->f_inode);
-
-	return inode;
+	return _READ(exe_file->f_inode);
 }
 
-static __always_inline bool get_exe_writable(struct task_struct *task, struct inode *inode)
+static __always_inline bool get_exe_writable(struct inode *inode, struct cred *cred)
 {
 	umode_t i_mode = _READ(inode->i_mode);
 	unsigned i_flags = _READ(inode->i_flags);
@@ -2180,7 +2178,6 @@ static __always_inline bool get_exe_writable(struct task_struct *task, struct in
 	kuid_t i_uid = _READ(inode->i_uid);
 	kgid_t i_gid = _READ(inode->i_gid);
 
-	struct cred *cred = (struct cred*) _READ(task->cred);
 	kuid_t fsuid = _READ(cred->fsuid);
 	kgid_t fsgid = _READ(cred->fsgid);
 	struct group_info *group_info = _READ(cred->group_info);
@@ -2263,13 +2260,12 @@ static __always_inline bool get_exe_upper_layer(struct inode *inode)
 	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 	{
 		struct dentry *upper_dentry = NULL;
-		struct inode *lower_inode = NULL;
 		char *vfs_inode = (char *)inode;
 		
+		// Pointer arithmetics due to unexported ovl_inode struct
 		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
-		bpf_probe_read(&lower_inode, sizeof(lower_inode), vfs_inode + sizeof(struct inode) + sizeof(struct dentry *));
 
-		if(!lower_inode && upper_dentry)
+		if(upper_dentry)
 		{
 			return true;
 		}
@@ -2805,7 +2801,7 @@ FILLER(execve_family_flags, true)
 		/*
 		* exe_writable
 		*/
-		exe_writable = get_exe_writable(task, inode);
+		exe_writable = get_exe_writable(inode, cred);
 		if (exe_writable) 
 		{
 			flags |= PPM_EXE_WRITABLE;
