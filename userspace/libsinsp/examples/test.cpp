@@ -294,10 +294,12 @@ int main(int argc, char** argv)
 		}
 	}
 
+	inspector.start_capture();
 	while(!g_interrupted)
 	{
 		dump(inspector);
 	}
+	inspector.stop_capture();
 
 	// Cleanup JSON formatters
 	delete default_formatter;
