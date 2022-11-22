@@ -22,8 +22,8 @@ limitations under the License.
 #include <errno.h>
 #include <sys/mman.h>
 
-#include "kmod.h"
 #define SCAP_HANDLE_T struct kmod_engine
+#include "kmod.h"
 #include "scap.h"
 #include "driver_config.h"
 #include "../../driver/ppm_ringbuffer.h"
