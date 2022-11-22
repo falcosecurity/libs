@@ -901,30 +901,6 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	}
 
 	//
-	// If we're dumping in live mode, refresh the process tables list
-	// so we don't lose information about processes created in the interval
-	// between opening the handle and starting the dump
-	//
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
-	if(handle->m_mode != SCAP_MODE_CAPTURE && handle->refresh_proc_table_when_saving)
-	{
-		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
-		handle->m_proclist.m_proc_callback = NULL;
-
-		scap_proc_free_table(handle);
-		char filename[SCAP_MAX_PATH_SIZE];
-		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
-		{
-			handle->m_proclist.m_proc_callback = tcb;
-			return SCAP_FAILURE;
-		}
-
-		handle->m_proclist.m_proc_callback = tcb;
-	}
-#endif
-
-	//
 	// Write the machine info
 	//
 	if(scap_write_machine_info(handle, d) != SCAP_SUCCESS)
@@ -965,14 +941,6 @@ int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 	}
 
 	//
-	// If the user doesn't need the thread table, free it
-	//
-	if(handle->m_proclist.m_proc_callback != NULL)
-	{
-		scap_proc_free_table(handle);
-	}
-
-	//
 	// Done, return the file
 	//
 	return SCAP_SUCCESS;
@@ -988,20 +956,42 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	res->m_targetbufcurpos = NULL;
 	res->m_targetbufend = NULL;
 
-	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
-	if(skip_proc_scan)
+	//
+	// If we're dumping in live mode, refresh the process tables list
+	// so we don't lose information about processes created in the interval
+	// between opening the handle and starting the dump
+	//
+#if defined(HAS_CAPTURE) && !defined(_WIN32)
+	if(handle->m_mode != SCAP_MODE_CAPTURE && handle->refresh_proc_table_when_saving && !skip_proc_scan)
 	{
-		handle->refresh_proc_table_when_saving = false;
+		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
+		handle->m_proclist.m_proc_callback = NULL;
+
+		scap_proc_free_table(handle);
+		char filename[SCAP_MAX_PATH_SIZE];
+		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
+		{
+			handle->m_proclist.m_proc_callback = tcb;
+			free(res);
+			return NULL;
+		}
+
+		handle->m_proclist.m_proc_callback = tcb;
 	}
+#endif
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
 		res = NULL;
 	}
 
-	if(skip_proc_scan)
+	//
+	// If the user doesn't need the thread table, free it
+	//
+	if(handle->m_proclist.m_proc_callback != NULL)
 	{
-		handle->refresh_proc_table_when_saving = tmp_refresh_proc_table_when_saving;
+		scap_proc_free_table(handle);
 	}
 
 	return res;
@@ -1111,21 +1101,11 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	res->m_targetbufcurpos = targetbuf;
 	res->m_targetbufend = targetbuf + targetbufsize;
 
-	//
-	// Disable proc parsing since it would be too heavy when saving to memory.
-	// Before doing that, backup handle->refresh_proc_table_when_saving so we can
-	// restore whatever the current setting is as soon as we're done.
-	//
-	bool tmp_refresh_proc_table_when_saving = handle->refresh_proc_table_when_saving;
-	handle->refresh_proc_table_when_saving = false;
-
 	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
 	{
 		free(res);
 		res = NULL;
 	}
-
-	handle->refresh_proc_table_when_saving = tmp_refresh_proc_table_when_saving;
 
 	return res;
 }
