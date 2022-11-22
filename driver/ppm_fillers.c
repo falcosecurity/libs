@@ -1461,6 +1461,30 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_socket_bind_e(struct event_filler_arguments *args)
+{
+	int res = 0;
+	s32 fd = 0;
+	unsigned long val = 0;
+
+	if(!args->is_socketcall)
+	{
+		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	}
+#ifndef UDIG
+	else
+	{
+		val = args->socketcall_args[1];
+	}
+#endif
+
+	/* Parameter 1: fd (type: PT_FD) */
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	CHECK_RES(res);
+	return add_sentinel(args);
+}
+
 int f_sys_socket_bind_x(struct event_filler_arguments *args)
 {
 	int res;

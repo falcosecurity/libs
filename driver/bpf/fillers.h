@@ -4007,6 +4007,13 @@ FILLER(sys_getresuid_and_gid_x, true)
 	return res;
 }
 
+FILLER(sys_socket_bind_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, (s64)fd);
+}
+
 FILLER(sys_socket_bind_x, true)
 {
 	struct sockaddr *usrsockaddr;
