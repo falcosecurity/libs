@@ -12,6 +12,7 @@
 #include "network_utils.h"
 #include <arpa/inet.h>
 #include <sys/un.h>
+#include <scap.h>
 
 #define CURRENT_PID -1
 #define CURRENT_EVENT_TYPE -1
@@ -21,7 +22,6 @@ extern "C"
 #include <libpman.h>
 #include <ppm_events_public.h>
 #include <feature_gates.h>
-#include <ppm_tp.h>
 }
 
 struct param
@@ -85,6 +85,14 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 class event_test
 {
 public:
+
+	static scap_t* scap_handle;
+
+	static void set_scap_handle(scap_t* handle)
+	{
+		scap_handle = handle;
+	}
+
 	/* Please note: only methods with `assert` in the name use Google assertions. */
 
 	/////////////////////////////////
@@ -169,7 +177,7 @@ public:
 	 *
 	 * @param cpu_id CPU from which we extracted the event.
 	 */
-	struct ppm_evt_hdr* get_event_from_ringbuffer(int16_t* cpu_id);
+	struct ppm_evt_hdr* get_event_from_ringbuffer(uint16_t* cpu_id);
 
 	/**
 	 * @brief Parse information from the event that we have extracted from the buffer:

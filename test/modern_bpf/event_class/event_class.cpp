@@ -97,7 +97,7 @@ event_test::~event_test()
 	clear_ring_buffers();
 
 	/* 2 - clean all interesting syscalls. */
-	mark_all_64bit_syscalls_as_uninteresting();
+	scap_clear_eventmask(scap_handle);
 }
 
 /* This constructor must be used with generic tracepoints
@@ -185,18 +185,28 @@ void event_test::mark_all_64bit_syscalls_as_uninteresting()
 
 void event_test::enable_capture()
 {
-	pman_enable_capture((bool*)m_tp_set.data());
+	/* Here I should enable the necessary tracepoints */
+	for(int i=0; i< TP_VAL_MAX; i++)
+	{
+		if(m_tp_set[i])
+		{
+			scap_set_tpmask(scap_handle, i, true);
+		}
+	}
+	/* We need to clear all the `ring-buffers` because maybe during
+	 * the tracepoint attachment we triggered some syscalls 
+	 */
 	clear_ring_buffers();
 }
 
 void event_test::disable_capture()
 {
-	pman_disable_capture();
+	scap_stop_capture(scap_handle);
 }
 
 void event_test::clear_ring_buffers()
 {
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	while(get_event_from_ringbuffer(&cpu_id) != NULL)
 	{
 	};
@@ -207,16 +217,17 @@ bool event_test::are_all_ringbuffers_full(unsigned long threshold)
 	return pman_are_all_ringbuffers_full(threshold);
 }
 
-struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(int16_t* cpu_id)
+struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 {
 	m_event_header = NULL;
 	uint16_t attempts = 0;
+	int32_t res = 0;
 
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		pman_consume_first_from_buffers((void**)&m_event_header, cpu_id);
-		if(m_event_header != NULL)
+		res = scap_next(scap_handle, (scap_evt**)&m_event_header, cpu_id);
+		if(res == SCAP_SUCCESS)
 		{
 			return m_event_header;
 		}
@@ -419,7 +430,8 @@ void event_test::assert_event_absence(pid_t pid_to_search, int event_to_search)
 
 void event_test::assert_header()
 {
-	int num_params_from_bpf_table = pman_get_event_params(m_event_type);
+	/* TODO: Here we need a `scap` function that exposes some fields of the table and not all the table!! */
+	int num_params_from_bpf_table = scap_get_event_info_table()[m_event_type].nparams;
 
 	/* the bpf event gets the correct number of parameters from the param table. */
 	ASSERT_EQ(m_event_header->nparams, num_params_from_bpf_table) << "'nparams' in the header is not correct." << std::endl;
@@ -429,7 +441,8 @@ void event_test::assert_header()
 
 void event_test::assert_num_params_pushed(int total_params)
 {
-	int num_params_from_bpf_table = pman_get_event_params(m_event_type);
+	/* TODO: Here we need a `scap` function that exposes some fields of the table and not all the table!! */
+	int num_params_from_bpf_table = scap_get_event_info_table()[m_event_type].nparams;
 	ASSERT_EQ(total_params, num_params_from_bpf_table) << "for this event we have not pushed the right number of parameters." << std::endl;
 }
 
@@ -819,7 +832,7 @@ void event_test::assert_unix_path(const char* desired_path, int starting_index)
 
 void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_search, bool presence)
 {
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	pid_t pid = 0;
 	uint16_t evt_type = 0;
 

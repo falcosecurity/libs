@@ -1,454 +1,445 @@
-#include "../../event_class/event_class.h"
-#include "../../helpers/proc_parsing.h"
+// #include "../../event_class/event_class.h"
+// #include "../../helpers/proc_parsing.h"
 
-#if defined(CAPTURE_SCHED_PROC_FORK) && defined(__NR_wait4)
+// #if defined(CAPTURE_SCHED_PROC_FORK) && defined(__NR_wait4)
 
-#include <linux/sched.h>
+// #include <linux/sched.h>
 
-#ifdef __NR_clone3
-TEST(GenericTracepoints, sched_proc_fork_case_clone3)
-{
-	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
+// #ifdef __NR_clone3
+// TEST(GenericTracepoints, sched_proc_fork_case_clone3)
+// {
+// 	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
 
-	evt_test->enable_capture();
+// 	evt_test->enable_capture();
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
-	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
-	 */
-	struct clone_args cl_args = {0};
-	cl_args.flags = CLONE_FILES;
-	cl_args.exit_signal = SIGCHLD;
-	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+// 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
+// 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
+// 	 */
+// 	struct clone_args cl_args = {0};
+// 	cl_args.flags = CLONE_FILES;
+// 	cl_args.exit_signal = SIGCHLD;
+// 	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
 
-	/* Child performs assertions on itself. */
-	if(ret_pid == 0)
-	{
-		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
-		 * tests will crash. So we add a simple failure and the father will check for failures in
-		 * the child process.
-		 */
+// 	/* Child performs assertions on itself. */
+// 	if(ret_pid == 0)
+// 	{
+// 		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
+// 		 * tests will crash. So we add a simple failure and the father will check for failures in
+// 		 * the child process.
+// 		 */
 
-		/* We scan proc after the BPF event is caught so we have
-		 * to use `LESS_EQUAL` in the assertions.
-		 */
-		struct proc_info info = {0};
-		pid_t pid = ::getpid();
-		if(!get_proc_info(pid, &info))
-		{
-			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+// 		/* We scan proc after the BPF event is caught so we have
+// 		 * to use `LESS_EQUAL` in the assertions.
+// 		 */
+// 		struct proc_info info = {0};
+// 		pid_t pid = ::getpid();
+// 		if(!get_proc_info(pid, &info))
+// 		{
+// 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
+// 			exit(EXIT_FAILURE);
+// 		}
 
-		evt_test->assert_event_presence(pid);
+// 		evt_test->assert_event_presence(pid);
 
-		if(HasFatalFailure())
-		{
-			ADD_FAILURE() << "Problem during initialization";
-			exit(EXIT_FAILURE);
-		}
+// 		if(HasFatalFailure())
+// 		{
+// 			ADD_FAILURE() << "Problem during initialization";
+// 			exit(EXIT_FAILURE);
+// 		}
 
-		evt_test->parse_event();
+// 		evt_test->parse_event();
 
-		evt_test->assert_header();
+// 		evt_test->assert_header();
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		/* Parameter 1: res (type: PT_PID)*/
-		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
+// 		/* Parameter 1: res (type: PT_PID)*/
+// 		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
 
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(2, info.args[0]);
+// 		/* Parameter 2: exe (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(2, info.args[0]);
 
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Starting from `1` because the first is `exe`. */
-		evt_test->assert_charbuf_array_param(3, &info.args[1]);
+// 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+// 		/* Starting from `1` because the first is `exe`. */
+// 		evt_test->assert_charbuf_array_param(3, &info.args[1]);
 
-		/* Parameter 4: tid (type: PT_PID) */
-		evt_test->assert_numeric_param(4, (int64_t)pid);
+// 		/* Parameter 4: tid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(4, (int64_t)pid);
 
-		/* Parameter 5: pid (type: PT_PID) */
-		/* We are the main thread of the process so it's equal to `tid`. */
-		evt_test->assert_numeric_param(5, (int64_t)pid);
+// 		/* Parameter 5: pid (type: PT_PID) */
+// 		/* We are the main thread of the process so it's equal to `tid`. */
+// 		evt_test->assert_numeric_param(5, (int64_t)pid);
 
-		/* Parameter 6: ptid (type: PT_PID) */
-		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
+// 		/* Parameter 6: ptid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
 
-		/* Parameter 7: cwd (type: PT_CHARBUF) */
-		/* leave the current working directory empty like in the old probe. */
-		evt_test->assert_empty_param(7);
+// 		/* Parameter 7: cwd (type: PT_CHARBUF) */
+// 		/* leave the current working directory empty like in the old probe. */
+// 		evt_test->assert_empty_param(7);
 
-		/* Parameter 8: fdlimit (type: PT_UINT64) */
-		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
+// 		/* Parameter 8: fdlimit (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
 
-		/* Parameter 9: pgft_maj (type: PT_UINT64) */
-		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 9: pgft_maj (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 10: pgft_min (type: PT_UINT64) */
-		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 10: pgft_min (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 11: vm_size (type: PT_UINT32) */
-		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
+// 		/* Parameter 11: vm_size (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
 
-		/* Parameter 12: vm_rss (type: PT_UINT32) */
-		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
+// 		/* Parameter 12: vm_rss (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
 
-		/* Parameter 13: vm_swap (type: PT_UINT32) */
-		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
+// 		/* Parameter 13: vm_swap (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
 
-		/* Parameter 14: comm (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
-
-		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-		evt_test->assert_cgroup_param(15);
-
-		/* Parameter 16: flags (type: PT_FLAGS32) */
-		evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
-
-		/* Parameter 17: uid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
-
-		/* Parameter 18: gid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
-
-		/* Parameter 19: vtid (type: PT_PID) */
-		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
+// 		/* Parameter 14: comm (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
+
+// 		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
+// 		evt_test->assert_cgroup_param(15);
+
+// 		/* Parameter 16: flags (type: PT_FLAGS32) */
+// 		evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
+
+// 		/* Parameter 17: uid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
+
+// 		/* Parameter 18: gid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
+
+// 		/* Parameter 19: vtid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
 
-		/* Parameter 20: vpid (type: PT_PID) */
-		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
+// 		/* Parameter 20: vpid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
-		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
+
+// 		evt_test->assert_num_params_pushed(20);
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 		if(HasFailure())
+// 		{
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		else
+// 		{
+// 			exit(EXIT_SUCCESS);
+// 		}
+// 	}
 
-		evt_test->assert_num_params_pushed(21);
+// 	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
 
-		if(HasFailure())
-		{
-			exit(EXIT_FAILURE);
-		}
-		else
-		{
-			exit(EXIT_SUCCESS);
-		}
-	}
+// 	int status = 0;
+// 	int options = 0;
+// 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+// 	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+// 	{
+// 		FAIL() << "Something in the child failed." << std::endl;
+// 	}
 
-	int status = 0;
-	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+// 	evt_test->disable_capture();
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
-	{
-		FAIL() << "Something in the child failed." << std::endl;
-	}
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
+// }
+// #endif /* __NR_clone3 */
 
-	evt_test->disable_capture();
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-}
-#endif /* __NR_clone3 */
+// #ifdef __NR_clone
+// TEST(GenericTracepoints, sched_proc_fork_case_clone)
+// {
+// 	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
 
+// 	evt_test->enable_capture();
 
-#ifdef __NR_clone
-TEST(GenericTracepoints, sched_proc_fork_case_clone)
-{
-	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	evt_test->enable_capture();
+// 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
+// 	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
+// 	 */
+// 	unsigned long clone_flags = CLONE_FILES | SIGCHLD;
+// 	int parent_tid = 0;
+// 	unsigned long newsp = 0;
+// 	int child_tid = 0;
+// 	unsigned long tls = 0;
+// 	pid_t ret_pid = 0;
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
+// #ifdef __s390x__
+// 	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
+// #elif __aarch64__
+// 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
+// #else
+// 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);
+// #endif
 
-	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
-	 * when the child terminates. We use `CLONE_FILES` just to test the flags.
-	 */
-	unsigned long clone_flags = CLONE_FILES | SIGCHLD;
-	int parent_tid = 0;
-	unsigned long newsp = 0;
-	int child_tid = 0;
-	unsigned long tls = 0;
-	pid_t ret_pid = 0;
+// 	/* Child performs assertions on itself. */
+// 	if(ret_pid == 0)
+// 	{
+// 		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
+// 		 * tests will crash. So we add a simple failure and the father will check for failures in
+// 		 * the child process.
+// 		 */
 
-#ifdef __s390x__
-	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
-#elif __aarch64__
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
-#else
-	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);
-#endif
+// 		/* We scan proc after the BPF event is caught so we have
+// 		 * to use `LESS_EQUAL` in the assertions.
+// 		 */
+// 		struct proc_info info = {0};
+// 		pid_t pid = ::getpid();
+// 		if(!get_proc_info(pid, &info))
+// 		{
+// 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
+// 			exit(EXIT_FAILURE);
+// 		}
 
-	/* Child performs assertions on itself. */
-	if(ret_pid == 0)
-	{
-		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
-		 * tests will crash. So we add a simple failure and the father will check for failures in
-		 * the child process.
-		 */
+// 		evt_test->assert_event_presence(pid);
 
-		/* We scan proc after the BPF event is caught so we have
-		 * to use `LESS_EQUAL` in the assertions.
-		 */
-		struct proc_info info = {0};
-		pid_t pid = ::getpid();
-		if(!get_proc_info(pid, &info))
-		{
-			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+// 		if(HasFatalFailure())
+// 		{
+// 			ADD_FAILURE() << "Problem during initialization";
+// 			exit(EXIT_FAILURE);
+// 		}
 
-		evt_test->assert_event_presence(pid);
+// 		evt_test->parse_event();
 
-		if(HasFatalFailure())
-		{
-			ADD_FAILURE() << "Problem during initialization";
-			exit(EXIT_FAILURE);
-		}
+// 		evt_test->assert_header();
 
-		evt_test->parse_event();
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		evt_test->assert_header();
+// 		/* Parameter 1: res (type: PT_PID)*/
+// 		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 		/* Parameter 2: exe (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(2, info.args[0]);
 
-		/* Parameter 1: res (type: PT_PID)*/
-		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
+// 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+// 		/* Starting from `1` because the first is `exe`. */
+// 		evt_test->assert_charbuf_array_param(3, &info.args[1]);
 
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(2, info.args[0]);
+// 		/* Parameter 4: tid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(4, (int64_t)pid);
 
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Starting from `1` because the first is `exe`. */
-		evt_test->assert_charbuf_array_param(3, &info.args[1]);
+// 		/* Parameter 5: pid (type: PT_PID) */
+// 		/* We are the main thread of the process so it's equal to `tid`. */
+// 		evt_test->assert_numeric_param(5, (int64_t)pid);
 
-		/* Parameter 4: tid (type: PT_PID) */
-		evt_test->assert_numeric_param(4, (int64_t)pid);
+// 		/* Parameter 6: ptid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
 
-		/* Parameter 5: pid (type: PT_PID) */
-		/* We are the main thread of the process so it's equal to `tid`. */
-		evt_test->assert_numeric_param(5, (int64_t)pid);
+// 		/* Parameter 7: cwd (type: PT_CHARBUF) */
+// 		/* leave the current working directory empty like in the old probe. */
+// 		evt_test->assert_empty_param(7);
 
-		/* Parameter 6: ptid (type: PT_PID) */
-		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
+// 		/* Parameter 8: fdlimit (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
 
-		/* Parameter 7: cwd (type: PT_CHARBUF) */
-		/* leave the current working directory empty like in the old probe. */
-		evt_test->assert_empty_param(7);
+// 		/* Parameter 9: pgft_maj (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 8: fdlimit (type: PT_UINT64) */
-		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
+// 		/* Parameter 10: pgft_min (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 9: pgft_maj (type: PT_UINT64) */
-		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 11: vm_size (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
 
-		/* Parameter 10: pgft_min (type: PT_UINT64) */
-		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 12: vm_rss (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
 
-		/* Parameter 11: vm_size (type: PT_UINT32) */
-		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
+// 		/* Parameter 13: vm_swap (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
 
-		/* Parameter 12: vm_rss (type: PT_UINT32) */
-		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
+// 		/* Parameter 14: comm (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
 
-		/* Parameter 13: vm_swap (type: PT_UINT32) */
-		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
+// 		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
+// 		evt_test->assert_cgroup_param(15);
 
-		/* Parameter 14: comm (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
+// 		/* Parameter 16: flags (type: PT_FLAGS32) */
+// 		evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
 
-		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-		evt_test->assert_cgroup_param(15);
+// 		/* Parameter 17: uid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
 
-		/* Parameter 16: flags (type: PT_FLAGS32) */
-		evt_test->assert_numeric_param(16, (uint32_t)PPM_CL_CLONE_FILES);
+// 		/* Parameter 18: gid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
 
-		/* Parameter 17: uid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
+// 		/* Parameter 19: vtid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
 
-		/* Parameter 18: gid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
+// 		/* Parameter 20: vpid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
-		/* Parameter 19: vtid (type: PT_PID) */
-		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		/* Parameter 20: vpid (type: PT_PID) */
-		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
+// 		evt_test->assert_num_params_pushed(20);
 
-		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+// 		if(HasFailure())
+// 		{
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		else
+// 		{
+// 			exit(EXIT_SUCCESS);
+// 		}
+// 	}
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 	assert_syscall_state(SYSCALL_SUCCESS, "clone", ret_pid, NOT_EQUAL, -1);
 
-		evt_test->assert_num_params_pushed(21);
+// 	int status = 0;
+// 	int options = 0;
+// 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-		if(HasFailure())
-		{
-			exit(EXIT_FAILURE);
-		}
-		else
-		{
-			exit(EXIT_SUCCESS);
-		}
-	}
+// 	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+// 	{
+// 		FAIL() << "Something in the child failed." << std::endl;
+// 	}
 
-	assert_syscall_state(SYSCALL_SUCCESS, "clone", ret_pid, NOT_EQUAL, -1);
+// 	evt_test->disable_capture();
 
-	int status = 0;
-	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
+// }
+// #endif /* __NR_clone */
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
-	{
-		FAIL() << "Something in the child failed." << std::endl;
-	}
+// #ifdef __NR_fork
+// TEST(GenericTracepoints, sched_proc_fork_case_fork)
+// {
+// 	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
 
-	evt_test->disable_capture();
+// 	evt_test->enable_capture();
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-}
-#endif /* __NR_clone */
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-#ifdef __NR_fork
-TEST(GenericTracepoints, sched_proc_fork_case_fork)
-{
-	auto evt_test = get_generic_event_test(PPME_SYSCALL_CLONE_20_X);
+// 	pid_t ret_pid = syscall(__NR_fork);
 
-	evt_test->enable_capture();
+// 	/* Child performs assertions on itself. */
+// 	if(ret_pid == 0)
+// 	{
+// 		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
+// 		 * tests will crash. So we add a simple failure and the father will check for failures in
+// 		 * the child process.
+// 		 */
 
-	/*=============================== TRIGGER SYSCALL  ===========================*/
+// 		/* We scan proc after the BPF event is caught so we have
+// 		 * to use `LESS_EQUAL` in the assertions.
+// 		 */
+// 		struct proc_info info = {0};
+// 		pid_t pid = ::getpid();
+// 		if(!get_proc_info(pid, &info))
+// 		{
+// 			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
+// 			exit(EXIT_FAILURE);
+// 		}
 
-	pid_t ret_pid = syscall(__NR_fork);
+// 		evt_test->assert_event_presence(pid);
 
-	/* Child performs assertions on itself. */
-	if(ret_pid == 0)
-	{
-		/* Please note: in the child, we cannot have a fatal failure otherwise all the following
-		 * tests will crash. So we add a simple failure and the father will check for failures in
-		 * the child process.
-		 */
+// 		if(HasFatalFailure())
+// 		{
+// 			ADD_FAILURE() << "Problem during initialization";
+// 			exit(EXIT_FAILURE);
+// 		}
 
-		/* We scan proc after the BPF event is caught so we have
-		 * to use `LESS_EQUAL` in the assertions.
-		 */
-		struct proc_info info = {0};
-		pid_t pid = ::getpid();
-		if(!get_proc_info(pid, &info))
-		{
-			ADD_FAILURE() << "Unable to get all the info from proc" << std::endl;
-			exit(EXIT_FAILURE);
-		}
+// 		evt_test->parse_event();
 
-		evt_test->assert_event_presence(pid);
+// 		evt_test->assert_header();
 
-		if(HasFatalFailure())
-		{
-			ADD_FAILURE() << "Problem during initialization";
-			exit(EXIT_FAILURE);
-		}
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		evt_test->parse_event();
+// 		/* Parameter 1: res (type: PT_PID)*/
+// 		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
 
-		evt_test->assert_header();
+// 		/* Parameter 2: exe (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(2, info.args[0]);
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+// 		/* Starting from `1` because the first is `exe`. */
+// 		evt_test->assert_charbuf_array_param(3, &info.args[1]);
 
-		/* Parameter 1: res (type: PT_PID)*/
-		evt_test->assert_numeric_param(1, (int64_t)ret_pid);
+// 		/* Parameter 4: tid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(4, (int64_t)pid);
 
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(2, info.args[0]);
+// 		/* Parameter 5: pid (type: PT_PID) */
+// 		/* We are the main thread of the process so it's equal to `tid`. */
+// 		evt_test->assert_numeric_param(5, (int64_t)pid);
 
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Starting from `1` because the first is `exe`. */
-		evt_test->assert_charbuf_array_param(3, &info.args[1]);
+// 		/* Parameter 6: ptid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
 
-		/* Parameter 4: tid (type: PT_PID) */
-		evt_test->assert_numeric_param(4, (int64_t)pid);
+// 		/* Parameter 7: cwd (type: PT_CHARBUF) */
+// 		/* leave the current working directory empty like in the old probe. */
+// 		evt_test->assert_empty_param(7);
 
-		/* Parameter 5: pid (type: PT_PID) */
-		/* We are the main thread of the process so it's equal to `tid`. */
-		evt_test->assert_numeric_param(5, (int64_t)pid);
+// 		/* Parameter 8: fdlimit (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
 
-		/* Parameter 6: ptid (type: PT_PID) */
-		evt_test->assert_numeric_param(6, (int64_t)info.ppid);
+// 		/* Parameter 9: pgft_maj (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 7: cwd (type: PT_CHARBUF) */
-		/* leave the current working directory empty like in the old probe. */
-		evt_test->assert_empty_param(7);
+// 		/* Parameter 10: pgft_min (type: PT_UINT64) */
+// 		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
 
-		/* Parameter 8: fdlimit (type: PT_UINT64) */
-		evt_test->assert_numeric_param(8, (uint64_t)info.file_rlimit.rlim_cur);
+// 		/* Parameter 11: vm_size (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
 
-		/* Parameter 9: pgft_maj (type: PT_UINT64) */
-		evt_test->assert_numeric_param(9, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 12: vm_rss (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
 
-		/* Parameter 10: pgft_min (type: PT_UINT64) */
-		evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
+// 		/* Parameter 13: vm_swap (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
 
-		/* Parameter 11: vm_size (type: PT_UINT32) */
-		evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, LESS_EQUAL);
+// 		/* Parameter 14: comm (type: PT_CHARBUF) */
+// 		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
 
-		/* Parameter 12: vm_rss (type: PT_UINT32) */
-		evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, LESS_EQUAL);
+// 		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
+// 		evt_test->assert_cgroup_param(15);
 
-		/* Parameter 13: vm_swap (type: PT_UINT32) */
-		evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, LESS_EQUAL);
+// 		/* Parameter 16: flags (type: PT_FLAGS32) */
+// 		evt_test->assert_numeric_param(16, (uint32_t)0);
 
-		/* Parameter 14: comm (type: PT_CHARBUF) */
-		evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);
+// 		/* Parameter 17: uid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
 
-		/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
-		evt_test->assert_cgroup_param(15);
+// 		/* Parameter 18: gid (type: PT_UINT32) */
+// 		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
 
-		/* Parameter 16: flags (type: PT_FLAGS32) */
-		evt_test->assert_numeric_param(16, (uint32_t)0);
+// 		/* Parameter 19: vtid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
 
-		/* Parameter 17: uid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(17, (uint32_t)info.uid);
+// 		/* Parameter 20: vpid (type: PT_PID) */
+// 		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
 
-		/* Parameter 18: gid (type: PT_UINT32) */
-		evt_test->assert_numeric_param(18, (uint32_t)info.gid);
+// 		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-		/* Parameter 19: vtid (type: PT_PID) */
-		evt_test->assert_numeric_param(19, (int64_t)info.vtid);
+// 		evt_test->assert_num_params_pushed(20);
 
-		/* Parameter 20: vpid (type: PT_PID) */
-		evt_test->assert_numeric_param(20, (int64_t)info.vpid);
+// 		if(HasFailure())
+// 		{
+// 			exit(EXIT_FAILURE);
+// 		}
+// 		else
+// 		{
+// 			exit(EXIT_SUCCESS);
+// 		}
+// 	}
 
-		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-		evt_test->assert_numeric_param(21, (uint64_t)0, GREATER_EQUAL);
+// 	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
 
-		/*=============================== ASSERT PARAMETERS  ===========================*/
+// 	int status = 0;
+// 	int options = 0;
+// 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-		evt_test->assert_num_params_pushed(21);
+// 	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+// 	{
+// 		FAIL() << "Something in the child failed." << std::endl;
+// 	}
 
-		if(HasFailure())
-		{
-			exit(EXIT_FAILURE);
-		}
-		else
-		{
-			exit(EXIT_SUCCESS);
-		}
-	}
+// 	evt_test->disable_capture();
 
-	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
+// 	/*=============================== TRIGGER SYSCALL  ===========================*/
+// }
+// #endif /* __NR_fork */
 
-	int status = 0;
-	int options = 0;
-	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
-
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
-	{
-		FAIL() << "Something in the child failed." << std::endl;
-	}
-
-	evt_test->disable_capture();
-
-	/*=============================== TRIGGER SYSCALL  ===========================*/
-}
-#endif /* __NR_fork */
-
-#endif
+// #endif
