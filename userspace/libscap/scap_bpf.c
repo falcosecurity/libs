@@ -1446,6 +1446,14 @@ static int32_t set_default_settings(scap_t *handle)
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
 	settings.statsd_port = 8125;
+	char* tmp_num = getenv("switch_agg_num");
+	if (tmp_num != NULL)
+	{
+		settings.switch_agg_num = atoi(tmp_num);
+	}else
+	{
+		settings.switch_agg_num = 16;
+	}
 	memset(settings.if_name, 0, 16);
 	int i = 0;
 	for (i = 0; i < PPM_EVENT_MAX; i++) {

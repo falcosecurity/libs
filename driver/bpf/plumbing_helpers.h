@@ -133,6 +133,7 @@ static __always_inline enum offcpu_type get_syscall_type(int syscall_id) {
 
 static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 latency, u64 delta, u8 is_on)
 {
+	uint16_t switch_agg_num = settings->switch_agg_num;
 	struct info_t *infop;
 	infop = bpf_map_lookup_elem(&cpu_records, &tid);
 	if (infop == 0) { // try init
@@ -147,7 +148,7 @@ static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings
 	}
 
 	if (infop != 0) {
-		if (infop->index < NUM) {
+		if (infop->index < switch_agg_num) {
 			infop->times_specs[infop->index & (NUM - 1)] = delta;
 			if (is_on == 0) {
 				// get the type of offcpu
@@ -172,6 +173,7 @@ static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings
 
 static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 delta, u8 is_on)
 {
+	uint16_t switch_agg_num = settings->switch_agg_num;
 	struct info_t *infop;
 	infop = bpf_map_lookup_elem(&cpu_records, &tid);
 	if (infop == 0) { // try init
@@ -187,7 +189,7 @@ static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_
 
 	if (infop != 0) {
 	int offset_ts = infop->end_ts - infop->start_ts;
-		if (infop->index > 0 && (infop->index == NUM || offset_ts > 2000000000)) {
+		if (infop->index > 0 && (infop->index == switch_agg_num || offset_ts > 2000000000)) {
 		//bpf_printk("start_ts %llu", infop->start_ts);
 			// perf out
 			if (prepare_filler(ctx, ctx, PPME_CPU_ANALYSIS_E, settings, 0)) {
@@ -200,7 +202,7 @@ static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_
 			memset(infop->times_specs, 0, sizeof(infop->times_specs));
 			memset(infop->rq, 0, sizeof(infop->rq));
 		}
-		if (infop->index < NUM) {
+		if (infop->index < switch_agg_num) {
 			infop->times_specs[infop->index & (NUM - 1)] = delta;
 			if (is_on == 0) {
 				// get the type of offcpu
