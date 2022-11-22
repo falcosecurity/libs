@@ -234,11 +234,6 @@ void sinsp::add_protodecoders()
 void sinsp::filter_proc_table_when_saving(bool filter)
 {
 	m_filter_proc_table_when_saving = filter;
-
-	if(m_h != NULL)
-	{
-		scap_set_refresh_proc_table_when_saving(m_h, !filter);
-	}
 }
 
 void sinsp::enable_tracers_capture()
@@ -483,8 +478,6 @@ void sinsp::open_common(scap_open_args* oargs)
 	{
 		throw scap_open_exception(error, scap_rc);
 	}
-
-	scap_set_refresh_proc_table_when_saving(m_h, !m_filter_proc_table_when_saving);
 
 	init();
 }

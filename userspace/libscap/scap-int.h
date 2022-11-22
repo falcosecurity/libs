@@ -73,7 +73,6 @@ struct scap
 	scap_machine_info m_machine_info;
 	scap_userlist* m_userlist;
 	struct ppm_proclist_info* m_driver_procinfo;
-	bool refresh_proc_table_when_saving;
 	uint32_t m_fd_lookup_limit;
 	uint8_t m_cgroup_version;
 

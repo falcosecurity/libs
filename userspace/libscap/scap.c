@@ -197,8 +197,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 		handle->m_userlist = NULL;
 	}
 
-	handle->refresh_proc_table_when_saving = true;
-
 	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
@@ -341,8 +339,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
-	handle->refresh_proc_table_when_saving = true;
-
 	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
@@ -433,8 +429,6 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	handle->refresh_proc_table_when_saving = true;
-
 	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
@@ -508,8 +502,6 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	// XXX - interface list initialization and user list initalization goes here if necessary
 
-	handle->refresh_proc_table_when_saving = true;
-
 	handle->m_suppressed_comms = NULL;
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
@@ -578,7 +570,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
-	handle->refresh_proc_table_when_saving = true;
 	handle->m_fd_lookup_limit = 0;
 #if CYGWING_AGENT || _WIN32
 	handle->m_whh = NULL;
@@ -712,8 +703,6 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 		handle->m_userlist = NULL;
 	}
 
-	handle->refresh_proc_table_when_saving = true;
-
 	//
 	// Create the process list
 	//
@@ -782,7 +771,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
-	handle->refresh_proc_table_when_saving = true;
 
 	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
@@ -1562,11 +1550,6 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 
 	return handle->m_driver_procinfo;
 #endif	// HAS_CAPTURE
-}
-
-void scap_set_refresh_proc_table_when_saving(scap_t* handle, bool refresh)
-{
-	handle->refresh_proc_table_when_saving = refresh;
 }
 
 uint64_t scap_ftell(scap_t *handle)

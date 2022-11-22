@@ -962,7 +962,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	// between opening the handle and starting the dump
 	//
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-	if(handle->m_mode != SCAP_MODE_CAPTURE && handle->refresh_proc_table_when_saving && !skip_proc_scan)
+	if(handle->m_mode != SCAP_MODE_CAPTURE && !skip_proc_scan)
 	{
 		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
 		handle->m_proclist.m_proc_callback = NULL;
