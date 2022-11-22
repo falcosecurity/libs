@@ -1015,6 +1015,8 @@ int main(int argc, char** argv)
 
 	gettimeofday(&tval_start, NULL);
 
+	scap_start_capture(g_h);
+
 	while(g_nevts != num_events)
 	{
 		res = scap_next(g_h, &ev, &cpuid);
@@ -1050,6 +1052,7 @@ int main(int argc, char** argv)
 		g_nevts++;
 	}
 
+	scap_stop_capture(g_h);
 	print_stats();
 	scap_close(g_h);
 	return EXIT_SUCCESS;

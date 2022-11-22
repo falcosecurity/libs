@@ -243,17 +243,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
 		return NULL;
 	}
-
-	//
-	// Now that /proc parsing has been done, start the capture
-	//
-	if((*rc = scap_start_capture(handle)) != SCAP_SUCCESS)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
-	}
-
 	return handle;
 }
 
@@ -468,12 +457,6 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 		scap_close(handle);
 		return NULL;
 	}
-
-	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return NULL;
-	}
 	return handle;
 }
 #else
@@ -546,13 +529,6 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	if ((*rc = scap_proc_scan_vtable(error, handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		return NULL;
-	}
-
-	if(handle->m_vtable->start_capture(handle->m_engine) != SCAP_SUCCESS)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error while starting capture: %s", handle->m_lasterr);
 		scap_close(handle);
 		return NULL;
 	}
