@@ -28,7 +28,6 @@ limitations under the License.
 #include "engine_handle.h"
 #include "scap_vtable.h"
 #include "ringbuffer/devset.h"
-#include "engine/kmod/kmod.h"
 
 #include "settings.h"
 #include "plugin_info.h"

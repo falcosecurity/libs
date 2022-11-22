@@ -21,10 +21,7 @@ limitations under the License.
 #include <string.h>
 
 #include "scap.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
-#include "scap_engines.h"
-#include "engine/kmod/kmod.h"
 
 int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 {
