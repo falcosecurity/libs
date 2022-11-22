@@ -27,6 +27,7 @@ limitations under the License.
 #endif // _WIN32
 
 #include "scap.h"
+#include "strerror.h"
 #include "strlcpy.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
@@ -34,6 +35,10 @@ limitations under the License.
 #include "scap_platform.h"
 
 #include "scap_engines.h"
+
+#ifdef __linux__
+#include "scap_linux_platform.h"
+#endif
 
 //#define NDEBUG
 #include <assert.h>
@@ -44,7 +49,7 @@ const char* scap_getlasterr(scap_t* handle)
 }
 
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
-int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
+int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform)
 {
 	int32_t rc;
 
@@ -62,6 +67,12 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 	handle->m_vtable = vtable;
+	handle->m_platform = platform;
+
+	if((rc = scap_platform_early_init(handle->m_platform, handle->m_lasterr, oargs)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
 
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
@@ -69,6 +80,8 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
 		return SCAP_FAILURE;
 	}
+
+	handle->m_platform = platform;
 
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
@@ -145,6 +158,11 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_init_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		return rc;
+	}
+
+	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	{
 		return rc;
 	}
 
@@ -546,6 +564,7 @@ scap_t* scap_alloc(void)
 int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 {
 	const char* engine_name = oargs->engine_name;
+	struct scap_platform* platform = NULL;
 
 	memset(handle, 0, sizeof(*handle));
 
@@ -580,19 +599,25 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_KMOD
 	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
-		return scap_init_live_int(handle, oargs, &scap_kmod_engine);
+		return scap_init_live_int(handle, oargs, &scap_kmod_engine, NULL);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
-	if( strcmp(engine_name, BPF_ENGINE) == 0)
+	if(strcmp(engine_name, BPF_ENGINE) == 0)
 	{
-		return scap_init_live_int(handle, oargs, &scap_bpf_engine);
+		platform = scap_linux_alloc_platform();
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_live_int(handle, oargs, &scap_bpf_engine, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
-		return scap_init_live_int(handle, oargs, &scap_modern_bpf_engine);
+		return scap_init_live_int(handle, oargs, &scap_modern_bpf_engine, NULL);
 	}
 #endif
 #ifdef HAS_ENGINE_NODRIVER
