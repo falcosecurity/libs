@@ -31,10 +31,7 @@ limitations under the License.
 #include "unixid.h"
 
 #include "scap.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
-#include "scap_engines.h"
-#include "engine/kmod/kmod.h"
 #include "strerror.h"
 
 
