@@ -44,7 +44,7 @@ void sinsp::mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enable)
 	{
 		throw sinsp_exception("inexistent ppm_sc code: " + std::to_string(ppm_sc));
 	}
-	int ret = scap_set_eventmask(m_h, ppm_sc, enable);
+	int ret = scap_set_ppm_sc(m_h, ppm_sc, enable);
 	if (ret != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));

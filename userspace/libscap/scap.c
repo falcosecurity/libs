@@ -1391,7 +1391,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	}
 }
 
-static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_sc)
+static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm_sc)
 {
 	if(handle == NULL)
 	{
@@ -1400,9 +1400,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 
 	switch(op)
 	{
-	case SCAP_SYSCALLMASK_SET:
-	case SCAP_SYSCALLMASK_UNSET:
-	case SCAP_SYSCALLMASK_ZERO:
+	case SCAP_PPM_SC_MASK_SET:
+	case SCAP_PPM_SC_MASK_UNSET:
+	case SCAP_PPM_SC_MASK_ZERO:
 		break;
 	
 	default:
@@ -1432,12 +1432,12 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 #endif // HAS_CAPTURE
 }
 
-int32_t scap_clear_eventmask(scap_t* handle) {
-	return(scap_handle_eventmask(handle, SCAP_SYSCALLMASK_ZERO, 0));
+int32_t scap_clear_ppm_sc_mask(scap_t* handle) {
+	return(scap_handle_ppm_sc_mask(handle, SCAP_PPM_SC_MASK_ZERO, 0));
 }
 
-int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled) {
-	return(scap_handle_eventmask(handle, enabled ? SCAP_SYSCALLMASK_SET : SCAP_SYSCALLMASK_UNSET, ppm_sc));
+int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled) {
+	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
 static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)

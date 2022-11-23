@@ -168,9 +168,9 @@ int32_t scap_kmod_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, 
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if (op != SCAP_SYSCALLMASK_ZERO)
+	if (op != SCAP_PPM_SC_MASK_ZERO)
 	{
-		int ioctl_op = op == SCAP_SYSCALLMASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
+		int ioctl_op = op == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
 		// Find any syscall table entry that matches requested ppm_sc code
 		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 		{
@@ -390,7 +390,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	/* Set interesting Syscalls */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		uint32_t op = oargs->ppm_sc_of_interest.ppm_sc[ppm_sc] ? SCAP_SYSCALLMASK_SET : SCAP_SYSCALLMASK_UNSET;
+		uint32_t op = oargs->ppm_sc_of_interest.ppm_sc[ppm_sc] ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET;
 		scap_kmod_handle_event_mask(engine, op, ppm_sc);
 	}
 
