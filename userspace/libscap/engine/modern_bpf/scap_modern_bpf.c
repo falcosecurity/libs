@@ -159,11 +159,11 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		pman_set_snaplen(arg1);
 	case SCAP_EVENTMASK:
 		/* We use this setting just to modify the interesting syscalls. */
-		if(arg1 == SCAP_EVENTMASK_SET || arg1 == SCAP_EVENTMASK_UNSET)
+		if(arg1 == SCAP_SYSCALLMASK_SET || arg1 == SCAP_SYSCALLMASK_UNSET)
 		{
-			update_single_64bit_syscall_of_interest(arg2, arg1 == SCAP_EVENTMASK_SET);
+			update_single_64bit_syscall_of_interest(arg2, arg1 == SCAP_SYSCALLMASK_SET);
 		}
-		else if(arg1 == SCAP_EVENTMASK_ZERO)
+		else if(arg1 == SCAP_SYSCALLMASK_ZERO)
 		{
 			pman_clean_all_64bit_interesting_syscalls();
 		}
