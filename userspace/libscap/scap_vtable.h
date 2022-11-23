@@ -38,9 +38,9 @@ typedef struct ppm_evt_hdr scap_evt;
 #define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
  */
 enum scap_eventmask_op {
-	SCAP_EVENTMASK_ZERO = 0x7305, //< disable all events
-	SCAP_EVENTMASK_SET = 0x7306, //< enable an event
-	SCAP_EVENTMASK_UNSET = 0x7307, //< disable an event
+	SCAP_SYSCALLMASK_ZERO = 0x7305, //< disable all syscalls
+	SCAP_SYSCALLMASK_SET = 0x7306, //< enable a syscall
+	SCAP_SYSCALLMASK_UNSET = 0x7307, //< disable a syscall
 };
 
 enum scap_tpmask_op {

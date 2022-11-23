@@ -1341,9 +1341,9 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 
 	switch(op)
 	{
-	case SCAP_EVENTMASK_SET:
-	case SCAP_EVENTMASK_UNSET:
-	case SCAP_EVENTMASK_ZERO:
+	case SCAP_SYSCALLMASK_SET:
+	case SCAP_SYSCALLMASK_UNSET:
+	case SCAP_SYSCALLMASK_ZERO:
 		break;
 	
 	default:
@@ -1374,11 +1374,11 @@ static int32_t scap_handle_eventmask(scap_t* handle, uint32_t op, uint32_t ppm_s
 }
 
 int32_t scap_clear_eventmask(scap_t* handle) {
-	return(scap_handle_eventmask(handle, SCAP_EVENTMASK_ZERO, 0));
+	return(scap_handle_eventmask(handle, SCAP_SYSCALLMASK_ZERO, 0));
 }
 
 int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled) {
-	return(scap_handle_eventmask(handle, enabled ? SCAP_EVENTMASK_SET : SCAP_EVENTMASK_UNSET, ppm_sc));
+	return(scap_handle_eventmask(handle, enabled ? SCAP_SYSCALLMASK_SET : SCAP_SYSCALLMASK_UNSET, ppm_sc));
 }
 
 static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)

@@ -1051,20 +1051,20 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_MASK_ZERO_EVENTS:
+	case PPM_IOCTL_ZERO_SYSCALLS:
 	{
-		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS, consumer %p\n", consumer_id);
+		vpr_info("PPM_IOCTL_ZERO_SYSCALLS, consumer %p\n", consumer_id);
 
 		bitmap_zero(consumer->syscalls_mask, SYSCALL_TABLE_SIZE);
 
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_MASK_SET_EVENT:
+	case PPM_IOCTL_ENABLE_SYSCALL:
 	{
 		u32 syscall_to_set = (u32)arg - SYSCALL_TABLE_ID0;
 
-		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u), consumer %p\n", syscall_to_set, consumer_id);
+		vpr_info("PPM_IOCTL_ENABLE_SYSCALL (%u), consumer %p\n", syscall_to_set, consumer_id);
 
 		if (syscall_to_set >= SYSCALL_TABLE_SIZE) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
@@ -1077,11 +1077,11 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_MASK_UNSET_EVENT:
+	case PPM_IOCTL_DISABLE_SYSCALL:
 	{
 		u32 syscall_to_unset = (u32)arg - SYSCALL_TABLE_ID0;
 
-		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u), consumer %p\n", syscall_to_unset, consumer_id);
+		vpr_info("PPM_IOCTL_DISABLE_SYSCALL (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
 		if (syscall_to_unset >= SYSCALL_TABLE_SIZE) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
