@@ -6098,20 +6098,22 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 
 int f_sys_flock_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
-	u32 flags;
+	unsigned long val = 0;
+	int res = 0;
+	u32 flags = 0;
+	s32 fd = 0;
 
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
+	/* Parameter 2: operation (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	flags = flock_flags_to_scap(val);
 	res = val_to_ring(args, flags, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
