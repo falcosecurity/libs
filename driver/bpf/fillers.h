@@ -4770,20 +4770,14 @@ FILLER(sys_socket_x, true)
 
 FILLER(sys_flock_e, true)
 {
-	unsigned int flags;
-	unsigned long val;
-	int res;
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	val = bpf_syscall_get_argument(data, 1);
-	flags = flock_flags_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
-
-	return res;
+	/* Parameter 2: operation (type: PT_FLAGS32) */
+	unsigned long operation = bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, flock_flags_to_scap(operation));
 }
 
 FILLER(sys_pread64_e, true)
