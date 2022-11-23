@@ -30,22 +30,15 @@ struct scap_stats;
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
 
-/*
- * magic constants, matching the kmod-only ioctl numbers defined as:
-#define PPM_IOCTL_MAGIC	's'
-#define PPM_IOCTL_MASK_ZERO_EVENTS _IO(PPM_IOCTL_MAGIC, 5)
-#define PPM_IOCTL_MASK_SET_EVENT   _IO(PPM_IOCTL_MAGIC, 6)
-#define PPM_IOCTL_MASK_UNSET_EVENT _IO(PPM_IOCTL_MAGIC, 7)
- */
 enum scap_eventmask_op {
-	SCAP_PPM_SC_MASK_ZERO = 0x7305, //< disable all syscalls
-	SCAP_PPM_SC_MASK_SET = 0x7306, //< enable a syscall
-	SCAP_PPM_SC_MASK_UNSET = 0x7307, //< disable a syscall
+	SCAP_PPM_SC_MASK_ZERO = 0, //< disable all syscalls
+	SCAP_PPM_SC_MASK_SET = 1, //< enable a syscall
+	SCAP_PPM_SC_MASK_UNSET = 2, //< disable a syscall
 };
 
 enum scap_tpmask_op {
-	SCAP_TPMASK_SET = 0x8306, //< enable a tp
-	SCAP_TPMASK_UNSET = 0x8307, //< disable a tp
+	SCAP_TPMASK_SET = 0, //< enable a tp
+	SCAP_TPMASK_UNSET = 1, //< disable a tp
 };
 
 /**
