@@ -4797,6 +4797,13 @@ FILLER(sys_ioctl_e, true)
 	return bpf_val_to_ring(data, argument);
 }
 
+FILLER(sys_mkdir_e, true)
+{
+	/* Parameter 1: mode (type: PT_UINT32) */
+	u32 mode = (u32)bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, mode);
+}
+
 FILLER(sys_pread64_e, true)
 {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
