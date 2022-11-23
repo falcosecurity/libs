@@ -5938,36 +5938,21 @@ FILLER(sys_fchmod_x, true)
 
 FILLER(sys_copy_file_range_e, true)
 {
-	int fdin;
-	unsigned long offin;
-	unsigned long len;
-	int res;
+	int res = 0;
 
-	/*
-	* fdin
-	*/
-	fdin = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, fdin);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* Parameter 1: fdin (type: PT_FD) */
+	s32 fdin = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, (s64)fdin);
+	CHECK_RES(res);
 
-	/*
-	* offin
-	*/
-	offin = bpf_syscall_get_argument(data, 1);
+	/* Parameter 2: offin (type: PT_UINT64) */
+	u64 offin = bpf_syscall_get_argument(data, 1);
 	res = bpf_val_to_ring(data, offin);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	* len
-	*/
-	len = bpf_syscall_get_argument(data, 4);
-	res = bpf_val_to_ring(data, len);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-	
-	return res;
+	/* Parameter 3: len (type: PT_UINT64) */
+	u64 len = bpf_syscall_get_argument(data, 4);
+	return bpf_val_to_ring(data, len);
 }
 
 FILLER(sys_copy_file_range_x, true)
