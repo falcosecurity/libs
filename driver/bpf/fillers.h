@@ -1021,26 +1021,14 @@ FILLER(sys_mprotect_x, true)
 
 FILLER(sys_fcntl_e, true)
 {
-	unsigned long val;
-	long cmd;
-	int res;
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, val, PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * cmd
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	cmd = fcntl_cmd_to_scap(val);
-	res = bpf_val_to_ring_type(data, cmd, PT_FLAGS8);
-
-	return res;
+	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
+	s32 cmd = (s32)bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring_type(data, fcntl_cmd_to_scap(cmd), PT_FLAGS8);
 }
 
 FILLER(sys_access_e, true)
