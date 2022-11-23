@@ -68,6 +68,7 @@ or GPL2.txt for full copies of the license.
 
 /*
  * SYSCALL TABLE
+ * FIXME: kmod only supports SYSCALL_TABLE_ID0
  */
 const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open
