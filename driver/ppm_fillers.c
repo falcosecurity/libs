@@ -4274,24 +4274,20 @@ int f_sched_drop(struct event_filler_arguments *args)
 
 int f_sys_fcntl_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
+	unsigned long val = 0;
+	int res = 0;
+	s32 fd = 0;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
-	/*
-	 * cmd
-	 */
+	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
