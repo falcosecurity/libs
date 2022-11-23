@@ -953,7 +953,7 @@ static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap
 static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct bpf_engine *handle = engine.m_handle;
-	return set_single_syscall_of_interest(handle, ppm_sc, op == SCAP_SYSCALLMASK_SET);
+	return set_single_syscall_of_interest(handle, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
 }
 
 static int32_t populate_event_table_map(struct bpf_engine *handle)
@@ -1689,15 +1689,15 @@ static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint
 	int32_t ret = SCAP_SUCCESS;
 	switch(op)
 	{
-	case SCAP_SYSCALLMASK_ZERO:
+	case SCAP_PPM_SC_MASK_ZERO:
 		for(ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret==SCAP_SUCCESS; ppm_sc++)
 		{
-			ret = update_interesting_syscalls_map(engine, SCAP_SYSCALLMASK_UNSET, ppm_sc);
+			ret = update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_UNSET, ppm_sc);
 		}
 		break;
 
-	case SCAP_SYSCALLMASK_SET:
-	case SCAP_SYSCALLMASK_UNSET:
+	case SCAP_PPM_SC_MASK_SET:
+	case SCAP_PPM_SC_MASK_UNSET:
 		ret = update_interesting_syscalls_map(engine, op, ppm_sc);
 		break;
 

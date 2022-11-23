@@ -957,31 +957,33 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 
 /*!
-  \brief Clear the event mask: no events will be passed
+  \brief Clear the syscall mask: no syscalls events will be passed pushed to userspace.
 
   \param handle Handle to the capture instance.
 
   \note This function can only be called for live captures.
 */
-int32_t scap_clear_eventmask(scap_t* handle);
+int32_t scap_clear_ppm_sc_mask(scap_t* handle);
 
 /*!
-  \brief Set the ppm_sc into the eventmask so that
-  users can receive the related syscalls. Useful for offloading
+  \brief (Un)Set the ppm_sc bit in the syscall mask so that
+  users can (drop)receive the related syscall. Useful for offloading
   operations such as evt.type=open
 
   \param handle Handle to the capture instance.
   \param ppm_sc id (example PPM_SC_EXECVE)
+  \param enabled whether to enable or disable the syscall
   \note This function can only be called for live captures.
 */
-int32_t scap_set_eventmask(scap_t* handle, uint32_t ppm_sc, bool enabled);
+int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
 
 /*!
-  \brief Set the tp into the tpmask so that
-  users can attach the related tracepoint.
+  \brief (Un)Set the tp into the tracepoint mask so that
+  users can (detach)attach the requested tracepoint.
 
   \param handle Handle to the capture instance.
   \param tp id (example SYS_ENTER)
+  \param enabled whether to enable or disable the tracepoint
   \note This function can only be called for live captures.
 */
 int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled);
