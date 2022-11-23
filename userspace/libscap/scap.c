@@ -68,30 +68,8 @@ static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
 	return SCAP_SUCCESS;
 }
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
-scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
-{
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	*rc = SCAP_NOT_SUPPORTED;
-	return NULL;
-}
-#endif
-
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
-scap_t* scap_open_udig_int(char *error, int32_t *rc,
-			   proc_entry_callback proc_callback,
-			   void* proc_callback_context,
-			   bool import_users,
-			   const char **suppressed_comms)
-{
-	snprintf(error, SCAP_LASTERR_SIZE, "udig capture not supported on %s", PLATFORM_NAME);
-	*rc = SCAP_NOT_SUPPORTED;
-	return NULL;
-}
-#else
-
-#ifndef _WIN32
-scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
+#if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
+scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	scap_t* handle = NULL;
@@ -111,34 +89,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	if (false)
-	{
-
-	}
-#ifdef HAS_ENGINE_BPF
-	else if(strcmp(oargs->engine_name, BPF_ENGINE) == 0)
-	{
-		handle->m_vtable = &scap_bpf_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_KMOD
-	else if(strcmp(oargs->engine_name, KMOD_ENGINE) == 0)
-	{
-		handle->m_vtable = &scap_kmod_engine;
-	}
-#endif
-#ifdef HAS_ENGINE_MODERN_BPF
-	else if(strcmp(oargs->engine_name, MODERN_BPF_ENGINE) == 0)
-	{
-		handle->m_vtable = &scap_modern_bpf_engine;
-	}
-#endif /* HAS_ENGINE_MODERN_BPF */
-	else
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine '%s' called `scap_open_live_int()`", oargs->engine_name);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+	handle->m_vtable = vtable;
 
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
@@ -256,9 +207,9 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
 
 	return handle;
 }
+#endif // HAS_LIVE_CAPTURE
 
-#endif // _WIN32
-
+#ifdef HAS_ENGINE_UDIG
 scap_t* scap_open_udig_int(char *error, int32_t *rc,
 			   proc_entry_callback proc_callback,
 			   void* proc_callback_context,
@@ -404,7 +355,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 
 	return handle;
 }
-#endif // !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#endif // HAS_ENGINE_UDIG
 
 #ifdef HAS_ENGINE_TEST_INPUT
 scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs)
@@ -567,7 +518,7 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 }
 #endif // HAS_ENGINE_GVISOR
 
-
+#ifdef HAS_ENGINE_SAVEFILE
 scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 {
 	scap_t* handle = NULL;
@@ -634,17 +585,14 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 
 	return handle;
 }
+#endif
 
+#ifdef HAS_ENGINE_NODRIVER
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 			       proc_entry_callback proc_callback,
 			       void* proc_callback_context,
 			       bool import_users)
 {
-#if !defined(HAS_CAPTURE)
-	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	*rc = SCAP_NOT_SUPPORTED;
-	return NULL;
-#else
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 
@@ -752,9 +700,10 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	}
 
 	return handle;
-#endif // HAS_CAPTURE
 }
+#endif // HAS_ENGINE_NODRIVER
 
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
 scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 {
 	scap_t* handle = NULL;
@@ -817,6 +766,7 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 
 	return handle;
 }
+#endif
 
 scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 {
@@ -834,10 +784,16 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
 	 */
-	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
+	if(false)
+	{
+	}
+#ifdef HAS_ENGINE_SAVEFILE
+	else if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		return scap_open_offline_int(oargs, rc, error);
 	}
+#endif
+#ifdef HAS_ENGINE_UDIG
 	else if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
 		return scap_open_udig_int(error, rc, oargs->proc_callback,
@@ -845,30 +801,51 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 								oargs->import_users,
 								oargs->suppressed_comms);
 	}
+#endif
+#ifdef HAS_ENGINE_GVISOR
 	else if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
 		return scap_open_gvisor_int(error, rc, oargs);
 	}
+#endif
+#ifdef HAS_ENGINE_TEST_INPUT
 	else if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
 		return scap_open_test_input_int(error, rc, oargs);
 	}
-	else if(strcmp(engine_name, KMOD_ENGINE) == 0 ||
-			strcmp(engine_name, BPF_ENGINE) == 0 ||
-			strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
+#endif
+#ifdef HAS_ENGINE_KMOD
+	else if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
-		return scap_open_live_int(error, rc, oargs);
+		return scap_open_live_int(error, rc, oargs, &scap_kmod_engine);
 	}
+#endif
+#ifdef HAS_ENGINE_BPF
+	else if( strcmp(engine_name, BPF_ENGINE) == 0)
+	{
+		return scap_open_live_int(error, rc, oargs, &scap_bpf_engine);
+	}
+#endif
+#ifdef HAS_ENGINE_MODERN_BPF
+	else if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
+	{
+		return scap_open_live_int(error, rc, oargs, &scap_modern_bpf_engine);
+	}
+#endif
+#ifdef HAS_ENGINE_NODRIVER
 	else if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
 					      oargs->import_users);
 	}
+#endif
+#ifdef HAS_ENGINE_SOURCE_PLUGIN
 	else if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		return scap_open_plugin_int(error, rc, oargs);
 	}
+#endif
 
 	snprintf(error, SCAP_LASTERR_SIZE, "incorrect engine '%s'", engine_name);
 	*rc = SCAP_FAILURE;
