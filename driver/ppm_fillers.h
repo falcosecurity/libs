@@ -140,6 +140,8 @@ or GPL2.txt for full copies of the license.
 	FN(sys_epoll_create1_x)                 \
 	FN(sys_socket_bind_e)                 \
 	FN(sys_bpf_e)                 \
+	FN(sys_close_e)                 \
+	FN(sys_close_x)                 \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

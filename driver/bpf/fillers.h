@@ -2929,6 +2929,20 @@ FILLER(sys_accept_x, true)
 	return res;
 }
 
+FILLER(sys_close_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD)*/
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, (s64)fd);
+}
+
+FILLER(sys_close_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO)*/
+	long retval = bpf_syscall_get_retval(data->ctx);
+	return bpf_val_to_ring(data, retval);
+}
+
 FILLER(sys_setns_e, true)
 {
 	unsigned long val;
