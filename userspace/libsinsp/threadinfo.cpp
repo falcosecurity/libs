@@ -531,8 +531,8 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	{
 		m_user.uid = uid;
 		m_user.gid = m_group.gid;
-		strlcpy(m_user.name, "<NA>", sizeof(m_user.name));
-		strlcpy(m_user.homedir, "<NA>", sizeof(m_user.homedir));
+		strlcpy(m_user.name, (uid == 0) ? "root" : "<NA>", sizeof(m_user.name));
+		strlcpy(m_user.homedir, (uid == 0) ? "/root" : "<NA>", sizeof(m_user.homedir));
 		strlcpy(m_user.shell, "<NA>", sizeof(m_user.shell));
 	}
 }
@@ -566,7 +566,7 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	else
 	{
 		m_group.gid = gid;
-		strlcpy(m_group.name, "<NA>", sizeof(m_group.name));
+		strlcpy(m_group.name, (gid == 0) ? "root" : "<NA>", sizeof(m_group.name));
 	}
 	// Force-sync user.gid and group id
 	m_user.gid = m_group.gid;
