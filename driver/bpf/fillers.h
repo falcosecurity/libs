@@ -4780,6 +4780,23 @@ FILLER(sys_flock_e, true)
 	return bpf_val_to_ring(data, flock_flags_to_scap(operation));
 }
 
+FILLER(sys_ioctl_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: request (type: PT_UINT64) */
+	u64 request = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, request);
+	CHECK_RES(res);
+
+	/* Parameter 3: argument (type: PT_UINT64) */
+	u64 argument = bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, argument);
+}
+
 FILLER(sys_pread64_e, true)
 {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER

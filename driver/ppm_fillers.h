@@ -144,6 +144,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_close_x)                 \
 	FN(sys_fchdir_e)                 \
 	FN(sys_fchdir_x)                 \
+	FN(sys_ioctl_e)                 \
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,
