@@ -525,7 +525,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->fullcapture_port_range_start = 0;
 	consumer->fullcapture_port_range_end = 0;
 	consumer->statsd_port = PPM_PORT_STATSD;
-	bitmap_fill(consumer->events_mask, PPM_EVENT_MAX); /* Enable all syscall to be passed to userspace */
+	bitmap_fill(consumer->syscalls_mask, SYSCALL_TABLE_SIZE); /* Enable all syscalls to be passed to userspace */
 	reset_ring_buffer(ring);
 	ring->open = true;
 
@@ -1055,45 +1055,41 @@ cleanup_ioctl_procinfo:
 	{
 		vpr_info("PPM_IOCTL_MASK_ZERO_EVENTS, consumer %p\n", consumer_id);
 
-		bitmap_zero(consumer->events_mask, PPM_EVENT_MAX);
-
-		/* Used for dropping events so they must stay on */
-		set_bit(PPME_DROP_E, consumer->events_mask);
-		set_bit(PPME_DROP_X, consumer->events_mask);
+		bitmap_zero(consumer->syscalls_mask, SYSCALL_TABLE_SIZE);
 
 		ret = 0;
 		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_MASK_SET_EVENT:
 	{
-		u32 syscall_to_set = (u32)arg;
+		u32 syscall_to_set = (u32)arg - SYSCALL_TABLE_ID0;
 
 		vpr_info("PPM_IOCTL_MASK_SET_EVENT (%u), consumer %p\n", syscall_to_set, consumer_id);
 
-		if (syscall_to_set >= PPM_EVENT_MAX) {
+		if (syscall_to_set >= SYSCALL_TABLE_SIZE) {
 			pr_err("invalid syscall %u\n", syscall_to_set);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 
-		set_bit(syscall_to_set, consumer->events_mask);
+		set_bit(syscall_to_set, consumer->syscalls_mask);
 
 		ret = 0;
 		goto cleanup_ioctl;
 	}
 	case PPM_IOCTL_MASK_UNSET_EVENT:
 	{
-		u32 syscall_to_unset = (u32)arg;
+		u32 syscall_to_unset = (u32)arg - SYSCALL_TABLE_ID0;
 
 		vpr_info("PPM_IOCTL_MASK_UNSET_EVENT (%u), consumer %p\n", syscall_to_unset, consumer_id);
 
-		if (syscall_to_unset >= PPM_EVENT_MAX) {
+		if (syscall_to_unset >= SYSCALL_TABLE_SIZE) {
 			pr_err("invalid syscall %u\n", syscall_to_unset);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
 
-		clear_bit(syscall_to_unset, consumer->events_mask);
+		clear_bit(syscall_to_unset, consumer->syscalls_mask);
 
 		ret = 0;
 		goto cleanup_ioctl;
@@ -1778,14 +1774,22 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int drop = 1;
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
+	long table_index;
 
 	if (tp_type < TP_VAL_INTERNAL && !(consumer->tracepoints_attached & (1 << tp_type)))
 	{
 		return res;
 	}
 
-	if (!test_bit(event_type, consumer->events_mask))
-		return res;
+	// Check if syscall is interesting for the consumer
+	if (event_datap->category == PPMC_SYSCALL)
+	{
+		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
+		if (!test_bit(table_index, consumer->syscalls_mask))
+		{
+			return res;
+		}
+	}
 
 	if (event_type != PPME_DROP_E && event_type != PPME_DROP_X) {
 		if (consumer->need_to_insert_drop_e == 1)
