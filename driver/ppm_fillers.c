@@ -6389,6 +6389,21 @@ int f_sys_access_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+
+int f_sys_bpf_e(struct event_filler_arguments *args)
+{
+	int res = 0;
+	s32 cmd = 0;
+	unsigned long val = 0;
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+	/* Parameter 1: cmd (type: PT_INT64) */
+	cmd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)cmd, 0, false, 0);
+	CHECK_RES(res);
+	return add_sentinel(args);
+}
+
 int f_sys_bpf_x(struct event_filler_arguments *args)
 {
 	int res;

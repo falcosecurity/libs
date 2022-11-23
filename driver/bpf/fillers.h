@@ -5624,6 +5624,13 @@ FILLER(sys_ptrace_x, true)
 	return res;
 }
 
+FILLER(sys_bpf_e, true)
+{
+	/* Parameter 1: cmd (type: PT_INT64) */
+	s32 cmd = (s32)bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, (s64)cmd);
+}
+
 FILLER(sys_bpf_x, true)
 {
 	long fd;
