@@ -124,6 +124,10 @@ if(NOT WIN32)
 	list(APPEND SINSP_SOURCES procfs_utils.cpp)
 endif()
 
+if(NOT WIN32)
+	list(APPEND SINSP_SOURCES procfs_utils.cpp)
+endif()
+
 if(WITH_CHISEL)
 	list(APPEND SINSP_SOURCES
 		../chisel/chisel_api.cpp
