@@ -533,32 +533,6 @@ typedef struct scap_const_sized_buffer scap_const_sized_buffer;
 #define IN
 #define OUT
 
-//
-// udig stuff
-//
-#define UDIG_RING_SM_FNAME "udig_buf"
-#define UDIG_RING_DESCS_SM_FNAME "udig_descs"
-#define UDIG_RING_SIZE (8 * 1024 * 1024)
-
-struct udig_ring_buffer_status {
-	volatile uint64_t m_buffer_lock;
-	volatile int m_initialized;
-	volatile int m_capturing_pid;
-	volatile int m_stopped;
-	volatile struct timespec m_last_print_time;
-	struct udig_consumer_t m_consumer;
-};
-
-typedef struct ppm_ring_buffer_info ppm_ring_buffer_info;
-
-int32_t udig_alloc_ring(void* ring_id, uint8_t** ring, unsigned long *ringsize, char *error);
-int32_t udig_alloc_ring_descriptors(void* ring_descs_id,
-	struct ppm_ring_buffer_info** ring_info,
-	struct udig_ring_buffer_status** ring_status,
-	char *error);
-void udig_free_ring(uint8_t* addr, uint32_t size);
-void udig_free_ring_descriptors(uint8_t* addr);
-
 ///////////////////////////////////////////////////////////////////////////////
 // API functions
 ///////////////////////////////////////////////////////////////////////////////

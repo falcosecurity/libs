@@ -80,6 +80,8 @@ struct ppm_consumer_t {
 	DECLARE_BITMAP(syscalls_mask, SYSCALL_TABLE_SIZE);
 	u32 tracepoints_attached;
 };
+
+typedef struct ppm_consumer_t ppm_consumer_t;
 #endif // UDIG
 
 #define STR_STORAGE_SIZE PAGE_SIZE

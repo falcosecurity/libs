@@ -272,12 +272,6 @@ extern const struct ppm_event_entry g_ppm_events[];
 // udig stuff
 //
 int32_t udig_begin_capture(struct scap_engine_handle engine, char *error);
-void udig_start_capture(struct scap_device *dev);
-void udig_stop_capture(struct scap_device *dev);
-void udig_end_capture(struct scap_engine_handle engine);
-int32_t udig_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen);
-int32_t udig_stop_dropping_mode(struct scap_engine_handle engine);
-int32_t udig_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio);
 
 #ifdef __cplusplus
 }
