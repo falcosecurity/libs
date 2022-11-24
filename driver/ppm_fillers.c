@@ -4356,24 +4356,20 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 req
 
 int f_sys_ptrace_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
+	unsigned long val = 0;
+	int res = 0;
+	pid_t pid = 0;
 
-	/*
-	 * request
-	 */
+	/* Parameter 1: request (type: PT_FLAGS16) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, ptrace_requests_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * pid
-	 */
+	/* Parameter 2: pid (type: PT_PID) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	pid = (s32)val;
+	res = val_to_ring(args, (s64)pid, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

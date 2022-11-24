@@ -5544,24 +5544,15 @@ FILLER(sys_semctl_e, true)
 
 FILLER(sys_ptrace_e, true)
 {
-	unsigned long val;
-	int res;
 
-	/*
-	 * request
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, ptrace_requests_to_scap(val));
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 1: request (type: PT_FLAGS16) */
+	unsigned long request = bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, ptrace_requests_to_scap(request));
+	CHECK_RES(res);
 
-	/*
-	 * pid
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/* Parameter 2: pid (type: PT_PID) */
+	pid_t pid = (s32) bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, (s64)pid);
 }
 
 static __always_inline int bpf_parse_ptrace_addr(struct filler_data *data, u16 request)
