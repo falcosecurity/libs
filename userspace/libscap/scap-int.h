@@ -147,20 +147,10 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error);
 // Scan process information from engine vtable
 int32_t scap_proc_scan_vtable(char *error, scap_t *handle);
-// Remove an entry from the process list by parsing a PPME_PROC_EXIT event
-// void scap_proc_schedule_removal(scap_t* handle, scap_evt* e);
-// Remove the process that was scheduled for deletion for this handle
-// void scap_proc_remove_scheduled(scap_t* handle);
 // Free the process table
 void scap_proc_free_table(scap_t* handle);
-// Copy the fd table of a process into the one of another process
-// int32_t scap_proc_copy_fd_table(scap_t* handle, scap_threadinfo* dst, scap_threadinfo* src);
 // Free all the state related to a process and delete it from the fd table
 void scap_proc_delete(scap_t* handle, scap_threadinfo* proc);
-// Internal helper function to output the fd table of a process
-// Given an event, get the info entry for the process that generated it.
-// NOTE: this is different from scap_event_getprocinfo() because it returns the full event information
-// struct scap_threadinfo* scap_proc_get_from_event(scap_t* handle, scap_evt* e);
 // Return the process info entry given a tid
 // Free an fd table and set it to NULL when done
 void scap_fd_free_table(scap_t* handle, scap_fdinfo** fds);
@@ -180,14 +170,10 @@ void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
 int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
-// read tcp or udp sockets from the proc filesystem
-int32_t scap_fd_read_ipv4_sockets_from_proc_fs(scap_t* handle, const char * dir, int l4proto, scap_fdinfo ** sockets);
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(scap_t* handle, char* procdir, struct scap_ns_socket_list* sockets, char *error);
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
 uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id);
-// prints procs details for a give tid
-void scap_proc_print_proc_by_tid(scap_t* handle, uint64_t tid);
 // Allocate and return the list of interfaces on this system
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
@@ -200,8 +186,6 @@ void scap_free_userlist(scap_userlist* uhandle);
 int32_t scap_fd_allocate_fdinfo(scap_t *handle, scap_fdinfo **fdi, int64_t fd, scap_fd_type type);
 // Free a file descriptor
 void scap_fd_free_fdinfo(scap_fdinfo **fdi);
-
-int32_t scap_fd_post_process_unix_sockets(scap_t* handle, scap_fdinfo* sockets);
 
 int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname);
 
