@@ -21,10 +21,14 @@ limitations under the License.
 #include <unordered_map>
 #include <string>
 #include "container_info.h"
+#include "procfs_utils.h"
 #include "scap.h"
 
 class sinsp;
 class sinsp_evt;
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+namespace libsinsp { namespace procfs_utils { class ns_helper; }}
+#endif
 
 /*
  * Basic idea:
@@ -116,6 +120,10 @@ public:
 
 	scap_userinfo *add_user(const std::string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
 	scap_groupinfo *add_group(const std::string &container_id, uint32_t gid, const char *name, bool notify = false);
+
+	scap_userinfo *add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify = false);
+	scap_groupinfo *add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify = false);
+
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
 
@@ -127,10 +135,6 @@ public:
 	//
 	bool m_import_users;
 
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-	static std::string s_host_root;
-#endif
-
 private:
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
@@ -140,10 +144,36 @@ private:
 	void notify_user_changed(const scap_userinfo *user, const std::string &container_id, bool added = true);
 	void notify_group_changed(const scap_groupinfo *group, const std::string &container_id, bool added = true);
 
-	std::unordered_map<std::string, std::unordered_map<uint32_t, scap_userinfo>> m_userlist;
-	std::unordered_map<std::string, std::unordered_map<uint32_t, scap_groupinfo>> m_grouplist;
+	using userinfo_map = std::unordered_map<uint32_t, scap_userinfo>;
+	using groupinfo_map = std::unordered_map<uint32_t, scap_groupinfo>;
+
+	scap_userinfo *userinfo_map_insert(
+		userinfo_map &map,
+		uint32_t uid,
+		uint32_t gid,
+		const char *name,
+		const char *home,
+		const char *shell);
+	scap_groupinfo *groupinfo_map_insert(
+		groupinfo_map &map,
+		uint32_t gid,
+		const char *name);
+
+	std::unordered_map<std::string, userinfo_map> m_userlist;
+	std::unordered_map<std::string, groupinfo_map> m_grouplist;
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
+
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+	const std::string &m_host_root;
+	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
+#endif
+#ifdef HAVE_PWD_H
+	struct passwd *__getpwuid(uint32_t uid);
+#endif
+#ifdef HAVE_GRP_H
+	struct group *__getgrgid(uint32_t gid);
+#endif
 };
 
 #endif // FALCOSECURITY_LIBS_USER_H

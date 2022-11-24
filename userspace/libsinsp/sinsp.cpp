@@ -71,6 +71,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_external_event_processor(),
 	m_evt(this),
 	m_lastevent_ts(0),
+	m_host_root(scap_get_host_root()),
 	m_container_manager(this, static_container, static_id, static_name, static_image),
 	m_usergroup_manager(this),
 	m_suppressed_comms(),

@@ -1158,6 +1158,9 @@ public:
 
 	bool remove_inactive_threads();
 
+	const std::string& get_host_root() const { return m_host_root; }
+	void set_host_root(const std::string& s) { m_host_root = s; }
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1270,6 +1273,8 @@ private:
 	scap_test_input_data *m_test_input_data = nullptr;
 
 	sinsp_network_interfaces* m_network_interfaces;
+
+	std::string m_host_root;
 
 public:
 	sinsp_thread_manager* m_thread_manager;

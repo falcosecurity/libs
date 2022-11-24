@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "user.h"
 #include "event.h"
+#include "procfs_utils.h"
 #include "utils.h"
 #include "logger.h"
 #include "sinsp.h"
@@ -32,15 +33,20 @@ limitations under the License.
 #endif
 
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-std::string sinsp_usergroup_manager::s_host_root;
+
+// See fgetpwent() / fgetgrent() feature test macros:
+// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
+// https://man7.org/linux/man-pages/man3/fgetgrent.3.html
+#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
+#define HAVE_FGET__ENT
 #endif
 
-namespace {
+#endif
 
 #ifdef HAVE_PWD_H
-struct passwd *__getpwuid(uint32_t uid)
+struct passwd *sinsp_usergroup_manager::__getpwuid(uint32_t uid)
 {
-	if(sinsp_usergroup_manager::s_host_root.empty())
+	if(m_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -49,11 +55,8 @@ struct passwd *__getpwuid(uint32_t uid)
 
 	// If we have a host root and we can use fgetpwent,
 	// we take the entry directly from file
-
-// See fgetpwent() feature test macros:
-// https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
-	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/passwd");
+#ifdef HAVE_FGET__ENT
+	static std::string filename(m_host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -77,9 +80,9 @@ struct passwd *__getpwuid(uint32_t uid)
 #endif
 
 #ifdef HAVE_GRP_H
-struct group *__getgrgid(uint32_t gid)
+struct group *sinsp_usergroup_manager::__getgrgid(uint32_t gid)
 {
-	if(sinsp_usergroup_manager::s_host_root.empty())
+	if(m_host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -88,10 +91,8 @@ struct group *__getgrgid(uint32_t gid)
 
 	// If we have a host root and we can use fgetgrent,
 	// we take the entry directly from file
-
-// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined _DEFAULT_SOURCE || defined _SVID_SOURCE
-	static std::string filename(sinsp_usergroup_manager::s_host_root + "/etc/group");
+#ifdef HAVE_FGET__ENT
+	static std::string filename(m_host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -113,19 +114,21 @@ struct group *__getgrgid(uint32_t gid)
 	return NULL;
 }
 #endif
-}
 
 using namespace std;
 
-sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp *inspector) :
-	m_import_users(true),
-	m_last_flush_time_ns(0),
-	m_inspector(inspector)
-{
+// clang-format off
+sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
+	: m_import_users(true)
+	, m_last_flush_time_ns(0)
+	, m_inspector(inspector)
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
-	s_host_root = std::string(scap_get_host_root());
+	, m_host_root(m_inspector->get_host_root())
+	, m_ns_helper(new libsinsp::procfs_utils::ns_helper(m_host_root))
 #endif
+{
 }
+// clang-format on
 
 void sinsp_usergroup_manager::subscribe_container_mgr()
 {
@@ -229,6 +232,42 @@ bool sinsp_usergroup_manager::clear_host_users_groups()
 	return res;
 }
 
+scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(
+	userinfo_map &map,
+	uint32_t uid,
+	uint32_t gid,
+	const char *name,
+	const char *home,
+	const char *shell)
+{
+	ASSERT(name);
+	ASSERT(home);
+	ASSERT(shell);
+
+	auto &usr = map[uid];
+	usr.uid = uid;
+	usr.gid = gid;
+	strlcpy(usr.name, name, MAX_CREDENTIALS_STR_LEN);
+	strlcpy(usr.homedir, home, SCAP_MAX_PATH_SIZE);
+	strlcpy(usr.shell, shell, SCAP_MAX_PATH_SIZE);
+
+	return &usr;
+}
+
+scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
+	groupinfo_map &map,
+	uint32_t gid,
+	const char *name)
+{
+	ASSERT(name);
+
+	auto &grp = map[gid];
+	grp.gid = gid;
+	strlcpy(grp.name, name, MAX_CREDENTIALS_STR_LEN);
+
+	return &grp;
+}
+
 scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -243,57 +282,108 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 	scap_userinfo *usr = get_user(container_id, uid);
 	if (!usr)
 	{
-#ifdef HAVE_PWD_H
-		struct passwd *p = nullptr;
-		if (container_id.empty() && !name)
+		bool inserted{false};
+		if (name)
 		{
+			usr = userinfo_map_insert(
+				m_userlist[container_id],
+				uid,
+				gid,
+				name,
+				home,
+				shell);
+			inserted = true;
+		}
+		else if (container_id.empty())
+		{
+#ifdef HAVE_PWD_H
 			// On Host, try to load info from db
-			p = __getpwuid(uid);
+			auto* p = __getpwuid(uid);
 			if (p)
 			{
-				name = p->pw_name;
-				home = p->pw_dir;
-				shell = p->pw_shell;
+				usr = userinfo_map_insert(
+					m_userlist[container_id],
+					p->pw_uid,
+					p->pw_gid,
+					p->pw_name,
+					p->pw_dir,
+					p->pw_shell);
+				inserted = true;
 			}
-		}
 #endif
-
-		if (name == NULL)
-		{
-			name = "<NA>";
-		}
-		if (home == NULL)
-		{
-			home = "<NA>";
-		}
-		if (shell == NULL)
-		{
-			shell = "<NA>";
 		}
 
-		auto &userlist = m_userlist[container_id];
-		userlist[uid].uid = uid;
-		userlist[uid].gid = gid;
-		strlcpy(userlist[uid].name, name, MAX_CREDENTIALS_STR_LEN);
-		strlcpy(userlist[uid].homedir, home, SCAP_MAX_PATH_SIZE);
-		strlcpy(userlist[uid].shell, shell, SCAP_MAX_PATH_SIZE);
-
-		if (notify)
+		if (notify && inserted)
 		{
-			notify_user_changed(&userlist[uid], container_id);
+			notify_user_changed(usr, container_id);
 		}
-
-		usr = &userlist[uid];
 	}
-	else  if (name != NULL)
+	else if (name != NULL)
 	{
 		// Update user if it was already there
 		strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
 		strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
 		strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
-
 	}
 	return usr;
+}
+
+scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
+{
+	ASSERT(!container_id.empty());
+	ASSERT(uid != 0);
+
+	auto userlist_it = m_userlist.find(container_id);
+	if(userlist_it != m_userlist.end())
+	{
+		// userlist for this container exists
+		auto it = userlist_it->second.find(uid);
+		// not an expected condition to miss, but handle it anyway
+		return (it == userlist_it->second.end())
+			       ? nullptr
+			       : &it->second;
+	}
+
+	scap_userinfo *retval{nullptr};
+
+#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
+
+	if(false == m_ns_helper->in_own_ns_mnt(pid))
+	{
+		return nullptr;
+	}
+
+	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";
+	auto pwd_file = fopen(path.c_str(), "r");
+	if(pwd_file)
+	{
+		auto &userlist = m_userlist[container_id];
+		while(auto p = fgetpwent(pwd_file))
+		{
+			// Here we cache all container users
+			auto *usr = userinfo_map_insert(
+				userlist,
+				p->pw_uid,
+				p->pw_gid,
+				p->pw_name,
+				p->pw_dir,
+				p->pw_shell);
+
+			if(notify)
+			{
+				notify_user_changed(usr, container_id);
+			}
+
+			if(uid == p->pw_uid)
+			{
+				retval = usr;
+			}
+		}
+		fclose(pwd_file);
+	}
+#endif
+
+	return retval;
 }
 
 bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, bool notify)
@@ -328,41 +418,89 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 	scap_groupinfo *gr = get_group(container_id, gid);
 	if (!gr)
 	{
+		bool inserted{false};
+		if (name)
+		{
+			gr = groupinfo_map_insert(m_grouplist[container_id], gid, name);
+			inserted = true;
+		}
+		else if (container_id.empty())
+		{
 #ifdef HAVE_GRP_H
-		struct group *p = nullptr;
-		if (container_id.empty() && !name)
-		{
 			// On Host, try to load info from db
-			p = __getgrgid(gid);
-			if (p)
+			auto* g = __getgrgid(gid);
+			if (g)
 			{
-				name = p->gr_name;
+				gr = groupinfo_map_insert(m_grouplist[container_id], g->gr_gid, g->gr_name);
+				inserted = true;
 			}
-		}
 #endif
-
-		if (name == NULL)
-		{
-			name = "<NA>";
 		}
 
-		auto &grplist = m_grouplist[container_id];
-		grplist[gid].gid = gid;
-		strlcpy(grplist[gid].name, name, MAX_CREDENTIALS_STR_LEN);
-
-		if (notify)
+		if (notify && inserted)
 		{
-			notify_group_changed(&grplist[gid], container_id, true);
+			notify_group_changed(gr, container_id, true);
 		}
-		gr = &grplist[gid];
 	}
-	else  if (name != NULL)
+	else if (name != NULL)
 	{
 		// Update group if it was already there
 		strlcpy(gr->name, name, MAX_CREDENTIALS_STR_LEN);
 
 	}
 	return gr;
+}
+
+scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify)
+{
+	ASSERT(!container_id.empty());
+	ASSERT(gid != 0);
+
+	auto grouplist_it = m_grouplist.find(container_id);
+	if(grouplist_it != m_grouplist.end())
+	{
+		// grouplist for this container exists
+		auto it = grouplist_it->second.find(gid);
+		// not an expected condition to miss, but handle it anyway
+		return (it == grouplist_it->second.end())
+			       ? nullptr
+			       : &it->second;
+	}
+
+	scap_groupinfo *retval{nullptr};
+
+#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
+
+	if(false == m_ns_helper->in_own_ns_mnt(pid))
+	{
+		return nullptr;
+	}
+
+	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/group";
+	auto group_file = fopen(path.c_str(), "r");
+	if(group_file)
+	{
+		auto &grouplist = m_grouplist[container_id];
+		while(auto g = fgetgrent(group_file))
+		{
+			// Here we cache all container groups
+			auto *gr = groupinfo_map_insert(grouplist, g->gr_gid, g->gr_name);
+
+			if(notify)
+			{
+				notify_group_changed(gr, container_id, true);
+			}
+
+			if(gid == g->gr_gid)
+			{
+				retval = gr;
+			}
+		}
+		fclose(group_file);
+	}
+#endif
+
+	return retval;
 }
 
 bool sinsp_usergroup_manager::rm_group(const string &container_id, uint32_t gid, bool notify)
@@ -627,8 +765,13 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 		return;
 	}
 
-	// See fgetpwent() feature test macros: https://man7.org/linux/man-pages/man3/fgetpwent.3.html
-#if defined HAVE_PWD_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+	if(m_userlist.find(container_id) != m_userlist.end())
+	{
+		// userlist for this container already exists
+		return;
+	}
+
+#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
 	auto passwd_in_container = overlayfs_root + "/etc/passwd";
 	auto pwd_file = fopen(passwd_in_container.c_str(), "r");
 	if(pwd_file)
@@ -641,8 +784,7 @@ void sinsp_usergroup_manager::load_from_container(const std::string &container_i
 	}
 #endif
 
-	// See fgetgrent() feature test macros: https://man7.org/linux/man-pages/man3/fgetgrent.3.html
-#if defined HAVE_GRP_H && (defined _DEFAULT_SOURCE || defined _SVID_SOURCE)
+#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
 	auto group_in_container = overlayfs_root + "/etc/group";
 	auto grp_file = fopen(group_in_container.c_str(), "r");
 	if(grp_file)

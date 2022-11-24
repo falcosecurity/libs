@@ -115,6 +115,8 @@ protected:
 		m_host_root += "/host";
 
 		ASSERT_EQ(mkdir(m_host_root.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
+		m_inspector.set_host_root(m_host_root);
+
 		std::string etc = m_host_root + "/etc";
 		ASSERT_EQ(mkdir(etc.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
 
@@ -146,7 +148,6 @@ TEST_F(usergroup_manager_host_root_test, host_root_lookup)
 	std::string container_id{""};
 
 	sinsp_usergroup_manager mgr(&m_inspector);
-	sinsp_usergroup_manager::s_host_root = m_host_root;
 
 	mgr.add_user(container_id, 0, 0, nullptr, nullptr, nullptr);
 	auto* user = mgr.get_user(container_id, 0);
