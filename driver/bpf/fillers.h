@@ -4133,6 +4133,18 @@ FILLER(sys_recv_x, true)
 	return res;
 }
 
+FILLER(sys_recvfrom_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	u32 size = (u32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, size);
+}
+
 FILLER(sys_recvfrom_x, true)
 {
 	struct sockaddr *usrsockaddr;
