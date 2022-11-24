@@ -138,6 +138,7 @@ sinsp_usergroup_manager::~sinsp_usergroup_manager()
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 	delete m_ns_helper;
 #endif
+{
 }
 // clang-format on
 
@@ -370,6 +371,64 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 	if(!m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return retval;
+	}
+
+	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";
+	auto pwd_file = fopen(path.c_str(), "r");
+	if(pwd_file)
+	{
+		auto &userlist = m_userlist[container_id];
+		while(auto p = fgetpwent(pwd_file))
+		{
+			// Here we cache all container users
+			auto *usr = userinfo_map_insert(
+				userlist,
+				p->pw_uid,
+				p->pw_gid,
+				p->pw_name,
+				p->pw_dir,
+				p->pw_shell);
+
+			if(notify)
+			{
+				notify_user_changed(usr, container_id);
+			}
+
+			if(uid == p->pw_uid)
+			{
+				retval = usr;
+			}
+		}
+		fclose(pwd_file);
+	}
+#endif
+
+	return retval;
+}
+
+scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
+{
+	ASSERT(!container_id.empty());
+	ASSERT(uid != 0);
+
+	auto userlist_it = m_userlist.find(container_id);
+	if(userlist_it != m_userlist.end())
+	{
+		// userlist for this container exists
+		auto it = userlist_it->second.find(uid);
+		// not an expected condition to miss, but handle it anyway
+		return (it == userlist_it->second.end())
+			       ? nullptr
+			       : &it->second;
+	}
+
+	scap_userinfo *retval{nullptr};
+
+#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
+
+	if(false == m_ns_helper->in_own_ns_mnt(pid))
+	{
+		return nullptr;
 	}
 
 	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";

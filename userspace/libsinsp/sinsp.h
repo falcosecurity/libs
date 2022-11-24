@@ -1169,6 +1169,9 @@ public:
 	void set_host_root(const std::string& s) { m_host_root = s; }
 	bool remove_inactive_threads();
 
+	const std::string& get_host_root() const { return m_host_root; }
+	void set_host_root(const std::string& s) { m_host_root = s; }
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
