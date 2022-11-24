@@ -1273,8 +1273,8 @@ cgroups_error:
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 				{
-					struct super_block *sb;
-					unsigned long sb_magic;
+					struct super_block *sb = NULL;
+					unsigned long sb_magic = 0;
 
 					sb = exe_file->f_inode->i_sb;
 					if(sb)
@@ -1282,9 +1282,10 @@ cgroups_error:
 						sb_magic = sb->s_magic;
 						if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 						{
-							struct dentry **upper_dentry;
+							struct dentry **upper_dentry = NULL;
 
 							// Pointer arithmetics due to unexported ovl_inode struct
+							// warning: this works if and only if the dentry pointer is placed right after the inode struct
 							upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
 
 							if(*upper_dentry)
@@ -6796,8 +6797,8 @@ cgroups_error:
 #endif
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 			{
-				struct super_block *sb;
-				unsigned long sb_magic;
+				struct super_block *sb = NULL;
+				unsigned long sb_magic = 0;
 
 				sb = exe_file->f_inode->i_sb;
 				if(sb)
@@ -6805,9 +6806,10 @@ cgroups_error:
 					sb_magic = sb->s_magic;
 					if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 					{
-						struct dentry **upper_dentry;
+						struct dentry **upper_dentry = NULL;
 
 						// Pointer arithmetics due to unexported ovl_inode struct
+						// warning: this works if and only if the dentry pointer is placed right after the inode struct
 						upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
 
 						if(*upper_dentry)
