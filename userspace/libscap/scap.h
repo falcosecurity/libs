@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#include "scap_const.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -100,26 +102,6 @@ struct iovec;
 //
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(3, 0, 0)
 #define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
-
-//
-// Return types
-//
-#define SCAP_SUCCESS 0
-#define SCAP_FAILURE 1
-#define SCAP_TIMEOUT -1
-#define SCAP_ILLEGAL_INPUT 3
-#define SCAP_NOTFOUND 4
-#define SCAP_INPUT_TOO_SMALL 5
-#define SCAP_EOF 6
-#define SCAP_UNEXPECTED_BLOCK 7
-#define SCAP_VERSION_MISMATCH 8
-#define SCAP_NOT_SUPPORTED 9
-#define SCAP_FILTERED_EVENT 10
-
-//
-// Last error string size for `scap_open...` methods.
-//
-#define SCAP_LASTERR_SIZE 256
 
 // 
 // This is the dimension we used before introducing the variable buffer size.

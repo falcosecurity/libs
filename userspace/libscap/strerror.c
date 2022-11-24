@@ -15,11 +15,22 @@ limitations under the License.
 
 */
 
+/* ensure we're getting the XSI definition of strerror_r, not the GNU one */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200112L
+#endif
+
+#ifdef _GNU_SOURCE
+#undef _GNU_SOURCE
+#endif
+
 #include <errno.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
-#include "scap.h"
+#include "scap_const.h"
 
 #ifdef _WIN32
 #define strerror_r(errnum, buf, size) strerror_s(buf, size, errnum)
@@ -37,8 +48,11 @@ int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...)
 
 	if (errnum > 0 && len < SCAP_LASTERR_SIZE - 1)
 	{
-		char err_buf[SCAP_LASTERR_SIZE] = "unknown error";
-		strerror_r(errnum, err_buf, sizeof(err_buf));
+		char err_buf[SCAP_LASTERR_SIZE];
+		if(strerror_r(errnum, err_buf, sizeof(err_buf)) < 0)
+		{
+			snprintf(err_buf, sizeof(err_buf), "Unknown error %d", errnum);
+		}
 		snprintf(buf + len, SCAP_LASTERR_SIZE - len, ": %s", err_buf);
 	}
 
