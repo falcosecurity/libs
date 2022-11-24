@@ -3749,6 +3749,21 @@ FILLER(sys_fsconfig_x, true)
 	return res;
 }
 
+FILLER(sys_signalfd_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: mask (type: PT_UINT32) */
+	res = bpf_val_to_ring(data, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_FLAGS8) */
+	return bpf_val_to_ring(data, 0);
+}
+
 FILLER(sys_epoll_create_e, true)
 {
 	unsigned long size;
