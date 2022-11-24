@@ -2957,6 +2957,18 @@ FILLER(sys_setns_e, true)
 	return bpf_val_to_ring(data, clone_flags_to_scap(nstype));
 }
 
+FILLER(sys_setpgid_e, true)
+{
+	/* Parameter 1: pid (type: PT_FD) */
+	pid_t pid = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)pid);
+	CHECK_RES(res);
+
+	/* Parameter 2: pgid (type: PT_PID) */
+	pid_t pgid = (s32)bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, (s64)pgid);
+}
+
 FILLER(sys_unshare_e, true)
 {
 	unsigned long val;
