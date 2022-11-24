@@ -47,7 +47,6 @@ const char* scap_getlasterr(scap_t* handle)
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
-	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	scap_t* handle = NULL;
 
 	//
@@ -165,9 +164,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	// Create the process list
 	//
 	error[0] = '\0';
-	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, proc_scan_err)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
@@ -180,7 +178,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 #ifdef HAS_ENGINE_UDIG
 scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
-	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 
 	//
@@ -291,9 +288,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	// Create the process list
 	//
 	error[0] = '\0';
-	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 	char procerr[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, procerr)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, procerr)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", procerr);
@@ -516,7 +512,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 #ifdef HAS_ENGINE_NODRIVER
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
-	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
 
 	//
@@ -607,9 +602,8 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	// Create the process list
 	//
 	error[0] = '\0';
-	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, filename, proc_scan_err)) != SCAP_SUCCESS)
+	if((*rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);

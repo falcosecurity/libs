@@ -1314,8 +1314,11 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	return res;
 }
 
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
+int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 {
+	char procdirname[SCAP_MAX_PATH_SIZE];
+	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
+
 	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
 }
 
@@ -1421,18 +1424,6 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	return false;
 }
 
-int scap_proc_scan_proc_table(scap_t *handle)
-{
-	char filename[SCAP_MAX_PATH_SIZE];
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-
-	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	return scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr);
-}
-
 void scap_refresh_proc_table(scap_t* handle)
 {
 	if(handle->m_proclist.m_proclist)
@@ -1440,7 +1431,7 @@ void scap_refresh_proc_table(scap_t* handle)
 		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
 	}
-	scap_proc_scan_proc_table(handle);
+	scap_proc_scan_proc_dir(handle, handle->m_lasterr);
 }
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
