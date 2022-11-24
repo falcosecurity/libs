@@ -27,6 +27,8 @@ or GPL2.txt for full copies of the license.
 
 #include "ppm_events_public.h"
 
+typedef struct ppm_consumer_t ppm_consumer_t;
+
 /*
  * Various crap that a callback might need
  */
