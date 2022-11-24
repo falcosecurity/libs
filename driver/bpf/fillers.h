@@ -4223,6 +4223,13 @@ FILLER(sys_shutdown_e, true)
 	return bpf_val_to_ring(data, (u8)shutdown_how_to_scap(how));
 }
 
+FILLER(sys_recvmsg_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, (s64)fd);
+}
+
 FILLER(sys_recvmsg_x, true)
 {
 	const struct iovec *iov;
