@@ -2434,6 +2434,26 @@ int f_sys_recv_x(struct event_filler_arguments *args)
 	return res;
 }
 
+int f_sys_recvfrom_e(struct event_filler_arguments *args)
+{
+	int res = 0;
+	unsigned long val = 0;
+	s32 fd = 0;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_recvfrom_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
