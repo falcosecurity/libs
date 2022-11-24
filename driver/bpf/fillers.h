@@ -2947,20 +2947,14 @@ FILLER(sys_fchdir_x, true)
 
 FILLER(sys_setns_e, true)
 {
-	unsigned long val;
-	u32 flags;
-	int res;
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	val = bpf_syscall_get_argument(data, 1);
-	flags = clone_flags_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
-
-	return res;
+	/* Parameter 2: nstype (type: PT_FLAGS32) */
+	unsigned long nstype = bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, clone_flags_to_scap(nstype));
 }
 
 FILLER(sys_unshare_e, true)

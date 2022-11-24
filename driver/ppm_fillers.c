@@ -6153,26 +6153,20 @@ int f_sys_mkdir_e(struct event_filler_arguments *args)
 
 int f_sys_setns_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
-	u32 flags;
+	unsigned long val = 0;
+	int res = 0;
+	s32 fd = 0;
 
-	/*
-	 * parse fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, true, 0);
+	CHECK_RES(res);
 
-	/*
-	 * get type, parse as clone flags as it's a subset of it
-	 */
+	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-	flags = clone_flags_to_scap(val);
-	res = val_to_ring(args, flags, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	res = val_to_ring(args, clone_flags_to_scap(val), 0, true, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
