@@ -3029,12 +3029,11 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 
 int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
-	int res;
-	unsigned long val;
+	int res = 0;
+	unsigned long val = 0;
+	s32 fd = 0;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 #ifndef UDIG
@@ -3042,13 +3041,11 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 		val = args->socketcall_args[0];
 #endif
 
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
-	/*
-	 * how
-	 */
+	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
 	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 #ifndef UDIG
@@ -3057,8 +3054,7 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 #endif
 
 	res = val_to_ring(args, (unsigned long)shutdown_how_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
