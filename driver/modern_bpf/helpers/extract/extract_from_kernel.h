@@ -501,3 +501,34 @@ static __always_inline void extract__egid(struct task_struct *task, u32 *egid)
 {
 	READ_TASK_FIELD_INTO(egid, task, cred, egid.val);
 }
+
+/////////////////////////
+// EXECVE FLAGS EXTRACTION
+////////////////////////
+
+static __always_inline bool extract__exe_upper_layer(struct task_struct *task)
+{
+	struct inode *inode = BPF_CORE_READ(task, mm, exe_file, f_inode);
+
+	unsigned long sb_magic = BPF_CORE_READ(inode, i_sb, s_magic);
+
+	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
+	{
+		struct dentry *upper_dentry = NULL;
+		char *vfs_inode = (char *)inode;
+		unsigned long inode_size = bpf_core_type_size(struct inode);
+		if(!inode_size)
+		{
+			return false;
+		}
+
+		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
+
+		if(upper_dentry)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
