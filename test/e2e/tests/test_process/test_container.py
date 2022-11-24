@@ -5,13 +5,13 @@ from sinspqa.docker import get_container_id
 
 sinsp_args = [
     "-f", "evt.category=process and not container.id=host",
-    "-o", "%container.id %evt.args %evt.category %evt.type %proc.cmdline %proc.exe %user.uid %user.name %group.gid %group.name"
+    "-o", "%container.id %evt.args %evt.category %evt.type %proc.cmdline %proc.exe %user.uid %user.name %user.homedir %group.gid %group.name"
 ]
 
 containers = [
     {
         'sinsp': sinsp_container,
-        'app': {
+        'http-hello': {
             'image': 'hashicorp/http-echo:alpine',
             'args': ['-text=hello'],
             'user': '11:100'
@@ -23,7 +23,7 @@ ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
 
 @pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
 def test_exec_in_container(run_containers: dict):
-    app_container = run_containers['app']
+    app_container = run_containers['http-hello']
     sinsp_container = run_containers['sinsp']
 
     container_id = get_container_id(app_container)
@@ -61,6 +61,43 @@ def test_exec_in_container(run_containers: dict):
             'evt.type': 'execve',
             'proc.exe': 'sh',
             'proc.cmdline': 'sh -c ls'
+        }
+    ]
+
+    assert_events(expected_events, sinsp_container)
+
+
+
+containers = [
+    {
+        'sinsp': sinsp_container,
+        'nginx': {
+            'image': 'nginx:1.14-alpine',
+        }
+    } for sinsp_container in sinsp.generate_specs(args=sinsp_args)
+]
+
+ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
+
+@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
+def test_container_root_user(run_containers: dict):
+    app_container = run_containers['nginx']
+    sinsp_container = run_containers['sinsp']
+
+    container_id = get_container_id(app_container)
+
+    expected_events = [
+        {
+            'container.id': get_container_id(run_containers['nginx']),
+            'evt.category': 'process',
+            'evt.type': 'execve',
+            'proc.exe': 'nginx',
+            'proc.cmdline': 'nginx -g daemon off;',
+            'user.uid': 0,
+            'user.name': 'root',
+            'user.homedir': '/root',
+            'group.gid': 0,
+            'group.name': 'root'
         }
     ]
 

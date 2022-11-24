@@ -58,6 +58,7 @@ set(E2E_CONTAINERS
 	sinsp-e2e-tester
 	curl
 	generator
+	http-hello
 )
 
  add_custom_target(e2e-cleanup
