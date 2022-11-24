@@ -177,6 +177,10 @@ int BPF_PROG(t1_sched_p_exec,
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	/// TODO: still to implement! See what we do in the old probe.
 	u32 flags = 0;
+	if(extract__exe_upper_layer(task))
+	{
+		flags |= PPM_EXE_UPPER_LAYER;
+	}
 	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
