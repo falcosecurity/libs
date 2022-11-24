@@ -6171,6 +6171,28 @@ int f_sys_setns_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_setpgid_e(struct event_filler_arguments *args)
+{
+	unsigned long val = 0;
+	int res = 0;
+	pid_t pid = 0;
+	pid_t pgid = 0;
+
+	/* Parameter 1: pid (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	pid = (s32)val;
+	res = val_to_ring(args, (s64)pid, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: pgid (type: PT_PID) */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	pgid = (s32)val;
+	res = val_to_ring(args, (s64)pgid, 0, true, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_unshare_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
