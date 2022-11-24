@@ -4201,26 +4201,14 @@ FILLER(sys_recvfrom_x, true)
 
 FILLER(sys_shutdown_e, true)
 {
-	unsigned int flags;
-	unsigned long val;
-	int res;
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int	res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * how
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	flags = shutdown_how_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
-
-	return res;
+	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
+	int how = (s32)bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, (u8)shutdown_how_to_scap(how));
 }
 
 FILLER(sys_recvmsg_x, true)
