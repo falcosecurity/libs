@@ -454,6 +454,12 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 			{
 				cgroup = subsys_list;
 				subsys_list = default_subsys_list; // force-set a default subsys list
+
+				size_t cgroup_len = strlen(cgroup);
+				if (cgroup_len != 0 && cgroup[cgroup_len - 1] == '\n')
+				{
+					cgroup[cgroup_len - 1] = '\0';
+				}
 			} else
 			{
 				// skip cgroups like this:
