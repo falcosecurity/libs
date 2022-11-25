@@ -28,9 +28,6 @@ or GPL2.txt for full copies of the license.
 #endif
 #endif // ifndef UDIG
 
-#ifdef WDIG
-#include <fcntl.h>
-#endif
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
 
@@ -114,9 +111,6 @@ static __always_inline uint32_t open_flags_to_scap(uint32_t flags)
 static __always_inline u32 open_modes_to_scap(unsigned long flags,
 					      unsigned long modes)
 {
-#ifdef WDIG
-	return 0;
-#else
 #ifdef UDIG
 	unsigned long flags_mask = O_CREAT | O_TMPFILE;
 #else
@@ -215,7 +209,6 @@ static __always_inline u32 openat2_resolve_to_scap(unsigned long flags)
 		res |= PPM_RESOLVE_CACHED;
 #endif
 	return res;
-#endif // WDIG
 }
 
 static __always_inline u32 io_uring_setup_flags_to_scap(unsigned long flags){
@@ -364,9 +357,6 @@ static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags
 
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
-#ifdef WDIG
-	return 0;
-#else
 	u32 res = 0;
 
 	if (flags & CLONE_FILES)
@@ -457,7 +447,6 @@ static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 #endif
 
 	return res;
-#endif // WDIG
 }
 
 static __always_inline u8 socket_family_to_scap(u8 family)
@@ -618,7 +607,6 @@ static __always_inline u8 socket_family_to_scap(u8 family)
 	}
 }
 
-#ifndef WDIG
 static __always_inline u32 prot_flags_to_scap(int prot)
 {
 	u32 res = 0;
@@ -792,7 +780,6 @@ static __always_inline u8 fcntl_cmd_to_scap(unsigned long cmd)
 	}
 }
 
-#endif // WDIG
 
 static __always_inline u8 sockopt_level_to_scap(int level)
 {
@@ -1049,7 +1036,6 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 	}
 }
 
-#ifndef WDIG
 /* XXX this is very basic for the moment, we'll need to improve it */
 static __always_inline u16 poll_events_to_scap(short revents)
 {
@@ -1897,6 +1883,5 @@ static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
 #define PPM_OVERLAYFS_SUPER_MAGIC 0x794c7630
 #endif
 
-#endif // !WDIG
 
 #endif /* PPM_FLAG_HELPERS_H_ */

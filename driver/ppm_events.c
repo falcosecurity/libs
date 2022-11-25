@@ -37,7 +37,6 @@ or GPL2.txt for full copies of the license.
 #endif
 #else // UDIG
 #define _GNU_SOURCE
-#ifndef WDIG
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,15 +65,6 @@ or GPL2.txt for full copies of the license.
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <errno.h>
-#else /* WDIG */
-#include "stdint.h"
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <afunix.h>
-#include "portal.h"
-
-#pragma warning(disable : 4996)
-#endif /* WDIG */
 
 #include "udig_capture.h"
 #include "ppm_ringbuffer.h"
@@ -694,7 +684,7 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			return PPM_FAILURE_BUG;
 		}
 
-#if defined(UDIG) && !defined(WDIG)
+#if defined(UDIG)
 		dyn_params = (const struct ppm_param_info *)patch_pointer((uint8_t*)param_info->info);
 #else
 		dyn_params = (const struct ppm_param_info *)param_info->info;
@@ -726,10 +716,6 @@ int val_to_ring(struct event_filler_arguments *args, uint64_t val, u32 val_len, 
 			break;
 		}
 
-#ifdef WDIG // strlcpy does not exist on Windows, where in any case we only have 
-			// userlevel capture, so we default to ppm_strncpy_from_user
-		fromuser = true;
-#endif
 
 		if(fromuser)
 		{
@@ -1071,11 +1057,7 @@ u16 pack_addr(struct sockaddr *usrsockaddr,
 {
 	u32 ip;
 	u16 port;
-#ifdef WDIG
-	ADDRESS_FAMILY family = usrsockaddr->sa_family;
-#else
 	sa_family_t family = usrsockaddr->sa_family;
-#endif
 	struct sockaddr_in *usrsockaddr_in;
 	struct sockaddr_in6 *usrsockaddr_in6;
 	struct sockaddr_un *usrsockaddr_un;
@@ -1177,11 +1159,7 @@ u16 fd_to_socktuple(int fd,
 	u16 targetbufsize)
 {
 	int err = 0;
-#ifdef WDIG
-	ADDRESS_FAMILY family;
-#else
 	sa_family_t family;
-#endif
 	u32 sip;
 	u32 dip;
 	u8 *sip6;
@@ -1447,7 +1425,6 @@ int addr_to_kernel(void __user *uaddr, int ulen, struct sockaddr *kaddr)
  * Parses the list of buffers of a xreadv or xwritev call, and pushes the size
  * (and optionally the data) to the ring.
  */
-#ifndef WDIG
 int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struct iovec __user *iovsrc, unsigned long iovcnt, int64_t retval, int flags)
 {
 	int32_t res;
@@ -1721,7 +1698,6 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 }
 #endif /* CONFIG_COMPAT */
 #endif /* UDIG */
-#endif /* WDIG */
 
 /*
  * STANDARD FILLERS
