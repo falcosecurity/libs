@@ -351,7 +351,7 @@ int32_t scap_proc_fill_info_from_stats(char* error, char* procdirname, struct sc
 // use prlimit to extract the RLIMIT_NOFILE for the tid. On systems where prlimit
 // is not supported, just return -1
 //
-static int32_t scap_proc_fill_flimit(scap_t *handle, uint64_t tid, struct scap_threadinfo* tinfo)
+static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo)
 #ifdef SYS_prlimit64
 {
 	struct rlimit rl;
@@ -874,7 +874,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	// Set the file limit
 	//
-	if(SCAP_FAILURE == scap_proc_fill_flimit(handle, tinfo->tid, tinfo))
+	if(SCAP_FAILURE == scap_proc_fill_flimit(tinfo->tid, tinfo))
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill flimit for %s (%s)",
