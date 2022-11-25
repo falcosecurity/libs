@@ -45,9 +45,7 @@ struct ppm_ring_buffer_context {
 	bool open;
 	struct ppm_ring_buffer_info *info;
 	char *buffer;
-#ifndef WDIG
 	nanoseconds last_print_time;
-#endif
 	u32 nevents;
 #ifndef UDIG
 	atomic_t preempt_count;
@@ -86,11 +84,7 @@ typedef struct ppm_consumer_t ppm_consumer_t;
 
 #define STR_STORAGE_SIZE PAGE_SIZE
 
-#ifdef WDIG
-typedef uint64_t syscall_arg_t;
-#else
 typedef unsigned long syscall_arg_t;
-#endif
 
 /*
  * Global functions

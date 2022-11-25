@@ -39,7 +39,6 @@ or GPL2.txt for full copies of the license.
 #endif
 #else /* UDIG */
 #define _GNU_SOURCE
-#ifndef WDIG
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,15 +67,6 @@ or GPL2.txt for full copies of the license.
 #ifdef __NR_openat2
 #include <linux/openat2.h>
 #endif
-#else /* WDIG */
-#include "stdint.h"
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <afunix.h>
-#include "portal.h"
-
-#pragma warning(disable : 4996)
-#endif /* WDIG */
 
 #include "udig_capture.h"
 #include "ppm_ringbuffer.h"
@@ -2468,7 +2458,6 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef WDIG
 int f_sys_sendmsg_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -2886,7 +2875,6 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* WDIG */
 
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
@@ -2965,7 +2953,6 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef WDIG
 int f_sys_shutdown_e(struct event_filler_arguments *args)
 {
 	int res;
@@ -3286,7 +3273,6 @@ int f_sys_poll_x(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
-#endif /* WDIG */
 
 int f_sys_mount_e(struct event_filler_arguments *args)
 {
@@ -3307,7 +3293,6 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef WDIG
 int f_sys_openat_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -5571,7 +5556,6 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#endif /* WDIG */
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
@@ -5628,7 +5612,6 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef WDIG
 int f_sys_sendfile_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -7144,4 +7127,3 @@ cgroups_error:
 }
 #endif
 
-#endif /* WDIG */
