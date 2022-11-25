@@ -247,15 +247,22 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 		{
 			uint16_t chunk = htons(*(uint16_t*)ptr);
 
+			int ret;
 			if(ptr == src + srclen - 1)
 			{
-				k += snprintf(row + k, sizeof(row) - k, " %.2x", *(((uint8_t*)&chunk) + 1));
+				ret = snprintf(row + k, sizeof(row) - k, " %.2x", *(((uint8_t*)&chunk) + 1));
 			}
 			else
 			{
-				k += snprintf(row + k, sizeof(row) - k, " %.4x", chunk);
+				ret = snprintf(row + k, sizeof(row) - k, " %.4x", chunk);
+			}
+			if (ret < 0 || ret >= sizeof(row) - k)
+			{
+				dst[0] = 0;
+				return 0;
 			}
 
+			k += ret;
 			num_chunks++;
 			ptr += sizeof(uint16_t);
 		}
