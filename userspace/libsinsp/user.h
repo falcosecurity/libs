@@ -26,9 +26,7 @@ limitations under the License.
 
 class sinsp;
 class sinsp_evt;
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 namespace libsinsp { namespace procfs_utils { class ns_helper; }}
-#endif
 
 /*
  * Basic idea:
@@ -64,6 +62,7 @@ class sinsp_usergroup_manager
 {
 public:
 	explicit sinsp_usergroup_manager(sinsp* inspector);
+	~sinsp_usergroup_manager();
 
 	// Do not call subscribe_container_mgr() in capture mode, because
 	// events shall not be sent as they will be loaded from capture file.
@@ -164,16 +163,9 @@ private:
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
 
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+
 	const std::string &m_host_root;
-	std::unique_ptr<libsinsp::procfs_utils::ns_helper> m_ns_helper;
-#endif
-#ifdef HAVE_PWD_H
-	struct passwd *__getpwuid(uint32_t uid);
-#endif
-#ifdef HAVE_GRP_H
-	struct group *__getgrgid(uint32_t gid);
-#endif
+	libsinsp::procfs_utils::ns_helper *m_ns_helper;
 };
 
 #endif // FALCOSECURITY_LIBS_USER_H
