@@ -76,11 +76,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     include_directories(${PROJECT_BINARY_DIR}/driver/src)
 endif()
 
-if(CYGWIN OR WIN32)
-	list(APPEND targetfiles
-		windows_hal.c)
-endif()
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_library(scap STATIC
@@ -89,13 +84,6 @@ add_library(scap STATIC
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
 		socket nsl)
-elseif (WIN32)
-	target_link_libraries(scap
-		Ws2_32.lib)
-elseif (CYGWIN)
-	target_link_libraries(scap
-		/lib/w32api/libpsapi.a
-		${WIN_HAL_LIB}/dragent_win_hal.lib)
 endif()
 
 if(NOT MINIMAL_BUILD)
@@ -164,6 +152,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap_event_schema driver_event_schema)
 endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 add_library(scap_engine_util
 	scap_engine_util.c
 	ringbuffer/devset.c
@@ -174,6 +163,7 @@ if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
 endif()
 
 target_link_libraries(scap scap_engine_util)
+endif()
 
 add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
@@ -194,13 +184,11 @@ add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
 add_subdirectory(engine/source_plugin)
 target_link_libraries(scap scap_engine_source_plugin)
 
-if(NOT APPLE)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_definitions(-DHAS_ENGINE_UDIG)
 	add_subdirectory(engine/udig)
 	target_link_libraries(scap scap_engine_udig)
-endif()
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	if (NOT MINIMAL_BUILD OR BUILD_LIBSCAP_MODERN_BPF)
 		include(libelf)
 	endif()

@@ -170,11 +170,7 @@ if(NOT MINIMAL_BUILD)
 		sinsp_curl.cpp
 		container_engine/docker/async_source.cpp
 		container_engine/docker/base.cpp)
-	if(WIN32)
-	list(APPEND SINSP_SOURCES
-		container_engine/docker/connection_win.cpp
-		container_engine/docker/docker_win.cpp)
-	else()
+	if(NOT WIN32)
 	list(APPEND SINSP_SOURCES
 		container_engine/docker/docker_linux.cpp
 		container_engine/docker/connection_linux.cpp

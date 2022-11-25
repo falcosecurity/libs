@@ -32,11 +32,6 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_engine_util.h"
 
-#if defined(_WIN32) || defined(CYGWING_AGENT)
-#define DRAGENT_WIN_HAL_C_ONLY
-#include "windows_hal.h"
-#endif
-
 #include "scap_engines.h"
 
 #define SECOND_TO_NS 1000000000
@@ -116,10 +111,6 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
-
-#ifdef CYGWING_AGENT
-	handle->m_whh = NULL;
-#endif
 
 	//
 	// Create the interface list
@@ -249,12 +240,8 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	//
 	// Extract machine information
 	//
-#ifdef _WIN32
-	scap_get_machine_info_windows(&handle->m_machine_info.num_cpus, &handle->m_machine_info.memory_size_bytes);
-#else
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-#endif
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
 	handle->m_machine_info.reserved1 = 0;
 	handle->m_machine_info.reserved2 = 0;
@@ -294,15 +281,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc,
 	handle->m_num_suppressed_comms = 0;
 	handle->m_suppressed_tids = NULL;
 	handle->m_num_suppressed_evts = 0;
-
-#ifdef _WIN32
-	handle->m_whh = scap_windows_hal_open(error);
-	if(handle->m_whh == NULL)
-	{
-		scap_close(handle);
-		return NULL;
-	}
-#endif
 
 	if ((*rc = copy_comms(handle, suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -522,9 +500,6 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
-#if CYGWING_AGENT || _WIN32
-	handle->m_whh = NULL;
-#endif
 	handle->m_suppressed_comms = NULL;
 	handle->m_suppressed_tids = NULL;
 
@@ -596,13 +571,8 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Extract machine information
 	//
-#ifdef _WIN32
-	handle->m_machine_info.num_cpus = 0;
-	handle->m_machine_info.memory_size_bytes = 0;
-#else
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-#endif
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
 	handle->m_machine_info.reserved1 = 0;
 	handle->m_machine_info.reserved2 = 0;
@@ -610,19 +580,6 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
-
-	//
-	// If this is part of the windows agent, open the windows HAL
-	//
-#ifdef CYGWING_AGENT
-	handle->m_whh = wh_open(error);
-	if(handle->m_whh == NULL)
-	{
-		scap_close(handle);
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-#endif
 
 	//
 	// Create the interface list
@@ -866,12 +823,6 @@ uint32_t scap_restart_capture(scap_t* handle)
 
 void scap_close(scap_t* handle)
 {
-#if CYGWING_AGENT || _WIN32
-	if(handle->m_whh != NULL)
-	{
-		scap_windows_hal_close(handle->m_whh);
-	}
-#endif
 	scap_deinit_state(handle);
 
 	if(handle->m_suppressed_comms)
@@ -1561,13 +1512,6 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 	return SCAP_FAILURE;
 #endif
 }
-
-#ifdef CYGWING_AGENT
-wh_t* scap_get_wmi_handle(scap_t* handle)
-{
-	return handle->m_whh;
-}
-#endif
 
 bool scap_check_current_engine(scap_t *handle, const char* engine_name)
 {

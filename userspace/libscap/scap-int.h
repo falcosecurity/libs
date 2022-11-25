@@ -27,7 +27,6 @@ limitations under the License.
 
 #include "engine_handle.h"
 #include "scap_vtable.h"
-#include "ringbuffer/devset.h"
 
 #include "settings.h"
 #include "plugin_info.h"
@@ -36,10 +35,6 @@ limitations under the License.
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#if CYGWING_AGENT || _WIN32
-typedef struct wh_t wh_t;
 #endif
 
 //
@@ -75,11 +70,6 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 	uint32_t m_fd_lookup_limit;
 	uint8_t m_cgroup_version;
-
-	// Abstraction layer for windows
-#if CYGWING_AGENT || _WIN32
-	wh_t* m_whh;
-#endif
 
 	// The set of process names that are suppressed
 	char **m_suppressed_comms;
