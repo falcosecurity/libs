@@ -748,17 +748,14 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
 	 */
-	if(false)
-	{
-	}
 #ifdef HAS_ENGINE_SAVEFILE
-	else if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
+	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
 		return scap_open_offline_int(oargs, rc, error);
 	}
 #endif
 #ifdef HAS_ENGINE_UDIG
-	else if(strcmp(engine_name, UDIG_ENGINE) == 0)
+	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
 		return scap_open_udig_int(error, rc, oargs->proc_callback,
 								oargs->proc_callback_context,
@@ -767,37 +764,37 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
-	else if(strcmp(engine_name, GVISOR_ENGINE) == 0)
+	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
 		return scap_open_gvisor_int(error, rc, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_TEST_INPUT
-	else if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
+	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
 		return scap_open_test_input_int(error, rc, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_KMOD
-	else if(strcmp(engine_name, KMOD_ENGINE) == 0)
+	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
 		return scap_open_live_int(error, rc, oargs, &scap_kmod_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
-	else if( strcmp(engine_name, BPF_ENGINE) == 0)
+	if( strcmp(engine_name, BPF_ENGINE) == 0)
 	{
 		return scap_open_live_int(error, rc, oargs, &scap_bpf_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
-	else if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
+	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
 		return scap_open_live_int(error, rc, oargs, &scap_modern_bpf_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_NODRIVER
-	else if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
+	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
@@ -805,7 +802,7 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
-	else if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
+	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
 		return scap_open_plugin_int(error, rc, oargs);
 	}
@@ -1105,7 +1102,7 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 		{
 			continue;
 		}
-		
+
 		/* If we arrive here we want to know the events associated with this ppm_code. */
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
@@ -1159,7 +1156,7 @@ int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
 	tp_array[SYS_EXIT] = 1;
 	tp_array[SCHED_PROC_EXIT] = 1;
 	tp_array[SCHED_SWITCH] = 1;
-	/* With `aarch64` and `s390x` we need also this, 
+	/* With `aarch64` and `s390x` we need also this,
 	 * in `x86` they are not considered at all.
 	 */
 	tp_array[SCHED_PROC_FORK] = 1;
@@ -1345,7 +1342,7 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 	case SCAP_PPM_SC_MASK_UNSET:
 	case SCAP_PPM_SC_MASK_ZERO:
 		break;
-	
+
 	default:
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
 		ASSERT(false);
