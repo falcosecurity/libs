@@ -44,9 +44,9 @@ limitations under the License.
 #endif
 
 #ifdef HAVE_PWD_H
-struct passwd *sinsp_usergroup_manager::__getpwuid(uint32_t uid)
+static struct passwd *__getpwuid(uint32_t uid, const std::string &host_root)
 {
-	if(m_host_root.empty())
+	if(host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -56,7 +56,7 @@ struct passwd *sinsp_usergroup_manager::__getpwuid(uint32_t uid)
 	// If we have a host root and we can use fgetpwent,
 	// we take the entry directly from file
 #ifdef HAVE_FGET__ENT
-	static std::string filename(m_host_root + "/etc/passwd");
+	static std::string filename(host_root + "/etc/passwd");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -74,15 +74,14 @@ struct passwd *sinsp_usergroup_manager::__getpwuid(uint32_t uid)
 		return p;
 	}
 #endif
-
 	return nullptr;
 }
 #endif
 
 #ifdef HAVE_GRP_H
-struct group *sinsp_usergroup_manager::__getgrgid(uint32_t gid)
+static struct group *__getgrgid(uint32_t gid, const std::string &host_root)
 {
-	if(m_host_root.empty())
+	if(host_root.empty())
 	{
 		// When we don't have any host root set,
 		// leverage NSS (see man nsswitch.conf)
@@ -92,7 +91,7 @@ struct group *sinsp_usergroup_manager::__getgrgid(uint32_t gid)
 	// If we have a host root and we can use fgetgrent,
 	// we take the entry directly from file
 #ifdef HAVE_FGET__ENT
-	static std::string filename(m_host_root + "/etc/group");
+	static std::string filename(host_root + "/etc/group");
 
 	auto f = fopen(filename.c_str(), "r");
 	if(f)
@@ -110,7 +109,6 @@ struct group *sinsp_usergroup_manager::__getgrgid(uint32_t gid)
 		return p;
 	}
 #endif
-
 	return NULL;
 }
 #endif
@@ -122,11 +120,20 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	: m_import_users(true)
 	, m_last_flush_time_ns(0)
 	, m_inspector(inspector)
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 	, m_host_root(m_inspector->get_host_root())
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 	, m_ns_helper(new libsinsp::procfs_utils::ns_helper(m_host_root))
+#else
+	, m_ns_helper(nullptr)
 #endif
 {
+}
+
+sinsp_usergroup_manager::~sinsp_usergroup_manager()
+{
+#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+	delete m_ns_helper;
+#endif
 }
 // clang-format on
 
@@ -298,7 +305,7 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 		{
 #ifdef HAVE_PWD_H
 			// On Host, try to load info from db
-			auto* p = __getpwuid(uid);
+			auto* p = __getpwuid(uid, m_host_root);
 			if (p)
 			{
 				usr = userinfo_map_insert(
@@ -428,7 +435,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 		{
 #ifdef HAVE_GRP_H
 			// On Host, try to load info from db
-			auto* g = __getgrgid(gid);
+			auto* g = __getgrgid(gid, m_host_root);
 			if (g)
 			{
 				gr = groupinfo_map_insert(m_grouplist[container_id], g->gr_gid, g->gr_name);
