@@ -15,9 +15,16 @@ limitations under the License.
 
 */
 
-#include "scap.h"
-#include "scap_vtable.h"
+#include <stdbool.h>
+#include <stdint.h>
 #include <unistd.h>
+
+typedef struct scap scap_t;
+struct ppm_proclist_info;
+
+#define SCAP_HANDLE_T void
+#include "engine_handle.h"
+#include "scap_const.h"
 
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
 {

@@ -15,27 +15,26 @@ limitations under the License.
 
 */
 
-#include <errno.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "scap.h"
-#include "scap-int.h"
-
-#include <io.h>
-#define R_OK 4
+#include <stdbool.h>
+#include <stdint.h>
 #include <process.h>
-#include "windows_hal.h"
+
+typedef struct scap scap_t;
+struct ppm_proclist_info;
+
+#define SCAP_HANDLE_T void
+#include "engine_handle.h"
+#include "scap_const.h"
 
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
 {
 	*pid = _getpid();
 	return SCAP_SUCCESS;
 }
+
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
 {
-	return scap_get_procs_windows(handle, error);
+	return SCAP_NOT_SUPPORTED;
 }
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
