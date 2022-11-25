@@ -36,7 +36,15 @@ TEST(SyscallEnter, connectE_INET)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_addr_info_inet_param(2, PPM_AF_INET, IPV4_SERVER, IPV4_PORT_SERVER_STRING);
+	}
+	else
+	{
+		evt_test->assert_empty_param(2);
+	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -77,7 +85,15 @@ TEST(SyscallEnter, connectE_INET6)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	evt_test->assert_addr_info_inet6_param(2, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_addr_info_inet6_param(2, PPM_AF_INET6, IPV6_SERVER, IPV6_PORT_SERVER_STRING);
+	}
+	else
+	{
+		evt_test->assert_empty_param(2);
+	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -121,7 +137,15 @@ TEST(SyscallEnter, connectE_UNIX)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
+	}
+	else
+	{
+		evt_test->assert_empty_param(2);
+	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -173,14 +197,22 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR)*/
-	evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, EXPECTED_UNIX_LONG_PATH);
+	/* Modern BPF returns addr_info even if the syscall fails other drivers return an empty param. */
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_addr_info_unix_param(2, PPM_AF_UNIX, EXPECTED_UNIX_LONG_PATH);
+	}
+	else
+	{
+		evt_test->assert_empty_param(2);
+	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallEnter, connectE_negative_socket)
+TEST(SyscallEnter, connectE_null_sockaddr)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, ENTER_EVENT);
 

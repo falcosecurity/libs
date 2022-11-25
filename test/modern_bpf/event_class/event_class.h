@@ -188,6 +188,36 @@ public:
 	 */
 	void parse_event();
 
+	/**
+	 * @brief Check the current engine type
+	 * 
+	 * @return true if the current engine is bpf
+	 */
+	bool is_bpf_engine()
+	{
+		return scap_check_current_engine(scap_handle, BPF_ENGINE);
+	}
+
+	/**
+	 * @brief Check the current engine type
+	 * 
+	 * @return true if the current engine is modern-bpf
+	 */
+	bool is_modern_bpf_engine()
+	{
+		return scap_check_current_engine(scap_handle, MODERN_BPF_ENGINE);
+	}
+
+	/**
+	 * @brief Check the current engine type
+	 * 
+	 * @return true if the current engine is kmod
+	 */
+	bool is_kmod_engine()
+	{
+		return scap_check_current_engine(scap_handle, KMOD_ENGINE);
+	}
+
 	/////////////////////////////////
 	// NETWORK SCAFFOLDING
 	/////////////////////////////////
