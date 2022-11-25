@@ -374,7 +374,7 @@ static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo
 }
 #endif
 
-int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
@@ -391,7 +391,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		}
 
 		ASSERT(false);
-		return scap_errprintf(handle->m_lasterr, errno, "open cgroup file %s failed", filename);
+		return scap_errprintf(error, errno, "open cgroup file %s failed", filename);
 	}
 
 	while(fgets(line, sizeof(line), f) != NULL)
@@ -410,7 +410,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		{
 			ASSERT(false);
 			fclose(f);
-			return scap_errprintf(handle->m_lasterr, 0, "Did not find id in cgroup file %s", filename);
+			return scap_errprintf(error, 0, "Did not find id in cgroup file %s", filename);
 		}
 
 		// subsys
@@ -419,7 +419,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 		{
 			ASSERT(false);
 			fclose(f);
-			return scap_errprintf(handle->m_lasterr, 0, "Did not find subsys in cgroup file %s", filename);
+			return scap_errprintf(error, 0, "Did not find subsys in cgroup file %s", filename);
 		}
 
 		// Hack to detect empty fields, because strtok does not support it
@@ -451,7 +451,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 			//
 			// -> for cgroup2: id is always 0 and subsys list is always empty (single unified hierarchy)
 			// -> for cgroup1: skip subsys empty because it means controller is not mounted on any hierarchy
-			if (handle->m_cgroup_version == 2 && strcmp(token, "0") == 0)
+			if (cgroup_version == 2 && strcmp(token, "0") == 0)
 			{
 				cgroup = subsys_list;
 				subsys_list = default_subsys_list; // force-set a default subsys list
@@ -475,7 +475,7 @@ int32_t scap_proc_fill_cgroups(scap_t *handle, struct scap_threadinfo* tinfo, co
 			{
 				ASSERT(false);
 				fclose(f);
-				return scap_errprintf(handle->m_lasterr, 0, "Did not find cgroup in cgroup file %s", filename);
+				return scap_errprintf(error, 0, "Did not find cgroup in cgroup file %s", filename);
 			}
 		}
 
@@ -881,7 +881,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 	}
 
-	if(scap_proc_fill_cgroups(handle, tinfo, dir_name) == SCAP_FAILURE)
+	if(scap_proc_fill_cgroups(handle->m_lasterr, handle->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
