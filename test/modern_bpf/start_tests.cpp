@@ -142,6 +142,20 @@ int main(int argc, char** argv)
 	scap_open_args oargs = parse_CLI_options(argc, argv);
 	char error_buffer[SCAP_LASTERR_SIZE];
 
+	/* The BPF `calibrate_socker` method, which needs to call the socket filler
+	 * before starting the real capture.
+	 */
+
+	if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
+	{
+		oargs.tp_of_interest.tp[SYS_ENTER] = 1;
+		oargs.tp_of_interest.tp[SYS_EXIT] = 1;
+		for(int i = 0; i < PPM_SC_MAX; i++)
+		{
+			oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
+		}
+	}
+
 	/* This call the init method and start the capture so inject the tracepoints */
 	scap_t* handle = scap_open(&oargs, error_buffer, &res);
 	if(res != SCAP_SUCCESS)

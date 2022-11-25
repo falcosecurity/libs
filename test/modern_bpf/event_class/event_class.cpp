@@ -653,6 +653,9 @@ void event_test::assert_tuple_inet6_param(int param_num, uint8_t desired_family,
 	/* Assert dest ipv6. */
 	assert_ipv6_string(desired_dest_ipv6, 19, DEST);
 
+	/* Assert dest ipv6. */
+	assert_ipv6_string(desired_dest_ipv6, 19, DEST);
+
 	/* Assert dest port. */
 	assert_port_string(desired_dest_port, 35, DEST);
 
