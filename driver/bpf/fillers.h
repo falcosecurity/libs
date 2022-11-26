@@ -2856,65 +2856,46 @@ FILLER(sys_accept4_e, true)
 
 FILLER(sys_accept_x, true)
 {
-	unsigned long max_ack_backlog = 0;
-	unsigned long ack_backlog = 0;
-	unsigned long queuepct = 0;
-	struct socket *sock;
-	long size = 0;
-	int res;
-	int fd;
-
-	/*
-	 * Retrieve the fd and push it to the ring.
+	/* Parameter 1: fd (type: PT_FD) */
+	/* Retrieve the fd and push it to the ring.
 	 * Note that, even if we are in the exit callback, the arguments are still
 	 * in the stack, and therefore we can consume them.
 	 */
-	fd = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
+	s32 fd = (s32)bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	CHECK_RES(res);
 
-	/*
-	 * Convert the fd into socket endpoint information
-	 */
-	size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true,
-				   data->tmp_scratch);
-
-	/*
-	 * Copy the endpoint info into the ring
-	 */
+	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+	long size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true, data->tmp_scratch);
 	data->curarg_already_on_frame = true;
 	res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	sock = bpf_sockfd_lookup(data, fd);
-	if (sock) {
-		struct sock *sk = _READ(sock->sk);
+	u32 queuelen = 0;
+	u32 queuemax = 0;
+	u8 queuepct = 0;
 
-		if (sk) {
-			ack_backlog = _READ(sk->sk_ack_backlog);
-			max_ack_backlog = _READ(sk->sk_max_ack_backlog);
-
-			if (max_ack_backlog)
-				queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
-		}
+	/* Get the listening socket (first syscall parameter) */
+	s32 listening_fd = (s32)bpf_syscall_get_argument(data, 0);
+	struct socket * sock = bpf_sockfd_lookup(data, listening_fd);
+	struct sock *sk = _READ(sock->sk);
+	queuelen = _READ(sk->sk_ack_backlog);
+	queuemax = _READ(sk->sk_max_ack_backlog);
+	if(queuelen && queuemax)
+	{
+		queuepct = (u8)((u64)queuelen * 100 / queuemax);
 	}
 
-	/* queuepct */
+	/* Parameter 3: queuepct (type: PT_UINT8) */
 	res = bpf_val_to_ring_type(data, queuepct, PT_UINT8);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/* queuelen */
-	res = bpf_val_to_ring_type(data, ack_backlog, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 4: queuelen (type: PT_UINT32) */
+	res = bpf_val_to_ring_type(data, queuelen, PT_UINT32);
+	CHECK_RES(res);
 
-	/* queuemax */
-	res = bpf_val_to_ring_type(data, max_ack_backlog, PT_UINT32);
-
-	return res;
+	/* Parameter 5: queuemax (type: PT_UINT32) */
+	return bpf_val_to_ring_type(data, queuemax, PT_UINT32);
 }
 
 FILLER(sys_close_e, true)
