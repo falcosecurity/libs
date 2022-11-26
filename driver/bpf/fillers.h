@@ -2419,7 +2419,7 @@ FILLER(proc_startupdate, true)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = bpf_val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
+	res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
 	if (res != PPM_SUCCESS)
 		return res;
 
