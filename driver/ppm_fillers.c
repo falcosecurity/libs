@@ -6636,42 +6636,35 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 
 int f_sys_fchmodat_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
-	int64_t retval;
+	unsigned long val = 0;
+	int res = 0;
+	int64_t retval = 0;
+	s32 dirfd = 0;
 
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * dirfd
-	 */
+	/* Parameter 2: dirfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	dirfd = (s32)val;
+	if(dirfd == AT_FDCWD)
+	{
+		dirfd = PPM_AT_FDCWD;
+	}
+	res = val_to_ring(args, (s64)dirfd, 0, false, 0);
+	CHECK_RES(res);
 
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
-
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * filename
-	 */
+	/* Parameter 3: filename (type: PT_FSRELPATH) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * mode
-	 */
+	/* Parameter 4: mode (type: PT_MODE) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
@@ -6708,31 +6701,26 @@ int f_sys_chmod_x(struct event_filler_arguments *args)
 
 int f_sys_fchmod_x(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
-	int64_t retval;
+	unsigned long val = 0;
+	int res = 0;
+	int64_t retval = 0;
+	s32 fd = 0;
 
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
+	/* Parameter 2: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * mode
-	 */
+	/* Parameter 3: mode (type: PT_MODE) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
