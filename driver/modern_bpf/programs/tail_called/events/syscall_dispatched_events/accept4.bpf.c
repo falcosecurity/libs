@@ -79,8 +79,13 @@ int BPF_PROG(accept4_x,
 		auxmap__store_socktuple_param(auxmap, (s32)ret, INBOUND);
 
 		/* Perform some computations to get queue information. */
+		/* If the syscall is successful the `sockfd` will be >= 0. We want
+		 * to extract information from the listening socket, not from the
+		 * new one.
+		 */
+		s32 sockfd = (s32)extract__syscall_argument(regs, 0);
 		struct file *file = NULL;
-		file = extract__file_struct_from_fd(ret);
+		file = extract__file_struct_from_fd(sockfd);
 		struct socket *socket = BPF_CORE_READ(file, private_data);
 		struct sock *sk = BPF_CORE_READ(socket, sk);
 		BPF_CORE_READ_INTO(&queuelen, sk, sk_ack_backlog);
