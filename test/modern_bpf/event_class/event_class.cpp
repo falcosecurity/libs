@@ -553,7 +553,16 @@ void event_test::assert_cgroup_param(int param_num)
 		strlcpy(cgroup_prefix, cgroup_string, prefix_len + 1);
 		ASSERT_STREQ(cgroup_prefix, cgroup_prefix_array[index]) << VALUE_NOT_CORRECT << m_current_param;
 	}
-	assert_param_len(total_len);
+
+	/* With the kmod we send more cgroups than the 5 we send in bpf and modern bpf */
+	if(is_kmod_engine())
+	{
+		assert_param_len_ge(total_len);
+	}
+	else
+	{
+		assert_param_len(total_len);
+	}
 }
 
 void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_dimension)
@@ -649,9 +658,6 @@ void event_test::assert_tuple_inet6_param(int param_num, uint8_t desired_family,
 
 	/* Assert src port. */
 	assert_port_string(desired_src_port, 17, SOURCE);
-
-	/* Assert dest ipv6. */
-	assert_ipv6_string(desired_dest_ipv6, 19, DEST);
 
 	/* Assert dest ipv6. */
 	assert_ipv6_string(desired_dest_ipv6, 19, DEST);
@@ -771,6 +777,12 @@ void event_test::assert_param_len(uint16_t expected_size)
 {
 	uint16_t size = m_event_params[m_current_param].len;
 	ASSERT_EQ(size, expected_size) << ">>>>> length of the param is not correct. Param id = " << m_current_param << std::endl;
+}
+
+void event_test::assert_param_len_ge(uint16_t expected_size)
+{
+	uint16_t size = m_event_params[m_current_param].len;
+	ASSERT_GE(size, expected_size) << ">>>>> length of the param is not correct. Param id = " << m_current_param << std::endl;
 }
 
 void event_test::assert_address_family(uint8_t desired_family, int starting_index)

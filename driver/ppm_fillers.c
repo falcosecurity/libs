@@ -799,7 +799,6 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
-	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -966,7 +965,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
+	res = val_to_ring(args, 0, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -6760,7 +6759,6 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	int correctly_read = 0;
 	unsigned int exe_len = 0; /* the length of the executable string. */
 	int ptid = 0;
-	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -6878,7 +6876,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
+	res = val_to_ring(args, 0, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -7139,7 +7137,6 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	int correctly_read = 0;
 	unsigned int exe_len = 0; /* the length of the executable string. */
 	int ptid = 0;
-	char *spwd = "";
 	long total_vm = 0;
 	long total_rss = 0;
 	long swap = 0;
@@ -7249,7 +7246,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, (uint64_t)(long)spwd, 0, false, 0);
+	res = val_to_ring(args, 0, 0, false, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;

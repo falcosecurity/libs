@@ -85,7 +85,6 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 class event_test
 {
 public:
-
 	static scap_t* scap_handle;
 
 	static void set_scap_handle(scap_t* handle)
@@ -190,7 +189,7 @@ public:
 
 	/**
 	 * @brief Check the current engine type
-	 * 
+	 *
 	 * @return true if the current engine is bpf
 	 */
 	bool is_bpf_engine()
@@ -200,7 +199,7 @@ public:
 
 	/**
 	 * @brief Check the current engine type
-	 * 
+	 *
 	 * @return true if the current engine is modern-bpf
 	 */
 	bool is_modern_bpf_engine()
@@ -210,7 +209,7 @@ public:
 
 	/**
 	 * @brief Check the current engine type
-	 * 
+	 *
 	 * @return true if the current engine is kmod
 	 */
 	bool is_kmod_engine()
@@ -591,11 +590,19 @@ private:
 	void assert_param_boundaries(int param_num);
 
 	/**
-	 * @brief Assert if the length of current param is the expected one
+	 * @brief Assert if the length of the current param is the expected one
 	 *
 	 * @param expected_size expected length of the param
 	 */
 	void assert_param_len(uint16_t expected_size);
+
+	/**
+	 * @brief Assert if the length of the current param is greater or equal
+	 * than the expected one
+	 *
+	 * @param expected_size expected length of the param
+	 */
+	void assert_param_len_ge(uint16_t expected_size);
 
 	/**
 	 * @brief Assert the socket address family as part of a `sockaddr` or a `tuple`.
