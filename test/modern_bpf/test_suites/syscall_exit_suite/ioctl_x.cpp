@@ -1,7 +1,8 @@
 #include "../../event_class/event_class.h"
 
-#ifdef __NR_ioctl
+#if defined(__NR_ioctl) && defined(__NR_clone3) && defined(__NR_wait4)
 
+#include <linux/sched.h>
 #include <sys/ioctl.h>
 
 TEST(SyscallExit, ioctlX)
@@ -18,14 +19,36 @@ TEST(SyscallExit, ioctlX)
 	int32_t mock_fd = -1;
 	uint64_t request = SIOCGIFCOUNT;
 	char* argp = NULL;
-	assert_syscall_state(SYSCALL_FAILURE, "ioctl", syscall(__NR_ioctl, mock_fd, request, argp));
-	int64_t errno_value = -errno;
+
+	/* Here we need to call the `ioctl` from a child because the main process throws lots of
+	 * `ioctl` to manage the kmod.
+	 */
+	struct clone_args cl_args = {0};
+	cl_args.flags = CLONE_FILES;
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* Child terminates immediately. */
+		assert_syscall_state(SYSCALL_FAILURE, "ioctl", syscall(__NR_ioctl, mock_fd, request, argp));
+		exit(EXIT_SUCCESS);
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	/* This is the errno value we expect from the `ioctl` call. */
+	int64_t errno_value = -EBADF;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	evt_test->disable_capture();
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
