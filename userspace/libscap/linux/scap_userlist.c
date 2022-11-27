@@ -102,7 +102,7 @@ int32_t scap_create_userlist(scap_t* handle)
 			free(userlist->users);
 			free(userlist->groups);
 			free(userlist);
-			userlist = NULL;
+			handle->m_userlist = NULL;
 			return SCAP_SUCCESS;
 		}
 	}
