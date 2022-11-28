@@ -24,6 +24,7 @@ limitations under the License.
 #include "k8s.h"
 #include "mesos.h"
 #endif
+#include "sinsp.h"
 
 #include "gen_filter.h"
 
