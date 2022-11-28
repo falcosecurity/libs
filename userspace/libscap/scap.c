@@ -775,7 +775,7 @@ static inline void scap_deinit_state(scap_t* handle)
 	// Free the process table
 	if(handle->m_proclist.m_proclist != NULL)
 	{
-		scap_proc_free_table(handle->m_proclist.m_proclist);
+		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
 	}
 

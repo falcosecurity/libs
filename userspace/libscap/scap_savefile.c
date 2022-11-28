@@ -969,7 +969,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
 		handle->m_proclist.m_proc_callback = NULL;
 
-		scap_proc_free_table(handle->m_proclist.m_proclist);
+		scap_proc_free_table(&handle->m_proclist);
 		char filename[SCAP_MAX_PATH_SIZE];
 		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
 		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
@@ -994,7 +994,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	//
 	if(handle->m_proclist.m_proc_callback != NULL)
 	{
-		scap_proc_free_table(handle->m_proclist.m_proclist);
+		scap_proc_free_table(&handle->m_proclist);
 	}
 
 	return res;

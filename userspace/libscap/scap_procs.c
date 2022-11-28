@@ -38,7 +38,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 //
 // Delete a process entry
 //
-void scap_proc_delete(scap_threadinfo* proclist, scap_threadinfo* proc)
+void scap_proc_delete(struct scap_proclist* proclist, scap_threadinfo* proc)
 {
 	//
 	// First, free the fd table for this process descriptor
@@ -48,7 +48,7 @@ void scap_proc_delete(scap_threadinfo* proclist, scap_threadinfo* proc)
 	//
 	// Second, remove the process descriptor from the table
 	//
-	HASH_DEL(proclist, proc);
+	HASH_DEL(proclist->m_proclist, proc);
 
 	//
 	// Third, free the memory
@@ -59,12 +59,12 @@ void scap_proc_delete(scap_threadinfo* proclist, scap_threadinfo* proc)
 //
 // Free the process table
 //
-void scap_proc_free_table(scap_threadinfo* proclist)
+void scap_proc_free_table(struct scap_proclist* proclist)
 {
 	struct scap_threadinfo* tinfo;
 	struct scap_threadinfo* ttinfo;
 
-	HASH_ITER(hh, proclist, tinfo, ttinfo)
+	HASH_ITER(hh, proclist->m_proclist, tinfo, ttinfo)
 	{
 		scap_proc_delete(proclist, tinfo);
 	}
