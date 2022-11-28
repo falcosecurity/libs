@@ -281,7 +281,6 @@ struct scap_vtable scap_modern_bpf_engine = {
 	.get_n_tracepoint_hit = scap_modern_bpf__get_n_tracepoint_hit,
 	.get_n_devs = scap_modern_bpf__get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = scap_procfs_get_threadlist,
 	.get_api_version = scap_modern_bpf__get_api_version,
 	.get_schema_version = scap_modern_bpf__get_schema_version,
 };

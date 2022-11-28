@@ -144,3 +144,17 @@ const scap_agent_info* scap_get_agent_info(scap_t* handle)
 	return NULL;
 }
 
+struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
+{
+	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_threadlist)
+	{
+		if(handle->m_platform->m_vtable->get_threadlist(handle->m_platform, &handle->m_driver_procinfo, handle->m_lasterr) == SCAP_SUCCESS)
+		{
+			return handle->m_driver_procinfo;
+		}
+		return NULL;
+	}
+
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "operation not supported");
+	return NULL;
+}

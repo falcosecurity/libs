@@ -41,6 +41,7 @@ struct scap_open_args;
 struct scap_platform;
 struct scap_proclist;
 struct scap_userlist;
+struct ppm_proclist_info;
 
 // a method table for platform-specific operations
 struct scap_platform_vtable
@@ -67,6 +68,7 @@ struct scap_platform_vtable
 	int32_t (*refresh_proc_table)(struct scap_platform*, struct scap_proclist* proclist);
 	bool (*is_thread_alive)(struct scap_platform*, int64_t pid, int64_t tid, const char* comm);
 	int32_t (*get_global_pid)(struct scap_platform*, int64_t *pid, char *error);
+	int32_t (*get_threadlist)(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`

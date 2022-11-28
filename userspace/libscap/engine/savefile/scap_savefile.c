@@ -2276,7 +2276,6 @@ struct scap_vtable scap_savefile_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

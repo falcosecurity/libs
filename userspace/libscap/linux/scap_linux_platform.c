@@ -286,6 +286,7 @@ static const struct scap_platform_vtable scap_linux_platform = {
 	.refresh_proc_table = scap_linux_refresh_proc_table,
 	.is_thread_alive = scap_linux_is_thread_alive,
 	.get_global_pid = scap_linux_getpid_global,
+	.get_threadlist = scap_linux_get_threadlist,
 	.close_platform = scap_linux_close_platform,
 	.free_platform = scap_linux_free_platform,
 };
