@@ -19,12 +19,6 @@ option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system
 
 option(BUILD_LIBSCAP_MODERN_BPF "Enable modern bpf probe" OFF)
 
-if(NOT MSVC)
-	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-		add_definitions(-DHAS_CAPTURE)
-	endif()
-endif()
-
 include(ExternalProject)
 
 if(WIN32 OR NOT MINIMAL_BUILD)
