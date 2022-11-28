@@ -18,8 +18,9 @@ limitations under the License.
 #pragma once
 
 #include <sinsp.h>
-#include "filterchecks.h"
 #include "chisel_viewinfo.h"
+
+class sinsp_filter_check;
 
 /*!
 	\brief Add a new directory containing chisels.
