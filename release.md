@@ -55,9 +55,9 @@ At this point, no new-feature PRs are allowed to be merged ([exceptions](#except
 
 ### Release branch
 
-During the code freeze period, a *release branch* (e.g., `release-x.y.z`) is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
+During the code freeze period, a *release branch* is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
 
-The release branch name must include the release version. If the process consists of both drivers and libs releases, the libs one is used.
+The naming convention for the release branch is `release/x.y.z`, where `x.y.z` is the [version](Versioning) number of the release. Only the libs version number is used if the process consists of both drivers and libs releases.
 
 Once the release brach has been created:
 
