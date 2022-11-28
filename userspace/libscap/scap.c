@@ -691,15 +691,6 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 
 scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 {
-
-#ifdef CYGWING_AGENT
-	if(oargs->mode == SCAP_MODE_LIVE)
-	{
-		snprintf(error,	SCAP_LASTERR_SIZE, "libscap: live mode currently not supported on Windows.");
-		*rc = SCAP_NOT_SUPPORTED;
-		return NULL;
-	}
-#endif
 	const char* engine_name = oargs->engine_name;
 	/* At the end of the `v-table` work we can use just one function
 	 * with an internal switch that selects the right vtable! For the moment
@@ -891,16 +882,12 @@ uint32_t scap_get_ndevs(scap_t* handle)
 	return 1;
 }
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
-
 int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_t* len)
 {
 	// engines do not even necessarily have a concept of a buffer
 	// that you read events from
 	return SCAP_NOT_SUPPORTED;
 }
-
-#endif // HAS_CAPTURE
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
@@ -1139,7 +1126,7 @@ int32_t scap_stop_capture(scap_t* handle)
 		return handle->m_vtable->stop_capture(handle->m_engine);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1159,7 +1146,7 @@ int32_t scap_start_capture(scap_t* handle)
 		return handle->m_vtable->start_capture(handle->m_engine);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1175,7 +1162,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
 	}
-#if defined(HAS_CAPTURE) && ! defined(CYGWING_AGENT) && ! defined(_WIN32)
+#if defined(HAS_CAPTURE) && ! defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on this scap mode");
 	ASSERT(false);
 	return SCAP_FAILURE;
@@ -1191,7 +1178,7 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
 	}
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_stop_dropping_mode not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1207,7 +1194,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
 	}
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1258,7 +1245,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1392,7 +1379,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1408,7 +1395,7 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+#if !defined(HAS_CAPTURE)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1463,7 +1450,7 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return NULL;
 #else
@@ -1504,7 +1491,7 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1563,7 +1550,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
 	return SCAP_FAILURE;
 #else
@@ -1579,7 +1566,7 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+#if !defined(HAS_CAPTURE) || defined(_WIN32)
 	snprintf(handle->m_lasterr,
 	         SCAP_LASTERR_SIZE,
 	         "scap_set_statsd_port not supported on %s", PLATFORM_NAME);
