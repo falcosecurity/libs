@@ -19,8 +19,8 @@ limitations under the License.
 #include <stdio.h>
 #include <libpman.h>
 
-#include "scap_modern_bpf.h"
 #define SCAP_HANDLE_T struct modern_bpf_engine
+#include "scap_modern_bpf.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_procs.h"
