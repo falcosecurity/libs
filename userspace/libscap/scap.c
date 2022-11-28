@@ -1126,14 +1126,9 @@ int32_t scap_stop_capture(scap_t* handle)
 		return handle->m_vtable->stop_capture(handle->m_engine);
 	}
 
-#if !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot stop offline live captures");
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-#endif // HAS_CAPTURE
 }
 
 //
@@ -1146,14 +1141,9 @@ int32_t scap_start_capture(scap_t* handle)
 		return handle->m_vtable->start_capture(handle->m_engine);
 	}
 
-#if !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "cannot start offline live captures");
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-#endif // HAS_CAPTURE
 }
 
 int32_t scap_enable_tracers_capture(scap_t* handle)
@@ -1162,14 +1152,10 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
 	}
-#if defined(HAS_CAPTURE) && ! defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on this scap mode");
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_enable_tracers_capture not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#endif
 }
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
@@ -1178,14 +1164,10 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
 	}
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_stop_dropping_mode not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_stop_dropping_mode not supported on this scap mode");
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-#endif
 }
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
@@ -1194,14 +1176,10 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
 	}
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_start_dropping_mode not supported on this scap mode");
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-#endif
 }
 
 //
@@ -1245,13 +1223,8 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
 	}
 
-#if !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif
 }
 
 int64_t scap_get_readfile_offset(scap_t* handle)
@@ -1299,13 +1272,9 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);
 	}
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "eventmask not supported on %s", PLATFORM_NAME);
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "manipulating eventmasks not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif // HAS_CAPTURE
 }
 
 int32_t scap_clear_ppm_sc_mask(scap_t* handle) {
@@ -1338,22 +1307,18 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
 		return SCAP_FAILURE;
 	}
 
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_TPMASK, op, tp);
-	}
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "tpmask not supported on %s", PLATFORM_NAME);
-	return SCAP_FAILURE;
-#else
 	if (handle == NULL)
 	{
 		return SCAP_FAILURE;
 	}
 
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "manipulating tpmask not supported on this scap mode");
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_TPMASK, op, tp);
+	}
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#endif // HAS_CAPTURE
 }
 
 int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled) {
@@ -1379,13 +1344,8 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
 	}
 
-#if !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif
 }
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle)
@@ -1395,13 +1355,8 @@ int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
 	}
 
-#if !defined(HAS_CAPTURE)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "setting snaplen not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif // HAS_CAPTURE
 }
 
 const char* scap_get_host_root()
@@ -1450,18 +1405,19 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 
 struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
-	return NULL;
-#else
-	int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
-	if(res != SCAP_SUCCESS)
+	if(handle->m_vtable)
 	{
-		return NULL;
+		int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
+		if(res != SCAP_SUCCESS)
+		{
+			return NULL;
+		}
+
+		return handle->m_driver_procinfo;
 	}
 
-	return handle->m_driver_procinfo;
-#endif	// HAS_CAPTURE
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
+	return NULL;
 }
 
 uint64_t scap_ftell(scap_t *handle)
@@ -1491,13 +1447,8 @@ int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "getting n_tracepoint_hit not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif
 }
 
 bool scap_check_current_engine(scap_t *handle, const char* engine_name)
@@ -1550,13 +1501,8 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_set_fullcapture_port_range not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif
 }
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
@@ -1566,17 +1512,8 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
 	}
 
-#if !defined(HAS_CAPTURE) || defined(_WIN32)
-	snprintf(handle->m_lasterr,
-	         SCAP_LASTERR_SIZE,
-	         "scap_set_statsd_port not supported on %s", PLATFORM_NAME);
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-#else
-	snprintf(handle->m_lasterr,
-		 SCAP_LASTERR_SIZE,
-		 "scap_set_statsd_port not supported on this scap mode");
-	return SCAP_FAILURE;
-#endif
 }
 
 bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,

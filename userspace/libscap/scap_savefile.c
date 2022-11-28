@@ -963,7 +963,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
+#ifdef __linux__
 	if(handle->m_mode != SCAP_MODE_CAPTURE && !skip_proc_scan)
 	{
 		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
