@@ -15,9 +15,6 @@ limitations under the License.
 
 SUBCOMPONENTS:
 
-- The file <common/inttypes_win.h> is licensed separately, see the header 
-  of the file. Copyright (c) 2006 Alexander Chemeris.
-
 - The files in <driver/> and its subdirectories are used to compile the
   kernel module and may be injected into eBPF; these are dual licensed
   under the MIT license or the GNU General Public License 2. Copies of
