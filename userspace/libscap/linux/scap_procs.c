@@ -1259,7 +1259,7 @@ void scap_refresh_proc_table(scap_t* handle)
 {
 	if(handle->m_proclist.m_proclist)
 	{
-		scap_proc_free_table(handle->m_proclist.m_proclist);
+		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
 	}
 	scap_proc_scan_proc_table(handle);
