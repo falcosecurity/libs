@@ -3265,58 +3265,32 @@ FILLER(sys_openat2_x, true)
 
 FILLER(sys_open_by_handle_at_x, true)
 {
-	unsigned long flags;
-	unsigned long val;
-	int res;
-	int64_t retval = 0;
+	/* Parameter 1: ret (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
+	/* Parameter 2: mountfd (type: PT_FD) */
+	s32 mountfd = (s32)bpf_syscall_get_argument(data, 0);
+	if(mountfd == AT_FDCWD)
 	{
-		return res;
+		mountfd = PPM_AT_FDCWD;
 	}
+	res = bpf_val_to_ring(data, (s64)mountfd);
+	CHECK_RES(res);
 
-	/*
-	 * mountfd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-	{
-		val = PPM_AT_FDCWD;
-	}
+	/* Parameter 3: flags (type: PT_FLAGS32) */
+	u32 flags = (u32)bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, open_flags_to_scap(flags));
+	CHECK_RES(res);
 	
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
-
-	/*
-	 * flags
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	flags = open_flags_to_scap(val);
-
-	res = bpf_val_to_ring(data, flags);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
-	
-	/*
-	 * path
-	 */
+	/* Parameter 4: path (type: PT_FSPATH) */
 	char* filepath = NULL;
 	if(retval > 0)
 	{
 		filepath = bpf_get_path(data, retval);
 	} 
-	res = bpf_val_to_ring(data,(unsigned long)filepath);
-	return res;
+	return bpf_val_to_ring(data,(unsigned long)filepath);
 }
 
 FILLER(sys_io_uring_setup_x, true)
