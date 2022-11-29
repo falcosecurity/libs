@@ -4980,52 +4980,33 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 
 int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 {
-	unsigned long flags;
-	unsigned long val;
-	int res;
-	int64_t retval;
+	unsigned long val = 0;
+	int res = 0;
+	long retval = 0;
 	char *pathname = NULL;
+	s32 mountfd = 0;
 
-	/*
-	 * fd
-	 */
-	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	/* Parameter 1: ret (type: PT_FD) */
+	retval = syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-	{
-		return res;
-	}
+	CHECK_RES(res);
 
-	/*
-	 * mountfd
-	 */
+	/* Parameter 2: mountfd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	if ((int)val == AT_FDCWD)
+	mountfd = (s32)val;
+	if(mountfd == AT_FDCWD)
 	{
-		val = PPM_AT_FDCWD;	
+		mountfd = PPM_AT_FDCWD;
 	}
+	res = val_to_ring(args, (s64)mountfd, 0, false, 0);
+	CHECK_RES(res);
 
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-	{
-		return res;
-	}
-
-	/*
-	 * flags
-	 */
+	/* Parameter 3: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	flags = open_flags_to_scap(val);
+	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
 
-	res = val_to_ring(args, flags, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-	{
-		return res;
-	}
-
-	/*
-	 * path
-	 */
+	/* Parameter 4: path (type: PT_FSPATH) */
 	if (retval > 0)
 	{
 		/* String storage size is exactly one page. 
@@ -5046,10 +5027,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	}
 
 	res = val_to_ring(args, (unsigned long)pathname, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-	{
-		return res;
-	}
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

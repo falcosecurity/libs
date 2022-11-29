@@ -12,7 +12,7 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 * 0. Create (temporary) mount point (if use_mountpoint).
 	 */
 	char tmpdir[] = "/tmp/modern.bpf.open_by_handle_atX_success_mp.XXXXXX";
-	char *dir_name;
+	char *dir_name = NULL;
 	*dirfd = AT_FDCWD;
 	if(use_mountpoint)
 	{
@@ -164,6 +164,14 @@ TEST(SyscallExit, open_by_handle_atX_success)
 TEST(SyscallExit, open_by_handle_atX_success_mp)
 {
 	auto evt_test = get_syscall_event_test(__NR_open_by_handle_at, EXIT_EVENT);
+
+	/* The old BPF probe is not able to collect the file path if it is under a mount point,
+	 * the implementation using old BPF features would be too complex to pass the verifier checks.
+	 */
+	if(evt_test->is_bpf_engine())
+	{
+		GTEST_SKIP() << "old BPF probe is not able to collect the mount path";
+	}
 
 	evt_test->enable_capture();
 
