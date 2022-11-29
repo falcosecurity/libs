@@ -607,17 +607,17 @@ void event_test::assert_tuple_inet_param(int param_num, uint8_t desired_family, 
 	/* Assert src ipv4. */
 	assert_ipv4_string(desired_src_ipv4, 1, SOURCE);
 
-	/* Assert dest ipv4. */
-	assert_ipv4_string(desired_dest_ipv4, 5, DEST);
-
 	/* Assert src port. */
-	assert_port_string(desired_src_port, 9, SOURCE);
+	assert_port_string(desired_src_port, 5, SOURCE);
+
+	/* Assert dest ipv4. */
+	assert_ipv4_string(desired_dest_ipv4, 7, DEST);
 
 	/* Assert dest port. */
 	assert_port_string(desired_dest_port, 11, DEST);
 
-	/* Assert (family + ipv4_src + ipv4_dest + port_src + port_dest) */
-	assert_param_len(FAMILY_SIZE + IPV4_SIZE + IPV4_SIZE + PORT_SIZE + PORT_SIZE);
+	/* Assert (family + ipv4_src + port_src + ipv4_dest + port_dest) */
+	assert_param_len(FAMILY_SIZE + IPV4_SIZE + PORT_SIZE + IPV4_SIZE + PORT_SIZE);
 }
 
 void event_test::assert_tuple_inet6_param(int param_num, uint8_t desired_family, const char* desired_src_ipv6, const char* desired_dest_ipv6,
@@ -631,17 +631,17 @@ void event_test::assert_tuple_inet6_param(int param_num, uint8_t desired_family,
 	/* Assert src ipv6. */
 	assert_ipv6_string(desired_src_ipv6, 1, SOURCE);
 
-	/* Assert dest ipv6. */
-	assert_ipv6_string(desired_dest_ipv6, 17, DEST);
-
 	/* Assert src port. */
-	assert_port_string(desired_src_port, 33, SOURCE);
+	assert_port_string(desired_src_port, 17, SOURCE);
+
+	/* Assert dest ipv6. */
+	assert_ipv6_string(desired_dest_ipv6, 19, DEST);
 
 	/* Assert dest port. */
 	assert_port_string(desired_dest_port, 35, DEST);
 
-	/* Assert (family + ipv6_src + ipv6_dest + port_src + port_dest)*/
-	assert_param_len(FAMILY_SIZE + IPV6_SIZE + IPV6_SIZE + PORT_SIZE + PORT_SIZE);
+	/* Assert (family + ipv6_src + port_src + ipv6_dest + port_dest)*/
+	assert_param_len(FAMILY_SIZE + IPV6_SIZE + PORT_SIZE + IPV6_SIZE + PORT_SIZE);
 }
 
 void event_test::assert_tuple_unix_param(int param_num, uint8_t desired_family, const char* desired_path)
