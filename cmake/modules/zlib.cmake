@@ -36,8 +36,8 @@ else()
 			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
+				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
+				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
 				CONFIGURE_COMMAND ./configure --prefix=${ZLIB_SRC} --static
 				BUILD_COMMAND ${CMD_MAKE}
 				BUILD_IN_SOURCE 1
@@ -48,11 +48,11 @@ else()
 			install(FILES ${ZLIB_HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/zlib"
 					COMPONENT "libs-deps")
 		else()
-			set(ZLIB_LIB "${ZLIB_SRC}/zdll.lib")
+			set(ZLIB_LIB "${ZLIB_SRC}/zlib.lib")
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
-				URL "https://github.com/madler/zlib/archive/v1.2.11.tar.gz"
-				URL_HASH "SHA256=629380c90a77b964d896ed37163f5c3a34f6e6d897311f1df2a7016355c45eff"
+				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
+				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
 				CONFIGURE_COMMAND ""
 				BUILD_COMMAND nmake -f win32/Makefile.msc
 				BUILD_IN_SOURCE 1
