@@ -126,15 +126,6 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 	// This is in Nanoseconds(in CRI API). Need to convert it to seconds.
 	container.m_created_time = static_cast<int64_t>(resp_container.created_at() / ONE_SECOND_IN_NS );
 
-	for(const auto &pair : resp_container.annotations())
-	{
-		if (pair.first == "io.kubernetes.cri-o.MountPoint")
-		{
-			container.m_overlayfs_root = pair.second;
-		}
-	}
-
-
 	for(const auto &pair : resp_container.labels())
 	{
 		if(pair.second.length() <= sinsp_container_info::m_container_label_max_length)
