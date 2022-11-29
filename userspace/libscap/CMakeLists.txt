@@ -23,9 +23,6 @@ if(NOT MSVC)
 	if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 		add_definitions(-DHAS_CAPTURE)
 	endif()
-else() # MSVC
-	# todo(leogr): this should be removed - double check
-	add_definitions(-DHAS_CAPTURE)
 endif()
 
 include(ExternalProject)
