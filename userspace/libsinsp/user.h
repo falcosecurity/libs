@@ -126,7 +126,6 @@ public:
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
 
-	void load_from_container(const std::string &container_id, const std::string &overlayfs_root);
 	bool clear_host_users_groups();
 
 	//
