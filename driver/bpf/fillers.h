@@ -5719,41 +5719,28 @@ FILLER(sys_unlinkat_x, true)
 
 FILLER(sys_mkdirat_x, true)
 {
-	unsigned long val;
-	long retval;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 2: dirfd (type: PT_FD) */
+	s32 dirfd = (s32)bpf_syscall_get_argument(data, 0);
+	if(dirfd == AT_FDCWD)
+	{
+		dirfd = PPM_AT_FDCWD;
+	}
+	res = bpf_val_to_ring(data, (s64)dirfd);
+	CHECK_RES(res);
 
-	/*
-	 * dirfd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if ((int)val == AT_FDCWD)
-		val = PPM_AT_FDCWD;
+	/* Parameter 3: path (type: PT_FSRELPATH) */
+	unsigned long path_pointer =  bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, path_pointer);
+	CHECK_RES(res);
 
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * path
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * mode
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/* Parameter 4: mode (type: PT_UINT32) */
+	u32 mode = (u32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, mode);
 }
 
 FILLER(sys_linkat_x, true)
