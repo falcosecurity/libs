@@ -27,9 +27,6 @@ if(NOT MSVC)
 	endif()
 	add_definitions(-DHAVE_PWD_H)
 	add_definitions(-DHAVE_GRP_H)
-else() # MSVC
-	# todo(leogr): this should be removed - double check
-	add_definitions(-DHAS_CAPTURE)
 endif()
 
 if(NOT DEFINED CHISEL_TOOL_LIBRARY_NAME)
