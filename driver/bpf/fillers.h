@@ -4482,41 +4482,37 @@ FILLER(sys_creat_x, true)
 
 FILLER(sys_pipe_x, true)
 {
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	s32 pipefd[2] = {-1, -1};
+	/* This is a pointer to the vector with the 2 file descriptors. */
+	unsigned long fd_vector_pointer = bpf_syscall_get_argument(data, 0);
+	if(bpf_probe_read(pipefd, sizeof(pipefd), (void *)fd_vector_pointer))
+	{
+		pipefd[0] = -1;
+		pipefd[1] = -1;
+	}
+
+	/* Parameter 2: fd1 (type: PT_FD) */
+	res = bpf_val_to_ring(data, (s64)pipefd[0]);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd2 (type: PT_FD) */
+	res = bpf_val_to_ring(data, (s64)pipefd[1]);
+	CHECK_RES(res);
+
 	unsigned long ino = 0;
-	unsigned long dev;
-	unsigned long val;
-	long retval;
-	int fds[2];
-	int res;
-
-	/*
-	 * retval
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * fds
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	if (bpf_probe_read(fds, sizeof(fds), (void *)val))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	res = bpf_val_to_ring(data, fds[0]);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	res = bpf_val_to_ring(data, fds[1]);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	bpf_get_fd_dev_ino(fds[0], &dev, &ino);
-
-	res = bpf_val_to_ring(data, ino);
-
-	return res;
+	/* Not used, we use it just to call `bpf_get_fd_dev_ino` */
+	unsigned long dev = 0;
+	/* On success, pipe returns `0` */
+	if(retval == 0)
+	{
+		bpf_get_fd_dev_ino(pipefd[0], &dev, &ino);
+	}
+	return bpf_val_to_ring(data, ino);
 }
 
 FILLER(sys_lseek_e, true)

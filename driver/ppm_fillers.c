@@ -2986,51 +2986,54 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 
 int f_sys_pipe_x(struct event_filler_arguments *args)
 {
-	int res;
-	int64_t retval;
-	unsigned long val;
-	int fds[2];
+	int res = 0;
+	int64_t retval = 0;
+	unsigned long val = 0;
+	int pipefd[2] = {-1, -1};
 	uint32_t dev = 0;
 	uint64_t ino = 0;
 
-	/*
-	 * retval
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * fds
-	 */
+	/* Here `val` is a pointer to the vector with the 2 file descriptors. */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
-		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, sizeof(fds))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd))))
+		{
+			pipefd[0] = -1;
+			pipefd[1] = -1;
+		}
 #ifdef CONFIG_COMPAT
 	} else {
-		if (unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), sizeof(fds))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)compat_ptr(val), sizeof(pipefd))))
+		{
+			pipefd[0] = -1;
+			pipefd[1] = -1;
+		}
 	}
 #endif
 
-	res = val_to_ring(args, fds[0], 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* Parameter 2: fd1 (type: PT_FD) */
+	res = val_to_ring(args, (s64)pipefd[0], 0, false, 0);
+	CHECK_RES(res);
 
-	res = val_to_ring(args, fds[1], 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* Parameter 3: fd2 (type: PT_FD) */
+	res = val_to_ring(args, (s64)pipefd[1], 0, false, 0);
+	CHECK_RES(res);
 
-	get_fd_dev_ino(fds[0], &dev, &ino);
-
+	/* On success, pipe returns `0` */
+	if(retval == 0)
+	{
+		get_fd_dev_ino(pipefd[0], &dev, &ino);
+	}
 	res = val_to_ring(args, ino, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
