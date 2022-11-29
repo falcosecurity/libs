@@ -333,6 +333,11 @@ scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uin
 
 scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
 {
+	if(!m_import_users)
+	{
+		return nullptr;
+	}
+
 	ASSERT(!container_id.empty());
 	ASSERT(uid != 0);
 
@@ -456,6 +461,11 @@ scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, u
 
 scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify)
 {
+	if(!m_import_users)
+	{
+		return nullptr;
+	}
+
 	ASSERT(!container_id.empty());
 	ASSERT(gid != 0);
 
