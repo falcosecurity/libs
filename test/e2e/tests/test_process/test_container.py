@@ -86,6 +86,8 @@ def test_container_root_user(run_containers: dict):
 
     container_id = get_container_id(app_container)
 
+    app_container.exec_run("sh -c ls", user='nginx')
+
     expected_events = [
         {
             'container.id': get_container_id(run_containers['nginx']),
@@ -98,6 +100,14 @@ def test_container_root_user(run_containers: dict):
             'user.homedir': '/root',
             'group.gid': 0,
             'group.name': 'root'
+        }, {
+            'container.id': container_id,
+            'evt.category': 'process',
+            'evt.type': 'execve',
+            'proc.exe': 'sh',
+            'proc.cmdline': 'sh -c ls',
+            'user.name': 'nginx',
+            'group.name': 'nginx',
         }
     ]
 
