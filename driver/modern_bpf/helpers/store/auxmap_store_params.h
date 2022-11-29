@@ -777,19 +777,19 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		if(direction == OUTBOUND)
 		{
 			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_local);
-			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_remote);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_remote);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
 		}
 		else
 		{
 			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_remote);
-			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_local);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+			push__u32(auxmap->data, &auxmap->payload_pos, ipv4_local);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
 		}
 
-		final_param_len = FAMILY_SIZE + IPV4_SIZE + IPV4_SIZE + PORT_SIZE + PORT_SIZE;
+		final_param_len = FAMILY_SIZE + IPV4_SIZE + PORT_SIZE + IPV4_SIZE + PORT_SIZE;
 		break;
 	}
 
@@ -820,18 +820,18 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 		if(direction == OUTBOUND)
 		{
 			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_local);
-			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_remote);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_remote);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
 		}
 		else
 		{
 			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_remote);
-			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_local);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_remote));
+			push__ipv6(auxmap->data, &auxmap->payload_pos, ipv6_local);
 			push__u16(auxmap->data, &auxmap->payload_pos, ntohs(port_local));
 		}
-		final_param_len = FAMILY_SIZE + IPV6_SIZE + IPV6_SIZE + PORT_SIZE + PORT_SIZE;
+		final_param_len = FAMILY_SIZE + IPV6_SIZE + PORT_SIZE + IPV6_SIZE + PORT_SIZE;
 		break;
 	}
 
