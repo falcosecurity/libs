@@ -873,17 +873,6 @@ bool docker_async_source::parse(const docker_lookup_request& request, sinsp_cont
 
 	container.m_size_rw_bytes = root["SizeRw"].asInt64();
 
-	try
-	{
-		auto lowerdir = root["GraphDriver"]["Data"]["LowerDir"].asString();
-		container.m_overlayfs_root = lowerdir.substr(lowerdir.find_last_of(':') + 1);
-
-	}
-	catch (const std::exception &)
-	{
-		container.m_overlayfs_root = "";
-	}
-
 	g_logger.format(sinsp_logger::SEV_DEBUG,
 			"docker_async (%s): parse returning true",
 			request.container_id.c_str());

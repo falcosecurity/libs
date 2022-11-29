@@ -336,11 +336,6 @@ public:
 	int64_t m_created_time;
 
 	/**
-	 * Root of the overlayfs, fetched from container runtime (lowerdir)
-	 */
-	std::string m_overlayfs_root;
-
-	/**
 	 * The max container label length value. This is static because it is 
 	 * universal across all instances and needs to be set once only.
 	 */

@@ -168,7 +168,6 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	container["is_pod_sandbox"] = container_info.m_is_pod_sandbox;
 	container["lookup_state"] = static_cast<int>(container_info.get_lookup_status());
 	container["created_time"] = static_cast<Json::Value::Int64>(container_info.m_created_time);
-	container["lowerdir"] = container_info.m_overlayfs_root;
 
 	Json::Value mounts = Json::arrayValue;
 
