@@ -2161,11 +2161,11 @@ static __always_inline struct inode *get_exe_inode(struct task_struct *task)
 static __always_inline unsigned long long bpf_epoch_ns_from_time(struct timespec64 time)
 {
 	time64_t tv_sec = time.tv_sec;
-	if (tv_sec > 0)
+	if (tv_sec < 0)
 	{
-		return (tv_sec * (uint64_t) 1000000000 + time.tv_nsec);
+		return 0;
 	}
-	return 0;
+	return (tv_sec * (uint64_t) 1000000000 + time.tv_nsec);
 }
 
 static __always_inline bool get_exe_writable(struct inode *inode, struct cred *cred)
@@ -2869,7 +2869,6 @@ FILLER(execve_family_flags, true)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
 	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
-	CHECK_RES(res);
 
 	return res;
 }
@@ -6561,7 +6560,6 @@ FILLER(sched_prog_exec_4, false)
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
 	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
-	CHECK_RES(res);
 
 	return res;
 }
@@ -6901,7 +6899,6 @@ FILLER(sched_prog_fork_3, false)
 		pidns_init_start_time = _READ(child_reaper->start_time);
 	}
 	res = bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
-	CHECK_RES(res);
 
 	return res;
 
