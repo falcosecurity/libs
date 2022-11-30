@@ -507,23 +507,8 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
 	if (!user)
 	{
-		// these can fail if import_user is disabled
-		if(m_container_id.empty())
-		{
-			user = m_inspector->m_usergroup_manager.add_user(m_container_id, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
-		}
-		else if(uid != 0)
-		{
-			//
-			// When a container is running with a specific user and this
-			// get called with 0, it's too early to make an attempt.
-			// As a downside we won't load users for containers running as
-			// root, but we will load them if e.g.docker exec -u <specific-user>.
-			//
-			user = m_inspector->m_usergroup_manager.add_container_user(m_container_id, m_pid, uid, m_inspector->is_live());
-		}
+		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
 	}
-
 	if (user)
 	{
 		memcpy(&m_user, user, sizeof(scap_userinfo));
@@ -543,23 +528,8 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if (!group)
 	{
-		// these can fail if import_user is disabled
-		if(m_container_id.empty())
-		{
-			group = m_inspector->m_usergroup_manager.add_group(m_container_id, gid, NULL, m_inspector->is_live());
-		}
-		else if(gid != 0)
-		{
-			//
-			// When a container is running with a specific user and this
-			// get called with 0, it's too early to make an attempt.
-			// As a downside we won't load users for containers running as
-			// root, but we will load them if e.g.docker exec -u <specific-user>.
-			//
-			group = m_inspector->m_usergroup_manager.add_container_group(m_container_id, m_pid, gid, m_inspector->is_live());
-		}
+		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, NULL, m_inspector->is_live());
 	}
-
 	if (group)
 	{
 		memcpy(&m_group, group, sizeof(scap_groupinfo));
@@ -569,19 +539,12 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 		m_group.gid = gid;
 		strlcpy(m_group.name, (gid == 0) ? "root" : "<NA>", sizeof(m_group.name));
 	}
-	// Force-sync user.gid and group id
 	m_user.gid = m_group.gid;
 }
 
 void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 {
 	scap_userinfo *login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
-	if (!login_user)
-	{
-		// this can fail if import_user is disabled
-		login_user = m_inspector->m_usergroup_manager.get_user(m_container_id, loginuid);
-	}
-
 	if (login_user)
 	{
 		memcpy(&m_loginuser, login_user, sizeof(scap_userinfo));
@@ -590,8 +553,8 @@ void sinsp_threadinfo::set_loginuser(uint32_t loginuid)
 	{
 		m_loginuser.uid = loginuid;
 		m_loginuser.gid = m_group.gid;
-		strlcpy(m_loginuser.name, "<NA>", sizeof(m_loginuser.name));
-		strlcpy(m_loginuser.homedir, "<NA>", sizeof(m_loginuser.homedir));
+		strlcpy(m_loginuser.name, loginuid == 0 ? "root" : "<NA>", sizeof(m_loginuser.name));
+		strlcpy(m_loginuser.homedir, loginuid == 0  ? "/root" : "<NA>", sizeof(m_loginuser.homedir));
 		strlcpy(m_loginuser.shell, "<NA>", sizeof(m_loginuser.shell));
 	}
 }

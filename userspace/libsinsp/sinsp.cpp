@@ -951,12 +951,12 @@ void sinsp::import_user_list()
 	{
 		for(j = 0; j < ul->nusers; j++)
 		{
-			m_usergroup_manager.add_user("", ul->users[j].uid, ul->users[j].gid, ul->users[j].name, ul->users[j].homedir, ul->users[j].shell);
+			m_usergroup_manager.add_user("", -1, ul->users[j].uid, ul->users[j].gid, ul->users[j].name, ul->users[j].homedir, ul->users[j].shell);
 		}
 
 		for(j = 0; j < ul->ngroups; j++)
 		{
-			m_usergroup_manager.add_group("", ul->groups[j].gid, ul->groups[j].name);
+			m_usergroup_manager.add_group("", -1, ul->groups[j].gid, ul->groups[j].name);
 		}
 	}
 }
