@@ -117,11 +117,10 @@ public:
 	*/
 	scap_groupinfo* get_group(const std::string &container_id, uint32_t gid);
 
-	scap_userinfo *add_user(const std::string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
-	scap_groupinfo *add_group(const std::string &container_id, uint32_t gid, const char *name, bool notify = false);
-
-	scap_userinfo *add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify = false);
-	scap_groupinfo *add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify = false);
+	// Note: pid is an unused paramter when container_id is an empty string
+	// ie: it is only used when adding users/groups from containers.
+	scap_userinfo *add_user(const std::string &container_id, int64_t pid, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
+	scap_groupinfo *add_group(const std::string &container_id, int64_t pid, uint32_t gid, const char *name, bool notify = false);
 
 	bool rm_user(const std::string &container_id, uint32_t uid, bool notify = false);
 	bool rm_group(const std::string &container_id, uint32_t gid, bool notify = false);
@@ -134,6 +133,12 @@ public:
 	bool m_import_users;
 
 private:
+	scap_userinfo *add_host_user(uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify);
+	scap_userinfo *add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify);
+
+	scap_groupinfo *add_host_group(uint32_t gid, const char *name, bool notify);
+	scap_groupinfo *add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify);
+
 	bool user_to_sinsp_event(const scap_userinfo *user, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 	bool group_to_sinsp_event(const scap_groupinfo *group, sinsp_evt* evt, const std::string &container_id, uint16_t ev_type);
 
@@ -162,6 +167,9 @@ private:
 	uint64_t m_last_flush_time_ns;
 	sinsp *m_inspector;
 
+	// User and group used as a fallback when m_import_users is disabled
+	scap_userinfo m_fallback_user;
+	scap_groupinfo m_fallback_grp;
 
 	const std::string &m_host_root;
 	libsinsp::procfs_utils::ns_helper *m_ns_helper;

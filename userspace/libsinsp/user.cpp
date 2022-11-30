@@ -127,6 +127,10 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	, m_ns_helper(nullptr)
 #endif
 {
+	strlcpy(m_fallback_user.name, "<NA>", sizeof(m_fallback_user.name));
+	strlcpy(m_fallback_user.homedir, "<NA>", sizeof(m_fallback_user.homedir));
+	strlcpy(m_fallback_user.shell, "<NA>", sizeof(m_fallback_user.shell));
+	strlcpy(m_fallback_grp.name, "<NA>", sizeof(m_fallback_grp.name));
 }
 
 sinsp_usergroup_manager::~sinsp_usergroup_manager()
@@ -139,7 +143,9 @@ sinsp_usergroup_manager::~sinsp_usergroup_manager()
 
 void sinsp_usergroup_manager::subscribe_container_mgr()
 {
-	if (m_import_users)
+	// Do nothing if subscribe_container_mgr() is called in capture mode, because
+	// events shall not be sent as they will be loaded from capture file.
+	if (m_import_users && !m_inspector->is_capture())
 	{
 		// Emplace container manager listener to delete container users upon container deletion
 		m_inspector->m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {
@@ -271,89 +277,99 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
 	return &grp;
 }
 
-scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
+scap_userinfo *sinsp_usergroup_manager::add_user(const string &container_id, int64_t pid, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
 {
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"adding user: container: %s, name: %s",
-			container_id.c_str(), name);
-
 	if (!m_import_users)
 	{
-		return nullptr;
+		m_fallback_user.uid = uid;
+		m_fallback_user.gid = gid;
+		return &m_fallback_user;
 	}
 
 	scap_userinfo *usr = get_user(container_id, uid);
-	if (!usr)
-	{
-		bool inserted{false};
-		if (name)
-		{
-			usr = userinfo_map_insert(
-				m_userlist[container_id],
-				uid,
-				gid,
-				name,
-				home,
-				shell);
-			inserted = true;
-		}
-		else if (container_id.empty())
-		{
-#ifdef HAVE_PWD_H
-			// On Host, try to load info from db
-			auto* p = __getpwuid(uid, m_host_root);
-			if (p)
-			{
-				usr = userinfo_map_insert(
-					m_userlist[container_id],
-					p->pw_uid,
-					p->pw_gid,
-					p->pw_name,
-					p->pw_dir,
-					p->pw_shell);
-				inserted = true;
-			}
-#endif
-		}
-
-		if (notify && inserted)
-		{
-			notify_user_changed(usr, container_id);
-		}
-	}
-	else if (name != NULL)
+	if(usr)
 	{
 		// Update user if it was already there
-		strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
-		strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
-		strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
+		if (name)
+		{
+			strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
+			strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
+			strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
+		}
+		return usr;
 	}
-	return usr;
+
+	if (container_id.empty())
+	{
+		return add_host_user(uid, gid, name, home, shell, notify);
+	}
+	return add_container_user(container_id, pid, uid, notify);
+}
+
+scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify)
+{
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding host user: name: %s", name);
+
+	scap_userinfo *retval{nullptr};
+	if (name)
+	{
+		retval = userinfo_map_insert(
+			m_userlist[""],
+			uid,
+			gid,
+			name,
+			home,
+			shell);
+	}
+	else
+	{
+#ifdef HAVE_PWD_H
+		// On Host, try to load info from db
+		auto* p = __getpwuid(uid, m_host_root);
+		if (p)
+		{
+			retval = userinfo_map_insert(
+				m_userlist[""],
+				p->pw_uid,
+				p->pw_gid,
+				p->pw_name,
+				p->pw_dir,
+				p->pw_shell);
+		}
+#endif
+	}
+
+	if (notify && retval)
+	{
+		notify_user_changed(retval, "");
+	}
+	return retval;
 }
 
 scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)
 {
-	ASSERT(!container_id.empty());
-	ASSERT(uid != 0);
-
-	auto userlist_it = m_userlist.find(container_id);
-	if(userlist_it != m_userlist.end())
-	{
-		// userlist for this container exists
-		auto it = userlist_it->second.find(uid);
-		// not an expected condition to miss, but handle it anyway
-		return (it == userlist_it->second.end())
-			       ? nullptr
-			       : &it->second;
-	}
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding container [%s] user %d", container_id.c_str(), uid);
 
 	scap_userinfo *retval{nullptr};
 
+	//
+	// When a container is running with a specific user and this
+	// get called with 0, it's too early to make an attempt.
+	// As a downside we won't load users for containers running as
+	// root, but we will load them if e.g.docker exec -u <specific-user>.
+	//
+	if (uid == 0)
+	{
+		return retval;
+	}
+
 #if defined HAVE_PWD_H && defined HAVE_FGET__ENT
 
-	if(false == m_ns_helper->in_own_ns_mnt(pid))
+	if(!m_ns_helper->in_own_ns_mnt(pid))
 	{
-		return nullptr;
+		return retval;
 	}
 
 	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/passwd";
@@ -408,75 +424,83 @@ bool sinsp_usergroup_manager::rm_user(const string &container_id, uint32_t uid, 
 	return res;
 }
 
-scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, uint32_t gid, const char *name, bool notify)
+scap_groupinfo *sinsp_usergroup_manager::add_group(const string &container_id, int64_t pid, uint32_t gid, const char *name, bool notify)
 {
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"adding group: container: %s, name: %s",
-			container_id.c_str(), name);
 	if (!m_import_users)
 	{
-		return nullptr;
+		m_fallback_grp.gid = gid;
+		return &m_fallback_grp;
 	}
 
 	scap_groupinfo *gr = get_group(container_id, gid);
-	if (!gr)
-	{
-		bool inserted{false};
-		if (name)
-		{
-			gr = groupinfo_map_insert(m_grouplist[container_id], gid, name);
-			inserted = true;
-		}
-		else if (container_id.empty())
-		{
-#ifdef HAVE_GRP_H
-			// On Host, try to load info from db
-			auto* g = __getgrgid(gid, m_host_root);
-			if (g)
-			{
-				gr = groupinfo_map_insert(m_grouplist[container_id], g->gr_gid, g->gr_name);
-				inserted = true;
-			}
-#endif
-		}
-
-		if (notify && inserted)
-		{
-			notify_group_changed(gr, container_id, true);
-		}
-	}
-	else if (name != NULL)
+	if (gr)
 	{
 		// Update group if it was already there
-		strlcpy(gr->name, name, MAX_CREDENTIALS_STR_LEN);
+		if (name != nullptr)
+		{
+			strlcpy(gr->name, name, MAX_CREDENTIALS_STR_LEN);
+		}
+		return gr;
+	}
 
+	if (container_id.empty())
+	{
+		return add_host_group(gid, name, notify);
+	}
+	return add_container_group(container_id, pid, gid, notify);
+}
+
+scap_groupinfo *sinsp_usergroup_manager::add_host_group(uint32_t gid, const char *name, bool notify)
+{
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding host group: name: %s", name);
+
+	scap_groupinfo *gr = nullptr;
+	if (name)
+	{
+		gr = groupinfo_map_insert(m_grouplist[""], gid, name);
+	}
+	else
+	{
+#ifdef HAVE_GRP_H
+		// On Host, try to load info from db
+		auto* g = __getgrgid(gid, m_host_root);
+		if (g)
+		{
+			gr = groupinfo_map_insert(m_grouplist[""], g->gr_gid, g->gr_name);
+		}
+#endif
+	}
+
+	if (notify && gr)
+	{
+		notify_group_changed(gr, "", true);
 	}
 	return gr;
 }
 
 scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &container_id, int64_t pid, uint32_t gid, bool notify)
 {
-	ASSERT(!container_id.empty());
-	ASSERT(gid != 0);
-
-	auto grouplist_it = m_grouplist.find(container_id);
-	if(grouplist_it != m_grouplist.end())
-	{
-		// grouplist for this container exists
-		auto it = grouplist_it->second.find(gid);
-		// not an expected condition to miss, but handle it anyway
-		return (it == grouplist_it->second.end())
-			       ? nullptr
-			       : &it->second;
-	}
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"adding container [%s] group: %d", container_id.c_str(), gid);
 
 	scap_groupinfo *retval{nullptr};
 
-#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
-
-	if(false == m_ns_helper->in_own_ns_mnt(pid))
+	//
+	// When a container is running with a specific user and this
+	// get called with 0, it's too early to make an attempt.
+	// As a downside we won't load users for containers running as
+	// root, but we will load them if e.g.docker exec -u <specific-user>.
+	//
+	if(gid == 0)
 	{
-		return nullptr;
+		return retval;
+	}
+
+#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
+	if(!m_ns_helper->in_own_ns_mnt(pid))
+	{
+		return retval;
 	}
 
 	std::string path = m_ns_helper->get_pid_root(pid) + "/etc/group";
@@ -536,11 +560,6 @@ const unordered_map<uint32_t, scap_userinfo>* sinsp_usergroup_manager::get_userl
 
 scap_userinfo* sinsp_usergroup_manager::get_user(const string &container_id, uint32_t uid)
 {
-	if(uid == 0xffffffff)
-	{
-		return nullptr;
-	}
-
 	if (m_userlist.find(container_id) == m_userlist.end())
 	{
 		return nullptr;
@@ -566,11 +585,6 @@ const unordered_map<uint32_t, scap_groupinfo>* sinsp_usergroup_manager::get_grou
 
 scap_groupinfo* sinsp_usergroup_manager::get_group(const std::string &container_id, uint32_t gid)
 {
-	if(gid == 0xffffffff)
-	{
-		return nullptr;
-	}
-
 	if (m_grouplist.find(container_id) == m_grouplist.end())
 	{
 		return nullptr;
