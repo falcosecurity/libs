@@ -842,6 +842,10 @@ void scap_close(scap_t* handle)
 
 	if(handle->m_vtable)
 	{
+		/* The capture should be stopped before
+		 * closing the engine, here we only enforce it.
+		 */
+		handle->m_vtable->stop_capture(handle->m_engine);
 		handle->m_vtable->close(handle->m_engine);
 		handle->m_vtable->free_handle(handle->m_engine);
 	}
