@@ -297,7 +297,7 @@ jobs:
             cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=True
           - name: system_deps_w_chisels
             cmake_opts: -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False -DWITH_CHISEL=True
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container:
       image: debian:buster
       volumes:
