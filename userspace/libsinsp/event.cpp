@@ -2213,6 +2213,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		uint32_t val = *(uint32_t *)payload;
 		if (val < std::numeric_limits<uint32_t>::max())
 		{
+			// Note: we want to resolve user given the uid
+			// from the event.
+			// Eg: for setuid() the requested uid is not
+			// the threadinfo one yet;
+			// therefore we cannot directly use tinfo->m_user here.
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
@@ -2250,6 +2255,11 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		uint32_t val = *(uint32_t *)payload;
 		if (val < std::numeric_limits<uint32_t>::max())
 		{
+			// Note: we want to resolve group given the gid
+			// from the event.
+			// Eg: for setgid() the requested gid is not
+			// the threadinfo one yet;
+			// therefore we cannot directly use tinfo->m_group here.
 			snprintf(&m_paramstr_storage[0],
 					 m_paramstr_storage.size(),
 					 "%d", val);
