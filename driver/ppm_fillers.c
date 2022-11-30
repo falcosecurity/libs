@@ -6612,6 +6612,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	bool exe_upper_layer = false;
 	struct file *exe_file = NULL;
 	const struct cred *cred = NULL;
+	unsigned long long time = 0;
 
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -6956,11 +6957,11 @@ cgroups_error:
 		if (file_inode(exe_file)) {
 
 			/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-			val = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+			time = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
 		}
 	}
 
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, time, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		goto exe_file_out;
 
@@ -6972,11 +6973,11 @@ cgroups_error:
 		if (file_inode(exe_file)) {
 
 			/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-			val = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
+			time = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 		}
 	}
 
-	res = val_to_ring(args, val, 0, false, 0);
+	res = val_to_ring(args, time, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		goto exe_file_out;
 
@@ -7014,6 +7015,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	uint64_t euid = task_euid(child).val;
 	uint64_t egid = child->cred->egid.val;
 	struct pid_namespace *pidns = task_active_pid_ns(child);
+	unsigned long long time = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: here we are in the clone child exit
@@ -7254,6 +7256,15 @@ cgroups_error:
 	{
 		return res;
 	}
+
+	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+	if (pidns)
+	{
+		child_reaper = pidns->child_reaper;
+		time = child_reaper->start_time;
+	}
+	res = val_to_ring(args, time, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
