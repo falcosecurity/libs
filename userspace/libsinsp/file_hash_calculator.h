@@ -21,8 +21,6 @@ limitations under the License.
 #pragma once
 
 #define HASHING_CHUNK_SIZE 32 * 1024 * 1024
-#define HASHING_MAX_EXE_SIZE 300 * 1024 * 1024
-#define HASHING_MAX_HASHING_TIME_NS 5LL * 1000000000
 #undef HASHING_USE_CACHE
 
 class hash_cache_entry

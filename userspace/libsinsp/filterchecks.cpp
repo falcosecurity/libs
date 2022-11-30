@@ -2598,7 +2598,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(m_u64val);
 	case TYPE_HASH_IS_MALWARE:
 	case TYPE_HASH_CATEGORY:
-		if(evt->get_type() == PPME_SYSCALL_EXE_HASH_E && m_inspector->m_exec_hashing_enabled)
+		if(evt->get_type() == PPME_EXE_HASH_E && m_inspector->m_exec_hashing_enabled)
 		{
 			sinsp_evt_param* param = evt->get_param(2);
 			char* key = (char *)param->m_val;

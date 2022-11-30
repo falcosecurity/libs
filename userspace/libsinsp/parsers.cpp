@@ -67,7 +67,7 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
-	init_metaevt(m_exe_hash_metaevents_state, PPME_SYSCALL_EXE_HASH_E, SP_EVT_BUF_SIZE);
+	init_metaevt(m_exe_hash_metaevents_state, PPME_EXE_HASH_E, SP_EVT_BUF_SIZE);
 	m_drop_event_flags = EF_NONE;
 }
 
@@ -2364,7 +2364,7 @@ void sinsp_parser::fill_exehash_event_payload(metaevents_state* state, int64_t r
 	if(tot_len > state->m_scap_buf_size)
 	{
 		ASSERT(false);
-		sinsp_parser::init_scapevt(*state, PPME_SYSCALL_EXE_HASH_E, tot_len);
+		sinsp_parser::init_scapevt(*state, PPME_EXE_HASH_E, tot_len);
 	}
 
 	state->m_piscapevt->len = tot_len;

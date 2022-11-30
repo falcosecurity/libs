@@ -1170,8 +1170,8 @@ enum ppm_event_type {
 	PPME_SYSCALL_MLOCK2_X = 371,
 	PPME_SYSCALL_FSCONFIG_E = 372,
 	PPME_SYSCALL_FSCONFIG_X = 373,
-	PPME_SYSCALL_EXE_HASH_E = 374,
-	PPME_SYSCALL_EXE_HASH_X = 375,  /* This should never be called */
+	PPME_EXE_HASH_E = 374,
+	PPME_EXE_HASH_X = 375,  /* This should never be called */
 	PPM_EVENT_MAX = 376
 };
 /*@}*/

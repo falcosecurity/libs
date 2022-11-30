@@ -107,7 +107,15 @@ static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 #define METADATA_DATA_WATCH_FREQ_SEC 1
 
 //
+// HASHING
+//
+// Maximum size that an executable can have to be hashed.
+// If the file is bigger than this, it won't be hashed.
+#define HASHING_MAX_EXE_SIZE 300 * 1024 * 1024
+// Maximum time that the hashing engine can spend hashing a file.
+// If the hashing takes longer than this, it will be aborted.
+#define HASHING_MAX_HASHING_TIME_NS 5LL * 1000000000
+
 // Maximum size of the executable checksum cache.
 // Each entry has a string containing a FS path as the key, and around 40 bytes as the value.
-//
 #define MAX_CHECKSUM_CACHE_ENTRIES 1024
