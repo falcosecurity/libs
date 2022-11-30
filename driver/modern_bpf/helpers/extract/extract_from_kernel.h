@@ -166,11 +166,11 @@ static __always_inline void extract__ino_from_inode(struct inode *f_inode, u64 *
 static __always_inline u64 extract__epoch_ns_from_time(struct timespec64 time)
 {
 	time64_t tv_sec = time.tv_sec;
-	if (tv_sec > 0)
+	if (tv_sec < 0)
 	{
-		return (tv_sec * (uint64_t) 1000000000 + time.tv_nsec);
+		return 0;
 	}
-	return 0;
+	return (tv_sec * (uint64_t) 1000000000 + time.tv_nsec);
 }
 
 /**
@@ -386,10 +386,10 @@ static __always_inline pid_t extract__task_xid_vnr(struct task_struct *task, enu
  * @param type pid type.
  * @return `start_time` of init task struct from pid namespace seen from current task pid namespace.
  */
-static __always_inline u64 extract__task_pidns_start_time(struct task_struct *task, enum pid_type type, long ret)
+static __always_inline u64 extract__task_pidns_start_time(struct task_struct *task, enum pid_type type, long in_childtid)
 {
 	// only perform lookup when clone/vfork/fork returns 0 (child process / childtid)
-	if (ret == 0)
+	if (in_childtid == 0)
 	{
 		struct pid *pid_struct = extract__task_pid_struct(task, type);
 		struct pid_namespace *pid_namespace = extract__namespace_of_pid(pid_struct);
