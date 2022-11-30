@@ -64,8 +64,6 @@ struct scap
 
 // Scan a directory containing process information
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error);
-// Scan process information from engine vtable
-int32_t scap_proc_scan_vtable(char *error, scap_t *handle);
 // Free the process table
 void scap_proc_free_table(struct scap_proclist* proclist);
 // Return the process info entry given a tid
@@ -76,8 +74,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
-// scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
-int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
 // Allocate and return the list of interfaces on this system
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces

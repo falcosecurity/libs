@@ -79,7 +79,8 @@ add_library(scap
 set_scap_target_properties(scap)
 
 add_library(scap_platform_util
-	scap_iflist.c)
+	scap_iflist.c
+	scap_proc_util.c)
 set_scap_target_properties(scap_platform_util)
 
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")

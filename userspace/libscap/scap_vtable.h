@@ -29,6 +29,7 @@ extern "C" {
 struct scap_stats;
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
+struct scap_proclist;
 
 enum scap_ppm_sc_mask_op {
 	// SCAP_PPM_SC_MASK_ZERO = 0, //< disable all syscalls - SUPPORT DROPPED
@@ -256,24 +257,12 @@ struct scap_vtable {
 	/**
 	 * @brief get information about all threads in the system
 	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param n [out] the number of scap_threadinfo structures returned
-	 * @param tinfos [out] an array of scap_threadinfo structures
-	 * 				 that represent the state of the system, owned by the engine
+	 * @param proclist the process list to fill
+	 * @param error a SCAP_LASTERR_SIZE buffer for error messages
 	 * @return SCAP_SUCCESS or a failure code
 	 *
 	 */
-	int32_t (*get_threadinfos)(struct scap_engine_handle engine, uint64_t *n, const scap_threadinfo **tinfos);
-
-	/**
-	 * @brief get information about file descriptors for a thread that was identified by get_threadinfos
-	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param tinfo a thread pointer returned by get_threadinfos
-	 * @param n [out] the number of scap_fdinfo structures returned 
-	 * @param fdinfos [out] an array of scap_fdinfo structures
-	 * @return SCAP_SUCCESS or a failure code
-	 *
-	 */
-	int32_t (*get_fdinfos)(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+	int32_t (*get_threadinfos)(struct scap_engine_handle engine, struct scap_proclist* proclist, char *error);
 
 	/**
 	 * @brief get the current process id in the init pid namespace

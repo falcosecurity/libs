@@ -35,6 +35,7 @@ typedef struct test_input_engine test_input_engine;
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_proc_util.h"
 #include "strlcpy.h"
 
 static struct test_input_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
@@ -67,20 +68,9 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 }
 
 
-static int32_t get_threadinfos(struct scap_engine_handle handle, uint64_t *n, const scap_threadinfo **tinfos)
+static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
 {
-	test_input_engine *engine = handle.m_handle;
-	scap_test_input_data *data = engine->m_data;
-
-	*tinfos = data->threads;
-	*n = data->thread_count;
-
-	return SCAP_SUCCESS;
-}
-
-static int32_t get_fdinfos(struct scap_engine_handle handle, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
-{
-	test_input_engine *engine = handle.m_handle;
+	test_input_engine *engine = ctx;
 	scap_test_input_data *data = engine->m_data;
 	size_t i;
 
@@ -95,6 +85,14 @@ static int32_t get_fdinfos(struct scap_engine_handle handle, const scap_threadin
 
 	snprintf(engine->m_lasterr, SCAP_LASTERR_SIZE, "Could not find thread info for tid %lu", tinfo->tid);
 	return SCAP_FAILURE;
+}
+
+static int32_t get_threadinfos(struct scap_engine_handle handle, struct scap_proclist *proclist, char *error)
+{
+	test_input_engine *engine = handle.m_handle;
+	scap_test_input_data *data = engine->m_data;
+
+	return scap_proc_scan_vtable(error, proclist, data->thread_count, data->threads, engine, get_fdinfos);
 }
 
 static int32_t init(scap_t* main_handle, scap_open_args* oargs)
@@ -130,7 +128,6 @@ const struct scap_vtable scap_test_input_engine = {
 	.get_max_buf_used = noop_get_max_buf_used,
 	.get_threadlist = noop_get_threadlist,
 	.get_threadinfos = get_threadinfos,
-	.get_fdinfos = get_fdinfos,
 	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
