@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "scap_const.h"
+#include "scap_platform_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -773,17 +774,6 @@ int32_t scap_stop_capture(scap_t* handle);
 int32_t scap_start_capture(scap_t* handle);
 
 /*!
-  \brief Return the list of the the user interfaces of the machine from which the
-  events are being captured.
-
-  \param handle Handle to the capture instance.
-
-  \return The pointer to a \ref scap_addrlist structure containing the interface list,
-  or NULL if the function fails.
-*/
-scap_addrlist* scap_get_ifaddr_list(scap_t* handle);
-
-/*!
   \brief Return the machine user and group lists
 
   \param handle Handle to the capture instance.
@@ -1005,7 +995,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio);
 int32_t scap_enable_dynamic_snaplen(scap_t* handle);
 int32_t scap_disable_dynamic_snaplen(scap_t* handle);
 void scap_free_device_table(scap_t* handle);
-void scap_refresh_iflist(scap_t* handle);
 int32_t scap_refresh_proc_table(scap_t* handle);
 uint64_t scap_ftell(scap_t *handle);
 void scap_fseek(scap_t *handle, uint64_t off);

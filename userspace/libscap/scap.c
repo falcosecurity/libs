@@ -104,15 +104,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
-	// Create the interface list
-	//
-	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return rc;
-	}
-
-	//
 	// Create the user list
 	//
 	if(oargs->import_users)
@@ -228,15 +219,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	//
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
-	// Create the interface list
-	//
-	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return rc;
-	}
 
 	//
 	// Create the user list
@@ -431,7 +413,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
-	handle->m_addrlist = NULL;
 	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
@@ -521,15 +502,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	//
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
-	// Create the interface list
-	//
-	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return rc;
-	}
 
 	//
 	// Create the user list
@@ -786,13 +758,6 @@ static inline void scap_deinit_state(scap_t* handle)
 	{
 		scap_free_device_table(handle);
 		handle->m_dev_list = NULL;
-	}
-
-	// Free the interface list
-	if(handle->m_addrlist)
-	{
-		scap_free_iflist(handle->m_addrlist);
-		handle->m_addrlist = NULL;
 	}
 
 	// Free the user list
@@ -1069,14 +1034,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-}
-
-//
-// Return the list of device addresses
-//
-scap_addrlist* scap_get_ifaddr_list(scap_t* handle)
-{
-	return handle->m_addrlist;
 }
 
 //

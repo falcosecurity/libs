@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_linux_int.h"
 
 #include <stdlib.h>
 
@@ -34,17 +35,30 @@ static void scap_linux_free_platform(struct scap_platform* platform)
 
 int32_t scap_linux_early_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+	linux_platform->m_lasterr = lasterr;
+
 	return SCAP_SUCCESS;
 }
 
 int32_t scap_linux_init_platform(struct scap_platform* platform, struct scap_engine_handle engine, struct scap_open_args* oargs)
 {
+	int rc;
+
+	rc = scap_linux_create_iflist(platform);
+	if(rc != SCAP_SUCCESS)
+	{
+		scap_linux_free_platform(platform);
+		return rc;
+	}
+
 	return SCAP_SUCCESS;
 }
 
 static const struct scap_platform_vtable scap_linux_platform = {
 	.early_init_platform = scap_linux_early_init_platform,
 	.init_platform = scap_linux_init_platform,
+	.refresh_addr_list = scap_linux_create_iflist,
 	.close_platform = scap_linux_close_platform,
 	.free_platform = scap_linux_free_platform,
 };

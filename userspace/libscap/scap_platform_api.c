@@ -15,23 +15,26 @@ limitations under the License.
 
 */
 
-#pragma once
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#include "scap_platform_api.h"
 #include "scap_platform_impl.h"
 
-struct scap_linux_platform
+#include "scap.h"
+#include "scap-int.h"
+
+scap_addrlist* scap_get_ifaddr_list(scap_t* handle)
 {
-	struct scap_platform m_generic;
+	if (handle && handle->m_platform)
+	{
+		return handle->m_platform->m_addrlist;
+	}
 
-	char* m_lasterr;
-};
+	return NULL;
+}
 
-struct scap_platform* scap_linux_alloc_platform();
-
-#ifdef __cplusplus
-};
-#endif
+void scap_refresh_iflist(scap_t* handle)
+{
+	if (handle && handle->m_platform && handle->m_platform->m_vtable->refresh_addr_list)
+	{
+		handle->m_platform->m_vtable->refresh_addr_list(handle->m_platform);
+	}
+}

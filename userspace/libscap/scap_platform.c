@@ -28,6 +28,11 @@ static int32_t scap_generic_init_platform(struct scap_platform* platform, char* 
 
 static int32_t scap_generic_close_platform(struct scap_platform* platform)
 {
+	if (platform->m_addrlist)
+	{
+		scap_free_iflist(platform->m_addrlist);
+		platform->m_addrlist = NULL;
+	}
 	return SCAP_SUCCESS;
 }
 

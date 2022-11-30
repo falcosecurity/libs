@@ -67,7 +67,8 @@ set(libscap_conditional_libs
 	scap_engine_test_input
 	scap_engine_udig
 	scap_engine_util
-	scap_platform)
+	scap_platform
+	scap_platform_util)
 
 foreach(libscap_conditional_lib ${libscap_conditional_libs})
 	if(TARGET ${libscap_conditional_lib})
