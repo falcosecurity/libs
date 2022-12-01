@@ -888,12 +888,37 @@ static __always_inline u8 sockopt_optname_to_scap(int level, int optname)
 		case SO_SNDLOWAT:
 			return PPM_SOCKOPT_SO_SNDLOWAT;
 #endif
+/* We use this workaround to avoid 2 switch cases with the same value.
+ * An `elif` approach is not enough if `SO_RCVTIMEO` is not defined.
+ * In this case we have only `SO_RCVTIMEO_OLD` and `SO_RCVTIMEO_NEW` so
+ * we couldn't be able to detect the right flag value, for example: 
+ * `SO_RCVTIMEO_OLD` is defined so we compile only this branch, but
+ * actual value of `SO_RCVTIMEO` is `SO_RCVTIMEO_NEW`.
+ * https://github.com/torvalds/linux/commit/a9beb86ae6e55bd92f38453c8623de60b8e5a308
+ */
 #ifdef SO_RCVTIMEO
 		case SO_RCVTIMEO:
 			return PPM_SOCKOPT_SO_RCVTIMEO;
 #endif
+#if (defined(SO_RCVTIMEO_OLD) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_OLD) && (SO_RCVTIMEO_OLD != SO_RCVTIMEO))
+		case SO_RCVTIMEO_OLD:
+			return PPM_SOCKOPT_SO_RCVTIMEO;
+#endif			
+#if (defined(SO_RCVTIMEO_NEW) && !defined(SO_RCVTIMEO)) || (defined(SO_RCVTIMEO_NEW) && (SO_RCVTIMEO_NEW != SO_RCVTIMEO)) 
+		case SO_RCVTIMEO_NEW:
+			return PPM_SOCKOPT_SO_RCVTIMEO;
+#endif
+/* Look at `SO_RCVTIMEO` */
 #ifdef SO_SNDTIMEO
 		case SO_SNDTIMEO:
+			return PPM_SOCKOPT_SO_SNDTIMEO;
+#endif
+#if (defined(SO_SNDTIMEO_OLD) && !defined(SO_SNDTIMEO)) || (defined(SO_SNDTIMEO_OLD) && (SO_SNDTIMEO_OLD != SO_SNDTIMEO))
+		case SO_SNDTIMEO_OLD:
+			return PPM_SOCKOPT_SO_SNDTIMEO;
+#endif
+#if (defined(SO_SNDTIMEO_NEW) && !defined(SO_SNDTIMEO)) || (defined(SO_SNDTIMEO_NEW) && (SO_SNDTIMEO_NEW != SO_SNDTIMEO))
+		case SO_SNDTIMEO_NEW:
 			return PPM_SOCKOPT_SO_SNDTIMEO;
 #endif
 #ifdef SO_SECURITY_AUTHENTICATION
