@@ -955,23 +955,11 @@ cleanup_ioctl_procinfo:
 	switch (cmd) {
 	case PPM_IOCTL_DISABLE_DROPPING_MODE:
 	{
-		struct event_data_t event_data;
-
 		vpr_info("PPM_IOCTL_DISABLE_DROPPING_MODE, consumer %p\n", consumer_id);
 
 		consumer->dropping_mode = 0;
 		consumer->sampling_interval = 1000000000;
 		consumer->sampling_ratio = 1;
-
-		/*
-		 * Push an event into the ring buffer so that the user can know that dropping
-		 * mode has been disabled
-		 */
-		event_data.category = PPMC_CONTEXT_SWITCH;
-		event_data.event_info.context_data.sched_prev = (void *)DEI_DISABLE_DROPPING;
-		event_data.event_info.context_data.sched_next = (void *)0;
-
-		record_event_consumer(consumer, PPME_SCAPEVENT_E, UF_NEVER_DROP, ppm_nsecs(), &event_data, TP_VAL_INTERNAL);
 
 		ret = 0;
 		goto cleanup_ioctl;
