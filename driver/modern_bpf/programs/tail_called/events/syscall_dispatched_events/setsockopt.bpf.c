@@ -61,11 +61,11 @@ int BPF_PROG(setsockopt_x,
 	auxmap__store_s64_param(auxmap, (s64)fd);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
-	u8 level = (u8)extract__syscall_argument(regs, 1);
+	int level = (int)extract__syscall_argument(regs, 1);
 	auxmap__store_u8_param(auxmap, sockopt_level_to_scap(level));
 
 	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
-	u8 optname = (u8)extract__syscall_argument(regs, 2);
+	int optname = (int)extract__syscall_argument(regs, 2);
 	auxmap__store_u8_param(auxmap, sockopt_optname_to_scap(level, optname));
 
 	/* Parameter 5: optval (type: PT_DYN) */

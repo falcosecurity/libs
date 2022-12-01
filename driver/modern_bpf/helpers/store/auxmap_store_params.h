@@ -929,8 +929,10 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 		total_size_to_push += sizeof(s64);
 		break;
 
-	case SO_RCVTIMEO:
-	case SO_SNDTIMEO:
+	case SO_RCVTIMEO_OLD:
+	case SO_RCVTIMEO_NEW:
+	case SO_SNDTIMEO_OLD:
+	case SO_SNDTIMEO_NEW:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_TIMEVAL);
 		bpf_probe_read_user((void *)&tv, sizeof(tv), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, tv.tv_sec * SEC_FACTOR + tv.tv_usec * USEC_FACTOR);
