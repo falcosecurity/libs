@@ -117,7 +117,7 @@ public:
 	*/
 	scap_groupinfo* get_group(const std::string &container_id, uint32_t gid);
 
-	// Note: pid is an unused paramter when container_id is an empty string
+	// Note: pid is an unused parameter when container_id is an empty string
 	// ie: it is only used when adding users/groups from containers.
 	scap_userinfo *add_user(const std::string &container_id, int64_t pid, uint32_t uid, uint32_t gid, const char *name, const char *home, const char *shell, bool notify = false);
 	scap_groupinfo *add_group(const std::string &container_id, int64_t pid, uint32_t gid, const char *name, bool notify = false);
