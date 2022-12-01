@@ -2032,11 +2032,6 @@ void scap_savefile_fseek(struct scap_engine_handle engine, uint64_t off)
 	reader->seek(reader, off, SEEK_SET);
 }
 
-static bool match(struct scap_open_args* oargs)
-{
-	return strcmp(oargs->engine_name, SAVEFILE_ENGINE) == 0;
-}
-
 static struct savefile_engine* alloc_handle(struct scap* main_handle, char* lasterr_ptr)
 {
 	struct savefile_engine *engine = calloc(1, sizeof(struct savefile_engine));
@@ -2214,7 +2209,6 @@ struct scap_vtable scap_savefile_engine = {
 	.mode = SCAP_MODE_CAPTURE,
 	.savefile_ops = &savefile_ops,
 
-	.match = match,
 	.alloc_handle = alloc_handle,
 	.init = init,
 	.free_handle = free_handle,

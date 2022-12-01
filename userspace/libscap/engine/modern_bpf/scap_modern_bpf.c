@@ -107,12 +107,6 @@ static int32_t check_minimum_kernel_version(char* last_err)
 
 /*=============================== UTILS ===============================*/
 
-/* Right now this is not used */
-bool scap_modern_bpf__match(scap_open_args* oargs)
-{
-	return strcmp(oargs->engine_name, MODERN_BPF_ENGINE) == 0;
-}
-
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct modern_bpf_engine* engine = calloc(1, sizeof(struct modern_bpf_engine));
@@ -310,7 +304,6 @@ struct scap_vtable scap_modern_bpf_engine = {
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
-	.match = scap_modern_bpf__match,
 	.alloc_handle = scap_modern_bpf__alloc_engine,
 	.init = scap_modern_bpf__init,
 	.free_handle = scap_modern_bpf__free_engine,
