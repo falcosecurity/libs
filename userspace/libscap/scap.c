@@ -1224,7 +1224,6 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 	{
 	case SCAP_PPM_SC_MASK_SET:
 	case SCAP_PPM_SC_MASK_UNSET:
-	case SCAP_PPM_SC_MASK_ZERO:
 		break;
 
 	default:
@@ -1248,10 +1247,6 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
-}
-
-int32_t scap_clear_ppm_sc_mask(scap_t* handle) {
-	return(scap_handle_ppm_sc_mask(handle, SCAP_PPM_SC_MASK_ZERO, 0));
 }
 
 int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled) {

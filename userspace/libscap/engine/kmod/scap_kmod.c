@@ -163,32 +163,19 @@ int32_t scap_kmod_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, 
 int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	if (op != SCAP_PPM_SC_MASK_ZERO)
+	int ioctl_op = op == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
+	// Find any syscall table entry that matches requested ppm_sc code
+	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
 	{
-		int ioctl_op = op == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
-		// Find any syscall table entry that matches requested ppm_sc code
-		for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+		if (g_syscall_table[i].ppm_sc == ppm_sc)
 		{
-			if (g_syscall_table[i].ppm_sc == ppm_sc)
+			if(ioctl(devset->m_devs[0].m_fd, ioctl_op, i))
 			{
-				if(ioctl(devset->m_devs[0].m_fd, ioctl_op, i))
-				{
-					ASSERT(false);
-					return scap_errprintf(engine.m_handle->m_lasterr, errno,
-						 "%s(%d) failed for syscall %d",
-						 __FUNCTION__, op, i);
-				}
+				ASSERT(false);
+				return scap_errprintf(engine.m_handle->m_lasterr, errno,
+					 "%s(%d) failed for syscall %d",
+					 __FUNCTION__, op, i);
 			}
-		}
-	}
-	else
-	{
-		if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_ZERO_SYSCALLS, 0))
-		{
-			ASSERT(false);
-			return scap_errprintf(engine.m_handle->m_lasterr, errno,
-				 "%s(%d) failed",
-				 __FUNCTION__, op);
 		}
 	}
 	return SCAP_SUCCESS;

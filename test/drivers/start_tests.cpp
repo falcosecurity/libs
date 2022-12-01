@@ -284,11 +284,7 @@ int main(int argc, char** argv)
 	}
 
 	/* We need to disable also all the interesting syscalls */
-	if(scap_clear_ppm_sc_mask(event_test::s_scap_handle) != SCAP_SUCCESS)
-	{
-		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
-		goto cleanup_tests;
-	}
+	event_test::clear_ppm_sc_mask();
 
 	print_message("Testing phase");
 
