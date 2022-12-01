@@ -1019,7 +1019,7 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	{
 		if (handle->open_tp_set.tp[i])
 		{
-			ret = scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_SET, i);
+			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1043,7 +1043,7 @@ int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 	int ret = SCAP_SUCCESS;
 	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		ret = scap_bpf_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
+		ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
 	}
 	return ret;
 }
@@ -1646,17 +1646,17 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 	}
 
 	// We want to unload a never loaded tracepoint
-	if (prg_idx == -1 && op != SCAP_TPMASK_SET)
+	if (prg_idx == -1 && op != SCAP_TP_MASK_SET)
 	{
 		return SCAP_SUCCESS;
 	}
 	// We want to load an already loaded tracepoint
-	if (prg_idx >= 0 && op != SCAP_TPMASK_UNSET)
+	if (prg_idx >= 0 && op != SCAP_TP_MASK_UNSET)
 	{
 		return SCAP_SUCCESS;
 	}
 
-	if (op == SCAP_TPMASK_UNSET)
+	if (op == SCAP_TP_MASK_UNSET)
 	{
 		// Algo:
 		// Close the event and tracepoint fds,
@@ -1717,9 +1717,9 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_enable_tracers_capture(engine);
 	case SCAP_SNAPLEN:
 		return scap_bpf_set_snaplen(engine, arg1);
-	case SCAP_EVENTMASK:
+	case SCAP_PPM_SC_MASK:
 		return scap_bpf_handle_event_mask(engine, arg1, arg2);
-	case SCAP_TPMASK:
+	case SCAP_TP_MASK:
 		return scap_bpf_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)

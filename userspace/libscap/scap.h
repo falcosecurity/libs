@@ -865,7 +865,7 @@ int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
   \param enabled whether to enable or disable the tracepoint
   \note This function can only be called for live captures.
 */
-int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled);
+int32_t scap_set_tp(scap_t* handle, uint32_t tp, bool enabled);
 
 
 /*!
