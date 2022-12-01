@@ -6,21 +6,75 @@
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
 
-/* we supports only these modes */
-/// TODO: share these options between all tests/scap-open/sinsp-example
+/* We support only these arguments */
 #define KMOD_OPTION "kmod"
 #define BPF_OPTION "bpf"
 #define MODERN_BPF_OPTION "modern-bpf"
 #define BUFFER_OPTION "buffer-dim"
-#define BPF_PROBE_DEFAULT_PATH ""
-#define KMOD_DEFAULT_PATH ""
+#define BPF_PROBE_DEFAULT_PATH "/driver/bpf/probe.o"
+#define KMOD_DEFAULT_PATH "/driver/scap.ko"
+#define KMOD_NAME "scap"
 
-static struct scap_bpf_engine_params bpf_params;
-static struct scap_kmod_engine_params kmod_params;
-static struct scap_modern_bpf_engine_params modern_bpf_params;
+scap_t* event_test::scap_handle = NULL;
 
-/* We need to simplify this logic */
-scap_open_args parse_CLI_options(int argc, char** argv)
+int remove_kmod()
+{
+	if(syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK))
+	{
+		switch(errno)
+		{
+		case ENOENT:
+			return EXIT_SUCCESS;
+
+		/* If a module has a nonzero reference count with `O_NONBLOCK` flag
+		 * the call returns immediately, with `EWOULDBLOCK` code. So in that
+		 * case we wait until the module is detached.
+		 */
+		case EWOULDBLOCK:
+			for(int i = 0; i < 4; i++)
+			{
+				int ret = syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK);
+				if(ret == 0 || errno == ENOENT)
+				{
+					return EXIT_SUCCESS;
+				}
+				sleep(1);
+			}
+			return EXIT_FAILURE;
+
+		case EBUSY:
+		case EFAULT:
+		case EPERM:
+			std::cerr << "Unable to remove kernel module. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			return EXIT_FAILURE;
+
+		default:
+			std::cerr << "Unexpected error code. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+	return EXIT_SUCCESS;
+}
+
+int insert_kmod(const std::string& kmod_path)
+{
+	/* Here we want to insert the module if we fail we need to abort the program. */
+	int fd = open(kmod_path.c_str(), O_RDONLY);
+	if(fd < 0)
+	{
+		std::cout << "Unable to open the kmod file. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	if(syscall(__NR_finit_module, fd, "", 0))
+	{
+		std::cerr << "Unable to inject the kmod. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
+
+int open_engine(int argc, char** argv)
 {
 	static struct option long_options[] = {
 		{BPF_OPTION, optional_argument, 0, 'b'},
@@ -29,11 +83,34 @@ scap_open_args parse_CLI_options(int argc, char** argv)
 		{BUFFER_OPTION, required_argument, 0, 'd'},
 		{0, 0, 0, 0}};
 
+	int ret = 0;
 	scap_open_args oargs = {0};
+	struct scap_bpf_engine_params bpf_params = {0};
+	struct scap_kmod_engine_params kmod_params = {0};
+	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
 	oargs.mode = SCAP_MODE_LIVE;
-	int op;
-	int long_index = 0;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+	std::string kmod_path;
+
+	/* Remove kmod if injected, we remove it always even if we use another engine
+	 * in this way we are sure the unique driver in the system is the one we will use.
+	 */
+	if(remove_kmod())
+	{
+		return EXIT_FAILURE;
+	}
+
+	/* Get current cwd */
+	char cwd[FILENAME_MAX];
+	if(!getcwd(cwd, FILENAME_MAX))
+	{
+		std::cerr << "Unable to get current dir" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	/* Parse CLI options */
+	int op = 0;
+	int long_index = 0;
 	while((op = getopt_long(argc, argv,
 				"b::mk::d:",
 				long_options, &long_index)) != -1)
@@ -43,62 +120,76 @@ scap_open_args parse_CLI_options(int argc, char** argv)
 		case 'b':
 			oargs.engine_name = BPF_ENGINE;
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			/* When the argument is required it should be passed like this `b<path>`
-			 * and not like `b <path>`, sot without the white space! This first `if`
-			 * allow us to handle also the case with the whitespace
-			 */
-			if(optarg == NULL && optind < argc && argv[optind][0] != '-')
+			if(optarg == NULL)
 			{
-				optarg = argv[optind++];
-				bpf_params.bpf_probe = optarg;
-			}
-			/* This is the case in which we don't have the arg*/
-			else if(optarg == NULL)
-			{
-				bpf_params.bpf_probe = BPF_PROBE_DEFAULT_PATH;
+				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
 			}
 			else
 			{
 				bpf_params.bpf_probe = optarg;
 			}
 			oargs.engine_params = &bpf_params;
+
+			/* The BPF `calibrate_socker` method needs to call the socket filler
+			 * before starting the real capture. So we attach all syscalls and
+			 * `sys_enter` and `sys_exit` tracepoints.
+			 */
+			oargs.tp_of_interest.tp[SYS_ENTER] = 1;
+			oargs.tp_of_interest.tp[SYS_EXIT] = 1;
+			for(int i = 0; i < PPM_SC_MAX; i++)
+			{
+				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
+			}
+
+			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
 			break;
+
 		case 'm':
 			oargs.engine_name = MODERN_BPF_ENGINE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &modern_bpf_params;
+			std::cout << "* Configure modern BPF probe tests!" << std::endl;
 			break;
+
 		case 'k':
 			oargs.engine_name = KMOD_ENGINE;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
-			/* When the argument is required it should be passed like this `b<path>`
-			 * and not like `b <path>`, sot without the white space! This first `if`
-			 * allow us to handle also the case with the whitespace
-			 */
-			if(optarg == NULL && optind < argc && argv[optind][0] != '-')
+			if(optarg == NULL)
 			{
-				optarg = argv[optind++];
-				/*we should insmod here.*/
-			}
-			/* This is the case in which we don't have the arg*/
-			else if(optarg == NULL)
-			{
-				/*we should insmod here.*/
+				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
 			}
 			else
 			{
-				/*we should insmod here.*/
+				kmod_path = optarg;
 			}
 			oargs.engine_params = &kmod_params;
+			if(insert_kmod(kmod_path))
+			{
+				return EXIT_FAILURE;
+			}
+			std::cout << "* Configure kernel module tests! Kernel module path: " << kmod_path << std::endl;
+			;
 			break;
+
 		case 'd':
 			buffer_bytes_dim = strtoul(optarg, NULL, 10);
 			break;
+
 		default:
-			break;
+			std::cerr << "Unsupported engine!" << std::endl;
+			return EXIT_FAILURE;
 		}
 	}
-	return oargs;
+	std::cout << "* Using buffer dim: " << buffer_bytes_dim << std::endl;
+
+	char error_buffer[FILENAME_MAX] = {0};
+	event_test::scap_handle = scap_open(&oargs, error_buffer, &ret);
+	if(!event_test::scap_handle)
+	{
+		std::cerr << "Unable to open the right engine: " << error_buffer << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
 }
 
 void print_setup_phase_message()
@@ -112,7 +203,6 @@ void print_setup_phase_message()
 
 void print_start_test_message()
 {
-	std::cout << "* BPF probe correctly configured!" << std::endl;
 	std::cout << std::endl;
 	std::cout << "-----------------------------------------------------" << std::endl;
 	std::cout << "------------------- Testing phase -------------------" << std::endl;
@@ -129,65 +219,42 @@ void print_teardown_test_message()
 	std::cout << std::endl;
 }
 
-scap_t* event_test::scap_handle = NULL;
-
 int main(int argc, char** argv)
 {
 	print_setup_phase_message();
 
 	::testing::InitGoogleTest(&argc, argv);
 
-	/* Parse configs */
-	int res = 0;
-	scap_open_args oargs = parse_CLI_options(argc, argv);
-	char error_buffer[SCAP_LASTERR_SIZE];
-
-	/* The BPF `calibrate_socker` method, which needs to call the socket filler
-	 * before starting the real capture.
-	 */
-
-	if(strcmp(oargs.engine_name, BPF_ENGINE) == 0)
+	/* Open the requested engine */
+	int res = open_engine(argc, argv);
+	if(res)
 	{
-		oargs.tp_of_interest.tp[SYS_ENTER] = 1;
-		oargs.tp_of_interest.tp[SYS_EXIT] = 1;
-		for(int i = 0; i < PPM_SC_MAX; i++)
-		{
-			oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
-		}
-	}
-
-	/* This call the init method and start the capture so inject the tracepoints */
-	scap_t* handle = scap_open(&oargs, error_buffer, &res);
-	if(res != SCAP_SUCCESS)
-	{
-		std::cout << "Error in opening the scap handle: " << error_buffer << std::endl;
-		exit(EXIT_FAILURE);
+		return EXIT_FAILURE;
 	}
 
 	/* We need to detach all the tracepoints before starting tests. */
-	res = scap_stop_capture(handle);
+	res = scap_stop_capture(event_test::scap_handle);
 	if(res != SCAP_SUCCESS)
 	{
-		std::cout << "Error in stopping the capture: " << scap_getlasterr(handle) << std::endl;
+		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
 	/* We need to disable also all the interesting syscalls */
-	res = scap_clear_eventmask(handle);
+	res = scap_clear_eventmask(event_test::scap_handle);
 	if(res != SCAP_SUCCESS)
 	{
-		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(handle) << std::endl;
+		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
-	/* Now we need to pass this object as a static member of the class */
-	event_test::set_scap_handle(handle);
 	print_start_test_message();
 
 	res = RUN_ALL_TESTS();
 
 cleanup_tests:
 	print_teardown_test_message();
-	scap_close(handle);
+	scap_close(event_test::scap_handle);
+	remove_kmod();
 	return res;
 }
