@@ -107,7 +107,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jae:b:d:s:o:",
+				"hf:jab:mks:d:o:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
