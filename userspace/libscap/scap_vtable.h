@@ -143,17 +143,6 @@ struct scap_vtable {
 	const struct scap_savefile_vtable *savefile_ops;
 
 	/**
-	 * @brief check whether `open_args` are compatible with this engine
-	 * @param open_args a scap open request structure
-	 * @return true if this engine can handle `open_args`, false otherwise
-	 *
-	 * If this field is NULL, only `open_args->mode` is checked against
-	 * the `mode` field. If it is *not* NULL, the mode is checked before
-	 * calling `match()`.
-	 */
-	bool (*match)(scap_open_args* open_args);
-
-	/**
 	 * @brief allocate an engine-specific handle
 	 * @param main_handle pointer to the main scap_t handle
 	 * @param lasterr_ptr pointer to a SCAP_LASTERR_SIZE buffer

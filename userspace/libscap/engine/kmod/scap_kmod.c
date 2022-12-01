@@ -36,11 +36,6 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
-static bool match(scap_open_args* oargs)
-{
-	return strcmp(oargs->engine_name, KMOD_ENGINE) == 0;
-}
-
 static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct kmod_engine *engine = calloc(1, sizeof(struct kmod_engine));
@@ -810,7 +805,6 @@ struct scap_vtable scap_kmod_engine = {
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
-	.match = match,
 	.alloc_handle = alloc_handle,
 	.init = scap_kmod_init,
 	.free_handle = free_handle,

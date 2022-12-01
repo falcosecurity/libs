@@ -77,11 +77,6 @@ static int32_t gvisor_next(struct scap_engine_handle engine, scap_evt **pevent, 
 	return engine.m_handle->next(pevent, pcpuid);
 }
 
-static bool gvisor_match(scap_open_args* oargs)
-{
-	return strcmp(oargs->engine_name, GVISOR_ENGINE) == 0;
-}
-
 static int32_t gvisor_configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
 	return SCAP_SUCCESS;
@@ -155,7 +150,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
-	.match = gvisor_match,
 	.alloc_handle = gvisor_alloc_handle,
 	.init = gvisor_init,
 	.free_handle = gvisor_free_handle,

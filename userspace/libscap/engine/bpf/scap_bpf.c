@@ -90,11 +90,6 @@ struct bpf_map_data {
 	struct bpf_map_def def;
 };
 
-static bool match(scap_open_args* oargs)
-{
-	return strcmp(oargs->engine_name, BPF_ENGINE) == 0;
-}
-
 static struct bpf_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct bpf_engine *engine = calloc(1, sizeof(struct bpf_engine));
@@ -1832,7 +1827,6 @@ const struct scap_vtable scap_bpf_engine = {
 	.mode = SCAP_MODE_LIVE,
 	.savefile_ops = NULL,
 
-	.match = match,
 	.alloc_handle = alloc_handle,
 	.init = init,
 	.free_handle = free_handle,
