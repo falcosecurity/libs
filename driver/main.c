@@ -525,7 +525,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->fullcapture_port_range_start = 0;
 	consumer->fullcapture_port_range_end = 0;
 	consumer->statsd_port = PPM_PORT_STATSD;
-	bitmap_fill(consumer->syscalls_mask, SYSCALL_TABLE_SIZE); /* Enable all syscalls to be passed to userspace */
+	bitmap_zero(consumer->syscalls_mask, SYSCALL_TABLE_SIZE); /* Start with no syscalls */
 	reset_ring_buffer(ring);
 	ring->open = true;
 
