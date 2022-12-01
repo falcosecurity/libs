@@ -40,7 +40,7 @@ void sinsp::mark_tp_of_interest(uint32_t tp, bool enable)
 	{
 		throw sinsp_exception("you cannot use this method before opening the inspector!");
 	}
-	int ret = scap_set_tpmask(m_h, tp, enable);
+	int ret = scap_set_tp(m_h, tp, enable);
 	if (ret != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));

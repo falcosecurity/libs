@@ -211,7 +211,7 @@ void event_test::enable_capture()
 	{
 		if(m_tp_set[i])
 		{
-			scap_set_tpmask(s_scap_handle, i, true);
+			scap_set_tp(s_scap_handle, i, true);
 		}
 	}
 	/* We need to clear all the `ring-buffers` because maybe during

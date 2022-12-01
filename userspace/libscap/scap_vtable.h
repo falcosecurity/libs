@@ -36,9 +36,9 @@ enum scap_ppm_sc_mask_op {
 	SCAP_PPM_SC_MASK_UNSET = 2, //< disable a syscall
 };
 
-enum scap_tpmask_op {
-	SCAP_TPMASK_SET = 0, //< enable a tp
-	SCAP_TPMASK_UNSET = 1, //< disable a tp
+enum scap_tp_mask_op {
+	SCAP_TP_MASK_SET = 0, //< enable a tp
+	SCAP_TP_MASK_UNSET = 1, //< disable a tp
 };
 
 /**
@@ -63,10 +63,10 @@ enum scap_setting {
 	SCAP_SNAPLEN,
 	/**
 	 * @brief enable/disable individual syscalls
-	 * arg1: scap_eventmask_op
-	 * arg2: event id (ignored for SCAP_EVENTMASK_ZERO)
+	 * arg1: scap_ppm_sc_op
+	 * arg2: ppm_sc id
 	 */
-	SCAP_EVENTMASK,
+	SCAP_PPM_SC_MASK,
 	/**
 	 * @brief enable/disable dynamic snaplen
 	 * arg1: enabled?
@@ -85,10 +85,10 @@ enum scap_setting {
 	SCAP_STATSD_PORT,
 	/**
 	 * @brief enable/disable individual tracepoints
-	 * arg1: scap_tpmask_op
-	 * arg2: tp id
+	 * arg1: scap_tp_mask_op
+	 * arg2: tp id, see ppm_tp.h
 	 */
-	SCAP_TPMASK,
+	SCAP_TP_MASK,
 };
 
 struct scap_savefile_vtable {

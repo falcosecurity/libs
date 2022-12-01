@@ -1242,7 +1242,7 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 
 	if(handle->m_vtable)
 	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_EVENTMASK, op, ppm_sc);
+		return handle->m_vtable->configure(handle->m_engine, SCAP_PPM_SC_MASK, op, ppm_sc);
 	}
 
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
@@ -1257,8 +1257,8 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
 {
 	switch(op)
 	{
-	case SCAP_TPMASK_SET:
-	case SCAP_TPMASK_UNSET:
+	case SCAP_TP_MASK_SET:
+	case SCAP_TP_MASK_UNSET:
 		break;
 
 	default:
@@ -1282,15 +1282,15 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
 
 	if(handle->m_vtable)
 	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_TPMASK, op, tp);
+		return handle->m_vtable->configure(handle->m_engine, SCAP_TP_MASK, op, tp);
 	}
 
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	return SCAP_FAILURE;
 }
 
-int32_t scap_set_tpmask(scap_t* handle, uint32_t tp, bool enabled) {
-	return(scap_handle_tpmask(handle, enabled ? SCAP_TPMASK_SET : SCAP_TPMASK_UNSET, tp));
+int32_t scap_set_tp(scap_t* handle, uint32_t tp, bool enabled) {
+	return(scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, tp));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)

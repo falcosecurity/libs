@@ -128,39 +128,18 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 int32_t scap_kmod_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-
-	uint32_t curr_set;
-	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_GET_TPMASK, &curr_set))
-	{
-		ASSERT(false);
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "%s(%d) failed", __FUNCTION__, op);
-	}
-
-	uint32_t new_set;
-	if (op == SCAP_TPMASK_SET)
-	{
-		new_set = curr_set | (1 << tp);
-	}
-	else
-	{
-		new_set = curr_set & ~(1 << tp);
-	}
-	if(new_set == curr_set)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	if(ioctl(devset->m_devs[0].m_fd, PPM_IOCTL_MANAGE_TP, new_set))
+	uint32_t ioctl_op = op == SCAP_TP_MASK_SET ? PPM_IOCTL_ENABLE_TP : PPM_IOCTL_DISABLE_TP;
+	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, tp))
 	{
 		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno,
-			 "%s(%d) failed for tpmask %d",
-			 __FUNCTION__, op, new_set);
+			 "%s(%d) failed for tp %d",
+			 __FUNCTION__, op, tp);
 	}
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+int32_t scap_kmod_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	int ioctl_op = op == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
@@ -373,7 +352,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
 		uint32_t op = oargs->ppm_sc_of_interest.ppm_sc[ppm_sc] ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET;
-		scap_kmod_handle_event_mask(engine, op, ppm_sc);
+		scap_kmod_handle_ppm_sc_mask(engine, op, ppm_sc);
 	}
 
 	/* Store interesting Tracepoints */
@@ -449,7 +428,7 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 	int ret = SCAP_SUCCESS;
 	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		ret = scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_UNSET, i);
+		ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
 	}
 	return ret;
 }
@@ -467,7 +446,7 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 	{
 		if (handle->open_tp_set.tp[i])
 		{
-			ret = scap_kmod_handle_tp_mask(engine, SCAP_TPMASK_SET, i);
+			ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
 		}
 	}
 
@@ -685,9 +664,9 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_kmod_enable_tracers_capture(engine);
 	case SCAP_SNAPLEN:
 		return scap_kmod_set_snaplen(engine, arg1);
-	case SCAP_EVENTMASK:
-		return scap_kmod_handle_event_mask(engine, arg1, arg2);
-	case SCAP_TPMASK:
+	case SCAP_PPM_SC_MASK:
+		return scap_kmod_handle_ppm_sc_mask(engine, arg1, arg2);
+	case SCAP_TP_MASK:
 		return scap_kmod_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)

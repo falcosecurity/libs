@@ -211,6 +211,7 @@ static const struct file_operations g_ppm_fops = {
  * GLOBALS
  */
 #define DEFAULT_BUFFER_BYTES_DIM 8 * 1024 * 1024;
+
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
@@ -427,7 +428,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 		consumer->id = num_consumers;
 		consumer->consumer_id = consumer_id;
 		consumer->buffer_bytes_dim = g_buffer_bytes_dim;
-		consumer->tracepoints_attached = 0;
+		consumer->tracepoints_attached = 0; /* Start with no tracepoints */
 
 		/*
 		 * Initialize the ring buffers array
@@ -648,7 +649,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 				// If disable is requested, unset ref bit
 				g_tracepoints_refs[idx] &= ~(1 << consumer->id);
 			}
-			// no change needed, we just update the refs
+			// no change needed, we just update the refs for the consumer
 			continue;
 		}
 
@@ -748,31 +749,14 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 			break;
 		}
 
-		if (new_val)
+		if (ret == 0)
 		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached |= 1 << idx;
-				g_tracepoints_refs[idx] |= 1 << consumer->id;
-				vpr_info("attached tracepoint %s\n", tp_names[idx]);
-			}
-			else
-			{
-				pr_err("can't attach the %s tracepoint\n", tp_names[idx]);
-			}
+			g_tracepoints_attached ^= (1 << idx);
+			g_tracepoints_refs[idx] ^= (1 << consumer->id);
 		}
 		else
 		{
-			if (ret == 0)
-			{
-				g_tracepoints_attached &= ~(1 << idx);
-				g_tracepoints_refs[idx] &= ~(1 << consumer->id);
-				vpr_info("detached tracepoint %s\n", tp_names[idx]);
-			}
-			else
-			{
-				pr_err("can't detach the %s tracepoint\n", tp_names[idx]);
-			}
+			pr_err("can't %s the %s tracepoint\n", new_val ? "attach" : "detach", tp_names[idx]);
 		}
 	}
 
@@ -1143,18 +1127,32 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_MANAGE_TP:
+	case PPM_IOCTL_ENABLE_TP:
 	{
-		set_consumer_tracepoints(consumer, (u32)arg);
+		u32 new_tp_set;
+		if ((u32)arg >= TP_VAL_MAX) {
+			pr_err("invalid tp %u\n", (u32)arg);
+			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+		new_tp_set = consumer->tracepoints_attached;
+		new_tp_set |= 1 << (u32)arg;
+		set_consumer_tracepoints(consumer, new_tp_set);
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_GET_TPMASK:
+	case PPM_IOCTL_DISABLE_TP:
 	{
-		u32 __user *out = (u32 __user *)arg;
-		ret = 0;
-		if(put_user(consumer->tracepoints_attached, out))
+		u32 new_tp_set;
+		if ((u32)arg >= TP_VAL_MAX) {
+			pr_err("invalid tp %u\n", (u32)arg);
 			ret = -EINVAL;
+			goto cleanup_ioctl;
+		}
+		new_tp_set = consumer->tracepoints_attached;
+		new_tp_set &= ~(1 << (u32)arg);
+		set_consumer_tracepoints(consumer, new_tp_set);
+		ret = 0;
 		goto cleanup_ioctl;
 	}
 	default:
