@@ -336,12 +336,15 @@
 #define SO_RCVLOWAT 18
 #define SO_SNDLOWAT 19
 
-/* In kernel definitions they are called `SO_RCVTIMEO_OLD` and `SO_SNDTIMEO_OLD`,
- * since there are new definitions `SO_RCVTIMEO_NEW` `SO_SNDTIMEO_NEW`.
- * We keep names without `OLD` for compatibility with our `sockopt_optname_to_scap()`
+/* Define all flavours just to be sure to catch at least one of them
+ * https://github.com/torvalds/linux/commit/a9beb86ae6e55bd92f38453c8623de60b8e5a308
  */
-#define SO_RCVTIMEO 20 /* SO_RCVTIMEO_OLD */
-#define SO_SNDTIMEO 21 /* SO_SNDTIMEO_OLD */
+#define SO_RCVTIMEO 20
+#define SO_RCVTIMEO_OLD	20
+#define SO_RCVTIMEO_NEW 66
+#define SO_SNDTIMEO 21
+#define SO_SNDTIMEO_OLD	21
+#define SO_SNDTIMEO_NEW 67
 
 /* Security levels - as per NRL IPv6 - don't actually do anything */
 #define SO_SECURITY_AUTHENTICATION 22
