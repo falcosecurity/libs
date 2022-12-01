@@ -1039,15 +1039,6 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
-	case PPM_IOCTL_ZERO_SYSCALLS:
-	{
-		vpr_info("PPM_IOCTL_ZERO_SYSCALLS, consumer %p\n", consumer_id);
-
-		bitmap_zero(consumer->syscalls_mask, SYSCALL_TABLE_SIZE);
-
-		ret = 0;
-		goto cleanup_ioctl;
-	}
 	case PPM_IOCTL_ENABLE_SYSCALL:
 	{
 		u32 syscall_to_set = (u32)arg - SYSCALL_TABLE_ID0;

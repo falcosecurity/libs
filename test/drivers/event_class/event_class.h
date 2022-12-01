@@ -91,6 +91,14 @@ public:
 		s_scap_handle = handle;
 	}
 
+	static void clear_ppm_sc_mask()
+	{
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			scap_set_ppm_sc(s_scap_handle, i, false);
+		}
+	}
+
 	/* Please note: only methods with `assert` in the name use Google assertions. */
 
 	/////////////////////////////////

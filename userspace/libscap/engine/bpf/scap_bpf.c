@@ -1684,13 +1684,6 @@ static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint
 	int32_t ret = SCAP_SUCCESS;
 	switch(op)
 	{
-	case SCAP_PPM_SC_MASK_ZERO:
-		for(ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret==SCAP_SUCCESS; ppm_sc++)
-		{
-			ret = update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_UNSET, ppm_sc);
-		}
-		break;
-
 	case SCAP_PPM_SC_MASK_SET:
 	case SCAP_PPM_SC_MASK_UNSET:
 		ret = update_interesting_syscalls_map(engine, op, ppm_sc);

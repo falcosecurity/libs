@@ -845,15 +845,6 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 
 /*!
-  \brief Clear the syscall mask: no syscalls events will be passed pushed to userspace.
-
-  \param handle Handle to the capture instance.
-
-  \note This function can only be called for live captures.
-*/
-int32_t scap_clear_ppm_sc_mask(scap_t* handle);
-
-/*!
   \brief (Un)Set the ppm_sc bit in the syscall mask so that
   users can (drop)receive the related syscall. Useful for offloading
   operations such as evt.type=open

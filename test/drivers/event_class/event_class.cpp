@@ -96,7 +96,7 @@ event_test::~event_test()
 	clear_ring_buffers();
 
 	/* 2 - clean all interesting syscalls. */
-	scap_clear_ppm_sc_mask(s_scap_handle);
+	clear_ppm_sc_mask();
 }
 
 /* This constructor must be used with generic tracepoints
