@@ -56,10 +56,12 @@ static void free_handle(struct scap_engine_handle engine)
 	free(engine.m_handle);
 }
 
-static uint32_t get_max_consumers()
+static uint32_t get_max_consumers(const struct kmod_engine *e)
 {
 	uint32_t max;
-	FILE *pfile = fopen("/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/max_consumers", "r");
+	char path[SCAP_MAX_PATH_SIZE];
+	snprintf(path, SCAP_MAX_PATH_SIZE, "/sys/module/%s/parameters/max_consumers", e->m_name);
+	FILE *pfile = fopen(path, "r");
 	if(pfile != NULL)
 	{
 		int w = fscanf(pfile, "%"PRIu32, &max);
@@ -77,7 +79,9 @@ static uint32_t get_max_consumers()
 
 static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long buf_bytes_dim)
 {
-	const char* file_name = "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim";
+	struct scap_engine_handle engine = handle->m_engine;
+	char file_name[SCAP_MAX_PATH_SIZE];
+	snprintf(file_name, SCAP_MAX_PATH_SIZE, "/sys/module/%s/parameters/g_buffer_bytes_dim", engine.m_handle->m_name);
 
 	errno = 0;
 	/* Here we check if the dimension provided by the kernel module is the same as the user-provided one. 
@@ -122,7 +126,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	{
 		int err = errno;
 		fclose(write_file);
-		return scap_errprintf(handle->m_lasterr, err, "unable to write into /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim");
+		return scap_errprintf(handle->m_lasterr, err, "unable to write into /sys/module/%s/parameters/g_buffer_bytes_dim", engine.m_handle->m_name);
 	}
 
 	fclose(write_file);
@@ -214,6 +218,15 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	uint64_t api_version = 0;
 	uint64_t schema_version = 0;
 
+	if (params->kmod_name && params->kmod_name[0] != '\0')
+	{
+		engine.m_handle->m_name = strdup(params->kmod_name);
+	}
+	else
+	{
+		engine.m_handle->m_name = strdup(SCAP_KERNEL_MODULE_NAME);
+	}
+
 	unsigned long single_buffer_dim = params->buffer_bytes_dim;
 	if(check_buffer_bytes_dim(handle->m_lasterr, single_buffer_dim) != SCAP_SUCCESS)
 	{
@@ -275,8 +288,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			}
 			else if(errno == EBUSY)
 			{
-				uint32_t curr_max_consumers = get_max_consumers();
-				return scap_errprintf(handle->m_lasterr, 0, "Too many consumers attached to device %s. Current value for /sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/max_consumers is '%"PRIu32"'.", filename, curr_max_consumers);
+				uint32_t curr_max_consumers = get_max_consumers(engine.m_handle);
+				return scap_errprintf(handle->m_lasterr, 0, "Too many consumers attached to device %s. Current value for /sys/module/%s/parameters/max_consumers is '%"PRIu32"'.", filename, engine.m_handle->m_name, curr_max_consumers);
 			}
 			else
 			{
@@ -406,6 +419,7 @@ int32_t scap_kmod_close(struct scap_engine_handle engine)
 
 	devset_free(devset);
 
+	free(engine.m_handle->m_name);
 	return SCAP_SUCCESS;
 }
 

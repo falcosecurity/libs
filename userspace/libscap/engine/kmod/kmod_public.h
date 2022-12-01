@@ -25,6 +25,7 @@ extern "C"
 	struct scap_kmod_engine_params
 	{
 		unsigned long buffer_bytes_dim; ///< Dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.
+		const char *kmod_name; ///< Name of the kmod
 	};
 
 #ifdef __cplusplus

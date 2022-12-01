@@ -22,6 +22,7 @@ limitations under the License.
 
 struct kmod_engine
 {
+	char *m_name;
 	struct scap_device_set m_dev_set;
 	char* m_lasterr;
 	interesting_tp_set open_tp_set;

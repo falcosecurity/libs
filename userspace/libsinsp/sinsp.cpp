@@ -490,7 +490,7 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 	return oargs;
 }
 
-void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_kmod(const std::string& kmod_name, unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
@@ -501,6 +501,7 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordere
 	/* Engine-specific args. */
 	struct scap_kmod_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
+	params.kmod_name = kmod_name.data();
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }

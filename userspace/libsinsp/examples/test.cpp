@@ -163,7 +163,8 @@ void open_engine(sinsp& inspector)
 
 	if(!engine_string.compare(KMOD_ENGINE))
 	{
-		inspector.open_kmod(buffer_bytes_dim, ppm_sc, tp_set);
+		// Use default kmod name
+		inspector.open_kmod("", buffer_bytes_dim, ppm_sc, tp_set);
 	}
 	else if(!engine_string.compare(BPF_ENGINE))
 	{
