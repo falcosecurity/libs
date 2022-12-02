@@ -75,6 +75,9 @@ struct scap
 	// it's equivalent to version 0.0.0
 	uint64_t m_schema_version;
 
+	// /proc scan parameters
+	uint64_t m_proc_scan_timeout_ms;
+
 	// Function which may be called to log a debug event
 	void(*m_debug_log_fn)(const char* msg);
 };

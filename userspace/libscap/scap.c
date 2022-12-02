@@ -89,6 +89,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//
@@ -228,6 +229,7 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//
@@ -554,6 +556,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//

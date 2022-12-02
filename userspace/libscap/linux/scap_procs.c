@@ -34,7 +34,8 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_linux_int.h"
 #include "strerror.h"
-
+#include "clock_helpers.h"
+#include "debug_log_helpers.h"
 
 int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {
@@ -1104,6 +1105,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	int32_t res = SCAP_SUCCESS;
 	char childdir[SCAP_MAX_PATH_SIZE];
 
+	uint64_t num_procs_processed = 0;
+	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	dir_p = opendir(procdirname);
@@ -1114,8 +1117,35 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		return SCAP_NOTFOUND;
 	}
 
-	while((dir_entry_p = readdir(dir_p)) != NULL)
+	// Do timing tracking only if:
+	// - this is the top-level call (parenttid == -1)
+	// - one or both of the timing parameters is configured to non-zero
+	bool do_timing = (parenttid == -1) &&
+	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE);
+	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
+	uint64_t start_ts_ms = 0;
+	uint64_t last_log_ts_ms = 0;
+	uint64_t last_proc_ts_ms = 0;
+	uint64_t cur_ts_ms = 0;
+	uint64_t min_proc_time_ms = UINT64_MAX;
+	uint64_t max_proc_time_ms = 0;
+
+	if (do_timing)
 	{
+		start_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		last_log_ts_ms = start_ts_ms;
+		last_proc_ts_ms = start_ts_ms;
+	}
+
+	bool timeout_expired = false;
+	while (!timeout_expired)
+	{
+		dir_entry_p = readdir(dir_p);
+		if (dir_entry_p == NULL)
+		{
+			break;
+		}
+
 		if(strspn(dir_entry_p->d_name, "0123456789") != strlen(dir_entry_p->d_name))
 		{
 			continue;
@@ -1127,7 +1157,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		tid = atoi(dir_entry_p->d_name);
 
 		//
-		// Skip the main thread entry
+		// If this is a recursive call for tasks of a parent process,
+		// skip the main thread entry
 		//
 		if(parenttid != -1 && tid == parenttid)
 		{
@@ -1183,6 +1214,59 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				res = SCAP_FAILURE;
 				break;
 			}
+		}
+
+		// TID successfully processed.
+		last_tid_processed = tid;
+		num_procs_processed++;
+
+		// After successful processing of a process at the top level,
+		// perform timing processing if configured.
+		if (do_timing)
+		{
+			cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+			uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+
+			uint64_t this_proc_elapsed_time_ms = cur_ts_ms - last_proc_ts_ms;
+			last_proc_ts_ms = cur_ts_ms;
+
+			if (this_proc_elapsed_time_ms < min_proc_time_ms)
+			{
+				min_proc_time_ms = this_proc_elapsed_time_ms;
+			}
+			if (this_proc_elapsed_time_ms > max_proc_time_ms)
+			{
+				max_proc_time_ms = this_proc_elapsed_time_ms;
+			}
+
+			if (handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
+			{
+				if (total_elapsed_time_ms >= handle->m_proc_scan_timeout_ms)
+				{
+					timeout_expired = true;
+				}
+			}
+		}
+	}
+
+	if (do_timing)
+	{
+		cur_ts_ms = scap_get_monotonic_ts_ms(&monotonic_ts_context);
+		uint64_t total_elapsed_time_ms = cur_ts_ms - start_ts_ms;
+		uint64_t avg_proc_time_ms = (num_procs_processed != 0) ?
+			(total_elapsed_time_ms / num_procs_processed) : 0;
+
+		if (timeout_expired)
+		{
+			scap_debug_log(handle,
+				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
+				handle->m_proc_scan_timeout_ms,
+				num_procs_processed,
+				total_elapsed_time_ms,
+				avg_proc_time_ms,
+				min_proc_time_ms,
+				max_proc_time_ms,
+				last_tid_processed);
 		}
 	}
 
