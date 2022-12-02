@@ -43,6 +43,24 @@ struct binary_check_expr;
 */
 struct pos_info
 {
+	pos_info()
+	{
+		reset();
+	}
+	pos_info(uint32_t i, uint32_t l, uint32_t c): idx(i), line(l), col(c) { }
+	pos_info(pos_info&&) = default;
+	pos_info& operator = (pos_info&&) = default;
+	pos_info(const pos_info&) = default;
+	pos_info& operator = (const pos_info&) = default;
+	bool operator ==(const pos_info &b) const
+    {
+        return idx == b.idx && line == b.line && col == b.col;
+    }
+	bool operator !=(const pos_info &b) const
+    {
+        return idx != b.idx || line != b.line || col != b.col;
+    }
+
 	inline void reset()
 	{
 		idx = 0;
@@ -57,9 +75,9 @@ struct pos_info
 			+ ", column " + std::to_string(col);
 	}
 
-	uint32_t idx = 0;
-	uint32_t line = 1;
-	uint32_t col = 1;
+	uint32_t idx;
+	uint32_t line;
+	uint32_t col;
 };
 
 static pos_info s_initial_pos;
