@@ -49,9 +49,9 @@ public:
 	*/
 	sinsp_evt_formatter(sinsp* inspector, filter_check_list &available_checks = g_filterlist);
 
-	sinsp_evt_formatter(sinsp* inspector, const string& fmt, filter_check_list &available_checks = g_filterlist);
+	sinsp_evt_formatter(sinsp* inspector, const std::string& fmt, filter_check_list &available_checks = g_filterlist);
 
-	void set_format(gen_event_formatter::output_format of, const string& fmt) override;
+	void set_format(gen_event_formatter::output_format of, const std::string& fmt) override;
 
 	~sinsp_evt_formatter();
 
@@ -65,7 +65,7 @@ public:
 	  \return true if all the tokens can be retrieved successfully, false
 	  otherwise.
 	*/
-	bool resolve_tokens(sinsp_evt *evt, map<string,string>& values);
+	bool resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values);
 
 	// For compatibility with gen_event_filter_factory
 	// interface. It just calls resolve_tokens().
@@ -82,7 +82,7 @@ public:
 	  \return true if the string should be shown (based on the initial *),
 	   false otherwise.
 	*/
-	bool tostring(sinsp_evt* evt, OUT string* res);
+	bool tostring(sinsp_evt* evt, OUT std::string* res);
 
 	// For compatibility with gen_event_formatter
 	bool tostring(gen_event* evt, std::string &output) override;
@@ -96,19 +96,19 @@ public:
 	  \return true if there is a string to show (based on the format),
 	   false otherwise.
 	*/
-	bool on_capture_end(OUT string* res);
+	bool on_capture_end(OUT std::string* res);
 
 private:
 	gen_event_formatter::output_format m_output_format;
 
 	// vector of (full string of the token, filtercheck) pairs
 	// e.g. ("proc.aname[2], ptr to sinsp_filter_check_thread)
-	vector<pair<string, sinsp_filter_check*>> m_tokens;
-	vector<uint32_t> m_tokenlens;
+	std::vector<std::pair<std::string, sinsp_filter_check*>> m_tokens;
+	std::vector<uint32_t> m_tokenlens;
 	sinsp* m_inspector;
 	filter_check_list &m_available_checks;
 	bool m_require_all_values;
-	vector<sinsp_filter_check*> m_chks_to_free;
+	std::vector<sinsp_filter_check*> m_chks_to_free;
 
 	Json::Value m_root;
 	Json::FastWriter m_writer;
@@ -128,7 +128,7 @@ public:
 
 	// Resolve the tokens inside format and return them as a key/value map.
 	// Creates a new sinsp_evt_formatter object if necessary.
-	bool resolve_tokens(sinsp_evt *evt, std::string &format, map<string,string>& values);
+	bool resolve_tokens(sinsp_evt *evt, std::string &format, std::map<std::string,std::string>& values);
 
 	// Fills in res with the event formatted according to
 	// format. Creates a new sinsp_evt_formatter object if
@@ -139,7 +139,7 @@ private:
 
 	// Get the formatter for this format string. Creates a new
 	// sinsp_evt_formatter object if necessary.
-	std::shared_ptr<sinsp_evt_formatter>& get_cached_formatter(string &format);
+	std::shared_ptr<sinsp_evt_formatter>& get_cached_formatter(std::string &format);
 
 	std::map<std::string,std::shared_ptr<sinsp_evt_formatter>> m_formatter_cache;
 	sinsp *m_inspector;

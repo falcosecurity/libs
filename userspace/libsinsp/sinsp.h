@@ -61,8 +61,6 @@ limitations under the License.
 #include <list>
 #include <memory>
 
-using namespace std;
-
 #include <scap.h>
 #include "settings.h"
 #include "logger.h"
@@ -142,9 +140,9 @@ public:
 		m_flags = 0;
 	}
 
-	string m_name; ///< Field class name.
-	string m_shortdesc; ///< short (< 10 words) description of this filtercheck. Can be blank.
-	string m_desc; ///< Field class description.
+	std::string m_name; ///< Field class name.
+	std::string m_shortdesc; ///< short (< 10 words) description of this filtercheck. Can be blank.
+	std::string m_desc; ///< Field class description.
 	int32_t m_nfields; ///< Number of fields in this field group.
 	const filtercheck_field_info* m_fields; ///< Array containing m_nfields field descriptions.
 	uint32_t m_flags;
@@ -330,7 +328,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   the filter is invalid.
 	*/
-	void set_filter(const string& filter);
+	void set_filter(const std::string& filter);
 
 	/*!
 	  \brief Installs the given capture runtime filter object.
@@ -345,7 +343,7 @@ public:
 	  \return the filter previously set with \ref set_filter(), or an empty
 	   string if no filter has been set yet.
 	*/
-	const string get_filter();
+	const std::string get_filter();
 
 	bool run_filters_on_evt(sinsp_evt *evt);
 
@@ -360,7 +358,7 @@ public:
 	/*!
 	  \brief Instruct sinsp to write its log messages to the given file.
 	*/
-	void set_log_file(string filename);
+	void set_log_file(std::string filename);
 
 	/*!
 	  \brief Instruct sinsp to write its log messages to stderr.
@@ -413,7 +411,7 @@ public:
 	  @throws a sinsp_exception containing the error string is thrown in case
 	   of failure.
 	*/
-	void autodump_start(const string& dump_filename, bool compress);
+	void autodump_start(const std::string& dump_filename, bool compress);
 
  	/*!
 	  \brief Cycles the file pointer to a new capture file
@@ -518,7 +516,7 @@ public:
 	/*!
 	  \brief get last library error.
 	*/
-	string getlasterr()
+	std::string getlasterr()
 	{
 		return m_lasterr;
 	}
@@ -755,7 +753,7 @@ public:
 	   returns the read progress as a number and as a string, giving the plugins
 	   flexibility on the format.
 	*/
-	double get_read_progress_with_str(OUT string* progress_str);
+	double get_read_progress_with_str(OUT std::string* progress_str);
 
 	/*!
 	  \brief Make the amount of data gathered for a syscall to be
@@ -1165,7 +1163,7 @@ VISIBILITY_PRIVATE
 private:
 #endif
 
-	void set_input_plugin(const string& name, const string& params);
+	void set_input_plugin(const std::string& name, const std::string& params);
 	void open_common(scap_open_args* oargs);
 	void init();
 	void deinit_state();
@@ -1222,7 +1220,7 @@ private:
 	}
 
 	double get_read_progress_file();
-	void get_read_progress_plugin(OUT double* nres, string* sres);
+	void get_read_progress_plugin(OUT double* nres, std::string* sres);
 
 	void get_procs_cpu_from_driver(uint64_t ts);
 
@@ -1287,10 +1285,10 @@ public:
 #ifdef HAS_CAPTURE
 	std::shared_ptr<sinsp_ssl> m_k8s_ssl;
 	std::shared_ptr<sinsp_bearer_token> m_k8s_bt;
-	unique_ptr<k8s_api_handler> m_k8s_api_handler;
-	shared_ptr<socket_collector<socket_data_handler<k8s_handler>>> m_k8s_collector;
+	std::unique_ptr<k8s_api_handler> m_k8s_api_handler;
+	std::shared_ptr<socket_collector<socket_data_handler<k8s_handler>>> m_k8s_collector;
 	bool m_k8s_api_detected = false;
-	unique_ptr<k8s_api_handler> m_k8s_ext_handler;
+	std::unique_ptr<k8s_api_handler> m_k8s_ext_handler;
 	k8s_ext_list_ptr_t m_ext_list_ptr;
 	k8s_ext_list_t m_k8s_allowed_ext = {
 		// "daemonsets", // not enabled by default because not fully implemented (no state/cache, no filters) 
@@ -1392,7 +1390,7 @@ public:
 	// App events
 	//
 	bool m_track_tracers_state;
-	list<sinsp_partial_tracer*> m_partial_tracers_list;
+	std::list<sinsp_partial_tracer*> m_partial_tracers_list;
 	simple_lifo_queue<sinsp_partial_tracer>* m_partial_tracers_pool;
 
 	//
@@ -1414,7 +1412,7 @@ public:
 	// *	user added/removed events
 	// * 	group added/removed events
 #ifndef _WIN32
-	tbb::concurrent_queue<shared_ptr<sinsp_evt>> m_pending_state_evts;
+	tbb::concurrent_queue<std::shared_ptr<sinsp_evt>> m_pending_state_evts;
 #endif
 
 	// Holds an event dequeued from the above queue
@@ -1450,7 +1448,7 @@ public:
 	// String with the parameters for the plugin to be used as input.
 	// These parameters will be passed to the open function of the plugin.
 	//
-	string m_input_plugin_open_params;
+	std::string m_input_plugin_open_params;
 	//
 	// An instance of scap_evt to be used during the next call to sinsp::next().
 	// If non-null, sinsp::next will use this pointer instead of invoking scap_next().

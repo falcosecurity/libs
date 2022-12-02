@@ -55,12 +55,12 @@ public:
 	//
 	// Combine the openat arguments into a full file name
 	//
-	static void parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir);
+	static void parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT std::string* sdir);
 
 	//
 	// Protocol decoder infrastructure methods
 	//
-	sinsp_protodecoder* add_protodecoder(string decoder_name);
+	sinsp_protodecoder* add_protodecoder(std::string decoder_name);
 	void register_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec);
 
 	void schedule_k8s_events();
@@ -69,8 +69,8 @@ public:
 	//
 	// Protocol decoders callback lists
 	//
-	vector<sinsp_protodecoder*> m_open_callbacks;
-	vector<sinsp_protodecoder*> m_connect_callbacks;
+	std::vector<sinsp_protodecoder*> m_open_callbacks;
+	std::vector<sinsp_protodecoder*> m_connect_callbacks;
 
 	ppm_event_flags m_drop_event_flags;
 
@@ -178,7 +178,7 @@ private:
 	sinsp_evt m_tmp_evt;
 	uint8_t m_fake_userevt_storage[4096];
 	scap_evt* m_fake_userevt;
-	string m_tracer_error_string;
+	std::string m_tracer_error_string;
 
 	bool m_track_connection_status = false;
 
@@ -188,13 +188,13 @@ private:
 	//
 	// The protocol decoders allocated by this parser
 	//
-	vector<sinsp_protodecoder*> m_protodecoders;
+	std::vector<sinsp_protodecoder*> m_protodecoders;
 
 	metaevents_state m_k8s_metaevents_state;
 	int              m_k8s_capture_version = -1;
 	metaevents_state m_mesos_metaevents_state;
 
-	stack<uint8_t*> m_tmp_events_buffer;
+	std::stack<uint8_t*> m_tmp_events_buffer;
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;

@@ -38,7 +38,7 @@ public:
 	sinsp_curl_http_headers();
 	~sinsp_curl_http_headers();
 
-	void add(const string& header);
+	void add(const std::string& header);
 	
 	struct curl_slist* ptr()
 	{
@@ -78,7 +78,7 @@ public:
 
 	void set_url(const std::string& url);
 	std::string get_url(bool show_creds = true) const;
-	void set_body(const string& data);
+	void set_body(const std::string& data);
 	
 	bool is_secure() const;
 	ssl::ptr_t get_ssl();
@@ -97,7 +97,7 @@ public:
 	template<typename T>
 	void add_header(T body)
 	{
-		m_headers.add(forward<T>(body));
+		m_headers.add(std::forward<T>(body));
 	}
 
 	static void init_ssl(CURL* curl, ssl::ptr_t ssl_data);
@@ -111,7 +111,7 @@ public:
 	static bool handle_redirect(uri& url, std::string&& loc, std::ostream& os);
 	static size_t write_data(void *ptr, size_t size, size_t nmemb, void *cb);
 
-	const vector<string>& response_headers()
+	const std::vector<std::string>& response_headers()
 	{
 		return m_response_headers;
 	}
@@ -139,9 +139,9 @@ private:
 	bearer_token::ptr_t m_bt;
 	bool                m_debug;
 	char                m_redirect[CURL_MAX_HTTP_HEADER] = {0};
-	stringstream        m_body;
+	std::stringstream        m_body;
 	sinsp_curl_http_headers m_headers;
-	vector<string>      m_response_headers;
+	std::vector<std::string>      m_response_headers;
 	long                m_response_code;
 };
 

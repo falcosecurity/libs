@@ -207,7 +207,7 @@ public:
 		m_pos = 0;
 	}
 
-	vector<uint8_t*> m_bufs;
+	std::vector<uint8_t*> m_bufs;
 	uint8_t* m_curbuf;
 	uint32_t m_pos;
 };
@@ -216,7 +216,7 @@ class chisel_sample_row
 {
 public:
 	chisel_table_field m_key;
-	vector<chisel_table_field> m_values;
+	std::vector<chisel_table_field> m_values;
 };
 
 class chisel_table
@@ -262,17 +262,17 @@ public:
 		uint64_t refresh_interval_ns, chisel_table::output_type output_type,
 		uint32_t json_first_row, uint32_t json_last_row);
 	~chisel_table();
-	void configure(vector<chisel_view_column_info>* entries, const string& filter, bool use_defaults, uint32_t view_depth);
+	void configure(std::vector<chisel_view_column_info>* entries, const std::string& filter, bool use_defaults, uint32_t view_depth);
 	void process_event(sinsp_evt* evt);
 	void flush(sinsp_evt* evt);
 	void filter_sample();
 	//
 	// Returns the key of the first match, or NULL if no match
 	//
-	chisel_table_field* search_in_sample(string text);
+	chisel_table_field* search_in_sample(std::string text);
 	void sort_sample();
-	vector<chisel_sample_row>* get_sample(uint64_t time_delta);
-	vector<filtercheck_field_info>* get_legend()
+	std::vector<chisel_sample_row>* get_sample(uint64_t time_delta);
+	std::vector<filtercheck_field_info>* get_legend()
 	{
 		if(m_do_merging)
 		{
@@ -285,11 +285,11 @@ public:
 	}
 	void set_sorting_col(uint32_t col);
 	uint32_t get_sorting_col();
-	pair<filtercheck_field_info*, string> get_row_key_name_and_val(uint32_t rownum, bool force);
+	std::pair<filtercheck_field_info*, std::string> get_row_key_name_and_val(uint32_t rownum, bool force);
 	chisel_table_field* get_row_key(uint32_t rownum);
 	int32_t get_row_from_key(chisel_table_field* key);
 	void set_paused(bool paused);
-	void set_freetext_filter(string filter)
+	void set_freetext_filter(std::string filter)
 	{
 		m_freetext_filter = filter;
 	}
@@ -318,7 +318,7 @@ public:
 	uint64_t m_next_flush_time_ns;
 	uint64_t m_prev_flush_time_ns;
 	uint64_t m_refresh_interval_ns;
-	vector<ppm_param_type>* m_types;
+	std::vector<ppm_param_type>* m_types;
 	uint64_t m_json_output_lines_count;
 
 private:
@@ -333,24 +333,24 @@ private:
 	inline uint8_t* get_default_val(filtercheck_field_info* fld);
 	void create_sample();
 	void switch_buffers();
-	void print_raw(vector<chisel_sample_row>* sample_data, uint64_t time_delta);
-	void print_json(vector<chisel_sample_row>* sample_data, uint64_t time_delta);
+	void print_raw(std::vector<chisel_sample_row>* sample_data, uint64_t time_delta);
+	void print_json(std::vector<chisel_sample_row>* sample_data, uint64_t time_delta);
 
 	sinsp* m_inspector;
-	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher>* m_table;
-	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_premerge_table;
-	unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_merge_table;
-	vector<filtercheck_field_info> m_premerge_legend;
-	vector<check_wrapper*> m_premerge_extractors;
-	vector<check_wrapper*> m_postmerge_extractors;
-	vector<check_wrapper*>* m_extractors;
-	vector<check_wrapper*> m_chks_to_free;
-	vector<ppm_param_type> m_premerge_types;
-	vector<ppm_param_type> m_postmerge_types;
+	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher>* m_table;
+	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_premerge_table;
+	std::unordered_map<chisel_table_field, chisel_table_field*, chisel_table_field_hasher> m_merge_table;
+	std::vector<filtercheck_field_info> m_premerge_legend;
+	std::vector<check_wrapper*> m_premerge_extractors;
+	std::vector<check_wrapper*> m_postmerge_extractors;
+	std::vector<check_wrapper*>* m_extractors;
+	std::vector<check_wrapper*> m_chks_to_free;
+	std::vector<ppm_param_type> m_premerge_types;
+	std::vector<ppm_param_type> m_postmerge_types;
 	bool m_is_key_present;
 	bool m_is_groupby_key_present;
-	vector<uint32_t> m_groupby_columns;
-	vector<filtercheck_field_info> m_postmerge_legend;
+	std::vector<uint32_t> m_groupby_columns;
+	std::vector<filtercheck_field_info> m_postmerge_legend;
 	chisel_table_field* m_fld_pointers;
 	chisel_table_field* m_premerge_fld_pointers;
 	chisel_table_field* m_postmerge_fld_pointers;
@@ -364,9 +364,9 @@ private:
 	uint32_t m_premerge_vals_array_sz;
 	uint32_t m_postmerge_vals_array_sz;
 	sinsp_filter_check_reference* m_printer;
-	vector<chisel_sample_row> m_full_sample_data;
-	vector<chisel_sample_row> m_filtered_sample_data;
-	vector<chisel_sample_row>* m_sample_data;
+	std::vector<chisel_sample_row> m_full_sample_data;
+	std::vector<chisel_sample_row> m_filtered_sample_data;
+	std::vector<chisel_sample_row>* m_sample_data;
 	chisel_table_field* m_vals;
 	int32_t m_sorting_col;
 	bool m_just_sorted;
@@ -377,7 +377,7 @@ private:
 	uint64_t m_zero_u64;
 	uint64_t m_zero_double;
 	bool m_paused;
-	string m_freetext_filter;
+	std::string m_freetext_filter;
 	tabletype m_type;
 	output_type m_output_type;
 	uint32_t m_view_depth;

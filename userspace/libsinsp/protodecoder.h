@@ -44,7 +44,7 @@ public:
 	//
 	// Return the protocol decoder name
 	//
-	const string& get_name()
+	const std::string& get_name()
 	{
 		return m_name;
 	}
@@ -84,7 +84,7 @@ protected:
 	void unregister_read_callback(sinsp_fdinfo_t* fdinfo);
 	void unregister_write_callback(sinsp_fdinfo_t* fdinfo);
 
-	string m_name;
+	std::string m_name;
 	sinsp* m_inspector;
 
 private:
@@ -103,10 +103,10 @@ public:
 	sinsp_protodecoder_list();
 	~sinsp_protodecoder_list();
 	void add_protodecoder(sinsp_protodecoder* protodecoder);
-	sinsp_protodecoder* new_protodecoder_from_name(const string& name, sinsp* inspector);
+	sinsp_protodecoder* new_protodecoder_from_name(const std::string& name, sinsp* inspector);
 
 private:
-	vector<sinsp_protodecoder*> m_decoders_list;
+	std::vector<sinsp_protodecoder*> m_decoders_list;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -134,9 +134,9 @@ public:
 	int32_t m_priority;
 	uint32_t m_facility;
 	uint32_t m_severity;
-	string m_msg;
+	std::string m_msg;
 
 private:
 	void decode_message(char *data, uint32_t len, char* pristr, uint32_t pristrlen);
-	string m_infostr;
+	std::string m_infostr;
 };

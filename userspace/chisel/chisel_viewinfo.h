@@ -53,15 +53,15 @@ public:
 	{
 	}
 	
-	chisel_view_column_info(string field,
-		string name,
-		string description,
+	chisel_view_column_info(std::string field,
+		std::string name,
+		std::string description,
 		uint32_t colsize,
 		uint32_t flags,
 		chisel_field_aggregation aggregation,
 		chisel_field_aggregation groupby_aggregation,
-		vector<string> tags,
-		string filterfield)
+		std::vector<std::string> tags,
+		std::string filterfield)
 	{
 		m_field = field;
 		m_name = name;
@@ -74,18 +74,18 @@ public:
 		m_filterfield = filterfield;
 	}
 
-	string get_field(uint32_t depth);
-	string get_filter_field(uint32_t depth);
+	std::string get_field(uint32_t depth);
+	std::string get_filter_field(uint32_t depth);
 
-	string m_field;
-	string m_name;
-	string m_description;
+	std::string m_field;
+	std::string m_name;
+	std::string m_description;
 	uint32_t m_colsize;
 	chisel_field_aggregation m_aggregation;
 	chisel_field_aggregation m_groupby_aggregation;
 	uint32_t m_flags;
-	vector<string> m_tags;
-	string m_filterfield;
+	std::vector<std::string> m_tags;
+	std::string m_filterfield;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -95,8 +95,8 @@ class chisel_view_action_info
 {
 public:
 	chisel_view_action_info(char hotkey,
-		string command,
-		string description,
+		std::string command,
+		std::string description,
 		bool ask_confirmation,
 		bool waitfinish)
 	{
@@ -108,8 +108,8 @@ public:
 	}
 
 	char m_hotkey;
-	string m_command;
-	string m_description;
+	std::string m_command;
+	std::string m_description;
 	bool m_ask_confirmation;
 	bool m_waitfinish;
 };
@@ -131,25 +131,25 @@ public:
 
 	chisel_view_info();
 	chisel_view_info(viewtype type,
-		string id,
-		string name,
-		string description,
-		vector<string> tags,
-		vector<string> tips,
-		vector<chisel_view_column_info> columns,
-		vector<string> applies_to,
-		string filter,
-		string drilldown_target,
+		std::string id,
+		std::string name,
+		std::string description,
+		std::vector<std::string> tags,
+		std::vector<std::string> tips,
+		std::vector<chisel_view_column_info> columns,
+		std::vector<std::string> applies_to,
+		std::string filter,
+		std::string drilldown_target,
 		bool use_defaults,
 		bool is_root,
-		vector<chisel_view_action_info> actions,
+		std::vector<chisel_view_action_info> actions,
 		bool drilldown_increase_depth,
-		string spectro_type,
+		std::string spectro_type,
 		bool propagate_filter);
 
-	void get_col_names_and_sizes(OUT vector<string>* colnames, OUT vector<int32_t>* colsizes);
+	void get_col_names_and_sizes(OUT std::vector<std::string>* colnames, OUT std::vector<int32_t>* colsizes);
 	chisel_view_column_info* get_key();
-	string get_filter(uint32_t depth);
+	std::string get_filter(uint32_t depth);
 	viewtype get_type()
 	{
 		return m_type;
@@ -160,30 +160,30 @@ public:
 		return m_does_groupby;
 	}
 
-	void apply_tag(string tag);
+	void apply_tag(std::string tag);
 
 	void run_action(chisel_view_action_info* action);
-	string m_id;
-	string m_name;
-	string m_description;
-	vector<string> m_tags;
-	vector<string> m_tips;
+	std::string m_id;
+	std::string m_name;
+	std::string m_description;
+	std::vector<std::string> m_tags;
+	std::vector<std::string> m_tips;
 	uint32_t m_sortingcol;
-	vector<string> m_applies_to;
-	vector<chisel_view_column_info> m_columns;
+	std::vector<std::string> m_applies_to;
+	std::vector<chisel_view_column_info> m_columns;
 	bool m_use_defaults;
 	bool m_does_groupby;
 	viewtype m_type;
 	bool m_valid;
-	string m_drilldown_target;
+	std::string m_drilldown_target;
 	bool m_is_root;
-	vector<chisel_view_action_info> m_actions;
-	vector<char> m_col_sort_hotkeys;
+	std::vector<chisel_view_action_info> m_actions;
+	std::vector<char> m_col_sort_hotkeys;
 	uint32_t max_col_sort_hotkeys;
 	bool m_drilldown_increase_depth;
 	bool m_propagate_filter;
-	string m_spectro_type;
-	string m_filter;
+	std::string m_spectro_type;
+	std::string m_filter;
 
 private:
 	void set_sorting_col();
@@ -201,9 +201,9 @@ class chisel_view_manager
 {
 public:
 	void add(chisel_view_info* vinfo);
-	vector<chisel_view_info>* get_views();
+	std::vector<chisel_view_info>* get_views();
 	uint32_t get_selected_view();
-	void set_selected_view(string viewid);
+	void set_selected_view(std::string viewid);
 	size_t size()
 	{
 		return m_views.size();
@@ -216,7 +216,7 @@ public:
 private:
 	void sort_views();
 
-	vector<chisel_view_info> m_views;
+	std::vector<chisel_view_info> m_views;
 
-	string m_selected_view_id;
+	std::string m_selected_view_id;
 };
