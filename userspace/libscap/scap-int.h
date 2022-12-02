@@ -77,6 +77,7 @@ struct scap
 
 	// /proc scan parameters
 	uint64_t m_proc_scan_timeout_ms;
+	uint64_t m_proc_scan_log_interval_ms;
 
 	// Function which may be called to log a debug event
 	void(*m_debug_log_fn)(const char* msg);
