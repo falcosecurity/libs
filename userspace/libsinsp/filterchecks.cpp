@@ -147,8 +147,8 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.file.sha256", "SHA256", "for file FDs, the SHA256 checksum of the file. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.file.md5", "MD5", "for file FDs, the MD5 checksum of the file. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
-	{PT_BOOL, EPF_NONE, PF_NA, "fd.file.hash.is_malware", "Is Malware", "for file FDs, if malware hashes are available, this field is 'true' if the file hash matches an entry in the hashes list. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.file.hash.category", "Hash Category", "for file FDs, if malware hashes are available, the threat category corresponding to the file hash, e.g. trojan.linux/kinsing. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
+	{PT_BOOL, EPF_NONE, PF_NA, "fd.file.hash.has_match", "Hash Match", "for file FDs, if hash lists have been loaded, this field is 'true' if the file hash matches an entry in the hashes list. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.file.hash.category", "Hash Category", "for file FDs, if hash lists have been loaded, the threat category corresponding to the file hash, e.g. trojan.linux/kinsing. Use this with caution: checksums produced by this field are not cached, so liberal use could cause substantial resource consumption."},
 	};
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -1388,7 +1388,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_FILE_SHA256:
 	case TYPE_FILE_MD5:
-	case TYPE_FILE_HASH_IS_MALWARE:
+	case TYPE_FILE_HASH_HAS_MATCH:
 	case TYPE_FILE_HASH_CATEGORY:
 		if(m_fdinfo != NULL && m_fdinfo->get_typechar() == 'f' && m_inspector->m_exec_hashing_enabled)
 		{
@@ -1411,7 +1411,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			string checksum;
 			m_tbool = m_inspector->m_checksum_table->get(m_tstr, &checksum);
-			if(m_field_id == TYPE_FILE_HASH_IS_MALWARE)
+			if(m_field_id == TYPE_FILE_HASH_HAS_MATCH)
 			{
 				RETURN_EXTRACT_VAR(m_tbool);
 			}
@@ -1916,8 +1916,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmsize", "VM Size", "total virtual memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmrss", "VM RSS", "resident non-swapped memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "VM Swap", "swapped memory for the process (as kb)."},
-	{PT_BOOL, EPF_NONE, PF_NA, "proc.hash.is_malware", "Is Malware", "for events of type exehash, if malware hashes are available, this field is 'true' if the executable hash matches an entry in the hashes list."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.hash.category", "Hash Category", "for events of type exehash, if malware hashes are available, the threat category corresponding to the hash, e.g. trojan.linux/kinsing."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.hash.has_match", "Hash Match", "for events of type exehash, if hash lists have been loaded, this field is 'true' if the executable hash matches an entry in the hashes list."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.hash.category", "Hash Category", "for events of type exehash, if hash lists have been loaded, the threat category corresponding to the hash, e.g. trojan.linux/kinsing."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfmajor", "Major Page Faults", "number of major page faults since thread start."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "thread.pfminor", "Minor Page Faults", "number of minor page faults since thread start."},
 	{PT_INT64, EPF_NONE, PF_ID, "thread.tid", "Thread ID", "the id of the thread generating the event."},
@@ -2596,7 +2596,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	case TYPE_VMSWAP:
 		m_u64val = tinfo->m_vmswap_kb;
 		RETURN_EXTRACT_VAR(m_u64val);
-	case TYPE_HASH_IS_MALWARE:
+	case TYPE_HASH_HAS_MATCH:
 	case TYPE_HASH_CATEGORY:
 		if(evt->get_type() == PPME_EXE_HASH_E && m_inspector->m_exec_hashing_enabled)
 		{
@@ -2604,7 +2604,7 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			char* key = (char *)param->m_val;
 
 			m_tbool = m_inspector->m_checksum_table->get(key, &m_tstr);
-			if(m_field_id == TYPE_HASH_IS_MALWARE)
+			if(m_field_id == TYPE_HASH_HAS_MATCH)
 			{
 				RETURN_EXTRACT_VAR(m_tbool);
 			}
