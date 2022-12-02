@@ -858,30 +858,6 @@ uint64_t sinsp_utils::get_current_time_ns()
     return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
 }
 
-uint64_t sinsp_utils::get_host_boot_time_ns()
-{
-	char proc_dir[PPM_MAX_PATH_SIZE];
-	struct stat targetstat;
-
-	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/1/", scap_get_host_root());
-	if (stat(proc_dir, &targetstat) == 0)
-	{
-		// This approach is constant between agent re-boots
-		return targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
-	}
-
-	// Fall-back method from scap_bpf
-	struct timespec ts_uptime;
-	uint64_t now;
-	uint64_t uptime;
-
-	now = sinsp_utils::get_current_time_ns();
-	clock_gettime(CLOCK_BOOTTIME, &ts_uptime);
-	uptime = ts_uptime.tv_sec * (uint64_t) 1000000000 + ts_uptime.tv_nsec;
-
-	return (now - uptime);
-}
-
 bool sinsp_utils::glob_match(const char *pattern, const char *string)
 {
 #ifdef _WIN32
