@@ -395,6 +395,12 @@ public:
 	 */
 	void set_thread_timeout_s(uint32_t val);
 
+	/*!
+	 * \brief sets the max amount of time that the initial scan of /proc should execute,
+	 *        after which a so-far-successful scan should be stopped and success returned.
+	 *        Value of SCAP_PROC_SCAN_TIMEOUT_NONE (default) means run to completion.
+	 */
+	void set_proc_scan_timeout_ms(uint64_t val);
 
 	/*!
 	  \brief Start writing the captured events to file.
@@ -1428,6 +1434,11 @@ public:
 #if defined(HAS_CAPTURE)
 	int64_t m_self_pid;
 #endif
+
+	//
+	// /proc scan parameters
+	//
+	uint64_t m_proc_scan_timeout_ms;
 
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()
