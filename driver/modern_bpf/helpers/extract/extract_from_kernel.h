@@ -581,7 +581,7 @@ static __always_inline bool extract__exe_upper_layer(struct task_struct *task)
 			return false;
 		}
 
-		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
+		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + inode_size);
 
 		if(upper_dentry)
 		{
