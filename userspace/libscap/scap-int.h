@@ -74,6 +74,9 @@ struct scap
 	// If the schema version is unavailable for whatever reason,
 	// it's equivalent to version 0.0.0
 	uint64_t m_schema_version;
+
+	// Function which may be called to log a debug event
+	void(*m_debug_log_fn)(const char* msg);
 };
 
 typedef enum ppm_dumper_type
