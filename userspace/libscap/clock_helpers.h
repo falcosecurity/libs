@@ -24,6 +24,10 @@ limitations under the License.
 #define S_TO_MS(_sec) (((uint64_t)_sec) * (uint64_t)1000)
 #define NS_TO_MS(_ns) (((uint64_t)_ns) / ((uint64_t)(1000 * 1000)))
 
+#ifndef __always_inline
+#define __always_inline inline
+#endif
+
 /**
  * Return monotonically increasing time in ms.
  * Caller initializes context to SCAP_GET_CUR_TS_MS_CONTEXT_INIT,
