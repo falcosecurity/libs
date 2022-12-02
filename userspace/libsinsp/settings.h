@@ -115,6 +115,10 @@ static const unsigned MAX_JSON_SIZE_B = 500 * 1024; // 500 kiB
 // Maximum time that the hashing engine can spend hashing a file.
 // If the hashing takes longer than this, it will be aborted.
 #define HASHING_MAX_HASHING_TIME_NS 5LL * 1000000000
+// If this is set, the hashing engine will attempt to hash the first argument
+// instead of the executable binary for executables like python, perl, bash, etc.
+// Currently disabled as suggested by threat researchers.
+#undef HASHING_HASH_SCRIPTS
 
 // Maximum size of the executable checksum cache.
 // Each entry has a string containing a FS path as the key, and around 40 bytes as the value.

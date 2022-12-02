@@ -133,6 +133,7 @@ int64_t file_hash_calculator::checksum_executable(sinsp_threadinfo* tinfo,
 {
 	*exepath = tinfo->m_exepath;
 
+#ifdef HASHING_HASH_SCRIPTS
 	string comm = tinfo->m_comm;
 	if(sinsp_utils::is_intepreter(comm) ||
 		comm == "sh" ||
@@ -147,17 +148,16 @@ int64_t file_hash_calculator::checksum_executable(sinsp_threadinfo* tinfo,
 			string tcwd = tinfo->get_cwd();
 			string a0 = tinfo->m_args[0];
 
-			if(sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
+			sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
 										   tcwd.c_str(),
 										   tcwd.size(),
 										   a0.c_str(),
 										   a0.size(),
-										   false))
-			{
-				*exepath = fullpath;
-			}
+										   false);
+			*exepath = fullpath;
 		}
 	}
+#endif // HASHING_HASH_SCRIPTS
 
 	return checksum_process_file(tinfo, *exepath, type, false, checksum);
 }
