@@ -26,14 +26,14 @@ bool bpm::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it.second;
+		std::string cgroup = it.second;
 		size_t pos;
 
 		//
 		// Non-systemd and systemd BPM
 		//
 		pos = cgroup.find("bpm-");
-		if(pos != string::npos)
+		if(pos != std::string::npos)
 		{
 			auto id_start = pos + sizeof("bpm-") - 1;
 			auto id_end = cgroup.find(".scope", id_start);

@@ -117,10 +117,10 @@ bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 	if(!m_resolver)
 	{
-		m_resolver = new thread(sinsp_dns_resolver::refresh, m_erase_timeout, m_base_refresh_timeout, m_max_refresh_timeout, m_exit_signal.get_future());
+		m_resolver = new std::thread(sinsp_dns_resolver::refresh, m_erase_timeout, m_base_refresh_timeout, m_max_refresh_timeout, m_exit_signal.get_future());
 	}
 
-	string sname = string(name);
+	std::string sname = std::string(name);
 
 	m_erase_mutex.lock();
 
@@ -151,9 +151,9 @@ bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 	return false;
 }
 
-string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
+std::string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 {
-	string ret;
+	std::string ret;
 
 #if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
 	if(!m_cache.empty())

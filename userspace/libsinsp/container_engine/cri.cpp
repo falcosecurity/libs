@@ -33,6 +33,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+using namespace std;
 using namespace libsinsp::cri;
 using namespace libsinsp::container_engine;
 using namespace libsinsp::runc;

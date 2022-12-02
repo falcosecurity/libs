@@ -486,7 +486,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 			addr.m_fields.m_dip = *(uint32_t*)db;
 			addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 			addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
-			string straddr = ipv4tuple_to_string(&addr, resolve);
+			std::string straddr = ipv4tuple_to_string(&addr, resolve);
 			snprintf(targetbuf,
 					 targetbuf_size,
 					 "%s",
@@ -532,7 +532,7 @@ bool sinsp_utils::sockinfo_to_str(sinsp_sockinfo* sinfo, scap_fd_type stype, cha
 				addr.m_fields.m_dip = *(uint32_t*)dip;
 				addr.m_fields.m_dport = sinfo->m_ipv4info.m_fields.m_dport;
 				addr.m_fields.m_l4proto = sinfo->m_ipv4info.m_fields.m_l4proto;
-				string straddr = ipv4tuple_to_string(&addr, resolve);
+				std::string straddr = ipv4tuple_to_string(&addr, resolve);
 				snprintf(targetbuf,
 						 targetbuf_size,
 						 "%s",
@@ -813,7 +813,7 @@ bool sinsp_utils::is_ipv4_mapped_ipv6(uint8_t* paddr)
 	}
 }
 
-const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string name)
+const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(std::string name)
 {
 	uint32_t maxlen = 0;
 	const struct ppm_param_info* res = nullptr;
@@ -845,7 +845,7 @@ const struct ppm_param_info* sinsp_utils::find_longest_matching_evt_param(string
 	return res;
 }
 
-void sinsp_utils::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
+void sinsp_utils::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
 {
 	g_filterlist.get_all_fields(list);
 }
@@ -896,7 +896,7 @@ void sinsp_utils::bt(void)
 #endif // _WIN32
 #endif // CYGWING_AGENT
 
-bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &env, const vector<std::string> &keys)
+bool sinsp_utils::find_first_env(std::string &out, const std::vector<std::string> &env, const std::vector<std::string> &keys)
 {
 	for (const auto& key : keys)
 	{
@@ -912,9 +912,9 @@ bool sinsp_utils::find_first_env(std::string &out, const vector<std::string> &en
 	return false;
 }
 
-bool sinsp_utils::find_env(std::string &out, const vector<std::string> &env, const std::string &key)
+bool sinsp_utils::find_env(std::string &out, const std::vector<std::string> &env, const std::string &key)
 {
-	const vector<std::string> keys = { key };
+	const std::vector<std::string> keys = { key };
 	return find_first_env(out, env, keys);
 }
 
@@ -1006,7 +1006,7 @@ const char* sinsp_utils::event_name_by_id(uint16_t id)
 	return g_infotables.m_event_info[id].name;
 }
 
-void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
+void sinsp_utils::ts_to_string(uint64_t ts, OUT std::string* res, bool date, bool ns)
 {
 	struct tm *tm;
 	time_t Time;
@@ -1047,7 +1047,7 @@ void sinsp_utils::ts_to_string(uint64_t ts, OUT string* res, bool date, bool ns)
 }
 
 #define TS_STR_FMT "YYYY-MM-DDTHH:MM:SS-0000"
-void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT string* res)
+void sinsp_utils::ts_to_iso_8601(uint64_t ts, OUT std::string* res)
 {
 	static const char *fmt = TS_STR_FMT;
 	char buf[sizeof(TS_STR_FMT)];
@@ -1185,7 +1185,7 @@ int gettimeofday(struct timeval *tv, struct timezone2 *tz)
 ///////////////////////////////////////////////////////////////////////////////
 // gethostname wrapper
 ///////////////////////////////////////////////////////////////////////////////
-string sinsp_gethostname()
+std::string sinsp_gethostname()
 {
 	char hname[256];
 	int res = gethostname(hname, sizeof(hname) / sizeof(hname[0]));
@@ -1204,12 +1204,12 @@ string sinsp_gethostname()
 ///////////////////////////////////////////////////////////////////////////////
 // tuples to string
 ///////////////////////////////////////////////////////////////////////////////
-string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
+std::string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 {
-	string ret = "";
+	std::string ret = "";
 	if(resolve)
 	{
-		string proto = "";
+		std::string proto = "";
 		if(l4proto == SCAP_L4_TCP)
 		{
 			proto = "tcp";
@@ -1228,18 +1228,18 @@ string port_to_string(uint16_t port, uint8_t l4proto, bool resolve)
 		}
 		else
 		{
-			ret = to_string(port);
+			ret = std::to_string(port);
 		}
 	}
 	else
 	{
-		ret = to_string(port);
+		ret = std::to_string(port);
 	}
 
 	return ret;
 }
 
-string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
+std::string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 {
 	char buf[50];
 	uint8_t *ip = (uint8_t *)&addr->m_ip;
@@ -1250,10 +1250,10 @@ string ipv4serveraddr_to_string(ipv4serverinfo* addr, bool resolve)
 		"%d.%d.%d.%d:%s", ip[0], ip[1], ip[2], ip[3],
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
-	return string(buf);
+	return std::string(buf);
 }
 
-string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
+std::string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 {
 	char buf[100];
 
@@ -1262,36 +1262,36 @@ string ipv4tuple_to_string(ipv4tuple* tuple, bool resolve)
 	info.m_ip = tuple->m_fields.m_sip;
 	info.m_port = tuple->m_fields.m_sport;
 	info.m_l4proto = tuple->m_fields.m_l4proto;
-	string source = ipv4serveraddr_to_string(&info, resolve);
+	std::string source = ipv4serveraddr_to_string(&info, resolve);
 
 	info.m_ip = tuple->m_fields.m_dip;
 	info.m_port = tuple->m_fields.m_dport;
 	info.m_l4proto = tuple->m_fields.m_l4proto;
-	string dest = ipv4serveraddr_to_string(&info, resolve);
+	std::string dest = ipv4serveraddr_to_string(&info, resolve);
 
 	snprintf(buf, sizeof(buf), "%s->%s", source.c_str(), dest.c_str());
 
-	return string(buf);
+	return std::string(buf);
 }
 
-string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
+std::string ipv6serveraddr_to_string(ipv6serverinfo* addr, bool resolve)
 {
 	char address[100];
 	char buf[200];
 
 	if(NULL == inet_ntop(AF_INET6, addr->m_ip.m_b, address, 100))
 	{
-		return string();
+		return std::string();
 	}
 
 	snprintf(buf,200,"%s:%s",
 		address,
 		port_to_string(addr->m_port, addr->m_l4proto, resolve).c_str());
 
-	return string(buf);
+	return std::string(buf);
 }
 
-string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
+std::string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 {
 	char source_address[100];
 	char destination_address[100];
@@ -1299,12 +1299,12 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_sip.m_b, source_address, 100))
 	{
-		return string();
+		return std::string();
 	}
 
 	if(NULL == inet_ntop(AF_INET6, tuple->m_fields.m_dip.m_b, destination_address, 100))
 	{
-		return string();
+		return std::string();
 	}
 
 	snprintf(buf,200,"%s:%s->%s:%s",
@@ -1313,7 +1313,7 @@ string ipv6tuple_to_string(_ipv6tuple* tuple, bool resolve)
 		destination_address,
 		port_to_string(tuple->m_fields.m_dport, tuple->m_fields.m_l4proto, resolve).c_str());
 
-	return string(buf);
+	return std::string(buf);
 }
 
 const char* param_type_to_string(ppm_param_type pt)
@@ -1446,11 +1446,11 @@ const char* print_format_to_string(ppm_print_format fmt)
 //
 // String split
 //
-vector<string> sinsp_split(const string &s, char delim)
+std::vector<std::string> sinsp_split(const std::string &s, char delim)
 {
-	vector<string> res;
-	istringstream f(s);
-	string ts;
+	std::vector<std::string> res;
+	std::istringstream f(s);
+	std::string ts;
 
 	while(getline(f, ts, delim))
 	{
@@ -1463,7 +1463,7 @@ vector<string> sinsp_split(const string &s, char delim)
 //
 // trim from start
 //
-string& ltrim(string &s)
+std::string& ltrim(std::string &s)
 {
 	s.erase(s.begin(), find_if(s.begin(), s.end(), [](int c) {return !std::isspace(c);}));
 	return s;
@@ -1472,7 +1472,7 @@ string& ltrim(string &s)
 //
 // trim from end
 //
-string& rtrim(string &s)
+std::string& rtrim(std::string &s)
 {
 	s.erase(find_if(s.rbegin(), s.rend(), [](int c) {return !std::isspace(c);}).base(), s.end());
 	return s;
@@ -1481,17 +1481,17 @@ string& rtrim(string &s)
 //
 // trim from both ends
 //
-string& trim(string &s)
+std::string& trim(std::string &s)
 {
 	return ltrim(rtrim(s));
 }
 
-string& replace_in_place(string& str, const string& search, const string& replacement)
+std::string& replace_in_place(std::string& str, const std::string& search, const std::string& replacement)
 {
-	string::size_type ssz = search.length();
-	string::size_type rsz = replacement.length();
-	string::size_type pos = 0;
-	while((pos = str.find(search, pos)) != string::npos)
+	std::string::size_type ssz = search.length();
+	std::string::size_type rsz = replacement.length();
+	std::string::size_type pos = 0;
+	while((pos = str.find(search, pos)) != std::string::npos)
 	{
 		str.replace(pos, ssz, replacement);
 		pos += rsz;
@@ -1500,15 +1500,15 @@ string& replace_in_place(string& str, const string& search, const string& replac
 	return str;
 }
 
-string replace(const string& str, const string& search, const string& replacement)
+std::string replace(const std::string& str, const std::string& search, const std::string& replacement)
 {
-	string s(str);
+	std::string s(str);
 	replace_in_place(s, search, replacement);
 	return s;
 }
 
 
-bool sinsp_utils::endswith(const string& str, const string& ending)
+bool sinsp_utils::endswith(const std::string& str, const std::string& ending)
 {
 	if (ending.size() <= str.size())
 	{
@@ -1565,7 +1565,7 @@ bool sinsp_utils::unhex(const std::vector<char> &hex_chars, std::vector<char> &h
 	return true;
 }
 
-const vector<string> capabilities {
+const std::vector<std::string> capabilities {
 	{"CAP_CHOWN"},
 	{"CAP_DAC_OVERRIDE"},
 	{"CAP_DAC_READ_SEARCH"},
@@ -1639,7 +1639,7 @@ uint64_t sinsp_utils::get_max_caps()
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_numparser implementation
 ///////////////////////////////////////////////////////////////////////////////
-uint8_t sinsp_numparser::parseu8(const string& str)
+uint8_t sinsp_numparser::parseu8(const std::string& str)
 {
 	uint32_t res;
 	char temp;
@@ -1652,7 +1652,7 @@ uint8_t sinsp_numparser::parseu8(const string& str)
 	return (uint8_t)res;
 }
 
-int8_t sinsp_numparser::parsed8(const string& str)
+int8_t sinsp_numparser::parsed8(const std::string& str)
 {
 	int32_t res;
 	char temp;
@@ -1665,7 +1665,7 @@ int8_t sinsp_numparser::parsed8(const string& str)
 	return (int8_t)res;
 }
 
-uint16_t sinsp_numparser::parseu16(const string& str)
+uint16_t sinsp_numparser::parseu16(const std::string& str)
 {
 	uint32_t res;
 	char temp;
@@ -1678,7 +1678,7 @@ uint16_t sinsp_numparser::parseu16(const string& str)
 	return (uint16_t)res;
 }
 
-int16_t sinsp_numparser::parsed16(const string& str)
+int16_t sinsp_numparser::parsed16(const std::string& str)
 {
 	int32_t res;
 	char temp;
@@ -1691,7 +1691,7 @@ int16_t sinsp_numparser::parsed16(const string& str)
 	return (int16_t)res;
 }
 
-uint32_t sinsp_numparser::parseu32(const string& str)
+uint32_t sinsp_numparser::parseu32(const std::string& str)
 {
 	uint32_t res;
 	char temp;
@@ -1704,7 +1704,7 @@ uint32_t sinsp_numparser::parseu32(const string& str)
 	return res;
 }
 
-int32_t sinsp_numparser::parsed32(const string& str)
+int32_t sinsp_numparser::parsed32(const std::string& str)
 {
 	int32_t res;
 	char temp;
@@ -1717,7 +1717,7 @@ int32_t sinsp_numparser::parsed32(const string& str)
 	return res;
 }
 
-uint64_t sinsp_numparser::parseu64(const string& str)
+uint64_t sinsp_numparser::parseu64(const std::string& str)
 {
 	uint64_t res;
 	char temp;
@@ -1730,7 +1730,7 @@ uint64_t sinsp_numparser::parseu64(const string& str)
 	return res;
 }
 
-int64_t sinsp_numparser::parsed64(const string& str)
+int64_t sinsp_numparser::parsed64(const std::string& str)
 {
 	int64_t res;
 	char temp;
@@ -1743,7 +1743,7 @@ int64_t sinsp_numparser::parsed64(const string& str)
 	return res;
 }
 
-bool sinsp_numparser::tryparseu32(const string& str, uint32_t* res)
+bool sinsp_numparser::tryparseu32(const std::string& str, uint32_t* res)
 {
 	char temp;
 
@@ -1755,7 +1755,7 @@ bool sinsp_numparser::tryparseu32(const string& str, uint32_t* res)
 	return true;
 }
 
-bool sinsp_numparser::tryparsed32(const string& str, int32_t* res)
+bool sinsp_numparser::tryparsed32(const std::string& str, int32_t* res)
 {
 	char temp;
 
@@ -1767,7 +1767,7 @@ bool sinsp_numparser::tryparsed32(const string& str, int32_t* res)
 	return true;
 }
 
-bool sinsp_numparser::tryparseu64(const string& str, uint64_t* res)
+bool sinsp_numparser::tryparseu64(const std::string& str, uint64_t* res)
 {
 	char temp;
 
@@ -1779,7 +1779,7 @@ bool sinsp_numparser::tryparseu64(const string& str, uint64_t* res)
 	return true;
 }
 
-bool sinsp_numparser::tryparsed64(const string& str, int64_t* res)
+bool sinsp_numparser::tryparsed64(const std::string& str, int64_t* res)
 {
 	char temp;
 

@@ -23,6 +23,8 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 
+using namespace std;
+
 namespace {
 bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp)
 {

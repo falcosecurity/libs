@@ -73,7 +73,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 
 		g_logger.format(sinsp_logger::SEV_INFO, "Flushing container table");
 
-		set<string> containers_in_use;
+		std::set<std::string> containers_in_use;
 
 		threadinfo_map_t* threadtable = m_inspector->m_thread_manager->get_threads();
 
@@ -107,7 +107,7 @@ bool sinsp_container_manager::remove_inactive_containers()
 	return res;
 }
 
-sinsp_container_info::ptr_t sinsp_container_manager::get_container(const string& container_id) const
+sinsp_container_info::ptr_t sinsp_container_manager::get_container(const std::string& container_id) const
 {
 	auto containers = m_containers.lock();
 	auto it = containers->find(container_id);
@@ -152,7 +152,7 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	return matches;
 }
 
-string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
+std::string sinsp_container_manager::container_to_json(const sinsp_container_info& container_info)
 {
 	Json::Value obj;
 	Json::Value& container = obj["container"];
@@ -248,7 +248,7 @@ string sinsp_container_manager::container_to_json(const sinsp_container_info& co
 	return Json::FastWriter().write(obj);
 }
 
-bool sinsp_container_manager::container_to_sinsp_event(const string& json, sinsp_evt* evt, shared_ptr<sinsp_threadinfo> tinfo)
+bool sinsp_container_manager::container_to_sinsp_event(const std::string& json, sinsp_evt* evt, std::shared_ptr<sinsp_threadinfo> tinfo)
 {
 	size_t totlen = sizeof(scap_evt) + sizeof(uint32_t) + json.length() + 1;
 
@@ -406,9 +406,9 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 	}
 }
 
-string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo) const
+std::string sinsp_container_manager::get_container_name(sinsp_threadinfo* tinfo) const
 {
-	string res;
+	std::string res;
 
 	if(tinfo->m_container_id.empty())
 	{

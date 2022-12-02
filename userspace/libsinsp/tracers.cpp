@@ -184,8 +184,8 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 			// the entries will be stuck there forever. Better clean the list, miss the 128
 			// events it contains, and start fresh.
 			//
-			list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
-			list<sinsp_partial_tracer*>::iterator it;
+			std::list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+			std::list<sinsp_partial_tracer*>::iterator it;
 
 			for(it = partial_tracers_list->begin(); it != partial_tracers_list->end(); ++it)
 			{
@@ -204,8 +204,8 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 	}
 	else
 	{
-		list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
-		list<sinsp_partial_tracer*>::iterator it;
+		std::list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+		std::list<sinsp_partial_tracer*>::iterator it;
 
 		init_partial_tracer(&m_exit_pae);
 
@@ -240,8 +240,8 @@ sinsp_tracerparser::parse_result sinsp_tracerparser::process_event_data(char *da
 
 sinsp_partial_tracer* sinsp_tracerparser::find_parent_enter_pae()
 {
-	list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
-	list<sinsp_partial_tracer*>::iterator it;
+	std::list<sinsp_partial_tracer*>* partial_tracers_list = &m_inspector->m_partial_tracers_list;
+	std::list<sinsp_partial_tracer*>::iterator it;
 
 	char* tse = m_enter_pae->m_tags_storage + m_tot_taglens;
 	if(*tse == 0 && tse > m_enter_pae->m_tags_storage)
@@ -1204,8 +1204,8 @@ inline sinsp_tracerparser::parse_result sinsp_tracerparser::parsenumber_colend(c
 
 inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 {
-	vector<char*>::iterator it;
-	vector<uint32_t>::iterator sit;
+	std::vector<char*>::iterator it;
+	std::vector<uint32_t>::iterator sit;
 
 	ASSERT(m_tinfo != NULL);
 	pae->m_tid = m_tinfo->m_tid;

@@ -34,6 +34,8 @@ limitations under the License.
 #define PRINTF_WRAP_CPROC(x) #x
 #define PRINTF_WRAP(x) PRINTF_WRAP_CPROC(x)
 
+using namespace std;
+
 struct summary_chisel_comparer
 {
 	bool operator()(const chisel_desc& first, const chisel_desc& second) const

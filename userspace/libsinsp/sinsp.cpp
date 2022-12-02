@@ -98,7 +98,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_cycle_writer = NULL;
 	m_write_cycling = false;
 	m_filter = NULL;
-	m_fds_to_remove = new vector<int64_t>;
+	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
 #ifdef SIMULATE_DROP_MODE
 	m_isdropping = false;
@@ -652,7 +652,7 @@ std::string sinsp::generate_gvisor_config(std::string socket_path)
 
 int64_t sinsp::get_file_size(const std::string& fname, char *error)
 {
-	static string err_str = "Could not determine capture file size: ";
+	static std::string err_str = "Could not determine capture file size: ";
 	std::string errdesc;
 #ifdef _WIN32
 	LARGE_INTEGER li = { 0 };
@@ -696,9 +696,9 @@ unsigned sinsp::num_possible_cpus()
 	return m_num_possible_cpus;
 }
 
-vector<long> sinsp::get_n_tracepoint_hit()
+std::vector<long> sinsp::get_n_tracepoint_hit()
 {
-	vector<long> ret(num_possible_cpus(), 0);
+	std::vector<long> ret(num_possible_cpus(), 0);
 	if(scap_get_n_tracepoint_hit(m_h, ret.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
@@ -770,7 +770,7 @@ void sinsp::deinit_state()
 	m_thread_manager->clear();
 }
 
-void sinsp::autodump_start(const string& dump_filename, bool compress)
+void sinsp::autodump_start(const std::string& dump_filename, bool compress)
 {
 	if(NULL == m_h)
 	{
@@ -1045,7 +1045,7 @@ void sinsp::restart_capture()
 	// scap's internal state.
 	if (scap_restart_capture(m_h) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+		throw sinsp_exception(std::string("scap error: ") + scap_getlasterr(m_h));
 	}
 
 	// Re-initialize the internal state
@@ -1095,7 +1095,7 @@ void sinsp::get_procs_cpu_from_driver(uint64_t ts)
 	m_meinfo.m_pli = scap_get_threadlist(m_h);
 	if(m_meinfo.m_pli == NULL)
 	{
-		throw sinsp_exception(string("scap error: ") + scap_getlasterr(m_h));
+		throw sinsp_exception(std::string("scap error: ") + scap_getlasterr(m_h));
 	}
 
 	m_meinfo.m_n_procinfo_evts = m_meinfo.m_pli->n_entries;
@@ -1144,7 +1144,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 		//
 		if(m_decoders_reset_list.size() != 0)
 		{
-			vector<sinsp_protodecoder*>::iterator it;
+			std::vector<sinsp_protodecoder*>::iterator it;
 			for(it = m_decoders_reset_list.begin(); it != m_decoders_reset_list.end(); ++it)
 			{
 				(*it)->on_reset(evt);
@@ -1671,7 +1671,7 @@ void sinsp::set_statsd_port(const uint16_t port)
 
 std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath)
 {
-	string errstr;
+	std::string errstr;
 	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, errstr);
 	if (!plugin)
 	{
@@ -1690,7 +1690,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	return plugin;
 }
 
-void sinsp::set_input_plugin(const string& name, const string& params)
+void sinsp::set_input_plugin(const std::string& name, const std::string& params)
 {
 	for(auto& it : m_plugin_manager->plugins())
 	{
@@ -1768,7 +1768,7 @@ void sinsp::set_filter(sinsp_filter* filter)
 	m_filter = filter;
 }
 
-void sinsp::set_filter(const string& filter)
+void sinsp::set_filter(const std::string& filter)
 {
 	if(m_filter != NULL)
 	{
@@ -1781,7 +1781,7 @@ void sinsp::set_filter(const string& filter)
 	m_filterstring = filter;
 }
 
-const string sinsp::get_filter()
+const std::string sinsp::get_filter()
 {
 	return m_filterstring;
 }
@@ -1804,7 +1804,7 @@ const scap_machine_info* sinsp::get_machine_info()
 	return m_machine_info;
 }
 
-void sinsp::get_filtercheck_fields_info(OUT vector<const filter_check_info*>& list)
+void sinsp::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);
 }
@@ -1884,7 +1884,7 @@ void sinsp::set_log_callback(sinsp_logger_callback cb)
 	}
 }
 
-void sinsp::set_log_file(string filename)
+void sinsp::set_log_file(std::string filename)
 {
 	g_logger.add_file_log(filename);
 }
@@ -1954,7 +1954,7 @@ void sinsp::set_max_evt_output_len(uint32_t len)
 	m_max_evt_output_len = len;
 }
 
-sinsp_protodecoder* sinsp::require_protodecoder(string decoder_name)
+sinsp_protodecoder* sinsp::require_protodecoder(std::string decoder_name)
 {
 	return m_parser->add_protodecoder(decoder_name);
 }
@@ -1969,7 +1969,7 @@ sinsp_parser* sinsp::get_parser()
 	return m_parser;
 }
 
-bool sinsp::setup_cycle_writer(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
+bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress)
 {
 	m_compress = compress;
 
@@ -2016,7 +2016,7 @@ void sinsp::set_metadata_download_params(uint32_t data_max_b,
 	m_metadata_download_params.m_data_watch_freq_sec = data_watch_freq_sec;
 }
 
-void sinsp::get_read_progress_plugin(OUT double* nres, string* sres)
+void sinsp::get_read_progress_plugin(OUT double* nres, std::string* sres)
 {
 	ASSERT(nres != NULL);
 	ASSERT(sres != NULL);
@@ -2053,7 +2053,7 @@ double sinsp::get_read_progress()
 	}
 }
 
-double sinsp::get_read_progress_with_str(OUT string* progress_str)
+double sinsp::get_read_progress_with_str(OUT std::string* progress_str)
 {
 	if(is_plugin())
 	{
@@ -2074,7 +2074,7 @@ bool sinsp::remove_inactive_threads()
 }
 
 #if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-void sinsp::init_mesos_client(string* api_server, bool verbose)
+void sinsp::init_mesos_client(std::string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;
 	if(m_mesos_client == NULL)
@@ -2104,7 +2104,7 @@ void sinsp::init_mesos_client(string* api_server, bool verbose)
 	}
 }
 
-void sinsp::init_k8s_ssl(const string *ssl_cert)
+void sinsp::init_k8s_ssl(const std::string *ssl_cert)
 {
 #ifdef HAS_CAPTURE
 	if(ssl_cert != nullptr && !ssl_cert->empty()
@@ -2126,7 +2126,7 @@ void sinsp::init_k8s_ssl(const string *ssl_cert)
 			cert = ssl_cert->substr(0, pos);
 			if(cert.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
+				throw sinsp_exception(std::string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
 			// pos < ssl_cert->length() so it's safe to take
@@ -2144,7 +2144,7 @@ void sinsp::init_k8s_ssl(const string *ssl_cert)
 			}
 			if(key.empty())
 			{
-				throw sinsp_exception(string("Invalid K8S SSL entry: ") + *ssl_cert);
+				throw sinsp_exception(std::string("Invalid K8S SSL entry: ") + *ssl_cert);
 			}
 
 			// Parse the password if it exists
@@ -2208,7 +2208,7 @@ void sinsp::make_k8s_client()
 	);
 }
 
-void sinsp::init_k8s_client(string* api_server, string* ssl_cert, string* node_name, bool verbose)
+void sinsp::init_k8s_client(std::string* api_server, std::string* ssl_cert, std::string* node_name, bool verbose)
 {
 	ASSERT(api_server);
 	m_verbose_json = verbose;
@@ -2604,9 +2604,9 @@ bool sinsp_thread_manager::remove_inactive_threads()
 }
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const string& subsys)
+std::shared_ptr<std::string> sinsp::lookup_cgroup_dir(const std::string& subsys)
 {
-	shared_ptr<string> cgroup_dir;
+	std::shared_ptr<std::string> cgroup_dir;
 	static std::unordered_map<std::string, std::shared_ptr<std::string>> cgroup_dir_cache;
 
 	const auto& it = cgroup_dir_cache.find(subsys);

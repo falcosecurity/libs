@@ -76,7 +76,7 @@ bool event_scope::add(const std::string& key, const std::string& value, const st
 	return false;
 }
 
-string& event_scope::replace(std::string& value)
+std::string& event_scope::replace(std::string& value)
 {
 	ASSERT(RESERVED_STRINGS.size() == REPLACEMENT_STRINGS.size());
 
@@ -358,8 +358,8 @@ sinsp_user_event::sinsp_user_event() : m_epoch_time_s(0), m_severity(~0)
 {
 }
 
-sinsp_user_event::sinsp_user_event(uint64_t epoch_time_s, string&& name, string&& desc,
-	string&& scope, tag_map_t&& tags, uint32_t sev):
+sinsp_user_event::sinsp_user_event(uint64_t epoch_time_s, std::string&& name, std::string&& desc,
+	std::string&& scope, tag_map_t&& tags, uint32_t sev):
 	m_epoch_time_s(epoch_time_s), m_name(std::move(name)), m_description(std::move(desc)),
 	m_severity(sev), m_scope(std::move(scope)), m_tags(std::move(tags))
 {

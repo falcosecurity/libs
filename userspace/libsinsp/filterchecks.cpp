@@ -34,6 +34,8 @@ limitations under the License.
 
 #include "strlcpy.h"
 
+using namespace std;
+
 extern sinsp_evttables g_infotables;
 int32_t g_screen_w = -1;
 bool g_filterchecks_force_raw_times = false;

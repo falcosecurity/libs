@@ -43,7 +43,7 @@ template<> void sinsp_fdinfo_t::reset()
 	m_usrstate = NULL;
 }
 
-template<> string* sinsp_fdinfo_t::tostring()
+template<> std::string* sinsp_fdinfo_t::tostring()
 {
 	return &m_name;
 }
@@ -139,9 +139,9 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 	}
 }
 
-template<> string sinsp_fdinfo_t::tostring_clean()
+template<> std::string sinsp_fdinfo_t::tostring_clean()
 {
-	string m_tstr = m_name;
+	std::string m_tstr = m_name;
 	sanitize_string(m_tstr);
 
 	return m_tstr;
@@ -271,7 +271,7 @@ template<> void sinsp_fdinfo_t::register_event_callback(sinsp_pd_callback_type e
 
 template<> void sinsp_fdinfo_t::unregister_event_callback(sinsp_pd_callback_type etype, sinsp_protodecoder* dec)
 {
-	vector<sinsp_protodecoder*>::iterator it;
+	std::vector<sinsp_protodecoder*>::iterator it;
 
 	if(m_callbacks == NULL)
 	{
@@ -343,7 +343,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 #ifdef GATHER_INTERNAL_STATS
 			m_inspector->m_stats.m_n_added_fds++;
 #endif
-			pair<unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
+			std::pair<std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator, bool> insert_res = m_table.emplace(fd, *fdinfo);
 			return &(insert_res.first->second);
 		}
 		else
@@ -394,7 +394,7 @@ sinsp_fdinfo_t* sinsp_fdtable::add(int64_t fd, sinsp_fdinfo_t* fdinfo)
 
 void sinsp_fdtable::erase(int64_t fd)
 {
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
+	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit = m_table.find(fd);
 
 	if(fd == m_last_accessed_fd)
 	{

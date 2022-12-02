@@ -50,6 +50,8 @@ extern "C" {
 }
 #endif
 
+using namespace std;
+
 extern vector<chiseldir_info>* g_chisel_dirs;
 extern sinsp_filter_check_list g_filterlist;
 extern sinsp_evttables g_infotables;

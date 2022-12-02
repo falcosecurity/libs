@@ -58,7 +58,7 @@ void docker_linux::update_with_size(const std::string &container_id)
 				instruction.container_id.c_str(),
 				res.get_lookup_status());
 
-		sinsp_container_info::ptr_t updated = make_shared<sinsp_container_info>(res);
+		sinsp_container_info::ptr_t updated = std::make_shared<sinsp_container_info>(res);
 		container_cache().replace_container(updated);
 	};
 
