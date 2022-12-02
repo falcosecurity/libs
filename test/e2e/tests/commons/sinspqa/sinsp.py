@@ -234,7 +234,6 @@ def generate_specs(image: str = 'sinsp-example:latest', args: list = []) -> list
     specs = []
     bpf_args = args.copy()
     bpf_args.extend([
-        '-e', 'bpf',
         '-b', os.environ.get('BPF_PROBE'),
     ])
 
