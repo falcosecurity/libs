@@ -55,6 +55,25 @@ static void test_reject(string in)
 	}
 }
 
+TEST(pos_info, equality_assignments)
+{
+	pos_info a;
+	pos_info b(5, 1, 3);
+	ASSERT_EQ(a.idx, 0);
+	ASSERT_EQ(a.line, 1);
+	ASSERT_EQ(a.col, 1);
+	ASSERT_EQ(b.idx, 5);
+	ASSERT_EQ(b.line, 1);
+	ASSERT_EQ(b.col, 3);
+	ASSERT_NE(a, b);
+
+	a = b;
+	ASSERT_EQ(a.idx, 5);
+	ASSERT_EQ(a.line, 1);
+	ASSERT_EQ(a.col, 3);
+	ASSERT_EQ(a, b);
+}
+
 TEST(parser, supported_operators)
 {
 	static vector<string> expected_all = {
