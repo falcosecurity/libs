@@ -394,12 +394,39 @@ void docker_async_source::fetch_image_info_from_list(const docker_lookup_request
 			"docker_async url: %s",
 			url.c_str());
 
-	if(!(m_connection.get_docker(request, url, img_json) == docker_connection::RESP_OK))
+	/*
+	* Apparently at least the RHEL9 version of podman doesn't properly respond
+	* to /images/json?digests=1, while it does return all the info we need
+	* without the query parameter.
+	*
+	* Since ?digests=1 is defined in the Docker API, prefer this as the default,
+	* but also try the podman variant.
+	* 
+	* Note: the API does not return an HTTP error but instead an empty 200 response,
+	* so checking the HTTP status is not enough.
+	*/
+	if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK
+		|| img_json.empty())
 	{
 		g_logger.format(sinsp_logger::SEV_ERROR,
-				"docker_async (%s): Could not fetch image list",
+				"docker_async (%s): Could not fetch image list; trying without ?digests=1",
 				request.container_id.c_str());
-		return;
+
+		std::string url = "/images/json";
+
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"docker_async url: %s",
+				url.c_str());
+
+		if(m_connection.get_docker(request, url, img_json) != docker_connection::RESP_OK
+			|| img_json.empty())
+		{
+			g_logger.format(sinsp_logger::SEV_ERROR,
+					"docker_async (%s): Could not fetch image list",
+					request.container_id.c_str());
+
+			return;
+		}
 	}
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
