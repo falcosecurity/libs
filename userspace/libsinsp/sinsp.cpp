@@ -472,6 +472,8 @@ void sinsp::open_common(scap_open_args* oargs)
 
 	add_suppressed_comms(oargs);
 
+	oargs->debug_log_fn = &sinsp_scap_debug_log_fn;
+
 	int32_t scap_rc = 0;
 	m_h = scap_open(oargs, error, &scap_rc);
 	if(m_h == NULL)
