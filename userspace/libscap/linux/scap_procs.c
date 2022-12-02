@@ -543,8 +543,11 @@ int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, cons
 	FILE* f = fopen(loginuid_path, "r");
 	if(f == NULL)
 	{
-		ASSERT(false);
-		return scap_errprintf(error, errno, "Open loginuid file %s failed", loginuid_path);
+		// If Linux kernel is built with CONFIG_AUDIT=n, loginuid management
+		// (and associated /proc file) is not implemented.
+		// Record default loginuid value of -1 in this case.
+		tinfo->loginuid = (uint32_t)-1;
+		return SCAP_SUCCESS;
 	}
 	if (fgets(line, sizeof(line), f) == NULL)
 	{
