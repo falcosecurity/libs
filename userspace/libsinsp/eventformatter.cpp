@@ -33,7 +33,7 @@ sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
 }
 
 sinsp_evt_formatter::sinsp_evt_formatter(sinsp* inspector,
-					 const string& fmt,
+					 const std::string& fmt,
 					 filter_check_list &available_checks)
 	: m_inspector(inspector),
 	  m_available_checks(available_checks)
@@ -62,11 +62,11 @@ sinsp_evt_formatter::~sinsp_evt_formatter()
 	}
 }
 
-void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const string& fmt)
+void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, const std::string& fmt)
 {
 	uint32_t j;
 	uint32_t last_nontoken_str_start = 0;
-	string lfmt(fmt);
+	std::string lfmt(fmt);
 
 	m_output_format = of;
 
@@ -106,7 +106,7 @@ void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, cons
 			if(last_nontoken_str_start != j)
 			{
 				rawstring_check* newtkn = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-				m_tokens.emplace_back(make_pair("", newtkn));
+				m_tokens.emplace_back(std::make_pair("", newtkn));
 				m_tokenlens.push_back(0);
 				m_chks_to_free.push_back(newtkn);
 			}
@@ -147,13 +147,13 @@ void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, cons
 				}
 			}
 
-			sinsp_filter_check* chk = m_available_checks.new_filter_check_from_fldname(string(cfmt + j + 1),
+			sinsp_filter_check* chk = m_available_checks.new_filter_check_from_fldname(std::string(cfmt + j + 1),
 				m_inspector,
 				false);
 
 			if(chk == NULL)
 			{
-				throw sinsp_exception("invalid formatting token " + string(cfmt + j + 1));
+				throw sinsp_exception("invalid formatting token " + std::string(cfmt + j + 1));
 			}
 
 			m_chks_to_free.push_back(chk);
@@ -164,7 +164,7 @@ void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, cons
 			j += fsize;
 			ASSERT(j <= lfmt.length());
 
-			m_tokens.emplace_back(make_pair(string(fstart, fsize), chk));
+			m_tokens.emplace_back(std::make_pair(std::string(fstart, fsize), chk));
 			m_tokenlens.push_back(toklen);
 
 			last_nontoken_str_start = j + 1;
@@ -174,19 +174,19 @@ void sinsp_evt_formatter::set_format(gen_event_formatter::output_format of, cons
 	if(last_nontoken_str_start != j)
 	{
 		sinsp_filter_check * chk = new rawstring_check(lfmt.substr(last_nontoken_str_start, j - last_nontoken_str_start));
-		m_tokens.emplace_back(make_pair("", chk));
+		m_tokens.emplace_back(std::make_pair("", chk));
 		m_chks_to_free.push_back(chk);
 		m_tokenlens.push_back(0);
 	}
 }
 
-bool sinsp_evt_formatter::on_capture_end(OUT string* res)
+bool sinsp_evt_formatter::on_capture_end(OUT std::string* res)
 {
 	res->clear();
 	return res->size() > 0;
 }
 
-bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& values)
+bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, std::map<std::string,std::string>& values)
 {
 	bool retval = true;
 	const filtercheck_field_info* fi;
@@ -214,7 +214,7 @@ bool sinsp_evt_formatter::resolve_tokens(sinsp_evt *evt, map<string,string>& val
 		fi = m_tokens[j].second->get_field_info();
 		if(fi)
 		{
-			values[m_tokens[j].first] = string(str);
+			values[m_tokens[j].first] = std::string(str);
 		}
 	}
 
@@ -295,7 +295,7 @@ bool sinsp_evt_formatter::tostring_withformat(gen_event* gevt, std::string &outp
 
 			if(tks != 0)
 			{
-				string sstr(str);
+				std::string sstr(str);
 				sstr.resize(tks, ' ');
 				output += sstr;
 			}
@@ -320,7 +320,7 @@ bool sinsp_evt_formatter::tostring(gen_event* gevt, std::string &output)
 	return tostring_withformat(gevt, output, m_output_format);
 }
 
-bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT string* res)
+bool sinsp_evt_formatter::tostring(sinsp_evt* evt, OUT std::string* res)
 {
 	return tostring_withformat(evt, *res, m_output_format);
 }
@@ -334,7 +334,7 @@ sinsp_evt_formatter_cache::~sinsp_evt_formatter_cache()
 {
 }
 
-std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_formatter(string &format)
+std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_formatter(std::string &format)
 {
 	auto it = m_formatter_cache.lower_bound(format);
 
@@ -342,18 +342,18 @@ std::shared_ptr<sinsp_evt_formatter>& sinsp_evt_formatter_cache::get_cached_form
 	   it->first != format)
 	{
 		it = m_formatter_cache.emplace_hint(it,
-						    std::make_pair(format, make_shared<sinsp_evt_formatter>(m_inspector, format)));
+						    std::make_pair(format, std::make_shared<sinsp_evt_formatter>(m_inspector, format)));
 	}
 
 	return it->second;
 }
 
-bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, string &format, map<string,string>& values)
+bool sinsp_evt_formatter_cache::resolve_tokens(sinsp_evt *evt, std::string &format, std::map<std::string,std::string>& values)
 {
 	return get_cached_formatter(format)->resolve_tokens(evt, values);
 }
 
-bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, string &format, OUT string *res)
+bool sinsp_evt_formatter_cache::tostring(sinsp_evt *evt, std::string &format, OUT std::string *res)
 {
 	return get_cached_formatter(format)->tostring(evt, *res);
 }

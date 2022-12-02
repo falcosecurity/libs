@@ -20,6 +20,8 @@ limitations under the License.
 #include <sinsp.h>
 #include "chisel_table.h"
 
+using namespace std;
+
 extern sinsp_evttables g_infotables;
 
 //

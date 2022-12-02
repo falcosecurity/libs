@@ -162,8 +162,8 @@ bool flt_compare_string(cmpop op, char* operand1, char* operand2)
     case CO_ICONTAINS:
 #ifdef _WIN32
 	{
-		string s1(operand1);
-		string s2(operand2);
+		std::string s1(operand1);
+		std::string s2(operand2);
 		std::transform(s1.begin(), s1.end(), s1.begin(), [](unsigned char c){ return std::tolower(c); });
 		std::transform(s2.begin(), s2.end(), s2.begin(), [](unsigned char c){ return std::tolower(c); });
 		return (strstr(s1.c_str(), s2.c_str()) != NULL);
@@ -436,7 +436,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		}
 		else
 		{
-			throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(op1_len));
+			throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + std::to_string(op1_len));
 		}
 	case PT_IPNET:
 		if(op1_len == sizeof(struct in_addr))
@@ -449,7 +449,7 @@ bool flt_compare(cmpop op, ppm_param_type type, void* operand1, void* operand2, 
 		}
 		else
 		{
-			throw sinsp_exception("rawval_to_string called with IP network of incorrect size " + to_string(op1_len));
+			throw sinsp_exception("rawval_to_string called with IP network of incorrect size " + std::to_string(op1_len));
 		}
 	case PT_UINT64:
 	case PT_RELTIME:
@@ -593,9 +593,9 @@ sinsp_filter_check::sinsp_filter_check()
 	m_info.m_fields = NULL;
 	m_info.m_nfields = -1;
 	m_val_storage_len = 0;
-	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
-	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
-	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
+	m_val_storages = std::vector<std::vector<uint8_t>> (1, std::vector<uint8_t>(256));
+	m_val_storages_min_size = (std::numeric_limits<uint32_t>::max)();
+	m_val_storages_max_size = (std::numeric_limits<uint32_t>::min)();
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -769,7 +769,7 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 			return rawval_to_string(rawval, ptype, print_format, len);
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong param type " + to_string((long long) ptype));
+			throw sinsp_exception("wrong param type " + std::to_string((long long) ptype));
 	}
 }
 
@@ -1060,7 +1060,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			}
 			else
 			{
-				throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + to_string(len));
+				throw sinsp_exception("rawval_to_string called with IP address of incorrect size " + std::to_string(len));
 			}
 
 		case PT_DOUBLE:
@@ -1075,7 +1075,7 @@ char* sinsp_filter_check::rawval_to_string(uint8_t* rawval,
 			return m_getpropertystr_storage;
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong param type " + to_string((long long) ptype));
+			throw sinsp_exception("wrong param type " + std::to_string((long long) ptype));
 	}
 }
 
@@ -1164,7 +1164,7 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 	{
 		if(max_flags & EPF_FILTER_ONLY)
 		{
-			throw sinsp_exception(string(str) + " is filter only and cannot be used as a display field");
+			throw sinsp_exception(std::string(str) + " is filter only and cannot be used as a display field");
 		}
 	}
 
@@ -1177,7 +1177,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 
 	if (i >= m_val_storages.size())
 	{
-		m_val_storages.push_back(vector<uint8_t>(256));
+		m_val_storages.push_back(std::vector<uint8_t>(256));
 	}
 
 	parsed_len = parse_filter_value(str, len, filter_value_p(i), filter_value(i)->size());
@@ -1213,7 +1213,7 @@ size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uin
 	{
 		if(len >= storage_len)
 		{
-			throw sinsp_exception("filter parameter too long:" + string(str));
+			throw sinsp_exception("filter parameter too long:" + std::string(str));
 		}
 		memcpy(storage, str, len);
 		m_val_storage_len = len;
@@ -1233,7 +1233,7 @@ const filtercheck_field_info* sinsp_filter_check::get_field_info()
 	return &m_info.m_fields[m_field_id];
 }
 
-bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extract_value_t>& values, uint32_t op2_len)
+bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<extract_value_t>& values, uint32_t op2_len)
 {
 	if (m_info.m_fields[m_field_id].m_flags & EPF_IS_LIST)
 	{
@@ -1286,7 +1286,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 			default:
 				ASSERT(false);
 				throw sinsp_exception("list filter '"
-					+ string(m_info.m_fields[m_field_id].m_name)
+					+ std::string(m_info.m_fields[m_field_id].m_name)
 					+ "' only supports operators 'in' and 'intersects'");
 		}
 	}
@@ -1294,9 +1294,9 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, vector<extra
 	{
 		ASSERT(false);
 		throw sinsp_exception("non-list filter '"
-			+ string(m_info.m_fields[m_field_id].m_name)
+			+ std::string(m_info.m_fields[m_field_id].m_name)
 			+ "' expected to extract a single value, but "
-			+ to_string(values.size()) + " were found");
+			+ std::to_string(values.size()) + " were found");
 	}
 
 	return flt_compare(m_cmpop,
@@ -1384,12 +1384,12 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, void* operan
 	}
 }
 
-bool sinsp_filter_check::extract(gen_event *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract(gen_event *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	return extract((sinsp_evt *) evt, values, sanitize_strings);
 }
 
-bool sinsp_filter_check::extract(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	values.clear();
 	extract_value_t val;
@@ -1407,7 +1407,7 @@ uint8_t* sinsp_filter_check::extract(sinsp_evt *evt, OUT uint32_t* len, bool san
 	return NULL;
 }
 
-bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT vector<extract_value_t>& values, bool sanitize_strings)
+bool sinsp_filter_check::extract_cached(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	if(m_cache_metrics != NULL)
 	{
@@ -1515,7 +1515,7 @@ sinsp_filter::~sinsp_filter()
 ///////////////////////////////////////////////////////////////////////////////
 sinsp_filter_compiler::sinsp_filter_compiler(
 		sinsp* inspector,
-		const string& fltstr,
+		const std::string& fltstr,
 		bool ttable_only)
 {
 	m_factory.reset(new sinsp_filter_factory(inspector));
@@ -1527,7 +1527,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		const string& fltstr,
+		const std::string& fltstr,
 		bool ttable_only)
 {
 	m_factory = factory;
@@ -1649,7 +1649,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr* e)
 {
 	m_pos = e->get_pos();
-	string field = create_filtercheck_name(e->field, e->arg);
+	std::string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check_ttable_only(field, check);
@@ -1680,7 +1680,7 @@ static void add_filtercheck_value(gen_event_filter_check *chk, size_t idx, const
 void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 {
 	m_pos = e->get_pos();
-	string field = create_filtercheck_name(e->field, e->arg);
+	std::string field = create_filtercheck_name(e->field, e->arg);
 	gen_event_filter_check *check = create_filtercheck(field);
 	m_filter->add_check(check);
 	check_ttable_only(field, check);
@@ -1728,12 +1728,12 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 	m_field_values = e->values;
 }
 
-string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
+std::string sinsp_filter_compiler::create_filtercheck_name(std::string& name, std::string& arg)
 {
 	// The filtercheck factories parse the name + arg as a whole.
 	// We keep this for now, but we may want to change this in the future.
 	// todo(jasondellaluce): handle field arg parsing at compilation time
-	string fld = name;
+	std::string fld = name;
 	if (arg.size() > 0)
 	{
 		fld += "[" + arg + "]";
@@ -1741,7 +1741,7 @@ string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
 	return fld;
 }
 
-gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(string& field)
+gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(std::string& field)
 {
 	gen_event_filter_check *chk = m_factory->new_filtercheck(field.c_str());
 	if(chk == NULL)
@@ -1751,7 +1751,7 @@ gen_event_filter_check* sinsp_filter_compiler::create_filtercheck(string& field)
 	return chk;
 }
 
-void sinsp_filter_compiler::check_ttable_only(string& field, gen_event_filter_check *check)
+void sinsp_filter_compiler::check_ttable_only(std::string& field, gen_event_filter_check *check)
 {
 	if(m_ttable_only)
 	{
@@ -1773,7 +1773,7 @@ void sinsp_filter_compiler::check_ttable_only(string& field, gen_event_filter_ch
 	}
 }
 
-cmpop sinsp_filter_compiler::str_to_cmpop(string& str)
+cmpop sinsp_filter_compiler::str_to_cmpop(std::string& str)
 {
 	if(str == "=" || str == "==")
 	{
@@ -1845,7 +1845,7 @@ cmpop sinsp_filter_compiler::str_to_cmpop(string& str)
 	}
 	// we are not supposed to get here, as the parser pre-checks this
 	ASSERT(false);
-	throw sinsp_exception("filter error: unrecognized comparison operator '" + string(str) + "'");
+	throw sinsp_exception("filter error: unrecognized comparison operator '" + std::string(str) + "'");
 }
 
 
@@ -1874,14 +1874,14 @@ gen_event_filter_check *sinsp_filter_factory::new_filtercheck(const char *fldnam
 
 std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::get_fields()
 {
-	vector<const filter_check_info*> fc_plugins;
+	std::vector<const filter_check_info*> fc_plugins;
 	m_available_checks.get_all_fields(fc_plugins);
 
 	return check_infos_to_fieldclass_infos(fc_plugins);
 }
 
 std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory::check_infos_to_fieldclass_infos(
-	const vector<const filter_check_info*> &fc_plugins)
+	const std::vector<const filter_check_info*> &fc_plugins)
 {
 	std::list<gen_event_filter_factory::filter_fieldclass_info> ret;
 

@@ -35,7 +35,7 @@ limitations under the License.
 #include <stdexcept>
 #include <unistd.h>
 
-marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms, const string& token):
+marathon_http::marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms, const std::string& token):
 	mesos_http(m, url, false, discover_marathon, timeout_ms, token)
 {
 	g_logger.log("Creating Marathon HTTP object for [" + url.to_string(false) + "] ...", sinsp_logger::SEV_DEBUG);

@@ -24,15 +24,15 @@ limitations under the License.
 
 using namespace libsinsp::container_engine;
 
-bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info, string& rkt_podid, string& rkt_appname, bool query_os_for_missing_info)
+bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp_container_info& container_info, std::string& rkt_podid, std::string& rkt_appname, bool query_os_for_missing_info)
 {
 	for(const auto& it : tinfo->cgroups())
 	{
-		string cgroup = it.second;
+		std::string cgroup = it.second;
 
-		static const string COREOS_PODID_VAR = "container_uuid=";
-		static const string SYSTEMD_UUID_ARG = "--uuid=";
-		static const string SERVICE_SUFFIX = ".service";
+		static const std::string COREOS_PODID_VAR = "container_uuid=";
+		static const std::string SYSTEMD_UUID_ARG = "--uuid=";
+		static const std::string SERVICE_SUFFIX = ".service";
 		if(cgroup.rfind(SERVICE_SUFFIX) == cgroup.size() - SERVICE_SUFFIX.size())
 		{
 			// check if there is a parent with pod uuid var
@@ -49,7 +49,7 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 				}
 				for(const auto& arg : ptinfo->m_args)
 				{
-					if(arg.find(SYSTEMD_UUID_ARG) != string::npos)
+					if(arg.find(SYSTEMD_UUID_ARG) != std::string::npos)
 					{
 						rkt_podid = arg.substr(SYSTEMD_UUID_ARG.size());
 						return false;
@@ -92,15 +92,15 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 	// Strings used to detect rkt stage1-cores pods
 	// TODO: detecting stage1-coreos rkt pods in this way is deprecated
 	// we can remove it in the future
-	static const string COREOS_PREFIX = "/opt/stage2/";
-	static const string COREOS_APP_SUFFIX = "/rootfs";
-	static const string COREOS_PODID_VAR = "container_uuid=";
+	static const std::string COREOS_PREFIX = "/opt/stage2/";
+	static const std::string COREOS_APP_SUFFIX = "/rootfs";
+	static const std::string COREOS_PODID_VAR = "container_uuid=";
 
 	auto prefix = tinfo->m_root.find(COREOS_PREFIX);
 	if(prefix == 0)
 	{
 		auto suffix = tinfo->m_root.find(COREOS_APP_SUFFIX, prefix);
-		if(suffix != string::npos)
+		if(suffix != std::string::npos)
 		{
 			bool valid_id = false;
 			rkt_appname = tinfo->m_root.substr(prefix + COREOS_PREFIX.size(), suffix - prefix - COREOS_PREFIX.size());
@@ -136,19 +136,19 @@ bool rkt::match(container_cache_interface *cache, sinsp_threadinfo *tinfo, sinsp
 	else
 	{
 		// String used to detect stage1-fly pods
-		static const string FLY_PREFIX = "/var/lib/rkt/pods/run/";
-		static const string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
-		static const string FLY_APP_SUFFIX = "/rootfs";
+		static const std::string FLY_PREFIX = "/var/lib/rkt/pods/run/";
+		static const std::string FLY_PODID_SUFFIX = "/stage1/rootfs/opt/stage2/";
+		static const std::string FLY_APP_SUFFIX = "/rootfs";
 
 		auto prefix = tinfo->m_root.find(FLY_PREFIX);
 		if(prefix == 0)
 		{
 			auto podid_suffix = tinfo->m_root.find(FLY_PODID_SUFFIX, prefix+FLY_PREFIX.size());
-			if(podid_suffix != string::npos)
+			if(podid_suffix != std::string::npos)
 			{
 				rkt_podid = tinfo->m_root.substr(prefix + FLY_PREFIX.size(), podid_suffix - prefix - FLY_PREFIX.size());
 				auto appname_suffix = tinfo->m_root.find(FLY_APP_SUFFIX, podid_suffix+FLY_PODID_SUFFIX.size());
-				if(appname_suffix != string::npos)
+				if(appname_suffix != std::string::npos)
 				{
 					rkt_appname = tinfo->m_root.substr(podid_suffix + FLY_PODID_SUFFIX.size(),
 									   appname_suffix-podid_suffix-FLY_PODID_SUFFIX.size());
@@ -168,7 +168,7 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 	container_cache_interface *cache = &container_cache();
 
 	auto container = sinsp_container_info();
-	string rkt_podid, rkt_appname;
+	std::string rkt_podid, rkt_appname;
 
 	if (!match(cache, tinfo, container, rkt_podid, rkt_appname, query_os_for_missing_info))
 	{
@@ -199,7 +199,7 @@ bool rkt::rkt::resolve(sinsp_threadinfo* tinfo, bool query_os_for_missing_info)
 	}
 }
 
-bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, const string &appname)
+bool rkt::rkt::parse_rkt(sinsp_container_info &container, const std::string &podid, const std::string &appname)
 {
 	bool ret = false;
 	Json::Reader reader;
@@ -207,13 +207,13 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, c
 
 	char image_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(image_manifest_path, sizeof(image_manifest_path), "%s/var/lib/rkt/pods/run/%s/appsinfo/%s/manifest", scap_get_host_root(), podid.c_str(), appname.c_str());
-	ifstream image_manifest(image_manifest_path);
+	std::ifstream image_manifest(image_manifest_path);
 	if(reader.parse(image_manifest, jroot))
 	{
 		container.m_image = jroot["name"].asString();
 		for(const auto& label_entry : jroot["labels"])
 		{
-			string val = label_entry["value"].asString();
+			std::string val = label_entry["value"].asString();
 			if(val.length() <= sinsp_container_info::m_container_label_max_length ) {
 				container.m_labels.emplace(label_entry["name"].asString(), val);
 			}
@@ -228,7 +228,7 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, c
 
 	char net_info_path[SCAP_MAX_PATH_SIZE];
 	snprintf(net_info_path, sizeof(net_info_path), "%s/var/lib/rkt/pods/run/%s/net-info.json", scap_get_host_root(), podid.c_str());
-	ifstream net_info(net_info_path);
+	std::ifstream net_info(net_info_path);
 	if(reader.parse(net_info, jroot) && jroot.size() > 0)
 	{
 		const auto& first_net = jroot[0];
@@ -241,8 +241,8 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, c
 
 	char pod_manifest_path[SCAP_MAX_PATH_SIZE];
 	snprintf(pod_manifest_path, sizeof(pod_manifest_path), "%s/var/lib/rkt/pods/run/%s/pod", scap_get_host_root(), podid.c_str());
-	ifstream pod_manifest(pod_manifest_path);
-	unordered_map<string, uint32_t> image_ports;
+	std::ifstream pod_manifest(pod_manifest_path);
+	std::unordered_map<std::string, uint32_t> image_ports;
 	if(reader.parse(pod_manifest, jroot) && jroot.size() > 0)
 	{
 		for(const auto& japp : jroot["apps"])
@@ -265,7 +265,7 @@ bool rkt::rkt::parse_rkt(sinsp_container_info &container, const string &podid, c
 				sinsp_container_info::container_port_mapping port_mapping;
 				port_mapping.m_host_port = host_port;
 				port_mapping.m_container_port = container_port_it->second;
-				container.m_port_mappings.emplace_back(move(port_mapping));
+				container.m_port_mappings.emplace_back(std::move(port_mapping));
 			}
 		}
 	}

@@ -148,12 +148,12 @@ protected:
 		ASSERT_EQ(mkdir(etc.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH), 0);
 
 		{
-			ofstream ofs(etc + "/passwd");
+			std::ofstream ofs(etc + "/passwd");
 			ofs << "toor:x:0:0:toor:/toor:/bin/ash";
 			ofs.close();
 		}
 		{
-			ofstream ofs(etc + "/group");
+			std::ofstream ofs(etc + "/group");
 			ofs << "toor:x:0:toor";
 			ofs.close();
 		}

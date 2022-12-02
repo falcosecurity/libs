@@ -25,7 +25,7 @@ limitations under the License.
 #include <netdb.h>
 #endif
 
-size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len, uint8_t *storage, string::size_type max_len, ppm_param_type ptype)
+size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len, uint8_t *storage, std::string::size_type max_len, ppm_param_type ptype)
 {
 	size_t parsed_len;
 
@@ -58,7 +58,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			break;
 		case PT_PORT:
 		{
-			string in(str);
+			std::string in(str);
 
 			if(in.empty())
 			{
@@ -120,7 +120,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 				len = (uint32_t)strlen(str);
 				if(len >= max_len)
 				{
-					throw sinsp_exception("filter parameter too long:" + string(str));
+					throw sinsp_exception("filter parameter too long:" + std::string(str));
 				}
 
 				memcpy(storage, str, len);
@@ -130,17 +130,17 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			break;
 		case PT_BOOL:
 			parsed_len = sizeof(uint32_t);
-			if(string(str) == "true")
+			if(std::string(str) == "true")
 			{
 				*(uint32_t*)storage = 1;
 			}
-			else if(string(str) == "false")
+			else if(std::string(str) == "false")
 			{
 				*(uint32_t*)storage = 0;
 			}
 			else
 			{
-				throw sinsp_exception("filter error: unrecognized boolean value " + string(str));
+				throw sinsp_exception("filter error: unrecognized boolean value " + std::string(str));
 			}
 
 			break;
@@ -158,7 +158,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 	        case PT_IPV4ADDR:
 			if(inet_pton(AF_INET, str, storage) != 1)
 			{
-				throw sinsp_exception("unrecognized IPv4 address " + string(str));
+				throw sinsp_exception("unrecognized IPv4 address " + std::string(str));
 			}
 			parsed_len = sizeof(struct in_addr);
 			break;
@@ -181,13 +181,13 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 			break;
 		case PT_IPV4NET:
 		{
-			stringstream ss(str);
-			string ip, mask;
+			std::stringstream ss(str);
+			std::string ip, mask;
 			ipv4net* net = (ipv4net*)storage;
 
 			if (strchr(str, '/') == NULL)
 			{
-				throw sinsp_exception("unrecognized IP network " + string(str));
+				throw sinsp_exception("unrecognized IP network " + std::string(str));
 			}
 
 			getline(ss, ip, '/');
@@ -195,7 +195,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 
 			if(inet_pton(AF_INET, ip.c_str(), &net->m_ip) != 1)
 			{
-				throw sinsp_exception("unrecognized IP address " + string(str));
+				throw sinsp_exception("unrecognized IP address " + std::string(str));
 			}
 
 			uint32_t cidrlen = sinsp_numparser::parseu8(mask);
@@ -226,7 +226,7 @@ size_t sinsp_filter_value_parser::string_to_rawval(const char* str, uint32_t len
 		}
 		default:
 			ASSERT(false);
-			throw sinsp_exception("wrong parameter type " + to_string((long long) ptype));
+			throw sinsp_exception("wrong parameter type " + std::to_string((long long) ptype));
 	}
 
 	return parsed_len;

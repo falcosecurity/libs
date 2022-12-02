@@ -183,7 +183,7 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 	return res;
 }
 
-bool gen_event_filter_expression::extract(gen_event *evt, vector<extract_value_t>& values, bool sanitize_strings)
+bool gen_event_filter_expression::extract(gen_event *evt, std::vector<extract_value_t>& values, bool sanitize_strings)
 {
 	return false;
 }

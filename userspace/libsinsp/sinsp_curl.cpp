@@ -47,7 +47,7 @@ sinsp_curl_http_headers::~sinsp_curl_http_headers()
 	}
 }
 
-void sinsp_curl_http_headers::add(const string& header)
+void sinsp_curl_http_headers::add(const std::string& header)
 {
 	m_curl_header_list = curl_slist_append(m_curl_header_list, header.c_str());
 }
@@ -190,7 +190,7 @@ void sinsp_curl::init_ssl(CURL* curl, ssl::ptr_t ssl_data)
 	}
 }
 
-string sinsp_curl::get_data(bool do_log)
+std::string sinsp_curl::get_data(bool do_log)
 {
 	std::ostringstream os;
 	if(get_data(os))
@@ -288,7 +288,7 @@ bool sinsp_curl::handle_redirect(uri& url, std::string&& loc, std::ostream& os)
 
 size_t read_data(void* buffer, size_t size, size_t nmemb, void* instream)
 {
-	auto body = (stringstream*) instream;
+	auto body = (std::stringstream*) instream;
 	body->read((char*) buffer, size*nmemb);
 	return body->gcount();
 }
@@ -467,11 +467,11 @@ int sinsp_curl::trace(CURL *handle, curl_infotype type, char *data, size_t size,
 	return 0;
 }
 
-void sinsp_curl::set_body(const string& data)
+void sinsp_curl::set_body(const std::string& data)
 {
 	m_body.clear();
 	m_body << data;
-	add_header(string("Content-Length: ") + to_string(data.size()));
+	add_header(std::string("Content-Length: ") + std::to_string(data.size()));
 }
 
 #endif // __linux__

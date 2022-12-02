@@ -45,7 +45,7 @@ sinsp_dumper::~sinsp_dumper()
 	}
 }
 
-void sinsp_dumper::open(const string& filename, bool compress, bool threads_from_sinsp)
+void sinsp_dumper::open(const std::string& filename, bool compress, bool threads_from_sinsp)
 {
 	if(m_inspector->m_h == NULL)
 	{

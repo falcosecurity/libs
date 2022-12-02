@@ -43,7 +43,7 @@ cycle_writer::cycle_writer(bool is_live) :
 	this->live = is_live;
 }
 
-bool cycle_writer::setup(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper)
+bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper)
 {
 	if(m_first_consider) 
 	{
@@ -58,7 +58,7 @@ bool cycle_writer::setup(string base_file_name, int rollover_mb, int duration_se
 
 	if(duration_seconds > 0 && file_limit > 0)
 	{
-		m_past_names = new string[file_limit];
+		m_past_names = new std::string[file_limit];
 		
 		for(int32_t j = 0; j < file_limit; j++)
 		{
@@ -92,7 +92,7 @@ cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt)
 
 	if(evt == NULL)	// First run
 	{
-		if(!live && m_duration_seconds > 0 && m_base_file_name.find("%") != string::npos)	// Here's the fuckin' bug
+		if(!live && m_duration_seconds > 0 && m_base_file_name.find("%") != std::string::npos)	// Here's the fuckin' bug
 			m_last_file_name = "first_dump.scap";
 		else
 		{
@@ -153,7 +153,7 @@ cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt)
 	return SAMEFILE;
 }
 
-string cycle_writer::get_current_file_name() 
+std::string cycle_writer::get_current_file_name() 
 {
 	return m_last_file_name;
 }
@@ -178,7 +178,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 	if(m_duration_seconds > 0)
 	{
 		// if the user has specified a format then use it
-		if(m_base_file_name.find("%") != string::npos)
+		if(m_base_file_name.find("%") != std::string::npos)
 		{
 			const size_t our_size = 4096;
 			size_t their_size;
@@ -196,14 +196,14 @@ cycle_writer::conclusion cycle_writer::next_file()
 					remove(m_past_names[m_file_index].c_str());
 				}
 
-				m_past_names[m_file_index] = string(file_name);
+				m_past_names[m_file_index] = std::string(file_name);
 			}
 
 			m_last_file_name = file_name;
 		}
 		else	// if no format is provided, then use a counter
 		{
-			m_last_file_name = m_base_file_name + to_string(m_file_index);
+			m_last_file_name = m_base_file_name + std::to_string(m_file_index);
 		}
 	} 
 	else 
@@ -252,7 +252,7 @@ cycle_writer::conclusion cycle_writer::next_file()
 
 	if(m_event_limit > 0)
 	{
-		m_last_file_name = m_base_file_name + to_string(m_file_index);
+		m_last_file_name = m_base_file_name + std::to_string(m_file_index);
 	}
 
 	m_file_count_total++;

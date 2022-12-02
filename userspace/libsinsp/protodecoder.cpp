@@ -113,7 +113,7 @@ void sinsp_protodecoder_list::add_protodecoder(sinsp_protodecoder* protodecoder)
 	m_decoders_list.push_back(protodecoder);
 }
 
-sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const string& name,
+sinsp_protodecoder* sinsp_protodecoder_list::new_protodecoder_from_name(const std::string& name,
 																		   sinsp* inspector)
 {
 	uint32_t j;
@@ -194,7 +194,7 @@ void sinsp_decoder_syslog::on_fd_from_proc(sinsp_fdinfo_t* fdinfo)
 		return ;
 	}
 
-	if(fdinfo->m_name.find("/dev/log") != string::npos)
+	if(fdinfo->m_name.find("/dev/log") != std::string::npos)
 	{
 		register_write_callback(fdinfo);
 	}
@@ -211,7 +211,7 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 			return ;
 		}
 
-		if(fdinfo->m_name.find("/dev/log") != string::npos)
+		if(fdinfo->m_name.find("/dev/log") != std::string::npos)
 		{
 			register_write_callback(fdinfo);
 		}
@@ -224,7 +224,7 @@ void sinsp_decoder_syslog::on_event(sinsp_evt* evt, sinsp_pd_callback_type etype
 			return ;
 		}
 
-		if(fdinfo->m_name.find("/dev/log") != string::npos)
+		if(fdinfo->m_name.find("/dev/log") != std::string::npos)
 		{
 			register_write_callback(fdinfo);
 		}
@@ -322,7 +322,7 @@ void sinsp_decoder_syslog::decode_message(char *data, uint32_t len, char* pristr
 
 bool sinsp_decoder_syslog::get_info_line(char** res)
 {
-	m_infostr = string("syslog sev=") + get_severity_str() + " msg=" + m_msg;
+	m_infostr = std::string("syslog sev=") + get_severity_str() + " msg=" + m_msg;
 
 	*res = (char*)m_infostr.c_str();
 	return (m_priority != -1);

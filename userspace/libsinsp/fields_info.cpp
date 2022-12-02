@@ -51,7 +51,7 @@ static void list_fields_markdown(std::list<gen_event_filter_factory::filter_fiel
 /* This function is DEPRECATED, it must be implemented by the consumers. This function will be removed in the next libs release. */
 void list_fields(bool verbose, bool markdown)
 {
-	vector<const filter_check_info*> fc_plugins;
+	std::vector<const filter_check_info*> fc_plugins;
 	std::list<gen_event_filter_factory::filter_fieldclass_info> fld_classes;
 
 	sinsp::get_filtercheck_fields_info(fc_plugins);
@@ -75,7 +75,7 @@ void list_fields(bool verbose, bool markdown)
 void list_events(sinsp* inspector, bool markdown)
 {
 	uint32_t j, k;
-	string tstr;
+	std::string tstr;
 
 	sinsp_evttables* einfo = inspector->get_event_info_tables();
 	const struct ppm_event_info* etable = einfo->m_event_info;

@@ -55,7 +55,7 @@ void sinsp_container_info::container_health_probe::parse_health_probes(const Jso
 	// Add any health checks described in the container config/labels.
 	for(int i=PT_NONE; i != PT_END; i++)
 	{
-		string key = probe_type_names[i];
+		std::string key = probe_type_names[i];
 		const Json::Value& probe_obj = config_obj[key];
 
 		if(!probe_obj.isNull() && probe_obj.isObject())
@@ -96,7 +96,7 @@ void sinsp_container_info::container_health_probe::add_health_probes(const std::
 {
 	for(auto &probe : probes)
 	{
-		string key = probe_type_names[probe.m_probe_type];
+		std::string key = probe_type_names[probe.m_probe_type];
 		Json::Value args;
 
 		config_obj[key]["exe"] = probe.m_health_probe_exe;

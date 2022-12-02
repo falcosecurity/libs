@@ -955,12 +955,12 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 	return true;
 }
 
-sinsp_protodecoder* sinsp_parser::add_protodecoder(string decoder_name)
+sinsp_protodecoder* sinsp_parser::add_protodecoder(std::string decoder_name)
 {
 	//
 	// Make sure this decoder is not present yet
 	//
-	vector<sinsp_protodecoder*>::iterator it;
+	std::vector<sinsp_protodecoder*>::iterator it;
 	for(it = m_protodecoders.begin(); it != m_protodecoders.end(); ++it)
 	{
 		if((*it)->get_name() == decoder_name)
@@ -2022,7 +2022,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			/* If the pathname is `<NA>` here we shouldn't have problems during `parse_dirfd`.
 			 * It doesn't start with "/" so it is not considered an absolute path.
 			 */
-			string sdir;
+			std::string sdir;
 			parse_dirfd(evt, pathname, dirfd, &sdir);
 
 			/* (4) In this case, we were not able to recover the pathname from the kernel or 
@@ -2245,7 +2245,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
  *   - if we have no information about `dirfd` -> sdir = "<UNKNOWN>".
  *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end. 
  */
-void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT string* sdir)
+void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT std::string* sdir)
 {
 	bool is_absolute = false;
 	/* This should never happen but just to be sure. */
@@ -2254,7 +2254,7 @@ void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT st
 		is_absolute = (name[0] == '/');
 	}
 
-	string tdirstr;
+	std::string tdirstr;
 
 	if(is_absolute)
 	{
@@ -2320,7 +2320,7 @@ void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type 
 		inspector->remove_meta_event_callback();
 		return;
 	}
-	string payload = client->dequeue_capture_event();
+	std::string payload = client->dequeue_capture_event();
 	std::size_t tot_len = sizeof(scap_evt) + sizeof(uint16_t) + payload.size() + 1;
 
 	if(tot_len > state->m_scap_buf_size)
@@ -2420,7 +2420,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	uint32_t enter_evt_flags;
 	sinsp_fdinfo_t fdi;
 	sinsp_evt *enter_evt = &m_tmp_evt;
-	string sdir;
+	std::string sdir;
 	uint16_t etype = evt->get_type();
 	uint32_t dev = 0;
 	uint64_t ino = 0;
@@ -2682,7 +2682,7 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		//
 		// Call the protocol decoder callbacks associated to this event
 		//
-		vector<sinsp_protodecoder*>::iterator it;
+		std::vector<sinsp_protodecoder*>::iterator it;
 		for(it = m_open_callbacks.begin(); it != m_open_callbacks.end(); ++it)
 		{
 			(*it)->on_event(evt, CT_OPEN);
@@ -2786,11 +2786,11 @@ inline void sinsp_parser::add_socket(sinsp_evt *evt, int64_t fd, uint32_t domain
 
 	if(fdi.m_type == SCAP_FD_UNKNOWN)
 	{
-		SINSP_STR_DEBUG("Unknown fd fd=" + to_string(fd) +
-		                " domain=" + to_string(domain) +
-		                " type=" + to_string(type) +
-		                " protocol=" + to_string(protocol) +
-		                " pid=" + to_string(evt->m_tinfo->m_pid) +
+		SINSP_STR_DEBUG("Unknown fd fd=" + std::to_string(fd) +
+		                " domain=" + std::to_string(domain) +
+		                " type=" + std::to_string(type) +
+		                " protocol=" + std::to_string(protocol) +
+		                " pid=" + std::to_string(evt->m_tinfo->m_pid) +
 		                " comm=" + evt->m_tinfo->m_comm);
 	}
 
@@ -3228,7 +3228,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	uint8_t *packed_data;
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	int64_t retval;
 
 	if(evt->m_fdinfo == NULL)
@@ -3281,7 +3281,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	//
 	// Call the protocol decoder callbacks associated to this event
 	//
-	vector<sinsp_protodecoder*>::iterator it;
+	std::vector<sinsp_protodecoder*>::iterator it;
 	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
 	{
 		(*it)->on_event(evt, CT_CONNECT);
@@ -3301,7 +3301,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t fd;
 	uint8_t* packed_data;
-	unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	sinsp_fdinfo_t fdi;
 	const char *parstr;
 
@@ -3871,7 +3871,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 		// Call the protocol decoder callbacks to notify the decoders that this FD
 		// changed.
 		//
-		vector<sinsp_protodecoder*>::iterator it;
+		std::vector<sinsp_protodecoder*>::iterator it;
 		for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
 		{
 			(*it)->on_event(evt, CT_TUPLE_CHANGE);
@@ -3909,7 +3909,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	// Call the protocol decoder callbacks to notify the decoders that this FD
 	// changed.
 	//
-	vector<sinsp_protodecoder*>::iterator it;
+	std::vector<sinsp_protodecoder*>::iterator it;
 	for(it = m_connect_callbacks.begin(); it != m_connect_callbacks.end(); ++it)
 	{
 		(*it)->on_event(evt, CT_TUPLE_CHANGE);
@@ -4035,7 +4035,7 @@ uint32_t sinsp_parser::parse_tracer(sinsp_evt *evt, int64_t retval)
 		lens[2] = 8;
 
 		p->m_tags.clear();
-		m_tracer_error_string = "invalid tracer " + string(data, datalen) + ", len" + to_string(datalen);
+		m_tracer_error_string = "invalid tracer " + std::string(data, datalen) + ", len" + std::to_string(datalen);
 		p->m_tags.push_back((char*)m_tracer_error_string.c_str());
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 6) = 0;
 		*(uint64_t *)(fakeevt_storage + sizeof(struct ppm_evt_hdr) + 14) = (uint64_t)&p->m_tags;
@@ -4254,7 +4254,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			if(evt->m_fdinfo->m_callbacks)
 			{
-				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_read_callbacks);
+				std::vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_read_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
@@ -4342,7 +4342,7 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			if(evt->m_fdinfo->m_callbacks)
 			{
-				vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_write_callbacks);
+				std::vector<sinsp_protodecoder*>* cbacks = &(evt->m_fdinfo->m_callbacks->m_write_callbacks);
 
 				for(auto it = cbacks->begin(); it != cbacks->end(); ++it)
 				{
@@ -4540,7 +4540,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(1);
 
 #ifdef _DEBUG
-		string chkstr = string(parinfo->m_val);
+		std::string chkstr = std::string(parinfo->m_val);
 
 		if(chkstr != "/")
 		{
@@ -5328,10 +5328,10 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			}
 		}
 
-		vector<string> labels = container["labels"].getMemberNames();
-		for(vector<string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
+		std::vector<std::string> labels = container["labels"].getMemberNames();
+		for(std::vector<std::string>::const_iterator it = labels.begin(); it != labels.end(); ++it)
 		{
-			string val = container["labels"][*it].asString();
+			std::string val = container["labels"][*it].asString();
 			container_info->m_labels[*it] = val;
 		}
 

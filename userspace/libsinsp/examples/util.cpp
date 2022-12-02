@@ -55,7 +55,7 @@ std::string get_event_type_name(sinsp& inspector, sinsp_evt* ev)
 	uint16_t type = ev->get_type();
 	if (type >= PPM_EVENT_MAX)
 	{
-		return "UNKNOWN " + to_string(type);
+		return "UNKNOWN " + std::to_string(type);
 	}
 	if (type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{
