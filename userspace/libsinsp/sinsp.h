@@ -403,6 +403,13 @@ public:
 	void set_proc_scan_timeout_ms(uint64_t val);
 
 	/*!
+	 * \brief sets the interval for logging progress messages during initial scan of /proc.
+	 *        Value of SCAP_PROC_SCAN_LOGUT_NONE (default) means no logging.
+	 */
+	void set_proc_scan_log_interval_ms(uint64_t val);
+
+
+	/*!
 	  \brief Start writing the captured events to file.
 
 	  \param dump_filename the destination trace file.
@@ -1439,6 +1446,7 @@ public:
 	// /proc scan parameters
 	//
 	uint64_t m_proc_scan_timeout_ms;
+	uint64_t m_proc_scan_log_interval_ms;
 
 	// Any thread with a comm in this set will not have its events
 	// returned in sinsp::next()

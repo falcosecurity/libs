@@ -1121,7 +1121,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	// - this is the top-level call (parenttid == -1)
 	// - one or both of the timing parameters is configured to non-zero
 	bool do_timing = (parenttid == -1) &&
-	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE);
+	                 ((handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
+	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
 	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
 	uint64_t start_ts_ms = 0;
 	uint64_t last_log_ts_ms = 0;
@@ -1239,6 +1240,23 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				max_proc_time_ms = this_proc_elapsed_time_ms;
 			}
 
+			if (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
+			{
+				uint64_t log_elapsed_time_ms = cur_ts_ms - last_log_ts_ms;
+				if (log_elapsed_time_ms >= handle->m_proc_scan_log_interval_ms)
+				{
+					scap_debug_log(handle,
+						"scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
+						num_procs_processed,
+						total_elapsed_time_ms,
+						(total_elapsed_time_ms / (uint64_t)num_procs_processed),
+						min_proc_time_ms,
+						max_proc_time_ms,
+						last_tid_processed);
+					last_log_ts_ms = cur_ts_ms;
+				}
+			}
+
 			if (handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
 			{
 				if (total_elapsed_time_ms >= handle->m_proc_scan_timeout_ms)
@@ -1261,6 +1279,18 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 			scap_debug_log(handle,
 				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
 				handle->m_proc_scan_timeout_ms,
+				num_procs_processed,
+				total_elapsed_time_ms,
+				avg_proc_time_ms,
+				min_proc_time_ms,
+				max_proc_time_ms,
+				last_tid_processed);
+		}
+		else if ((handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
+			(num_procs_processed != 0))
+		{
+			scap_debug_log(handle,
+				"scap_proc_scan DONE: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
 				num_procs_processed,
 				total_elapsed_time_ms,
 				avg_proc_time_ms,

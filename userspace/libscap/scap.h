@@ -113,6 +113,12 @@ struct iovec;
 //
 #define SCAP_PROC_SCAN_TIMEOUT_NONE 0
 
+//
+// Value for proc_scan_log_interval_ms field in scap_open_args, to specify
+// that no progress logging should be performed
+//
+#define SCAP_PROC_SCAN_LOG_NONE 0
+
 
 /*!
   \brief Statistics about an in progress capture
