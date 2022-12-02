@@ -1319,6 +1319,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			// This can happen if the thread table has reached max capacity
 			//
 			ASSERT(false);
+			if (tid == evt->get_tid())
+			{
+				// remove_thread() above invalidated tinfo stored in child
+				evt->m_tinfo = NULL;
+			}
+			delete tinfo;
 			return;
 		}
 
