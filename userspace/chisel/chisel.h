@@ -30,7 +30,7 @@ class sinsp_filter_check;
 
 	\note This function is not reentrant.
 */
-void chisel_add_dir(string dirname, bool front_add);
+void chisel_add_dir(std::string dirname, bool front_add);
 
 typedef struct lua_State lua_State;
 
@@ -51,7 +51,7 @@ typedef struct chiseldir_info
 class chiselarg_desc
 {
 public:
-	chiselarg_desc(string name, string type, string description, bool optional)
+	chiselarg_desc(std::string name, std::string type, std::string description, bool optional)
 	{
 		m_name = name;
 		m_type = type;
@@ -59,9 +59,9 @@ public:
 		m_optional = optional;
 	}
 
-	string m_name;
-	string m_type;
-	string m_description;
+	std::string m_name;
+	std::string m_type;
+	std::string m_description;
 	bool m_optional;
 };
 
@@ -77,11 +77,11 @@ public:
 		m_args.clear();
 	}
 
-	string m_name;
-	string m_description;
-	string m_category;
-	string m_shortdesc;
-	vector<chiselarg_desc> m_args;
+	std::string m_name;
+	std::string m_description;
+	std::string m_category;
+	std::string m_shortdesc;
+	std::vector<chiselarg_desc> m_args;
 	chisel_view_info m_viewinfo;
 };
 
@@ -89,9 +89,9 @@ class chiselinfo
 {
 public:
 	chiselinfo(sinsp* inspector);
-	void init(string filterstr, string formatterstr); 
-	void set_filter(string filterstr);
-	void set_formatter(string formatterstr);
+	void init(std::string filterstr, std::string formatterstr); 
+	void set_filter(std::string filterstr);
+	void set_formatter(std::string formatterstr);
 	void set_callback_interval(uint64_t interval);
 	void set_callback_precise_interval(uint64_t interval);
 	~chiselinfo();
@@ -101,7 +101,7 @@ public:
 	uint64_t m_callback_interval;
 	uint64_t m_callback_precise_interval;
 	bool m_has_nextrun_args;
-	string m_nextrun_args;
+	std::string m_nextrun_args;
 	bool m_end_capture;
 
 private:
@@ -111,58 +111,58 @@ private:
 class SINSP_PUBLIC sinsp_chisel
 {
 public:
-	sinsp_chisel(sinsp* inspector, string filename, bool is_file = true);
+	sinsp_chisel(sinsp* inspector, std::string filename, bool is_file = true);
 	~sinsp_chisel();
 	static void add_lua_package_path(lua_State* ls, const char* path);
-	static void get_chisel_list(vector<chisel_desc>* chisel_descs);
-	void load(string cmdstr, bool is_file = true);
-	string get_name()
+	static void get_chisel_list(std::vector<chisel_desc>* chisel_descs);
+	void load(std::string cmdstr, bool is_file = true);
+	std::string get_name()
 	{
 		return m_filename;
 	}
 	uint32_t get_n_args();
 	uint32_t get_n_optional_args();
 	uint32_t get_n_required_args();
-	void set_args(string args);
-	void set_args(vector<pair<string, string>> args);
+	void set_args(std::string args);
+	void set_args(std::vector<std::pair<std::string, std::string>> args);
 	bool run(sinsp_evt* evt);
 	void do_timeout(sinsp_evt* evt);
 	void do_end_of_sample();
 	void on_init();
 	void on_capture_start();
 	void on_capture_end();
-	bool get_nextrun_args(OUT string* args);
+	bool get_nextrun_args(OUT std::string* args);
 	chisel_desc* get_lua_script_info()
 	{
 		return &m_lua_script_info;
 	}
 
 private:
-	bool openfile(string filename, OUT ifstream* is);
+	bool openfile(std::string filename, OUT std::ifstream* is);
 	void free_lua_chisel();
-	static chisel_field_aggregation string_to_aggregation(string ag);
+	static chisel_field_aggregation string_to_aggregation(std::string ag);
 	static void parse_view_column(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_columns(lua_State *ls, OUT chisel_desc* cd, OUT void* columns);
 	static void parse_view_action(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
 	static void parse_view_actions(lua_State *ls, OUT chisel_desc* cd, OUT void* actions);
 	static bool parse_view_info(lua_State *ls, OUT chisel_desc* cd);
-	static bool init_lua_chisel(chisel_desc &cd, string const &path);
+	static bool init_lua_chisel(chisel_desc &cd, std::string const &path);
 	void first_event_inits(sinsp_evt* evt);
 
 	sinsp* m_inspector;
-	string m_description;
-	vector<string> m_argvals;
-	string m_filename;
+	std::string m_description;
+	std::vector<std::string> m_argvals;
+	std::string m_filename;
 	lua_State* m_ls;
 	chisel_desc m_lua_script_info;
 	bool m_lua_has_handle_evt;
 	bool m_lua_is_first_evt;
 	uint64_t m_lua_last_interval_sample_time;
 	uint64_t m_lua_last_interval_ts;
-	vector<sinsp_filter_check*> m_allocated_fltchecks;
+	std::vector<sinsp_filter_check*> m_allocated_fltchecks;
 	char m_lua_fld_storage[PPM_MAX_ARG_SIZE];
 	chiselinfo* m_lua_cinfo;
-	string m_new_chisel_to_exec;
+	std::string m_new_chisel_to_exec;
 	int m_udp_socket;
 	struct sockaddr_in m_serveraddr;
 

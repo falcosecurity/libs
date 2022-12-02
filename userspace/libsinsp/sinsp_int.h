@@ -41,8 +41,6 @@ limitations under the License.
 #include <iostream>
 #include <limits>
 
-using namespace std;
-
 #include "scap.h"
 #include "settings.h"
 #include "utils.h"
@@ -96,7 +94,7 @@ public:
 	virtual void on_sendfile(sinsp_evt* evt, int64_t fdin, uint32_t len) = 0;
 	virtual void on_connect(sinsp_evt* evt, uint8_t* packed_data) = 0;
 	virtual void on_accept(sinsp_evt* evt, int64_t newfd, uint8_t* packed_data, sinsp_fdinfo_t* new_fdinfo) = 0;
-	virtual void on_file_open(sinsp_evt* evt, const string& fullpath, uint32_t flags) = 0;
+	virtual void on_file_open(sinsp_evt* evt, const std::string& fullpath, uint32_t flags) = 0;
 	virtual void on_error(sinsp_evt* evt) = 0;
 	virtual void on_erase_fd(erase_fd_params* params) = 0;
 	virtual void on_socket_shutdown(sinsp_evt *evt) = 0;

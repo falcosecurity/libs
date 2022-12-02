@@ -20,8 +20,6 @@ limitations under the License.
 #include <time.h>
 #include <stdio.h>
 
-using namespace std;
-
 class cycle_writer {
 public:
 	//
@@ -65,7 +63,7 @@ public:
 	// (via a call to consider()), then this will
 	// be locked down and return false.
 	//
-	bool setup(string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper);
+	bool setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper);
 	
 	//
 	// Consider file size at the current time
@@ -88,10 +86,10 @@ public:
 	// based on the input parameters and 
 	// what has been past into consider.
 	//
-	string get_current_file_name();
+	std::string get_current_file_name();
 
 	// Last reason for a new file
-	string m_last_reason;
+	std::string m_last_reason;
 
 private:
 	//
@@ -111,7 +109,7 @@ private:
 	// 
 	
 	// The base file name to write to
-	string m_base_file_name; // = ""
+	std::string m_base_file_name; // = ""
 
 	// Number of bytes before rolling over
 	int64_t m_rollover_mb; // = 0
@@ -147,7 +145,7 @@ private:
 
 	// The last file name that
 	// was created (mostly for debugging)
-	string m_last_file_name;
+	std::string m_last_file_name;
 
 	//
 	// This is toggled to true the
@@ -166,6 +164,6 @@ private:
 
 	// Used when ciclewriting on time with specified
 	// name format for deleting "out-of-range" files
-	string *m_past_names;
+	std::string *m_past_names;
 };
 

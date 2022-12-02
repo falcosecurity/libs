@@ -32,7 +32,7 @@ class marathon_http : public mesos_http
 public:
 	typedef std::shared_ptr<marathon_http> ptr_t;
 
-	marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms = 5000L, const string& token = "");
+	marathon_http(mesos& m, const uri& url, bool discover_marathon, int timeout_ms = 5000L, const std::string& token = "");
 
 	~marathon_http();
 

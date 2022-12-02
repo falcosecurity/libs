@@ -64,7 +64,7 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const string& filename,
+	void open(const std::string& filename,
 		bool compress,
 		bool threads_from_sinsp=false);
 

@@ -46,7 +46,7 @@ public:
 				bool discover_mesos_lead_master = false,
 				bool discover_marathon = false,
 				int timeout_ms = 5000L,
-				const string& token = "");
+				const std::string& token = "");
 
 	virtual ~mesos_http();
 
@@ -77,7 +77,7 @@ public:
 	void set_framework_version(const std::string& id);
 
 	const marathon_uri_t& get_marathon_uris() const;
-	void set_token(const string& token);
+	void set_token(const std::string& token);
 
 protected:
 	CURL* get_sync_curl();
@@ -124,7 +124,7 @@ private:
 	//bool                    m_redirect = false;
 	std::string::size_type  m_content_length = std::string::npos;
 	char                    m_redirect[CURL_MAX_HTTP_HEADER] = {0};
-	string                  m_token;
+	std::string                  m_token;
 	sinsp_curl_http_headers m_sync_curl_headers;
 
 	friend class mesos;
@@ -194,7 +194,7 @@ inline mesos_http::json_ptr_t mesos_http::try_parse(const std::string& json, con
 	}
 	catch(const Json::Exception &e)
 	{
-		g_logger.log("Could not parse JSON document: " + string(e.what()), sinsp_logger::SEV_WARNING);
+		g_logger.log("Could not parse JSON document: " + std::string(e.what()), sinsp_logger::SEV_WARNING);
 		g_json_error_log.log(json, e.what(), sinsp_utils::get_current_time_ns(), uri);
 	}
 	catch(...) { }

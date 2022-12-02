@@ -65,7 +65,7 @@ private:
 
 	// utility function to replace RESERVED_STRINGS with their
 	// counterparts in REPLACEMENT_STRINGS
-	static string& replace(std::string& scope);
+	static std::string& replace(std::string& scope);
 #ifndef _WIN32
 	static void regex_error(const std::string& call, size_t ret, regex_t* preg, const std::string& str);
 #endif

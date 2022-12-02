@@ -35,13 +35,13 @@ public:
 
 	sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t bcast, const char* name);
 
-	string to_string() const;
-	string address() const;
+	std::string to_string() const;
+	std::string address() const;
 
 	uint32_t m_addr;
 	uint32_t m_netmask;
 	uint32_t m_bcast;
-	string m_name;
+	std::string m_name;
 private:
 	static void convert_to_string(char * dest, size_t len, const uint32_t addr);
 };
@@ -56,7 +56,7 @@ public:
 
 	ipv6addr m_net;
 
-	string m_name;
+	std::string m_name;
 };
 
 class SINSP_PUBLIC sinsp_network_interfaces
@@ -71,8 +71,8 @@ public:
 	bool is_ipv4addr_in_local_machine(uint32_t addr, sinsp_threadinfo* tinfo);
 	void import_ipv6_interface(const sinsp_ipv6_ifinfo& ifinfo);
 	bool is_ipv6addr_in_local_machine(ipv6addr &addr, sinsp_threadinfo* tinfo);
-	vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
-	vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
+	std::vector<sinsp_ipv4_ifinfo>* get_ipv4_list();
+	std::vector<sinsp_ipv6_ifinfo>* get_ipv6_list();
 	inline void clear();
 
 	ipv6addr m_ipv6_loopback_addr;
@@ -82,8 +82,8 @@ VISIBILITY_PRIVATE
 	void import_ipv4_ifaddr_list(uint32_t count, scap_ifinfo_ipv4* plist);
 	ipv6addr infer_ipv6_address(ipv6addr &destination_address);
 	void import_ipv6_ifaddr_list(uint32_t count, scap_ifinfo_ipv6* plist);
-	vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
-	vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
+	std::vector<sinsp_ipv4_ifinfo> m_ipv4_interfaces;
+	std::vector<sinsp_ipv6_ifinfo> m_ipv6_interfaces;
 	sinsp* m_inspector;
 };
 
