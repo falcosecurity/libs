@@ -805,8 +805,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	long swap = 0;
 	int available = STR_STORAGE_SIZE;
 	const struct cred *cred;
-	struct file *exe_file = NULL;
-	unsigned long long time = 0;
+	u64 pidns_init_start_time = 0;
 
 #ifdef __NR_clone3
 	struct clone_args cl_args;
@@ -1066,7 +1065,6 @@ cgroups_error:
 		int64_t in_pidns = 0;
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 		struct pid_namespace *pidns = task_active_pid_ns(current);
-		struct task_struct *child_reaper;
 #endif
 
 		/*
@@ -1149,14 +1147,17 @@ cgroups_error:
 
 		/*
 		 * pid_namespace init task start_time monotonic time in ns
+		 * the field `start_time` was a `struct timespec` before this
+		 * kernel version.
+		 * https://elixir.bootlin.com/linux/v3.16/source/include/linux/sched.h#L1370
 		 */
-#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-		if (retval == 0 && pidns)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
+		// only perform lookup when clone/vfork/fork returns 0 (child process / childtid)
+		if(retval == 0 && pidns && pidns->child_reaper)
 		{
-			child_reaper = pidns->child_reaper;
-			time = child_reaper->start_time;
+			pidns_init_start_time = pidns->child_reaper->start_time;
 		}
-		res = val_to_ring(args, time, 0, false, 0);
+		res = val_to_ring(args, pidns_init_start_time, 0, false, 0);
 #else
 		/* Not relevant in old kernels */
 		res = val_to_ring(args, 0, 0, false, 0);
@@ -1174,6 +1175,12 @@ cgroups_error:
 		bool exe_upper_layer = false;
 		struct file *exe_file = NULL;
 		uint32_t flags = 0; // execve additional flags
+		unsigned long i_ino = 0;
+		unsigned long ctime = 0;
+		unsigned long mtime = 0;
+		uint64_t cap_inheritable = 0;
+		uint64_t cap_permitted = 0;
+		uint64_t cap_effective = 0;
 
 		if (likely(retval >= 0)) {
 			/*
@@ -1272,7 +1279,10 @@ cgroups_error:
 
 		if (exe_file != NULL) {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)
-			if (file_inode(exe_file) != NULL) {
+			if (file_inode(exe_file) != NULL)
+			{
+
+				/* Support exe_writable */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 				exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE) == 0);
 				exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
@@ -1280,6 +1290,8 @@ cgroups_error:
 				exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
 				exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+
+				/* Support exe_upper_layer */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 				{
 					struct super_block *sb = NULL;
@@ -1305,9 +1317,23 @@ cgroups_error:
 					}
 				}
 #endif
+
+				/* Support inode number */
+				i_ino = file_inode(exe_file)->i_ino;
+
+				/* Support exe_file ctime 
+				 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
+				 * but fields names should be always the same.
+				 */
+				ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+
+				/* Support exe_file mtime 
+				 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
+				 * but fields names should be always the same.
+				 */
+				mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 			}
 #endif
-
 			fput(exe_file);
 		}
 
@@ -1324,101 +1350,48 @@ cgroups_error:
 		/*
 		 * flags
 		 */
-
 		res = val_to_ring(args, flags, 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		if(args->event_type == PPME_SYSCALL_EXECVE_19_X ||
-		   args->event_type == PPME_SYSCALL_EXECVEAT_X)
-		{
-			/*
-			* capabilities
-			*/
-			cred = get_current_cred();
+		/*
+		 * capabilities
+		 */
+		cred = get_current_cred();
+		cap_inheritable = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+		cap_permitted = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+		cap_effective = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+		put_cred(cred);
 
-			val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
-			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto out;
-			
-			val = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
-			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto out;
-			
-			val = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
-			res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto out;
-			
-			put_cred(cred);
+		/* Parameter 21: cap_inheritable (type: PT_UINT64) */
+		res = val_to_ring(args, capabilities_to_scap(cap_inheritable), 0, false, 0);
+		CHECK_RES(res);
 
-			/*
-			* exe ino fields
-			*/
-			exe_file = ppm_get_mm_exe_file(mm);
+		/* Parameter 22: cap_permitted (type: PT_UINT64) */
+		res = val_to_ring(args, capabilities_to_scap(cap_permitted), 0, false, 0);
+		CHECK_RES(res);
 
-			if (exe_file) {
-				if (file_inode(exe_file)) {
-					/*
-					* exe ino
-					*/
-					val = file_inode(exe_file)->i_ino;
-				}
-			}
-			res = val_to_ring(args, val, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto exe_file_out;
+		/* Parameter 23: cap_effective (type: PT_UINT64) */
+		res = val_to_ring(args, capabilities_to_scap(cap_effective), 0, false, 0);
+		CHECK_RES(res);
+		
+		/*
+		 * exe ino fields
+		 */
 
-			if (!exe_file) {
-				exe_file = ppm_get_mm_exe_file(mm);
-			}
+		/* Parameter 24: exe_file ino (type: PT_UINT64) */
+		res = val_to_ring(args, i_ino, 0, false, 0);
+		CHECK_RES(res);
 
-			if (exe_file) {
-				if (file_inode(exe_file)) {
-					/*
-					* exe_file ctime (last status change time, epoch value in nanoseconds)
-					*/
-					time = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
-				}
-			}
+		/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+		res = val_to_ring(args, ctime, 0, false, 0);
+		CHECK_RES(res);
 
-			res = val_to_ring(args, time, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto exe_file_out;
-
-			if (!exe_file) {
-				exe_file = ppm_get_mm_exe_file(mm);
-			}
-
-			if (exe_file) {
-				if (file_inode(exe_file)) {
-					/*
-					* exe_file mtime (last modification time, epoch value in nanoseconds)
-					*/
-					time = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
-				}
-			}
-
-			res = val_to_ring(args, time, 0, false, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				goto exe_file_out;
-
-			fput(exe_file);
-
-		}
+		/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+		res = val_to_ring(args, mtime, 0, false, 0);
+		CHECK_RES(res);
 	}
-
 	return add_sentinel(args);
-
-exe_file_out:
-	fput(exe_file);
-	return res;
-
-out:
-	put_cred(cred);
-	return res;
 
 #endif /* UDIG */
 }
@@ -6612,8 +6585,12 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	bool exe_upper_layer = false;
 	struct file *exe_file = NULL;
 	const struct cred *cred = NULL;
-	unsigned long long time = 0;
-
+	unsigned long i_ino = 0;
+	unsigned long ctime = 0;
+	unsigned long mtime = 0;
+	uint64_t cap_inheritable = 0;
+	uint64_t cap_permitted = 0;
+	uint64_t cap_effective = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: if this filler is called the execve is correctly
@@ -6849,6 +6826,7 @@ cgroups_error:
 	{
 		if(file_inode(exe_file) != NULL)
 		{
+			/* Support exe_writable */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 			exe_writable |= (inode_permission(current_user_ns(), file_inode(exe_file), MAY_WRITE) == 0);
 			exe_writable |= inode_owner_or_capable(current_user_ns(), file_inode(exe_file));
@@ -6856,6 +6834,8 @@ cgroups_error:
 			exe_writable |= (inode_permission(file_inode(exe_file), MAY_WRITE) == 0);
 			exe_writable |= inode_owner_or_capable(file_inode(exe_file));
 #endif
+
+			/* Support exe_upper_layer */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
 			{
 				struct super_block *sb = NULL;
@@ -6881,6 +6861,20 @@ cgroups_error:
 				}
 			}
 #endif
+			/* Support inode number */
+			i_ino = file_inode(exe_file)->i_ino;
+
+			/* Support exe_file ctime 
+			 * During kernel versions `i_ctime` changed from `struct timespec` to `struct timespec64`
+			 * but fields names should be always the same.
+			 */
+			ctime = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
+
+			/* Support exe_file mtime 
+			 * During kernel versions `i_mtime` changed from `struct timespec` to `struct timespec64`
+			 * but fields names should be always the same.
+			 */
+			mtime = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
 		}
 
 		fput(exe_file);
@@ -6905,93 +6899,45 @@ cgroups_error:
 		return res;
 	}
 
+	/*
+	 * capabilities
+	 */
+
 	cred = get_current_cred();
+	cap_inheritable = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
+	cap_permitted = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
+	cap_effective = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
+	put_cred(cred);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
-	val = ((uint64_t)cred->cap_inheritable.cap[1] << 32) | cred->cap_inheritable.cap[0];
-	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
-	{
-		goto out;
-	}
+	res = val_to_ring(args, capabilities_to_scap(cap_inheritable), 0, false, 0);
+	CHECK_RES(res);
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
-	val = ((uint64_t)cred->cap_permitted.cap[1] << 32) | cred->cap_permitted.cap[0];
-	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
-	{
-		goto out;
-	}
+	res = val_to_ring(args, capabilities_to_scap(cap_permitted), 0, false, 0);
+	CHECK_RES(res);
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
-	val = ((uint64_t)cred->cap_effective.cap[1] << 32) | cred->cap_effective.cap[0];
-	res = val_to_ring(args, capabilities_to_scap(val), 0, false, 0);
-	if(unlikely(res != PPM_SUCCESS))
-	{
-		goto out;
-	}
-
-	put_cred(cred);
+	res = val_to_ring(args, capabilities_to_scap(cap_effective), 0, false, 0);
+	CHECK_RES(res);
 
 	/*
-	* exe ino fields
-	*/
-	exe_file = ppm_get_mm_exe_file(mm);
+	 * exe ino fields
+	 */
 
-	if (exe_file) {
-		if (file_inode(exe_file)) {
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	res = val_to_ring(args, i_ino, 0, false, 0);
+	CHECK_RES(res);
 
-			/* Parameter 24: exe_file ino (type: PT_UINT64) */
-			val = file_inode(exe_file)->i_ino;
-		}
-	}
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		goto exe_file_out;
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	res = val_to_ring(args, ctime, 0, false, 0);
+	CHECK_RES(res);
 
-	if (!exe_file) {
-			exe_file = ppm_get_mm_exe_file(mm);
-		}
-
-	if (exe_file) {
-		if (file_inode(exe_file)) {
-
-			/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-			time = file_inode(exe_file)->i_ctime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_ctime.tv_nsec;
-		}
-	}
-
-	res = val_to_ring(args, time, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		goto exe_file_out;
-
-	if (!exe_file) {
-			exe_file = ppm_get_mm_exe_file(mm);
-		}
-
-	if (exe_file) {
-		if (file_inode(exe_file)) {
-
-			/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
-			time = file_inode(exe_file)->i_mtime.tv_sec * (uint64_t) 1000000000 + file_inode(exe_file)->i_mtime.tv_nsec;
-		}
-	}
-
-	res = val_to_ring(args, time, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		goto exe_file_out;
-
-	fput(exe_file);
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	res = val_to_ring(args, mtime, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
-
-exe_file_out:
-	fput(exe_file);
-	return res;
-
-out:
-	put_cred(cred);
-	return res;
 }
 #endif
 
@@ -7015,7 +6961,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	uint64_t euid = task_euid(child).val;
 	uint64_t egid = child->cred->egid.val;
 	struct pid_namespace *pidns = task_active_pid_ns(child);
-	unsigned long long time = 0;
+	u64 pidns_init_start_time = 0;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	/* Please note: here we are in the clone child exit
@@ -7258,15 +7204,28 @@ cgroups_error:
 	}
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
-	if (pidns)
+
+	/*
+	 * pid_namespace init task start_time monotonic time in ns
+	 * the field `start_time` was a `struct timespec` before this
+	 * kernel version.
+	 * https://elixir.bootlin.com/linux/v3.16/source/include/linux/sched.h#L1370
+	 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
+	/* Here the father collects this info for the child.
+	 * Remember that this is the clone child event.
+	 */
+	if(pidns && pidns->child_reaper)
 	{
-		child_reaper = pidns->child_reaper;
-		time = child_reaper->start_time;
+		pidns_init_start_time = pidns->child_reaper->start_time;
 	}
-	res = val_to_ring(args, time, 0, false, 0);
+	res = val_to_ring(args, pidns_init_start_time, 0, false, 0);
+#else
+	/* Not relevant in old kernels */
+	res = val_to_ring(args, 0, 0, false, 0);
+#endif
 	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
 #endif
-

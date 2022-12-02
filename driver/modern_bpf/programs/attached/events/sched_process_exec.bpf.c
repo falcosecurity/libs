@@ -195,19 +195,21 @@ int BPF_PROG(t1_sched_p_exec,
 	u64 cap_effective = extract__capability(task, CAP_EFFECTIVE);
 	auxmap__store_u64_param(auxmap, cap_effective);
 
+	struct inode *exe_inode = extract__exe_inode_from_task(task);
+
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	u64 ino = 0;
 	extract__ino_from_inode(exe_inode, &ino);
-	auxmap__store_u64_param(auxmap, (u64)ino);
+	auxmap__store_u64_param(auxmap, ino);
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	struct timespec64 time = { 0, 0 };
 	BPF_CORE_READ_INTO(&time, exe_inode, i_ctime);
-	auxmap__store_u64_param(auxmap, (u64)extract__epoch_ns_from_time(time));
+	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	BPF_CORE_READ_INTO(&time, exe_inode, i_mtime);
-	auxmap__store_u64_param(auxmap, (u64)extract__epoch_ns_from_time(time));
+	auxmap__store_u64_param(auxmap, extract__epoch_ns_from_time(time));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
