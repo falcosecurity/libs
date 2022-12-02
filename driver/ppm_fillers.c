@@ -5908,8 +5908,6 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	struct if_dqinfo dqinfo;
 	uint32_t quota_fmt_out;
 
-	const char empty_string[] = "";
-
 	/*
 	 * extract cmd
 	 */
@@ -5943,7 +5941,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	if (cmd == PPM_Q_QUOTAON)
 		res = val_to_ring(args, val, 0, true, 0);
 	else
-		res = val_to_ring(args, (unsigned long)empty_string, 0, false, 0);
+		res = val_to_ring(args, 0, 0, false, 0);
 
 	if (unlikely(res != PPM_SUCCESS))
 		return res;

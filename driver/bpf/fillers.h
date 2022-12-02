@@ -5281,7 +5281,6 @@ FILLER(sys_quotactl_x, true)
 {
 	struct if_dqinfo dqinfo = {0};
 	struct if_dqblk dqblk = {0};
-	const char empty[] = "";
 	u32 quota_fmt_out;
 	unsigned long val;
 	long retval;
@@ -5323,7 +5322,7 @@ FILLER(sys_quotactl_x, true)
 		if (res != PPM_SUCCESS)
 			return res;
 	} else {
-		res = bpf_val_to_ring_type(data, (unsigned long)empty, PT_CHARBUF);
+		res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
 		if (res != PPM_SUCCESS)
 			return res;
 	}

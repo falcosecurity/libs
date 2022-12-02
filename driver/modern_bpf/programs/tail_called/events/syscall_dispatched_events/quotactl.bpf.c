@@ -93,7 +93,7 @@ int BPF_PROG(quotactl_x,
 	unsigned long special_pointer = extract__syscall_argument(regs, 1);
 	auxmap__store_charbuf_param(auxmap, special_pointer, MAX_PATH, USER);
 
-	uint32_t cmd = (uint32_t)extract__syscall_argument(regs, 0);
+	int32_t cmd = (int32_t)extract__syscall_argument(regs, 0);
 	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
 
 	/* The `addr` argument is the address of an optional, command-
