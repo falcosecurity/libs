@@ -2158,6 +2158,7 @@ static __always_inline struct inode *get_exe_inode(struct task_struct *task)
 	return _READ(exe_file->f_inode);
 }
 
+/* `timespec64` was introduced in kernels >= 3.17 so it is ok here */
 static __always_inline unsigned long long bpf_epoch_ns_from_time(struct timespec64 time)
 {
 	time64_t tv_sec = time.tv_sec;
@@ -2568,7 +2569,6 @@ FILLER(proc_startupdate_3, true)
 		pid_t vpid;
 		struct pid_namespace *pidns = bpf_task_active_pid_ns(task);
 		int pidns_level = _READ(pidns->level);
-		unsigned long long pidns_init_start_time = 0;
 
 		/*
 		 * flags
@@ -2654,10 +2654,12 @@ FILLER(proc_startupdate_3, true)
 		 */
 		vpid = bpf_task_tgid_vnr(task);
 		res = bpf_val_to_ring_type(data, vpid, PT_PID);
+		CHECK_RES(res);
 
 		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
 		// only perform lookup when clone/vfork/fork returns 0 (child process / childtid)
-		if (retval == 0 && pidns)
+		u64 pidns_init_start_time = 0;
+		if(retval == 0 && pidns)
 		{
 			struct task_struct *child_reaper = (struct task_struct *)_READ(pidns->child_reaper);
 			pidns_init_start_time = _READ(child_reaper->start_time);
@@ -2787,25 +2789,20 @@ FILLER(proc_startupdate_3, true)
 /* This filler avoids a bpf stack overflow on old kernels (like 4.14). */
 FILLER(execve_family_flags, true)
 {
-	kernel_cap_t cap;
-	unsigned long val = 0;
-	int res = 0;
-	uint32_t flags = 0;
-	bool exe_writable = false;
-	bool exe_upper_layer = false;
-
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
-	unsigned long long epoch = 0;
-	struct timespec64 time = { 0, 0 };
-
 	struct inode *inode = get_exe_inode(task);
+
+	/* `exe_writable` and `exe_upper_layer` flag logic */
+	bool exe_writable = false;
+	bool exe_upper_layer = false;
+	uint32_t flags = 0;
 
 	if(inode)
 	{
 		/*
-		* exe_writable
-		*/
+		 * exe_writable
+		 */
 		exe_writable = get_exe_writable(inode, cred);
 		if (exe_writable) 
 		{
@@ -2813,53 +2810,42 @@ FILLER(execve_family_flags, true)
 		}
 
 		/*
-		* exe_upper_layer
-		*/
+		 * exe_upper_layer
+		 */
 		exe_upper_layer = get_exe_upper_layer(inode);
 		if (exe_upper_layer)
 		{
 			flags |= PPM_EXE_UPPER_LAYER;
 		}
-	}
 
-	// write all additional flags for execve family here...
+		// write all additional flags for execve family here...
+	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	res = bpf_val_to_ring_type(data, flags, PT_UINT32);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
-
-	/*
-	 * capabilities
-	 */
+	int res = bpf_val_to_ring_type(data, flags, PT_UINT32);
+	CHECK_RES(res);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
-	cap = _READ(cred->cap_inheritable);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
+	kernel_cap_t cap = _READ(cred->cap_inheritable);
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
 	cap = _READ(cred->cap_permitted);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	cap = _READ(cred->cap_effective);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if(unlikely(res != PPM_SUCCESS))
-		return res;
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	val = _READ(inode->i_ino);
-	res = bpf_val_to_ring_type(data, val, PT_UINT64);
+	unsigned long ino = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, ino, PT_UINT64);
 	CHECK_RES(res);
+
+	struct timespec64 time = {0};
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_ctime);
@@ -2868,9 +2854,7 @@ FILLER(execve_family_flags, true)
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
-	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
-
-	return res;
+	return bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
 }
 
 FILLER(sys_accept4_e, true)
@@ -6481,76 +6465,63 @@ FILLER(sched_prog_exec_3, false)
 
 FILLER(sched_prog_exec_4, false)
 {
-	kernel_cap_t cap;
-	unsigned long val = 0;
-	int res = 0;
-	uint32_t flags = 0;
-	bool exe_writable = false;
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
-	unsigned long long epoch = 0;
-	struct timespec64 time = { 0, 0 };
+	struct inode *inode = get_exe_inode(task);
 
 	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
-	struct inode *inode = get_exe_inode(task);
+	uint32_t flags = 0;
 
 	if(inode)
 	{
+		/*
+		 * exe_writable
+		 */
 		exe_writable = get_exe_writable(inode, cred);
-		if(exe_writable)
+		if (exe_writable) 
 		{
 			flags |= PPM_EXE_WRITABLE;
 		}
 
+		/*
+		 * exe_upper_layer
+		 */
 		exe_upper_layer = get_exe_upper_layer(inode);
-		if(exe_upper_layer)
+		if (exe_upper_layer)
 		{
 			flags |= PPM_EXE_UPPER_LAYER;
 		}
-	}
 
-	// write all additional flags for execve family here...
+		// write all additional flags for execve family here...
+	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	res = bpf_val_to_ring_type(data, flags, PT_UINT32);
-	if(res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	int res = bpf_val_to_ring_type(data, flags, PT_UINT32);
+	CHECK_RES(res);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
-	cap = _READ(cred->cap_inheritable);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if(res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	kernel_cap_t cap = _READ(cred->cap_inheritable);
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
 	cap = _READ(cred->cap_permitted);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if(res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	cap = _READ(cred->cap_effective);
-	val = ((unsigned long)cap.cap[1] << 32) | cap.cap[0];
-	res = bpf_val_to_ring(data, capabilities_to_scap(val));
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	CHECK_RES(res);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
-	val = _READ(inode->i_ino);
-	res = bpf_val_to_ring_type(data, val, PT_UINT64);
+	unsigned long ino = _READ(inode->i_ino);
+	res = bpf_val_to_ring_type(data, ino, PT_UINT64);
 	CHECK_RES(res);
+
+	struct timespec64 time = {0};
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_ctime);
@@ -6559,9 +6530,7 @@ FILLER(sched_prog_exec_4, false)
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
-	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
-
-	return res;
+	return bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
 }
 #endif
 
@@ -6814,7 +6783,6 @@ FILLER(sched_prog_fork_3, false)
 	struct task_struct *child = (struct task_struct *)original_ctx->child;
 	struct task_struct *parent = (struct task_struct *)original_ctx->parent;
 	uint32_t flags = 0;
-	unsigned long long pidns_init_start_time = 0;
 
 	/* Since Linux 2.5.35, the flags mask must also include
 	 * CLONE_SIGHAND if CLONE_THREAD is specified (and note that,
@@ -6887,21 +6855,16 @@ FILLER(sched_prog_fork_3, false)
 	/* Parameter 20: vpid (type: PT_PID) */
 	pid_t vpid = bpf_task_tgid_vnr(child);
 	res = bpf_val_to_ring_type(data, vpid, PT_PID);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	CHECK_RES(res);
 
 	/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
+	u64 pidns_init_start_time = 0;
 	if (pidns)
 	{
 		struct task_struct *child_reaper = (struct task_struct *)_READ(pidns->child_reaper);
 		pidns_init_start_time = _READ(child_reaper->start_time);
 	}
-	res = bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
-
-	return res;
-
+	return bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
 }
 #endif
 

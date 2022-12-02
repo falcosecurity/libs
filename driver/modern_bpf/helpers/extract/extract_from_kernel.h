@@ -136,9 +136,9 @@ static __always_inline void extract__ino_from_fd(s32 fd, u64 *ino)
  * @param mm pointer to task mm struct.
  * @return `f_inode` of task exe_file.
  */
-static __always_inline struct inode *extract__exe_inode_from_task(struct mm_struct *mm)
+static __always_inline struct inode *extract__exe_inode_from_task(struct task_struct *task)
 {
-	return BPF_CORE_READ(mm, exe_file, f_inode);
+	return READ_TASK_FIELD(task, mm, exe_file, f_inode);
 }
 
 /**
@@ -150,10 +150,6 @@ static __always_inline struct inode *extract__exe_inode_from_task(struct mm_stru
  */
 static __always_inline void extract__ino_from_inode(struct inode *f_inode, u64 *ino)
 {
-	if(!f_inode)
-	{
-		return;
-	}
 	BPF_CORE_READ_INTO(ino, f_inode, i_ino);
 }
 
@@ -393,11 +389,7 @@ static __always_inline u64 extract__task_pidns_start_time(struct task_struct *ta
 	{
 		struct pid *pid_struct = extract__task_pid_struct(task, type);
 		struct pid_namespace *pid_namespace = extract__namespace_of_pid(pid_struct);
-		struct task_struct *child_reaper = NULL;
-		if(pid_namespace)
-		{
-			return BPF_CORE_READ(pid_namespace, child_reaper, start_time);
-		}
+		return BPF_CORE_READ(pid_namespace, child_reaper, start_time);
 	}
 	return 0;
 }
