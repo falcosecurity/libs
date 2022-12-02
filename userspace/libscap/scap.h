@@ -325,7 +325,7 @@ typedef struct _scap_machine_info
 	uint64_t memory_size_bytes; ///< Physical memory size
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
-	uint64_t reserved1; ///< reserved for future use
+	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
 	uint64_t reserved2; ///< reserved for future use
 	uint64_t reserved3; ///< reserved for future use
 	uint64_t reserved4; ///< reserved for future use
@@ -597,6 +597,16 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
   \brief Return a string with the last error that happened on the given capture.
 */
 const char* scap_getlasterr(scap_t* handle);
+
+/*!
+  \brief Return current time in nanoseconds.
+*/
+uint64_t scap_get_current_time_ns();
+
+/*!
+  \brief Return host boot ts in nanoseconds (epoch).
+*/
+uint64_t scap_get_host_boot_time_ns();
 
 /*!
  * \brief returns the maximum amount of memory used by any driver queue
