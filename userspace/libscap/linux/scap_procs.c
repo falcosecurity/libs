@@ -711,7 +711,7 @@ static int scap_get_cgroup_version(const char* procdirname)
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, char *error)
+static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, uint64_t* num_fds_ret, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -1053,7 +1053,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(tinfo->pid == tinfo->tid)
 	{
-		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, error);
+		res = scap_fd_scan_fd_dir(handle, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
 	}
 
 	if(free_tinfo)
@@ -1079,7 +1079,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, add_error);
+	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		scap_errprintf(error, 0, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -1106,6 +1106,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	char childdir[SCAP_MAX_PATH_SIZE];
 
 	uint64_t num_procs_processed = 0;
+	uint64_t total_num_fds = 0;
 	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
@@ -1184,7 +1185,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		//
 		// We have a process that needs to be explored
 		//
-		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, add_error);
+		uint64_t num_fds_this_proc;
+		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
@@ -1220,6 +1222,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// TID successfully processed.
 		last_tid_processed = tid;
 		num_procs_processed++;
+		total_num_fds += num_fds_this_proc;
 
 		// After successful processing of a process at the top level,
 		// perform timing processing if configured.
@@ -1246,13 +1249,14 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				if (log_elapsed_time_ms >= handle->m_proc_scan_log_interval_ms)
 				{
 					scap_debug_log(handle,
-						"scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
+						"scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
 						num_procs_processed,
 						total_elapsed_time_ms,
 						(total_elapsed_time_ms / (uint64_t)num_procs_processed),
 						min_proc_time_ms,
 						max_proc_time_ms,
-						last_tid_processed);
+						last_tid_processed,
+						total_num_fds);
 					last_log_ts_ms = cur_ts_ms;
 				}
 			}
@@ -1277,26 +1281,28 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if (timeout_expired)
 		{
 			scap_debug_log(handle,
-				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
+				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
 				handle->m_proc_scan_timeout_ms,
 				num_procs_processed,
 				total_elapsed_time_ms,
 				avg_proc_time_ms,
 				min_proc_time_ms,
 				max_proc_time_ms,
-				last_tid_processed);
+				last_tid_processed,
+				total_num_fds);
 		}
 		else if ((handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
 			(num_procs_processed != 0))
 		{
 			scap_debug_log(handle,
-				"scap_proc_scan DONE: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld",
+				"scap_proc_scan DONE: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
 				num_procs_processed,
 				total_elapsed_time_ms,
 				avg_proc_time_ms,
 				min_proc_time_ms,
 				max_proc_time_ms,
-				last_tid_processed);
+				last_tid_processed,
+				total_num_fds);
 		}
 	}
 
