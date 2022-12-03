@@ -31,10 +31,12 @@ TEST(SyscallExit, recvfromX_no_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	struct sockaddr *src_addr = NULL;
-	socklen_t *addrlen = NULL;
+	/// TODO: if we use `struct sockaddr_in* src_addr = NULL` kernel module and old bpf are not able to get correct data.
+	/// Fixing them means changing how we retrieve network data, so it would be quite a big change.
+	struct sockaddr_in src_addr = {0};
+	socklen_t addrlen = sizeof(src_addr);
 
-	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, src_addr, addrlen);
+	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, (struct sockaddr *)&src_addr, &addrlen);
 	assert_syscall_state(SYSCALL_SUCCESS, "recvfrom (server)", received_bytes, NOT_EQUAL, -1);
 
 	/* Cleaning phase */
@@ -104,10 +106,10 @@ TEST(SyscallExit, recvfromX_snaplen)
 	char received_data[MAX_RECV_BUF_SIZE];
 	socklen_t received_data_len = MAX_RECV_BUF_SIZE;
 	uint32_t recvfrom_flags = 0;
-	struct sockaddr *src_addr = NULL;
-	socklen_t *addrlen = NULL;
+	struct sockaddr_in src_addr = {0};
+	socklen_t addrlen = sizeof(src_addr);
 
-	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, src_addr, addrlen);
+	int64_t received_bytes = syscall(__NR_recvfrom, connected_socket_fd, received_data, received_data_len, recvfrom_flags, (struct sockaddr *)&src_addr, &addrlen);
 	assert_syscall_state(SYSCALL_SUCCESS, "recvfrom (server)", received_bytes, NOT_EQUAL, -1);
 
 	/* Cleaning phase */
