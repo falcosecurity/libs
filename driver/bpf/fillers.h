@@ -4210,16 +4210,25 @@ FILLER(sys_recvmsg_x, true)
 	struct user_msghdr mh;
 	unsigned long iovcnt;
 	unsigned long val;
-	long retval;
-	int res;
 
-	/*
-	 * res
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
+
+	if(retval < 0)
+	{
+		/* Parameter 2: size (type: PT_UINT32) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
+
+		/* Parameter 3: data (type: PT_BYTEBUF) */
+		res = bpf_val_to_ring(data, 0);
+		CHECK_RES(res);
+
+		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
+		return bpf_val_to_ring(data, 0);
+	}
 
 	/*
 	 * Retrieve the message header

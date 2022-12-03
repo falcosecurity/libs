@@ -950,15 +950,24 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_SOCKADDR:
 	case PT_SOCKTUPLE:
 	case PT_FDLIST:
-		if (!data->curarg_already_on_frame) {
-			bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
-				   data->state->tail_ctx.evt_type,
-				   data->state->tail_ctx.curarg, type);
-			return PPM_FAILURE_BUG;
+		if(data->curarg_already_on_frame)
+		{
+			len = val_len;
+			break;
 		}
+		/* Cases in which we don't have the tuple and
+		 * we want to send an empty param.
+		 */
+		else if(val==0)
+		{
+			len = 0;
+			break;
+		}
+		bpf_printk("expected arg already on frame: evt_type %d, curarg %d, type %d\n",
+				data->state->tail_ctx.evt_type,
+				data->state->tail_ctx.curarg, type);
+		return PPM_FAILURE_BUG;
 
-		len = val_len;
-		break;
 	case PT_FLAGS8:
 	case PT_ENUMFLAGS8:
 	case PT_UINT8:
