@@ -4216,6 +4216,9 @@ FILLER(sys_recvmsg_x, true)
 	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
 	CHECK_RES(res);
 
+	/* If the syscall fails we are not able to collect reliable params
+	 * so we return empty ones.
+	 */
 	if(retval < 0)
 	{
 		/* Parameter 2: size (type: PT_UINT32) */
@@ -4392,16 +4395,20 @@ FILLER(sys_sendmsg_x, true)
 	struct user_msghdr mh;
 	unsigned long iovcnt;
 	unsigned long val;
-	long retval;
-	int res;
 
-	/*
-	 * res
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
+
+	/* If the syscall fails we are not able to collect reliable params
+	 * so we return empty ones.
 	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
+	if(retval < 0)
+	{
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		return bpf_val_to_ring(data, 0);
+	}
 
 	/*
 	 * data
