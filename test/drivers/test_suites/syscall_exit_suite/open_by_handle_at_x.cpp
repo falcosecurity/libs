@@ -170,7 +170,7 @@ TEST(SyscallExit, open_by_handle_atX_success_mp)
 	 */
 	if(evt_test->is_bpf_engine())
 	{
-		GTEST_SKIP() << "old BPF probe is not able to collect the mount path";
+		GTEST_SKIP() << "[OPEN_BY_HANDLE_AT_X]: old BPF probe is not able to collect the mount path" << std::endl;
 	}
 
 	evt_test->enable_capture();

@@ -44,6 +44,8 @@ TEST(SyscallEnter, connectE_INET)
 	else
 	{
 		evt_test->assert_empty_param(2);
+		evt_test->assert_num_params_pushed(2);
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -93,6 +95,8 @@ TEST(SyscallEnter, connectE_INET6)
 	else
 	{
 		evt_test->assert_empty_param(2);
+		evt_test->assert_num_params_pushed(2);
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -145,6 +149,8 @@ TEST(SyscallEnter, connectE_UNIX)
 	else
 	{
 		evt_test->assert_empty_param(2);
+		evt_test->assert_num_params_pushed(2);
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -205,6 +211,8 @@ TEST(SyscallEnter, connectE_UNIX_max_path)
 	else
 	{
 		evt_test->assert_empty_param(2);
+		evt_test->assert_num_params_pushed(2);
+		GTEST_SKIP() << "[CONNECT_E]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
 	}
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
