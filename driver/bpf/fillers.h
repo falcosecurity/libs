@@ -1215,7 +1215,8 @@ FILLER(sys_socketpair_x, true)
 {
 	struct unix_sock *us = NULL;
 	struct sock *speer = NULL;
-	int fds[2] = { 0 };
+	/* In case of failure we send invalid fd (-1) */
+	int fds[2] = {-1, -1};
 	unsigned long val;
 	long retval;
 	int res;
@@ -1239,11 +1240,11 @@ FILLER(sys_socketpair_x, true)
 		}
 	}
 	/* fd1 */
-	res = bpf_val_to_ring_type(data, fds[0], PT_FD);
+	res = bpf_val_to_ring_type(data, (s64)fds[0], PT_FD);
 	if (res != PPM_SUCCESS)
 		return res;
 	/* fd2 */
-	res = bpf_val_to_ring_type(data, fds[1], PT_FD);
+	res = bpf_val_to_ring_type(data, (s64)fds[1], PT_FD);
 	if (res != PPM_SUCCESS)
 		return res;
 	/* source */
