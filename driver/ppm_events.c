@@ -1249,8 +1249,19 @@ u16 fd_to_socktuple(int fd,
 			usrsockaddr_in = (struct sockaddr_in *)usrsockaddr;
 
 			if (is_inbound) {
-				sip = usrsockaddr_in->sin_addr.s_addr;
-				sport = ntohs(usrsockaddr_in->sin_port);
+				/* To take inbound info we cannot use the `src_addr` obtained from the syscall
+				 * it could be empty!
+				 * From kernel 3.13 we can take both ipv4 and ipv6 info from here
+				 * https://elixir.bootlin.com/linux/v3.13/source/include/net/sock.h#L164
+				 */
+				#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
+					sip = sock->sk->__sk_common.skc_daddr;
+					sport = ntohs(sock->sk->__sk_common.skc_dport);
+				#else
+					/* this is probably wrong, we need to find an alternative in old kernels */
+					sip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
+					sport = ntohs(usrsockaddr_in->sin_port);
+				#endif
 				dip = ((struct sockaddr_in *) &sock_address)->sin_addr.s_addr;
 				dport = ntohs(((struct sockaddr_in *) &sock_address)->sin_port);
 			} else {
@@ -1301,8 +1312,14 @@ u16 fd_to_socktuple(int fd,
 			usrsockaddr_in6 = (struct sockaddr_in6 *)usrsockaddr;
 
 			if (is_inbound) {
-				sip6 = usrsockaddr_in6->sin6_addr.s6_addr;
-				sport = ntohs(usrsockaddr_in6->sin6_port);
+				#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 13, 0)
+					sip6 = sock->sk->__sk_common.skc_v6_daddr.in6_u.u6_addr8;
+					sport = ntohs(sock->sk->__sk_common.skc_dport);
+				#else
+					/* this is probably wrong, we need to find an alternative in old kernels */
+					sip6 = usrsockaddr_in6->sin6_addr.s6_addr;
+					sport = ntohs(usrsockaddr_in6->sin6_port);
+				#endif
 				dip6 = ((struct sockaddr_in6 *) &sock_address)->sin6_addr.s6_addr;
 				dport = ntohs(((struct sockaddr_in6 *) &sock_address)->sin6_port);
 			} else {
