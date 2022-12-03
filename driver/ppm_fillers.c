@@ -1726,7 +1726,8 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long val;
-	int fds[2];
+	/* In case of failure we send invalid fd (-1) */
+	int fds[2] = {-1, -1};
 	int err;
 	struct socket *sock;
 	struct unix_sock *us;
@@ -1764,11 +1765,11 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 		}
 #endif
 
-		res = val_to_ring(args, fds[0], 0, false, 0);
+		res = val_to_ring(args, (s64)fds[0], 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		res = val_to_ring(args, fds[1], 0, false, 0);
+		res = val_to_ring(args, (s64)fds[1], 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
@@ -1795,11 +1796,11 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 		}
 	} else {
 #endif /* UDIG */
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = val_to_ring(args, (s64)fds[0], 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = val_to_ring(args, (s64)fds[1], 0, false, 0);
 		if (unlikely(res != PPM_SUCCESS))
 			return res;
 
