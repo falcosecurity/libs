@@ -599,16 +599,6 @@ scap_os_platform scap_get_os_platform(scap_t* handle);
 const char* scap_getlasterr(scap_t* handle);
 
 /*!
-  \brief Return current time in nanoseconds.
-*/
-uint64_t scap_get_current_time_ns();
-
-/*!
-  \brief Return host boot ts in nanoseconds (epoch).
-*/
-uint64_t scap_get_host_boot_time_ns();
-
-/*!
  * \brief returns the maximum amount of memory used by any driver queue
  */
 uint64_t scap_max_buf_used(scap_t* handle);

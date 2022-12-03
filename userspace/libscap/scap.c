@@ -44,43 +44,20 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
-uint64_t scap_get_current_time_ns()
-{
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-
-    return tv.tv_sec * (uint64_t) 1000000000 + tv.tv_usec * 1000;
-}
-
-uint64_t scap_get_host_boot_time_ns()
-{
-	char proc_dir[PPM_MAX_PATH_SIZE];
-	struct stat targetstat;
-
-	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/1/", scap_get_host_root());
-	if (stat(proc_dir, &targetstat) == 0)
-	{
-		// This approach is constant between agent re-boots
-		return targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
-	}
-
-	// Fall-back method from scap_bpf
-	struct timespec ts_uptime;
-	uint64_t now;
-	uint64_t uptime;
-
-	now = scap_get_current_time_ns();
-	clock_gettime(CLOCK_BOOTTIME, &ts_uptime);
-	uptime = ts_uptime.tv_sec * (uint64_t) 1000000000 + ts_uptime.tv_nsec;
-
-	return (now - uptime);
-}
-
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	scap_t* handle = NULL;
+
+	//
+	// Get boot_time
+	//
+	uint64_t boot_time = 0;
+	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	{
+		return NULL;
+	}
 
 	//
 	// Allocate the handle
@@ -115,10 +92,11 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	//
 	// Extract machine information
 	//
+
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	handle->m_machine_info.boot_ts_epoch = scap_get_host_boot_time_ns();
+	handle->m_machine_info.boot_ts_epoch = boot_time;
 	handle->m_machine_info.reserved2 = 0;
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
@@ -202,6 +180,15 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	scap_t* handle = NULL;
 
 	//
+	// Get boot_time
+	//
+	uint64_t boot_time = 0;
+	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	{
+		return NULL;
+	}
+
+	//
 	// Allocate the handle
 	//
 	handle = (scap_t*) calloc(sizeof(scap_t), 1);
@@ -242,10 +229,11 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	// Extract machine information
 	//
+
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	handle->m_machine_info.boot_ts_epoch = scap_get_host_boot_time_ns();
+	handle->m_machine_info.boot_ts_epoch = boot_time;
 	handle->m_machine_info.reserved2 = 0;
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
@@ -521,6 +509,15 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	scap_t* handle = NULL;
 
 	//
+	// Get boot_time
+	//
+	uint64_t boot_time = 0;
+	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	{
+		return NULL;
+	}
+
+	//
 	// Allocate the handle
 	//
 	handle = (scap_t*)malloc(sizeof(scap_t));
@@ -553,10 +550,11 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Extract machine information
 	//
+
 	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	handle->m_machine_info.boot_ts_epoch = scap_get_host_boot_time_ns();
+	handle->m_machine_info.boot_ts_epoch = boot_time;
 	handle->m_machine_info.reserved2 = 0;
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
@@ -1497,6 +1495,21 @@ int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
 	struct timespec tv_now = {0};
 	uint64_t now = 0;
 	uint64_t uptime = 0;
+	char proc_dir[PPM_MAX_PATH_SIZE];
+	struct stat targetstat = {0};
+
+	/* More reliable way to get boot time */
+	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/1/", scap_get_host_root());
+	if (stat(proc_dir, &targetstat) == 0)
+	{
+		/* This approach is constant between agent re-boots */
+		*boot_time = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
+		return SCAP_SUCCESS;
+	}
+
+	/*
+	 * Fall-back method
+	 */
 
 	/* Get the actual time */
 	if(clock_gettime(CLOCK_REALTIME, &tv_now))

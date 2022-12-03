@@ -404,7 +404,7 @@ int32_t scap_proc_fill_cgroups_pidns_start_ts(char* error, int cgroup_version, s
 		// These are the ones we actually use in cri container engine.
 		char default_subsys_list[] = "cpu,memory,cpuset";
 		char cgroup_sys_fs_dir[PPM_MAX_PATH_SIZE];
-		struct stat targetstat;
+		struct stat targetstat = {0};
 
 		// id
 		token = strtok_r(line, ":", &scratch);
@@ -602,7 +602,7 @@ int32_t scap_proc_fill_loginuid(char* error, struct scap_threadinfo* tinfo, cons
 
 int32_t scap_proc_fill_exe_ino_ctime_mtime(char* error, struct scap_threadinfo* tinfo, const char *procdirname, const char *exetarget)
 {
-	struct stat targetstat;
+	struct stat targetstat = {0};
 
 	// extract ino field from executable path if it exists
 	if(stat(exetarget, &targetstat) == 0)
