@@ -30,9 +30,16 @@ TEST(SyscallExit, ioctlX)
 
 	if(ret_pid == 0)
 	{
-		/* Child terminates immediately. */
-		assert_syscall_state(SYSCALL_FAILURE, "ioctl", syscall(__NR_ioctl, mock_fd, request, argp));
-		exit(EXIT_SUCCESS);
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_ioctl, mock_fd, request, argp) == -1)
+		{
+			/* SUCCESS because we want the call to fail */
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+			exit(EXIT_FAILURE);
+		}
 	}
 
 	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
@@ -40,6 +47,11 @@ TEST(SyscallExit, ioctlX)
 	int status = 0;
 	int options = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The ioctl call is successful while it should fail..." << std::endl;
+	}
 
 	/* This is the errno value we expect from the `ioctl` call. */
 	int64_t errno_value = -EBADF;
