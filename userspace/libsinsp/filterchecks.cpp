@@ -6287,7 +6287,7 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
 	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Approximate container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's ip address in string format as retrieved from the container engine."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's /pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider logging container.ips_cniresult_interfaces for tracking every single ip and interface (ipv4 and ipv6)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ips_cniresult_interfaces", "Container / pod ip addresses for each interface", "The container's / pod's ip addresses for each network interface (except loopback) as retrieved from CRI PodSandboxStatusResponse info.cniResult.Interfaces. Exposed as unparsed escaped JSON string. Only applies for CRI container engine."},
 };
 
@@ -6782,7 +6782,7 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		m_s64val = evt->get_ts() - tinfo->m_pidns_init_start_ts;
 		ASSERT(m_s64val > 0);
 		RETURN_EXTRACT_VAR(m_s64val);
-	case TYPE_CONTAINER_IP_NAME:
+	case TYPE_CONTAINER_IP_ADDR:
 		if(tinfo->m_container_id.empty())
 		{
 			return NULL;
