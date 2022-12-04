@@ -86,6 +86,7 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
 		container.m_container_ip = ntohl(m_cri->get_pod_sandbox_ip(pod_sandbox_id));
+		container.m_cniresult_interfaces = m_cri->get_pod_info_cniresult_interfaces(pod_sandbox_id);
 	}
 
 	return ret;
@@ -169,6 +170,10 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 		if(!container.m_container_ip)
 		{
 			container.m_container_ip = m_cri->get_container_ip(container.m_id);
+		}
+		if(container.m_cniresult_interfaces.empty())
+		{
+			container.m_cniresult_interfaces = m_cri->get_container_cniresult_interfaces(container.m_id);
 		}
 		if(container.m_imageid.empty())
 		{

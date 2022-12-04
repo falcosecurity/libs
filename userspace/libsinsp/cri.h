@@ -144,10 +144,24 @@ public:
 
 	/**
 	 * @brief get pod IP address
-	 * @param pod_sandbox_id container ID of the pod sandbox
+	 * @param pod_sandbox_id ID of the pod sandbox
 	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)
 	 */
 	uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id);
+
+	/**
+	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field
+	 * @param pod_sandbox_id ID of the pod sandbox
+	 * @return unparsed JSON string with cniResult.Interfaces of the pod sandbox
+	 */
+	std::string get_pod_info_cniresult_interfaces(const std::string &pod_sandbox_id);
+
+	/**
+	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field
+	 * @param container_id the container ID
+	 * @return unparsed JSON string with cniResult.Interfaces of the pod sandbox
+	 */
+	std::string get_container_cniresult_interfaces(const std::string &container_id);
 
 	/**
 	 * @brief get container IP address

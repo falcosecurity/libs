@@ -24,6 +24,7 @@ limitations under the License.
 #include "sinsp_int.h"
 
 using namespace std;
+#define MAX_CNIRESULT_INTEFACES_LENGTH 4096
 
 namespace {
 bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp)
@@ -398,6 +399,71 @@ bool cri_interface::is_pod_sandbox(const std::string &container_id)
 	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
 
 	return status.ok();
+}
+
+std::string cri_interface::get_pod_info_cniresult_interfaces(const std::string &pod_sandbox_id)
+{
+	runtime::v1alpha2::PodSandboxStatusRequest req;
+	runtime::v1alpha2::PodSandboxStatusResponse resp;
+	req.set_pod_sandbox_id(pod_sandbox_id);
+	req.set_verbose(true);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
+
+	if(!status.ok())
+	{
+		return "";
+	}
+
+	Json::Value root;
+	Json::Reader reader;
+	const auto &info_it = resp.info();
+	if(reader.parse(info_it.find("info")->second, root))
+	{
+		std::string interfaces = "";
+		Json::Value& jvalue_interfaces = root["cniResult"]["Interfaces"];
+		if(!jvalue_interfaces.isNull())
+		{
+			jvalue_interfaces.removeMember("lo"); // remove loopback network interface
+			Json::FastWriter fastWriter;
+			interfaces = fastWriter.write(jvalue_interfaces);
+			interfaces.erase(std::remove(interfaces.begin(), interfaces.end(), '\n'), interfaces.cend());
+			interfaces.resize(MAX_CNIRESULT_INTEFACES_LENGTH);
+		}
+		return interfaces;
+	}
+	return "";
+}
+
+std::string cri_interface::get_container_cniresult_interfaces(const std::string &container_id)
+{
+	runtime::v1alpha2::ListContainersRequest req;
+	runtime::v1alpha2::ListContainersResponse resp;
+	auto filter = req.mutable_filter();
+	filter->set_id(container_id);
+	grpc::ClientContext context;
+	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
+	context.set_deadline(deadline);
+	grpc::Status lstatus = m_cri->ListContainers(&context, req, &resp);
+
+	switch(resp.containers_size())
+	{
+		case 0:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI", container_id.c_str());
+			ASSERT(false);
+			break;
+		case 1: {
+			const auto& cri_container = resp.containers(0);
+			return get_pod_info_cniresult_interfaces(cri_container.pod_sandbox_id());
+		}
+		default:
+			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI", container_id.c_str());
+			ASSERT(false);
+			break;
+	}
+	return "";
 }
 
 uint32_t cri_interface::get_pod_sandbox_ip(const std::string &pod_sandbox_id)
