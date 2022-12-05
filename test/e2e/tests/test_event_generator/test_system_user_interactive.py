@@ -27,7 +27,7 @@ def test_system_user_interactive(run_containers: dict):
     expected_events = [
         {
             "container.id": generator_id,
-            "evt.args": SinspField.regex_field(r'^res=0 exe=\/bin\/login args=NULL tid=\d+\(login\) pid=\d+\(login\) ptid=\d+\(event-generator\) .* pgid=\d+\(systemd\) loginuid=-1 flags=0 cap_inheritable=0 cap_permitted=0 cap_effective=0 $'),
+            "evt.args": SinspField.regex_field(r'^res=0 exe=\/bin\/login args=NULL tid=\d+\(login\) pid=\d+\(login\) ptid=\d+\(event-generator\) .* pgid=\d+\(systemd\) loginuid=-1 flags=0 cap_inheritable=0 cap_permitted=0 cap_effective=0'),
             "evt.category": "process",
             "evt.num": SinspField.numeric_field(),
             "evt.time": SinspField.numeric_field(),
