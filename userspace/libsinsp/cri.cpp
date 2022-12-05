@@ -115,6 +115,8 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 
 	bool have_digest = false;
 	const auto &image_ref = status.image_ref();
+	std::string image_name = status.image().image();
+	bool get_tag_from_image = false;
 	auto digest_start = image_ref.find("sha256:");
 	switch (digest_start)
 	{
@@ -125,18 +127,38 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 		break;
 	default: // host/image@sha256:digest
 		have_digest = image_ref[digest_start - 1] == '@';
+		if(have_digest)
+		{
+			image_name = image_ref.substr(0, digest_start - 1);
+			get_tag_from_image = true;
+		}
 	}
 
 	string hostname, port, digest;
-	sinsp_utils::split_container_image(status.image().image(),
+	sinsp_utils::split_container_image(image_name,
 					   hostname,
 					   port,
 					   container.m_imagerepo,
 					   container.m_imagetag,
 					   digest,
 					   false);
-	container.m_image = status.image().image();
 
+	if(get_tag_from_image)
+	{
+		string digest2, repo;
+		sinsp_utils::split_container_image(status.image().image(),
+						   hostname,
+						   port,
+						   repo,
+						   container.m_imagetag,
+						   digest2,
+						   false);
+
+		image_name.push_back(':');
+		image_name.append(container.m_imagetag);
+	}
+
+	container.m_image = image_name;
 
 	if(have_digest)
 	{
