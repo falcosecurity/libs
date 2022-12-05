@@ -15,7 +15,9 @@ jobs:
       libscap_changed: ${{ steps.filter.outputs.libscap }}
       libsinsp_changed: ${{ steps.filter.outputs.libsinsp }}
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
     - uses: dorny/paths-filter@v2
       id: filter
       with:
@@ -53,6 +55,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install deps ⛓️
         run: |
@@ -79,6 +82,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install deps ⛓️
         run: |
@@ -102,6 +106,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Build and test 🏗️🧪
         run: |
@@ -117,6 +122,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: uraimo/run-on-arch-action@v2.2.0
         name: Run aarch64 build 🏎️
@@ -142,6 +148,8 @@ jobs:
     steps:
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: uraimo/run-on-arch-action@v2.2.0
         name: Run s390x build 🏗️
@@ -172,6 +180,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install deps ⛓️
         run: |
@@ -210,6 +219,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: uraimo/run-on-arch-action@v2.2.0
         name: Run aarch64 build 🏎️
@@ -241,6 +251,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: uraimo/run-on-arch-action@v2.2.0
         name: Run s390x build 🏗️
@@ -351,6 +362,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
 
       - name: Install deps ⛓️
         run: |
