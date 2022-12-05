@@ -154,6 +154,15 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 		// name stays at its default "<NA>" value.
 	}
 
+	g_logger.format(sinsp_logger::SEV_DEBUG,
+			"cri (%s): after parse_containerd: repo=%s tag=%s image=%s digest=%s",
+			container.m_id.c_str(),
+			container.m_imagerepo.c_str(),
+			container.m_imagetag.c_str(),
+			container.m_image.c_str(),
+			container.m_imagedigest.c_str());
+
+
 	if(s_cri_extra_queries)
 	{
 		if(!container.m_container_ip)
@@ -163,6 +172,14 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 		if(container.m_imageid.empty())
 		{
 			container.m_imageid = m_cri->get_container_image_id(resp_container.image_ref());
+			g_logger.format(sinsp_logger::SEV_DEBUG,
+					"cri (%s): after get_container_image_id: repo=%s tag=%s image=%s digest=%s",
+					container.m_id.c_str(),
+					container.m_imagerepo.c_str(),
+					container.m_imagetag.c_str(),
+					container.m_image.c_str(),
+					container.m_imagedigest.c_str());
+
 		}
 	}
 
