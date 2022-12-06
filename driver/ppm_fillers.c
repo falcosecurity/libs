@@ -5843,56 +5843,49 @@ int f_sys_sendfile_x(struct event_filler_arguments *args)
 
 int f_sys_quotactl_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
-	uint32_t id;
-	uint8_t quota_fmt;
-	uint16_t cmd;
+	unsigned long val = 0;
+	int res = 0;
+	uint32_t id = 0;
+	uint8_t quota_fmt = 0;
+	uint32_t cmd = 0;
+	uint16_t scap_cmd = 0;
 
-	/*
-	 * extract cmd
-	 */
+	/* Parameter 1: cmd (type: PT_FLAGS16) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	cmd = quotactl_cmd_to_scap(val);
-	res = val_to_ring(args, cmd, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	cmd = (uint32_t)val;
+	scap_cmd = quotactl_cmd_to_scap(cmd);
+	res = val_to_ring(args, scap_cmd, 0, false, 0);
+	CHECK_RES(res);
 
-	/*
-	 * extract type
-	 */
-	res = val_to_ring(args, quotactl_type_to_scap(val), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* Parameter 2: type (type: PT_FLAGS8) */
+	res = val_to_ring(args, quotactl_type_to_scap(cmd), 0, false, 0);
+	CHECK_RES(res);
 
-	/*
-	 *  extract id
-	 */
-	id = 0;
+	/* Parameter 3: id (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	if ((cmd == PPM_Q_GETQUOTA) ||
-		 (cmd == PPM_Q_SETQUOTA) ||
-		 (cmd == PPM_Q_XGETQUOTA) ||
-		 (cmd == PPM_Q_XSETQLIM)) {
-		/*
-		 * in this case id represent an userid or groupid so add it
-		 */
-		id = val;
+	id = (u32)val;
+	if ((scap_cmd != PPM_Q_GETQUOTA) &&
+		 (scap_cmd != PPM_Q_SETQUOTA) &&
+		 (scap_cmd != PPM_Q_XGETQUOTA) &&
+		 (scap_cmd != PPM_Q_XSETQLIM))
+	{
+		/* In this case `id` don't represent a `userid` or a `groupid` */
+		res = val_to_ring(args, 0, 0, false, 0);
 	}
-	res = val_to_ring(args, id, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	else
+	{
+		res = val_to_ring(args, id, 0, false, 0);
+	}
+	CHECK_RES(res);
 
-	/*
-	 * extract quota_fmt from id
-	 */
+	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
 	quota_fmt = PPM_QFMT_NOT_USED;
-	if (cmd == PPM_Q_QUOTAON)
-		quota_fmt = quotactl_fmt_to_scap(val);
-
+	if(scap_cmd == PPM_Q_QUOTAON)
+	{
+		quota_fmt = quotactl_fmt_to_scap(id);
+	}
 	res = val_to_ring(args, quota_fmt, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
