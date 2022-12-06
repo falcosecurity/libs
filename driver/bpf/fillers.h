@@ -5241,57 +5241,38 @@ FILLER(sys_signaldeliver_e, false)
 
 FILLER(sys_quotactl_e, true)
 {
-	unsigned long val;
-	int res;
+	/* Parameter 1: cmd (type: PT_FLAGS16) */
+	uint32_t cmd = (uint32_t)bpf_syscall_get_argument(data, 0);
+	u16 scap_cmd = quotactl_cmd_to_scap(cmd);
+	int res = bpf_val_to_ring_type(data, scap_cmd, PT_FLAGS16);
+	CHECK_RES(res);
 
-	u32 id;
-	u8 quota_fmt;
-	u16 cmd;
+	/* Parameter 2: type (type: PT_FLAGS8) */
+	res = bpf_val_to_ring_type(data, quotactl_type_to_scap(cmd), PT_FLAGS8);
+	CHECK_RES(res);
 
-	/*
-	 * extract cmd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	cmd = quotactl_cmd_to_scap(val);
-	res = bpf_val_to_ring_type(data, cmd, PT_FLAGS16);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * extract type
-	 */
-	res = bpf_val_to_ring_type(data, quotactl_type_to_scap(val), PT_FLAGS8);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 *  extract id
-	 */
-	id = 0;
-	val = bpf_syscall_get_argument(data, 2);
-	if (cmd == PPM_Q_GETQUOTA ||
-	    cmd == PPM_Q_SETQUOTA ||
-	    cmd == PPM_Q_XGETQUOTA ||
-	    cmd == PPM_Q_XSETQLIM) {
-		/*
-		 * in this case id represent an userid or groupid so add it
-		 */
-		id = val;
+	/* Parameter 3: id (type: PT_UINT32) */
+	u32 id = (u32)bpf_syscall_get_argument(data, 2);
+	if(scap_cmd != PPM_Q_GETQUOTA &&
+	   scap_cmd != PPM_Q_SETQUOTA &&
+	   scap_cmd != PPM_Q_XGETQUOTA &&
+	   scap_cmd != PPM_Q_XSETQLIM)
+	{
+		/* In this case `id` don't represent a `userid` or a `groupid` */
+		res = bpf_val_to_ring_type(data, 0, PT_UINT32);
 	}
-	res = bpf_val_to_ring_type(data, id, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	else
+	{
+		res = bpf_val_to_ring_type(data, id, PT_UINT32);
+	}
 
-	/*
-	 * extract quota_fmt from id
-	 */
-	quota_fmt = PPM_QFMT_NOT_USED;
-	if (cmd == PPM_Q_QUOTAON)
-		quota_fmt = quotactl_fmt_to_scap(val);
-
-	res = bpf_val_to_ring_type(data, quota_fmt, PT_FLAGS8);
-
-	return res;
+	/* Parameter 4: quota_fmt (type: PT_FLAGS8) */
+	u8 quota_fmt = PPM_QFMT_NOT_USED;
+	if(scap_cmd == PPM_Q_QUOTAON)
+	{
+		quota_fmt = quotactl_fmt_to_scap(id);
+	}
+	return bpf_val_to_ring_type(data, quota_fmt, PT_FLAGS8);
 }
 
 FILLER(sys_quotactl_x, true)
