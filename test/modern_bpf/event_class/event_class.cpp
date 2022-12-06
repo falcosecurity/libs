@@ -167,20 +167,11 @@ event_test::event_test():
 	m_tp_set[SYS_ENTER] = 1;
 	m_tp_set[SYS_EXIT] = 1;
 
-	for(int sys_num = 0; sys_num < SYSCALL_TABLE_SIZE; sys_num++)
+	/* Enable all the syscalls */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		mark_single_64bit_syscall_as_interesting(sys_num);
+		scap_set_ppm_sc(scap_handle, ppm_sc, true);
 	}
-}
-
-void event_test::mark_single_64bit_syscall_as_interesting(int interesting_syscall_id)
-{
-	pman_mark_single_64bit_syscall(interesting_syscall_id, true);
-}
-
-void event_test::mark_all_64bit_syscalls_as_uninteresting()
-{
-	pman_clean_all_64bit_interesting_syscalls();
 }
 
 void event_test::enable_capture()

@@ -3,12 +3,6 @@ include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 # Option to build bpf tests
 option(BUILD_MODERN_BPF_TEST "Build tests for modern BPF" OFF)
 
-# Option to build enhanced bpf tests not used in CI.
-# They should be used only on local machines because they print output and they could be verbose.
-option(BUILD_ENHANCED_MODERN_BPF_TEST "Build enhanced tests for modern BPF" OFF)
-
-option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
-
 # Add to libpman all functions related to the testing phase
 if(BUILD_MODERN_BPF_TEST)
   add_definitions(-DTEST_HELPERS)

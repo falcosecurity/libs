@@ -9,13 +9,6 @@ cmake -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBU
 make bpf_test
 ```
 
-If you want to build also very specific tests regarding internal behaviors like the ring buffer consumption you should add also this cmake option `BUILD_ENHANCED_MODERN_BPF_TEST`:
-
-```bash
-cmake -DBUILD_ENHANCED_MODERN_BPF_TEST=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON ..
-make bpf_test
-```
-
 ## Run test
 
 Here there is a useful reference to GoogleTest doc describing the [advanced run options](https://github.com/google/googletest/blob/main/docs/advanced.md#running-a-subset-of-the-tests).

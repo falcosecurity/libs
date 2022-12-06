@@ -129,19 +129,6 @@ public:
 	~event_test();
 
 	/**
-	 * @brief Mark only the 64-bit syscall with `syscall_id` as interesting.
-	 *
-	 * @param syscall_id id of the syscall.
-	 */
-	void mark_single_64bit_syscall_as_interesting(int syscall_id);
-
-	/**
-	 * @brief Mark all 64-bit syscalls as uninteresting.
-	 *
-	 */
-	void mark_all_64bit_syscalls_as_uninteresting();
-
-	/**
 	 * @brief Tracepoints can start to catch events.
 	 *
 	 */
