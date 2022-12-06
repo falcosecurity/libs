@@ -19,7 +19,6 @@
 
 extern "C"
 {
-#include <libpman.h>
 #include <ppm_events_public.h>
 #include <feature_gates.h>
 }
@@ -61,7 +60,7 @@ enum direction
 /* NOTE: if we change the name of this executable
  * we have to change also this string!
  */
-#define TEST_EXECUTABLE_NAME "bpf_test"
+#define TEST_EXECUTABLE_NAME "drivers_test"
 
 /////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
@@ -146,15 +145,6 @@ public:
 	 *
 	 */
 	void clear_ring_buffers();
-
-	/**
-	 * @brief Return `true` if all ring buffers are full. To state
-	 * that a ring buffer is full we check that the free space is less
-	 * than the `threshold`
-	 *
-	 * @param threshold used to check if a buffer is full
-	 */
-	bool are_all_ringbuffers_full(unsigned long threshold);
 
 	/**
 	 * @brief Return the event with the lowest timestamp in the ring buffer.

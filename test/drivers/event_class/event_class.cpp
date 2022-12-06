@@ -1,4 +1,3 @@
-
 #include "strlcpy.h"
 #include "event_class.h"
 #include <time.h>
@@ -204,11 +203,6 @@ void event_test::clear_ring_buffers()
 	while(scap_next(scap_handle, (scap_evt**)&m_event_header, &cpu_id) != SCAP_TIMEOUT)
 	{
 	}
-}
-
-bool event_test::are_all_ringbuffers_full(unsigned long threshold)
-{
-	return pman_are_all_ringbuffers_full(threshold);
 }
 
 void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)

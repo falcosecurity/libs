@@ -1,13 +1,5 @@
 include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 
-# Option to build bpf tests
-option(BUILD_MODERN_BPF_TEST "Build tests for modern BPF" OFF)
-
-# Add to libpman all functions related to the testing phase
-if(BUILD_MODERN_BPF_TEST)
-  add_definitions(-DTEST_HELPERS)
-endif()
-
 # Include `libbpf` library.
 include(libbpf RESULT_VARIABLE RESULT)
 if(RESULT STREQUAL NOTFOUND)
@@ -27,11 +19,6 @@ message(STATUS "USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleto
 
 # Build `libpman` library.
 add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
-
-# Build modern BPF probe gtest
-if(BUILD_MODERN_BPF_TEST)
-  add_subdirectory(${LIBSCAP_DIR}/test/modern_bpf ${CMAKE_BINARY_DIR}/test/modern_bpf)
-endif()
 
 add_library(scap_engine_modern_bpf
 	scap_modern_bpf.c

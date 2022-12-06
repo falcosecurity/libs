@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <scap.h>
-#include <libpman.h>
 #include <getopt.h>
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
@@ -194,7 +193,7 @@ int open_engine(int argc, char** argv)
 	event_test::scap_handle = scap_open(&oargs, error_buffer, &ret);
 	if(!event_test::scap_handle)
 	{
-		std::cerr << "Unable to open the right engine: " << error_buffer << std::endl;
+		std::cerr << "Unable to open the engine: " << error_buffer << std::endl;
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
