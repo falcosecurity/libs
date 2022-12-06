@@ -94,4 +94,5 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	)
 
 	add_subdirectory(test/e2e)
+	add_subdirectory(test/drivers)
 endif()
