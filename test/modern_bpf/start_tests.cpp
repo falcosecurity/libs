@@ -6,6 +6,8 @@
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
 
+#define UNKNOWN_ENGINE "unknown"
+
 /* We support only these arguments */
 #define KMOD_OPTION "kmod"
 #define BPF_OPTION "bpf"
@@ -88,6 +90,7 @@ int open_engine(int argc, char** argv)
 	struct scap_bpf_engine_params bpf_params = {0};
 	struct scap_kmod_engine_params kmod_params = {0};
 	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
+	oargs.engine_name = UNKNOWN_ENGINE;
 	oargs.mode = SCAP_MODE_LIVE;
 	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 	std::string kmod_path;
@@ -176,11 +179,16 @@ int open_engine(int argc, char** argv)
 			break;
 
 		default:
-			std::cerr << "Unsupported engine!" << std::endl;
-			return EXIT_FAILURE;
+			break;
 		}
 	}
 	std::cout << "* Using buffer dim: " << buffer_bytes_dim << std::endl;
+
+	if(strcmp(oargs.engine_name, UNKNOWN_ENGINE) == 0)
+	{
+		std::cerr << "Unsupported engine! Choose between: m, b, k" << std::endl;
+		return EXIT_FAILURE;
+	}
 
 	char error_buffer[FILENAME_MAX] = {0};
 	event_test::scap_handle = scap_open(&oargs, error_buffer, &ret);
@@ -221,36 +229,34 @@ void print_teardown_test_message()
 
 int main(int argc, char** argv)
 {
+	int res = EXIT_SUCCESS;
+
 	print_setup_phase_message();
 
 	::testing::InitGoogleTest(&argc, argv);
 
 	/* Open the requested engine */
-	int res = open_engine(argc, argv);
-	if(res)
+	if(open_engine(argc, argv))
 	{
 		return EXIT_FAILURE;
 	}
 
 	/* We need to start the capture to calibrate socket with bpf engine */
-	res = scap_start_capture(event_test::scap_handle);
-	if(res != SCAP_SUCCESS)
+	if(scap_start_capture(event_test::scap_handle) != SCAP_SUCCESS)
 	{
 		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
-	/* We need to detach all the tracepoints before starting tests. */
-	res = scap_stop_capture(event_test::scap_handle);
-	if(res != SCAP_SUCCESS)
+	/* We need to detach all tracepoints before starting tests. */
+	if(scap_stop_capture(event_test::scap_handle) != SCAP_SUCCESS)
 	{
 		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
 	/* We need to disable also all the interesting syscalls */
-	res = scap_clear_ppm_sc_mask(event_test::scap_handle);
-	if(res != SCAP_SUCCESS)
+	if(scap_clear_ppm_sc_mask(event_test::scap_handle) != SCAP_SUCCESS)
 	{
 		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
