@@ -176,7 +176,7 @@ public:
 	 *
 	 * @param cpu_id CPU from which we extracted the event.
 	 */
-	struct ppm_evt_hdr* get_event_from_ringbuffer(uint16_t* cpu_id);
+	void get_event_from_ringbuffer(uint16_t* cpu_id);
 
 	/**
 	 * @brief Parse information from the event that we have extracted from the buffer:

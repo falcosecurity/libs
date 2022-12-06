@@ -313,54 +313,10 @@ static void set_consumer_tracepoints(struct ppm_consumer_t *consumer, u32 tp_set
 	{
 		if (tp_set & (1 << i))
 		{
-			switch(i)
-			{
-				case SCHED_PROC_EXIT:
-				set_bit(PPME_PROCEXIT_1_E, consumer->events_mask);
-				break;
-
-				case SCHED_SWITCH:
-				set_bit(PPME_SCHEDSWITCH_6_E, consumer->events_mask);
-				break;
-
-				case PAGE_FAULT_USER:
-				set_bit(PPME_PAGE_FAULT_E, consumer->events_mask);
-				break;
-
-				case PAGE_FAULT_KERN:
-				set_bit(PPME_PAGE_FAULT_E, consumer->events_mask);
-				break;
-
-				case SIGNAL_DELIVER:
-				set_bit(PPME_SIGNALDELIVER_E, consumer->events_mask);
-				break;
-			}
 			consumer->tracepoints_attached |= 1 << i;
 		}
 		else
 		{
-			switch(i)
-			{
-				case SCHED_PROC_EXIT:
-				clear_bit(PPME_PROCEXIT_1_E, consumer->events_mask);
-				break;
-
-				case SCHED_SWITCH:
-				clear_bit(PPME_SCHEDSWITCH_6_E, consumer->events_mask);
-				break;
-
-				case PAGE_FAULT_USER:
-				clear_bit(PPME_PAGE_FAULT_E, consumer->events_mask);
-				break;
-
-				case PAGE_FAULT_KERN:
-				clear_bit(PPME_PAGE_FAULT_E, consumer->events_mask);
-				break;
-
-				case SIGNAL_DELIVER:
-				clear_bit(PPME_SIGNALDELIVER_E, consumer->events_mask);
-				break;
-			}
 			consumer->tracepoints_attached &= ~(1 << i);
 		}
 	}

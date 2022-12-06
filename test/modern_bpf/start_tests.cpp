@@ -232,6 +232,14 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
+	/* We need to start the capture to calibrate socket with bpf engine */
+	res = scap_start_capture(event_test::scap_handle);
+	if(res != SCAP_SUCCESS)
+	{
+		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		goto cleanup_tests;
+	}
+
 	/* We need to detach all the tracepoints before starting tests. */
 	res = scap_stop_capture(event_test::scap_handle);
 	if(res != SCAP_SUCCESS)
@@ -241,7 +249,7 @@ int main(int argc, char** argv)
 	}
 
 	/* We need to disable also all the interesting syscalls */
-	res = scap_clear_eventmask(event_test::scap_handle);
+	res = scap_clear_ppm_sc_mask(event_test::scap_handle);
 	if(res != SCAP_SUCCESS)
 	{
 		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::scap_handle) << std::endl;

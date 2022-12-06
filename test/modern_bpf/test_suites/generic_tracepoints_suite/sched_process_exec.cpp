@@ -39,7 +39,7 @@ TEST(GenericTracepoints, sched_proc_exec)
 	int options = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
 	{
 		FAIL() << "The child execve failed." << std::endl;
 	}
@@ -110,6 +110,6 @@ TEST(GenericTracepoints, sched_proc_exec)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(23);
+	evt_test->assert_num_params_pushed(26);
 }
 #endif

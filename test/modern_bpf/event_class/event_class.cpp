@@ -97,7 +97,7 @@ event_test::~event_test()
 	clear_ring_buffers();
 
 	/* 2 - clean all interesting syscalls. */
-	scap_clear_eventmask(scap_handle);
+	scap_clear_ppm_sc_mask(scap_handle);
 }
 
 /* This constructor must be used with generic tracepoints
@@ -152,7 +152,7 @@ event_test::event_test(int syscall_id, int event_direction):
 	m_current_param = 0;
 
 	/* Set the current as the only interesting syscall. */
-	scap_set_eventmask(scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
+	scap_set_ppm_sc(scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
 }
 
 /* This constructor must be used with syscalls events when you
@@ -220,8 +220,9 @@ bool event_test::are_all_ringbuffers_full(unsigned long threshold)
 	return pman_are_all_ringbuffers_full(threshold);
 }
 
-struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
+void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 {
+	/* Clear acutal event */
 	m_event_header = NULL;
 	uint16_t attempts = 0;
 	int32_t res = 0;
@@ -232,11 +233,15 @@ struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 		res = scap_next(scap_handle, (scap_evt**)&m_event_header, cpu_id);
 		if(res == SCAP_SUCCESS && m_event_header != NULL)
 		{
-			return m_event_header;
+			return;
+		}
+		else if(res != SCAP_TIMEOUT && res != SCAP_SUCCESS)
+		{
+			FAIL() << "Unexpected error value from scap-next: " << res << std::endl;
 		}
 		attempts++;
 	}
-	return m_event_header;
+	return;
 }
 
 void event_test::parse_event()
