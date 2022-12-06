@@ -429,7 +429,7 @@ std::string cri_interface::get_pod_info_cniresult_interfaces(const std::string &
 			jvalue_interfaces.removeMember("lo"); // remove loopback network interface
 			Json::FastWriter fastWriter;
 			interfaces = fastWriter.write(jvalue_interfaces);
-			interfaces.erase(std::remove(interfaces.begin(), interfaces.end(), '\n'), interfaces.cend());
+			interfaces.erase(std::remove(interfaces.begin(), interfaces.end(), '\n'), interfaces.end());
 			interfaces.resize(MAX_CNIRESULT_INTEFACES_LENGTH);
 		}
 		return interfaces;
