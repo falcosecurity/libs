@@ -1928,16 +1928,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	}
 }
 
-void sinsp_thread_manager::reinit_thread_from_proc(sinsp_threadinfo* tinfo)
-{
-	scap_threadinfo* scap_proc = scap_proc_get(m_inspector->m_h, tinfo->m_tid, true);
-	if(scap_proc)
-	{
-		tinfo->init(scap_proc);
-		scap_proc_free(m_inspector->m_h, scap_proc);
-	}
-}
-
 void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 {
     m_max_thread_table_size = std::min(value, m_thread_table_absolute_max_size);
