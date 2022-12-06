@@ -657,8 +657,6 @@ public:
     //
     threadinfo_map_t::ptr_t find_thread(int64_t tid, bool lookup_only);
 
-	void reinit_thread_from_proc(sinsp_threadinfo* tinfo);
-
 	void dump_threads_to_file(scap_dumper_t* dumper);
 
 	uint32_t get_thread_count()
