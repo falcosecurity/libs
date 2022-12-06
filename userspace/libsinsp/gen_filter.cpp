@@ -121,6 +121,7 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 		chk = m_checks[j];
 		ASSERT(chk != NULL);
 
+		HOTPOT_PASS2HAND_INLINE0_NAME_RELAY(chk->hp_timer, "run_filters", "", 5000, chk->hp_label().c_str());
 		if(j == 0)
 		{
 			switch(chk->m_boolop)
@@ -179,8 +180,16 @@ bool gen_event_filter_expression::compare(gen_event *evt)
 	{
 		m_matched_true++;
 	}
+
+	HOTPOT_PASS2HAND_INLINE1_NAME_RELAY("run_filters", "", 6000, "filtercheck done");
 	return res;
 }
+
+const std::string& gen_event_filter_check::hp_label()
+{
+	return m_hp_label;
+}
+
 
 bool gen_event_filter_expression::extract(gen_event *evt, vector<extract_value_t>& values, bool sanitize_strings)
 {

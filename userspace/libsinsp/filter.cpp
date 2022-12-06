@@ -594,6 +594,8 @@ sinsp_filter_check::sinsp_filter_check()
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
+
+	HOTPOT_INIT_HAND_INLINE0(hp_timer, 1);
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
@@ -1166,7 +1168,18 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 		}
 	}
 
+	build_hp_label();
 	return max_fldlen;
+}
+
+void sinsp_filter_check::build_hp_label()
+{
+	static uint32_t checkid;
+	checkid++;
+	if(m_field)
+	{
+		m_hp_label = std::to_string(checkid) + m_field->m_name + std::to_string(m_cmpop) + std::to_string(m_val_storages.size());
+	}
 }
 
 void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_t i)
@@ -1200,6 +1213,8 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	{
 		m_val_storages_paths.add_search_path(item);
 	}
+
+	build_hp_label();
 }
 
 size_t sinsp_filter_check::parse_filter_value(const char* str, uint32_t len, uint8_t *storage, uint32_t storage_len)
