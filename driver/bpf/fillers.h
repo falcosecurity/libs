@@ -3830,26 +3830,14 @@ FILLER(sys_sendfile_x, true)
 
 FILLER(sys_prlimit_e, true)
 {
-	unsigned long val;
-	u8 ppm_resource;
-	int res;
+	/* Parameter 1: pid (type: PT_PID) */
+	pid_t pid = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)pid);
+	CHECK_RES(res);
 
-	/*
-	 * pid
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * resource
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	ppm_resource = rlimit_resource_to_scap(val);
-	res = bpf_val_to_ring(data, ppm_resource);
-
-	return res;
+	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
+	unsigned long resource = bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, rlimit_resource_to_scap(resource));
 }
 
 FILLER(sys_prlimit_x, true)
