@@ -9,10 +9,9 @@ TEST(SyscallExit, accessX)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	const char* _pathname = "testfile";
-	const int32_t _mode = W_OK;
-	access(_pathname, _mode);
-	assert_syscall_state(SYSCALL_FAILURE, "access", syscall(__NR_access, _pathname, _mode));
+	int32_t mode = W_OK;
+	char pathname[] = "//**null-file-path**//";
+	assert_syscall_state(SYSCALL_FAILURE, "access", syscall(__NR_access, pathname, mode));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
