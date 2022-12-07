@@ -24,6 +24,7 @@ limitations under the License.
 #include <unistd.h>
 #else
 #define NOMINMAX
+#define localtime_r(a, b) (localtime_s(b, a) == 0 ? b : NULL)
 #endif
 
 #include <limits>
@@ -1410,10 +1411,19 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 		}
 	}
 	case PT_ABSTIME:
-		//
-		// XXX not implemented yet
-		//
-		ASSERT(false);
+		{
+			ASSERT(payload_len == sizeof(uint64_t));
+			uint64_t val = *(uint64_t *)payload;
+			time_t sec = val / 1000000000ULL;
+			unsigned long nsec = val % 1000000000ULL;
+			struct tm tm;
+			localtime_r(&sec, &tm);
+			strftime(&m_paramstr_storage[0],
+				m_paramstr_storage.size(),
+				"%Y-%m-%d %H:%M:%S.XXXXXXXXX %z", &tm);
+			snprintf(&m_paramstr_storage[20], 9, "%09ld", nsec);
+			break;
+		}
 	case PT_DYN:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
@@ -2198,10 +2208,19 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 			break;
 		}
 	case PT_ABSTIME:
-		//
-		// XXX not implemented yet
-		//
-		ASSERT(false);
+		{
+			ASSERT(payload_len == sizeof(uint64_t));
+			uint64_t val = *(uint64_t *)payload;
+			time_t sec = val / 1000000000ULL;
+			unsigned long nsec = val % 1000000000ULL;
+			struct tm tm;
+			localtime_r(&sec, &tm);
+			strftime(&m_paramstr_storage[0],
+				m_paramstr_storage.size(),
+				"%Y-%m-%d %H:%M:%S.XXXXXXXXX %z", &tm);
+			snprintf(&m_paramstr_storage[20], 9, "%09ld", nsec);
+			break;
+		}
 	case PT_DYN:
 		ASSERT(false);
 		snprintf(&m_paramstr_storage[0],
