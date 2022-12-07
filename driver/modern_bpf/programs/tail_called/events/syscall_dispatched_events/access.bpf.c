@@ -15,23 +15,23 @@ int BPF_PROG(access_e,
 	     struct pt_regs *regs,
 	     long id)
 {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
-		return 0;
-	}
+	struct ringbuf_struct ringbuf;
+        if(!ringbuf__reserve_space(&ringbuf, ACCESS_E_SIZE))
+        {
+                return 0;
+        }
 
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_ACCESS_E);
+        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_ACCESS_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: mode (type: PT_UINT32) */
 	unsigned long mode = (u32)extract__syscall_argument(regs, 1);
-	auxmap__store_u32_param(auxmap, (u32)access_flags_to_scap(mode));
+	ringbuf__store_u32(&ringbuf, (u32)access_flags_to_scap(mode));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	auxmap__submit_event(auxmap);
+	ringbuf__submit_event(&ringbuf);
 
 	return 0;
 }

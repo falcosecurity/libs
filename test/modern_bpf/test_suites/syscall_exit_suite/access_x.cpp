@@ -34,9 +34,6 @@ TEST(SyscallExit, accessX)
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
-	/* Parameter 2: pathname (type: PT_CHARBUF) */
-	evt_test->assert_charbuf_param(2, _pathname);
-
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(2);
