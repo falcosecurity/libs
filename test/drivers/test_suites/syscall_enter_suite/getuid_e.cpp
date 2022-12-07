@@ -9,7 +9,6 @@ TEST(SyscallEnter, getuidE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	uid_t uid = (uint32_t)-1;
 	assert_syscall_state(SYSCALL_SUCCESS, "getuid", syscall(__NR_getuid), NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
