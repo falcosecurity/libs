@@ -12,12 +12,11 @@ set(PMAN_SOURCES
 set(PMAN_PRIVATE_INCLUDES
     "${ZLIB_INCLUDE}"
     "${LIBBPF_INCLUDE}"
+    "${MODERN_BPF_SKEL_DIR}"
     "${LIBELF_INCLUDE}"
-    "${SKEL_DIR}"
     "${LIBSCAP_DIR}/driver/" ## ppm_enum and tables
     "${LIBSCAP_DIR}/userspace/libscap" ## scap-stats struct
     "${LIBSCAP_DIR}/driver/modern_bpf/" ## bpf-shared structs
-    "./include"
 )
 
 set(PMAN_PUBLIC_INCLUDES
@@ -31,9 +30,11 @@ set(PMAN_LINK_LIBRARIES
     scap_event_schema
 )
 
-set(PMAN_DEPENDENCIES
-    ProbeSkeleton
-)
+if(USE_BUNDLED_MODERN_BPF)
+    set(PMAN_DEPENDENCIES
+        ProbeSkeleton
+    )
+endif()
 
 if(USE_BUNDLED_LIBBPF)
     list(APPEND
@@ -45,7 +46,7 @@ endif()
 add_library(pman ${PMAN_SOURCES})
 
 target_include_directories(pman
-    INTERFACE
+    PUBLIC
     ${PMAN_PUBLIC_INCLUDES}
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

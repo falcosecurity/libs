@@ -120,7 +120,7 @@ add_custom_command(
 )
 
 ## Generate the skeleton file
-set(BPF_SKEL_FILE ${SKEL_DIR}/${UNIQUE_BPF_O_FILE_NAME}.skel.h)
+set(BPF_SKEL_FILE ${MODERN_BPF_SKEL_DIR}/${UNIQUE_BPF_O_FILE_NAME}.skel.h)
 add_custom_command(
     OUTPUT ${BPF_SKEL_FILE}
     COMMAND bash -c "${BPFTOOL_EXE} gen skeleton ${UNIQUE_BPF_O_FILE} > ${BPF_SKEL_FILE}"
