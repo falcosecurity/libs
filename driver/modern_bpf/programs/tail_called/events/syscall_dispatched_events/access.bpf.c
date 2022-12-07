@@ -60,8 +60,8 @@ int BPF_PROG(access_x,
         auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: pathname (type: PT_FSPATH) */
-	unsigned long mode = (u32)extract__syscall_argument(regs, 0);
-	auxmap__store_u32_param(auxmap, (u32)access_flags_to_scap(mode));
+	unsigned long path_pointer = extract__syscall_argument(regs, 0);
+	auxmap__store_charbuf_param(auxmap, path_pointer, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
