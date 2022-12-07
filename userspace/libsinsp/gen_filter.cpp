@@ -33,10 +33,12 @@ gen_event::~gen_event()
 
 gen_event_filter_check::gen_event_filter_check()
 {
+	HOTPOT_INIT_HAND_INLINE0(hp_timer, 1);
 }
 
 gen_event_filter_check::~gen_event_filter_check()
 {
+	HOTPOT_FINI_HAND_INLINE0(hp_timer);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -594,8 +594,6 @@ sinsp_filter_check::sinsp_filter_check()
 	m_val_storages = vector<vector<uint8_t>> (1, vector<uint8_t>(256));
 	m_val_storages_min_size = (numeric_limits<uint32_t>::max)();
 	m_val_storages_max_size = (numeric_limits<uint32_t>::min)();
-
-	HOTPOT_INIT_HAND_INLINE0(hp_timer, 1);
 }
 
 void sinsp_filter_check::set_inspector(sinsp* inspector)
