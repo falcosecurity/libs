@@ -4109,29 +4109,20 @@ int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 
 int f_sys_prlimit_e(struct event_filler_arguments *args)
 {
-	u8 ppm_resource;
-	unsigned long val;
-	int res;
+	unsigned long val = 0;
+	int res = 0;
+	pid_t pid = 0;
 
-	/*
-	 * pid
-	 */
+	/* Parameter 1: pid (type: PT_PID) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	pid = (s32)val;
+	res = val_to_ring(args, (s64)pid, 0, false, 0);
+	CHECK_RES(res);
 
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * resource
-	 */
+	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-
-	ppm_resource = rlimit_resource_to_scap(val);
-
-	res = val_to_ring(args, (uint64_t)ppm_resource, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
