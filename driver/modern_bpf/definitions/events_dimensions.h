@@ -102,8 +102,6 @@
 #define SETGID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SETUID_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define SETUID_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define GETUID_E_SIZE HEADER_LEN
-#define GETUID_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define SETNS_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define SETNS_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define SETPGID_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + PARAM_LEN * 2
