@@ -14,7 +14,8 @@ TEST(SyscallEnter, prlimit64E)
 
 	struct rlimit* old_rlimit = NULL;
 	struct rlimit* new_rlimit = NULL;
-	pid_t pid = ::getpid();
+	/* We need to put the pid to `-1` otherwise the syscall won't fail on some machines. */
+	pid_t pid = -1;
 	int resource = RLIMIT_NOFILE;
 	assert_syscall_state(SYSCALL_FAILURE, "prlimit64", syscall(__NR_prlimit64, pid, resource, &new_rlimit, &old_rlimit));
 
