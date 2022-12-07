@@ -22,6 +22,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/futex.h>
 #include <linux/ptrace.h>
 #include <linux/capability.h>
+#include <linux/eventpoll.h>
 #include "ppm.h"
 #ifdef __NR_io_uring_register
 #include <uapi/linux/io_uring.h>
