@@ -1038,6 +1038,23 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	return PPM_SUCCESS;
 }
 
+static __always_inline int bpf_push_empty_param(struct filler_data *data)
+{
+	/* This is not so necessary but just keep it for compliance with other helpers */
+	if (data->state->tail_ctx.curarg >= PPM_MAX_EVENT_PARAMS) {
+		bpf_printk("invalid curarg: %d\n", data->state->tail_ctx.curarg);
+		return PPM_FAILURE_BUG;
+	}
+
+	/* We push 0 in the length array */
+	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, 0);
+	data->curarg_already_on_frame = false;
+
+	/* We increment the current argument */
+	++data->state->tail_ctx.curarg;
+	return PPM_SUCCESS;
+}
+
 static __always_inline int bpf_val_to_ring(struct filler_data *data,
 					   unsigned long val)
 {

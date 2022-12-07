@@ -4227,11 +4227,11 @@ FILLER(sys_recvmsg_x, true)
 		CHECK_RES(res);
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
-		res = bpf_val_to_ring(data, 0);
+		res = bpf_push_empty_param(data);
 		CHECK_RES(res);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		return bpf_val_to_ring(data, 0);
+		return bpf_push_empty_param(data);
 	}
 
 	/*
