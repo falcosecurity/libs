@@ -2837,11 +2837,11 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = push_empty_param(args);
 		CHECK_RES(res);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = push_empty_param(args);
 		CHECK_RES(res);
 
 		return add_sentinel(args);

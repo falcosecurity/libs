@@ -641,6 +641,34 @@ done:
 }
 #endif // UDIG
 
+int push_empty_param(struct event_filler_arguments *args)
+{
+	u16 *psize = (u16 *)(args->buffer + args->curarg * sizeof(u16));
+
+	if (unlikely(args->curarg >= args->nargs))
+	{
+#ifndef UDIG
+		pr_err("(%u)val_to_ring: too many arguments for event #%u, type=%u, curarg=%u, nargs=%u tid:%u\n",
+			smp_processor_id(),
+			args->nevents,
+			(u32)args->event_type,
+			args->curarg,
+			args->nargs,
+			current->pid);
+		memory_dump(args->buffer - sizeof(struct ppm_evt_hdr), 32);
+#endif
+		ASSERT(0);
+		return PPM_FAILURE_BUG;
+	}
+
+	/* We push 0 in the length array */
+	*psize = 0;
+
+	/* We increment the current argument */
+	args->curarg++;
+	return PPM_SUCCESS;
+}
+
 /*
  * NOTES:
  * - val_len is ignored for everything other than PT_BYTEBUF.
