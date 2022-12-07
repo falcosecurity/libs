@@ -9,9 +9,9 @@ TEST(SyscallExit, getresuidX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	uid_t ruid;
-	uid_t euid;
-	uid_t suid;
+	uid_t ruid{0};
+	uid_t euid{0};
+	uid_t suid{0};
 	assert_syscall_state(SYSCALL_SUCCESS, "getresuid", syscall(__NR_getresuid, &ruid, &euid, &suid), NOT_EQUAL, -1);
 	int64_t errno_value = -errno;
 

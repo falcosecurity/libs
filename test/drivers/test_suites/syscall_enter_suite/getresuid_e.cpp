@@ -9,7 +9,10 @@ TEST(SyscallEnter, getresuidE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	assert_syscall_state(SYSCALL_SUCCESS, "getresuid", syscall(__NR_getresuid), NOT_EQUAL, -1);
+	uid_t euid;
+	uid_t ruid;
+	uid_t suid;
+	assert_syscall_state(SYSCALL_SUCCESS, "getresuid", syscall(__NR_getresuid, &euid, &ruid, &suid), NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

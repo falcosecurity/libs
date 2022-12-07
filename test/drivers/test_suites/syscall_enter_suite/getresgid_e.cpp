@@ -9,7 +9,10 @@ TEST(SyscallEnter, getresgidE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	assert_syscall_state(SYSCALL_SUCCESS, "getresgid", syscall(__NR_getresgid), NOT_EQUAL, -1);
+	gid_t rgid{0};
+	gid_t egid{0};
+	gid_t sgid{0};
+	assert_syscall_state(SYSCALL_SUCCESS, "getresgid", syscall(__NR_getresgid, &rgid, &egid, &sgid), NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
