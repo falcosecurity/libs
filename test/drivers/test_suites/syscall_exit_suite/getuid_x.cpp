@@ -9,8 +9,8 @@ TEST(SyscallExit, getuidX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	assert_syscall_state(SYSCALL_SUCCESS, "getuid", syscall(__NR_getuid), NOT_EQUAL, -1);
 	uid_t uid = syscall(__NR_getuid);
+	assert_syscall_state(SYSCALL_SUCCESS, "getuid", uid, NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
