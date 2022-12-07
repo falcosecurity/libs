@@ -9,9 +9,9 @@ TEST(SyscallExit, getresgidX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	gid_t rgid;
-	gid_t egid;
-	gid_t sgid;
+	gid_t rgid{0};
+	gid_t egid{0};
+	gid_t sgid{0};
 	assert_syscall_state(SYSCALL_SUCCESS, "getresgid", syscall(__NR_getresgid, &rgid, &egid, &sgid), NOT_EQUAL, -1);
 	int64_t errno_value = -errno;
 
