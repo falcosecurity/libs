@@ -146,6 +146,22 @@ event_test::event_test(int syscall_id, int event_direction):
 	{
 		m_tp_set[SYS_EXIT] = 1;
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
+		if(is_bpf_engine())
+		{
+			/* The bpf engine retrieves syscall params from sys_enter tracepoints
+			 * in kernel versions < 4.17. Moreover for syscalls that generate a
+			 * child we need a `sched_process_fork` tracepoint to duplicate the
+			 * syscall args for the child exit event!
+			 */
+			m_tp_set[SYS_ENTER] = 1;
+			if(m_event_type == PPME_SYSCALL_CLONE_20_X ||
+			   m_event_type == PPME_SYSCALL_FORK_20_X ||
+			   m_event_type == PPME_SYSCALL_VFORK_20_X ||
+			   m_event_type == PPME_SYSCALL_CLONE3_X)
+			{
+				m_tp_set[SCHED_PROC_FORK] = 1;
+			}
+		}
 	}
 
 	m_current_param = 0;
