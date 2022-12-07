@@ -9,8 +9,8 @@ TEST(SyscallExit, getgidX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	assert_syscall_state(SYSCALL_SUCCESS, "getgid", syscall(__NR_getgid), NOT_EQUAL, -1);
-	uid_t uid = syscall(__NR_getgid);
+	gid_t gid = syscall(__NR_getgid);
+	assert_syscall_state(SYSCALL_SUCCESS, "getgid", gid, NOT_EQUAL, -1);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -30,7 +30,7 @@ TEST(SyscallExit, getgidX)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_UID) */
-	evt_test->assert_numeric_param(1, (uint32_t)uid);
+	evt_test->assert_numeric_param(1, (uint32_t)gid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
