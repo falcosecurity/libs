@@ -178,6 +178,11 @@ TEST(SyscallExit, forkX_child)
 #else
 	evt_test->assert_event_presence(ret_pid);
 
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
 	evt_test->parse_event();
 
 	evt_test->assert_header();
