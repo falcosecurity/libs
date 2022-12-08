@@ -65,6 +65,8 @@ int BPF_PROG(access_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+       auxmap__finalize_event_header(auxmap);
+
 	auxmap__submit_event(auxmap);
 
 	return 0;
