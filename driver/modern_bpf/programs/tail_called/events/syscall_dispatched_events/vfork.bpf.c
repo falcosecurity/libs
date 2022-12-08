@@ -201,7 +201,7 @@ int BPF_PROG(t1_vfork_x,
 
 	/* Parameter 18: gid (type: PT_UINT32) */
 	u32 egid = 0;
-	extract__euid(task, &egid);
+	extract__egid(task, &egid);
 	auxmap__store_u32_param(auxmap, egid);
 
 	/* Parameter 19: vtid (type: PT_PID) */
