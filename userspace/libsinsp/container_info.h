@@ -89,7 +89,7 @@ public:
 			return false;
 		}
 
-		return m_retry < 3;
+		return m_retry < 5;
 	}
 
 	/**
