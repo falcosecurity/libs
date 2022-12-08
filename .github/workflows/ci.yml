@@ -162,8 +162,9 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
             make run-unit-tests
 
+  # This job checks that we correctly run `scap-open` for all the 3 drivers.
   test-scap-open-x86:
-    name: test-scap-open-x86 😇 (bundled_deps)
+    name: test-scap-open-x86 😆 (bundled_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
     if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
@@ -203,9 +204,22 @@ jobs:
           sudo ./libscap/examples/01-open/scap-open --kmod --num_events 0
           sudo rmmod scap
 
+  # This job matrix run tests for all the 3 drivers on 2 machines: ubuntu-22.04, ubuntu 20-04
   test-drivers-x86:
-    name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
-    runs-on: ubuntu-22.04
+    name: test-drivers-x86 😇 (bundled_deps)
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+        include:
+          - os: ubuntu-22.04
+            cmake_opts: -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF
+            packages: clang-14 libtool
+            modern: true
+          - os: ubuntu-20.04
+            cmake_opts: -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF
+            packages: clang
+            modern: false
+    runs-on: ${{ matrix.os }}
     needs: paths-filter
     if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
     steps:
@@ -218,16 +232,18 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev ${{ matrix.packages }}
 
       - name: Build drivers tests 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+          cd build && cmake ${{ matrix.cmake_opts }} ../
           make drivers_test
           make driver bpf
 
+      # We skip the modern test if the kernel is not recent enough
       - name: Run drivers_test with modern bpf 🏎️
+        if: ${{ matrix.modern }}
         run: |
           cd build
           sudo ./test/drivers/drivers_test -m
