@@ -2380,14 +2380,14 @@ FILLER(proc_startupdate, true)
 		/*
 		 * exe
 		 */
-		res = bpf_val_to_ring_type(data, (unsigned long)&empty, PT_CHARBUF);
+		res = bpf_push_empty_param(data);
 		if (res != PPM_SUCCESS)
 			return res;
 
 		/*
 		 * Args
 		 */
-		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
+		res = bpf_push_empty_param(data);
 		if (res != PPM_SUCCESS)
 			return res;
 	}
@@ -2424,7 +2424,7 @@ FILLER(proc_startupdate, true)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+	res = bpf_push_empty_param(data);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4396,7 +4396,7 @@ FILLER(sys_sendmsg_x, true)
 	if(retval < 0)
 	{
 		/* Parameter 2: data (type: PT_BYTEBUF) */
-		return bpf_val_to_ring(data, 0);
+		return bpf_push_empty_param(data);
 	}
 
 	/*
@@ -5308,7 +5308,7 @@ FILLER(sys_quotactl_x, true)
 		if (res != PPM_SUCCESS)
 			return res;
 	} else {
-		res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+		res = bpf_push_empty_param(data);
 		if (res != PPM_SUCCESS)
 			return res;
 	}
@@ -6159,14 +6159,14 @@ FILLER(sched_prog_exec, false)
 	else
 	{
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+		res = bpf_push_empty_param(data);
 		if(res != PPM_SUCCESS)
 		{
 			return res;
 		}
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
+		res = bpf_push_empty_param(data);
 		if(res != PPM_SUCCESS)
 		{
 			return res;
@@ -6202,7 +6202,7 @@ FILLER(sched_prog_exec, false)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+	res = bpf_push_empty_param(data);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
@@ -6568,14 +6568,14 @@ FILLER(sched_prog_fork, false)
 	else
 	{
 		/* Parameter 2: exe (type: PT_CHARBUF) */
-		res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+		res = bpf_push_empty_param(data);
 		if(res != PPM_SUCCESS)
 		{
 			return res;
 		}
 
 		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		res = bpf_val_to_ring_type(data, 0, PT_BYTEBUF);
+		res = bpf_push_empty_param(data);
 		if(res != PPM_SUCCESS)
 		{
 			return res;
@@ -6611,7 +6611,7 @@ FILLER(sched_prog_fork, false)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = bpf_val_to_ring_type(data, 0, PT_CHARBUF);
+	res = bpf_push_empty_param(data);
 	if(res != PPM_SUCCESS)
 	{
 		return res;
