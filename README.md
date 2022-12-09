@@ -145,6 +145,12 @@ make ProbeSkeleton
 
 > __Please note__: these are not the requirements to use the BPF probe but to build it from source!
 
+As you have seen the modern bpf probe has strict requirements to be built that maybe are not easy to satisfy on old machines. The workaround you can use is to build the probe skeleton on a recent machine and than link it during the building phase on an older machine. To do that you have to use the cmake variable `MODERN_BPF_SKEL_DIR`. Supposing you have built the skeleton under the directory `/tmp/skel-dir`, you should use the option in this way:
+
+```bash
+cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_SKEL_DIR="/tmp/skel-dir" -DBUILD_LIBSCAP_GVISOR=OFF .. 
+```
+
 ### gVisor support
 
 Libscap contains additional library functions to allow integration with system call events coming from [gVisor](https://gvisor.dev).
