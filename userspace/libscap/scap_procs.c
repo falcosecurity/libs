@@ -38,7 +38,7 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 //
 // Delete a process entry
 //
-void scap_proc_delete(struct scap_proclist* proclist, scap_threadinfo* proc)
+static void scap_proc_delete(struct scap_proclist* proclist, scap_threadinfo* proc)
 {
 	//
 	// First, free the fd table for this process descriptor
