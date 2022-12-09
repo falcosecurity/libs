@@ -965,7 +965,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = push_empty_param(args);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -1473,7 +1473,7 @@ int f_sys_socket_bind_e(struct event_filler_arguments *args)
 #ifndef UDIG
 	else
 	{
-		val = args->socketcall_args[1];
+		val = args->socketcall_args[0];
 	}
 #endif
 
@@ -2730,7 +2730,7 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	if(retval < 0)
 	{
 		/* Parameter 2: data (type: PT_BYTEBUF) */
-		res = val_to_ring(args, 0, 0, false, 0);
+		res = push_empty_param(args);
 		CHECK_RES(res);
 
 		return add_sentinel(args);
@@ -6851,7 +6851,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = push_empty_param(args);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;
@@ -7221,7 +7221,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
-	res = val_to_ring(args, 0, 0, false, 0);
+	res = push_empty_param(args);
 	if(unlikely(res != PPM_SUCCESS))
 	{
 		return res;

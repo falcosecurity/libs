@@ -108,6 +108,15 @@ TEST(GenericTracepoints, sched_proc_exec)
 		evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 	}
 
+	/* Parameter 24: exe_file ino (type: PT_UINT64) */
+	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
+
+	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(25, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
+	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
+	evt_test->assert_numeric_param(26, (uint64_t)1000000000000000000, GREATER_EQUAL);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(26);
