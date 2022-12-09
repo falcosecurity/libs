@@ -21,17 +21,15 @@ if(RESULT STREQUAL NOTFOUND)
 endif()
 
 if(NOT MODERN_BPF_SKEL_DIR)
-  message(STATUS "USE_BUNDLED_MODERN_BPF: ON")
   # Directory in which the BPF skeleton will be built
   set(MODERN_BPF_SKEL_DIR "${CMAKE_BINARY_DIR}/skel_dir")
   file(MAKE_DIRECTORY ${MODERN_BPF_SKEL_DIR})
   # Build the BPF skeleton as custom target.
   add_subdirectory(${LIBSCAP_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
 else()
-  message(STATUS "USE_BUNDLED_MODERN_BPF: OFF")
   set(USE_BUNDLED_MODERN_BPF OFF)
 endif()
-message(STATUS "using modern BPF skel_dir: ${MODERN_BPF_SKEL_DIR}")
+message(STATUS "USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleton dir: ${MODERN_BPF_SKEL_DIR}")
 
 # Build `libpman` library.
 add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
