@@ -42,7 +42,7 @@ struct iovec {
 //
 // Write data into a dump file
 //
-int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
+static int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 {
 	if(d->m_type == DT_FILE)
 	{
@@ -81,7 +81,7 @@ int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 	}
 }
 
-int scap_dump_writev(scap_dumper_t *d, const struct iovec *iov, int iovcnt)
+static int scap_dump_writev(scap_dumper_t *d, const struct iovec *iov, int iovcnt)
 {
 	unsigned totlen = 0;
 	int i;
@@ -131,7 +131,7 @@ static int32_t scap_write_padding(scap_dumper_t *d, uint32_t blocklen)
 //
 // Calculate the length on disk of an fd entry's info
 //
-uint32_t scap_fd_info_len(scap_fdinfo *fdi)
+static uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 {
 	//
 	// NB: new fields must be appended
@@ -202,7 +202,7 @@ uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 //
 // Write the given fd info to disk
 //
-int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d, uint32_t len)
+static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d, uint32_t len)
 {
 
 	uint8_t type = (uint8_t)fdi->type;
@@ -462,7 +462,7 @@ scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
 //
 // Write the process list block
 //
-int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
+static int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
 {
 	block_header bh;
 
@@ -484,7 +484,7 @@ int32_t scap_write_proclist_header(scap_t *handle, scap_dumper_t *d, uint32_t to
 //
 // Write the process list block
 //
-int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
+static int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
 {
 	block_header bh;
 	uint32_t bt;
@@ -551,7 +551,7 @@ int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *pro
 //
 // Write the process list block
 //
-int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len)
+static int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len)
 {
 	struct iovec args = {tinfo->args, tinfo->args_len};
 	struct iovec env = {tinfo->env, tinfo->env_len};
@@ -1060,7 +1060,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 //
 // Create the dump file headers and add the tables
 //
-int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
+static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
 {
 	block_header bh;
 	section_header_block sh;
