@@ -247,32 +247,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo *tinfo)
 
 
 //
-// remove an fd from a process table
-//
-void scap_fd_remove(scap_t *handle, scap_threadinfo *tinfo, int64_t fd)
-{
-	scap_fdinfo *fdi;
-
-	//
-	// Find the fd descriptor
-	//
-	HASH_FIND_INT64(tinfo->fdlist, &(fd), fdi);
-	if(fdi == NULL)
-	{
-		//
-		// Looks like there's no fd to remove.
-		// Likely, the fd creation event was dropped.
-		//
-		//scap_proc_print_info(handle, tinfo);
-		//      ASSERT(false);
-		return;
-	}
-
-	HASH_DEL(tinfo->fdlist, fdi);
-	free(fdi);
-}
-
-//
 // Add the file descriptor info pointed by fdi to the fd table for process tinfo.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 //

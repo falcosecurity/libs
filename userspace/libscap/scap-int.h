@@ -141,8 +141,6 @@ int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* d
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
-// Remove the given fd from the process table of the process pointed by pi
-void scap_fd_remove(scap_t* handle, scap_threadinfo* pi, int64_t fd);
 // read the file descriptors for a given process directory
 int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
