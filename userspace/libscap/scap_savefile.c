@@ -458,39 +458,6 @@ scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
 {
 	return scap_managedbuf_dump_create(handle);
 }
-int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen)
-{
-	ASSERT(handle != NULL);
-	ASSERT(proclist_dumper != NULL);
-	ASSERT(proclist_dumper->m_type == DT_MANAGED_BUF);
-
-	int res = SCAP_SUCCESS;
-
-	do
-	{
-		scap_dump_flush(proclist_dumper);
-
-		if(scap_write_proclist_header(handle, d, totlen) != SCAP_SUCCESS)
-		{
-			res = SCAP_FAILURE;
-			break;
-		}
-		if(scap_dump_write(d, proclist_dumper->m_targetbuf, totlen) <= 0)
-		{
-			res = SCAP_FAILURE;
-			break;
-		}
-		if(scap_write_proclist_trailer(handle, d, totlen) != SCAP_SUCCESS)
-		{
-			res = SCAP_FAILURE;
-			break;
-		}
-	} while(false);
-
-	scap_dump_close(proclist_dumper);
-
-	return res;
-}
 
 //
 // Write the process list block
@@ -545,6 +512,40 @@ int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t t
 	}
 
 	return SCAP_SUCCESS;
+}
+
+int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen)
+{
+	ASSERT(handle != NULL);
+	ASSERT(proclist_dumper != NULL);
+	ASSERT(proclist_dumper->m_type == DT_MANAGED_BUF);
+
+	int res = SCAP_SUCCESS;
+
+	do
+	{
+		scap_dump_flush(proclist_dumper);
+
+		if(scap_write_proclist_header(handle, d, totlen) != SCAP_SUCCESS)
+		{
+			res = SCAP_FAILURE;
+			break;
+		}
+		if(scap_dump_write(d, proclist_dumper->m_targetbuf, totlen) <= 0)
+		{
+			res = SCAP_FAILURE;
+			break;
+		}
+		if(scap_write_proclist_trailer(handle, d, totlen) != SCAP_SUCCESS)
+		{
+			res = SCAP_FAILURE;
+			break;
+		}
+	} while(false);
+
+	scap_dump_close(proclist_dumper);
+
+	return res;
 }
 
 //
