@@ -297,14 +297,32 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 
 		if(!m_async_source)
 		{
-			uint64_t max_wait_ms = 10000;
+			// Each lookup attempt involves two CRI API calls (see
+			// `cri_async_source::parse`), each one having a default timeout
+			// of 1000ms (`cri::set_cri_timeout`).
+			// On top of that, there's an exponential backoff with 125ms start
+			// time (`sinsp_container_lookup::delay`) with a maximum of 5
+			// retries.
+			// The maximum time to complete all attempts can be then evaluated
+			// with the following formula:
+			//
+			// max_wait_ms = (2 * s_cri_timeout) * n + (125 * (2^n - 1))
+			//
+			// Note that this excludes the time for the last 2 CRI API calls
+			// that will be performed anyway, even if the TTL expires.
+			//
+			// With n=5 the result is 13875ms, we keep some margin as we are
+			// taking into account elapsed time.
+			uint64_t max_wait_ms = 20000;
 			auto async_source = new cri_async_source(cache, m_cri.get(), max_wait_ms);
 			m_async_source = std::unique_ptr<cri_async_source>(async_source);
 		}
 
 		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
 
-		sinsp_container_info result;
+		// sinsp_container_lookup is set-up to perform 5 retries at most, with
+		// an exponential backoff with 2000 ms of maximum wait time.
+		sinsp_container_info result(sinsp_container_lookup(5, 2000));
 
 		bool done;
 		const bool async = s_async && cache->async_allowed();

@@ -17,6 +17,7 @@ limitations under the License.
 
 #pragma once
 
+#include <cassert>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -52,6 +53,16 @@ static inline bool is_docker_compatible(sinsp_container_type t)
 class sinsp_container_lookup
 {
 public:
+	sinsp_container_lookup(short max_retry = 3, short max_delay_ms = 500):
+		m_max_retry(max_retry),
+		m_max_delay_ms(max_delay_ms),
+		m_state(state::SUCCESSFUL),
+		m_retry(0)
+	{
+		assert(max_retry >= 0);
+		assert(max_delay_ms > 0);
+	}
+
 	/**
 	 * \brief the state of a container metadata lookup
 	 *
@@ -89,7 +100,7 @@ public:
 			return false;
 		}
 
-		return m_retry < 5;
+		return m_retry < m_max_retry;
 	}
 
 	/**
@@ -115,12 +126,15 @@ public:
 	 */
 	short delay()
 	{
-		return 125 << (m_retry-1);
+		int curr_delay = 125 << (m_retry-1);
+		return curr_delay > m_max_delay_ms ? m_max_delay_ms : curr_delay;
 	}
 
 private:
+	short m_max_retry;
+	short m_max_delay_ms;
 	state m_state = state::SUCCESSFUL;
-	short m_retry = 0;
+	short m_retry;
 };
 
 class sinsp_container_info
@@ -242,7 +256,7 @@ public:
 		std::vector<std::string> m_health_probe_args;
 	};
 
-	sinsp_container_info():
+	sinsp_container_info(sinsp_container_lookup &&lookup = sinsp_container_lookup()):
 		m_container_ip(0),
 		m_privileged(false),
 		m_memory_limit(0),
@@ -252,6 +266,7 @@ public:
 		m_cpu_period(100000),
 		m_cpuset_cpu_count(0),
 		m_is_pod_sandbox(false),
+		m_lookup(std::move(lookup)),
 		m_container_user("<NA>"),
 		m_metadata_deadline(0),
 		m_size_rw_bytes(-1)
