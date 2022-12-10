@@ -134,10 +134,6 @@ void scap_proc_free_table(struct scap_proclist* proclist);
 void scap_fd_free_table(scap_fdinfo** fds);
 // Free a process' fd table
 void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
-// Calculate the length on disk of an fd entry's info
-uint32_t scap_fd_info_len(scap_fdinfo* fdi);
-// Write the given fd info to disk
-int32_t scap_fd_write_to_disk(scap_t* handle, scap_fdinfo* fdi, scap_dumper_t* dumper, uint32_t len);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
