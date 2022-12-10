@@ -1080,9 +1080,6 @@ int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
 scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
 scap_dumper_t *scap_managedbuf_dump_create(scap_t *handle);
-#ifdef USE_ZLIB
-int32_t compr(uint8_t* dest, uint64_t* destlen, const uint8_t* source, uint64_t sourcelen, int level);
-#endif
 uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
 int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
 scap_dumper_t* scap_write_proclist_begin(scap_t* handle);
