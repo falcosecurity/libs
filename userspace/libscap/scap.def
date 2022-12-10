@@ -39,7 +39,6 @@ EXPORTS
 		scap_clear_ppm_sc_mask
 		scap_set_ppm_sc
 		scap_set_tpmask
-		scap_number_of_bytes_to_write
 		scap_event_get_dump_flags
 		scap_enable_dynamic_snaplen
 		scap_disable_dynamic_snaplen

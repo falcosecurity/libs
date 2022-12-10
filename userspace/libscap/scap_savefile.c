@@ -1372,16 +1372,6 @@ void scap_dump_flush(scap_dumper_t *d)
 }
 
 //
-// Tell me how many bytes we will have written if we did.
-//
-int32_t scap_number_of_bytes_to_write(scap_evt *e, uint16_t cpuid, int32_t *bytes)
-{
-	*bytes = scap_normalize_block_len(sizeof(block_header) + sizeof(cpuid) + e->len + 4);
-
-	return SCAP_SUCCESS;
-}
-
-//
 // Write an event to a dump file
 //
 int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
