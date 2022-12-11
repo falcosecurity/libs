@@ -1133,6 +1133,22 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 	return SCAP_SUCCESS;
 }
 
+static inline int32_t scap_dump_rescan_proc(scap_t *handle)
+{
+	int32_t ret = SCAP_SUCCESS;
+#ifdef __linux__
+	proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
+	handle->m_proclist.m_proc_callback = NULL;
+
+	scap_proc_free_table(&handle->m_proclist);
+	char filename[SCAP_MAX_PATH_SIZE];
+	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
+	ret = scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr);
+	handle->m_proclist.m_proc_callback = tcb;
+#endif
+	return ret;
+}
+
 // fname is only used for log messages in scap_setup_dump
 static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const char *fname, bool skip_proc_scan)
 {
@@ -1148,25 +1164,14 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-#ifdef __linux__
 	if(handle->m_mode != SCAP_MODE_CAPTURE && !skip_proc_scan)
 	{
-		proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
-		handle->m_proclist.m_proc_callback = NULL;
-
-		scap_proc_free_table(&handle->m_proclist);
-		char filename[SCAP_MAX_PATH_SIZE];
-		snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-		if(scap_proc_scan_proc_dir(handle, filename, handle->m_lasterr) != SCAP_SUCCESS)
+		if(scap_dump_rescan_proc(handle) != SCAP_SUCCESS)
 		{
-			handle->m_proclist.m_proc_callback = tcb;
 			free(res);
 			return NULL;
 		}
-
-		handle->m_proclist.m_proc_callback = tcb;
 	}
-#endif
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
