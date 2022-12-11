@@ -547,13 +547,13 @@ int scap_write_proclist_end(scap_dumper_t *d, scap_dumper_t *proclist_dumper, ui
 //
 // Write the process list block
 //
-static int32_t scap_write_proclist_entry(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len)
+static int32_t scap_write_proclist_entry(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len)
 {
 	struct iovec args = {tinfo->args, tinfo->args_len};
 	struct iovec env = {tinfo->env, tinfo->env_len};
 	struct iovec cgroups = {tinfo->cgroups, tinfo->cgroups_len};
 
-	return scap_write_proclist_entry_bufs(handle, d, tinfo, len,
+	return scap_write_proclist_entry_bufs(d, tinfo, len,
 					      tinfo->comm,
 					      tinfo->exe,
 					      tinfo->exepath,
@@ -577,7 +577,7 @@ static uint16_t iov_size(const struct iovec *iov, uint32_t iovcnt)
 	return len;
 }
 
-int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
+int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
 				       const char *comm,
 				       const char *exe,
 				       const char *exepath,
@@ -691,7 +691,7 @@ int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct 
 			scap_dump_write(d, &(tinfo->exe_ino_ctime), sizeof(uint64_t)) != sizeof(uint64_t) ||
 			scap_dump_write(d, &(tinfo->exe_ino_mtime), sizeof(uint64_t)) != sizeof(uint64_t))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (2)");
 		return SCAP_FAILURE;
 	}
 
@@ -732,7 +732,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 		}
 
 		uint32_t len = 0;
-		if(scap_write_proclist_entry(handle, proclist_dumper, tinfo, &len) != SCAP_SUCCESS)
+		if(scap_write_proclist_entry(proclist_dumper, tinfo, &len) != SCAP_SUCCESS)
 		{
 			scap_dump_close(proclist_dumper);
 			return SCAP_FAILURE;

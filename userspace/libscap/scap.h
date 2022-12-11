@@ -994,7 +994,7 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 // Variant of scap_write_proclist_entry where array-backed information
 // about the thread is provided separate from the scap_threadinfo
 // struct.
-int32_t scap_write_proclist_entry_bufs(scap_t *handle, scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
+int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
 				       const char *comm,
 				       const char *exe,
 				       const char *exepath,

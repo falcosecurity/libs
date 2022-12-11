@@ -1667,7 +1667,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		tinfo.env_to_iovec(&envs_iov, &envscnt, envsrem);
 		tinfo.cgroups_to_iovec(&cgroups_iov, &cgroupscnt, cgroupsrem, cg);
 
-		if(scap_write_proclist_entry_bufs(m_inspector->m_h, proclist_dumper, sctinfo, &entrylen,
+		if(scap_write_proclist_entry_bufs(proclist_dumper, sctinfo, &entrylen,
 						  tinfo.m_comm.c_str(),
 						  tinfo.m_exe.c_str(),
 						  tinfo.m_exepath.c_str(),
@@ -1677,8 +1677,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 						  cgroups_iov, cgroupscnt,
 						  tinfo.m_root.c_str()) != SCAP_SUCCESS)
 		{
+			sinsp_exception exc(scap_dump_getlasterr(proclist_dumper));
 			scap_dump_close(proclist_dumper);
-			throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+			throw exc;
 		}
 
 		totlen += entrylen;
