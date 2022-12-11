@@ -587,10 +587,8 @@ static __always_inline void extract__egid(struct task_struct *task, u32 *egid)
 // EXECVE FLAGS EXTRACTION
 ////////////////////////
 
-static __always_inline bool extract__exe_upper_layer(struct task_struct *task)
+static __always_inline bool extract__exe_upper_layer(struct inode *inode)
 {
-	struct inode *inode = BPF_CORE_READ(task, mm, exe_file, f_inode);
-
 	unsigned long sb_magic = BPF_CORE_READ(inode, i_sb, s_magic);
 
 	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
