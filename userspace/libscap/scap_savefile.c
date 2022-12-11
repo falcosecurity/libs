@@ -873,7 +873,7 @@ static int32_t scap_write_iflist(scap_dumper_t* d, scap_addrlist* addrlist)
 //
 // Write the user list block
 //
-static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
+static int32_t scap_write_userlist(scap_dumper_t* d, struct scap_userlist *userlist)
 {
 	block_header bh;
 	uint32_t bt;
@@ -883,15 +883,6 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	uint16_t shelllen;
 	uint8_t type;
 	uint32_t totlen = 0;
-	struct scap_userlist* userlist = handle->m_userlist;
-
-	//
-	// No user list on disk if the source is a plugin
-	//
-	if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		return SCAP_SUCCESS;
-	}
 
 	//
 	// Make sure we have a user list interface list
@@ -907,7 +898,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	uint32_t* lengths = calloc(userlist->nusers + userlist->ngroups, sizeof(uint32_t));
 	if(lengths == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_userlist memory allocation failure (1)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_userlist memory allocation failure (1)");
 		return SCAP_FAILURE;
 	}
 
@@ -950,7 +941,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		free(lengths);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF1)");
 		return SCAP_FAILURE;
 	}
 
@@ -978,7 +969,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		    scap_dump_write(d, info->shell, shelllen) != shelllen)
 		{
 			free(lengths);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U1)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U1)");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1000,7 +991,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 		    scap_dump_write(d, info->name, namelen) != namelen)
 		{
 			free(lengths);
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U2)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (U2)");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1012,7 +1003,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF3)");
 		return SCAP_FAILURE;
 	}
 
@@ -1022,7 +1013,7 @@ static int32_t scap_write_userlist(scap_t *handle, scap_dumper_t* d)
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (IF4)");
 		return SCAP_FAILURE;
 	}
 
@@ -1076,18 +1067,15 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		{
 			return SCAP_FAILURE;
 		}
-	}
 
-	//
-	// Write the user list
-	//
-	if(scap_write_userlist(handle, d) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
-	}
+		//
+		// Write the user list
+		//
+		if(scap_write_userlist(d, handle->m_userlist) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
 
-	if(handle->m_mode != SCAP_MODE_PLUGIN)
-	{
 		//
 		// Write the process list
 		//
