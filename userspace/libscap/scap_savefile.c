@@ -329,7 +329,7 @@ static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d)
+int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo)
 {
 	block_header bh;
 	uint32_t bt;
@@ -341,7 +341,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	uint32_t* lengths = calloc(HASH_COUNT(tinfo->fdlist), sizeof(uint32_t));
 	if(lengths == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proc_fds memory allocation failure");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "scap_write_proc_fds memory allocation failure");
 		return SCAP_FAILURE;
 	}
 
@@ -369,7 +369,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh))
 	{
 		free(lengths);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd1)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd1)");
 		return SCAP_FAILURE;
 	}
 
@@ -379,7 +379,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	if(scap_dump_write(d, &tinfo->tid, sizeof(tinfo->tid)) != sizeof(tinfo->tid))
 	{
 		free(lengths);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd2)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd2)");
 		return SCAP_FAILURE;
 	}
 
@@ -405,7 +405,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd3)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd3)");
 		return SCAP_FAILURE;
 	}
 
@@ -415,7 +415,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd4)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fd4)");
 		return SCAP_FAILURE;
 	}
 
@@ -443,7 +443,7 @@ static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
 	{
 		if(!tinfo->filtered_out)
 		{
-			res = scap_write_proc_fds(handle, tinfo, d);
+			res = scap_write_proc_fds(d, tinfo);
 			if(res != SCAP_SUCCESS)
 			{
 				return res;

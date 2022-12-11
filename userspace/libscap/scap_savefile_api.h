@@ -61,7 +61,7 @@ typedef enum compression_mode
 } compression_mode;
 
 uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
-int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_dumper_t *d);
+int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo);
 scap_dumper_t* scap_write_proclist_begin(scap_t* handle);
 int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen);
 scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);

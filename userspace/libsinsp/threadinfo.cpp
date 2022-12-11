@@ -1747,10 +1747,10 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		//
 		// Dump the thread to disk
 		//
-		if(scap_write_proc_fds(m_inspector->m_h, sctinfo, dumper) != SCAP_SUCCESS)
+		if(scap_write_proc_fds(dumper, sctinfo) != SCAP_SUCCESS)
 		{
 			scap_proc_free(m_inspector->m_h, sctinfo);
-			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + std::string(scap_getlasterr(m_inspector->m_h)) + ")");
+			throw sinsp_exception("error calling scap_proc_add in sinsp_thread_manager::to_scap (" + std::string(scap_dump_getlasterr(dumper)) + ")");
 		}
 
 		scap_proc_free(m_inspector->m_h, sctinfo);
