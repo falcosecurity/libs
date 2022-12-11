@@ -166,8 +166,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_mesos_last_watch_time_ns = 0;
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
 
-	m_filter_proc_table_when_saving = false;
-
 	m_replay_scap_evt = NULL;
 
 	m_plugin_manager = new sinsp_plugin_manager();
@@ -232,11 +230,6 @@ sinsp::~sinsp()
 void sinsp::add_protodecoders()
 {
 	m_parser->add_protodecoder("syslog");
-}
-
-void sinsp::filter_proc_table_when_saving(bool filter)
-{
-	m_filter_proc_table_when_saving = filter;
 }
 
 void sinsp::enable_tracers_capture()
@@ -382,7 +375,7 @@ void sinsp::init()
 		consume_initialstate_events();
 	}
 
-	if(is_capture() || m_filter_proc_table_when_saving == true)
+	if(is_capture())
 	{
 		import_thread_table();
 	}
@@ -463,7 +456,7 @@ void sinsp::open_common(scap_open_args* oargs)
 	/* We need to save the actual mode and the engine used by the inspector. */
 	m_mode = oargs->mode;
 
-	if(!m_filter_proc_table_when_saving)
+	if(oargs->mode != SCAP_MODE_CAPTURE)
 	{
 		oargs->proc_callback = ::on_new_entry_from_proc;
 		oargs->proc_callback_context = this;
@@ -550,8 +543,6 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 {
 	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
 	struct scap_savefile_engine_params params;
-
-	m_filter_proc_table_when_saving = true;
 
 	m_input_filename = filename;
 	m_input_fd = fd; /* default is 0. */
