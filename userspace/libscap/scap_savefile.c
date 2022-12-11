@@ -481,7 +481,7 @@ static int32_t scap_write_proclist_header(scap_dumper_t *d, uint32_t totlen)
 //
 // Write the process list block
 //
-static int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uint32_t totlen)
+static int32_t scap_write_proclist_trailer(scap_dumper_t *d, uint32_t totlen)
 {
 	block_header bh;
 	uint32_t bt;
@@ -494,7 +494,7 @@ static int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uin
 	//
 	if(scap_write_padding(d, totlen) != SCAP_SUCCESS)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (3)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (3)");
 		return SCAP_FAILURE;
 	}
 
@@ -504,7 +504,7 @@ static int32_t scap_write_proclist_trailer(scap_t *handle, scap_dumper_t *d, uin
 	bt = bh.block_total_length;
 	if(scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (4)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (4)");
 		return SCAP_FAILURE;
 	}
 
@@ -533,7 +533,7 @@ int scap_write_proclist_end(scap_t *handle, scap_dumper_t *d, scap_dumper_t *pro
 			res = SCAP_FAILURE;
 			break;
 		}
-		if(scap_write_proclist_trailer(handle, d, totlen) != SCAP_SUCCESS)
+		if(scap_write_proclist_trailer(d, totlen) != SCAP_SUCCESS)
 		{
 			res = SCAP_FAILURE;
 			break;
