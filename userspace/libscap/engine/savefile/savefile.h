@@ -21,6 +21,8 @@ limitations under the License.
 #include "scap_reader.h"
 #include "scap_savefile.h"
 
+#define READER_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
+
 #define CHECK_READ_SIZE_ERR(read_size, expected_size, error) if(read_size != expected_size) \
 	{\
 		snprintf(error,	SCAP_LASTERR_SIZE, "expecting %d bytes, read %d at %s, line %d. Is the file truncated?",\
