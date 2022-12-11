@@ -44,6 +44,7 @@ typedef struct scap_dumper
 	uint8_t* m_targetbuf;
 	uint8_t* m_targetbufcurpos;
 	uint8_t* m_targetbufend;
+	char m_lasterr[SCAP_LASTERR_SIZE];
 } scap_dumper_t;
 
 typedef struct scap scap_t;
@@ -127,10 +128,15 @@ void scap_dump_flush(scap_dumper_t *d);
   \param flags The event flags. 0 means no flags.
 
   \return SCAP_SUCCESS if the call is successful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   On Failure, SCAP_FAILURE is returned and scap_dump_getlasterr() can be used to obtain
    the cause of the error.
 */
 int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
+
+/*!
+  \brief Return a string with the last error that happened on the given dumper.
+*/
+const char* scap_dump_getlasterr(scap_dumper_t* handle);
 
 #ifdef __cplusplus
 }
