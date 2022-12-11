@@ -328,7 +328,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 {
 	block_header bh;
 	uint32_t bt;
-	uint32_t totlen = MEMBER_SIZE(scap_threadinfo, tid);  // This includes the tid
+	uint32_t totlen = sizeof(tinfo->tid);  // This includes the tid
 	uint32_t idx = 0;
 	struct scap_fdinfo *fdi;
 	struct scap_fdinfo *tfdi;

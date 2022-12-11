@@ -86,7 +86,6 @@ struct scap
 //
 // Misc stuff
 //
-#define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
 #define READER_BUF_SIZE (1 << 16) // UINT16_MAX + 1, ie: 65536
 
 //
