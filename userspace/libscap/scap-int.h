@@ -83,13 +83,6 @@ struct scap
 	void(*m_debug_log_fn)(const char* msg);
 };
 
-struct scap_ns_socket_list
-{
-	int64_t net_ns;
-	scap_fdinfo* sockets;
-	UT_hash_handle hh;
-};
-
 //
 // Misc stuff
 //
@@ -118,8 +111,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
-// read the file descriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
 // scan fd information for a specific thread from engine vtable. src_tinfo is a pointer to a threadinfo returned by the engine
 int32_t scap_fd_scan_vtable(scap_t *handle, const scap_threadinfo *src_tinfo, scap_threadinfo *dst_tinfo, char *error);
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
