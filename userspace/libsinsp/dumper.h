@@ -33,25 +33,24 @@ class SINSP_PUBLIC sinsp_dumper
 public:
 	/*!
 	  \brief Constructs the dumper.
-
-	  \param inspector Pointer to the inspector object that will be the source
-	   of the events to save.
 	*/
-	sinsp_dumper(sinsp* inspector);
+	sinsp_dumper();
 
 	/*!
 	  \brief Constructs a dumper that saves to memory instead of disk.
 	  Takes the address and the size of a preallocated memory buffer
 	  where the data will go.
 	*/
-	sinsp_dumper(sinsp* inspector,
-		uint8_t* target_memory_buffer,
+	sinsp_dumper(uint8_t* target_memory_buffer,
 		uint64_t target_memory_buffer_size);
 
 	~sinsp_dumper();
 
 	/*!
 	  \brief Opens the dump file.
+
+	  \param inspector Pointer to the inspector object that will be the source
+	   of the events to save.
 
 	  \param filename The name of the target file.
 
@@ -64,13 +63,15 @@ public:
 	  \note There's no close() because the file is closed when the dumper is
 	   destroyed.
 	*/
-	void open(const std::string& filename,
+	void open(sinsp* inspector,
+		const std::string& filename,
 		bool compress,
 		bool threads_from_sinsp=false);
 
-	void fdopen(int fd,
-		    bool compress,
-		    bool threads_from_sinsp=false);
+	void fdopen(sinsp* inspector,
+		int fd,
+		bool compress,
+		bool threads_from_sinsp=false);
 
 	/*!
 	  \brief Closes the dump file.
