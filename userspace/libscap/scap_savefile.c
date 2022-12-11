@@ -425,21 +425,13 @@ int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo)
 //
 // Write the fd list blocks
 //
-static int32_t scap_write_fdlist(scap_t *handle, scap_dumper_t *d)
+static int32_t scap_write_fdlist(scap_dumper_t *d, struct scap_proclist *proclist)
 {
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;
 	int32_t res;
 
-	//
-	// No fd list on disk if the source is a plugin
-	//
-	if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	HASH_ITER(hh, handle->m_proclist.m_proclist, tinfo, ttinfo)
+	HASH_ITER(hh, proclist->m_proclist, tinfo, ttinfo)
 	{
 		if(!tinfo->filtered_out)
 		{
@@ -1126,8 +1118,9 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 
 	//
 	// Write the fd lists
+	// No fd list on disk if the source is a plugin
 	//
-	if(scap_write_fdlist(handle, d) != SCAP_SUCCESS)
+	if(handle->m_mode != SCAP_MODE_PLUGIN && scap_write_fdlist(d, &handle->m_proclist) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
