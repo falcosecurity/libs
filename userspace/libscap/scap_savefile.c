@@ -739,18 +739,10 @@ static int32_t scap_write_proclist(scap_dumper_t *d, struct scap_proclist *procl
 //
 // Write the machine info block
 //
-static int32_t scap_write_machine_info(scap_t *handle, scap_dumper_t *d)
+static int32_t scap_write_machine_info(scap_dumper_t *d, scap_machine_info *machine_info)
 {
 	block_header bh;
 	uint32_t bt;
-
-	//
-	// No machine info on disk if the source is a plugin
-	//
-	if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		return SCAP_SUCCESS;
-	}
 
 	//
 	// Write the section header
@@ -761,10 +753,10 @@ static int32_t scap_write_machine_info(scap_t *handle, scap_dumper_t *d)
 	bt = bh.block_total_length;
 
 	if(scap_dump_write(d, &bh, sizeof(bh)) != sizeof(bh) ||
-	        scap_dump_write(d, &handle->m_machine_info, sizeof(handle->m_machine_info)) != sizeof(handle->m_machine_info) ||
+	        scap_dump_write(d, machine_info, sizeof(*machine_info)) != sizeof(*machine_info) ||
 	        scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (MI1)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (MI1)");
 		return SCAP_FAILURE;
 	}
 
@@ -1075,12 +1067,15 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		return SCAP_FAILURE;
 	}
 
-	//
-	// Write the machine info
-	//
-	if(scap_write_machine_info(handle, d) != SCAP_SUCCESS)
+	if(handle->m_mode != SCAP_MODE_PLUGIN)
 	{
-		return SCAP_FAILURE;
+		//
+		// Write the machine info
+		//
+		if(scap_write_machine_info(d, &handle->m_machine_info) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
 	}
 
 	//
