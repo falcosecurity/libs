@@ -121,7 +121,6 @@ void scap_dump_flush(scap_dumper_t *d);
 /*!
   \brief Write an event to a trace file
 
-  \param handle Handle to the capture instance.
   \param d The dump handle, returned by \ref scap_dump_open
   \param e pointer to an event returned by \ref scap_next.
   \param cpuid The cpu from which the event was captured. Returned by \ref scap_next.
@@ -131,7 +130,7 @@ void scap_dump_flush(scap_dumper_t *d);
    On Failure, SCAP_FAILURE is returned and scap_dump_getlasterr() can be used to obtain
    the cause of the error.
 */
-int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
+int32_t scap_dump(scap_dumper_t *d, scap_evt* e, uint16_t cpuid, uint32_t flags);
 
 /*!
   \brief Return a string with the last error that happened on the given dumper.
