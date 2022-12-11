@@ -701,20 +701,12 @@ int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo 
 //
 // Write the process list block
 //
-static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
+static int32_t scap_write_proclist(scap_dumper_t *d, struct scap_proclist *proclist)
 {
-	//
-	// No process list on disk if the source is a plugin
-	//
-	if(handle->m_mode == SCAP_MODE_PLUGIN)
-	{
-		return SCAP_SUCCESS;
-	}
-
 	//
 	// Exit immediately if the process list is empty
 	//
-	if(HASH_COUNT(handle->m_proclist.m_proclist) == 0)
+	if(HASH_COUNT(proclist->m_proclist) == 0)
 	{
 		return SCAP_SUCCESS;
 	}
@@ -724,7 +716,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;
 	struct scap_threadinfo *ttinfo;
-	HASH_ITER(hh, handle->m_proclist.m_proclist, tinfo, ttinfo)
+	HASH_ITER(hh, proclist->m_proclist, tinfo, ttinfo)
 	{
 		if(tinfo->filtered_out)
 		{
@@ -1107,21 +1099,23 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		return SCAP_FAILURE;
 	}
 
-	//
-	// Write the process list
-	//
-	if(scap_write_proclist(handle, d) != SCAP_SUCCESS)
+	if(handle->m_mode != SCAP_MODE_PLUGIN)
 	{
-		return SCAP_FAILURE;
-	}
+		//
+		// Write the process list
+		//
+		if(scap_write_proclist(d, &handle->m_proclist) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
 
-	//
-	// Write the fd lists
-	// No fd list on disk if the source is a plugin
-	//
-	if(handle->m_mode != SCAP_MODE_PLUGIN && scap_write_fdlist(d, &handle->m_proclist) != SCAP_SUCCESS)
-	{
-		return SCAP_FAILURE;
+		//
+		// Write the fd lists
+		//
+		if(scap_write_fdlist(d, &handle->m_proclist) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
 	}
 
 	//
