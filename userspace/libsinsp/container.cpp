@@ -397,10 +397,10 @@ void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
-			int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, SCAP_DF_LARGE);
+			int32_t res = scap_dump(dumper, evt.m_pevt, evt.m_cpuid, SCAP_DF_LARGE);
 			if(res != SCAP_SUCCESS)
 			{
-				throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+				throw sinsp_exception(scap_dump_getlasterr(dumper));
 			}
 		}
 	}

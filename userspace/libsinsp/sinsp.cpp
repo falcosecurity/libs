@@ -1433,11 +1433,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		scap_evt* pdevt = (evt->m_poriginal_evt)? evt->m_poriginal_evt : evt->m_pevt;
 
-		res = scap_dump(m_h, m_dumper, pdevt, evt->m_cpuid, dflags);
+		res = scap_dump(m_dumper, pdevt, evt->m_cpuid, dflags);
 
 		if(SCAP_SUCCESS != res)
 		{
-			throw sinsp_exception(scap_getlasterr(m_h));
+			throw sinsp_exception(scap_dump_getlasterr(m_dumper));
 		}
 	}
 

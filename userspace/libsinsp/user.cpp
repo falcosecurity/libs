@@ -161,9 +161,9 @@ void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper) {
 		for (const auto &user: usrlist) {
 			sinsp_evt evt;
 			if (user_to_sinsp_event(&user.second, &evt, container_id, PPME_USER_ADDED_E)) {
-				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
+				int32_t res = scap_dump(dumper, evt.m_pevt, evt.m_cpuid, 0);
 				if (res != SCAP_SUCCESS) {
-					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+					throw sinsp_exception(scap_dump_getlasterr(dumper));
 				}
 			}
 		}
@@ -175,9 +175,9 @@ void sinsp_usergroup_manager::dump_users_groups(scap_dumper_t* dumper) {
 		for (const auto &group: grplist) {
 			sinsp_evt evt;
 			if (group_to_sinsp_event(&group.second, &evt, container_id, PPME_GROUP_ADDED_E)) {
-				int32_t res = scap_dump(m_inspector->m_h, dumper, evt.m_pevt, evt.m_cpuid, 0);
+				int32_t res = scap_dump(dumper, evt.m_pevt, evt.m_cpuid, 0);
 				if (res != SCAP_SUCCESS) {
-					throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+					throw sinsp_exception(scap_dump_getlasterr(dumper));
 				}
 			}
 		}

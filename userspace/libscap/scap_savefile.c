@@ -1370,7 +1370,7 @@ void scap_dump_flush(scap_dumper_t *d)
 //
 // Write an event to a dump file
 //
-int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
+int32_t scap_dump(scap_dumper_t *d, scap_evt *e, uint16_t cpuid, uint32_t flags)
 {
 	block_header bh;
 	uint32_t bt;
@@ -1392,7 +1392,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 				scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
 				scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (6)");
 			return SCAP_FAILURE;
 		}
 	}
@@ -1412,7 +1412,7 @@ int32_t scap_dump(scap_t *handle, scap_dumper_t *d, scap_evt *e, uint16_t cpuid,
 				scap_write_padding(d, sizeof(cpuid) + e->len) != SCAP_SUCCESS ||
 				scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (7)");
 			return SCAP_FAILURE;
 		}
 	}
