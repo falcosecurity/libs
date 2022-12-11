@@ -1691,9 +1691,9 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		return true;
 	});
 
-	if(scap_write_proclist_end(m_inspector->m_h, dumper, proclist_dumper, totlen) != SCAP_SUCCESS)
+	if(scap_write_proclist_end(dumper, proclist_dumper, totlen) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception(scap_getlasterr(m_inspector->m_h));
+		throw sinsp_exception(scap_dump_getlasterr(dumper));
 	}
 
 	//
