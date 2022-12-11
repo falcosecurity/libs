@@ -1641,7 +1641,11 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 		return;
 	}
 
-	scap_dumper_t *proclist_dumper = scap_write_proclist_begin(m_inspector->m_h);
+	scap_dumper_t *proclist_dumper = scap_write_proclist_begin();
+	if(proclist_dumper == nullptr)
+	{
+			throw sinsp_exception("Failed to create proclist dumper");
+	}
 
 	uint32_t totlen = 0;
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {

@@ -451,9 +451,9 @@ static int32_t scap_write_fdlist(scap_dumper_t *d, struct scap_proclist *proclis
 // time window and write everything at once with a secondary dumper.
 // By doing so, the likelihood of having a wrong total length is lower.
 //
-scap_dumper_t *scap_write_proclist_begin(scap_t *handle)
+scap_dumper_t *scap_write_proclist_begin()
 {
-	return scap_managedbuf_dump_create(handle);
+	return scap_managedbuf_dump_create();
 }
 
 //
@@ -720,7 +720,7 @@ static int32_t scap_write_proclist(scap_t *handle, scap_dumper_t *d)
 		return SCAP_SUCCESS;
 	}
 
-	scap_dumper_t *proclist_dumper = scap_write_proclist_begin(handle);
+	scap_dumper_t *proclist_dumper = scap_write_proclist_begin();
 
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;
@@ -1328,12 +1328,11 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 //
 // Create a dumper with an internally managed buffer
 //
-scap_dumper_t *scap_managedbuf_dump_create(scap_t *handle)
+scap_dumper_t *scap_managedbuf_dump_create()
 {
 	scap_dumper_t *res = (scap_dumper_t *)malloc(sizeof(scap_dumper_t));
 	if(res == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_managedbuf_dump_create memory allocation failure (1)");
 		return NULL;
 	}
 
