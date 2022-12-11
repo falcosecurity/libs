@@ -1046,7 +1046,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 	        scap_dump_write(d, &sh, sizeof(sh)) != sizeof(sh) ||
 	        scap_dump_write(d, &bt, sizeof(bt)) != sizeof(bt))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file %s  (5)", fname);
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file %s  (5)", fname);
 		return SCAP_FAILURE;
 	}
 
@@ -1127,6 +1127,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 
 	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
 	{
+		strcpy(handle->m_lasterr, res->m_lasterr);
 		free(res);
 		res = NULL;
 	}
@@ -1286,6 +1287,7 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 
 	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
 	{
+		strcpy(handle->m_lasterr, res->m_lasterr);
 		free(res);
 		res = NULL;
 	}
