@@ -1725,10 +1725,9 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 	struct signal_struct *sig;
 	struct tty_struct *tty;
 	struct tty_driver *driver;
-	int major;
-	int minor_start;
-	int index;
-	int tty_nr = 0;
+	int major = 0;
+	int minor_start = 0;
+	int index = 0;
 
 	sig = _READ(task->signal);
 	if (!sig)
@@ -1738,18 +1737,15 @@ static __always_inline int bpf_ppm_get_tty(struct task_struct *task)
 	if (!tty)
 		return 0;
 
-	index = _READ(tty->index);
-
 	driver = _READ(tty->driver);
 	if (!driver)
 		return 0;
 
+	index = _READ(tty->index);
 	major = _READ(driver->major);
 	minor_start = _READ(driver->minor_start);
 
-	tty_nr = new_encode_dev(MKDEV(major, minor_start) + index);
-
-	return tty_nr;
+	return new_encode_dev(MKDEV(major, minor_start) + index);
 }
 
 static __always_inline struct pid *bpf_task_pid(struct task_struct *task)
