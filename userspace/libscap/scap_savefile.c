@@ -207,7 +207,7 @@ static uint32_t scap_fd_info_len(scap_fdinfo *fdi)
 //
 // Write the given fd info to disk
 //
-static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dumper_t *d, uint32_t len)
+static int32_t scap_fd_write_to_disk(scap_dumper_t *d, scap_fdinfo *fdi, uint32_t len)
 {
 
 	uint8_t type = (uint8_t)fdi->type;
@@ -217,7 +217,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 	        scap_dump_write(d, &(fdi->ino), sizeof(uint64_t)) != sizeof(uint64_t) ||
 	        scap_dump_write(d, &(type), sizeof(uint8_t)) != sizeof(uint8_t))
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 		return SCAP_FAILURE;
 	}
 
@@ -230,7 +230,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		        scap_dump_write(d, &(fdi->info.ipv4info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_dump_write(d, &(fdi->info.ipv4info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi2)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi2)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -239,7 +239,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		        scap_dump_write(d, &(fdi->info.ipv4serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_dump_write(d, &(fdi->info.ipv4serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi3)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -250,7 +250,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		        scap_dump_write(d, &(fdi->info.ipv6info.dport), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_dump_write(d, &(fdi->info.ipv6info.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi7)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi7)");
 		}
 		break;
 	case SCAP_FD_IPV6_SERVSOCK:
@@ -258,40 +258,40 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		        scap_dump_write(d, &(fdi->info.ipv6serverinfo.port), sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        scap_dump_write(d, &(fdi->info.ipv6serverinfo.l4proto), sizeof(uint8_t)) != sizeof(uint8_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi8)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi8)");
 		}
 		break;
 	case SCAP_FD_UNIX_SOCK:
 		if(scap_dump_write(d, &(fdi->info.unix_socket_info.source), sizeof(uint64_t)) != sizeof(uint64_t) ||
 		        scap_dump_write(d, &(fdi->info.unix_socket_info.destination), sizeof(uint64_t)) != sizeof(uint64_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi4)");
 			return SCAP_FAILURE;
 		}
 		stlen = (uint16_t)strnlen(fdi->info.unix_socket_info.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && scap_dump_write(d, fdi->info.unix_socket_info.fname, stlen) != stlen))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi5)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi5)");
 			return SCAP_FAILURE;
 		}
 		break;
 	case SCAP_FD_FILE_V2:
 		if(scap_dump_write(d, &(fdi->info.regularinfo.open_flags), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 			return SCAP_FAILURE;
 		}
 		stlen = (uint16_t)strnlen(fdi->info.regularinfo.fname, SCAP_MAX_PATH_SIZE);
 		if(scap_dump_write(d, &stlen, sizeof(uint16_t)) != sizeof(uint16_t) ||
 			(stlen > 0 && scap_dump_write(d, fdi->info.regularinfo.fname, stlen) != stlen))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi1)");
 			return SCAP_FAILURE;
 		}
 		if(scap_dump_write(d, &(fdi->info.regularinfo.dev), sizeof(uint32_t)) != sizeof(uint32_t))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (dev)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (dev)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -312,7 +312,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		if(scap_dump_write(d, &stlen,  sizeof(uint16_t)) != sizeof(uint16_t) ||
 		        (stlen > 0 && scap_dump_write(d, fdi->info.fname, stlen) != stlen))
 		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi6)");
+			snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "error writing to file (fi6)");
 			return SCAP_FAILURE;
 		}
 		break;
@@ -321,7 +321,7 @@ static int32_t scap_fd_write_to_disk(scap_t *handle, scap_fdinfo *fdi, scap_dump
 		ASSERT(false);
 		break;
 	default:
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Unknown fdi type %d", fdi->type);
+		snprintf(d->m_lasterr, SCAP_LASTERR_SIZE, "Unknown fdi type %d", fdi->type);
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
@@ -390,7 +390,7 @@ int32_t scap_write_proc_fds(scap_t *handle, struct scap_threadinfo *tinfo, scap_
 	{
 		if(fdi->type != SCAP_FD_UNINITIALIZED && fdi->type != SCAP_FD_UNKNOWN)
 		{
-			if(scap_fd_write_to_disk(handle, fdi, d, lengths[idx++]) != SCAP_SUCCESS)
+			if(scap_fd_write_to_disk(d, fdi, lengths[idx++]) != SCAP_SUCCESS)
 			{
 				free(lengths);
 				return SCAP_FAILURE;
