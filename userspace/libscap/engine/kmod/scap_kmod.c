@@ -876,6 +876,7 @@ uint64_t scap_kmod_get_schema_version(struct scap_engine_handle engine)
 const struct scap_linux_vtable scap_kmod_linux_vtable = {
 	.get_vpid = scap_kmod_get_vpid,
 	.get_vtid = scap_kmod_get_vtid,
+	.getpid_global = scap_kmod_getpid_global,
 };
 
 struct scap_vtable scap_kmod_engine = {
@@ -896,7 +897,6 @@ struct scap_vtable scap_kmod_engine = {
 	.get_n_devs = scap_kmod_get_n_devs,
 	.get_max_buf_used = scap_kmod_get_max_buf_used,
 	.get_threadlist = scap_kmod_get_threadlist,
-	.getpid_global = scap_kmod_getpid_global,
 	.get_api_version = scap_kmod_get_api_version,
 	.get_schema_version = scap_kmod_get_schema_version,
 };

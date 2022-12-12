@@ -106,6 +106,8 @@ static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 	.get_proc = NULL,
 	.refresh_proc_table = scap_gvisor_refresh_proc_table,
 	.is_thread_alive = scap_gvisor_is_thread_alive,
+	.get_global_pid = NULL,
+
 	.close_platform = scap_gvisor_close_platform,
 	.free_platform = scap_gvisor_free_platform,
 };
@@ -196,13 +198,6 @@ static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct pp
 	return SCAP_SUCCESS;
 }
 
-static int32_t gvisor_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
-{
-	// there is no current PID in gvisor since we run outside a sandbox
-	*pid = 1000;
-	return SCAP_SUCCESS;
-}
-
 #ifdef __cplusplus
 }
 #endif
@@ -225,7 +220,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
 	.get_threadlist = gvisor_get_threadlist,
-	.getpid_global = gvisor_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

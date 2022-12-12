@@ -23,18 +23,6 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
-{
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->getpid_global(handle->m_engine, pid, handle->m_lasterr);
-	}
-
-	ASSERT(false);
-	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (capture not enabled)");
-	return SCAP_FAILURE;
-}
-
 //
 // Delete a process entry
 //

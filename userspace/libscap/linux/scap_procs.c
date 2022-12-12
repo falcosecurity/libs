@@ -1273,8 +1273,15 @@ static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_p
 	return res;
 }
 
-int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
+int32_t scap_linux_getpid_global(struct scap_platform* platform, int64_t *pid, char* error)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	if(linux_platform->m_linux_vtable && linux_platform->m_linux_vtable->getpid_global)
+	{
+		return linux_platform->m_linux_vtable->getpid_global(linux_platform->m_engine, pid, error);
+	}
+
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[512];
 
