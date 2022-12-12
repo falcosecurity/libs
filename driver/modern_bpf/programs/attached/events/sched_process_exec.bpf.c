@@ -175,9 +175,10 @@ int BPF_PROG(t1_sched_p_exec,
 	auxmap__store_s32_param(auxmap, (s32)loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	/// TODO: still to implement! See what we do in the old probe.
+	/// TODO: we still have to manage `exe_writable` flag.
 	u32 flags = 0;
-	if(extract__exe_upper_layer(task))
+	struct inode *exe_inode = extract__exe_inode_from_task(task);
+	if(extract__exe_upper_layer(exe_inode))
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
 	}
@@ -194,8 +195,6 @@ int BPF_PROG(t1_sched_p_exec,
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	u64 cap_effective = extract__capability(task, CAP_EFFECTIVE);
 	auxmap__store_u64_param(auxmap, cap_effective);
-
-	struct inode *exe_inode = extract__exe_inode_from_task(task);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	u64 ino = 0;
