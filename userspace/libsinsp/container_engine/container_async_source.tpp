@@ -34,24 +34,24 @@ container_async_source<key_type>::container_async_source(uint64_t max_wait_ms, u
 
 template<typename key_type>
 bool container_async_source<key_type>::lookup(const key_type& key,
+					      sinsp_container_info& value)
+{
+    return parent_type::lookup(
+        key,
+        value,
+        std::bind(
+            &container_async_source::source_callback,
+            this,
+            std::placeholders::_1,
+            std::placeholders::_2));
+}
+
+template<typename key_type>
+bool container_async_source<key_type>::lookup(const key_type& key,
 					      sinsp_container_info& value,
 					      const callback_handler& handler)
 {
-	if(handler)
-	{
-		return parent_type::lookup(key, value, handler);
-	}
-	else
-	{
-		return parent_type::lookup(
-			key,
-			value,
-			std::bind(
-				&container_async_source::source_callback,
-				this,
-				std::placeholders::_1,
-				std::placeholders::_2));
-	}
+	return parent_type::lookup(key, value, handler);
 }
 
 template<typename key_type>

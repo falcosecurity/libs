@@ -43,10 +43,12 @@ public:
 	container_async_source(uint64_t max_wait_ms, uint64_t ttl_ms, container_cache_interface* cache);
 	virtual ~container_async_source() {}
 
-	/// convenience method with default callback
+	// convenience method with default callback
+	bool lookup(const key_type& key, sinsp_container_info& value);
+
 	bool lookup(const key_type& key,
 		    sinsp_container_info& value,
-		    const callback_handler& handler = callback_handler());
+		    const callback_handler& handler);
 
 	bool lookup_sync(const key_type& key, sinsp_container_info& value);
 

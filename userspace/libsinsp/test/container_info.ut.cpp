@@ -41,11 +41,12 @@ TEST(sinsp_container_lookup_test, default_values)
 	ASSERT_EQ(500, lookup.delay());
 }
 
-TEST(sinsp_container_lookup_test, custom)
+TEST_P(sinsp_container_lookup_test, delays_match)
 {
-	short max_retry = 5;
-	short max_delay_ms = 1000;
-	std::vector<short> expected_delays{125, 250, 500, 1000, 1000};
+	short max_retry;
+	short max_delay_ms;
+	std::vector<short> expected_delays;
+	std::tie(max_retry, max_delay_ms, expected_delays) = GetParam();
 	auto lookup = sinsp_container_lookup(max_retry, max_delay_ms);
 	lookup.set_status(sinsp_container_lookup::state::STARTED);
 	for(size_t i = 0; i < expected_delays.size(); i++)
@@ -56,3 +57,10 @@ TEST(sinsp_container_lookup_test, custom)
 		ASSERT_EQ(expected_delays[i], lookup.delay());
 	}
 }
+
+INSTANTIATE_TEST_CASE_P(sinsp_container_lookup,
+			 sinsp_container_lookup_test,
+			 ::testing::Values(
+				 std::tuple<short, short, std::vector<short>>{3, 500, {125, 250, 500}},
+				 std::tuple<short, short, std::vector<short>>{5, 1000, {125, 250, 500, 1000, 1000}},
+				 std::tuple<short, short, std::vector<short>>{2, 1, {1, 1}}));
