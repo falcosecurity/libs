@@ -482,6 +482,10 @@ static __always_inline u32 exctract__tty(struct task_struct *task)
 	int minor_start = 0;
 	int index = 0;
 
+	/* Direct access of fields w/ READ_TASK_FIELD_INTO or READ_TASK_FIELD can
+	cause issues for tty extraction. Adopt approach of incremental lookups and
+	checks similar to driver-bpf */
+
 	BPF_CORE_READ_INTO(&signal, task, signal);
 	if (!signal)
 	{
