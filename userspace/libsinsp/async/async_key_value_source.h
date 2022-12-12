@@ -83,8 +83,14 @@ public:
 	 * A callback handler will take a key and a output reference to the
 	 * value.
 	 */
-        typedef std::function<void(const key_type& key,
-			           const value_type& value)> callback_handler;
+	typedef std::function<void(const key_type& key,
+				   const value_type& value)>
+		callback_handler;
+
+	/**
+	 * A ttl expired handler will take the expired key as argument.
+	 */
+	typedef std::function<void(const key_type& key)> ttl_expired_handler;
 
 	/**
 	 * Initialize this new async_key_value_source, which will block
@@ -131,6 +137,25 @@ public:
 	 *                      will contain the collected value.  The value
 	 *                      of this parameter is defined only if this method
 	 *                      returns true.
+	 *
+	 * @returns true if this method was able to lookup and return the
+	 *          value synchronously; false otherwise.
+	 */
+	bool lookup(const key_type& key, value_type& value);
+
+	/**
+	 * Lookup value(s) based on the given key.  This method will block
+	 * the caller for up the max_wait_ms time specified at construction
+	 * for the desired value(s) to be available.
+	 *
+	 * @param[in] key       The key to the value for which the client
+	 *                      wishes to query.
+	 * @param[out] value    If this method is able to fetch the desired
+	 *                      value within the max_wait_ms specified at
+	 *                      construction time, then this output parameter
+	 *                      will contain the collected value.  The value
+	 *                      of this parameter is defined only if this method
+	 *                      returns true.
 	 * @param[in] handler   If this method is unable to collect the requested
 	 *                      value(s) before the timeout, and if this parameter
 	 *                      is a valid, non-empty, function, then this class
@@ -146,9 +171,49 @@ public:
 	 * @returns true if this method was able to lookup and return the
 	 *          value synchronously; false otherwise.
 	 */
-	bool lookup(const key_type& key,
-		    value_type& value,
-		    const callback_handler& handler = callback_handler());
+	bool lookup(const key_type& key, value_type& value,
+		    const callback_handler& handler);
+
+	/**
+	 * Lookup value(s) based on the given key.  This method will block
+	 * the caller for up the max_wait_ms time specified at construction
+	 * for the desired value(s) to be available.
+	 *
+	 * @param[in] key           The key to the value for which the client
+	 *                          wishes to query.
+	 * @param[out] value        If this method is able to fetch the desired
+	 *                          value within the max_wait_ms specified at
+	 *                          construction time, then this output parameter
+	 *                          will contain the collected value.  The value
+	 *                          of this parameter is defined only if this method
+	 *                          returns true.
+	 * @param[in] handler       If this method is unable to collect the
+	 *                          requested value(s) before the timeout, and if
+	 *                          this parameter is a valid, non-empty, function,
+	 *                          then this class will invoke the given handler
+	 *                          from the async thread immediately after the
+	 *                          collected values are available.
+	 *                          If this handler is empty, then this
+	 *                          async_key_value_source will store the values
+	 *                          until either the next call to lookup() or until
+	 *                          its ttl expires, whichever comes first.
+	 *                          The handler is responsible for any thread-safety
+	 *                          guarantees.
+	 *
+	 * @param[in] ttl_expired   If the ttl for a given key expires, and this
+	 *                          parameter is a valid, non-empty, function, then
+	 *                          this class will invoke the given handler from
+	 *                          the async thread right before the value is
+	 *                          removed from the internal data structures.
+	 *                          The handler is responsible for any
+	 *                          thread-safety guarantees.
+	 *
+	 * @returns true if this method was able to lookup and return the
+	 *          value synchronously; false otherwise.
+	 */
+	bool lookup(const key_type& key, value_type& value,
+		    const callback_handler& handler,
+		    const ttl_expired_handler& ttl_expired);
 
 	/**
 	 * Lookup a value based on the specified key, after an initial delay.
@@ -158,9 +223,10 @@ public:
 	 * @see lookup() for details
 	 */
 	bool lookup_delayed(const key_type& key,
-                    value_type& value,
-                    std::chrono::milliseconds delay,
-                    const callback_handler& handler = callback_handler());
+			    value_type& value,
+			    std::chrono::milliseconds delay,
+			    const callback_handler& handler = callback_handler(),
+			    const ttl_expired_handler& ttl_expired = ttl_expired_handler());
 
 	/**
 	 * Determines if the async thread associated with this
@@ -214,7 +280,6 @@ public:
 	std::unordered_map<key_type, value_type> get_complete_results();
 
 protected:
-
 	/**
 	 * Dequeues an entry from the request queue and returns it in the given
 	 * key.  Concrete subclasses will call this method to get the next key
@@ -316,6 +381,13 @@ private:
 		 * response notification.
 		 */
 		callback_handler m_callback;
+
+		/**
+		 * A optional client-specified callback handler for async
+		 * response notification.
+		 */
+		ttl_expired_handler m_ttl_callback;
+
 
 		/** The time at which this request was made. */
 		std::chrono::time_point<std::chrono::steady_clock> m_start_time;
