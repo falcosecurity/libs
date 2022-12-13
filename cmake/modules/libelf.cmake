@@ -5,6 +5,9 @@ option(USE_BUNDLED_LIBELF "Enable building of the bundled libelf" ${USE_BUNDLED_
 
 if(LIBELF_INCLUDE)
     # we already have LIBELF
+    # We add a custom target, in this way we can always depend on `libelf`
+    # without distinguishing between "bundled" and "not-bundled" case
+    add_custom_target(libelf)
 elseif(NOT USE_BUNDLED_LIBELF)
     find_path(LIBELF_INCLUDE elf.h PATH_SUFFIXES elf)
     find_library(LIBELF_LIB NAMES libelf.a libelf.so)
@@ -13,6 +16,9 @@ elseif(NOT USE_BUNDLED_LIBELF)
     else()
         message(FATAL_ERROR "Couldn't find system libelf")
     endif()
+    # We add a custom target, in this way we can always depend on `libelf`
+    # without distinguishing between "bundled" and "not-bundled" case
+    add_custom_target(libelf)
 else()
     set(LIBELF_SRC "${PROJECT_BINARY_DIR}/libelf-prefix/src")
     set(LIBELF_INCLUDE "${LIBELF_SRC}/libelf/libelf")
