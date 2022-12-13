@@ -39,6 +39,7 @@ or GPL2.txt for full copies of the license.
 #define PPM_MAX_EVENT_PARAMS (1 << 5)	/* Max number of parameters an event can have */
 #define PPM_MAX_PATH_SIZE 256	/* Max size that an event parameter can have in the circular buffer, in bytes */
 #define PPM_MAX_NAME_LEN 32
+#define PPM_MAX_DEPENDENCY_SC_LEN 40
 
 /*
  * Socket families
@@ -1911,7 +1912,8 @@ struct syscall_evt_pair {
 	enum ppm_event_type enter_event_type;
 	enum ppm_event_type exit_event_type;
 	enum ppm_syscall_code ppm_sc;
-
+	int state_dependency_ppm_sc_array[PPM_MAX_DEPENDENCY_SC_LEN]; /**< PPM events current ppm event depends on for sinsp state engine build-up and life-cyle management
+	. */
 } _packed;
 
 #define SYSCALL_TABLE_SIZE 512

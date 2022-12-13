@@ -99,6 +99,7 @@ extern "C"
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
 		interesting_tp_set tp_of_interest; ///< tp of interest. If left empty, no tracepoints will be attached
 		void* engine_params;			   ///< engine-specific params.
+		bool optimized_syscalls;
 	} scap_open_args;
 
 #ifdef __cplusplus

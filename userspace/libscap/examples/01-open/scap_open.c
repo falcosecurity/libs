@@ -35,6 +35,7 @@ limitations under the License.
 /* CONFIGURATIONS */
 #define TP_OPTION "--tp"
 #define PPM_SC_OPTION "--ppm_sc"
+#define PPM_SC_OPTIMIZED_OPTION "--optimized_syscalls"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
@@ -288,6 +289,46 @@ void print_supported_tracepoints()
 	{
 		printf("- %-25s tp_code: (%d)\n", tp_names[j], j);
 	}
+}
+
+void enable_optimized_syscalls_and_print()
+{
+	printf("---------------------- OPTIMIZED SYSCALLS (FINAL SET) ----------------------\n\n");
+	printf("Includes \"interesting\" syscalls plus syscall dependencies needed for sinsp state engine build-up and life-cyle management.\n\n");
+	int ppm_sc_array[PPM_SC_MAX];
+
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		if(g_syscall_table[syscall_nr].ppm_sc == PPM_SC_UNKNOWN)
+		{
+			continue;
+		}
+
+		int ppm_sc_code = g_syscall_table[syscall_nr].ppm_sc;
+		if(oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code])
+		{
+			if (ppm_sc_array[ppm_sc_code] != 1)
+			{
+				ppm_sc_array[ppm_sc_code] = 1;
+				printf("- %-25s ppm_code: (%d)\n", g_syscall_info_table[ppm_sc_code].name, ppm_sc_code);
+			}
+
+			for (int i_ppm_sc_dependency = 0; g_syscall_table[syscall_nr].state_dependency_ppm_sc_array[i_ppm_sc_dependency] != -1 ; i_ppm_sc_dependency++)
+			{
+				int ppm_sc_code_dependency = g_syscall_table[syscall_nr].state_dependency_ppm_sc_array[i_ppm_sc_dependency];
+				if (ppm_sc_array[ppm_sc_code_dependency] != 1)
+				{
+					ppm_sc_array[ppm_sc_code_dependency] = 1;
+					printf("- %-25s ppm_code: (%d)\n", g_syscall_info_table[ppm_sc_code_dependency].name, ppm_sc_code_dependency);
+					if (!oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code_dependency])
+					{
+						oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code_dependency] = true;
+					}
+				}
+			}
+		}
+	}
+	printf("----------------------------------------------------------------------------\n\n");
 }
 
 /// TODO: we need to move this validation outside this example
@@ -709,6 +750,7 @@ void print_help()
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
+	printf("'%s : enable optimized syscall selection (interesting syscalls from inputs via %s flags plus syscall dependencies needed for sinsp state engine build-up and life-cyle management).\n", PPM_SC_OPTIMIZED_OPTION, PPM_SC_OPTION);
 	printf("\n------> VALIDATION OPTIONS\n");
 	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
@@ -866,6 +908,15 @@ void parse_CLI_options(int argc, char** argv)
 			}
 			enable_single_ppm_sc(atoi(argv[++i]));
 		}
+		if(!strcmp(argv[i], PPM_SC_OPTIMIZED_OPTION))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nOption %s can only be used with option %s! Bye!\n", PPM_SC_OPTIMIZED_OPTION, PPM_SC_OPTION);
+				exit(EXIT_FAILURE);
+			}
+			oargs.optimized_syscalls = true;
+		}
 		if(!strcmp(argv[i], NUM_EVENTS_OPTION))
 		{
 			if(!(i + 1 < argc))
@@ -1003,6 +1054,11 @@ int main(int argc, char** argv)
 	enable_syscalls_and_print();
 
 	enable_tracepoints_and_print();
+
+	if (oargs.optimized_syscalls)
+	{
+		enable_optimized_syscalls_and_print();
+	}
 
 	g_h = scap_open(&oargs, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)
