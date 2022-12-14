@@ -26,8 +26,8 @@ else()
 		ExternalProject_Add(protobuf
 			PREFIX "${PROJECT_BINARY_DIR}/protobuf-prefix"
 			DEPENDS zlib
-			URL "https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz"
-			URL_HASH "SHA256=51cec99f108b83422b7af1170afd7aeb2dd77d2bcbb7b6bad1f92509e9ccf8cb"
+			URL "https://github.com/protocolbuffers/protobuf/releases/download/v21.12/protobuf-cpp-3.21.12.tar.gz"
+			URL_HASH "SHA256=4eab9b524aa5913c6fffb20b2a8abf5ef7f95a80bc0701f3a6dbb4c607f73460"
 			# TODO what if using system zlib?
 			CONFIGURE_COMMAND CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib --disable-shared --enable-static --prefix=${PROTOBUF_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
