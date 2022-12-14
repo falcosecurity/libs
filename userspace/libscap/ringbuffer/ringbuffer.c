@@ -19,6 +19,7 @@ limitations under the License.
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
+#include <unistd.h>
 #include <scap.h>
 #include "../../../driver/ppm_ringbuffer.h"
 
@@ -43,7 +44,7 @@ int32_t check_buffer_bytes_dim(char* last_err, unsigned long buf_bytes_dim)
 	 * data due to double-mapped data pages.
 	 */
 
-	unsigned long page_size = scap_get_system_page_size();
+	unsigned long page_size = sysconf(_SC_PAGESIZE);
 	if(page_size == SCAP_FAILURE)
 	{
 		if(last_err != NULL)

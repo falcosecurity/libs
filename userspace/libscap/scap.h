@@ -699,11 +699,6 @@ int scap_native_id_to_ppm_sc(int native_id);
 int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX]);
 
 /*!
-  \brief Get the system page size.
-*/
-unsigned long scap_get_system_page_size();
-
-/*!
   \brief This function can be used to temporarily interrupt event capture.
 
   \param handle Handle to the capture that will be stopped.
