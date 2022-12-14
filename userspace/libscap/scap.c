@@ -150,7 +150,7 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 		return NULL;
 	}
 
-	*rc = check_api_compatibility(handle, handle->m_lasterr);
+	*rc = check_api_compatibility(handle->m_vtable, handle->m_engine, handle->m_lasterr);
 	if(*rc != SCAP_SUCCESS)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
@@ -1440,46 +1440,24 @@ int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 	return SCAP_FAILURE;
 }
 
-bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,
-							uint32_t required_major, uint32_t required_minor, uint32_t required_patch)
-{
-	if(current_major != required_major)
-	{
-		return false;
-	}
-
-	if(current_minor < required_minor)
-	{
-		return false;
-	}
-	if(current_minor == required_minor && current_patch < required_patch)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version)
-{
-	unsigned long driver_major = PPM_API_VERSION_MAJOR(driver_api_version);
-	unsigned long driver_minor = PPM_API_VERSION_MINOR(driver_api_version);
-	unsigned long driver_patch = PPM_API_VERSION_PATCH(driver_api_version);
-	unsigned long required_major = PPM_API_VERSION_MAJOR(required_api_version);
-	unsigned long required_minor = PPM_API_VERSION_MINOR(required_api_version);
-	unsigned long required_patch = PPM_API_VERSION_PATCH(required_api_version);
-
-	return scap_apply_semver_check(driver_major, driver_minor, driver_patch, required_major, required_minor, required_patch);
-}
-
 uint64_t scap_get_driver_api_version(scap_t* handle)
 {
-	return handle->m_api_version;
+	if(handle->m_vtable && handle->m_vtable->get_api_version)
+	{
+		return handle->m_vtable->get_api_version(handle->m_engine);
+	}
+
+	return 0;
 }
 
 uint64_t scap_get_driver_schema_version(scap_t* handle)
 {
-	return handle->m_schema_version;
+	if(handle->m_vtable && handle->m_vtable->get_schema_version)
+	{
+		return handle->m_vtable->get_schema_version(handle->m_engine);
+	}
+
+	return 0;
 }
 
 int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)

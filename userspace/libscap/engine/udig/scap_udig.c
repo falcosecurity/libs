@@ -609,4 +609,6 @@ const struct scap_vtable scap_udig_engine = {
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
 	.getpid_global = noop_getpid_global,
+	.get_api_version = NULL,
+	.get_schema_version = NULL,
 };
