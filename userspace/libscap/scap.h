@@ -612,13 +612,6 @@ uint64_t scap_event_get_ts(scap_evt* e);
 uint64_t scap_event_get_num(scap_t* handle);
 
 /*!
-  \brief Reset the event count to 0.
-
-  \param handle Handle to the capture instance.
-*/
-void scap_event_reset_count(scap_t* handle);
-
-/*!
   \brief Return the meta-information describing the given event
 
   \param e pointer to an event returned by \ref scap_next.

@@ -48,11 +48,6 @@ uint64_t scap_event_get_num(scap_t* handle)
 	return handle->m_evtcnt;
 }
 
-void scap_event_reset_count(scap_t* handle)
-{
-	handle->m_evtcnt = 0;
-}
-
 uint64_t scap_event_get_ts(scap_evt* e)
 {
 	return e->ts;

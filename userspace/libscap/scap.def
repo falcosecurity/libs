@@ -17,7 +17,6 @@ EXPORTS
 		scap_dump_flush
 		scap_dump_ftell
 		scap_dump
-		scap_event_reset_count
 		scap_event_get_num
 		scap_get_proc_table
 		scap_event_getinfo
