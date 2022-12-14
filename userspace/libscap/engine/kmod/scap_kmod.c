@@ -299,7 +299,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			return scap_errprintf(handle->m_lasterr, err, "Kernel module does not support PPM_IOCTL_GET_API_VERSION");
 		}
 		// Make sure all devices report the same API version
-		if (handle->m_api_version != 0 && handle->m_api_version != api_version)
+		if (engine.m_handle->m_api_version != 0 && engine.m_handle->m_api_version != api_version)
 		{
 			int err = errno;
 			close(dev->m_fd);
@@ -308,14 +308,14 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 				 PPM_API_VERSION_MAJOR(api_version),
 				 PPM_API_VERSION_MINOR(api_version),
 				 PPM_API_VERSION_PATCH(api_version),
-				 PPM_API_VERSION_MAJOR(handle->m_api_version),
-				 PPM_API_VERSION_MINOR(handle->m_api_version),
-				 PPM_API_VERSION_PATCH(handle->m_api_version)
+				 PPM_API_VERSION_MAJOR(engine.m_handle->m_api_version),
+				 PPM_API_VERSION_MINOR(engine.m_handle->m_api_version),
+				 PPM_API_VERSION_PATCH(engine.m_handle->m_api_version)
 			);
 		}
 		// Set the API version from the first device
 		// (for subsequent devices it's a no-op thanks to the check above)
-		handle->m_api_version = api_version;
+		engine.m_handle->m_api_version = api_version;
 
 		// Check the schema version reported
 		if (ioctl(dev->m_fd, PPM_IOCTL_GET_SCHEMA_VERSION, &schema_version) < 0)
@@ -325,21 +325,21 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 			return scap_errprintf(handle->m_lasterr, err, "Kernel module does not support PPM_IOCTL_GET_SCHEMA_VERSION");
 		}
 		// Make sure all devices report the same schema version
-		if (handle->m_schema_version != 0 && handle->m_schema_version != schema_version)
+		if (engine.m_handle->m_schema_version != 0 && engine.m_handle->m_schema_version != schema_version)
 		{
 			return scap_errprintf(handle->m_lasterr, 0, "Schema version mismatch: device %s reports schema version %llu.%llu.%llu, expected %llu.%llu.%llu",
 				 filename,
 				 PPM_API_VERSION_MAJOR(schema_version),
 				 PPM_API_VERSION_MINOR(schema_version),
 				 PPM_API_VERSION_PATCH(schema_version),
-				 PPM_API_VERSION_MAJOR(handle->m_schema_version),
-				 PPM_API_VERSION_MINOR(handle->m_schema_version),
-				 PPM_API_VERSION_PATCH(handle->m_schema_version)
+				 PPM_API_VERSION_MAJOR(engine.m_handle->m_schema_version),
+				 PPM_API_VERSION_MINOR(engine.m_handle->m_schema_version),
+				 PPM_API_VERSION_PATCH(engine.m_handle->m_schema_version)
 			);
 		}
 		// Set the schema version from the first device
 		// (for subsequent devices it's a no-op thanks to the check above)
-		handle->m_schema_version = schema_version;
+		engine.m_handle->m_schema_version = schema_version;
 
 		//
 		// Map the ring buffer
@@ -805,6 +805,16 @@ int32_t scap_kmod_getpid_global(struct scap_engine_handle engine, int64_t* pid, 
 	return SCAP_SUCCESS;
 }
 
+uint64_t scap_kmod_get_api_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_api_version;
+}
+
+uint64_t scap_kmod_get_schema_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_schema_version;
+}
+
 struct scap_vtable scap_kmod_engine = {
 	.name = KMOD_ENGINE,
 	.mode = SCAP_MODE_LIVE,
@@ -827,4 +837,6 @@ struct scap_vtable scap_kmod_engine = {
 	.get_vpid = scap_kmod_get_vpid,
 	.get_vtid = scap_kmod_get_vtid,
 	.getpid_global = scap_kmod_getpid_global,
+	.get_api_version = scap_kmod_get_api_version,
+	.get_schema_version = scap_kmod_get_schema_version,
 };

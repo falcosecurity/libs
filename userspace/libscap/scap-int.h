@@ -60,16 +60,6 @@ struct scap
 	uint32_t m_fd_lookup_limit;
 	uint8_t m_cgroup_version;
 
-	// API version supported by the driver
-	// If the API version is unavailable for whatever reason,
-	// it's equivalent to version 0.0.0
-	uint64_t m_api_version;
-
-	// schema version supported by the driver
-	// If the schema version is unavailable for whatever reason,
-	// it's equivalent to version 0.0.0
-	uint64_t m_schema_version;
-
 	// /proc scan parameters
 	uint64_t m_proc_scan_timeout_ms;
 	uint64_t m_proc_scan_log_interval_ms;

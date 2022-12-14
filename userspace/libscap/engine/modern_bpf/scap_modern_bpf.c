@@ -270,8 +270,8 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	}
 	pman_set_boot_time(boot_time);
 
-	handle->m_api_version = pman_get_probe_api_ver();
-	handle->m_schema_version = pman_get_probe_schema_ver();
+	engine.m_handle->m_api_version = pman_get_probe_api_ver();
+	engine.m_handle->m_schema_version = pman_get_probe_schema_ver();
 
 	return SCAP_SUCCESS;
 }
@@ -305,6 +305,16 @@ int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, 
 	return SCAP_SUCCESS;
 }
 
+uint64_t scap_modern_bpf__get_api_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_api_version;
+}
+
+uint64_t scap_modern_bpf__get_schema_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_schema_version;
+}
+
 struct scap_vtable scap_modern_bpf_engine = {
 	.name = MODERN_BPF_ENGINE,
 	.mode = SCAP_MODE_LIVE,
@@ -327,4 +337,6 @@ struct scap_vtable scap_modern_bpf_engine = {
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
 	.getpid_global = scap_os_getpid_global,
+	.get_api_version = scap_modern_bpf__get_api_version,
+	.get_schema_version = scap_modern_bpf__get_schema_version,
 };

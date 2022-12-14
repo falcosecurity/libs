@@ -55,4 +55,6 @@ struct bpf_engine
 	GElf_Ehdr ehdr;
 
 	interesting_tp_set open_tp_set;
+	uint64_t m_api_version;
+	uint64_t m_schema_version;
 };

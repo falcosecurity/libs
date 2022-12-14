@@ -174,4 +174,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_vpid = gvisor_get_vxid,
 	.get_vtid = gvisor_get_vxid,
 	.getpid_global = gvisor_getpid_global,
+	.get_api_version = NULL,
+	.get_schema_version = NULL,
 };

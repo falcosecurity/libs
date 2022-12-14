@@ -17,4 +17,26 @@ limitations under the License.
 
 #pragma once
 
-int32_t check_api_compatibility(scap_t *handle, char *error);
+#include <stdbool.h>
+#include <stdint.h>
+
+#ifndef SCAP_HANDLE_T
+#define SCAP_HANDLE_T void
+#endif
+
+#include "engine_handle.h"
+
+struct scap_vtable;
+
+/**
+ * Is `driver_api_version` compatible with `required_api_version`?
+ */
+bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version);
+
+/**
+ * Apply the `semver` checks on current and required versions.
+ */  
+bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,
+							uint32_t required_major, uint32_t required_minor, uint32_t required_patch);
+
+int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error);

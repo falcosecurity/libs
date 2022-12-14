@@ -324,6 +324,20 @@ struct scap_vtable {
 	 * @return SCAP_SUCCESS or a failure code
 	 */
 	int32_t (*getpid_global)(struct scap_engine_handle engine, int64_t* pid, char* error);
+
+	/**
+	 * @brief get the API version
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return the API version
+	 */
+	uint64_t (*get_api_version)(struct scap_engine_handle engine);
+
+	/**
+	 * @brief get the schema version
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return the schema version
+	 */
+	uint64_t (*get_schema_version)(struct scap_engine_handle engine);
 };
 
 #ifdef __cplusplus

@@ -650,10 +650,7 @@ static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname
 	return tp_of_interest->tp[val];
 }
 
-static int32_t load_bpf_file(
-	struct bpf_engine *handle,
-	uint64_t *api_version_p,
-	uint64_t *schema_version_p)
+static int32_t load_bpf_file(struct bpf_engine *handle)
 {
 	int j;
 	int maps_shndx = 0;
@@ -731,12 +728,12 @@ static int32_t load_bpf_file(
 			else if(strcmp(shname, "api_version") == 0)
 			{
 				got_api_version = true;
-				memcpy(api_version_p, data->d_buf, sizeof(*api_version_p));
+				memcpy(&handle->m_api_version, data->d_buf, sizeof(handle->m_api_version));
 			}
 			else if(strcmp(shname, "schema_version") == 0)
 			{
 				got_schema_version = true;
-				memcpy(schema_version_p, data->d_buf, sizeof(*schema_version_p));
+				memcpy(&handle->m_schema_version, data->d_buf, sizeof(handle->m_schema_version));
 			}
 			else if(strcmp(shname, "license") == 0)
 			{
@@ -1396,8 +1393,6 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 int32_t scap_bpf_load(
 	struct bpf_engine *handle,
 	const char *bpf_probe,
-	uint64_t *api_version_p,
-	uint64_t *schema_version_p,
 	scap_open_args *oargs)
 {
 	int online_cpu;
@@ -1419,7 +1414,7 @@ int32_t scap_bpf_load(
 
 	snprintf(handle->m_filepath, PATH_MAX, "%s", bpf_probe);
 
-	if(load_bpf_file(handle, api_version_p, schema_version_p) != SCAP_SUCCESS)
+	if(load_bpf_file(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1791,13 +1786,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 		return rc;
 	}
 
-	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, &handle->m_api_version, &handle->m_schema_version, oargs);
-	if(rc != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	rc = check_api_compatibility(handle, handle->m_lasterr);
+	rc = scap_bpf_load(engine.m_handle, bpf_probe_buf, oargs);
 	if(rc != SCAP_SUCCESS)
 	{
 		return rc;
@@ -1826,6 +1815,15 @@ static uint64_t get_max_buf_used(struct scap_engine_handle engine)
 	return max;
 }
 
+uint64_t scap_bpf_get_api_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_api_version;
+}
+
+uint64_t scap_bpf_get_schema_version(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_schema_version;
+}
 
 const struct scap_vtable scap_bpf_engine = {
 	.name = BPF_ENGINE,
@@ -1849,4 +1847,6 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_vpid = noop_get_vxid,
 	.get_vtid = noop_get_vxid,
 	.getpid_global = scap_os_getpid_global,
+	.get_api_version = scap_bpf_get_api_version,
+	.get_schema_version = scap_bpf_get_schema_version,
 };
