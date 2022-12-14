@@ -82,8 +82,6 @@ struct scap
 // Internal library functions
 //
 
-// Read the full event buffer for the given processor
-int32_t scap_readbuf(scap_t* handle, uint32_t proc, OUT char** buf, OUT uint32_t* len);
 // Read a single thread info from /proc
 int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets);
 // Scan a directory containing process information
