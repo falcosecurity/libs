@@ -20,6 +20,10 @@ limitations under the License.
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "uthash.h"
 
 typedef struct scap_tid
@@ -64,3 +68,7 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 			       bool *suppressed);
 
 void scap_suppress_close(struct scap_suppress* suppress);
+
+#ifdef __cplusplus
+};
+#endif
