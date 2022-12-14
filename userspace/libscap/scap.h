@@ -54,8 +54,6 @@ extern "C" {
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
 
-struct iovec;
-
 //
 // Core types
 //
@@ -926,18 +924,6 @@ void scap_fseek(scap_t *handle, uint64_t off);
 int32_t scap_enable_tracers_capture(scap_t* handle);
 int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo);
 int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo);
-// Variant of scap_write_proclist_entry where array-backed information
-// about the thread is provided separate from the scap_threadinfo
-// struct.
-int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
-				       const char *comm,
-				       const char *exe,
-				       const char *exepath,
-				       const struct iovec *args, int argscnt,
-				       const struct iovec *envs, int envscnt,
-				       const char *cwd,
-				       const struct iovec *cgroups, int cgroupscnt,
-				       const char *root);
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret);
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end);
