@@ -50,6 +50,7 @@ typedef struct scap_dumper
 typedef struct scap scap_t;
 struct scap_threadinfo;
 typedef struct ppm_evt_hdr scap_evt;
+struct iovec;
 
 /*!
   \brief Indicates the compression type used when writing a tracefile
@@ -66,6 +67,19 @@ scap_dumper_t* scap_write_proclist_begin();
 int scap_write_proclist_end(scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen);
 scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
 scap_dumper_t *scap_managedbuf_dump_create();
+
+// Variant of scap_write_proclist_entry where array-backed information
+// about the thread is provided separate from the scap_threadinfo
+// struct.
+int32_t scap_write_proclist_entry_bufs(scap_dumper_t *d, struct scap_threadinfo *tinfo, uint32_t *len,
+				       const char *comm,
+				       const char *exe,
+				       const char *exepath,
+				       const struct iovec *args, int argscnt,
+				       const struct iovec *envs, int envscnt,
+				       const char *cwd,
+				       const struct iovec *cgroups, int cgroupscnt,
+				       const char *root);
 
 /*!
   \brief Open a trace file for writing
