@@ -1,5 +1,7 @@
 include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 
+option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
+
 # Include `libbpf` library.
 include(libbpf RESULT_VARIABLE RESULT)
 if(RESULT STREQUAL NOTFOUND)
