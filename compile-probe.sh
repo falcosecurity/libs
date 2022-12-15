@@ -48,6 +48,16 @@ for version in $(ls /lib/modules); do
   compilerKernelModulesFun
   echo "$version"
 
+  fileDir="./bpf/probe.c"
+  if [ ${array[0]} -eq 5 ] && [ ${array[1]} -ge 14 ]; then
+    sed -i 's/_READ(p->state) == TASK_RUNNING/_READ(p->__state) == TASK_RUNNING/g' $fileDir
+  elif [ ${array[0]} -eq 6 ]; then
+      sed -i 's/_READ(p->state) == TASK_RUNNING/_READ(p->__state) == TASK_RUNNING/g' $fileDir
+  else
+    sed -i 's/_READ(p->__state) == TASK_RUNNING/_READ(p->state) == TASK_RUNNING/g' $fileDir
+  fi
+
+
   if [ ${array[0]} -ge 5 ]; then
     compilerBpfFun
   fi
