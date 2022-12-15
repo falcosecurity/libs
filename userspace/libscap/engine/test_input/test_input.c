@@ -25,7 +25,6 @@ struct test_input_engine
 {
 	char* m_lasterr;
 	struct scap_test_input_data *m_data;
-	size_t m_event_index;
 };
 
 typedef struct test_input_engine test_input_engine;
@@ -56,13 +55,13 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 	test_input_engine *engine = handle.m_handle;
 	scap_test_input_data *data = engine->m_data;
 
-	if (engine->m_event_index >= data->event_count)
+	if (!data->events || data->event_count == 0)
 	{
 		return SCAP_EOF;
 	}
-	
-	*pevent = data->events[engine->m_event_index];
-	engine->m_event_index++;
+
+	*pevent = *(data->events++);
+	data->event_count--;
 
 	return SCAP_SUCCESS;
 }
