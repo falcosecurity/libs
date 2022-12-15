@@ -130,9 +130,10 @@ protected:
 		event->ts = ts;
 		event->tid = tid;
 
+		uint64_t evtoffset = m_events.size() - m_test_data->event_count;
 		m_events.push_back(event);
-		m_test_data->events = m_events.data();
-		m_test_data->event_count = m_events.size();
+		m_test_data->events = m_events.data() + evtoffset;
+		m_test_data->event_count = m_events.size() - evtoffset;
 		m_last_recorded_timestamp = ts;
 
 		return event;
