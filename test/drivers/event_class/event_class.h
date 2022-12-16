@@ -12,16 +12,15 @@
 #include "network_utils.h"
 #include <arpa/inet.h>
 #include <sys/un.h>
+#include <scap.h>
 
 #define CURRENT_PID -1
 #define CURRENT_EVENT_TYPE -1
 
 extern "C"
 {
-#include <libpman.h>
 #include <ppm_events_public.h>
 #include <feature_gates.h>
-#include <ppm_tp.h>
 }
 
 struct param
@@ -61,7 +60,7 @@ enum direction
 /* NOTE: if we change the name of this executable
  * we have to change also this string!
  */
-#define TEST_EXECUTABLE_NAME "bpf_test"
+#define TEST_EXECUTABLE_NAME "drivers_test"
 
 /////////////////////////////////
 // SYSCALL RESULT ASSERTIONS
@@ -85,6 +84,13 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 class event_test
 {
 public:
+	static scap_t* scap_handle;
+
+	static void set_scap_handle(scap_t* handle)
+	{
+		scap_handle = handle;
+	}
+
 	/* Please note: only methods with `assert` in the name use Google assertions. */
 
 	/////////////////////////////////
@@ -122,19 +128,6 @@ public:
 	~event_test();
 
 	/**
-	 * @brief Mark only the 64-bit syscall with `syscall_id` as interesting.
-	 *
-	 * @param syscall_id id of the syscall.
-	 */
-	void mark_single_64bit_syscall_as_interesting(int syscall_id);
-
-	/**
-	 * @brief Mark all 64-bit syscalls as uninteresting.
-	 *
-	 */
-	void mark_all_64bit_syscalls_as_uninteresting();
-
-	/**
 	 * @brief Tracepoints can start to catch events.
 	 *
 	 */
@@ -154,22 +147,13 @@ public:
 	void clear_ring_buffers();
 
 	/**
-	 * @brief Return `true` if all ring buffers are full. To state
-	 * that a ring buffer is full we check that the free space is less
-	 * than the `threshold`
-	 *
-	 * @param threshold used to check if a buffer is full
-	 */
-	bool are_all_ringbuffers_full(unsigned long threshold);
-
-	/**
 	 * @brief Return the event with the lowest timestamp in the ring buffer.
 	 * Return the CPU from which we extracted the event. Return NULL
 	 * in case of no events.
 	 *
 	 * @param cpu_id CPU from which we extracted the event.
 	 */
-	struct ppm_evt_hdr* get_event_from_ringbuffer(int16_t* cpu_id);
+	void get_event_from_ringbuffer(uint16_t* cpu_id);
 
 	/**
 	 * @brief Parse information from the event that we have extracted from the buffer:
@@ -179,6 +163,36 @@ public:
 	 *
 	 */
 	void parse_event();
+
+	/**
+	 * @brief Check the current engine type
+	 *
+	 * @return true if the current engine is bpf
+	 */
+	bool is_bpf_engine()
+	{
+		return scap_check_current_engine(scap_handle, BPF_ENGINE);
+	}
+
+	/**
+	 * @brief Check the current engine type
+	 *
+	 * @return true if the current engine is modern-bpf
+	 */
+	bool is_modern_bpf_engine()
+	{
+		return scap_check_current_engine(scap_handle, MODERN_BPF_ENGINE);
+	}
+
+	/**
+	 * @brief Check the current engine type
+	 *
+	 * @return true if the current engine is kmod
+	 */
+	bool is_kmod_engine()
+	{
+		return scap_check_current_engine(scap_handle, KMOD_ENGINE);
+	}
 
 	/////////////////////////////////
 	// NETWORK SCAFFOLDING
@@ -553,11 +567,19 @@ private:
 	void assert_param_boundaries(int param_num);
 
 	/**
-	 * @brief Assert if the length of current param is the expected one
+	 * @brief Assert if the length of the current param is the expected one
 	 *
 	 * @param expected_size expected length of the param
 	 */
 	void assert_param_len(uint16_t expected_size);
+
+	/**
+	 * @brief Assert if the length of the current param is greater or equal
+	 * than the expected one
+	 *
+	 * @param expected_size expected length of the param
+	 */
+	void assert_param_len_ge(uint16_t expected_size);
 
 	/**
 	 * @brief Assert the socket address family as part of a `sockaddr` or a `tuple`.

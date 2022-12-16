@@ -1,11 +1,203 @@
-#include <sys/resource.h>
-#include <fstream>
 #include <iostream>
 #include <string>
-#include <chrono>
-#include <libpman.h>
 #include <scap.h>
+#include <getopt.h>
 #include <gtest/gtest.h>
+#include "./event_class/event_class.h"
+
+#define UNKNOWN_ENGINE "unknown"
+
+/* We support only these arguments */
+#define KMOD_OPTION "kmod"
+#define BPF_OPTION "bpf"
+#define MODERN_BPF_OPTION "modern-bpf"
+#define BUFFER_OPTION "buffer-dim"
+#define BPF_PROBE_DEFAULT_PATH "/driver/bpf/probe.o"
+#define KMOD_DEFAULT_PATH "/driver/scap.ko"
+#define KMOD_NAME "scap"
+
+scap_t* event_test::scap_handle = NULL;
+
+int remove_kmod()
+{
+	if(syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK))
+	{
+		switch(errno)
+		{
+		case ENOENT:
+			return EXIT_SUCCESS;
+
+		/* If a module has a nonzero reference count with `O_NONBLOCK` flag
+		 * the call returns immediately, with `EWOULDBLOCK` code. So in that
+		 * case we wait until the module is detached.
+		 */
+		case EWOULDBLOCK:
+			for(int i = 0; i < 4; i++)
+			{
+				int ret = syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK);
+				if(ret == 0 || errno == ENOENT)
+				{
+					return EXIT_SUCCESS;
+				}
+				sleep(1);
+			}
+			return EXIT_FAILURE;
+
+		case EBUSY:
+		case EFAULT:
+		case EPERM:
+			std::cerr << "Unable to remove kernel module. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			return EXIT_FAILURE;
+
+		default:
+			std::cerr << "Unexpected error code. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+			return EXIT_FAILURE;
+		}
+	}
+	return EXIT_SUCCESS;
+}
+
+int insert_kmod(const std::string& kmod_path)
+{
+	/* Here we want to insert the module if we fail we need to abort the program. */
+	int fd = open(kmod_path.c_str(), O_RDONLY);
+	if(fd < 0)
+	{
+		std::cout << "Unable to open the kmod file. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	if(syscall(__NR_finit_module, fd, "", 0))
+	{
+		std::cerr << "Unable to inject the kmod. Errno message: " << strerror(errno) << ", errno: " << errno << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
+
+int open_engine(int argc, char** argv)
+{
+	static struct option long_options[] = {
+		{BPF_OPTION, optional_argument, 0, 'b'},
+		{MODERN_BPF_OPTION, no_argument, 0, 'm'},
+		{KMOD_OPTION, optional_argument, 0, 'k'},
+		{BUFFER_OPTION, required_argument, 0, 'd'},
+		{0, 0, 0, 0}};
+
+	int ret = 0;
+	scap_open_args oargs = {0};
+	struct scap_bpf_engine_params bpf_params = {0};
+	struct scap_kmod_engine_params kmod_params = {0};
+	struct scap_modern_bpf_engine_params modern_bpf_params = {0};
+	oargs.engine_name = UNKNOWN_ENGINE;
+	oargs.mode = SCAP_MODE_LIVE;
+	unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+	std::string kmod_path;
+
+	/* Remove kmod if injected, we remove it always even if we use another engine
+	 * in this way we are sure the unique driver in the system is the one we will use.
+	 */
+	if(remove_kmod())
+	{
+		return EXIT_FAILURE;
+	}
+
+	/* Get current cwd */
+	char cwd[FILENAME_MAX];
+	if(!getcwd(cwd, FILENAME_MAX))
+	{
+		std::cerr << "Unable to get current dir" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	/* Parse CLI options */
+	int op = 0;
+	int long_index = 0;
+	while((op = getopt_long(argc, argv,
+				"b::mk::d:",
+				long_options, &long_index)) != -1)
+	{
+		switch(op)
+		{
+		case 'b':
+			oargs.engine_name = BPF_ENGINE;
+			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
+			if(optarg == NULL)
+			{
+				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
+			}
+			else
+			{
+				bpf_params.bpf_probe = optarg;
+			}
+			oargs.engine_params = &bpf_params;
+
+			/* The BPF `calibrate_socker` method needs to call the socket filler
+			 * before starting the real capture. So we attach all syscalls and
+			 * `sys_enter` and `sys_exit` tracepoints.
+			 */
+			oargs.tp_of_interest.tp[SYS_ENTER] = 1;
+			oargs.tp_of_interest.tp[SYS_EXIT] = 1;
+			for(int i = 0; i < PPM_SC_MAX; i++)
+			{
+				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
+			}
+
+			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
+			break;
+
+		case 'm':
+			oargs.engine_name = MODERN_BPF_ENGINE;
+			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
+			oargs.engine_params = &modern_bpf_params;
+			std::cout << "* Configure modern BPF probe tests!" << std::endl;
+			break;
+
+		case 'k':
+			oargs.engine_name = KMOD_ENGINE;
+			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
+			if(optarg == NULL)
+			{
+				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
+			}
+			else
+			{
+				kmod_path = optarg;
+			}
+			oargs.engine_params = &kmod_params;
+			if(insert_kmod(kmod_path))
+			{
+				return EXIT_FAILURE;
+			}
+			std::cout << "* Configure kernel module tests! Kernel module path: " << kmod_path << std::endl;
+			;
+			break;
+
+		case 'd':
+			buffer_bytes_dim = strtoul(optarg, NULL, 10);
+			break;
+
+		default:
+			break;
+		}
+	}
+	std::cout << "* Using buffer dim: " << buffer_bytes_dim << std::endl;
+
+	if(strcmp(oargs.engine_name, UNKNOWN_ENGINE) == 0)
+	{
+		std::cerr << "Unsupported engine! Choose between: m, b, k" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	char error_buffer[FILENAME_MAX] = {0};
+	event_test::scap_handle = scap_open(&oargs, error_buffer, &ret);
+	if(!event_test::scap_handle)
+	{
+		std::cerr << "Unable to open the engine: " << error_buffer << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+}
 
 void print_setup_phase_message()
 {
@@ -18,7 +210,6 @@ void print_setup_phase_message()
 
 void print_start_test_message()
 {
-	std::cout << "* BPF probe correctly configured!" << std::endl;
 	std::cout << std::endl;
 	std::cout << "-----------------------------------------------------" << std::endl;
 	std::cout << "------------------- Testing phase -------------------" << std::endl;
@@ -37,56 +228,46 @@ void print_teardown_test_message()
 
 int main(int argc, char** argv)
 {
-	int ret;
-	bool libbpf_verbosity = false;
-	unsigned long buffer_dim = 8 * 1024; /* Should be enough */
-
-	for(int i = 0; i < argc; i++)
-	{
-		if(!strcmp(argv[i], "--verbose"))
-		{
-			libbpf_verbosity = true;
-		}
-		if(!strcmp(argv[i], "--buffer_dim"))
-		{
-			if(!(i + 1 < argc))
-			{
-				std::cout << "\nYou need to specify also the dimension of buffer in bytes! Bye!" << std::endl;
-				exit(EXIT_FAILURE);
-			}
-			buffer_dim = strtoul(argv[++i], NULL, 10);;
-		}
-	}
+	int res = EXIT_SUCCESS;
 
 	print_setup_phase_message();
 
 	::testing::InitGoogleTest(&argc, argv);
 
-	/* Configure and load BPF probe. */
-	ret = pman_init_state(libbpf_verbosity, buffer_dim);
-	ret = ret ?: pman_open_probe();
-	ret = ret ?: pman_prepare_ringbuf_array_before_loading();
-	ret = ret ?: pman_prepare_maps_before_loading();
-	ret = ret ?: pman_load_probe();
-	ret = ret ?: pman_finalize_maps_after_loading();
-	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
-	if(ret)
+	/* Open the requested engine */
+	if(open_engine(argc, argv))
 	{
-		std::cout << "\n* Error in the bpf probe setup, TESTS not started!" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	/* We need to start the capture to calibrate socket with bpf engine */
+	if(scap_start_capture(event_test::scap_handle) != SCAP_SUCCESS)
+	{
+		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
-	/* Ensure that nothing is running before starting tests. */
-	pman_disable_capture();
-	pman_clean_all_64bit_interesting_syscalls();
+	/* We need to detach all tracepoints before starting tests. */
+	if(scap_stop_capture(event_test::scap_handle) != SCAP_SUCCESS)
+	{
+		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		goto cleanup_tests;
+	}
+
+	/* We need to disable also all the interesting syscalls */
+	if(scap_clear_ppm_sc_mask(event_test::scap_handle) != SCAP_SUCCESS)
+	{
+		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		goto cleanup_tests;
+	}
 
 	print_start_test_message();
 
-	ret = RUN_ALL_TESTS();
+	res = RUN_ALL_TESTS();
 
 cleanup_tests:
 	print_teardown_test_message();
-	pman_close_probe();
-	std::cout << "* BPF probe correctly detached! Bye!" << std::endl;
-	return ret;
+	scap_close(event_test::scap_handle);
+	remove_kmod();
+	return res;
 }

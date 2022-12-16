@@ -1,6 +1,4 @@
-message(STATUS "Modern BPF tests build enabled")
-
-include_directories(../userspace/common)
+message(STATUS "Drivers tests build enabled")
 
 ## Syscall_exit suite files.
 file(GLOB_RECURSE SYSCALL_EXIT_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/syscall_exit_suite/*.cpp)
@@ -11,12 +9,10 @@ file(GLOB_RECURSE SYSCALL_ENTER_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suit
 ## Generic tracepoints suite files.
 file(GLOB_RECURSE GENERIC_TRACEPOINTS_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/generic_tracepoints_suite/*.cpp)
 
-## Local suite files. (Not enabled by default)
-if(BUILD_ENHANCED_MODERN_BPF_TEST)
-  file(GLOB_RECURSE LOCAL_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/local_suite/*.cpp)
-endif()
+## Actions suite files
+file(GLOB_RECURSE ACTIONS_TEST_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/test_suites/actions_suite/*.cpp)
 
-set(MODERN_BPF_TEST_SOURCES
+set(DRIVERS_TEST_SOURCES
   ./start_tests.cpp
   ./event_class/event_class.cpp
   ./flags/capabilities.cpp
@@ -24,35 +20,35 @@ set(MODERN_BPF_TEST_SOURCES
   "${SYSCALL_EXIT_TEST_SUITE}"
   "${SYSCALL_ENTER_TEST_SUITE}"
   "${GENERIC_TRACEPOINTS_TEST_SUITE}"
-  "${LOCAL_TEST_SUITE}"
+  "${ACTIONS_TEST_SUITE}"
 )
 
-set(MODERN_BPF_TEST_INCLUDE
+set(DRIVERS_TEST_INCLUDE
   PRIVATE
+  ../../userspace/common
   "${GTEST_INCLUDE}"
   "${LIBSCAP_DIR}/driver/"
+  "${LIBSCAP_DIR}/userspace/libscap"
 )
 
-set(MODERN_BPF_TEST_LINK_LIBRARIES
-  PRIVATE
-  pman
-  scap_event_schema
+set(DRIVERS_TEST_LINK_LIBRARIES
+  scap
   "${GTEST_LIB}"
   "${GTEST_MAIN_LIB}"
 )
 
-set(MODERN_BPF_TEST_DEPENDECIES
-  pman
+set(DRIVERS_TEST_DEPENDECIES
+  scap
 )
 
 if(USE_BUNDLED_GTEST)
   list(APPEND
-    MODERN_BPF_TEST_DEPENDECIES
+    DRIVERS_TEST_DEPENDECIES
     gtest
   )
 endif()
 
-add_executable(bpf_test ${MODERN_BPF_TEST_SOURCES})
-target_include_directories(bpf_test ${MODERN_BPF_TEST_INCLUDE})
-target_link_libraries(bpf_test ${MODERN_BPF_TEST_LINK_LIBRARIES})
-add_dependencies(bpf_test ${MODERN_BPF_TEST_DEPENDECIES})
+add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
+target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})
+target_link_libraries(drivers_test ${DRIVERS_TEST_LINK_LIBRARIES})
+add_dependencies(drivers_test ${DRIVERS_TEST_DEPENDECIES})
