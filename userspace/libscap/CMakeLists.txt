@@ -228,6 +228,14 @@ endif()
 
 # We might need to filter this.
 get_target_property(scap_link_libraries scap LINK_LIBRARIES)
+get_target_property(scap_engine_bpf_link_libraries scap_engine_bpf LINK_LIBRARIES)
+if (scap_engine_bpf_link_libraries)
+	list(APPEND scap_link_libraries ${scap_engine_bpf_link_libraries})
+endif()
+get_target_property(scap_event_schema_link_libraries scap_event_schema LINK_LIBRARIES)
+if (scap_event_schema_link_libraries)
+	list(APPEND scap_link_libraries ${scap_event_schema_link_libraries})
+endif()
 
 set(scap_link_flags)
 foreach(link_library scap_engine_noop ${scap_link_libraries})
