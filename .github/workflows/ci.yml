@@ -222,28 +222,21 @@ jobs:
       - name: Install deps ⛓️
         run: |
           sudo apt update
-          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14 libtool
+          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+          sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+          sudo update-alternatives --install /usr/bin/llc llc /usr/bin/llc-14 90
 
-      - name: Build scap-open 🏗️
+      - name: Build drivers tests 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-          make scap-open
+          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
+          make drivers_test
 
-      - name: Run scap-open 🏎️
+      - name: Run drivers_test with modern bpf 🏎️
         run: |
           cd build
-          sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
-
-      - name: Build bpf_test 🏗️
-        run: |
-          cd build
-          make bpf_test
-
-      - name: Running tests 🧪
-        run: |
-          cd build
-          sudo ./test/modern_bpf/bpf_test --verbose
+          sudo ./test/drivers/drivers_test -m
 
   build-modern-bpf-arm64:
     name: build-modern-bpf-arm64 🙃 (system_deps)
@@ -272,9 +265,9 @@ jobs:
             git config --global --add safe.directory ${{ github.workspace }}
             .github/install-deps.sh
             mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
             make scap-open
-            make bpf_test
+            make drivers_test
 
   build-modern-bpf-s390x:
     name: build-modern-bpf-s390x 😁 (system_deps)
@@ -303,9 +296,8 @@ jobs:
             git config --global --add safe.directory ${{ github.workspace }}
             .github/install-deps.sh
             mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_MODERN_BPF_TEST=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-            make scap-open
-            make bpf_test
+            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
+            make drivers_test
 
   build-libs-driverkit:
     name: build-libs-driverkit
