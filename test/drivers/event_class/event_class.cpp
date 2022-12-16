@@ -1,4 +1,3 @@
-
 #include "strlcpy.h"
 #include "event_class.h"
 #include <time.h>
@@ -97,7 +96,7 @@ event_test::~event_test()
 	clear_ring_buffers();
 
 	/* 2 - clean all interesting syscalls. */
-	mark_all_64bit_syscalls_as_uninteresting();
+	scap_clear_ppm_sc_mask(scap_handle);
 }
 
 /* This constructor must be used with generic tracepoints
@@ -147,12 +146,28 @@ event_test::event_test(int syscall_id, int event_direction):
 	{
 		m_tp_set[SYS_EXIT] = 1;
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
+		if(is_bpf_engine())
+		{
+			/* The bpf engine retrieves syscall params from sys_enter tracepoints
+			 * in kernel versions < 4.17. Moreover for syscalls that generate a
+			 * child we need a `sched_process_fork` tracepoint to duplicate the
+			 * syscall args for the child exit event!
+			 */
+			m_tp_set[SYS_ENTER] = 1;
+			if(m_event_type == PPME_SYSCALL_CLONE_20_X ||
+			   m_event_type == PPME_SYSCALL_FORK_20_X ||
+			   m_event_type == PPME_SYSCALL_VFORK_20_X ||
+			   m_event_type == PPME_SYSCALL_CLONE3_X)
+			{
+				m_tp_set[SCHED_PROC_FORK] = 1;
+			}
+		}
 	}
 
 	m_current_param = 0;
 
 	/* Set the current as the only interesting syscall. */
-	mark_single_64bit_syscall_as_interesting(syscall_id);
+	scap_set_ppm_sc(scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
 }
 
 /* This constructor must be used with syscalls events when you
@@ -167,62 +182,67 @@ event_test::event_test():
 	m_tp_set[SYS_ENTER] = 1;
 	m_tp_set[SYS_EXIT] = 1;
 
-	for(int sys_num = 0; sys_num < SYSCALL_TABLE_SIZE; sys_num++)
+	/* Enable all the syscalls */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		mark_single_64bit_syscall_as_interesting(sys_num);
+		scap_set_ppm_sc(scap_handle, ppm_sc, true);
 	}
-}
-
-void event_test::mark_single_64bit_syscall_as_interesting(int interesting_syscall_id)
-{
-	pman_mark_single_64bit_syscall(interesting_syscall_id, true);
-}
-
-void event_test::mark_all_64bit_syscalls_as_uninteresting()
-{
-	pman_clean_all_64bit_interesting_syscalls();
 }
 
 void event_test::enable_capture()
 {
-	pman_enable_capture((bool*)m_tp_set.data());
+	/* Here I should enable the necessary tracepoints */
+	for(int i = 0; i < TP_VAL_MAX; i++)
+	{
+		if(m_tp_set[i])
+		{
+			scap_set_tpmask(scap_handle, i, true);
+		}
+	}
+	/* We need to clear all the `ring-buffers` because maybe during
+	 * the tracepoint attachment we triggered some syscalls
+	 */
 	clear_ring_buffers();
 }
 
 void event_test::disable_capture()
 {
-	pman_disable_capture();
+	scap_stop_capture(scap_handle);
 }
 
 void event_test::clear_ring_buffers()
 {
-	int16_t cpu_id = 0;
-	while(get_event_from_ringbuffer(&cpu_id) != NULL)
+	uint16_t cpu_id = 0;
+	/* First timeout means that all the buffers are empty. If the capture is not
+	 * stopped it is possible that we will never receive a `SCAP_TIMEOUT`.
+	 */
+	while(scap_next(scap_handle, (scap_evt**)&m_event_header, &cpu_id) != SCAP_TIMEOUT)
 	{
-	};
+	}
 }
 
-bool event_test::are_all_ringbuffers_full(unsigned long threshold)
+void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 {
-	return pman_are_all_ringbuffers_full(threshold);
-}
-
-struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(int16_t* cpu_id)
-{
+	/* Clear acutal event */
 	m_event_header = NULL;
 	uint16_t attempts = 0;
+	int32_t res = 0;
 
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		pman_consume_first_from_buffers((void**)&m_event_header, cpu_id);
-		if(m_event_header != NULL)
+		res = scap_next(scap_handle, (scap_evt**)&m_event_header, cpu_id);
+		if(res == SCAP_SUCCESS && m_event_header != NULL)
 		{
-			return m_event_header;
+			return;
+		}
+		else if(res != SCAP_TIMEOUT && res != SCAP_SUCCESS)
+		{
+			FAIL() << "Unexpected error value from scap-next: " << res << std::endl;
 		}
 		attempts++;
 	}
-	return m_event_header;
+	return;
 }
 
 void event_test::parse_event()
@@ -419,7 +439,8 @@ void event_test::assert_event_absence(pid_t pid_to_search, int event_to_search)
 
 void event_test::assert_header()
 {
-	int num_params_from_bpf_table = pman_get_event_params(m_event_type);
+	/* TODO: Here we need a `scap` function that exposes some fields of the table and not all the table!! */
+	int num_params_from_bpf_table = scap_get_event_info_table()[m_event_type].nparams;
 
 	/* the bpf event gets the correct number of parameters from the param table. */
 	ASSERT_EQ(m_event_header->nparams, num_params_from_bpf_table) << "'nparams' in the header is not correct." << std::endl;
@@ -429,7 +450,8 @@ void event_test::assert_header()
 
 void event_test::assert_num_params_pushed(int total_params)
 {
-	int num_params_from_bpf_table = pman_get_event_params(m_event_type);
+	/* TODO: Here we need a `scap` function that exposes some fields of the table and not all the table!! */
+	int num_params_from_bpf_table = scap_get_event_info_table()[m_event_type].nparams;
 	ASSERT_EQ(total_params, num_params_from_bpf_table) << "for this event we have not pushed the right number of parameters." << std::endl;
 }
 
@@ -537,7 +559,16 @@ void event_test::assert_cgroup_param(int param_num)
 		strlcpy(cgroup_prefix, cgroup_string, prefix_len + 1);
 		ASSERT_STREQ(cgroup_prefix, cgroup_prefix_array[index]) << VALUE_NOT_CORRECT << m_current_param;
 	}
-	assert_param_len(total_len);
+
+	/* With the kmod we send more cgroups than the 5 we send in bpf and modern bpf */
+	if(is_kmod_engine())
+	{
+		assert_param_len_ge(total_len);
+	}
+	else
+	{
+		assert_param_len(total_len);
+	}
 }
 
 void event_test::assert_bytebuf_param(int param_num, const char* param, int buf_dimension)
@@ -754,6 +785,12 @@ void event_test::assert_param_len(uint16_t expected_size)
 	ASSERT_EQ(size, expected_size) << ">>>>> length of the param is not correct. Param id = " << m_current_param << std::endl;
 }
 
+void event_test::assert_param_len_ge(uint16_t expected_size)
+{
+	uint16_t size = m_event_params[m_current_param].len;
+	ASSERT_GE(size, expected_size) << ">>>>> length of the param is not correct. Param id = " << m_current_param << std::endl;
+}
+
 void event_test::assert_address_family(uint8_t desired_family, int starting_index)
 {
 	uint8_t family = (uint8_t)(m_event_params[m_current_param].valptr[starting_index]);
@@ -819,7 +856,7 @@ void event_test::assert_unix_path(const char* desired_path, int starting_index)
 
 void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_search, bool presence)
 {
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	pid_t pid = 0;
 	uint16_t evt_type = 0;
 
