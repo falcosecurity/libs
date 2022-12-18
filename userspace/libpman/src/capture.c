@@ -120,6 +120,7 @@ int pman_get_scap_stats(void *scap_stats_struct)
 		stats->n_evts += cnt_map.n_evts;
 		stats->n_drops_buffer += cnt_map.n_drops_buffer;
 		stats->n_drops_scratch_map += cnt_map.n_drops_max_event_size;
+		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 	}
 	return 0;
 
