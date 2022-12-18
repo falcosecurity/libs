@@ -99,6 +99,9 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
 		return 0;
 	}
 
+	/* This counts the event seen by the drivers even if they are dropped because the buffer is full. */
+	counter->n_evts++;
+
 	/* If we are not able to reserve space we stop here
 	 * the event collection.
 	 */
@@ -109,7 +112,6 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
 		return 0;
 	}
 
-	counter->n_evts++;
 	ringbuf->data = space;
 	ringbuf->reserved_event_size = event_size;
 	return 1;
