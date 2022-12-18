@@ -195,6 +195,9 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap)
 		return;
 	}
 
+	/* This counts the event seen by the drivers even if they are dropped because the buffer is full. */
+	counter->n_evts++;
+
 	if(auxmap->payload_pos > MAX_EVENT_SIZE)
 	{
 		counter->n_drops_max_event_size++;
@@ -208,10 +211,6 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap)
 	if(err)
 	{
 		counter->n_drops_buffer++;
-	}
-	else
-	{
-		counter->n_evts++;
 	}
 }
 
