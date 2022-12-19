@@ -26,7 +26,7 @@ int BPF_PROG(access_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: mode (type: PT_UINT32) */
-	unsigned long mode = (u32)extract__syscall_argument(regs, 1);
+	int mode = (int)extract__syscall_argument(regs, 1);
 	ringbuf__store_u32(&ringbuf, (u32)access_flags_to_scap(mode));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
