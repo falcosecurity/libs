@@ -2,7 +2,7 @@ import pytest
 from sinspqa import sinsp, event_generator
 from sinspqa.sinsp import assert_events
 
-sinsp_filters = ["-f", "evt.type=setuid"]
+sinsp_filters = ["-f", "evt.type=setuid", "-E"]
 
 containers = [
     {
