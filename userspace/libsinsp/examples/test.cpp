@@ -83,6 +83,7 @@ Options:
   -s <path>, --scap_file <path>   			 Scap file
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
   -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
+  -E, --exclude-users                        Don't create the user/group tables
 )";
 	cout << usage << endl;
 }
@@ -102,12 +103,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"scap_file", required_argument, 0, 's'},
 		{"buffer_dim", required_argument, 0, 'd'},
 		{"output-fields-json", required_argument, 0, 'o'},
+		{"exclude-users", no_argument, 0, 'E'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:",
+				"hf:jab:mks:d:o:E",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -145,6 +147,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			output_fields_json = optarg;
 			json_dump_init(inspector);
 			json_dump_reinit_evt_formatter(inspector);
+			break;
+		case 'E':
+			inspector.set_import_users(false);
 			break;
 		default:
 			break;
