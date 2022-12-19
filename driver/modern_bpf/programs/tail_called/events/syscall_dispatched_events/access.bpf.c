@@ -16,12 +16,12 @@ int BPF_PROG(access_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, ACCESS_E_SIZE))
-        {
-                return 0;
-        }
+	if(!ringbuf__reserve_space(&ringbuf, ACCESS_E_SIZE))
+	{
+		return 0;
+	}
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_ACCESS_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_ACCESS_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -37,7 +37,6 @@ int BPF_PROG(access_e,
 }
 
 /*=============================== ENTER EVENT ===========================*/
-
 
 /*=============================== EXIT EVENT ===========================*/
 
@@ -56,8 +55,8 @@ int BPF_PROG(access_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-        /* Parameter 1: res (type: PT_ERRNO) */
-        auxmap__store_s64_param(auxmap, ret);
+	/* Parameter 1: res (type: PT_ERRNO) */
+	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: pathname (type: PT_FSPATH) */
 	unsigned long path_pointer = extract__syscall_argument(regs, 0);
@@ -65,7 +64,7 @@ int BPF_PROG(access_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-       auxmap__finalize_event_header(auxmap);
+	auxmap__finalize_event_header(auxmap);
 
 	auxmap__submit_event(auxmap);
 
@@ -73,4 +72,3 @@ int BPF_PROG(access_x,
 }
 
 /*=============================== EXIT EVENT ===========================*/
-
