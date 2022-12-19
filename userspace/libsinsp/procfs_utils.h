@@ -34,14 +34,11 @@ class ns_helper
 {
 public:
 	ns_helper(const std::string& host_root);
-	~ns_helper();
 
 	bool can_read_host_init_ns_mnt() const
 	{
 		return !m_cannot_read_host_init_ns_mnt;
 	}
-
-	const char* get_host_init_ns_mnt() const { return m_host_init_ns_mnt; }
 
 	//! Return true if not in the host init mount namespace
 	bool in_own_ns_mnt(int64_t pid) const;
@@ -53,16 +50,8 @@ public:
 
 private:
 	const std::string& m_host_root;
-	char* m_host_init_ns_mnt{nullptr};
 	bool m_cannot_read_host_init_ns_mnt{false};
-
-private:
-	//
-	// NOTE: at the time of writing 16 would have been enough, being
-	// the format `mnt:[<unsigned>]`, but the only call to `ns_get_name`
-	// I could find in the kernel was using a buffer of 50, so 50 it is.
-	//
-	static constexpr const std::size_t NS_MNT_SIZE{50};
+	int64_t m_host_init_root_inode{-1};
 };
 
 } // namespace procfs_utils
