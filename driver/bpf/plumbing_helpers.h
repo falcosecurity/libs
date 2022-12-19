@@ -57,6 +57,7 @@ static __always_inline void clear_map(u32 tid)
 	bpf_map_delete_elem(&type_map, &tid);
 	bpf_map_delete_elem(&on_start_ts, &tid);
 	bpf_map_delete_elem(&off_start_ts, &tid);
+	bpf_map_delete_elem(&cpu_focus_threads, &tid);
 //    bpf_map_delete_elem(&aggregate_time, &tid);
 	bpf_map_delete_elem(&cpu_records, &tid);
 }
@@ -131,7 +132,7 @@ static __always_inline enum offcpu_type get_syscall_type(int syscall_id) {
 	return type;
 }
 
-static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 latency, u64 delta, u8 is_on)
+static __always_inline void record_cpu_offtime(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 latency, u64 delta)
 {
 	uint16_t switch_agg_num = settings->switch_agg_num;
 	struct info_t *infop;
@@ -150,18 +151,16 @@ static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings
 	if (infop != 0) {
 		if (infop->index < switch_agg_num) {
 			infop->times_specs[infop->index & (NUM - 1)] = delta;
-			if (is_on == 0) {
-				// get the type of offcpu
-				enum offcpu_type *typep, type;
-				typep = bpf_map_lookup_elem(&type_map, &tid);
-				if (typep == 0) {
-					type = OTHER;
-				} else {
-					type = *typep;
-				}
-				infop->time_type[infop->index & (NUM - 1)] = (u8)type;
-				infop->rq[(infop->index / 2) & (HALF_NUM - 1)] = latency;
+			// get the type of offcpu
+			enum offcpu_type *typep, type;
+			typep = bpf_map_lookup_elem(&type_map, &tid);
+			if (typep == 0) {
+				type = OTHER;
+			} else {
+				type = *typep;
 			}
+			infop->time_type[infop->index & (NUM - 1)] = (u8)type;
+			infop->rq[(infop->index / 2) & (HALF_NUM - 1)] = latency;
 			infop->index++;
 		}
 		// update end_ts
@@ -171,7 +170,7 @@ static __always_inline void record_cputime(void *ctx, struct sysdig_bpf_settings
 	}
 }
 
-static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 delta, u8 is_on)
+static __always_inline void record_cpu_ontime_and_out(void *ctx, struct sysdig_bpf_settings *settings, u32 pid, u32 tid, u64 start_ts, u64 delta)
 {
 	uint16_t switch_agg_num = settings->switch_agg_num;
 	struct info_t *infop;
@@ -188,9 +187,26 @@ static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_
 	}
 
 	if (infop != 0) {
-	int offset_ts = infop->end_ts - infop->start_ts;
-		if (infop->index > 0 && (infop->index == switch_agg_num || offset_ts > 2000000000)) {
-		//bpf_printk("start_ts %llu", infop->start_ts);
+		enum offcpu_type *typep, type;
+		// get the type of offcpu
+		typep = bpf_map_lookup_elem(&type_map, &tid);
+		if (infop->index < switch_agg_num) {
+			infop->times_specs[infop->index & (NUM - 1)] = delta;
+			infop->index++;
+		}
+		// update end_ts
+		infop->end_ts = settings->boot_time + bpf_ktime_get_ns();
+		u64 *focus_time = bpf_map_lookup_elem(&cpu_focus_threads, &tid);
+
+		int offset_ts = infop->end_ts - infop->start_ts;
+		bool have_focus_events = false;
+		if(focus_time){
+		 	u64 ftime = settings->boot_time + *focus_time;
+		 	if(ftime > start_ts && ftime < start_ts + delta) have_focus_events = true;
+		}
+		if (infop->index > 0 && (have_focus_events
+			|| infop->index == switch_agg_num || infop->index == switch_agg_num - 1 || offset_ts > 2000000000)) {
+			//bpf_printk("start_ts %llu", infop->start_ts);
 			// perf out
 			if (prepare_filler(ctx, ctx, PPME_CPU_ANALYSIS_E, settings, 0)) {
 				bpf_cpu_analysis(ctx, infop->tid);
@@ -202,23 +218,6 @@ static __always_inline void record_cputime_and_out(void *ctx, struct sysdig_bpf_
 			memset(infop->times_specs, 0, sizeof(infop->times_specs));
 			memset(infop->rq, 0, sizeof(infop->rq));
 		}
-		if (infop->index < switch_agg_num) {
-			infop->times_specs[infop->index & (NUM - 1)] = delta;
-			if (is_on == 0) {
-				// get the type of offcpu
-				enum offcpu_type *typep, type;
-				typep = bpf_map_lookup_elem(&type_map, &tid);
-				if (typep == 0) {
-					type = OTHER;
-				} else {
-					type = *typep;
-				}
-				infop->time_type[infop->index & (NUM - 1)] = (u8)type;
-			}
-			infop->index++;
-		}
-		// update end_ts
-		infop->end_ts = settings->boot_time + bpf_ktime_get_ns();
 		// cache
 		bpf_map_update_elem(&cpu_records, &tid, infop, BPF_ANY);
 	}

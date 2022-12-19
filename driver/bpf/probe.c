@@ -72,6 +72,10 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	enum offcpu_type type = get_syscall_type((int)id);
 	u32 tid = bpf_get_current_pid_tgid();
 	bpf_map_update_elem(&type_map, &tid, &type, BPF_ANY);
+	if(type == NET || type == DISK) {
+		u64 enter_time = bpf_ktime_get_ns();
+		bpf_map_update_elem(&cpu_focus_threads, &tid, &enter_time, BPF_ANY);
+	}
 #endif
 	sc_evt = get_syscall_info(id);
 	if (!sc_evt)
@@ -119,8 +123,15 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	if (!settings)
 		return 0;
 #ifdef CPU_ANALYSIS
+	enum offcpu_type type = get_syscall_type((int)id);
 	u32 tid = bpf_get_current_pid_tgid();
+
 	bpf_map_delete_elem(&type_map, &tid);
+	if(type == NET || type == DISK) {
+		u64 exit_time = bpf_ktime_get_ns();
+		bpf_map_update_elem(&cpu_focus_threads, &tid, &exit_time, BPF_ANY);
+	}
+	
 #endif
 	if (!settings->capture_enabled)
 		return 0;
@@ -240,7 +251,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 			bpf_map_delete_elem(&on_start_ts, &tid);
 			if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
 				if (check_filter(pid)) {
-					record_cputime_and_out(ctx, settings, pid, tid, *on_ts, delta, 1);
+					record_cpu_ontime_and_out(ctx, settings, pid, tid, *on_ts, delta);
 					// aggregate(pid, tid, *on_ts, delta, 1);
 				}
 			}
@@ -273,7 +284,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 						rq_la = (on_ts - *rq_ts) / 1000;
 					bpf_map_delete_elem(&cpu_runq, &tid);
 				}
-				record_cputime(ctx, settings, pid, tid, off_ts, rq_la, delta, 0);
+				record_cpu_offtime(ctx, settings, pid, tid, off_ts, rq_la, delta);
 				// aggregate(pid, tid, off_ts, delta, 0);
 			}
 		}
@@ -316,7 +327,7 @@ BPF_KPROBE(finish_task_switch)
 			bpf_map_delete_elem(&on_start_ts, &tid);
 			if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
 				if (check_filter(pid)) {
-					record_cputime_and_out(ctx, settings, pid, tid, *on_ts, delta, 1);
+					record_cpu_ontime_and_out(ctx, settings, pid, tid, *on_ts, delta);
 					// aggregate(pid, tid, *on_ts, delta, 1);
 				}
 			}
@@ -351,7 +362,7 @@ BPF_KPROBE(finish_task_switch)
 						rq_la = (on_ts - *rq_ts) / 1000;
 					bpf_map_delete_elem(&cpu_runq, &tid);
 				}
-				record_cputime(ctx, settings, pid, tid, off_ts, rq_la, delta, 0);
+				record_cpu_offtime(ctx, settings, pid, tid, off_ts, rq_la, delta);
 				// aggregate(pid, tid, off_ts, delta, 0);
 			}
 		}
@@ -778,6 +789,8 @@ BPF_KPROBE(sock_recvmsg) {
 		return 0;
 	// update to NET
 	enum offcpu_type type = NET;
+	u64 enter_time = bpf_ktime_get_ns();
+	bpf_map_update_elem(&cpu_focus_threads, &tid, &enter_time, BPF_ANY);
 	bpf_map_update_elem(&type_map, &tid, &type, BPF_ANY);
 	return 0;
 }
@@ -788,6 +801,8 @@ BPF_KPROBE(sock_sendmsg) {
 		return 0;
 	// update to NET
 	enum offcpu_type type = NET;
+	u64 enter_time = bpf_ktime_get_ns();
+	bpf_map_update_elem(&cpu_focus_threads, &tid, &enter_time, BPF_ANY);
 	bpf_map_update_elem(&type_map, &tid, &type, BPF_ANY);
 	return 0;
 }
