@@ -19,7 +19,7 @@ limitations under the License.
 
 #include <cstring>
 #include <sstream>
-#include <unistd.h>
+#include <sys/stat.h>
 
 int libsinsp::procfs_utils::get_userns_root_uid(std::istream& uid_map)
 {
@@ -72,49 +72,35 @@ std::string libsinsp::procfs_utils::get_systemd_cgroup(std::istream& cgroups)
 libsinsp::procfs_utils::ns_helper::ns_helper(const std::string& host_root):
 	m_host_root(host_root)
 {
-	// (try to) init m_host_init_ns_mnt
-	char buf[NS_MNT_SIZE] = {0};
-	if(-1 == readlink((m_host_root + "/proc/1/ns/mnt").c_str(), buf, NS_MNT_SIZE - 1))
+	struct stat rootlink;
+	if(-1 == stat((m_host_root + "/proc/1/root").c_str(), &rootlink))
 	{
 		g_logger.format(sinsp_logger::SEV_WARNING,
-				"Cannot read host init ns/mnt: %d", errno);
+				"Cannot read host init process proc root: %d", errno);
 		m_cannot_read_host_init_ns_mnt = true;
 	}
 	else
 	{
-		auto size = strlen(buf) + 1;
-		m_host_init_ns_mnt = (char*)malloc(size);
-		strncpy(m_host_init_ns_mnt, buf, size);
-	}
-}
-
-libsinsp::procfs_utils::ns_helper::~ns_helper()
-{
-	if(m_host_init_ns_mnt)
-	{
-		free(m_host_init_ns_mnt);
-		m_host_init_ns_mnt = nullptr;
+		m_host_init_root_inode = rootlink.st_ino;
 	}
 }
 
 bool libsinsp::procfs_utils::ns_helper::in_own_ns_mnt(int64_t pid) const
 {
-	if(m_host_init_ns_mnt == nullptr)
+	if(m_cannot_read_host_init_ns_mnt)
 	{
 		return false;
 	}
 
-	std::string path = m_host_root + "/proc/" + std::to_string(pid) + "/ns/mnt";
-
-	char proc_ns_mnt[NS_MNT_SIZE] = {0};
-	if(-1 == readlink(path.c_str(), proc_ns_mnt, NS_MNT_SIZE-1))
+	struct stat rootlink;
+	if(-1 == stat(get_pid_root(pid).c_str(), &rootlink))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"Cannot read process ns/mnt");
+				"Cannot read process proc root");
 		return false;
 	}
 
-	if(0 == strncmp(m_host_init_ns_mnt, proc_ns_mnt, NS_MNT_SIZE))
+	if(static_cast<decltype(m_host_init_root_inode)>(rootlink.st_ino) == m_host_init_root_inode)
 	{
 		// Still in the host namespace
 		return false;
@@ -122,3 +108,4 @@ bool libsinsp::procfs_utils::ns_helper::in_own_ns_mnt(int64_t pid) const
 
 	return true;
 }
+
