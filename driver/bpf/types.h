@@ -307,3 +307,23 @@ struct sysdig_bpf_per_cpu_state {
 } __attribute__((packed));
 
 #endif
+
+#ifdef CONFIG_ARM64
+#define PT_REGS_PARAM1(x)	((x)->regs[0])
+#define PT_REGS_PARAM2(x)	((x)->regs[1])
+#define PT_REGS_PARAM3(x)	((x)->regs[2])
+#define PT_REGS_PARAM4(x)	((x)->regs[3])
+#define PT_REGS_PARAM5(x)	((x)->regs[4])
+#define PT_REGS_PARAM6(x)	((x)->regs[5])
+#define PT_REGS_IP(x)				((x)->pc)
+#define PT_REGS_CALLNO(x)	((x)->syscallno)
+#else
+#define PT_REGS_PARAM1(x)	((x)->di)
+#define PT_REGS_PARAM2(x)	((x)->si)
+#define PT_REGS_PARAM3(x)	((x)->dx)
+#define PT_REGS_PARAM4(x)	((x)->r10)
+#define PT_REGS_PARAM5(x)	((x)->r8)
+#define PT_REGS_PARAM6(x)	((x)->r9)
+#define PT_REGS_IP(x)				((x)->ip)
+#define PT_REGS_CALLNO(x)	((x)->orig_ax)
+#endif

@@ -558,7 +558,7 @@ BPF_KPROBE(tcp_rcv_established)
 	settings = get_bpf_settings();
 	if (!settings)
 		return 0;
-	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(ctx));
 	struct tcp_sock *ts = tcp_sk(sk);
 	const struct inet_sock *inet = inet_sk(sk);
 
@@ -610,7 +610,7 @@ BPF_KPROBE(tcp_close)
 	if (!settings)
 		return 0;
 
-	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(ctx));
 	struct tcp_sock *ts = tcp_sk(sk);
 	const struct inet_sock *inet = inet_sk(sk);
 
@@ -665,7 +665,7 @@ BPF_KPROBE(tcp_connect)
 	if (!settings)
 		return 0;
 
-	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(ctx));
 	const struct inet_sock *inet = inet_sk(sk);
 
 	u16 sport = 0;
@@ -717,7 +717,7 @@ BPF_KPROBE(tcp_set_state)
 	settings = get_bpf_settings();
 	if (!settings)
 		return 0;
-	struct sock *sk = (struct sock *)_READ(ctx->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(ctx));
 	u16 family = 0;
 	bpf_probe_read(&family, sizeof(family), (void *)&sk->__sk_common.skc_family);
 	if(family != AF_INET)
@@ -726,7 +726,7 @@ BPF_KPROBE(tcp_set_state)
 	const struct inet_sock *inet = inet_sk(sk);
 	u8 old_state = 0;
 	bpf_probe_read(&old_state, sizeof(old_state), (void *)&sk->sk_state);
-	int new_state = _READ(ctx->si);
+	int new_state = _READ(PT_REGS_PARAM2(ctx));
 	if(old_state == 1 || new_state == 1){
 		evt_type = PPME_TCP_SET_STATE_E;
 		if(prepare_filler(ctx, ctx, evt_type, settings, UF_NEVER_DROP)){

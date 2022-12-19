@@ -20,6 +20,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/fdtable.h>
 #include <linux/net.h>
 #include <linux/skbuff.h>
+
 #if 1
 /* SYSDIG -- Fix Little-Endian assumptions */
 #include <endian.h>
@@ -1133,8 +1134,10 @@ static __always_inline int bpf_val_to_ring_type(struct filler_data *data,
 
 static __always_inline bool bpf_in_ia32_syscall()
 {
+#if defined __ppc64__ || CONFIG_ARM64
+	return 0;
 /* SYSDIG -- Support non-x86 architectures */
-#if (defined(__i386__) || defined(__x86_64__)  || defined(_M_IX86))
+#else 
 	struct task_struct *task;
 	u32 status;
 
@@ -1153,8 +1156,7 @@ static __always_inline bool bpf_in_ia32_syscall()
 #endif
 
 	return status & TS_COMPAT;
-#else /* X86 */
-	return 0;
+
 #endif /* X86 */
 }
 

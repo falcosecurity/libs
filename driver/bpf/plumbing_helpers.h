@@ -317,7 +317,7 @@ static __always_inline long bpf_syscall_get_nr(void *ctx)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
-	id = _READ(regs->orig_ax);
+	id = _READ(PT_REGS_CALLNO(regs));
 #else
 	id = args->id;
 #endif
@@ -351,22 +351,22 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 
 	switch (idx) {
 	case 0:
-		arg = _READ(regs->di);
+		arg = _READ(PT_REGS_PARAM1(regs));
 		break;
 	case 1:
-		arg = _READ(regs->si);
+		arg = _READ(PT_REGS_PARAM2(regs));
 		break;
 	case 2:
-		arg = _READ(regs->dx);
+		arg = _READ(PT_REGS_PARAM3(regs));
 		break;
 	case 3:
-		arg = _READ(regs->r10);
+		arg = _READ(PT_REGS_PARAM4(regs));
 		break;
 	case 4:
-		arg = _READ(regs->r8);
+		arg = _READ(PT_REGS_PARAM5(regs));
 		break;
 	case 5:
-		arg = _READ(regs->r9);
+		arg = _READ(PT_REGS_PARAM6(regs));
 		break;
 	default:
 		arg = 0;

@@ -98,10 +98,18 @@ or GPL2.txt for full copies of the license.
 #ifdef access_ok_noprefault
 #define ppm_access_ok access_ok_noprefault
 #else
+#ifdef CONFIG_ARM64
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0))
+#define ppm_access_ok(type, addr, size)	access_ok(addr, size)
+#else
+#define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
+#endif
+#else
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 0, 0)) || (PPM_RHEL_RELEASE_CODE > 0 && PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(8, 1))
 #define ppm_access_ok(type, addr, size)	access_ok(addr, size)
 #else
 #define ppm_access_ok(type, addr, size)	access_ok(type, addr, size)
+#endif
 #endif
 #endif
 

@@ -21,6 +21,7 @@ or GPL2.txt for full copies of the license.
 
 #include "../ppm_flag_helpers.h"
 #include "../ppm_version.h"
+#include "types.h"
 
 #include <linux/tty.h>
 #include <linux/audit.h>
@@ -3905,7 +3906,7 @@ FILLER(sys_pagefault_e, false)
 	struct pt_regs *regs = (struct pt_regs *)ctx->regs;
 
 	address = ctx->address;
-	ip = _READ(regs->ip);
+	ip = _READ(PT_REGS_IP(regs));
 	error_code = ctx->error_code;
 #else
 	address = ctx->address;
@@ -4700,7 +4701,7 @@ KP_FILLER(tcp_drop_kprobe_e)
 {
 
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
-	struct sock *sk = (struct sock *)_READ(args->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
 
 	int res;
 	res = sock_to_ring(data, sk);
@@ -4712,8 +4713,8 @@ KP_FILLER(tcp_drop_kprobe_e)
 KP_FILLER(rtt_kprobe_e)
 {
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
-	struct sock *sk = (struct sock *)_READ(args->di);
-	struct sk_buff *skb = (struct sk_buff *)_READ(args->si);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
+	struct sk_buff *skb = (struct sk_buff *)_READ(PT_REGS_PARAM2(args));
 	struct tcp_sock *ts = tcp_sk(sk);
 
 	u32 srtt = _READ(ts->srtt_us) >> 3;
@@ -4732,7 +4733,7 @@ KP_FILLER(rtt_kprobe_e)
 KP_FILLER(tcp_retransmit_skb_kprobe_e)
 {
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
-	struct sock *sk = (struct sock *)_READ(args->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
 
 	int res;
 	res = sock_to_ring(data, sk);
@@ -4765,10 +4766,10 @@ KP_FILLER(tcp_connect_kprobe_x)
 KP_FILLER(tcp_set_state_kprobe_e)
 {
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
-	struct sock *sk = (struct sock *)_READ(args->di);
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
 	u8 old_state = 0;
 	bpf_probe_read(&old_state, sizeof(old_state), (void *)&sk->sk_state);
-	int new_state = _READ(args->si);
+	int new_state = _READ(PT_REGS_PARAM2(args));
 
 	int res;
 	res = sock_to_ring(data, sk);
