@@ -195,6 +195,16 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_GETEUID_X] = "geteuid_x",
 	[PPME_SYSCALL_GETEGID_E] = "getegid_e",
 	[PPME_SYSCALL_GETEGID_X] = "getegid_x",
+	[PPME_SYSCALL_MLOCK_E] = "mlock_e",
+	[PPME_SYSCALL_MLOCK_X] = "mlock_x",
+	[PPME_SYSCALL_MLOCK2_E] = "mlock2_e",
+	[PPME_SYSCALL_MLOCK2_X] = "mlock2_x",
+	[PPME_SYSCALL_MUNLOCK_E] = "munlock_e",
+	[PPME_SYSCALL_MUNLOCK_X] = "munlock_x",
+	[PPME_SYSCALL_MLOCKALL_E] = "mlockall_e",
+	[PPME_SYSCALL_MLOCKALL_X] = "mlockall_x",
+	[PPME_SYSCALL_MUNLOCKALL_E] = "munlockall_e",
+	[PPME_SYSCALL_MUNLOCKALL_X] = "munlockall_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
