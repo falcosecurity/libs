@@ -132,6 +132,18 @@
 #define ACCESS_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define MPROTECT_E_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define MPROTECT_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define GETUID_E_SIZE HEADER_LEN
+#define GETUID_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define GETGID_E_SIZE HEADER_LEN
+#define GETGID_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define GETEUID_E_SIZE HEADER_LEN
+#define GETEUID_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define GETEGID_E_SIZE HEADER_LEN
+#define GETEGID_X_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
+#define GETRESUID_E_SIZE HEADER_LEN
+#define GETRESUID_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
+#define GETRESGID_E_SIZE HEADER_LEN
+#define GETRESGID_X_SIZE HEADER_LEN + sizeof(uint32_t) * 3 + PARAM_LEN * 3
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4

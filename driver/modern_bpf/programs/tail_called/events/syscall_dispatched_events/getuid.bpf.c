@@ -15,19 +15,19 @@ int BPF_PROG(getuid_e,
 	     struct pt_regs *regs,
 	     long id)
 {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
-		return 0;
-	}
+        struct ringbuf_struct ringbuf;
+        if(!ringbuf__reserve_space(&ringbuf, GETUID_E_SIZE))
+        {
+                return 0;
+        }
 
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_GETUID_E);
-
-	/*=============================== COLLECT PARAMETERS  ===========================*/
+        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_GETUID_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	auxmap__submit_event(auxmap);
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
+	ringbuf__submit_event(&ringbuf);
 
 	return 0;
 }
@@ -41,22 +41,23 @@ int BPF_PROG(getuid_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
-	struct auxiliary_map *auxmap = auxmap__get();
-	if(!auxmap)
-	{
-		return 0;
-	}
+        struct ringbuf_struct ringbuf;
+        if(!ringbuf__reserve_space(&ringbuf, GETUID_X_SIZE))
+        {
+                return 0;
+        }
 
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_GETUID_X);
+        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_GETUID_X);
+
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
         /* Parameter 1: res (type: PT_UID) */
-        auxmap__store_u32_param(auxmap, (u32)ret);
+        ringbuf__store_u32(&ringbuf, (u32)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	auxmap__submit_event(auxmap);
+	ringbuf__submit_event(&ringbuf);
 
 	return 0;
 }
