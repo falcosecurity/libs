@@ -183,6 +183,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_EPOLL_CREATE1_X] = "epoll_create1_x",
 	[PPME_SYSCALL_ACCESS_E] = "access_e",
 	[PPME_SYSCALL_ACCESS_X] = "access_x",
+	[PPME_SOCKET_GETSOCKOPT_E] = "getsockopt_e",
+	[PPME_SOCKET_GETSOCKOPT_X] = "getsockopt_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
