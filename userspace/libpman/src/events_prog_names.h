@@ -187,6 +187,14 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_GETSOCKOPT_X] = "getsockopt_x",
 	[PPME_SYSCALL_MPROTECT_E] = "mprotect_e",
 	[PPME_SYSCALL_MPROTECT_X] = "mprotect_x",
+	[PPME_SYSCALL_GETUID_E] = "getuid_e",
+	[PPME_SYSCALL_GETUID_X] = "getuid_x",
+	[PPME_SYSCALL_GETGID_E] = "getgid_e",
+	[PPME_SYSCALL_GETGID_X] = "getgid_x",
+	[PPME_SYSCALL_GETEUID_E] = "geteuid_e",
+	[PPME_SYSCALL_GETEUID_X] = "geteuid_x",
+	[PPME_SYSCALL_GETEGID_E] = "getegid_e",
+	[PPME_SYSCALL_GETEGID_X] = "getegid_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
