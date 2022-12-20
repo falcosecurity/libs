@@ -532,7 +532,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 		{
 			fprintf(stderr, "-- BEGIN PROG LOAD LOG --\n%s\n-- END PROG LOAD LOG --\n", error);
 			free(error);
-			return scap_errprintf(handle->m_lasterr, -fd, "libscap: bpf_load_program() event=%s", event);
+			return scap_errprintf(handle->m_lasterr, -fd, "libscap: bpf_load_program() event=%s", full_event);
 		}
 	}
 
