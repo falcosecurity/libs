@@ -96,7 +96,7 @@ event_test::~event_test()
 	clear_ring_buffers();
 
 	/* 2 - clean all interesting syscalls. */
-	scap_clear_ppm_sc_mask(scap_handle);
+	scap_clear_ppm_sc_mask(s_scap_handle);
 }
 
 /* This constructor must be used with generic tracepoints
@@ -167,7 +167,7 @@ event_test::event_test(int syscall_id, int event_direction):
 	m_current_param = 0;
 
 	/* Set the current as the only interesting syscall. */
-	scap_set_ppm_sc(scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
+	scap_set_ppm_sc(s_scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
 }
 
 /* This constructor must be used with syscalls events when you
@@ -185,18 +185,18 @@ event_test::event_test():
 	/* Enable all the syscalls */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		scap_set_ppm_sc(scap_handle, ppm_sc, true);
+		scap_set_ppm_sc(s_scap_handle, ppm_sc, true);
 	}
 }
 
 void event_test::enable_capture()
 {
-	/* Here I should enable the necessary tracepoints */
+	/* Here we should enable the necessary tracepoints */
 	for(int i = 0; i < TP_VAL_MAX; i++)
 	{
 		if(m_tp_set[i])
 		{
-			scap_set_tpmask(scap_handle, i, true);
+			scap_set_tpmask(s_scap_handle, i, true);
 		}
 	}
 	/* We need to clear all the `ring-buffers` because maybe during
@@ -207,7 +207,7 @@ void event_test::enable_capture()
 
 void event_test::disable_capture()
 {
-	scap_stop_capture(scap_handle);
+	scap_stop_capture(s_scap_handle);
 }
 
 void event_test::clear_ring_buffers()
@@ -216,7 +216,7 @@ void event_test::clear_ring_buffers()
 	/* First timeout means that all the buffers are empty. If the capture is not
 	 * stopped it is possible that we will never receive a `SCAP_TIMEOUT`.
 	 */
-	while(scap_next(scap_handle, (scap_evt**)&m_event_header, &cpu_id) != SCAP_TIMEOUT)
+	while(scap_next(s_scap_handle, (scap_evt**)&m_event_header, &cpu_id) != SCAP_TIMEOUT)
 	{
 	}
 }
@@ -231,7 +231,7 @@ void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		res = scap_next(scap_handle, (scap_evt**)&m_event_header, cpu_id);
+		res = scap_next(s_scap_handle, (scap_evt**)&m_event_header, cpu_id);
 		if(res == SCAP_SUCCESS && m_event_header != NULL)
 		{
 			return;
@@ -242,7 +242,6 @@ void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 		}
 		attempts++;
 	}
-	return;
 }
 
 void event_test::parse_event()

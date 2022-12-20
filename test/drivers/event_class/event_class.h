@@ -84,11 +84,11 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 class event_test
 {
 public:
-	static scap_t* scap_handle;
+	static scap_t* s_scap_handle;
 
 	static void set_scap_handle(scap_t* handle)
 	{
-		scap_handle = handle;
+		s_scap_handle = handle;
 	}
 
 	/* Please note: only methods with `assert` in the name use Google assertions. */
@@ -147,7 +147,7 @@ public:
 	void clear_ring_buffers();
 
 	/**
-	 * @brief Return the event with the lowest timestamp in the ring buffer.
+	 * @brief Retrieve the event with the lowest timestamp in the ring buffer.
 	 * Return the CPU from which we extracted the event. Return NULL
 	 * in case of no events.
 	 *
@@ -171,7 +171,7 @@ public:
 	 */
 	bool is_bpf_engine()
 	{
-		return scap_check_current_engine(scap_handle, BPF_ENGINE);
+		return scap_check_current_engine(s_scap_handle, BPF_ENGINE);
 	}
 
 	/**
@@ -181,7 +181,7 @@ public:
 	 */
 	bool is_modern_bpf_engine()
 	{
-		return scap_check_current_engine(scap_handle, MODERN_BPF_ENGINE);
+		return scap_check_current_engine(s_scap_handle, MODERN_BPF_ENGINE);
 	}
 
 	/**
@@ -191,7 +191,7 @@ public:
 	 */
 	bool is_kmod_engine()
 	{
-		return scap_check_current_engine(scap_handle, KMOD_ENGINE);
+		return scap_check_current_engine(s_scap_handle, KMOD_ENGINE);
 	}
 
 	/////////////////////////////////
