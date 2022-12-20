@@ -26,7 +26,7 @@ Now all the engines should be built, but if you want to assert against the kmod 
 make driver bpf
 ```
 
-> __NOTE__: the modern bpf probe is bundled inside its engine so every time you type `make drivers_test` it will automatically compiled without any additional command.
+> __NOTE__: the modern bpf probe is bundled inside its engine so every time you type `make drivers_test` it will be automatically compiled without any additional command.
 
 We are ready to run our tests:
 
@@ -34,7 +34,7 @@ We are ready to run our tests:
 sudo ./test/drivers/drivers_test -k
 ```
 
-The `-k` option stands for kmod, so you are running all the tests against the kmod. Available options are:
+The `-k` option stands for kmod, so you are running all the tests against the kmod. Some other available options are:
 
 - `-k` to run tests against the kernel module.
 - `-m` to run tests against the modern bpf probe.

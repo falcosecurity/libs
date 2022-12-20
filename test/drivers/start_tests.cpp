@@ -8,6 +8,7 @@
 #define UNKNOWN_ENGINE "unknown"
 
 /* We support only these arguments */
+#define HELP_OPTION "help"
 #define KMOD_OPTION "kmod"
 #define BPF_OPTION "bpf"
 #define MODERN_BPF_OPTION "modern-bpf"
@@ -16,7 +17,7 @@
 #define KMOD_DEFAULT_PATH "/driver/scap.ko"
 #define KMOD_NAME "scap"
 
-scap_t* event_test::scap_handle = NULL;
+scap_t* event_test::s_scap_handle = NULL;
 
 int remove_kmod()
 {
@@ -75,6 +76,41 @@ int insert_kmod(const std::string& kmod_path)
 	return EXIT_SUCCESS;
 }
 
+void abort_if_already_configured(scap_open_args* oargs)
+{
+	if(strcmp(oargs->engine_name, UNKNOWN_ENGINE) != 0)
+	{
+		std::cerr << "* '" << oargs->engine_name << "' engine is already configured. Please specify just one engine!" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+}
+
+void print_message(std::string msg)
+{
+	std::cout << std::endl;
+	std::cout << "-----------------------------------------------------" << std::endl;
+	std::cout << "- " << msg << std::endl;
+	std::cout << "-----------------------------------------------------" << std::endl;
+	std::cout << std::endl;
+}
+
+void print_menu_and_exit()
+{
+	std::string usage = R"(Usage: drivers_test [options]
+
+Overview: The goal of this binary is to run tests against one of our drivers.
+
+Options:
+  -k, --kmod <path>       Run tests against the kernel module. Default path is `./driver/scap.ko`.
+  -m, --modern-bpf        Run tests against the modern bpf probe.
+  -b, --bpf <path>        Run tests against the bpf probe. Default path is `./driver/bpf/probe.o`.
+  -d, --buffer-dim <dim>  Change the dimension of shared buffers between userspace and kernel. You must specify the dimension in bytes.
+  -h, --help              This page.
+)";
+	std::cout << usage << std::endl;
+	exit(EXIT_SUCCESS);
+}
+
 int open_engine(int argc, char** argv)
 {
 	static struct option long_options[] = {
@@ -82,6 +118,7 @@ int open_engine(int argc, char** argv)
 		{MODERN_BPF_OPTION, no_argument, 0, 'm'},
 		{KMOD_OPTION, optional_argument, 0, 'k'},
 		{BUFFER_OPTION, required_argument, 0, 'd'},
+		{HELP_OPTION, no_argument, 0, 'h'},
 		{0, 0, 0, 0}};
 
 	int ret = 0;
@@ -114,12 +151,13 @@ int open_engine(int argc, char** argv)
 	int op = 0;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"b::mk::d:",
+				"b::mk::d:h",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
 		{
 		case 'b':
+			abort_if_already_configured(&oargs);
 			oargs.engine_name = BPF_ENGINE;
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			if(optarg == NULL)
@@ -147,6 +185,7 @@ int open_engine(int argc, char** argv)
 			break;
 
 		case 'm':
+			abort_if_already_configured(&oargs);
 			oargs.engine_name = MODERN_BPF_ENGINE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			oargs.engine_params = &modern_bpf_params;
@@ -154,6 +193,7 @@ int open_engine(int argc, char** argv)
 			break;
 
 		case 'k':
+			abort_if_already_configured(&oargs);
 			oargs.engine_name = KMOD_ENGINE;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
 			if(optarg == NULL)
@@ -177,6 +217,10 @@ int open_engine(int argc, char** argv)
 			buffer_bytes_dim = strtoul(optarg, NULL, 10);
 			break;
 
+		case 'h':
+			print_menu_and_exit();
+			break;
+
 		default:
 			break;
 		}
@@ -190,8 +234,8 @@ int open_engine(int argc, char** argv)
 	}
 
 	char error_buffer[FILENAME_MAX] = {0};
-	event_test::scap_handle = scap_open(&oargs, error_buffer, &ret);
-	if(!event_test::scap_handle)
+	event_test::s_scap_handle = scap_open(&oargs, error_buffer, &ret);
+	if(!event_test::s_scap_handle)
 	{
 		std::cerr << "Unable to open the engine: " << error_buffer << std::endl;
 		return EXIT_FAILURE;
@@ -199,38 +243,11 @@ int open_engine(int argc, char** argv)
 	return EXIT_SUCCESS;
 }
 
-void print_setup_phase_message()
-{
-	std::cout << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << "-------------------- Setup phase --------------------" << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << std::endl;
-}
-
-void print_start_test_message()
-{
-	std::cout << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << "------------------- Testing phase -------------------" << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << std::endl;
-}
-
-void print_teardown_test_message()
-{
-	std::cout << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << "------------------- Teardown phase ------------------" << std::endl;
-	std::cout << "-----------------------------------------------------" << std::endl;
-	std::cout << std::endl;
-}
-
 int main(int argc, char** argv)
 {
 	int res = EXIT_SUCCESS;
 
-	print_setup_phase_message();
+	print_message("Setup phase");
 
 	::testing::InitGoogleTest(&argc, argv);
 
@@ -241,33 +258,33 @@ int main(int argc, char** argv)
 	}
 
 	/* We need to start the capture to calibrate socket with bpf engine */
-	if(scap_start_capture(event_test::scap_handle) != SCAP_SUCCESS)
+	if(scap_start_capture(event_test::s_scap_handle) != SCAP_SUCCESS)
 	{
-		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
 	/* We need to detach all tracepoints before starting tests. */
-	if(scap_stop_capture(event_test::scap_handle) != SCAP_SUCCESS)
+	if(scap_stop_capture(event_test::s_scap_handle) != SCAP_SUCCESS)
 	{
-		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
 	/* We need to disable also all the interesting syscalls */
-	if(scap_clear_ppm_sc_mask(event_test::scap_handle) != SCAP_SUCCESS)
+	if(scap_clear_ppm_sc_mask(event_test::s_scap_handle) != SCAP_SUCCESS)
 	{
-		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::scap_handle) << std::endl;
+		std::cout << "Error in clearing the syscalls of interests: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
 		goto cleanup_tests;
 	}
 
-	print_start_test_message();
+	print_message("Testing phase");
 
 	res = RUN_ALL_TESTS();
 
 cleanup_tests:
-	print_teardown_test_message();
-	scap_close(event_test::scap_handle);
+	print_message("Teardown phase");
+	scap_close(event_test::s_scap_handle);
 	remove_kmod();
 	return res;
 }
