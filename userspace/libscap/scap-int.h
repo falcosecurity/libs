@@ -39,11 +39,6 @@ extern "C" {
 #endif
 
 //
-// Process flags
-//
-#define PF_CLONING 1
-
-//
 // The open instance handle
 //
 struct scap
