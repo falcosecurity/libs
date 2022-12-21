@@ -401,87 +401,50 @@ bool cri_interface::is_pod_sandbox(const std::string &container_id)
 	return status.ok();
 }
 
-std::string cri_interface::get_pod_info_cniresult_interfaces(const std::string &pod_sandbox_id)
+void cri_interface::get_pod_info_cniresult_interfaces(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult_interfaces)
 {
-	runtime::v1alpha2::PodSandboxStatusRequest req;
-	runtime::v1alpha2::PodSandboxStatusResponse resp;
-	req.set_pod_sandbox_id(pod_sandbox_id);
-	req.set_verbose(true);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
-
-	if(!status.ok())
-	{
-		return "";
-	}
-
 	Json::Value root;
 	Json::Reader reader;
 	const auto &info_it = resp.info();
 	if(reader.parse(info_it.find("info")->second, root))
 	{
-		std::string interfaces = "";
 		Json::Value& jvalue_interfaces = root["cniResult"]["Interfaces"];
 		if(!jvalue_interfaces.isNull())
 		{
-			jvalue_interfaces.removeMember("lo"); // remove loopback network interface
+			/* If applicable remove members / fields not needed for incident response. */
+			jvalue_interfaces.removeMember("lo");
+			for (auto& key : jvalue_interfaces.getMemberNames())
+			{
+				if (0 == strncmp(key.c_str(), "veth", 4))
+				{
+					jvalue_interfaces.removeMember(key);
+				} else
+				{
+					jvalue_interfaces[key].removeMember("Mac");
+					jvalue_interfaces[key].removeMember("Sandbox");
+				}
+			}
 			Json::FastWriter fastWriter;
-			interfaces = fastWriter.write(jvalue_interfaces);
-			interfaces.erase(std::remove(interfaces.begin(), interfaces.end(), '\n'), interfaces.end());
-			interfaces.resize(MAX_CNIRESULT_INTEFACES_LENGTH);
+			cniresult_interfaces = fastWriter.write(jvalue_interfaces);
+			cniresult_interfaces.erase(std::remove(cniresult_interfaces.begin(), cniresult_interfaces.end(), '\n'), cniresult_interfaces.end());
+			cniresult_interfaces.resize(MAX_CNIRESULT_INTEFACES_LENGTH);
 		}
-		return interfaces;
 	}
-	return "";
 }
 
-std::string cri_interface::get_container_cniresult_interfaces(const std::string &container_id)
-{
-	runtime::v1alpha2::ListContainersRequest req;
-	runtime::v1alpha2::ListContainersResponse resp;
-	auto filter = req.mutable_filter();
-	filter->set_id(container_id);
-	grpc::ClientContext context;
-	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
-	context.set_deadline(deadline);
-	grpc::Status lstatus = m_cri->ListContainers(&context, req, &resp);
-
-	switch(resp.containers_size())
-	{
-		case 0:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI", container_id.c_str());
-			ASSERT(false);
-			break;
-		case 1: {
-			const auto& cri_container = resp.containers(0);
-			return get_pod_info_cniresult_interfaces(cri_container.pod_sandbox_id());
-		}
-		default:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI", container_id.c_str());
-			ASSERT(false);
-			break;
-	}
-	return "";
-}
-
-uint32_t cri_interface::get_pod_sandbox_ip(const std::string &pod_sandbox_id)
+void cri_interface::get_pod_sandbox_resp(const std::string &pod_sandbox_id, runtime::v1alpha2::PodSandboxStatusResponse &resp, grpc::Status &status)
 {
 	runtime::v1alpha2::PodSandboxStatusRequest req;
-	runtime::v1alpha2::PodSandboxStatusResponse resp;
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_timeout);
 	context.set_deadline(deadline);
-	grpc::Status status = m_cri->PodSandboxStatus(&context, req, &resp);
+	status = m_cri->PodSandboxStatus(&context, req, &resp);
+}
 
-	if(!status.ok())
-	{
-		return 0;
-	}
-
+uint32_t cri_interface::get_pod_sandbox_ip(runtime::v1alpha2::PodSandboxStatusResponse &resp)
+{
 	if(pod_uses_host_netns(resp))
 	{
 		return 0;
@@ -504,8 +467,10 @@ uint32_t cri_interface::get_pod_sandbox_ip(const std::string &pod_sandbox_id)
 	}
 }
 
-uint32_t cri_interface::get_container_ip(const std::string &container_id)
+void cri_interface::get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult_interfaces)
 {
+	container_ip = 0;
+	cniresult_interfaces = "";
 	runtime::v1alpha2::ListContainersRequest req;
 	runtime::v1alpha2::ListContainersResponse resp;
 	auto filter = req.mutable_filter();
@@ -523,14 +488,20 @@ uint32_t cri_interface::get_container_ip(const std::string &container_id)
 			break;
 		case 1: {
 			const auto& cri_container = resp.containers(0);
-			return ntohl(get_pod_sandbox_ip(cri_container.pod_sandbox_id()));
+			runtime::v1alpha2::PodSandboxStatusResponse resp_pod;
+			grpc::Status status_pod;
+			get_pod_sandbox_resp(cri_container.pod_sandbox_id(), resp_pod, status_pod);
+			if (status_pod.ok())
+			{
+				container_ip =  ntohl(get_pod_sandbox_ip(resp_pod));
+				get_pod_info_cniresult_interfaces(resp_pod, cniresult_interfaces);
+			}
 		}
 		default:
 			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI", container_id.c_str());
 			ASSERT(false);
 			break;
 	}
-	return 0;
 }
 
 std::string cri_interface::get_container_image_id(const std::string &image_ref)

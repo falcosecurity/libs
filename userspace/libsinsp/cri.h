@@ -144,34 +144,37 @@ public:
 
 	/**
 	 * @brief get pod IP address
-	 * @param pod_sandbox_id ID of the pod sandbox
+	 * @param resp initialized runtime::v1alpha2::PodSandboxStatusResponse of the pod sandbox
 	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)
 	 */
-	uint32_t get_pod_sandbox_ip(const std::string &pod_sandbox_id);
+	uint32_t get_pod_sandbox_ip(runtime::v1alpha2::PodSandboxStatusResponse &resp);
 
 	/**
-	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field
+	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field and add unparsed JSON string with cniResult.Interfaces of the pod sandbox.
+	 * @param resp initialized runtime::v1alpha2::PodSandboxStatusResponse of the pod sandbox
+	 * @param cniresult_interfaces initialized cniresult_interfaces
+	 */
+	void get_pod_info_cniresult_interfaces(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult_interfaces);
+
+	/**
+	 * @brief make request and update PodSandboxStatusResponse and grpc::Status.
 	 * @param pod_sandbox_id ID of the pod sandbox
-	 * @return unparsed JSON string with cniResult.Interfaces of the pod sandbox
+	 * @param resp initialized runtime::v1alpha2::PodSandboxStatusResponse of the pod sandbox
+	 * @param status initialized grpc::Status
 	 */
-	std::string get_pod_info_cniresult_interfaces(const std::string &pod_sandbox_id);
+	void get_pod_sandbox_resp(const std::string &pod_sandbox_id, runtime::v1alpha2::PodSandboxStatusResponse &resp, grpc::Status &status);
 
 	/**
-	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field
+	 * @brief get container IP address if possible, 0 otherwise (e.g. when the pod uses host netns),
+	 *  get cniResult.Interfaces from PodSandboxStatusResponse info() field and add unparsed JSON string with cniResult.Interfaces of the pod sandbox.
 	 * @param container_id the container ID
-	 * @return unparsed JSON string with cniResult.Interfaces of the pod sandbox
-	 */
-	std::string get_container_cniresult_interfaces(const std::string &container_id);
-
-	/**
-	 * @brief get container IP address
-	 * @param container_id the container ID
-	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)
+	 * @param container_ip initialized container_ip
+	 * @param cniresult_interfaces initialized cniresult_interfaces
 	 *
-	 * This method first finds the pod ID, then gets the IP address
+	 * This method first finds the pod ID, then gets the IP address and also checks for cniResult.Interfaces
 	 * of the pod sandbox container
 	 */
-	uint32_t get_container_ip(const std::string &container_id);
+	void get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult_interfaces);
 
 	/**
 	 * @brief get image id info from CRI
