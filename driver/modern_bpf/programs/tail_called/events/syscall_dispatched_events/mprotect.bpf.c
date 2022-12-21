@@ -7,6 +7,8 @@
 
 /*=============================== ENTER EVENT ===========================*/
 
+#include <helpers/interfaces/fixed_size_event.h>
+
 SEC("tp_btf/sys_enter")
 int BPF_PROG(mprotect_e,
 	     struct pt_regs *regs,
