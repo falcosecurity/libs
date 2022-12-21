@@ -1082,8 +1082,8 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	// - this is the top-level call (parenttid == -1)
 	// - one or both of the timing parameters is configured to non-zero
 	bool do_timing = (parenttid == -1) &&
-	                 ((handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
-	                  (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
+	                 ((linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE) ||
+	                  (linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE));
 	uint64_t monotonic_ts_context = SCAP_GET_CUR_TS_MS_CONTEXT_INIT;
 	uint64_t start_ts_ms = 0;
 	uint64_t last_log_ts_ms = 0;
@@ -1203,10 +1203,10 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				max_proc_time_ms = this_proc_elapsed_time_ms;
 			}
 
-			if (handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
+			if (linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE)
 			{
 				uint64_t log_elapsed_time_ms = cur_ts_ms - last_log_ts_ms;
-				if (log_elapsed_time_ms >= handle->m_proc_scan_log_interval_ms)
+				if (log_elapsed_time_ms >= linux_platform->m_proc_scan_log_interval_ms)
 				{
 					scap_debug_log(linux_platform,
 						"scap_proc_scan: %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
@@ -1221,9 +1221,9 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				}
 			}
 
-			if (handle->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
+			if (linux_platform->m_proc_scan_timeout_ms != SCAP_PROC_SCAN_TIMEOUT_NONE)
 			{
-				if (total_elapsed_time_ms >= handle->m_proc_scan_timeout_ms)
+				if (total_elapsed_time_ms >= linux_platform->m_proc_scan_timeout_ms)
 				{
 					timeout_expired = true;
 				}
@@ -1242,7 +1242,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		{
 			scap_debug_log(linux_platform,
 				"scap_proc_scan TIMEOUT (%ld ms): %ld proc in %ld ms, avg=%ld/min=%ld/max=%ld, last pid %ld, num_fds %ld",
-				handle->m_proc_scan_timeout_ms,
+				linux_platform->m_proc_scan_timeout_ms,
 				num_procs_processed,
 				total_elapsed_time_ms,
 				avg_proc_time_ms,
@@ -1251,7 +1251,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 				last_tid_processed,
 				total_num_fds);
 		}
-		else if ((handle->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
+		else if ((linux_platform->m_proc_scan_log_interval_ms != SCAP_PROC_SCAN_LOG_NONE) &&
 			(num_procs_processed != 0))
 		{
 			scap_debug_log(linux_platform,

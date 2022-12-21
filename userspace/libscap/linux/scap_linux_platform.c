@@ -80,6 +80,8 @@ int32_t scap_linux_early_init_platform(struct scap_platform* platform, char* las
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
 	linux_platform->m_lasterr = lasterr;
 
+	linux_platform->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	linux_platform->m_debug_log_fn = oargs->debug_log_fn;
 
 	linux_platform->m_cgroup_version = scap_get_cgroup_version();
