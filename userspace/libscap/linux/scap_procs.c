@@ -1055,7 +1055,7 @@ int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct
 //
 // Scan a directory containing multiple processes under /proc
 //
-static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, int parenttid, char *error)
+static int32_t _scap_proc_scan_proc_dir_impl(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, char* procdirname, int parenttid, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -1068,7 +1068,6 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 	uint64_t total_num_fds = 0;
 	uint64_t last_tid_processed = 0;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	dir_p = opendir(procdirname);
 
@@ -1132,7 +1131,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// are an error, or at least unexpected. Check the process
 		// list to see if we've encountered this tid already
 		//
-		HASH_FIND_INT64(handle->m_proclist.m_proclist, &tid, tinfo);
+		HASH_FIND_INT64(proclist->m_proclist, &tid, tinfo);
 		if(tinfo != NULL)
 		{
 			ASSERT(false);
@@ -1146,7 +1145,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// We have a process that needs to be explored
 		//
 		uint64_t num_fds_this_proc;
-		res = scap_proc_add_from_proc(linux_platform, &handle->m_proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
+		res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
@@ -1172,7 +1171,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		if(parenttid == -1 && !linux_platform->m_minimal_scan)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
-			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)
+			if(_scap_proc_scan_proc_dir_impl(linux_platform, proclist, childdir, tid, error) == SCAP_FAILURE)
 			{
 				res = SCAP_FAILURE;
 				break;
@@ -1277,9 +1276,11 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 {
 	char procdirname[SCAP_MAX_PATH_SIZE];
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
+
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
 
-	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
+	return _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_proclist, procdirname, -1, error);
 }
 
 
