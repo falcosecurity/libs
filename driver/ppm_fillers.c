@@ -2441,13 +2441,31 @@ int f_sys_recvfrom_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	if(!args->is_socketcall)
+	{
+		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	}
+#ifndef UDIG
+	else
+	{
+		val = args->socketcall_args[0];
+	}
+#endif
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	if(!args->is_socketcall)
+	{
+		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	}
+#ifndef UDIG
+	else
+	{
+		val = args->socketcall_args[2];
+	}
+#endif
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -2764,7 +2782,16 @@ int f_sys_recvmsg_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	if(!args->is_socketcall)
+	{
+		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	}
+#ifndef UDIG
+	else
+	{
+		val = args->socketcall_args[0];
+	}
+#endif
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
