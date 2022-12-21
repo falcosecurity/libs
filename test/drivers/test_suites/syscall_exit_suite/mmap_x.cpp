@@ -12,11 +12,11 @@ TEST(SyscallExit, mmapX)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	void *mock_addr = NULL;
-	size_t mock_length = 1024;
+	void *mock_addr = (void *)0;
+	size_t mock_length = 4096;
 	int mock_prot = PROT_EXEC | PROT_READ;
 	int mock_flags = MAP_SHARED;
-	int mock_fd = 3;
+	int mock_fd = -1;
 	off_t mock_offset = 1023;
 
 	assert_syscall_state(SYSCALL_FAILURE, "mmap", syscall(__NR_mmap, mock_addr, mock_length, mock_prot, mock_flags, mock_fd, mock_offset));
