@@ -150,17 +150,6 @@ typedef struct scap_stats
 }scap_stats;
 
 /*!
-  \brief Information about the parameter of an event
-*/
-typedef struct evt_param_info
-{
-	const char* name; ///< The event name.
-	uint32_t type; ///< The event type. See the ppm_event_type enum in driver/ppm_events_public.h
-	uint32_t len; ///< The event total length.
-	char* val; ///< The event data.
-}evt_param_info;
-
-/*!
   \brief File Descriptor type
 */
 typedef enum scap_fd_type
