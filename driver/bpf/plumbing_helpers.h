@@ -212,7 +212,7 @@ static __always_inline void record_cpu_ontime_and_out(void *ctx, struct sysdig_b
 				bpf_cpu_analysis(ctx, infop->tid);
 			}
 			// clear
-			infop->start_ts = settings->boot_time + start_ts;
+			infop->start_ts = infop->end_ts;
 			infop->index = 0;
 			memset(infop->time_type, 0, sizeof(infop->time_type));
 			memset(infop->times_specs, 0, sizeof(infop->times_specs));
