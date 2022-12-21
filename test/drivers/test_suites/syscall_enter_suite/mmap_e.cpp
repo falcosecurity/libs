@@ -12,11 +12,11 @@ TEST(SyscallEnter, mmapE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	void *mock_addr = NULL;
-	size_t mock_length = 1024;
+	void *mock_addr = (void *)87;
+	size_t mock_length = 4096;
 	int mock_prot = PROT_EXEC | PROT_READ;
 	int mock_flags = MAP_SHARED;
-	int mock_fd = 3;
+	int mock_fd = -1;
 	off_t mock_offset = 1023;
 
 	assert_syscall_state(SYSCALL_FAILURE, "mmap", syscall(__NR_mmap, mock_addr, mock_length, mock_prot, mock_flags, mock_fd, mock_offset));
@@ -39,21 +39,21 @@ TEST(SyscallEnter, mmapE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	evt_test->assert_only_param_len(1, sizeof(uint64_t));
+	evt_test->assert_numeric_param(1, (uint64_t)mock_addr);
 
 	/* Parameter 2: length (type: PT_UINT64) */
 	evt_test->assert_numeric_param(2, (uint64_t)mock_length);
 
 	/* Parameter 3: prot (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(3, (uint32_t)mock_prot);
+	evt_test->assert_numeric_param(3, (uint32_t)PPM_PROT_EXEC | PPM_PROT_READ);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(4, (uint32_t)mock_flags);
+	evt_test->assert_numeric_param(4, (uint32_t)PPM_MAP_SHARED);
 
 	/* Parameter 5: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(5, (uint64_t)mock_fd);
+	evt_test->assert_numeric_param(5, (int64_t)mock_fd);
 	
-	/* Parameter 6: offset/pgprot (type: PT_UINT64) */
+	/* Parameter 6: offset (type: PT_UINT64) */
 	evt_test->assert_numeric_param(6, (uint64_t)mock_offset);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

@@ -49,27 +49,23 @@ int BPF_PROG(munmap_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, MUNMAP_X_SIZE))
-        {
-                return 0;
-        }
+	if(!ringbuf__reserve_space(&ringbuf, MUNMAP_X_SIZE))
+	{
+		return 0;
+	}
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MUNMAP_X);
-	
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MUNMAP_X);
+
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	u32 vm_size = 0;
-	u32 rss_size = 0;
-       	u32 swap_size = 0;	
 	struct task_struct *task = get_current_task();
-        struct mm_struct *mm = NULL;
-       	READ_TASK_FIELD_INTO(&mm, task, mm);
-	if (mm) {
-		vm_size = extract__vm_size(mm);
-		rss_size = extract__vm_rss(mm);
-		swap_size = extract__vm_swap(mm);
-	}
+	struct mm_struct *mm = NULL;
+	READ_TASK_FIELD_INTO(&mm, task, mm);
+
+	u32 vm_size = extract__vm_size(mm);
+	u32 rss_size = extract__vm_rss(mm);
+	u32 swap_size = extract__vm_swap(mm);
 
 	/* Parameter 2: vm_size (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, vm_size);

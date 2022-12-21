@@ -13,7 +13,7 @@ TEST(SyscallEnter, munmapE)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	void *mock_addr = (void *)1;
-	size_t mock_length = 1024;
+	size_t mock_length = 1023;
 	assert_syscall_state(SYSCALL_FAILURE, "munmap", syscall(__NR_munmap, mock_addr, mock_length));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -34,7 +34,7 @@ TEST(SyscallEnter, munmapE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	evt_test->assert_only_param_len(1, sizeof(uint64_t));
+	evt_test->assert_numeric_param(1, (uint64_t)mock_addr);
 
 	/* Parameter 2: length (type: PT_UINT64) */
 	evt_test->assert_numeric_param(2, (uint64_t)mock_length);

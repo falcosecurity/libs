@@ -25,28 +25,28 @@ int BPF_PROG(mmap_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	unsigned long val = extract__syscall_argument(regs, 0);
-	ringbuf__store_u64(&ringbuf, val);
+	unsigned long addr = extract__syscall_argument(regs, 0);
+	ringbuf__store_u64(&ringbuf, addr);
 
 	/* Parameter 2: length (type: PT_UINT64) */
-	val = extract__syscall_argument(regs, 1);
-	ringbuf__store_u64(&ringbuf, val);
+	unsigned long length = extract__syscall_argument(regs, 1);
+	ringbuf__store_u64(&ringbuf, length);
 
 	/* Parameter 3: prot (type: PT_FLAGS32) */
-	val = extract__syscall_argument(regs, 2);
-	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(val));
+	unsigned long prot = extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(prot));
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	val = extract__syscall_argument(regs, 3);
-	ringbuf__store_u32(&ringbuf, mmap_flags_to_scap(val));
+	unsigned long flags = extract__syscall_argument(regs, 3);
+	ringbuf__store_u32(&ringbuf, mmap_flags_to_scap(flags));
 
 	/* Paremeter 5: fd (type: PT_FD) */
-	val = extract__syscall_argument(regs, 4);
-	ringbuf__store_u64(&ringbuf, val);
+	s32 fd = (s32)extract__syscall_argument(regs, 4);
+	ringbuf__store_s64(&ringbuf, (s64)fd);
 
-	/* Parameter 6: offset/pgprot (type: PT_UINT64) */
-	val = extract__syscall_argument(regs, 5);
-	ringbuf__store_u64(&ringbuf, val);
+	/* Parameter 6: offset (type: PT_UINT64) */
+	unsigned long offset = extract__syscall_argument(regs, 5);
+	ringbuf__store_u64(&ringbuf, offset);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -65,27 +65,23 @@ int BPF_PROG(mmap_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, MMAP_X_SIZE))
-        {
-                return 0;
-        }
+	if(!ringbuf__reserve_space(&ringbuf, MMAP_X_SIZE))
+	{
+		return 0;
+	}
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MMAP_X);
-	
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MMAP_X);
+
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
-	u32 vm_size = 0;
-	u32 rss_size = 0;
-       	u32 swap_size = 0;	
 	struct task_struct *task = get_current_task();
-        struct mm_struct *mm = NULL;
-       	READ_TASK_FIELD_INTO(&mm, task, mm);
-	if (mm) {
-		vm_size = extract__vm_size(mm);
-		rss_size = extract__vm_rss(mm);
-		swap_size = extract__vm_swap(mm);
-	}
+	struct mm_struct *mm = NULL;
+	READ_TASK_FIELD_INTO(&mm, task, mm);
+
+	u32 vm_size = extract__vm_size(mm);
+	u32 rss_size = extract__vm_rss(mm);
+	u32 swap_size = extract__vm_swap(mm);
 
 	/* Parameter 2: vm_size (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, vm_size);
