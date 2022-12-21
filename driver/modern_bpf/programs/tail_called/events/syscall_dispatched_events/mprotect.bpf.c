@@ -5,9 +5,6 @@
  * or GPL2.txt for full copies of the license.
  */
 
-#include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/variable_size_event.h>
-
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
