@@ -6287,8 +6287,8 @@ const filtercheck_field_info sinsp_filter_check_container_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "container.readiness_probe", "Readiness", "The container's readiness probe. Will be the null value (\"N/A\") if no readiness probe configured, the readiness probe command line otherwise"},
 	{PT_UINT64, EPF_NONE, PF_DEC, "container.start_ts", "Container start ts (epoch in ns)", "Approximate container start ts (epoch in ns) based on proc.pidns_init_start_ts."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "container.duration", "Number of nanoseconds since container.start_ts", "Number of nanoseconds since container.start_ts."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's /pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider logging container.ips_cniresult_interfaces for tracking every single ip and interface (ipv4 and ipv6)."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ips_cniresult_interfaces", "Container / pod ip addresses for each interface", "The container's / pod's ip addresses for each network interface (except loopback) as retrieved from CRI PodSandboxStatusResponse info.cniResult.Interfaces. Exposed as unparsed escaped JSON string. Only applies for CRI container engine."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.ip", "Container ip address", "The container's / pod's primary ip address as retrieved from the container engine. Only ipv4 addresses are tracked. Consider logging container.cni.json (CRI use case) for logging ip addresses for each network interface."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "container.cni.json", "Container / pod ip addresses for each network interface", "The container's / pod's ip addresses for each network interface (except loopback and veth*) as retrieved from CRI PodSandboxStatusResponse info.cniResult.Interfaces. Exposed as unparsed escaped JSON string. Supported for CRI container engine. Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support)."},
 };
 
 sinsp_filter_check_container::sinsp_filter_check_container()
