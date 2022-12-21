@@ -539,7 +539,7 @@ int mesos_http::get_socket(long timeout_ms)
 
 		check_error(curl_easy_perform(m_select_curl));
 
-		check_error(curl_easy_getinfo(m_select_curl, CURLINFO_LASTSOCKET, &sockextr));
+		check_error(curl_easy_getinfo(m_select_curl, CURLINFO_ACTIVESOCKET, &sockextr));
 		m_watch_socket = sockextr;
 
 		if(!wait(0))
