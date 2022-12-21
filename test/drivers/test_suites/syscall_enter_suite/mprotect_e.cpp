@@ -41,7 +41,7 @@ TEST(SyscallEnter, mprotectE)
 	evt_test->assert_numeric_param(2, (uint64_t)mock_size);
 
 	/* Parameter 3: prot (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(3, (uint32_t)mock_prot);
+	evt_test->assert_numeric_param(3, PPM_PROT_READ | PPM_PROT_EXEC);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
