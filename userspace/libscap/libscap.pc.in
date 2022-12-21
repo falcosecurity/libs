@@ -6,5 +6,5 @@ Name: libscap
 Description: lib for System CAPture
 Version: @FALCOSECURITY_LIBS_VERSION@
 
-Libs: -L${libdir}/@LIBS_PACKAGE_NAME@ -lscap @SCAP_LINK_LIBRARIES_FLAGS@
+Libs: -L${libdir}/@LIBS_PACKAGE_NAME@ -lscap -lscap_error -lscap_platform @SCAP_LINK_LIBRARIES_FLAGS@
 Cflags: -I${includedir}/@LIBS_PACKAGE_NAME@/userspace/libscap
