@@ -15,9 +15,9 @@ TEST(SyscallEnter, getsockoptE)
 	int socket_fd = 0;
 	int level = 0;
 	int option_name = 0;
-	const void* option_value = NULL;
+	int option_value = 0;
 	socklen_t option_len = 0;
-	assert_syscall_state(SYSCALL_FAILURE, "getsockopt", syscall(__NR_getsockopt, socket_fd, level, option_name, option_value, option_len));
+	assert_syscall_state(SYSCALL_FAILURE, "getsockopt", syscall(__NR_getsockopt, socket_fd, level, option_name, &option_value, &option_len));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

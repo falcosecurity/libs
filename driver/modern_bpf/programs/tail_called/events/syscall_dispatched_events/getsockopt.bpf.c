@@ -68,9 +68,15 @@ int BPF_PROG(getsockopt_x,
 	u8 optname = (u8)extract__syscall_argument(regs, 2);
 	auxmap__store_u8_param(auxmap, sockopt_optname_to_scap(level, optname));
 
+	/* `optval` and `optlen` will be the ones provided by the user if the syscall fails
+	 * otherwise they will be directly extracted from the socket.
+	 */
+
 	/* Parameter 5: optval (type: PT_DYN) */
 	unsigned long optval = extract__syscall_argument(regs, 3);
-	u16 optlen = (u16)extract__syscall_argument(regs, 4);
+	u16 optlen = 0;
+	unsigned long optlen_pointer = extract__syscall_argument(regs, 4);
+	bpf_probe_read_user(&optlen, sizeof(optlen), (void *)optlen_pointer);
 	auxmap__store_sockopt_param(auxmap, level, optname, optlen, optval);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
