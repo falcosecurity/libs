@@ -12,7 +12,7 @@ TEST(SyscallEnter, mprotectE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	void *mock_addr = (void *)1;
+	void *mock_addr = (void *)0;
 	size_t mock_size = 4096;
 	int mock_prot = PROT_READ | PROT_EXEC;
 	assert_syscall_state(SYSCALL_FAILURE, "mprotect", syscall(__NR_mprotect, mock_addr, mock_size, mock_prot));
@@ -35,7 +35,7 @@ TEST(SyscallEnter, mprotectE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: addr (type: PT_UINT64) */
-	evt_test->assert_only_param_len(1, sizeof(uint64_t));
+	evt_test->assert_numeric_param(1, (uint64_t)mock_addr);
 
 	/* Parameter 2: size (type: PT_UINT64) */
 	evt_test->assert_numeric_param(2, (uint64_t)mock_size);
