@@ -5,10 +5,6 @@
 #include <netdb.h>
 #include <time.h>
 
-/* Used in `SO_RCVTIMEO` test. */
-#define SEC_FACTOR 1000000000
-#define USEC_FACTOR 1000
-
 TEST(SyscallExit, setsockoptX_SO_ERROR)
 {
 	auto evt_test = get_syscall_event_test(__NR_setsockopt, EXIT_EVENT);

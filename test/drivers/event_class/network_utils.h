@@ -1,5 +1,9 @@
 #pragma once
 
+/* Used in `SO_RCVTIMEO` test. */
+#define SEC_FACTOR 1000000000
+#define USEC_FACTOR 1000
+
 /* Network components size. */
 #define FAMILY_SIZE sizeof(uint8_t)
 #define IPV4_SIZE sizeof(uint32_t)
