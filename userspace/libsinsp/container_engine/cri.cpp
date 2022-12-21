@@ -85,8 +85,14 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
-		container.m_container_ip = ntohl(m_cri->get_pod_sandbox_ip(pod_sandbox_id));
-		container.m_cniresult_interfaces = m_cri->get_pod_info_cniresult_interfaces(pod_sandbox_id);
+		runtime::v1alpha2::PodSandboxStatusResponse resp_pod;
+		grpc::Status status_pod;
+		m_cri->get_pod_sandbox_resp(pod_sandbox_id, resp_pod, status_pod);
+		if (status_pod.ok())
+		{
+			container.m_container_ip =  ntohl(m_cri->get_pod_sandbox_ip(resp_pod));
+			m_cri->get_pod_info_cniresult_interfaces(resp_pod, container.m_cniresult_interfaces);
+		}
 	}
 
 	return ret;
@@ -169,11 +175,7 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 	{
 		if(!container.m_container_ip)
 		{
-			container.m_container_ip = m_cri->get_container_ip(container.m_id);
-		}
-		if(container.m_cniresult_interfaces.empty())
-		{
-			container.m_cniresult_interfaces = m_cri->get_container_cniresult_interfaces(container.m_id);
+			m_cri->get_container_ip(container.m_id, container.m_container_ip, container.m_cniresult_interfaces);
 		}
 		if(container.m_imageid.empty())
 		{
