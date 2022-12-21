@@ -67,6 +67,9 @@ struct scap_linux_platform
 	uint32_t m_fd_lookup_limit;
 	bool m_minimal_scan;
 
+	// Function which may be called to log a debug event
+	void(*m_debug_log_fn)(const char* msg);
+
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;
 };

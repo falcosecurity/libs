@@ -17,16 +17,17 @@ limitations under the License.
 #ifndef __DEBUG_LOG_HELPERS_H
 #define __DEBUG_LOG_HELPERS_H
 
-#include "scap.h"
 #include <stdarg.h>
+
+#define scap_debug_log(HANDLE, ...) scap_debug_log_impl(HANDLE->m_debug_log_fn, __VA_ARGS__)
 
 /**
  * If debug_log_fn has been established in the handle, call that function
  * to log a debug message.
  */
-static void scap_debug_log(scap_t* handle, const char* fmt, ...)
+static inline void scap_debug_log_impl(void(*debug_log_fn)(const char* msg), const char* fmt, ...)
 {
-	if (handle->m_debug_log_fn != NULL)
+	if (debug_log_fn != NULL)
 	{
 		char buf[256];
 		va_list ap;
@@ -34,7 +35,7 @@ static void scap_debug_log(scap_t* handle, const char* fmt, ...)
 		vsnprintf(buf, sizeof(buf), fmt, ap);
 		va_end(ap);
 
-		(*handle->m_debug_log_fn)(buf);
+		(*debug_log_fn)(buf);
 	}
 }
 
