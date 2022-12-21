@@ -354,19 +354,7 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 
 	scap_userinfo *retval{nullptr};
 
-	//
-	// When a container is running with a specific user and this
-	// get called with 0, it's too early to make an attempt.
-	// As a downside we won't load users for containers running as
-	// root, but we will load them if e.g.docker exec -u <specific-user>.
-	//
-	if (uid == 0)
-	{
-		return retval;
-	}
-
 #if defined HAVE_PWD_H && defined HAVE_FGET__ENT
-
 	if(!m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return retval;
@@ -485,17 +473,6 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 			"adding container [%s] group: %d", container_id.c_str(), gid);
 
 	scap_groupinfo *retval{nullptr};
-
-	//
-	// When a container is running with a specific user and this
-	// get called with 0, it's too early to make an attempt.
-	// As a downside we won't load users for containers running as
-	// root, but we will load them if e.g.docker exec -u <specific-user>.
-	//
-	if(gid == 0)
-	{
-		return retval;
-	}
 
 #if defined HAVE_GRP_H && defined HAVE_FGET__ENT
 	if(!m_ns_helper->in_own_ns_mnt(pid))
