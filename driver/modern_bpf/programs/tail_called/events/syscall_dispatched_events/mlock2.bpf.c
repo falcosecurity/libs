@@ -61,10 +61,10 @@ int BPF_PROG(mlock2_x,
 	val = extract__syscall_argument(regs, 1);
 	ringbuf__store_u64(&ringbuf, val);
 
-	/* Parameter 4: flags (PT_UINT64) */
+	/* Parameter 4: flags (PT_UINT32) */
 	val = extract__syscall_argument(regs, 2);
-	unsigned long flags = mlock2_flags_to_scap(val);
-	ringbuf__store_u64(&ringbuf, flags);
+	int flags = mlock2_flags_to_scap(val);
+	ringbuf__store_u32(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

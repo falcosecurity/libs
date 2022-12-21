@@ -12,9 +12,14 @@ TEST(SyscallExit, mlockallX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long mock_flags{0};
-	assert_syscall_state(SYSCALL_FAILURE, "mlockall", syscall(__NR_mlockall, mock_flags));
-	int64_t errno_value = -errno;
+	unsigned long mock_flags = MCL_CURRENT;
+	int fd = syscall(__NR_mlockall, mock_flags);
+	assert_syscall_state(SYSCALL_SUCCESS, "mlockall", fd, NOT_EQUAL, -1);
+	int64_t errno_value = 0;
+	if (fd < 0)
+	{
+		errno_value = -errno;
+	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -37,7 +42,7 @@ TEST(SyscallExit, mlockallX)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: flags (type: PT_UINT64) */
-	evt_test->assert_numeric_param(2, mock_flags);
+	evt_test->assert_numeric_param(2, MCL_CURRENT);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

@@ -12,10 +12,10 @@ TEST(SyscallExit, mlock2X)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long mock_addr{0};
-	unsigned long mock_flags{0};
-	size_t mock_len{1024};
-	assert_syscall_state(SYSCALL_FAILURE, "mlock2", syscall(__NR_mlock2, NULL, mock_len, mock_flags));
+	void *mock_addr = (void *)0;
+	int mock_flags = 0;
+	size_t mock_len = 4096;
+	assert_syscall_state(SYSCALL_FAILURE, "mlock2", syscall(__NR_mlock2, mock_addr, mock_len, mock_flags));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -39,12 +39,12 @@ TEST(SyscallExit, mlock2X)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: addr (type: PT_UINT64) */
-	evt_test->assert_numeric_param(2, mock_addr);
+	evt_test->assert_numeric_param(2, (uint64_t)mock_addr);
 
 	/* Parameter 3: len (type: PT_UINT64) */
 	evt_test->assert_numeric_param(3, mock_len);
 
-	/* Parameter 4: flags (type: PT_UINT64) */
+	/* Parameter 4: flags (type: PT_UINT32) */
 	evt_test->assert_numeric_param(4, mock_flags);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
