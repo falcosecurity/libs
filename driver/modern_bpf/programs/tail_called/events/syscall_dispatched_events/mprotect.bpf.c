@@ -35,7 +35,7 @@ int BPF_PROG(mprotect_e,
 
 	/* Parameter 3: prot (type: PT_FLAGS32) */
 	u32 flags = extract__syscall_argument(regs, 2);
-	ringbuf__store_u32(&ringbuf, flags);
+	ringbuf__store_u32(&ringbuf, prot_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
