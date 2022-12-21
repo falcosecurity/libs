@@ -908,3 +908,4 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 		}
 	}
 }
+
