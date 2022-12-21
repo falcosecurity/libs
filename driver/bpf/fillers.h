@@ -2243,7 +2243,7 @@ static __always_inline bool get_exe_upper_layer(struct inode *inode)
 		
 		// Pointer arithmetics due to unexported ovl_inode struct
 		// warning: this works if and only if the dentry pointer is placed right after the inode struct
-		bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
+		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
 
 		if(upper_dentry)
 		{
