@@ -12,9 +12,9 @@ TEST(SyscallEnter, mlockE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long mock_addr = 1;
-	size_t mock_len{1024};
-	assert_syscall_state(SYSCALL_FAILURE, "mlock", syscall(__NR_mlock, (void *)mock_addr, mock_len));
+	void *mock_addr = (void *)0;
+	size_t mock_len = 4096;
+	assert_syscall_state(SYSCALL_FAILURE, "mlock", syscall(__NR_mlock, mock_addr, mock_len));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

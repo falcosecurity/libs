@@ -145,11 +145,11 @@
 #define MLOCK_E_SIZE HEADER_LEN
 #define MLOCK_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
 #define MLOCK2_E_SIZE HEADER_LEN
-#define MLOCK2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 3 + PARAM_LEN * 4
+#define MLOCK2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define MUNLOCK_E_SIZE HEADER_LEN
 #define MUNLOCK_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) * 2 + PARAM_LEN * 3
 #define MLOCKALL_E_SIZE HEADER_LEN
-#define MLOCKALL_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
+#define MLOCKALL_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define MUNLOCKALL_E_SIZE HEADER_LEN
 #define MUNLOCKALL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 

@@ -53,10 +53,10 @@ int BPF_PROG(mlockall_x,
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	ringbuf__store_s64(&ringbuf, ret);
 
-	/* Parameter 2: flags (PT_UINT64) */
+	/* Parameter 2: flags (PT_UINT32) */
 	unsigned long val = extract__syscall_argument(regs, 0);
-	unsigned long flags = mlockall_flags_to_scap(val);
-	ringbuf__store_u64(&ringbuf, flags);
+	int flags = mlockall_flags_to_scap(val);
+	ringbuf__store_u32(&ringbuf, flags);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
