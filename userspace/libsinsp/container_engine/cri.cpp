@@ -200,6 +200,8 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 	{
 		// containerd as primary default value when empty
 		s_cri_unix_socket_paths.emplace_back("/run/containerd/containerd.sock");
+		// crio-o as secondary default value when empty
+		s_cri_unix_socket_paths.emplace_back("/run/crio/crio.sock");
 	}
 
 
