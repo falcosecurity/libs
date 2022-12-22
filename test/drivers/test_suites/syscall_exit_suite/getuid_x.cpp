@@ -29,7 +29,7 @@ TEST(SyscallExit, getuidX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_UID) */
+	/* Parameter 1: uid (type: PT_UID) */
 	evt_test->assert_numeric_param(1, (uint32_t)uid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
