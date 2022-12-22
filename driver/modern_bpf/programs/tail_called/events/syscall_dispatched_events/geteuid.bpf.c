@@ -52,8 +52,8 @@ int BPF_PROG(geteuid_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-        /* Parameter 1: res (type: PT_UID) */
-        ringbuf__store_u32(&ringbuf, ret);
+        /* Parameter 1: euid (type: PT_UID) */
+        ringbuf__store_u32(&ringbuf, (u32)ret);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
