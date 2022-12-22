@@ -195,7 +195,7 @@ TEST(SyscallExit, execveX_success)
 	int options = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
 	{
 		FAIL() << "The child execve failed." << std::endl;
 	}
@@ -250,6 +250,9 @@ TEST(SyscallExit, execveX_success)
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(14, comm);
+
+	/* Parameter 15: cgroups (type: PT_CHARBUFARRAY) */
+	evt_test->assert_cgroup_param(15);
 
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_charbuf_array_param(16, &envp[0]);
