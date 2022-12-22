@@ -6,7 +6,6 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/variable_size_event.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
