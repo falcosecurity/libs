@@ -22,6 +22,8 @@ limitations under the License.
 
 /* For every event here we have the name of the corresponding bpf program. */
 static const char* event_prog_names[PPM_EVENT_MAX] = {
+	[PPME_GENERIC_E] = "generic_e",
+	[PPME_GENERIC_X] = "generic_x",
 	[PPME_SYSCALL_MKDIR_2_E] = "mkdir_e",
 	[PPME_SYSCALL_MKDIR_2_X] = "mkdir_x",
 	[PPME_SYSCALL_OPEN_E] = "open_e",
