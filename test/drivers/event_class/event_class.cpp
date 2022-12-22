@@ -146,6 +146,15 @@ event_test::event_test(int syscall_id, int event_direction):
 	{
 		m_tp_set[SYS_EXIT] = 1;
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
+
+		/* We need this patch to set the right event, the syscall table will
+		 * always return `PPME_GENERIC_E`.
+		 */
+		if(m_event_type == PPME_GENERIC_E)
+		{
+			m_event_type = PPME_GENERIC_X;
+		}
+
 		if(is_bpf_engine())
 		{
 			/* The bpf engine retrieves syscall params from sys_enter tracepoints
