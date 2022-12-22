@@ -29,7 +29,7 @@ TEST(SyscallExit, getgidX)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: gid (type: PT_UID) */
+	/* Parameter 1: gid (type: PT_GID) */
 	evt_test->assert_numeric_param(1, (uint32_t)gid);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
