@@ -97,32 +97,34 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 	}
 
 	size_t pos = systemd_cgroup.find("podman-");
-	if(pos == std::string::npos)
+	if(pos != std::string::npos)
+	{
+		int podman_pid; // unused except to set the sscanf return value
+		char c;         // ^ same
+		if(sscanf(systemd_cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2)
+		{
+			// cgroup doesn't match the expected pattern
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		if(!match_one_container_id(systemd_cgroup, ".scope/", "", container_id))
+		{
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		int uid = get_userns_root_uid(tinfo);
+		if(uid == 0)
+		{
+			// root doesn't spawn rootless containers
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		return uid;
+	}
+	else
 	{
 		return libsinsp::procfs_utils::NO_MATCH;
 	}
-
-	int podman_pid; // unused except to set the sscanf return value
-	char c;         // ^ same
-	if(sscanf(systemd_cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2)
-	{
-		// cgroup doesn't match the expected pattern
-		return libsinsp::procfs_utils::NO_MATCH;
-	}
-
-	if(!match_one_container_id(systemd_cgroup, ".scope/", "", container_id))
-	{
-		return libsinsp::procfs_utils::NO_MATCH;
-	}
-
-	int uid = get_userns_root_uid(tinfo);
-	if(uid == 0)
-	{
-		// root doesn't spawn rootless containers
-		return libsinsp::procfs_utils::NO_MATCH;
-	}
-
-	return uid;
 }
 }
 
