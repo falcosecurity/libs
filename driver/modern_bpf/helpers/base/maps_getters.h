@@ -50,6 +50,15 @@ static __always_inline u8 maps__get_event_num_params(u32 event_id)
 
 /*=============================== EVENT NUM PARAMS TABLE ===========================*/
 
+/*=============================== PPM_SC TABLE ===========================*/
+
+static __always_inline u16 maps__get_ppm_sc(u16 syscall_id)
+{
+	return g_ppm_sc_table[syscall_id & (SYSCALL_TABLE_SIZE - 1)];
+}
+
+/*=============================== PPM_SC TABLE ===========================*/
+
 /*=============================== AUXILIARY MAPS ===========================*/
 
 static __always_inline struct auxiliary_map *maps__get_auxiliary_map()
