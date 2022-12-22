@@ -39,7 +39,7 @@ TEST(GenericTracepoints, sched_proc_exec)
 	int options = 0;
 	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
 
-	if(__WEXITSTATUS(status) == EXIT_FAILURE)
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
 	{
 		FAIL() << "The child execve failed." << std::endl;
 	}
@@ -95,8 +95,18 @@ TEST(GenericTracepoints, sched_proc_exec)
 	evt_test->assert_charbuf_array_param(16, &envp[0]);
 
 	/* Parameter 20: flags (type: PT_UINT32) */
-	/* Right now we send always `0`. */
-	evt_test->assert_numeric_param(20, (uint32_t)0);
+	if(evt_test->is_modern_bpf_engine())
+	{
+		/// TODO: In the modern probe `exe_writable` is not yet implemented.
+		evt_test->assert_numeric_param(20, (uint32_t)0);
+	}
+	else
+	{
+		/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
+		 * file that is used to spawn it or is its owner or otherwise capable.
+		 */
+		evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
+	}
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
