@@ -25,10 +25,16 @@
  */
 
 /**
- * @brief Take as input the `ppm_event_type` enum and return the number
+ * @brief Take as input the `ppm_event_type` enum and returns the number
  * of parameters for that event.
  */
 __weak const volatile uint8_t g_event_params_table[PPM_EVENT_MAX];
+
+/**
+ * @brief Take as input the `syscall_id` and returns the PPM_SC_CODE
+ * associated with the syscall.
+ */
+__weak const volatile uint16_t g_ppm_sc_table[SYSCALL_TABLE_SIZE];
 
 /**
  * @brief Actual probe API version
