@@ -24,7 +24,7 @@ limitations under the License.
 #include "sinsp_int.h"
 
 using namespace std;
-#define MAX_CNIRESULT_INTEFACES_LENGTH 4096
+#define MAX_CNIRESULT_LENGTH 4096
 
 namespace {
 bool pod_uses_host_netns(const runtime::v1alpha2::PodSandboxStatusResponse& resp)
@@ -401,34 +401,48 @@ bool cri_interface::is_pod_sandbox(const std::string &container_id)
 	return status.ok();
 }
 
-void cri_interface::get_pod_info_cniresult_interfaces(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult_interfaces)
+void cri_interface::get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult)
 {
 	Json::Value root;
 	Json::Reader reader;
 	const auto &info_it = resp.info();
 	if(reader.parse(info_it.find("info")->second, root))
 	{
-		Json::Value& jvalue_interfaces = root["cniResult"]["Interfaces"];
-		if(!jvalue_interfaces.isNull())
+		Json::Value jvalue;
+		if (m_cri_runtime_type == CT_CONTAINERD)
 		{
-			/* If applicable remove members / fields not needed for incident response. */
-			jvalue_interfaces.removeMember("lo");
-			for (auto& key : jvalue_interfaces.getMemberNames())
+			jvalue = root["cniResult"]["Interfaces"];
+			if(!jvalue.isNull())
 			{
-				if (0 == strncmp(key.c_str(), "veth", 4))
+				/* If applicable remove members / fields not needed for incident response. */
+				jvalue.removeMember("lo");
+				for (auto& key : jvalue.getMemberNames())
 				{
-					jvalue_interfaces.removeMember(key);
-				} else
-				{
-					jvalue_interfaces[key].removeMember("Mac");
-					jvalue_interfaces[key].removeMember("Sandbox");
+					if (0 == strncmp(key.c_str(), "veth", 4))
+					{
+						jvalue.removeMember(key);
+					} else
+					{
+						jvalue[key].removeMember("Mac");
+						jvalue[key].removeMember("Sandbox");
+					}
 				}
 			}
-			Json::FastWriter fastWriter;
-			cniresult_interfaces = fastWriter.write(jvalue_interfaces);
-			cniresult_interfaces.erase(std::remove(cniresult_interfaces.begin(), cniresult_interfaces.end(), '\n'), cniresult_interfaces.end());
-			cniresult_interfaces.resize(MAX_CNIRESULT_INTEFACES_LENGTH);
+
+		} else if (m_cri_runtime_type == CT_CRIO)
+		{
+			/* CRIO container runtime does not expose cni result as parsed JSON, it's an escaped JSON string that contains list of ips without knowing the interface names. */
+			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];
 		}
+
+		if(!jvalue.isNull())
+		{
+			Json::FastWriter fastWriter;
+			cniresult = fastWriter.write(jvalue);
+			std::string chars = "\n\\";
+			cniresult.erase(remove_if(cniresult.begin(), cniresult.end(),[&chars](const char &c) {return chars.find(c) != std::string::npos;}), cniresult.end());
+			cniresult.resize(MAX_CNIRESULT_LENGTH);
+		}		
 	}
 }
 
@@ -467,10 +481,10 @@ uint32_t cri_interface::get_pod_sandbox_ip(runtime::v1alpha2::PodSandboxStatusRe
 	}
 }
 
-void cri_interface::get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult_interfaces)
+void cri_interface::get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult)
 {
 	container_ip = 0;
-	cniresult_interfaces = "";
+	cniresult = "";
 	runtime::v1alpha2::ListContainersRequest req;
 	runtime::v1alpha2::ListContainersResponse resp;
 	auto filter = req.mutable_filter();
@@ -494,7 +508,7 @@ void cri_interface::get_container_ip(const std::string &container_id, uint32_t &
 			if (status_pod.ok())
 			{
 				container_ip =  ntohl(get_pod_sandbox_ip(resp_pod));
-				get_pod_info_cniresult_interfaces(resp_pod, cniresult_interfaces);
+				get_pod_info_cniresult(resp_pod, cniresult);
 			}
 		}
 		default:

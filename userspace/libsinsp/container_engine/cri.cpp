@@ -90,8 +90,8 @@ bool cri_async_source::parse_containerd(const runtime::v1alpha2::ContainerStatus
 		m_cri->get_pod_sandbox_resp(pod_sandbox_id, resp_pod, status_pod);
 		if (status_pod.ok())
 		{
-			container.m_container_ip =  ntohl(m_cri->get_pod_sandbox_ip(resp_pod));
-			m_cri->get_pod_info_cniresult_interfaces(resp_pod, container.m_cniresult_interfaces);
+			container.m_container_ip = ntohl(m_cri->get_pod_sandbox_ip(resp_pod));
+			m_cri->get_pod_info_cniresult(resp_pod, container.m_pod_cniresult);
 		}
 	}
 
@@ -175,7 +175,7 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 	{
 		if(!container.m_container_ip)
 		{
-			m_cri->get_container_ip(container.m_id, container.m_container_ip, container.m_cniresult_interfaces);
+			m_cri->get_container_ip(container.m_id, container.m_container_ip, container.m_pod_cniresult);
 		}
 		if(container.m_imageid.empty())
 		{
@@ -198,9 +198,10 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 {
 	if (s_cri_unix_socket_paths.empty())
 	{
-		// Default value when empty
+		// containerd as primary default value when empty
 		s_cri_unix_socket_paths.emplace_back("/run/containerd/containerd.sock");
 	}
+
 
 	// Try all specified unix socket paths
 	// NOTE: having multiple container runtimes on the same host is a sporadic case,
