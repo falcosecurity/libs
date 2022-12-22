@@ -150,14 +150,14 @@ public:
 	uint32_t get_pod_sandbox_ip(runtime::v1alpha2::PodSandboxStatusResponse &resp);
 
 	/**
-	 * @brief get cniResult.Interfaces from PodSandboxStatusResponse info() field and add unparsed JSON string with cniResult.Interfaces of the pod sandbox.
+	 * @brief get unparsed JSON string with cni result of the pod sandbox from PodSandboxStatusResponse info() field.
 	 * @param resp initialized runtime::v1alpha2::PodSandboxStatusResponse of the pod sandbox
-	 * @param cniresult_interfaces initialized cniresult_interfaces
+	 * @param cniresult initialized cniresult
 	 */
-	void get_pod_info_cniresult_interfaces(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult_interfaces);
+	void get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult);
 
 	/**
-	 * @brief make request and update PodSandboxStatusResponse and grpc::Status.
+	 * @brief make request and get PodSandboxStatusResponse and grpc::Status.
 	 * @param pod_sandbox_id ID of the pod sandbox
 	 * @param resp initialized runtime::v1alpha2::PodSandboxStatusResponse of the pod sandbox
 	 * @param status initialized grpc::Status
@@ -166,15 +166,15 @@ public:
 
 	/**
 	 * @brief get container IP address if possible, 0 otherwise (e.g. when the pod uses host netns),
-	 *  get cniResult.Interfaces from PodSandboxStatusResponse info() field and add unparsed JSON string with cniResult.Interfaces of the pod sandbox.
+	 *  get unparsed JSON string with cni result of the pod sandbox from PodSandboxStatusResponse info() field.
 	 * @param container_id the container ID
 	 * @param container_ip initialized container_ip
-	 * @param cniresult_interfaces initialized cniresult_interfaces
+	 * @param cniresult initialized cniresult
 	 *
-	 * This method first finds the pod ID, then gets the IP address and also checks for cniResult.Interfaces
+	 * This method first finds the pod ID, then gets the IP address and also checks for cni result
 	 * of the pod sandbox container
 	 */
-	void get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult_interfaces);
+	void get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult);
 
 	/**
 	 * @brief get image id info from CRI
