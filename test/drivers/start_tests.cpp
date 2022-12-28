@@ -160,7 +160,15 @@ int open_engine(int argc, char** argv)
 			abort_if_already_configured(&oargs);
 			oargs.engine_name = BPF_ENGINE;
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
-			if(optarg == NULL)
+			/* This should handle cases where we pass arguments with the space:
+			 * `-b ./path/to/probe`. Without this `if` case we can accept arguments
+			 * only in this format `-b./path/to/probe`
+			 */
+			if(optarg == NULL && optind < argc && argv[optind][0] != '-')
+			{
+				bpf_params.bpf_probe = argv[optind++];
+			}
+			else if(optarg == NULL)
 			{
 				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
 			}
@@ -196,7 +204,11 @@ int open_engine(int argc, char** argv)
 			abort_if_already_configured(&oargs);
 			oargs.engine_name = KMOD_ENGINE;
 			kmod_params.buffer_bytes_dim = buffer_bytes_dim;
-			if(optarg == NULL)
+			if(optarg == NULL && optind < argc && argv[optind][0] != '-')
+			{
+				kmod_path = argv[optind++];
+			}
+			else if(optarg == NULL)
 			{
 				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
 			}
