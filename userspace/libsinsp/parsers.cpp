@@ -5749,7 +5749,7 @@ void sinsp_parser::parse_capset_exit(sinsp_evt *evt)
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
-	if(retval < 0)
+	if(retval < 0 || evt->m_tinfo == nullptr)
 	{
 		return;
 	}
