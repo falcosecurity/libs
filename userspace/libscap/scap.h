@@ -468,8 +468,6 @@ typedef enum scap_dump_flags
 	SCAP_DF_LARGE = (1 << 2)	///< This event has large payload (up to UINT_MAX Bytes, ie 4GB)
 }scap_dump_flags;
 
-typedef struct scap_dumper scap_dumper_t;
-
 /*!
   \brief System call description struct.
 */
