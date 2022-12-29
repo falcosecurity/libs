@@ -22,3 +22,5 @@ limitations under the License.
 #define SCAP_MAX_ENV_SIZE 4096
 #define SCAP_MAX_CGROUPS_SIZE 4096
 #define SCAP_MAX_SUPPRESSED_COMMS 32
+
+#define SCAP_IPV6_ADDR_LEN 16

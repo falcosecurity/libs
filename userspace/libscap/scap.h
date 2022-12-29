@@ -334,9 +334,6 @@ typedef struct _scap_machine_info
 	uint64_t reserved4; ///< reserved for future use
 }scap_machine_info;
 
-
-#define SCAP_IPV6_ADDR_LEN 16
-
 /*!
   \brief Interface address type
 */
@@ -365,19 +362,6 @@ typedef struct scap_ifinfo_ipv4
 }scap_ifinfo_ipv4;
 
 /*!
-  \brief For backward compatibility only
-*/
-typedef struct scap_ifinfo_ipv4_nolinkspeed
-{
-	uint16_t type;
-	uint16_t ifnamelen;
-	uint32_t addr;
-	uint32_t netmask;
-	uint32_t bcast;
-	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv4_nolinkspeed;
-
-/*!
   \brief IPv6 interface address information
 */
 typedef struct scap_ifinfo_ipv6
@@ -391,19 +375,6 @@ typedef struct scap_ifinfo_ipv6
 	uint64_t linkspeed; ///< Interface link speed
 	char ifname[SCAP_MAX_PATH_SIZE]; ///< interface name (e.g. "eth0")
 }scap_ifinfo_ipv6;
-
-/*!
-  \brief For backword compatibility only
-*/
-typedef struct scap_ifinfo_ipv6_nolinkspeed
-{
-	uint16_t type;
-	uint16_t ifnamelen;
-	char addr[SCAP_IPV6_ADDR_LEN];
-	char netmask[SCAP_IPV6_ADDR_LEN];
-	char bcast[SCAP_IPV6_ADDR_LEN];
-	char ifname[SCAP_MAX_PATH_SIZE];
-}scap_ifinfo_ipv6_nolinkspeed;
 
 #if defined __sun
 #pragma pack()
