@@ -73,7 +73,6 @@ struct iovec;
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"
-#include "scap_test.h"
 
 /* Include engine-specific params. */
 #include <engine/bpf/bpf_public.h>
