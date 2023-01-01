@@ -13,7 +13,7 @@ limitations under the License.
 
 #pragma once
 
-#include "../../scap_test.h"
+#include "scap_test.h"
 
 #define TEST_INPUT_ENGINE "test_input"
 
