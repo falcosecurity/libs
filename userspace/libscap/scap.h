@@ -69,7 +69,6 @@ struct iovec;
 #include <time.h>
 #endif
 
-#include "plugin_info.h"
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"

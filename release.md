@@ -138,4 +138,4 @@ The *libs version number* represents a software version of the user-space librar
 
 - Since our userspace APIs are not yet stable, the major version number MUST be `0` (see the SemVer section about the [initial development phase](https://semver.org/spec/v2.0.0.html#how-should-i-deal-with-revisions-in-the-0yz-initial-development-phase)).
 
-- The [Plugin API](./userspace/libscap/plugin_info.h) is versioned in the code and follow a semver-like numbering scheme. If any changes have been made to the Plugin API since the last release, you MUST ensure the Plugin API version is updated accordingly. If not, open a PR to fix it.
+- The [Plugin API](./userspace/libscap/engine/source_plugin/plugin_info.h) is versioned in the code and follow a semver-like numbering scheme. If any changes have been made to the Plugin API since the last release, you MUST ensure the Plugin API version is updated accordingly. If not, open a PR to fix it.

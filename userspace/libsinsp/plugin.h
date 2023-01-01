@@ -24,7 +24,7 @@ limitations under the License.
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <plugin_info.h>
+#include <engine/source_plugin/source_plugin_public.h>
 #include "event.h"
 #include "version.h"
 #include "../plugin/plugin_loader.h"

@@ -29,7 +29,6 @@ limitations under the License.
 #include "scap_vtable.h"
 
 #include "settings.h"
-#include "plugin_info.h"
 #include "scap_assert.h"
 #include "scap_suppress.h"
 #include "scap_zlib.h"

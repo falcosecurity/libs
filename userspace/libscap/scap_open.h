@@ -24,7 +24,6 @@ limitations under the License.
 #define SCAP_HANDLE_T void
 #endif
 
-#include "plugin_info.h"
 #include "scap_limits.h"
 #include "scap_procs.h"
 #include "../../driver/ppm_events_public.h"
