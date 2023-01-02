@@ -37,4 +37,8 @@ else()
             COMPONENT "libs-deps")
 endif()
 
+if(NOT TARGET libbpf)
+    add_custom_target(libbpf)
+endif()
+
 include_directories(${LIBBPF_INCLUDE})

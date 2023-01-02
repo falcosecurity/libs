@@ -66,4 +66,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET zlib)
+	add_custom_target(zlib)
+endif()
+
 include_directories(${ZLIB_INCLUDE})

@@ -33,4 +33,8 @@ else()
 			COMPONENT "libs-deps")
 endif()
 
+if(NOT TARGET b64)
+	add_custom_target(b64)
+endif()
+
 include_directories("${B64_INCLUDE}")

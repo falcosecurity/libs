@@ -43,4 +43,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET protobuf)
+	add_custom_target(protobuf)
+endif()
+
 include_directories("${PROTOBUF_INCLUDE}")

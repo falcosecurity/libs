@@ -40,4 +40,8 @@ else()
 			COMPONENT "libs-deps")
 endif()
 
+if(NOT TARGET gtest)
+	add_custom_target(gtest)
+endif()
+
 include_directories("${GTEST_INCLUDE_DIR}")

@@ -88,4 +88,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET curl)
+	add_custom_target(curl)
+endif()
+
 include_directories("${CURL_INCLUDE_DIRS}")

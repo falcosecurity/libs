@@ -196,4 +196,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET grpc)
+	add_custom_target(grpc)
+endif()
+
 include_directories("${GRPC_INCLUDE}")

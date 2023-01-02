@@ -36,4 +36,8 @@ else()
 		INSTALL_COMMAND "")	
 endif()
 
+if(NOT TARGET valijson)
+	add_custom_target(valijson)
+endif()
+
 include_directories("${VALIJSON_INCLUDE}")

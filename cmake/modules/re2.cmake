@@ -75,4 +75,8 @@ else()
 			COMPONENT "libs-deps")
 endif()
 
+if(NOT TARGET re2)
+	add_custom_target(re2)
+endif()
+
 include_directories("${RE2_INCLUDE}")

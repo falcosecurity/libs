@@ -35,4 +35,8 @@ else()
 	
 endif()
 
+if(NOT TARGET c-ares)
+	add_custom_target(c-ares)
+endif()
+
 include_directories("${CARES_INCLUDE}")
