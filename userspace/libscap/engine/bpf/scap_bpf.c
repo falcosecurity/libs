@@ -24,9 +24,7 @@ limitations under the License.
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/utsname.h>
-#ifndef MINIMAL_BUILD
 #include <gelf.h>
-#endif // MINIMAL_BUILD
 #include <fcntl.h>
 #include <errno.h>
 #include <ctype.h>
@@ -50,7 +48,6 @@ limitations under the License.
 #include "noop.h"
 #include "strerror.h"
 
-#ifndef MINIMAL_BUILD
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
 {
 	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
@@ -71,7 +68,6 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 #define NEXT_EVENT scap_bpf_next_event
 
 #include "ringbuffer/ringbuffer.h"
-#endif
 
 static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp);
 
