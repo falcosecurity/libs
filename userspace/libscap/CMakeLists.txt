@@ -50,10 +50,6 @@ if (DEFINED SCAP_BPF_PROGS_MAX)
 	add_definitions(-DBPF_PROGS_MAX=${SCAP_BPF_PROGS_MAX})
 endif()
 
-if(CYGWIN)
-include_directories("${WIN_HAL_INCLUDE}")
-endif()
-
 list(APPEND targetfiles
 	scap.c
 	scap_fds.c
