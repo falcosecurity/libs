@@ -15,9 +15,7 @@ add_library(scap_engine_gvisor STATIC
     ${JSONCPP_LIB_SRC}
 )
 
-if(USE_BUNDLED_PROTOBUF)
-    add_dependencies(scap_engine_gvisor protobuf)
-endif()
+add_dependencies(scap_engine_gvisor protobuf)
 
 find_package(Threads)
 

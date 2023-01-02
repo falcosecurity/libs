@@ -39,14 +39,8 @@ set(DRIVERS_TEST_LINK_LIBRARIES
 
 set(DRIVERS_TEST_DEPENDECIES
   scap
+  gtest
 )
-
-if(USE_BUNDLED_GTEST)
-  list(APPEND
-    DRIVERS_TEST_DEPENDECIES
-    gtest
-  )
-endif()
 
 add_executable(drivers_test ${DRIVERS_TEST_SOURCES})
 target_include_directories(drivers_test ${DRIVERS_TEST_INCLUDE})

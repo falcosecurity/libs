@@ -58,4 +58,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET jq)
+	add_custom_target(jq)
+endif()
+
 include_directories("${JQ_INCLUDE}")

@@ -37,4 +37,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET openssl)
+	add_custom_target(openssl)
+endif()
+
 include_directories("${OPENSSL_INCLUDE_DIR}")

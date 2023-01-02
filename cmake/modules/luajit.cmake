@@ -95,4 +95,9 @@ else()
 		endif()
 	endif()
 endif()
+
+if(NOT TARGET luajit)
+	add_custom_target(luajit)
+endif()
+
 include_directories("${LUAJIT_INCLUDE}")

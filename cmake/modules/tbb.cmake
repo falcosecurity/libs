@@ -38,4 +38,8 @@ else()
 	endif()
 endif()
 
+if(NOT TARGET tbb)
+	add_custom_target(tbb)
+endif()
+
 include_directories("${TBB_INCLUDE_DIR}")

@@ -204,22 +204,17 @@ set(SINSP_LIBRARIES
 add_dependencies(sinsp valijson)
 add_dependencies(sinsp re2)
 
-if(WITH_CHISEL AND USE_BUNDLED_LUAJIT)
+if(WITH_CHISEL)
 	add_dependencies(sinsp luajit)
 endif()
 
 if(NOT WIN32)
 	list(APPEND SINSP_LIBRARIES "${TBB_LIB}")
 
-	if(USE_BUNDLED_OPENSSL AND NOT MINIMAL_BUILD)
-		add_dependencies(sinsp openssl)
-	endif() # USE_BUNDLED_OPENSSL
-	if(USE_BUNDLED_CURL AND NOT MINIMAL_BUILD)
-		add_dependencies(sinsp curl)
-	endif() # USE_BUNDLED_CURL
-	if(USE_BUNDLED_TBB)
-		add_dependencies(sinsp tbb)
-	endif() # USE_BUNDLED_TBB
+	if(MINIMAL_BUILD)
+		add_dependencies(sinsp openssl curl)
+	endif()
+	add_dependencies(sinsp tbb)
 
 
 	if(NOT APPLE)
@@ -237,12 +232,9 @@ if(NOT WIN32)
 					COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri.proto
 					WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-			if(USE_BUNDLED_GRPC)
-				add_dependencies(sinsp grpc)
-				list(APPEND SINSP_LIBRARIES "${GRPC_LIBRARIES}")
-			endif() # USE_BUNDLED_GRPC
-
+			add_dependencies(sinsp grpc)
 			list(APPEND SINSP_LIBRARIES
+				"${GRPC_LIBRARIES}"
 				"${GRPCPP_LIB}"
 				"${GRPC_LIB}"
 				"${GPR_LIB}"
@@ -271,9 +263,7 @@ if(NOT WIN32)
 			add_dependencies(sinsp jq)
 		endif()
 
-		if(USE_BUNDLED_B64)
-			add_dependencies(sinsp b64)
-		endif()
+		add_dependencies(sinsp b64)
 	endif() # NOT APPLE
 
 	list(APPEND SINSP_LIBRARIES
