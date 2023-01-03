@@ -90,8 +90,7 @@ int32_t scap_add_fd_to_proc_table(struct scap_proclist *proclist, scap_threadinf
 	else
 	{
 		proclist->m_proc_callback(
-			proclist->m_proc_callback_context,
-			proclist->m_main_handle, tinfo->tid, tinfo, fdi);
+			proclist->m_proc_callback_context, tinfo->tid, tinfo, fdi);
 	}
 
 	return SCAP_SUCCESS;

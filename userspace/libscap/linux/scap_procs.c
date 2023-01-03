@@ -1031,8 +1031,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		else
 		{
 			handle->m_proclist.m_proc_callback(
-				handle->m_proclist.m_proc_callback_context,
-				handle->m_proclist.m_main_handle, tinfo->tid, tinfo, NULL);
+				handle->m_proclist.m_proc_callback_context, tinfo->tid, tinfo, NULL);
 			free_tinfo = true;
 		}
 	}

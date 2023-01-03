@@ -71,7 +71,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -189,7 +188,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -295,7 +293,6 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -343,7 +340,6 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs)
 
 	// XXX - interface list initialization and user list initalization goes here if necessary
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -390,7 +386,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -438,7 +433,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
@@ -518,7 +512,6 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_main_handle = handle;
 	handle->m_proclist.m_proc_callback = NULL;
 	handle->m_proclist.m_proc_callback_context = NULL;
 	handle->m_proclist.m_proclist = NULL;

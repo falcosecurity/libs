@@ -26,14 +26,12 @@ typedef struct scap_threadinfo scap_threadinfo;
 typedef struct scap_fdinfo scap_fdinfo;
 
 typedef void (*proc_entry_callback)(void* context,
-				    scap_t* handle,
 				    int64_t tid,
 				    scap_threadinfo* tinfo,
 				    scap_fdinfo* fdinfo);
 
 struct scap_proclist
 {
-	scap_t *m_main_handle;
 	proc_entry_callback m_proc_callback;
 	void* m_proc_callback_context;
 
