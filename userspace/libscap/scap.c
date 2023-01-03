@@ -81,12 +81,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 		return SCAP_FAILURE;
 	}
 
-	handle->m_platform = platform;
-
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//
@@ -116,17 +110,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	}
 
 	scap_stop_dropping_mode(handle);
-
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_init_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -176,10 +159,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//
@@ -198,17 +177,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	// Additional initializations
 	//
 	scap_stop_dropping_mode(handle);
-
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char procerr[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, procerr)) != SCAP_SUCCESS)
-	{
-		strlcpy(handle->m_lasterr, procerr, SCAP_LASTERR_SIZE);
-		return rc;
-	}
 
 	//
 	// Now that /proc parsing has been done, start the capture
@@ -257,16 +225,7 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct s
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	if ((rc = handle->m_vtable->get_threadinfos(handle->m_engine, &handle->m_proclist, handle->m_lasterr)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -307,16 +266,7 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs, struct scap_
 		return rc;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	if ((rc = handle->m_vtable->get_threadinfos(handle->m_engine, &handle->m_proclist, handle->m_lasterr)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -354,10 +304,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 	handle->m_evtcnt = 0;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
-
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
@@ -408,10 +354,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 		return SCAP_FAILURE;
 	}
 
-	handle->m_proclist.m_proc_callback = oargs->proc_callback;
-	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
-	handle->m_proclist.m_proclist = NULL;
-
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
 	//
@@ -425,17 +367,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	//
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
-	// Create the process list
-	//
-	handle->m_lasterr[0] = '\0';
-	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return rc;
-	}
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -469,10 +400,6 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs, struct scap_
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
 		return SCAP_FAILURE;
 	}
-
-	handle->m_proclist.m_proc_callback = NULL;
-	handle->m_proclist.m_proc_callback_context = NULL;
-	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
@@ -661,13 +588,6 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 
 static inline void scap_deinit_state(scap_t* handle)
 {
-	// Free the process table
-	if(handle->m_proclist.m_proclist != NULL)
-	{
-		scap_proc_free_table(&handle->m_proclist);
-		handle->m_proclist.m_proclist = NULL;
-	}
-
 	if(handle->m_driver_procinfo)
 	{
 		free(handle->m_driver_procinfo);
@@ -810,14 +730,6 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 	}
 
 	return res;
-}
-
-//
-// Return the process list for the given handle
-//
-scap_threadinfo* scap_get_proc_table(scap_t* handle)
-{
-	return handle->m_proclist.m_proclist;
 }
 
 //

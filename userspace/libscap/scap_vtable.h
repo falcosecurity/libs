@@ -255,16 +255,6 @@ struct scap_vtable {
 	int32_t (*get_threadlist)(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
 
 	/**
-	 * @brief get information about all threads in the system
-	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param proclist the process list to fill
-	 * @param error a SCAP_LASTERR_SIZE buffer for error messages
-	 * @return SCAP_SUCCESS or a failure code
-	 *
-	 */
-	int32_t (*get_threadinfos)(struct scap_engine_handle engine, struct scap_proclist* proclist, char *error);
-
-	/**
 	 * @brief get the current process id in the init pid namespace
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param pid output parameter, pointer to the pid

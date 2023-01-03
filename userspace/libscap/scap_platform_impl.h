@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 #include "engine_handle.h"
+#include "scap_procs.h"
 #include "scap_suppress.h"
 
 struct scap_addrlist;
@@ -59,7 +60,9 @@ struct scap_platform_vtable
 	// given a mount id, return the device major:minor
 	// XXX this is Linux-specific
 	uint32_t (*get_device_by_mount_id)(struct scap_platform*, const char *procdir, unsigned long requested_mount_id);
+
 	struct scap_threadinfo* (*get_proc)(struct scap_platform*, struct scap_proclist* proclist, int64_t tid, bool scan_sockets);
+
 	int32_t (*refresh_proc_table)(struct scap_platform*, struct scap_proclist* proclist);
 
 	// close the platform structure
@@ -81,6 +84,7 @@ struct scap_platform
 	struct scap_addrlist *m_addrlist;
 	struct scap_userlist *m_userlist;
 	struct scap_suppress m_suppress;
+	struct scap_proclist m_proclist;
 };
 
 #ifdef __cplusplus

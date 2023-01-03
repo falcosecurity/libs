@@ -1280,8 +1280,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
-
-	return _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_proclist, procdirname, -1, error);
+	return _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_platform->m_proclist, procdirname, -1, error);
 }
 
 

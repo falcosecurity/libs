@@ -28,4 +28,5 @@ struct scap_gvisor_platform
 {
 	struct scap_platform m_generic;
 	scap_gvisor::engine* m_engine;
+	char* m_lasterr;
 };

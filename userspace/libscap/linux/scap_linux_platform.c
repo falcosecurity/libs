@@ -118,6 +118,16 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, struct scap_eng
 		}
 	}
 
+	linux_platform->m_lasterr[0] = '\0';
+	char proc_scan_err[SCAP_LASTERR_SIZE];
+	rc = scap_linux_refresh_proc_table(platform, &platform->m_proclist);
+	if(rc != SCAP_SUCCESS)
+	{
+		snprintf(linux_platform->m_lasterr, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		scap_linux_free_platform(platform);
+		return rc;
+	}
+
 	return SCAP_SUCCESS;
 }
 

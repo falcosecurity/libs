@@ -87,14 +87,6 @@ static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n,
 	return SCAP_FAILURE;
 }
 
-static int32_t get_threadinfos(struct scap_engine_handle handle, struct scap_proclist *proclist, char *error)
-{
-	test_input_engine *engine = handle.m_handle;
-	scap_test_input_data *data = engine->m_data;
-
-	return scap_proc_scan_vtable(error, proclist, data->thread_count, data->threads, engine, get_fdinfos);
-}
-
 static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
 	test_input_engine *engine = main_handle->m_engine.m_handle;
@@ -106,7 +98,13 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	return SCAP_SUCCESS;
+	return scap_proc_scan_vtable(
+		main_handle->m_lasterr,
+		&main_handle->m_platform->m_proclist,
+		engine->m_data->thread_count,
+		engine->m_data->threads,
+		engine,
+		get_fdinfos);
 }
 
 const struct scap_vtable scap_test_input_engine = {
@@ -126,8 +124,7 @@ const struct scap_vtable scap_test_input_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
-	.get_threadinfos = get_threadinfos,
+	.get_threadlist = NULL,
 	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
