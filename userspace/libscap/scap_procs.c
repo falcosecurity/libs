@@ -303,8 +303,7 @@ int32_t scap_proc_scan_vtable(char *error, scap_t *handle)
 		else
 		{
 			handle->m_proclist.m_proc_callback(
-				handle->m_proclist.m_proc_callback_context,
-				handle->m_proclist.m_main_handle, tinfo->tid, tinfo, NULL);
+				handle->m_proclist.m_proc_callback_context, tinfo->tid, tinfo, NULL);
 			free_tinfo = true;
 		}
 

@@ -60,7 +60,7 @@ limitations under the License.
 #include "tracer_emitter.h"
 #endif
 
-void on_new_entry_from_proc(void* context, scap_t* handle, int64_t tid, scap_threadinfo* tinfo,
+void on_new_entry_from_proc(void* context, int64_t tid, scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo);
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -893,20 +893,17 @@ void sinsp::autodump_stop()
 }
 
 void sinsp::on_new_entry_from_proc(void* context,
-								   scap_t* handle,
 								   int64_t tid,
 								   scap_threadinfo* tinfo,
 								   scap_fdinfo* fdinfo)
 {
 	ASSERT(tinfo != NULL);
 
-	m_h = handle;
-
 	//
 	// Retrieve machine information if we don't have it yet
 	//
 	{
-		m_machine_info = scap_get_machine_info(handle);
+		m_machine_info = scap_get_machine_info(m_h);
 		if(m_machine_info != NULL)
 		{
 			m_num_cpus = m_machine_info->num_cpus;
@@ -970,13 +967,12 @@ void sinsp::on_new_entry_from_proc(void* context,
 }
 
 void on_new_entry_from_proc(void* context,
-							scap_t* handle,
 							int64_t tid,
 							scap_threadinfo* tinfo,
 							scap_fdinfo* fdinfo)
 {
 	sinsp* _this = (sinsp*)context;
-	_this->on_new_entry_from_proc(context, handle, tid, tinfo, fdinfo);
+	_this->on_new_entry_from_proc(context, tid, tinfo, fdinfo);
 }
 
 void sinsp::import_thread_table()
