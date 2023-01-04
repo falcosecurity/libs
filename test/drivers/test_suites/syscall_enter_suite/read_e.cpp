@@ -13,7 +13,7 @@ TEST(SyscallEnter, readE)
 	int32_t mock_fd = -1;
 	char mock_buf[8];
 	size_t mock_count = 4096;
-	assert_syscall_state(SYSCALL_FAILURE, "read", syscall(__NR_read, mock_fd, static_cast<void *>(mock_buf), mock_count));
+	assert_syscall_state(SYSCALL_FAILURE, "read", syscall(__NR_read, mock_fd, (void *)(mock_buf), mock_count));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
