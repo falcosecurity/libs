@@ -668,6 +668,24 @@
 
 #define EPOLL_CLOEXEC 02000000
 
+//////////////////////////
+// mlock2 flags
+//////////////////////////
+
+/* `/include/uapi/asm-generic/mman-common.h` from kernel source tree. */
+
+#define MLOCK_ONFAULT	0x01		/* Lock pages in range after they are faulted in, do not prefault */
+
+//////////////////////////
+// mlockall flags
+//////////////////////////
+
+/* `/include/uapi/asm-generic/mman.h` from kernel source tree. */
+
+#define MCL_CURRENT	1		/* lock all current mappings */
+#define MCL_FUTURE	2		/* lock all future mappings */
+#define MCL_ONFAULT	4		/* lock all pages that are faulted in */
+
 /*=============================== FLAGS ===========================*/
 
 /*=============================== PROTOCOL/ADDRESS FAMILIES ===========================*/

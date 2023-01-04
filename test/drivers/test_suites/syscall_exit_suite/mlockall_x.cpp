@@ -12,14 +12,13 @@ TEST(SyscallExit, mlockallX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long mock_flags = MCL_CURRENT;
-	int fd = syscall(__NR_mlockall, mock_flags);
-	assert_syscall_state(SYSCALL_SUCCESS, "mlockall", fd, NOT_EQUAL, -1);
-	int64_t errno_value = 0;
-	if (fd < 0)
-	{
-		errno_value = -errno;
-	}
+	int flags = MCL_FUTURE | MCL_ONFAULT;
+	assert_syscall_state(SYSCALL_SUCCESS, "mlockall", syscall(__NR_mlockall, flags), NOT_EQUAL, -1);
+
+	/* We unlock all pages mapped into the address space of the calling process immediately to avoid
+	 * issues in other tests.
+	 */
+	syscall(__NR_munlockall);
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -39,10 +38,10 @@ TEST(SyscallExit, mlockallX)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	evt_test->assert_numeric_param(1, (int64_t)0);
 
-	/* Parameter 2: flags (type: PT_UINT64) */
-	evt_test->assert_numeric_param(2, MCL_CURRENT);
+	/* Parameter 2: flags (type: PT_UINT32) */
+	evt_test->assert_numeric_param(2, (uint32_t)PPM_MLOCKALL_MCL_FUTURE | PPM_MLOCKALL_MCL_ONFAULT);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
