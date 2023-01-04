@@ -12,9 +12,9 @@ TEST(SyscallExit, munlockX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	unsigned long mock_addr{0};
-	size_t mock_len{1024};
-	assert_syscall_state(SYSCALL_FAILURE, "munlock", syscall(__NR_munlock, NULL, mock_len));
+	void *mock_addr = (void *)0;
+	size_t mock_len = 37;
+	assert_syscall_state(SYSCALL_FAILURE, "munlock", syscall(__NR_munlock, mock_addr, mock_len));
 	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -38,10 +38,10 @@ TEST(SyscallExit, munlockX)
 	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/* Parameter 2: addr (type: PT_UINT64) */
-	evt_test->assert_numeric_param(2, mock_addr);
+	evt_test->assert_numeric_param(2, (uint64_t)mock_addr);
 
 	/* Parameter 3: len (type: PT_UINT64) */
-	evt_test->assert_numeric_param(3, mock_len);
+	evt_test->assert_numeric_param(3, (uint64_t)mock_len);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

@@ -62,9 +62,8 @@ int BPF_PROG(mlock2_x,
 	ringbuf__store_u64(&ringbuf, val);
 
 	/* Parameter 4: flags (PT_UINT32) */
-	val = extract__syscall_argument(regs, 2);
-	int flags = mlock2_flags_to_scap(val);
-	ringbuf__store_u32(&ringbuf, flags);
+	int flags = (int)extract__syscall_argument(regs, 2);
+	ringbuf__store_u32(&ringbuf, mlock2_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
