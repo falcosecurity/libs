@@ -1,6 +1,6 @@
 # Release Process
 
-As per the [Versioning and release process of the libs artifacts](https://github.com/falcosecurity/libs/blob/master/proposals/20210524-versioning-and-release-of-the-libs-artifacts.md), this repository includes different components which are versioned (see the [Driver SemVer](https://github.com/falcosecurity/libs/blob/master/proposals/20210818-driver-semver.md) and [Versioning schema](https://github.com/falcosecurity/libs/blob/master/proposals/20220203-versioning-schema-amendment.md)) proposals) and released individually.
+As per the [Versioning and release process of the libs artifacts](https://github.com/falcosecurity/libs/blob/master/proposals/20210524-versioning-and-release-of-the-libs-artifacts.md), this repository includes different components which are versioned (see the [Driver SemVer](https://github.com/falcosecurity/libs/blob/master/proposals/20210818-driver-semver.md) and [Versioning schema](https://github.com/falcosecurity/libs/blob/master/proposals/20220203-versioning-schema-amendment.md) proposals) and released individually.
 
 The two releases, which may occur either concurrently or independently of each other, are: 
 
