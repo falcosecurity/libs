@@ -40,7 +40,12 @@ int pman_enable_capture(bool *tp_set)
 
 int pman_disable_capture()
 {
-	return pman_detach_all_programs();
+	/* If we fail at initialization time the BPF skeleton is not initialized */
+	if(g_state.skel)
+	{
+		return pman_detach_all_programs();
+	}
+	return 0;
 }
 
 #ifdef TEST_HELPERS

@@ -40,22 +40,23 @@ int pman_load_probe()
 
 void pman_close_probe()
 {
-	if(!g_state.cons_pos)
+	if(g_state.cons_pos)
 	{
 		free(g_state.cons_pos);
 	}
 
-	if(!g_state.prod_pos)
+	if(g_state.prod_pos)
 	{
 		free(g_state.prod_pos);
 	}
 
-	if(!g_state.skel)
+	if(g_state.skel)
 	{
+		bpf_probe__detach(g_state.skel);
 		bpf_probe__destroy(g_state.skel);
 	}
 
-	if(!g_state.rb_manager)
+	if(g_state.rb_manager)
 	{
 		ring_buffer__free(g_state.rb_manager);
 	}
