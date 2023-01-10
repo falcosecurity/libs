@@ -57,7 +57,11 @@ At this point, no new-feature PRs are allowed to be merged ([exceptions](#except
 
 During the code freeze period, a *release branch* is created once the [release team](#release-team) ensures the code is in a good shape and reasonably no bugs are detected.
 
-The naming convention for the release branch is `release/x.y.z`, where `x.y.z` is the [version](Versioning) number of the release. Only the libs version number is used if the process consists of both drivers and libs releases.
+The naming convention for the release branch is `release/M.m.x`, where `M.m` is the Major, minor [version](Versioning) number of the release. Only the libs version number is used if the process consists of both drivers and libs releases.  
+The patch version of the branch is named `.x`, because multiple tags can happen on the same release branch. Basically, all the `M.m` patch releases will be made on the very same branch,  
+through subsequent cherry pick of needed commits.  
+
+For example, a `release/0.10.x` is created; it will host tags `0.10.0`, `0.10.1`, `0.10.2` and so on. `0.10.1` will be made of some cherry picked commits on top of `0.10.0`.
 
 Once the release brach has been created:
 
