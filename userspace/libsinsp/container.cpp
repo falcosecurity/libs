@@ -196,6 +196,8 @@ std::string sinsp_container_manager::container_to_json(const sinsp_container_inf
 	inet_ntop(AF_INET, &iph, addrbuff, sizeof(addrbuff));
 	container["ip"] = addrbuff;
 
+	container["cni_json"] = container_info.m_pod_cniresult;
+
 	Json::Value port_mappings = Json::arrayValue;
 
 	for(auto &mapping : container_info.m_port_mappings)
