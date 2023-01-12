@@ -409,39 +409,48 @@ void cri_interface::get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusRe
 	if(reader.parse(info_it.find("info")->second, root))
 	{
 		Json::Value jvalue;
-		if (m_cri_runtime_type == CT_CONTAINERD)
+		/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
+
+		jvalue = root["cniResult"]["Interfaces"];	/* pod info schema of CT_CONTAINERD runtime. */
+		if(!jvalue.isNull())
 		{
-			jvalue = root["cniResult"]["Interfaces"];
-			if(!jvalue.isNull())
+			/* If applicable remove members / fields not needed for incident response. */
+			jvalue.removeMember("lo");
+			for (auto& key : jvalue.getMemberNames())
 			{
-				/* If applicable remove members / fields not needed for incident response. */
-				jvalue.removeMember("lo");
-				for (auto& key : jvalue.getMemberNames())
+				if (0 == strncmp(key.c_str(), "veth", 4))
 				{
-					if (0 == strncmp(key.c_str(), "veth", 4))
-					{
-						jvalue.removeMember(key);
-					} else
-					{
-						jvalue[key].removeMember("Mac");
-						jvalue[key].removeMember("Sandbox");
-					}
+					jvalue.removeMember(key);
+				} else
+				{
+					jvalue[key].removeMember("Mac");
+					jvalue[key].removeMember("Sandbox");
 				}
 			}
+		}
 
-		} else if (m_cri_runtime_type == CT_CRIO)
+		if(jvalue.isNull())
 		{
-			/* CRIO container runtime does not expose cni result as parsed JSON, it's an escaped JSON string that contains list of ips without knowing the interface names. */
-			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];
+			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];	/* pod info schema of CT_CRIO runtime. Note interfaces names are unknown here. */
 		}
 
 		if(!jvalue.isNull())
 		{
 			Json::FastWriter fastWriter;
 			cniresult = fastWriter.write(jvalue);
-			std::string chars = "\n\\";
-			cniresult.erase(remove_if(cniresult.begin(), cniresult.end(),[&chars](const char &c) {return chars.find(c) != std::string::npos;}), cniresult.end());
-			cniresult.resize(MAX_CNIRESULT_LENGTH);
+
+			if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups. */
+			{
+				cniresult.pop_back();
+			}
+
+			/* CRIO container runtime exposes cni result as escaped JSON string -> sanitize to have consistent outputs. */
+			cniresult.erase(std::remove(cniresult.begin(), cniresult.end(), '\\'), cniresult.end());
+
+			if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
+			{
+				cniresult.resize(MAX_CNIRESULT_LENGTH);
+			}
 		}		
 	}
 }
