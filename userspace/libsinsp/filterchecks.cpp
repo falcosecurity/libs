@@ -6409,10 +6409,19 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		return NULL;
 	}
 
+	sinsp_container_info::ptr_t container_info = NULL;
+	bool is_host = true;
+
+	if(!tinfo->m_container_id.empty())
+	{
+		is_host = false;
+		container_info = m_inspector->m_container_manager.get_container(tinfo->m_container_id);
+	}
+
 	switch(m_field_id)
 	{
 	case TYPE_CONTAINER_ID:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			m_tstr = "host";
 		}
@@ -6423,14 +6432,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_NAME:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			m_tstr = "host";
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6446,14 +6453,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_IMAGE:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6472,14 +6477,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	case TYPE_CONTAINER_IMAGE_REPOSITORY:
 	case TYPE_CONTAINER_IMAGE_TAG:
 	case TYPE_CONTAINER_IMAGE_DIGEST:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6514,14 +6517,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_TYPE:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			m_tstr = "host";
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6562,14 +6563,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_CONTAINER_PRIVILEGED:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6589,14 +6588,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 		RETURN_EXTRACT_VAR(m_u32val);
 		break;
 	case TYPE_CONTAINER_MOUNTS:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6623,15 +6620,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 
 		break;
 	case TYPE_CONTAINER_MOUNT:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6666,15 +6660,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	case TYPE_CONTAINER_MOUNT_MODE:
 	case TYPE_CONTAINER_MOUNT_RDWR:
 	case TYPE_CONTAINER_MOUNT_PROPAGATION:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6728,14 +6719,12 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 	case TYPE_CONTAINER_HEALTHCHECK:
 	case TYPE_CONTAINER_LIVENESS_PROBE:
 	case TYPE_CONTAINER_READINESS_PROBE:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6768,29 +6757,30 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = "NONE";
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_CONTAINER_START_TS:
-		if(tinfo->m_container_id.empty() || tinfo->m_pidns_init_start_ts == 0)
+		if(is_host || tinfo->m_pidns_init_start_ts == 0)
 		{
 			return NULL;
 		}
 		RETURN_EXTRACT_VAR(tinfo->m_pidns_init_start_ts);
+		break;
 	case TYPE_CONTAINER_DURATION:
-		if(tinfo->m_container_id.empty() || tinfo->m_clone_ts == 0)
+		if(is_host || tinfo->m_clone_ts == 0)
 		{
 			return NULL;
 		}
 		m_s64val = evt->get_ts() - tinfo->m_pidns_init_start_ts;
 		ASSERT(m_s64val > 0);
 		RETURN_EXTRACT_VAR(m_s64val);
+		break;
 	case TYPE_CONTAINER_IP_ADDR:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
@@ -6801,21 +6791,21 @@ uint8_t* sinsp_filter_check_container::extract(sinsp_evt *evt, OUT uint32_t* len
 			m_tstr = addrbuff;
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_CONTAINER_CNIRESULT:
-		if(tinfo->m_container_id.empty())
+		if(is_host)
 		{
 			return NULL;
 		}
 		else
 		{
-			const sinsp_container_info::ptr_t container_info =
-				m_inspector->m_container_manager.get_container(tinfo->m_container_id);
 			if(!container_info)
 			{
 				return NULL;
 			}
 			RETURN_EXTRACT_STRING(container_info->m_pod_cniresult);
 		}
+		break;
 	default:
 		ASSERT(false);
 		break;
@@ -7475,6 +7465,8 @@ const filtercheck_field_info sinsp_filter_check_k8s_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.id", "Pod ID", "Kubernetes pod id."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "k8s.pod.label", "Pod Label", "Kubernetes pod label. E.g. 'k8s.pod.label.foo'."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.labels", "Pod Labels", "Kubernetes pod comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.ip", "Pod Ip", "Kubernetes pod ip, same as container.ip field as each container in a pod shares the network stack of the sandbox / pod. Only ipv4 addresses are tracked. Consider k8s.pod.cni.json for logging ip addresses for each network interface."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.pod.cni.json", "Pod CNI result json", "Kubernetes pod CNI result field from the respective pod status info, same as container.cni.json field. It contains ip addresses for each network interface exposed as unparsed escaped JSON string. Supported for CRI container engine (containerd, cri-o runtimes), optimized for containerd (some non-critical JSON keys removed). Useful for tracking ips (ipv4 and ipv6, dual-stack support) for each network interface (multi-interface support)."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.name", "Replication Controller Name", "Kubernetes replication controller name."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "k8s.rc.id", "Replication Controller ID", "Kubernetes replication controller id."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "k8s.rc.label", "Replication Controller Label", "Kubernetes replication controller label. E.g. 'k8s.rc.label.foo'."},
@@ -7844,6 +7836,19 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 				}
 
 			}
+			break;
+		case TYPE_K8S_POD_IP:
+			m_u32val = htonl(container_info->m_container_ip);
+			char addrbuff[100];
+			inet_ntop(AF_INET, &m_u32val, addrbuff, sizeof(addrbuff));
+			m_tstr = addrbuff;
+			RETURN_EXTRACT_STRING(m_tstr);
+			break;
+		case TYPE_K8S_POD_CNIRESULT:
+			RETURN_EXTRACT_STRING(container_info->m_pod_cniresult);
+			break;
+		default:
+			ASSERT(false);
 			break;
 		}
 	}

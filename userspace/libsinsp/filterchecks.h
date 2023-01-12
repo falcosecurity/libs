@@ -925,6 +925,8 @@ public:
 		TYPE_K8S_POD_ID,
 		TYPE_K8S_POD_LABEL,
 		TYPE_K8S_POD_LABELS,
+		TYPE_K8S_POD_IP,
+		TYPE_K8S_POD_CNIRESULT,
 		TYPE_K8S_RC_NAME,
 		TYPE_K8S_RC_ID,
 		TYPE_K8S_RC_LABEL,
@@ -966,6 +968,7 @@ private:
 
 	std::string m_argname;
 	std::string m_tstr;
+	uint32_t m_u32val;
 };
 
 class sinsp_filter_check_mesos : public sinsp_filter_check
