@@ -139,7 +139,7 @@ struct
 
 /**
  * @brief For every CPU on the system we have a counter
- * map where we store the number of events correcty pushed
+ * map where we store the number of events correctly pushed
  * and the number of events dropped.
  */
 struct
@@ -154,9 +154,7 @@ struct
 /*=============================== RINGBUF MAP ===============================*/
 
 /**
- * @brief We will have a ringbuf map for every CPU on the system.
- * The dimension of the single ringbuf and the number of
- * ringbuf maps are set in userspace.
+ * @brief We use this map to let the verifier understand the content of our array of maps (`ringbuf_maps`)
  */
 struct ringbuf_map
 {
@@ -164,8 +162,9 @@ struct ringbuf_map
 };
 
 /**
- * @brief This array of maps will contain a ringbuf map for every CPU
- * on the system.
+ * @brief This array of maps will contain a variable number of ring buffers
+ * according to the user-provided configuration. It could also contain only
+ * one buffer shared between all CPUs. 
  */
 struct
 {

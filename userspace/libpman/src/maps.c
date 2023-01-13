@@ -244,7 +244,8 @@ int pman_fill_extra_event_prog_tail_table()
 
 static int size_auxiliary_maps()
 {
-	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_cpus))
+	/* We always allocate auxiliary maps from all the CPUs, even if some of them are not online. */
+	if(bpf_map__set_max_entries(g_state.skel->maps.auxiliary_maps, g_state.n_possible_cpus))
 	{
 		pman_print_error("unable to set max entries for 'auxiliary_maps'");
 		return errno;
@@ -254,7 +255,8 @@ static int size_auxiliary_maps()
 
 static int size_counter_maps()
 {
-	if(bpf_map__set_max_entries(g_state.skel->maps.counter_maps, g_state.n_cpus))
+	/* We always allocate counter maps from all the CPUs, even if some of them are not online. */
+	if(bpf_map__set_max_entries(g_state.skel->maps.counter_maps, g_state.n_possible_cpus))
 	{
 		pman_print_error(" unable to set max entries for 'counter_maps'");
 		return errno;
