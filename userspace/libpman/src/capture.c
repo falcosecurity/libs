@@ -66,7 +66,7 @@ int pman_print_stats()
 		return errno;
 	}
 
-	for(int index = 0; index < g_state.n_cpus; index++)
+	for(int index = 0; index < g_state.n_possible_cpus; index++)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
@@ -114,7 +114,10 @@ int pman_get_scap_stats(void *scap_stats_struct)
 	 * - stats->n_preemptions
 	 */
 
-	for(int index = 0; index < g_state.n_cpus; index++)
+	/* We always take statistics from all the CPUs, even if some of them are not online. 
+	 * If the CPU is not online the counter map will be empty.
+	 */
+	for(int index = 0; index < g_state.n_possible_cpus; index++)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
@@ -146,7 +149,10 @@ int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
 		return errno;
 	}
 
-	for(int index = 0; index < g_state.n_cpus; index++)
+	/* We always take statistics from all the CPUs, even if some of them are not online. 
+	 * If the CPU is not online the counter map will be empty.
+	 */
+	for(int index = 0; index < g_state.n_possible_cpus; index++)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
