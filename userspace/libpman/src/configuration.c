@@ -44,8 +44,27 @@ static void setup_libbpf_logging(bool verbosity)
 	}
 }
 
-int pman_init_state(bool verbosity, unsigned long buf_bytes_dim)
+void pman_clear_state()
 {
+	g_state.skel = NULL;
+	g_state.rb_manager = NULL;
+	g_state.n_possible_cpus = 0;
+	g_state.n_interesting_cpus = 0;
+	g_state.allocate_online_only = false;
+	g_state.n_required_buffers = 0;
+	g_state.cpus_for_each_buffer = 0;
+	g_state.ringbuf_pos = 0;
+	g_state.cons_pos = NULL;
+	g_state.prod_pos = NULL;
+	g_state.inner_ringbuf_map_fd = 0;
+	g_state.buffer_bytes_dim = 0;
+	g_state.last_ring_read = -1;
+	g_state.last_event_size = 0;
+}
+
+int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer, bool allocate_online_only)
+{
+	char error_message[MAX_ERROR_MESSAGE_LEN];
 
 	/* `LIBBPF_STRICT_ALL` turns on all supported strict features
 	 * of libbpf to simulate libbpf v1.0 behavior.
@@ -57,14 +76,64 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim)
 	setup_libbpf_logging(verbosity);
 
 	/* Set the available number of CPUs inside the internal state. */
-	g_state.n_cpus = libbpf_num_possible_cpus();
-	if(g_state.n_cpus <= 0)
+	g_state.n_possible_cpus = libbpf_num_possible_cpus();
+	if(g_state.n_possible_cpus <= 0)
 	{
 		pman_print_error("no available cpus");
 		return -1;
 	}
 
-	/* Set the dimension of a single per-CPU ring buffer. */
+	g_state.allocate_online_only = allocate_online_only;
+
+	if(g_state.allocate_online_only)
+	{
+		ssize_t online_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+		if(online_cpus != -1)
+		{
+			/* We will allocate buffers only for online CPUs */
+			g_state.n_interesting_cpus = online_cpus;
+		}
+		else
+		{
+			/* Fallback to all available CPU even if the `allocate_online_only` flag is set to `true` */
+			g_state.n_interesting_cpus = g_state.n_possible_cpus;
+		}
+	}
+	else
+	{
+		/* We will allocate buffers only for all available CPUs */
+		g_state.n_interesting_cpus = g_state.n_possible_cpus;
+	}
+
+	/* We are requiring a buffer every `cpus_for_each_buffer` CPUs,
+	 * but `cpus_for_each_buffer` is greater than our possible CPU number!
+	 */
+	if(cpus_for_each_buffer > g_state.n_interesting_cpus)
+	{
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "we are requiring a buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!", cpus_for_each_buffer, cpus_for_each_buffer, g_state.n_interesting_cpus);
+		pman_print_error((const char*)error_message);
+		return -1;
+	}
+
+	/* `0` is a special value that means a single ring buffer shared between all the CPUs */
+	if(cpus_for_each_buffer == 0)
+	{
+		/* We want a single ring buffer so 1 ring buffer for all the interesting CPUs we have */
+		g_state.cpus_for_each_buffer = g_state.n_interesting_cpus;
+	}
+	else
+	{
+		g_state.cpus_for_each_buffer = cpus_for_each_buffer;
+	}
+
+	/* Set the number of ring buffers we need */
+	g_state.n_required_buffers = g_state.n_interesting_cpus / g_state.cpus_for_each_buffer;
+	/* If we have some remaining CPUs it means that we need another buffer */
+	if((g_state.n_interesting_cpus % g_state.cpus_for_each_buffer) != 0)
+	{
+		g_state.n_required_buffers++;
+	}
+	/* Set the dimension of a single ring buffer */
 	g_state.buffer_bytes_dim = buf_bytes_dim;
 
 	/* These will be used during the ring buffer consumption phase. */
@@ -73,7 +142,7 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim)
 	return 0;
 }
 
-int pman_get_cpus_number()
+int pman_get_required_buffers()
 {
-	return g_state.n_cpus;
+	return g_state.n_required_buffers;
 }
