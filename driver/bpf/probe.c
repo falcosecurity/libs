@@ -11,7 +11,7 @@ or GPL2.txt for full copies of the license.
 #include <generated/utsrelease.h>
 #include <uapi/linux/bpf.h>
 #if __has_include(<asm/rwonce.h>)
-	#include <asm/rwonce.h>
+#include <asm/rwonce.h>
 #endif
 #include <linux/sched.h>
 
