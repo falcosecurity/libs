@@ -194,7 +194,7 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
-		inspector.open_modern_bpf(buffer_bytes_dim, ppm_sc, tp_set);
+		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc, tp_set);
 	}
 	else
 	{
