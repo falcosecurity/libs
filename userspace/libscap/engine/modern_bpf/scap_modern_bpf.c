@@ -128,9 +128,13 @@ static void scap_modern_bpf__free_engine(struct scap_engine_handle engine)
 	free(engine.m_handle);
 }
 
-static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+/* The third parameter is not the CPU number from which we extract the event but the ring buffer number.
+ * For the old BPF probe and the kernel module the number of CPUs is equal to the number of buffers since we always use a per-CPU approach.
+ */
+static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT uint16_t* buffer_id)
 {
-	pman_consume_first_from_buffers((void**)pevent, pcpuid);
+	pman_consume_first_event((void**)pevent, buffer_id);
+
 	if((*pevent) == NULL)
 	{
 		/* The first time we sleep 500 us, if we have consecutive timeouts we can reach also 30 ms. */
@@ -210,10 +214,12 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
 	bool libbpf_verbosity = false;
 
+	pman_clear_state();
+
 	/* Some checks to test if we can use the modern BPF probe
 	 * - check the ring-buffer dimension in bytes.
 	 * - check the minimum required kernel version.
-	 * 
+	 *
 	 * Please note the presence of BTF is directly checked by `libbpf` see `bpf_object__load_vmlinux_btf` method.
 	 */
 	if(check_buffer_bytes_dim(handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
@@ -226,8 +232,11 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	/* Initialize the libpman internal state */
-	if(pman_init_state(libbpf_verbosity, params->buffer_bytes_dim))
+	/* Initialize the libpman internal state.
+	 * Validation of `cpus_for_each_buffer` is made inside libpman
+	 * since this is the unique place where we have the number of CPUs
+	 */
+	if(pman_init_state(libbpf_verbosity, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
@@ -235,9 +244,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 	/* Set an initial sleep time in case of timeouts. */
 	engine.m_handle->m_retry_us = BUFFER_EMPTY_WAIT_TIME_US_START;
-
-	/* Return the number of system available CPUs, not online CPUs. */
-	engine.m_handle->m_num_cpus = pman_get_cpus_number();
 
 	/* Load and attach */
 	ret = pman_open_probe();
@@ -278,7 +284,7 @@ int32_t scap_modern_bpf__close(struct scap_engine_handle engine)
 
 static uint32_t scap_modern_bpf__get_n_devs(struct scap_engine_handle engine)
 {
-	return engine.m_handle->m_num_cpus;
+	return pman_get_required_buffers();
 }
 
 int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)

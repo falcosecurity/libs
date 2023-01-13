@@ -26,7 +26,7 @@ extern "C"
 #endif
 
 	/* `libpman` return values convention:
-	 * In case of success `0` is return otherwise `errno`. If `errno` is not
+	 * In case of success `0` is returned otherwise `errno`. If `errno` is not
 	 * available `-1` is returned.
 	 *
 	 * Please Note:
@@ -47,17 +47,24 @@ extern "C"
 	 *
 	 * @param verbosity use `true` if you want to activate libbpf verbosity.
 	 * @param buf_bytes_dim dimension of a single per-CPU buffer in bytes.
+	 * @param cpus_for_each_buffer number of CPUs to which we want to associate a ring buffer.
+	 * @param allocate_online_only if true, allocate ring buffers taking only into account online CPUs.
 	 * @return `0` on success, `-1` in case of error.
 	 */
-	int pman_init_state(bool verbosity, unsigned long buf_bytes_dim);
+	int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer, bool allocate_online_only);
 
 	/**
-	 * @brief Return the number of available CPUs on the system, not the
-	 * online CPUs!
-	 *
-	 * @return number of available CPUs on success, `-1` in case of error.
+	 * @brief Clear the `libpman` global state before it is used.
+	 * This API could be useful if we open the modern bpf engine multiple times.
 	 */
-	int pman_get_cpus_number(void);
+	void pman_clear_state(void);
+
+	/**
+	 * @brief Return the number of allocated ring buffers.
+	 *
+	 * @return number of allocated ring buffers.
+	 */
+	int pman_get_required_buffers(void);
 
 	/////////////////////////////
 	// PROBE LIFECYCLE
@@ -225,10 +232,10 @@ extern "C"
 	 *
 	 * @param event_ptr in case of success return a pointer
 	 * to the event, otherwise return NULL.
-	 * @param cpu_id in case of success returns the id of the CPU
-	 * on which we have found the event, otherwise return `-1`.
+	 * @param buffer_id in case of success returns the id of the ring buffer
+	 * from which we retrieved the event, otherwise return `-1`.
 	 */
-	void pman_consume_first_from_buffers(void** event_ptr, int16_t *cpu_id);
+	void pman_consume_first_event(void** event_ptr, int16_t* buffer_id);
 
 	/////////////////////////////
 	// CAPTURE (EXCHANGE VALUES WITH BPF SIDE)
@@ -413,7 +420,7 @@ extern "C"
 	 * @brief Return `true` if all ring buffers are full. To state
 	 * that a ring buffer is full we check that the free space is less
 	 * than the `threshold`
-	 * 
+	 *
 	 * @param threshold used to check if a buffer is full
 	 * @return `true` if all buffers are full, otherwise `false`
 	 */
@@ -421,7 +428,7 @@ extern "C"
 
 	/**
 	 * @brief Get the producer pos for the required ring
-	 * 
+	 *
 	 * @param ring_num ring for which we want to obtain the producer pos
 	 * @return producer pos as an unsigned long
 	 */
