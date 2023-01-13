@@ -22,6 +22,12 @@ set(LIBSCAP_UNIT_TESTS_SOURCES
     scap_event.ut.cpp
 )
 
+# Modern BPF is supported only on kernel versions >= 5.8.
+# To compile these tests you need to use the Cmake option `BUILD_LIBSCAP_MODERN_BPF=On`
+if(BUILD_LIBSCAP_MODERN_BPF)
+	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES ./test_suites/engines/modern_bpf/modern_bpf.cpp)
+endif()
+
 if (BUILD_LIBSCAP_GVISOR)
 	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
 	include_directories(../engine/gvisor)
