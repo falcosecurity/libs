@@ -40,7 +40,7 @@ limitations under the License.
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
 #define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
-#define ALLOCATE_ONLINE_ONLY_MODE "--online_only"
+#define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 
 /* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -711,7 +711,9 @@ void print_help()
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
+	printf("[MODERN PROBE ONLY, EXPERIMENTAL]\n");
 	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` CPUs.\n", CPUS_FOR_EACH_BUFFER_MODE);
+	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for online CPUs only.\n", ALL_AVAILABLE_CPUS_MODE);
 	printf("\n------> VALIDATION OPTIONS\n");
 	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
@@ -820,7 +822,7 @@ void parse_CLI_options(int argc, char** argv)
 			oargs.mode = SCAP_MODE_LIVE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
-			modern_bpf_params.allocate_online_only = false;
+			modern_bpf_params.allocate_online_only = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
@@ -905,9 +907,9 @@ void parse_CLI_options(int argc, char** argv)
 			modern_bpf_params.cpus_for_each_buffer = atoi(argv[++i]);
 		}
 		/* This should be used only with the modern probe */
-		if(!strcmp(argv[i], ALLOCATE_ONLINE_ONLY_MODE))
+		if(!strcmp(argv[i], ALL_AVAILABLE_CPUS_MODE))
 		{
-			modern_bpf_params.allocate_online_only = true;
+			modern_bpf_params.allocate_online_only = false;
 		}
 
 
