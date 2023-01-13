@@ -39,6 +39,8 @@ limitations under the License.
 #define EVENT_TYPE_OPTION "--evt_type"
 #define BUFFER_OPTION "--buffer_dim"
 #define SIMPLE_SET_OPTION "--simple_set"
+#define CPUS_FOR_EACH_BUFFER_MODE "--cpus_for_buf"
+#define ALLOCATE_ONLINE_ONLY_MODE "--online_only"
 
 /* PRINT */
 #define VALIDATION_OPTION "--validate_syscalls"
@@ -709,6 +711,7 @@ void print_help()
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
+	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` CPUs.\n", CPUS_FOR_EACH_BUFFER_MODE);
 	printf("\n------> VALIDATION OPTIONS\n");
 	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
@@ -731,7 +734,8 @@ void print_scap_source()
 	}
 	else if(strcmp(oargs.engine_name, MODERN_BPF_ENGINE) == 0)
 	{
-		printf("* Modern BPF probe.\n");
+		struct scap_modern_bpf_engine_params* params = oargs.engine_params;
+		printf("* Modern BPF probe, 1 ring buffer every %d CPUs\n", params->cpus_for_each_buffer);
 	}
 	else if(strcmp(oargs.engine_name, SAVEFILE_ENGINE) == 0)
 	{
@@ -815,6 +819,8 @@ void parse_CLI_options(int argc, char** argv)
 			oargs.engine_name = MODERN_BPF_ENGINE;
 			oargs.mode = SCAP_MODE_LIVE;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
+			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
+			modern_bpf_params.allocate_online_only = false;
 			oargs.engine_params = &modern_bpf_params;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))
@@ -888,6 +894,22 @@ void parse_CLI_options(int argc, char** argv)
 		{
 			enable_simple_set();
 		}
+		/* This should be used only with the modern probe */
+		if(!strcmp(argv[i], CPUS_FOR_EACH_BUFFER_MODE))
+		{
+			if(!(i + 1 < argc))
+			{
+				printf("\nYou need to specify also the number of CPUs. Bye!\n");
+				exit(EXIT_FAILURE);
+			}
+			modern_bpf_params.cpus_for_each_buffer = atoi(argv[++i]);
+		}
+		/* This should be used only with the modern probe */
+		if(!strcmp(argv[i], ALLOCATE_ONLINE_ONLY_MODE))
+		{
+			modern_bpf_params.allocate_online_only = true;
+		}
+
 
 		/*=============================== CONFIGURATIONS ===========================*/
 
