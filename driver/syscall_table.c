@@ -214,7 +214,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_shutdown - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SOCKET_SHUTDOWN_E, PPME_SOCKET_SHUTDOWN_X, PPM_SC_SHUTDOWN},
 #endif
 #ifdef __NR_setsockopt
-	[__NR_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X, PPM_SC_SETSOCKOPT},
+	[__NR_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X, PPM_SC_SETSOCKOPT},
 #endif
 #ifdef __NR_getsockopt
 	[__NR_getsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X, PPM_SC_GETSOCKOPT},
