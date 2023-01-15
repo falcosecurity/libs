@@ -2052,46 +2052,48 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 
 int f_sys_getsockopt_x(struct event_filler_arguments *args)
 {
-	int res;
-	int64_t retval;
-	uint32_t optlen;
+	int res = 0;
+	int64_t retval = 0;
+	uint32_t optlen = 0;
+	s32 fd = 0;
 	syscall_arg_t val[5] = {0};
-
 	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
+
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-
-	/* retval */
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/* fd */
-	res = val_to_ring(args, val[0], 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* Parameter 2: fd (type: PT_FD) */
+	fd = (s32)val[0];
+	res = val_to_ring(args, (s64)fd, 0, true, 0);
+	CHECK_RES(res);
 
-	/* level */
+	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
 	res = val_to_ring(args, sockopt_level_to_scap(val[1]), 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/* optname */
+	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
 	res = val_to_ring(args, sockopt_optname_to_scap(val[1], val[2]), 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	if (unlikely(ppm_copy_from_user(&optlen, (const void __user*)val[4], sizeof(optlen))))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+	/* `optval` and `optlen` will be the ones provided by the user if the syscall fails
+	 * otherwise they will refer to the real socket data since the kernel populated them.
+	 */
 
-	/* optval */
+	/* Extract optlen */
+	if(unlikely(ppm_copy_from_user(&optlen, (const void __user*)val[4], sizeof(optlen))))
+	{
+		optlen = 0;
+	}
+
+	/* Parameter 5: optval (type: PT_DYN) */
 	res = parse_sockopt(args, val[1], val[2], (const void __user*)val[3], optlen);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/* optlen */
+	/* Parameter 6: optlen (type: PT_UINT32) */
 	res = val_to_ring(args, optlen, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
