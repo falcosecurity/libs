@@ -3,6 +3,7 @@
 #ifdef __NR_mlock2
 
 #include <sys/mman.h>
+#include <asm-generic/mman-common.h>
 
 TEST(SyscallExit, mlock2X)
 {
