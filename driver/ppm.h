@@ -36,7 +36,7 @@ or GPL2.txt for full copies of the license.
 
 typedef u64 nanoseconds;
 
-/* This is an auxiliary `__kernel_timex_timeval` struct we use in setsockopt
+/* This is an auxiliary struct we use in setsockopt
  * when `__kernel_timex_timeval` struct is not defined.
  */
 struct __aux_timeval {
