@@ -1477,45 +1477,40 @@ FILLER(sys_setsockopt_x, true)
 
 FILLER(sys_getsockopt_x, true)
 {
-	int res;
-	unsigned long retval, fd, level, optname, optval, optlen_p, optlen;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	CHECK_RES(res);
 
-	/* retval */
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/* fd */
-	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/* level */
-	level = bpf_syscall_get_argument(data, 1);
+	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
+	int level = bpf_syscall_get_argument(data, 1);
 	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/* optname */
-	optname = bpf_syscall_get_argument(data, 2);
+	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
+	int optname = bpf_syscall_get_argument(data, 2);
 	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/* optval */
-	optval = bpf_syscall_get_argument(data, 3);
-	optlen_p = bpf_syscall_get_argument(data, 4);
-	if (bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_p))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+	/* `optval` and `optlen` will be the ones provided by the user if the syscall fails
+	 * otherwise they will refer to the real socket data since the kernel populated them.
+	 */
 
+	/* Parameter 5: optval (type: PT_DYN) */
+	unsigned long optval = bpf_syscall_get_argument(data, 3);
+	int optlen = 0;
+	unsigned long optlen_pointer = bpf_syscall_get_argument(data, 4);
+	/* if the read fails it internally calls memeset(0) so we are ok */
+	bpf_probe_read(&optlen, sizeof(optlen), (void*)optlen_pointer);
 	res = parse_sockopt(data, level, optname, (void*)optval, optlen);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/* optlen */
+	/* Parameter 6: optlen (type: PT_UINT32) */
 	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
 	return res;
 }
