@@ -2253,10 +2253,18 @@ void sinsp::validate_k8s_node_name()
 
 		if(!found)
 		{
-			throw sinsp_exception(
+			// todo(jasondellaluce): we used to throw an exception here, however
+			// at this point we have no guarantee on whether the provided node
+			// name is wrong or if there was a failure in the k8s client event
+			// parsing logic. As such, it's unsafe to throw an exception that
+			// can potentially terminate the libs consumer. For now, we stick
+			// to error-level logging, however this is an issue we may want to
+			// further investigate in the future.
+			// see: https://github.com/falcosecurity/falco/issues/2358
+			g_logger.log(
 				"Failing to enrich events with Kubernetes metadata: "
 				"node name does not correspond to a node in the cluster: "
-				+ *m_k8s_node_name);
+				+ *m_k8s_node_name, sinsp_logger::SEV_ERROR);
 		}
 	}
 
