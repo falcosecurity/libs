@@ -196,7 +196,7 @@ void event_test::disable_capture()
 
 void event_test::clear_ring_buffers()
 {
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	while(get_event_from_ringbuffer(&cpu_id) != NULL)
 	{
 	};
@@ -207,7 +207,7 @@ bool event_test::are_all_ringbuffers_full(unsigned long threshold)
 	return pman_are_all_ringbuffers_full(threshold);
 }
 
-struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(int16_t* cpu_id)
+struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 {
 	m_event_header = NULL;
 	uint16_t attempts = 0;
@@ -215,7 +215,7 @@ struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(int16_t* cpu_id)
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		pman_consume_first_from_buffers((void**)&m_event_header, cpu_id);
+		pman_consume_one_from_buffers((void**)&m_event_header, cpu_id);
 		if(m_event_header != NULL)
 		{
 			return m_event_header;
@@ -819,7 +819,7 @@ void event_test::assert_unix_path(const char* desired_path, int starting_index)
 
 void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_search, bool presence)
 {
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	pid_t pid = 0;
 	uint16_t evt_type = 0;
 

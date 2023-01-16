@@ -40,7 +40,7 @@ TEST(Local, ring_buffer_overwrite)
 	 * and keep the pointer to an event to see if this is overwritten
 	 */
 	struct ppm_evt_hdr* evt = NULL;
-	int16_t cpu_id = 0;
+	uint16_t cpu_id = 0;
 	
 	for(int i=0; i<10; i++)
 	{

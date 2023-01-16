@@ -63,7 +63,7 @@ int main(int argc, char** argv)
 	::testing::InitGoogleTest(&argc, argv);
 
 	/* Configure and load BPF probe. */
-	ret = pman_init_state(libbpf_verbosity, buffer_dim);
+	ret = pman_init_state(libbpf_verbosity, buffer_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true);
 	ret = ret ?: pman_open_probe();
 	ret = ret ?: pman_prepare_ringbuf_array_before_loading();
 	ret = ret ?: pman_prepare_maps_before_loading();
