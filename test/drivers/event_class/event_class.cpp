@@ -155,6 +155,11 @@ event_test::event_test(int syscall_id, int event_direction):
 			m_event_type = PPME_GENERIC_X;
 		}
 
+		/* This logic is not needed by architectures that require the `CAPTURE_SCHED_PROC_FORK`
+		 * workaround, since `CAPTURE_SCHED_PROC_FORK` requires `BPF_RAW_TRACEPOINTS` and so
+		 * kernel versions >= 4.17
+		 */		
+#ifndef CAPTURE_SCHED_PROC_FORK  
 		if(is_bpf_engine())
 		{
 			/* The bpf engine retrieves syscall params from sys_enter tracepoints
@@ -171,6 +176,7 @@ event_test::event_test(int syscall_id, int event_direction):
 				m_tp_set[SCHED_PROC_FORK] = 1;
 			}
 		}
+#endif			
 	}
 
 	m_current_param = 0;
