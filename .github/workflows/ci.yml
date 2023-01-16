@@ -207,8 +207,8 @@ jobs:
           sudo ./libscap/examples/01-open/scap-open --kmod --num_events 0
           sudo rmmod scap
 
-  build-and-test-modern-bpf-x86:
-    name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
+  test-drivers-x86:
+    name: test-drivers-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
     if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
@@ -232,11 +232,22 @@ jobs:
           mkdir -p build
           cd build && cmake -DUSE_BUNDLED_DEPS=ON -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_BPF=True -DBUILD_LIBSCAP_GVISOR=OFF ../
           make drivers_test
+          make driver bpf
 
       - name: Run drivers_test with modern bpf 🏎️
         run: |
           cd build
           sudo ./test/drivers/drivers_test -m
+
+      - name: Run drivers_test with bpf 🏎️
+        run: |
+          cd build
+          sudo ./test/drivers/drivers_test -b
+
+      - name: Run drivers_test with kmod 🏎️
+        run: |
+          cd build
+          sudo ./test/drivers/drivers_test -k
 
   build-modern-bpf-arm64:
     name: build-modern-bpf-arm64 🙃 (system_deps)
@@ -266,7 +277,6 @@ jobs:
             .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-            make scap-open
             make drivers_test
 
   build-modern-bpf-s390x:
