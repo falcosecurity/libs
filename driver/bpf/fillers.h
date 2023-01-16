@@ -2679,13 +2679,13 @@ FILLER(proc_startupdate_3, true)
 					env_len = ARGS_ENV_SIZE_MAX;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-				if (bpf_probe_read_kernel(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-							  ((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
-							  (void *)env_start))
+				if (bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+							((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
+							(void *)env_start))
 #else
-				if (bpf_probe_read_kernel(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-							  env_len & SCRATCH_SIZE_HALF,
-							  (void *)env_start))
+				if (bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+							env_len & SCRATCH_SIZE_HALF,
+							(void *)env_start))
 #endif
 					env_len = 0;
 				else
@@ -6265,11 +6265,11 @@ FILLER(sched_prog_exec_3, false)
 		}
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-		if(bpf_probe_read_kernel(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+		if(bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 				  ((env_len - 1) & SCRATCH_SIZE_HALF) + 1,
 				  (void *)env_start))
 #else
-		if(bpf_probe_read_kernel(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+		if(bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 				  env_len & SCRATCH_SIZE_HALF,
 				  (void *)env_start))
 #endif /* BPF_FORBIDS_ZERO_ACCESS */
