@@ -78,6 +78,11 @@ enum scap_setting {
 	 * arg1: statsd port
 	 */
 	SCAP_STATSD_PORT,
+	/**
+	 * @brief tell drivers to drop failed syscalls exit
+	 * arg1: whether to enabled or disable the feature
+	 */
+	SCAP_DROP_FAILED,
 };
 
 struct scap_savefile_vtable {

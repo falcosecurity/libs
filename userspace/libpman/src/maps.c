@@ -82,6 +82,11 @@ void pman_set_sampling_ratio(uint32_t value)
 	g_state.skel->bss->g_settings.sampling_ratio = value;
 }
 
+void pman_set_drop_failed(bool drop_failed)
+{
+	g_state.skel->bss->g_settings.drop_failed = drop_failed;
+}
+
 void pman_clean_all_64bit_interesting_syscalls()
 {
 	/* All syscalls are not interesting. */
@@ -346,6 +351,7 @@ int pman_finalize_maps_after_loading()
 
 	/* set bpf global variables. */
 	pman_set_snaplen(80);
+	pman_set_drop_failed(false);
 
 	/* We have to fill all ours tail tables. */
 	pman_fill_syscall_sampling_table();

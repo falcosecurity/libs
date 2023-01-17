@@ -354,6 +354,14 @@ extern "C"
 	void pman_set_sampling_ratio(uint32_t value);
 
 	/**
+	 * @brief Ask driver to drop failed syscalls.
+	 * It only applied to syscall exit events.
+	 *
+	 * @param drop_failed whether to enable the drop failed mode.
+	 */
+	void pman_set_drop_failed(bool drop_failed);
+
+	/**
 	 * @brief Get API version to check it a runtime.
 	 *
 	 * @return API version
