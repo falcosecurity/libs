@@ -295,6 +295,14 @@ public:
 	void set_snaplen(uint32_t snaplen);
 
 	/*!
+	 * \brief (Un)Set the drop failed feature of the drivers.
+		When enabled, drivers will stop sending failed syscalls (exit) events.
+
+	 * @param dropfailed whether to enable the feature
+	 */
+	void set_dropfailed(bool dropfailed);
+
+	/*!
 	  \brief Determine if this inspector is going to load user tables on
 	  startup.
 
