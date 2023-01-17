@@ -1650,6 +1650,14 @@ void sinsp::set_snaplen(uint32_t snaplen)
 	}
 }
 
+void sinsp::set_dropfailed(bool dropfailed)
+{
+	if(is_live() && scap_set_dropfailed(m_h, dropfailed) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
 void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 {
 	//

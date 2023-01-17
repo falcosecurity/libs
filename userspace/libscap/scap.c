@@ -1034,6 +1034,16 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
+int32_t scap_set_dropfailed(scap_t* handle, bool enabled) {
+	if(handle && handle->m_vtable)
+	{
+		return handle->m_vtable->configure(handle->m_engine, SCAP_DROP_FAILED, enabled, 0);
+	}
+
+	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
+	return SCAP_FAILURE;
+}
+
 uint32_t scap_event_get_dump_flags(scap_t* handle)
 {
 	if(handle->m_vtable->savefile_ops)
