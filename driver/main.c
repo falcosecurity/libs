@@ -521,6 +521,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->sampling_interval = 0;
 	consumer->is_dropping = 0;
 	consumer->do_dynamic_snaplen = false;
+	consumer->drop_failed = 0;
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
 	consumer->fullcapture_port_range_start = 0;
@@ -1155,6 +1156,20 @@ cleanup_ioctl_procinfo:
 		ret = 0;
 		goto cleanup_ioctl;
 	}
+	case PPM_IOCTL_DISABLE_DROPFAILED:
+	{
+		consumer->drop_failed = false;
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
+	case PPM_IOCTL_ENABLE_DROPFAILED:
+	{
+		consumer->drop_failed = true;
+
+		ret = 0;
+		goto cleanup_ioctl;
+	}
 	default:
 		ret = -ENOTTY;
 		goto cleanup_ioctl;
@@ -1764,6 +1779,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	int32_t cbres = PPM_SUCCESS;
 	int cpu;
 	long table_index;
+	int64_t retval;
 
 	if (tp_type < TP_VAL_INTERNAL && !(consumer->tracepoints_attached & (1 << tp_type)))
 	{
@@ -1776,6 +1792,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 		if (!test_bit(table_index, consumer->syscalls_mask))
 		{
+			return res;
+		}
+
+		if (event_type & 1 && consumer->drop_failed)
+		{
+			retval = (int64_t)syscall_get_return_value(current, event_datap->event_info.syscall_data.regs);
 			return res;
 		}
 	}

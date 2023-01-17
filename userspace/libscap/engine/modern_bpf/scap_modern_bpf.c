@@ -137,8 +137,12 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		return SCAP_SUCCESS;
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
+		break;
 	case SCAP_PPM_SC_MASK:
 		return scap_modern_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
+	case SCAP_DROP_FAILED:
+		pman_set_drop_failed(arg1);
+		return SCAP_SUCCESS;
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;

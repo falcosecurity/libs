@@ -606,6 +606,7 @@ static __always_inline void call_filler(void *ctx,
 	unsigned long long pid;
 	unsigned long long ts;
 	unsigned int cpu;
+	long retval;
 
 	cpu = bpf_get_smp_processor_id();
 
@@ -616,6 +617,18 @@ static __always_inline void call_filler(void *ctx,
 	settings = get_bpf_settings();
 	if (!settings)
 		return;
+
+	/* Check if syscall was successful */
+	// Odd evt types are used for exit events;
+	// Note that for non-syscall event types we always use enter events
+	if (evt_type & 1 && settings->drop_failed)
+	{
+		retval = bpf_syscall_get_retval(ctx);
+		if (retval < 0)
+		{
+			return;
+		}
+	}
 
 	if (!acquire_local_state(state))
 		return;

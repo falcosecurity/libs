@@ -27,6 +27,7 @@ struct capture_settings
 	uint32_t snaplen;	 /* we use it when we want to read a maximum size from a event and no more. */
 	bool dropping_mode;	 /* this flag actives the sampling logic */
 	uint32_t sampling_ratio; /* this config tells tracepoints when they have to drop events  */
+	bool drop_failed;     /* whether to drop failed syscalls (exit events) */
 };
 
 /**

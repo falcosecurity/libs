@@ -563,12 +563,10 @@ int32_t scap_kmod_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_dynamic_snaplen(struct scap_engine_handle engine)
+int32_t scap_kmod_handle_dropfailed(struct scap_engine_handle engine, bool enable)
 {
-	//
-	// Tell the driver to change the snaplen
-	//
-	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN))
+	int req = enable ? PPM_IOCTL_ENABLE_DROPFAILED : PPM_IOCTL_DISABLE_DROPFAILED;
+	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, req))
 	{
 		ASSERT(false);
 		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_enable_dynamic_snaplen failed");
@@ -576,15 +574,16 @@ int32_t scap_kmod_enable_dynamic_snaplen(struct scap_engine_handle engine)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_disable_dynamic_snaplen(struct scap_engine_handle engine)
+int32_t scap_kmod_handle_dynamic_snaplen(struct scap_engine_handle engine, bool enable)
 {
 	//
 	// Tell the driver to change the snaplen
 	//
-	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN))
+	int req = enable ? PPM_IOCTL_ENABLE_DYNAMIC_SNAPLEN : PPM_IOCTL_DISABLE_DYNAMIC_SNAPLEN;
+	if(ioctl(engine.m_handle->m_dev_set.m_devs[0].m_fd, req))
 	{
 		ASSERT(false);
-		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_disable_dynamic_snaplen failed");
+		return scap_errprintf(engine.m_handle->m_lasterr, errno, "scap_enable_dynamic_snaplen failed");
 	}
 	return SCAP_SUCCESS;
 }
@@ -696,15 +695,10 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_kmod_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
 		return scap_kmod_handle_ppm_sc_mask(engine, arg1, arg2);
+	case SCAP_DROP_FAILED:
+		return scap_kmod_handle_dropfailed(engine, arg1);
 	case SCAP_DYNAMIC_SNAPLEN:
-		if(arg1 == 0)
-		{
-			return scap_kmod_disable_dynamic_snaplen(engine);
-		}
-		else
-		{
-			return scap_kmod_enable_dynamic_snaplen(engine);
-		}
+		return scap_kmod_handle_dynamic_snaplen(engine, arg1);
 	case SCAP_FULLCAPTURE_PORT_RANGE:
 		return scap_kmod_set_fullcapture_port_range(engine, arg1, arg2);
 	case SCAP_STATSD_PORT:
