@@ -19,6 +19,7 @@ include_directories(../common)
 include_directories(${LIBSCAP_INCLUDE_DIR})
 include_directories(../async)
 include_directories(./include)
+include_directories(../plugin)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
