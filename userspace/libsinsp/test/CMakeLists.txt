@@ -21,7 +21,7 @@ if(NOT MINIMAL_BUILD)
 endif() # MINIMAL_BUILD
 
 include_directories("..")
-include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver)
+include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver ${PROJECT_SOURCE_DIR}/driver)
 
 ## Public libsinsp API
 file(GLOB_RECURSE PUBLIC_SINSP_API_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/public_sinsp_API/*.cpp)
