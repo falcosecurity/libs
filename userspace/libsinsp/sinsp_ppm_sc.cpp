@@ -166,14 +166,29 @@ std::unordered_set<uint32_t> sinsp::enforce_simple_ppm_sc_set(std::unordered_set
 
 std::unordered_set<uint32_t> sinsp::enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_IO_READ ||
-		   g_infotables.m_syscall_info_table[i].category == EC_IO_WRITE ||
-		   g_infotables.m_syscall_info_table[i].category == EC_IO_OTHER ||
-		   g_infotables.m_syscall_info_table[i].category == EC_FILE)
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
 		{
-			ppm_sc_set.insert(i);
+		case EC_IO_READ:
+		case EC_IO_WRITE:
+		case EC_IO_OTHER:
+			ppm_sc_set.insert(ppm_sc_code);
+		}
+	}
+	return ppm_sc_set;
+}
+
+std::unordered_set<uint32_t> sinsp::enforce_file_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
+{
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
+	{
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
+		{
+		case EC_FILE:
+			ppm_sc_set.insert(ppm_sc_code);
 		}
 	}
 	return ppm_sc_set;
@@ -181,11 +196,13 @@ std::unordered_set<uint32_t> sinsp::enforce_io_ppm_sc_set(std::unordered_set<uin
 
 std::unordered_set<uint32_t> sinsp::enforce_net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_NET)
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
 		{
-			ppm_sc_set.insert(i);
+		case EC_NET:
+			ppm_sc_set.insert(ppm_sc_code);
 		}
 	}
 	return ppm_sc_set;
@@ -193,11 +210,13 @@ std::unordered_set<uint32_t> sinsp::enforce_net_ppm_sc_set(std::unordered_set<ui
 
 std::unordered_set<uint32_t> sinsp::enforce_proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_PROCESS)
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
 		{
-			ppm_sc_set.insert(i);
+		case EC_PROCESS:
+			ppm_sc_set.insert(ppm_sc_code);
 		}
 	}
 	return ppm_sc_set;
@@ -205,13 +224,15 @@ std::unordered_set<uint32_t> sinsp::enforce_proc_ppm_sc_set(std::unordered_set<u
 
 std::unordered_set<uint32_t> sinsp::enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
 {
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
 	{
-		if(g_infotables.m_syscall_info_table[i].category == EC_SYSTEM ||
-		   g_infotables.m_syscall_info_table[i].category == EC_MEMORY ||
-		   g_infotables.m_syscall_info_table[i].category == EC_SIGNAL)
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
 		{
-			ppm_sc_set.insert(i);
+		case EC_SYSTEM:
+		case EC_MEMORY:
+		case EC_SIGNAL:
+			ppm_sc_set.insert(ppm_sc_code);
 		}
 	}
 	return ppm_sc_set;

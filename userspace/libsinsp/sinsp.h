@@ -887,6 +887,13 @@ public:
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
+	  valuable for file operations.
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_file_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
 	  valuable for networking.
 	  Does not enforce minimum sinsp state set.
 	*/
