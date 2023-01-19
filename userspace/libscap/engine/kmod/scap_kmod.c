@@ -425,6 +425,13 @@ return SCAP_SUCCESS;
 //
 int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 {
+	/* This could happen if we fail to instantiate `m_devs` in the init method */
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	if(devset->m_devs == NULL)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	/* Disable all tracepoints */
 	int ret = SCAP_SUCCESS;
 	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)

@@ -807,6 +807,10 @@ void scap_close(scap_t* handle)
 	{
 		/* The capture should be stopped before
 		 * closing the engine, here we only enforce it.
+	     * Please note that there are some corner cases in which 
+		 * we call `scap_close` before the engine is validated
+		 * so we need to pay attention to NULL pointers in the 
+		 * following v-table methods.
 		 */
 		handle->m_vtable->stop_capture(handle->m_engine);
 		handle->m_vtable->close(handle->m_engine);
