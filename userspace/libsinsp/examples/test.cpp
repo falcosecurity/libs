@@ -22,6 +22,7 @@ limitations under the License.
 #include <csignal>
 #include <sinsp.h>
 #include <functional>
+#include <memory>
 #include "util.h"
 #include "filter/ppm_codes.h"
 #include <unordered_set>
