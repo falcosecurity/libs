@@ -41,13 +41,13 @@ using namespace std;
 
 
 // Functions used for dumping to stdout
-void plaintext_dump(sinsp& inspector);
-void json_dump(sinsp& inspector);
+void plaintext_dump(sinsp_evt* ev);
+void json_dump(sinsp_evt* ev);
 void json_dump_init(sinsp& inspector);
 void json_dump_reinit_evt_formatter(sinsp& inspector);
 
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
-std::function<void(sinsp& inspector)> dump;
+std::function<void(sinsp_evt*)> dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
@@ -64,7 +64,7 @@ string output_fields_json = "";
 unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 static uint64_t max_events = UINT64_MAX;
 
-sinsp_evt* get_event(sinsp& inspector);
+sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
 
 #define PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
 
@@ -398,8 +398,13 @@ int main(int argc, char** argv)
 	uint64_t num_events = 0;
 	while(!g_interrupted && num_events < max_events)
 	{
-		dump(inspector);
-		num_events++;
+		sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
+					  { cout << "[ERROR] " << error_msg << endl; });
+		if(ev != nullptr)
+		{
+			dump(ev);
+			num_events++;
+		}
 	}
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
 	const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
@@ -443,17 +448,8 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 	return nullptr;
 }
 
-void plaintext_dump(sinsp& inspector)
+void plaintext_dump(sinsp_evt* ev)
 {
-
-	sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
-				  { cout << "[ERROR] " << error_msg << endl; });
-
-	if(ev == nullptr)
-	{
-		return;
-	}
-
 	sinsp_threadinfo* thread = ev->get_thread_info();
 	if(thread)
 	{
@@ -510,7 +506,7 @@ void plaintext_dump(sinsp& inspector)
 
 			cout << "[PPID=" << parent_pid << "]:"
 			     << "[PID=" << thread->m_pid << "]:"
-			     << "[TYPE=" << get_event_type_name(inspector, ev) << "]:"
+			     << "[TYPE=" << get_event_type_name(ev) << "]:"
 			     << "[EXE=" << thread->get_exepath() << "]:"
 			     << "[CMD=" << cmdline << "]"
 			     << endl;
@@ -547,17 +543,8 @@ void json_dump_reinit_evt_formatter(sinsp& inspector)
 	}
 }
 
-void json_dump(sinsp& inspector)
+void json_dump(sinsp_evt* ev)
 {
-
-	sinsp_evt* ev = get_event(inspector, [](const std::string& error_msg)
-				  { cout << R"({"error": ")" << error_msg << R"("})" << endl; });
-
-	if(ev == nullptr)
-	{
-		return;
-	}
-
 	std::string output;
 	sinsp_threadinfo* thread = ev->get_thread_info();
 
