@@ -5287,6 +5287,21 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 		case EC_SCHEDULER:
 			m_strstorage = "scheduler";
 			break;
+		case EC_INTERNAL:
+			m_strstorage = "internal";
+			break;
+		case EC_SYSCALL:
+			m_strstorage = "syscall";
+			break;
+		case EC_TRACEPOINT:
+			m_strstorage = "tracepoint";
+			break;
+		case EC_PLUGIN:
+			m_strstorage = "plugin";
+			break;
+		case EC_METAEVENT:
+			m_strstorage = "meta";
+			break;
 		default:
 			m_strstorage = "unknown";
 			break;
