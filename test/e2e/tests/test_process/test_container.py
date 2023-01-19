@@ -4,6 +4,7 @@ from sinspqa.sinsp import assert_events
 from sinspqa.docker import get_container_id
 
 sinsp_args = [
+    "-j",
     "-f", "evt.category=process and not container.id=host",
     "-o", "%container.id %evt.args %evt.category %evt.type %proc.cmdline %proc.exe %user.uid %user.name %user.homedir %group.gid %group.name"
 ]
