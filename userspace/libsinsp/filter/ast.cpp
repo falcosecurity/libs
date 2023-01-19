@@ -86,24 +86,24 @@ void string_visitor::visit_logical_op(const char *op, const std::vector<std::uni
 	m_str += ")";
 }
 
-void string_visitor::visit(and_expr* e)
+void string_visitor::visit(const and_expr* e)
 {
 	visit_logical_op("and", e->children);
 }
 
-void string_visitor::visit(or_expr* e)
+void string_visitor::visit(const or_expr* e)
 {
 	visit_logical_op("or", e->children);
 }
 
-void string_visitor::visit(not_expr* e)
+void string_visitor::visit(const not_expr* e)
 {
 	m_str += "not ";
 
 	e->child->accept(this);
 }
 
-void string_visitor::visit(value_expr* e)
+void string_visitor::visit(const value_expr* e)
 {
 	if(escape_next_value)
 	{
@@ -117,7 +117,7 @@ void string_visitor::visit(value_expr* e)
 	escape_next_value = false;
 }
 
-void string_visitor::visit(list_expr* e)
+void string_visitor::visit(const list_expr* e)
 {
 	bool first = true;
 
@@ -135,7 +135,7 @@ void string_visitor::visit(list_expr* e)
 
 	m_str += ")";
 }
-void string_visitor::visit(unary_check_expr* e)
+void string_visitor::visit(const unary_check_expr* e)
 {
 	m_str += e->field;
 
@@ -148,7 +148,7 @@ void string_visitor::visit(unary_check_expr* e)
 	m_str += e->op;
 }
 
-void string_visitor::visit(binary_check_expr* e)
+void string_visitor::visit(const binary_check_expr* e)
 {
 	m_str += e->field;
 
@@ -171,7 +171,7 @@ const std::string& string_visitor::as_string()
 	return m_str;
 }
 
-std::string libsinsp::filter::ast::as_string(ast::expr *e)
+std::string libsinsp::filter::ast::as_string(const ast::expr *e)
 {
 	string_visitor sv;
 
@@ -180,13 +180,13 @@ std::string libsinsp::filter::ast::as_string(ast::expr *e)
 	return sv.as_string();
 }
 
-std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
-{  
-    struct clone_visitor: public expr_visitor
-    {   
+std::unique_ptr<expr> libsinsp::filter::ast::clone(const expr* e)
+{
+    struct clone_visitor: public const_expr_visitor
+    {
         std::unique_ptr<expr> m_last_node;
 
-        void visit(and_expr* e) override
+        void visit(const and_expr* e) override
         {
             std::vector<std::unique_ptr<expr>> children;
             for (auto &c: e->children)
@@ -197,7 +197,7 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
             m_last_node = and_expr::create(children, e->get_pos());
         }
 
-        void visit(or_expr* e) override
+        void visit(const or_expr* e) override
         {
             std::vector<std::unique_ptr<expr>> children;
             for (auto &c: e->children)
@@ -208,29 +208,29 @@ std::unique_ptr<expr> libsinsp::filter::ast::clone(expr* e)
             m_last_node = or_expr::create(children, e->get_pos());
         }
 
-        void visit(not_expr* e) override
+        void visit(const not_expr* e) override
         {
             e->child->accept(this);
             m_last_node = not_expr::create(std::move(m_last_node), e->get_pos());
         }
 
-        void visit(binary_check_expr* e) override
+        void visit(const binary_check_expr* e) override
         {
             e->value->accept(this);
             m_last_node = binary_check_expr::create(e->field, e->arg, e->op, std::move(m_last_node), e->get_pos());
         }
 
-        void visit(unary_check_expr* e) override
+        void visit(const unary_check_expr* e) override
         {
             m_last_node = unary_check_expr::create(e->field, e->arg, e->op, e->get_pos());
         }
 
-        void visit(value_expr* e) override
+        void visit(const value_expr* e) override
         {
             m_last_node = value_expr::create(e->value, e->get_pos());
         }
 
-        void visit(list_expr* e) override
+        void visit(const list_expr* e) override
         {
             m_last_node = list_expr::create(e->values, e->get_pos());
         }
