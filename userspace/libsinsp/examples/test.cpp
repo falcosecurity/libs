@@ -41,11 +41,10 @@ using namespace std;
 
 
 // Functions used for dumping to stdout
-void plaintext_dump(sinsp_evt* ev);
 void formatted_dump(sinsp_evt* ev);
 
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
-std::function<void(sinsp_evt*)> dump;
+std::function<void(sinsp_evt*)> dump = formatted_dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
@@ -62,9 +61,15 @@ static uint64_t max_events = UINT64_MAX;
 
 sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> handle_error);
 
-#define PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
+#define EVENT_HEADER "%evt.num %evt.time cat=%evt.category container=%container.id proc=%proc.name(%proc.pid.%thread.tid) "
+#define EVENT_TRAILER "%evt.dir %evt.type %evt.args"
 
-std::string default_output = DEFAULT_OUTPUT_STR;
+#define EVENT_DEFAULTS EVENT_HEADER EVENT_TRAILER
+#define PROCESS_DEFAULTS EVENT_HEADER "ppid=%proc.ppid exe=%proc.exe args=[%proc.cmdline] " EVENT_TRAILER
+
+#define JSON_PROCESS_DEFAULTS "*%evt.num %evt.time %evt.category %container.id %proc.ppid %proc.pid %evt.type %proc.exe %proc.cmdline %evt.args"
+
+std::string default_output = EVENT_DEFAULTS;
 std::string process_output = PROCESS_DEFAULTS;
 std::string net_output = PROCESS_DEFAULTS " %fd.name";
 
@@ -127,6 +132,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"enable-glogger", no_argument, 0, 'g'},
 		{0, 0, 0, 0}};
 
+	bool format_set = false;
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
@@ -143,6 +149,12 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 'j':
 			dump = formatted_dump;
+			if(!format_set)
+			{
+				default_output = DEFAULT_OUTPUT_STR;
+				process_output = JSON_PROCESS_DEFAULTS;
+				net_output = JSON_PROCESS_DEFAULTS " %fd.name";
+			}
 			inspector.set_buffer_format(sinsp_evt::PF_JSON);
 			break;
 		case 'a':
@@ -169,6 +181,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			default_output = optarg;
 			process_output = optarg;
 			net_output = optarg;
+			format_set = true;
 			break;
 		case 'E':
 			inspector.set_import_users(false);
@@ -342,7 +355,6 @@ error:
 int main(int argc, char** argv)
 {
 	sinsp inspector;
-	dump = plaintext_dump;
 
 #ifndef _WIN32
 	parse_CLI_options(inspector, argc, argv);
@@ -455,58 +467,6 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 
 	return nullptr;
 }
-
-void plaintext_dump(sinsp_evt* ev)
-{
-	sinsp_threadinfo* thread = ev->get_thread_info();
-	if(thread)
-	{
-		string cmdline;
-		sinsp_threadinfo::populate_cmdline(cmdline, thread);
-
-		bool is_host_proc = thread->m_container_id.empty();
-		cout << '[' << (is_host_proc ? "HOST" : thread->m_container_id) << "]:";
-
-		cout << "[CAT=";
-
-		if(ev->get_category() == EC_PROCESS)
-		{
-			cout << "PROCESS]:";
-		}
-		else if(ev->get_category() == EC_NET)
-		{
-			cout << get_event_category_name(ev->get_category()) << ":";
-			sinsp_fdinfo_t* fd_info = ev->get_fd_info();
-
-			// event subcategory should contain SC_NET if ipv4/ipv6
-			if(nullptr != fd_info && (fd_info->get_l4proto() != SCAP_L4_UNKNOWN && fd_info->get_l4proto() != SCAP_L4_NA))
-			{
-				cout << fd_info->tostring() << "]:";
-			}
-		}
-		else if(ev->get_category() == EC_IO_READ || ev->get_category() == EC_IO_WRITE)
-		{
-			cout << get_event_category_name(ev->get_category()) << ":";
-
-			sinsp_fdinfo_t* fd_info = ev->get_fd_info();
-			if(nullptr != fd_info && (fd_info->get_l4proto() != SCAP_L4_UNKNOWN && fd_info->get_l4proto() != SCAP_L4_NA))
-			{
-				cout << "[" << fd_info->tostring() << "]:";
-			}
-		}
-		else
-		{
-			cout << get_event_category_name(ev->get_category()) << "]:";
-		}
-	}
-	else
-	{
-		cout << "[EVENT]:[" << get_event_category_name(ev->get_category()) << "]:";
-	}
-
-	formatted_dump(ev);
-}
-
 
 void formatted_dump(sinsp_evt* ev)
 {
