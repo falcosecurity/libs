@@ -98,6 +98,21 @@ struct SINSP_PUBLIC expr_visitor
 };
 
 /*!
+    \brief an AST visitor that does not change the ast.
+*/
+struct SINSP_PUBLIC const_expr_visitor
+{
+    virtual ~const_expr_visitor() = default;
+    virtual void visit(const and_expr*) = 0;
+    virtual void visit(const or_expr*) = 0;
+    virtual void visit(const not_expr*) = 0;
+    virtual void visit(const value_expr*) = 0;
+    virtual void visit(const list_expr*) = 0;
+    virtual void visit(const unary_check_expr*) = 0;
+    virtual void visit(const binary_check_expr*) = 0;
+};
+
+/*!
     \brief Base implementation for AST visitors, that traverses
     the tree without doing anything. This way, subclasses can
     avoid overriding empty methods if they are not interested
@@ -133,17 +148,17 @@ private:
     \brief A visitor that builds a string as it traverses the
     ast. Used to convert to strings.
 */
-struct SINSP_PUBLIC string_visitor: public expr_visitor
+struct SINSP_PUBLIC string_visitor: public const_expr_visitor
 {
 public:
 	virtual ~string_visitor() = default;
-	virtual void visit(and_expr*) override;
-	virtual void visit(or_expr*) override;
-	virtual void visit(not_expr*) override;
-	virtual void visit(value_expr*) override;
-	virtual void visit(list_expr*) override;
-	virtual void visit(unary_check_expr*) override;
-	virtual void visit(binary_check_expr*) override;
+	virtual void visit(const and_expr*) override;
+	virtual void visit(const or_expr*) override;
+	virtual void visit(const not_expr*) override;
+	virtual void visit(const value_expr*) override;
+	virtual void visit(const list_expr*) override;
+	virtual void visit(const unary_check_expr*) override;
+	virtual void visit(const binary_check_expr*) override;
 
 	const std::string& as_string();
 
@@ -166,6 +181,7 @@ class SINSP_PUBLIC expr
 public:
     virtual ~expr() = default;
     virtual void accept(expr_visitor*) = 0;
+    virtual void accept(const_expr_visitor*) const = 0;
     virtual bool is_equal(const expr* other) const = 0;
 
     const pos_info& get_pos() const { return m_pos; }
@@ -190,6 +206,11 @@ struct SINSP_PUBLIC and_expr: expr
     explicit and_expr(std::vector<std::unique_ptr<expr>> &c): children(std::move(c)) { }
 
     void accept(expr_visitor* v) override
+    {
+        v->visit(this);
+    };
+
+    void accept(const_expr_visitor* v) const override
     {
         v->visit(this);
     };
@@ -235,6 +256,11 @@ struct SINSP_PUBLIC or_expr: expr
         v->visit(this);
     };
 
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const or_expr*>(other);
@@ -276,6 +302,11 @@ struct SINSP_PUBLIC not_expr: expr
         v->visit(this);
     };
 
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const not_expr*>(other);
@@ -300,6 +331,11 @@ struct SINSP_PUBLIC value_expr: expr
     explicit value_expr(const std::string& v): value(v) { }
 
     void accept(expr_visitor* v) override
+    {
+        v->visit(this);
+    };
+
+    void accept(const_expr_visitor* v) const override
     {
         v->visit(this);
     };
@@ -332,6 +368,11 @@ struct SINSP_PUBLIC list_expr: expr
         v->visit(this);
     };
 
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const list_expr*>(other);
@@ -359,6 +400,11 @@ struct SINSP_PUBLIC unary_check_expr: expr
         const std::string& o): field(f), arg(a), op(o) { }
 
     void accept(expr_visitor* v) override
+    {
+        v->visit(this);
+    };
+
+    void accept(const_expr_visitor* v) const override
     {
         v->visit(this);
     };
@@ -400,6 +446,11 @@ struct SINSP_PUBLIC binary_check_expr: expr
         v->visit(this);
     };
 
+    void accept(const_expr_visitor* v) const override
+    {
+        v->visit(this);
+    };
+
     bool is_equal(const expr* other) const override
     {
         auto o = dynamic_cast<const binary_check_expr*>(other);
@@ -429,14 +480,14 @@ struct SINSP_PUBLIC binary_check_expr: expr
 	\brief Return a string representation of an AST.
 	\return A string representation of an AST.
 */
-std::string as_string(ast::expr *e);
+std::string as_string(const ast::expr *e);
 
 /*!
 	\brief Creates a deep clone of a filter AST
 	\return The newly created cloned AST. Comparing the return value
     with the input parameter returns true
 */
-std::unique_ptr<expr> clone(expr* e);
+std::unique_ptr<expr> clone(const expr* e);
 
 }
 }

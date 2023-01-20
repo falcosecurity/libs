@@ -1539,7 +1539,7 @@ sinsp_filter_compiler::sinsp_filter_compiler(
 
 sinsp_filter_compiler::sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		libsinsp::filter::ast::expr* fltast,
+		const libsinsp::filter::ast::expr* fltast,
 		bool ttable_only)
 {
 	m_factory = factory;
@@ -1596,7 +1596,7 @@ sinsp_filter* sinsp_filter_compiler::compile()
 	return new_sinsp_filter;
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::and_expr* e)
 {
 	m_pos = e->get_pos();
 	bool nested = m_last_boolop != BO_AND;
@@ -1616,7 +1616,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::and_expr* e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::or_expr* e)
 {
 	m_pos = e->get_pos();
 	bool nested = m_last_boolop != BO_OR;
@@ -1636,7 +1636,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::or_expr* e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::not_expr* e)
 {
 	m_pos = e->get_pos();
 	m_last_boolop = (boolop)((uint32_t)m_last_boolop | BO_NOT);
@@ -1646,7 +1646,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::not_expr* e)
 	m_filter->pop_expression();
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::unary_check_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::unary_check_expr* e)
 {
 	m_pos = e->get_pos();
 	string field = create_filtercheck_name(e->field, e->arg);
@@ -1677,7 +1677,7 @@ static void add_filtercheck_value(gen_event_filter_check *chk, size_t idx, const
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::binary_check_expr* e)
 {
 	m_pos = e->get_pos();
 	string field = create_filtercheck_name(e->field, e->arg);
@@ -1688,7 +1688,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 	check->m_boolop = m_last_boolop;
 	check->parse_field_name(field.c_str(), true, true);
 
-	// Read the the the right-hand values of the filtercheck. 
+	// Read the the the right-hand values of the filtercheck.
 	// For list-related operators ('in', 'intersects', 'pmatch'), the vector
 	// can be filled with more than 1 value, whereas in all other cases we
 	// expect the vector to only have 1 value. We don't check this here, as
@@ -1702,7 +1702,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::binary_check_expr* e)
 	}
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::value_expr* e)
 {
 	m_pos = e->get_pos();
 	if (!m_expect_values)
@@ -1715,7 +1715,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::value_expr* e)
 	m_field_values.push_back(e->value);
 }
 
-void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
+void sinsp_filter_compiler::visit(const libsinsp::filter::ast::list_expr* e)
 {
 	m_pos = e->get_pos();
 	if (!m_expect_values)
@@ -1728,7 +1728,7 @@ void sinsp_filter_compiler::visit(libsinsp::filter::ast::list_expr* e)
 	m_field_values = e->values;
 }
 
-string sinsp_filter_compiler::create_filtercheck_name(string& name, string& arg)
+std::string sinsp_filter_compiler::create_filtercheck_name(const std::string& name, const std::string& arg)
 {
 	// The filtercheck factories parse the name + arg as a whole.
 	// We keep this for now, but we may want to change this in the future.
@@ -1773,7 +1773,7 @@ void sinsp_filter_compiler::check_ttable_only(string& field, gen_event_filter_ch
 	}
 }
 
-cmpop sinsp_filter_compiler::str_to_cmpop(string& str)
+cmpop sinsp_filter_compiler::str_to_cmpop(const std::string& str)
 {
 	if(str == "=" || str == "==")
 	{

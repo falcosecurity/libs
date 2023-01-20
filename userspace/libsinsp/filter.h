@@ -51,7 +51,7 @@ private:
   \brief This is the class that compiles the filters.
 */
 class SINSP_PUBLIC sinsp_filter_compiler:
-	private libsinsp::filter::ast::expr_visitor
+	private libsinsp::filter::ast::const_expr_visitor
 {
 public:
 	/*!
@@ -94,7 +94,7 @@ public:
 	*/
 	sinsp_filter_compiler(
 		std::shared_ptr<gen_event_filter_factory> factory,
-		libsinsp::filter::ast::expr* fltast,
+		const libsinsp::filter::ast::expr* fltast,
 		bool ttable_only=false);
 
 	/*!
@@ -108,16 +108,16 @@ public:
 	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
 
 private:
-	void visit(libsinsp::filter::ast::and_expr*) override;
-	void visit(libsinsp::filter::ast::or_expr*) override;
-	void visit(libsinsp::filter::ast::not_expr*) override;
-	void visit(libsinsp::filter::ast::value_expr*) override;
-	void visit(libsinsp::filter::ast::list_expr*) override;
-	void visit(libsinsp::filter::ast::unary_check_expr*) override;
-	void visit(libsinsp::filter::ast::binary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::and_expr*) override;
+	void visit(const libsinsp::filter::ast::or_expr*) override;
+	void visit(const libsinsp::filter::ast::not_expr*) override;
+	void visit(const libsinsp::filter::ast::value_expr*) override;
+	void visit(const libsinsp::filter::ast::list_expr*) override;
+	void visit(const libsinsp::filter::ast::unary_check_expr*) override;
+	void visit(const libsinsp::filter::ast::binary_check_expr*) override;
 	void check_ttable_only(std::string& field, gen_event_filter_check *check);
-	cmpop str_to_cmpop(std::string& str);
-	std::string create_filtercheck_name(std::string& name, std::string& arg);
+	cmpop str_to_cmpop(const std::string& str);
+	std::string create_filtercheck_name(const std::string& name, const std::string& arg);
 	gen_event_filter_check* create_filtercheck(std::string& field);
 
 	libsinsp::filter::ast::pos_info m_pos;
@@ -128,7 +128,7 @@ private:
 	sinsp_filter* m_filter;
 	std::vector<std::string> m_field_values;
 	std::unique_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
-	libsinsp::filter::ast::expr* m_flt_ast;
+	const libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
 
 	friend class sinsp_evt_formatter;
