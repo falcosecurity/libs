@@ -406,8 +406,12 @@ int main(int argc, char** argv)
 					  { cout << "[ERROR] " << error_msg << endl; });
 		if(ev != nullptr)
 		{
-			dump(ev);
-			num_events++;
+			sinsp_threadinfo* thread = ev->get_thread_info();
+			if(!thread || g_all_threads || thread->is_main_thread())
+			{
+				dump(ev);
+				num_events++;
+			}
 		}
 	}
 	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
@@ -460,11 +464,6 @@ void plaintext_dump(sinsp_evt* ev)
 		string cmdline;
 		sinsp_threadinfo::populate_cmdline(cmdline, thread);
 
-		if(!g_all_threads && !thread->is_main_thread())
-		{
-			return;
-		}
-
 		bool is_host_proc = thread->m_container_id.empty();
 		cout << '[' << (is_host_proc ? "HOST" : thread->m_container_id) << "]:";
 
@@ -512,30 +511,13 @@ void plaintext_dump(sinsp_evt* ev)
 void formatted_dump(sinsp_evt* ev)
 {
 	std::string output;
-	sinsp_threadinfo* thread = ev->get_thread_info();
-
-	if(thread)
+	if(ev->get_category() == EC_PROCESS)
 	{
-		if(g_all_threads || thread->is_main_thread())
-		{
-			if(ev->get_category() == EC_PROCESS)
-			{
-				process_formatter->tostring(ev, output);
-			}
-			else if(ev->get_category() == EC_NET || ev->get_category() == EC_IO_READ || ev->get_category() == EC_IO_WRITE)
-			{
-				net_formatter->tostring(ev, output);
-			}
-			else
-			{
-				default_formatter->tostring(ev, output);
-			}
-		}
-		else
-		{
-			// Prevent empty lines from being printed
-			return;
-		}
+		process_formatter->tostring(ev, output);
+	}
+	else if(ev->get_category() == EC_NET || ev->get_category() == EC_IO_READ || ev->get_category() == EC_IO_WRITE)
+	{
+		net_formatter->tostring(ev, output);
 	}
 	else
 	{
