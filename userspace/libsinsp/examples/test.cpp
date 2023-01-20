@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include <cstdlib>
+#include <cstdio>
 #include <iostream>
 #include <chrono>
 #ifndef _WIN32
@@ -41,10 +42,11 @@ using namespace std;
 
 
 // Functions used for dumping to stdout
-void formatted_dump(sinsp_evt* ev);
+void raw_dump(sinsp&, sinsp_evt* ev);
+void formatted_dump(sinsp&, sinsp_evt* ev);
 
 libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
-std::function<void(sinsp_evt*)> dump = formatted_dump;
+std::function<void(sinsp&, sinsp_evt*)> dump = formatted_dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
@@ -105,6 +107,7 @@ Options:
   -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_repair_state_sc_set`, requires valid filter expression.
   -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option, used for e2e testing of sinsp state.
   -g, --enable-glogger                       Enable libs g_logger, set to SEV_DEBUG. For a different severity adjust the test binary source and re-compile.
+  -r, --raw                                  raw event ouput
 )";
 	cout << usage << endl;
 }
@@ -130,13 +133,14 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"ppm-sc-repair-state", no_argument, 0, 'x'},
 		{"remove-io-sc-state", no_argument, 0, 'q'},
 		{"enable-glogger", no_argument, 0, 'g'},
+		{"raw", no_argument, 0, 'r'},
 		{0, 0, 0, 0}};
 
 	bool format_set = false;
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:En:zxqg",
+				"hf:jab:mks:d:o:En:zxqgr",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -201,6 +205,8 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		case 'g':
 			enable_glogger = true;
 			break;
+		case 'r':
+			dump = raw_dump;
 		default:
 			break;
 		}
@@ -421,7 +427,7 @@ int main(int argc, char** argv)
 			sinsp_threadinfo* thread = ev->get_thread_info();
 			if(!thread || g_all_threads || thread->is_main_thread())
 			{
-				dump(ev);
+				dump(inspector, ev);
 				num_events++;
 			}
 		}
@@ -468,7 +474,7 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 	return nullptr;
 }
 
-void formatted_dump(sinsp_evt* ev)
+void formatted_dump(sinsp&, sinsp_evt* ev)
 {
 	std::string output;
 	if(ev->get_category() == EC_PROCESS)
@@ -485,4 +491,68 @@ void formatted_dump(sinsp_evt* ev)
 	}
 
 	cout << output << std::endl;
+}
+
+static void hexdump(const unsigned char* buf, size_t len)
+{
+	bool in_ascii = false;
+
+	putc('[', stdout);
+	for(size_t i = 0; i < len; ++i)
+	{
+		if(isprint(buf[i]))
+		{
+			if(!in_ascii)
+			{
+				in_ascii = true;
+				if(i > 0)
+				{
+					putc(' ', stdout);
+				}
+				putc('"', stdout);
+			}
+			putc(buf[i], stdout);
+		}
+		else
+		{
+			if(in_ascii)
+			{
+				in_ascii = false;
+				fputs("\" ", stdout);
+			}
+			else if(i > 0)
+			{
+				putc(' ', stdout);
+			}
+			printf("%02x", buf[i]);
+		}
+	}
+
+	if(in_ascii)
+	{
+		putc('"', stdout);
+	}
+	putc(']', stdout);
+}
+
+void raw_dump(sinsp& inspector, sinsp_evt* ev)
+{
+	string date_time;
+	sinsp_utils::ts_to_iso_8601(ev->get_ts(), &date_time);
+
+	cout << "ts=" << date_time;
+	cout << " tid=" << ev->get_tid();
+	cout << " type=" << (ev->get_direction() == SCAP_ED_IN ? '>' : '<')  << get_event_type_name(ev);
+	cout << " category=" << get_event_category_name(ev->get_category());
+	cout << " nparams=" << ev->get_num_params();
+
+	for(size_t i = 0; i < ev->get_num_params(); ++i)
+	{
+		const sinsp_evt_param *p = ev->get_param(i);
+		const struct ppm_param_info *pi = ev->get_param_info(i);
+		cout << ' ' << i << ':' << pi->name << '=';
+		hexdump((const unsigned char*)p->m_val, p->m_len);
+	}
+
+	cout << endl;
 }
