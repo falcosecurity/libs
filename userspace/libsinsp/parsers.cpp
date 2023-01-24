@@ -5812,7 +5812,7 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt)
 	//
 	// Update capabilities
 	//
-	if(flags & PPM_CL_CLONE_NEWUSER)
+	if(flags & PPM_CL_CLONE_NEWUSER && evt->m_tinfo != nullptr)
 	{
 		tinfo = evt->m_tinfo;
 		uint64_t max_caps = sinsp_utils::get_max_caps();
