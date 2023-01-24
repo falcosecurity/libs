@@ -154,6 +154,8 @@
 #define MUNLOCKALL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define IO_URING_ENTER_E_SIZE HEADER_LEN
 #define IO_URING_ENTER_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) * 4 + PARAM_LEN * 6
+#define IO_URING_REGISTER_E_SIZE HEADER_LEN
+#define IO_URING_REGISTER_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint16_t) + sizeof(uint64_t) + sizeof(uint32_t) + PARAM_LEN * 5
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
