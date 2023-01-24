@@ -207,6 +207,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MLOCKALL_X] = "mlockall_x",
 	[PPME_SYSCALL_MUNLOCKALL_E] = "munlockall_e",
 	[PPME_SYSCALL_MUNLOCKALL_X] = "munlockall_x",
+	[PPME_SYSCALL_IO_URING_ENTER_E] = "io_uring_enter_e",
+	[PPME_SYSCALL_IO_URING_ENTER_X] = "io_uring_enter_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
