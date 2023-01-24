@@ -3422,46 +3422,29 @@ FILLER(sys_io_uring_enter_x, true)
 
 FILLER(sys_io_uring_register_x, true)
 {
-	long retval;
-	int res;
-	unsigned long val;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 3: opcode (type: PT_ENUMFLAGS16) */
+	u32 opcode = (u32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, io_uring_register_opcodes_to_scap(opcode));
+	CHECK_RES(res);
 
-	/*
-	 * opcode
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, io_uring_register_opcodes_to_scap(val));
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 4: arg (type: PT_UINT64) */
+	unsigned long arg = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, arg);
+	CHECK_RES(res);
 
-	/*
-	 * args
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * nr_args
-	 */
-	val = bpf_syscall_get_argument(data, 3);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/* Parameter 5: nr_args (type: PT_UINT32) */
+	u32 nr_args = (u32)bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, nr_args);
 }
 
 FILLER(sys_mlock_x, true)
