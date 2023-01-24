@@ -846,7 +846,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 
 void sinsp_parser::store_event(sinsp_evt *evt)
 {
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		//
 		// No thread in the table. We won't store this event, which mean that
@@ -1103,7 +1103,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// it was created recently. Otherwise, assume it's an old thread for which
 		// we lost the exit event and remove it from the table.
 		//
-		if(evt->m_tinfo && evt->m_tinfo->m_clone_ts != 0)
+		if(evt->m_tinfo != nullptr && evt->m_tinfo->m_clone_ts != 0)
 		{
 			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
 			{
@@ -1136,7 +1136,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 
 		// Validate that the child thread info has actually been created.
 		//
-		if(!evt->m_tinfo)
+		if(evt->m_tinfo == nullptr)
 		{
 			//
 			// No thread yet.
@@ -1710,7 +1710,7 @@ void sinsp_parser::parse_execve_enter(sinsp_evt *evt)
 {
 	store_event(evt);
 
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		// Should be impossible
 		ASSERT(false);
@@ -1763,7 +1763,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// We get here when `execve` or `execveat` return. The thread has already been added by a previous fork or clone,
 	// and we just update the entry with the new information.
 	//
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		//
 		// No thread to update?
@@ -3308,7 +3308,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	//
 	// Lookup the thread
 	//
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		ASSERT(false);
 		return;
@@ -3421,7 +3421,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_close_enter(sinsp_evt *evt)
 {
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		return;
 	}
@@ -3660,7 +3660,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	//
 	// Schedule the process for removal
 	//
-	if(evt->m_tinfo)
+	if(evt->m_tinfo != nullptr)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLOSED;
 		m_inspector->m_tid_to_remove = evt->get_tid();
@@ -4453,7 +4453,7 @@ void sinsp_parser::parse_chdir_exit(sinsp_evt *evt)
 	sinsp_evt_param *parinfo;
 	int64_t retval;
 
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		return;
 	}
@@ -4526,7 +4526,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 	//
 	if(retval >= 0)
 	{
-		if(!evt->m_tinfo)
+		if(evt->m_tinfo == nullptr)
 		{
 			//
 			// No thread in the table. We won't store this event, which mean that
@@ -4892,7 +4892,7 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 {
-	if(evt->m_tinfo == NULL)
+	if(evt->m_tinfo == nullptr)
 	{
 		ASSERT(false);
 		return;
@@ -4906,7 +4906,7 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 }
 void sinsp_parser::parse_fcntl_enter(sinsp_evt *evt)
 {
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		return;
 	}
@@ -4963,7 +4963,7 @@ void sinsp_parser::parse_fcntl_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 {
-	if(evt->m_tinfo)
+	if(evt->m_tinfo != nullptr)
 	{
 		sinsp_evt_param *parinfo;
 		parinfo = evt->get_param(1);
@@ -4995,7 +4995,7 @@ void sinsp_parser::parse_context_switch(sinsp_evt* evt)
 void sinsp_parser::parse_brk_munmap_mmap_exit(sinsp_evt* evt)
 {
 	ASSERT(evt->m_tinfo);
-	if(evt->m_tinfo)
+	if(evt->m_tinfo != nullptr)
 	{
 		sinsp_evt_param *parinfo;
 
@@ -5666,7 +5666,7 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 	int64_t fd;
 	int8_t level, optname;
 
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		return;
 	}
