@@ -3387,54 +3387,37 @@ FILLER(sys_io_uring_setup_x, true)
 
 FILLER(sys_io_uring_enter_x, true)
 {
-	long retval;
-	int res;
-	unsigned long val;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
-	/*
-	 * fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 3: to_submit (type: PT_UINT32) */
+	u32 to_submit = (u32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, to_submit);
+	CHECK_RES(res);
 
-	/*
-	 * to_submit
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 4: min_complete (type: PT_UINT32) */
+	u32 min_complete = (u32)bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, min_complete);
+	CHECK_RES(res);
 
-	/*
-	 * min_complete
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	u32 flags = (u32)bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, io_uring_enter_flags_to_scap(flags));
+	CHECK_RES(res);
 
-	/*
-	 * flags
-	 */
-	val = bpf_syscall_get_argument(data, 3);
-	res = bpf_val_to_ring(data, io_uring_enter_flags_to_scap(val));
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 6: sig (type: PT_SIGSET) */
+	u32 sig = (u32)bpf_syscall_get_argument(data, 4);
+	return bpf_val_to_ring(data, sig);
 
-	/*
-	 * min_complete
-	 */
-	val = bpf_syscall_get_argument(data, 4);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/// TODO: We miss the last parameter `size_t argsz`
+	/// we need to implement it in all our drivers
 }
 
 FILLER(sys_io_uring_register_x, true)
