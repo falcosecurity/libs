@@ -447,7 +447,6 @@ void sinsp::set_import_users(bool import_users)
 
 void sinsp::open_common(scap_open_args* oargs)
 {
-	char error[SCAP_LASTERR_SIZE] = {0};
 	g_logger.log("Trying to open the right engine!");
 
 	/* Reset the thread manager */
@@ -472,10 +471,18 @@ void sinsp::open_common(scap_open_args* oargs)
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
 	oargs->proc_scan_log_interval_ms = m_proc_scan_log_interval_ms;
 
-	int32_t scap_rc = 0;
-	m_h = scap_open(oargs, error, &scap_rc);
+	m_h = scap_alloc();
 	if(m_h == NULL)
 	{
+		throw scap_open_exception("failed to allocate scap handle", SCAP_FAILURE);
+	}
+
+	int32_t scap_rc = scap_init(m_h, oargs);
+	if(scap_rc != SCAP_SUCCESS)
+	{
+		std::string error = scap_getlasterr(m_h);
+		scap_close(m_h);
+		m_h = NULL;
 		throw scap_open_exception(error, scap_rc);
 	}
 
