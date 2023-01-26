@@ -507,7 +507,36 @@ typedef struct scap_const_sized_buffer scap_const_sized_buffer;
  */
 
 /*!
-  \brief Advanced function to start a capture.
+  \brief Allocate a handle
+
+  \return The capture instance handle in case of success. NULL in case of failure.
+  Before the handle can be used, \ref scap_init must be called on it.
+*/
+scap_t* scap_alloc(void);
+
+/*!
+  \brief Initialize a handle
+
+  \param oargs a \ref scap_open_args structure containing the open parameters.
+
+  \return the scap return code describing whether the function succeeded or failed.
+  The error string in case the function fails is accessible via \ref scap_getlasterr
+
+  If this function fails, the only thing you can safely do with the handle is to call
+  \ref scap_deinit on it.
+*/
+int32_t scap_init(scap_t* handle, scap_open_args* oargs);
+
+/*!
+  \brief Allocate and initialize a handle
+
+  This function combines scap_alloc and scap_init in a single call.
+  It's more convenient to use if you do not rely on having access to the handle
+  address while it's being initialized.
+
+  One notable example where you do need the address is the process callback:
+  without calling scap_alloc/scap_init it can't know where the handle is
+  (it's first called from scap_init)
 
   \param oargs a \ref scap_open_args structure containing the open parameters.
   \param error Pointer to a buffer that will contain the error string in case the
@@ -518,6 +547,23 @@ typedef struct scap_const_sized_buffer scap_const_sized_buffer;
   \return The capture instance handle in case of success. NULL in case of failure.
 */
 scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc);
+
+/*!
+  \brief Deinitialize a capture handle.
+
+  \param handle Handle to the capture instance.
+*/
+void scap_deinit(scap_t* handle);
+
+/*!
+  \brief Free a capture handle.
+
+  \param handle Handle to the capture instance.
+
+  You need to call \ref scap_deinit before calling this function
+  or you risk leaking memory. Or just call \ref scap_close.
+*/
+void scap_free(scap_t* handle);
 
 /*!
   \brief Close a capture handle.

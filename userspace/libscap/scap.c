@@ -45,28 +45,17 @@ const char* scap_getlasterr(scap_t* handle)
 }
 
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
-scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
+int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable)
 {
-	scap_t* handle = NULL;
+	int32_t rc;
 
 	//
 	// Get boot_time
 	//
 	uint64_t boot_time = 0;
-	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
 	{
-		return NULL;
-	}
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*) calloc(sizeof(scap_t), 1);
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
+		return rc;
 	}
 
 	//
@@ -78,9 +67,8 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
 	handle->m_proclist.m_main_handle = handle;
@@ -109,11 +97,10 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	//
 	// Create the interface list
 	//
-	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
+	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
+		return rc;
 	}
 
 	//
@@ -121,11 +108,10 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	//
 	if(oargs->import_users)
 	{
-		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
+		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error creating the user list");
-			return NULL;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
+			return rc;
 		}
 	}
 	else
@@ -133,29 +119,24 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 		handle->m_userlist = NULL;
 	}
 
-	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
 	}
 
 	//
 	// Open and initialize all the devices
 	//
-	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
+	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
-	*rc = check_api_compatibility(handle->m_vtable, handle->m_engine, handle->m_lasterr);
-	if(*rc != SCAP_SUCCESS)
+	rc = check_api_compatibility(handle->m_vtable, handle->m_engine, handle->m_lasterr);
+	if(rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
 	scap_stop_dropping_mode(handle);
@@ -163,41 +144,30 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	//
 	// Create the process list
 	//
-	error[0] = '\0';
+	handle->m_lasterr[0] = '\0';
 	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
+	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "scap_open_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_init_live_int() error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		return rc;
 	}
-	return handle;
+
+	return SCAP_SUCCESS;
 }
 #endif // HAS_LIVE_CAPTURE
 
 #ifdef HAS_ENGINE_UDIG
-scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
+int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
+	int32_t rc;
 
 	//
 	// Get boot_time
 	//
 	uint64_t boot_time = 0;
-	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
 	{
-		return NULL;
-	}
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*) calloc(sizeof(scap_t), 1);
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
+		return rc;
 	}
 
 	//
@@ -209,16 +179,14 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
-	*rc = handle->m_vtable->init(handle, oargs);
-	if(*rc != SCAP_SUCCESS)
+	rc = handle->m_vtable->init(handle, oargs);
+	if(rc != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
 	handle->m_proclist.m_main_handle = handle;
@@ -247,11 +215,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	// Create the interface list
 	//
-	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
+	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
+		return rc;
 	}
 
 	//
@@ -259,11 +226,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	if(oargs->import_users)
 	{
-		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
+		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error creating the user list");
-			return NULL;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
+			return rc;
 		}
 	}
 	else
@@ -271,11 +237,10 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 		handle->m_userlist = NULL;
 	}
 
-	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
 	}
 
 	//
@@ -286,59 +251,43 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	// Create the process list
 	//
-	error[0] = '\0';
+	handle->m_lasterr[0] = '\0';
 	char procerr[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, procerr)) != SCAP_SUCCESS)
+	if((rc = scap_proc_scan_proc_dir(handle, procerr)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", procerr);
-		return NULL;
+		strlcpy(handle->m_lasterr, procerr, SCAP_LASTERR_SIZE);
+		return rc;
 	}
 
 	//
 	// Now that /proc parsing has been done, start the capture
 	//
-	if(udig_begin_capture(handle->m_engine, error) != SCAP_SUCCESS)
+	if((rc = udig_begin_capture(handle->m_engine, handle->m_lasterr)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
-	return handle;
+	return SCAP_SUCCESS;
 }
 #endif // HAS_ENGINE_UDIG
 
 #ifdef HAS_ENGINE_TEST_INPUT
-scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs)
+int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*) calloc(1, sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+	int32_t rc;
 
 	handle->m_vtable = &scap_test_input_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
-	*rc = handle->m_vtable->init(handle, oargs);
-	if(*rc != SCAP_SUCCESS)
+	rc = handle->m_vtable->init(handle, oargs);
+	if(rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
 	//
@@ -353,60 +302,38 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
-	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
 	}
 
-	if ((*rc = scap_proc_scan_vtable(error, handle)) != SCAP_SUCCESS)
+	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
-	return handle;
-}
-#else
-scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs)
-{
-	snprintf(error, SCAP_LASTERR_SIZE, "the test_input engine is only available for testing");
-	*rc = SCAP_NOT_SUPPORTED;
-	return NULL;
+
+	return SCAP_SUCCESS;
 }
 #endif
 
 #ifdef HAS_ENGINE_GVISOR
-scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
+int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*) calloc(1, sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+	int32_t rc;
 
 	handle->m_vtable = &scap_gvisor_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
-	*rc = handle->m_vtable->init(handle, oargs);
-	if(*rc != SCAP_SUCCESS)
+	rc = handle->m_vtable->init(handle, oargs);
+	if(rc != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
 	//
@@ -423,44 +350,25 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
-	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
 	}
 
-	if ((*rc = scap_proc_scan_vtable(error, handle)) != SCAP_SUCCESS)
+	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
-	return handle;
-}
-#else
-scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
-{
-	snprintf(error, SCAP_LASTERR_SIZE, "gvisor not supported on this build (platform: %s)", PLATFORM_NAME);
-	*rc = SCAP_NOT_SUPPORTED;
-	return NULL;
+
+	return SCAP_SUCCESS;
 }
 #endif // HAS_ENGINE_GVISOR
 
 #ifdef HAS_ENGINE_SAVEFILE
-scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
+int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+	int32_t rc;
 
 	//
 	// Preliminary initializations
@@ -470,9 +378,8 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
 	handle->m_dev_list = NULL;
@@ -490,61 +397,45 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
-	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
+	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
-	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
 	}
 
-	return handle;
+	return SCAP_SUCCESS;
 }
 #endif
 
 #ifdef HAS_ENGINE_NODRIVER
-scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
+int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
+	int32_t rc;
 
 	//
 	// Get boot_time
 	//
 	uint64_t boot_time = 0;
-	if((*rc = scap_get_boot_time(error, &boot_time)) != SCAP_SUCCESS)
+	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
 	{
-		return NULL;
-	}
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
+		return rc;
 	}
 
 	//
 	// Preliminary initializations
 	//
-	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_NODRIVER;
 	handle->m_vtable = &scap_nodriver_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
 	handle->m_proclist.m_main_handle = handle;
@@ -573,11 +464,10 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	// Create the interface list
 	//
-	if((*rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
+	if((rc = scap_create_iflist(handle)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the interface list");
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the interface list");
+		return rc;
 	}
 
 	//
@@ -585,11 +475,10 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	if(oargs->import_users)
 	{
-		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
+		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
-			scap_close(handle);
-			snprintf(error, SCAP_LASTERR_SIZE, "error creating the user list");
-			return NULL;
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
+			return rc;
 		}
 	}
 	else
@@ -600,47 +489,33 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	//
 	// Create the process list
 	//
-	error[0] = '\0';
+	handle->m_lasterr[0] = '\0';
 	char proc_scan_err[SCAP_LASTERR_SIZE];
-	if((*rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
+	if((rc = scap_proc_scan_proc_dir(handle, proc_scan_err)) != SCAP_SUCCESS)
 	{
-		scap_close(handle);
-		snprintf(error, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the process list: %s. Make sure you have root credentials.", proc_scan_err);
+		return rc;
 	}
 
-	return handle;
+	return rc;
 }
 #endif // HAS_ENGINE_NODRIVER
 
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
-scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
+int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 {
-	scap_t* handle = NULL;
-
-	//
-	// Allocate the handle
-	//
-	handle = (scap_t*)calloc(sizeof(scap_t), 1);
-	if(!handle)
-	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
+	int32_t rc;
 
 	//
 	// Preliminary initializations
 	//
-	memset(handle, 0, sizeof(scap_t));
 	handle->m_mode = SCAP_MODE_PLUGIN;
 	handle->m_vtable = &scap_source_plugin_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		free(handle);
-		return NULL;
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
+		return SCAP_FAILURE;
 	}
 
 	handle->m_proclist.m_main_handle = handle;
@@ -668,20 +543,26 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 
-	if((*rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
+	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		snprintf(error, SCAP_LASTERR_SIZE, "%s", handle->m_lasterr);
-		scap_close(handle);
-		return NULL;
+		return rc;
 	}
 
-	return handle;
+	return SCAP_SUCCESS;
 }
 #endif
 
-scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
+scap_t* scap_alloc(void)
+{
+	return malloc(sizeof(scap_t));
+}
+
+int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 {
 	const char* engine_name = oargs->engine_name;
+
+	memset(handle, 0, sizeof(*handle));
+
 	/* At the end of the `v-table` work we can use just one function
 	 * with an internal switch that selects the right vtable! For the moment
 	 * let's keep different functions.
@@ -689,61 +570,80 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 #ifdef HAS_ENGINE_SAVEFILE
 	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
-		return scap_open_offline_int(oargs, rc, error);
+		return scap_init_offline_int(handle, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
-		return scap_open_udig_int(error, rc, oargs);
+		return scap_init_udig_int(handle, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
 	if(strcmp(engine_name, GVISOR_ENGINE) == 0)
 	{
-		return scap_open_gvisor_int(error, rc, oargs);
+		return scap_init_gvisor_int(handle, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_TEST_INPUT
 	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
-		return scap_open_test_input_int(error, rc, oargs);
+		return scap_init_test_input_int(handle, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_KMOD
 	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
-		return scap_open_live_int(error, rc, oargs, &scap_kmod_engine);
+		return scap_init_live_int(handle, oargs, &scap_kmod_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
 	if( strcmp(engine_name, BPF_ENGINE) == 0)
 	{
-		return scap_open_live_int(error, rc, oargs, &scap_bpf_engine);
+		return scap_init_live_int(handle, oargs, &scap_bpf_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_MODERN_BPF
 	if(strcmp(engine_name, MODERN_BPF_ENGINE) == 0)
 	{
-		return scap_open_live_int(error, rc, oargs, &scap_modern_bpf_engine);
+		return scap_init_live_int(handle, oargs, &scap_modern_bpf_engine);
 	}
 #endif
 #ifdef HAS_ENGINE_NODRIVER
 	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
-		return scap_open_nodriver_int(error, rc, oargs);
+		return scap_init_nodriver_int(handle, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
 	if(strcmp(engine_name, SOURCE_PLUGIN_ENGINE) == 0)
 	{
-		return scap_open_plugin_int(error, rc, oargs);
+		return scap_init_plugin_int(handle, oargs);
 	}
 #endif
 
-	snprintf(error, SCAP_LASTERR_SIZE, "incorrect engine '%s'", engine_name);
-	*rc = SCAP_FAILURE;
-	return NULL;
+	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "incorrect engine '%s'", engine_name);
+	return SCAP_FAILURE;
+}
+
+scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
+{
+	scap_t* handle = scap_alloc();
+	if(!handle)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "Could not allocatet memory for the scap handle");
+		return NULL;
+	}
+
+	*rc = scap_init(handle, oargs);
+	if(*rc != SCAP_SUCCESS)
+	{
+		strlcpy(error, handle->m_lasterr, SCAP_LASTERR_SIZE);
+		scap_close(handle);
+		return NULL;
+	}
+
+	return handle;
 }
 
 static inline void scap_deinit_state(scap_t* handle)
@@ -797,7 +697,7 @@ uint32_t scap_restart_capture(scap_t* handle)
 	}
 }
 
-void scap_close(scap_t* handle)
+void scap_deinit(scap_t* handle)
 {
 	scap_deinit_state(handle);
 	scap_suppress_close(&handle->m_suppress);
@@ -815,11 +715,20 @@ void scap_close(scap_t* handle)
 		handle->m_vtable->close(handle->m_engine);
 		handle->m_vtable->free_handle(handle->m_engine);
 	}
+}
 
+void scap_free(scap_t* handle)
+{
 	//
 	// Release the handle
 	//
 	free(handle);
+}
+
+void scap_close(scap_t* handle)
+{
+	scap_deinit(handle);
+	scap_free(handle);
 }
 
 scap_os_platform scap_get_os_platform(scap_t* handle)
