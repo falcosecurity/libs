@@ -3295,94 +3295,72 @@ FILLER(sys_open_by_handle_at_x, true)
 
 FILLER(sys_io_uring_setup_x, true)
 {
-	long retval;
-	int res;
-	unsigned long val;
-	unsigned long sq_entries;
-	unsigned long cq_entries;
-	unsigned long flags;
-	unsigned long sq_thread_cpu;
-	unsigned long sq_thread_idle;
-	unsigned long features = 0;
-
-#ifdef __NR_io_uring_setup
-	struct io_uring_params params;
-#endif
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * entries
+	/* All these params are sent equal to `0` if `__NR_io_uring_setup`
+	 * syscall is not defined.
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	u32 sq_entries = 0;
+	u32 cq_entries = 0;
+	u32 flags = 0;
+	u32 sq_thread_cpu = 0;
+	u32 sq_thread_idle = 0;
+	u32 features = 0;
 
+	/* If the syscall is defined use the syscall data */
 #ifdef __NR_io_uring_setup
-	/*
-	 * io_uring_params: we get the data structure, and put its fields in the buffer one by one
+	struct io_uring_params params = {0};
+	unsigned long params_pointer = bpf_syscall_get_argument(data, 1);
+	/* if the call fails we don't care since `bpf_probe_read` under the hood memsets
+	 * the destination memory to `0`
 	 */
-	val = bpf_syscall_get_argument(data, 1);
-	if (bpf_probe_read(&params, sizeof(struct io_uring_params), (void *)val)) {
-		return PPM_FAILURE_INVALID_USER_MEMORY;
-	}
+	bpf_probe_read(&params, sizeof(struct io_uring_params), (void *)params_pointer);
 
 	sq_entries = params.sq_entries;
 	cq_entries = params.cq_entries;
 	flags = io_uring_setup_flags_to_scap(params.flags);
 	sq_thread_cpu = params.sq_thread_cpu;
 	sq_thread_idle = params.sq_thread_idle;
+	
+	/* We need this ifdef because `features` field is defined into the 
+	 * `struct io_uring_params` only if the `IORING_FEAT_SINGLE_MMAP` is
+	 * defined.
+	 */
 #ifdef IORING_FEAT_SINGLE_MMAP	
 	features = io_uring_setup_feats_to_scap(params.features);
-#endif	
-#else
-	sq_entries = 0;
-	cq_entries = 0;
-	flags = 0;
-	sq_thread_cpu = 0;
-	sq_thread_idle = 0;
-	features = 0;
 #endif
+#endif /* __NR_io_uring_setup */
 
-	/*
-	 * sq_entries (extracted from io_uring_params structure)
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: entries (type: PT_UINT32) */
+	u32 entries = (u32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, entries);
+	CHECK_RES(res);
+
+	/* Parameter 3: sq_entries (type: PT_UINT32) */
 	res = bpf_val_to_ring(data, sq_entries);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * cq_entries (extracted from io_uring_params structure)
-	 */
+	CHECK_RES(res);
+
+	/* Parameter 4: cq_entries (type: PT_UINT32) */
 	res = bpf_val_to_ring(data, cq_entries);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * flags (extracted from io_uring_params structure)
-	 * Already converted in ppm portable representation
-	 */
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
 	res = bpf_val_to_ring(data, flags);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * sq_thread_cpu (extracted from io_uring_params structure)
-	 */
+	CHECK_RES(res);
+
+	/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
 	res = bpf_val_to_ring(data, sq_thread_cpu);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * sq_thread_idle (extracted from io_uring_params structure)
-	 */
+	CHECK_RES(res);
+
+	/* Parameter 7: sq_thread_idle (type: PT_UINT32) */
 	res = bpf_val_to_ring(data, sq_thread_idle);
-	if (res != PPM_SUCCESS)
-		return res;
-	/*
-	 * features (extracted from io_uring_params structure)
-	 * Already converted in ppm portable representation
-	 */
-	res = bpf_val_to_ring(data, features);
-	return res;
+	CHECK_RES(res);
+
+	/* Parameter 8: features (type: PT_FLAGS32) */
+	return bpf_val_to_ring(data, features);
 }
 
 FILLER(sys_io_uring_enter_x, true)
