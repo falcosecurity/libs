@@ -558,8 +558,10 @@ int32_t scap_proc_fill_root(char* error, struct scap_threadinfo* tinfo, const ch
 {
 	char root_path[SCAP_MAX_PATH_SIZE];
 	snprintf(root_path, sizeof(root_path), "%sroot", procdirname);
-	if ( readlink(root_path, tinfo->root, sizeof(tinfo->root)) > 0)
+	ssize_t r = readlink(root_path, tinfo->root, sizeof(tinfo->root) - 1);
+	if (r > 0)
 	{
+		tinfo->root[r] = '\0';
 		return SCAP_SUCCESS;
 	}
 	else
