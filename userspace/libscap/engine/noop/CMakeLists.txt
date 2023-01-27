@@ -1,2 +1,5 @@
 include_directories(${LIBSCAP_INCLUDE_DIRS})
 add_library(scap_engine_noop noop.c)
+if(USE_BUNDLED_ZLIB AND NOT MINIMAL_BUILD)
+    add_dependencies(scap_engine_noop zlib)
+endif()
