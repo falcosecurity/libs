@@ -60,6 +60,7 @@ static uint32_t get_max_consumers()
 		int w = fscanf(pfile, "%"PRIu32, &max);
 		if(w == 0)
 		{
+			fclose(pfile);
 			return 0;
 		}
 
