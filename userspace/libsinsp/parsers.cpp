@@ -4561,6 +4561,7 @@ void sinsp_parser::parse_getcwd_exit(sinsp_evt *evt)
 
 				if(target_res > 0)
 				{
+					target_name[target_res] = '\0';
 					if(target_name != evt->m_tinfo->get_cwd())
 					{
 						printf("%s != %s", target_name, evt->m_tinfo->get_cwd().c_str());

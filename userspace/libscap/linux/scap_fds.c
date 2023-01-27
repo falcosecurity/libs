@@ -75,7 +75,7 @@ int32_t scap_fd_handle_pipe(struct scap_proclist* proclist, char *fname, scap_th
 	uint64_t ino;
 	struct stat sb;
 
-	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE - 1);
 	if (r <= 0)
 	{
 		return scap_errprintf(error, errno, "Could not read link %s", fname);
@@ -274,7 +274,7 @@ int32_t scap_fd_handle_regular_file(struct scap_proclist *proclist, char *fname,
 	char link_name[SCAP_MAX_PATH_SIZE];
 	ssize_t r;
 
-	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE - 1);
 	if (r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -382,7 +382,7 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_
 		}
 	}
 
-	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE);
+	r = readlink(fname, link_name, SCAP_MAX_PATH_SIZE - 1);
 	if(r <= 0)
 	{
 		return SCAP_SUCCESS;
@@ -1227,7 +1227,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	// Get the network namespace of the process
 	//
 	snprintf(f_name, sizeof(f_name), "%sns/net", procdir);
-	r = readlink(f_name, link_name, sizeof(link_name));
+	r = readlink(f_name, link_name, sizeof(link_name) - 1);
 	if(r <= 0)
 	{
 		//
