@@ -401,6 +401,7 @@ bool cri_interface::is_pod_sandbox(const std::string &container_id)
 	return status.ok();
 }
 
+// TODO: Explore future schema standardizations, https://github.com/falcosecurity/falco/issues/2387
 void cri_interface::get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusResponse &resp, std::string &cniresult)
 {
 	Json::Value root;
