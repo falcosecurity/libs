@@ -1875,15 +1875,6 @@ extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
 
-/*
- * Driver event notification ID
- */
-enum ppm_driver_event_id {
-	DEI_NONE = 0,
-	DEI_DISABLE_DROPPING = 1,
-	DEI_ENABLE_DROPPING = 2,
-};
-
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.
 */
