@@ -68,7 +68,7 @@ std::string sinsp_ssl::memorize_file(const std::string& disk_file)
 		char buf[FILENAME_MAX] = { 0 };
 		std::ifstream ifs(disk_file);
 		std::string fd_path = "/proc/self/fd/" + std::to_string(fd);
-		ssize_t sz = readlink(fd_path.c_str(), buf, sizeof(buf));
+		ssize_t sz = readlink(fd_path.c_str(), buf, sizeof(buf) - 1);
 		if(sz != -1 && sz <= static_cast<ssize_t>(sizeof(buf)))
 		{
 			mem_file.assign(buf, sz);
