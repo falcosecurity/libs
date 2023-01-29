@@ -63,7 +63,7 @@ int BPF_PROG(prlimit64_x,
 
 	struct rlimit new_rlimit = {0};
 	unsigned long rlimit_pointer = extract__syscall_argument(regs, 2);
-	bpf_probe_read_user((void *)&new_rlimit, sizeof(struct rlimit), (void *)rlimit_pointer);
+	bpf_probe_read_user((void *)&new_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
 
 	/* Parameter 2: newcur (type: PT_INT64) */
 	ringbuf__store_s64(&ringbuf, new_rlimit.rlim_cur);
@@ -78,7 +78,7 @@ int BPF_PROG(prlimit64_x,
 	if(ret == 0)
 	{
 		rlimit_pointer = extract__syscall_argument(regs, 3);
-		bpf_probe_read_user((void *)&old_rlimit, sizeof(struct rlimit), (void *)rlimit_pointer);
+		bpf_probe_read_user((void *)&old_rlimit, bpf_core_type_size(struct rlimit), (void *)rlimit_pointer);
 	}
 
 	/* Parameter 4: oldcur (type: PT_INT64) */

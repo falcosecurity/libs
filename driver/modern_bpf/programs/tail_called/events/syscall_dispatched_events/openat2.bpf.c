@@ -39,7 +39,7 @@ int BPF_PROG(openat2_e,
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);
 	struct open_how how = {0};
-	bpf_probe_read_user((void *)&how, sizeof(struct open_how), (void *)open_how_pointer);
+	bpf_probe_read_user((void *)&how, bpf_core_type_size(struct open_how), (void *)open_how_pointer);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
 	auxmap__store_u32_param(auxmap, open_flags_to_scap(how.flags));
@@ -96,7 +96,7 @@ int BPF_PROG(openat2_x,
 	/* the `open_how` struct is defined since kernel version 5.6 */
 	unsigned long open_how_pointer = extract__syscall_argument(regs, 2);
 	struct open_how how = {0};
-	bpf_probe_read_user((void *)&how, sizeof(struct open_how), (void *)open_how_pointer);
+	bpf_probe_read_user((void *)&how, bpf_core_type_size(struct open_how), (void *)open_how_pointer);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	auxmap__store_u32_param(auxmap, open_flags_to_scap(how.flags));

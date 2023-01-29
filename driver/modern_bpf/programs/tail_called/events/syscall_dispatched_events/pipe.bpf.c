@@ -60,7 +60,7 @@ int BPF_PROG(pipe_x,
 	s32 pipefd[2] = {-1, -1};
 	/* This is a pointer to the vector with the 2 file descriptors. */
 	unsigned long fd_vector_pointer = extract__syscall_argument(regs, 0);
-	if(bpf_probe_read_user((void *)pipefd, sizeof(pipefd), (void *)fd_vector_pointer) != 0)
+	if(bpf_probe_read_user((void *)pipefd, 2* sizeof(s32), (void *)fd_vector_pointer) != 0)
 	{
 		pipefd[0] = -1;
 		pipefd[1] = -1;
