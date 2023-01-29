@@ -924,7 +924,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 
 	case SO_ERROR:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_ERRNO);
-		bpf_probe_read_user((void *)&val32, sizeof(val32), (void *)optval);
+		bpf_probe_read_user((void *)&val32, sizeof(s32), (void *)optval);
 		push__s64(auxmap->data, &auxmap->payload_pos, (s64)-val32);
 		total_size_to_push += sizeof(s64);
 		break;
@@ -934,14 +934,14 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	case SO_SNDTIMEO_OLD:
 	case SO_SNDTIMEO_NEW:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_TIMEVAL);
-		bpf_probe_read_user((void *)&tv, sizeof(tv), (void *)optval);
+		bpf_probe_read_user((void *)&tv, bpf_core_type_size(struct __kernel_timex_timeval), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, tv.tv_sec * SEC_FACTOR + tv.tv_usec * USEC_FACTOR);
 		total_size_to_push += sizeof(u64);
 		break;
 
 	case SO_COOKIE:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_UINT64);
-		bpf_probe_read_user((void *)&val64, sizeof(val64), (void *)optval);
+		bpf_probe_read_user((void *)&val64, sizeof(u64), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, val64);
 		total_size_to_push += sizeof(u64);
 		break;
@@ -1018,13 +1018,13 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 	 */
 	u32 total_size_to_read = 0;
 	struct user_msghdr msghdr = {0};
-	if(bpf_probe_read_user((void *)&msghdr, sizeof(msghdr), (void *)msghdr_pointer))
+	if(bpf_probe_read_user((void *)&msghdr, bpf_core_type_size(struct user_msghdr), (void *)msghdr_pointer))
 	{
 		auxmap__store_u32_param(auxmap, total_size_to_read);
 		return;
 	}
 
-	u32 total_iovec_size = msghdr.msg_iovlen * sizeof(struct iovec);
+	u32 total_iovec_size = msghdr.msg_iovlen * bpf_core_type_size(struct iovec);
 
 	/* We store all the data into the second part of our auxmap
 	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
@@ -1064,13 +1064,13 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	 */
 	u32 total_size_to_read = 0;
 	struct user_msghdr msghdr = {0};
-	if(bpf_probe_read_user((void *)&msghdr, sizeof(msghdr), (void *)msghdr_pointer))
+	if(bpf_probe_read_user((void *)&msghdr, bpf_core_type_size(struct user_msghdr), (void *)msghdr_pointer))
 	{
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;
 	}
 
-	u32 total_iovec_size = msghdr.msg_iovlen * sizeof(struct iovec);
+	u32 total_iovec_size = msghdr.msg_iovlen * bpf_core_type_size(struct iovec);
 
 	/* We store all the data into the second part of our auxmap
 	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
@@ -1171,7 +1171,7 @@ static __always_inline void auxmap__store_ptrace_data_param(struct auxiliary_map
 	case PPM_PTRACE_PEEKDATA:
 	case PPM_PTRACE_PEEKUSR:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_PTRACE_IDX_UINT64);
-		bpf_probe_read_user((void *)&dest, sizeof(dest), (void *)data_pointer);
+		bpf_probe_read_user((void *)&dest, sizeof(u64), (void *)data_pointer);
 		push__u64(auxmap->data, &auxmap->payload_pos, dest);
 		total_size_to_push += sizeof(u64);
 		break;

@@ -76,7 +76,7 @@ int BPF_PROG(getsockopt_x,
 	unsigned long optval = extract__syscall_argument(regs, 3);
 	int optlen = 0;
 	unsigned long optlen_pointer = extract__syscall_argument(regs, 4);
-	bpf_probe_read_user(&optlen, sizeof(optlen), (void *)optlen_pointer);
+	bpf_probe_read_user(&optlen, sizeof(int), (void *)optlen_pointer);
 	auxmap__store_sockopt_param(auxmap, level, optname, optlen, optval);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
