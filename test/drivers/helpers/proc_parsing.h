@@ -18,9 +18,6 @@ struct proc_info
 	pid_t pgid; /* The process group ID of the process. */
 	char raw_args[MAX_NUM_ARGS][MAX_PATH];
 	const char* args[MAX_NUM_ARGS];
-	uint32_t vm_size;
-	uint32_t vm_rss;
-	uint32_t vm_swap;
 	uint32_t uid;
 	uint32_t gid;
 	uint32_t vpid;
