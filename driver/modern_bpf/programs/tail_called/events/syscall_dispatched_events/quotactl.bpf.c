@@ -118,7 +118,7 @@ int BPF_PROG(quotactl_x,
 	struct if_dqblk dqblk = {0};
 	if(scap_cmd == PPM_Q_GETQUOTA || scap_cmd == PPM_Q_SETQUOTA)
 	{
-		bpf_probe_read_user((void *)&dqblk, bpf_core_type_size(dqblk), (void *)addr_pointer);
+		bpf_probe_read_user((void *)&dqblk, bpf_core_type_size(struct if_dqblk), (void *)addr_pointer);
 	}
 
 	/* Please note that `dqblk` struct could be filled with values different from `0`,
@@ -195,7 +195,7 @@ int BPF_PROG(quotactl_x,
 	struct if_dqinfo dqinfo = {0};
 	if(scap_cmd == PPM_Q_GETINFO || scap_cmd == PPM_Q_SETINFO)
 	{
-		bpf_probe_read_user((void *)&dqinfo, bpf_core_type_size(dqinfo), (void *)addr_pointer);
+		bpf_probe_read_user((void *)&dqinfo, bpf_core_type_size(struct if_dqinfo), (void *)addr_pointer);
 	}
 
 	if(dqinfo.dqi_valid & IIF_BGRACE)
@@ -236,7 +236,7 @@ int BPF_PROG(quotactl_x,
 	if(scap_cmd == PPM_Q_GETFMT)
 	{
 		u32 quota_fmt_out_tmp = 0;
-		bpf_probe_read_user(&quota_fmt_out_tmp, bpf_core_type_size(quota_fmt_out_tmp), (void *)addr_pointer);
+		bpf_probe_read_user(&quota_fmt_out_tmp, sizeof(quota_fmt_out_tmp), (void *)addr_pointer);
 		quota_fmt_out = quotactl_fmt_to_scap(quota_fmt_out_tmp);
 	}
 	auxmap__store_u8_param(auxmap, quota_fmt_out);
