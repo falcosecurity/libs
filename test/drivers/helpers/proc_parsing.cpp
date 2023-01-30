@@ -82,24 +82,6 @@ bool get_proc_info(pid_t pid, proc_info* info)
 	while(fgets(line, MAX_PATH, status) != NULL)
 	{
 		sscanf(line, "%s %d %*s\n", prefix, &temp);
-		if(strncmp(prefix, "VmSize:", 8) == 0)
-		{
-			info->vm_size = temp;
-			found++;
-		}
-
-		if(strncmp(prefix, "VmRSS:", 7) == 0)
-		{
-			info->vm_rss = temp;
-			found++;
-		}
-
-		if(strncmp(prefix, "VmSwap:", 8) == 0)
-		{
-			info->vm_swap = temp;
-			found++;
-		}
-
 		if(strncmp(prefix, "Uid:", 5) == 0)
 		{
 			info->uid = temp;
@@ -124,7 +106,7 @@ bool get_proc_info(pid_t pid, proc_info* info)
 			found++;
 		}
 
-		if(found == 7)
+		if(found == 4)
 		{
 			break;
 		}

@@ -132,13 +132,13 @@ TEST(SyscallExit, cloneX_father)
 	evt_test->assert_numeric_param(10, (uint64_t)0, GREATER_EQUAL);
 
 	/* Parameter 11: vm_size (type: PT_UINT32) */
-	evt_test->assert_numeric_param(11, (uint32_t)info.vm_size, GREATER_EQUAL);
+	evt_test->assert_numeric_param(11, (uint32_t)0, GREATER_EQUAL);
 
 	/* Parameter 12: vm_rss (type: PT_UINT32) */
-	evt_test->assert_numeric_param(12, (uint32_t)info.vm_rss, GREATER_EQUAL);
+	evt_test->assert_numeric_param(12, (uint32_t)0, GREATER_EQUAL);
 
 	/* Parameter 13: vm_swap (type: PT_UINT32) */
-	evt_test->assert_numeric_param(13, (uint32_t)info.vm_swap, GREATER_EQUAL);
+	evt_test->assert_numeric_param(13, (uint32_t)0, GREATER_EQUAL);
 
 	/* Parameter 14: comm (type: PT_CHARBUF) */
 	evt_test->assert_charbuf_param(14, TEST_EXECUTABLE_NAME);

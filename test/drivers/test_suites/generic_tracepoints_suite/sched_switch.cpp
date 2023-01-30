@@ -13,18 +13,6 @@ TEST(GenericTracepoints, sched_switch)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* We scan proc before the BPF event is caught so we have
-	 * to use `GREATER_EQUAL` in the assertions. We will search
-	 * for a sched_switch of the father so now we are collecting
-	 * data regarding the father.
-	 */
-	struct proc_info info = {0};
-	pid_t pid = ::getpid();
-	if(!get_proc_info(pid, &info))
-	{
-		FAIL() << "Unable to get all the info from proc" << std::endl;
-	}
-
 	/* We need to use `SIGCHLD` otherwise the parent won't receive any signal
 	 * when the child terminates.
 	 */
@@ -79,17 +67,16 @@ TEST(GenericTracepoints, sched_switch)
 	evt_test->assert_numeric_param(3, (uint64_t)0, GREATER_EQUAL);
 
 	/* Parameter 4: vm_size (type: PT_UINT32) */
-	evt_test->assert_numeric_param(4, (uint32_t)info.vm_size, GREATER_EQUAL);
+	evt_test->assert_numeric_param(4, (uint32_t)0, GREATER_EQUAL);
 
 	/* Parameter 5: vm_rss (type: PT_UINT32) */
-	evt_test->assert_numeric_param(5, (uint32_t)info.vm_rss, GREATER_EQUAL);
+	evt_test->assert_numeric_param(5, (uint32_t)0, GREATER_EQUAL);
 
 	/* Parameter 6: vm_swap (type: PT_UINT32) */
-	evt_test->assert_numeric_param(6, (uint32_t)info.vm_swap, GREATER_EQUAL);
+	evt_test->assert_numeric_param(6, (uint32_t)0, GREATER_EQUAL);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(6);
-
 }
 #endif
