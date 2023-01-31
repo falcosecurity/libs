@@ -23,6 +23,9 @@ limitations under the License.
 #include <sinsp.h>
 #include <functional>
 #include "util.h"
+#include "filter_evttype_resolver.h"
+#include <unordered_set>
+#include <sstream>
 
 #ifndef WIN32
 extern "C" {
@@ -40,6 +43,7 @@ void json_dump(sinsp& inspector);
 void json_dump_init(sinsp& inspector);
 void json_dump_reinit_evt_formatter(sinsp& inspector);
 
+std::string concat_names(std::unordered_set<std::string> const names);
 std::function<void(sinsp& inspector)> dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
@@ -255,6 +259,20 @@ error:
 }
 #endif
 
+std::string concat_names(std::unordered_set<std::string> const names)
+{
+	std::set<std::string> names_ordered = {};
+	for (const auto &n : names)
+	{
+		names_ordered.insert(n);
+	}
+	std::stringstream ss;
+	std::copy(names_ordered.begin(), names_ordered.end(),
+	std::ostream_iterator<std::string>(ss, ", "));
+	std::string names_str = ss.str();
+	return names_str.substr(0, names_str.size() - 2);
+}
+
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -285,8 +303,6 @@ int main(int argc, char** argv)
 
 	open_engine(inspector);
 
-	std::cout << "-- Start capture" << std::endl;
-
 	if(!filter_string.empty())
 	{
 		try
@@ -298,6 +314,20 @@ int main(int argc, char** argv)
 			cerr << "[ERROR] Unable to set filter: " << e.what() << endl;
 		}
 	}
+
+	std::shared_ptr<libsinsp::filter::ast::expr> filter_ast = inspector.get_filter_ast();
+	filter_evttype_resolver resolver;
+	std::set<uint16_t> evttypes = {};
+	resolver.evttypes(filter_ast, evttypes);
+	std::unordered_set<uint32_t> ppme_events_codes(evttypes.begin(), evttypes.end());
+	auto event_names = inspector.get_events_names(ppme_events_codes);
+
+	if(!event_names.empty())
+	{
+		printf("-- Filter event types names: %s\n", concat_names(event_names).c_str());
+	}
+
+	std::cout << "-- Start capture" << std::endl;
 
 	inspector.start_capture();
 	while(!g_interrupted)

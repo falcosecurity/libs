@@ -350,6 +350,13 @@ public:
 	*/
 	const std::string get_filter();
 
+	/*!
+	  \brief Return the AST (wrapped in a shared pointer) for the filter set for this capture.
+
+	  \return the AST (wrapped in a shared pointer) corresponding to the filter previously set with \ref set_filter()..
+	*/
+	std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast();
+
 	bool run_filters_on_evt(sinsp_evt *evt);
 
 	/*!
@@ -1131,6 +1138,8 @@ public:
 	uint64_t m_firstevent_ts;
 	sinsp_filter* m_filter;
 	std::string m_filterstring;
+	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
+
 	//
 	// Internal stats
 	//
