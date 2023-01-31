@@ -82,6 +82,7 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
+	filter_evttype_resolver.cpp
 	fields_info.cpp
 	filterchecks.cpp
 	filter_check_list.cpp
