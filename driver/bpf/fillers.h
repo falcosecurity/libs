@@ -510,6 +510,10 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 	}
 
 	val = bpf_syscall_get_argument(data, 0);
+	/* We don't want to discard the whole event if the pointer is null.
+	 * Setting `nfds = 0` we will just push to userspace the number of fds read,
+	 * in this case `0`.
+	 */
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 	if (read_size)
 		if (bpf_probe_read_user(fds,
@@ -518,13 +522,16 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 #else
 	if (bpf_probe_read_user(fds, read_size & SCRATCH_SIZE_MAX, (void *)val))
 #endif
-		return PPM_FAILURE_INVALID_USER_MEMORY;
+		nfds = 0;
 
 	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
 	{
 		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
 	}
 
+	/* `data->state->tail_ctx.curoff` will always point to the beginning of the space
+	 * in this way we can fill `nfds` after the for loop.
+	 */
 	off = data->state->tail_ctx.curoff + sizeof(u16);
 	fds_count = 0;
 
@@ -545,7 +552,7 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 			flags = poll_events_to_scap(fds[j].revents);
 		}
 
-		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = fds[j].fd;
+		*(s64 *)&data->buf[off & SCRATCH_SIZE_HALF] = (s64)fds[j].fd;
 		off += sizeof(s64);
 		if (off > SCRATCH_SIZE_HALF)
 		{
@@ -564,44 +571,24 @@ static __always_inline int bpf_poll_parse_fds(struct filler_data *data,
 
 FILLER(sys_poll_e, true)
 {
-	unsigned long val;
-	int res;
+	/* Parameter 1: fds (type: PT_FDLIST) */
+	int res = bpf_poll_parse_fds(data, true);
+	CHECK_RES(res);
 
-	/*
-	 * fds
-	 */
-	res = bpf_poll_parse_fds(data, true);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * timeout
-	 */
-	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/* Parameter 2: timeout (type: PT_INT64) */
+	u32 timeout_msecs = (s32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, timeout_msecs);
 }
 
 FILLER(sys_poll_x, true)
 {
-	long retval;
-	int res;
+	/* Parameter 1: ret (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
 
-	/*
-	 * res
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * fds
-	 */
-	res = bpf_poll_parse_fds(data, false);
-
-	return res;
+	/* Parameter 2: fds (type: PT_FDLIST) */
+	return bpf_poll_parse_fds(data, false);
 }
 
 #define MAX_IOVCNT 32

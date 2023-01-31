@@ -33,6 +33,9 @@
 /* Maximum number of `iovec` structures that we can analyze. */
 #define MAX_IOVCNT 32
 
+/* Maximum number of `pollfd` structures that we can analyze. */
+#define MAX_POLLFD 16
+
 /* Maximum number of charbuf pointers that we assume an array can have. */
 #define MAX_CHARBUF_POINTERS 16
 
@@ -71,6 +74,15 @@ enum connection_direction
 {
 	OUTBOUND = 0,
 	INBOUND = 1,
+};
+
+/* This enum is used to tell poll helpers if we need requested or returned
+ * events.
+ */
+enum poll_events_direction
+{
+	REQUESTED_EVENTS = 0,
+	RETURNED_EVENTS = 1,
 };
 
 /*=============================== COMMON DEFINITIONS ===============================*/
@@ -285,6 +297,20 @@ static __always_inline void auxmap__store_u8_param(struct auxiliary_map *auxmap,
 {
 	push__u8(auxmap->data, &auxmap->payload_pos, param);
 	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u8));
+}
+
+/**
+ * @brief This helper should be used to store unsigned 16 bit params.
+ * The following types are compatible with this helper:
+ * - PT_UINT16
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param param param to store
+ */
+static __always_inline void auxmap__store_u16_param(struct auxiliary_map *auxmap, u16 param)
+{
+	push__u16(auxmap->data, &auxmap->payload_pos, param);
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u16));
 }
 
 /**
@@ -1349,4 +1375,60 @@ static __always_inline void auxmap__store_cgroups_param(struct auxiliary_map *au
 		total_croups_len += store_cgroup_subsys(auxmap, task, bpf_core_enum_value(enum cgroup_subsys_id, memory_cgrp_id));
 	}
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_croups_len);
+}
+
+static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *auxmap, unsigned long fds_pointer, u32 nfds, enum poll_events_direction dir)
+{
+	/* In this helper we push data in this format:
+	 *  - number of `fd + flags` pairs  -> (u16)
+	 *  - first pair (`fd + flags`)     -> (s64 + s16)
+	 *  - second pair (`fd + flags`)    -> (s64 + s16)
+	 *  - ...
+	 *
+	 * If `fds_pointer` is NULL we push just a pair's number equal to `0`
+	 */
+
+	/* We store all the struct's array in the second part of our auxmap
+	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
+	 */
+	u32 structs_size = nfds * bpf_core_type_size(struct pollfd);
+	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
+			       SAFE_ACCESS(structs_size),
+			       (void *)fds_pointer))
+	{
+		/* pair's number equal to `0` */
+		auxmap__store_u16_param(auxmap, 0);
+		return;
+	}
+
+	/* The pair's number is equal to `nfds` if it is `<=MAX_POLLFD` otherwise it is `MAX_POLLFD` */
+	u32 num_pairs = nfds <= MAX_POLLFD ? nfds : MAX_POLLFD;
+	push__u16(auxmap->data, &auxmap->payload_pos, num_pairs);
+
+	/* Pointer to `pollfd` structs */
+	const struct pollfd *fds = (const struct pollfd *)&auxmap->data[MAX_PARAM_SIZE];
+
+	/* For every `pollfd` struct we try to push an `fd` (s64) + `flags` (s16) */
+	for(int j = 0; j < MAX_POLLFD; j++)
+	{
+		if(j == nfds)
+		{
+			break;
+		}
+
+		/* Push `fd` on 64 bit */
+		push__s64(auxmap->data, &auxmap->payload_pos, (s64)fds[j].fd);
+
+		/* Push `flags` according to the direction */
+		if(dir == REQUESTED_EVENTS)
+		{
+			push__s16(auxmap->data, &auxmap->payload_pos, (s16)poll_events_to_scap(fds[j].events));
+		}
+		else
+		{
+			push__s16(auxmap->data, &auxmap->payload_pos, (s16)poll_events_to_scap(fds[j].revents));
+		}
+	}
+	/* The param size is: 16 bit for the number of pairs + size of the pairs */
+	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u16) + (num_pairs * (sizeof(s64) + sizeof(s16))));
 }
