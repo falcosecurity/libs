@@ -264,9 +264,9 @@ static __always_inline bool bpf_getsockname(struct socket *sock,
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
 			if (len > 0)
-				bpf_probe_read_user(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
+				bpf_probe_read_kernel(sunaddr, ((len - 1) & 0xff) + 1, addr->name);
 #else
-			bpf_probe_read_user(sunaddr, len, addr->name);
+			bpf_probe_read_kernel(sunaddr, len, addr->name);
 #endif
 		}
 
