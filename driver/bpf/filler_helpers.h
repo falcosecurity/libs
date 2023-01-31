@@ -659,8 +659,8 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 				 * From kernel 3.13 we can take both ipv4 and ipv6 info from here
 				 * https://elixir.bootlin.com/linux/v3.13/source/include/net/sock.h#L164
 				 */
-				bpf_probe_read(&sip, sizeof(sip), &sk->__sk_common.skc_daddr);
-				bpf_probe_read(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
+				bpf_probe_read_kernel(&sip, sizeof(sip), &sk->__sk_common.skc_daddr);
+				bpf_probe_read_kernel(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
 				sport = ntohs(sport);
 				dip = ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
 				dport = ntohs(((struct sockaddr_in *)sock_address)->sin_port);
@@ -716,9 +716,9 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 			struct sockaddr_in6 *usrsockaddr_in6 = (struct sockaddr_in6 *)usrsockaddr;
 
 			if (is_inbound) {
-				bpf_probe_read(&in6, sizeof(in6), &sk->__sk_common.skc_v6_daddr);
+				bpf_probe_read_kernel(&in6, sizeof(in6), &sk->__sk_common.skc_v6_daddr);
 				sip6 = in6.in6_u.u6_addr8;
-				bpf_probe_read(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
+				bpf_probe_read_kernel(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
 				sport = ntohs(sport);
 				dip6 = ((struct sockaddr_in6 *)sock_address)->sin6_addr.s6_addr;
 				dport = ntohs(((struct sockaddr_in6 *)sock_address)->sin6_port);
