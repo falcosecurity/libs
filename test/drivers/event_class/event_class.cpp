@@ -158,8 +158,8 @@ event_test::event_test(int syscall_id, int event_direction):
 		/* This logic is not needed by architectures that require the `CAPTURE_SCHED_PROC_FORK`
 		 * workaround, since `CAPTURE_SCHED_PROC_FORK` requires `BPF_RAW_TRACEPOINTS` and so
 		 * kernel versions >= 4.17
-		 */		
-#ifndef CAPTURE_SCHED_PROC_FORK  
+		 */
+#ifndef CAPTURE_SCHED_PROC_FORK
 		if(is_bpf_engine())
 		{
 			/* The bpf engine retrieves syscall params from sys_enter tracepoints
@@ -176,7 +176,7 @@ event_test::event_test(int syscall_id, int event_direction):
 				m_tp_set[SCHED_PROC_FORK] = 1;
 			}
 		}
-#endif			
+#endif
 	}
 
 	m_current_param = 0;
@@ -780,6 +780,27 @@ void event_test::assert_ptrace_data(int param_num)
 	assert_param_len(sizeof(uint8_t) + sizeof(uint64_t));
 	ASSERT_EQ(*(uint8_t*)(m_event_params[m_current_param].valptr), PPM_PTRACE_IDX_UINT64) << VALUE_NOT_CORRECT << m_current_param << std::endl;
 	ASSERT_EQ(*(uint64_t*)(m_event_params[m_current_param].valptr + 1), 0) << VALUE_NOT_CORRECT << m_current_param << std::endl;
+}
+
+void event_test::assert_fd_list(int param_num, struct fd_poll* expected_fds, int32_t expected_nfds)
+{
+	assert_param_boundaries(param_num);
+	uint16_t bytes_read = 0;
+
+	/* Assert the pair's number */
+	ASSERT_EQ(*(int16_t*)(m_event_params[m_current_param].valptr + bytes_read), expected_nfds) << VALUE_NOT_CORRECT << m_current_param << " the expected number of nfds doesn't match!" << std::endl;
+	bytes_read += sizeof(uint16_t);
+
+	for(int j = 0; j < expected_nfds; j++)
+	{
+		/* Assert the `fd` */
+		ASSERT_EQ(*(int64_t*)(m_event_params[m_current_param].valptr + bytes_read), expected_fds[j].fd) << VALUE_NOT_CORRECT << m_current_param << " index: " << j << std::endl;
+		bytes_read += sizeof(int64_t);
+		/* Assert `flags` */
+		ASSERT_EQ(*(int16_t*)(m_event_params[m_current_param].valptr + bytes_read), expected_fds[j].flags) << VALUE_NOT_CORRECT << m_current_param << " index: " << j << std::endl;
+		bytes_read += sizeof(int16_t);
+	}
+	assert_param_len(sizeof(uint16_t) + ((sizeof(int64_t) + sizeof(int16_t)) * expected_nfds));
 }
 
 /////////////////////////////////

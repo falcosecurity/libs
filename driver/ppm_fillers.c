@@ -3320,20 +3320,25 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 
 	fds = (struct pollfd *)args->str_storage;
+
+	/* We don't want to discard the whole event if the pointer is null.
+	 * Setting `nfds = 0` we will just push to userspace the number of fds read,
+	 * in this case `0`.
+	 */
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
 		if (unlikely(ppm_copy_from_user(fds, (const void __user *)val, nfds * sizeof(struct pollfd))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+			nfds = 0;
 #ifdef CONFIG_COMPAT
 	} else {
 		if (unlikely(ppm_copy_from_user(fds, (const void __user *)compat_ptr(val), nfds * sizeof(struct pollfd))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+			nfds = 0;
 	}
 #endif
 
 	pos = 2;
-	targetbuf = args->str_storage + nfds * sizeof(struct pollfd) + pos;
+	targetbuf = args->str_storage + nfds * sizeof(struct pollfd);
 	fds_count = 0;
 
 	/* Copy each fd into the temporary buffer */
@@ -3351,7 +3356,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 			flags = poll_events_to_scap(fds[j].revents);
 		}
 
-		*(int64_t *)(targetbuf + pos) = fds[j].fd;
+		*(int64_t *)(targetbuf + pos) = (s64)fds[j].fd;
 		*(int16_t *)(targetbuf + pos + 8) = flags;
 		pos += 10;
 		++fds_count;

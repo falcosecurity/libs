@@ -29,6 +29,13 @@ struct param
 	uint16_t len;
 };
 
+/* This is the struct we send to userspace in `poll` and `ppoll` syscalls */
+struct fd_poll
+{
+	int64_t fd;
+	int16_t flags;
+};
+
 /* Assertion operators */
 enum assertion_operators
 {
@@ -93,7 +100,7 @@ public:
 
 	static void clear_ppm_sc_mask()
 	{
-		for (int i = 0; i < PPM_SC_MAX; i++)
+		for(int i = 0; i < PPM_SC_MAX; i++)
 		{
 			scap_set_ppm_sc(s_scap_handle, i, false);
 		}
@@ -552,6 +559,16 @@ public:
 	 * @param param_num number of the parameter to assert into the event.
 	 */
 	void assert_ptrace_data(int param_num);
+
+	/**
+	 * @brief Some syscalls like `poll` and `ppoll` send
+	 * a list of file descriptors to assert.
+	 *
+	 * @param param_num number of the parameter to assert into the event.
+	 * @param expected_fds pointer to an array of `struct fd_poll`
+	 * @param nfds number of fd structs we expect in the array.
+	 */
+	void assert_fd_list(int param_num, struct fd_poll* expected_fds, int32_t nfds);
 
 private:
 	enum ppm_event_type m_event_type;	  /* type of the event we want to assert in this test. */

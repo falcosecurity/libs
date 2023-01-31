@@ -158,6 +158,12 @@ static __always_inline void push__u64(u8 *data, u64 *payload_pos, u64 param)
 	*payload_pos += sizeof(u64);
 }
 
+static __always_inline void push__s16(u8 *data, u64 *payload_pos, s16 param)
+{
+	*((s16 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
+	*payload_pos += sizeof(s16);
+}
+
 static __always_inline void push__s32(u8 *data, u64 *payload_pos, s32 param)
 {
 	*((s32 *)&data[SAFE_ACCESS(*payload_pos)]) = param;
