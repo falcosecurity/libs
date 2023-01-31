@@ -51,7 +51,6 @@ TEST(SyscallExit, io_uring_registerX)
 	/* Parameter 5: nr_args (type: PT_UINT32) */
 	evt_test->assert_numeric_param(5, (uint32_t)nr_args);
 
-
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(5);

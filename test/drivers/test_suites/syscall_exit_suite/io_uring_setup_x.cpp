@@ -12,10 +12,10 @@ TEST(SyscallExit, io_uring_setupX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-    /* There could be cases in which the structure `io_uring_params`
-     * doesn't have the filed `feature`, so define it to `0` as default.
-     */
-    uint32_t expected_features = 0;
+	/* There could be cases in which the structure `io_uring_params`
+	 * doesn't have the filed `feature`, so define it to `0` as default.
+	 */
+	uint32_t expected_features = 0;
 	uint32_t entries = 4;
 	struct io_uring_params params = {0};
 	params.sq_entries = 5;
@@ -28,7 +28,7 @@ TEST(SyscallExit, io_uring_setupX)
 	params.sq_thread_idle = 8;
 #ifdef IORING_FEAT_SINGLE_MMAP
 	params.features = IORING_FEAT_NODROP;
-    expected_features = PPM_IORING_FEAT_NODROP;
+	expected_features = PPM_IORING_FEAT_NODROP;
 #endif
 	assert_syscall_state(SYSCALL_FAILURE, "io_uring_setup", syscall(__NR_io_uring_setup, entries, &params));
 	int64_t errno_value = -errno;
