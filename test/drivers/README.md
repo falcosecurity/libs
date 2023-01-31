@@ -16,7 +16,7 @@ In this case, only the `kmod` engine will be built and you can assert only the b
 Let's build all the 3 engines:
 
 ```bash
-cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=True -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
+cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DMODERN_BPF_DEBUG_MODE=On ..
 make drivers_test
 ```
 
