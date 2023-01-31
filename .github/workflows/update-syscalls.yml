@@ -4,9 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 2 1 * *'
-  pull_request:
-    branches:
-      - master
 
 jobs:
   update-syscalls:
@@ -20,7 +17,7 @@ jobs:
       - name: Git set-up
         run: |
           apk update && apk add git
-          
+
       - name: Checkout
         uses: actions/checkout@v3
         with:
