@@ -64,7 +64,7 @@ int BPF_PROG(io_uring_setup_x,
 	 */
 	unsigned long params_pointer = extract__syscall_argument(regs, 1);
 	struct io_uring_params params = {0};
-	bpf_probe_read_user((void *)&params, sizeof(struct io_uring_params), (void *)params_pointer);
+	bpf_probe_read_user((void *)&params, bpf_core_type_size(struct io_uring_params), (void *)params_pointer);
 
 	/* Parameter 3: sq_entries (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, params.sq_entries);
