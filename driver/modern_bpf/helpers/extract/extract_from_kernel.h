@@ -11,6 +11,8 @@
 #include <helpers/base/read_from_task.h>
 #include <driver/ppm_flag_helpers.h>
 
+#define SECOND_TO_NS 1000000000
+
 /* Used to convert from page number to KB. */
 #define DO_PAGE_SHIFT(x) (x) << (IOC_PAGE_SHIFT - 10)
 

@@ -3405,17 +3405,25 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	if (!args->compat) {
 #endif
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(*tts));
-		if (unlikely(cfulen != 0))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+		if(unlikely(cfulen != 0))
+		{
+			longtime = (uint64_t)-1;
+		}
+		else
+		{
+			longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
+		}
 #ifdef CONFIG_COMPAT
 	} else {
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
 		if (unlikely(cfulen != 0))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
+		{
+			longtime = (uint64_t)-1;
+		}
+		else
+		{
+			longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
+		}
 	}
 #endif
 
@@ -3424,36 +3432,34 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 
 int f_sys_ppoll_e(struct event_filler_arguments *args)
 {
-	unsigned long val;
-	int res;
+	unsigned long val = 0;
+	int res = 0;
 
+	/* Parameter 1: fds (type: PT_FDLIST) */
 	res = poll_parse_fds(args, true);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * timeout
-	 */
+	/* Parameter 2: timeout (type: PT_RELTIME) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 	/* NULL timeout specified as 0xFFFFFF.... */
-	if (val == (unsigned long)NULL)
+	if(val == (unsigned long)NULL)
+	{
 		res = val_to_ring(args, (uint64_t)(-1), 0, false, 0);
+	}
 	else
+	{
 		res = timespec_parse(args, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	}
+	CHECK_RES(res);
 
-	/*
-	 * sigmask
-	 */
+	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-	if (val != (unsigned long)NULL)
-		if (0 != ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	res = val_to_ring(args, val, 0, false, 0);
-	if (res != PPM_SUCCESS)
-		return res;
+	if (val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
+	{
+		val = 0;
+	}
+	res = val_to_ring(args, (u32)val, 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
