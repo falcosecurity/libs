@@ -162,6 +162,15 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
             make run-unit-tests
 
+  test-drivers-x86:
+    name: test-drivers-x86 😇 (bundled_deps)
+    runs-on: ubuntu-22.04
+    needs: paths-filter
+    if: false
+    steps:
+      - name: Fake test
+        run: echo "skipped"
+
   build-and-test-modern-bpf-x86:
     name: build-and-test-modern-bpf-x86 😇 (bundled_deps)
     runs-on: ubuntu-22.04
