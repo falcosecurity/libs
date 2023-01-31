@@ -4589,37 +4589,27 @@ FILLER(sys_ppoll_e, true)
 	unsigned long val;
 	int res;
 
+	/* Parameter 1: fds (type: PT_FDLIST) */
 	res = bpf_poll_parse_fds(data, true);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * timeout
-	 */
+	/* Parameter 2: timeout (type: PT_RELTIME) */
 	val = bpf_syscall_get_argument(data, 2);
 
 	/* NULL timeout specified as 0xFFFFFF.... */
 	if (val == (unsigned long)NULL) {
 		res = bpf_val_to_ring_type(data, (u64)(-1), PT_RELTIME);
-		if (res != PPM_SUCCESS)
-			return res;
+		CHECK_RES(res);
 	} else {
 		res = timespec_parse(data, val);
-		if (res != PPM_SUCCESS)
-			return res;
+		CHECK_RES(res);
 	}
 
-	/*
-	 * sigmask
-	 */
-	val = bpf_syscall_get_argument(data, 3);
-	if (val != (unsigned long)NULL)
-		if (bpf_probe_read_user(&val, sizeof(val), (void *)val))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	res = bpf_val_to_ring_type(data, val, PT_SIGSET);
-
-	return res;
+	/* Parameter 3: sigmask (type: PT_SIGSET) */
+	long unsigned int sigmask[1] = {0};
+	unsigned long sigmask_pointer = bpf_syscall_get_argument(data, 3);
+	bpf_probe_read_user(&sigmask, sizeof(sigmask), (void *)sigmask_pointer);
+	return bpf_val_to_ring_type(data, sigmask[0], PT_SIGSET);
 }
 
 FILLER(sys_semop_x, true)
