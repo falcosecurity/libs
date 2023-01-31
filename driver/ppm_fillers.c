@@ -5111,12 +5111,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	res = ppm_copy_from_user(&params, (void *)val, sizeof(struct io_uring_params));
 	if(unlikely(res != 0))
 	{
-		sq_entries = 0;
-		cq_entries = 0;
-		flags = 0;
-		sq_thread_cpu = 0;
-		sq_thread_idle = 0;
-		features = 0;
+		memset(&params, 0, sizeof(params));
 	}
 
 	sq_entries = params.sq_entries;
