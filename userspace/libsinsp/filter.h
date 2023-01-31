@@ -105,6 +105,8 @@ public:
 	*/
 	sinsp_filter* compile();
 
+	std::shared_ptr<libsinsp::filter::ast::expr> get_filter_ast() { return m_internal_flt_ast; }
+
 	const libsinsp::filter::ast::pos_info& get_pos() const { return m_pos; }
 
 private:
@@ -127,7 +129,7 @@ private:
 	std::string m_flt_str;
 	sinsp_filter* m_filter;
 	std::vector<std::string> m_field_values;
-	std::unique_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
+	std::shared_ptr<libsinsp::filter::ast::expr> m_internal_flt_ast;
 	const libsinsp::filter::ast::expr* m_flt_ast;
 	std::shared_ptr<gen_event_filter_factory> m_factory;
 
