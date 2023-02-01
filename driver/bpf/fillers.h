@@ -62,7 +62,7 @@ static __always_inline int __bpf_##x(struct filler_data *data);		\
 __bpf_section(TP_NAME "filler/" #x)					\
 static __always_inline int bpf_##x(void *ctx)				\
 {									\
-	struct filler_data data;					\
+	struct filler_data data = {0};					\
 	int res;							\
 									\
 	res = init_filler_data(ctx, &data, is_syscall);			\
@@ -289,7 +289,7 @@ FILLER_RAW(terminate_filler)
 		if (state->n_drops_scratch_map != ULLONG_MAX) {
 			++state->n_drops_scratch_map;
 		}
-		break;	
+		break;
 	default:
 		bpf_printk("Unknown filler res=%d event=%d curarg=%d\n",
 			   state->tail_ctx.prev_res,
@@ -2302,7 +2302,7 @@ FILLER(proc_startupdate, true)
 		arg_start = _READ(mm->arg_start);
 		args_len = arg_end - arg_start;
 
-		if (args_len) {
+		if (args_len > 0) {
 			if (args_len > ARGS_ENV_SIZE_MAX)
 				args_len = ARGS_ENV_SIZE_MAX;
 
@@ -2329,7 +2329,7 @@ FILLER(proc_startupdate, true)
 		case PPME_SYSCALL_EXECVE_19_X:
 			val = bpf_syscall_get_argument(data, 1);
 			break;
-		
+
 		case PPME_SYSCALL_EXECVEAT_X:
 			val = bpf_syscall_get_argument(data, 2);
 			break;
@@ -2347,14 +2347,14 @@ FILLER(proc_startupdate, true)
 		args_len = 0;
 	}
 
-	if (args_len) {
+	if (args_len > 0) {
 		int exe_len;
 
 		exe_len = bpf_probe_read_kernel_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
 						    SCRATCH_SIZE_HALF,
 						    &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
 
-		if (exe_len == -EFAULT)
+		if (exe_len < 0)
 			return PPM_FAILURE_INVALID_USER_MEMORY;
 
 		/*
@@ -2365,11 +2365,15 @@ FILLER(proc_startupdate, true)
 		if (res != PPM_SUCCESS)
 			return res;
 
+		args_len -= exe_len;
+		if (args_len < 0)
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
 		/*
 		 * Args
 		 */
 		data->curarg_already_on_frame = true;
-		res = __bpf_val_to_ring(data, 0, args_len - exe_len, PT_BYTEBUF, -1, false, KERNEL);
+		res = __bpf_val_to_ring(data, 0, args_len, PT_BYTEBUF, -1, false, KERNEL);
 		if (res != PPM_SUCCESS)
 			return res;
 	} else {
