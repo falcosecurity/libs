@@ -873,16 +873,18 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 	case PT_CHARBUF:
 	case PT_FSPATH:
 	case PT_FSRELPATH: {
-		if (!data->curarg_already_on_frame) 
+		if (!data->curarg_already_on_frame)
 		{
-			int res;
-			/* Return `res<0` only in case of error. */ 
-			res = (mem == KERNEL) ? bpf_probe_read_kernel_str(&data->buf[curoff_bounded],
-							PPM_MAX_ARG_SIZE,
-							(const void *)val)
-					      : bpf_probe_read_user_str(&data->buf[curoff_bounded],
-							PPM_MAX_ARG_SIZE,
-							(const void *)val);
+			int res = -1;
+
+			if (val)
+				/* Return `res<0` only in case of error. */
+				res = (mem == KERNEL) ? bpf_probe_read_kernel_str(&data->buf[curoff_bounded],
+								PPM_MAX_ARG_SIZE,
+								(const void *)val)
+						      : bpf_probe_read_user_str(&data->buf[curoff_bounded],
+								PPM_MAX_ARG_SIZE,
+								(const void *)val);
 			if(res >= 0)
 			{
 				len = res;
