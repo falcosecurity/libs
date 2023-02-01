@@ -2866,25 +2866,33 @@ FILLER(sys_accept_x, true)
 	int res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
 	CHECK_RES(res);
 
-	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
-	long size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true, data->tmp_scratch);
-	data->curarg_already_on_frame = true;
-	res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false, KERNEL);
-	CHECK_RES(res);
-
 	u32 queuelen = 0;
 	u32 queuemax = 0;
 	u8 queuepct = 0;
 
-	/* Get the listening socket (first syscall parameter) */
-	s32 listening_fd = (s32)bpf_syscall_get_argument(data, 0);
-	struct socket * sock = bpf_sockfd_lookup(data, listening_fd);
-	struct sock *sk = _READ(sock->sk);
-	queuelen = _READ(sk->sk_ack_backlog);
-	queuemax = _READ(sk->sk_max_ack_backlog);
-	if(queuelen && queuemax)
+	if (fd >= 0)
 	{
-		queuepct = (u8)((u64)queuelen * 100 / queuemax);
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		long size = bpf_fd_to_socktuple(data, fd, NULL, 0, false, true, data->tmp_scratch);
+		data->curarg_already_on_frame = true;
+		res = __bpf_val_to_ring(data, 0, size, PT_SOCKTUPLE, -1, false, KERNEL);
+		CHECK_RES(res);
+
+		/* Get the listening socket (first syscall parameter) */
+		s32 listening_fd = (s32)bpf_syscall_get_argument(data, 0);
+		struct socket * sock = bpf_sockfd_lookup(data, listening_fd);
+		struct sock *sk = _READ(sock->sk);
+		queuelen = _READ(sk->sk_ack_backlog);
+		queuemax = _READ(sk->sk_max_ack_backlog);
+		if(queuelen && queuemax)
+		{
+			queuepct = (u8)((u64)queuelen * 100 / queuemax);
+		}
+	}
+	else
+	{
+		res = bpf_push_empty_param(data);
+		CHECK_RES(res);
 	}
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
