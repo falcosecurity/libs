@@ -2135,61 +2135,71 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * Convert the fd into socket endpoint information
-	 */
-	size = fd_to_socktuple(fd,
-		NULL,
-		0,
-		false,
-		true,
-		targetbuf,
-		STR_STORAGE_SIZE);
-
-	/*
-	 * Copy the endpoint info into the ring
-	 */
-	res = val_to_ring(args,
-			    (uint64_t)targetbuf,
-			    size,
-			    false,
-			    0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/*
-	 * queuepct
-	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &srvskfd);
+	if (fd >= 0)
+	{
+		/*
+		 * Convert the fd into socket endpoint information
+		 */
+		size = fd_to_socktuple(fd,
+				NULL,
+				0,
+				false,
+				true,
+				targetbuf,
+				STR_STORAGE_SIZE);
+		/*
+		 * queuepct
+		 */
+		if (!args->is_socketcall)
+			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &srvskfd);
 #ifndef UDIG
-	else
-		srvskfd = args->socketcall_args[0];
+		else
+			srvskfd = args->socketcall_args[0];
 #endif
 
 #ifndef UDIG
-	sock = sockfd_lookup(srvskfd, &err);
+		sock = sockfd_lookup(srvskfd, &err);
 
-	if (sock && sock->sk) {
-		ack_backlog = sock->sk->sk_ack_backlog;
-		max_ack_backlog = sock->sk->sk_max_ack_backlog;
-	}
+		if (sock && sock->sk) {
+			ack_backlog = sock->sk->sk_ack_backlog;
+			max_ack_backlog = sock->sk->sk_max_ack_backlog;
+		}
 
-	if (sock)
-		sockfd_put(sock);
+		if (sock)
+			sockfd_put(sock);
 
-	if (max_ack_backlog)
-		queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
+		if (max_ack_backlog)
+			queuepct = (unsigned long)ack_backlog * 100 / max_ack_backlog;
 #endif /* UDIG */
 
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = val_to_ring(args,
+				(uint64_t)targetbuf,
+				size,
+				false,
+				0);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+	else
+	{
+		/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+		res = push_empty_param(args);
+		if (unlikely(res != PPM_SUCCESS))
+			return res;
+	}
+
+	/* Parameter 3: queuepct (type: PT_UINT8) */
 	res = val_to_ring(args, queuepct, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
+	/* Parameter 4: queuelen (type: PT_UINT32) */
 	res = val_to_ring(args, ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
 
+	/* Parameter 5: queuemax (type: PT_UINT32) */
 	res = val_to_ring(args, max_ack_backlog, 0, false, 0);
 	if (res != PPM_SUCCESS)
 		return res;
