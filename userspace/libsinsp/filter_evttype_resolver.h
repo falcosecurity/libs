@@ -23,6 +23,14 @@ limitations under the License.
 #include <functional>
 #include <stdexcept>
 
+
+/* Using a custom / optimized event type for performance optimization reasons.
+ *
+ * We found that regular set operations, even with unordered_set, slowed down Falco's 
+ * initialization by orders of magnitude, because of exhaustive evttypes scanning 
+ * when loading rulesets.
+ * For this reason the custom event type optimizes operations over sets of numbers.
+*/
 class sinsp_event_types
 {
 private:
@@ -92,7 +100,7 @@ public:
 		return m_types == other.m_types;
 	}
 
-	sinsp_event_types diff(const sinsp_event_types& other)
+	sinsp_event_types diff(const sinsp_event_types& other) const
 	{
 		sinsp_event_types ret;
 		for(size_t i = 0; i <= get_ppm_event_max(); ++i)
@@ -105,7 +113,7 @@ public:
 		return ret;
 	}
 
-	sinsp_event_types intersect(const sinsp_event_types& other)
+	sinsp_event_types intersect(const sinsp_event_types& other) const
 	{
 		sinsp_event_types ret;
 		for(size_t i = 0; i <= get_ppm_event_max(); ++i)
@@ -188,14 +196,25 @@ public:
 private:
 	struct visitor : public libsinsp::filter::ast::expr_visitor
 	{
-		visitor(): m_expect_value(false) {}
+		visitor():
+			m_expect_value(false),
+			m_inside_negation(false),
+			m_last_node_has_evttypes(false),
+			m_last_node_evttypes({}),
+			m_all_events({})
+		{
+			evttypes("", m_all_events);
+		}
 		visitor(visitor&&) = default;
 		visitor& operator = (visitor&&) = default;
 		visitor(const visitor&) = default;
 		visitor& operator = (const visitor&) = default;
 
 		bool m_expect_value;
+		bool m_inside_negation;
+		bool m_last_node_has_evttypes;
 		sinsp_event_types m_last_node_evttypes;
+		sinsp_event_types m_all_events;
 
 		void visit(libsinsp::filter::ast::and_expr* e) override;
 		void visit(libsinsp::filter::ast::or_expr* e) override;
@@ -204,7 +223,10 @@ private:
 		void visit(libsinsp::filter::ast::list_expr* e) override;
 		void visit(libsinsp::filter::ast::unary_check_expr* e) override;
 		void visit(libsinsp::filter::ast::binary_check_expr* e) override;
+		void try_inversion(sinsp_event_types& types);
 		void inversion(sinsp_event_types& types);
 		void evttypes(const std::string& evtname, sinsp_event_types& out);
+		void conjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>&);
+		void disjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>&);
 	};
 };
