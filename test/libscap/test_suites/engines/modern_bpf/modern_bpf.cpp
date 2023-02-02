@@ -1,4 +1,4 @@
-#include "scap.h"
+#include <scap.h>
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <syscall.h>
