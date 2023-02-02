@@ -229,6 +229,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_RECVMMSG_X] = "recvmmsg_x",
 	[PPME_SOCKET_SENDMMSG_E] = "sendmmsg_e",
 	[PPME_SOCKET_SENDMMSG_X] = "sendmmsg_x",
+	[PPME_SYSCALL_SEMOP_E] = "semop_e",
+	[PPME_SYSCALL_SEMOP_X] = "semop_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

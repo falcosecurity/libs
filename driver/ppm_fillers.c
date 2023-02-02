@@ -6384,59 +6384,73 @@ int f_cpu_hotplug_e(struct event_filler_arguments *args)
 
 int f_sys_semop_x(struct event_filler_arguments *args)
 {
-	unsigned long nsops;
-	int res;
-	int64_t retval;
-	struct sembuf *ptr;
+	unsigned long nsops = 0 ;
+	int res = 0;
+	long retval = 0;
+	struct sembuf *sops_pointer = NULL;
+	struct sembuf sops[2] = {0};
 
-	/*
-	 * return value
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * nsops
-	 * actually this could be read in the enter function but
-	 * we also need to know the value to access the sembuf structs
-	 */
+	/* Parameter 2: nsops (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &nsops);
 	res = val_to_ring(args, nsops, 0, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * sembuf
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, (unsigned long *) &ptr);
+	/* Extract pointer to the `sembuf` struct */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, (unsigned long *) &sops_pointer);
 
-	if (nsops && ptr) {
-		/* max length of sembuf array in g_event_info = 2 */
-		const unsigned max_nsops = 2;
-		unsigned       j;
-
-		for (j = 0; j < max_nsops; j++) {
-			struct sembuf sops = {0, 0, 0};
-
-			if (nsops--)
-				if (unlikely(ppm_copy_from_user(&sops, (void *)&ptr[j], sizeof(struct sembuf))))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-			res = val_to_ring(args, sops.sem_num, 0, true, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			res = val_to_ring(args, sops.sem_op, 0, true, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
-
-			res = val_to_ring(args, semop_flags_to_scap(sops.sem_flg), 0, true, 0);
-			if (unlikely(res != PPM_SUCCESS))
-				return res;
+	if(retval != 0 || sops_pointer == 0 || nsops == 0)
+	{
+		/* We send all 0 when one of these is true:
+		 * - the syscall fails (retval != 0)
+		 * - `sops_pointer` is NULL
+		 * - `nsops` is 0
+		 */
+	}
+	else if(nsops == 1)
+	{
+		/* If we have just one entry the second will be empty, we don't fill it */
+		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, sizeof(struct sembuf))))
+		{
+			memset(&sops, 0, sizeof(sops));
 		}
 	}
+	else
+	{
+		/* If `nsops>1` we read just the first 2 entries. */
+		if(unlikely(ppm_copy_from_user(sops, (void *)sops_pointer, 2 * sizeof(struct sembuf))))
+		{
+			memset(&sops, 0, sizeof(sops));
+		}
+	}
+
+	/* Parameter 3: sem_num_0 (type: PT_UINT16) */
+	res = val_to_ring(args, sops[0].sem_num, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: sem_op_0 (type: PT_INT16) */
+	res = val_to_ring(args, sops[0].sem_op, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: sem_flg_0 (type: PT_FLAGS16) */
+	res = val_to_ring(args, semop_flags_to_scap(sops[0].sem_flg), 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 6: sem_num_1 (type: PT_UINT16) */
+	res = val_to_ring(args, sops[1].sem_num, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 7: sem_op_1 (type: PT_INT16) */
+	res = val_to_ring(args, sops[1].sem_op, 0, true, 0);
+	CHECK_RES(res);
+
+	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
+	res = val_to_ring(args, semop_flags_to_scap(sops[1].sem_flg), 0, true, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

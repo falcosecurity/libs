@@ -4616,61 +4616,61 @@ FILLER(sys_ppoll_e, true)
 
 FILLER(sys_semop_x, true)
 {
-	unsigned long nsops;
-	struct sembuf *ptr;
-	long retval;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
 
-	/*
-	 * return value
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * nsops
-	 * actually this could be read in the enter function but
-	 * we also need to know the value to access the sembuf structs
-	 */
-	nsops = bpf_syscall_get_argument(data, 2);
+	/* Parameter 2: nsops (type: PT_UINT32) */
+	u32 nsops = bpf_syscall_get_argument(data, 2);
 	res = bpf_val_to_ring_type(data, nsops, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * sembuf
-	 */
-	ptr = (struct sembuf *)bpf_syscall_get_argument(data, 1);
+	/* Extract pointer to the `sembuf` struct */
+	struct sembuf sops[2] = {0};
+	unsigned long sops_pointer = bpf_syscall_get_argument(data, 1);
 
-	if (nsops && ptr) {
-		int j;
-
-		#pragma unroll 2
-		for (j = 0; j < 2; j++) {
-			struct sembuf sops = {0, 0, 0};
-
-			if (nsops--)
-				if (bpf_probe_read_user(&sops, sizeof(sops),
-						   (void *)&ptr[j]))
-					return PPM_FAILURE_INVALID_USER_MEMORY;
-
-			res = bpf_val_to_ring_type(data, sops.sem_num, PT_UINT16);
-			if (res != PPM_SUCCESS)
-				return res;
-
-			res = bpf_val_to_ring_type(data, sops.sem_op, PT_INT16);
-			if (res != PPM_SUCCESS)
-				return res;
-
-			res = bpf_val_to_ring_type(data, semop_flags_to_scap(sops.sem_flg), PT_FLAGS16);
-			if (res != PPM_SUCCESS)
-				return res;
-		}
+	if(retval != 0 || sops_pointer == 0 || nsops == 0)
+	{
+		/* We send all 0 when one of these is true:
+		 * - the syscall fails (retval != 0)
+		 * - `sops_pointer` is NULL
+		 * - `nsops` is 0
+		 */
+	}
+	else if(nsops == 1)
+	{
+		/* If we have just one entry the second will be empty, we don't fill it */
+		bpf_probe_read_user((void *)sops, sizeof(struct sembuf), (void *)sops_pointer);
+	}
+	else
+	{
+		/* If `nsops>1` we read just the first 2 entries. */
+		bpf_probe_read_user((void *)sops, sizeof(struct sembuf) * 2, (void *)sops_pointer);
 	}
 
-	return res;
+	/* Parameter 3: sem_num_0 (type: PT_UINT16) */
+	res = bpf_val_to_ring_type(data, sops[0].sem_num, PT_UINT16);
+	CHECK_RES(res);
+
+	/* Parameter 4: sem_op_0 (type: PT_INT16) */
+	res = bpf_val_to_ring_type(data, sops[0].sem_op, PT_INT16);
+	CHECK_RES(res);
+
+	/* Parameter 5: sem_flg_0 (type: PT_FLAGS16) */
+	res = bpf_val_to_ring_type(data, semop_flags_to_scap(sops[0].sem_flg), PT_FLAGS16);
+	CHECK_RES(res);
+
+	/* Parameter 6: sem_num_1 (type: PT_UINT16) */
+	res = bpf_val_to_ring_type(data, sops[1].sem_num, PT_UINT16);
+	CHECK_RES(res);
+
+	/* Parameter 7: sem_op_1 (type: PT_INT16) */
+	res = bpf_val_to_ring_type(data, sops[1].sem_op, PT_INT16);
+	CHECK_RES(res);
+
+	/* Parameter 8: sem_flg_1 (type: PT_FLAGS16) */
+	return bpf_val_to_ring_type(data, semop_flags_to_scap(sops[1].sem_flg), PT_FLAGS16);
 }
 
 FILLER(sys_socket_x, true)

@@ -169,6 +169,8 @@
 #define RECVMMSG_X_SIZE HEADER_LEN
 #define SENDMMSG_E_SIZE HEADER_LEN
 #define SENDMMSG_X_SIZE HEADER_LEN
+#define SEMOP_E_SIZE HEADER_LEN + sizeof(int32_t) + PARAM_LEN
+#define SEMOP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint16_t) * 4 + sizeof(int16_t) * 2 + PARAM_LEN * 8
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
