@@ -3713,43 +3713,26 @@ FILLER(sys_epoll_create1_x, true)
 
 FILLER(sys_sendfile_e, true)
 {
-	unsigned long val;
-	off_t *offp;
-	off_t off;
-	int res;
+	/* Parameter 1: out_fd (type: PT_FD) */
+	s32 out_fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)out_fd);
+	CHECK_RES(res);
 
-	/*
-	 * out_fd
-	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 2: in_fd (type: PT_FD) */
+	s32 in_fd = (s32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, (s64)in_fd);
+	CHECK_RES(res);
 
-	/*
-	 * in_fd
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	/* Parameter 3: offset (type: PT_UINT64) */
+	unsigned long offset = 0;
+	unsigned long offset_pointer = bpf_syscall_get_argument(data, 2);
+	bpf_probe_read((void *)&offset, sizeof(offset), (void *)offset_pointer);
+	res = bpf_val_to_ring(data, offset);
+	CHECK_RES(res);
 
-	/*
-	 * offset
-	 */
-	offp = (off_t *)bpf_syscall_get_argument(data, 2);
-	off = _READ(*offp);
-	res = bpf_val_to_ring(data, off);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * size
-	 */
-	val = bpf_syscall_get_argument(data, 3);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	/* Parameter 4: size (type: PT_UINT64) */
+	u64 size = bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, size);
 }
 
 FILLER(sys_sendfile_x, true)
