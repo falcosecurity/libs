@@ -162,8 +162,8 @@ jobs:
             KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
             make run-unit-tests
 
-  # This job checks that we correctly run `scap-open` for all the 3 drivers.
-  test-scap-open-x86:
+  # This job run all engine tests and scap-open
+  test-scap-x86:
     name: test-scap-open-x86 😆 (bundled_deps)
     runs-on: ubuntu-22.04
     needs: paths-filter
@@ -186,9 +186,10 @@ jobs:
       - name: Build scap-open and drivers 🏗️
         run: |
           mkdir -p build
-          cd build && cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_LIBSCAP_GVISOR=OFF -DBUILD_BPF=True -DCREATE_TEST_TARGETS=Off ../
+          cd build && cmake -DUSE_BUNDLED_DEPS=On -DBUILD_DRIVER=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DBUILD_BPF=On -DBUILD_LIBSCAP_GVISOR=Off -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ../
           make scap-open
           make driver bpf
+          make libscap_test
 
       - name: Run scap-open with modern bpf 🏎️
         run: |
@@ -206,6 +207,11 @@ jobs:
           sudo insmod ./driver/scap.ko
           sudo ./libscap/examples/01-open/scap-open --kmod --num_events 0
           sudo rmmod scap
+
+      - name: Run libscap_test 🏎️
+        run: |
+          cd build
+          sudo ./test/libscap/libscap_test
 
   test-drivers-x86:
     name: test-drivers-x86 😇 (bundled_deps)
