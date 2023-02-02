@@ -16,26 +16,32 @@
 
 message(STATUS "Libscap unit tests build enabled")
 
-# find_package(Threads)
+if(NOT DEFINED DRIVER_NAME)
+	set(DRIVER_NAME "scap")
+endif()
 
-set(LIBSCAP_TESTS_SOURCES "")
+# Create a libscap_test_var.h file with some variables used by our tests
+# for example the kmod path or the bpf path.
+configure_file (
+    "${CMAKE_CURRENT_SOURCE_DIR}/libscap_test_var.h.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/libscap_test_var.h"
+)
 
 set(LIBSCAP_TESTS_INCLUDE
   PRIVATE
   "${GTEST_INCLUDE}"
   "${CMAKE_CURRENT_SOURCE_DIR}" # for test helpers <helpers/...>
   "${CMAKE_SOURCE_DIR}/userspace/libscap" # this is for libscap includes
+  "${CMAKE_CURRENT_BINARY_DIR}" # used to include `libscap_test_var.h`
 )
+
+# Needed by gtest
+find_package(Threads)
 
 set(LIBSCAP_TESTS_LIBRARIES
 	"${GTEST_LIB}"
 	"${GTEST_MAIN_LIB}"
-	# "${CMAKE_THREAD_LIBS_INIT}"
-	scap
-)
-
-set(LIBSCAP_TESTS_DEPENDENCIES
-	gtest
+	"${CMAKE_THREAD_LIBS_INIT}"
 	scap
 )
 
@@ -43,6 +49,19 @@ set(LIBSCAP_TESTS_DEPENDENCIES
 if (CMAKE_BUILD_TYPE STREQUAL "Coverage")
 	list(APPEND LIBSCAP_TESTS_LIBRARIES gcov)
 endif()
+
+set(LIBSCAP_TESTS_DEPENDENCIES
+	gtest
+	scap
+)
+
+# Generic libscap test suite, always compiled
+file(GLOB_RECURSE GENERIC_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/generic/*.cpp")
+set(LIBSCAP_TESTS_SOURCES ${GENERIC_TEST_SUITE})
+
+# Helpers are not engine-specific so we always include them
+file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp")
+list(APPEND LIBSCAP_TESTS_SOURCES ${LIBSCAP_TESTS_UTILS_SOURCES})
 
 # Engine-specific tests
 if(BUILD_DRIVER)
@@ -68,24 +87,16 @@ if(BUILD_LIBSCAP_GVISOR)
 	include(protobuf)
 	file(GLOB_RECURSE GVISOR_TEST_SUITE "${CMAKE_CURRENT_SOURCE_DIR}/test_suites/engines/gvisor/*.cpp")
 	list(APPEND LIBSCAP_TESTS_SOURCES ${GVISOR_TEST_SUITE})
-	list(APPEND LIBSCAP_TESTS_INCLUDE "${CMAKE_BINARY_DIR}/libscap")
-
-	# include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
-	# include_directories(../engine/gvisor)
-	# include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)
+	list(APPEND LIBSCAP_TESTS_INCLUDE "${CMAKE_BINARY_DIR}/libscap/engine/gvisor") # Used for <pkg/sentry/...> includes
 endif()
 
-# Helpers are not engine-specific so we always include them
-file(GLOB_RECURSE LIBSCAP_TESTS_UTILS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/helpers/*cpp")
-list(APPEND LIBSCAP_TESTS_SOURCES ${LIBSCAP_TESTS_UTILS_SOURCES})
+# Summary logs
+message(STATUS "LIBSCAP_TESTS_SOURCES: ${LIBSCAP_TESTS_SOURCES}")
+message(STATUS "LIBSCAP_TESTS_INCLUDE: ${LIBSCAP_TESTS_INCLUDE}")
+message(STATUS "LIBSCAP_TESTS_LIBRARIES: ${LIBSCAP_TESTS_LIBRARIES}")
+message(STATUS "LIBSCAP_TESTS_DEPENDENCIES: ${LIBSCAP_TESTS_DEPENDENCIES}")
 
 add_executable(libscap_test ${LIBSCAP_TESTS_SOURCES})
 target_include_directories(libscap_test ${LIBSCAP_TESTS_INCLUDE})
 target_link_libraries(libscap_test ${LIBSCAP_TESTS_LIBRARIES})
 add_dependencies(libscap_test ${LIBSCAP_TESTS_DEPENDENCIES})
-
-# ## Probably we can remove these
-# add_custom_target(run-libscap_test
-# 	DEPENDS ${RUN_LIBSCAP_TESTS_DEPENDENCIES}
-# 	COMMAND libscap_test
-# )

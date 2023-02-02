@@ -2,8 +2,7 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <helpers/engines.h>
-
-#define BPF_PROBE_PATH "./driver/bpf/probe.o"
+#include <libscap_test_var.h>
 
 scap_t* open_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* name, std::unordered_set<uint32_t> tp_set = {}, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
@@ -57,7 +56,7 @@ TEST(bpf, open_engine)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, BPF_PROBE_PATH);
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
 	scap_close(h);
 }
@@ -82,7 +81,7 @@ TEST(bpf, wrong_buffer_dim)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_bpf_engine(error_buffer, &ret, 4, BPF_PROBE_PATH);
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS) << "the buffer dimension is not a system page multiple, so we should fail: " << error_buffer << std::endl;
 }
 
@@ -91,11 +90,20 @@ TEST(bpf, events_not_overwritten)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, BPF_PROBE_PATH);
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
 
 	check_event_is_not_overwritten(h);
 	scap_close(h);
 }
 
-/* we miss here the `event_in_order` test, but we first need to complete our driver tests, otherwise some events will be discarded kernel side */
+TEST(bpf, read_in_order)
+{
+	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	int ret = 0;
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, LIBSCAP_TEST_BPF_PROBE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
+	check_event_order(h);
+	scap_close(h);
+}

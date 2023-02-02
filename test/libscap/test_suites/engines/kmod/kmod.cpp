@@ -2,16 +2,13 @@
 #include <gtest/gtest.h>
 #include <unordered_set>
 #include <helpers/engines.h>
-
+#include <libscap_test_var.h>
 #include <syscall.h>
 #include <fcntl.h>
 
-#define KMOD_DEFAULT_PATH "./driver/scap.ko"
-#define KMOD_NAME "scap"
-
 int remove_kmod(char* error_buf)
 {
-	if(syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK))
+	if(syscall(__NR_delete_module, LIBSCAP_TEST_KERNEL_MODULE_NAME, O_NONBLOCK))
 	{
 		switch(errno)
 		{
@@ -25,7 +22,7 @@ int remove_kmod(char* error_buf)
 		case EWOULDBLOCK:
 			for(int i = 0; i < 4; i++)
 			{
-				int ret = syscall(__NR_delete_module, KMOD_NAME, O_NONBLOCK);
+				int ret = syscall(__NR_delete_module, LIBSCAP_TEST_KERNEL_MODULE_NAME, O_NONBLOCK);
 				if(ret == 0 || errno == ENOENT)
 				{
 					return EXIT_SUCCESS;
@@ -130,7 +127,7 @@ TEST(kmod, open_engine)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, KMOD_DEFAULT_PATH);
+	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
 	scap_close(h);
 }
@@ -139,7 +136,7 @@ TEST(kmod, wrong_buffer_dim)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_kmod_engine(error_buffer, &ret, 4, KMOD_DEFAULT_PATH);
+	scap_t* h = open_kmod_engine(error_buffer, &ret, 4, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS) << "the buffer dimension is not a system page multiple, so we should fail: " << error_buffer << std::endl;
 }
 
@@ -148,11 +145,21 @@ TEST(kmod, events_not_overwritten)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
-	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, KMOD_DEFAULT_PATH);
+	scap_t* h = open_kmod_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_KERNEL_MODULE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
 
 	check_event_is_not_overwritten(h);
 	scap_close(h);
 }
 
-/* we miss here the `event_in_order` test, but we first need to complete our driver tests, otherwise some events will be discarded kernel side */
+TEST(kmod, read_in_order)
+{
+	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_kmod_engine(error_buffer, &ret, 1 * 1024 * 1024, LIBSCAP_TEST_KERNEL_MODULE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open kmod engine: " << error_buffer << std::endl;
+
+	check_event_order(h);
+	scap_close(h);
+}
