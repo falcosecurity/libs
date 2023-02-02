@@ -2561,7 +2561,11 @@ FILLER(proc_startupdate_3, true)
 		switch (data->state->tail_ctx.evt_type)
 		{
 		case PPME_SYSCALL_CLONE_20_X:
+#ifdef CONFIG_S390
+			flags = bpf_syscall_get_argument(data, 1);
+#else
 			flags = bpf_syscall_get_argument(data, 0);
+#endif
 			break;
 		
 		case PPME_SYSCALL_CLONE3_X:
