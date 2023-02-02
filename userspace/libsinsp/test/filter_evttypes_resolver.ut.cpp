@@ -6,11 +6,29 @@
 
 using namespace std;
 
+set<uint16_t> openat_only{
+	PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
+	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X};
+
+set<uint16_t> close_only{
+	PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X};
+
+set<uint16_t> openat_close{
+	PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
+	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
+	PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X};
+
+set<uint16_t> not_openat;
+set<uint16_t> not_openat_close;
+set<uint16_t> not_close;
+set<uint16_t> all_events;
+set<uint16_t> no_events;
+std::unique_ptr<libsinsp::filter::ast::expr> f;
 
 void compare_evttypes(std::unique_ptr<libsinsp::filter::ast::expr> f, set<uint16_t> &expected)
 {
-    set<uint16_t> actual;
-    filter_evttype_resolver().evttypes(f.get(), actual);
+	set<uint16_t> actual;
+	filter_evttype_resolver().evttypes(f.get(), actual);
 
 	ASSERT_EQ(actual.size(), expected.size());
 
@@ -28,32 +46,16 @@ std::unique_ptr<libsinsp::filter::ast::expr> compile(const string &fltstr)
     return libsinsp::filter::parser(fltstr).parse();
 }
 
-set<uint16_t> openat_only{
-	PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
-	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X };
+static void compare_filters_evttypes(const std::string &a, const std::string &b)
+{
+	auto fa = compile(a);
+	auto fb = compile(b);
+	std::set<uint16_t> typesa;
+	filter_evttype_resolver().evttypes(fa.get(), typesa);
+	compare_evttypes(std::move(fb), typesa);
+	}
 
-set<uint16_t> close_only{
-	PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X };
-
-set<uint16_t> openat_close{
-	PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
-	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
-	PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X };
-
-set<uint16_t> open_openat{
-	PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
-	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
-	PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X };
-
-set<uint16_t> empty{};
-set<uint16_t> not_openat;
-set<uint16_t> not_openat_close;
-set<uint16_t> not_close;
-set<uint16_t> all_events;
-set<uint16_t> no_events;
-
-
-TEST(filter_evttype_resolver, simple_evttypes_evaluation)
+static void fill_sets(set<uint16_t> &not_openat, set<uint16_t> &not_openat_close, set<uint16_t> &not_close, set<uint16_t> &all_events)
 {
 	for(uint32_t i = 2; i < PPM_EVENT_MAX; i++)
 	{
@@ -77,14 +79,17 @@ TEST(filter_evttype_resolver, simple_evttypes_evaluation)
 			not_close.insert(i);
 		}
 	}
+}
 
-	std::unique_ptr<libsinsp::filter::ast::expr> f;
+
+TEST(filter_evttype_resolver, simple_checks_evttype_resolver)
+{
+	fill_sets(not_openat, not_openat_close, not_close, all_events);
 
 	// SECTION("evt_type_eq")
 
 	f = compile("evt.type=openat");
 	compare_evttypes(std::move(f), openat_only);
-
 
 	// SECTION("evt_type_in")
 
@@ -101,137 +106,222 @@ TEST(filter_evttype_resolver, simple_evttypes_evaluation)
 	f = compile("not evt.type=openat");
 	compare_evttypes(std::move(f), not_openat);
 
-
 	// SECTION("not_evt_type_in")
 
 	f = compile("not evt.type in (openat, close)");
 	compare_evttypes(std::move(f), not_openat_close);
-
 
 	// SECTION("not_evt_type_ne")
 
 	f = compile("not evt.type != openat");
 	compare_evttypes(std::move(f), openat_only);
 
-
 	// SECTION("evt_type_or")
 
 	f = compile("evt.type=openat or evt.type=close");
 	compare_evttypes(std::move(f), openat_close);
-
 
 	// SECTION("not_evt_type_or")
 
 	f = compile("evt.type!=openat or evt.type!=close");
 	compare_evttypes(std::move(f), all_events);
 
-
 	// SECTION("evt_type_or_ne")
 
 	f = compile("evt.type=close or evt.type!=openat");
 	compare_evttypes(std::move(f), not_openat);
-
 
 	// SECTION("evt_type_and")
 
 	f = compile("evt.type=close and evt.type=openat");
 	compare_evttypes(std::move(f), no_events);
 
-
 	// SECTION("evt_type_and_non_evt_type")
 
 	f = compile("evt.type=openat and proc.name=nginx");
 	compare_evttypes(std::move(f), openat_only);
-
 
 	// SECTION("evt_type_and_non_evt_type_not")
 
 	f = compile("evt.type=openat and not proc.name=nginx");
 	compare_evttypes(std::move(f), openat_only);
 
-
 	// SECTION("evt_type_and_nested")
 
 	f = compile("evt.type=openat and (proc.name=nginx)");
 	compare_evttypes(std::move(f), openat_only);
+}
 
-
+TEST(filter_evttype_resolver, nested_multi_checks_evttype_resolver)
+{
 	// SECTION("evt_type_and_nested_multi")
 
 	f = compile("evt.type=openat and (evt.type=close and proc.name=nginx)");
 	compare_evttypes(std::move(f), no_events);
-
 
 	// SECTION("non_evt_type")
 
 	f = compile("proc.name=nginx");
 	compare_evttypes(std::move(f), all_events);
 
-
 	// SECTION("non_evt_type_or")
 
 	f = compile("evt.type=openat or proc.name=nginx");
 	compare_evttypes(std::move(f), all_events);
-
 
 	// SECTION("non_evt_type_or_nested_first")
 
 	f = compile("(evt.type=openat) or proc.name=nginx");
 	compare_evttypes(std::move(f), all_events);
 
-
 	// SECTION("non_evt_type_or_nested_second")
 
 	f = compile("evt.type=openat or (proc.name=nginx)");
 	compare_evttypes(std::move(f), all_events);
-
 
 	// SECTION("non_evt_type_or_nested_multi")
 
 	f = compile("evt.type=openat or (evt.type=close and proc.name=nginx)");
 	compare_evttypes(std::move(f), openat_close);
 
-
 	// SECTION("non_evt_type_or_nested_multi_not")
 
 	f = compile("evt.type=openat or not (evt.type=close and proc.name=nginx)");
-	compare_evttypes(std::move(f), not_close);
-
+	compare_evttypes(std::move(f), all_events);
 
 	// SECTION("non_evt_type_and_nested_multi_not")
 
 	f = compile("evt.type=openat and not (evt.type=close and proc.name=nginx)");
 	compare_evttypes(std::move(f), openat_only);
 
-
 	// SECTION("ne_and_and")
 
 	f = compile("evt.type!=openat and evt.type!=close");
 	compare_evttypes(std::move(f), not_openat_close);
-
 
 	// SECTION("not_not")
 
 	f = compile("not (not evt.type=openat)");
 	compare_evttypes(std::move(f), openat_only);
 
+	// SECTION("not_ne_equivalence")
 
-	// SECTION("evt_type_not_nested_sub_event_type_unrealistic_1")
+	compare_filters_evttypes("not evt.type=mmap", "evt.type!=mmap");
+	compare_filters_evttypes("not proc.name=cat", "proc.name!=cat");
 
-	f = compile("evt.type in (open, openat) and proc.name=cat and not (evt.type=openat and proc.cmdline contains not-exist and evt.type=unshare)");
-	compare_evttypes(std::move(f), open_openat);
+	// see: https://github.com/falcosecurity/libs/pull/854#issuecomment-1411151732
+	// SECTION("libs #854")
 
+	compare_filters_evttypes(
+		"evt.type in (connect, execve, accept, mmap, container) and not (proc.name=cat and evt.type=mmap)",
+		"evt.type in (accept, connect, container, execve, mmap)");
+	compare_evttypes(compile("(evt.type=mmap and not evt.type=mmap)"), no_events);
+}
 
-	// SECTION("evt_type_not_nested_sub_event_type_unrealistic_2")
+TEST(filter_evttype_resolver, sanity_checks_evttype_resolver)
+{
+	// SECTION("boolean algebra")
 
-	f = compile("evt.type in (open, openat) and not evt.type in (open, openat)");
-	compare_evttypes(std::move(f), empty);
+	// "zero"-set: no evt type should matches the filter
+	std::string zerof = "(evt.type in ())";
+	// "one"-set: all evt types should match the filter
+	std::string onef = "(evt.type exists)";
+	// "neutral"-sets: evt types are not checked in the filter
+	std::string neutral1 = "(proc.name=cat)";
+	std::string neutral2 = "(not proc.name=cat)";
 
+	// SECTION("sanity checks")
 
-	// SECTION("evt_type_not_nested_sub_event_type_tricky")
+	compare_filters_evttypes(onef, neutral1);
+	compare_filters_evttypes(onef, neutral2);
 
-	// TODO fix as this condition breaks evttype_resolver
-	// f = compile("evt.type in (open, openat) and proc.name=cat and not (evt.type=openat and proc.cmdline contains not-exist)");
-	// compare_evttypes(std::move(f), open_openat);
+	// SECTION("1' = 0")
 
+	compare_filters_evttypes("not " + onef, zerof);
+
+	// SECTION("0' = 1")
+
+	compare_filters_evttypes("not " + zerof, onef);
+
+	// SECTION("(A')' = A")
+
+	compare_filters_evttypes("evt.type=mmap", "not (not evt.type=mmap)");
+
+	// SECTION("A * A' = 0")
+
+	compare_evttypes(compile(zerof), no_events);
+
+	// SECTION("A + A' = 1")
+
+	compare_filters_evttypes("evt.type=mmap or not evt.type=mmap", onef);
+	compare_filters_evttypes("evt.type=mmap or not evt.type=mmap", neutral1);
+	compare_filters_evttypes("evt.type=mmap or not evt.type=mmap", neutral2);
+
+	// SECTION("0 * 1 = 0")
+
+	compare_filters_evttypes(zerof + " and " + onef, zerof);
+	compare_filters_evttypes(zerof + " and " + neutral1, zerof);
+	compare_filters_evttypes(zerof + " and " + neutral2, zerof);
+
+	// SECTION("0 + 1 = 1")
+
+	compare_filters_evttypes(zerof + " or " + onef, onef);
+	compare_filters_evttypes(zerof + " or " + neutral1, onef);
+	compare_filters_evttypes(zerof + " or " + neutral2, onef);
+
+	// SECTION("A * 0 = 0")
+
+	compare_filters_evttypes("evt.type=mmap and " + zerof, zerof);
+
+	// SECTION("A * 1 = A")
+
+	compare_filters_evttypes("evt.type=mmap and " + onef, "evt.type=mmap");
+	compare_filters_evttypes("evt.type=mmap and " + neutral1, "evt.type=mmap");
+	compare_filters_evttypes("evt.type=mmap and " + neutral2, "evt.type=mmap");
+
+	// SECTION("A + 0 = A")
+
+	compare_filters_evttypes("evt.type=mmap or " + zerof, "evt.type=mmap");
+
+	// SECTION("A + 1 = 1")
+
+	compare_filters_evttypes("evt.type=mmap or " + onef, onef);
+	compare_filters_evttypes("evt.type=mmap or " + neutral1, onef);
+	compare_filters_evttypes("evt.type=mmap or " + neutral2, onef);
+
+	// SECTION("A + A = A")
+
+	compare_filters_evttypes("evt.type=mmap or evt.type=mmap", "evt.type=mmap");
+
+	// SECTION("A * A = A")
+
+	compare_filters_evttypes("evt.type=mmap and evt.type=mmap", "evt.type=mmap");
+}
+
+TEST(filter_evttype_resolver, de_morgans_law_checks_evttype_resolver)
+{
+	compare_filters_evttypes(
+		"not (proc.name=cat or evt.type=mmap)",
+		"not proc.name=cat and not evt.type=mmap");
+	compare_filters_evttypes(
+		"not (proc.name=cat or fd.type=file)",
+		"not proc.name=cat and not fd.type=file");
+	compare_filters_evttypes(
+		"not (evt.type=execve or evt.type=mmap)",
+		"not evt.type=execve and not evt.type=mmap");
+	compare_filters_evttypes(
+		"not (evt.type=mmap or evt.type=mmap)",
+		"not evt.type=mmap and not evt.type=mmap");
+	compare_filters_evttypes(
+		"not (proc.name=cat and evt.type=mmap)",
+		"not proc.name=cat or not evt.type=mmap");
+	compare_filters_evttypes(
+		"not (proc.name=cat and fd.type=file)",
+		"not proc.name=cat or not fd.type=file");
+	compare_filters_evttypes(
+		"not (evt.type=execve and evt.type=mmap)",
+		"not evt.type=execve or not evt.type=mmap");
+	compare_filters_evttypes(
+		"not (evt.type=mmap and evt.type=mmap)",
+		"not evt.type=mmap or not evt.type=mmap");
 }
