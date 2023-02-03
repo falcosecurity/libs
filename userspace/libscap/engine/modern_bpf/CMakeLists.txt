@@ -1,5 +1,6 @@
 include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 
+message(STATUS "Build modern BPF engine")
 option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
 
 # Include `libbpf` library.
@@ -8,6 +9,7 @@ if(RESULT STREQUAL NOTFOUND)
   message(FATAL_ERROR "problem with libbpf.cmake in ${CMAKE_MODULE_PATH}")
 endif()
 
+# This must be a dir because we use it as an include path
 if(NOT MODERN_BPF_SKEL_DIR)
   # Directory in which the BPF skeleton will be built
   set(MODERN_BPF_SKEL_DIR "${CMAKE_BINARY_DIR}/skel_dir")
@@ -16,6 +18,8 @@ if(NOT MODERN_BPF_SKEL_DIR)
   add_subdirectory(${LIBSCAP_DIR}/driver/modern_bpf ${CMAKE_BINARY_DIR}/driver/modern_bpf)
 else()
   set(USE_BUNDLED_MODERN_BPF OFF)
+  # If it is a relative path we convert it to an absolute one relative to the root source directory.
+  get_filename_component(MODERN_BPF_SKEL_DIR "${MODERN_BPF_SKEL_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 endif()
 message(STATUS "USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleton dir: ${MODERN_BPF_SKEL_DIR}")
 
