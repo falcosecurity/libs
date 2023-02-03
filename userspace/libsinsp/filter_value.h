@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <string.h>
+#include <cstdint>
 #include <utility>
 
 // Used for CO_IN/CO_PMATCH filterchecks using PT_CHARBUFs to allow
