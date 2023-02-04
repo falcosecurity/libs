@@ -13,6 +13,9 @@
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
 
+/* Convert seconds to nanoseconds */
+#define SECOND_TO_NS 1000000000
+
 /*=============================== LIBBPF MISSING TRACING DEFINITION ===========================*/
 
 /* Look at bpf/bpf_tracing.h, this definition is similar

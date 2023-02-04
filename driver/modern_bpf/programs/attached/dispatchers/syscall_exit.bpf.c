@@ -6,6 +6,7 @@
  */
 
 #include <helpers/interfaces/syscalls_dispatcher.h>
+#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long ret),
@@ -24,6 +25,11 @@ int BPF_PROG(sys_exit,
 	 * If the syscall is not interesting we drop it.
 	 */
 	if(!syscalls_dispatcher__64bit_interesting_syscall(syscall_id))
+	{
+		return 0;
+	}
+
+	if(sampling_logic(syscall_id, SYSCALL))
 	{
 		return 0;
 	}

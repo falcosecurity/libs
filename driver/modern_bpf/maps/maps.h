@@ -57,10 +57,33 @@ __weak const volatile uint64_t probe_schema_var = PPM_SCHEMA_CURRENT_VERSION;
 __weak bool g_64bit_interesting_syscalls_table[SYSCALL_TABLE_SIZE];
 
 /**
+ * @brief Given the syscall id on 64-bit-architectures returns:
+ * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
+ * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
+ * - `UF_NONE` if we drop the syscall depends on the sampling ratio. 
+ */
+__weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
+
+/**
+ * @brief Given the tracepoint enum returns:
+ * - `UF_NEVER_DROP` if the syscall must not be dropped in the sampling logic.
+ * - `UF_ALWAYS_DROP` if the syscall must always be dropped in the sampling logic.
+ * - `UF_NONE` if we drop the syscall depends on the sampling ratio. 
+ */
+/// TOOD: we need to change the dimension! we need to create a dedicated enum for tracepoints!
+__weak uint8_t g_64bit_sampling_tracepoint_table[PPM_EVENT_MAX];
+
+/**
  * @brief Global capture settings shared between userspace and
  * bpf programs.
  */
 __weak struct capture_settings g_settings;
+
+/**
+ * @brief Variable used only kernel side to understand when we need to send
+ * `DROP_E` and `DROP_X` events
+ */
+__weak bool is_dropping;
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
