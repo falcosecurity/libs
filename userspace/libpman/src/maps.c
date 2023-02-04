@@ -79,6 +79,16 @@ void pman_set_boot_time(uint64_t boot_time)
 	g_state.skel->bss->g_settings.boot_time = boot_time;
 }
 
+void pman_set_dropping_mode(bool value)
+{
+	g_state.skel->bss->g_settings.dropping_mode = value;
+}
+
+void pman_set_sampling_ratio(uint32_t value)
+{
+	g_state.skel->bss->g_settings.sampling_ratio = value;
+}
+
 void pman_clean_all_64bit_interesting_syscalls()
 {
 	/* All syscalls are not interesting. */
@@ -92,6 +102,39 @@ void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
 }
+
+void pman_fill_syscall_sampling_table()
+{
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+		if(g_syscall_table[syscall_id].flags & UF_NEVER_DROP)
+		{
+			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = UF_NEVER_DROP;
+			continue;
+		}
+
+		/* Syscalls with `g_syscall_table[syscall_id].flags == UF_NONE` are the generic ones */
+		if(g_syscall_table[syscall_id].flags & UF_ALWAYS_DROP || g_syscall_table[syscall_id].flags == UF_NONE)
+		{
+			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = UF_ALWAYS_DROP;
+			continue;
+		}
+
+		if(g_syscall_table[syscall_id].flags & UF_USED)
+		{
+			g_state.skel->bss->g_64bit_sampling_syscall_table[syscall_id] = 0;
+			continue;
+		}
+	}
+}
+
+void pman_fill_syscall_tracepoint_table()
+{
+	/* Right now these are the only 2 tracepoints involved in the dropping logic. We need to add them here */
+	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PROCEXIT_1_E] = UF_NEVER_DROP;
+	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SCHEDSWITCH_6_E] = 0;
+}
+
 
 /*=============================== BPF GLOBAL VARIABLES ===============================*/
 
@@ -293,6 +336,8 @@ int pman_finalize_maps_after_loading()
 	pman_set_snaplen(80);
 
 	/* We have to fill all ours tail tables. */
+	pman_fill_syscall_sampling_table();
+	pman_fill_syscall_tracepoint_table();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_extra_event_prog_tail_table();
 	return err;

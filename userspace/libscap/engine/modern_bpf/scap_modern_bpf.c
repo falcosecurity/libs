@@ -143,13 +143,50 @@ static int32_t scap_modern_bpf__next(struct scap_engine_handle engine, OUT scap_
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_modern_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio)
+{
+	struct modern_bpf_engine *handle = engine.m_handle;
+	switch(sampling_ratio)
+	{
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		case 16:
+		case 32:
+		case 64:
+		case 128:
+			break;
+		default:
+			return SCAP_FAILURE;
+	}
+
+	pman_set_sampling_ratio(sampling_ratio);
+	pman_set_dropping_mode(true);
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_modern_bpf_stop_dropping_mode()
+{
+	pman_set_sampling_ratio(1);
+	pman_set_dropping_mode(false);
+	return SCAP_SUCCESS;
+}
+
+
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
 	switch(setting)
 	{
 	case SCAP_SAMPLING_RATIO:
-		/* Not supported */
-		return SCAP_SUCCESS;
+		if(arg2 == 0)
+		{
+			return scap_modern_bpf_stop_dropping_mode();
+		}
+		else
+		{
+			return scap_modern_bpf_start_dropping_mode(engine, arg1);
+		}
 	case SCAP_TRACERS_CAPTURE:
 		/* Not supported */
 		return SCAP_SUCCESS;

@@ -293,6 +293,10 @@ extern "C"
 	 */
 	void pman_set_boot_time(uint64_t boot_time);
 
+	void pman_set_dropping_mode(bool value);
+
+	void pman_set_sampling_ratio(uint32_t value);
+
 	/**
 	 * @brief Get API version to check it a runtime.
 	 *
