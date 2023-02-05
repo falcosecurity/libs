@@ -22,6 +22,7 @@ limitations under the License.
 #include <shared_definitions/struct_definitions.h>
 #include <bpf_probe.skel.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define MAX_ERROR_MESSAGE_LEN 100
 
