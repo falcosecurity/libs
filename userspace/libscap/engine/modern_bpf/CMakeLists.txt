@@ -2,6 +2,7 @@ include_directories(${LIBSCAP_INCLUDE_DIRS} ../noop)
 
 message(STATUS "Build modern BPF engine")
 option(USE_BUNDLED_MODERN_BPF "use bundled modern BPF" ON)
+set(MODERN_BPF_LOG_PREFIX "[MODERN BPF]")
 
 # Include `libbpf` library.
 include(libbpf RESULT_VARIABLE RESULT)
@@ -21,7 +22,7 @@ else()
   # If it is a relative path we convert it to an absolute one relative to the root source directory.
   get_filename_component(MODERN_BPF_SKEL_DIR "${MODERN_BPF_SKEL_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 endif()
-message(STATUS "USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleton dir: ${MODERN_BPF_SKEL_DIR}")
+message(STATUS "${MODERN_BPF_LOG_PREFIX} USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleton dir: ${MODERN_BPF_SKEL_DIR}")
 
 # Build `libpman` library.
 add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)
