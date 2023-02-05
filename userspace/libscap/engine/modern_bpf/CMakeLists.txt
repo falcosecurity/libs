@@ -10,6 +10,10 @@ if(RESULT STREQUAL NOTFOUND)
   message(FATAL_ERROR "problem with libbpf.cmake in ${CMAKE_MODULE_PATH}")
 endif()
 
+# This will be the name of the final `bpf.o` file. We put it here this way
+# we can log it even if `USE_BUNDLED_MODERN_BPF` is `OFF` 
+set(UNIQUE_BPF_O_FILE_NAME bpf_probe)
+
 # This must be a dir because we use it as an include path
 if(NOT MODERN_BPF_SKEL_DIR)
   # Directory in which the BPF skeleton will be built
@@ -23,6 +27,7 @@ else()
   get_filename_component(MODERN_BPF_SKEL_DIR "${MODERN_BPF_SKEL_DIR}" REALPATH BASE_DIR "${CMAKE_SOURCE_DIR}")
 endif()
 message(STATUS "${MODERN_BPF_LOG_PREFIX} USE_BUNDLED_MODERN_BPF: ${USE_BUNDLED_MODERN_BPF}, using skeleton dir: ${MODERN_BPF_SKEL_DIR}")
+message(STATUS "${MODERN_BPF_LOG_PREFIX} full skeleton path: ${MODERN_BPF_SKEL_DIR}/${UNIQUE_BPF_O_FILE_NAME}.skel.h")
 
 # Build `libpman` library.
 add_subdirectory(${LIBSCAP_DIR}/userspace/libpman ${CMAKE_BINARY_DIR}/libpman)

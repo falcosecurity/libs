@@ -243,7 +243,6 @@ endforeach()
 # Generate a unique `bpf.o` file
 ########################
 
-set(UNIQUE_BPF_O_FILE_NAME bpf_probe)
 set(UNIQUE_BPF_O_FILE ${CMAKE_CURRENT_BINARY_DIR}/${UNIQUE_BPF_O_FILE_NAME}.o)
 add_custom_command(
   OUTPUT ${UNIQUE_BPF_O_FILE}
