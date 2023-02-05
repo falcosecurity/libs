@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <stdbool.h>
