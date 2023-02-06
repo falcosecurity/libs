@@ -375,7 +375,7 @@ static int32_t scap_proc_fill_flimit(uint64_t tid, struct scap_threadinfo* tinfo
 }
 #endif
 
-int32_t scap_proc_fill_cgroups_pidns_start_ts(char* error, int cgroup_version, struct scap_threadinfo* tinfo, const char* procdirname)
+int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_threadinfo* tinfo, const char* procdirname)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
@@ -404,8 +404,6 @@ int32_t scap_proc_fill_cgroups_pidns_start_ts(char* error, int cgroup_version, s
 		// Default subsys list for cgroups v2 unified hierarchy.
 		// These are the ones we actually use in cri container engine.
 		char default_subsys_list[] = "cpu,memory,cpuset";
-		char cgroup_sys_fs_dir[PPM_MAX_PATH_SIZE];
-		struct stat targetstat = {0};
 
 		// id
 		token = strtok_r(line, ":", &scratch);
@@ -423,37 +421,6 @@ int32_t scap_proc_fill_cgroups_pidns_start_ts(char* error, int cgroup_version, s
 			ASSERT(false);
 			fclose(f);
 			return scap_errprintf(error, 0, "Did not find subsys in cgroup file %s", filename);
-		}
-
-		//
-		// Approx pid namespace start ts through cgroup file creation ts only when vpid != pid
-		// Works for container and non container pid namespaces
-		// Modifying content of files below cgroup_sys_fs_dir does not change ctime of dir
-		//
-
-		if (tinfo->pid != tinfo->vpid)
-		{
-			snprintf(cgroup_sys_fs_dir, sizeof(cgroup_sys_fs_dir), "%s/sys/fs/cgroup%s", scap_get_host_root(), subsys_list);
-			size_t cgroup_sys_fs_dir_len = strlen(cgroup_sys_fs_dir);
-			if(cgroup_sys_fs_dir[cgroup_sys_fs_dir_len - 1] == '\n')
-			{
-				cgroup_sys_fs_dir[cgroup_sys_fs_dir_len - 1] = '/'; // replace \n with /
-			} else if (cgroup_sys_fs_dir[cgroup_sys_fs_dir_len - 1] != '/' && cgroup_sys_fs_dir_len < PPM_MAX_PATH_SIZE - 1)
-			{
-				cgroup_sys_fs_dir[cgroup_sys_fs_dir_len] = '/';
-			}
-
-			if (stat(cgroup_sys_fs_dir, &targetstat) == 0)
-			{
-				tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
-			}
-		} else
-		{
-			snprintf(cgroup_sys_fs_dir, sizeof(cgroup_sys_fs_dir), "%s/proc/1/", scap_get_host_root());
-			if (stat(cgroup_sys_fs_dir, &targetstat) == 0)
-			{
-				tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
-			}
 		}
 
 		// Hack to detect empty fields, because strtok does not support it
@@ -530,6 +497,24 @@ int32_t scap_proc_fill_cgroups_pidns_start_ts(char* error, int cgroup_version, s
 
 	fclose(f);
 	return SCAP_SUCCESS;
+}
+
+int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo, const char* procdirname)
+{
+	char filename[SCAP_MAX_PATH_SIZE];
+	struct stat targetstat = {0};
+
+	snprintf(filename, sizeof(filename), "%sroot/proc/1", procdirname);
+	if(stat(filename, &targetstat) == 0)
+	{
+		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
+		return SCAP_SUCCESS;
+	}
+	else
+	{
+		tinfo->pidns_init_start_ts = 0;
+		return SCAP_FAILURE;
+	}
 }
 
 static int32_t scap_get_vtid(scap_t* handle, uint64_t tid, int64_t *vtid)
@@ -947,11 +932,17 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 	}
 
-	if(scap_proc_fill_cgroups_pidns_start_ts(handle->m_lasterr, handle->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
+	if(scap_proc_fill_cgroups(handle->m_lasterr, handle->m_cgroup_version, tinfo, dir_name) == SCAP_FAILURE)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
 			 dir_name, handle->m_lasterr);
+	}
+
+	if(scap_proc_fill_pidns_start_ts(handle->m_lasterr, tinfo, dir_name) == SCAP_FAILURE)
+	{
+		// ignore errors
+		// the thread may not have /proc visible so we shouldn't kill the scan if this fails
 	}
 
 	// These values should be read already from /status file, leave these
