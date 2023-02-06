@@ -923,7 +923,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 					 * we send an empty param `len=0`.
 					 */
 					volatile u16 read_size = dpi_lookahead_size;
-					int rc;
+					int rc = 0;
 
 					rc = __bpf_read_val_into(data, curoff_bounded, val, read_size, mem);
 					if (rc)
@@ -949,7 +949,7 @@ static __always_inline int __bpf_val_to_ring(struct filler_data *data,
 			if(!data->curarg_already_on_frame)
 			{
 				volatile u16 read_size = len;
-				int rc;
+				int rc = 0;
 
 				curoff_bounded = data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF;
 				if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
