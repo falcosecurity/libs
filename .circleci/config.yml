@@ -1,0 +1,64 @@
+version: 2.1
+jobs:
+  "test-drivers-arm64":
+    machine:
+      enabled: true
+      image: ubuntu-2204:2022.10.2
+    resource_class: arm.large
+    steps:
+
+      # Install dependencies to build the modern BPF probe skeleton.
+      - run:
+          name: Install deps ⛓️
+          command: |
+            sudo apt update
+            sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14
+            sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
+            sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
+            git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
+            cd bpftool
+            git submodule update --init
+            cd src && sudo make install
+
+      # Path to the source code
+      - checkout:
+          path: /tmp/libs
+
+      # Print machine kernel info
+      - run:
+          name: Print kernel info 🔢
+          command: |
+            uname -a
+
+      # Build driver tests
+      - run:
+          name: Build driver tests 🐝
+          command: |
+            mkdir -p /tmp/libs/build
+            cd /tmp/libs/build && cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=True -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
+            make drivers_test
+            make driver bpf
+
+      - run: 
+          name: Run drivers_test with modern bpf 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./test/drivers/drivers_test -m
+
+      - run: 
+          name: Run drivers_test with bpf 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./test/drivers/drivers_test -b
+
+      - run: 
+          name: Run drivers_test with kernel module 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./test/drivers/drivers_test -k            
+
+workflows:
+  version: 2.1
+  build_and_test:
+    jobs:
+      - "test-drivers-arm64"
