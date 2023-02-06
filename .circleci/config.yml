@@ -1,13 +1,12 @@
 version: 2.1
 jobs:
-  "test-drivers-arm64":
+  # Here we test drivers and also engines
+  "test-drivers-engines-arm64":
     machine:
       enabled: true
       image: ubuntu-2204:2022.10.2
     resource_class: arm.large
     steps:
-
-      # Install dependencies to build the modern BPF probe skeleton.
       - run:
           name: Install deps ⛓️
           command: |
@@ -20,45 +19,98 @@ jobs:
             git submodule update --init
             cd src && sudo make install
 
-      # Path to the source code
       - checkout:
           path: /tmp/libs
 
-      # Print machine kernel info
       - run:
           name: Print kernel info 🔢
           command: |
             uname -a
 
-      # Build driver tests
+      # Gvisor is not supported on ARM64
       - run:
-          name: Build driver tests 🐝
+          name: Build drivers and engines tests 🏗️
           command: |
             mkdir -p /tmp/libs/build
-            cd /tmp/libs/build && cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=True -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On ..
-            make drivers_test
-            make driver bpf
+            cd /tmp/libs/build && cmake -DUSE_BUNDLED_DEPS=On -DENABLE_DRIVERS_TESTS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=True -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=On -DENABLE_LIBSCAP_TESTS=On ..
+            make drivers_test driver bpf libscap_test scap-open -j6
 
-      - run: 
+      - run:
           name: Run drivers_test with modern bpf 🏎️
           command: |
             cd /tmp/libs/build
             sudo ./test/drivers/drivers_test -m
 
-      - run: 
+      - run:
           name: Run drivers_test with bpf 🏎️
           command: |
             cd /tmp/libs/build
             sudo ./test/drivers/drivers_test -b
 
-      - run: 
+      - run:
           name: Run drivers_test with kernel module 🏎️
           command: |
             cd /tmp/libs/build
-            sudo ./test/drivers/drivers_test -k            
+            sudo ./test/drivers/drivers_test -k
+
+      - run:
+          name: Run engine tests 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./test/libscap/libscap_test
+
+      - run:
+          name: Run scap-open with modern bpf 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./libscap/examples/01-open/scap-open --modern_bpf --num_events 0
+
+      - run:
+          name: Run scap-open with bpf 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo ./libscap/examples/01-open/scap-open --bpf ./driver/bpf/probe.o --num_events 0
+
+      - run:
+          name: Run scap-open with kmod 🏎️
+          command: |
+            cd /tmp/libs/build
+            sudo insmod ./driver/scap.ko || true
+            sudo ./libscap/examples/01-open/scap-open --kmod --num_events 0
+            sudo rmmod scap
+
+  # Here we test libraries
+  "test-libraries-arm64":
+    machine:
+      enabled: true
+      image: ubuntu-2204:2022.10.2
+    resource_class: arm.large
+    steps:
+      - run:
+          name: Install deps ⛓️
+          command: |
+            sudo apt update
+            sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev
+
+      - checkout:
+          path: /tmp/libs
+
+      - run:
+          name: Install valijson and other external deps ⛓️
+          command: |
+            cd /tmp/libs
+            sudo .github/install-deps.sh
+
+      - run:
+          name: Build and run libraries tests 🏗️🏎️
+          command: |
+            mkdir -p /tmp/libs/build
+            cd /tmp/libs/build && cmake -DUSE_BUNDLED_DEPS=Off -DBUILD_BPF=Off -DBUILD_DRIVER=Off ..
+            make run-unit-tests -j6
 
 workflows:
   version: 2.1
   build_and_test:
     jobs:
-      - "test-drivers-arm64"
+      - "test-drivers-engines-arm64"
+      - "test-libraries-arm64"
