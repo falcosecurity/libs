@@ -582,6 +582,8 @@ public:
 	 */
 	void assert_fd_list(int param_num, struct fd_poll* expected_fds, int32_t nfds);
 
+	void set_event_type(enum ppm_event_type type);
+
 private:
 	ppm_event_code m_event_type;	  /* type of the event we want to assert in this test. */
 	std::vector<struct param> m_event_params; /* all the params of the event (len+value). */

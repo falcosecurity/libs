@@ -24,19 +24,23 @@ int BPF_PROG(socket_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning so we can easily manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
 	/* Parameter 1: domain (type: PT_ENUMFLAGS32) */
 	/* why to send 32 bits if we need only 8 bits? */
-	u8 domain = (u8)extract__syscall_argument(regs, 0);
+	u8 domain = (u8)args[0];
 	ringbuf__store_u32(&ringbuf, (u32)socket_family_to_scap(domain));
 
 	/* Parameter 2: type (type: PT_UINT32) */
 	/* this should be an int, not a uint32 */
-	u32 type = (u32)extract__syscall_argument(regs, 1);
+	u32 type = (u32)args[1];
 	ringbuf__store_u32(&ringbuf, type);
 
 	/* Parameter 3: proto (type: PT_UINT32) */
 	/* this should be an int, not a uint32 */
-	u32 proto = (u32)extract__syscall_argument(regs, 2);
+	u32 proto = (u32)args[2];
 	ringbuf__store_u32(&ringbuf, proto);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
