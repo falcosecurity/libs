@@ -37,12 +37,8 @@ sinsp_ipv4_ifinfo::sinsp_ipv4_ifinfo(uint32_t addr, uint32_t netmask, uint32_t b
 
 void sinsp_ipv4_ifinfo::convert_to_string(char * dest, size_t len, const uint32_t addr)
 {
-<<<<<<< HEAD
-	snprintf(
-=======
 	uint32_t addr_network_byte_order = htonl(addr);
-	sprintf(
->>>>>>> 3c125ffa (Changes needed for Sysdig agent to support aarch64 (64-bit ARM) and s390x (zLinux) architectures)
+	snprintf(
 		dest,
 		len,
 		"%d.%d.%d.%d",
