@@ -18,7 +18,6 @@ limitations under the License.
 #pragma once
 
 #include "scap_const.h"
-#include "scap_savefile_api.h"
 
 #ifdef __cplusplus
 extern "C" {
