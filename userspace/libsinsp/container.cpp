@@ -574,17 +574,6 @@ void sinsp_container_manager::create_engines()
 		return;
 	}
 #ifndef MINIMAL_BUILD
-<<<<<<< HEAD
-=======
-#ifdef CYGWING_AGENT
-	if (m_container_engine_mask & (1 << CT_DOCKER))
-	{
-		auto docker_engine = std::make_shared<container_engine::docker_win>(*this, m_inspector /*wmi source*/);
-		m_container_engines.push_back(docker_engine);
-		m_container_engine_by_type[CT_DOCKER] = docker_engine;
-	}
-#else
->>>>>>> 9b4c4e88 (Allow enabling/disabling individual container engines on startup)
 #ifndef _WIN32
 	if (m_container_engine_mask & (1 << CT_PODMAN))
 	{
