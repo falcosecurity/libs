@@ -1367,6 +1367,7 @@ cgroups_error:
 		res = val_to_ring(args, capabilities_to_scap(cap_inheritable), 0, false, 0);
 		CHECK_RES(res);
 
+<<<<<<< HEAD
 		/* Parameter 22: cap_permitted (type: PT_UINT64) */
 		res = val_to_ring(args, capabilities_to_scap(cap_permitted), 0, false, 0);
 		CHECK_RES(res);
@@ -1390,6 +1391,22 @@ cgroups_error:
 		/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 		res = val_to_ring(args, mtime, 0, false, 0);
 		CHECK_RES(res);
+=======
+			/*
+			 * uid
+			 */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+			euid = from_kuid_munged(current_user_ns(), current_euid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+			euid = current_euid();
+#else
+			euid = current->euid;
+#endif
+			res = val_to_ring(args, euid, 0, false, 0);
+			if (unlikely(res != PPM_SUCCESS))
+				return res;
+		}
+>>>>>>> ab8be1c1 (Incorporate ARM support changes from upstream falcosecurity/libs repo (#93))
 	}
 	return add_sentinel(args);
 
@@ -6582,7 +6599,11 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	int tty_nr = 0;
 	uint32_t flags = 0;
 	bool exe_writable = false;
+<<<<<<< HEAD
 	bool exe_upper_layer = false;
+=======
+	uint64_t euid = 0;
+>>>>>>> ab8be1c1 (Incorporate ARM support changes from upstream falcosecurity/libs repo (#93))
 	struct file *exe_file = NULL;
 	const struct cred *cred = NULL;
 	unsigned long i_ino = 0;
@@ -6937,6 +6958,24 @@ cgroups_error:
 	res = val_to_ring(args, mtime, 0, false, 0);
 	CHECK_RES(res);
 
+<<<<<<< HEAD
+=======
+	/* Parameter 24: uid */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0)
+	euid = from_kuid_munged(current_user_ns(), current_euid());
+#elif LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
+	euid = current_euid();
+#else
+	euid = current->euid;
+#endif
+	res = val_to_ring(args, euid, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+	{
+		goto out;
+	}
+
+	put_cred(cred);
+>>>>>>> ab8be1c1 (Incorporate ARM support changes from upstream falcosecurity/libs repo (#93))
 	return add_sentinel(args);
 }
 #endif

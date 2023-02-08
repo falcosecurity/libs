@@ -199,7 +199,39 @@ int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
+/* This section explains why we need two additional `raw_tracepoint`
+ * when capturing process exec. Right now, we catch information from all
+ * syscalls with `sys_enter` and `sys_exit` tracepoint. In x86 we are
+ * able to catch all the information we want through these tracepoints
+ * but on some architectures (such as ARM64) we cannot do the same thing.
+ * More precisely we are not able to catch 2 main events:
+ * 
+ * - `execve` exit event.
+ * - `clone` child exit event.
+ * 
+ * Here https://www.spinics.net/lists/linux-trace/msg01001.html
+ * you can find a brief description of the problem.
+ * 
+ * This exit events don't call the `sys_exit` tracepoint and so our
+ * bpf programs are not called. These events are really important so
+ * in order to not lose them, we use 2 new tracepoints: 
+ * 
+ * - `sched_process_exec`: we catch every process that correctly performs
+ *                         an execve call.
+ * - `sched_process_fork`: we catch every new process that is spawned.
+ * 
+ * Please note: we need to use raw_tracepoint programs in order to access
+ * the raw tracepoint arguments! This is not so relevant for `sched_process_exec`
+ * since we can access all needed information from the current task, but it is
+ * essential for `sched_process_fork` since the only way we have to access the
+ * child task struct is through the raw tracepoint arguments.
+ * 
+ * Since we need to use `BPF_PROG_TYPE_RAW_TRACEPOINT`, the ARM64 support for our
+ * BPF probe requires kernel versions greater or equal than `4.17`. If you run old kernels, 
+ * you can use the kernel module which requires kernel versions greater or equal than `3.4`.
+ */
 BPF_PROBE("sched/", sched_process_exec, sched_process_exec_args)
+
 {
 	struct scap_bpf_settings *settings;
 	/* We will always send an execve exit event. */
