@@ -10,8 +10,8 @@ jobs:
       - run:
           name: Install deps ⛓️
           command: |
-            sudo apt update
-            sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14
+            sudo apt update -y
+            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates cmake build-essential git pkg-config autoconf automake libelf-dev libcap-dev linux-headers-$(uname -r) clang-14 llvm-14
             sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-14 90
             sudo update-alternatives --install /usr/bin/llvm-strip llvm-strip /usr/bin/llvm-strip-14 90
             git clone https://github.com/libbpf/bpftool.git --branch v7.0.0 --single-branch
@@ -89,8 +89,8 @@ jobs:
       - run:
           name: Install deps ⛓️
           command: |
-            sudo apt update
-            sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev
+            sudo apt update -y
+            sudo DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev
 
       - checkout:
           path: /tmp/libs
