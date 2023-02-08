@@ -25,8 +25,12 @@ int BPF_PROG(bind_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to easily manage socketcalls */
+	unsigned long args[1];
+	extract__network_args(args, 1, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -54,13 +58,16 @@ int BPF_PROG(bind_x,
 	auxmap__preload_event_header(auxmap, PPME_SOCKET_BIND_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
+	/* Collect parameters at the beginning to easily manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: addr (type: PT_SOCKADDR) */
-	unsigned long sockaddr_ptr = extract__syscall_argument(regs, 1);
-	u16 addrlen = (u16)extract__syscall_argument(regs, 2);
+	unsigned long sockaddr_ptr = args[1];
+	u16 addrlen = (u16)args[2];
 	auxmap__store_sockaddr_param(auxmap, sockaddr_ptr, addrlen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

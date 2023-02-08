@@ -16,6 +16,15 @@ int BPF_PROG(sys_enter,
 	     struct pt_regs *regs,
 	     long syscall_id)
 {
+
+#ifdef CAPTURE_SOCKETCALL
+	/* we convert it here in this way the syscall will be treated exactly as the original one */
+	if(syscall_id == __NR_socketcall)
+	{
+		syscall_id = convert_network_syscalls(regs);
+	}
+#endif
+
 	/* The `syscall-id` can refer to both 64-bit and 32-bit architectures.
 	 * Right now we filter only 64-bit syscalls, all the 32-bit syscalls
 	 * will be dropped with `syscalls_dispatcher__check_32bit_syscalls`.

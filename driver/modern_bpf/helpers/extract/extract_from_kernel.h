@@ -11,6 +11,10 @@
 #include <helpers/base/read_from_task.h>
 #include <driver/ppm_flag_helpers.h>
 
+#ifdef CAPTURE_SOCKETCALL
+#include <syscall.h>
+#endif
+
 /* Used to convert from page number to KB. */
 #define DO_PAGE_SHIFT(x) (x) << (IOC_PAGE_SHIFT - 10)
 
@@ -26,12 +30,31 @@ enum capability_type
  * start with the `extract` prefix.
  */
 
-/////////////////////////
-// SYSCALL ARGUMENTS EXTRACION
-////////////////////////
+///////////////////////////
+// EXTRACT FROM SYSCALLS
+///////////////////////////
 
 /**
- * @brief Extact a specific syscall argument
+ * @brief Extract the syscall id starting from the registers
+ *
+ * @param regs pointer to the struct where we find the arguments
+ * @return syscall id
+ */
+static __always_inline u32 extract__syscall_id(struct pt_regs *regs)
+{
+#if defined(__TARGET_ARCH_x86)
+	return (u32)regs->orig_ax;
+#elif defined(__TARGET_ARCH_arm64)
+	return (u32)regs->syscallno;
+#elif defined(__TARGET_ARCH_s390)
+	return (u32)regs->int_code & 0xffff;
+#else
+	return 0;
+#endif
+}
+
+/**
+ * @brief Extract a specific syscall argument
  *
  * @param regs pointer to the strcut where we find the arguments
  * @param idx index of the argument to extract
@@ -67,6 +90,36 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
 	}
 
 	return arg;
+}
+
+/**
+ * @brief Extract one ore more arguments related to a network / socket system call.
+ *
+ * This function takes into consideration whether the network system call has been
+ * called directly (e.g. accept4) or through the socketcall system call multiplexer.
+ * For the socketcall multiplexer, arguments are extracted from the second argument
+ * of the socketcall system call.  See socketcall(2) for more information.
+ *
+ * @param argv Pointer to store up to @num arguments of size `unsigned long`
+ * @param num Number of arguments to extract
+ * @param regs Pointer to the struct pt_regs to access arguments and system call ID
+ */
+static __always_inline void extract__network_args(void *argv, int num, struct pt_regs *regs)
+{
+#ifdef CAPTURE_SOCKETCALL
+	int id = extract__syscall_id(regs);
+	if(id == __NR_socketcall)
+	{
+		unsigned long args_pointer = extract__syscall_argument(regs, 1);
+		bpf_probe_read_user(argv, num * sizeof(unsigned long), (void*)args_pointer);
+		return;
+	}
+#endif
+	for (int i = 0; i < num; i++)
+	{
+		unsigned long *dst = (unsigned long *)argv;
+		dst[i] = extract__syscall_argument(regs, i);
+	}
 }
 
 ///////////////////////////

@@ -6,7 +6,6 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/syscalls_dispatcher.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
@@ -60,7 +59,7 @@ int BPF_PROG(generic_x,
 
 	/* Parameter 1: ID (type: PT_SYSCALLID) */
 	/* This is the PPM_SC code obtained from the syscall id. */
-	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(syscalls_dispatcher__get_syscall_id(regs)));
+	ringbuf__store_u16(&ringbuf, maps__get_ppm_sc(extract__syscall_id(regs)));
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
