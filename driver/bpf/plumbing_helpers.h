@@ -16,6 +16,10 @@ or GPL2.txt for full copies of the license.
 #include "types.h"
 #include "builtins.h"
 
+#ifdef CAPTURE_SOCKETCALL
+#include <linux/net.h>
+#endif
+
 #define _READ(P) ({ typeof(P) _val;					\
 		    bpf_probe_read_kernel(&_val, sizeof(_val), &P);	\
 		    _val;						\
@@ -245,10 +249,31 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	return arg;
 }
 
+#ifdef CAPTURE_SOCKETCALL
+static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx)
+{
+	unsigned long arg = 0;
+	unsigned long args_pointer = 0;
+
+	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
+	bpf_probe_read_user(&arg, sizeof(unsigned long), (void*)(args_pointer + (idx * sizeof(unsigned long))));
+
+	return arg;
+}
+#endif /* CAPTURE_SOCKETCALL */
+
 static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data,
 							      int idx)
 {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
+
+/* We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS */
+#ifdef CAPTURE_SOCKETCALL
+	if(bpf_syscall_get_nr(data->ctx) == __NR_socketcall)
+	{
+		return bpf_syscall_get_socketcall_arg(data->ctx, idx);
+	}
+#endif /* CAPTURE_SOCKETCALL */
 	return bpf_syscall_get_argument_from_ctx(data->ctx, idx);
 #else
 	return bpf_syscall_get_argument_from_args(data->args, idx);
@@ -621,5 +646,34 @@ static __always_inline void call_filler(void *ctx,
 cleanup:
 	release_local_state(state);
 }
+
+#if defined(CAPTURE_SOCKETCALL)  && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+static __always_inline long convert_network_syscalls(void *ctx)
+{
+	int socketcall_id = (int)bpf_syscall_get_argument_from_ctx(ctx, 0);
+
+	switch(socketcall_id)
+	{
+#ifdef __NR_socket
+	case SYS_SOCKET:
+		return __NR_socket;
+#endif
+
+#ifdef __NR_bind
+	case SYS_BIND:
+		return __NR_bind;
+#endif
+
+#ifdef __NR_connect
+	case SYS_CONNECT:
+		return __NR_connect;
+#endif
+	default:
+		break;
+	}
+
+	return 0;
+}
+#endif
 
 #endif

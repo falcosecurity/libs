@@ -51,6 +51,13 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
 
+#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+	if(id == __NR_socketcall)
+	{
+		id = convert_network_syscalls(ctx);
+	}
+#endif
+
 	enabled = is_syscall_interesting(id);
 	if (!enabled)
 	{
@@ -98,6 +105,13 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
+
+#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+	if(id == __NR_socketcall)
+	{
+		id = convert_network_syscalls(ctx);
+	}
+#endif
 
 	enabled = is_syscall_interesting(id);
 	if (!enabled)
