@@ -33,17 +33,13 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
 	cgroup_list_counter.ut.cpp
-<<<<<<< HEAD
 	events_file.ut.cpp
 	events_net.ut.cpp
 	events_param.ut.cpp
 	events_proc.ut.cpp
 	events_user.ut.cpp
 	external_processor.ut.cpp
-=======
 	procfs_utils.ut.cpp
-	sinsp.ut.cpp
->>>>>>> 3b0e3efb (Add procfs_utils.ut.cpp to the test binary)
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
 	plugin_manager.ut.cpp
