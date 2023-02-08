@@ -153,11 +153,6 @@ event_test::event_test(ppm_tp_code tp_code):
 	m_tp_set[tp_code] = 1;
 }
 
-void event_test::set_event_type(enum ppm_event_type type)
-{
-	m_event_type = type;
-}
-
 /* This constructor must be used with syscalls events */
 event_test::event_test(int syscall_id, int event_direction):
 	m_tp_set(TP_VAL_MAX, 0)
