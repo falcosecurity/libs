@@ -44,8 +44,57 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
+<<<<<<< HEAD
 #if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
 scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, const struct scap_vtable* vtable)
+=======
+static int32_t copy_comms(scap_t *handle, const char **suppressed_comms)
+{
+	if(suppressed_comms)
+	{
+		uint32_t i;
+		const char *comm;
+		for(i = 0, comm = suppressed_comms[i]; comm && i < SCAP_MAX_SUPPRESSED_COMMS; i++, comm = suppressed_comms[i])
+		{
+			int32_t res;
+			if((res = scap_suppress_events_comm(handle, comm)) != SCAP_SUCCESS)
+			{
+				return res;
+			}
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT) || defined(_WIN32)
+scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "live capture not supported on %s", PLATFORM_NAME);
+	*rc = SCAP_NOT_SUPPORTED;
+	return NULL;
+}
+#endif
+
+#if !defined(HAS_CAPTURE) || defined(CYGWING_AGENT)
+scap_t* scap_open_udig_int(char *error, int32_t *rc,
+			   proc_entry_callback proc_callback,
+			   void* proc_callback_context,
+			   bool import_users,
+			   const char **suppressed_comms,
+			   void(*debug_log_fn)(const char* msg),
+			   uint64_t proc_scan_timeout_ms,
+			   uint64_t proc_scan_log_interval_ms)
+{
+	snprintf(error, SCAP_LASTERR_SIZE, "udig capture not supported on %s", PLATFORM_NAME);
+	*rc = SCAP_NOT_SUPPORTED;
+	return NULL;
+}
+#else
+
+#ifndef _WIN32
+scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs)
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 {
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
 	scap_t* handle = NULL;
@@ -74,7 +123,34 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
+<<<<<<< HEAD
 	handle->m_vtable = vtable;
+=======
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
+	if(strncmp(oargs->engine_name, BPF_ENGINE, BPF_ENGINE_LEN) == 0)
+	{
+		handle->m_vtable = &scap_bpf_engine;
+	}
+	else if(strncmp(oargs->engine_name, KMOD_ENGINE, KMOD_ENGINE_LEN) == 0)
+	{
+		handle->m_vtable = &scap_kmod_engine;
+	}
+#ifdef HAS_ENGINE_MODERN_BPF
+	else if(strncmp(oargs->engine_name, MODERN_BPF_ENGINE, MODERN_BPF_ENGINE_LEN) == 0)
+	{
+		handle->m_vtable = &scap_modern_bpf_engine;
+	}
+#endif /* HAS_ENGINE_MODERN_BPF */
+	else
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "libscap: unknown engine called `scap_open_live_int()`");
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
@@ -173,8 +249,21 @@ scap_t* scap_open_live_int(char *error, int32_t *rc, scap_open_args* oargs, cons
 }
 #endif // HAS_LIVE_CAPTURE
 
+<<<<<<< HEAD
 #ifdef HAS_ENGINE_UDIG
 scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
+=======
+#endif // _WIN32
+
+scap_t* scap_open_udig_int(char *error, int32_t *rc,
+			   proc_entry_callback proc_callback,
+			   void* proc_callback_context,
+			   bool import_users,
+			   const char **suppressed_comms,
+			   void(*debug_log_fn)(const char* msg),
+			   uint64_t proc_scan_timeout_ms,
+			   uint64_t proc_scan_log_interval_ms)
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -203,6 +292,13 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
+<<<<<<< HEAD
+=======
+	handle->m_debug_log_fn = debug_log_fn;
+	handle->m_proc_scan_timeout_ms = proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = proc_scan_log_interval_ms;
+	handle->m_ncpus = 1;
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 
 	handle->m_vtable = &scap_udig_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
@@ -348,7 +444,15 @@ scap_t* scap_open_test_input_int(char *error, int32_t *rc, scap_open_args *oargs
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+<<<<<<< HEAD
 	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+=======
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -416,7 +520,15 @@ scap_t* scap_open_gvisor_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
+<<<<<<< HEAD
 	if ((*rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
+=======
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
+	if ((*rc = copy_comms(handle, oargs->suppressed_comms)) != SCAP_SUCCESS)
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 	{
 		scap_close(handle);
 		snprintf(error, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -447,7 +559,7 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
+	handle = (scap_t*)calloc(sizeof(scap_t), 1);
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
@@ -503,7 +615,10 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 			       proc_entry_callback proc_callback,
 			       void* proc_callback_context,
-			       bool import_users)
+			       bool import_users,
+			       void(*debug_log_fn)(const char* msg),
+			       uint64_t proc_scan_timeout_ms,
+			       uint64_t proc_scan_log_interval_ms)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -520,7 +635,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Allocate the handle
 	//
-	handle = (scap_t*)malloc(sizeof(scap_t));
+	handle = (scap_t*)calloc(sizeof(scap_t), 1);
 	if(!handle)
 	{
 		snprintf(error, SCAP_LASTERR_SIZE, "error allocating the scap_t structure");
@@ -546,6 +661,10 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	handle->m_proclist.m_proc_callback = proc_callback;
 	handle->m_proclist.m_proc_callback_context = proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
+
+	handle->m_debug_log_fn = debug_log_fn;
+	handle->m_proc_scan_timeout_ms = proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = proc_scan_log_interval_ms;
 
 	//
 	// Extract machine information
@@ -640,6 +759,10 @@ scap_t* scap_open_plugin_int(char *error, int32_t *rc, scap_open_args* oargs)
 	handle->m_proclist.m_proc_callback_context = NULL;
 	handle->m_proclist.m_proclist = NULL;
 
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
+
 	//
 	// Extract machine information
 	//
@@ -685,7 +808,17 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
+<<<<<<< HEAD
 		return scap_open_udig_int(error, rc, oargs);
+=======
+		return scap_open_udig_int(error, rc, oargs->proc_callback,
+								oargs->proc_callback_context,
+								oargs->import_users,
+								oargs->suppressed_comms,
+								oargs->debug_log_fn,
+								oargs->proc_scan_timeout_ms,
+								oargs->proc_scan_log_interval_ms);
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
@@ -723,7 +856,10 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 	{
 		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
 					      oargs->proc_callback_context,
-					      oargs->import_users);
+					      oargs->import_users,
+						  oargs->debug_log_fn,
+						  oargs->proc_scan_timeout_ms,
+						  oargs->proc_scan_log_interval_ms);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN

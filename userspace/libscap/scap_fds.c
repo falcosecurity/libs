@@ -371,3 +371,194 @@ void scap_fd_free_fdinfo(scap_fdinfo **fdi)
 		*fdi = NULL;
 	}
 }
+<<<<<<< HEAD
+=======
+
+#if  defined(HAS_CAPTURE) && !defined(_WIN32)
+char * decode_st_mode(struct stat* sb)
+{
+	switch(sb->st_mode & S_IFMT) {
+    case S_IFBLK:
+    	return "block device";
+    	break;
+    case S_IFCHR:
+    	return "character device";
+    	break;
+    case S_IFDIR:
+    	return "directory";
+    	break;
+    case S_IFIFO:
+    	return "FIFO/pipe";
+    	break;
+    case S_IFLNK:
+    	return "symlink";
+    	break;
+    case S_IFREG:
+    	return "regular file";
+    	break;
+    case S_IFSOCK:
+    	return "socket";
+    	break;
+    default:
+    	return "unknown?";
+    	break;
+    }
+}
+//
+// Scan the directory containing the fd's of a proc /proc/x/fd
+//
+int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, uint64_t* num_fds_ret, char *error)
+{
+	DIR *dir_p;
+	struct dirent *dir_entry_p;
+	int32_t res = SCAP_SUCCESS;
+	char fd_dir_name[SCAP_MAX_PATH_SIZE];
+	char f_name[SCAP_MAX_PATH_SIZE];
+	char link_name[SCAP_MAX_PATH_SIZE];
+	struct stat sb;
+	uint64_t fd;
+	scap_fdinfo *fdi = NULL;
+	uint64_t net_ns;
+	ssize_t r;
+	uint16_t fd_added = 0;
+
+	if (num_fds_ret != NULL)
+	{
+		*num_fds_ret = 0;
+	}
+
+	snprintf(fd_dir_name, SCAP_MAX_PATH_SIZE, "%sfd", procdir);
+	dir_p = opendir(fd_dir_name);
+	if(dir_p == NULL)
+	{
+		snprintf(error, SCAP_LASTERR_SIZE, "error opening the directory %s", fd_dir_name);
+		return SCAP_NOTFOUND;
+	}
+
+	//
+	// Get the network namespace of the process
+	//
+	snprintf(f_name, sizeof(f_name), "%sns/net", procdir);
+	r = readlink(f_name, link_name, sizeof(link_name));
+	if(r <= 0)
+	{
+		//
+		// No network namespace available. Assume global
+		//
+		net_ns = 0;
+	}
+	else
+	{
+		link_name[r] = '\0';
+		sscanf(link_name, "net:[%"PRIi64"]", &net_ns);
+	}
+
+	while((dir_entry_p = readdir(dir_p)) != NULL &&
+		(handle->m_fd_lookup_limit == 0 || fd_added < handle->m_fd_lookup_limit))
+	{
+		fdi = NULL;
+		snprintf(f_name, SCAP_MAX_PATH_SIZE, "%s/%s", fd_dir_name, dir_entry_p->d_name);
+
+		if(-1 == stat(f_name, &sb) || 1 != sscanf(dir_entry_p->d_name, "%"PRIu64, &fd))
+		{
+			continue;
+		}
+
+		// In no driver mode to limit cpu usage we just parse sockets
+		// because we are interested only on them
+		if(handle->m_mode == SCAP_MODE_NODRIVER && !S_ISSOCK(sb.st_mode))
+		{
+			continue;
+		}
+
+		switch(sb.st_mode & S_IFMT)
+		{
+		case S_IFIFO:
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FIFO);
+			if(SCAP_FAILURE == res)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
+				break;
+			}
+			res = scap_fd_handle_pipe(handle, f_name, tinfo, fdi, error);
+			break;
+		case S_IFREG:
+		case S_IFBLK:
+		case S_IFCHR:
+		case S_IFLNK:
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_FILE_V2);
+			if(SCAP_FAILURE == res)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for file fd %" PRIu64, fd);
+				break;
+			}
+			fdi->ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			break;
+		case S_IFDIR:
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_DIRECTORY);
+			if(SCAP_FAILURE == res)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for dir fd %" PRIu64, fd);
+				break;
+			}
+			fdi->ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			break;
+		case S_IFSOCK:
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNKNOWN);
+			if(SCAP_FAILURE == res)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
+				break;
+			}
+			res = scap_fd_handle_socket(handle, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
+			if(handle->m_proclist.m_proc_callback == NULL)
+			{
+				// we can land here if we've got a netlink socket
+				if(fdi->type == SCAP_FD_UNKNOWN)
+				{
+					scap_fd_free_fdinfo(&fdi);
+				}
+			}
+			break;
+		default:
+			res = scap_fd_allocate_fdinfo(handle, &fdi, fd, SCAP_FD_UNSUPPORTED);
+			if(SCAP_FAILURE == res)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for unsupported fd %" PRIu64, fd);
+				break;
+			}
+			fdi->ino = sb.st_ino;
+			res = scap_fd_handle_regular_file(handle, f_name, tinfo, fdi, procdir, error);
+			break;
+		}
+
+		if(handle->m_proclist.m_proc_callback != NULL)
+		{
+			if(fdi)
+			{
+				scap_fd_free_fdinfo(&fdi);
+			}
+		}
+
+		if(SCAP_SUCCESS != res)
+		{
+			break;
+		} else {
+			++fd_added;
+		}
+	}
+	closedir(dir_p);
+
+	if (num_fds_ret != NULL)
+	{
+		*num_fds_ret = fd_added;
+	}
+
+	return res;
+}
+
+
+#endif // HAS_CAPTURE
+>>>>>>> 89a8a08c (Enhancements to initial scan of /proc, for supportability)
