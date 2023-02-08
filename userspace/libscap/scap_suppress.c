@@ -143,7 +143,7 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 	if(*suppressed && stid == NULL)
 	{
-		stid = (scap_tid *) malloc(sizeof(scap_tid));
+		stid = (scap_tid *) calloc(sizeof(scap_tid), 1);
 		stid->tid = tid;
 		int32_t uth_status = SCAP_SUCCESS;
 
