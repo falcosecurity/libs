@@ -21,8 +21,8 @@ else()
 
 		ExternalProject_Add(openssl
 			PREFIX "${PROJECT_BINARY_DIR}/openssl-prefix"
-			URL "https://github.com/openssl/openssl/archive/OpenSSL_1_1_1q.tar.gz"
-			URL_HASH "SHA256=0686897afd3a08223760db73d8034550401b53ffc545798d7ca476564f80315e"
+			URL "https://github.com/openssl/openssl/archive/OpenSSL_1_1_1t.tar.gz"
+			URL_HASH "SHA256=b1270f044e36452e15d1f2e18b702691a240b0445080282f2c7daaea8704ec5e"
 			CONFIGURE_COMMAND ./config no-shared --prefix=${OPENSSL_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
