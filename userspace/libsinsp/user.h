@@ -24,6 +24,8 @@ limitations under the License.
 #include "procfs_utils.h"
 #include "scap.h"
 
+typedef struct scap_dumper scap_dumper_t;
+
 class sinsp;
 class sinsp_evt;
 namespace libsinsp { namespace procfs_utils { class ns_helper; }}

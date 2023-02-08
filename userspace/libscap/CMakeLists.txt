@@ -127,7 +127,6 @@ add_library(scap_event_schema
 		../../driver/flags_table.c
 		../../driver/tp_table.c)
 
-add_dependencies(scap_event_schema zlib)
 target_link_libraries(scap scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -143,7 +142,6 @@ add_library(scap_engine_util
 	ringbuffer/devset.c
 	ringbuffer/ringbuffer.c)
 
-add_dependencies(scap_engine_util zlib)
 target_link_libraries(scap scap_engine_util)
 endif()
 

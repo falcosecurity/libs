@@ -31,7 +31,6 @@ limitations under the License.
 #include "settings.h"
 #include "scap_assert.h"
 #include "scap_suppress.h"
-#include "scap_zlib.h"
 
 #ifdef __cplusplus
 extern "C" {

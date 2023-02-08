@@ -20,6 +20,10 @@ limitations under the License.
 class sinsp;
 class sinsp_evt;
 
+#include "scap_savefile_api.h"
+
+typedef struct scap_dumper scap_dumper_t;
+
 /** @defgroup dump Dumping events to disk
  * Classes to perform miscellaneous functionality
  *  @{

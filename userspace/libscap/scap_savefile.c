@@ -31,6 +31,7 @@ struct iovec {
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_savefile_api.h"
 #include "scap_savefile.h"
 
 const char* scap_dump_getlasterr(scap_dumper_t* d)
