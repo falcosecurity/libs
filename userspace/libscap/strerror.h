@@ -18,6 +18,8 @@ limitations under the License.
 
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __GNUC__
 int32_t scap_errprintf_unchecked(char *buf, int errnum, const char* fmt, ...) __attribute__ ((format (printf, 3, 4)));
 #define scap_errprintf scap_errprintf_unchecked
