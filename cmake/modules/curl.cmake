@@ -73,6 +73,7 @@ else()
 			--without-libpsl
 			--without-nghttp2
 			--without-libssh2
+			--with-ca-path=/etc/ssl/certs/
 			--disable-threaded-resolver
 			--without-brotli
 			--without-zstd
