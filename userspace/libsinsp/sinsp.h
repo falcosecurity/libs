@@ -880,10 +880,17 @@ public:
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
-	  valuable for IO.
+	  valuable for IO (EC_IO_READ, EC_IO_WRITE).
 	  Does not enforce minimum sinsp state set.
 	*/
 	std::unordered_set<uint32_t> enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+
+	/*!
+	  \brief Enforce passed set of syscalls with the ones
+	  valuable for IO (EC_IO_OTHER).
+	  Does not enforce minimum sinsp state set.
+	*/
+	std::unordered_set<uint32_t> enforce_io_other_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
@@ -914,6 +921,12 @@ public:
 	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
 
 	/*!
+	  \brief Enforce passed set of events with critical non syscalls events,
+	  e.g. container or procexit events.
+	*/
+	std::unordered_set<uint32_t> enforce_sinsp_state_ppme(std::unordered_set<uint32_t> ppm_event_info_of_interest = {});
+
+	/*!
 	  \brief Get all the available ppm_sc.
 	  Does enforce minimum sinsp state set.
 	*/
@@ -928,6 +941,11 @@ public:
 	  \brief Get the name of all the events provided in the set.
 	*/
 	std::unordered_set<std::string> get_events_names(const std::unordered_set<uint32_t>& events_set);
+
+	/*!
+	  \brief Get the ppm_sc of all the syscalls names provided in the set.
+	*/
+	std::unordered_set<uint32_t> get_ppm_sc_set_from_syscalls(const std::unordered_set<std::string>& syscalls);
 
 	/**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
