@@ -25,7 +25,7 @@ set(kmod_min_kver_map_x86_64 2.6)
 set(kmod_min_kver_map_aarch64 3.16)
 set(kmod_min_kver_map_s390x 2.6)
 if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
-	message(WARNING "[KMOD] Linux kernel version should be >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+	message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
 endif()
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
