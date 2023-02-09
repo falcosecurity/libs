@@ -15,7 +15,7 @@ if(BUILD_BPF)
 	set(bpf_min_kver_map_aarch64 4.17)
 	set(bpf_min_kver_map_s390x 5.5)
 	if (LINUX_KERNEL_VERSION VERSION_LESS ${bpf_min_kver_map_${TARGET_ARCH}})
-		message(FATAL_ERROR "[BPF] Linux kernel version should be >= ${bpf_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+		message(WARNING "[BPF] Linux kernel version should be >= ${bpf_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
 	endif()
 
 	add_custom_target(bpf ALL

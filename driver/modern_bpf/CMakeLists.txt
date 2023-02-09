@@ -23,7 +23,7 @@ set(modern_bpf_min_kver_map_x86_64 5.8)
 set(modern_bpf_min_kver_map_aarch64 5.8)
 set(modern_bpf_min_kver_map_s390x 5.8)
 if (LINUX_KERNEL_VERSION VERSION_LESS ${modern_bpf_min_kver_map_${CMAKE_HOST_SYSTEM_PROCESSOR}})
-  message(FATAL_ERROR "${MODERN_BPF_LOG_PREFIX} Linux kernel version should be >= ${modern_bpf_min_kver_map_${CMAKE_HOST_SYSTEM_PROCESSOR}} but actual kernel version is: ${UNAME_RESULT}")
+  message(WARNING "${MODERN_BPF_LOG_PREFIX} Linux kernel version should be >= ${modern_bpf_min_kver_map_${CMAKE_HOST_SYSTEM_PROCESSOR}} but actual kernel version is: ${UNAME_RESULT}")
 endif()
 
 ########################
