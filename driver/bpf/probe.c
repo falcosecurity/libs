@@ -117,6 +117,11 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		drop_flags = UF_ALWAYS_DROP;
 	}
 
+#if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
+	if(bpf_drop_syscall_exit_events(ctx, evt_type))
+		return 0;
+#endif
+
 	call_filler(ctx, ctx, evt_type, drop_flags);
 	return 0;
 }
