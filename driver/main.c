@@ -2181,6 +2181,41 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 }
 
+static __always_inline bool kmod_drop_syscall_exit_events(long ret, enum ppm_event_type evt_type)
+{
+	switch (evt_type)
+	{
+		/* On s390x, clone and fork child events will be generated but
+		 * due to page faults, no args/envp information will be collected.
+		 * Also no child events appear for clone3 syscall.
+		 *
+		 * Because child events are covered by CAPTURE_SCHED_PROC_FORK,
+		 * let proactively ignore them.
+		 */
+#ifdef CAPTURE_SCHED_PROC_FORK
+		case PPME_SYSCALL_CLONE_20_X:
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_20_X:
+		case PPME_SYSCALL_CLONE3_X:
+			/* We ignore only child events, so ret == 0! */
+			return ret == 0;
+#endif
+
+		/* If `CAPTURE_SCHED_PROC_EXEC` logic is enabled we collect execve-family
+		 * exit events through a dedicated tracepoint so we can ignore them here.
+		 */
+#ifdef CAPTURE_SCHED_PROC_EXEC
+		case PPME_SYSCALL_EXECVE_19_X:
+		case PPME_SYSCALL_EXECVEAT_X:
+			/* We ignore only successful events, so ret == 0! */
+			return ret == 0;
+#endif
+		default:
+			break;
+	}
+	return false;
+}
+
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
@@ -2231,6 +2266,11 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 			type = cur_g_syscall_table[table_index].exit_event_type;
 #else
 		type = cur_g_syscall_table[table_index].exit_event_type;
+#endif
+
+#if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
+		if(kmod_drop_syscall_exit_events(ret, type))
+			return;
 #endif
 
 		event_data.category = PPMC_SYSCALL;
