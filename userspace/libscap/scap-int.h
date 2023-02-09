@@ -43,8 +43,6 @@ extern "C" {
 //
 #define PF_CLONING 1
 
-<<<<<<< HEAD
-=======
 //
 // ebpf defs
 //
@@ -54,38 +52,6 @@ extern "C" {
 
 #define BPF_MAPS_MAX 32
 
-//
-// The device descriptor
-//
-typedef struct scap_device
-{
-	int m_fd;
-	int m_bufinfo_fd; // used by udig
-	char* m_buffer;
-	uint32_t m_buffer_size; // used by udig
-	uint32_t m_lastreadsize;
-	char* m_sn_next_event; // Pointer to the next event available for scap_next
-	uint32_t m_sn_len; // Number of bytes available in the buffer pointed by m_sn_next_event
-	union
-	{
-		// Anonymous struct with ppm stuff
-		struct
-		{
-			struct ppm_ring_buffer_info* m_bufinfo;
-			struct udig_ring_buffer_status* m_bufstatus; // used by udig
-		};
-	};
-} scap_device;
-
-typedef struct scap_tid
-{
-	uint64_t tid;
-
-	UT_hash_handle hh; ///< makes this structure hashable
-} scap_tid;
-
-
->>>>>>> c98bf053 (Pull change from falcosecurity/libs: increase BPF_PROGS_MAX to 128 (#95))
 //
 // The open instance handle
 //
