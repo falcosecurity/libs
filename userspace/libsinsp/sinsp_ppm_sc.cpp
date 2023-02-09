@@ -173,6 +173,19 @@ std::unordered_set<uint32_t> sinsp::enforce_io_ppm_sc_set(std::unordered_set<uin
 		{
 		case EC_IO_READ:
 		case EC_IO_WRITE:
+			ppm_sc_set.insert(ppm_sc_code);
+		}
+	}
+	return ppm_sc_set;
+}
+
+std::unordered_set<uint32_t> sinsp::enforce_io_other_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set)
+{
+	const int bitmask = EC_SYSCALL - 1;
+	for(int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ppm_sc_code++)
+	{
+		switch(g_infotables.m_syscall_info_table[ppm_sc_code].category & bitmask)
+		{
 		case EC_IO_OTHER:
 			ppm_sc_set.insert(ppm_sc_code);
 		}
@@ -232,6 +245,41 @@ std::unordered_set<uint32_t> sinsp::enforce_sys_ppm_sc_set(std::unordered_set<ui
 		case EC_SYSTEM:
 		case EC_MEMORY:
 		case EC_SIGNAL:
+			ppm_sc_set.insert(ppm_sc_code);
+		}
+	}
+	return ppm_sc_set;
+}
+
+std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_ppme(std::unordered_set<uint32_t> ppm_event_info_of_interest)
+{
+	/* Fill-up the set of event infos of interest. This is needed to ensure critical non syscall PPME events are activated, e.g. container or proc exit events. */
+	for (uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
+	{
+		if (!sinsp::is_old_version_event(ev)
+				&& !sinsp::is_unused_event(ev)
+				&& !sinsp::is_unknown_event(ev))
+		{
+			/* So far we only covered syscalls, so we add other kinds of
+			interesting events. In this case, we are also interested in
+			metaevents and in the procexit tracepoint event. */
+			if (sinsp::is_metaevent(ev) || ev == PPME_PROCEXIT_1_E)
+			{
+				ppm_event_info_of_interest.insert(ev);
+			}
+		}
+	}
+	return ppm_event_info_of_interest;
+}
+
+std::unordered_set<uint32_t> sinsp::get_ppm_sc_set_from_syscalls(const std::unordered_set<std::string>& syscalls)
+{
+	std::unordered_set<uint32_t> ppm_sc_set = {};
+	for (int ppm_sc_code = 0; ppm_sc_code < PPM_SC_MAX; ++ppm_sc_code)
+	{
+		std::string ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc_code].name;
+		if (syscalls.find(ppm_sc_name) != syscalls.end())
+		{
 			ppm_sc_set.insert(ppm_sc_code);
 		}
 	}
