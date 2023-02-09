@@ -1769,7 +1769,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	}
 
 	// Check if syscall is interesting for the consumer
-	if (event_datap->category == PPMC_SYSCALL)
+	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.id != event_datap->socketcall_syscall)
 	{
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 		if (!test_bit(table_index, consumer->syscalls_mask))
