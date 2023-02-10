@@ -1129,6 +1129,21 @@ int32_t scap_stop_dropping_mode(scap_t* handle)
 
 int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 {
+	switch(sampling_ratio)
+	{
+		case 1:
+		case 2:
+		case 4:
+		case 8:
+		case 16:
+		case 32:
+		case 64:
+		case 128:
+			break;
+		default:
+			return snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "invalid sampling ratio size");
+	}
+
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
