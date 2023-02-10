@@ -98,6 +98,30 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 #endif
 
+#ifdef CAPTURE_PAGE_FAULTS
+	case PAGE_FAULT_USER:
+		if (enabled)
+		{
+			ret = pman_attach_page_fault_user();
+		}
+		else
+		{
+			ret = pman_detach_page_fault_user();
+		}
+		break;
+
+	case PAGE_FAULT_KERN:
+		if (enabled)
+		{
+			ret = pman_attach_page_fault_kernel();
+		}
+		else
+		{
+			ret = pman_detach_page_fault_kernel();
+		}
+		break;
+#endif
+
 	default:
 		/* Do nothing right now. */
 		break;
@@ -213,6 +237,42 @@ int pman_attach_sched_proc_fork()
 }
 #endif
 
+#ifdef CAPTURE_PAGE_FAULTS
+int pman_attach_page_fault_user()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.pf_user != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.pf_user = bpf_program__attach(g_state.skel->progs.pf_user);
+	if(!g_state.skel->links.pf_user)
+	{
+		pman_print_error("failed to attach the 'pf_user' program");
+		return errno;
+	}
+	return 0;
+}
+
+int pman_attach_page_fault_kernel()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.pf_kernel != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.pf_kernel = bpf_program__attach(g_state.skel->progs.pf_kernel);
+	if(!g_state.skel->links.pf_kernel)
+	{
+		pman_print_error("failed to attach the 'pf_kernel' program");
+		return errno;
+	}
+	return 0;
+}
+#endif
+
 int pman_attach_all_programs()
 {
 	int ret = 0;
@@ -293,6 +353,30 @@ int pman_detach_sched_proc_fork()
 		return errno;
 	}
 	g_state.skel->links.sched_p_fork = NULL;
+	return 0;
+}
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+int pman_detach_page_fault_user()
+{
+	if(g_state.skel->links.pf_user && bpf_link__destroy(g_state.skel->links.pf_user))
+	{
+		pman_print_error("failed to detach the 'pf_user' program");
+		return errno;
+	}
+	g_state.skel->links.pf_user = NULL;
+	return 0;
+}
+
+int pman_detach_page_fault_kernel()
+{
+	if(g_state.skel->links.pf_kernel && bpf_link__destroy(g_state.skel->links.pf_kernel))
+	{
+		pman_print_error("failed to detach the 'pf_kernel' program");
+		return errno;
+	}
+	g_state.skel->links.pf_kernel = NULL;
 	return 0;
 }
 #endif

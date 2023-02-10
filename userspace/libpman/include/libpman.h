@@ -174,6 +174,7 @@ extern "C"
 	 */
 	int pman_detach_sched_switch(void);
 
+#ifdef CAPTURE_SCHED_PROC_EXEC
 	/**
 	 * @brief Attach only the sched_proc_exec tracepoint
 	 *
@@ -187,7 +188,9 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_detach_sched_proc_exec(void);
+#endif
 
+#ifdef CAPTURE_SCHED_PROC_FORK
 	/**
 	 * @brief Attach only the sched_proc_fork tracepoint
 	 *
@@ -201,6 +204,37 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_detach_sched_proc_fork(void);
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+	/**
+	 * @brief Attach only the page_fault_user tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_page_fault_user(void);
+
+	/**
+	 * @brief Detach only the page_fault_user tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_detach_page_fault_user(void);
+
+	/**
+	 * @brief Attach only the page_fault_kernel tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_page_fault_kernel(void);
+
+	/**
+	 * @brief Detach only the page_fault_kernel tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_detach_page_fault_kernel(void);
+#endif
 
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
