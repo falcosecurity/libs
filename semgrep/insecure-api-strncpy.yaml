@@ -1,0 +1,15 @@
+rules:
+  - id: falco-insecure-api-strncpy
+    metadata:
+      references:
+        - https://cwe.mitre.org/data/definitions/120
+      confidence: HIGH
+    message: >-
+      The libc function strncpy is not used in the Falco codebase as it is error prone.
+      Read more: https://www.cisa.gov/uscert/bsi/articles/knowledge/coding-practices/strncpy-and-strncat .
+      In the Falco codebase you can use the safer alternative strlcpy().
+    severity: ERROR
+    languages:
+      - c
+      - cpp
+    pattern: strncpy(...)
