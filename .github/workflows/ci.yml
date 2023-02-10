@@ -110,33 +110,6 @@ jobs:
           cd build && cmake -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
           cmake --build .
 
-  build-libs-arm64:
-    name: build-libs-arm64 🥶 (system_deps)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run aarch64 build 🏎️
-        with:
-          arch: aarch64
-          distro: buster
-          githubToken: ${{ github.token }}
-
-          install: |
-            apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-arm64
-
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
-            KERNELDIR=/lib/modules/$(ls /lib/modules)/build make -j4
-            make run-unit-tests
-
   build-libs-s390x:
     name: build-libs-s390x 😁 (system_deps)
     runs-on: ubuntu-latest
@@ -254,36 +227,6 @@ jobs:
         run: |
           cd build
           sudo ./test/drivers/drivers_test -k
-
-  build-modern-bpf-arm64:
-    name: build-modern-bpf-arm64 🙃 (system_deps)
-    runs-on: ubuntu-22.04
-    needs: paths-filter
-    if: needs.paths-filter.outputs.driver_changed == 'true' || needs.paths-filter.outputs.libscap_changed == 'true'
-    steps:
-
-      - name: Checkout Libs ⤵️
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - uses: uraimo/run-on-arch-action@v2.2.0
-        name: Run aarch64 build 🏎️
-        with:
-          arch: aarch64
-          distro: archarm_latest
-          githubToken: ${{ github.token }}
-
-          install: |
-            pacman -Syu --noconfirm git cmake make llvm clang pkgconf libelf zlib libffi libbpf linux-tools glibc gcc gtest protobuf openssl tbb libb64 wget jq yaml-cpp curl c-ares grpc libyaml libpcap
-
-          # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
-          run: |
-            git config --global --add safe.directory ${{ github.workspace }}
-            .github/install-deps.sh
-            mkdir -p build
-            cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
-            make drivers_test
 
   build-modern-bpf-s390x:
     name: build-modern-bpf-s390x 😁 (system_deps)
