@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <sinsp_events.h>
 
-std::unordered_set<ppm_tp_code> libsinsp::events::enforce_sinsp_state_tp(std::unordered_set<ppm_tp_code> tp_of_interest)
+libsinsp::events::set<ppm_tp_code> libsinsp::events::enforce_sinsp_state_tp(libsinsp::events::set<ppm_tp_code> tp_of_interest)
 {
 	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
 
@@ -37,9 +37,9 @@ std::unordered_set<ppm_tp_code> libsinsp::events::enforce_sinsp_state_tp(std::un
 	return tp_of_interest;
 }
 
-std::unordered_set<ppm_tp_code> libsinsp::events::get_all_tp()
+libsinsp::events::set<ppm_tp_code> libsinsp::events::get_all_tp()
 {
-	std::unordered_set<ppm_tp_code> ppm_tp_set;
+	libsinsp::events::set<ppm_tp_code> ppm_tp_set;
 
 	for(uint32_t tp = 0; tp < TP_VAL_MAX; tp++)
 	{
@@ -49,13 +49,14 @@ std::unordered_set<ppm_tp_code> libsinsp::events::get_all_tp()
 	return ppm_tp_set;
 }
 
-std::unordered_set<std::string> libsinsp::events::get_tp_names(const std::unordered_set<ppm_tp_code>& tp_set)
+std::unordered_set<std::string> libsinsp::events::get_tp_names(const libsinsp::events::set<ppm_tp_code>& tp_set)
 {
 	std::unordered_set<std::string> tp_names_set;
-	for(const auto& it : tp_set)
+	tp_set.for_each([&tp_names_set](ppm_tp_code val)
 	{
-		std::string tp_name = tp_names[it];
+		std::string tp_name = tp_names[val];
 		tp_names_set.insert(tp_name);
-	}
+		return true;
+	});
 	return tp_names_set;
 }

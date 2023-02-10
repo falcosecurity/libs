@@ -7,9 +7,169 @@
 #include <unordered_set>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace libsinsp {
 namespace events {
+
+template<typename ppm_type>
+class set
+{
+private:
+	using vec_t = std::vector<uint8_t>;
+	vec_t m_types{};
+	ppm_type max;
+
+	inline void check_range(ppm_type e) const
+	{
+		if(e > max)
+		{
+			throw sinsp_exception("invalid event type");
+		}
+	}
+
+public:
+	set(set&&)  noexcept = default;
+	set(const set&) = default;
+	set& operator=(set&&)  noexcept = default;
+	set& operator=(const set&) = default;
+	set<ppm_type>() = delete;
+
+	inline explicit set(ppm_type maxLen):
+		m_types(maxLen + 1, 0),
+		max(maxLen)
+	{
+	}
+
+	inline explicit set(std::unordered_set<ppm_type> vals)
+	{
+		set<ppm_type>();
+		for (const auto &val : vals)
+		{
+			insert(val);
+		}
+	}
+
+	inline void insert(ppm_type e)
+	{
+		check_range(e);
+		m_types[e] = 1;
+	}
+
+	inline void remove(ppm_type e)
+	{
+		check_range(e);
+		m_types[e] = 0;
+	}
+
+	void merge(const set& other)
+	{
+		if (other.max != max)
+		{
+			throw sinsp_exception("cannot merge different set");
+		}
+		for(size_t i = 0; i <= max; ++i)
+		{
+			m_types[i] |= other.m_types[i];
+		}
+	}
+
+	void merge(const std::set<ppm_type>& other)
+	{
+		if (other.size() != max)
+		{
+			throw sinsp_exception("cannot merge different set");
+		}
+		for(const auto& e : other)
+		{
+			insert(e);
+		}
+	}
+
+	inline bool contains(ppm_type e) const
+	{
+		check_range(e);
+		return m_types[e] != 0;
+	}
+
+	void clear()
+	{
+		for(auto& v : m_types)
+		{
+			v = 0;
+		}
+	}
+
+	bool empty() const
+	{
+		return equals(set<ppm_type>{});
+	}
+
+	bool equals(const set& other) const
+	{
+		return m_types == other.m_types;
+	}
+
+	set diff(const set& other)
+	{
+		if (other.max != max)
+		{
+			throw sinsp_exception("cannot diff different set");
+		}
+		set<ppm_type> ret(max);
+		for(size_t i = 0; i <= max; ++i)
+		{
+			ret.m_types[i] = m_types[i] ^ other.m_types[i];
+		}
+		return ret;
+	}
+
+	set intersect(const set& other)
+	{
+		if (other.max != max)
+		{
+			throw sinsp_exception("cannot intersect different set");
+		}
+		set<ppm_type> ret(max);
+		for(size_t i = 0; i <= max; ++i)
+		{
+			ret.m_types[i] = m_types[i] & other.m_types[i];
+		}
+		return ret;
+	}
+
+	void for_each(const std::function<bool(ppm_type)>& consumer) const
+	{
+		for(size_t i = 0; i < max; ++i)
+		{
+			if(m_types[i] != 0)
+			{
+				if(!consumer((ppm_type)i))
+				{
+					return;
+				}
+			}
+		}
+	}
+};
+
+// Some template specialization for useful constructors
+
+template <>
+inline set<ppm_sc_code>::set() : set(PPM_SC_MAX)
+{
+}
+
+template<>
+inline set<ppm_event_code>::set(): set(PPM_EVENT_MAX)
+{
+}
+
+template<>
+inline set<ppm_tp_code>::set(): set(TP_VAL_MAX)
+{
+}
+
 
 /*=============================== Events related ===============================*/
 
@@ -91,83 +251,83 @@ bool is_plugin_event(ppm_event_code event_type);
 	WARNING: without using this method, we cannot guarantee that `libsinsp` state
 	will always be up to date, or even work at all.
 */
-std::unordered_set<ppm_sc_code> enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code> ppm_sc_of_interest = {});
+set<ppm_sc_code> enforce_sinsp_state_ppm_sc(set<ppm_sc_code> ppm_sc_of_interest = {});
 
 /*!
   \brief Enforce simple set of syscalls with all the security-valuable syscalls.
   It has same effect of old `simple_consumer` mode.
   Does enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_simple_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_simple_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for IO (EC_IO_READ, EC_IO_WRITE).
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_io_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_io_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for IO (EC_IO_OTHER).
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_io_other_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_io_other_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for file operations.
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_file_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_file_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for networking.
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_net_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_net_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for process state tracking.
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_proc_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_proc_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of syscalls with the ones
   valuable for system state tracking (signals, memory...)
   Does not enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> enforce_sys_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_sys_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
   \brief Enforce passed set of events with critical non syscalls events,
   e.g. container or procexit events.
 */
-std::unordered_set<ppm_event_code> enforce_sinsp_state_ppme(std::unordered_set<ppm_event_code> ppm_event_info_of_interest = {});
+set<ppm_event_code> enforce_sinsp_state_ppme(set<ppm_event_code> ppm_event_info_of_interest = {});
 
 /*!
   \brief Get all the available ppm_sc.
   Does enforce minimum sinsp state set.
 */
-std::unordered_set<ppm_sc_code> get_all_ppm_sc();
+set<ppm_sc_code> get_all_ppm_sc();
 
 /*!
   \brief Get the name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> get_ppm_sc_names(const std::unordered_set<ppm_sc_code>& ppm_sc_set);
+std::unordered_set<std::string> get_ppm_sc_names(const set<ppm_sc_code>& ppm_sc_set);
 
 /*!
   \brief Get the name of all the events provided in the set.
 */
-std::unordered_set<std::string> get_events_names(const std::unordered_set<ppm_event_code>& events_set);
+std::unordered_set<std::string> get_events_names(const set<ppm_event_code>& events_set);
 
 /*!
   \brief Get the ppm_sc of all the syscalls names provided in the set.
 */
-std::unordered_set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls);
+set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls);
 
 /**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
@@ -177,7 +337,7 @@ std::unordered_set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::uno
 	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
 	 * @return set of events associated with the provided `ppm_sc` set.
  */
-std::unordered_set<ppm_event_code> get_event_set_from_ppm_sc_set(const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest);
+set<ppm_event_code> get_event_set_from_ppm_sc_set(const set<ppm_sc_code> &ppm_sc_of_interest);
 
 /*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
@@ -186,12 +346,12 @@ std::unordered_set<ppm_event_code> get_event_set_from_ppm_sc_set(const std::unor
 /*!
   \brief Get all the available tracepoints.
 */
-std::unordered_set<ppm_tp_code> get_all_tp();
+set<ppm_tp_code> get_all_tp();
 
 /*!
   \brief Get the name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> get_tp_names(const std::unordered_set<ppm_tp_code>& tp_set);
+std::unordered_set<std::string> get_tp_names(const set<ppm_tp_code>& tp_set);
 
 /*!
 	\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
@@ -201,7 +361,7 @@ std::unordered_set<std::string> get_tp_names(const std::unordered_set<ppm_tp_cod
 	WARNING: without using this method, we cannot guarantee that `libsinsp` state
 	will always be up to date, or even work at all.
 */
-std::unordered_set<ppm_tp_code> enforce_sinsp_state_tp(std::unordered_set<ppm_tp_code> tp_of_interest = {});
+set<ppm_tp_code> enforce_sinsp_state_tp(set<ppm_tp_code> tp_of_interest = {});
 
 /*=============================== Tracepoint set related ===============================*/
 

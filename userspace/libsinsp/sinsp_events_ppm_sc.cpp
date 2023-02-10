@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <sinsp_events.h>
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code> ppm_sc_of_interest)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_sinsp_state_ppm_sc(libsinsp::events::set<ppm_sc_code> ppm_sc_of_interest)
 {
 	std::vector<uint32_t> minimum_syscalls(PPM_SC_MAX, 0);
 
@@ -37,9 +37,10 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_sinsp_state_ppm_sc(std
 	return ppm_sc_of_interest;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_simple_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
-	auto simple_set = enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code>{
+	auto simple_set = enforce_sinsp_state_ppm_sc(
+		libsinsp::events::set<ppm_sc_code>(std::unordered_set<ppm_sc_code>{
 		PPM_SC_ACCEPT,
 		PPM_SC_ACCEPT4,
 		PPM_SC_BIND,
@@ -125,12 +126,12 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_simple_ppm_sc_set(std:
 		PPM_SC_UNSHARE,
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
-	});
-	ppm_sc_set.insert(simple_set.begin(), simple_set.end());
+	}));
+	ppm_sc_set.merge(simple_set);
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_io_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_io_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -145,7 +146,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_io_ppm_sc_set(std::uno
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_io_other_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_io_other_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -159,7 +160,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_io_other_ppm_sc_set(st
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_file_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_file_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -173,7 +174,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_file_ppm_sc_set(std::u
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_net_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_net_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -187,7 +188,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_net_ppm_sc_set(std::un
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_proc_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_proc_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -201,7 +202,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_proc_ppm_sc_set(std::u
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::enforce_sys_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_sys_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -217,7 +218,7 @@ std::unordered_set<ppm_sc_code> libsinsp::events::enforce_sys_ppm_sc_set(std::un
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_event_code> libsinsp::events::enforce_sinsp_state_ppme(std::unordered_set<ppm_event_code> ppm_event_info_of_interest)
+libsinsp::events::set<ppm_event_code> libsinsp::events::enforce_sinsp_state_ppme(libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest)
 {
 	/* Fill-up the set of event infos of interest. This is needed to ensure critical non syscall PPME events are activated, e.g. container or proc exit events. */
 	for (uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
@@ -238,9 +239,9 @@ std::unordered_set<ppm_event_code> libsinsp::events::enforce_sinsp_state_ppme(st
 	return ppm_event_info_of_interest;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls)
 {
-	std::unordered_set<ppm_sc_code> ppm_sc_set = {};
+	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
 	{
 		std::string ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
@@ -252,17 +253,18 @@ std::unordered_set<ppm_sc_code> libsinsp::events::get_ppm_sc_set_from_syscalls_n
 	return ppm_sc_set;
 }
 
-std::unordered_set<ppm_event_code> libsinsp::events::get_event_set_from_ppm_sc_set(const std::unordered_set<ppm_sc_code> &ppm_sc_set)
+libsinsp::events::set<ppm_event_code> libsinsp::events::get_event_set_from_ppm_sc_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
 {
 	std::vector<uint32_t> events_array(PPM_EVENT_MAX, 0);
 	std::vector<uint32_t> ppm_sc_array(PPM_SC_MAX, 0);
-	std::unordered_set<ppm_event_code> events_set;
+	libsinsp::events::set<ppm_event_code> events_set;
 
 	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
-	for (auto itr : ppm_sc_set)
+	ppm_sc_set.for_each([&ppm_sc_array](ppm_sc_code val)
 	{
-		ppm_sc_array[itr] = 1;
-	}
+		ppm_sc_array[val] = 1;
+		return true;
+	});
 
 	if(scap_get_events_from_ppm_sc(ppm_sc_array.data(), events_array.data()) != SCAP_SUCCESS)
 	{
@@ -281,9 +283,9 @@ std::unordered_set<ppm_event_code> libsinsp::events::get_event_set_from_ppm_sc_s
 	return events_set;
 }
 
-std::unordered_set<ppm_sc_code> libsinsp::events::get_all_ppm_sc()
+libsinsp::events::set<ppm_sc_code> libsinsp::events::get_all_ppm_sc()
 {
-	std::unordered_set<ppm_sc_code> ppm_sc_set;
+	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 
 	for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
@@ -293,13 +295,14 @@ std::unordered_set<ppm_sc_code> libsinsp::events::get_all_ppm_sc()
 	return ppm_sc_set;
 }
 
-std::unordered_set<std::string> libsinsp::events::get_ppm_sc_names(const std::unordered_set<ppm_sc_code>& ppm_sc_set)
+std::unordered_set<std::string> libsinsp::events::get_ppm_sc_names(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
 {
 	std::unordered_set<std::string> ppm_sc_names_set;
-	for(const auto& it : ppm_sc_set)
-	{
-		std::string ppm_sc_name = g_infotables.m_syscall_info_table[it].name;
-		ppm_sc_names_set.insert(ppm_sc_name);
-	}
+	ppm_sc_set.for_each([&ppm_sc_names_set](ppm_sc_code val)
+        {
+	        std::string ppm_sc_name = g_infotables.m_syscall_info_table[val].name;
+	        ppm_sc_names_set.insert(ppm_sc_name);
+	        return true;
+        });
 	return ppm_sc_names_set;
 }
