@@ -851,15 +851,14 @@ public:
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
-		can match more than one system syscall. You can find the available
-		`enum ppm_syscall_code` in `driver/ppm_events_public.h`.
+		can match more than one system syscall.
 		Please note that this method must be called when the inspector is already open to 
 		modify at runtime the interesting syscall set.
 
 		WARNING: playing with this API could break `libsinsp` state collection, this is only
 		useful in advanced cases where the client needs to know what it is doing!
 	*/
-	void mark_ppm_sc_of_interest(uint32_t ppm_sc, bool enabled = true);
+	void mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enabled = true);
 
 	/*!
 		\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
@@ -869,83 +868,83 @@ public:
 		WARNING: without using this method, we cannot guarantee that `libsinsp` state
 		will always be up to date, or even work at all.
 	*/
-	std::unordered_set<uint32_t> enforce_sinsp_state_ppm_sc(std::unordered_set<uint32_t> ppm_sc_of_interest = {});
+	std::unordered_set<ppm_sc_code> enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code> ppm_sc_of_interest = {});
 
 	/*!
 	  \brief Enforce simple set of syscalls with all the security-valuable syscalls.
 	  It has same effect of old `simple_consumer` mode.
 	  Does enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_simple_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_simple_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for IO (EC_IO_READ, EC_IO_WRITE).
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_io_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_io_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for IO (EC_IO_OTHER).
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_io_other_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_io_other_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for file operations.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_file_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_file_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for networking.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_net_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_net_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for process state tracking.
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_proc_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_proc_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of syscalls with the ones
 	  valuable for system state tracking (signals, memory...)
 	  Does not enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> enforce_sys_ppm_sc_set(std::unordered_set<uint32_t> ppm_sc_set = {});
+	std::unordered_set<ppm_sc_code> enforce_sys_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
 
 	/*!
 	  \brief Enforce passed set of events with critical non syscalls events,
 	  e.g. container or procexit events.
 	*/
-	std::unordered_set<uint32_t> enforce_sinsp_state_ppme(std::unordered_set<uint32_t> ppm_event_info_of_interest = {});
+	std::unordered_set<ppm_event_code> enforce_sinsp_state_ppme(std::unordered_set<ppm_event_code> ppm_event_info_of_interest = {});
 
 	/*!
 	  \brief Get all the available ppm_sc.
 	  Does enforce minimum sinsp state set.
 	*/
-	std::unordered_set<uint32_t> get_all_ppm_sc();
+	std::unordered_set<ppm_sc_code> get_all_ppm_sc();
 
 	/*!
 	  \brief Get the name of all the ppm_sc provided in the set.
 	*/
-	std::unordered_set<std::string> get_syscalls_names(const std::unordered_set<uint32_t>& ppm_sc_set);
+	std::unordered_set<std::string> get_ppm_sc_names(const std::unordered_set<ppm_sc_code>& ppm_sc_set);
 
 	/*!
 	  \brief Get the name of all the events provided in the set.
 	*/
-	std::unordered_set<std::string> get_events_names(const std::unordered_set<uint32_t>& events_set);
+	std::unordered_set<std::string> get_events_names(const std::unordered_set<ppm_event_code>& events_set);
 
 	/*!
 	  \brief Get the ppm_sc of all the syscalls names provided in the set.
 	*/
-	std::unordered_set<uint32_t> get_ppm_sc_set_from_syscalls(const std::unordered_set<std::string>& syscalls);
+	std::unordered_set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls);
 
 	/**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
@@ -955,7 +954,7 @@ public:
 	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
 	 * @return set of events associated with the provided `ppm_sc` set.
 	 */
-	std::unordered_set<uint32_t> get_event_set_from_ppm_sc_set(const std::unordered_set<uint32_t> &ppm_sc_of_interest);
+	std::unordered_set<ppm_event_code> get_event_set_from_ppm_sc_set(const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest);
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 

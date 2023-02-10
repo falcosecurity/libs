@@ -39,7 +39,7 @@ int bpf_##event(struct type *ctx)
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
 	const struct syscall_evt_pair *sc_evt;
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	int drop_flags;
 	long id;
 	bool enabled;
@@ -87,7 +87,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 {
 	const struct syscall_evt_pair *sc_evt;
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	int drop_flags;
 	long id;
 	bool enabled;
@@ -128,7 +128,7 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	struct task_struct *task;
 	unsigned int flags;
 
@@ -146,7 +146,7 @@ BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 
 BPF_PROBE("sched/", sched_switch, sched_switch_args)
 {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_SCHEDSWITCH_6_E;
 
@@ -157,7 +157,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 #ifdef CAPTURE_PAGE_FAULTS
 static __always_inline int bpf_page_fault(struct page_fault_args *ctx)
 {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_PAGE_FAULT_E;
 
@@ -178,7 +178,7 @@ BPF_PROBE("exceptions/", page_fault_kernel, page_fault_args)
 
 BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 
 	evt_type = PPME_SIGNALDELIVER_E;
 
@@ -190,7 +190,7 @@ BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 __bpf_section(TP_NAME "sched/sched_process_fork")
 int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	struct sys_stash_args args;
 	unsigned long *argsp;
 
@@ -211,7 +211,7 @@ BPF_PROBE("sched/", sched_process_exec, sched_process_exec_args)
 {
 	struct scap_bpf_settings *settings;
 	/* We will always send an execve exit event. */
-	enum ppm_event_type event_type = PPME_SYSCALL_EXECVE_19_X;
+	ppm_event_code event_type = PPME_SYSCALL_EXECVE_19_X;
 
 	/* We are not interested in kernel threads. */
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
@@ -254,7 +254,7 @@ int bpf_sched_process_fork(struct sched_process_fork_raw_args *ctx)
 {
 	struct scap_bpf_settings *settings;
 	/* We will always send a clone exit event. */
-	enum ppm_event_type event_type = PPME_SYSCALL_CLONE_20_X;
+	ppm_event_code event_type = PPME_SYSCALL_CLONE_20_X;
 
 	/* We are not interested in kernel threads. */
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();

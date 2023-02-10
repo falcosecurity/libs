@@ -296,7 +296,7 @@ void print_supported_tracepoints()
 
 bool validate_syscalls()
 {
-	enum ppm_syscall_code ppm_syscall_code = 0;
+	ppm_sc_code ppm_syscall_code = 0;
 	bool success = true;
 	/* For every syscall of the system. */
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)

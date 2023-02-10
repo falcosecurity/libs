@@ -800,7 +800,7 @@ enum ppm_capture_category {
 /** @defgroup etypes Event Types
  *  @{
  */
-enum ppm_event_type {
+typedef enum {
 	PPME_GENERIC_E = 0,
 	PPME_GENERIC_X = 1,
 	PPME_SYSCALL_OPEN_E = 2,
@@ -1181,7 +1181,7 @@ enum ppm_event_type {
 	PPME_SYSCALL_EPOLL_CREATE1_E = 376,
 	PPME_SYSCALL_EPOLL_CREATE1_X = 377,
 	PPM_EVENT_MAX = 378
-};
+} ppm_event_code;
 /*@}*/
 
 
@@ -1611,12 +1611,12 @@ enum extra_event_prog_code
 	PPM_SC_X(CLOSE_RANGE, 392) \
 	PPM_SC_X(FANOTIFY_MARK, 393)
 
-enum ppm_syscall_code {
+typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = value,
 	PPM_SC_FIELDS
 #undef PPM_SC_X
 	PPM_SC_MAX,
-};
+} ppm_sc_code;
 
 /*
  * Event information enums
@@ -1901,9 +1901,9 @@ enum syscall_flags {
 
 struct syscall_evt_pair {
 	int flags;
-	enum ppm_event_type enter_event_type;
-	enum ppm_event_type exit_event_type;
-	enum ppm_syscall_code ppm_sc;
+	ppm_event_code enter_event_type;
+	ppm_event_code exit_event_type;
+	ppm_sc_code ppm_sc;
 
 } _packed;
 

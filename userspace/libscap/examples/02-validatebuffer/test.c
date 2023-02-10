@@ -27,7 +27,7 @@ limitations under the License.
 extern const struct ppm_event_info g_event_info[];
 
 
-size_t g_get_event_size(enum ppm_event_type event_type, uint16_t* lens)
+size_t g_get_event_size(ppm_event_code event_type, uint16_t* lens)
 {
 	uint32_t j;
 	int32_t res = 0;

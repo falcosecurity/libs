@@ -142,12 +142,12 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set);
 static long ppm_ioctl(struct file *f, unsigned int cmd, unsigned long arg);
 static int ppm_mmap(struct file *filp, struct vm_area_struct *vma);
 static int record_event_consumer(struct ppm_consumer_t *consumer,
-                                 enum ppm_event_type event_type,
+                                 ppm_event_code event_type,
                                  enum syscall_flags drop_flags,
                                  nanoseconds ns,
                                  struct event_data_t *event_datap,
 				 tp_values tp_type);
-static void record_event_all_consumers(enum ppm_event_type event_type,
+static void record_event_all_consumers(ppm_event_code event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap,
 				       tp_values tp_type);
@@ -1340,7 +1340,7 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
-static enum ppm_event_type parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
+static ppm_event_code parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[6] = {};
 	unsigned long __user *scargs;
@@ -1445,7 +1445,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 	}
 }
 
-static inline void drops_buffer_syscall_categories_counters(enum ppm_event_type event_type,
+static inline void drops_buffer_syscall_categories_counters(ppm_event_code event_type,
 				    struct ppm_ring_buffer_info *ring_info)
 {
 	switch (event_type) {
@@ -1604,7 +1604,7 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer,
 }
 
 // Return 1 if the event should be dropped, else 0
-static inline int drop_nostate_event(enum ppm_event_type event_type,
+static inline int drop_nostate_event(ppm_event_code event_type,
 				     struct pt_regs *regs)
 {
 	unsigned long args[6] = {};
@@ -1667,7 +1667,7 @@ static inline int drop_nostate_event(enum ppm_event_type event_type,
 
 // Return 1 if the event should be dropped, else 0
 static inline int drop_event(struct ppm_consumer_t *consumer,
-			     enum ppm_event_type event_type,
+			     ppm_event_code event_type,
 			     enum syscall_flags drop_flags,
 			     nanoseconds ns,
 			     struct pt_regs *regs)
@@ -1712,7 +1712,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 	return 0;
 }
 
-static void record_event_all_consumers(enum ppm_event_type event_type,
+static void record_event_all_consumers(ppm_event_code event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap,
 	tp_values tp_type)
@@ -1731,7 +1731,7 @@ static void record_event_all_consumers(enum ppm_event_type event_type,
  * Returns 0 if the event is dropped
  */
 static int record_event_consumer(struct ppm_consumer_t *consumer,
-	enum ppm_event_type event_type,
+	ppm_event_code event_type,
 	enum syscall_flags drop_flags,
 	nanoseconds ns,
 	struct event_data_t *event_datap,
@@ -1855,7 +1855,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * call. I guess this was done to reduce the number of syscalls...
 	 */
 	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == event_datap->socketcall_syscall) {
-		enum ppm_event_type tet;
+		ppm_event_code tet;
 
 		args.is_socketcall = true;
 		args.compat = event_datap->compat;
@@ -2154,7 +2154,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-		enum ppm_event_type type;
+		ppm_event_code type;
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
@@ -2181,7 +2181,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 }
 
-static __always_inline bool kmod_drop_syscall_exit_events(long ret, enum ppm_event_type evt_type)
+static __always_inline bool kmod_drop_syscall_exit_events(long ret, ppm_event_code evt_type)
 {
 	switch (evt_type)
 	{
@@ -2255,7 +2255,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		struct event_data_t event_data;
 		int used = cur_g_syscall_table[table_index].flags & UF_USED;
 		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-		enum ppm_event_type type;
+		ppm_event_code type;
 
 #ifdef _HAS_SOCKETCALL
 		if (id == socketcall_syscall) {
