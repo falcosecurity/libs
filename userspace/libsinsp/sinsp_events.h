@@ -148,6 +148,24 @@ public:
 		return ret;
 	}
 
+	// This should be union but it is a reserved name
+	set add(const set& other) const
+	{
+		if (other.max != max)
+		{
+			throw sinsp_exception("cannot union sets with different max size.");
+		}
+		set<ppm_type> ret(max);
+		for(size_t i = 0; i <= max; ++i)
+		{
+			if (m_types[i] | other.m_types[i])
+			{
+				ret.insert((ppm_type)i);
+			}
+		}
+		return ret;
+	}
+
 	void for_each(const std::function<bool(ppm_type)>& consumer) const
 	{
 		for(size_t i = 0; i < max; ++i)
