@@ -428,31 +428,29 @@ void cri_interface::get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusRe
 					jvalue[key].removeMember("Sandbox");
 				}
 			}
+
+			Json::FastWriter fastWriter;
+			cniresult = fastWriter.write(jvalue);
 		}
 
 		if(jvalue.isNull())
 		{
 			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];	/* pod info schema of CT_CRIO runtime. Note interfaces names are unknown here. */
+			if(!jvalue.isNull())
+			{
+				cniresult = jvalue.asString();
+			}
 		}
 
-		if(!jvalue.isNull())
+		if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups if applicable. */
 		{
-			Json::FastWriter fastWriter;
-			cniresult = fastWriter.write(jvalue);
+			cniresult.pop_back();
+		}
 
-			if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups. */
-			{
-				cniresult.pop_back();
-			}
-
-			/* CRIO container runtime exposes cni result as escaped JSON string -> sanitize to have consistent outputs. */
-			cniresult.erase(std::remove(cniresult.begin(), cniresult.end(), '\\'), cniresult.end());
-
-			if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
-			{
-				cniresult.resize(MAX_CNIRESULT_LENGTH);
-			}
-		}		
+		if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
+		{
+			cniresult.resize(MAX_CNIRESULT_LENGTH);
+		}
 	}
 }
 
