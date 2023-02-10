@@ -217,8 +217,8 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
+	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
 	virtual void open_udig();
 	virtual void open_nodriver();
 	virtual void open_savefile(const std::string &filename, int fd = 0);
@@ -228,7 +228,7 @@ public:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
 	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
 	 */
-	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
 	virtual void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);

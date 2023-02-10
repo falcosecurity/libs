@@ -59,26 +59,28 @@ bool libsinsp::events::is_plugin_event(ppm_event_code event_type)
 	return (category & EC_PLUGIN);
 }
 
-std::unordered_set<std::string> libsinsp::events::get_events_names(const std::unordered_set<ppm_event_code>& events_set)
+std::unordered_set<std::string> libsinsp::events::get_events_names(const libsinsp::events::set<ppm_event_code>& events_set)
 {
 	std::unordered_set<std::string> events_names_set;
-	for(const auto& it : events_set)
-	{
-		if (it > PPME_GENERIC_X)
+	events_set.for_each([&events_names_set](ppm_event_code val) {
+		if (val > PPME_GENERIC_X)
 		{
-			events_names_set.insert(g_infotables.m_event_info[it].name);
+			events_names_set.insert(g_infotables.m_event_info[val].name);
 		}
 		else
 		{
+			// Skip unknown
 			for (uint32_t i = 1; i < PPM_SC_MAX; i++)
 			{
-				const auto evts = get_event_set_from_ppm_sc_set({(ppm_sc_code)i});
-				if (evts.find(it) != evts.end())
+				auto single_ev_set = libsinsp::events::set<ppm_sc_code>(std::unordered_set<ppm_sc_code>{i});
+				const auto evts = get_event_set_from_ppm_sc_set(single_ev_set);
+				if (evts.contains(val))
 				{
 					events_names_set.insert(g_infotables.m_syscall_info_table[i].name);
 				}
 			}
 		}
-	}
+		return true;
+	});
 	return events_names_set;
 }
