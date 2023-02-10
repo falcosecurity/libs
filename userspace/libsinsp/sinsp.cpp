@@ -523,7 +523,7 @@ void sinsp::mark_tp_of_interest(ppm_tp_code tp, bool enable)
 	}
 }
 
-static void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest)
+static void fill_ppm_sc_of_interest(scap_open_args *oargs, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
 {
 	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
@@ -534,12 +534,12 @@ static void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_
 		}
 		else
 		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.find((ppm_sc_code)i) != ppm_sc_of_interest.end();
+			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.contains((ppm_sc_code)i);
 		}
 	}
 }
 
-static void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest)
+static void fill_tp_of_interest(scap_open_args *oargs, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
 {
 	for(int i = 0; i < TP_VAL_MAX; i++)
 	{
@@ -550,12 +550,12 @@ static void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<
 		}
 		else
 		{
-			oargs->tp_of_interest.tp[i] = tp_of_interest.find(i) != tp_of_interest.end();
+			oargs->tp_of_interest.tp[i] = tp_of_interest.contains((ppm_tp_code)i);
 		}
 	}
 }
 
-void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
@@ -570,7 +570,7 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordere
 	open_common(&oargs);
 }
 
-void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
 {
 	/* Validate the BPF path. */
 	if(bpf_path.empty())
@@ -671,7 +671,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
@@ -1288,7 +1288,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	}
 
 	/* Here we shouldn't receive unknown events */
-	ASSERT(!sinsp::is_unknown_event(evt->get_type()))
+	ASSERT(!libsinsp::events::is_unknown_event((ppm_event_code)evt->get_type()))
 
 	uint64_t ts = evt->get_ts();
 
