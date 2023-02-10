@@ -443,19 +443,16 @@ void sinsp_scap_debug_log_fn(const char* msg);
 
 
 template<typename T>
-std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
+std::set<T> unordered_set_to_ordered(const std::unordered_set<T>& unordered_set);
 
 template<typename T>
-std::unordered_set<T> convert_vector_to_unordered_set(std::vector<T> v);
+std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
 
 template<typename T>
-std::unordered_set<T> unordered_set_difference(std::unordered_set<T> a, std::unordered_set<T> b);
+std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
 
 template<typename T>
-std::unordered_set<T> unordered_set_union(std::unordered_set<T> a, std::unordered_set<T> b);
-
-template<typename T>
-std::unordered_set<T> unordered_set_intersection(std::unordered_set<T> a, std::unordered_set<T> b);
+std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
 
 std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim = ", ");
 std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim = ", ");
