@@ -950,7 +950,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_ppm_sc(OUT ppm_sc_code ppm_sc_array[PPM_SC_MAX])
+int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
 {
 	if(ppm_sc_array == NULL)
 	{
@@ -992,7 +992,7 @@ int scap_get_modifies_state_ppm_sc(OUT ppm_sc_code ppm_sc_array[PPM_SC_MAX])
 	return SCAP_SUCCESS;
 }
 
-int scap_get_events_from_ppm_sc(IN const ppm_sc_code ppm_sc_array[PPM_SC_MAX], OUT ppm_event_code events_array[PPM_EVENT_MAX])
+int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX])
 {
 	if(ppm_sc_array == NULL || events_array == NULL)
 	{
@@ -1005,7 +1005,7 @@ int scap_get_events_from_ppm_sc(IN const ppm_sc_code ppm_sc_array[PPM_SC_MAX], O
 	memset(events_array, 0, sizeof(*events_array) * PPM_EVENT_MAX);
 
 #ifdef __linux__
-	for(ppm_sc_code ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
+	for(int ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
 	{
 		if(!ppm_sc_array[ppm_code])
 		{

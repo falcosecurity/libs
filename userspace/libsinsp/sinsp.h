@@ -52,6 +52,7 @@ limitations under the License.
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
 #include "sinsp_exception.h"
+#include "sinsp_events.h"
 
 #include <string>
 #include <map>
@@ -216,8 +217,8 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
-	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	virtual void open_udig();
 	virtual void open_nodriver();
 	virtual void open_savefile(const std::string &filename, int fd = 0);
@@ -227,7 +228,7 @@ public:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
 	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
 	 */
-	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const std::unordered_set<uint32_t> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
+	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest = {}, const std::unordered_set<uint32_t> &tp_of_interest = {});
 	virtual void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
@@ -852,109 +853,13 @@ public:
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
 		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
 		can match more than one system syscall.
-		Please note that this method must be called when the inspector is already open to 
+		Please note that this method must be called when the inspector is already open to
 		modify at runtime the interesting syscall set.
 
 		WARNING: playing with this API could break `libsinsp` state collection, this is only
 		useful in advanced cases where the client needs to know what it is doing!
 	*/
 	void mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enabled = true);
-
-	/*!
-		\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
-		If you call it without arguments it returns a new set with just these syscalls
-		otherwise, it merges the minimum set of syscalls with the one you provided.
-
-		WARNING: without using this method, we cannot guarantee that `libsinsp` state
-		will always be up to date, or even work at all.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code> ppm_sc_of_interest = {});
-
-	/*!
-	  \brief Enforce simple set of syscalls with all the security-valuable syscalls.
-	  It has same effect of old `simple_consumer` mode.
-	  Does enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_simple_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for IO (EC_IO_READ, EC_IO_WRITE).
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_io_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for IO (EC_IO_OTHER).
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_io_other_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for file operations.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_file_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for networking.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_net_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for process state tracking.
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_proc_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of syscalls with the ones
-	  valuable for system state tracking (signals, memory...)
-	  Does not enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> enforce_sys_ppm_sc_set(std::unordered_set<ppm_sc_code> ppm_sc_set = {});
-
-	/*!
-	  \brief Enforce passed set of events with critical non syscalls events,
-	  e.g. container or procexit events.
-	*/
-	std::unordered_set<ppm_event_code> enforce_sinsp_state_ppme(std::unordered_set<ppm_event_code> ppm_event_info_of_interest = {});
-
-	/*!
-	  \brief Get all the available ppm_sc.
-	  Does enforce minimum sinsp state set.
-	*/
-	std::unordered_set<ppm_sc_code> get_all_ppm_sc();
-
-	/*!
-	  \brief Get the name of all the ppm_sc provided in the set.
-	*/
-	std::unordered_set<std::string> get_ppm_sc_names(const std::unordered_set<ppm_sc_code>& ppm_sc_set);
-
-	/*!
-	  \brief Get the name of all the events provided in the set.
-	*/
-	std::unordered_set<std::string> get_events_names(const std::unordered_set<ppm_event_code>& events_set);
-
-	/*!
-	  \brief Get the ppm_sc of all the syscalls names provided in the set.
-	*/
-	std::unordered_set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls);
-
-	/**
-	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
-	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
-	 * associated with a set of `ppm_sc` you have to pass the entire set of `ppm_sc`.
-	 * 
-	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
-	 * @return set of events associated with the provided `ppm_sc` set.
-	 */
-	std::unordered_set<ppm_event_code> get_event_set_from_ppm_sc_set(const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest);
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
@@ -972,26 +877,6 @@ public:
 	*/
 	void mark_tp_of_interest(uint32_t tp, bool enabled = true);
 
-	/*!
-	  \brief Get all the available tracepoints.
-	*/
-	std::unordered_set<uint32_t> get_all_tp();
-
-	/*!
-	  \brief Get the name of all the ppm_sc provided in the set.
-	*/
-	std::unordered_set<std::string> get_tp_names(const std::unordered_set<uint32_t>& tp_set);
-
-	/*!
-		\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
-		If you call it without arguments it returns a new set with just these tracepoints
-		otherwise, it merges the minimum set of tracepoints with the one you provided.
-
-		WARNING: without using this method, we cannot guarantee that `libsinsp` state
-		will always be up to date, or even work at all.
-	*/
-	std::unordered_set<uint32_t> enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest = {});
-
 	/*=============================== Tracepoint set related ===============================*/
 
 	/*=============================== Engine related ===============================*/
@@ -1005,119 +890,6 @@ public:
 	bool check_current_engine(const std::string& engine_name);
 
 	/*=============================== Engine related ===============================*/
-
-	/*=============================== Events related ===============================*/
-
-	/**
-	 * @brief If the event type has one of the following flags return true:
-	 * - `EF_UNUSED`
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has at least one of these flags.
-	 */
-	static inline bool is_unused_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
-		return (flags & EF_UNUSED);
-	}
-
-	/**
-	 * @brief If the event type has one of the following flags return true:
-	 * - `EF_SKIPPARSERESET`
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has at least one of these flags.
-	 */
-	static inline bool is_skip_parse_reset_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
-		return (flags & EF_SKIPPARSERESET);
-	}
-
-	/**
-	 * @brief Return true if the event has the `EF_OLD_VERSION` flag
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EF_OLD_VERSION` flag.
-	 */
-	static inline bool is_old_version_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
-		return (flags & EF_OLD_VERSION);
-	}
-
-	/**
-	 * @brief Return true if the event belongs to the `EC_SYSCALL` category
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EC_SYSCALL` category.
-	 */
-	static inline bool is_syscall_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_SYSCALL);
-	}
-
-	/**
-	 * @brief Return true if the event belongs to the `EC_TRACEPOINT` category
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EC_TRACEPOINT` category.
-	 */
-	static inline bool is_tracepoint_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_TRACEPOINT);
-	}
-
-	/**
-	 * @brief Return true if the event belongs to the `EC_METAEVENT` category
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EC_METAEVENT` category.
-	 */
-	static inline bool is_metaevent(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_METAEVENT);
-	}
-
-	/**
-	 * @brief Return true if the event belongs to the `EC_UNKNOWN` category
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EC_UNKNOWN` category.
-	 */
-	static inline bool is_unknown_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		/* Please note this is not an `&` but an `==` if one event has 
-		 * the `EC_UNKNOWN` category, it must have only this category!
-		 */
-		return (category == EC_UNKNOWN);
-	}
-
-	/**
-	 * @brief Return true if the event belongs to the `EC_PLUGIN` category
-	 * 
-	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
-	 * @return true if the event type has the `EC_PLUGIN` category.
-	 */
-	static inline bool is_plugin_event(uint16_t event_type)
-	{
-		ASSERT(event_type < PPM_EVENT_MAX);
-		enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
-		return (category & EC_PLUGIN);
-	}
-
-	/*=============================== Events related ===============================*/
 
 	bool setup_cycle_writer(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, bool compress);
 	void import_ipv4_interface(const sinsp_ipv4_ifinfo& ifinfo);
@@ -1214,9 +986,6 @@ private:
 	void import_user_list();
 	void add_protodecoders();
 	void remove_thread(int64_t tid, bool force);
-
-	void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &ppm_sc_of_interest);
-	void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
