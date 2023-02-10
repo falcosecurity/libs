@@ -127,7 +127,7 @@ int f_sys_generic(struct event_filler_arguments *args)
 
 	if (likely(table_index >= 0 &&
 		   table_index <  SYSCALL_TABLE_SIZE)) {
-		enum ppm_syscall_code sc_code = cur_g_syscall_table[table_index].ppm_sc;
+		ppm_sc_code sc_code = cur_g_syscall_table[table_index].ppm_sc;
 
 		/*
 		 * ID

@@ -55,7 +55,7 @@ protected:
 		m_inspector.open_test_input(m_test_data.get());
 	}
 
-	scap_evt* add_event(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
+	scap_evt* add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
 	{
 		va_list args;
 		va_start(args, n);
@@ -78,7 +78,7 @@ protected:
 	}
 
 	// adds an event and advances the inspector to the new timestamp
-	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, ...)
+	sinsp_evt* add_event_advance_ts(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
 	{
 		va_list args;
 		va_start(args, n);
@@ -90,10 +90,10 @@ protected:
 			return sinsp_event;
 		}
 
-		throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + m_events.size() + std::string(")"));
+		throw std::runtime_error("could not retrieve last event or internal error (event vector size: " + std::to_string(m_events.size()) + std::string(")"));
 	}
 
-	scap_evt* add_event_v(uint64_t ts, uint64_t tid, enum ppm_event_type event_type, uint32_t n, va_list args)
+	scap_evt* add_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
 	{
 		struct scap_sized_buffer event_buf = {NULL, 0};
 		size_t event_size;

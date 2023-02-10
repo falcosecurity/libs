@@ -733,7 +733,7 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 		return ret;
 	}
 
-	ppm_event_type type;
+	ppm_event_code type;
 
 	if(gvisor_evt.has_exit())
 	{
@@ -994,7 +994,7 @@ static parse_result parse_setresid(const char *proto, size_t proto_size, scap_si
 		return ret;
 	}
 
-	enum ppm_event_type type;
+	ppm_event_code type;
 
 	if(gvisor_evt.has_exit())
 	{
@@ -1037,7 +1037,7 @@ static parse_result parse_setid(const char *proto, size_t proto_size, scap_sized
 		return ret;
 	}
 
-	enum ppm_event_type type;
+	ppm_event_code type;
 
 	if(gvisor_evt.has_exit())
 	{
@@ -1139,7 +1139,7 @@ static parse_result parse_dup(const char *proto, size_t proto_size, scap_sized_b
 	}
 	else
 	{
-		enum ppm_event_type type;
+		ppm_event_code type;
 
 		switch(gvisor_evt.sysno())
 		{

@@ -244,7 +244,7 @@ struct scap_bpf_settings {
 } __attribute__((packed));
 
 struct tail_context {
-	enum ppm_event_type evt_type;
+	ppm_event_code evt_type;
 	unsigned long long ts;
 	unsigned long curarg;
 	unsigned long curoff;
