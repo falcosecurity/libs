@@ -449,10 +449,19 @@ template<typename T>
 std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
 
 template<typename T>
+std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b);
+
+template<typename T>
 std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
 
 template<typename T>
+std::set<T> set_union(const std::set<T>& a, const std::set<T>& b);
+
+template<typename T>
 std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a, const std::unordered_set<T>& b);
+
+template<typename T>
+std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b);
 
 std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim = ", ");
 std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim = ", ");

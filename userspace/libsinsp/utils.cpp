@@ -1940,6 +1940,23 @@ std::unordered_set<T> unordered_set_difference(const std::unordered_set<T>& a, c
 template std::unordered_set<std::string> unordered_set_difference(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
 template std::unordered_set<uint32_t> unordered_set_difference(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
 
+// set_difference, equivalent to SQL left_anti join operation
+template<typename T>
+std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b)
+{
+	std::set<T> s;
+	for(const auto& val : a)
+	{
+		if (b.find(val) == b.end())
+		{
+			s.insert(val);
+		}
+	}
+	return s;
+}
+template std::set<std::string> set_difference(const std::set<std::string>& a, const std::set<std::string>& b);
+template std::set<uint32_t> set_difference(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
+
 // unordered_set_union
 template<typename T>
 std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const std::unordered_set<T>& b)
@@ -1953,6 +1970,20 @@ std::unordered_set<T> unordered_set_union(const std::unordered_set<T>& a, const 
 }
 template std::unordered_set<std::string> unordered_set_union(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
 template std::unordered_set<uint32_t> unordered_set_union(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
+
+// set_union
+template<typename T>
+std::set<T> set_union(const std::set<T>& a, const std::set<T>& b)
+{
+	std::set<T> s = a;
+	for(const auto& val : b)
+	{
+		s.insert(val);
+	}
+	return s;
+}
+template std::set<std::string> set_union(const std::set<std::string>& a, const std::set<std::string>& b);
+template std::set<uint32_t> set_union(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
 
 // unordered_set_intersection
 template<typename T>
@@ -1970,6 +2001,23 @@ std::unordered_set<T> unordered_set_intersection(const std::unordered_set<T>& a,
 }
 template std::unordered_set<std::string> unordered_set_intersection(const std::unordered_set<std::string>& a, const std::unordered_set<std::string>& b);
 template std::unordered_set<uint32_t> unordered_set_intersection(const std::unordered_set<uint32_t>& a, const std::unordered_set<uint32_t>& b);
+
+// set_intersection
+template<typename T>
+std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b)
+{
+	std::set<T> s;
+	for(const auto& val : a)
+	{
+		if (b.find(val) != b.end())
+		{
+			s.insert(val);
+		}
+	}
+	return s;
+}
+template std::set<std::string> set_intersection(const std::set<std::string>& a, const std::set<std::string>& b);
+template std::set<uint32_t> set_intersection(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
 
 std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim)
 {
