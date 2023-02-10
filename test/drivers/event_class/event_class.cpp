@@ -220,6 +220,16 @@ void event_test::enable_capture()
 	clear_ring_buffers();
 }
 
+void event_test::enable_sampling_logic(uint32_t sampling_ratio)
+{
+	scap_start_dropping_mode(s_scap_handle, sampling_ratio);
+}
+
+void event_test::disable_sampling_logic()
+{
+	scap_stop_dropping_mode(s_scap_handle);
+}
+
 void event_test::disable_capture()
 {
 	scap_stop_capture(s_scap_handle);

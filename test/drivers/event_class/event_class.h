@@ -155,6 +155,18 @@ public:
 	void disable_capture();
 
 	/**
+	 * @brief Enable driver sampling logic
+	 *
+	 */
+	void enable_sampling_logic(uint32_t sampling_ratio);
+
+	/**
+	 * @brief Disable driver sampling logic
+	 *
+	 */
+	void disable_sampling_logic();
+
+	/**
 	 * @brief Clear the ring buffers from all previous events until they
 	 * are all empty.
 	 *
