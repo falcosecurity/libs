@@ -138,7 +138,6 @@ sinsp_usergroup_manager::~sinsp_usergroup_manager()
 #if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
 	delete m_ns_helper;
 #endif
-{
 }
 // clang-format on
 
@@ -341,19 +340,12 @@ scap_userinfo *sinsp_usergroup_manager::add_host_user(uint32_t uid, uint32_t gid
 #endif
 	}
 
-		if (notify && inserted)
+		if (notify && retval)
 		{
-			notify_user_changed(usr, container_id);
+			notify_user_changed(retval, "");
 		}
-	}
-	else if (name != NULL)
-	{
-		// Update user if it was already there
-		strlcpy(usr->name, name, MAX_CREDENTIALS_STR_LEN);
-		strlcpy(usr->homedir, home, SCAP_MAX_PATH_SIZE);
-		strlcpy(usr->shell, shell, SCAP_MAX_PATH_SIZE);
-	}
-	return usr;
+	
+	return retval;
 }
 
 scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &container_id, int64_t pid, uint32_t uid, bool notify)

@@ -1164,9 +1164,6 @@ public:
 	const sinsp_plugin_manager* get_plugin_manager();
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
-
-	const std::string& get_host_root() const { return m_host_root; }
-	void set_host_root(const std::string& s) { m_host_root = s; }
 	bool remove_inactive_threads();
 
 	const std::string& get_host_root() const { return m_host_root; }

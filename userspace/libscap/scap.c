@@ -26,6 +26,7 @@ limitations under the License.
 #include <sys/mman.h>
 #endif // _WIN32
 
+#include "compat/misc.h"
 #include "scap.h"
 #include "strlcpy.h"
 #include "../../driver/ppm_ringbuffer.h"
@@ -234,9 +235,9 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_debug_log_fn = debug_log_fn;
-	handle->m_proc_scan_timeout_ms = proc_scan_timeout_ms;
-	handle->m_proc_scan_log_interval_ms = proc_scan_log_interval_ms;
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 
 	handle->m_vtable = &scap_udig_engine;
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
