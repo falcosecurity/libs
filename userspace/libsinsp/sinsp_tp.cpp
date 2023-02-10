@@ -15,39 +15,9 @@ limitations under the License.
 
 */
 
-#include <sinsp.h>
+#include <sinsp_events.h>
 
-void sinsp::fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest)
-{
-	for(int i = 0; i < TP_VAL_MAX; i++)
-	{
-		/* If the set is empty, fallback to all interesting tracepoints */
-		if (tp_of_interest.empty())
-		{
-			oargs->tp_of_interest.tp[i] = true;
-		}
-		else
-		{
-			oargs->tp_of_interest.tp[i] = tp_of_interest.find(i) != tp_of_interest.end();
-		}
-	}
-}
-
-void sinsp::mark_tp_of_interest(uint32_t tp, bool enable)
-{
-	/* This API must be used only after the initialization phase. */
-	if (!m_inited)
-	{
-		throw sinsp_exception("you cannot use this method before opening the inspector!");
-	}
-	int ret = scap_set_tp(m_h, tp, enable);
-	if (ret != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-}
-
-std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest)
+std::unordered_set<uint32_t> libsinsp::events::enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest)
 {
 	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
 
@@ -67,7 +37,7 @@ std::unordered_set<uint32_t> sinsp::enforce_sinsp_state_tp(std::unordered_set<ui
 	return tp_of_interest;
 }
 
-std::unordered_set<uint32_t> sinsp::get_all_tp()
+std::unordered_set<uint32_t> libsinsp::events::get_all_tp()
 {
 	std::unordered_set<uint32_t> ppm_tp_array;
 
@@ -79,7 +49,7 @@ std::unordered_set<uint32_t> sinsp::get_all_tp()
 	return ppm_tp_array;
 }
 
-std::unordered_set<std::string> sinsp::get_tp_names(const std::unordered_set<uint32_t>& tp_set)
+std::unordered_set<std::string> libsinsp::events::get_tp_names(const std::unordered_set<uint32_t>& tp_set)
 {
 	std::unordered_set<std::string> tp_names_set;
 	for(const auto& it : tp_set)
