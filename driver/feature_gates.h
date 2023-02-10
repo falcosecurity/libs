@@ -159,6 +159,15 @@ or GPL2.txt for full copies of the license.
 	#define CAPTURE_SCHED_PROC_FORK 
 #endif
 
+///////////////////////////////
+// CAPTURE_PAGE_FAULTS
+///////////////////////////////
+
+#if defined(__TARGET_ARCH_x86)
+	#define CAPTURE_PAGE_FAULTS 
+#endif
+
+
 #else /* Userspace */
 
 /* Please note: the userspace loads the filler table for the bpf probe

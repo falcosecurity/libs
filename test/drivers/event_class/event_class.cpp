@@ -127,6 +127,13 @@ event_test::event_test(ppm_event_type event_type):
 #endif
 		break;
 
+	case PPME_PAGE_FAULT_E:
+#ifdef CAPTURE_PAGE_FAULTS
+		m_tp_set[PAGE_FAULT_USER] = 1;
+		m_tp_set[PAGE_FAULT_KERN] = 1;
+#endif
+		break;
+
 	default:
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
 		break;
