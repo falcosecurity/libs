@@ -39,8 +39,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_sinsp_state_ppm_sc(
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
-	auto simple_set = enforce_sinsp_state_ppm_sc(
-		libsinsp::events::set<ppm_sc_code>(std::unordered_set<ppm_sc_code>{
+	auto simple_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code> {
 		PPM_SC_ACCEPT,
 		PPM_SC_ACCEPT4,
 		PPM_SC_BIND,
@@ -126,9 +125,8 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_ppm_sc_set(l
 		PPM_SC_UNSHARE,
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
-	}));
-	ppm_sc_set.merge(simple_set);
-	return ppm_sc_set;
+	});
+	return ppm_sc_set.merge(enforce_sinsp_state_ppm_sc(simple_set));;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_io_ppm_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)

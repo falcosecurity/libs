@@ -19,6 +19,7 @@ private:
 	using vec_t = std::vector<uint8_t>;
 	vec_t m_types{};
 	ppm_type max;
+	size_t len;
 
 	inline void check_range(ppm_type e) const
 	{
@@ -37,53 +38,33 @@ public:
 
 	inline explicit set(ppm_type maxLen):
 		m_types(maxLen + 1, 0),
-		max(maxLen)
+		max(maxLen),
+		len(0)
 	{
 	}
 
-	inline explicit set(std::unordered_set<ppm_type> vals)
+	static set from_unordered_set(std::unordered_set<ppm_type> u_set)
 	{
-		set<ppm_type>();
-		for (const auto &val : vals)
+		set<ppm_type> ret;
+		for (const auto &val : u_set)
 		{
-			insert(val);
+			ret.insert(val);
 		}
+		return ret;
 	}
 
 	inline void insert(ppm_type e)
 	{
 		check_range(e);
 		m_types[e] = 1;
+		len++;
 	}
 
 	inline void remove(ppm_type e)
 	{
 		check_range(e);
 		m_types[e] = 0;
-	}
-
-	void merge(const set& other)
-	{
-		if (other.max != max)
-		{
-			throw sinsp_exception("cannot merge different set");
-		}
-		for(size_t i = 0; i <= max; ++i)
-		{
-			m_types[i] |= other.m_types[i];
-		}
-	}
-
-	void merge(const std::set<ppm_type>& other)
-	{
-		if (other.size() != max)
-		{
-			throw sinsp_exception("cannot merge different set");
-		}
-		for(const auto& e : other)
-		{
-			insert(e);
-		}
+		len--;
 	}
 
 	inline bool contains(ppm_type e) const
@@ -98,11 +79,17 @@ public:
 		{
 			v = 0;
 		}
+		len = 0;
 	}
 
-	bool empty() const
+	inline bool empty() const
 	{
-		return equals(set<ppm_type>{});
+		return len == 0;
+	}
+
+	inline size_t size() const
+	{
+		return len;
 	}
 
 	bool equals(const set& other) const
@@ -110,30 +97,53 @@ public:
 		return m_types == other.m_types;
 	}
 
-	set diff(const set& other)
+	set merge(const set& other) const
 	{
 		if (other.max != max)
 		{
-			throw sinsp_exception("cannot diff different set");
+			throw sinsp_exception("cannot merge sets with different max size.");
 		}
 		set<ppm_type> ret(max);
 		for(size_t i = 0; i <= max; ++i)
 		{
-			ret.m_types[i] = m_types[i] ^ other.m_types[i];
+			if (!m_types[i] && other.m_types[i])
+			{
+				ret.insert((ppm_type)i);
+			}
 		}
 		return ret;
 	}
 
-	set intersect(const set& other)
+	set diff(const set& other) const
 	{
 		if (other.max != max)
 		{
-			throw sinsp_exception("cannot intersect different set");
+			throw sinsp_exception("cannot diff sets with different max size.");
 		}
 		set<ppm_type> ret(max);
 		for(size_t i = 0; i <= max; ++i)
 		{
-			ret.m_types[i] = m_types[i] & other.m_types[i];
+			if (m_types[i] ^ other.m_types[i])
+			{
+				ret.insert((ppm_type)i);
+			}
+		}
+		return ret;
+	}
+
+	set intersect(const set& other) const
+	{
+		if (other.max != max)
+		{
+			throw sinsp_exception("cannot intersect sets with different max size.");
+		}
+		set<ppm_type> ret(max);
+		for(size_t i = 0; i <= max; ++i)
+		{
+			if (m_types[i] & other.m_types[i])
+			{
+				ret.insert((ppm_type)i);
+			}
 		}
 		return ret;
 	}

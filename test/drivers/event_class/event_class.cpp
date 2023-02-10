@@ -26,7 +26,7 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 // RETRIEVE EVENT CLASS
 /////////////////////////////////
 
-std::unique_ptr<event_test> get_generic_event_test(tp_values tp_code)
+std::unique_ptr<event_test> get_generic_event_test(ppm_tp_code tp_code)
 {
 	return (std::unique_ptr<event_test>)new event_test(tp_code);
 }
@@ -102,7 +102,7 @@ event_test::~event_test()
 /* This constructor must be used with generic tracepoints
  * that must attach a dedicated BPF program into the kernel.
  */
-event_test::event_test(tp_values tp_code):
+event_test::event_test(ppm_tp_code tp_code):
 	m_tp_set(TP_VAL_MAX, 0)
 {
 	m_current_param = 0;
@@ -229,7 +229,7 @@ void event_test::enable_capture()
 	{
 		if(m_tp_set[i])
 		{
-			scap_set_tp(s_scap_handle, i, true);
+			scap_set_tp(s_scap_handle, (ppm_tp_code)i, true);
 		}
 	}
 	/* We need to clear all the `ring-buffers` because maybe during

@@ -22,67 +22,46 @@ limitations under the License.
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
  */
-std::set<uint32_t> ordered_sinsp_state_tracepoint_set{
+auto sinsp_state_tp_set = libsinsp::events::set<ppm_tp_code>::from_unordered_set(std::unordered_set<ppm_tp_code>{
 	SYS_ENTER,
 	SYS_EXIT,
 	SCHED_PROC_EXIT,
 	SCHED_SWITCH,
 	SCHED_PROC_FORK,
 	SCHED_PROC_EXEC
-};
+});
 
 /* This test asserts that `enforce_sinsp_state_tp` correctly retrieves
  * the `libsinsp` state tracepoint set.
  */
 TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_basic)
 {
-	std::unique_ptr<sinsp> inspector(new sinsp());
-	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_tp());
+	auto final_tracepoints_set = libsinsp::events::enforce_sinsp_state_tp();
 
-	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(ordered_sinsp_state_tracepoint_set.size(), ordered_final_tracepoints_set.size());
-
-	auto final = ordered_final_tracepoints_set.begin();
-	auto matching = ordered_sinsp_state_tracepoint_set.begin();
-
-	for(; final != ordered_final_tracepoints_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
+	ASSERT_TRUE(sinsp_state_tp_set.equals(final_tracepoints_set));
 }
 
 TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
 {
-	std::unique_ptr<sinsp> inspector(new sinsp());
-	std::unordered_set<uint32_t> additional_tracepoints;
-	auto ordered_tracepoint_matching_set = ordered_sinsp_state_tracepoint_set;
+	libsinsp::events::set<ppm_tp_code> additional_tracepoints;
+	auto tracepoint_matching_set = sinsp_state_tp_set;
 
 	additional_tracepoints.insert(PAGE_FAULT_USER);
-	ordered_tracepoint_matching_set.insert(PAGE_FAULT_USER);
+	tracepoint_matching_set.insert(PAGE_FAULT_USER);
 
 	additional_tracepoints.insert(SIGNAL_DELIVER);
-	ordered_tracepoint_matching_set.insert(SIGNAL_DELIVER);
+	tracepoint_matching_set.insert(SIGNAL_DELIVER);
 
-	std::set<uint32_t> ordered_final_tracepoints_set = test_utils::unordered_set_to_ordered(inspector->enforce_sinsp_state_tp(additional_tracepoints));
+	auto final_tracepoints_set = libsinsp::events::enforce_sinsp_state_tp(additional_tracepoints);
 
-	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(ordered_tracepoint_matching_set.size(), ordered_final_tracepoints_set.size());
-
-	auto final = ordered_final_tracepoints_set.begin();
-	auto matching = ordered_tracepoint_matching_set.begin();
-
-	for(; final != ordered_final_tracepoints_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
+	ASSERT_TRUE(final_tracepoints_set.equals(tracepoint_matching_set));
 }
 
 /* This test asserts that `get_all_tp` correctly retrieves all the available tracepoints
  */
 TEST(interesting_tracepoints, get_all_tp)
 {
-	std::unique_ptr<sinsp> inspector(new sinsp());
-	auto tp_set = inspector->get_all_tp();
+	auto tp_set = libsinsp::events::get_all_tp();
 
 	/* Assert that all the tracepoints are taken */
 	ASSERT_EQ(tp_set.size(), TP_VAL_MAX);
@@ -92,25 +71,26 @@ TEST(interesting_tracepoints, get_all_tp)
  */
 TEST(interesting_tracepoints, get_tp_names)
 {
-	std::unique_ptr<sinsp> inspector(new sinsp());
-	std::set<std::string> orderd_tracepoints_names_matching_set;
-	std::unordered_set<uint32_t> tp_set;
+	std::set<std::string> tracepoints_names_matching_set;
+	libsinsp::events::set<ppm_tp_code> tp_set;
 
 	tp_set.insert(SYS_ENTER);
-	orderd_tracepoints_names_matching_set.insert("sys_enter");
+	tracepoints_names_matching_set.insert("sys_enter");
 
 	tp_set.insert(SCHED_PROC_FORK);
-	orderd_tracepoints_names_matching_set.insert("sched_process_fork");
+	tracepoints_names_matching_set.insert("sched_process_fork");
 
-	auto orderd_tracepoints_names_final_set = test_utils::unordered_set_to_ordered(inspector->get_tp_names(tp_set));
+	auto tracepoints_names_final_set = libsinsp::events::get_tp_names(tp_set);
 
 	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(orderd_tracepoints_names_matching_set.size(), orderd_tracepoints_names_final_set.size());
+	ASSERT_EQ(tracepoints_names_final_set.size(), tracepoints_names_matching_set.size());
 
-	auto final = orderd_tracepoints_names_final_set.begin();
-	auto matching = orderd_tracepoints_names_matching_set.begin();
+	auto ordered_tracepoints_names_final_set = test_utils::unordered_set_to_ordered(tracepoints_names_final_set);
 
-	for(; final != orderd_tracepoints_names_final_set.end(); final++, matching++)
+	auto final = ordered_tracepoints_names_final_set.begin();
+	auto matching = tracepoints_names_matching_set.begin();
+
+	for(; final != ordered_tracepoints_names_final_set.end(); final++, matching++)
 	{
 		ASSERT_EQ(*matching, *final);
 	}

@@ -25,7 +25,7 @@
  */
 
 /**
- * @brief Take as input the `ppm_event_type` enum and returns the number
+ * @brief Take as input the `ppm_event_code` enum and returns the number
  * of parameters for that event.
  */
 __weak const volatile uint8_t g_event_params_table[PPM_EVENT_MAX];
