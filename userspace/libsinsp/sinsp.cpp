@@ -509,7 +509,7 @@ void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
 }
 
 
-void sinsp::mark_tp_of_interest(uint32_t tp, bool enable)
+void sinsp::mark_tp_of_interest(ppm_tp_code tp, bool enable)
 {
 	/* This API must be used only after the initialization phase. */
 	if (!m_inited)

@@ -17,7 +17,7 @@ typedef enum {
 	TP_FIELDS
 #undef X
 	TP_VAL_MAX,
-} tp_values;
+} ppm_tp_code;
 
 extern const char *tp_names[];
-extern tp_values tp_from_name(const char *tp_path);
+extern ppm_tp_code tp_from_name(const char *tp_path);

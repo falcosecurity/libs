@@ -146,11 +146,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
                                  enum syscall_flags drop_flags,
                                  nanoseconds ns,
                                  struct event_data_t *event_datap,
-				 tp_values tp_type);
+				 ppm_tp_code tp_type);
 static void record_event_all_consumers(ppm_event_code event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap,
-				       tp_values tp_type);
+				       ppm_tp_code tp_type);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long buffer_bytes_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -1715,7 +1715,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 static void record_event_all_consumers(ppm_event_code event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap,
-	tp_values tp_type)
+				       ppm_tp_code tp_type)
 {
 	struct ppm_consumer_t *consumer;
 	nanoseconds ns = ppm_nsecs();
@@ -1735,7 +1735,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum syscall_flags drop_flags,
 	nanoseconds ns,
 	struct event_data_t *event_datap,
-	tp_values tp_type)
+				 ppm_tp_code tp_type)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -2375,7 +2375,7 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, tp_values tp_type)
+static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, ppm_tp_code tp_type)
 {
 	struct event_data_t event_data;
 

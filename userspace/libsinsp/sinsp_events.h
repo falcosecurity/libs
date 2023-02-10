@@ -184,26 +184,14 @@ std::unordered_set<ppm_event_code> get_event_set_from_ppm_sc_set(const std::unor
 /*=============================== Tracepoint set related ===============================*/
 
 /*!
-	\brief Mark desired tracepoint as (un)interesting, attaching or detaching it.
-	This method receives a `tp` code. You can find the available
-	`enum tp_values` in `driver/ppm_tp.h`.
-	Please note that this method must be called when the inspector is already open to
-	modify at runtime the interesting tracepoint set.
-
-	WARNING: playing with this API could break `libsinsp` state collection, this is only
-	useful in advanced cases where the client needs to know what it is doing!
-*/
-void mark_tp_of_interest(uint32_t tp, bool enabled = true);
-
-/*!
   \brief Get all the available tracepoints.
 */
-std::unordered_set<uint32_t> get_all_tp();
+std::unordered_set<ppm_tp_code> get_all_tp();
 
 /*!
   \brief Get the name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> get_tp_names(const std::unordered_set<uint32_t>& tp_set);
+std::unordered_set<std::string> get_tp_names(const std::unordered_set<ppm_tp_code>& tp_set);
 
 /*!
 	\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
@@ -213,7 +201,7 @@ std::unordered_set<std::string> get_tp_names(const std::unordered_set<uint32_t>&
 	WARNING: without using this method, we cannot guarantee that `libsinsp` state
 	will always be up to date, or even work at all.
 */
-std::unordered_set<uint32_t> enforce_sinsp_state_tp(std::unordered_set<uint32_t> tp_of_interest = {});
+std::unordered_set<ppm_tp_code> enforce_sinsp_state_tp(std::unordered_set<ppm_tp_code> tp_of_interest = {});
 
 /*=============================== Tracepoint set related ===============================*/
 
