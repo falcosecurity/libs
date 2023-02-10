@@ -1136,21 +1136,6 @@ int32_t scap_bpf_disable_dynamic_snaplen(struct scap_engine_handle engine)
 int32_t scap_bpf_start_dropping_mode(struct scap_engine_handle engine, uint32_t sampling_ratio)
 {
 	struct bpf_engine *handle = engine.m_handle;
-	switch(sampling_ratio)
-	{
-		case 1:
-		case 2:
-		case 4:
-		case 8:
-		case 16:
-		case 32:
-		case 64:
-		case 128:
-			break;
-		default:
-			return scap_errprintf(handle->m_lasterr, 0, "invalid sampling ratio size");
-	}
-
 	struct scap_bpf_settings settings;
 	int k = 0;
 	int ret;

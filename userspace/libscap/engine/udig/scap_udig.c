@@ -367,20 +367,6 @@ int32_t udig_start_dropping_mode(struct scap_engine_handle engine, uint32_t samp
 	struct udig_consumer_t* consumer = &(engine.m_handle->m_dev_set.m_devs[0].m_bufstatus->m_consumer);
 
 	consumer->dropping_mode = 1;
-
-	if(sampling_ratio != 1 &&
-		sampling_ratio != 2 &&
-		sampling_ratio != 4 &&
-		sampling_ratio != 8 &&
-		sampling_ratio != 16 &&
-		sampling_ratio != 32 &&
-		sampling_ratio != 64 &&
-		sampling_ratio != 128) 
-	{
-		snprintf(engine.m_handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid sampling ratio %u\n", sampling_ratio);
-		return SCAP_FAILURE;
-	}
-
 	consumer->sampling_interval = 1000000000 / sampling_ratio;
 	consumer->sampling_ratio = sampling_ratio;
 
