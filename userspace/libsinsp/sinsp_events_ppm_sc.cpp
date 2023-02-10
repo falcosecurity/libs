@@ -305,27 +305,3 @@ std::unordered_set<std::string> libsinsp::events::get_ppm_sc_names(const std::un
 	}
 	return ppm_sc_names_set;
 }
-
-std::unordered_set<std::string> libsinsp::events::get_events_names(const std::unordered_set<ppm_event_code>& events_set)
-{
-	std::unordered_set<std::string> events_names_set;
-	for(const auto& it : events_set)
-	{
-		if (it > PPME_GENERIC_X)
-		{
-			events_names_set.insert(g_infotables.m_event_info[it].name);
-		}
-		else
-		{
-			for (uint32_t i = 1; i < PPM_SC_MAX; i++)
-			{
-				const auto evts = get_event_set_from_ppm_sc_set({(ppm_sc_code)i});
-				if (evts.find(it) != evts.end())
-				{
-					events_names_set.insert(g_infotables.m_syscall_info_table[i].name);
-				}
-			}
-		}
-	}
-	return events_names_set;
-}
