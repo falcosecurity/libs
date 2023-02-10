@@ -72,7 +72,8 @@ std::unordered_set<std::string> libsinsp::events::get_events_names(const libsins
 			// Skip unknown
 			for (uint32_t i = 1; i < PPM_SC_MAX; i++)
 			{
-				auto single_ev_set = libsinsp::events::set<ppm_sc_code>(std::unordered_set<ppm_sc_code>{i});
+				auto single_ev_set = libsinsp::events::set<ppm_sc_code>();
+				single_ev_set.insert((ppm_sc_code)i);
 				const auto evts = get_event_set_from_ppm_sc_set(single_ev_set);
 				if (evts.contains(val))
 				{

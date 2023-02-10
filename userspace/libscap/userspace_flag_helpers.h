@@ -10,6 +10,7 @@
 #include <sys/ptrace.h>
 #include <sys/resource.h>
 #include <sys/file.h>
+#include <sched.h>
 
 #define ASSERT assert
 #define F_CANCELLK 1024 + 5
