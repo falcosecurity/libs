@@ -1252,7 +1252,7 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
-static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
+static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_tp_code tp)
 {
 	switch(op)
 	{
@@ -1288,7 +1288,7 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, uint32_t tp)
 	return SCAP_FAILURE;
 }
 
-int32_t scap_set_tp(scap_t* handle, uint32_t tp, bool enabled) {
+int32_t scap_set_tp(scap_t* handle, ppm_tp_code tp, bool enabled) {
 	return(scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, tp));
 }
 

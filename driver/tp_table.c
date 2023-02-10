@@ -8,7 +8,7 @@ const char *tp_names[] = {
 
 #ifndef __KERNEL__
 #include <string.h>
-tp_values tp_from_name(const char *tp_path)
+ppm_tp_code tp_from_name(const char *tp_path)
 {
 	// Find last '/' occurrence to take only the basename
 	const char *tp_name = strrchr(tp_path, '/');

@@ -851,8 +851,8 @@ public:
 
 	/*!
 		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
-		This method receives a `ppm_sc` code, not a syscall system code, the same ppm_code
-		can match more than one system syscall.
+		Note that the same ppm_code can match multiple system syscalls.
+
 		Please note that this method must be called when the inspector is already open to
 		modify at runtime the interesting syscall set.
 
@@ -867,15 +867,14 @@ public:
 
 	/*!
 		\brief Mark desired tracepoint as (un)interesting, attaching or detaching it.
-		This method receives a `tp` code. You can find the available
-		`enum tp_values` in `driver/ppm_tp.h`.
+
 		Please note that this method must be called when the inspector is already open to
 		modify at runtime the interesting tracepoint set.
 
 		WARNING: playing with this API could break `libsinsp` state collection, this is only
 		useful in advanced cases where the client needs to know what it is doing!
 	*/
-	void mark_tp_of_interest(uint32_t tp, bool enabled = true);
+	void mark_tp_of_interest(ppm_tp_code tp, bool enabled = true);
 
 	/*=============================== Tracepoint set related ===============================*/
 

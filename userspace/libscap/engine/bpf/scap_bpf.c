@@ -632,7 +632,7 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 
 static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname)
 {
-	tp_values val = tp_from_name(shname);
+	ppm_tp_code val = tp_from_name(shname);
 	if(!tp_of_interest || val == -1)
 	{
 		// Null tp set? Enable everything!
@@ -1614,7 +1614,7 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 	int prg_idx = -1;
 	for (int i = 0; i < handle->m_bpf_prog_cnt; i++)
 	{
-		const tp_values val = tp_from_name(handle->m_bpf_progs[i].name);
+		const ppm_tp_code val = tp_from_name(handle->m_bpf_progs[i].name);
 		if (val == tp)
 		{
 			prg_idx = i;
