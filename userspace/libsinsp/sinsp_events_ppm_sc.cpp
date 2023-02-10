@@ -17,8 +17,6 @@ limitations under the License.
 
 #include <sinsp_events.h>
 
-using namespace libsinsp::events;
-
 std::unordered_set<ppm_sc_code> libsinsp::events::enforce_sinsp_state_ppm_sc(std::unordered_set<ppm_sc_code> ppm_sc_of_interest)
 {
 	std::vector<uint32_t> minimum_syscalls(PPM_SC_MAX, 0);
