@@ -122,6 +122,17 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 #endif
 
+	case SIGNAL_DELIVER:
+		if (enabled)
+		{
+			ret = pman_attach_signal_deliver();
+		}
+		else
+		{
+			ret = pman_detach_signal_deliver();
+		}
+		break;
+
 	default:
 		/* Do nothing right now. */
 		break;
@@ -273,6 +284,23 @@ int pman_attach_page_fault_kernel()
 }
 #endif
 
+int pman_attach_signal_deliver()
+{
+	/* The program is already attached. */
+	if(g_state.skel->links.signal_deliver != NULL)
+	{
+		return 0;
+	}
+
+	g_state.skel->links.signal_deliver = bpf_program__attach(g_state.skel->progs.signal_deliver);
+	if(!g_state.skel->links.signal_deliver)
+	{
+		pman_print_error("failed to attach the 'signal_deliver' program");
+		return errno;
+	}
+	return 0;
+}
+
 int pman_attach_all_programs()
 {
 	int ret = 0;
@@ -380,6 +408,17 @@ int pman_detach_page_fault_kernel()
 	return 0;
 }
 #endif
+
+int pman_detach_signal_deliver()
+{
+	if(g_state.skel->links.signal_deliver && bpf_link__destroy(g_state.skel->links.signal_deliver))
+	{
+		pman_print_error("failed to detach the 'signal_deliver' program");
+		return errno;
+	}
+	g_state.skel->links.signal_deliver = NULL;
+	return 0;
+}
 
 int pman_detach_all_programs()
 {

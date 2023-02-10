@@ -145,6 +145,11 @@ event_test::event_test(tp_values tp_code):
 		break;
 #endif
 
+	case SIGNAL_DELIVER:
+		m_tp_set[SIGNAL_DELIVER] = 1;
+		m_event_type = PPME_SIGNALDELIVER_E;
+		break;
+
 	default:
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
 		break;

@@ -236,6 +236,20 @@ extern "C"
 	int pman_detach_page_fault_kernel(void);
 #endif
 
+	/**
+	 * @brief Attach only the signal_deliver tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_attach_signal_deliver(void);
+
+	/**
+	 * @brief Detach only the signal_deliver tracepoint
+	 *
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_detach_signal_deliver(void);
+
 	/////////////////////////////
 	// MANAGE RINGBUFFERS
 	/////////////////////////////
