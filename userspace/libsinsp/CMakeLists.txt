@@ -117,6 +117,7 @@ set(SINSP_SOURCES
 	value_parser.cpp
 	user.cpp
 	gvisor_config.cpp
+	sinsp_events.cpp
 	sinsp_ppm_sc.cpp
 	sinsp_tp.cpp)
 

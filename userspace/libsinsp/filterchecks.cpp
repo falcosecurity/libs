@@ -3984,8 +3984,8 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	case TYPE_SYSCALL_TYPE:
 		{
 			uint8_t* evname;
-			uint16_t etype = evt->m_pevt->type;
-			if(!sinsp::is_syscall_event(etype))
+			ppm_event_code etype = (ppm_event_code)evt->m_pevt->type;
+			if(!libsinsp::events::is_syscall_event(etype))
 			{
 				return NULL;
 			}

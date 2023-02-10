@@ -674,12 +674,12 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
 */
-int scap_get_modifies_state_ppm_sc(OUT ppm_sc_code ppm_sc_array[PPM_SC_MAX]);
+int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Take an array of `ppm_sc` as input and provide the associated array of events as output.
 */
-int scap_get_events_from_ppm_sc(IN const ppm_sc_code ppm_sc_array[PPM_SC_MAX], OUT ppm_event_code events_array[PPM_EVENT_MAX]);
+int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX]);
 
 /*!
   \brief Convert a native syscall nr to ppm_sc

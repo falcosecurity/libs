@@ -490,7 +490,72 @@ scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t sca
 	return oargs;
 }
 
-void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
+{
+	/* This API must be used only after the initialization phase. */
+	if (!m_inited)
+	{
+		throw sinsp_exception("you cannot use this method before opening the inspector!");
+	}
+	if (ppm_sc >= PPM_SC_MAX)
+	{
+		throw sinsp_exception("inexistent ppm_sc code: " + std::to_string(ppm_sc));
+	}
+	int ret = scap_set_ppm_sc(m_h, ppm_sc, enable);
+	if (ret != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+
+void sinsp::mark_tp_of_interest(uint32_t tp, bool enable)
+{
+	/* This API must be used only after the initialization phase. */
+	if (!m_inited)
+	{
+		throw sinsp_exception("you cannot use this method before opening the inspector!");
+	}
+	int ret = scap_set_tp(m_h, tp, enable);
+	if (ret != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+}
+
+static void fill_ppm_sc_of_interest(scap_open_args *oargs, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest)
+{
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		/* If the set is empty, fallback to all interesting syscalls */
+		if (ppm_sc_of_interest.empty())
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
+		}
+		else
+		{
+			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.find((ppm_sc_code)i) != ppm_sc_of_interest.end();
+		}
+	}
+}
+
+static void fill_tp_of_interest(scap_open_args *oargs, const std::unordered_set<uint32_t> &tp_of_interest)
+{
+	for(int i = 0; i < TP_VAL_MAX; i++)
+	{
+		/* If the set is empty, fallback to all interesting tracepoints */
+		if (tp_of_interest.empty())
+		{
+			oargs->tp_of_interest.tp[i] = true;
+		}
+		else
+		{
+			oargs->tp_of_interest.tp[i] = tp_of_interest.find(i) != tp_of_interest.end();
+		}
+	}
+}
+
+void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
 
@@ -505,7 +570,7 @@ void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const std::unordere
 	open_common(&oargs);
 }
 
-void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	/* Validate the BPF path. */
 	if(bpf_path.empty())
@@ -606,7 +671,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const std::unordered_set<uint32_t> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const std::unordered_set<ppm_sc_code> &ppm_sc_of_interest, const std::unordered_set<uint32_t> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
