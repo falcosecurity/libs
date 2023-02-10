@@ -129,7 +129,7 @@ static inline int32_t scap_buffer_can_fit(struct scap_sized_buffer buf, size_t l
 	return (buf.size >= len);
 }
 
-int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, ...)
+int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, ...)
 {
     va_list args;
     va_start(args, n);
@@ -139,7 +139,7 @@ int32_t scap_event_encode_params(struct scap_sized_buffer event_buf, size_t *eve
 	return ret;
 }
 
-int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, size_t *event_size, char *error, enum ppm_event_type event_type, uint32_t n, va_list args)
+int32_t scap_event_encode_params_v(const struct scap_sized_buffer event_buf, size_t *event_size, char *error, ppm_event_code event_type, uint32_t n, va_list args)
 {
 	scap_evt *event = NULL;
 

@@ -2300,7 +2300,7 @@ void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT st
 }
 
 template <typename T>
-void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_type evt_type)
+void schedule_more_evts(sinsp* inspector, void* data, T* client, ppm_event_code evt_type)
 {
 #ifdef HAS_CAPTURE
 	ASSERT(data);

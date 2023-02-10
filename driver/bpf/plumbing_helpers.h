@@ -301,7 +301,7 @@ static __always_inline bool is_syscall_interesting(int id)
 	return *enabled;
 }
 
-static __always_inline const struct ppm_event_info *get_event_info(enum ppm_event_type event_type)
+static __always_inline const struct ppm_event_info *get_event_info(ppm_event_code event_type)
 {
 	const struct ppm_event_info *e =
 		bpf_map_lookup_elem(&event_info_table, &event_type);
@@ -312,7 +312,7 @@ static __always_inline const struct ppm_event_info *get_event_info(enum ppm_even
 	return e;
 }
 
-static __always_inline const struct ppm_event_entry *get_event_filler_info(enum ppm_event_type event_type)
+static __always_inline const struct ppm_event_entry *get_event_filler_info(ppm_event_code event_type)
 {
 	const struct ppm_event_entry *e;
 
@@ -422,7 +422,7 @@ static __always_inline int bpf_test_bit(int nr, unsigned long *addr)
 }
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
-static __always_inline bool bpf_drop_syscall_exit_events(void *ctx, enum ppm_event_type evt_type)
+static __always_inline bool bpf_drop_syscall_exit_events(void *ctx, ppm_event_code evt_type)
 {
 	long ret = 0;
 	switch (evt_type)
@@ -464,7 +464,7 @@ static __always_inline bool bpf_drop_syscall_exit_events(void *ctx, enum ppm_eve
 
 static __always_inline bool drop_event(void *ctx,
 				       struct scap_bpf_per_cpu_state *state,
-				       enum ppm_event_type evt_type,
+				       ppm_event_code evt_type,
 				       struct scap_bpf_settings *settings,
 				       enum syscall_flags drop_flags)
 {
@@ -559,7 +559,7 @@ static __always_inline bool drop_event(void *ctx,
 }
 
 static __always_inline void reset_tail_ctx(struct scap_bpf_per_cpu_state *state,
-					   enum ppm_event_type evt_type,
+					   ppm_event_code evt_type,
 					   unsigned long long ts)
 {
 	state->tail_ctx.evt_type = evt_type;
@@ -572,7 +572,7 @@ static __always_inline void reset_tail_ctx(struct scap_bpf_per_cpu_state *state,
 
 static __always_inline void call_filler(void *ctx,
 					void *stack_ctx,
-					enum ppm_event_type evt_type,
+					ppm_event_code evt_type,
 					enum syscall_flags drop_flags)
 {
 	struct scap_bpf_settings *settings;

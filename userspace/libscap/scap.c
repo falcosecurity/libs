@@ -950,7 +950,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
+int scap_get_modifies_state_ppm_sc(OUT ppm_sc_code ppm_sc_array[PPM_SC_MAX])
 {
 	if(ppm_sc_array == NULL)
 	{
@@ -992,7 +992,7 @@ int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
 	return SCAP_SUCCESS;
 }
 
-int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX])
+int scap_get_events_from_ppm_sc(IN const ppm_sc_code ppm_sc_array[PPM_SC_MAX], OUT ppm_event_code events_array[PPM_EVENT_MAX])
 {
 	if(ppm_sc_array == NULL || events_array == NULL)
 	{
@@ -1005,7 +1005,7 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 	memset(events_array, 0, sizeof(*events_array) * PPM_EVENT_MAX);
 
 #ifdef __linux__
-	for(int ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
+	for(ppm_sc_code ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
 	{
 		if(!ppm_sc_array[ppm_code])
 		{
@@ -1036,7 +1036,7 @@ int scap_get_events_from_ppm_sc(IN uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32
 	return SCAP_SUCCESS;
 }
 
-int scap_native_id_to_ppm_sc(int native_id)
+ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 {
 #ifdef __linux__
 	if (native_id < 0 || native_id >= SYSCALL_TABLE_SIZE)
@@ -1212,7 +1212,7 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 	}
 }
 
-static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm_sc)
+static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code ppm_sc)
 {
 	if(handle == NULL)
 	{
@@ -1248,7 +1248,7 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, uint32_t ppm
 	return SCAP_FAILURE;
 }
 
-int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled) {
+int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
