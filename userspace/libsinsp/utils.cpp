@@ -1904,3 +1904,101 @@ void sinsp_scap_debug_log_fn(const char* msg)
 {
 	g_logger.log(msg, sinsp_logger::SEV_DEBUG);
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Set operation functions.
+///////////////////////////////////////////////////////////////////////////////
+
+// unordered_set_to_ordered
+template<typename T>
+std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set)
+{
+	std::set<T> s;
+	for(const auto& val : unordered_set)
+	{
+		s.insert(val);
+	}
+	return s;
+}
+template std::set<uint32_t> unordered_set_to_ordered(std::unordered_set<uint32_t> unordered_set);
+template std::set<std::string> unordered_set_to_ordered(std::unordered_set<std::string> unordered_set);
+
+// convert_vector_to_unordered_set
+template<typename T>
+std::unordered_set<T> convert_vector_to_unordered_set(std::vector<T> v)
+{
+	std::unordered_set<T> s;
+	for (const auto &x : v)
+	{
+		s.insert(x);
+	}
+	return s;
+}
+template std::unordered_set<std::string> convert_vector_to_unordered_set(std::vector<std::string> v);
+template std::unordered_set<uint32_t> convert_vector_to_unordered_set(std::vector<uint32_t> v);
+
+// unordered_set_difference, equivalent to SQL left_anti join operation
+template<typename T>
+std::unordered_set<T> unordered_set_difference(std::unordered_set<T> a, std::unordered_set<T> b)
+{
+	std::set<T> c = unordered_set_to_ordered(a);
+	std::set<T> d = unordered_set_to_ordered(b);
+	std::vector<T> v;
+	std::set_difference(c.begin(), c.end(), d.begin(), d.end(), std::inserter(v, v.begin()));
+	return convert_vector_to_unordered_set(v);
+}
+template std::unordered_set<std::string> unordered_set_difference(std::unordered_set<std::string> a, std::unordered_set<std::string> b);
+template std::unordered_set<uint32_t> unordered_set_difference(std::unordered_set<uint32_t> a, std::unordered_set<uint32_t> b);
+
+// unordered_set_union
+template<typename T>
+std::unordered_set<T> unordered_set_union(std::unordered_set<T> a, std::unordered_set<T> b)
+{
+	std::set<T> c = unordered_set_to_ordered(a);
+	std::set<T> d = unordered_set_to_ordered(b);
+	std::vector<T> v;
+	std::set_union(c.begin(), c.end(), d.begin(), d.end(), std::inserter(v, v.begin()));
+	return convert_vector_to_unordered_set(v);
+}
+template std::unordered_set<std::string> unordered_set_union(std::unordered_set<std::string> a, std::unordered_set<std::string> b);
+template std::unordered_set<uint32_t> unordered_set_union(std::unordered_set<uint32_t> a, std::unordered_set<uint32_t> b);
+
+// unordered_set_intersection
+template<typename T>
+std::unordered_set<T> unordered_set_intersection(std::unordered_set<T> a, std::unordered_set<T> b)
+{
+	std::set<T> c = unordered_set_to_ordered(a);
+	std::set<T> d = unordered_set_to_ordered(b);
+	std::vector<T> v;
+	std::set_intersection(c.begin(), c.end(), d.begin(), d.end(), std::inserter(v, v.begin()));
+	return convert_vector_to_unordered_set(v);
+}
+template std::unordered_set<std::string> unordered_set_intersection(std::unordered_set<std::string> a, std::unordered_set<std::string> b);
+template std::unordered_set<uint32_t> unordered_set_intersection(std::unordered_set<uint32_t> a, std::unordered_set<uint32_t> b);
+
+std::string concat_set_in_order(const std::unordered_set<std::string>& s, const std::string& delim)
+{
+	if (s.empty())
+	{
+		return "";
+	}
+	std::set<std::string> s_ordered = unordered_set_to_ordered(s);
+	std::stringstream ss;
+	std::copy(s_ordered.begin(), s_ordered.end(),
+	std::ostream_iterator<std::string>(ss, delim.c_str()));
+	std::string s_str = ss.str();
+	return s_str.substr(0, s_str.size() - delim.size());
+}
+
+std::string concat_set_in_order(const std::set<std::string>& s, const std::string& delim)
+{
+	if (s.empty())
+	{
+		return "";
+	}
+	std::stringstream ss;
+	std::copy(s.begin(), s.end(),
+	std::ostream_iterator<std::string>(ss, delim.c_str()));
+	std::string s_str = ss.str();
+	return s_str.substr(0, s_str.size() - delim.size());
+}
