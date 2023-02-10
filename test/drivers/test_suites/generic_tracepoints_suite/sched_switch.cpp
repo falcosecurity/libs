@@ -7,7 +7,7 @@
 
 TEST(GenericTracepoints, sched_switch)
 {
-	auto evt_test = get_generic_event_test(PPME_SCHEDSWITCH_6_E);
+	auto evt_test = get_generic_event_test(SCHED_SWITCH);
 
 	evt_test->enable_capture();
 

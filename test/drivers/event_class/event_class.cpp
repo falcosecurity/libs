@@ -26,9 +26,9 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 // RETRIEVE EVENT CLASS
 /////////////////////////////////
 
-std::unique_ptr<event_test> get_generic_event_test(ppm_event_type event_type)
+std::unique_ptr<event_test> get_generic_event_test(tp_values tp_code)
 {
-	return (std::unique_ptr<event_test>)new event_test(event_type);
+	return (std::unique_ptr<event_test>)new event_test(tp_code);
 }
 
 std::unique_ptr<event_test> get_syscall_event_test(int syscall_id, int event_direction)
@@ -102,37 +102,48 @@ event_test::~event_test()
 /* This constructor must be used with generic tracepoints
  * that must attach a dedicated BPF program into the kernel.
  */
-event_test::event_test(ppm_event_type event_type):
+event_test::event_test(tp_values tp_code):
 	m_tp_set(TP_VAL_MAX, 0)
 {
 	m_current_param = 0;
-	m_event_type = event_type;
 
-	switch(m_event_type)
+	switch(tp_code)
 	{
-	case PPME_PROCEXIT_1_E:
+	case SCHED_PROC_EXIT:
 		m_tp_set[SCHED_PROC_EXIT] = 1;
-		break;
-	case PPME_SCHEDSWITCH_6_E:
-		m_tp_set[SCHED_SWITCH] = 1;
-		break;
-	case PPME_SYSCALL_EXECVE_19_X:
-#ifdef CAPTURE_SCHED_PROC_EXEC
-		m_tp_set[SCHED_PROC_EXEC] = 1;
-#endif
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-#ifdef CAPTURE_SCHED_PROC_FORK
-		m_tp_set[SCHED_PROC_FORK] = 1;
-#endif
+		m_event_type = PPME_PROCEXIT_1_E;
 		break;
 
-	case PPME_PAGE_FAULT_E:
-#ifdef CAPTURE_PAGE_FAULTS
-		m_tp_set[PAGE_FAULT_USER] = 1;
-		m_tp_set[PAGE_FAULT_KERN] = 1;
-#endif
+	case SCHED_SWITCH:
+		m_tp_set[SCHED_SWITCH] = 1;
+		m_event_type = PPME_SCHEDSWITCH_6_E;
 		break;
+
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	case SCHED_PROC_EXEC:
+		m_tp_set[SCHED_PROC_EXEC] = 1;
+		m_event_type = PPME_SYSCALL_EXECVE_19_X;
+		break;
+#endif
+
+#ifdef CAPTURE_SCHED_PROC_FORK
+	case SCHED_PROC_FORK:
+		m_tp_set[SCHED_PROC_FORK] = 1;
+		m_event_type = PPME_SYSCALL_CLONE_20_X;
+		break;
+#endif
+
+#ifdef CAPTURE_PAGE_FAULTS
+	case PAGE_FAULT_USER:
+		m_tp_set[PAGE_FAULT_USER] = 1;
+		m_event_type = PPME_PAGE_FAULT_E;
+		break;
+
+	case PAGE_FAULT_KERN:
+		m_tp_set[PAGE_FAULT_KERN] = 1;
+		m_event_type = PPME_PAGE_FAULT_E;
+		break;
+#endif
 
 	default:
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;

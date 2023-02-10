@@ -9,7 +9,7 @@
 
 TEST(GenericTracepoints, sched_proc_exit)
 {
-	auto evt_test = get_generic_event_test(PPME_PROCEXIT_1_E);
+	auto evt_test = get_generic_event_test(SCHED_PROC_EXIT);
 
 	evt_test->enable_capture();
 
