@@ -160,6 +160,8 @@
 #define IO_URING_SETUP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 7 + PARAM_LEN * 8
 #define MMAP2_E_SIZE HEADER_LEN + sizeof(uint64_t) * 3 + sizeof(int64_t) + sizeof(uint32_t) * 2 + PARAM_LEN * 6
 #define MMAP2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
+#define SEMGET_E_SIZE HEADER_LEN + sizeof(int32_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
+#define SEMGET_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN 
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
