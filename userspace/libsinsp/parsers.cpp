@@ -5309,6 +5309,12 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info->m_container_ip = ntohl(ip);
 		}
 
+		const Json::Value& cniresult = container["cni_json"];
+		if(check_json_val_is_convertible(cniresult, Json::stringValue, "cni_json"))
+		{
+			container_info->m_pod_cniresult = cniresult.asString();
+		}
+
 		const Json::Value &port_mappings = container["port_mappings"];
 
 		if(check_json_val_is_convertible(port_mappings, Json::arrayValue, "port_mappings"))
