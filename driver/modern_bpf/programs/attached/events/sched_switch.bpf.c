@@ -32,7 +32,7 @@ int BPF_PROG(sched_switch,
 
 	/* Parameter 3: pgft_min (type: PT_UINT64) */
 	unsigned long pgft_min = 0;
-	extract__pgft_maj(prev, &pgft_min);
+	extract__pgft_min(prev, &pgft_min);
 	ringbuf__store_u64(&ringbuf, pgft_min);
 
 	struct mm_struct *mm = NULL;
