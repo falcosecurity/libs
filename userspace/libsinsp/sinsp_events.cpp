@@ -59,7 +59,7 @@ bool libsinsp::events::is_plugin_event(ppm_event_code event_type)
 	return (category & EC_PLUGIN);
 }
 
-std::unordered_set<std::string> libsinsp::events::get_events_names(const libsinsp::events::set<ppm_event_code>& events_set)
+std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsinsp::events::set<ppm_event_code>& events_set)
 {
 	std::unordered_set<std::string> events_names_set;
 	events_set.for_each([&events_names_set](ppm_event_code val) {
@@ -74,7 +74,7 @@ std::unordered_set<std::string> libsinsp::events::get_events_names(const libsins
 			{
 				auto single_ev_set = libsinsp::events::set<ppm_sc_code>();
 				single_ev_set.insert((ppm_sc_code)i);
-				const auto evts = get_event_set_from_ppm_sc_set(single_ev_set);
+				const auto evts = sc_set_to_event_set(single_ev_set);
 				if (evts.contains(val))
 				{
 					events_names_set.insert(g_infotables.m_syscall_info_table[i].name);
@@ -84,4 +84,27 @@ std::unordered_set<std::string> libsinsp::events::get_events_names(const libsins
 		return true;
 	});
 	return events_names_set;
+}
+
+libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
+{
+	static libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest;
+	if (ppm_event_info_of_interest.empty())
+	{
+		/* Fill-up the set of event infos of interest. This is needed to ensure critical non syscall PPME events are activated, e.g. container or proc exit events. */
+		for(uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
+		{
+			if(!libsinsp::events::is_old_version_event((ppm_event_code)ev) && !libsinsp::events::is_unused_event((ppm_event_code)ev) && !libsinsp::events::is_unknown_event((ppm_event_code)ev))
+			{
+				/* So far we only covered syscalls, so we add other kinds of
+				interesting events. In this case, we are also interested in
+				metaevents and in the procexit tracepoint event. */
+				if(libsinsp::events::is_metaevent((ppm_event_code)ev) || ev == PPME_PROCEXIT_1_E)
+				{
+					ppm_event_info_of_interest.insert((ppm_event_code)ev);
+				}
+			}
+		}
+	}
+	return ppm_event_info_of_interest;
 }

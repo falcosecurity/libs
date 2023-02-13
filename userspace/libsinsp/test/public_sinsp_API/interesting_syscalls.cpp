@@ -31,7 +31,7 @@ limitations under the License.
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
  */
-auto sinsp_state_ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code>{
+auto expected_sinsp_state_ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code>{
 #ifdef __NR_accept
 	PPM_SC_ACCEPT,
 #endif
@@ -278,9 +278,9 @@ auto sinsp_state_ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_unordered
  */
 TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
-	auto state_ppm_sc_set = libsinsp::events::enforce_sinsp_state_ppm_sc();
+	auto state_ppm_sc_set = libsinsp::events::sinsp_state_sc_set();
 
-	ASSERT_TRUE(sinsp_state_ppm_sc_set.equals(state_ppm_sc_set));
+	ASSERT_TRUE(expected_sinsp_state_ppm_sc_set.equals(state_ppm_sc_set));
 }
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly merges
@@ -289,7 +289,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_basic)
 TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 {
 	libsinsp::events::set<ppm_sc_code> additional_syscalls;
-	auto ppm_sc_matching_set = sinsp_state_ppm_sc_set;
+	auto ppm_sc_matching_set = expected_sinsp_state_ppm_sc_set;
 
 #ifdef __NR_kill
 	additional_syscalls.insert(PPM_SC_KILL);
@@ -301,7 +301,8 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 	ppm_sc_matching_set.insert(PPM_SC_READ);
 #endif
 
-	auto ppm_sc_final_set = libsinsp::events::enforce_sinsp_state_ppm_sc(additional_syscalls);
+	auto sinsp_state_set = libsinsp::events::sinsp_state_sc_set();
+	auto ppm_sc_final_set = additional_syscalls.merge(sinsp_state_set);
 
 	ASSERT_TRUE(ppm_sc_matching_set.equals(ppm_sc_final_set));
 }
@@ -344,7 +345,7 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 #endif
 	});
 
-	auto final_evt_set = libsinsp::events::get_event_set_from_ppm_sc_set(ppm_sc_set);
+	auto final_evt_set = libsinsp::events::sc_set_to_event_set(ppm_sc_set);
 
 	ASSERT_TRUE(final_evt_set.equals(event_set));
 }
@@ -353,7 +354,7 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
  */
 TEST(interesting_syscalls, get_all_ppm_sc)
 {
-	auto ppm_sc_set = libsinsp::events::get_all_ppm_sc();
+	auto ppm_sc_set = libsinsp::events::all_sc_set();
 
 	/* Assert that all the syscalls are taken */
 	ASSERT_EQ(ppm_sc_set.size(), PPM_SC_MAX);
@@ -373,7 +374,7 @@ TEST(interesting_syscalls, get_syscalls_names)
 	ppm_sc_set.insert(PPM_SC_READ);
 	orderd_syscall_names_matching_set.insert("read");
 
-	auto syscall_names_final_set = libsinsp::events::get_ppm_sc_names(ppm_sc_set);
+	auto syscall_names_final_set = libsinsp::events::sc_set_to_names(ppm_sc_set);
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(orderd_syscall_names_matching_set.size(), syscall_names_final_set.size());
@@ -406,7 +407,7 @@ TEST(interesting_syscalls, get_events_names)
 	events_set.insert(PPME_SYSCALL_DUP_1_X);
 	orderd_events_names_matching_set.insert("dup");
 
-	auto events_names_final_set = libsinsp::events::get_events_names(events_set);
+	auto events_names_final_set = libsinsp::events::event_set_to_names(events_set);
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(events_names_final_set.size(), orderd_events_names_matching_set.size());

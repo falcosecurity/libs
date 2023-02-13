@@ -22,7 +22,7 @@ limitations under the License.
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
  */
-auto sinsp_state_tp_set = libsinsp::events::set<ppm_tp_code>::from_unordered_set(std::unordered_set<ppm_tp_code>{
+auto expected_sinsp_state_tp_set = libsinsp::events::set<ppm_tp_code>::from_unordered_set(std::unordered_set<ppm_tp_code>{
 	SYS_ENTER,
 	SYS_EXIT,
 	SCHED_PROC_EXIT,
@@ -31,20 +31,20 @@ auto sinsp_state_tp_set = libsinsp::events::set<ppm_tp_code>::from_unordered_set
 	SCHED_PROC_EXEC
 });
 
-/* This test asserts that `enforce_sinsp_state_tp` correctly retrieves
+/* This test asserts that `sinsp_state_tp_set` correctly retrieves
  * the `libsinsp` state tracepoint set.
  */
 TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_basic)
 {
-	auto final_tracepoints_set = libsinsp::events::enforce_sinsp_state_tp();
+	auto final_tracepoints_set = libsinsp::events::sinsp_state_tp_set();
 
-	ASSERT_TRUE(sinsp_state_tp_set.equals(final_tracepoints_set));
+	ASSERT_TRUE(expected_sinsp_state_tp_set.equals(final_tracepoints_set));
 }
 
 TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
 {
 	libsinsp::events::set<ppm_tp_code> additional_tracepoints;
-	auto tracepoint_matching_set = sinsp_state_tp_set;
+	auto tracepoint_matching_set = expected_sinsp_state_tp_set;
 
 	additional_tracepoints.insert(PAGE_FAULT_USER);
 	tracepoint_matching_set.insert(PAGE_FAULT_USER);
@@ -52,7 +52,8 @@ TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
 	additional_tracepoints.insert(SIGNAL_DELIVER);
 	tracepoint_matching_set.insert(SIGNAL_DELIVER);
 
-	auto final_tracepoints_set = libsinsp::events::enforce_sinsp_state_tp(additional_tracepoints);
+	auto sinsp_state_tp = libsinsp::events::sinsp_state_tp_set();
+	auto final_tracepoints_set = additional_tracepoints.merge(sinsp_state_tp);
 
 	ASSERT_TRUE(final_tracepoints_set.equals(tracepoint_matching_set));
 }
@@ -61,7 +62,7 @@ TEST(interesting_tracepoints, enforce_sinsp_state_tracepoints_with_additions)
  */
 TEST(interesting_tracepoints, get_all_tp)
 {
-	auto tp_set = libsinsp::events::get_all_tp();
+	auto tp_set = libsinsp::events::all_tp_set();
 
 	/* Assert that all the tracepoints are taken */
 	ASSERT_EQ(tp_set.size(), TP_VAL_MAX);
@@ -80,7 +81,7 @@ TEST(interesting_tracepoints, get_tp_names)
 	tp_set.insert(SCHED_PROC_FORK);
 	tracepoints_names_matching_set.insert("sched_process_fork");
 
-	auto tracepoints_names_final_set = libsinsp::events::get_tp_names(tp_set);
+	auto tracepoints_names_final_set = libsinsp::events::tp_set_to_names(tp_set);
 
 	/* Assert that the 2 sets have the same size */
 	ASSERT_EQ(tracepoints_names_final_set.size(), tracepoints_names_matching_set.size());
