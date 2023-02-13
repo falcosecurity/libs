@@ -316,7 +316,7 @@ int main(int argc, char** argv)
 	}
 
 	std::shared_ptr<libsinsp::filter::ast::expr> filter_ast = inspector.get_filter_ast();
-	filter_evttype_resolver resolver;
+	libsinsp::filter::evttype_resolver resolver;
 	std::set<uint16_t> evttypes = {};
 	resolver.evttypes(filter_ast, evttypes);
 	std::unordered_set<uint32_t> ppme_events_codes(evttypes.begin(), evttypes.end());

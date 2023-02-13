@@ -28,7 +28,7 @@ std::unique_ptr<libsinsp::filter::ast::expr> f;
 void compare_evttypes(std::unique_ptr<libsinsp::filter::ast::expr> f, set<uint16_t> &expected)
 {
 	set<uint16_t> actual;
-	filter_evttype_resolver().evttypes(f.get(), actual);
+	libsinsp::filter::evttype_resolver().evttypes(f.get(), actual);
 
 	ASSERT_EQ(actual.size(), expected.size());
 
@@ -51,7 +51,7 @@ static void compare_filters_evttypes(const std::string &a, const std::string &b)
 	auto fa = compile(a);
 	auto fb = compile(b);
 	std::set<uint16_t> typesa;
-	filter_evttype_resolver().evttypes(fa.get(), typesa);
+	libsinsp::filter::evttype_resolver().evttypes(fa.get(), typesa);
 	compare_evttypes(std::move(fb), typesa);
 	}
 
