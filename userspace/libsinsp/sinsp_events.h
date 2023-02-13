@@ -44,12 +44,12 @@ class set
 private:
 	using vec_t = std::vector<uint8_t>;
 	vec_t m_types{};
-	ppm_type max;
-	size_t len;
+	ppm_type m_max;
+	size_t m_size;
 
 	inline void check_range(ppm_type e) const
 	{
-		if(e > max)
+		if(e > m_max)
 		{
 			throw sinsp_exception("invalid event type");
 		}
@@ -64,8 +64,8 @@ public:
 
 	inline explicit set(ppm_type maxLen):
 		m_types(maxLen + 1, 0),
-		max(maxLen),
-		len(0)
+		m_max(maxLen),
+		m_size(0)
 	{
 	}
 
@@ -83,14 +83,14 @@ public:
 	{
 		check_range(e);
 		m_types[e] = 1;
-		len++;
+		m_size++;
 	}
 
 	inline void remove(ppm_type e)
 	{
 		check_range(e);
 		m_types[e] = 0;
-		len--;
+		m_size--;
 	}
 
 	inline bool contains(ppm_type e) const
@@ -105,17 +105,17 @@ public:
 		{
 			v = 0;
 		}
-		len = 0;
+		m_size = 0;
 	}
 
 	inline bool empty() const
 	{
-		return len == 0;
+		return m_size == 0;
 	}
 
 	inline size_t size() const
 	{
-		return len;
+		return m_size;
 	}
 
 	bool equals(const set& other) const
@@ -125,12 +125,12 @@ public:
 
 	set merge(const set& other) const
 	{
-		if (other.max != max)
+		if (other.m_max != m_max)
 		{
 			throw sinsp_exception("cannot merge sets with different max size.");
 		}
-		set<ppm_type> ret(max);
-		for(size_t i = 0; i <= max; ++i)
+		set<ppm_type> ret(m_max);
+		for(size_t i = 0; i <= m_max; ++i)
 		{
 			if (!m_types[i] && other.m_types[i])
 			{
@@ -142,12 +142,12 @@ public:
 
 	set diff(const set& other) const
 	{
-		if (other.max != max)
+		if (other.m_max != m_max)
 		{
 			throw sinsp_exception("cannot diff sets with different max size.");
 		}
-		set<ppm_type> ret(max);
-		for(size_t i = 0; i <= max; ++i)
+		set<ppm_type> ret(m_max);
+		for(size_t i = 0; i <= m_max; ++i)
 		{
 			if (m_types[i] ^ other.m_types[i])
 			{
@@ -159,12 +159,12 @@ public:
 
 	set intersect(const set& other) const
 	{
-		if (other.max != max)
+		if (other.m_max != m_max)
 		{
 			throw sinsp_exception("cannot intersect sets with different max size.");
 		}
-		set<ppm_type> ret(max);
-		for(size_t i = 0; i <= max; ++i)
+		set<ppm_type> ret(m_max);
+		for(size_t i = 0; i <= m_max; ++i)
 		{
 			if (m_types[i] & other.m_types[i])
 			{
@@ -177,12 +177,12 @@ public:
 	// This should be union but it is a reserved name
 	set add(const set& other) const
 	{
-		if (other.max != max)
+		if (other.m_max != m_max)
 		{
 			throw sinsp_exception("cannot union sets with different max size.");
 		}
-		set<ppm_type> ret(max);
-		for(size_t i = 0; i <= max; ++i)
+		set<ppm_type> ret(m_max);
+		for(size_t i = 0; i <= m_max; ++i)
 		{
 			if (m_types[i] | other.m_types[i])
 			{
@@ -194,7 +194,7 @@ public:
 
 	void for_each(const std::function<bool(ppm_type)>& consumer) const
 	{
-		for(size_t i = 0; i < max; ++i)
+		for(size_t i = 0; i < m_max; ++i)
 		{
 			if(m_types[i] != 0)
 			{
@@ -210,7 +210,7 @@ public:
 // Some template specialization for useful constructors
 
 template <>
-inline set<ppm_sc_code>::set() : set(PPM_SC_MAX)
+inline set<ppm_sc_code>::set(): set(PPM_SC_MAX)
 {
 }
 
