@@ -163,7 +163,7 @@ void open_engine(sinsp& inspector)
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 
 	/* Get only necessary tracepoints. */
-	auto tp_set = libsinsp::events::enforce_sinsp_state_tp();
+	auto tp_set = libsinsp::events::enforce_simple_tp_set();
 	libsinsp::events::set<ppm_sc_code> ppm_sc;
 
 	if(!engine_string.compare(KMOD_ENGINE))
