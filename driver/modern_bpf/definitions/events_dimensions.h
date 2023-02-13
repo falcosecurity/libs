@@ -162,6 +162,8 @@
 #define MMAP2_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
 #define SEMGET_E_SIZE HEADER_LEN + sizeof(int32_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define SEMGET_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN 
+#define SEMCTL_E_SIZE HEADER_LEN + sizeof(int32_t) * 3 + sizeof(uint16_t) + PARAM_LEN * 4
+#define SEMCTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
