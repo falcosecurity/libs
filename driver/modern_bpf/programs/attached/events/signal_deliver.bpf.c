@@ -6,6 +6,7 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
+#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: `/include/trace/events/signal.h`
  *	 TP_PROTO(int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
@@ -14,6 +15,11 @@ SEC("tp_btf/signal_deliver")
 int BPF_PROG(signal_deliver,
 	     int sig, struct kernel_siginfo *info, struct k_sigaction *ka)
 {
+	if(sampling_logic(PPME_SIGNALDELIVER_E, TRACEPOINT))
+	{
+		return 0;
+	}
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, SIGNAL_DELIVER_SIZE))
 	{
