@@ -133,6 +133,8 @@ void pman_fill_syscall_tracepoint_table()
 	/* Right now these are the only 2 tracepoints involved in the dropping logic. We need to add them here */
 	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PROCEXIT_1_E] = UF_NEVER_DROP;
 	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SCHEDSWITCH_6_E] = 0;
+	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PAGE_FAULT_E] = UF_ALWAYS_DROP;
+	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SIGNALDELIVER_E] = UF_ALWAYS_DROP;
 }
 
 

@@ -6,6 +6,7 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
+#include <helpers/interfaces/attached_programs.h>
 
 /* From linux tree: `/arch/x86/include/asm/trace/exceptions.h`
  *	 TP_PROTO(unsigned long address, struct pt_regs *regs,
@@ -17,6 +18,11 @@ int BPF_PROG(pf_user,
 	     unsigned long address, struct pt_regs *regs,
 	     unsigned long error_code)
 {
+	if(sampling_logic(PPME_PAGE_FAULT_E, TRACEPOINT))
+	{
+		return 0;
+	}
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, PAGE_FAULT_SIZE))
 	{
