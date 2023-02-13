@@ -3726,7 +3726,7 @@ FILLER(sys_sendfile_e, true)
 	/* Parameter 3: offset (type: PT_UINT64) */
 	unsigned long offset = 0;
 	unsigned long offset_pointer = bpf_syscall_get_argument(data, 2);
-	bpf_probe_read((void *)&offset, sizeof(offset), (void *)offset_pointer);
+	bpf_probe_read_user((void *)&offset, sizeof(offset), (void *)offset_pointer);
 	res = bpf_val_to_ring(data, offset);
 	CHECK_RES(res);
 
@@ -3737,27 +3737,16 @@ FILLER(sys_sendfile_e, true)
 
 FILLER(sys_sendfile_x, true)
 {
-	long retval;
-	off_t *offp;
-	off_t off;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
-	/*
-	 * res
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * offset
-	 */
-	offp = (off_t *)bpf_syscall_get_argument(data, 2);
-	off = _READ(*offp);
-	res = bpf_val_to_ring(data, off);
-
-	return res;
+	/* Parameter 2: offset (type: PT_UINT64) */
+	unsigned long offset = 0;
+	unsigned long offset_pointer = bpf_syscall_get_argument(data, 2);
+	bpf_probe_read_user((void *)&offset, sizeof(offset), (void *)offset_pointer);
+	return bpf_val_to_ring(data, offset);
 }
 
 FILLER(sys_prlimit_e, true)
