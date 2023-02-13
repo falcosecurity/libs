@@ -25,7 +25,6 @@ limitations under the License.
 #include "util.h"
 #include "filter_evttype_resolver.h"
 #include <unordered_set>
-#include <sstream>
 
 #ifndef WIN32
 extern "C" {
@@ -43,7 +42,7 @@ void json_dump(sinsp& inspector);
 void json_dump_init(sinsp& inspector);
 void json_dump_reinit_evt_formatter(sinsp& inspector);
 
-std::string concat_names(std::unordered_set<std::string> const names);
+std::unordered_set<std::string> extract_filter_events(sinsp& inspector);
 std::function<void(sinsp& inspector)> dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
@@ -162,6 +161,16 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 }
 #endif /* WIN32 */
 
+std::unordered_set<std::string> extract_filter_events(sinsp& inspector)
+{
+	std::shared_ptr<libsinsp::filter::ast::expr> filter_ast = inspector.get_filter_ast();
+	libsinsp::filter::evttype_resolver resolver;
+	std::set<uint16_t> evttypes = {};
+	resolver.evttypes(filter_ast, evttypes);
+	std::unordered_set<uint32_t> ppme_events_codes(evttypes.begin(), evttypes.end());
+	return inspector.get_events_names(ppme_events_codes);
+}
+
 void open_engine(sinsp& inspector)
 {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
@@ -259,20 +268,6 @@ error:
 }
 #endif
 
-std::string concat_names(std::unordered_set<std::string> const names)
-{
-	std::set<std::string> names_ordered = {};
-	for (const auto &n : names)
-	{
-		names_ordered.insert(n);
-	}
-	std::stringstream ss;
-	std::copy(names_ordered.begin(), names_ordered.end(),
-	std::ostream_iterator<std::string>(ss, ", "));
-	std::string names_str = ss.str();
-	return names_str.substr(0, names_str.size() - 2);
-}
-
 //
 // Sample filters:
 //   "evt.category=process or evt.category=net"
@@ -315,16 +310,10 @@ int main(int argc, char** argv)
 		}
 	}
 
-	std::shared_ptr<libsinsp::filter::ast::expr> filter_ast = inspector.get_filter_ast();
-	libsinsp::filter::evttype_resolver resolver;
-	std::set<uint16_t> evttypes = {};
-	resolver.evttypes(filter_ast, evttypes);
-	std::unordered_set<uint32_t> ppme_events_codes(evttypes.begin(), evttypes.end());
-	auto event_names = inspector.get_events_names(ppme_events_codes);
-
+	auto event_names = extract_filter_events(inspector);
 	if(!event_names.empty())
 	{
-		printf("-- Filter event types names: %s\n", concat_names(event_names).c_str());
+		printf("-- Filter event types names: %s\n", concat_set_in_order(event_names).c_str());
 	}
 
 	std::cout << "-- Start capture" << std::endl;
