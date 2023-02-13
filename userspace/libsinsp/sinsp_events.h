@@ -9,6 +9,32 @@
 #include <vector>
 #include <functional>
 
+// The following are needed on MacOS to be able to
+// initialize a std::(unordered)map/set<ppm_X_code>{}
+namespace std
+{
+template<>
+struct hash<ppm_sc_code> {
+	size_t operator()(const ppm_sc_code &pt) const {
+		return std::hash<uint32_t>()((uint32_t)pt);
+	}
+};
+
+template<>
+struct hash<ppm_tp_code> {
+	size_t operator()(const ppm_tp_code &pt) const {
+		return std::hash<uint32_t>()((uint32_t)pt);
+	}
+};
+
+template<>
+struct hash<ppm_event_code> {
+	size_t operator()(const ppm_event_code &pt) const {
+		return std::hash<uint32_t>()((uint32_t)pt);
+	}
+};
+}
+
 namespace libsinsp {
 namespace events {
 
