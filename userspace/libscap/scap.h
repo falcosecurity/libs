@@ -324,9 +324,9 @@ typedef struct _scap_machine_info
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
 	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
-	uint64_t reserved2; ///< reserved for future use
-	uint64_t reserved3; ///< reserved for future use
-	uint64_t reserved4; ///< reserved for future use
+	uint64_t self_pid_start_ts; ///< Agent start ts in nanoseconds (epoch)
+	bool bpf_stats_enabled; ///< Check if kernel.bpf_stats_enabled is set
+	char uname_r[128]; ///< Kernel release `uname -r`
 }scap_machine_info;
 
 /*!
@@ -1016,6 +1016,24 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  * it's equivalent to version 0.0.0
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
+
+
+/**
+ * Get hostname.
+ * Supports env variable FALCO_HOSTNAME lookup for
+ * cloud native integrations where hostname can be the pod name.
+ */
+void scap_gethostname(scap_t* handle);
+
+/**
+ * Agent start ts in nanoseconds (epoch).
+ */
+void scap_get_self_pid_start_ts(scap_t* handle);
+
+/**
+ * Check is kernel.bpf_stats_enabled is set.
+ */
+void scap_get_bpf_stats_enabled(scap_t* handle);
 
 /**
  * This helper returns the system boot time computed as the actual time - the uptime of the system since the boot.
