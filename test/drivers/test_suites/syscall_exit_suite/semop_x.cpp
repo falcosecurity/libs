@@ -86,10 +86,10 @@ TEST(SyscallExit, semopX_wrong_nops)
 	sops.sem_num = 0;
 	sops.sem_op = 3;
 	sops.sem_flg = SEM_UNDO;
-	/* Here we have just one `ops` but we are trying to read 2 of them, if we don't check
+	/* Here we have just one `ops` but we are trying to read a huge number, if we don't check
 	 * the syscall failure in the kernel there is the risk to read junk data.
 	 */
-	size_t nsops = 2;
+	size_t nsops = (size_t)-1;
 	assert_syscall_state(SYSCALL_FAILURE, "semop", syscall(__NR_semop, semid, &sops, nsops));
 	int64_t errno_value = -errno;
 
