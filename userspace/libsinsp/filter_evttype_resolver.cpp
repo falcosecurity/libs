@@ -61,12 +61,7 @@ static bool is_evttype_operator(const std::string& op)
 	return op == "==" || op == "=" || op == "!=" || op == "in";
 }
 
-size_t sinsp_event_types::get_ppm_event_max()
-{
-	return PPM_EVENT_MAX;
-}
-
-void filter_evttype_resolver::visitor::inversion(sinsp_event_types& types)
+void evttype_resolver::visitor::inversion(sinsp_event_types<ppme_type>& types)
 {
 	// we don't invert "neutral" checks
 	if (m_last_node_has_evttypes)
@@ -75,7 +70,7 @@ void filter_evttype_resolver::visitor::inversion(sinsp_event_types& types)
 	}
 }
 
-void filter_evttype_resolver::visitor::try_inversion(sinsp_event_types& types)
+void evttype_resolver::visitor::try_inversion(sinsp_event_types<ppme_type>& types)
 {
 	if (m_inside_negation)
 	{
@@ -83,12 +78,12 @@ void filter_evttype_resolver::visitor::try_inversion(sinsp_event_types& types)
 	}
 }
 
-void filter_evttype_resolver::visitor::evttypes(const std::string& evtname, sinsp_event_types& out)
+void evttype_resolver::visitor::evttypes(const std::string& evtname, sinsp_event_types<ppme_type>& out)
 {
 	// Fill in from 2 to PPM_EVENT_MAX-1. 0 and 1 are excluded as
 	// those are PPM_GENERIC_E/PPME_GENERIC_X
 	const struct ppm_event_info* etable = g_infotables.m_event_info;
-	for(uint16_t i = 2; i < PPM_EVENT_MAX; i++)
+	for(ppme_type i = 2; i < PPM_EVENT_MAX; i++)
 	{
 		// Skip unused events or events not matching the requested evtname
 		if(!sinsp::is_unused_event(i) && (evtname.empty() || std::string(etable[i].name) == evtname))
@@ -98,26 +93,26 @@ void filter_evttype_resolver::visitor::evttypes(const std::string& evtname, sins
 	}
 }
 
-void filter_evttype_resolver::evttypes(
+void evttype_resolver::evttypes(
 	ast::expr* filter,
-	std::set<uint16_t>& out) const
+	std::set<ppme_type>& out) const
 {
 	visitor v;
 	filter->accept(&v);
-	v.m_last_node_evttypes.for_each([&out](uint16_t val){out.insert(val); return true;});
+	v.m_last_node_evttypes.for_each([&out](ppme_type val){out.insert(val); return true;});
 }
 
-void filter_evttype_resolver::evttypes(
+void evttype_resolver::evttypes(
 	std::shared_ptr<libsinsp::filter::ast::expr> filter,
-	std::set<uint16_t>& out) const
+	std::set<ppme_type>& out) const
 {
 	evttypes(filter.get(), out);
 }
 
-void filter_evttype_resolver::visitor::conjunction(
+void evttype_resolver::visitor::conjunction(
 	const std::vector<std::unique_ptr<ast::expr>>& children)
 {
-	sinsp_event_types types = m_all_events;
+	sinsp_event_types<ppme_type> types = m_all_events;
 	m_last_node_evttypes.clear();
 	for (auto &c : children)
 	{
@@ -127,10 +122,10 @@ void filter_evttype_resolver::visitor::conjunction(
 	m_last_node_evttypes = types;
 }
 
-void filter_evttype_resolver::visitor::disjunction(
+void evttype_resolver::visitor::disjunction(
 	const std::vector<std::unique_ptr<ast::expr>>& children)
 {
-	sinsp_event_types types;
+	sinsp_event_types<ppme_type> types;
 	m_last_node_evttypes.clear();
 	for (auto &c : children)
 	{
@@ -140,7 +135,7 @@ void filter_evttype_resolver::visitor::disjunction(
 	m_last_node_evttypes = types;
 }
 
-void filter_evttype_resolver::visitor::visit(ast::and_expr* e)
+void evttype_resolver::visitor::visit(ast::and_expr* e)
 {
 	if (m_inside_negation)
 	{
@@ -152,7 +147,7 @@ void filter_evttype_resolver::visitor::visit(ast::and_expr* e)
 	}
 }
 
-void filter_evttype_resolver::visitor::visit(ast::or_expr* e)
+void evttype_resolver::visitor::visit(ast::or_expr* e)
 {
 	if (m_inside_negation)
 	{
@@ -164,7 +159,7 @@ void filter_evttype_resolver::visitor::visit(ast::or_expr* e)
 	}
 }
 
-void filter_evttype_resolver::visitor::visit(ast::not_expr* e)
+void evttype_resolver::visitor::visit(ast::not_expr* e)
 {
 	m_last_node_evttypes.clear();
 	auto inside_negation = m_inside_negation;
@@ -173,7 +168,7 @@ void filter_evttype_resolver::visitor::visit(ast::not_expr* e)
 	m_inside_negation = inside_negation;
 }
 
-void filter_evttype_resolver::visitor::visit(ast::binary_check_expr* e)
+void evttype_resolver::visitor::visit(ast::binary_check_expr* e)
 {
 	m_last_node_evttypes.clear();
 	m_last_node_has_evttypes = false;
@@ -199,7 +194,7 @@ void filter_evttype_resolver::visitor::visit(ast::binary_check_expr* e)
 	try_inversion(m_last_node_evttypes);
 }
 
-void filter_evttype_resolver::visitor::visit(ast::unary_check_expr* e)
+void evttype_resolver::visitor::visit(ast::unary_check_expr* e)
 {
 	m_last_node_evttypes.clear();
 	m_last_node_has_evttypes = e->field == "evt.type" && e->op == "exists";
@@ -207,7 +202,7 @@ void filter_evttype_resolver::visitor::visit(ast::unary_check_expr* e)
 	try_inversion(m_last_node_evttypes);
 }
 
-void filter_evttype_resolver::visitor::visit(ast::value_expr* e)
+void evttype_resolver::visitor::visit(ast::value_expr* e)
 {
 	m_last_node_evttypes.clear();
 	m_last_node_has_evttypes = m_expect_value;
@@ -225,7 +220,7 @@ void filter_evttype_resolver::visitor::visit(ast::value_expr* e)
 	try_inversion(m_last_node_evttypes);
 }
 
-void filter_evttype_resolver::visitor::visit(ast::list_expr* e)
+void evttype_resolver::visitor::visit(ast::list_expr* e)
 {
 	m_last_node_evttypes.clear();
 	m_last_node_has_evttypes = false;

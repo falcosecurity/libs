@@ -22,6 +22,7 @@ limitations under the License.
 #include <memory>
 #include <functional>
 #include <stdexcept>
+#include "event.h"
 
 
 /* Using a custom / optimized event type for performance optimization reasons.
@@ -31,15 +32,22 @@ limitations under the License.
  * when loading rulesets.
  * For this reason the custom event type optimizes operations over sets of numbers.
 */
+
+typedef uint16_t ppme_type;
+
+namespace libsinsp {
+namespace filter {
+
+template<typename ppme_type>
 class sinsp_event_types
 {
 private:
 	using vec_t = std::vector<uint8_t>;
 	vec_t m_types{};
+	static const auto enum_max = PPM_EVENT_MAX;
 
-	static inline void check_range(uint16_t e)
+	static inline void check_range(ppme_type e)
 	{
-	    	static const auto enum_max = get_ppm_event_max();
 		if(e > enum_max)
 		{
 			throw std::range_error("invalid event type");
@@ -52,14 +60,12 @@ public:
 	sinsp_event_types& operator=(sinsp_event_types&&) = default;
 	sinsp_event_types& operator=(const sinsp_event_types&) = default;
 
-	static size_t get_ppm_event_max();
-
 	inline sinsp_event_types():
-		m_types(get_ppm_event_max() + 1, 0)
+		m_types(enum_max + 1, 0)
 	{
 	}
 
-	inline void insert(uint16_t e)
+	inline void insert(ppme_type e)
 	{
 		check_range(e);
 		m_types[e] = 1;
@@ -67,13 +73,13 @@ public:
 
 	void merge(const sinsp_event_types& other)
 	{
-		for(size_t i = 0; i <= get_ppm_event_max(); ++i)
+		for(size_t i = 0; i <= enum_max; ++i)
 		{
 			m_types[i] |= other.m_types[i];
 		}
 	}
 
-	void merge(const std::set<uint16_t>& other)
+	void merge(const std::set<ppme_type>& other)
 	{
 		for(const auto& e : other)
 		{
@@ -81,7 +87,7 @@ public:
 		}
 	}
 
-	inline bool contains(uint16_t e) const
+	inline bool contains(ppme_type e) const
 	{
 		check_range(e);
 		return m_types[e] != 0;
@@ -102,8 +108,8 @@ public:
 
 	sinsp_event_types diff(const sinsp_event_types& other) const
 	{
-		sinsp_event_types ret;
-		for(size_t i = 0; i <= get_ppm_event_max(); ++i)
+		sinsp_event_types<ppme_type> ret;
+		for(size_t i = 0; i <= enum_max; ++i)
 		{
 			if(m_types[i] == 1 && other.m_types[i] == 0)
 			{
@@ -115,8 +121,8 @@ public:
 
 	sinsp_event_types intersect(const sinsp_event_types& other) const
 	{
-		sinsp_event_types ret;
-		for(size_t i = 0; i <= get_ppm_event_max(); ++i)
+		sinsp_event_types<ppme_type> ret;
+		for(size_t i = 0; i <= enum_max; ++i)
 		{
 			if(m_types[i] == 1 && other.m_types[i] == 1)
 			{
@@ -126,13 +132,13 @@ public:
 		return ret;
 	}
 
-	void for_each(std::function<bool(uint16_t)> consumer) const
+	void for_each(std::function<bool(ppme_type)> consumer) const
 	{
-		for(uint16_t i = 0; i < m_types.size(); ++i)
+		for(size_t i = 0; i < m_types.size(); ++i)
 		{
 			if(m_types[i] != 0)
 			{
-				if(!consumer(i))
+				if(!consumer((ppme_type)i))
 				{
 					return;
 				}
@@ -141,12 +147,12 @@ public:
 	}
 };
 
-inline bool operator==(const sinsp_event_types& lhs, const sinsp_event_types& rhs)
+inline bool operator==(const sinsp_event_types<ppme_type>& lhs, const sinsp_event_types<ppme_type>& rhs)
 {
 	return lhs.equals(rhs);
 }
 
-inline bool operator!=(const sinsp_event_types& lhs, const sinsp_event_types& rhs)
+inline bool operator!=(const sinsp_event_types<ppme_type>& lhs, const sinsp_event_types<ppme_type>& rhs)
 {
 	return !(lhs == rhs);
 }
@@ -154,7 +160,7 @@ inline bool operator!=(const sinsp_event_types& lhs, const sinsp_event_types& rh
 /*!
 	\brief Helper class for finding event types
 */
-class filter_evttype_resolver
+class evttype_resolver
 {
 public:
 	/*!
@@ -165,11 +171,11 @@ public:
 		string is passed, all the available evttypes are collected
 		\param out The set to be filled with the evttypes
 	*/
-	inline void evttypes(const std::string& evtname, sinsp_event_types& out) const
+	inline void evttypes(const std::string& evtname, sinsp_event_types<ppme_type>& out) const
 	{
-		sinsp_event_types evt_types;
+		sinsp_event_types<ppme_type> evt_types;
 		visitor().evttypes(evtname, evt_types);
-		evt_types.for_each([&out](uint16_t val)
+		evt_types.for_each([&out](ppme_type val)
 				   {out.insert(val); return true; });
 	}
 
@@ -183,7 +189,7 @@ public:
 	*/
 	void evttypes(
 		libsinsp::filter::ast::expr* filter,
-		std::set<uint16_t>& out) const;
+		std::set<ppme_type>& out) const;
 
 	/*!
 		\brief Overloaded version of evttypes() that supports filters wrapped
@@ -191,7 +197,7 @@ public:
 	*/
 	void evttypes(
 		std::shared_ptr<libsinsp::filter::ast::expr> filter,
-		std::set<uint16_t>& out) const;
+		std::set<ppme_type>& out) const;
 
 private:
 	struct visitor : public libsinsp::filter::ast::expr_visitor
@@ -213,8 +219,8 @@ private:
 		bool m_expect_value;
 		bool m_inside_negation;
 		bool m_last_node_has_evttypes;
-		sinsp_event_types m_last_node_evttypes;
-		sinsp_event_types m_all_events;
+		sinsp_event_types<ppme_type> m_last_node_evttypes;
+		sinsp_event_types<ppme_type> m_all_events;
 
 		void visit(libsinsp::filter::ast::and_expr* e) override;
 		void visit(libsinsp::filter::ast::or_expr* e) override;
@@ -223,10 +229,13 @@ private:
 		void visit(libsinsp::filter::ast::list_expr* e) override;
 		void visit(libsinsp::filter::ast::unary_check_expr* e) override;
 		void visit(libsinsp::filter::ast::binary_check_expr* e) override;
-		void try_inversion(sinsp_event_types& types);
-		void inversion(sinsp_event_types& types);
-		void evttypes(const std::string& evtname, sinsp_event_types& out);
+		void try_inversion(sinsp_event_types<ppme_type>& types);
+		void inversion(sinsp_event_types<ppme_type>& types);
+		void evttypes(const std::string& evtname, sinsp_event_types<ppme_type>& out);
 		void conjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>&);
 		void disjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>&);
 	};
 };
+
+}
+}
