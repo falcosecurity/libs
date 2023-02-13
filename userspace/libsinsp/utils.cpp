@@ -1944,15 +1944,9 @@ template std::unordered_set<uint32_t> unordered_set_difference(const std::unorde
 template<typename T>
 std::set<T> set_difference(const std::set<T>& a, const std::set<T>& b)
 {
-	std::set<T> s;
-	for(const auto& val : a)
-	{
-		if (b.find(val) == b.end())
-		{
-			s.insert(val);
-		}
-	}
-	return s;
+	std::set<T> out;
+	std::set_difference(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
+	return out;
 }
 template std::set<std::string> set_difference(const std::set<std::string>& a, const std::set<std::string>& b);
 template std::set<uint32_t> set_difference(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
@@ -1975,12 +1969,9 @@ template std::unordered_set<uint32_t> unordered_set_union(const std::unordered_s
 template<typename T>
 std::set<T> set_union(const std::set<T>& a, const std::set<T>& b)
 {
-	std::set<T> s = a;
-	for(const auto& val : b)
-	{
-		s.insert(val);
-	}
-	return s;
+	std::set<T> out;
+	std::set_union(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
+	return out;
 }
 template std::set<std::string> set_union(const std::set<std::string>& a, const std::set<std::string>& b);
 template std::set<uint32_t> set_union(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
@@ -2006,15 +1997,9 @@ template std::unordered_set<uint32_t> unordered_set_intersection(const std::unor
 template<typename T>
 std::set<T> set_intersection(const std::set<T>& a, const std::set<T>& b)
 {
-	std::set<T> s;
-	for(const auto& val : a)
-	{
-		if (b.find(val) != b.end())
-		{
-			s.insert(val);
-		}
-	}
-	return s;
+	std::set<T> out;
+	std::set_intersection(a.begin(), a.end(), b.begin(), b.end(), std::inserter(out, out.begin()));
+	return out;
 }
 template std::set<std::string> set_intersection(const std::set<std::string>& a, const std::set<std::string>& b);
 template std::set<uint32_t> set_intersection(const std::set<uint32_t>& a, const std::set<uint32_t>& b);
