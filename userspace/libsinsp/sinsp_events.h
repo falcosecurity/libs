@@ -132,7 +132,7 @@ public:
 		set<ppm_type> ret(m_max);
 		for(size_t i = 0; i <= m_max; ++i)
 		{
-			if (!m_types[i] && other.m_types[i])
+			if (m_types[i] | other.m_types[i])
 			{
 				ret.insert((ppm_type)i);
 			}
@@ -167,24 +167,6 @@ public:
 		for(size_t i = 0; i <= m_max; ++i)
 		{
 			if (m_types[i] & other.m_types[i])
-			{
-				ret.insert((ppm_type)i);
-			}
-		}
-		return ret;
-	}
-
-	// This should be union but it is a reserved name
-	set add(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
-			throw sinsp_exception("cannot union sets with different max size.");
-		}
-		set<ppm_type> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] | other.m_types[i])
 			{
 				ret.insert((ppm_type)i);
 			}
@@ -295,93 +277,74 @@ bool is_plugin_event(ppm_event_code event_type);
 
 /*=============================== Events related ===============================*/
 
-/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+/*=============================== PPM_SC set related (sinsp_events_ppm_sc.cpp) ===============================*/
 
 /*!
 	\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
-	If you call it without arguments it returns a new set with just these syscalls
-	otherwise, it merges the minimum set of syscalls with the one you provided.
 
-	WARNING: without using this method, we cannot guarantee that `libsinsp` state
-	will always be up to date, or even work at all.
+	WARNING: without merging your ppm_sc set with the one provided by this method,
+ 	we cannot guarantee that `libsinsp` state will always be up to date, or even work at all.
 */
-set<ppm_sc_code> enforce_sinsp_state_ppm_sc(set<ppm_sc_code> ppm_sc_of_interest = {});
+set<ppm_sc_code> sinsp_state_sc_set();
 
 /*!
   \brief Enforce simple set of syscalls with all the security-valuable syscalls.
   It has same effect of old `simple_consumer` mode.
   Does enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_simple_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> enforce_simple_sc_set(set<ppm_sc_code> ppm_sc_set = {});
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for IO (EC_IO_READ, EC_IO_WRITE).
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_io_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> io_sc_set();
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for IO (EC_IO_OTHER).
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_io_other_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> io_other_sc_set();
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for file operations.
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_file_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> file_sc_set();
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for networking.
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_net_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> net_sc_set();
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for process state tracking.
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_proc_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
+set<ppm_sc_code> proc_sc_set();
 
 /*!
-  \brief Enforce passed set of syscalls with the ones
+  \brief Returns set of syscalls
   valuable for system state tracking (signals, memory...)
-  Does not enforce minimum sinsp state set.
 */
-set<ppm_sc_code> enforce_sys_ppm_sc_set(set<ppm_sc_code> ppm_sc_set = {});
-
-/*!
-  \brief Enforce passed set of events with critical non syscalls events,
-  e.g. container or procexit events.
-*/
-set<ppm_event_code> enforce_sinsp_state_ppme(set<ppm_event_code> ppm_event_info_of_interest = {});
+set<ppm_sc_code> sys_sc_set();
 
 /*!
   \brief Get all the available ppm_sc.
   Does enforce minimum sinsp state set.
 */
-set<ppm_sc_code> get_all_ppm_sc();
+set<ppm_sc_code> all_sc_set();
 
 /*!
   \brief Get the name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> get_ppm_sc_names(const set<ppm_sc_code>& ppm_sc_set);
-
-/*!
-  \brief Get the name of all the events provided in the set.
-*/
-std::unordered_set<std::string> get_events_names(const set<ppm_event_code>& events_set);
+std::unordered_set<std::string> sc_set_to_names(const set<ppm_sc_code>& ppm_sc_set);
 
 /*!
   \brief Get the ppm_sc of all the syscalls names provided in the set.
 */
-set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std::string>& syscalls);
+set<ppm_sc_code> names_to_sc_set(const std::unordered_set<std::string>& syscalls);
 
 /**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
@@ -391,21 +354,41 @@ set<ppm_sc_code> get_ppm_sc_set_from_syscalls_name(const std::unordered_set<std:
 	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
 	 * @return set of events associated with the provided `ppm_sc` set.
  */
-set<ppm_event_code> get_event_set_from_ppm_sc_set(const set<ppm_sc_code> &ppm_sc_of_interest);
+set<ppm_event_code> sc_set_to_event_set(const set<ppm_sc_code> &ppm_sc_of_interest);
 
-/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
+/*=============================== PPM_SC set related (sinsp_events_ppm_sc.cpp) ===============================*/
 
-/*=============================== Tracepoint set related ===============================*/
+/*=============================== PPME set related (sinsp_events.cpp) ===============================*/
+
+/*!
+  \brief Returns set of events with critical non syscalls events,
+  e.g. container or procexit events.
+*/
+set<ppm_event_code> sinsp_state_event_set();
+
+/*!
+  \brief Get the name of all the events provided in the set.
+*/
+std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set);
+
+/*=============================== PPME set related (sinsp_events.cpp) ===============================*/
+
+/*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
 
 /*!
   \brief Get all the available tracepoints.
 */
-set<ppm_tp_code> get_all_tp();
+set<ppm_tp_code> all_tp_set();
 
 /*!
   \brief Get the name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> get_tp_names(const set<ppm_tp_code>& tp_set);
+std::unordered_set<std::string> tp_set_to_names(const set<ppm_tp_code>& tp_set);
+
+/*!
+	\brief Provides the minimum set of tracepoints required by `libsinsp` state collection.
+*/
+set<ppm_tp_code> sinsp_state_tp_set();
 
 /*!
 	\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
@@ -415,9 +398,9 @@ std::unordered_set<std::string> get_tp_names(const set<ppm_tp_code>& tp_set);
 	WARNING: without using this method, we cannot guarantee that `libsinsp` state
 	will always be up to date, or even work at all.
 */
-set<ppm_tp_code> enforce_sinsp_state_tp(set<ppm_tp_code> tp_of_interest = {});
+set<ppm_tp_code> enforce_simple_tp_set(set<ppm_tp_code> tp_of_interest = {});
 
-/*=============================== Tracepoint set related ===============================*/
+/*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
 
 }
 }

@@ -17,39 +17,50 @@ limitations under the License.
 
 #include <sinsp_events.h>
 
-libsinsp::events::set<ppm_tp_code> libsinsp::events::enforce_sinsp_state_tp(libsinsp::events::set<ppm_tp_code> tp_of_interest)
+libsinsp::events::set<ppm_tp_code> libsinsp::events::sinsp_state_tp_set()
 {
-	std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
-
-	/* Should never happen but just to be sure. */
-	if(scap_get_modifies_state_tracepoints(minimum_tracepoints.data()) != SCAP_SUCCESS)
+	static libsinsp::events::set<ppm_tp_code> tp_of_interest;
+	if (tp_of_interest.empty())
 	{
-		throw sinsp_exception("'minimum_tracepoints' is an unexpected NULL vector!");
-	}
+		std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
 
-	for(int tp = 0; tp < TP_VAL_MAX; tp++)
-	{
-		if(minimum_tracepoints[tp])
+		/* Should never happen but just to be sure. */
+		if(scap_get_modifies_state_tracepoints(minimum_tracepoints.data()) != SCAP_SUCCESS)
 		{
-			tp_of_interest.insert((ppm_tp_code)tp);
+			throw sinsp_exception("'minimum_tracepoints' is an unexpected NULL vector!");
+		}
+
+		for(int tp = 0; tp < TP_VAL_MAX; tp++)
+		{
+			if(minimum_tracepoints[tp])
+			{
+				tp_of_interest.insert((ppm_tp_code)tp);
+			}
 		}
 	}
 	return tp_of_interest;
 }
 
-libsinsp::events::set<ppm_tp_code> libsinsp::events::get_all_tp()
+libsinsp::events::set<ppm_tp_code> libsinsp::events::enforce_simple_tp_set(libsinsp::events::set<ppm_tp_code> tp_of_interest)
 {
-	libsinsp::events::set<ppm_tp_code> ppm_tp_set;
+	auto sinsp_state_tp = sinsp_state_tp_set();
+	return tp_of_interest.merge(sinsp_state_tp);
+}
 
-	for(uint32_t tp = 0; tp < TP_VAL_MAX; tp++)
+libsinsp::events::set<ppm_tp_code> libsinsp::events::all_tp_set()
+{
+	static libsinsp::events::set<ppm_tp_code> ppm_tp_set;
+	if (ppm_tp_set.empty())
 	{
-		ppm_tp_set.insert((ppm_tp_code)tp);
+		for(uint32_t tp = 0; tp < TP_VAL_MAX; tp++)
+		{
+			ppm_tp_set.insert((ppm_tp_code)tp);
+		}
 	}
-
 	return ppm_tp_set;
 }
 
-std::unordered_set<std::string> libsinsp::events::get_tp_names(const libsinsp::events::set<ppm_tp_code>& tp_set)
+std::unordered_set<std::string> libsinsp::events::tp_set_to_names(const libsinsp::events::set<ppm_tp_code>& tp_set)
 {
 	std::unordered_set<std::string> tp_names_set;
 	tp_set.for_each([&tp_names_set](ppm_tp_code val)
