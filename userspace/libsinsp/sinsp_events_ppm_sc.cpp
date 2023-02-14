@@ -22,20 +22,10 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	if (ppm_sc_set.empty())
 	{
-		std::vector<uint32_t> minimum_syscalls(PPM_SC_MAX, 0);
-
 		/* Should never happen but just to be sure. */
-		if(scap_get_modifies_state_ppm_sc(minimum_syscalls.data()) != SCAP_SUCCESS)
+		if(scap_get_modifies_state_ppm_sc(ppm_sc_set.data()) != SCAP_SUCCESS)
 		{
-			throw sinsp_exception("'minimum_syscalls' is an unexpected NULL vector!");
-		}
-
-		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-		{
-			if(minimum_syscalls[ppm_sc])
-			{
-				ppm_sc_set.insert((ppm_sc_code)ppm_sc);
-			}
+			throw sinsp_exception("'ppm_sc_set' is an unexpected NULL vector!");
 		}
 	}
 	return ppm_sc_set;
@@ -250,8 +240,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
 {
-	std::vector<uint32_t> events_array(PPM_EVENT_MAX, 0);
-	std::vector<uint32_t> ppm_sc_array(PPM_SC_MAX, 0);
+	std::vector<uint8_t> ppm_sc_array(PPM_SC_MAX, 0);
 	libsinsp::events::set<ppm_event_code> events_set;
 
 	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
@@ -261,20 +250,10 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(cons
 		return true;
 	});
 
-	if(scap_get_events_from_ppm_sc(ppm_sc_array.data(), events_array.data()) != SCAP_SUCCESS)
+	if(scap_get_events_from_ppm_sc(ppm_sc_array.data(), events_set.data()) != SCAP_SUCCESS)
 	{
-		throw sinsp_exception("`ppm_sc_array` or `events_array` is an unexpected NULL vector!");
+		throw sinsp_exception("`ppm_sc_array` or `events_set` is an unexpected NULL vector!");
 	}
-
-	for(uint32_t event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
-	{
-		/* True means it is associated with a `ppm_sc` */
-		if(events_array[event_num])
-		{
-			events_set.insert((ppm_event_code)event_num);
-		}
-	}
-
 	return events_set;
 }
 
