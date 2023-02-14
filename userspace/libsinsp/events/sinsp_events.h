@@ -1,9 +1,9 @@
 #pragma once
 
 #include "event.h"
-#include <utils.h>
-#include <sinsp_exception.h>
-#include <sinsp_public.h>
+#include "utils.h"
+#include "sinsp_exception.h"
+#include "sinsp_public.h"
 #include <unordered_set>
 #include <string>
 #include <vector>
@@ -79,7 +79,12 @@ public:
 		return ret;
 	}
 
-	uint8_t *data()
+	const uint8_t* const_data() const
+	{
+		return m_types.data();
+	}
+
+	uint8_t* data()
 	{
 		return m_types.data();
 	}

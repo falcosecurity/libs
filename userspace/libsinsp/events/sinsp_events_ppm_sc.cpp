@@ -15,7 +15,7 @@ limitations under the License.
 
 */
 
-#include <sinsp_events.h>
+#include "sinsp_events.h"
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 {
@@ -240,17 +240,8 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
 {
-	std::vector<uint8_t> ppm_sc_array(PPM_SC_MAX, 0);
 	libsinsp::events::set<ppm_event_code> events_set;
-
-	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
-	ppm_sc_set.for_each([&ppm_sc_array](ppm_sc_code val)
-	{
-		ppm_sc_array[val] = 1;
-		return true;
-	});
-
-	if(scap_get_events_from_ppm_sc(ppm_sc_array.data(), events_set.data()) != SCAP_SUCCESS)
+	if(scap_get_events_from_ppm_sc(ppm_sc_set.const_data(), events_set.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_array` or `events_set` is an unexpected NULL vector!");
 	}

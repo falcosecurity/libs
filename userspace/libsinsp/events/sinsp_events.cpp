@@ -1,4 +1,4 @@
-#include <sinsp_events.h>
+#include "sinsp_events.h"
 
 bool libsinsp::events::is_unused_event(ppm_event_code event_type)
 {
@@ -88,13 +88,35 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const std::unordered_set<std::string>& events)
 {
+	std::unordered_set<std::string> remaining_events = events;
 	libsinsp::events::set<ppm_event_code> ppm_event_set;
-	for (int ppm_ev = 0; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
+
+	// Main loop, on events (ie: non generic events)
+	for (int ppm_ev = 2; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
 	{
 		std::string ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
 		if (events.find(ppm_ev_name) != events.end())
 		{
 			ppm_event_set.insert((ppm_event_code)ppm_ev);
+			remaining_events.erase(ppm_ev_name);
+		}
+	}
+
+	// Only if there are some leftover events:
+	// try to find a ppm_sc name that matches the event,
+	// to eventually enable generic events too!
+	if (!remaining_events.empty())
+	{
+		// Secondary loop, on syscalls and remaining events
+		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
+		{
+			std::string ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
+			if(remaining_events.find(ppm_sc_name) != events.end())
+			{
+				ppm_event_set.insert(PPME_GENERIC_E);
+				ppm_event_set.insert(PPME_GENERIC_X);
+				break;
+			}
 		}
 	}
 	return ppm_event_set;
@@ -115,21 +137,11 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::all_event_set()
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::event_set_to_sc_set(const set<ppm_event_code>& events_of_interest)
 {
-	std::vector<uint8_t> events_array(PPM_EVENT_MAX, 0);
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-
-	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
-	events_of_interest.for_each([&events_array](ppm_event_code val)
-	{
-		events_array[val] = 1;
-	        return true;
-	});
-
-	if(scap_get_ppm_sc_from_events(events_array.data(), ppm_sc_set.data()) != SCAP_SUCCESS)
+	if(scap_get_ppm_sc_from_events(events_of_interest.const_data(), ppm_sc_set.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_set` or `events_array` is an unexpected NULL vector!");
 	}
-
 	return ppm_sc_set;
 }
 
@@ -138,7 +150,12 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 	static libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest;
 	if (ppm_event_info_of_interest.empty())
 	{
-		/* Fill-up the set of event infos of interest. This is needed to ensure critical non syscall PPME events are activated, e.g. container or proc exit events. */
+		/*
+		 * Fill-up the set of event infos of interest.
+		 * This is needed to ensure critical non syscall PPME events are activated,
+		 * e.g. container or proc exit events.
+		 * Skip generic events.
+		 */
 		for(uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
 		{
 			if(!libsinsp::events::is_old_version_event((ppm_event_code)ev) && !libsinsp::events::is_unused_event((ppm_event_code)ev) && !libsinsp::events::is_unknown_event((ppm_event_code)ev))
