@@ -110,43 +110,36 @@ event_test::event_test(tp_values tp_code):
 	switch(tp_code)
 	{
 	case SCHED_PROC_EXIT:
-		m_tp_set[SCHED_PROC_EXIT] = 1;
 		m_event_type = PPME_PROCEXIT_1_E;
 		break;
 
 	case SCHED_SWITCH:
-		m_tp_set[SCHED_SWITCH] = 1;
 		m_event_type = PPME_SCHEDSWITCH_6_E;
 		break;
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
 	case SCHED_PROC_EXEC:
-		m_tp_set[SCHED_PROC_EXEC] = 1;
 		m_event_type = PPME_SYSCALL_EXECVE_19_X;
 		break;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
 	case SCHED_PROC_FORK:
-		m_tp_set[SCHED_PROC_FORK] = 1;
 		m_event_type = PPME_SYSCALL_CLONE_20_X;
 		break;
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
 	case PAGE_FAULT_USER:
-		m_tp_set[PAGE_FAULT_USER] = 1;
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
 
 	case PAGE_FAULT_KERN:
-		m_tp_set[PAGE_FAULT_KERN] = 1;
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
 #endif
 
 	case SIGNAL_DELIVER:
-		m_tp_set[SIGNAL_DELIVER] = 1;
 		m_event_type = PPME_SIGNALDELIVER_E;
 		break;
 
@@ -154,6 +147,8 @@ event_test::event_test(tp_values tp_code):
 		std::cout << " Unable to find the correct BPF program to attach" << std::endl;
 		break;
 	}
+
+	m_tp_set[tp_code] = 1;
 }
 
 /* This constructor must be used with syscalls events */
