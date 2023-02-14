@@ -86,6 +86,53 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 	return events_names_set;
 }
 
+libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const std::unordered_set<std::string>& events)
+{
+	libsinsp::events::set<ppm_event_code> ppm_event_set;
+	for (int ppm_ev = 0; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
+	{
+		std::string ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
+		if (events.find(ppm_ev_name) != events.end())
+		{
+			ppm_event_set.insert((ppm_event_code)ppm_ev);
+		}
+	}
+	return ppm_event_set;
+}
+
+libsinsp::events::set<ppm_event_code> libsinsp::events::all_event_set()
+{
+	static libsinsp::events::set<ppm_event_code> ppm_event_set;
+	if (ppm_event_set.empty())
+	{
+		for(uint32_t ppm_ev = 0; ppm_ev < PPM_EVENT_MAX; ppm_ev++)
+		{
+			ppm_event_set.insert((ppm_event_code)ppm_ev);
+		}
+	}
+	return ppm_event_set;
+}
+
+libsinsp::events::set<ppm_sc_code> libsinsp::events::event_set_to_sc_set(const set<ppm_event_code>& events_of_interest)
+{
+	std::vector<uint8_t> events_array(PPM_EVENT_MAX, 0);
+	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
+
+	/* Fill the `ppm_sc_array` with the syscalls we are interested in. */
+	events_of_interest.for_each([&events_array](ppm_event_code val)
+	{
+		events_array[val] = 1;
+	        return true;
+	});
+
+	if(scap_get_ppm_sc_from_events(events_array.data(), ppm_sc_set.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception("`ppm_sc_set` or `events_array` is an unexpected NULL vector!");
+	}
+
+	return ppm_sc_set;
+}
+
 libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 {
 	static libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest;

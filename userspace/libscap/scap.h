@@ -674,12 +674,17 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
 */
-int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX]);
+int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Take an array of `ppm_sc` as input and provide the associated array of events as output.
 */
-int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX]);
+int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT uint8_t events_array[PPM_EVENT_MAX]);
+
+/*!
+  \brief Take an array of `ppm_event_code` as input and provide the associated array of ppm_sc as output.
+*/
+int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
   \brief Convert a native syscall nr to ppm_sc
@@ -689,7 +694,7 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id);
 /*!
   \brief Returns the set of minimum tracepoints required by `libsinsp` state.
 */
-int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX]);
+int scap_get_modifies_state_tracepoints(OUT uint8_t tp_array[TP_VAL_MAX]);
 
 /*!
   \brief This function can be used to temporarily interrupt event capture.
