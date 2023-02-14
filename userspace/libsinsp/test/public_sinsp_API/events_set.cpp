@@ -16,7 +16,7 @@ limitations under the License.
 */
 
 #include <gtest/gtest.h>
-#include <sinsp_events.h>
+#include "events/sinsp_events.h"
 
 TEST(events_set, check_size)
 {
@@ -118,4 +118,26 @@ TEST(events_set, set_check_diff)
 	for (auto val : diff_vec) {
 		ASSERT_EQ(ppm_sc_set_diff.data()[val], 1);
 	}
+}
+
+TEST(events_set, names_to_event_set)
+{
+	auto event_names = std::unordered_set<std::string>{"openat2","execveat"};
+
+	auto event_codes = libsinsp::events::names_to_event_set(event_names);
+	ASSERT_TRUE(event_codes.contains(PPME_SYSCALL_OPENAT2_E));
+	ASSERT_TRUE(event_codes.contains(PPME_SYSCALL_OPENAT2_X));
+	ASSERT_TRUE(event_codes.contains(PPME_SYSCALL_EXECVEAT_E));
+	ASSERT_TRUE(event_codes.contains(PPME_SYSCALL_EXECVEAT_X));
+	ASSERT_FALSE(event_codes.contains(PPME_GENERIC_E));
+	ASSERT_FALSE(event_codes.contains(PPME_GENERIC_X));
+	ASSERT_EQ(event_codes.size(), 4); // enter/exit events for each event name
+
+	// Now insert a syscall bound to a generic event
+	event_names.insert("syncfs");
+	event_codes = libsinsp::events::names_to_event_set(event_names);
+	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_E));
+	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));
+	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+
 }

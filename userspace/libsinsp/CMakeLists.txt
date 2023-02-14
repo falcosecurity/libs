@@ -117,9 +117,9 @@ set(SINSP_SOURCES
 	value_parser.cpp
 	user.cpp
 	gvisor_config.cpp
-	sinsp_events.cpp
-	sinsp_events_ppm_sc.cpp
-	sinsp_events_tp.cpp)
+	events/sinsp_events.cpp
+	events/sinsp_events_ppm_sc.cpp
+	events/sinsp_events_tp.cpp)
 
 if(NOT WIN32)
 	list(APPEND SINSP_SOURCES procfs_utils.cpp)

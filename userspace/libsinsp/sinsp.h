@@ -52,7 +52,7 @@ limitations under the License.
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
 #include "sinsp_exception.h"
-#include "sinsp_events.h"
+#include "events/sinsp_events.h"
 
 #include <string>
 #include <map>
