@@ -22,20 +22,10 @@ libsinsp::events::set<ppm_tp_code> libsinsp::events::sinsp_state_tp_set()
 	static libsinsp::events::set<ppm_tp_code> tp_of_interest;
 	if (tp_of_interest.empty())
 	{
-		std::vector<uint32_t> minimum_tracepoints(TP_VAL_MAX, 0);
-
 		/* Should never happen but just to be sure. */
-		if(scap_get_modifies_state_tracepoints(minimum_tracepoints.data()) != SCAP_SUCCESS)
+		if(scap_get_modifies_state_tracepoints(tp_of_interest.data()) != SCAP_SUCCESS)
 		{
-			throw sinsp_exception("'minimum_tracepoints' is an unexpected NULL vector!");
-		}
-
-		for(int tp = 0; tp < TP_VAL_MAX; tp++)
-		{
-			if(minimum_tracepoints[tp])
-			{
-				tp_of_interest.insert((ppm_tp_code)tp);
-			}
+			throw sinsp_exception("'tp_of_interest' is an unexpected NULL vector!");
 		}
 	}
 	return tp_of_interest;

@@ -79,6 +79,11 @@ public:
 		return ret;
 	}
 
+	uint8_t *data()
+	{
+		return m_types.data();
+	}
+
 	inline void insert(ppm_type e)
 	{
 		check_range(e);
@@ -332,7 +337,6 @@ set<ppm_sc_code> sys_sc_set();
 
 /*!
   \brief Get all the available ppm_sc.
-  Does enforce minimum sinsp state set.
 */
 set<ppm_sc_code> all_sc_set();
 
@@ -361,6 +365,11 @@ set<ppm_event_code> sc_set_to_event_set(const set<ppm_sc_code> &ppm_sc_of_intere
 /*=============================== PPME set related (sinsp_events.cpp) ===============================*/
 
 /*!
+  \brief Get all the available ppm_event.
+*/
+set<ppm_event_code> all_event_set();
+
+/*!
   \brief Returns set of events with critical non syscalls events,
   e.g. container or procexit events.
 */
@@ -370,6 +379,21 @@ set<ppm_event_code> sinsp_state_event_set();
   \brief Get the name of all the events provided in the set.
 */
 std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set);
+
+/*!
+  \brief Get the ppm_event of all the event names provided in the set.
+*/
+set<ppm_event_code> names_to_event_set(const std::unordered_set<std::string>& events);
+
+/**
+	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
+	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
+	 * associated with a set of `ppm_sc` you have to pass the entire set of `ppm_sc`.
+	 *
+	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
+	 * @return set of events associated with the provided `ppm_sc` set.
+ */
+set<ppm_sc_code> event_set_to_sc_set(const set<ppm_event_code> &events_of_interest);
 
 /*=============================== PPME set related (sinsp_events.cpp) ===============================*/
 

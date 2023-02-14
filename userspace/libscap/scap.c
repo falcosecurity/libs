@@ -950,7 +950,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
+int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 {
 	if(ppm_sc_array == NULL)
 	{
@@ -992,7 +992,7 @@ int scap_get_modifies_state_ppm_sc(OUT uint32_t ppm_sc_array[PPM_SC_MAX])
 	return SCAP_SUCCESS;
 }
 
-int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT uint32_t events_array[PPM_EVENT_MAX])
+int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT uint8_t events_array[PPM_EVENT_MAX])
 {
 	if(ppm_sc_array == NULL || events_array == NULL)
 	{
@@ -1005,7 +1005,7 @@ int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT 
 	memset(events_array, 0, sizeof(*events_array) * PPM_EVENT_MAX);
 
 #ifdef __linux__
-	for(int ppm_code = 0; ppm_code< PPM_SC_MAX; ppm_code++)
+	for(int ppm_code = 0; ppm_code < PPM_SC_MAX; ppm_code++)
 	{
 		if(!ppm_sc_array[ppm_code])
 		{
@@ -1015,7 +1015,7 @@ int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT 
 		/* If we arrive here we want to know the events associated with this ppm_code. */
 		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
-			struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
+			const struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
 			if(pair.ppm_sc == ppm_code)
 			{
 				int enter_evt = pair.enter_event_type;
@@ -1036,6 +1036,39 @@ int scap_get_events_from_ppm_sc(IN const uint32_t ppm_sc_array[PPM_SC_MAX], OUT 
 	return SCAP_SUCCESS;
 }
 
+int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX])
+{
+	if(events_array == NULL || ppm_sc_array == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* Clear the array before using it.
+	 * This is not necessary but just to be future-proof.
+	 */
+	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
+
+#ifdef __linux__
+	for(int ev = 0; ev < PPM_EVENT_MAX; ev++)
+	{
+		if(!events_array[ev])
+		{
+			continue;
+		}
+
+		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+		{
+			const struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
+			if (pair.enter_event_type == ev || pair.exit_event_type == ev)
+			{
+				ppm_sc_array[pair.ppm_sc] = 1;
+			}
+		}
+	}
+#endif
+	return SCAP_SUCCESS;
+}
+
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 {
 #ifdef __linux__
@@ -1049,7 +1082,7 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 #endif
 }
 
-int scap_get_modifies_state_tracepoints(OUT uint32_t tp_array[TP_VAL_MAX])
+int scap_get_modifies_state_tracepoints(OUT uint8_t tp_array[TP_VAL_MAX])
 {
 	if(tp_array == NULL)
 	{
