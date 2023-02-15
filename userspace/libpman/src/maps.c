@@ -48,13 +48,6 @@ static void fill_ppm_sc_table()
 	}
 }
 
-#ifdef TEST_HELPERS
-uint8_t pman_get_event_params(int event_type)
-{
-	return g_state.skel->rodata->g_event_params_table[event_type];
-}
-#endif
-
 uint64_t pman_get_probe_api_ver()
 {
 	return g_state.skel->rodata->probe_api_ver;
