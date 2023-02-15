@@ -71,6 +71,7 @@ set(SINSP_SOURCES
 	filter/ast.cpp
 	filter/escaping.cpp
 	filter/parser.cpp
+	filter/ppm_codes.cpp
 	container.cpp
 	container_engine/container_engine_base.cpp
 	container_engine/static_container.cpp
@@ -82,7 +83,6 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
-	filter_evttype_resolver.cpp
 	fields_info.cpp
 	filterchecks.cpp
 	filter_check_list.cpp
