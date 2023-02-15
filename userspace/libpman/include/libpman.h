@@ -426,67 +426,6 @@ extern "C"
 	 */
 	void pman_clean_all_64bit_interesting_syscalls(void);
 
-	/////////////////////////////
-	// TEST HELPERS
-	/////////////////////////////
-#ifdef TEST_HELPERS
-
-	/**
-	 * @brief Search for one event to read in all the ringbufs.
-	 *
-	 * @param event_ptr in case of success return a pointer
-	 * to the event, otherwise return NULL.
-	 * @param cpu_id in case of success returns the id of the CPU
-	 * on which we have found the event, otherwise return NULL
-	 * @return `0` if an event is found otherwise returns `-1`
-	 */
-	int pman_consume_one_from_buffers(void** event_ptr, uint16_t* cpu_id);
-
-	/**
-	 * @brief Print some statistics about events captured and
-	 * events dropped
-	 *
-	 * @return `0` on success, `errno` in case of error.
-	 */
-	int pman_print_stats(void);
-
-	/**
-	 * @brief Given the event type, returns the number of params
-	 * for that event.
-	 *
-	 * @param event_type event type
-	 * @return number of params associated with the event type
-	 */
-	uint8_t pman_get_event_params(int event_type);
-
-	/**
-	 * @brief Given the event type, returns the name of the BPF
-	 * program associated with that event.
-	 *
-	 * @param event_type event type
-	 * @return name of the BPF program associated with the event type
-	 */
-	const char* pman_get_event_prog_name(int event_type);
-
-	/**
-	 * @brief Return `true` if all ring buffers are full. To state
-	 * that a ring buffer is full we check that the free space is less
-	 * than the `threshold`
-	 *
-	 * @param threshold used to check if a buffer is full
-	 * @return `true` if all buffers are full, otherwise `false`
-	 */
-	bool pman_are_all_ringbuffers_full(unsigned long threshold);
-
-	/**
-	 * @brief Get the producer pos for the required ring
-	 *
-	 * @param ring_num ring for which we want to obtain the producer pos
-	 * @return producer pos as an unsigned long
-	 */
-	unsigned long pman_get_producer_pos(int ring_num);
-#endif
-
 #ifdef __cplusplus
 }
 #endif
