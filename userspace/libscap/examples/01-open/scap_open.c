@@ -43,7 +43,6 @@ limitations under the License.
 #define ALL_AVAILABLE_CPUS_MODE "--available_cpus"
 
 /* PRINT */
-#define VALIDATION_OPTION "--validate_syscalls"
 #define PRINT_SYSCALLS_OPTION "--print_syscalls"
 #define PRINT_HELP_OPTION "--help"
 
@@ -292,53 +291,6 @@ void print_supported_tracepoints()
 	}
 }
 
-/// TODO: we need to move this validation outside this example
-
-bool validate_syscalls()
-{
-	ppm_sc_code ppm_syscall_code = 0;
-	bool success = true;
-	/* For every syscall of the system. */
-	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
-	{
-
-		ppm_syscall_code = g_syscall_table[syscall_id].ppm_sc;
-		/* If the syscall has `UF_NEVER_DROP` flag we must have its name inside the
-		 * `g_syscall_info_table`.
-		 */
-		if((g_syscall_table[syscall_id].flags & UF_NEVER_DROP) && g_syscall_info_table[ppm_syscall_code].name[0] == 0)
-		{
-			printf("ERROR: the syscall with real id `%d` has a `UF_NEVER_DROP` syscall in `g_syscall_table` but not a name in the `g_syscall_info_table`.\n", syscall_id);
-			success = false;
-			continue;
-		}
-
-		if(g_syscall_table[syscall_id].enter_event_type == PPME_GENERIC_E)
-		{
-			continue;
-		}
-
-		/* This is an error since it means that a syscall we want to trace is not tracked in our `g_syscall_info_table`.
-		 * We have `EC_UNKNOWN` when we don't have an entry in the `g_syscall_info_table`.
-		 */
-		if(g_syscall_info_table[ppm_syscall_code].category == EC_UNKNOWN)
-		{
-			printf("ERROR: the syscall with ppm code '%d' has an event associated but it is unknown in our `g_syscall_info_table`.\n", ppm_syscall_code);
-			success = false;
-			continue;
-		}
-	}
-
-	if(success)
-	{
-		printf("\n[SUCCESS] Our tables are consistent!\n");
-	}
-	else
-	{
-		printf("\n[FAIL] Our tables are not consistent!\n");
-	}
-	return success;
-}
 
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
@@ -714,8 +666,6 @@ void print_help()
 	printf("[MODERN PROBE ONLY, EXPERIMENTAL]\n");
 	printf("'%s <cpus_for_each_buffer>': allocate a ring buffer for every `cpus_for_each_buffer` CPUs.\n", CPUS_FOR_EACH_BUFFER_MODE);
 	printf("'%s': allocate ring buffers for all available CPUs. Default: allocate ring buffers for online CPUs only.\n", ALL_AVAILABLE_CPUS_MODE);
-	printf("\n------> VALIDATION OPTIONS\n");
-	printf("'%s': validation checks.\n", VALIDATION_OPTION);
 	printf("\n------> PRINT OPTIONS\n");
 	printf("'%s': print all supported syscalls with different sources and configurations.\n", PRINT_SYSCALLS_OPTION);
 	printf("'%s': print this menu.\n", PRINT_HELP_OPTION);
@@ -917,17 +867,6 @@ void parse_CLI_options(int argc, char** argv)
 
 		/*=============================== PRINT ===========================*/
 
-		if(!strcmp(argv[i], VALIDATION_OPTION))
-		{
-			if (validate_syscalls())
-			{
-				exit(EXIT_SUCCESS);
-			}
-			else
-			{
-				exit(EXIT_FAILURE);
-			}
-		}
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
 			print_UF_NEVER_DROP_syscalls();
