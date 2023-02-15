@@ -566,11 +566,6 @@ public:
 	sinsp_evt::param_fmt get_buffer_format();
 
 	/*!
-	  \brief Set event flags for which matching events should be dropped pre-filtering
-	*/
-	void set_drop_event_flags(ppm_event_flags flags);
-
-	/*!
 	  \brief Returns true if the current capture is offline
 	*/
 	inline bool is_capture()

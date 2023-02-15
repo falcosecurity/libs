@@ -67,7 +67,6 @@ sinsp_parser::sinsp_parser(sinsp *inspector) :
 
 	init_metaevt(m_k8s_metaevents_state, PPME_K8S_E, SP_EVT_BUF_SIZE);
 	init_metaevt(m_mesos_metaevents_state, PPME_MESOS_E, SP_EVT_BUF_SIZE);
-	m_drop_event_flags = EF_NONE;
 }
 
 sinsp_parser::~sinsp_parser()
@@ -152,26 +151,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		}
 	}
 #endif
-
-	if(m_drop_event_flags)
-	{
-		enum ppm_event_flags flags;
-		uint16_t etype = evt->m_pevt->type;
-		if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
-		{
-			flags = EF_NONE;
-		}
-		else
-		{
-			flags = evt->get_info_flags();
-		}
-
-		if (flags & m_drop_event_flags)
-		{
-			evt->m_filtered_out = true;
-			return;
-		}
-	}
 
 	//
 	// Filtering
