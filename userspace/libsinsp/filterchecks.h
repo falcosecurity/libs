@@ -518,8 +518,6 @@ public:
 		TYPE_INFRA_DOCKER_CONTAINER_NAME = 54,
 		TYPE_INFRA_DOCKER_CONTAINER_IMAGE = 55,
 		TYPE_ISOPEN_EXEC = 56,
-		TYPE_PLUGIN_NAME = 57,
-		TYPE_PLUGIN_INFO = 58,
 	};
 
 	sinsp_filter_check_event();
@@ -1010,4 +1008,3 @@ private:
 };
 
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
-
