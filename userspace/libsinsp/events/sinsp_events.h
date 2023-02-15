@@ -159,7 +159,7 @@ public:
 		set<ppm_type> ret(m_max);
 		for(size_t i = 0; i <= m_max; ++i)
 		{
-			if (m_types[i] ^ other.m_types[i])
+			if (m_types[i] == 1 && other.m_types[i] == 0)
 			{
 				ret.insert((ppm_type)i);
 			}
@@ -432,4 +432,30 @@ set<ppm_tp_code> enforce_simple_tp_set(set<ppm_tp_code> tp_of_interest = {});
 /*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
 
 }
+}
+
+template<typename T>
+inline bool operator==(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
+{
+	return lhs.equals(rhs);
+}
+
+template<typename T>
+inline bool operator!=(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
+{
+	return !(lhs == rhs);
+}
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const libsinsp::events::set<T>& s)
+{
+    auto first = true;
+    os << "(";
+    s.for_each([&os, &first](T v){
+        os << (first ? "" : ", ") << v;
+        first = false;
+        return true;
+    });
+    os << ")";
+    return os;
 }

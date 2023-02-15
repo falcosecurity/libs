@@ -94,7 +94,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const
 	// Main loop, on events (ie: non generic events)
 	for (int ppm_ev = 2; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
 	{
-		std::string ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
+		const char* ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
 		if (events.find(ppm_ev_name) != events.end())
 		{
 			ppm_event_set.insert((ppm_event_code)ppm_ev);
@@ -110,8 +110,8 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const
 		// Secondary loop, on syscalls and remaining events
 		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
 		{
-			std::string ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
-			if(remaining_events.find(ppm_sc_name) != events.end())
+			const char* ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
+			if(remaining_events.find(ppm_sc_name) != remaining_events.end())
 			{
 				ppm_event_set.insert(PPME_GENERIC_E);
 				ppm_event_set.insert(PPME_GENERIC_X);

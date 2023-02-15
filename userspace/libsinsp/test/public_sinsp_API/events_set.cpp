@@ -106,17 +106,17 @@ TEST(events_set, set_check_diff)
 
 	auto ppm_sc_set_1 = libsinsp::events::set<ppm_sc_code>();
 	ppm_sc_set_1.insert((ppm_sc_code)1);
+	ppm_sc_set_1.insert((ppm_sc_code)2);
+	ppm_sc_set_1.insert((ppm_sc_code)3);
 	ppm_sc_set_1.insert((ppm_sc_code)4);
 
 	auto ppm_sc_set_2 = libsinsp::events::set<ppm_sc_code>();
 	ppm_sc_set_2.insert((ppm_sc_code)1);
-	ppm_sc_set_2.insert((ppm_sc_code)2);
-	ppm_sc_set_2.insert((ppm_sc_code)3);
 	ppm_sc_set_2.insert((ppm_sc_code)4);
 
 	auto ppm_sc_set_diff = ppm_sc_set_1.diff(ppm_sc_set_2);
 	for (auto val : diff_vec) {
-		ASSERT_EQ(ppm_sc_set_diff.data()[val], 1);
+		ASSERT_TRUE(ppm_sc_set_diff.contains((ppm_sc_code)val));
 	}
 }
 
