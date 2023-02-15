@@ -23,7 +23,7 @@ limitations under the License.
 #include <sinsp.h>
 #include <functional>
 #include "util.h"
-#include "filter_evttype_resolver.h"
+#include "filter/ppm_codes.h"
 #include <unordered_set>
 
 #ifndef WIN32
@@ -163,12 +163,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 
 std::unordered_set<std::string> extract_filter_events(sinsp& inspector)
 {
-	std::shared_ptr<libsinsp::filter::ast::expr> filter_ast = inspector.get_filter_ast();
-	libsinsp::filter::evttype_resolver resolver;
-	std::set<uint16_t> evttypes = {};
-	resolver.evttypes(filter_ast, evttypes);
-	std::unordered_set<uint32_t> ppme_events_codes(evttypes.begin(), evttypes.end());
-	return inspector.get_events_names(ppme_events_codes);
+	auto ast = inspector.get_filter_ast();
+	auto codes = libsinsp::filter::ast::ppm_event_codes(ast.get());
+	return libsinsp::events::event_set_to_names(codes);
 }
 
 void open_engine(sinsp& inspector)
