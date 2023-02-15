@@ -1471,7 +1471,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		scap_dump_flags dflags;
 
-		bool do_drop;
+		bool do_drop = false;
 		dflags = evt->get_dump_flags(&do_drop);
 		if(do_drop)
 		{
