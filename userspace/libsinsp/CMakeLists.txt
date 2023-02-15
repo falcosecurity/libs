@@ -83,7 +83,6 @@ set(SINSP_SOURCES
 	dumper.cpp
 	fdinfo.cpp
 	filter.cpp
-	fields_info.cpp
 	filterchecks.cpp
 	filter_check_list.cpp
 	gen_filter.cpp
@@ -306,4 +305,3 @@ option(BUILD_LIBSINSP_EXAMPLES "Build libsinsp examples" ON)
 if (BUILD_LIBSINSP_EXAMPLES)
 	add_subdirectory(examples)
 endif()
-
