@@ -1,51 +1,64 @@
 #include "sinsp_events.h"
 
+const ppm_event_info* libsinsp::events::info(ppm_event_code event_type)
+{
+	ASSERT(event_type < PPM_EVENT_MAX);
+	return scap_get_event_info_table() + ((size_t) event_type);
+}
+
+bool libsinsp::events::is_generic(ppm_event_code event_type)
+{
+	ASSERT(event_type < PPM_EVENT_MAX);
+	return event_type == ppm_event_code::PPME_GENERIC_E
+		|| event_type == ppm_event_code::PPME_GENERIC_X;
+}
+
 bool libsinsp::events::is_unused_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+	enum ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
 	return (flags & EF_UNUSED);
 }
 
 bool libsinsp::events::is_skip_parse_reset_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+	enum ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
 	return (flags & EF_SKIPPARSERESET);
 }
 
 bool libsinsp::events::is_old_version_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_flags flags = g_infotables.m_event_info[event_type].flags;
+	enum ppm_event_flags flags = scap_get_event_info_table()[event_type].flags;
 	return (flags & EF_OLD_VERSION);
 }
 
 bool libsinsp::events::is_syscall_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	enum ppm_event_category category = scap_get_event_info_table()[event_type].category;
 	return (category & EC_SYSCALL);
 }
 
 bool libsinsp::events::is_tracepoint_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	enum ppm_event_category category = scap_get_event_info_table()[event_type].category;
 	return (category & EC_TRACEPOINT);
 }
 
 bool libsinsp::events::is_metaevent(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	enum ppm_event_category category = scap_get_event_info_table()[event_type].category;
 	return (category & EC_METAEVENT);
 }
 
 bool libsinsp::events::is_unknown_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	enum ppm_event_category category = scap_get_event_info_table()[event_type].category;
 	/* Please note this is not an `&` but an `==` if one event has
 	 * the `EC_UNKNOWN` category, it must have only this category!
 	 */
@@ -55,17 +68,18 @@ bool libsinsp::events::is_unknown_event(ppm_event_code event_type)
 bool libsinsp::events::is_plugin_event(ppm_event_code event_type)
 {
 	ASSERT(event_type < PPM_EVENT_MAX);
-	enum ppm_event_category category = g_infotables.m_event_info[event_type].category;
+	enum ppm_event_category category = scap_get_event_info_table()[event_type].category;
 	return (category & EC_PLUGIN);
 }
 
 std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsinsp::events::set<ppm_event_code>& events_set)
 {
 	std::unordered_set<std::string> events_names_set;
-	events_set.for_each([&events_names_set](ppm_event_code val) {
-		if (val > PPME_GENERIC_X)
+	for (const auto& val : events_set)
+	{
+		if (!libsinsp::events::is_generic(val))
 		{
-			events_names_set.insert(g_infotables.m_event_info[val].name);
+			events_names_set.insert(scap_get_event_info_table()[val].name);
 		}
 		else
 		{
@@ -77,12 +91,11 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 				const auto evts = sc_set_to_event_set(single_ev_set);
 				if (evts.contains(val))
 				{
-					events_names_set.insert(g_infotables.m_syscall_info_table[i].name);
+					events_names_set.insert(scap_get_syscall_info_table()[i].name);
 				}
 			}
 		}
-		return true;
-	});
+	}
 	return events_names_set;
 }
 
@@ -94,7 +107,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const
 	// Main loop, on events (ie: non generic events)
 	for (int ppm_ev = 2; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
 	{
-		const char* ppm_ev_name = g_infotables.m_event_info[ppm_ev].name;
+		const char* ppm_ev_name = scap_get_event_info_table()[ppm_ev].name;
 		if (events.find(ppm_ev_name) != events.end())
 		{
 			ppm_event_set.insert((ppm_event_code)ppm_ev);
@@ -110,7 +123,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const
 		// Secondary loop, on syscalls and remaining events
 		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
 		{
-			const char* ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
+			const char* ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
 			if(remaining_events.find(ppm_sc_name) != remaining_events.end())
 			{
 				ppm_event_set.insert(PPME_GENERIC_E);
@@ -138,7 +151,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::all_event_set()
 libsinsp::events::set<ppm_sc_code> libsinsp::events::event_set_to_sc_set(const set<ppm_event_code>& events_of_interest)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if(scap_get_ppm_sc_from_events(events_of_interest.const_data(), ppm_sc_set.data()) != SCAP_SUCCESS)
+	if(scap_get_ppm_sc_from_events(events_of_interest.data(), ppm_sc_set.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_set` or `events_array` is an unexpected NULL vector!");
 	}
