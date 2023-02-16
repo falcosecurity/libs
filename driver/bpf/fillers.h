@@ -4449,13 +4449,15 @@ FILLER(sys_lseek_e, true)
 {
 	unsigned long flags;
 	unsigned long val;
+	s32 fd;
 	int res;
 
 	/*
 	 * fd
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
+	fd = (s32)val;
+	res = bpf_val_to_ring(data, (s64)fd);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -4484,13 +4486,15 @@ FILLER(sys_llseek_e, true)
 	unsigned long oh;
 	unsigned long ol;
 	u64 offset;
+	s32 fd;
 	int res;
 
 	/*
 	 * fd
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
+	fd = (s32)val;
+	res = bpf_val_to_ring(data, (s64)fd);
 	if (res != PPM_SUCCESS)
 		return res;
 
