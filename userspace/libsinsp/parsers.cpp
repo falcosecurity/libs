@@ -96,12 +96,12 @@ sinsp_parser::~sinsp_parser()
 
 void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
 {
-	scap_evt *reduced_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
-	if(reduced_piscapevt == NULL)
+	scap_evt *new_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
+	if(new_piscapevt == NULL)
 	{
 		throw sinsp_exception("memory reallocation error in sinsp_parser::init_scapevt.");
 	}
-	evt_state.m_piscapevt = reduced_piscapevt;
+	evt_state.m_piscapevt = new_piscapevt;
 	evt_state.m_scap_buf_size = buf_size;
 	evt_state.m_piscapevt->type = evt_type;
 	evt_state.m_metaevt.m_pevt = evt_state.m_piscapevt;
