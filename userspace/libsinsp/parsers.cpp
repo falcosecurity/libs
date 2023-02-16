@@ -96,7 +96,12 @@ sinsp_parser::~sinsp_parser()
 
 void sinsp_parser::init_scapevt(metaevents_state& evt_state, uint16_t evt_type, uint16_t buf_size)
 {
-	evt_state.m_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
+	scap_evt *reduced_piscapevt = (scap_evt*) realloc(evt_state.m_piscapevt, buf_size);
+	if(reduced_piscapevt == NULL)
+	{
+		throw sinsp_exception("memory reallocation error in sinsp_parser::init_scapevt.");
+	}
+	evt_state.m_piscapevt = reduced_piscapevt;
 	evt_state.m_scap_buf_size = buf_size;
 	evt_state.m_piscapevt->type = evt_type;
 	evt_state.m_metaevt.m_pevt = evt_state.m_piscapevt;
@@ -879,6 +884,12 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 	if(tinfo->m_lastevent_data == NULL)
 	{
 		tinfo->m_lastevent_data = reserve_event_buffer();
+		if(tinfo->m_lastevent_data == NULL)
+		{
+			ASSERT(false);
+			g_logger.format(sinsp_logger::SEV_DEBUG, "cannot reserve event buffer in sinsp_parser::store_event.");
+			return;
+		}
 	}
 	memcpy(tinfo->m_lastevent_data, evt->m_pevt, elen);
 	tinfo->m_lastevent_cpuid = evt->get_cpuid();
@@ -1018,6 +1029,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	parinfo = evt->get_param(0);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
+	if(parinfo->m_val == NULL)
+	{
+		return;
+	}
 	childtid = *(int64_t *)parinfo->m_val;
 
 	switch(evt->get_type())
@@ -1423,7 +1438,15 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
 		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
 		//
-		tinfo->m_fdtable = *(ptinfo->get_fd_table());
+		sinsp_fdtable* fd_table_ptr = ptinfo->get_fd_table();
+		if(fd_table_ptr == NULL)
+		{
+			ASSERT(false);
+			g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
+			return;
+		}
+
+		tinfo->m_fdtable = *(fd_table_ptr);
 
 		//
 		// Track down that those are cloned fds
@@ -4902,6 +4925,10 @@ void sinsp_parser::parse_select_poll_epollwait_enter(sinsp_evt *evt)
 	if(evt->m_tinfo->m_lastevent_data == NULL)
 	{
 		evt->m_tinfo->m_lastevent_data = reserve_event_buffer();
+		if(evt->m_tinfo->m_lastevent_data == NULL)
+		{
+			throw sinsp_exception("cannot reserve event buffer in sinsp_parser::parse_select_poll_epollwait_enter.");
+		}
 	}
 	*(uint64_t*)evt->m_tinfo->m_lastevent_data = evt->get_ts();
 }

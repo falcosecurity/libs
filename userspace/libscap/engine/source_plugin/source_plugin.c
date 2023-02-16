@@ -180,6 +180,7 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 		}
 		else
 		{
+			free(handle->m_input_plugin_evt_storage);
 			snprintf(lasterr, SCAP_LASTERR_SIZE, "%s", "failed to alloc space for plugin storage");
 			ASSERT(false);
 			return SCAP_FAILURE;
