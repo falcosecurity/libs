@@ -772,7 +772,8 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 		sinsp_fdtable* fdtable = tinfo.get_fd_table();
 		if(fdtable == nullptr)
 		{
-			throw sinsp_exception("cannot get fd table in lua_cbacks::get_thread_table_int");
+			// If no fdtable is available we can't do anything
+			return true;
 		}
 
 		if(filter != NULL)
