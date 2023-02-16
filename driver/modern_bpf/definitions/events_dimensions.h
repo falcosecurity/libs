@@ -172,6 +172,8 @@
 #define SEMOP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint16_t) * 4 + sizeof(int16_t) * 2 + PARAM_LEN * 8
 #define SENDFILE_E_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint64_t) * 2 + PARAM_LEN * 4
 #define SENDFILE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
+#define FUTEX_E_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + sizeof(uint16_t) + PARAM_LEN * 3
+#define FUTEX_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
