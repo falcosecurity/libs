@@ -233,6 +233,10 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SENDFILE_X] = "sendfile_x",
 	[PPME_SYSCALL_FUTEX_E] = "futex_e",
 	[PPME_SYSCALL_FUTEX_X] = "futex_x",
+	[PPME_SYSCALL_LSEEK_E] = "lseek_e",
+	[PPME_SYSCALL_LSEEK_X] = "lseek_x",
+	[PPME_SYSCALL_LLSEEK_E] = "llseek_e",
+	[PPME_SYSCALL_LLSEEK_X] = "llseek_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
