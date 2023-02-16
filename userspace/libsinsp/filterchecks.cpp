@@ -67,7 +67,7 @@ bool g_filterchecks_force_raw_times = false;
 int32_t gmt2local(time_t t)
 {
 	int dt, dir;
-	struct tm *gmt, *loc;
+	struct tm *gmt, *tmp_gmt, *loc;
 	struct tm sgmt;
 
 	if(t == 0)
@@ -76,7 +76,12 @@ int32_t gmt2local(time_t t)
 	}
 
 	gmt = &sgmt;
-	*gmt = *gmtime(&t);
+	tmp_gmt = gmtime(&t);
+	if (tmp_gmt == NULL)
+	{
+		throw sinsp_exception("cannot get gmtime");
+	}
+	*gmt = *tmp_gmt;
 	loc = localtime(&t);
 	if(loc == NULL)
 	{
