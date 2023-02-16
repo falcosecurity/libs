@@ -796,6 +796,7 @@ void sinsp_threadinfo::remove_fd(int64_t fd)
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL)
 	{
+		ASSERT(false);
 		return;
 	}
 	fd_table_ptr->erase(fd);
