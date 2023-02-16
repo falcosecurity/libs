@@ -124,6 +124,7 @@ static bool is_cpu_online(uint16_t cpu_id)
 	}
 
 	fscanf(fp, "%d", &online);
+	fclose(fp);
 	return online == 1;
 }
 
