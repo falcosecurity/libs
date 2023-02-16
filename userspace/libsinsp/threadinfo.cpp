@@ -779,6 +779,7 @@ sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL)
 	{
+		ASSERT(false);
 		return NULL;
 	}
 	sinsp_fdinfo_t* res = fd_table_ptr->add(fd, fdinfo);
