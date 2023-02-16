@@ -33,7 +33,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
 {
-	static auto simple_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code>{
+	static libsinsp::events::set<ppm_sc_code> simple_set = {
 		PPM_SC_ACCEPT,
 		PPM_SC_ACCEPT4,
 		PPM_SC_BIND,
@@ -119,7 +119,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_sc_set(libsi
 		PPM_SC_UNSHARE,
 		PPM_SC_USERFAULTFD,
 		PPM_SC_VFORK,
-	});
+	};
 	static auto sinsp_state_ppm_sc = sinsp_state_sc_set();
 	static auto final_set = simple_set.merge(sinsp_state_ppm_sc);
 	return ppm_sc_set.merge(final_set);
@@ -130,7 +130,7 @@ static inline void get_sc_set_from_cat(libsinsp::events::set<ppm_sc_code> &ppm_s
 	const int bitmask = EC_SYSCALL - 1;
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		auto cat = g_infotables.m_syscall_info_table[ppm_sc].category & bitmask;
+		auto cat = scap_get_syscall_info_table()[ppm_sc].category & bitmask;
 		if (filter((ppm_event_category)cat))
 		{
 			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
@@ -229,7 +229,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
 	{
-		std::string ppm_sc_name = g_infotables.m_syscall_info_table[ppm_sc].name;
+		std::string ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
 		if (syscalls.find(ppm_sc_name) != syscalls.end())
 		{
 			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
@@ -241,7 +241,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
 {
 	libsinsp::events::set<ppm_event_code> events_set;
-	if(scap_get_events_from_ppm_sc(ppm_sc_set.const_data(), events_set.data()) != SCAP_SUCCESS)
+	if(scap_get_events_from_ppm_sc(ppm_sc_set.data(), events_set.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_array` or `events_set` is an unexpected NULL vector!");
 	}
@@ -264,11 +264,10 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::all_sc_set()
 std::unordered_set<std::string> libsinsp::events::sc_set_to_names(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
 {
 	std::unordered_set<std::string> ppm_sc_names_set;
-	ppm_sc_set.for_each([&ppm_sc_names_set](ppm_sc_code val)
-        {
-	        std::string ppm_sc_name = g_infotables.m_syscall_info_table[val].name;
-	        ppm_sc_names_set.insert(ppm_sc_name);
-	        return true;
-        });
+	for (const auto& val : ppm_sc_set)
+	{
+		std::string ppm_sc_name = scap_get_syscall_info_table()[val].name;
+	    ppm_sc_names_set.insert(ppm_sc_name);
+	}
 	return ppm_sc_names_set;
 }

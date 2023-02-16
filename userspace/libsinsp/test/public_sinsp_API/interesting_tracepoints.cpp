@@ -22,14 +22,14 @@ limitations under the License.
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
  */
-auto expected_sinsp_state_tp_set = libsinsp::events::set<ppm_tp_code>::from_unordered_set(std::unordered_set<ppm_tp_code>{
+libsinsp::events::set<ppm_tp_code> expected_sinsp_state_tp_set = {
 	SYS_ENTER,
 	SYS_EXIT,
 	SCHED_PROC_EXIT,
 	SCHED_SWITCH,
 	SCHED_PROC_FORK,
 	SCHED_PROC_EXEC
-});
+};
 
 /* This test asserts that `sinsp_state_tp_set` correctly retrieves
  * the `libsinsp` state tracepoint set.

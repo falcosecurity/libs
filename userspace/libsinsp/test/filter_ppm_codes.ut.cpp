@@ -28,9 +28,9 @@ static libsinsp::events::set<ppm_event_code> get_filter_set(const std::string &f
 
 TEST(filter_ppm_codes, check_openat)
 {
-    auto openat_only = libsinsp::events::set<ppm_event_code>::from_unordered_set({
+    libsinsp::events::set<ppm_event_code> openat_only = {
         PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
-        PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X});
+        PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X };
 
     auto not_openat = libsinsp::events::all_event_set().diff(openat_only);
 
@@ -56,10 +56,10 @@ TEST(filter_ppm_codes, check_openat)
 
 TEST(filter_ppm_codes, check_openat_or_close)
 {
-    auto openat_close_only = libsinsp::events::set<ppm_event_code>::from_unordered_set({
+    libsinsp::events::set<ppm_event_code> openat_close_only = {
         PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
         PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
-        PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X});
+        PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X };
 
     auto not_openat_close = libsinsp::events::all_event_set().diff(openat_close_only);
 

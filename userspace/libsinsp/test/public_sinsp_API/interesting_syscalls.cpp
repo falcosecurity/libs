@@ -31,7 +31,7 @@ limitations under the License.
 /* Please note this set must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
  */
-auto expected_sinsp_state_ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code>{
+libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 #ifdef __NR_accept
 	PPM_SC_ACCEPT,
 #endif
@@ -271,7 +271,7 @@ auto expected_sinsp_state_ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_
 #ifdef __NR_epoll_create1
 	PPM_SC_EPOLL_CREATE1,
 #endif
-});
+};
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
  * the `libsinsp` state ppm_sc set.
@@ -314,7 +314,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
  */
 TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 {
-	auto ppm_sc_set = libsinsp::events::set<ppm_sc_code>::from_unordered_set(std::unordered_set<ppm_sc_code>{
+	libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
 #ifdef __NR_kill
 	PPM_SC_KILL,
 #endif
@@ -326,9 +326,9 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 #ifdef __NR_alarm
 	PPM_SC_ALARM,
 #endif
-	});
+	};
 
-	auto event_set = libsinsp::events::set<ppm_event_code>::from_unordered_set(std::unordered_set<ppm_event_code>{
+	libsinsp::events::set<ppm_event_code> event_set = {
 #ifdef __NR_kill
 	PPME_SYSCALL_KILL_E,
 	PPME_SYSCALL_KILL_X,
@@ -343,7 +343,7 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	PPME_GENERIC_E,
 	PPME_GENERIC_X,
 #endif
-	});
+	};
 
 	auto final_evt_set = libsinsp::events::sc_set_to_event_set(ppm_sc_set);
 
