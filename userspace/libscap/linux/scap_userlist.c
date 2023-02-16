@@ -67,6 +67,7 @@ int32_t scap_create_userlist(scap_t* handle)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation failed(2)");
 		free(userlist);
+		handle->m_userlist = NULL;
 		return SCAP_FAILURE;		
 	}
 
@@ -77,6 +78,7 @@ int32_t scap_create_userlist(scap_t* handle)
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
 		free(userlist->users);
 		free(userlist);
+		handle->m_userlist = NULL;
 		return SCAP_FAILURE;		
 	}
 
@@ -127,6 +129,7 @@ int32_t scap_create_userlist(scap_t* handle)
 				free(userlist->users);
 				free(userlist->groups);
 				free(userlist);
+				handle->m_userlist = NULL;
 				if(file_lookup)
 				{
 					fclose(f);
@@ -192,7 +195,17 @@ int32_t scap_create_userlist(scap_t* handle)
 	if (useridx < usercnt)
 	{
 		// Reduce array size
-		userlist->users = realloc(userlist->users, useridx * sizeof(scap_userinfo));
+		scap_userinfo *reduced_userinfos = realloc(userlist->users, useridx * sizeof(scap_userinfo));
+		if(reduced_userinfos == NULL)
+		{
+			snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "userlist allocation while reducing array size");
+			free(userlist->users);
+			free(userlist->groups);
+			free(userlist);
+			handle->m_userlist = NULL;
+			return SCAP_FAILURE;
+		}
+		userlist->users = reduced_userinfos;
 	}
 
 	// groups
@@ -207,6 +220,7 @@ int32_t scap_create_userlist(scap_t* handle)
 			free(userlist->users);
 			free(userlist->groups);
 			free(userlist);
+			handle->m_userlist = NULL;
 			return SCAP_FAILURE;
 		}
 	}
@@ -231,6 +245,7 @@ int32_t scap_create_userlist(scap_t* handle)
 				free(userlist->users);
 				free(userlist->groups);
 				free(userlist);
+				handle->m_userlist = NULL;
 				if(file_lookup)
 				{
 					fclose(f);
@@ -273,7 +288,17 @@ int32_t scap_create_userlist(scap_t* handle)
 	if (grpidx < grpcnt)
 	{
 		// Reduce array size
-		userlist->groups = realloc(userlist->groups, grpidx * sizeof(scap_groupinfo));
+		scap_groupinfo *reduced_groups = realloc(userlist->groups, grpidx * sizeof(scap_groupinfo));
+		if(reduced_groups == NULL)
+		{
+			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "grouplist allocation failed(2)");
+			free(userlist->users);
+			free(userlist->groups);
+			free(userlist);
+			handle->m_userlist = NULL;
+			return SCAP_FAILURE;
+		}
+		userlist->groups = reduced_groups;
 	}
 	return SCAP_SUCCESS;
 }

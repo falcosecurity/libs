@@ -80,6 +80,10 @@ int32_t gmt2local(time_t t)
 	gmt = &sgmt;
 	*gmt = *gmtime(&t);
 	loc = localtime(&t);
+	if(loc == NULL)
+	{
+		throw sinsp_exception("cannot get localtime");
+	}
 
 	dt = (loc->tm_hour - gmt->tm_hour) * 60 * 60 + (loc->tm_min - gmt->tm_min) * 60;
 
@@ -5235,7 +5239,12 @@ uint8_t* sinsp_filter_check_tracer::extract_args(sinsp_partial_tracer* pae, OUT 
 
 	if(m_storage_size < encoded_args_len)
 	{
-		m_storage = (char*)realloc(m_storage, encoded_args_len);
+		char *reduced_storage = (char*)realloc(m_storage, encoded_args_len);
+		if(reduced_storage == NULL)
+		{
+			return NULL;
+		}
+		m_storage = reduced_storage;
 		m_storage_size = encoded_args_len;
 	}
 
@@ -5390,7 +5399,12 @@ uint8_t* sinsp_filter_check_tracer::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(m_storage_size < encoded_tags_len)
 			{
-				m_storage = (char*)realloc(m_storage, encoded_tags_len);
+				char *reduced_storage = (char*)realloc(m_storage, encoded_tags_len);
+				if(reduced_storage == NULL)
+				{
+					return NULL;
+				}
+				m_storage = reduced_storage;
 				m_storage_size = encoded_tags_len;
 			}
 
@@ -5874,7 +5888,13 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 		if(m_storage_size < encoded_tags_len)
 		{
-			m_storage = (char*)realloc(m_storage, encoded_tags_len);
+			char *reduced_storage = (char*)realloc(m_storage, encoded_tags_len);
+			if(reduced_storage == NULL)
+			{
+				free(m_storage);
+				return NULL;
+			}
+			m_storage = reduced_storage;
 			m_storage_size = encoded_tags_len;
 		}
 
@@ -5935,7 +5955,13 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 
 		if(m_storage_size < encoded_args_len)
 		{
-			m_storage = (char*)realloc(m_storage, encoded_args_len);
+			char *reduced_storage = (char*)realloc(m_storage, encoded_args_len);
+			if(reduced_storage == NULL)
+			{
+				free(m_storage);
+				return NULL;
+			}
+			m_storage = reduced_storage;
 			m_storage_size = encoded_args_len;
 		}
 

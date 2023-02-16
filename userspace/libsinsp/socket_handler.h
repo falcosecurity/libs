@@ -1592,6 +1592,10 @@ private:
 		if(!m_http_parser)
 		{
 			m_http_parser = (http_parser *)std::malloc(sizeof(http_parser));
+			if(m_http_parser == NULL)
+			{
+				throw sinsp_exception("memory allocation error allocating http_parser..");
+			}
 		}
 		m_http_parser_data.m_data_buf = &m_data_buf;
 		m_http_parser_data.m_json = &m_json;

@@ -361,6 +361,11 @@ int32_t scap_fd_handle_socket(struct scap_proclist *proclist, char *fname, scap_
 		if(sockets == NULL)
 		{
 			sockets = malloc(sizeof(struct scap_ns_socket_list));
+			if(sockets == NULL)
+			{
+				snprintf(error, SCAP_LASTERR_SIZE, "sockets allocation error");
+				return SCAP_FAILURE;
+			}
 			sockets->net_ns = net_ns;
 			sockets->sockets = NULL;
 			char fd_error[SCAP_LASTERR_SIZE];
@@ -443,6 +448,12 @@ int32_t scap_fd_read_unix_sockets_from_proc_fs(const char* filename, scap_fdinfo
 			continue;
 		}
 		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+		if(fdinfo == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "fdinfo allocation error");
+			fclose(f);
+			return SCAP_FAILURE;
+		}
 		fdinfo->type = SCAP_FD_UNIX_SOCK;
 
 
@@ -570,6 +581,12 @@ int32_t scap_fd_read_netlink_sockets_from_proc_fs(const char* filename, scap_fdi
 			continue;
 		}
 		scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+		if(fdinfo == NULL)
+		{
+			snprintf(error, SCAP_LASTERR_SIZE, "fdinfo allocation error");
+			fclose(f);
+			return SCAP_FAILURE;
+		}
 		memset(fdinfo, 0, sizeof(scap_fdinfo));
 		fdinfo->type = SCAP_FD_UNIX_SOCK;
 
@@ -724,6 +741,12 @@ int32_t scap_fd_read_ipv4_sockets_from_proc_fs(const char *dir, int l4proto, sca
 			}
 
 			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+			if(fdinfo == NULL)
+			{
+				fclose(f);
+				free(scan_buf);
+				return scap_errprintf(error, errno, "memory allocation error in scap_fd_read_ipv4_sockets_from_proc_fs");
+			}
 
 			//
 			// Skip the sl field
@@ -903,6 +926,12 @@ int32_t scap_fd_read_ipv6_sockets_from_proc_fs(char *dir, int l4proto, scap_fdin
 			}
 
 			scap_fdinfo *fdinfo = malloc(sizeof(scap_fdinfo));
+			if(fdinfo == NULL)
+			{
+				fclose(f);
+				free(scan_buf);
+				return scap_errprintf(error, errno, "memory allocation error in scap_fd_read_ipv6_sockets_from_proc_fs");
+			}
 
 			//
 			// Skip the sl field

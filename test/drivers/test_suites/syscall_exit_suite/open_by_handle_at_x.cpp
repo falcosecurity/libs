@@ -63,11 +63,13 @@ void do___open_by_handle_atX_success(int *open_by_handle_fd, int *dirfd, char *f
 	 * 2. Reallocate file_handle structure with the correct size.
 	 */
 	fhsize = sizeof(*fhp) + fhp->handle_bytes;
-	fhp = (struct file_handle *)realloc(fhp, fhsize);
-	if(fhp == NULL)
+	struct file_handle *new_fhp = (struct file_handle *)realloc(fhp, fhsize);
+	if(new_fhp == NULL)
 	{
+		free(fhp);
 		FAIL() << "Error in allocating the `struct file_handle` with realloc" << std::endl;
 	}
+	fhp = new_fhp;
 
 	/*
 	 * 3. Get file handle.
