@@ -636,6 +636,10 @@ void sinsp_threadinfo::set_env(const char* env, size_t len)
 		{
 			size_t sz = len - offset;
 			void* zero = calloc(sz, sizeof(char));
+			if(zero == NULL)
+			{
+				throw sinsp_exception("memory allocation error in sinsp_threadinfo::set_env");
+			}
 			if(!memcmp(left, zero, sz))
 			{
 				free(zero);
@@ -772,7 +776,12 @@ sinsp_threadinfo* sinsp_threadinfo::get_parent_thread()
 
 sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 {
-	sinsp_fdinfo_t* res = get_fd_table()->add(fd, fdinfo);
+	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	if(fd_table_ptr == NULL)
+	{
+		return NULL;
+	}
+	sinsp_fdinfo_t* res = fd_table_ptr->add(fd, fdinfo);
 
 	//
 	// Update the last event fd. It's needed by the filtering engine
@@ -784,7 +793,12 @@ sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 
 void sinsp_threadinfo::remove_fd(int64_t fd)
 {
-	get_fd_table()->erase(fd);
+	sinsp_fdtable* fd_table_ptr = get_fd_table();
+	if(fd_table_ptr == NULL)
+	{
+		return;
+	}
+	fd_table_ptr->erase(fd);
 }
 
 bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
@@ -792,6 +806,10 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
 
 	sinsp_fdtable* fdt = get_fd_table();
+	if(fdt == NULL)
+	{
+		return false;
+	}
 
 	for(it = fdt->m_table.begin(); it != fdt->m_table.end(); ++it)
 	{
@@ -819,6 +837,10 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;
 
 	sinsp_fdtable* fdt = get_fd_table();
+	if(fdt == NULL)
+	{
+		return false;
+	}
 
 	for(it = fdt->m_table.begin();
 		it != fdt->m_table.end(); ++it)
@@ -915,6 +937,10 @@ void sinsp_threadinfo::allocate_private_state()
 		for(j = 0; j < sizes->size(); j++)
 		{
 			void* newbuf = malloc(sizes->at(j));
+			if(newbuf == NULL)
+			{
+				throw sinsp_exception("memory allocation error in sinsp_threadinfo::allocate_private_state.");
+			}
 			memset(newbuf, 0, sizes->at(j));
 			m_private_state.push_back(newbuf);
 		}
@@ -1216,6 +1242,10 @@ void sinsp_threadinfo::cgroups_to_iovec(struct iovec **iov, int *iovcnt,
 	// intermediate '=' signs. Based on alen, we might not use all
 	// of the iovec.
 	*iov = (struct iovec *) malloc((3 * cgroups.size()) * sizeof(struct iovec));
+	if(iov == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_threadinfo::cgroups_to_iovec.");
+	}
 
 	*iovcnt = 0;
 
@@ -1258,6 +1288,10 @@ void sinsp_threadinfo::strvec_to_iovec(const vector<string> &strs,
 	// We allocate an iovec big enough to hold all the entries in
 	// strs. Based on alen, we might not use all of the iovec.
 	*iov = (struct iovec *) malloc(strs.size() * sizeof(struct iovec));
+	if(iov == NULL)
+	{
+		throw sinsp_exception("memory allocation error in sinsp_threadinfo::strvec_to_iovec.");
+	}
 
 	*iovcnt = 0;
 
@@ -1475,8 +1509,14 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		//
 		if((tinfo->m_pid == tinfo->m_tid) || tinfo->m_flags & PPM_CL_IS_MAIN_THREAD)
 		{
-			unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(tinfo->get_fd_table()->m_table);
-			unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
+			sinsp_fdtable* fd_table_ptr = tinfo->get_fd_table();
+			if(fd_table_ptr == NULL)
+			{
+				return;
+			}
+			std::unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(fd_table_ptr->m_table);
+
+			std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 
 			erase_fd_params eparams;
 			eparams.m_remove_from_table = false;
@@ -1586,7 +1626,12 @@ void sinsp_thread_manager::update_statistics()
 	m_inspector->m_stats.m_n_fds = 0;
 	for(threadinfo_map_iterator_t it = m_threadtable.begin(); it != m_threadtable.end(); it++)
 	{
-		m_inspector->m_stats.m_n_fds += it->second.get_fd_table()->size();
+		sinsp_fdtable* fd_table_ptr = it->second.get_fd_table();
+		if(fd_table_ptr == NULL)
+		{
+			return;
+		}
+		m_inspector->m_stats.m_n_fds += fd_table_ptr->size();
 	}
 #endif
 }
@@ -1714,7 +1759,15 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 			//
 			// Add the FDs
 			//
-			unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = tinfo.get_fd_table()->m_table;
+			sinsp_fdtable* fd_table_ptr = tinfo.get_fd_table();
+			if(fd_table_ptr == NULL)
+			{
+				scap_proc_free(m_inspector->m_h, sctinfo);
+				return false;
+			}
+
+			std::unordered_map<int64_t, sinsp_fdinfo_t>& fdtable = fd_table_ptr->m_table;
+
 			for(auto it = fdtable.begin(); it != fdtable.end(); ++it)
 			{
 				//
@@ -1724,7 +1777,7 @@ void sinsp_thread_manager::dump_threads_to_file(scap_dumper_t* dumper)
 				if(scfdinfo == NULL)
 				{
 					scap_proc_free(m_inspector->m_h, sctinfo);
-					throw sinsp_exception("thread memory allocation error in sinsp_thread_manager::to_scap");
+					return false;
 				}
 
 				//

@@ -235,6 +235,7 @@ static bool insert_module()
 		goto error;
 
 	atexit(remove_module);
+	close(fd);
 
 	return true;
 

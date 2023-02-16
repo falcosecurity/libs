@@ -41,8 +41,17 @@ int32_t scap_suppress_events_comm_impl(struct scap_suppress *suppress, const cha
 	}
 
 	suppress->m_num_suppressed_comms++;
-	suppress->m_suppressed_comms = (char **) realloc(suppress->m_suppressed_comms,
+	char **expanded_suppressed_comms = (char **) realloc(suppress->m_suppressed_comms,
 						       suppress->m_num_suppressed_comms * sizeof(char *));
+	if(expanded_suppressed_comms == NULL)
+	{
+		for(i=0; i<suppress->m_num_suppressed_comms - 1; i++) {
+			free(suppress->m_suppressed_comms[i]);
+		}
+		free(suppress->m_suppressed_comms);
+		return SCAP_FAILURE;
+	}
+	suppress->m_suppressed_comms = expanded_suppressed_comms;
 
 	suppress->m_suppressed_comms[suppress->m_num_suppressed_comms-1] = strdup(comm);
 
@@ -144,6 +153,11 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 	if(*suppressed && stid == NULL)
 	{
 		stid = (scap_tid *) malloc(sizeof(scap_tid));
+		if(stid == NULL)
+		{
+			return SCAP_FAILURE;
+		}
+
 		stid->tid = tid;
 		int32_t uth_status = SCAP_SUCCESS;
 

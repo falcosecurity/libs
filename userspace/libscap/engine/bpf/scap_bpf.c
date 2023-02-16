@@ -342,6 +342,11 @@ static int32_t load_elf_maps_section(struct bpf_engine *handle, struct bpf_map_d
 
 	*nr_maps = 0;
 	sym = calloc(BPF_MAPS_MAX + 1, sizeof(GElf_Sym));
+	if(sym == NULL)
+	{
+		return scap_errprintf(handle->m_lasterr, 0, "calloc(BPF_MAPS_MAX + 1) failed");
+	}
+
 	for(i = 0; i < symbols->d_size / sizeof(GElf_Sym); i++)
 	{
 		ASSERT(*nr_maps < BPF_MAPS_MAX + 1);
