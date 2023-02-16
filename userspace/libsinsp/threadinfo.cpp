@@ -839,6 +839,7 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
 	{
+		ASSERT(false);
 		return false;
 	}
 
