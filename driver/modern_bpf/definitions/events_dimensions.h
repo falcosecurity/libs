@@ -174,6 +174,10 @@
 #define SENDFILE_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
 #define FUTEX_E_SIZE HEADER_LEN + sizeof(uint64_t) * 2 + sizeof(uint16_t) + PARAM_LEN * 3
 #define FUTEX_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define LSEEK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + sizeof(uint8_t) + 3 * PARAM_LEN 
+#define LSEEK_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define LLSEEK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + sizeof(uint8_t) + 3 * PARAM_LEN 
+#define LLSEEK_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4
