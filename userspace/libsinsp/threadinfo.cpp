@@ -1512,6 +1512,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 			sinsp_fdtable* fd_table_ptr = tinfo->get_fd_table();
 			if(fd_table_ptr == NULL)
 			{
+				ASSERT(false);
 				return;
 			}
 			std::unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(fd_table_ptr->m_table);
