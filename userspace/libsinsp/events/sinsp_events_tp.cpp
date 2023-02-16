@@ -53,11 +53,10 @@ libsinsp::events::set<ppm_tp_code> libsinsp::events::all_tp_set()
 std::unordered_set<std::string> libsinsp::events::tp_set_to_names(const libsinsp::events::set<ppm_tp_code>& tp_set)
 {
 	std::unordered_set<std::string> tp_names_set;
-	tp_set.for_each([&tp_names_set](ppm_tp_code val)
+	for (const auto& val : tp_set)
 	{
 		std::string tp_name = tp_names[val];
 		tp_names_set.insert(tp_name);
-		return true;
-	});
+	}
 	return tp_names_set;
 }
