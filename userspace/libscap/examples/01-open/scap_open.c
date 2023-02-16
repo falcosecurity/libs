@@ -240,7 +240,7 @@ void print_EF_MODIFIES_STATE_syscalls()
 
 void print_sinsp_modifies_state_syscalls()
 {
-	uint32_t ppm_scs[PPM_SC_MAX];
+	uint8_t ppm_scs[PPM_SC_MAX];
 	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
 	int interesting_syscall = 0;
 
