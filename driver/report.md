@@ -1,8 +1,9 @@
 # Supported Syscalls
 
-A table that describes which syscalls are mapped to a specific event in the event table.  
-Syscalls that are not mapped to any event, are instead mapped to the `generic` one.  
-Specific events are capable of extracting information from the syscall, while the generic ones can only tell which syscall happened.
+This table represents the syscalls supported by our drivers.
+
+🟢 means that the syscall is fully instrumented so its parameters are available to userspace.
+🟡 means that the syscall is not fully instrumented so the userspace is just notified when the syscall happens but no parameters are available.
 
 |         SYSCALL         | SUPPORTED |
 |-------------------------|-----------|
