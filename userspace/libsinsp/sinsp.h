@@ -53,6 +53,10 @@ limitations under the License.
 #include "sinsp_public.h"
 #include "sinsp_exception.h"
 #include "events/sinsp_events.h"
+#include "filter/ast.h"
+#include "filter/escaping.h"
+#include "filter/ppm_codes.h"
+#include "filter/parser.h"
 
 #include <string>
 #include <map>
