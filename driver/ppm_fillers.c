@@ -3224,13 +3224,15 @@ int f_sys_futex_e(struct event_filler_arguments *args)
 int f_sys_lseek_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
+	s32 fd;
 	int res;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3260,12 +3262,14 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	unsigned long oh;
 	unsigned long ol;
 	uint64_t offset;
+	s32 fd;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
