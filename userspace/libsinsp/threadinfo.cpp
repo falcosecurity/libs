@@ -1629,6 +1629,7 @@ void sinsp_thread_manager::update_statistics()
 		sinsp_fdtable* fd_table_ptr = it->second.get_fd_table();
 		if(fd_table_ptr == NULL)
 		{
+			ASSERT(false);
 			return;
 		}
 		m_inspector->m_stats.m_n_fds += fd_table_ptr->size();
