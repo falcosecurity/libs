@@ -65,14 +65,17 @@ int32_t sandbox_entry::expand_buffer(size_t size)
 
 	if (m_buf.buf == nullptr) {
 		new_buf = malloc(size);
+		if (new_buf == nullptr)
+		{
+			return SCAP_FAILURE;
+		}
 	} else
 	{
 		new_buf = realloc(m_buf.buf, size);
-	}
-
-	if (new_buf == nullptr)
-	{
-		return SCAP_FAILURE;
+		if (new_buf == nullptr)
+		{
+			return SCAP_FAILURE;
+		}
 	}
 
 	m_buf.buf = new_buf;

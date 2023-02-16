@@ -2128,7 +2128,7 @@ double sinsp::get_read_progress_with_str(OUT std::string* progress_str)
 {
 	if(is_plugin())
 	{
-		double res;
+		double res = 0;
 		get_read_progress_plugin(&res, progress_str);
 		return res;
 	}

@@ -71,6 +71,7 @@ static int scap_dump_write(scap_dumper_t *d, void* buf, unsigned len)
 				targetbufsize);
 			if(targetbuf == NULL)
 			{
+				free(d->m_targetbuf);
 				return -1;
 			}
 
@@ -713,6 +714,11 @@ static int32_t scap_write_proclist(scap_dumper_t *d, struct scap_proclist *procl
 	}
 
 	scap_dumper_t *proclist_dumper = scap_write_proclist_begin();
+	if(proclist_dumper == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+	
 
 	uint32_t totlen = 0;
 	struct scap_threadinfo *tinfo;

@@ -184,6 +184,10 @@ cycle_writer::conclusion cycle_writer::next_file()
 			size_t their_size;
 			char file_name[our_size];
 			const struct tm *our_time = localtime(&m_last_time);
+			if(our_time == NULL)
+			{
+				throw sinsp_exception("cannot get localtime in cycle_writer::next_file");
+			}
 
 			their_size = strftime(file_name, our_size, m_base_file_name.c_str(), our_time);
 

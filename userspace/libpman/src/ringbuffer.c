@@ -132,6 +132,11 @@ int pman_finalize_ringbuf_array_after_loading()
 	int ringubuf_array_fd = -1;
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	int *ringbufs_fds = (int *)calloc(g_state.n_required_buffers, sizeof(int));
+	if(ringbufs_fds == NULL)
+	{
+		pman_print_error("failed to allocate the ringubufs_fds array");
+		return errno;
+	}
 	bool success = false;
 
 	/* We don't need anymore the inner map, close it. */

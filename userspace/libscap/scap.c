@@ -218,7 +218,6 @@ scap_t* scap_open_udig_int(char *error, int32_t *rc, scap_open_args *oargs)
 	if(*rc != SCAP_SUCCESS)
 	{
 		scap_close(handle);
-		free(handle);
 		return NULL;
 	}
 
@@ -1388,6 +1387,8 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 	struct ppm_proclist_info *procinfo = (struct ppm_proclist_info*) realloc(*proclist_p, memsize);
 	if(procinfo == NULL)
 	{
+		free(*proclist_p);
+		*proclist_p = NULL;
 		snprintf(error, SCAP_LASTERR_SIZE, "driver process list allocation error");
 		return false;
 	}
