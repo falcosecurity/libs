@@ -5889,7 +5889,6 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			char *reduced_storage = (char*)realloc(m_storage, encoded_tags_len);
 			if(reduced_storage == NULL)
 			{
-				free(m_storage);
 				return NULL;
 			}
 			m_storage = reduced_storage;
@@ -5956,7 +5955,6 @@ inline uint8_t* sinsp_filter_check_evtin::extract_tracer(sinsp_evt *evt, sinsp_p
 			char *reduced_storage = (char*)realloc(m_storage, encoded_args_len);
 			if(reduced_storage == NULL)
 			{
-				free(m_storage);
 				return NULL;
 			}
 			m_storage = reduced_storage;
