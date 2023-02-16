@@ -1113,12 +1113,15 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			scap_userinfo* puser;
 
 			(*userlist_p)->nusers++;
-			(*userlist_p)->users = (scap_userinfo*)realloc((*userlist_p)->users, (*userlist_p)->nusers * sizeof(scap_userinfo));
-			if((*userlist_p)->users == NULL)
+			scap_userinfo *new_userlist = (scap_userinfo*)realloc((*userlist_p)->users, (*userlist_p)->nusers * sizeof(scap_userinfo));
+			if(new_userlist == NULL)
 			{
+				free((*userlist_p)->users);
+				(*userlist_p)->users = NULL;
 				snprintf(error, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(1)");
 				return SCAP_FAILURE;
 			}
+			(*userlist_p)->users = new_userlist;
 
 			puser = &(*userlist_p)->users[(*userlist_p)->nusers -1];
 
@@ -1218,12 +1221,15 @@ static int32_t scap_read_userlist(scap_reader_t* r, uint32_t block_length, uint3
 			scap_groupinfo* pgroup;
 
 			(*userlist_p)->ngroups++;
-			(*userlist_p)->groups = (scap_groupinfo*)realloc((*userlist_p)->groups, (*userlist_p)->ngroups * sizeof(scap_groupinfo));
-			if((*userlist_p)->groups == NULL)
+			scap_groupinfo *new_grouplist = (scap_groupinfo*)realloc((*userlist_p)->groups, (*userlist_p)->ngroups * sizeof(scap_groupinfo));
+			if(new_grouplist == NULL)
 			{
+				free((*userlist_p)->groups);
+				(*userlist_p)->groups = NULL;
 				snprintf(error, SCAP_LASTERR_SIZE, "memory allocation error in scap_read_userlist(2)");
 				return SCAP_FAILURE;
 			}
+			(*userlist_p)->groups = new_grouplist;
 
 			pgroup = &(*userlist_p)->groups[(*userlist_p)->ngroups -1];
 
@@ -1907,6 +1913,8 @@ static int32_t next(struct scap_engine_handle engine, scap_evt **pevent, uint16_
 			// Try to allocate a buffer large enough
 			char *tmp = realloc(handle->m_reader_evt_buf, readlen);
 			if (!tmp) {
+				free(handle->m_reader_evt_buf);
+				handle->m_reader_evt_buf = NULL;
 				snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "event block length %u greater than read buffer size %zu",
 					 readlen,
 					 handle->m_reader_evt_buf_size);

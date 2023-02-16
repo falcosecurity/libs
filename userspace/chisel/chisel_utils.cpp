@@ -94,7 +94,7 @@ static std::string realpath_ex(const std::string& path)
 	}
 	std::string ret = resolved;
 	free(resolved);
-	return resolved;
+	return ret;
 }
 #endif
 
