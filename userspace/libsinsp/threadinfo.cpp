@@ -779,7 +779,6 @@ sinsp_fdinfo_t* sinsp_threadinfo::add_fd(int64_t fd, sinsp_fdinfo_t *fdinfo)
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL)
 	{
-		ASSERT(false);
 		return NULL;
 	}
 	sinsp_fdinfo_t* res = fd_table_ptr->add(fd, fdinfo);
@@ -797,7 +796,6 @@ void sinsp_threadinfo::remove_fd(int64_t fd)
 	sinsp_fdtable* fd_table_ptr = get_fd_table();
 	if(fd_table_ptr == NULL)
 	{
-		ASSERT(false);
 		return;
 	}
 	fd_table_ptr->erase(fd);
@@ -810,7 +808,6 @@ bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
 	{
-		ASSERT(false);
 		return false;
 	}
 
@@ -842,7 +839,6 @@ bool sinsp_threadinfo::uses_client_port(uint16_t number)
 	sinsp_fdtable* fdt = get_fd_table();
 	if(fdt == NULL)
 	{
-		ASSERT(false);
 		return false;
 	}
 
@@ -1516,7 +1512,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 			sinsp_fdtable* fd_table_ptr = tinfo->get_fd_table();
 			if(fd_table_ptr == NULL)
 			{
-				ASSERT(false);
 				return;
 			}
 			std::unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(fd_table_ptr->m_table);
@@ -1634,7 +1629,6 @@ void sinsp_thread_manager::update_statistics()
 		sinsp_fdtable* fd_table_ptr = it->second.get_fd_table();
 		if(fd_table_ptr == NULL)
 		{
-			ASSERT(false);
 			return;
 		}
 		m_inspector->m_stats.m_n_fds += fd_table_ptr->size();

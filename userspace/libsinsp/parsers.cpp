@@ -886,7 +886,8 @@ void sinsp_parser::store_event(sinsp_evt *evt)
 		tinfo->m_lastevent_data = reserve_event_buffer();
 		if(tinfo->m_lastevent_data == NULL)
 		{
-			throw sinsp_exception("cannot reserve event buffer in sinsp_parser::store_event.");
+			ASSERT(false);
+			g_logger.format(sinsp_logger::SEV_DEBUG, "cannot reserve event buffer in sinsp_parser::store_event.");
 			return;
 		}
 	}
