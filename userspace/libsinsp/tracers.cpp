@@ -1229,13 +1229,13 @@ inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 
 	if(pae->m_tags_storage_size < encoded_tags_len)
 	{
-		char *reduced_tags_storage = (char*)realloc(pae->m_tags_storage, encoded_tags_len);
-		if(reduced_tags_storage == NULL)
+		char *new_tags_storage = (char*)realloc(pae->m_tags_storage, encoded_tags_len);
+		if(new_tags_storage == NULL)
 		{
 			free(pae->m_tags_storage);
 			throw sinsp_exception("memory reallocation error in sinsp_tracerparser::init_partial_tracer.");
 		}
-		pae->m_tags_storage = reduced_tags_storage;
+		pae->m_tags_storage = new_tags_storage;
 		pae->m_tags_storage_size = encoded_tags_len;
 	}
 
@@ -1262,13 +1262,13 @@ inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 
 	if(pae->m_argnames_storage_size < encoded_argnames_len)
 	{
-		char *reduced_argnames_storage = (char*)realloc(pae->m_argnames_storage, encoded_argnames_len);
-		if(reduced_argnames_storage == NULL)
+		char *new_argnames_storage = (char*)realloc(pae->m_argnames_storage, encoded_argnames_len);
+		if(new_argnames_storage == NULL)
 		{
 			free(pae->m_argnames_storage);
 			throw sinsp_exception("memory reallocation error in sinsp_tracerparser::init_partial_tracer.");
 		}
-		pae->m_argnames_storage = reduced_argnames_storage;
+		pae->m_argnames_storage = new_argnames_storage;
 		pae->m_argnames_storage_size = encoded_argnames_len;
 	}
 
@@ -1294,13 +1294,13 @@ inline void sinsp_tracerparser::init_partial_tracer(sinsp_partial_tracer* pae)
 
 	if(pae->m_argvals_storage_size < encoded_argvals_len)
 	{
-		char *reduced_argvals_storage = (char*)realloc(pae->m_argvals_storage, encoded_argvals_len);
-		if(reduced_argvals_storage == NULL)
+		char *new_argvals_storage = (char*)realloc(pae->m_argvals_storage, encoded_argvals_len);
+		if(new_argvals_storage == NULL)
 		{
 			free(pae->m_argvals_storage);
 			throw sinsp_exception("memory reallocation error in sinsp_tracerparser::init_partial_tracer.");
 		}
-		pae->m_argvals_storage = reduced_argvals_storage;
+		pae->m_argvals_storage = new_argvals_storage;
 		pae->m_argvals_storage_size = encoded_argvals_len;
 	}
 
