@@ -965,7 +965,7 @@ int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 	// Collect EF_MODIFIES_STATE events
 	for (int event_nr = 0; event_nr < PPM_EVENT_MAX; event_nr++)
 	{
-		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE)
+		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE && g_event_info[event_nr].category & EC_SYSCALL)
 		{
 			for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 			{
@@ -987,6 +987,18 @@ int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 			ppm_sc_array[ppm_sc_code] = 1;
 		}
 	}
+
+	// Force-set modifies state tracepoints
+	// TODO: once event_table maps PPM_SC, we can unify this with the above loop
+	ppm_sc_array[PPM_SC_SYS_ENTER] = 1;
+	ppm_sc_array[PPM_SC_SYS_EXIT] = 1;
+	ppm_sc_array[PPM_SC_SCHED_PROCESS_EXIT] = 1;
+	ppm_sc_array[PPM_SC_SCHED_SWITCH] = 1;
+	/* With `aarch64` and `s390x` we need also this,
+	 * in `x86` they are not considered at all.
+	 */
+	ppm_sc_array[PPM_SC_SCHED_PROCESS_FORK] = 1;
+	ppm_sc_array[PPM_SC_SCHED_PROCESS_EXEC] = 1;
 #endif
 	return SCAP_SUCCESS;
 }
@@ -1068,6 +1080,33 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 	return SCAP_SUCCESS;
 }
 
+ppm_sc_code scap_ppm_sc_from_name(const char *name)
+{
+	int start = 0;
+	int max = PPM_SC_MAX;
+	const char *sc_name = name;
+
+	// Find last '/' occurrence to take only the basename
+	const char *tp_name = strrchr(name, '/');
+	if (tp_name == NULL || strlen(tp_name) <= 1)
+	{
+		max = PPM_SC_SYSCALL_END;
+	} else {
+		start = PPM_SC_TP_START;
+		sc_name = tp_name + 1;
+	}
+
+	const struct ppm_syscall_desc *info_table = scap_get_syscall_info_table();
+	for (int i = start; i < max; i++)
+	{
+		if (strcmp(sc_name, info_table[i].name) == 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 {
 #ifdef __linux__
@@ -1079,30 +1118,6 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 #else
 	return -1;
 #endif
-}
-
-int scap_get_modifies_state_tracepoints(OUT uint8_t tp_array[TP_VAL_MAX])
-{
-	if(tp_array == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
-	/* Clear the array before using it.
-	 * This is not necessary but just to be future-proof.
-	 */
-	memset(tp_array, 0, sizeof(*tp_array) * TP_VAL_MAX);
-
-	tp_array[SYS_ENTER] = 1;
-	tp_array[SYS_EXIT] = 1;
-	tp_array[SCHED_PROC_EXIT] = 1;
-	tp_array[SCHED_SWITCH] = 1;
-	/* With `aarch64` and `s390x` we need also this,
-	 * in `x86` they are not considered at all.
-	 */
-	tp_array[SCHED_PROC_FORK] = 1;
-	tp_array[SCHED_PROC_EXEC] = 1;
-	return SCAP_SUCCESS;
 }
 
 //
@@ -1246,11 +1261,6 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 
 static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code ppm_sc)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	switch(op)
 	{
 	case SCAP_PPM_SC_MASK_SET:
@@ -1264,13 +1274,6 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 		break;
 	}
 
-	if (ppm_sc >= PPM_SC_MAX)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_PPM_SC_MASK, op, ppm_sc);
@@ -1280,11 +1283,7 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 	return SCAP_FAILURE;
 }
 
-int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
-	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
-}
-
-static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_tp_code tp)
+static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_sc_code tp)
 {
 	switch(op)
 	{
@@ -1299,18 +1298,6 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_tp_code tp)
 		break;
 	}
 
-	if (tp >= TP_VAL_MAX)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, tp);
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
-	if (handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_TP_MASK, op, tp);
@@ -1320,8 +1307,24 @@ static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_tp_code tp)
 	return SCAP_FAILURE;
 }
 
-int32_t scap_set_tp(scap_t* handle, ppm_tp_code tp, bool enabled) {
-	return(scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, tp));
+int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
+	if (handle == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	if (ppm_sc >= PPM_SC_MAX)
+	{
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	if (ppm_sc >= PPM_SC_TP_START) {
+		//  Tracepoints!
+		return scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, ppm_sc);
+	}
+	return scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc);
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)

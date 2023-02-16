@@ -55,7 +55,6 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events_public.h"
 #include "ppm_events.h"
 #include "ppm.h"
-#include "ppm_tp.h"
 #if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
 #include "ppm_compat_unistd_32.h"
 #endif
@@ -86,7 +85,17 @@ MODULE_AUTHOR("the Falco authors");
 #define _PAGE_ENC 0
 #endif
 
-#define TP_VAL_INTERNAL TP_VAL_MAX
+#define TP_VAL_INTERNAL PPM_SC_TP_LEN
+
+// We only care about tracepoint names here; moreover,
+// it's ok to print upper case names.
+// Moreover, visit_tracepoint() uses `strcasecmp`.
+// See syscall_info_table::load_syscall_info_table().
+static const char *tp_names[PPM_SC_MAX] = {
+#define PPM_SC_X(name, value) [value] = #name,
+	PPM_SC_TP_FIELDS
+#undef PPM_SC_X
+};
 
 struct ppm_device {
 	dev_t dev;
@@ -146,11 +155,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
                                  enum syscall_flags drop_flags,
                                  nanoseconds ns,
                                  struct event_data_t *event_datap,
-				 ppm_tp_code tp_type);
+				 ppm_sc_code tp_type);
 static void record_event_all_consumers(ppm_event_code event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap,
-				       ppm_tp_code tp_type);
+				       ppm_sc_code tp_type);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long buffer_bytes_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -214,8 +223,8 @@ static const struct file_operations g_ppm_fops = {
 
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
-static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
-static u32 g_tracepoints_refs[TP_VAL_MAX];
+static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using PPM_SC_TP values masked at first PPM_SC_TP_SHIFT bits
+static u32 g_tracepoints_refs[PPM_SC_TP_LEN];
 static unsigned long g_buffer_bytes_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -632,7 +641,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 	int ret;
 
 	ret = 0;
-	for(idx = 0; idx < TP_VAL_MAX && ret == 0; idx++)
+	for(idx = 0; idx < PPM_SC_TP_LEN && ret == 0; idx++)
 	{
 		new_val = new_tp_set & (1 << idx);
 		curr_val = g_tracepoints_attached & (1 << idx);
@@ -669,9 +678,11 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 			continue;
 		}
 
-		switch(idx)
+		// Kmod keeps a 0-indexed mask of tracepoints;
+		// we want to find proper PPM_SC codes here
+		switch(idx + PPM_SC_TP_START)
 		{
-		case SYS_ENTER:
+		case PPM_SC_SYS_ENTER:
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -689,7 +700,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 #endif
 			}
 			break;
-		case SYS_EXIT:
+		case PPM_SC_SYS_EXIT:
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
@@ -707,22 +718,22 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 #endif
 			}
 			break;
-		case SCHED_PROC_EXIT:
+		case PPM_SC_SCHED_PROCESS_EXIT:
 			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
 			break;
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		case SCHED_SWITCH:
+		case PPM_SC_SCHED_SWITCH:
 			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
 			break;
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
-		case PAGE_FAULT_USER:
+		case PPM_SC_PAGE_FAULT_USER:
 			if (!g_fault_tracepoint_disabled)
 			{
 				ret = compat_set_tracepoint(page_fault_user_probe, tp_names[idx], tp_page_fault_user, new_val);
 			}
 			break;
-		case PAGE_FAULT_KERN:
+		case PPM_SC_PAGE_FAULT_KERNEL:
 			if (!g_fault_tracepoint_disabled)
 			{
 				ret = compat_set_tracepoint(page_fault_kern_probe, tp_names[idx], tp_page_fault_kernel, new_val);
@@ -730,17 +741,17 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 			break;
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-		case SIGNAL_DELIVER:
+		case PPM_SC_SIGNAL_DELIVER:
 			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_FORK
-		case SCHED_PROC_FORK:
+		case PPM_SC_SCHED_PROCESS_FORK:
 			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_EXEC
-		case SCHED_PROC_EXEC:
+		case PPM_SC_SCHED_PROCESS_EXEC:
 			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
 			break;
 #endif
@@ -1130,11 +1141,12 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_ENABLE_TP:
 	{
 		u32 new_tp_set;
-		if ((u32)arg >= TP_VAL_MAX) {
+		if ((u32)arg >= PPM_SC_MAX || arg < PPM_SC_TP_START) {
 			pr_err("invalid tp %u\n", (u32)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
+		arg -= PPM_SC_TP_START;
 		new_tp_set = consumer->tracepoints_attached;
 		new_tp_set |= 1 << (u32)arg;
 		set_consumer_tracepoints(consumer, new_tp_set);
@@ -1144,11 +1156,12 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_DISABLE_TP:
 	{
 		u32 new_tp_set;
-		if ((u32)arg >= TP_VAL_MAX) {
+		if ((u32)arg >= PPM_SC_MAX || arg < PPM_SC_TP_START) {
 			pr_err("invalid tp %u\n", (u32)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
 		}
+		arg -= PPM_SC_TP_START;
 		new_tp_set = consumer->tracepoints_attached;
 		new_tp_set &= ~(1 << (u32)arg);
 		set_consumer_tracepoints(consumer, new_tp_set);
@@ -1723,14 +1736,14 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 static void record_event_all_consumers(ppm_event_code event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap,
-				       ppm_tp_code tp_type)
+	ppm_sc_code tp_type)
 {
 	struct ppm_consumer_t *consumer;
 	nanoseconds ns = ppm_nsecs();
 
 	rcu_read_lock();
 	list_for_each_entry_rcu(consumer, &g_consumer_list, node) {
-		record_event_consumer(consumer, event_type, drop_flags, ns, event_datap, tp_type);
+		record_event_consumer(consumer, event_type, drop_flags, ns, event_datap, tp_type - PPM_SC_TP_START);
 	}
 	rcu_read_unlock();
 }
@@ -1743,7 +1756,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum syscall_flags drop_flags,
 	nanoseconds ns,
 	struct event_data_t *event_datap,
-				 ppm_tp_code tp_type)
+	ppm_sc_code tp_type)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -2183,9 +2196,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, SYS_ENTER);
+			record_event_all_consumers(type, drop_flags, &event_data, PPM_SC_SYS_ENTER);
 		else
-			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, SYS_ENTER);
+			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, PPM_SC_SYS_ENTER);
 	}
 }
 
@@ -2289,9 +2302,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, SYS_EXIT);
+			record_event_all_consumers(type, drop_flags, &event_data, PPM_SC_SYS_EXIT);
 		else
-			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, SYS_EXIT);
+			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, PPM_SC_SYS_EXIT);
 	}
 }
 
@@ -2321,7 +2334,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 	event_data.event_info.context_data.sched_prev = p;
 	event_data.event_info.context_data.sched_next = p;
 
-	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data, SCHED_PROC_EXIT);
+	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data, PPM_SC_SCHED_PROCESS_EXIT);
 }
 
 #include <linux/ip.h>
@@ -2349,7 +2362,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 	 * Need to indicate ATOMIC (i.e. interrupt) context to avoid the event
 	 * handler calling printk() and potentially deadlocking the system.
 	 */
-	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data, SCHED_SWITCH);
+	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data, PPM_SC_SCHED_SWITCH);
 }
 #endif
 
@@ -2378,12 +2391,12 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 		event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
-	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data, SIGNAL_DELIVER);
+	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data, PPM_SC_SIGNAL_DELIVER);
 }
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, ppm_tp_code tp_type)
+static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, ppm_sc_code tp_type)
 {
 	struct event_data_t event_data;
 
@@ -2409,12 +2422,12 @@ static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsign
 
 TRACEPOINT_PROBE(page_fault_user_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
-	return page_fault_probe(address, regs, error_code, PAGE_FAULT_USER);
+	return page_fault_probe(address, regs, error_code, PPM_SC_PAGE_FAULT_USER);
 }
 
 TRACEPOINT_PROBE(page_fault_kern_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
-	return page_fault_probe(address, regs, error_code, PAGE_FAULT_KERN);
+	return page_fault_probe(address, regs, error_code, PPM_SC_PAGE_FAULT_KERNEL);
 }
 #endif
 
@@ -2432,7 +2445,7 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 	}
 
 	event_data.category = PPMC_SCHED_PROC_EXEC;
-	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data, SCHED_PROC_EXEC);
+	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data, PPM_SC_SCHED_PROCESS_EXEC);
 }
 #endif 
 
@@ -2453,7 +2466,7 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 
 	event_data.category = PPMC_SCHED_PROC_FORK;
 	event_data.event_info.sched_proc_fork_data.child = child;
-	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data, SCHED_PROC_FORK);
+	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data, PPM_SC_SCHED_PROCESS_FORK);
 }
 #endif
 
@@ -2559,37 +2572,37 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 static void visit_tracepoint(struct tracepoint *tp, void *priv)
 {
-	if (!strcmp(tp->name, tp_names[SYS_ENTER]))
+	if (!strcasecmp(tp->name, tp_names[PPM_SC_SYS_ENTER]))
 		tp_sys_enter = tp;
-	else if (!strcmp(tp->name, tp_names[SYS_EXIT]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SYS_EXIT]))
 		tp_sys_exit = tp;
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXIT]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SCHED_PROCESS_EXIT]))
 		tp_sched_process_exit = tp;
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	else if (!strcmp(tp->name, tp_names[SCHED_SWITCH]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SCHED_SWITCH]))
 		tp_sched_switch = tp;
 #endif
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-	else if (!strcmp(tp->name, tp_names[SIGNAL_DELIVER]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SIGNAL_DELIVER]))
 		tp_signal_deliver = tp;
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_USER]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_PAGE_FAULT_USER]))
 		tp_page_fault_user = tp;
-	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_KERN]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_PAGE_FAULT_KERNEL]))
 		tp_page_fault_kernel = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXEC]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SCHED_PROCESS_EXEC]))
 		tp_sched_proc_exec = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_FORK]))
+	else if (!strcasecmp(tp->name, tp_names[PPM_SC_SCHED_PROCESS_FORK]))
 		tp_sched_proc_fork = tp;	
 #endif
 }
@@ -2899,7 +2912,7 @@ int scap_init(void)
 
 	// Initialize globals
 	g_tracepoints_attached = 0;
-	for (j = 0; j < TP_VAL_MAX; j++)
+	for (j = 0; j < PPM_SC_TP_LEN; j++)
 	{
 		g_tracepoints_refs[j] = 0;
 	}

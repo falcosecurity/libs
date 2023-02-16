@@ -69,7 +69,8 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 
 #include "ringbuffer/ringbuffer.h"
 
-static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp);
+static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
+static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
 
 //
 // Some of this code is taken from the kernel samples under samples/bpf,
@@ -635,16 +636,16 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	return SCAP_SUCCESS;
 }
 
-static bool is_tp_enabled(interesting_tp_set *tp_of_interest, const char *shname)
+static bool is_tp_enabled(interesting_ppm_sc_set *sc_of_interest, const char *shname)
 {
-	ppm_tp_code val = tp_from_name(shname);
-	if(!tp_of_interest || val == -1)
+	const ppm_sc_code val = scap_ppm_sc_from_name(shname);
+	if(!sc_of_interest || val == -1)
 	{
-		// Null tp set? Enable everything!
+		// Null sc set? Enable everything!
 		// Not found? Enable it!
 		return true;
 	}
-	return tp_of_interest->tp[val];
+	return sc_of_interest->ppm_sc[val];
 }
 
 static int32_t load_bpf_file(struct bpf_engine *handle)
@@ -801,7 +802,7 @@ end:
 }
 
 static int load_tracepoints(struct bpf_engine *handle,
-			    interesting_tp_set *tp_of_interest)
+			    interesting_ppm_sc_set *sc_of_interest)
 {
 	int j;
 	int32_t res = SCAP_FAILURE;
@@ -819,7 +820,7 @@ static int load_tracepoints(struct bpf_engine *handle,
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
 		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
-			if(is_tp_enabled(tp_of_interest, shname))
+			if(is_tp_enabled(sc_of_interest, shname))
 			{
 				bool already_attached = false;
 				for (int i = 0; i < handle->m_bpf_prog_cnt && !already_attached; i++)
@@ -932,11 +933,11 @@ static int32_t set_single_syscall_of_interest(struct bpf_engine *handle, int ppm
 	return SCAP_SUCCESS;
 }
 
-static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle, scap_open_args *oargs)
+static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle)
 {
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_SYSCALL_END; ppm_sc++)
 	{
-		if(set_single_syscall_of_interest(handle, ppm_sc, oargs->ppm_sc_of_interest.ppm_sc[ppm_sc]) != SCAP_SUCCESS)
+		if(set_single_syscall_of_interest(handle, ppm_sc, false) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1012,13 +1013,20 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
 
-	/* Enable requested tracepoints */
+	/* Enable requested scap codes */
 	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	for (int i = 0; i < PPM_SC_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		if (handle->open_tp_set.tp[i])
+		if (handle->open_sc_set.ppm_sc[i])
 		{
-			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
+			if (i >= PPM_SC_TP_START)
+			{
+				ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
+			}
+			else
+			{
+				ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_SET, i);
+			}
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1038,11 +1046,18 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
-	/* Disable all tracepoints */
+	/* Disable all scap codes */
 	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	for (int i = 0; i < PPM_SC_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
+		if (i >= PPM_SC_TP_START)
+		{
+			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
+		}
+		else
+		{
+			ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, i);
+		}
 	}
 	return ret;
 }
@@ -1401,11 +1416,9 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	/* Store interesting Tracepoints */
-	memcpy(&handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
-	/* Start with all tracepoints disabled */
-	interesting_tp_set initial_tp_set = {0};
-	if (load_tracepoints(handle, &initial_tp_set) != SCAP_SUCCESS)
+	/* Start with all scap codes disabled */
+	interesting_ppm_sc_set initial_sc_set = {0};
+	if (load_tracepoints(handle, &initial_sc_set) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1415,7 +1428,7 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	if(populate_interesting_syscalls_map(handle, oargs) != SCAP_SUCCESS)
+	if(populate_interesting_syscalls_map(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1619,7 +1632,7 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 	int prg_idx = -1;
 	for (int i = 0; i < handle->m_bpf_prog_cnt; i++)
 	{
-		const ppm_tp_code val = tp_from_name(handle->m_bpf_progs[i].name);
+		const ppm_sc_code val = scap_ppm_sc_from_name(handle->m_bpf_progs[i].name);
 		if (val == tp)
 		{
 			prg_idx = i;
@@ -1656,12 +1669,12 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 		return SCAP_SUCCESS;
 	}
 
-	interesting_tp_set new_tp_set = {0};
-	new_tp_set.tp[tp] = 1;
+	interesting_ppm_sc_set new_tp_set = {0};
+	new_tp_set.ppm_sc[tp] = 1;
 	return load_tracepoints(handle, &new_tp_set);
 }
 
-static int32_t scap_bpf_handle_event_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	int32_t ret = SCAP_SUCCESS;
 	switch(op)
@@ -1700,7 +1713,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	case SCAP_SNAPLEN:
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
-		return scap_bpf_handle_event_mask(engine, arg1, arg2);
+		return scap_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
 	case SCAP_TP_MASK:
 		return scap_bpf_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
@@ -1766,6 +1779,9 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	{
 		return rc;
 	}
+
+	/* Store interesting scap codes */
+	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	return SCAP_SUCCESS;
 }

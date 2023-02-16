@@ -76,7 +76,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	const char* file_name = "/sys/module/" SCAP_KERNEL_MODULE_NAME "/parameters/g_buffer_bytes_dim";
 
 	errno = 0;
-	/* Here we check if the dimension provided by the kernel module is the same as the user-provided one. 
+	/* Here we check if the dimension provided by the kernel module is the same as the user-provided one.
 	 * In this way we can avoid writing under the `/sys/module/...` file.
 	 */
 	FILE *read_file = fopen(file_name, "r");
@@ -107,7 +107,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 		return SCAP_SUCCESS;
 	}
 
-	/* Fallback to write on the file if the dim is different */ 
+	/* Fallback to write on the file if the dim is different */
 	FILE *write_file = fopen(file_name, "w");
 	if(write_file == NULL)
 	{
@@ -181,7 +181,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	{
 		return SCAP_FAILURE;
 	}
-	
+
 	/* We need to enforce the buffer dim before opening the devices
 	 * otherwise this dimension will be not set during the opening phase!
 	 */
@@ -349,15 +349,8 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
-	/* Set interesting Syscalls */
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		uint32_t op = oargs->ppm_sc_of_interest.ppm_sc[ppm_sc] ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET;
-		scap_kmod_handle_ppm_sc_mask(engine, op, ppm_sc);
-	}
-
-	/* Store interesting Tracepoints */
-	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
+	/* Store interesting scap codes */
+	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	return SCAP_SUCCESS;
 }
@@ -432,11 +425,18 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 		return SCAP_SUCCESS;
 	}
 
-	/* Disable all tracepoints */
+	/* Disable all scap codes */
 	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret == SCAP_SUCCESS; ppm_sc++)
 	{
-		ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
+		if (ppm_sc >= PPM_SC_TP_START)
+		{
+			ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, ppm_sc);
+		}
+		else
+		{
+			ret = scap_kmod_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, ppm_sc);
+		}
 	}
 	return ret;
 }
@@ -448,16 +448,21 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 {
 	struct kmod_engine* handle = engine.m_handle;
 
-	/* Enable requested tracepoints */
+	/* Enable requested scap codes */
 	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret == SCAP_SUCCESS; ppm_sc++)
 	{
-		if (handle->open_tp_set.tp[i])
+		if (ppm_sc >= PPM_SC_TP_START)
 		{
-			ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
+			uint32_t op = handle->open_sc_set.ppm_sc[ppm_sc] ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET;
+			ret = scap_kmod_handle_tp_mask(engine, op, ppm_sc);
+		}
+		else
+		{
+			uint32_t op = handle->open_sc_set.ppm_sc[ppm_sc] ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET;
+			ret = scap_kmod_handle_ppm_sc_mask(engine, op, ppm_sc);
 		}
 	}
-
 	return ret;
 }
 

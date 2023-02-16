@@ -182,13 +182,12 @@ int open_engine(int argc, char** argv)
 			 * before starting the real capture. So we attach all syscalls and
 			 * `sys_enter` and `sys_exit` tracepoints.
 			 */
-			oargs.tp_of_interest.tp[SYS_ENTER] = 1;
-			oargs.tp_of_interest.tp[SYS_EXIT] = 1;
-			for(int i = 0; i < PPM_SC_MAX; i++)
+			for(int i = 0; i < PPM_SC_SYSCALL_END; i++)
 			{
 				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
 			}
-
+			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_SYS_ENTER] = 1;
+			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_SYS_EXIT] = 1;
 			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
 			break;
 

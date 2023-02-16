@@ -127,7 +127,7 @@ public:
 	 *
 	 * @param event_type event that we want to assert.
 	 */
-	explicit event_test(ppm_tp_code tp_code);
+	explicit event_test(ppm_sc_code sc_code);
 
 	/**
 	 * @brief Construct a new event_test object for syscall events:
@@ -690,7 +690,7 @@ private:
  *
  * @param event_type event that we want to assert.
  */
-std::unique_ptr<event_test> get_generic_event_test(ppm_tp_code tp_code);
+std::unique_ptr<event_test> get_generic_event_test(ppm_sc_code sc_code);
 
 /**
  * @brief Get a new event_test object for syscall events:

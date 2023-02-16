@@ -172,13 +172,9 @@ void open_engine(sinsp& inspector)
 {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
 
-	/* Get only necessary tracepoints. */
-	auto tp_set = libsinsp::events::enforce_simple_tp_set();
-	libsinsp::events::set<ppm_sc_code> ppm_sc;
-
 	if(!engine_string.compare(KMOD_ENGINE))
 	{
-		inspector.open_kmod(buffer_bytes_dim, ppm_sc, tp_set);
+		inspector.open_kmod(buffer_bytes_dim);
 	}
 	else if(!engine_string.compare(BPF_ENGINE))
 	{
@@ -191,7 +187,7 @@ void open_engine(sinsp& inspector)
 		{
 			std::cerr << bpf_path << std::endl;
 		}
-		inspector.open_bpf(bpf_path.c_str(), buffer_bytes_dim, ppm_sc, tp_set);
+		inspector.open_bpf(bpf_path.c_str(), buffer_bytes_dim);
 	}
 	else if(!engine_string.compare(SAVEFILE_ENGINE))
 	{
@@ -204,7 +200,7 @@ void open_engine(sinsp& inspector)
 	}
 	else if(!engine_string.compare(MODERN_BPF_ENGINE))
 	{
-		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true, ppm_sc, tp_set);
+		inspector.open_modern_bpf(buffer_bytes_dim, DEFAULT_CPU_FOR_EACH_BUFFER, true);
 	}
 	else
 	{
