@@ -1,223 +1,47 @@
+/*
+Copyright (C) 2023 The Falco Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
 #pragma once
 
-#include "event.h"
-#include "utils.h"
-#include "sinsp_exception.h"
-#include "sinsp_public.h"
+#include "sinsp_events_set.h"
+
 #include <unordered_set>
 #include <string>
-#include <vector>
-#include <functional>
-
-// The following are needed on MacOS to be able to
-// initialize a std::(unordered)map/set<ppm_X_code>{}
-namespace std
-{
-template<>
-struct hash<ppm_sc_code> {
-	size_t operator()(const ppm_sc_code &pt) const {
-		return std::hash<uint32_t>()((uint32_t)pt);
-	}
-};
-
-template<>
-struct hash<ppm_tp_code> {
-	size_t operator()(const ppm_tp_code &pt) const {
-		return std::hash<uint32_t>()((uint32_t)pt);
-	}
-};
-
-template<>
-struct hash<ppm_event_code> {
-	size_t operator()(const ppm_event_code &pt) const {
-		return std::hash<uint32_t>()((uint32_t)pt);
-	}
-};
-}
 
 namespace libsinsp {
 namespace events {
 
-template<typename ppm_type>
-class set
-{
-private:
-	using vec_t = std::vector<uint8_t>;
-	vec_t m_types{};
-	ppm_type m_max;
-	size_t m_size;
-
-	inline void check_range(ppm_type e) const
-	{
-		if(e > m_max)
-		{
-			throw sinsp_exception("invalid event type");
-		}
-	}
-
-public:
-	set(set&&)  noexcept = default;
-	set(const set&) = default;
-	set& operator=(set&&)  noexcept = default;
-	set& operator=(const set&) = default;
-	set<ppm_type>() = delete;
-
-	inline explicit set(ppm_type maxLen):
-		m_types(maxLen + 1, 0),
-		m_max(maxLen),
-		m_size(0)
-	{
-	}
-
-	static set from_unordered_set(std::unordered_set<ppm_type> u_set)
-	{
-		set<ppm_type> ret;
-		for (const auto &val : u_set)
-		{
-			ret.insert(val);
-		}
-		return ret;
-	}
-
-	const uint8_t* const_data() const
-	{
-		return m_types.data();
-	}
-
-	uint8_t* data()
-	{
-		return m_types.data();
-	}
-
-	inline void insert(ppm_type e)
-	{
-		check_range(e);
-		m_types[e] = 1;
-		m_size++;
-	}
-
-	inline void remove(ppm_type e)
-	{
-		check_range(e);
-		m_types[e] = 0;
-		m_size--;
-	}
-
-	inline bool contains(ppm_type e) const
-	{
-		check_range(e);
-		return m_types[e] != 0;
-	}
-
-	void clear()
-	{
-		for(auto& v : m_types)
-		{
-			v = 0;
-		}
-		m_size = 0;
-	}
-
-	inline bool empty() const
-	{
-		return m_size == 0;
-	}
-
-	inline size_t size() const
-	{
-		return m_size;
-	}
-
-	bool equals(const set& other) const
-	{
-		return m_types == other.m_types;
-	}
-
-	set merge(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
-			throw sinsp_exception("cannot merge sets with different max size.");
-		}
-		set<ppm_type> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] | other.m_types[i])
-			{
-				ret.insert((ppm_type)i);
-			}
-		}
-		return ret;
-	}
-
-	set diff(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
-			throw sinsp_exception("cannot diff sets with different max size.");
-		}
-		set<ppm_type> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] == 1 && other.m_types[i] == 0)
-			{
-				ret.insert((ppm_type)i);
-			}
-		}
-		return ret;
-	}
-
-	set intersect(const set& other) const
-	{
-		if (other.m_max != m_max)
-		{
-			throw sinsp_exception("cannot intersect sets with different max size.");
-		}
-		set<ppm_type> ret(m_max);
-		for(size_t i = 0; i <= m_max; ++i)
-		{
-			if (m_types[i] & other.m_types[i])
-			{
-				ret.insert((ppm_type)i);
-			}
-		}
-		return ret;
-	}
-
-	void for_each(const std::function<bool(ppm_type)>& consumer) const
-	{
-		for(size_t i = 0; i < m_max; ++i)
-		{
-			if(m_types[i] != 0)
-			{
-				if(!consumer((ppm_type)i))
-				{
-					return;
-				}
-			}
-		}
-	}
-};
-
-// Some template specialization for useful constructors
-
-template <>
-inline set<ppm_sc_code>::set(): set(PPM_SC_MAX)
-{
-}
-
-template<>
-inline set<ppm_event_code>::set(): set(PPM_EVENT_MAX)
-{
-}
-
-template<>
-inline set<ppm_tp_code>::set(): set(TP_VAL_MAX)
-{
-}
-
-
 /*=============================== Events related ===============================*/
+
+/**
+	 * @brief Returns the static information of the event.
+	 *
+	 * @param event_type type of event we want to retrieve info for (must be less than `PPM_EVENT_MAX`)
+	 * @return const ppm_event_info* the info entry of the event.
+ */
+const ppm_event_info* info(ppm_event_code event_type);
+
+/**
+	 * @brief Return true if the event is generic.
+	 *
+	 * @param event_type type of event we want to check (must be less than `PPM_EVENT_MAX`)
+	 * @return true if the event type is generic.
+ */
+bool is_generic(ppm_event_code event_type);
 
 /**
 	 * @brief If the event type has one of the following flags return true:
@@ -431,31 +255,5 @@ set<ppm_tp_code> enforce_simple_tp_set(set<ppm_tp_code> tp_of_interest = {});
 
 /*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
 
-}
-}
-
-template<typename T>
-inline bool operator==(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
-{
-	return lhs.equals(rhs);
-}
-
-template<typename T>
-inline bool operator!=(const libsinsp::events::set<T>& lhs, const libsinsp::events::set<T>& rhs)
-{
-	return !(lhs == rhs);
-}
-
-template<typename T>
-std::ostream& operator<<(std::ostream& os, const libsinsp::events::set<T>& s)
-{
-    auto first = true;
-    os << "(";
-    s.for_each([&os, &first](T v){
-        os << (first ? "" : ", ") << v;
-        first = false;
-        return true;
-    });
-    os << ")";
-    return os;
-}
+} // events
+} // libsinsp
