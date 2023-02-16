@@ -1619,9 +1619,28 @@ enum extra_event_prog_code
 	PPM_SC_X(CLOSE_RANGE, 392) \
 	PPM_SC_X(FANOTIFY_MARK, 393)
 
+// Tracepoint based events start from 1 << 10 (1024)
+#define PPM_SC_TP_SHIFT 10
+#define PPM_SC_TP_START (1<<PPM_SC_TP_SHIFT)
+#define PPM_SC_TP_X PPM_SC_X // this is used to help syscalls-bumper (https://github.com/falcosecurity/syscalls-bumper) automation
+#define PPM_SC_TP_FIELDS \
+	PPM_SC_TP_X(SYS_ENTER, PPM_SC_TP_START+0) \
+	PPM_SC_TP_X(SYS_EXIT, PPM_SC_TP_START+1) \
+	PPM_SC_TP_X(SCHED_PROCESS_EXIT, PPM_SC_TP_START+2) \
+	PPM_SC_TP_X(SCHED_SWITCH, PPM_SC_TP_START+3) \
+	PPM_SC_TP_X(PAGE_FAULT_USER, PPM_SC_TP_START+4) \
+	PPM_SC_TP_X(PAGE_FAULT_KERNEL, PPM_SC_TP_START+5) \
+	PPM_SC_TP_X(SIGNAL_DELIVER, PPM_SC_TP_START+6) \
+	PPM_SC_TP_X(SCHED_PROCESS_FORK, PPM_SC_TP_START+7) \
+	PPM_SC_TP_X(SCHED_PROCESS_EXEC, PPM_SC_TP_START+8) \
+
+#define PPM_SC_TP_LEN (PPM_SC_MAX - PPM_SC_TP_START)
+
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = value,
 	PPM_SC_FIELDS
+	PPM_SC_SYSCALL_END, // end of PPM_SC related to syscalls
+	PPM_SC_TP_FIELDS
 #undef PPM_SC_X
 	PPM_SC_MAX,
 } ppm_sc_code;

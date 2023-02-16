@@ -226,34 +226,5 @@ set<ppm_sc_code> event_set_to_sc_set(const set<ppm_event_code> &events_of_intere
 
 /*=============================== PPME set related (sinsp_events.cpp) ===============================*/
 
-/*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
-
-/*!
-  \brief Get all the available tracepoints.
-*/
-set<ppm_tp_code> all_tp_set();
-
-/*!
-  \brief Get the name of all the ppm_sc provided in the set.
-*/
-std::unordered_set<std::string> tp_set_to_names(const set<ppm_tp_code>& tp_set);
-
-/*!
-	\brief Provides the minimum set of tracepoints required by `libsinsp` state collection.
-*/
-set<ppm_tp_code> sinsp_state_tp_set();
-
-/*!
-	\brief Provide the minimum set of tracepoints required by `libsinsp` state collection.
-	If you call it without arguments it returns a new set with just these tracepoints
-	otherwise, it merges the minimum set of tracepoints with the one you provided.
-
-	WARNING: without using this method, we cannot guarantee that `libsinsp` state
-	will always be up to date, or even work at all.
-*/
-set<ppm_tp_code> enforce_simple_tp_set(set<ppm_tp_code> tp_of_interest = {});
-
-/*=============================== Tracepoint set related (sinsp_events_ppm_tp.cpp) ===============================*/
-
 } // events
 } // libsinsp

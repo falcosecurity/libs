@@ -35,29 +35,13 @@ limitations under the License.
 
 /*=============================== UTILS ===============================*/
 
-static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting)
-{
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
-		if (g_syscall_table[syscall_nr].ppm_sc == ppm_sc)
-		{
-			pman_mark_single_64bit_syscall(syscall_nr, interesting);
-		}
-	}
-}
-
 /// TODO: in the next future, from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
-static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
+static int32_t populate_64bit_interesting_syscalls_table()
 {
 	int ret = SCAP_SUCCESS;
-	if(ppm_sc_array == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		update_single_64bit_syscall_of_interest(ppm_sc, ppm_sc_array[ppm_sc]);
+		pman_mark_single_ppm_sc(ppm_sc, false);
 	}
 	return ret;
 }
@@ -180,7 +164,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		/* We use this setting just to modify the interesting syscalls. */
 		if(arg1 == SCAP_PPM_SC_MASK_SET || arg1 == SCAP_PPM_SC_MASK_UNSET)
 		{
-			update_single_64bit_syscall_of_interest(arg2, arg1 == SCAP_PPM_SC_MASK_SET);
+			pman_mark_single_ppm_sc(arg2, arg1 == SCAP_PPM_SC_MASK_SET);
 		}
 		return SCAP_SUCCESS;
 	case SCAP_TP_MASK:
@@ -210,7 +194,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	return pman_enable_capture(handle->open_tp_set.tp);
+	return pman_enable_capture(handle->open_sc_set.ppm_sc);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
@@ -270,8 +254,8 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
-	/* Store interesting Tracepoints */
-	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
+	/* Store interesting scap codes */
+	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	/* Set the boot time */
 	uint64_t boot_time = 0;

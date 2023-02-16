@@ -227,13 +227,10 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sys_sc_set()
 libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::unordered_set<std::string>& syscalls)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
+	for (const auto &syscall_name : syscalls)
 	{
-		std::string ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
-		if (syscalls.find(ppm_sc_name) != syscalls.end())
-		{
-			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
-		}
+		auto ppm_sc = scap_ppm_sc_from_name(syscall_name.c_str());
+		ppm_sc_set.insert(ppm_sc);
 	}
 	return ppm_sc_set;
 }

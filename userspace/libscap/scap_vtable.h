@@ -86,7 +86,7 @@ enum scap_setting {
 	/**
 	 * @brief enable/disable individual tracepoints
 	 * arg1: scap_tp_mask_op
-	 * arg2: tp id, see ppm_tp.h
+	 * arg2: ppm_sc_code id, see ppm_events_public.h
 	 */
 	SCAP_TP_MASK,
 };

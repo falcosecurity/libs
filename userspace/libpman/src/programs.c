@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "state.h"
 #include <feature_gates.h>
-#include <ppm_tp.h>
+#include <ppm_events_public.h>
 #include <libpman.h>
 
 /* Some notes about how a bpf program must be detached without unloading it:
@@ -29,7 +29,7 @@ int pman_update_single_program(int tp, bool enabled)
 	int ret = 0;
 	switch(tp)
 	{
-	case SYS_ENTER:
+	case PPM_SC_SYS_ENTER:
 		if (enabled)
 		{
 			ret = pman_attach_syscall_enter_dispatcher();
@@ -40,7 +40,7 @@ int pman_update_single_program(int tp, bool enabled)
 		}
 		break;
 
-	case SYS_EXIT:
+	case PPM_SC_SYS_EXIT:
 		if (enabled)
 		{
 			ret = pman_attach_syscall_exit_dispatcher();
@@ -50,7 +50,7 @@ int pman_update_single_program(int tp, bool enabled)
 			ret = pman_detach_syscall_exit_dispatcher();
 		}
 		break;
-	case SCHED_PROC_EXIT:
+	case PPM_SC_SCHED_PROCESS_EXIT:
 		if (enabled)
 		{
 			ret = pman_attach_sched_proc_exit();
@@ -61,7 +61,7 @@ int pman_update_single_program(int tp, bool enabled)
 		}
 		break;
 
-	case SCHED_SWITCH:
+	case PPM_SC_SCHED_SWITCH:
 		if (enabled)
 		{
 			ret = pman_attach_sched_switch();
@@ -73,7 +73,7 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	case SCHED_PROC_EXEC:
+	case PPM_SC_SCHED_PROCESS_EXEC:
 		if (enabled)
 		{
 			ret = pman_attach_sched_proc_exec();
@@ -86,7 +86,7 @@ int pman_update_single_program(int tp, bool enabled)
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-	case SCHED_PROC_FORK:
+	case PPM_SC_SCHED_PROCESS_FORK:
 		if (enabled)
 		{
 			ret = pman_attach_sched_proc_fork();
@@ -99,7 +99,7 @@ int pman_update_single_program(int tp, bool enabled)
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-	case PAGE_FAULT_USER:
+	case PPM_SC_PAGE_FAULT_USER:
 		if (enabled)
 		{
 			ret = pman_attach_page_fault_user();
@@ -110,7 +110,7 @@ int pman_update_single_program(int tp, bool enabled)
 		}
 		break;
 
-	case PAGE_FAULT_KERN:
+	case PPM_SC_PAGE_FAULT_KERNEL:
 		if (enabled)
 		{
 			ret = pman_attach_page_fault_kernel();
@@ -122,7 +122,7 @@ int pman_update_single_program(int tp, bool enabled)
 		break;
 #endif
 
-	case SIGNAL_DELIVER:
+	case PPM_SC_SIGNAL_DELIVER:
 		if (enabled)
 		{
 			ret = pman_attach_signal_deliver();
@@ -304,7 +304,7 @@ int pman_attach_signal_deliver()
 int pman_attach_all_programs()
 {
 	int ret = 0;
-	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	for (int i = PPM_SC_TP_START; i < PPM_SC_MAX && ret == 0; i++)
 	{
 		ret = pman_update_single_program(i, true);
 	}
@@ -423,7 +423,7 @@ int pman_detach_signal_deliver()
 int pman_detach_all_programs()
 {
 	int ret = 0;
-	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	for (int i = PPM_SC_TP_START; i < PPM_SC_MAX && ret == 0; i++)
 	{
 		ret = pman_update_single_program(i, false);
 

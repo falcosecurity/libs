@@ -96,6 +96,17 @@ void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
 }
 
+void pman_mark_single_ppm_sc(int ppm_sc, bool interesting)
+{
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		if (g_syscall_table[syscall_nr].ppm_sc == ppm_sc)
+		{
+			pman_mark_single_64bit_syscall(syscall_nr, interesting);
+		}
+	}
+}
+
 void pman_fill_syscall_sampling_table()
 {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)

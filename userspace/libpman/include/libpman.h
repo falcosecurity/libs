@@ -422,6 +422,15 @@ extern "C"
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
 
 	/**
+	 * @brief Mark a single ppm_sc code syscall as (un)interesting
+	 *
+	 * @param ppm_sc code for syscall.
+	 * @param interesting true if the syscall must be marked as interesting.
+	 *
+	 */
+	void pman_mark_single_ppm_sc(int ppm_sc, bool interesting);
+
+	/**
 	 * @brief Mark all syscalls as uninteresting.
 	 */
 	void pman_clean_all_64bit_interesting_syscalls(void);

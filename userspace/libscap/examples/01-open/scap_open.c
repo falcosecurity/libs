@@ -33,7 +33,6 @@ limitations under the License.
 #define SCAP_FILE_OPTION "--scap_file"
 
 /* CONFIGURATIONS */
-#define TP_OPTION "--tp"
 #define PPM_SC_OPTION "--ppm_sc"
 #define NUM_EVENTS_OPTION "--num_events"
 #define EVENT_TYPE_OPTION "--evt_type"
@@ -61,7 +60,6 @@ static struct scap_savefile_engine_params savefile_params;
 static uint64_t num_events = UINT64_MAX; /* max number of events to catch. */
 static int evt_type = -1;		  /* event type to print. */
 static bool ppm_sc_is_set = 0;
-static bool tp_is_set = 0;
 static unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
 
 static int simple_set[] = {
@@ -145,6 +143,8 @@ static int simple_set[] = {
 	PPM_SC_UNSHARE,
 	PPM_SC_USERFAULTFD,
 	PPM_SC_VFORK,
+	PPM_SC_SYS_ENTER,
+	PPM_SC_SYS_EXIT,
 	-1
 };
 
@@ -266,9 +266,10 @@ void print_sinsp_modifies_state_syscalls()
 	print_sorted_syscalls(str, interesting_syscall);
 }
 
-void print_supported_syscalls()
+void print_supported_sc()
 {
-	printf("\n------- Print supported syscalls: \n");
+	printf("\n------- Print supported ppm_sc: \n");
+
 
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
@@ -277,17 +278,11 @@ void print_supported_syscalls()
 			continue;
 		}
 		int ppm_code = g_syscall_table[syscall_nr].ppm_sc;
-		printf("- %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
+		printf("- SYSCALL > %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[ppm_code].name, syscall_nr, ppm_code);
 	}
-}
-
-void print_supported_tracepoints()
-{
-	printf("\n------- Print supported tracepoints: \n");
-
-	for(int j = 0; j < TP_VAL_MAX; j++)
+	for (int i = PPM_SC_TP_START; i < PPM_SC_MAX; i++)
 	{
-		printf("- %-25s tp_code: (%d)\n", tp_names[j], j);
+		printf("- TRACEPOINT > %-25s ppm_code: (%d)\n", g_syscall_info_table[i].name, i);
 	}
 }
 
@@ -295,25 +290,6 @@ void print_supported_tracepoints()
 /*=============================== PRINT SUPPORTED SYSCALLS ===========================*/
 
 /*=============================== SYSCALLS/TRACEPOINTS ===========================*/
-
-void enable_single_tp(int tp)
-{
-	if(tp == -1)
-	{
-		/* In this case we won't have any tracepoint enabled. */
-		tp_is_set = true;
-		return;
-	}
-
-	if(tp < 0 || tp >= TP_VAL_MAX)
-	{
-		fprintf(stderr, "Unexistent tp code: %d. Wrong parameter?\n", tp);
-		print_supported_tracepoints();
-		exit(EXIT_FAILURE);
-	}
-	oargs.tp_of_interest.tp[tp] = true;
-	tp_is_set = true;
-}
 
 void enable_single_ppm_sc(int ppm_sc_code)
 {
@@ -327,19 +303,26 @@ void enable_single_ppm_sc(int ppm_sc_code)
 	if(ppm_sc_code < 0 || ppm_sc_code >= PPM_SC_MAX)
 	{
 		fprintf(stderr, "Unexistent ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
-		print_supported_syscalls();
+		print_supported_sc();
+		exit(EXIT_FAILURE);
+	}
+
+	if (g_syscall_info_table[ppm_sc_code].name[0] == '\0')
+	{
+		fprintf(stderr, "Unmapped ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
+		print_supported_sc();
 		exit(EXIT_FAILURE);
 	}
 	oargs.ppm_sc_of_interest.ppm_sc[ppm_sc_code] = true;
 	ppm_sc_is_set = true;
 }
 
-void enable_syscalls_and_print()
+void enable_sc_and_print()
 {
 	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
 	if(ppm_sc_is_set)
 	{
-		printf("* Syscalls enabled:\n");
+		printf("* sc codes enabled:\n");
 		for(int j = 0; j < PPM_SC_MAX; j++)
 		{
 			if(oargs.ppm_sc_of_interest.ppm_sc[j])
@@ -350,7 +333,7 @@ void enable_syscalls_and_print()
 	}
 	else
 	{
-		printf("* All syscalls are enabled!\n");
+		printf("* All sc codes are enabled!\n");
 		for(int j = 0; j < PPM_SC_MAX; j++)
 		{
 			oargs.ppm_sc_of_interest.ppm_sc[j] = true;
@@ -359,43 +342,12 @@ void enable_syscalls_and_print()
 	printf("------------------------------------------------------------------\n\n");
 }
 
-void enable_tracepoints_and_print()
-{
-	printf("---------------------- ENABLED TRACEPOINTS ----------------------\n");
-	if(tp_is_set)
-	{
-		printf("* Tracepoints enabled:\n");
-		for(int j = 0; j < TP_VAL_MAX; j++)
-		{
-			if(oargs.tp_of_interest.tp[j])
-			{
-				printf("- %s\n", tp_names[j]);
-			}
-		}
-	}
-	else
-	{
-		printf("* All Tracepoints are enabled!\n");
-		for(int j = 0; j < TP_VAL_MAX; j++)
-		{
-			oargs.tp_of_interest.tp[j] = true;
-		}
-	}
-	printf("-----------------------------------------------------------------\n\n");
-}
-
 void enable_simple_set()
 {
-	/* Enable only sys_enter and sys_exit */
-	oargs.tp_of_interest.tp[SYS_ENTER] = true;
-	oargs.tp_of_interest.tp[SYS_EXIT] = true;
-
-	int i = 0;
-	for (i = 0; simple_set[i] != -1; i++)
+	for (int i = 0; simple_set[i] != -1; i++)
 	{
 		oargs.ppm_sc_of_interest.ppm_sc[simple_set[i]] = true;
 	}
-	tp_is_set = true;
 	ppm_sc_is_set = true;
 }
 
@@ -658,8 +610,7 @@ void print_help()
 	printf("'%s': enable modern BPF probe.\n", MODERN_BPF_OPTION);
 	printf("'%s <file.scap>': read events from scap file.\n", SCAP_FILE_OPTION);
 	printf("\n------> CONFIGURATIONS OPTIONS\n");
-	printf("'%s <tp_code>': enable only requested tracepoint (sys_enter, sys_exit, sched_process_exit, sched_switch, page_fault_user, page_fault_kernel, signal_deliver, sched_process_fork, sched_process_exec). Can be passed multiple times.\n", TP_OPTION);
-	printf("'%s <ppm_sc_code>': enable only requested syscall (this is our internal ppm syscall code not the system syscall code). Can be passed multiple times.\n", PPM_SC_OPTION);
+	printf("'%s <ppm_sc_code>': enable only requested scap code (this is an internal code that wraps both syscalls and tracepoints). Can be passed multiple times.\n", PPM_SC_OPTION);
 	printf("'%s <num_events>': number of events to catch before terminating. (default: UINT64_MAX)\n", NUM_EVENTS_OPTION);
 	printf("'%s <event_type>': every event of this type will be printed to console. (default: -1, no print)\n", EVENT_TYPE_OPTION);
 	printf("'%s <dim>': dimension in bytes of a single per CPU buffer.\n", BUFFER_OPTION);
@@ -804,22 +755,12 @@ void parse_CLI_options(int argc, char** argv)
 			bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 		}
-		if(!strcmp(argv[i], TP_OPTION))
-		{
-			if(!(i + 1 < argc))
-			{
-				print_supported_tracepoints();
-				printf("\nYou need to specify also the number of the tracepoint you are interested in! Bye!\n");
-				exit(EXIT_FAILURE);
-			}
-			enable_single_tp(atoi(argv[++i]));
-		}
 		if(!strcmp(argv[i], PPM_SC_OPTION))
 		{
 			if(!(i + 1 < argc))
 			{
-				print_supported_syscalls();
-				printf("\nYou need to specify also the syscall ppm_sc code! Bye!\n");
+				print_supported_sc();
+				printf("\nYou need to specify also the ppm_sc code! Bye!\n");
 				exit(EXIT_FAILURE);
 			}
 			enable_single_ppm_sc(atoi(argv[++i]));
@@ -872,8 +813,7 @@ void parse_CLI_options(int argc, char** argv)
 			print_UF_NEVER_DROP_syscalls();
 			print_EF_MODIFIES_STATE_syscalls();
 			print_sinsp_modifies_state_syscalls();
-			print_supported_syscalls();
-			print_supported_tracepoints();
+			print_supported_sc();
 			exit(EXIT_SUCCESS);
 		}
 		if(!strcmp(argv[i], PRINT_HELP_OPTION))
@@ -963,9 +903,7 @@ int main(int argc, char** argv)
 
 	print_configurations();
 
-	enable_syscalls_and_print();
-
-	enable_tracepoints_and_print();
+	enable_sc_and_print();
 
 	g_h = scap_open(&oargs, error, &res);
 	if(g_h == NULL || res != SCAP_SUCCESS)

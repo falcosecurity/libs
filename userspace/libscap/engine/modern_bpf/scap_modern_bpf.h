@@ -28,7 +28,7 @@ struct modern_bpf_engine
 {
 	unsigned long m_retry_us; /* Microseconds to wait if all ring buffers are empty */
 	char* m_lasterr; /* Last error caught by the engine */
-	interesting_tp_set open_tp_set; /* Interesting tracepoints */
+	interesting_ppm_sc_set open_sc_set; /* Interesting ppm_sc */
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 };

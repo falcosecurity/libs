@@ -271,6 +271,12 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 #ifdef __NR_epoll_create1
 	PPM_SC_EPOLL_CREATE1,
 #endif
+	PPM_SC_SYS_ENTER,
+	PPM_SC_SYS_EXIT,
+	PPM_SC_SCHED_PROCESS_EXIT,
+	PPM_SC_SCHED_SWITCH,
+	PPM_SC_SCHED_PROCESS_FORK,
+	PPM_SC_SCHED_PROCESS_EXEC
 };
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
@@ -288,21 +294,24 @@ TEST(interesting_syscalls, enforce_sinsp_state_basic)
  */
 TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 {
-	libsinsp::events::set<ppm_sc_code> additional_syscalls;
+	libsinsp::events::set<ppm_sc_code> additional_sc;
 	auto ppm_sc_matching_set = expected_sinsp_state_ppm_sc_set;
 
 #ifdef __NR_kill
-	additional_syscalls.insert(PPM_SC_KILL);
+	additional_sc.insert(PPM_SC_KILL);
 	ppm_sc_matching_set.insert(PPM_SC_KILL);
 #endif
 
 #ifdef __NR_read
-	additional_syscalls.insert(PPM_SC_READ);
+	additional_sc.insert(PPM_SC_READ);
 	ppm_sc_matching_set.insert(PPM_SC_READ);
 #endif
 
+	additional_sc.insert(PPM_SC_PAGE_FAULT_USER);
+	ppm_sc_matching_set.insert(PPM_SC_PAGE_FAULT_USER);
+
 	auto sinsp_state_set = libsinsp::events::sinsp_state_sc_set();
-	auto ppm_sc_final_set = additional_syscalls.merge(sinsp_state_set);
+	auto ppm_sc_final_set = additional_sc.merge(sinsp_state_set);
 
 	ASSERT_TRUE(ppm_sc_matching_set.equals(ppm_sc_final_set));
 }
@@ -362,27 +371,33 @@ TEST(interesting_syscalls, get_all_ppm_sc)
 
 /* This test asserts that `get_syscalls_names` correctly retrieves all the syscalls names
  */
-TEST(interesting_syscalls, get_syscalls_names)
+TEST(interesting_syscalls, get_sc_names)
 {
-	std::set<std::string> orderd_syscall_names_matching_set;
+	std::set<std::string> orderd_sc_names_matching_set;
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 
 	/* Here we don't need ifdefs, our ppm_sc codes are always defined. */
 	ppm_sc_set.insert(PPM_SC_KILL);
-	orderd_syscall_names_matching_set.insert("kill");
+	orderd_sc_names_matching_set.insert("kill");
 
 	ppm_sc_set.insert(PPM_SC_READ);
-	orderd_syscall_names_matching_set.insert("read");
+	orderd_sc_names_matching_set.insert("read");
+
+	ppm_sc_set.insert(PPM_SC_SYS_ENTER);
+	orderd_sc_names_matching_set.insert("sys_enter");
+
+	ppm_sc_set.insert(PPM_SC_SCHED_PROCESS_FORK);
+	orderd_sc_names_matching_set.insert("sched_process_fork");
 
 	auto syscall_names_final_set = libsinsp::events::sc_set_to_names(ppm_sc_set);
 
 	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(orderd_syscall_names_matching_set.size(), syscall_names_final_set.size());
+	ASSERT_EQ(orderd_sc_names_matching_set.size(), syscall_names_final_set.size());
 
 	auto ordered_syscall_names_final_set = test_utils::unordered_set_to_ordered(syscall_names_final_set);
 
 	auto final = ordered_syscall_names_final_set.begin();
-	auto matching = orderd_syscall_names_matching_set.begin();
+	auto matching = orderd_sc_names_matching_set.begin();
 
 	for(; final != ordered_syscall_names_final_set.end(); final++, matching++)
 	{

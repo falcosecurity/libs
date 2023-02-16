@@ -29,14 +29,19 @@ static struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 
 static void load_syscall_info_table() {
 	const char *sc_names[PPM_SC_MAX] = {
-#define PPM_SC_X(name, value) #name,
+#define PPM_SC_X(name, value) [value] = #name,
 		PPM_SC_FIELDS
+		PPM_SC_TP_FIELDS
 #undef PPM_SC_X
 	};
 
 	int i;
 	for (i = 0; i < PPM_SC_MAX; i++)
 	{
+		if (!sc_names[i])
+		{
+			continue;
+		}
 		strlcpy(g_syscall_info_table[i].name, sc_names[i], PPM_MAX_NAME_LEN);
 		// tolower on name string
 		char *p = g_syscall_info_table[i].name;
@@ -45,17 +50,24 @@ static void load_syscall_info_table() {
 			*p = tolower(*p);
 		}
 		// try to load category from event_table, else EC_UNKNOWN
-		g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
-#ifdef __linux__
-		// Syscall table is only present on linux
-		int j;
-		for (j = 0; j < SYSCALL_TABLE_SIZE; j++) {
-			if (g_syscall_table[j].ppm_sc == i) {
-				g_syscall_info_table[i].category = g_event_info[g_syscall_table[j].enter_event_type].category;
-				break;
-			}
+		if (i >= PPM_SC_TP_START)
+		{
+			g_syscall_info_table[i].category = EC_UNKNOWN | EC_TRACEPOINT;
 		}
+		else
+		{
+			g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
+#ifdef __linux__
+			// Syscall table is only present on linux
+			int j;
+			for (j = 0; j < SYSCALL_TABLE_SIZE; j++) {
+				if (g_syscall_table[j].ppm_sc == i) {
+					g_syscall_info_table[i].category = g_event_info[g_syscall_table[j].enter_event_type].category;
+					break;
+				}
+			}
 #endif
+		}
 	}
 }
 

@@ -4,28 +4,12 @@
 #include <helpers/engines.h>
 #include <libscap_test_var.h>
 
-scap_t* open_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* name, std::unordered_set<uint32_t> tp_set = {}, std::unordered_set<uint32_t> ppm_sc_set = {})
+scap_t* open_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffer_dim, const char* name, std::unordered_set<uint32_t> ppm_sc_set = {})
 {
 	struct scap_open_args oargs = {
 		.engine_name = BPF_ENGINE,
 		.mode = SCAP_MODE_LIVE,
 	};
-
-	/* If empty we fill with all tracepoints */
-	if(tp_set.empty())
-	{
-		for(int i = 0; i < TP_VAL_MAX; i++)
-		{
-			oargs.tp_of_interest.tp[i] = 1;
-		}
-	}
-	else
-	{
-		for(auto tp : tp_set)
-		{
-			oargs.tp_of_interest.tp[tp] = 1;
-		}
-	}
 
 	/* If empty we fill with all syscalls */
 	if(ppm_sc_set.empty())

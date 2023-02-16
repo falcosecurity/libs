@@ -7,7 +7,7 @@
 
 TEST(GenericTracepoints, sched_proc_exec)
 {
-	auto evt_test = get_generic_event_test(SCHED_PROC_EXEC);
+	auto evt_test = get_generic_event_test(PPM_SC_SCHED_PROCESS_EXEC);
 
 	evt_test->enable_capture();
 

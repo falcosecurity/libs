@@ -221,8 +221,8 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
-	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
+	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
 	virtual void open_udig();
 	virtual void open_nodriver();
 	virtual void open_savefile(const std::string &filename, int fd = 0);
@@ -232,7 +232,7 @@ public:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
 	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
 	 */
-	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {}, const libsinsp::events::set<ppm_tp_code> &tp_of_interest = {});
+	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
 	virtual void open_test_input(scap_test_input_data *data);
 
 	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
@@ -856,8 +856,8 @@ public:
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
 
 	/*!
-		\brief Mark desired syscall as (un)interesting, enabling or disabling its collection.
-		Note that the same ppm_code can match multiple system syscalls.
+		\brief Mark desired scap code as (un)interesting, enabling or disabling its collection.
+		Note that the same ppm_code can match multiple system syscalls or tracepoints.
 
 		Please note that this method must be called when the inspector is already open to
 		modify at runtime the interesting syscall set.
@@ -868,21 +868,6 @@ public:
 	void mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enabled = true);
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
-
-	/*=============================== Tracepoint set related ===============================*/
-
-	/*!
-		\brief Mark desired tracepoint as (un)interesting, attaching or detaching it.
-
-		Please note that this method must be called when the inspector is already open to
-		modify at runtime the interesting tracepoint set.
-
-		WARNING: playing with this API could break `libsinsp` state collection, this is only
-		useful in advanced cases where the client needs to know what it is doing!
-	*/
-	void mark_tp_of_interest(ppm_tp_code tp, bool enabled = true);
-
-	/*=============================== Tracepoint set related ===============================*/
 
 	/*=============================== Engine related ===============================*/
 

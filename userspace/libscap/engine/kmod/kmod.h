@@ -24,7 +24,7 @@ struct kmod_engine
 {
 	struct scap_device_set m_dev_set;
 	char* m_lasterr;
-	interesting_tp_set open_tp_set;
+	interesting_ppm_sc_set open_sc_set;
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 };

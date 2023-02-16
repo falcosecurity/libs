@@ -687,14 +687,14 @@ int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT u
 int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
+  \brief Given a name, returns associated ppm_sc.
+*/
+ppm_sc_code scap_ppm_sc_from_name(const char *name);
+
+/*!
   \brief Convert a native syscall nr to ppm_sc
 */
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id);
-
-/*!
-  \brief Returns the set of minimum tracepoints required by `libsinsp` state.
-*/
-int scap_get_modifies_state_tracepoints(OUT uint8_t tp_array[TP_VAL_MAX]);
 
 /*!
   \brief This function can be used to temporarily interrupt event capture.
@@ -763,6 +763,8 @@ const struct ppm_event_info* scap_get_event_info_table();
 */
 const struct ppm_syscall_desc* scap_get_syscall_info_table();
 
+ppm_sc_code scap_sc_from_name(const char *tp_path);
+
 /*!
   \brief Get generic machine information
 
@@ -791,8 +793,8 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle);
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
 
 /*!
-  \brief (Un)Set the ppm_sc bit in the syscall mask so that
-  users can (drop)receive the related syscall. Useful for offloading
+  \brief (Un)Set the ppm_sc bit in the scap code mask so that
+  users can (drop)receive the related syscall/tracepoint. Useful for offloading
   operations such as evt.type=open
 
   \param handle Handle to the capture instance.
@@ -801,18 +803,6 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
   \note This function can only be called for live captures.
 */
 int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
-
-/*!
-  \brief (Un)Set the tp into the tracepoint mask so that
-  users can (detach)attach the requested tracepoint.
-
-  \param handle Handle to the capture instance.
-  \param tp id (example SYS_ENTER)
-  \param enabled whether to enable or disable the tracepoint
-  \note This function can only be called for live captures.
-*/
-int32_t scap_set_tp(scap_t* handle, ppm_tp_code tp, bool enabled);
-
 
 /*!
   \brief Get the root directory of the system. This usually changes
