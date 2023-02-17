@@ -65,7 +65,7 @@ TEST(SyscallExit, writeX_snaplen)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Open ./testfile for writing */
-	int fd = syscall(__NR_open, "./testfile", O_CREAT);
+	int fd = syscall(__NR_open, "./testfile", O_CREAT|O_WRONLY);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
 	/* Write data to ./testfile */
