@@ -1920,6 +1920,28 @@ static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
 	return res;
 }
 
+static __always_inline uint32_t splice_flags_to_scap(uint32_t flags)
+{
+	uint32_t res = 0;
+#ifdef SPLICE_F_MOVE
+	if (flags & SPLICE_F_MOVE)
+		res |= PPM_SPLICE_F_MOVE;
+#endif
+#ifdef SPLICE_F_NONBLOCK
+	if (flags & SPLICE_F_NONBLOCK)
+		res |= PPM_SPLICE_F_NONBLOCK;
+#endif
+#ifdef SPLICE_F_MORE
+	if (flags & SPLICE_F_MORE)
+		res |= PPM_SPLICE_F_MORE;
+#endif
+#ifdef SPLICE_F_GIFT
+	if (flags & SPLICE_F_GIFT)
+		res |= PPM_SPLICE_F_GIFT;
+#endif
+	return res;
+}
+
 #ifdef OVERLAYFS_SUPER_MAGIC
 #define PPM_OVERLAYFS_SUPER_MAGIC OVERLAYFS_SUPER_MAGIC
 #else
