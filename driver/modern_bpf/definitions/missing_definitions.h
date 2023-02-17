@@ -1361,4 +1361,15 @@
 
 /*=============================== QUOTACTL SYSCALL ===========================*/
 
+/*=============================== SPLICE SYSCALL =============================*/
+
+#define SPLICE_F_MOVE	   (0x01)	
+#define SPLICE_F_NONBLOCK  (0x02) 
+#define SPLICE_F_MORE	   (0x04)	
+#define SPLICE_F_GIFT	   (0x08)	
+
+#define SPLICE_F_ALL (SPLICE_F_MOVE|SPLICE_F_NONBLOCK|SPLICE_F_MORE|SPLICE_F_GIFT)
+
+/*=============================== SPLICE SYSCALL =============================*/
+
 #endif /* __MISSING_DEFINITIONS_H__ */
