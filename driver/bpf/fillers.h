@@ -4932,7 +4932,7 @@ static __always_inline int __bpf_cpu_analysis(struct filler_data *data, u32 tid)
 {
     int res;
     struct info_t *infop = bpf_map_lookup_elem(&cpu_records, &tid);
-    if (infop == 0)
+    if (infop == 0 || infop->index == 0)
         return 0;
 
     // {"start_ts", PT_ABSTIME, PF_DEC},
@@ -4969,6 +4969,12 @@ static __always_inline int bpf_cpu_analysis(void *ctx, u32 tid)
     if (res == PPM_SUCCESS) {
         if (!data.state->tail_ctx.len)
             write_evt_hdr(&data);
+		
+    #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
+        struct ppm_evt_hdr *evt_hdr = (struct ppm_evt_hdr *)data.buf;
+        evt_hdr->tid = tid;
+    #endif
+
         res = __bpf_cpu_analysis(&data, tid);
     }
 
