@@ -5968,7 +5968,35 @@ FILLER(sys_capset_x, true)
 		return res;
 
 	return res;
-} 
+}
+
+FILLER(sys_splice_e, true)
+{
+	unsigned long val;
+	int32_t fd_in, fd_out;
+	int res;
+
+	/* Parameter 1: fd_in (type: PT_FD) */
+	val = bpf_syscall_get_argument(data, 0);
+	fd_in = (int32_t)val;
+	res = bpf_val_to_ring(data, (int64_t)fd_in);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd_out (type: PT_FD) */
+	val = bpf_syscall_get_argument(data, 2);
+	fd_out = (int32_t)val;
+	res = bpf_val_to_ring(data, (int64_t)fd_out);
+	CHECK_RES(res);
+
+	/* Parameter 3: size (type: PT_UINT64) */
+	val = bpf_syscall_get_argument(data, 4);
+	res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
+
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	val = bpf_syscall_get_argument(data, 5);
+	return bpf_val_to_ring(data, splice_flags_to_scap(val));
+}
 
 FILLER(sys_dup_e, true)
 {
