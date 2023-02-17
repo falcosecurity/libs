@@ -186,8 +186,8 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 			{
 				/* So far we only covered syscalls, so we add other kinds of
 				interesting events. In this case, we are also interested in
-				metaevents and in the procexit tracepoint event. */
-				if(libsinsp::events::is_metaevent((ppm_event_code)ev) || ev == PPME_PROCEXIT_1_E)
+				metaevents. */
+				if (libsinsp::events::is_metaevent((ppm_event_code)ev))
 				{
 					ppm_event_info_of_interest.insert((ppm_event_code)ev);
 				}

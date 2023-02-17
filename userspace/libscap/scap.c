@@ -961,44 +961,31 @@ int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 	 */
 	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
 
-#ifdef __linux__
+	uint8_t events_array[PPM_EVENT_MAX] = {0};
 	// Collect EF_MODIFIES_STATE events
-	for (int event_nr = 0; event_nr < PPM_EVENT_MAX; event_nr++)
+	for (int event_nr = 2; event_nr < PPM_EVENT_MAX; event_nr++)
 	{
-		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE && g_event_info[event_nr].category & EC_SYSCALL)
+		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE &&
+		   (g_event_info[event_nr].category & EC_SYSCALL ||
+		   g_event_info[event_nr].category & EC_TRACEPOINT))
 		{
-			for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-			{
-				if (g_syscall_table[syscall_nr].exit_event_type == event_nr || g_syscall_table[syscall_nr].enter_event_type == event_nr)
-				{
-					uint32_t ppm_sc_code = g_syscall_table[syscall_nr].ppm_sc;
-					ppm_sc_array[ppm_sc_code] = 1;
-				}
-			}
+			events_array[event_nr] = 1;
 		}
 	}
 
-	// Collect UF_NEVER_DROP syscalls
+	// Transform them into ppm_sc
+	scap_get_ppm_sc_from_events(events_array, ppm_sc_array);
+
+#ifdef __linux__
+	// Append UF_NEVER_DROP syscalls too!
 	for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 	{
 		if (g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
 		{
-			uint32_t ppm_sc_code = g_syscall_table[syscall_nr].ppm_sc;
-			ppm_sc_array[ppm_sc_code] = 1;
+			uint32_t code = g_syscall_table[syscall_nr].ppm_sc;
+			ppm_sc_array[code] = 1;
 		}
 	}
-
-	// Force-set modifies state tracepoints
-	// TODO: once event_table maps PPM_SC, we can unify this with the above loop
-	ppm_sc_array[PPM_SC_SYS_ENTER] = 1;
-	ppm_sc_array[PPM_SC_SYS_EXIT] = 1;
-	ppm_sc_array[PPM_SC_SCHED_PROCESS_EXIT] = 1;
-	ppm_sc_array[PPM_SC_SCHED_SWITCH] = 1;
-	/* With `aarch64` and `s390x` we need also this,
-	 * in `x86` they are not considered at all.
-	 */
-	ppm_sc_array[PPM_SC_SCHED_PROCESS_FORK] = 1;
-	ppm_sc_array[PPM_SC_SCHED_PROCESS_EXEC] = 1;
 #endif
 	return SCAP_SUCCESS;
 }
@@ -1015,41 +1002,47 @@ int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT u
 	 */
 	memset(events_array, 0, sizeof(*events_array) * PPM_EVENT_MAX);
 
-#ifdef __linux__
-	for(int ppm_code = 0; ppm_code < PPM_SC_MAX; ppm_code++)
+	// Load associated events from event_table, skip generics
+	for(int ev = 2; ev < PPM_EVENT_MAX; ev++)
 	{
-		if(!ppm_sc_array[ppm_code])
+		const uint32_t code = g_event_info[ev].prod_sc_code;
+		if(!ppm_sc_array[code])
 		{
 			continue;
 		}
+		events_array[ev] = 1;
+	}
 
-		/* If we arrive here we want to know the events associated with this ppm_code. */
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+#ifdef __linux__
+	/* Check if we need to enable generic event too! */
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		const struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
+		if (pair.ppm_sc == PPM_SC_UNKNOWN)
 		{
-			const struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
-			if(pair.ppm_sc == ppm_code)
-			{
-				int enter_evt = pair.enter_event_type;
-				int exit_evt = pair.exit_event_type;
-				// Workaround for syscall table entries with just
-				// a .ppm_sc set: force-set exit event as PPME_GENERIC_X,
-				// that is the one actually sent by drivers in that case.
-				if (enter_evt == exit_evt && enter_evt == PPME_GENERIC_E)
-				{
-					exit_evt = PPME_GENERIC_X;
-				}
-				events_array[enter_evt] = 1;
-				events_array[exit_evt] = 1;
-			}
+			// Skip uninitialized
+			continue;
+		}
+		if (pair.enter_event_type != PPME_GENERIC_E)
+		{
+			// We already loaded them from event table!
+			continue;
+		}
+		if (ppm_sc_array[pair.ppm_sc])
+		{
+			events_array[PPME_GENERIC_E] = 1;
+			events_array[PPME_GENERIC_X] = 1;
+			break;
 		}
 	}
 #endif
+
 	return SCAP_SUCCESS;
 }
 
 int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 {
-	if(events_array == NULL || ppm_sc_array == NULL)
+	if (events_array == NULL || ppm_sc_array == NULL)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1059,24 +1052,70 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 	 */
 	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
 
-#ifdef __linux__
-	for(int ev = 0; ev < PPM_EVENT_MAX; ev++)
+	bool at_least_one_syscall = false;
+	// Load associated ppm_sc from event_table
+	for (int ev = 2; ev < PPM_EVENT_MAX; ev++)
 	{
 		if(!events_array[ev])
 		{
 			continue;
 		}
+		// non-generic events have direct mapping
+		const uint32_t code = g_event_info[ev].prod_sc_code;
+		ppm_sc_array[code] = 1;
+		at_least_one_syscall |= g_event_info[ev].category & EC_SYSCALL;
+	}
 
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+#ifdef __linux__
+	if (events_array[PPME_GENERIC_E] || events_array[PPME_GENERIC_X])
+	{
+		// For linux, load also ppm_sc for generic events, loaded from syscall table
+		for (int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
 		{
 			const struct syscall_evt_pair pair = g_syscall_table[syscall_nr];
-			if (pair.enter_event_type == ev || pair.exit_event_type == ev)
+			if (pair.ppm_sc == PPM_SC_UNKNOWN)
 			{
-				ppm_sc_array[pair.ppm_sc] = 1;
+				// Skip uninitialized
+				continue;
 			}
+			if (pair.enter_event_type != PPME_GENERIC_E)
+			{
+				continue;
+			}
+			ppm_sc_array[pair.ppm_sc] = 1;
+			at_least_one_syscall = true;
 		}
 	}
 #endif
+
+	// Force-set tracepoints that are not mapped to a single event
+	// Ie: PPM_SC_SYS_ENTER, PPM_SC_SYS_EXIT, PPM_SC_SCHED_PROCESS_FORK, PPM_SC_SCHED_PROCESS_EXEC
+	if (at_least_one_syscall)
+	{
+		// If there is at least one syscall,
+		// make sure to include sys_enter and sys_exit!
+		ppm_sc_array[PPM_SC_SYS_ENTER] = 1;
+		ppm_sc_array[PPM_SC_SYS_EXIT] = 1;
+	}
+
+	// If users requested CLONE3, CLONE, FORK, VFORK,
+	// enable also tracepoint to receive them on arm64
+	if (ppm_sc_array[PPM_SC_FORK] ||
+	   ppm_sc_array[PPM_SC_VFORK] ||
+	   ppm_sc_array[PPM_SC_CLONE] ||
+	   ppm_sc_array[PPM_SC_CLONE3])
+	{
+		ppm_sc_array[PPM_SC_SCHED_PROCESS_FORK] = 1;
+	}
+
+	// If users requested EXECVE, EXECVEAT
+	// enable also tracepoint to receive them on arm64
+	if (ppm_sc_array[PPM_SC_EXECVE] ||
+	   ppm_sc_array[PPM_SC_EXECVEAT])
+	{
+		ppm_sc_array[PPM_SC_SCHED_PROCESS_EXEC] = 1;
+	}
+
 	return SCAP_SUCCESS;
 }
 
