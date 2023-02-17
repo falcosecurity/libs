@@ -28,8 +28,8 @@ int BPF_PROG(write_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-        unsigned long fd = extract__syscall_argument(regs, 0);
-        ringbuf__store_s64(&ringbuf, fd);
+        s32 fd = (s32)extract__syscall_argument(regs, 0);
+        ringbuf__store_s64(&ringbuf, (s64)fd);
 
         /* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)extract__syscall_argument(regs, 2);
