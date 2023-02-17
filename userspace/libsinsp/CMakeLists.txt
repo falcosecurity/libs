@@ -212,7 +212,7 @@ endif()
 if(NOT WIN32)
 	list(APPEND SINSP_LIBRARIES "${TBB_LIB}")
 
-	if(MINIMAL_BUILD)
+	if(NOT MINIMAL_BUILD)
 		add_dependencies(sinsp openssl curl)
 	endif()
 	add_dependencies(sinsp tbb)
