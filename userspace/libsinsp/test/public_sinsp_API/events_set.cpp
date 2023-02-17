@@ -122,7 +122,7 @@ TEST(events_set, set_check_diff)
 
 TEST(events_set, names_to_event_set)
 {
-	auto event_names = std::unordered_set<std::string>{"openat2","execveat"};
+	auto event_names = std::unordered_set<std::string>{"openat2", "execveat"};
 
 	auto event_codes = libsinsp::events::names_to_event_set(event_names);
 	ASSERT_TRUE(event_codes.contains(PPME_SYSCALL_OPENAT2_E));
@@ -137,7 +137,27 @@ TEST(events_set, names_to_event_set)
 	event_names.insert("syncfs");
 	event_codes = libsinsp::events::names_to_event_set(event_names);
 	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_E));
-	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));
-	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+}
 
+TEST(events_set, event_set_to_sc_set)
+{
+	// FIXME, bel casino :/ 
+	auto all_sc = libsinsp::events::all_sc_set();
+	auto all_events = libsinsp::events::all_event_set();
+	auto events_to_sc = libsinsp::events::event_set_to_sc_set;
+	auto sc_to_events = libsinsp::events::sc_set_to_event_set;
+	ASSERT_EQ(all_events, sc_to_events(all_sc));
+	// missing: 225,226,229,230,269, 270, 271, 272, 273, 274, 275, 276, 277,281,283, 284, 285, 286, 287,288, 289, 290,291,... Lots of syscalls are just not present on my arch :/
+	ASSERT_EQ(all_sc, events_to_sc(all_events));
+	ASSERT_EQ(all_sc, events_to_sc(sc_to_events(all_sc)));
+	ASSERT_EQ(all_events, sc_to_events(events_to_sc(all_events)));
+
+	auto sc_to_names = libsinsp::events::sc_set_to_names;
+	auto names_to_sc = libsinsp::events::names_to_sc_set;
+	ASSERT_EQ(all_sc, names_to_sc(sc_to_names(all_sc)));
+
+	auto events_to_names = libsinsp::events::event_set_to_names;
+	auto names_to_events = libsinsp::events::names_to_event_set;
+	ASSERT_EQ(all_events, names_to_events(events_to_names(all_events)));
 }

@@ -148,11 +148,6 @@ public:
 		return m_types.data();
 	}
 
-	uint8_t* data() noexcept
-	{
-		return m_types.data();
-	}
-
 	iterator begin() const { return iterator(m_types.data(), 0, m_max); }
 
     iterator end() const { return iterator(m_types.data(), m_max, m_max); } 
