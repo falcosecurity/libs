@@ -8,6 +8,7 @@
 /* These BPF programs are used both for `write` and `write2` syscalls. */
 
 #include <helpers/interfaces/fixed_size_event.h>
+#include <helpers/interfaces/variable_size_event.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
