@@ -32,7 +32,7 @@ int BPF_PROG(write_e,
         ringbuf__store_s64(&ringbuf, fd);
 
         /* Parameter 2: size (type: PT_UINT32) */
-	u32 size = (u32)extract__syscall_argument(regs, 1);
+	u32 size = (u32)extract__syscall_argument(regs, 2);
         ringbuf__store_u32(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
