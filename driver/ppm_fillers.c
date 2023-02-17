@@ -6787,6 +6787,37 @@ out:
 	return res;
 }
 
+int f_sys_splice_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+ 	int32_t fd_in, fd_out;
+	int res;
+
+	/* Parameter 1: fd_in (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd_in = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd_in, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd_out (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	fd_out = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd_out, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: size (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
+	res = val_to_ring(args, splice_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
