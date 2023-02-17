@@ -14,7 +14,7 @@ TEST(SyscallExit, writeX_no_snaplen)
 
 	/* Open ./testfile for writing */
 	int fd = syscall(__NR_open, "./testfile", O_WRONLY|O_CREAT);
-	assert_syscall_state(SYSCALL_SUCCESS, "write", fd, NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
 	/* Write data to ./testfile */
 	const unsigned data_len = 5;
