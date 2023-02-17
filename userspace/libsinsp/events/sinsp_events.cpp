@@ -163,6 +163,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 	static libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest;
 	if (ppm_event_info_of_interest.empty())
 	{
+		ppm_event_info_of_interest = sc_set_to_event_set(sinsp_state_sc_set());
 		/*
 		 * Fill-up the set of event infos of interest.
 		 * This is needed to ensure critical non syscall PPME events are activated,
@@ -171,7 +172,9 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 		 */
 		for(uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
 		{
-			if(!libsinsp::events::is_old_version_event((ppm_event_code)ev) && !libsinsp::events::is_unused_event((ppm_event_code)ev) && !libsinsp::events::is_unknown_event((ppm_event_code)ev))
+			if(!libsinsp::events::is_old_version_event((ppm_event_code)ev)
+				&& !libsinsp::events::is_unused_event((ppm_event_code)ev)
+				&& !libsinsp::events::is_unknown_event((ppm_event_code)ev))
 			{
 				/* So far we only covered syscalls, so we add other kinds of
 				interesting events. In this case, we are also interested in
