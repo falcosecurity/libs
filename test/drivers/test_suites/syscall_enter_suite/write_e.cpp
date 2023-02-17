@@ -33,7 +33,7 @@ TEST(SyscallEnter, writeE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
+	evt_test->assert_numeric_param(0, (int64_t)mock_fd);
 
 	/* Parameter 2: size (type: PT_UINT32)*/
 	evt_test->assert_numeric_param(2, (uint32_t)mock_count);
