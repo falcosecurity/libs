@@ -13,7 +13,10 @@ TEST(SyscallExit, io_uring_registerX)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t fd = -1;
-	uint32_t opcode = IORING_REGISTER_RESTRICTIONS;
+	uint32_t opcode = 0;
+#ifdef IORING_REGISTER_RESTRICTIONS
+	opcode = IORING_REGISTER_RESTRICTIONS;
+#endif
 	const void* arg = (const void*)0x7fff5694dc58;
 	unsigned int nr_args = 34;
 	assert_syscall_state(SYSCALL_FAILURE, "io_uring_register", syscall(__NR_io_uring_register, fd, opcode, arg, nr_args));
