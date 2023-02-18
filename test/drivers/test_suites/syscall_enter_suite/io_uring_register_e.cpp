@@ -13,7 +13,7 @@ TEST(SyscallEnter, io_uring_registerE)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t fd = -1;
-	uint32_t opcode = IORING_REGISTER_BUFFERS;
+	uint32_t opcode = 0;
 	const void* arg = NULL;
 	unsigned int nr_args = 7;
 	assert_syscall_state(SYSCALL_FAILURE, "io_uring_register", syscall(__NR_io_uring_register, fd, opcode, arg, nr_args));

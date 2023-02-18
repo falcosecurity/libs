@@ -16,17 +16,22 @@ TEST(SyscallExit, io_uring_setupX)
 	 * doesn't have the filed `feature`, so define it to `0` as default.
 	 */
 	uint32_t expected_features = 0;
+	uint32_t expected_flags = (uint32_t)-1;
 	uint32_t entries = 4;
 	struct io_uring_params params = {0};
 	params.sq_entries = 5;
 	params.cq_entries = 6;
+	params.flags = (uint32_t)-1;
 	/* The call should fail since we specified only `IORING_SETUP_SQ_AFF`
 	 * but not `IORING_SETUP_SQPOLL`
 	 */
+#ifdef IORING_FEAT_SINGLE_MMAP
 	params.flags = IORING_SETUP_SQ_AFF;
+	expected_flags = PPM_IORING_SETUP_SQ_AFF;
+#endif
 	params.sq_thread_cpu = 7;
 	params.sq_thread_idle = 8;
-#ifdef IORING_FEAT_SINGLE_MMAP
+#ifdef IORING_FEAT_NODROP
 	params.features = IORING_FEAT_NODROP;
 	expected_features = PPM_IORING_FEAT_NODROP;
 #endif
@@ -63,7 +68,7 @@ TEST(SyscallExit, io_uring_setupX)
 	evt_test->assert_numeric_param(4, (uint32_t)params.cq_entries);
 
 	/* Parameter 5: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(5, (uint32_t)PPM_IORING_SETUP_SQ_AFF);
+	evt_test->assert_numeric_param(5, (uint32_t)expected_flags);
 
 	/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
 	evt_test->assert_numeric_param(6, (uint32_t)params.sq_thread_cpu);
