@@ -1121,6 +1121,57 @@ static __always_inline int bpf_val_to_ring_mem(struct filler_data *data,
 	return __bpf_val_to_ring(data, val, 0, param_info->type, -1, false, mem);
 }
 
+/// TODO: @Andreagit97 these functions should return void
+static __always_inline int bpf_push_s64_to_ring(struct filler_data *data, s64 val)
+{
+	/// TODO: @Andreagit97 this could be removed in a second iteration.
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+	unsigned int len = sizeof(s64);
+	*((s64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+	/// TODO: @Andreagit97 this could be simplified
+	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len);
+	data->state->tail_ctx.curoff += len;
+	data->state->tail_ctx.len += len;
+	data->curarg_already_on_frame = false;
+	++data->state->tail_ctx.curarg;
+	return PPM_SUCCESS;
+}
+
+static __always_inline int bpf_push_u64_to_ring(struct filler_data *data, u64 val)
+{
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+	unsigned int len = sizeof(u64);
+	*((u64 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len);
+	data->state->tail_ctx.curoff += len;
+	data->state->tail_ctx.len += len;
+	data->curarg_already_on_frame = false;
+	++data->state->tail_ctx.curarg;
+	return PPM_SUCCESS;
+}
+
+static __always_inline int bpf_push_u32_to_ring(struct filler_data *data, u32 val)
+{
+	if (data->state->tail_ctx.curoff > SCRATCH_SIZE_HALF)
+	{
+		return PPM_FAILURE_FRAME_SCRATCH_MAP_FULL;
+	}
+	unsigned int len = sizeof(u32);
+	*((u32 *)&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]) = val;
+	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, len);
+	data->state->tail_ctx.curoff += len;
+	data->state->tail_ctx.len += len;
+	data->curarg_already_on_frame = false;
+	++data->state->tail_ctx.curarg;
+	return PPM_SUCCESS;
+}
+
 static __always_inline int bpf_val_to_ring(struct filler_data *data,
 					   unsigned long val)
 {
