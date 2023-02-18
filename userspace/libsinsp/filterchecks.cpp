@@ -434,6 +434,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
                 	m_tcstr[1] = 0;
                 	return m_tcstr;
 		case PPME_SYSCALL_PIPE_E:
+		case PPME_SYSCALL_PIPE2_E:
 			m_tcstr[0] = CHAR_FD_FIFO;
 			m_tcstr[1] = 0;
 			return m_tcstr;
@@ -1379,9 +1380,9 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
-			m_tbool = m_fdinfo->get_ino();
+			m_conv_uint64 = m_fdinfo->get_ino();
 
-			RETURN_EXTRACT_VAR(m_tbool);
+			RETURN_EXTRACT_VAR(m_conv_uint64);
 		}
 		break;
 	case TYPE_FDNAMERAW:

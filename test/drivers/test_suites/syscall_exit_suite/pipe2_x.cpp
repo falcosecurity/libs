@@ -9,14 +9,6 @@
 
 TEST(SyscallExit, pipe2X_failure)
 {
-	/* Please note:
-	 * the syscall `pipe2` is mapped to `PPME_SYSCALL_PIPE_X` event
-	 * like `pipe`. The same BPF program will be used for both the syscalls.
-	 *
-	 * TODO: we can add a new event for `pipe2` since here we don't catch the
-	 * `flag` param.
-	 */
-
 	auto evt_test = get_syscall_event_test(__NR_pipe2, EXIT_EVENT);
 
 	evt_test->enable_capture();
@@ -24,7 +16,7 @@ TEST(SyscallExit, pipe2X_failure)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t* pipefd = NULL;
-	int flags = 0;
+	int flags = O_CLOEXEC | O_DIRECT | O_NONBLOCK;
 	assert_syscall_state(SYSCALL_FAILURE, "pipe2", syscall(__NR_pipe2, pipefd, flags));
 	int64_t errno_value = -errno;
 
@@ -57,9 +49,12 @@ TEST(SyscallExit, pipe2X_failure)
 	/* Parameter 4: ino (type: PT_UINT64)*/
 	evt_test->assert_numeric_param(4, (uint64_t)0);
 
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	evt_test->assert_numeric_param(5, (uint32_t)(PPM_O_CLOEXEC | PPM_O_DIRECT | PPM_O_NONBLOCK));
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(4);
+	evt_test->assert_num_params_pushed(5);
 }
 
-#endif /* __NR_pipe */
+#endif /* __NR_pipe2 */

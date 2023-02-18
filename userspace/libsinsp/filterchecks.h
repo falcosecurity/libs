@@ -315,6 +315,9 @@ public:
 	uint8_t m_tcstr[2];
 	uint32_t m_tbool;
 
+	/* Used in extract helper to save uint64_t data */
+	uint64_t m_conv_uint64;
+
 private:
 	uint8_t* extract_from_null_fd(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings);
 	bool extract_fdname_from_creator(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings, bool fd_nameraw = false);
