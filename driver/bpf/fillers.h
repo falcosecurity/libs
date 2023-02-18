@@ -916,7 +916,7 @@ FILLER(sys_mmap_e, true)
 	 * addr
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_u64_to_ring(data, val);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -924,7 +924,7 @@ FILLER(sys_mmap_e, true)
 	 * length
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_u64_to_ring(data, val);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -932,7 +932,7 @@ FILLER(sys_mmap_e, true)
 	 * prot
 	 */
 	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, prot_flags_to_scap(val));
+	res = bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -940,7 +940,7 @@ FILLER(sys_mmap_e, true)
 	 * flags
 	 */
 	val = bpf_syscall_get_argument(data, 3);
-	res = bpf_val_to_ring(data, mmap_flags_to_scap(val));
+	res = bpf_push_u32_to_ring(data, mmap_flags_to_scap(val));
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -948,7 +948,7 @@ FILLER(sys_mmap_e, true)
 	 * fd
 	 */
 	val = bpf_syscall_get_argument(data, 4);
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, val);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -956,9 +956,7 @@ FILLER(sys_mmap_e, true)
 	 * offset/pgoffset
 	 */
 	val = bpf_syscall_get_argument(data, 5);
-	res = bpf_val_to_ring(data, val);
-
-	return res;
+	return bpf_push_u64_to_ring(data, val);
 }
 
 FILLER(sys_mprotect_e, true)
@@ -2940,12 +2938,12 @@ FILLER(sys_setns_e, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	int res = bpf_val_to_ring(data, (s64)fd);
+	int res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
 	unsigned long nstype = bpf_syscall_get_argument(data, 1);
-	return bpf_val_to_ring(data, clone_flags_to_scap(nstype));
+	return bpf_push_u32_to_ring(data, clone_flags_to_scap(nstype));
 }
 
 FILLER(sys_setpgid_e, true)
