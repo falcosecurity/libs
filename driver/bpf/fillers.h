@@ -4514,7 +4514,51 @@ FILLER(sys_pipe_x, true)
 	{
 		bpf_get_fd_dev_ino(pipefd[0], &dev, &ino);
 	}
+
+	/* Parameter 4: ino (type: PT_UINT64) */
 	return bpf_val_to_ring(data, ino);
+}
+
+FILLER(sys_pipe2_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	s32 pipefd[2] = {-1, -1};
+	/* This is a pointer to the vector with the 2 file descriptors. */
+	unsigned long fd_vector_pointer = bpf_syscall_get_argument(data, 0);
+	if(bpf_probe_read_user(pipefd, sizeof(pipefd), (void *)fd_vector_pointer))
+	{
+		pipefd[0] = -1;
+		pipefd[1] = -1;
+	}
+
+	/* Parameter 2: fd1 (type: PT_FD) */
+	res = bpf_val_to_ring(data, (s64)pipefd[0]);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd2 (type: PT_FD) */
+	res = bpf_val_to_ring(data, (s64)pipefd[1]);
+	CHECK_RES(res);
+
+	unsigned long ino = 0;
+	/* Not used, we use it just to call `bpf_get_fd_dev_ino` */
+	unsigned long dev = 0;
+	/* On success, pipe returns `0` */
+	if(retval == 0)
+	{
+		bpf_get_fd_dev_ino(pipefd[0], &dev, &ino);
+	}
+
+	/* Parameter 4: ino (type: PT_UINT64) */
+	res = bpf_val_to_ring(data, ino);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	s32 flags = bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, pipe2_flags_to_scap(flags));
 }
 
 FILLER(sys_lseek_e, true)

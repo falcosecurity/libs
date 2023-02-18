@@ -10,17 +10,17 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(pipe_e,
+int BPF_PROG(pipe2_e,
 	     struct pt_regs *regs,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PIPE_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, PIPE2_E_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE2_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -38,17 +38,17 @@ int BPF_PROG(pipe_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(pipe_x,
+int BPF_PROG(pipe2_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PIPE_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, PIPE2_X_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE_X);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE2_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -79,6 +79,10 @@ int BPF_PROG(pipe_x,
 
 	/* Parameter 4: ino (type: PT_UINT64) */
 	ringbuf__store_u64(&ringbuf, ino);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	s32 flags = extract__syscall_argument(regs, 1);
+	ringbuf__store_u32(&ringbuf, pipe2_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

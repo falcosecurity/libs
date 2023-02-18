@@ -210,6 +210,8 @@
 #define RECV_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define NANOSLEEP_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN
 #define NANOSLEEP_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define PIPE2_E_SIZE HEADER_LEN
+#define PIPE2_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint64_t) + sizeof(uint32_t) + PARAM_LEN * 5
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4

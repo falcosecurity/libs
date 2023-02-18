@@ -334,4 +334,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_ACCEPT4_6_X] = {FILLER_REF(sys_accept_x)},
 	[PPME_SYSCALL_UMOUNT2_E] = {FILLER_REF(sys_umount2_e)},
 	[PPME_SYSCALL_UMOUNT2_X] = {FILLER_REF(sys_umount2_x)},
+	[PPME_SYSCALL_PIPE2_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_PIPE2_X] = {FILLER_REF(sys_pipe2_x)},
 };

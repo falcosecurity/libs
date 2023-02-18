@@ -88,7 +88,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_pipe
 	[__NR_pipe - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X, PPM_SC_PIPE},
 #endif
-	[__NR_pipe2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X, PPM_SC_PIPE2},
+#ifdef __NR_pipe2
+	[__NR_pipe2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE2_E, PPME_SYSCALL_PIPE2_X, PPM_SC_PIPE2},
+#endif	
 #ifdef __NR_eventfd
 	[__NR_eventfd - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPM_SC_EVENTFD},
 #endif
@@ -933,8 +935,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_vfork
 	[__NR_ia32_vfork - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_VFORK_20_E, PPME_SYSCALL_VFORK_20_X, PPM_SC_VFORK},
 #endif
+#ifdef __NR_ia32_pipe
 	[__NR_ia32_pipe - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X, PPM_SC_PIPE},
-	[__NR_ia32_pipe2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE_E, PPME_SYSCALL_PIPE_X, PPM_SC_PIPE2},
+#endif
+#ifdef __NR_ia32_pipe2
+	[__NR_ia32_pipe2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PIPE2_E, PPME_SYSCALL_PIPE2_X, PPM_SC_PIPE2},
+#endif
 #ifdef __NR_ia32_eventfd
 	[__NR_ia32_eventfd - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPM_SC_EVENTFD},
 #endif

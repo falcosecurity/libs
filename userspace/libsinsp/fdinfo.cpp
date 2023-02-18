@@ -32,6 +32,13 @@ template<> sinsp_fdinfo_t::sinsp_fdinfo()
 	m_flags = FLAGS_NONE;
 	m_callbacks = NULL;
 	m_usrstate = NULL;
+	m_name = "";
+	m_name_raw = "";
+	m_oldname = "";
+	m_dev = 0;
+	m_mount_id = 0;
+	m_ino = 0;
+	m_openflags = 0;
 }
 
 template<> void sinsp_fdinfo_t::reset()
@@ -41,6 +48,13 @@ template<> void sinsp_fdinfo_t::reset()
 	delete(m_callbacks);
 	m_callbacks = NULL;
 	m_usrstate = NULL;
+	m_name = "";
+	m_name_raw = "";
+	m_oldname = "";
+	m_dev = 0;
+	m_mount_id = 0;
+	m_ino = 0;
+	m_openflags = 0;
 }
 
 template<> std::string* sinsp_fdinfo_t::tostring()

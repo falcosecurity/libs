@@ -1910,6 +1910,24 @@ static __always_inline u32 dup3_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 pipe2_flags_to_scap(int32_t flags)
+{
+	u32 res = 0;
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+#ifdef O_DIRECT
+	if (flags & O_DIRECT)
+		res |= PPM_O_DIRECT;
+#endif
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+	return res;
+}
+
 static __always_inline uint32_t epoll_create1_flags_to_scap(uint32_t flags)
 {
 	uint32_t res = 0;

@@ -343,6 +343,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_thread_exit(evt);
 		break;
 	case PPME_SYSCALL_PIPE_X:
+	case PPME_SYSCALL_PIPE2_X:
 		parse_pipe_exit(evt);
 		break;
 
@@ -3529,10 +3530,8 @@ void sinsp_parser::parse_close_exit(sinsp_evt *evt)
 	}
 }
 
-void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t ino)
+void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t openflags)
 {
-	sinsp_fdinfo_t fdi;
-
 	//
 	// lookup the thread info
 	//
@@ -3544,9 +3543,10 @@ void sinsp_parser::add_pipe(sinsp_evt *evt, int64_t tid, int64_t fd, uint64_t in
 	//
 	// Populate the new fdi
 	//
+	sinsp_fdinfo_t fdi = {};
 	fdi.m_type = SCAP_FD_FIFO;
-	fdi.m_name = "";
 	fdi.m_ino = ino;
+	fdi.m_openflags = openflags;
 
 	//
 	// Add the fd to the table.
@@ -3610,6 +3610,7 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt)
 	int64_t fd1, fd2;
 	int64_t retval;
 	uint64_t ino;
+	uint32_t openflags = 0;
 
 	parinfo = evt->get_param(0);
 	retval = *(int64_t *)parinfo->m_val;
@@ -3635,8 +3636,15 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(uint64_t));
 	ino = *(uint64_t *)parinfo->m_val;
 
-	add_pipe(evt, evt->get_tid(), fd1, ino);
-	add_pipe(evt, evt->get_tid(), fd2, ino);
+	if(evt->get_type() == PPME_SYSCALL_PIPE2_X)
+	{
+		parinfo = evt->get_param(4);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		openflags = *(uint32_t *)parinfo->m_val;
+	}
+
+	add_pipe(evt, fd1, ino, openflags);
+	add_pipe(evt, fd2, ino, openflags);
 }
 
 

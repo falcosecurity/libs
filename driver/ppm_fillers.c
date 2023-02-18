@@ -3177,7 +3177,70 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	{
 		get_fd_dev_ino(pipefd[0], &dev, &ino);
 	}
+
+	/* Parameter 4: ino (type: PT_UINT64) */
 	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_pipe2_x(struct event_filler_arguments *args)
+{
+	int res = 0;
+	int64_t retval = 0;
+	unsigned long val = 0;
+	int pipefd[2] = {-1, -1};
+	uint32_t dev = 0;
+	uint64_t ino = 0;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Here `val` is a pointer to the vector with the 2 file descriptors. */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+
+#ifdef CONFIG_COMPAT
+	if (!args->compat) {
+#endif
+		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)val, sizeof(pipefd))))
+		{
+			pipefd[0] = -1;
+			pipefd[1] = -1;
+		}
+#ifdef CONFIG_COMPAT
+	} else {
+		if (unlikely(ppm_copy_from_user(pipefd, (const void __user *)compat_ptr(val), sizeof(pipefd))))
+		{
+			pipefd[0] = -1;
+			pipefd[1] = -1;
+		}
+	}
+#endif
+
+	/* Parameter 2: fd1 (type: PT_FD) */
+	res = val_to_ring(args, (s64)pipefd[0], 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 3: fd2 (type: PT_FD) */
+	res = val_to_ring(args, (s64)pipefd[1], 0, false, 0);
+	CHECK_RES(res);
+
+	/* On success, pipe returns `0` */
+	if(retval == 0)
+	{
+		get_fd_dev_ino(pipefd[0], &dev, &ino);
+	}
+
+	/* Parameter 4: ino (type: PT_UINT64) */
+	res = val_to_ring(args, ino, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, pipe2_flags_to_scap((s32)val), 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
