@@ -145,7 +145,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_NANOSLEEP_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_TIMERFD_CREATE_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{AF_ID_USEDEFAULT, 0}, {AF_ID_USEDEFAULT, 0} } },
 	[PPME_SYSCALL_TIMERFD_CREATE_X] = {FILLER_REF(sys_single_x)},
-	[PPME_SYSCALL_INOTIFY_INIT_E] = {FILLER_REF(sys_autofill), 1, APT_REG, {{AF_ID_USEDEFAULT, 0} } },
+	[PPME_SYSCALL_INOTIFY_INIT_E] = {FILLER_REF(sys_inotify_init_e)},
 	[PPME_SYSCALL_INOTIFY_INIT_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_GETRLIMIT_E] = {FILLER_REF(sys_getrlimit_setrlimit_e)},
 	[PPME_SYSCALL_GETRLIMIT_X] = {FILLER_REF(sys_getrlimit_setrlrimit_x)},
@@ -336,4 +336,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UMOUNT2_X] = {FILLER_REF(sys_umount2_x)},
 	[PPME_SYSCALL_PIPE2_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_PIPE2_X] = {FILLER_REF(sys_pipe2_x)},
+	[PPME_SYSCALL_INOTIFY_INIT1_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_INOTIFY_INIT1_X] = {FILLER_REF(sys_inotify_init1_x)},
 };

@@ -3491,6 +3491,27 @@ FILLER(sys_io_uring_register_x, true)
 	return bpf_val_to_ring(data, nr_args);
 }
 
+FILLER(sys_inotify_init_e, true)
+{
+	/* Parameter 1: flags (type: PT_FLAGS8) */
+	/* We have nothing to extract from the kernel here so we send `0`.
+	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
+	 */
+	return bpf_val_to_ring(data, 0);
+}
+
+FILLER(sys_inotify_init1_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	s32 flags = (s32)bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, inotify_init1_flags_to_scap(flags));
+}
+
 FILLER(sys_mlock_x, true)
 {
 	unsigned long val;

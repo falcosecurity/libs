@@ -159,7 +159,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_inotify_init
 	[__NR_inotify_init - SYSCALL_TABLE_ID0] =               {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X, PPM_SC_INOTIFY_INIT},
 #endif
-	[__NR_inotify_init1 - SYSCALL_TABLE_ID0] =              {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X, PPM_SC_INOTIFY_INIT1},
+#ifdef __NR_inotify_init1
+	[__NR_inotify_init1 - SYSCALL_TABLE_ID0] =              {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT1_E, PPME_SYSCALL_INOTIFY_INIT1_X, PPM_SC_INOTIFY_INIT1},
+#endif
 	[__NR_fchmodat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_FCHMODAT_E, PPME_SYSCALL_FCHMODAT_X, PPM_SC_FCHMODAT},
 	[__NR_fchmod - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_FCHMOD_E, PPME_SYSCALL_FCHMOD_X, PPM_SC_FCHMOD},
 #ifdef __NR_getrlimit
@@ -1005,7 +1007,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_inotify_init
 	[__NR_ia32_inotify_init - SYSCALL_TABLE_ID0] =               {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X, PPM_SC_INOTIFY_INIT},
 #endif
-	[__NR_ia32_inotify_init1 - SYSCALL_TABLE_ID0] =              {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT_E, PPME_SYSCALL_INOTIFY_INIT_X, PPM_SC_INOTIFY_INIT1},
+#ifdef __NR_ia32_inotify_init1
+	[__NR_ia32_inotify_init1 - SYSCALL_TABLE_ID0] =              {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_INOTIFY_INIT1_E, PPME_SYSCALL_INOTIFY_INIT1_X, PPM_SC_INOTIFY_INIT1},
+#endif
 	[__NR_ia32_fchmodat - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SYSCALL_FCHMODAT_E, PPME_SYSCALL_FCHMODAT_X, PPM_SC_FCHMODAT},
 	[__NR_ia32_fchmod - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_FCHMOD_E, PPME_SYSCALL_FCHMOD_X, PPM_SC_FCHMOD},
 #ifdef __NR_ia32_getrlimit
