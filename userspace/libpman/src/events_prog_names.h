@@ -261,6 +261,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHOWN_X] = "fchown_x",
 	[PPME_SYSCALL_FCHOWNAT_E] = "fchownat_e",
 	[PPME_SYSCALL_FCHOWNAT_X] = "fchownat_x",
+	[PPME_SYSCALL_NANOSLEEP_E] = "nanosleep_e",
+	[PPME_SYSCALL_NANOSLEEP_X] = "nanosleep_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
