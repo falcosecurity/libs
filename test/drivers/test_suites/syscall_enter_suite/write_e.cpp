@@ -10,10 +10,9 @@ TEST(SyscallEnter, writeE)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	int32_t mock_fd = -1;
 	char mock_buf[8];
 	size_t mock_count = 4096;
-	assert_syscall_state(SYSCALL_FAILURE, "write", syscall(__NR_write, mock_fd, (void *)(mock_buf), mock_count));
+	assert_syscall_state(SYSCALL_FAILURE, "write", syscall(__NR_write, -1, (void *)(mock_buf), mock_count));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -33,7 +32,7 @@ TEST(SyscallEnter, writeE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
+	evt_test->assert_numeric_param(1, (int64_t)-1);
 
 	/* Parameter 2: size (type: PT_UINT32)*/
 	evt_test->assert_numeric_param(2, (uint32_t)mock_count);
