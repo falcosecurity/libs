@@ -451,6 +451,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			m_tcstr[1] = 0;
 			return m_tcstr;
 		case PPME_SYSCALL_INOTIFY_INIT_E:
+		case PPME_SYSCALL_INOTIFY_INIT1_E:
 			m_tcstr[0] = CHAR_FD_INOTIFY;
 			m_tcstr[1] = 0;
 			return m_tcstr;

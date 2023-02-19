@@ -282,6 +282,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_ACCEPT4_6_X] = "accept4_x",
 	[PPME_SYSCALL_PIPE2_E] = "pipe2_e",
 	[PPME_SYSCALL_PIPE2_X] = "pipe2_x",
+	[PPME_SYSCALL_INOTIFY_INIT1_E] = "inotify_init1_e",
+	[PPME_SYSCALL_INOTIFY_INIT1_X] = "inotify_init1_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

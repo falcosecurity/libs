@@ -10,26 +10,21 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(inotify_init_e,
+int BPF_PROG(inotify_init1_e,
 	     struct pt_regs *regs,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT1_E_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT1_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: flags (type: PT_FLAGS8) */
-	/* We have nothing to extract from the kernel here so we send `0`.
-	 * This is done to preserve the `PPME_SYSCALL_INOTIFY_INIT_E` event with 1 param.
-	 */
-	u8 flags = 0;
-	ringbuf__store_u8(&ringbuf, flags);
+	// Here we have no parameters to collect.
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -43,22 +38,26 @@ int BPF_PROG(inotify_init_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(inotify_init_x,
+int BPF_PROG(inotify_init1_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT1_X_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT_X);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_INOTIFY_INIT1_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_FD) */
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	s32 flags = (s32)extract__syscall_argument(regs, 0);
+	ringbuf__store_u16(&ringbuf, inotify_init1_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

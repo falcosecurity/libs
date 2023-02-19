@@ -202,6 +202,18 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, 0, 6, 7, 81976492, 17);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, 12, 32);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 }
 
 TEST_F(sinsp_with_test_input, umount)
@@ -403,4 +415,75 @@ TEST_F(sinsp_with_test_input, pipe2)
 	ASSERT_EQ(fdinfo1->get_device_major(), 0);
 	ASSERT_EQ(fdinfo1->get_device_minor(), 0);
 	ASSERT_EQ(fdinfo1->get_ino(), 7479253124);
+}
+
+TEST_F(sinsp_with_test_input, inotify_init1)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, 14, 89);
+
+	/* Here we assert some info regarding the second file descriptor `6` through filter-checks */
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "14");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
+	EXPECT_THROW(get_field_as_string(evt, "fd.directory"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.filename"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.ip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.sip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.port"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.sport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rport"), sinsp_exception);
+	ASSERT_EQ(get_field_as_string(evt, "fd.l4proto"), "<NA>");
+	EXPECT_THROW(get_field_as_string(evt, "fd.sockfamily"), sinsp_exception);
+	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "false");
+	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "114");
+	ASSERT_EQ(get_field_as_string(evt, "fd.containername"), ":");
+	EXPECT_THROW(get_field_as_string(evt, "fd.containerdirectory"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.proto"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cproto"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.sproto"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lproto"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rproto"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.net"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cnet"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.snet"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lnet"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rnet"), sinsp_exception);
+	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "false");
+	ASSERT_EQ(get_field_as_string(evt, "fd.name_changed"), "false");
+	EXPECT_THROW(get_field_as_string(evt, "fd.cip.name"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.sip.name"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lip.name"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rip.name"), sinsp_exception);
+	ASSERT_EQ(get_field_as_string(evt, "fd.dev"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "fd.dev.major"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "fd.dev.minor"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "fd.nameraw"), "");
+
+	/* Here we check fields of the fdinfo directly with getter methods */
+	sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_STREQ(fdinfo->get_typestring(), "inotify");
+	ASSERT_EQ(fdinfo->get_typechar(), 'i');
+	ASSERT_EQ(fdinfo->tostring_clean(), "");
+	ASSERT_EQ(fdinfo->m_name, "");
+	ASSERT_EQ(fdinfo->m_name_raw, "");
+	ASSERT_EQ(fdinfo->m_oldname, "");
+	ASSERT_EQ(fdinfo->m_openflags, 89);
+	ASSERT_FALSE(fdinfo->is_pipe());
+	ASSERT_EQ(fdinfo->get_device(), 0);
+	ASSERT_EQ(fdinfo->get_device_major(), 0);
+	ASSERT_EQ(fdinfo->get_device_minor(), 0);
+	ASSERT_EQ(fdinfo->get_ino(), 0);
 }

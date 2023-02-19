@@ -356,6 +356,30 @@ static __always_inline u32 io_uring_register_opcodes_to_scap(unsigned long flags
 	return flags;
 }
 
+/* Here we don't define new flags for `inotify` since under the hood it uses the open flags.
+ *
+ * `/include/uapi/linux/inotify.h` from kernel source tree.
+ *
+ *  #define IN_CLOEXEC O_CLOEXEC
+ *  #define IN_NONBLOCK O_NONBLOCK
+ */
+static __always_inline u16 inotify_init1_flags_to_scap(int32_t flags)
+{
+	u16 res = 0;
+
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
