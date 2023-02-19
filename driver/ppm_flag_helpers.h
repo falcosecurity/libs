@@ -417,6 +417,36 @@ static __always_inline u16 eventfd2_flags_to_scap(int32_t flags)
 	return res;
 }
 
+/* Here we don't define new flags for `signalfd4` since under the hood it uses the open flags.
+ *
+ * `/include/uapi/linux/signalfd.h` from kernel source tree.
+ *
+ *  #define SFD_CLOEXEC O_CLOEXEC
+ *  #define SFD_NONBLOCK O_NONBLOCK
+ */
+static __always_inline u16 signalfd4_flags_to_scap(int32_t flags)
+{
+	u16 res = 0;
+
+	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
+	if(flags < 0)
+	{
+		return res;
+	}
+
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
 static __always_inline u32 clone_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;

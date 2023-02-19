@@ -286,6 +286,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_INOTIFY_INIT1_X] = "inotify_init1_x",
 	[PPME_SYSCALL_EVENTFD2_E] = "eventfd2_e",
 	[PPME_SYSCALL_EVENTFD2_X] = "eventfd2_x",
+	[PPME_SYSCALL_SIGNALFD4_E] = "signalfd4_e",
+	[PPME_SYSCALL_SIGNALFD4_X] = "signalfd4_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

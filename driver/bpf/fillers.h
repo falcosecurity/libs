@@ -3759,11 +3759,39 @@ FILLER(sys_signalfd_e, true)
 	CHECK_RES(res);
 
 	/* Parameter 2: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
 	res = bpf_val_to_ring(data, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_FLAGS8) */
+	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
+	 */
 	return bpf_val_to_ring(data, 0);
+}
+
+FILLER(sys_signalfd4_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: mask (type: PT_UINT32) */
+	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
+	return bpf_val_to_ring(data, 0);
+}
+
+FILLER(sys_signalfd4_x, true)
+{
+	/* Parameter 1: res (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	s32 flags = (s32)bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, signalfd4_flags_to_scap(flags));
 }
 
 FILLER(sys_epoll_create_e, true)

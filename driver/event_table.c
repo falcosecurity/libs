@@ -410,6 +410,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_INOTIFY_INIT1_X] = {"inotify_init1", EC_IPC | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"flags", PT_FLAGS16, PF_HEX, file_flags}}},
 	[PPME_SYSCALL_EVENTFD2_E] = {"eventfd2", EC_IPC | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"initval", PT_UINT64, PF_DEC} } },
 	[PPME_SYSCALL_EVENTFD2_X] = {"eventfd2", EC_IPC | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"flags", PT_FLAGS16, PF_HEX, file_flags} } },
+	[PPME_SYSCALL_SIGNALFD4_E] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"fd", PT_FD, PF_DEC}, {"mask", PT_UINT32, PF_HEX}}},
+	[PPME_SYSCALL_SIGNALFD4_X] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC},  {"flags", PT_FLAGS16, PF_HEX}}},
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
