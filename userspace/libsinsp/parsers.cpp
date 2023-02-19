@@ -239,6 +239,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPENAT2_E:
 	case PPME_SOCKET_SOCKET_E:
 	case PPME_SYSCALL_EVENTFD_E:
+	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_CHDIR_E:
 	case PPME_SYSCALL_FCHDIR_E:
 	case PPME_SOCKET_SHUTDOWN_E:
@@ -378,7 +379,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_FCNTL_X:
 		parse_fcntl_exit(evt);
 		break;
-	case PPME_SYSCALL_EVENTFD_X :
+	case PPME_SYSCALL_EVENTFD_X:
+	case PPME_SYSCALL_EVENTFD2_X:
 		parse_eventfd_exit(evt);
 		break;
 	case PPME_SYSCALL_CHDIR_X:
@@ -4407,12 +4409,11 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
 	int64_t fd;
-	sinsp_fdinfo_t fdi;
 
 	//
 	// lookup the thread info
 	//
-	if(!evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
 	{
 		ASSERT(false);
 		return;
@@ -4433,8 +4434,15 @@ void sinsp_parser::parse_eventfd_exit(sinsp_evt *evt)
 	//
 	// Populate the new fdi
 	//
+	sinsp_fdinfo_t fdi = {};
 	fdi.m_type = SCAP_FD_EVENT;
-	fdi.m_name = "";
+
+	if(evt->get_type() == PPME_SYSCALL_EVENTFD2_X)
+	{
+		parinfo = evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		fdi.m_openflags = *(uint16_t *)parinfo->m_val;
+	}
 
 	//
 	// Add the fd to the table.

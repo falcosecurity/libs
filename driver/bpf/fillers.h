@@ -4631,24 +4631,35 @@ FILLER(sys_llseek_e, true)
 
 FILLER(sys_eventfd_e, true)
 {
-	unsigned long val;
-	int res;
+	/* Parameter 1: initval (type: PT_UINT64) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
 
-	/*
-	 * initval
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	return bpf_val_to_ring(data, 0);
+}
 
-	/*
-	 * flags
-	 * XXX not implemented yet
-	 */
-	res = bpf_val_to_ring(data, 0);
+FILLER(sys_eventfd2_e, true)
+{
+	/* Parameter 1: initval (type: PT_UINT64) */
+	unsigned long val = bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, val);
+}
 
-	return res;
+FILLER(sys_eventfd2_x, true)
+{
+	/* Parameter 1: res (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	s32 flags = bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, eventfd2_flags_to_scap(flags));
 }
 
 FILLER(sys_mount_e, true)

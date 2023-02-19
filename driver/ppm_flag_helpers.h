@@ -367,6 +367,43 @@ static __always_inline u16 inotify_init1_flags_to_scap(int32_t flags)
 {
 	u16 res = 0;
 
+	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
+	if(flags < 0)
+	{
+		return res;
+	}
+
+#ifdef O_NONBLOCK
+	if (flags & O_NONBLOCK)
+		res |= PPM_O_NONBLOCK;
+#endif
+
+#ifdef O_CLOEXEC
+	if (flags & O_CLOEXEC)
+		res |= PPM_O_CLOEXEC;
+#endif
+
+	return res;
+}
+
+/* Here we don't define new flags for `eventfd2` since under the hood it uses the open flags.
+ *
+ * `/include/linux/eventd.h` from kernel source tree.
+ *
+ *  #define EFD_SEMAPHORE (1 << 0)  <---  we don't catch this flag right now.
+ *  #define EFD_CLOEXEC O_CLOEXEC
+ *  #define EFD_NONBLOCK O_NONBLOCK
+ */
+static __always_inline u16 eventfd2_flags_to_scap(int32_t flags)
+{
+	u16 res = 0;
+
+	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
+	if(flags < 0)
+	{
+		return res;
+	}
+
 #ifdef O_NONBLOCK
 	if (flags & O_NONBLOCK)
 		res |= PPM_O_NONBLOCK;
@@ -1937,6 +1974,13 @@ static __always_inline u32 dup3_flags_to_scap(unsigned long flags)
 static __always_inline u32 pipe2_flags_to_scap(int32_t flags)
 {
 	u32 res = 0;
+
+	/* We need to explicitly handle the negative case otherwise `-1` will match all `flags & ...` */
+	if(flags < 0)
+	{
+		return res;
+	}
+
 #ifdef O_CLOEXEC
 	if (flags & O_CLOEXEC)
 		res |= PPM_O_CLOEXEC;
