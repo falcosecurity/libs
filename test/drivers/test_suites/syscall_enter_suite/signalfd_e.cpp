@@ -43,7 +43,6 @@ TEST(SyscallEnter, signalfdE)
 	evt_test->assert_numeric_param(2, (uint32_t)0);
 
 	/* Parameter 3: flags (type: PT_FLAGS8) */
-	/* Right now we don't catch any flag, so we expect `0` as a second parameter. */
 	evt_test->assert_numeric_param(3, (uint8_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

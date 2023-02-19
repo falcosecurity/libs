@@ -175,7 +175,12 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
 
-	fd = 6;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, 2, 67);
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "2");
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_E, 2, 0, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "timerfd");
@@ -473,6 +478,58 @@ TEST_F(sinsp_with_test_input, eventfd2)
 	ASSERT_STREQ(fdinfo->get_typestring(), "event");
 	ASSERT_EQ(fdinfo->get_typechar(), 'e');
 	ASSERT_EQ(fdinfo->m_openflags, 54);
+	ASSERT_EQ(fdinfo->get_ino(), 0);
+	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
+}
+
+TEST_F(sinsp_with_test_input, signalfd)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, -1, 0, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, 5);
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
+	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "15");
+	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), "0");
+	ASSERT_FD_FILTER_CHECK_NOT_FILE()
+
+	/* Here we check fields of the fdinfo directly with getter methods */
+	sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_STREQ(fdinfo->get_typestring(), "signalfd");
+	ASSERT_EQ(fdinfo->get_typechar(), 's');
+	ASSERT_EQ(fdinfo->m_openflags, 0);
+	ASSERT_EQ(fdinfo->get_ino(), 0);
+	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
+}
+
+TEST_F(sinsp_with_test_input, signalfd4)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, -1, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, 5, 47);
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
+	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "15");
+	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), "0");
+	ASSERT_FD_FILTER_CHECK_NOT_FILE()
+
+	/* Here we check fields of the fdinfo directly with getter methods */
+	sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+	ASSERT_NE(fdinfo, nullptr);
+	ASSERT_STREQ(fdinfo->get_typestring(), "signalfd");
+	ASSERT_EQ(fdinfo->get_typechar(), 's');
+	ASSERT_EQ(fdinfo->m_openflags, 47);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }

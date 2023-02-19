@@ -402,6 +402,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		parse_dup_exit(evt);
 		break;
 	case PPME_SYSCALL_SIGNALFD_X:
+	case PPME_SYSCALL_SIGNALFD4_X:
 		parse_single_param_fd_exit(evt, SCAP_FD_SIGNALFD);
 		break;
 	case PPME_SYSCALL_TIMERFD_CREATE_X:
@@ -4730,27 +4731,36 @@ void sinsp_parser::parse_single_param_fd_exit(sinsp_evt* evt, scap_fd_type type)
 	//
 	// Check if the syscall was successful
 	//
-	if(retval >= 0)
+	if(retval < 0)
 	{
-		sinsp_fdinfo_t fdi = {};
-
-		//
-		// Populate the new fdi
-		//
-		fdi.m_type = type;
-
-		if(evt->get_type() == PPME_SYSCALL_INOTIFY_INIT1_X)
-		{
-			parinfo = evt->get_param(1);
-			ASSERT(parinfo->m_len == sizeof(uint16_t));
-			fdi.m_openflags = *(uint16_t *)parinfo->m_val;
-		}
-
-		//
-		// Add the fd to the table.
-		//
-		evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
+		return;
 	}
+
+	sinsp_fdinfo_t fdi = {};
+
+	//
+	// Populate the new fdi
+	//
+	fdi.m_type = type;
+
+	if(evt->get_type() == PPME_SYSCALL_INOTIFY_INIT1_X)
+	{
+		parinfo = evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		fdi.m_openflags = *(uint16_t *)parinfo->m_val;
+	}
+
+	if(evt->get_type() == PPME_SYSCALL_SIGNALFD4_X)
+	{
+		parinfo = evt->get_param(1);
+		ASSERT(parinfo->m_len == sizeof(uint16_t));
+		fdi.m_openflags = *(uint16_t *)parinfo->m_val;
+	}
+
+	//
+	// Add the fd to the table.
+	//
+	evt->m_fdinfo = evt->m_tinfo->add_fd(retval, &fdi);
 }
 
 void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)

@@ -10,17 +10,17 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(signalfd_e,
+int BPF_PROG(signalfd4_e,
 	     struct pt_regs *regs,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SIGNALFD_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, SIGNALFD4_E_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD4_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -31,12 +31,6 @@ int BPF_PROG(signalfd_e,
 	/* Parameter 2: mask (type: PT_UINT32) */
 	/* Right now we are not interested in the `sigmask`, we can populate it if we need */
 	ringbuf__store_u32(&ringbuf, 0);
-
-	/* Parameter 3: flags (type: PT_FLAGS8) */
-	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
-	 * For compatibility with the event definition here we send `0` as flags.
-	 */
-	ringbuf__store_u8(&ringbuf, 0);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -50,22 +44,26 @@ int BPF_PROG(signalfd_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(signalfd_x,
+int BPF_PROG(signalfd4_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SIGNALFD_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, SIGNALFD4_X_SIZE))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD_X);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD4_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_FD)*/
 	ringbuf__store_s64(&ringbuf, ret);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	s32 flags = (s32)extract__syscall_argument(regs, 3);
+	ringbuf__store_u16(&ringbuf, signalfd4_flags_to_scap(flags));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
