@@ -338,4 +338,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_PIPE2_X] = {FILLER_REF(sys_pipe2_x)},
 	[PPME_SYSCALL_INOTIFY_INIT1_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_INOTIFY_INIT1_X] = {FILLER_REF(sys_inotify_init1_x)},
+	[PPME_SYSCALL_EVENTFD2_E] = {FILLER_REF(sys_eventfd2_e)},
+	[PPME_SYSCALL_EVENTFD2_X] = {FILLER_REF(sys_eventfd2_x)},
 };

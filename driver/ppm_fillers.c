@@ -3248,26 +3248,52 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 
 int f_sys_eventfd_e(struct event_filler_arguments *args)
 {
-	int res;
-	unsigned long val;
+	int res = 0;
+	unsigned long val = 0;
 
-	/*
-	 * initval
-	 */
+	/* Parameter 1: initval (type: PT_UINT64) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * flags
-	 * XXX not implemented yet
+	/* Parameter 2: flags (type: PT_FLAGS32) */
+	/* The syscall eventfd has no flags! only `eventfd2` has the `flags` param.
+	 * For compatibility with the event definition here we send `0` as flags.
 	 */
-	/* syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val); */
-	val = 0;
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_eventfd2_e(struct event_filler_arguments *args)
+{
+	int res = 0;
+	unsigned long val = 0;
+
+	/* Parameter 1: initval (type: PT_UINT64) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
+int f_sys_eventfd2_x(struct event_filler_arguments *args)
+{
+	int res = 0;
+	unsigned long val = 0;
+	long retval = 0;
+
+	/* Parameter 1: res (type: PT_FD) */
+	retval = (long)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: flags (type: PT_FLAGS16) */
+	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	res = val_to_ring(args, eventfd2_flags_to_scap(val), 0, false, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

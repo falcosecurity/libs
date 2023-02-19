@@ -439,6 +439,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 			m_tcstr[1] = 0;
 			return m_tcstr;
 		case PPME_SYSCALL_EVENTFD_E:
+		case PPME_SYSCALL_EVENTFD2_E:
 			m_tcstr[0] = CHAR_FD_EVENT;
 			m_tcstr[1] = 0;
 			return m_tcstr;

@@ -412,6 +412,8 @@ private:
 		init_keep_threadinfo();
 		m_tinfo_ref.reset();
 		m_tinfo = NULL;
+		m_fdinfo = NULL;
+		m_fdinfo_name_changed = false;
 	}
 	inline void init(uint8_t* evdata, uint16_t cpuid)
 	{
