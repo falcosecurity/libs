@@ -19,7 +19,6 @@ limitations under the License.
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <unistd.h>
 
 int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 {
