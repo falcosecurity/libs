@@ -179,4 +179,99 @@ TEST(SyscallEnter, socketcall_connectE)
 
 	evt_test->assert_num_params_pushed(2);
 }
+
+#ifdef __NR_recvmmsg
+TEST(SyscallEnter, socketcall_recvmmsgE)
+{
+	auto evt_test = get_syscall_event_test(__NR_recvmmsg, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	struct msghdr *msg = NULL;
+	uint32_t vlen = 0;
+	int flags = 0;
+	struct timespec *timeout = NULL;
+
+	unsigned long args[5] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)msg;
+	args[2] = vlen;
+	args[3] = flags;
+	args[4] = (unsigned long)timeout;
+	assert_syscall_state(SYSCALL_FAILURE, "recvmmsg", syscall(__NR_socketcall, SYS_RECVMMSG, args));
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	// Here we have no parameters to assert.
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(0);
+}
+#endif
+
+#ifdef __NR_sendmmsg
+TEST(SyscallEnter, socketcall_sendmmsgE)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmmsg, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	struct msghdr *msg = NULL;
+	uint32_t vlen = 0;
+	int flags = 0;
+
+	unsigned long args[4] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)msg;
+	args[2] = vlen;
+	args[3] = flags;
+	assert_syscall_state(SYSCALL_FAILURE, "sendmmsg", syscall(__NR_socketcall, SYS_SENDMMSG, args));
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	// Here we have no parameters to assert.
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(0);
+}
+#endif
+
 #endif
