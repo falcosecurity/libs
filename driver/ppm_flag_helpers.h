@@ -1715,8 +1715,10 @@ static __always_inline u32 fchownat_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
 
+#ifdef AT_SYMLINK_FOLLOW
 	if (flags & AT_SYMLINK_FOLLOW)
 		res |= PPM_AT_SYMLINK_FOLLOW;
+#endif
 
 #ifdef AT_EMPTY_PATH
 	if (flags & AT_EMPTY_PATH)
