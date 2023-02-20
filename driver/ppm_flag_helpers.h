@@ -1711,6 +1711,21 @@ static __always_inline u32 chmod_mode_to_scap(unsigned long modes)
 	return res;
 }
 
+static __always_inline u32 fchownat_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+
+	if (flags & AT_SYMLINK_FOLLOW)
+		res |= PPM_AT_SYMLINK_FOLLOW;
+
+#ifdef AT_EMPTY_PATH
+	if (flags & AT_EMPTY_PATH)
+		res |= PPM_AT_EMPTY_PATH;
+#endif
+
+	return res;
+}
+
 static __always_inline u64 capabilities_to_scap(unsigned long caps)
 {
 	u64 res = 0;

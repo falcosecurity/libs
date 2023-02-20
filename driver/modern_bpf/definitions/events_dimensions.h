@@ -36,12 +36,17 @@
 #define DUP3_X_SIZE HEADER_LEN + sizeof(int64_t) * 3 + sizeof(uint32_t) + PARAM_LEN * 4
 #define CHDIR_E_SIZE HEADER_LEN
 #define CHMOD_E_SIZE HEADER_LEN
+#define CHOWN_E_SIZE HEADER_LEN
+#define LCHOWN_E_SIZE HEADER_LEN
 #define CHROOT_E_SIZE HEADER_LEN
 #define FCHDIR_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define FCHDIR_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define FCHMOD_E_SIZE HEADER_LEN
 #define FCHMOD_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) + PARAM_LEN * 3
 #define FCHMODAT_E_SIZE HEADER_LEN
+#define FCHOWN_E_SIZE HEADER_LEN
+#define FCHOWN_X_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint32_t) * 2 + PARAM_LEN * 4
+#define FCHOWNAT_E_SIZE HEADER_LEN
 #define MKDIRAT_E_SIZE HEADER_LEN
 #define RMDIR_E_SIZE HEADER_LEN
 #define EVENTFD_E_SIZE HEADER_LEN + sizeof(uint64_t) + sizeof(uint32_t) + PARAM_LEN * 2

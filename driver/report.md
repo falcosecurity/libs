@@ -23,7 +23,7 @@ This table represents the syscalls supported by our drivers.
 | capset                  | 🟢        |
 | chdir                   | 🟢        |
 | chmod                   | 🟢        |
-| chown                   | 🟡        |
+| chown                   | 🟢        |
 | chroot                  | 🟢        |
 | clock_adjtime           | 🟡        |
 | clock_getres            | 🟡        |
@@ -65,8 +65,8 @@ This table represents the syscalls supported by our drivers.
 | fchdir                  | 🟢        |
 | fchmod                  | 🟢        |
 | fchmodat                | 🟢        |
-| fchown                  | 🟡        |
-| fchownat                | 🟡        |
+| fchown                  | 🟢        |
+| fchownat                | 🟢        |
 | fcntl                   | 🟢        |
 | fdatasync               | 🟡        |
 | fgetxattr               | 🟡        |
@@ -146,7 +146,7 @@ This table represents the syscalls supported by our drivers.
 | landlock_add_rule       | 🟡        |
 | landlock_create_ruleset | 🟡        |
 | landlock_restrict_self  | 🟡        |
-| lchown                  | 🟡        |
+| lchown                  | 🟢        |
 | lgetxattr               | 🟡        |
 | link                    | 🟢        |
 | linkat                  | 🟢        |

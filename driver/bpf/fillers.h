@@ -119,6 +119,10 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_CHMOD_E:
 			case PPME_SYSCALL_FCHMOD_E:
 			case PPME_SYSCALL_FCHMODAT_E:
+			case PPME_SYSCALL_CHOWN_E:
+			case PPME_SYSCALL_LCHOWN_E:
+			case PPME_SYSCALL_FCHOWN_E:
+			case PPME_SYSCALL_FCHOWNAT_E:
 			case PPME_SYSCALL_LINK_E:
 			case PPME_SYSCALL_LINK_2_E:
 			case PPME_SYSCALL_LINKAT_E:
@@ -197,6 +201,10 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_CHMOD_X:
 			case PPME_SYSCALL_FCHMOD_X:
 			case PPME_SYSCALL_FCHMODAT_X:
+			case PPME_SYSCALL_CHOWN_X:
+			case PPME_SYSCALL_LCHOWN_X:
+			case PPME_SYSCALL_FCHOWN_X:
+			case PPME_SYSCALL_FCHOWNAT_X:
 			case PPME_SYSCALL_LINK_X:
 			case PPME_SYSCALL_LINK_2_X:
 			case PPME_SYSCALL_LINKAT_X:
@@ -5774,6 +5782,108 @@ FILLER(sys_fchmod_x, true)
 	/* Parameter 3: mode (type: PT_MODE) */
 	unsigned long mode = bpf_syscall_get_argument(data, 1);
 	return bpf_val_to_ring(data, chmod_mode_to_scap(mode));
+}
+
+FILLER(sys_chown_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: path (type: PT_FSPATH) */
+	unsigned long path_pointer = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, path_pointer);
+	CHECK_RES(res);
+
+	/* Parameter 3: uid (type: PT_UINT32) */
+	u32 uid = (u32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, uid);
+	CHECK_RES(res);
+
+	/* Parameter 4: gid (type: PT_UINT32) */
+	u32 gid = (u32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, gid);
+}
+
+FILLER(sys_lchown_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: path (type: PT_FSPATH) */
+	unsigned long path_pointer = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, path_pointer);
+	CHECK_RES(res);
+
+	/* Parameter 3: uid (type: PT_UINT32) */
+	u32 uid = (u32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, uid);
+	CHECK_RES(res);
+
+	/* Parameter 4: gid (type: PT_UINT32) */
+	u32 gid = (u32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, gid);
+}
+
+FILLER(sys_fchown_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 3: uid (type: PT_UINT32) */
+	u32 uid = (u32)bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, uid);
+	CHECK_RES(res);
+
+	/* Parameter 4: gid (type: PT_UINT32) */
+	u32 gid = (u32)bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, gid);
+}
+
+FILLER(sys_fchownat_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: dirfd (type: PT_FD) */
+	s32 dirfd = (s32)bpf_syscall_get_argument(data, 0);
+	if(dirfd == AT_FDCWD)
+	{
+		dirfd = PPM_AT_FDCWD;
+	}
+	res = bpf_val_to_ring(data, (s64)dirfd);
+	CHECK_RES(res);
+
+	/* Parameter 3: pathname (type: PT_FSRELPATH) */
+	unsigned long path_pointer = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, path_pointer);
+	CHECK_RES(res);
+
+	/* Parameter 3: uid (type: PT_UINT32) */
+	u32 uid = (u32)bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, uid);
+	CHECK_RES(res);
+
+	/* Parameter 4: gid (type: PT_UINT32) */
+	u32 gid = (u32)bpf_syscall_get_argument(data, 3);
+	res = bpf_val_to_ring(data, gid);
+	CHECK_RES(res);
+
+	/* Parameter 5: flags (type: PT_FLAGS32) */
+	unsigned long flags = bpf_syscall_get_argument(data, 4);
+	return bpf_val_to_ring(data, fchownat_flags_to_scap(flags));
 }
 
 FILLER(sys_copy_file_range_e, true)

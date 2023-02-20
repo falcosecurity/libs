@@ -97,6 +97,10 @@ or GPL2.txt for full copies of the license.
 	FN(sys_fchmodat_x)			\
 	FN(sys_chmod_x)				\
 	FN(sys_fchmod_x)			\
+        FN(sys_chown_x)				\
+	FN(sys_lchown_x)			\
+	FN(sys_fchown_x)			\
+	FN(sys_fchownat_x)			\
 	FN(sys_mkdirat_x)			\
 	FN(sys_openat_e)			\
 	FN(sys_openat_x)			\

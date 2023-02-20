@@ -1180,7 +1180,15 @@ typedef enum {
 	PPME_SYSCALL_EPOLL_CREATE_X = 375,
 	PPME_SYSCALL_EPOLL_CREATE1_E = 376,
 	PPME_SYSCALL_EPOLL_CREATE1_X = 377,
-	PPM_EVENT_MAX = 378
+	PPME_SYSCALL_CHOWN_E = 378,
+	PPME_SYSCALL_CHOWN_X = 379,
+	PPME_SYSCALL_LCHOWN_E = 380,
+	PPME_SYSCALL_LCHOWN_X = 381,
+	PPME_SYSCALL_FCHOWN_E = 382,
+	PPME_SYSCALL_FCHOWN_X = 383,
+	PPME_SYSCALL_FCHOWNAT_E = 384,
+	PPME_SYSCALL_FCHOWNAT_X = 385,
+	PPM_EVENT_MAX = 386
 } ppm_event_code;
 /*@}*/
 
@@ -1870,6 +1878,7 @@ extern const struct ppm_name_value mlockall_flags[];
 extern const struct ppm_name_value mlock2_flags[];
 extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
+extern const struct ppm_name_value fchownat_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
