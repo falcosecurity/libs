@@ -556,9 +556,10 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name)
 	// raw_tracepoint/raw_syscalls/sys_enter.
 	// This is a small optimization.
 	const char *tp_name = strrchr(name, '/');
-	if (tp_name && strlen(tp_name) > 0)
+	if (tp_name && strlen(tp_name) > 1)
 	{
 		start = PPM_SC_TP_START;
+		sc_name = tp_name + 1;
 	}
 	// else, perhaps users passed a tracepoint name like `signal_deliver` or a syscall name.
 	// Since we do not know, try everything.
