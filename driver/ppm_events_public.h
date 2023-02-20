@@ -1789,7 +1789,6 @@ struct ppm_event_info {
 	enum ppm_event_flags flags; /**< flags for this event. */
 	uint32_t nparams; /**< Number of parameter in the params array. */
 	struct ppm_param_info params[PPM_MAX_EVENT_PARAMS]; /**< parameters descriptions. */
-	ppm_sc_code prod_sc_code; /**< producer syscall or tracepoint. PPM_SC_UNKNOWN when not known. */
 };
 
 #if defined _MSC_VER
