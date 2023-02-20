@@ -237,6 +237,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_LSEEK_X] = "lseek_x",
 	[PPME_SYSCALL_LLSEEK_E] = "llseek_e",
 	[PPME_SYSCALL_LLSEEK_X] = "llseek_x",
+	[PPME_SYSCALL_GETRESGID_E] = "getresgid_e",
+	[PPME_SYSCALL_GETRESGID_X] = "getresgid_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */
