@@ -169,7 +169,6 @@ TEST(events_set, event_set_to_sc_set)
 	}
 
 	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(all_sc));
-	// FIXME: PIDFD_GETFD vs PIDFD_GET_FD :/
 	ASSERT_EQ(all_sc, events_to_sc(all_syscalls_tracepoints_events));
 	ASSERT_EQ(all_sc, events_to_sc(sc_to_events(all_sc)));
 	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(events_to_sc(all_syscalls_tracepoints_events)));
