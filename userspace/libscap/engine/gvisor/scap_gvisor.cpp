@@ -105,7 +105,7 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string config_path, std::string root_path, bool no_events)
+int32_t engine::init(std::string config_path, std::string root_path, bool no_events, int epoll_timeout)
 {
 	if(root_path.empty())
 	{
@@ -114,6 +114,15 @@ int32_t engine::init(std::string config_path, std::string root_path, bool no_eve
 	else
 	{
 		m_root_path = root_path;
+	}
+
+	if(epoll_timeout >= 0)
+	{
+		m_epoll_timeout = epoll_timeout;
+	}
+	else
+	{
+		m_epoll_timeout = -1;
 	}
 
 	m_trace_session_path = config_path;
@@ -533,7 +542,7 @@ int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 		}
 	}
 
-	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, -1);
+	int nfds = epoll_wait(m_epollfd, evts, max_ready_sandboxes, m_epoll_timeout);
 	if (nfds < 0)
 	{
 		snprintf(m_lasterr, SCAP_LASTERR_SIZE, "epoll_wait error: %s", strerror(errno));
