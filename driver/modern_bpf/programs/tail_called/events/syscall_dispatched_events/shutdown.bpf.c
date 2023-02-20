@@ -24,12 +24,16 @@ int BPF_PROG(shutdown_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to easily manage socketcalls */
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
 	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	int how = (s32)extract__syscall_argument(regs, 1);
+	int how = (s32)args[1];
 	ringbuf__store_u8(&ringbuf, (u8)shutdown_how_to_scap(how));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

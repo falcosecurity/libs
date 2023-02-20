@@ -678,6 +678,11 @@ static __always_inline long convert_network_syscalls(void *ctx)
 	case SYS_SENDMMSG:
 		return __NR_sendmmsg;
 #endif
+
+#ifdef __NR_shutdown
+	case SYS_SHUTDOWN:
+		return __NR_shutdown;
+#endif
 	default:
 		break;
 	}
