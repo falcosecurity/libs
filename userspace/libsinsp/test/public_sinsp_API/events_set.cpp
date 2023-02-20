@@ -140,18 +140,39 @@ TEST(events_set, names_to_event_set)
 	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
 }
 
+// Tests that no generic ppm sc is mapped to an event too
+// basically, avoid that someone added a new event mapping a once-generic syscall,
+// and forgot to update libscap/linux/scap_ppm_sc.c::g_events_to_sc_map.
+TEST(events_set, generic_no_events)
+{
+	auto generic_ev_set = libsinsp::events::set<ppm_event_code>({PPME_GENERIC_E, PPME_GENERIC_X});
+	auto generic_sc_set = libsinsp::events::event_set_to_sc_set(generic_ev_set);
+	auto final_ev_set = libsinsp::events::sc_set_to_event_set(generic_sc_set);
+	ASSERT_EQ(final_ev_set, generic_ev_set);
+}
+
 TEST(events_set, event_set_to_sc_set)
 {
-	// FIXME, bel casino :/ 
 	auto all_sc = libsinsp::events::all_sc_set();
 	auto all_events = libsinsp::events::all_event_set();
 	auto events_to_sc = libsinsp::events::event_set_to_sc_set;
 	auto sc_to_events = libsinsp::events::sc_set_to_event_set;
-	ASSERT_EQ(all_events, sc_to_events(all_sc));
-	// missing: 225,226,229,230,269, 270, 271, 272, 273, 274, 275, 276, 277,281,283, 284, 285, 286, 287,288, 289, 290,291,... Lots of syscalls are just not present on my arch :/
-	ASSERT_EQ(all_sc, events_to_sc(all_events));
+
+	libsinsp::events::set<ppm_event_code> all_syscalls_tracepoints_events;
+	for (auto ev_code : all_events)
+	{
+		if (libsinsp::events::is_tracepoint_event(ev_code) ||
+		   libsinsp::events::is_syscall_event(ev_code))
+		{
+			all_syscalls_tracepoints_events.insert(ev_code);
+		}
+	}
+
+	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(all_sc));
+	// FIXME: PIDFD_GETFD vs PIDFD_GET_FD :/
+	ASSERT_EQ(all_sc, events_to_sc(all_syscalls_tracepoints_events));
 	ASSERT_EQ(all_sc, events_to_sc(sc_to_events(all_sc)));
-	ASSERT_EQ(all_events, sc_to_events(events_to_sc(all_events)));
+	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(events_to_sc(all_syscalls_tracepoints_events)));
 
 	auto sc_to_names = libsinsp::events::sc_set_to_names;
 	auto names_to_sc = libsinsp::events::names_to_sc_set;
@@ -159,5 +180,5 @@ TEST(events_set, event_set_to_sc_set)
 
 	auto events_to_names = libsinsp::events::event_set_to_names;
 	auto names_to_events = libsinsp::events::names_to_event_set;
-	ASSERT_EQ(all_events, names_to_events(events_to_names(all_events)));
+	ASSERT_EQ(all_syscalls_tracepoints_events, names_to_events(events_to_names(all_syscalls_tracepoints_events)));
 }

@@ -88,7 +88,6 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 	PPM_SC_SOCKET,
 	PPM_SC_SOCKETPAIR,
 	PPM_SC_TIMERFD_CREATE,
-	PPM_SC_UMOUNT,
 	PPM_SC_UMOUNT2,
 	PPM_SC_USERFAULTFD,
 	PPM_SC_VFORK,
@@ -106,7 +105,6 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
  */
 TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
-	// FIXME mancano: 281,305,307,310,311,323. Fixato questo fixo anche il successivo
 	auto state_ppm_sc_set = libsinsp::events::sinsp_state_sc_set();
 	ASSERT_EQ(expected_sinsp_state_ppm_sc_set, state_ppm_sc_set);
 }
@@ -116,7 +114,6 @@ TEST(interesting_syscalls, enforce_sinsp_state_basic)
  */
 TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 {
-	// FIXME: vedi sopra
 	libsinsp::events::set<ppm_sc_code> additional_sc;
 	auto ppm_sc_matching_set = expected_sinsp_state_ppm_sc_set;
 
@@ -149,11 +146,13 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
 		PPM_SC_KILL,
 		PPM_SC_SENDTO,
-		PPM_SC_UMOUNT,
+		PPM_SC_UMOUNT, // this is generic!
 		PPM_SC_UMOUNT2,
 	};
 
 	libsinsp::events::set<ppm_event_code> event_set = {
+		PPME_GENERIC_E,
+		PPME_GENERIC_X,
 		PPME_SYSCALL_KILL_E,
 		PPME_SYSCALL_KILL_X,
 		PPME_SOCKET_SENDTO_E,
