@@ -66,6 +66,11 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	case SYS_SENDMMSG:
 		return __NR_sendmmsg;
 #endif
+
+#ifdef __NR_shutdown
+	case SYS_SHUTDOWN:
+		return __NR_shutdown;
+#endif
 	default:
 		break;
 	}
