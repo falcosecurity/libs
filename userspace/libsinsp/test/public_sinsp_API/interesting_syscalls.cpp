@@ -147,39 +147,24 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
-#ifdef __NR_kill
-	PPM_SC_KILL,
-#endif
-
-#ifdef __NR_sendto
-	PPM_SC_SENDTO,
-#endif
-
-#ifdef __NR_alarm
-	PPM_SC_ALARM,
-#endif
+		PPM_SC_KILL,
+		PPM_SC_SENDTO,
+		PPM_SC_UMOUNT,
+		PPM_SC_UMOUNT2,
 	};
 
 	libsinsp::events::set<ppm_event_code> event_set = {
-#ifdef __NR_kill
-	PPME_SYSCALL_KILL_E,
-	PPME_SYSCALL_KILL_X,
-#endif
-
-#ifdef __NR_sendto
-	PPME_SOCKET_SENDTO_E,
-	PPME_SOCKET_SENDTO_X,
-#endif
-
-#ifdef __NR_alarm
-	PPME_GENERIC_E,
-	PPME_GENERIC_X,
-#endif
+		PPME_SYSCALL_KILL_E,
+		PPME_SYSCALL_KILL_X,
+		PPME_SOCKET_SENDTO_E,
+		PPME_SOCKET_SENDTO_X,
+		PPME_SYSCALL_UMOUNT_E,
+		PPME_SYSCALL_UMOUNT_X,
 	};
 
 	auto final_evt_set = libsinsp::events::sc_set_to_event_set(ppm_sc_set);
 
-	ASSERT_TRUE(final_evt_set.equals(event_set));
+	ASSERT_EQ(final_evt_set, event_set);
 }
 
 /* This test asserts that `get_all_ppm_sc` correctly retrieves all the available syscalls
