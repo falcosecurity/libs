@@ -56,6 +56,16 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	case SYS_CONNECT:
 		return __NR_connect;
 #endif
+
+#ifdef __NR_recvmmsg
+	case SYS_RECVMMSG:
+		return __NR_recvmmsg;
+#endif
+
+#ifdef __NR_sendmmsg
+	case SYS_SENDMMSG:
+		return __NR_sendmmsg;
+#endif
 	default:
 		break;
 	}
