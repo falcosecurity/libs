@@ -519,6 +519,12 @@ const struct ppm_name_value chmod_mode[] = {
     {0, 0},
 };
 
+const struct ppm_name_value fchownat_flags[] = {
+	{"AT_SYMLINK_NOFOLLOW", PPM_AT_SYMLINK_FOLLOW},
+	{"AT_EMPTY_PATH", PPM_AT_EMPTY_PATH},
+	{0, 0},
+};
+
 const struct ppm_name_value renameat2_flags[] = {
 	{"RENAME_NOREPLACE", PPM_RENAME_NOREPLACE},
 	{"RENAME_EXCHANGE", PPM_RENAME_EXCHANGE},

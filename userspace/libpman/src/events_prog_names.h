@@ -241,6 +241,14 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_LLSEEK_X] = "llseek_x",
 	[PPME_SYSCALL_GETRESGID_E] = "getresgid_e",
 	[PPME_SYSCALL_GETRESGID_X] = "getresgid_x",
+	[PPME_SYSCALL_CHOWN_E] = "chown_e",
+	[PPME_SYSCALL_CHOWN_X] = "chown_x",
+	[PPME_SYSCALL_LCHOWN_E] = "lchown_e",
+	[PPME_SYSCALL_LCHOWN_X] = "lchown_x",
+	[PPME_SYSCALL_FCHOWN_E] = "fchown_e",
+	[PPME_SYSCALL_FCHOWN_X] = "fchown_x",
+	[PPME_SYSCALL_FCHOWNAT_E] = "fchownat_e",
+	[PPME_SYSCALL_FCHOWNAT_X] = "fchownat_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

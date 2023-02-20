@@ -1462,6 +1462,10 @@ static inline void drops_buffer_syscall_categories_counters(ppm_event_code event
 	case PPME_SYSCALL_CHMOD_E:
 	case PPME_SYSCALL_FCHMOD_E:
 	case PPME_SYSCALL_FCHMODAT_E:
+	case PPME_SYSCALL_CHOWN_E:
+	case PPME_SYSCALL_LCHOWN_E:
+	case PPME_SYSCALL_FCHOWN_E:
+	case PPME_SYSCALL_FCHOWNAT_E:
 	case PPME_SYSCALL_LINK_E:
 	case PPME_SYSCALL_LINK_2_E:
 	case PPME_SYSCALL_LINKAT_E:
@@ -1528,6 +1532,10 @@ static inline void drops_buffer_syscall_categories_counters(ppm_event_code event
 	case PPME_SYSCALL_CHMOD_X:
 	case PPME_SYSCALL_FCHMOD_X:
 	case PPME_SYSCALL_FCHMODAT_X:
+	case PPME_SYSCALL_CHOWN_X:
+	case PPME_SYSCALL_LCHOWN_X:
+	case PPME_SYSCALL_FCHOWN_X:
+	case PPME_SYSCALL_FCHOWNAT_X:
 	case PPME_SYSCALL_LINK_X:
 	case PPME_SYSCALL_LINK_2_X:
 	case PPME_SYSCALL_LINKAT_X:
