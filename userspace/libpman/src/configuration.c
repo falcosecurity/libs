@@ -146,3 +146,21 @@ int pman_get_required_buffers()
 {
 	return g_state.n_required_buffers;
 }
+
+/*
+ * Probe the kernel for required dependencies, ring buffer maps and tracing
+ * progs needs to be supported.
+ */
+bool pman_check_support()
+{
+	bool res;
+
+	res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
+	res = res ?: libbpf_probe_bpf_prog_type(BPF_PROG_TYPE_TRACING, NULL) > 0;
+
+	/* Probe result depends on the success of map creation, no additional
+	 * check required for unprivileged users
+	 */
+
+	return res;
+}
