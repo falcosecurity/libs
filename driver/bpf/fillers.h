@@ -435,6 +435,18 @@ FILLER(sys_open_x, true)
 	return res;
 }
 
+FILLER(sys_read_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, size);
+}
+
 FILLER(sys_read_x, true)
 {
 	unsigned long bufsize;

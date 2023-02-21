@@ -17,7 +17,7 @@ TEST(SyscallExit, readX_no_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
 	/* Read data from /dev/urandom */
-	const unsigned data_len = 64;
+	const unsigned data_len = DEFAULT_SNAPLEN / 2;
 	char buf[data_len];
 	ssize_t read_bytes = syscall(__NR_read, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "read", read_bytes, NOT_EQUAL, -1);
@@ -66,7 +66,7 @@ TEST(SyscallExit, readX_snaplen)
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
 	/* Read data from /dev/urandom */
-	const unsigned data_len = 98; /* Something greater than DEFAULT_SNAPLEN */
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len];
 	ssize_t read_bytes = syscall(__NR_read, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "read", read_bytes, NOT_EQUAL, -1);
