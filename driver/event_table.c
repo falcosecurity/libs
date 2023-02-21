@@ -412,4 +412,8 @@ const struct ppm_event_info g_event_info[] = {
 	 */
 };
 
+// This code is compiled on windows and osx too!
+// Make sure to be on gcc or that the c standard is >= c11
+#if defined __GNUC__ || __STDC_VERSION__ >= 201112L
 _Static_assert(sizeof(g_event_info) / sizeof(*g_event_info) == PPM_EVENT_MAX, "Missing event entries in event table.");
+#endif
