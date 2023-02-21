@@ -8,13 +8,15 @@
 #define MAX_CGROUP_PREFIX_LEN 32
 
 /* This array must follow the same order we use in BPF. */
-const char* cgroup_prefix_array[CGROUP_NUMBER] = {
+const char* cgroup_prefix_array[] = {
 	"cpuset=/",
 	"cpu=/",
 	"cpuacct=/",
 	"io=/",
 	"memory=/",
 };
+
+static_assert(sizeof(cgroup_prefix_array) / sizeof(*cgroup_prefix_array) == CGROUP_NUMBER, "Wrong number of cgroup_prefix_array.");
 
 /* Messages. */
 #define VALUE_NOT_CORRECT ">>>>> value of the param is not correct. Param id = "
