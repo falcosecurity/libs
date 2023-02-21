@@ -195,6 +195,7 @@ TEST(SyscallExit, socketcall_connectX)
 
 	evt_test->assert_num_params_pushed(2);
 }
+#endif
 
 #ifdef __NR_recvmmsg
 TEST(SyscallExit, socketcall_recvmmsgX)
@@ -912,5 +913,4 @@ TEST(SyscallExit, socketcall_accept4X_failure)
 
 	evt_test->assert_num_params_pushed(5);
 }
-#endif
 #endif
