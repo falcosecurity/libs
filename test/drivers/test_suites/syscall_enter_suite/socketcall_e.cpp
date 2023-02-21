@@ -179,6 +179,7 @@ TEST(SyscallEnter, socketcall_connectE)
 
 	evt_test->assert_num_params_pushed(2);
 }
+#endif
 
 #ifdef __NR_recvmmsg
 TEST(SyscallEnter, socketcall_recvmmsgE)
@@ -429,6 +430,4 @@ TEST(SyscallEnter, socketcall_accept4E)
 
 	evt_test->assert_num_params_pushed(1);
 }
-#endif
-
 #endif
