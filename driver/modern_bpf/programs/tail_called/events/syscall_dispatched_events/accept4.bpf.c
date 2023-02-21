@@ -27,6 +27,7 @@ int BPF_PROG(accept4_e,
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
 	/// TODO: we don't support flags yet and so we just return zero.
+	///    If implemented, special handling for SYS_ACCEPT socketcall is needed.
 	u32 flags = 0;
 	ringbuf__store_u32(&ringbuf, flags);
 

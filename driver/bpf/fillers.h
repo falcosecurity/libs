@@ -2890,6 +2890,7 @@ FILLER(sys_accept4_e, true)
 	/*
 	 * push the flags into the ring.
 	 * XXX we don't support flags yet and so we just return zero
+	 *     If implemented, special handling for SYS_ACCEPT socketcall is needed.
 	 */
 	res = bpf_val_to_ring(data, 0);
 
