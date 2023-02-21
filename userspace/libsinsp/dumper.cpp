@@ -125,12 +125,12 @@ void sinsp_dumper::close()
 	}
 }
 
-bool sinsp_dumper::is_open()
+bool sinsp_dumper::is_open() const
 {
 	return (m_dumper != NULL);
 }
 
-bool sinsp_dumper::written_events()
+bool sinsp_dumper::written_events() const
 {
 	return m_nevts;
 }
@@ -154,7 +154,7 @@ void sinsp_dumper::dump(sinsp_evt* evt)
 	m_nevts++;
 }
 
-uint64_t sinsp_dumper::written_bytes()
+uint64_t sinsp_dumper::written_bytes() const
 {
 	if(m_dumper == NULL)
 	{
@@ -170,7 +170,7 @@ uint64_t sinsp_dumper::written_bytes()
 	return written_bytes;
 }
 
-uint64_t sinsp_dumper::next_write_position()
+uint64_t sinsp_dumper::next_write_position() const
 {
 	if(m_dumper == NULL)
 	{

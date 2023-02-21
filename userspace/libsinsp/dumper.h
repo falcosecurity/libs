@@ -86,19 +86,19 @@ public:
 	  \brief Return whether or not the underling scap file has been
 	         opened.
 	*/
-	bool is_open();
+	bool is_open() const;
 
 	/*!
 	  \brief Return the number of events dumped so far.
 	*/
-	bool written_events();
+	bool written_events() const;
 
 	/*!
 	  \brief Return the current size of a trace file.
 
 	  \return The current size of the dump file.
 	*/
-	uint64_t written_bytes();
+	uint64_t written_bytes() const;
 
 	/*!
 	  \brief Return the starting position for the next write into
@@ -107,7 +107,7 @@ public:
 
 	  \return The starting position for the next write.
 	*/
-	uint64_t next_write_position();
+	uint64_t next_write_position() const;
 
 	/*!
 	  \brief Flush all pending output into the file.
