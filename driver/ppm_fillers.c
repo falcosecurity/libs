@@ -4593,6 +4593,7 @@ int f_sys_brk_munmap_mmap_x(struct event_filler_arguments *args)
 int f_sys_mmap_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
+	s32 fd = 0;
 	int res;
 
 	/*
@@ -4631,7 +4632,8 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
