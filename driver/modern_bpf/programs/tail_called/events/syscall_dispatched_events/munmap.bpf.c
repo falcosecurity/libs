@@ -56,6 +56,8 @@ int BPF_PROG(munmap_x,
 
 	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_MUNMAP_X);
 
+	/*=============================== COLLECT PARAMETERS  ===========================*/
+
 	/* Parameter 1: ret (type: PT_ERRNO) */
 	ringbuf__store_s64(&ringbuf, ret);
 
@@ -75,6 +77,8 @@ int BPF_PROG(munmap_x,
 
 	/* Parameter 4: vm_swap (type: PT_UINT32) */
 	ringbuf__store_u32(&ringbuf, swap_size);
+
+	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
 

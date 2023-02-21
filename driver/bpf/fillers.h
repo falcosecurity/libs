@@ -955,8 +955,8 @@ FILLER(sys_mmap_e, true)
 	/*
 	 * fd
 	 */
-	val = bpf_syscall_get_argument(data, 4);
-	res = bpf_push_s64_to_ring(data, val);
+	s32 fd = (s32)bpf_syscall_get_argument(data, 4);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	if (res != PPM_SUCCESS)
 		return res;
 
