@@ -317,4 +317,118 @@ TEST(SyscallEnter, socketcall_shutdownE)
 
 	evt_test->assert_num_params_pushed(2);
 }
+
+#if defined(__NR_accept) || defined(__s390x__)
+
+TEST(SyscallEnter, socketcall_acceptE)
+{
+#ifdef __s390x__
+	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
+#else
+	auto evt_test = get_syscall_event_test(__NR_accept, ENTER_EVENT);
+#endif
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	struct sockaddr *addr = NULL;
+	socklen_t *addrlen = NULL;
+
+	unsigned long args[3] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)addr;
+	args[2] = (unsigned long)addrlen;
+	assert_syscall_state(SYSCALL_FAILURE, "accept", syscall(__NR_socketcall, SYS_ACCEPT, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+#ifdef __s390x__
+	/* socketcall uses accept4 event for SYS_ACCEPT */
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(1, (uint32_t)0);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(1);
+#else
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	// Here we have no parameters to assert.
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(0);
+#endif
+}
+
+#endif /* __NR_accept || __s390x__ */
+
+
+#ifdef __NR_accept4
+
+TEST(SyscallEnter, socketcall_accept4E)
+{
+	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	struct sockaddr *addr = NULL;
+	socklen_t *addrlen = NULL;
+	int flags = 0;
+
+	unsigned long args[4] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)addr;
+	args[2] = (unsigned long)addrlen;
+	args[3] = flags;
+	assert_syscall_state(SYSCALL_FAILURE, "accept4", syscall(__NR_socketcall, SYS_ACCEPT4, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	/* Right now `flags` are not supported so we will catch always `0` */
+	evt_test->assert_numeric_param(1, (uint32_t)0);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(1);
+}
+#endif
+
 #endif

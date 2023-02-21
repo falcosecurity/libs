@@ -47,6 +47,19 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 		return __NR_socket;
 #endif
 
+	case SYS_ACCEPT:
+#if defined(__TARGET_ARCH_s390) && defined(__NR_accept4)
+		return __NR_accept4;
+#elif defined(__NR_ACCEPT)
+		return __NR_accept;
+#endif
+		break;
+
+#ifdef __NR_accept4
+	case SYS_ACCEPT4:
+		return __NR_accept4;
+#endif
+
 #ifdef __NR_bind
 	case SYS_BIND:
 		return __NR_bind;
