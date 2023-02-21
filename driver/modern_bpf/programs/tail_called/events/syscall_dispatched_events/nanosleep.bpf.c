@@ -40,6 +40,8 @@ int BPF_PROG(nanosleep_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	auxmap__finalize_event_header(auxmap);
+
 	auxmap__submit_event(auxmap);
 
 	return 0;
