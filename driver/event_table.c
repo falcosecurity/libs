@@ -9,7 +9,7 @@ or GPL2.txt for full copies of the license.
 
 #include "ppm_events_public.h"
 
-const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
+const struct ppm_event_info g_event_info[] = {
 	/* PPME_GENERIC_E */{"syscall", EC_OTHER | EC_SYSCALL, EF_NONE, 2, {{"ID", PT_SYSCALLID, PF_DEC}, {"nativeID", PT_UINT16, PF_DEC} } },
 	/* PPME_GENERIC_X */{"syscall", EC_OTHER | EC_SYSCALL, EF_NONE, 1, {{"ID", PT_SYSCALLID, PF_DEC} } },
 	/* PPME_SYSCALL_OPEN_E */{"open", EC_FILE | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 3, {{"name", PT_FSPATH, PF_NA}, {"flags", PT_FLAGS32, PF_HEX, file_flags}, {"mode", PT_UINT32, PF_OCT} } },
@@ -412,3 +412,5 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	 *     in order to properly manage the file descriptor returned by the exit event.
 	 */
 };
+
+_Static_assert(sizeof(g_event_info) / sizeof(*g_event_info) == PPM_EVENT_MAX, "Missing event entries in event table.");
