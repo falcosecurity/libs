@@ -19,16 +19,63 @@ limitations under the License.
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		/* Should never happen but just to be sure. */
-		if(scap_get_modifies_state_ppm_sc(ppm_sc_set.data()) != SCAP_SUCCESS)
-		{
-			throw sinsp_exception("'ppm_sc_set' is an unexpected NULL vector!");
-		}
-	}
-	return ppm_sc_set;
+	/* syscalls tagged with EF_MODIFIES_STATE in event_table.c */
+	static libsinsp::events::set<ppm_sc_code> static_state_set = {
+		PPM_SC_OPEN,
+		PPM_SC_CLOSE,
+		PPM_SC_EXECVE,
+		PPM_SC_CLONE,
+		PPM_SC_SOCKET,
+		PPM_SC_BIND,
+		PPM_SC_CONNECT,
+		PPM_SC_ACCEPT,
+		PPM_SC_SENDTO,
+		PPM_SC_RECVFROM,
+		PPM_SC_SHUTDOWN,
+		PPM_SC_SOCKETPAIR,
+		PPM_SC_GETSOCKOPT,
+		PPM_SC_SENDMSG,
+		PPM_SC_RECVMSG,
+		PPM_SC_ACCEPT4,
+		PPM_SC_CREAT,
+		PPM_SC_PIPE,
+		PPM_SC_EVENTFD,
+		PPM_SC_CHDIR,
+		PPM_SC_FCHDIR,
+		PPM_SC_OPENAT,
+		PPM_SC_DUP,
+		PPM_SC_SIGNALFD,
+		PPM_SC_TIMERFD_CREATE,
+		PPM_SC_INOTIFY_INIT,
+		PPM_SC_FCNTL,
+		PPM_SC_FORK,
+		PPM_SC_VFORK,
+		PPM_SC_SETRESUID,
+		PPM_SC_SETRESUID32,
+		PPM_SC_SETRESGID,
+		PPM_SC_SETRESGID32,
+		PPM_SC_SETUID,
+		PPM_SC_SETUID32,
+		PPM_SC_SETGID,
+		PPM_SC_SETGID32,
+		PPM_SC_MOUNT,
+		PPM_SC_UMOUNT,
+		PPM_SC_CHROOT,
+		PPM_SC_SETSID,
+		PPM_SC_SETPGID,
+		PPM_SC_USERFAULTFD,
+		PPM_SC_OPENAT2,
+		PPM_SC_EXECVEAT,
+		PPM_SC_CLONE3,
+		PPM_SC_OPEN_BY_HANDLE_AT,
+		PPM_SC_IO_URING_SETUP,
+		PPM_SC_CAPSET,
+		PPM_SC_DUP2,
+		PPM_SC_DUP3,
+		PPM_SC_EPOLL_CREATE,
+		PPM_SC_EPOLL_CREATE1,
+	};
+	return static_state_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_sc_set(libsinsp::events::set<ppm_sc_code> ppm_sc_set)
