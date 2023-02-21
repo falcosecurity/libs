@@ -28,18 +28,22 @@ get_filename_component(DRIVER_CONFIG_DIR ${CMAKE_BINARY_DIR}/driver/src ABSOLUTE
 get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSOLUTE)
 set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
 
+function(set_scap_target_properties target)
+	set_target_properties(${target} PROPERTIES
+		VERSION ${FALCOSECURITY_SHARED_LIBS_VERSION}
+		SOVERSION ${FALCOSECURITY_SHARED_LIBS_SOVERSION}
+	)
+endfunction()
+
 add_subdirectory(${LIBSCAP_DIR}/userspace/libscap ${PROJECT_BINARY_DIR}/libscap)
 
 # We can switch to using the MANUALLY_ADDED_DEPENDENCIES when our minimum
 # CMake version is 3.8 or later.
 set(LIBSCAP_LIBS
 	scap
-	scap_engine_nodriver
 	scap_engine_noop
-	scap_engine_savefile
 	scap_engine_source_plugin
-	scap_engine_udig
-	scap_engine_util
+	scap_error
 	scap_event_schema)
 
 set(libscap_conditional_libs
@@ -48,7 +52,12 @@ set(libscap_conditional_libs
 	scap_engine_bpf
 	scap_engine_gvisor
 	scap_engine_kmod
-	scap_engine_modern_bpf)
+	scap_engine_modern_bpf
+	scap_engine_nodriver
+	scap_engine_savefile
+	scap_engine_udig
+	scap_engine_util
+	scap_platform)
 
 foreach(libscap_conditional_lib ${libscap_conditional_libs})
 	if(TARGET ${libscap_conditional_lib})

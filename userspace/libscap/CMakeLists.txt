@@ -66,8 +66,10 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library(scap STATIC
+add_library(scap
 	${targetfiles})
+
+set_scap_target_properties(scap)
 
 if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
 	target_link_libraries(scap
@@ -82,6 +84,8 @@ endif()
 add_library(scap_error strerror.c)
 
 target_link_libraries(scap scap_error)
+
+set_scap_target_properties(scap_error)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
@@ -129,20 +133,24 @@ add_library(scap_event_schema
 
 target_link_libraries(scap scap_event_schema)
 
+set_scap_target_properties(scap_event_schema)
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
 		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 	target_link_libraries(scap_event_schema driver_event_schema)
+	set_scap_target_properties(scap_event_schema)
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-add_library(scap_engine_util
-	scap_engine_util.c
-	ringbuffer/devset.c
-	ringbuffer/ringbuffer.c)
+	add_library(scap_engine_util
+		scap_engine_util.c
+		ringbuffer/devset.c
+		ringbuffer/ringbuffer.c)
 
-target_link_libraries(scap scap_engine_util)
+	target_link_libraries(scap scap_engine_util)
+	set_scap_target_properties(scap_engine_util)
 endif()
 
 add_definitions(-DHAS_ENGINE_NOOP)
@@ -158,7 +166,9 @@ endif()
 
 add_definitions(-DHAS_ENGINE_SAVEFILE)
 add_subdirectory(engine/savefile)
-target_link_libraries(scap scap_engine_savefile)
+if(NOT BUILD_SHARED_LIBS)
+	target_link_libraries(scap scap_engine_savefile)
+endif()
 
 add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
 add_subdirectory(engine/source_plugin)

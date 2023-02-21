@@ -193,7 +193,9 @@ if(NOT MINIMAL_BUILD)
 	endif()
 endif()
 
-add_library(sinsp STATIC ${SINSP_SOURCES})
+add_library(sinsp ${SINSP_SOURCES})
+
+set_sinsp_target_properties(sinsp)
 
 set(SINSP_LIBRARIES
 	scap

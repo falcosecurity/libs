@@ -32,6 +32,11 @@ endif()
 
 cmake_minimum_required(VERSION 2.8.5)
 
+# Enable MACOSX_RPATH (and keep CMake from complaining).
+if(POLICY CMP0042)
+	cmake_policy(SET CMP0042 NEW)
+endif()
+
 project(falcosecurity-libs)
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
@@ -81,6 +86,11 @@ option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS AND NOT WIN32)
 	include(gtest)
+endif()
+
+if (BUILD_SHARED_LIBS)
+	string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]" FALCOSECURITY_SHARED_LIBS_VERSION ${FALCOSECURITY_LIBS_VERSION} )
+	string(REGEX MATCH "^[0-9]" FALCOSECURITY_SHARED_LIBS_SOVERSION ${FALCOSECURITY_LIBS_VERSION} )
 endif()
 
 include(libscap)
