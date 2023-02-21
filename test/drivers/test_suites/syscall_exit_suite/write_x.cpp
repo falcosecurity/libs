@@ -2,7 +2,7 @@
 
 #ifdef __NR_write
 
-#if defined(__NR_close) && defined(__NR_open) && defined(__NR_unlink)
+#if defined(__NR_close) && defined(__NR_open) && defined(__NR_close)
 
 TEST(SyscallExit, writeX_no_snaplen)
 {
@@ -12,21 +12,18 @@ TEST(SyscallExit, writeX_no_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Open ./testfile for writing */
-	int fd = syscall(__NR_open, "./testfile", O_WRONLY|O_CREAT);
+	/* Open a generic file for writing */
+	int fd = syscall(__NR_open, ".", O_WRONLY | O_TMPFILE);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
-	/* Write data to ./testfile */
-	const unsigned data_len = 5;
-	char buf[data_len] = "hi\0";
+	/* Write data to the generic file */
+	const unsigned data_len = DEFAULT_SNAPLEN / 2;
+	char buf[data_len] = "hello\0";
 	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "write", write_bytes, NOT_EQUAL, -1);
 
-	/* Close ./testfile */
+	/* Close the generic file */
 	syscall(__NR_close, fd);
-
-	/* Unlink ./testfile */
-	syscall(__NR_unlink, "./testfile");
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -64,21 +61,18 @@ TEST(SyscallExit, writeX_snaplen)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
-	/* Open ./testfile for writing */
-	int fd = syscall(__NR_open, "./testfile", O_CREAT|O_WRONLY);
+	/* Open a generic file for writing */
+	int fd = syscall(__NR_open, ".", O_WRONLY | O_TMPFILE);
 	assert_syscall_state(SYSCALL_SUCCESS, "open", fd, NOT_EQUAL, -1);
 
-	/* Write data to ./testfile */
-	const unsigned data_len = 846; /* Something greater than DEFAULT_SNAPLEN */
-	char buf[data_len] = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam lacinia turpis velit, sit amet porta purus dictum et. Integer vitae aliquam justo, eu euismod felis. Nam metus odio, pharetra eget urna accumsan, rhoncus pulvinar orci. Suspendisse sit amet urna lacus. Sed non metus tristique, gravida justo eu, porttitor ex. Interdum et malesuada fames ac ante ipsum primis in faucibus. Morbi suscipit placerat porttitor. Duis non nunc ut enim pulvinar interdum. Donec sit amet ipsum nisi. Phasellus vel justo urna. Donec sed orci vitae mi consectetur feugiat. Fusce sodales pharetra interdum. Maecenas feugiat sodales orci, ut egestas dui lacinia vitae. Nulla aliquam nulla nulla, ut eleifend turpis porta id. Vestibulum interdum lacus in turpis posuere, non scelerisque nulla rhoncus. Pellentesque non enim vitae eros vestibulum rutrum in et lacus.";
+	/* Write data to the generic file */
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
+	char buf[data_len] = "hello\0";
 	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
 	assert_syscall_state(SYSCALL_SUCCESS, "write", write_bytes, NOT_EQUAL, -1);
 
-	/* Close ./testfile */
+	/* Close the generic file */
 	syscall(__NR_close, fd);
-
-	/* Unlink ./testfile */
-	syscall(__NR_unlink, "./testfile");
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

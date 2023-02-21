@@ -467,6 +467,18 @@ FILLER(sys_read_x, true)
 	return res;
 }
 
+FILLER(sys_write_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_push_s64_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	return bpf_val_to_ring(data, size);
+}
+
 FILLER(sys_write_x, true)
 {
 	unsigned long bufsize;
@@ -474,17 +486,22 @@ FILLER(sys_write_x, true)
 	long retval;
 	int res;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_val_to_ring(data, retval);
 	if (res != PPM_SUCCESS)
 		return res;
 
-	/*
-	 * data
+	/* If the syscall fails we are not able to collect reliable params
+	 * so we return empty ones.
 	 */
+	if(retval < 0)
+	{
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		return bpf_push_empty_param(data);
+	}
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	data->fd = bpf_syscall_get_argument(data, 0);
 
 	val = bpf_syscall_get_argument(data, 1);

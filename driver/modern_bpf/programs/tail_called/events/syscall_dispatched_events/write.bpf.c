@@ -1,11 +1,9 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
  */
-
-/* These BPF programs are used both for `write` and `write2` syscalls. */
 
 #include <helpers/interfaces/fixed_size_event.h>
 #include <helpers/interfaces/variable_size_event.h>
@@ -28,12 +26,12 @@ int BPF_PROG(write_e,
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	/* Parameter 1: fd (type: PT_FD) */
-        s32 fd = (s32)extract__syscall_argument(regs, 0);
-        ringbuf__store_s64(&ringbuf, (s64)fd);
+	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	ringbuf__store_s64(&ringbuf, (s64)fd);
 
-        /* Parameter 2: size (type: PT_UINT32) */
+	/* Parameter 2: size (type: PT_UINT32) */
 	u32 size = (u32)extract__syscall_argument(regs, 2);
-        ringbuf__store_u32(&ringbuf, size);
+	ringbuf__store_u32(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -53,7 +51,7 @@ int BPF_PROG(write_x,
 {
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
-	{	
+	{
 		return 0;
 	}
 
@@ -67,18 +65,18 @@ int BPF_PROG(write_x,
 	if(ret > 0)
 	{
 		/* We read the minimum between `snaplen` and what we really
-	 	* have in the buffer.
-	 	*/
-		unsigned long bytes_to_write = maps__get_snaplen();
+		 * have in the buffer.
+		 */
+		unsigned long bytes_to_read = maps__get_snaplen();
 
-		if(bytes_to_write > ret)
+		if(bytes_to_read > ret)
 		{
-			bytes_to_write = ret;
+			bytes_to_read = ret;
 		}
 
 		/* Parameter 2: data (type: PT_BYTEBUF) */
 		unsigned long data_pointer = extract__syscall_argument(regs, 1);
-		auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_write, USER);
+		auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_read, USER);
 	}
 	else
 	{

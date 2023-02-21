@@ -385,6 +385,26 @@ int f_sys_read_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_write_e(struct event_filler_arguments *args)
+{
+	unsigned long val = 0;
+	int res = 0;
+	s32 fd = 0;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: size (type: PT_UINT32) */
+	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	res = val_to_ring(args, val, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_write_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -398,18 +418,26 @@ int f_sys_write_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
 	args->fd = (int)val;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 
 	res = val_to_ring(args, retval, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * data
+	/* If the syscall fails we are not able to collect reliable params
+	 * so we return empty ones.
 	 */
+	if(retval < 0)
+	{
+		/* Parameter 2: data (type: PT_BYTEBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+
+		return add_sentinel(args);
+	}
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 	bufsize = val;
 
