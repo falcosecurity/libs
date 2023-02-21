@@ -325,6 +325,8 @@ TEST(SyscallEnter, socketcall_acceptE)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
+	if(evt_test->is_kmod_engine())
+		GTEST_SKIP() << "[acceptE] kmod socketcall implementation is event based (rather syscall) " << std::endl;
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, ENTER_EVENT);
 #endif

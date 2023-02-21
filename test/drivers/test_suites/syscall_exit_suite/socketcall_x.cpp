@@ -341,6 +341,8 @@ TEST(SyscallExit, socketcall_acceptX_INET)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
+	if(evt_test->is_kmod_engine())
+		GTEST_SKIP() << "[acceptX] kmod socketcall implementation is event based (rather syscall) " << std::endl;
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 #endif
@@ -415,6 +417,8 @@ TEST(SyscallExit, socketcall_acceptX_INET6)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
+	if(evt_test->is_kmod_engine())
+		GTEST_SKIP() << "[acceptX] kmod socketcall implementation is event based (rather syscall) " << std::endl;
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 #endif
@@ -490,6 +494,8 @@ TEST(SyscallExit, socketcall_acceptX_UNIX)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
+	if(evt_test->is_kmod_engine())
+		GTEST_SKIP() << "[acceptX] kmod socketcall implementation is event based (rather syscall) " << std::endl;
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 #endif
@@ -567,6 +573,8 @@ TEST(SyscallExit, socketcall_acceptX_failure)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, EXIT_EVENT);
+	if(evt_test->is_kmod_engine())
+		GTEST_SKIP() << "[acceptX] kmod socketcall implementation is event based (rather syscall) " << std::endl;
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, EXIT_EVENT);
 #endif
