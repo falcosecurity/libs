@@ -390,6 +390,14 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_SYSCALL_EPOLL_CREATE_X */{"epoll_create", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, { {"res", PT_ERRNO, PF_DEC} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_E */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, epoll_create1_flags} } },
 	/* PPME_SYSCALL_EPOLL_CREATE1_X */{"epoll_create1", EC_WAIT | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"res", PT_ERRNO, PF_DEC} } },
+	/* PPME_SYSCALL_CHOWN_E */{"chown", EC_FILE | EC_SYSCALL, EF_NONE, 0},
+	/* PPME_SYSCALL_CHOWN_X */{"chown", EC_FILE | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
+	/* PPME_SYSCALL_LCHOWN_E */{"lchown", EC_FILE | EC_SYSCALL, EF_NONE, 0},
+	/* PPME_SYSCALL_LCHOWN_X */{"lchown", EC_FILE | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"path", PT_FSPATH, PF_NA}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
+	/* PPME_SYSCALL_FCHOWN_E */{"fchown", EC_FILE | EC_SYSCALL, EF_NONE, 0},
+	/* PPME_SYSCALL_FCHOWN_X */{"fchown", EC_FILE | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
+	/* PPME_SYSCALL_FCHOWNAT_E */{"fchownat", EC_FILE | EC_SYSCALL, EF_NONE, 0},
+	/* PPME_SYSCALL_FCHOWNAT_X */{"fchownat", EC_FILE | EC_SYSCALL, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"pathname", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, fchownat_flags}} },
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
