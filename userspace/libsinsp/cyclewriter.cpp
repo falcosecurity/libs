@@ -29,7 +29,6 @@ cycle_writer::cycle_writer(bool is_live) :
 	m_file_index(0),
 	m_first_consider(false),
 	m_event_count(0L),
-	m_dumper(NULL),
 	m_past_names(NULL)
 {
 	//
@@ -43,7 +42,7 @@ cycle_writer::cycle_writer(bool is_live) :
 	this->live = is_live;
 }
 
-bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper)
+bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit)
 {
 	if(m_first_consider) 
 	{
@@ -54,7 +53,6 @@ bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int durati
 	m_duration_seconds = duration_seconds;
 	m_file_limit = file_limit;
 	m_event_limit = event_limit;
-	m_dumper = dumper;
 
 	if(duration_seconds > 0 && file_limit > 0)
 	{
@@ -70,7 +68,7 @@ bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int durati
 	// Seed the filename with an initial
 	// value.
 	//
-	consider(NULL);
+	consider(NULL, 0);
 	return true;
 }
 
@@ -83,7 +81,7 @@ bool cycle_writer::setup(std::string base_file_name, int rollover_mb, int durati
 //  * NEWFILE - use a new file (inquiry with get_current_file_name())
 //  * DOQUIT - end the capture.
 //
-cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt) 
+cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt, uint64_t written_bytes)
 {
 	if(m_first_consider == false) 
 	{
@@ -123,7 +121,7 @@ cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt)
 		}
 	}
 
-	if(m_rollover_mb > 0 && scap_dump_get_offset(*m_dumper) > m_rollover_mb)
+	if(m_rollover_mb > 0 && written_bytes > m_rollover_mb)
 	{
 		m_last_reason = "Maximum File Size Reached";
 		return next_file();

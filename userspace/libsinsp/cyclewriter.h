@@ -63,7 +63,7 @@ public:
 	// (via a call to consider()), then this will
 	// be locked down and return false.
 	//
-	bool setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit, scap_dumper_t** dumper);
+	bool setup(std::string base_file_name, int rollover_mb, int duration_seconds, int file_limit, unsigned long event_limit);
 	
 	//
 	// Consider file size at the current time
@@ -79,7 +79,7 @@ public:
 	// get_current_file_name() will tell us the new
 	// capture file name to use.
 	// 
-	cycle_writer::conclusion consider(sinsp_evt* evt);
+	cycle_writer::conclusion consider(sinsp_evt* evt, uint64_t written_bytes);
 
 	//
 	// The yields the current file name 
@@ -157,8 +157,6 @@ private:
 
 	// number of events
 	unsigned long m_event_count; // = 0L
-
-	scap_dumper_t** m_dumper;
 
 	bool live;
 
