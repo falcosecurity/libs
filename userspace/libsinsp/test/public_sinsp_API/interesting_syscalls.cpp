@@ -107,6 +107,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
 	auto state_ppm_sc_set = libsinsp::events::sinsp_state_sc_set();
 	ASSERT_EQ(expected_sinsp_state_ppm_sc_set, state_ppm_sc_set);
+	ASSERT_EQ(expected_sinsp_state_ppm_sc_set.size(), state_ppm_sc_set.size());
 }
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly merges
@@ -134,6 +135,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 	auto ppm_sc_final_set = additional_sc.merge(sinsp_state_set);
 
 	ASSERT_EQ(ppm_sc_matching_set, ppm_sc_final_set);
+	ASSERT_PPM_SC_CODES_EQ(ppm_sc_matching_set, ppm_sc_final_set);
 }
 
 /// TODO: we can add also some tests for `enforce_io_ppm_sc_set`, `enforce_net_ppm_sc_set`, ... here.
@@ -164,11 +166,12 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	auto final_evt_set = libsinsp::events::sc_set_to_event_set(ppm_sc_set);
 
 	ASSERT_EQ(final_evt_set, event_set);
+	ASSERT_PPM_EVENT_CODES_EQ(final_evt_set, event_set);
 }
 
-/* This test asserts that `get_all_ppm_sc` correctly retrieves all the available syscalls
+/* This test asserts that `all_sc_set` correctly retrieves all the available syscalls
  */
-TEST(interesting_syscalls, get_all_ppm_sc)
+TEST(interesting_syscalls, all_sc_set)
 {
 	auto ppm_sc_set = libsinsp::events::all_sc_set();
 
@@ -176,9 +179,9 @@ TEST(interesting_syscalls, get_all_ppm_sc)
 	ASSERT_EQ(ppm_sc_set.size(), PPM_SC_SYSCALL_END + PPM_SC_TP_LEN);
 }
 
-/* This test asserts that `get_syscalls_names` correctly retrieves all the syscalls names
+/* This test asserts that `sc_set_to_names` correctly retrieves all the syscalls names
  */
-TEST(interesting_syscalls, get_sc_names)
+TEST(interesting_syscalls, sc_set_to_names)
 {
 	std::set<std::string> orderd_sc_names_matching_set;
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
@@ -202,19 +205,33 @@ TEST(interesting_syscalls, get_sc_names)
 	ASSERT_EQ(orderd_sc_names_matching_set.size(), syscall_names_final_set.size());
 
 	auto ordered_syscall_names_final_set = test_utils::unordered_set_to_ordered(syscall_names_final_set);
+	ASSERT_NAMES_EQ(ordered_syscall_names_final_set, orderd_sc_names_matching_set);
 
-	auto final = ordered_syscall_names_final_set.begin();
-	auto matching = orderd_sc_names_matching_set.begin();
-
-	for(; final != ordered_syscall_names_final_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
 }
 
-/* This test asserts that `get_events_names` correctly retrieves all the events names
+/* This test asserts that `names_to_sc_set` correctly retrieves correct codes
  */
-TEST(interesting_syscalls, get_events_names)
+TEST(interesting_syscalls, names_to_sc_set)
+{
+	std::unordered_set<std::string> syscall_names_matching_set;
+	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
+
+	ppm_sc_set.insert(PPM_SC_OPEN);
+	syscall_names_matching_set.insert("open");
+
+	ppm_sc_set.insert(PPM_SC_OPENAT);
+	syscall_names_matching_set.insert("openat");
+
+	auto syscall_final_sc_set = libsinsp::events::names_to_sc_set(syscall_names_matching_set);
+
+	/* Assert that the 2 sets have the same size */
+	ASSERT_EQ(syscall_final_sc_set.size(), ppm_sc_set.size());
+	ASSERT_PPM_SC_CODES_EQ(syscall_final_sc_set, ppm_sc_set);
+}
+
+/* This test asserts that `event_set_to_names` correctly retrieves all the events names
+ */
+TEST(interesting_syscalls, event_set_to_names)
 {
 	std::set<std::string> orderd_events_names_matching_set;
 	libsinsp::events::set<ppm_event_code> events_set;
@@ -235,12 +252,43 @@ TEST(interesting_syscalls, get_events_names)
 	ASSERT_EQ(events_names_final_set.size(), orderd_events_names_matching_set.size());
 
 	auto ordered_events_names_final_set = test_utils::unordered_set_to_ordered(events_names_final_set);
+	ASSERT_NAMES_EQ(ordered_events_names_final_set, orderd_events_names_matching_set);
+}
 
-	auto final = ordered_events_names_final_set.begin();
-	auto matching = orderd_events_names_matching_set.begin();
+/* This test asserts that `names_to_event_set` correctly retrieves correct codes
+ */
+TEST(interesting_syscalls, names_to_event_set)
+{
+	std::unordered_set<std::string> event_names_matching_set;
+	libsinsp::events::set<ppm_event_code> ppm_event_set;
 
-	for(; final != ordered_events_names_final_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
+	ppm_event_set.insert(PPME_SYSCALL_OPEN_E);
+	ppm_event_set.insert(PPME_SYSCALL_OPEN_X);
+	event_names_matching_set.insert("open");
+
+	ppm_event_set.insert(PPME_SYSCALL_OPENAT_E);
+	ppm_event_set.insert(PPME_SYSCALL_OPENAT_2_E);
+	ppm_event_set.insert(PPME_SYSCALL_OPENAT_X);
+	ppm_event_set.insert(PPME_SYSCALL_OPENAT_2_X);
+	event_names_matching_set.insert("openat");
+
+	auto event_final_set = libsinsp::events::names_to_event_set(event_names_matching_set);
+	ASSERT_PPM_EVENT_CODES_EQ(event_final_set, ppm_event_set);
+}
+
+/* This test asserts that `sc_set_to_event_set <-> event_set_to_sc_set` back and forth mapping is correct
+ */
+TEST(interesting_syscalls, sc_set_to_event_set__event_set_to_sc_set)
+{
+	auto a = libsinsp::events::names_to_sc_set({"open", "openat"});
+	auto mapping1a = libsinsp::events::sc_set_to_event_set(a);
+	auto mapping2a = libsinsp::events::event_set_to_sc_set(mapping1a);
+	ASSERT_EQ(mapping2a.size(), a.size());
+	ASSERT_EQ(mapping2a.size(), 2);
+
+	auto b = libsinsp::events::names_to_event_set({"open", "openat"});
+	auto mapping1b = libsinsp::events::event_set_to_sc_set(b);
+	auto mapping2b = libsinsp::events::sc_set_to_event_set(mapping1b);
+	ASSERT_EQ(mapping2b.size(), b.size());
+	ASSERT_EQ(mapping2b.size(), 6);
 }

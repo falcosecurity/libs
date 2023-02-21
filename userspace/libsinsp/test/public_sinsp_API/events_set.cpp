@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "events/sinsp_events.h"
+#include "../test_utils.h"
 
 TEST(events_set, check_size)
 {
@@ -137,7 +138,8 @@ TEST(events_set, names_to_event_set)
 	event_names.insert("syncfs");
 	event_codes = libsinsp::events::names_to_event_set(event_names);
 	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_E));
-	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));
+	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
 }
 
 // Tests that no generic ppm sc is mapped to an event too
@@ -149,6 +151,7 @@ TEST(events_set, generic_no_events)
 	auto generic_sc_set = libsinsp::events::event_set_to_sc_set(generic_ev_set);
 	auto final_ev_set = libsinsp::events::sc_set_to_event_set(generic_sc_set);
 	ASSERT_EQ(final_ev_set, generic_ev_set);
+	ASSERT_PPM_EVENT_CODES_EQ(final_ev_set, generic_ev_set);
 }
 
 TEST(events_set, event_set_to_sc_set)
@@ -169,15 +172,51 @@ TEST(events_set, event_set_to_sc_set)
 	}
 
 	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(all_sc));
+	auto sc_to_events_result = sc_to_events(all_sc);
+	ASSERT_PPM_EVENT_CODES_EQ(all_syscalls_tracepoints_events, sc_to_events_result);
 	ASSERT_EQ(all_sc, events_to_sc(all_syscalls_tracepoints_events));
+	auto events_to_sc_result = events_to_sc(all_syscalls_tracepoints_events);
+	ASSERT_PPM_SC_CODES_EQ(all_sc, events_to_sc_result);
 	ASSERT_EQ(all_sc, events_to_sc(sc_to_events(all_sc)));
+	auto events_to_sc2 = events_to_sc(sc_to_events(all_sc));
+	ASSERT_PPM_SC_CODES_EQ(all_sc, events_to_sc2);
 	ASSERT_EQ(all_syscalls_tracepoints_events, sc_to_events(events_to_sc(all_syscalls_tracepoints_events)));
+	auto sc_to_events_result2 = sc_to_events(events_to_sc(all_syscalls_tracepoints_events));
+	ASSERT_PPM_EVENT_CODES_EQ(all_syscalls_tracepoints_events, sc_to_events_result2);
 
 	auto sc_to_names = libsinsp::events::sc_set_to_names;
 	auto names_to_sc = libsinsp::events::names_to_sc_set;
 	ASSERT_EQ(all_sc, names_to_sc(sc_to_names(all_sc)));
+	auto names_to_sc_result = names_to_sc(sc_to_names(all_sc));
+	ASSERT_PPM_SC_CODES_EQ(all_sc, names_to_sc_result);
 
 	auto events_to_names = libsinsp::events::event_set_to_names;
 	auto names_to_events = libsinsp::events::names_to_event_set;
-	ASSERT_EQ(all_syscalls_tracepoints_events, names_to_events(events_to_names(all_syscalls_tracepoints_events)));
+	auto names_to_event_set_result = names_to_events(events_to_names(all_syscalls_tracepoints_events));
+	ASSERT_PPM_EVENT_CODES_EQ(all_syscalls_tracepoints_events, names_to_event_set_result);
+}
+
+TEST(events_set, event_set_to_names)
+{
+	/* Also test behavior of a generic event. */
+	auto event_names = std::unordered_set<std::string>{"openat2","execveat","syncfs"};
+	auto event_codes = libsinsp::events::names_to_event_set(event_names);
+	ASSERT_EQ(event_codes.size(), 6);
+	auto event_names2 = libsinsp::events::event_set_to_names(event_codes); // syncfs -> syscall, how to map back?
+
+	// TODO what is the expected ground truth here for the generic event edge case,
+	// can we get syncfs back given syncfs maps to "syscall" in the event table?
+	auto ordered_event_names2_set = test_utils::unordered_set_to_ordered(event_names2);
+	auto ordered_event_names2_set_truth = test_utils::unordered_set_to_ordered(std::unordered_set<std::string>{"openat2","execveat","syscall"});
+	ASSERT_NAMES_EQ(ordered_event_names2_set, ordered_event_names2_set_truth);
+	ASSERT_EQ(event_names.size(), event_names2.size());
+
+	auto sc_codes = libsinsp::events::names_to_sc_set(event_names2);
+	ASSERT_TRUE(sc_codes.contains(PPM_SC_OPENAT2));
+	ASSERT_TRUE(sc_codes.contains(PPM_SC_EXECVEAT));
+	ASSERT_TRUE(sc_codes.contains(PPM_SC_SYNCFS));
+	// TODO same as above can we even only extract the 3 syscalls when mapping to names prior in teh generic event case?
+	// or is the ground truth a fuzzy mapping, if so can we still test the expected and correct outcome?
+	ASSERT_EQ(sc_codes.size(), 3); // Getting 239 back seems odd and incorrect
+
 }
