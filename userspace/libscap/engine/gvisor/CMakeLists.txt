@@ -3,7 +3,7 @@ include(jsoncpp)
 
 include_directories(${LIBSCAP_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} ${JSONCPP_INCLUDE})
 
-add_library(scap_engine_gvisor STATIC
+add_library(scap_engine_gvisor
     pkg/sentry/seccheck/points/syscall.pb.cc
     pkg/sentry/seccheck/points/common.pb.cc
     pkg/sentry/seccheck/points/container.pb.cc
@@ -25,6 +25,8 @@ target_link_libraries(scap_engine_gvisor
     ${JSONCPP_LIB}
     scap
 )
+
+set_scap_target_properties(scap_engine_gvisor)
 
 add_custom_command(
     OUTPUT
