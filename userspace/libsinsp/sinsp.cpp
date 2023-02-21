@@ -1460,7 +1460,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 		if(m_write_cycling)
 		{
-			switch(m_cycle_writer->consider(evt))
+			switch(m_cycle_writer->consider(evt, scap_dump_get_offset(m_dumper)))
 			{
 				case cycle_writer::NEWFILE:
 					autodump_next_file();
@@ -2030,7 +2030,7 @@ bool sinsp::setup_cycle_writer(std::string base_file_name, int rollover_mb, int 
 		m_write_cycling = true;
 	}
 
-	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit, &m_dumper);
+	return m_cycle_writer->setup(base_file_name, rollover_mb, duration_seconds, file_limit, event_limit);
 }
 
 double sinsp::get_read_progress_file()
