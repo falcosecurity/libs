@@ -62,47 +62,12 @@ static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
 	return ret;
 }
 
-static int32_t check_minimum_kernel_version(char* last_err)
+/*
+ * Verify prerequisites for modern probes are met.
+ */
+static int32_t check_modern_probe_support(char* last_err)
 {
-	uint32_t major = 0;
-	uint32_t minor = 0;
-	uint32_t patch = 0;
-
-	struct utsname info;
-	if(uname(&info) != 0)
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the kernel version with uname: %s", strerror(errno));
-		}
-		return SCAP_FAILURE;
-	}
-
-	if(sscanf(info.release, "%u.%u.%u", &major, &minor, &patch) != 3)
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to parse info.release '%s'. %s", info.release, strerror(errno));
-		}
-		return SCAP_FAILURE;
-	}
-
-	if(major > REQUIRED_MAJOR)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	if(major == REQUIRED_MAJOR && minor > REQUIRED_MINOR)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	if(major == REQUIRED_MAJOR && minor == REQUIRED_MINOR && patch >= REQUIRED_PATCH)
-	{
-		return SCAP_SUCCESS;
-	}
-	snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
-	return SCAP_FAILURE;
+	return pman_check_support() ? SCAP_SUCCESS : SCAP_FAILURE;
 }
 
 /*=============================== UTILS ===============================*/
@@ -238,7 +203,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	if(check_minimum_kernel_version(handle->m_lasterr) != SCAP_SUCCESS)
+	if(check_modern_probe_support(handle->m_lasterr) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
