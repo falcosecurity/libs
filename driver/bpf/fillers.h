@@ -752,6 +752,27 @@ FILLER(sys_readv_e, true)
 	return bpf_val_to_ring(data, (int64_t)fd);
 }
 
+FILLER(sys_preadv_e, true)
+{
+	unsigned long val;
+	int32_t fd;
+	int res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	fd = (int32_t)val;
+	res = bpf_val_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+	
+	/*
+	 * pos
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, val);
+}
+
 FILLER(sys_readv_preadv_x, true)
 {
 	const struct iovec __user *iov;
