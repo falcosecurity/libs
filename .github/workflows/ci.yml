@@ -290,9 +290,9 @@ jobs:
       image: falcosecurity/driverkit:latest
     if: needs.paths-filter.outputs.driver_changed == 'true'
     steps:
-      - name: Test driver build on ${{ matrix.name }}
+      - name: Test drivers build on ${{ matrix.name }}
         run: |
-          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }}
+          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --output-probe /tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }}
 
   run-e2e-tests-amd64:
     name: run-e2e-tests-amd64
