@@ -281,12 +281,8 @@ jobs:
       - name: Test driver build on linux 5.x
         run: |
           driverkit docker --kernelrelease 5.19.12-arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug  --kernelurls https://download.falco.org/fixtures/libs/linux-headers-5.19.12.arch1-1-x86_64.pkg.tar.zst
-      
-      - name: Test driver build on linux 6.x
-        run: |
-          driverkit docker --kernelrelease 6.0.8.arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug
           
-      - name: Test driver build on linux 6.2 # introduced API break, see https://github.com/falcosecurity/libs/pull/919
+      - name: Test driver build on linux 6.x # 6.2 introduced API break, see https://github.com/falcosecurity/libs/pull/919
         run: |
           driverkit docker --kernelrelease 6.2.arch1-1 --target arch --output-module /tmp/libs.ko --output-probe=/tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug 
 
