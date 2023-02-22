@@ -38,6 +38,6 @@ jobs:
             echo "latest_vers=${{ inputs.linux-version }}" >> $GITHUB_OUTPUT
           fi
           
-      - name: Test kmod build on latest linux with driverkit
+      - name: Test drivers build on latest linux with driverkit
         run: |
           driverkit docker --kernelrelease ${{ steps.latest-version.outputs.latest_vers }} --target arch --output-module /tmp/libs.ko --output-probe /tmp/libs.o --loglevel debug  
