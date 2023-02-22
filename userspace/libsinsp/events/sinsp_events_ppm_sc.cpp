@@ -22,10 +22,18 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	if (ppm_sc_set.empty())
 	{
+		std::vector<uint8_t> sc_vec(PPM_SC_MAX);
 		/* Should never happen but just to be sure. */
-		if(scap_get_modifies_state_ppm_sc(ppm_sc_set.data()) != SCAP_SUCCESS)
+		if(scap_get_modifies_state_ppm_sc(sc_vec.data()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception("'ppm_sc_set' is an unexpected NULL vector!");
+		}
+		for (int i = 0; i < PPM_SC_MAX; i++)
+		{
+			if (sc_vec[i])
+			{
+				ppm_sc_set.insert((ppm_sc_code)i);
+			}
 		}
 	}
 	return ppm_sc_set;
@@ -241,9 +249,17 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
 {
 	libsinsp::events::set<ppm_event_code> events_set;
-	if(scap_get_events_from_ppm_sc(ppm_sc_set.data(), events_set.data()) != SCAP_SUCCESS)
+	std::vector<uint8_t> event_vec(PPM_EVENT_MAX);
+	if(scap_get_events_from_ppm_sc(ppm_sc_set.data(), event_vec.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_array` or `events_set` is an unexpected NULL vector!");
+	}
+	for (int i = 0; i < PPM_EVENT_MAX; i++)
+	{
+		if (event_vec[i])
+		{
+			events_set.insert((ppm_event_code)i);
+		}
 	}
 	return events_set;
 }

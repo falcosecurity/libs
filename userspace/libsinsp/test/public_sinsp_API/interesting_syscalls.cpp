@@ -280,6 +280,7 @@ TEST(interesting_syscalls, enforce_sinsp_state_basic)
 {
 	auto state_ppm_sc_set = libsinsp::events::sinsp_state_sc_set();
 
+	ASSERT_EQ(expected_sinsp_state_ppm_sc_set.size(), state_ppm_sc_set.size());
 	ASSERT_TRUE(expected_sinsp_state_ppm_sc_set.equals(state_ppm_sc_set));
 }
 

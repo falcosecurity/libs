@@ -22,10 +22,18 @@ libsinsp::events::set<ppm_tp_code> libsinsp::events::sinsp_state_tp_set()
 	static libsinsp::events::set<ppm_tp_code> tp_of_interest;
 	if (tp_of_interest.empty())
 	{
+		std::vector<uint8_t> tp_vec(TP_VAL_MAX);
 		/* Should never happen but just to be sure. */
-		if(scap_get_modifies_state_tracepoints(tp_of_interest.data()) != SCAP_SUCCESS)
+		if(scap_get_modifies_state_tracepoints(tp_vec.data()) != SCAP_SUCCESS)
 		{
 			throw sinsp_exception("'tp_of_interest' is an unexpected NULL vector!");
+		}
+		for (int i = 0; i < TP_VAL_MAX; i++)
+		{
+			if (tp_vec[i])
+			{
+				tp_of_interest.insert((ppm_tp_code)i);
+			}
 		}
 	}
 	return tp_of_interest;

@@ -151,9 +151,17 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::all_event_set()
 libsinsp::events::set<ppm_sc_code> libsinsp::events::event_set_to_sc_set(const set<ppm_event_code>& events_of_interest)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if(scap_get_ppm_sc_from_events(events_of_interest.data(), ppm_sc_set.data()) != SCAP_SUCCESS)
+	std::vector<uint8_t> sc_vec(PPM_SC_MAX);
+	if(scap_get_ppm_sc_from_events(events_of_interest.data(), sc_vec.data()) != SCAP_SUCCESS)
 	{
 		throw sinsp_exception("`ppm_sc_set` or `events_array` is an unexpected NULL vector!");
+	}
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		if (sc_vec[i])
+		{
+			ppm_sc_set.insert((ppm_sc_code)i);
+		}
 	}
 	return ppm_sc_set;
 }
