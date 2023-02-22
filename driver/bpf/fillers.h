@@ -4592,16 +4592,7 @@ FILLER(sys_ppoll_e, true)
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
 	val = bpf_syscall_get_argument(data, 2);
-
-	/* NULL timeout specified as 0xFFFFFF.... */
-	if(val == (unsigned long)NULL)
-	{
-		res = bpf_val_to_ring_type(data, (u64)(-1), PT_RELTIME);
-	}
-	else
-	{
-		res = timespec_parse(data, val);
-	}
+	res = timespec_parse(data, val);
 	CHECK_RES(res);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */

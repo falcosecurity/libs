@@ -44,8 +44,8 @@ TEST(SyscallEnter, ppollE_null_pointers)
 	evt_test->assert_fd_list(1, NULL, (uint16_t)0);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	/* The pointer is NULL so we should have UINT64_MAX */
-	evt_test->assert_numeric_param(2, (uint64_t)-1);
+	/* The pointer is NULL so we should have `0` */
+	evt_test->assert_numeric_param(2, (uint64_t)0);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	/* The pointer is NULL so we should have `0` */
@@ -70,7 +70,7 @@ TEST(SyscallEnter, ppollE_valid_pointers)
 	struct pollfd* fds = NULL;
 	struct timespec timestamp = {0};
 	timestamp.tv_sec = 2;
-	timestamp.tv_nsec = 0;
+	timestamp.tv_nsec = 250;
 	sigset_t sigmask;
 	sigmask.__val[0] = SIGIO;
 	sigmask.__val[1] = SIGTERM;
