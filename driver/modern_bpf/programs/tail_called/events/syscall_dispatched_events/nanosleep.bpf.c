@@ -15,27 +15,20 @@ int BPF_PROG(nanosleep_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, NANOSLEEP_E_SIZE))
-        {
-                return 0;
-        }
+	if(!ringbuf__reserve_space(&ringbuf, NANOSLEEP_E_SIZE))
+	{
+		return 0;
+	}
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_NANOSLEEP_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_NANOSLEEP_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: interval (type: PT_RELTIME) */
-        struct __kernel_timespec ts = {0};
-        unsigned long ts_pointer = extract__syscall_argument(regs, 0);
-        if(bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer))
-        {
-                /* In case of invalid pointer, like in the other drivers */
-                ringbuf__store_u64(&ringbuf, (u64)-1);
-        }
-        else
-        {
-                ringbuf__store_u64(&ringbuf, ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec);
-        }
+	/* Parameter 1: req (type: PT_RELTIME) */
+	struct __kernel_timespec ts = {0};
+	unsigned long ts_pointer = extract__syscall_argument(regs, 0);
+	bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
+	ringbuf__store_u64(&ringbuf, ((u64)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -53,13 +46,13 @@ int BPF_PROG(nanosleep_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
-        struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, NANOSLEEP_X_SIZE))
-        {
-                return 0;
-        }
+	struct ringbuf_struct ringbuf;
+	if(!ringbuf__reserve_space(&ringbuf, NANOSLEEP_X_SIZE))
+	{
+		return 0;
+	}
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_NANOSLEEP_X);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_NANOSLEEP_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

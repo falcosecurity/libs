@@ -3413,13 +3413,19 @@ int f_sys_poll_e(struct event_filler_arguments *args)
 
 static int timespec_parse(struct event_filler_arguments *args, unsigned long val)
 {
-	uint64_t longtime;
+	uint64_t longtime = 0;
+	int cfulen = 0;
 	char *targetbuf = args->str_storage;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	struct __kernel_timespec* tts = (struct __kernel_timespec *)targetbuf;
+#else
 	struct timespec *tts = (struct timespec *)targetbuf;
+#endif
+
 #ifdef CONFIG_COMPAT
 	struct compat_timespec *compat_tts = (struct compat_timespec *)targetbuf;
 #endif
-	int cfulen;
 
 	/*
 	 * interval
@@ -3429,22 +3435,14 @@ static int timespec_parse(struct event_filler_arguments *args, unsigned long val
 	if (!args->compat) {
 #endif
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)val, sizeof(*tts));
-		if(unlikely(cfulen != 0))
-		{
-			longtime = (uint64_t)-1;
-		}
-		else
+		if(likely(cfulen == 0))
 		{
 			longtime = ((uint64_t)tts->tv_sec) * 1000000000 + tts->tv_nsec;
 		}
 #ifdef CONFIG_COMPAT
 	} else {
 		cfulen = (int)ppm_copy_from_user(targetbuf, (void __user *)compat_ptr(val), sizeof(struct compat_timespec));
-		if (unlikely(cfulen != 0))
-		{
-			longtime = (uint64_t)-1;
-		}
-		else
+		if(likely(cfulen == 0))
 		{
 			longtime = ((uint64_t)compat_tts->tv_sec) * 1000000000 + compat_tts->tv_nsec;
 		}
