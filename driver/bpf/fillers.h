@@ -738,6 +738,20 @@ static __always_inline int bpf_parse_readv_writev_bufs(struct filler_data *data,
 	return res;
 }
 
+FILLER(sys_readv_e, true)
+{
+	unsigned long val;
+	int32_t fd;
+	int res;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	fd = (int32_t)val;
+	return bpf_val_to_ring(data, (int64_t)fd);
+}
+
 FILLER(sys_readv_preadv_x, true)
 {
 	const struct iovec __user *iov;
@@ -753,14 +767,28 @@ FILLER(sys_readv_preadv_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
-	iovcnt = bpf_syscall_get_argument(data, 2);
+	/*
+	* data and size
+	*/
+	if (retval > 0)
+	{
+		iov = (const struct iovec __user *)bpf_syscall_get_argument(data, 1);
+		iovcnt = bpf_syscall_get_argument(data, 2);
 
-	res = bpf_parse_readv_writev_bufs(data,
-					  iov,
-					  iovcnt,
-					  retval,
-					  PRB_FLAG_PUSH_ALL);
+		res = bpf_parse_readv_writev_bufs(data,
+						iov,
+						iovcnt,
+						retval,
+						PRB_FLAG_PUSH_ALL);
+	}
+	else 
+	{
+		/* pushing a zero size */
+		res = bpf_val_to_ring(data, 0);
+
+		/* pushing empty data */
+		res = bpf_push_empty_param(data);
+	}
 
 	return res;
 }

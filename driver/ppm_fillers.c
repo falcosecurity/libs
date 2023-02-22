@@ -3917,6 +3917,23 @@ int f_sys_preadv64_e(struct event_filler_arguments *args)
 }
 #endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
+int f_sys_readv_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int32_t fd;
+	int res;
+
+	/*
+	 * fd
+	 */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 {
 	unsigned long val;
@@ -3936,24 +3953,34 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
-	/*
-	 * data and size
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
-
-#ifdef CONFIG_COMPAT
-	if (unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
-		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
-	} else
-#endif
+	if(retval > 0)
 	{
-		iov = (const struct iovec __user *)val;
-		res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
+
+	#ifdef CONFIG_COMPAT
+		if (unlikely(args->compat)) {
+			compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		} else
+	#endif
+		{
+			iov = (const struct iovec __user *)val;
+			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
+		}
+
+		CHECK_RES(res);
+	} 
+	else 
+	{
+		/* pushing a zero size */
+		res = val_to_ring(args, 0, 0, false, 0);
+		CHECK_RES(res);
+
+		/* pushing empty data */
+		res = val_to_ring(args, 0, 0, true, 0);
+		CHECK_RES(res);
 	}
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	return add_sentinel(args);
 }
