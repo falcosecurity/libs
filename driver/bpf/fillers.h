@@ -803,15 +803,13 @@ FILLER(sys_writev_pwritev_x, true)
 static __always_inline int timespec_parse(struct filler_data *data,
                                           unsigned long val)
 {
-	u64 longtime;
-	struct timespec ts;
-
-	if (bpf_probe_read_user(&ts, sizeof(ts), (void *)val))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	longtime = ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec;
-
-	return bpf_val_to_ring_type(data, longtime, PT_RELTIME);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
+	struct __kernel_timespec ts = {};
+#else	
+	struct timespec ts = {};
+#endif	
+	bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
+	return bpf_val_to_ring_type(data, ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec, PT_RELTIME);
 }
 
 FILLER(sys_nanosleep_e, true)

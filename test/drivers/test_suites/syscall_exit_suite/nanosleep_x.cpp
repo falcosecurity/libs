@@ -1,7 +1,6 @@
 #include "../../event_class/event_class.h"
 
 #ifdef __NR_nanosleep
-
 TEST(SyscallExit, nanosleepX)
 {
 	auto evt_test = get_syscall_event_test(__NR_nanosleep, EXIT_EVENT);
@@ -10,10 +9,8 @@ TEST(SyscallExit, nanosleepX)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	struct timespec req = { .tv_sec = 0, .tv_nsec = 1 };
-	struct timespec rem;
-	int interval = syscall(__NR_nanosleep, &req, &rem);
-	assert_syscall_state(SYSCALL_SUCCESS, "nanosleep", interval, NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_FAILURE, "nanosleep", syscall(__NR_nanosleep, NULL, NULL));
+	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -33,7 +30,7 @@ TEST(SyscallExit, nanosleepX)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)0);
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
