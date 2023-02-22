@@ -103,7 +103,7 @@ int BPF_PROG(sendmsg_x,
 		extract__network_args(args, 2, regs);
 
 		unsigned long msghdr_pointer = args[1];
-		auxmap__store_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
+		auxmap__store_msghdr_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
 	}
 	else
 	{

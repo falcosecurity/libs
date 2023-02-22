@@ -1077,33 +1077,24 @@ static __always_inline void auxmap__store_iovec_size_param(struct auxiliary_map 
 }
 
 /**
- * @brief Store a message extracted from iovec structs.
+ * @brief Store data extracted from iovec structs.
  *
  * @param auxmap pointer to the auxmap in which we are storing the param.
- * @param msghdr_pointer pointer to `user_msghdr` struct.
+ * @param iov_pointer pointer to `iovec` struct.
+ * @param iov_cnt number of iovec structs to be read from userspace.
  * @param len_to_read imposed snaplen.
  */
-static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer, unsigned long len_to_read)
+static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map *auxmap, unsigned long iov_pointer, unsigned long iov_cnt, unsigned long len_to_read)
 {
-	/* Read the usr_msghdr struct into the stack, if we fail,
-	 * we return an empty param.
-	 */
 	u32 total_size_to_read = 0;
-	struct user_msghdr msghdr = {0};
-	if(bpf_probe_read_user((void *)&msghdr, bpf_core_type_size(struct user_msghdr), (void *)msghdr_pointer))
-	{
-		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
-		return;
-	}
-
-	u32 total_iovec_size = msghdr.msg_iovlen * bpf_core_type_size(struct iovec);
+	u32 total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
 
 	/* We store all the data into the second part of our auxmap
 	 * like in `auxmap__store_sockaddr_param`. This is a scratch space.
 	 */
 	if(bpf_probe_read_user((void *)&auxmap->data[MAX_PARAM_SIZE],
 			       SAFE_ACCESS(total_iovec_size),
-			       (void *)msghdr.msg_iov))
+			       (void *)iov_pointer))
 	{
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;
@@ -1120,7 +1111,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 			break;
 		}
 
-		if(j == msghdr.msg_iovlen)
+		if(j == iov_cnt)
 		{
 			break;
 		}
@@ -1135,6 +1126,30 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	}
 	auxmap->payload_pos = initial_payload_pos + total_size_to_read;
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
+}
+
+/**
+ * @brief Store a message extracted from iovec structs.
+ *
+ * @param auxmap pointer to the auxmap in which we are storing the param.
+ * @param msghdr_pointer pointer to `user_msghdr` struct.
+ * @param len_to_read imposed snaplen.
+ */
+static __always_inline void auxmap__store_msghdr_iovec_data_param(struct auxiliary_map *auxmap, unsigned long msghdr_pointer, unsigned long len_to_read)
+{
+	/* Read the usr_msghdr struct into the stack, if we fail,
+	 * we return an empty param.
+	 */
+	struct user_msghdr msghdr = {0};
+	if(bpf_probe_read_user((void *)&msghdr, bpf_core_type_size(struct user_msghdr), (void *)msghdr_pointer))
+	{
+		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
+		return;
+	}
+
+	u32 iov_cnt = msghdr.msg_iovlen;
+
+	auxmap__store_iovec_data_param(auxmap, (unsigned long)msghdr.msg_iov, iov_cnt, len_to_read);
 }
 
 /**
