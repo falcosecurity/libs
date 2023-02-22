@@ -506,7 +506,8 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 	 */
 	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
 
-	bool at_least_one_syscall = false;
+	bool at_least_one_syscall_enter = false;
+	bool at_least_one_syscall_exit = false;
 	// Load associated ppm_sc from event_table
 	for (int ev = 0; ev < PPM_EVENT_MAX; ev++)
 	{
@@ -519,18 +520,28 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 		while (sc_codes && *sc_codes != -1)
 		{
 			ppm_sc_array[*sc_codes] = 1;
-			at_least_one_syscall |= *sc_codes < PPM_SC_SYSCALL_END;
+			at_least_one_syscall_enter |= *sc_codes < PPM_SC_SYSCALL_END && PPME_IS_ENTER(ev);
+			at_least_one_syscall_exit |= *sc_codes < PPM_SC_SYSCALL_END && PPME_IS_EXIT(ev);
 			sc_codes++;
 		}
 	}
 
-	// Force-set tracepoints that are not mapped to a single event
-	// Ie: PPM_SC_SYS_ENTER, PPM_SC_SYS_EXIT, PPM_SC_SCHED_PROCESS_FORK, PPM_SC_SCHED_PROCESS_EXEC
-	if (at_least_one_syscall)
+	/*==============================================================
+	 *
+	 * Force-set tracepoints that are not mapped to a single event
+	 * Ie: PPM_SC_SYS_ENTER, PPM_SC_SYS_EXIT, PPM_SC_SCHED_PROCESS_FORK, PPM_SC_SCHED_PROCESS_EXEC
+	 *
+	 *==============================================================*/
+	if (at_least_one_syscall_enter)
 	{
-		// If there is at least one syscall,
-		// make sure to include sys_enter and sys_exit!
+		// If there is at least one syscall enter,
+		// make sure to include sys_enter
 		ppm_sc_array[PPM_SC_SYS_ENTER] = 1;
+	}
+	if (at_least_one_syscall_exit)
+	{
+		// If there is at least one syscall exit,
+		// make sure to include sys_exit
 		ppm_sc_array[PPM_SC_SYS_EXIT] = 1;
 	}
 
