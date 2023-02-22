@@ -3463,15 +3463,7 @@ int f_sys_ppoll_e(struct event_filler_arguments *args)
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	/* NULL timeout specified as 0xFFFFFF.... */
-	if(val == (unsigned long)NULL)
-	{
-		res = val_to_ring(args, (uint64_t)(-1), 0, false, 0);
-	}
-	else
-	{
-		res = timespec_parse(args, val);
-	}
+	res = timespec_parse(args, val);
 	CHECK_RES(res);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */

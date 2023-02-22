@@ -35,17 +35,10 @@ int BPF_PROG(ppoll_e,
 	auxmap__store_fdlist_param(auxmap, fds_pointer, nfds, REQUESTED_EVENTS);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	struct __kernel_timespec timeout_ts = {0};
-	unsigned long timeout_ts_pointer = extract__syscall_argument(regs, 2);
-	if(bpf_probe_read_user(&timeout_ts, bpf_core_type_size(struct __kernel_timespec), (void *)timeout_ts_pointer))
-	{
-		/* In case of invalid pointer, like in the other drivers */
-		auxmap__store_u64_param(auxmap, (u64)-1);
-	}
-	else
-	{
-		auxmap__store_u64_param(auxmap, ((u64)timeout_ts.tv_sec) * SECOND_TO_NS + timeout_ts.tv_nsec);
-	}
+	struct __kernel_timespec ts = {0};
+	unsigned long ts_pointer = extract__syscall_argument(regs, 2);
+	bpf_probe_read_user(&ts, bpf_core_type_size(struct __kernel_timespec), (void *)ts_pointer);
+	auxmap__store_u64_param(auxmap, ((u64)ts.tv_sec) * SECOND_TO_NS + ts.tv_nsec);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
 	long unsigned int sigmask[1] = {0};
