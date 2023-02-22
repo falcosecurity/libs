@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       linux-version:
-        description: 'Archlinux kernel version to build a driver against'
+        description: 'Archlinux kernel version to build a driver against, eg: 6.2.arch1-1'
         required: false
         type: string
   schedule:
@@ -30,8 +30,10 @@ jobs:
           if [ "${{ inputs.print_tags }}" = "" ]; then
             cd linux/trunk/
             line=$(grep "pkgver" PKGBUILD | head -n1)
-            value=${line#*=}
-            echo "latest_vers=${value}" >> $GITHUB_OUTPUT
+            krel=${line#*=}
+            line=$(grep "pkgrel" PKGBUILD | head -n1)
+            kver=${line#*=}
+            echo "latest_vers=${krel}-${kver}" >> $GITHUB_OUTPUT
           else
             echo "latest_vers=${{ inputs.print_tags }}" >> $GITHUB_OUTPUT
           fi
