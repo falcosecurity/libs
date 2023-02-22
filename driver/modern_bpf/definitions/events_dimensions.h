@@ -131,6 +131,7 @@
 #define GETSOCKOPT_E_SIZE HEADER_LEN
 #define SETSOCKOPT_E_SIZE HEADER_LEN
 #define RECVMSG_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define READV_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define RECVFROM_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define FCNTL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
