@@ -117,18 +117,6 @@ event_test::event_test(ppm_sc_code sc_code):
 		m_event_type = PPME_SCHEDSWITCH_6_E;
 		break;
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	case PPM_SC_SCHED_PROCESS_EXEC:
-		m_event_type = PPME_SYSCALL_EXECVE_19_X;
-		break;
-#endif
-
-#ifdef CAPTURE_SCHED_PROC_FORK
-	case PPM_SC_SCHED_PROCESS_FORK:
-		m_event_type = PPME_SYSCALL_CLONE_20_X;
-		break;
-#endif
-
 #ifdef CAPTURE_PAGE_FAULTS
 	case PPM_SC_PAGE_FAULT_USER:
 		m_event_type = PPME_PAGE_FAULT_E;
