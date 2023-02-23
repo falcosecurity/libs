@@ -37,6 +37,8 @@ limitations under the License.
 #include "container_engine/sinsp_container_type.h"
 #include "mutex.h"
 
+class sinsp_dumper;
+
 class sinsp_container_manager :
 	public libsinsp::container_engine::container_cache_interface
 {
@@ -118,7 +120,7 @@ public:
 	 * it may still be happening in the background asynchronously
 	 */
 	bool resolve_container(sinsp_threadinfo* tinfo, bool query_os_for_missing_info);
-	void dump_containers(scap_dumper_t* dumper);
+	void dump_containers(sinsp_dumper& dumper);
 	std::string get_container_name(sinsp_threadinfo* tinfo) const;
 
 	// Set tinfo's m_category based on the container context.  It

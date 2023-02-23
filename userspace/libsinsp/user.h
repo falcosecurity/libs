@@ -24,9 +24,8 @@ limitations under the License.
 #include "procfs_utils.h"
 #include "scap.h"
 
-typedef struct scap_dumper scap_dumper_t;
-
 class sinsp;
+class sinsp_dumper;
 class sinsp_evt;
 namespace libsinsp { namespace procfs_utils { class ns_helper; }}
 
@@ -70,7 +69,7 @@ public:
 	// events shall not be sent as they will be loaded from capture file.
 	void subscribe_container_mgr();
 
-	void dump_users_groups(scap_dumper_t* dumper);
+	void dump_users_groups(sinsp_dumper& dumper);
 
 	/*!
   	  \brief Return the table with all the machine users.
