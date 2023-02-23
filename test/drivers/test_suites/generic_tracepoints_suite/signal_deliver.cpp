@@ -7,7 +7,7 @@
 
 TEST(GenericTracepoints, signal_deliver)
 {
-	auto evt_test = get_generic_event_test(SIGNAL_DELIVER);
+	auto evt_test = get_generic_event_test(PPM_SC_SIGNAL_DELIVER);
 
 	evt_test->enable_capture();
 

@@ -26,9 +26,9 @@ extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 // RETRIEVE EVENT CLASS
 /////////////////////////////////
 
-std::unique_ptr<event_test> get_generic_event_test(ppm_tp_code tp_code)
+std::unique_ptr<event_test> get_generic_event_test(ppm_sc_code sc_code)
 {
-	return (std::unique_ptr<event_test>)new event_test(tp_code);
+	return (std::unique_ptr<event_test>)new event_test(sc_code);
 }
 
 std::unique_ptr<event_test> get_syscall_event_test(int syscall_id, int event_direction)
@@ -102,44 +102,44 @@ event_test::~event_test()
 /* This constructor must be used with generic tracepoints
  * that must attach a dedicated BPF program into the kernel.
  */
-event_test::event_test(ppm_tp_code tp_code):
-	m_tp_set(TP_VAL_MAX, 0)
+event_test::event_test(ppm_sc_code sc_code):
+	m_sc_set(PPM_SC_MAX, 0)
 {
 	m_current_param = 0;
 
-	switch(tp_code)
+	switch(sc_code)
 	{
-	case SCHED_PROC_EXIT:
+	case PPM_SC_SCHED_PROCESS_EXIT:
 		m_event_type = PPME_PROCEXIT_1_E;
 		break;
 
-	case SCHED_SWITCH:
+	case PPM_SC_SCHED_SWITCH:
 		m_event_type = PPME_SCHEDSWITCH_6_E;
 		break;
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	case SCHED_PROC_EXEC:
+	case PPM_SC_SCHED_PROCESS_EXEC:
 		m_event_type = PPME_SYSCALL_EXECVE_19_X;
 		break;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-	case SCHED_PROC_FORK:
+	case PPM_SC_SCHED_PROCESS_FORK:
 		m_event_type = PPME_SYSCALL_CLONE_20_X;
 		break;
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-	case PAGE_FAULT_USER:
+	case PPM_SC_PAGE_FAULT_USER:
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
 
-	case PAGE_FAULT_KERN:
+	case PPM_SC_PAGE_FAULT_KERNEL:
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
 #endif
 
-	case SIGNAL_DELIVER:
+	case PPM_SC_SIGNAL_DELIVER:
 		m_event_type = PPME_SIGNALDELIVER_E;
 		break;
 
@@ -148,21 +148,19 @@ event_test::event_test(ppm_tp_code tp_code):
 		break;
 	}
 
-	m_tp_set[tp_code] = 1;
+	m_sc_set[sc_code] = 1;
 }
 
 /* This constructor must be used with syscalls events */
 event_test::event_test(int syscall_id, int event_direction):
-	m_tp_set(TP_VAL_MAX, 0)
+	m_sc_set(PPM_SC_MAX, 0)
 {
 	if(event_direction == ENTER_EVENT)
 	{
-		m_tp_set[SYS_ENTER] = 1;
 		m_event_type = g_syscall_table[syscall_id].enter_event_type;
 	}
 	else
 	{
-		m_tp_set[SYS_EXIT] = 1;
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
 
 		/* We need this patch to set the right event, the syscall table will
@@ -172,29 +170,6 @@ event_test::event_test(int syscall_id, int event_direction):
 		{
 			m_event_type = PPME_GENERIC_X;
 		}
-
-		/* This logic is not needed by architectures that require the `CAPTURE_SCHED_PROC_FORK`
-		 * workaround, since `CAPTURE_SCHED_PROC_FORK` requires `BPF_RAW_TRACEPOINTS` and so
-		 * kernel versions >= 4.17
-		 */
-#ifndef CAPTURE_SCHED_PROC_FORK
-		if(is_bpf_engine())
-		{
-			/* The bpf engine retrieves syscall params from sys_enter tracepoints
-			 * in kernel versions < 4.17. Moreover for syscalls that generate a
-			 * child we need a `sched_process_fork` tracepoint to duplicate the
-			 * syscall args for the child exit event!
-			 */
-			m_tp_set[SYS_ENTER] = 1;
-			if(m_event_type == PPME_SYSCALL_CLONE_20_X ||
-			   m_event_type == PPME_SYSCALL_FORK_20_X ||
-			   m_event_type == PPME_SYSCALL_VFORK_20_X ||
-			   m_event_type == PPME_SYSCALL_CLONE3_X)
-			{
-				m_tp_set[SCHED_PROC_FORK] = 1;
-			}
-		}
-#endif
 	}
 
 	m_current_param = 0;
@@ -207,29 +182,25 @@ event_test::event_test(int syscall_id, int event_direction):
  * want to enable all syscalls.
  */
 event_test::event_test():
-	m_tp_set(TP_VAL_MAX, 0)
+	m_sc_set(PPM_SC_MAX, 0)
 {
 	m_current_param = 0;
 
-	/* Enable only syscall tracepoints */
-	m_tp_set[SYS_ENTER] = 1;
-	m_tp_set[SYS_EXIT] = 1;
-
 	/* Enable all the syscalls */
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_SYSCALL_END; ppm_sc++)
 	{
-		scap_set_ppm_sc(s_scap_handle, ppm_sc, true);
+		scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, true);
 	}
 }
 
 void event_test::enable_capture()
 {
 	/* Here we should enable the necessary tracepoints */
-	for(int i = 0; i < TP_VAL_MAX; i++)
+	for(int i = PPM_SC_TP_START; i < PPM_SC_MAX; i++)
 	{
-		if(m_tp_set[i])
+		if(m_sc_set[i])
 		{
-			scap_set_tp(s_scap_handle, (ppm_tp_code)i, true);
+			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, true);
 		}
 	}
 	/* We need to clear all the `ring-buffers` because maybe during

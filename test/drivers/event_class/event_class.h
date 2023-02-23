@@ -93,16 +93,11 @@ class event_test
 public:
 	static scap_t* s_scap_handle;
 
-	static void set_scap_handle(scap_t* handle)
-	{
-		s_scap_handle = handle;
-	}
-
 	static void clear_ppm_sc_mask()
 	{
 		for(int i = 0; i < PPM_SC_MAX; i++)
 		{
-			scap_set_ppm_sc(s_scap_handle, i, false);
+			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, false);
 		}
 	}
 
@@ -127,7 +122,7 @@ public:
 	 *
 	 * @param event_type event that we want to assert.
 	 */
-	explicit event_test(ppm_tp_code tp_code);
+	explicit event_test(ppm_sc_code sc_code);
 
 	/**
 	 * @brief Construct a new event_test object for syscall events:
@@ -588,7 +583,7 @@ private:
 	struct ppm_evt_hdr* m_event_header;	  /* header of the event. */
 	uint32_t m_event_len;			  /* total event length. */
 	uint32_t m_current_param;		  /* current param that we are analyzing in a single assert method. */
-	std::vector<uint8_t> m_tp_set;		  /* Set of tracepoints that must be enabled for the specific test. */
+	std::vector<uint8_t> m_sc_set;
 
 	/**
 	 * @brief Performs two main actions:
@@ -690,7 +685,7 @@ private:
  *
  * @param event_type event that we want to assert.
  */
-std::unique_ptr<event_test> get_generic_event_test(ppm_tp_code tp_code);
+std::unique_ptr<event_test> get_generic_event_test(ppm_sc_code sc_code);
 
 /**
  * @brief Get a new event_test object for syscall events:
