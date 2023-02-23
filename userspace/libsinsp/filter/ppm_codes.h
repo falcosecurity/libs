@@ -30,6 +30,13 @@ namespace ast {
 */
 libsinsp::events::set<ppm_event_code> ppm_event_codes(const expr* e);
 
+/*!
+    \brief Visits a filter AST and returns a set containing all the
+    ppm_sc_codes for which the filter expression can be evaluated as true.
+    \param e The AST expression to be visited
+*/
+libsinsp::events::set<ppm_sc_code> ppm_sc_codes(const expr* e);
+
 }
 }
 }

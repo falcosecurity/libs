@@ -61,7 +61,19 @@ static bool is_evttype_operator(const std::string& op)
 
 struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
 {
-    using code_set_t = libsinsp::events::set<ppm_event_code>;
+    using code_set_t = libsinsp::events::set<ppm_sc_code>;
+
+    using name_set_t = std::unordered_set<std::string>;
+
+    static inline code_set_t all_codes_set()
+    {
+        return libsinsp::events::all_sc_set();
+    }
+
+    static inline code_set_t names_to_codes(const name_set_t& s)
+    {
+        return libsinsp::events::names_to_sc_set(s);
+    }
 
     ppm_code_visitor():
 		m_expect_value(false),
@@ -83,7 +95,7 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         // we don't invert "neutral" checks
         if (m_last_node_has_codes)
         {
-            types = libsinsp::events::all_event_set().diff(types);
+            types = all_codes_set().diff(types);
         }
     }
     
@@ -97,7 +109,7 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
 
     void conjunction(const std::vector<std::unique_ptr<libsinsp::filter::ast::expr>>& children)
     {
-        code_set_t types = libsinsp::events::all_event_set();
+        code_set_t types = all_codes_set();
         m_last_node_codes.clear();
         for (auto &c : children)
         {
@@ -174,7 +186,7 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
             }
             return;
         }
-        m_last_node_codes = libsinsp::events::all_event_set();
+        m_last_node_codes = all_codes_set();
         try_inversion(m_last_node_codes);
     }
 
@@ -182,7 +194,7 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
     {
         m_last_node_codes.clear();
         m_last_node_has_codes = e->field == "evt.type" && e->op == "exists";
-        m_last_node_codes = libsinsp::events::all_event_set();
+        m_last_node_codes = all_codes_set();
         try_inversion(m_last_node_codes);
     }
 
@@ -192,14 +204,14 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         m_last_node_has_codes = m_expect_value;
         if (m_expect_value)
         {
-            m_last_node_codes = libsinsp::events::names_to_event_set({e->value});
+            m_last_node_codes = names_to_codes({e->value});
         }
         else
         {
             // this case only happens if a macro has not yet been substituted
             // with an actual condition. Should not happen, but we handle it
             // for consistency.
-            m_last_node_codes = libsinsp::events::all_event_set();
+            m_last_node_codes = all_codes_set();
         }
         try_inversion(m_last_node_codes);
     }
@@ -211,24 +223,31 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
         if (m_expect_value)
         {
             m_last_node_has_codes = true;
-            std::unordered_set<std::string> names;
+            name_set_t names;
             for (const auto& n : e->values)
             {
                 names.insert(n);
             }
-            m_last_node_codes = libsinsp::events::names_to_event_set(names);
+            m_last_node_codes = names_to_codes(names);
             try_inversion(m_last_node_codes);
             return;
         }
-        m_last_node_codes = libsinsp::events::all_event_set();
+        m_last_node_codes = all_codes_set();
         try_inversion(m_last_node_codes);
     }
 };
 
-libsinsp::events::set<ppm_event_code>
-libsinsp::filter::ast::ppm_event_codes(const libsinsp::filter::ast::expr* e)
+libsinsp::events::set<ppm_sc_code>
+libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
 {
     ppm_code_visitor v;
     e->accept(&v);
     return v.m_last_node_codes;
+}
+
+libsinsp::events::set<ppm_event_code>
+libsinsp::filter::ast::ppm_event_codes(const libsinsp::filter::ast::expr* e)
+{
+    auto sc_set = libsinsp::filter::ast::ppm_sc_codes(e);
+    return libsinsp::events::sc_set_to_event_set(sc_set);
 }
