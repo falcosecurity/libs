@@ -80,19 +80,19 @@ TEST(events_set, set_check_merge)
 	auto intersect_vector = std::vector<uint8_t>{1,2,3,4,5};
 	auto difference_vector = std::vector<uint8_t>{1,2,3,4,5};
 
-	auto ppm_sc_set_1 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_1.insert((ppm_sc_code)1);
-	ppm_sc_set_1.insert((ppm_sc_code)4);
+	auto sc_set_1 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_1.insert((ppm_sc_code)1);
+	sc_set_1.insert((ppm_sc_code)4);
 
-	auto ppm_sc_set_2 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_2.insert((ppm_sc_code)1);
-	ppm_sc_set_2.insert((ppm_sc_code)2);
-	ppm_sc_set_2.insert((ppm_sc_code)3);
-	ppm_sc_set_2.insert((ppm_sc_code)5);
+	auto sc_set_2 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_2.insert((ppm_sc_code)1);
+	sc_set_2.insert((ppm_sc_code)2);
+	sc_set_2.insert((ppm_sc_code)3);
+	sc_set_2.insert((ppm_sc_code)5);
 
-	auto ppm_sc_set_merge = ppm_sc_set_1.merge(ppm_sc_set_2);
+	auto sc_set_merge = sc_set_1.merge(sc_set_2);
 	for (auto val : merge_vec) {
-		ASSERT_EQ(ppm_sc_set_merge.data()[val], 1);
+		ASSERT_EQ(sc_set_merge.data()[val], 1);
 	}
 }
 
@@ -100,19 +100,19 @@ TEST(events_set, set_check_intersect)
 {
 	auto int_vec = std::vector<uint8_t>{1,4};
 
-	auto ppm_sc_set_1 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_1.insert((ppm_sc_code)1);
-	ppm_sc_set_1.insert((ppm_sc_code)4);
+	auto sc_set_1 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_1.insert((ppm_sc_code)1);
+	sc_set_1.insert((ppm_sc_code)4);
 
-	auto ppm_sc_set_2 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_2.insert((ppm_sc_code)1);
-	ppm_sc_set_2.insert((ppm_sc_code)2);
-	ppm_sc_set_2.insert((ppm_sc_code)4);
-	ppm_sc_set_2.insert((ppm_sc_code)5);
+	auto sc_set_2 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_2.insert((ppm_sc_code)1);
+	sc_set_2.insert((ppm_sc_code)2);
+	sc_set_2.insert((ppm_sc_code)4);
+	sc_set_2.insert((ppm_sc_code)5);
 
-	auto ppm_sc_set_int = ppm_sc_set_1.intersect(ppm_sc_set_2);
+	auto sc_set_int = sc_set_1.intersect(sc_set_2);
 	for (auto val : int_vec) {
-		ASSERT_EQ(ppm_sc_set_int.data()[val], 1);
+		ASSERT_EQ(sc_set_int.data()[val], 1);
 	}
 }
 
@@ -120,53 +120,45 @@ TEST(events_set, set_check_diff)
 {
 	auto diff_vec = std::vector<uint8_t>{2,3};
 
-	auto ppm_sc_set_1 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_1.insert((ppm_sc_code)1);
-	ppm_sc_set_1.insert((ppm_sc_code)2);
-	ppm_sc_set_1.insert((ppm_sc_code)3);
-	ppm_sc_set_1.insert((ppm_sc_code)4);
+	auto sc_set_1 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_1.insert((ppm_sc_code)1);
+	sc_set_1.insert((ppm_sc_code)2);
+	sc_set_1.insert((ppm_sc_code)3);
+	sc_set_1.insert((ppm_sc_code)4);
 
-	auto ppm_sc_set_2 = libsinsp::events::set<ppm_sc_code>();
-	ppm_sc_set_2.insert((ppm_sc_code)1);
-	ppm_sc_set_2.insert((ppm_sc_code)4);
+	auto sc_set_2 = libsinsp::events::set<ppm_sc_code>();
+	sc_set_2.insert((ppm_sc_code)1);
+	sc_set_2.insert((ppm_sc_code)4);
 
-	auto ppm_sc_set_diff = ppm_sc_set_1.diff(ppm_sc_set_2);
+	auto sc_set_diff = sc_set_1.diff(sc_set_2);
 	for (auto val : diff_vec) {
-		ASSERT_TRUE(ppm_sc_set_diff.contains((ppm_sc_code)val));
+		ASSERT_TRUE(sc_set_diff.contains((ppm_sc_code)val));
 	}
 }
 
 TEST(events_set, names_to_event_set)
 {
-	auto event_names = std::unordered_set<std::string>{"openat2","execveat"};
+	auto event_set = libsinsp::events::names_to_event_set(std::unordered_set<std::string>{"openat","execveat"});
+	libsinsp::events::set<ppm_event_code> event_set_truth = {PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
+	PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X, PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X};
+	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
+	ASSERT_EQ(event_set.size(), 6); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
 
-	auto event_codes = libsinsp::events::names_to_event_set(event_names);
-	static libsinsp::events::set<ppm_event_code> event_codes_truth = {PPME_SYSCALL_OPENAT2_E, PPME_SYSCALL_OPENAT2_X,
-	PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X};
-	ASSERT_PPM_EVENT_CODES_EQ(event_codes, event_codes_truth);
-	ASSERT_TRUE(event_codes.equals(event_codes_truth));
-	ASSERT_EQ(event_codes.size(), 4); // enter/exit events for each event name
-
-	// Now insert a syscall bound to a generic event
-	event_names.insert("syncfs");
-	event_codes = libsinsp::events::names_to_event_set(event_names);
-	event_codes_truth = {PPME_SYSCALL_OPENAT2_E, PPME_SYSCALL_OPENAT2_X,
+	// generic event case
+	event_set = libsinsp::events::names_to_event_set(std::unordered_set<std::string>{"openat","execveat","syncfs"});
+	event_set_truth = {PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X, PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X,
 	PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X, PPME_GENERIC_E, PPME_GENERIC_X};
-	ASSERT_PPM_EVENT_CODES_EQ(event_codes, event_codes_truth);
-	ASSERT_TRUE(event_codes.equals(event_codes_truth));
-	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
+	ASSERT_EQ(event_set.size(), 8); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
 }
 
+// TODO include generic event case after clarifying what name(s) generic events should map to
 TEST(events_set, event_set_to_names)
 {
-	static std::set<std::string> orderd_events_names_matching_set = {"kill", "dup"};
-	static libsinsp::events::set<ppm_event_code> events_set = {PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
-	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X};
-	// TODO fix test for PPME_GENERIC_E, PPME_GENERIC_X after fixing method in another PR
-	auto events_names_final_set = libsinsp::events::event_set_to_names(events_set);
-	auto ordered_events_names_final_set = test_utils::unordered_set_to_ordered(events_names_final_set);
-	ASSERT_NAMES_EQ(ordered_events_names_final_set, orderd_events_names_matching_set);
-	ASSERT_EQ(events_names_final_set.size(), orderd_events_names_matching_set.size());
+	static std::set<std::string> names_truth = {"kill", "dup"};
+	auto names = test_utils::unordered_set_to_ordered(libsinsp::events::event_set_to_names(libsinsp::events::set<ppm_event_code>{PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
+	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X}));
+	ASSERT_NAMES_EQ(names_truth, names);
 }
 
 TEST(events_set, sc_set_to_event_set)
@@ -180,17 +172,16 @@ TEST(events_set, sc_set_to_event_set)
 	PPM_SC_SENDTO,
 #endif
 
-// TODO discuss
-// #ifdef __NR_setresuid32
-	// PPM_SC_SETRESUID32,
-// #endif
+#ifdef __NR_setresuid
+	PPM_SC_SETRESUID, // note: corner case PPM_SC_SETRESUID32 would fail
+#endif
 
 #ifdef __NR_alarm
 	PPM_SC_ALARM,
 #endif
 	};
 
-	libsinsp::events::set<ppm_event_code> event_set = {
+	libsinsp::events::set<ppm_event_code> event_set_truth = {
 #ifdef __NR_kill
 	PPME_SYSCALL_KILL_E,
 	PPME_SYSCALL_KILL_X,
@@ -201,10 +192,10 @@ TEST(events_set, sc_set_to_event_set)
 	PPME_SOCKET_SENDTO_X,
 #endif
 
-// #ifdef __NR_setresuid32
-	// PPME_SYSCALL_SETRESUID_E,
-	// PPME_SYSCALL_SETRESUID_X,
-// #endif
+#ifdef __NR_setresuid
+	PPME_SYSCALL_SETRESUID_E,
+	PPME_SYSCALL_SETRESUID_X,
+#endif
 
 #ifdef __NR_alarm
 	PPME_GENERIC_E,
@@ -212,12 +203,11 @@ TEST(events_set, sc_set_to_event_set)
 #endif
 	};
 
-	auto final_event_set = libsinsp::events::sc_set_to_event_set(sc_set);
-	ASSERT_PPM_EVENT_CODES_EQ(final_event_set, event_set);
-	ASSERT_TRUE(final_event_set.equals(event_set));
+	auto event_set = libsinsp::events::sc_set_to_event_set(sc_set);
+	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
 }
 
-// TODO add
+// TODO -> future PR after other PRs have been merged and few other things clarified
 TEST(events_set, sinsp_state_event_set)
 {
 }
