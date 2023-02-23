@@ -273,21 +273,15 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 #endif
 };
 
-/* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
- * the `libsinsp` state ppm_sc set.
- */
-TEST(interesting_syscalls, enforce_sinsp_state_basic)
+TEST(interesting_syscalls, sinsp_state_sc_set)
 {
 	auto state_ppm_sc_set = libsinsp::events::sinsp_state_sc_set();
-
-	ASSERT_EQ(expected_sinsp_state_ppm_sc_set.size(), state_ppm_sc_set.size());
+	ASSERT_PPM_SC_CODES_EQ(expected_sinsp_state_ppm_sc_set, state_ppm_sc_set);
 	ASSERT_TRUE(expected_sinsp_state_ppm_sc_set.equals(state_ppm_sc_set));
+	ASSERT_EQ(expected_sinsp_state_ppm_sc_set.size(), state_ppm_sc_set.size());
 }
 
-/* This test asserts that `enforce_sinsp_state_ppm_sc` correctly merges
- * the provided set with the `libsinsp` state set.
- */
-TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
+TEST(interesting_syscalls, sinsp_state_sc_set_additional_syscalls)
 {
 	libsinsp::events::set<ppm_sc_code> additional_syscalls;
 	auto ppm_sc_matching_set = expected_sinsp_state_ppm_sc_set;
@@ -305,17 +299,144 @@ TEST(interesting_syscalls, enforce_sinsp_state_with_additions)
 	auto sinsp_state_set = libsinsp::events::sinsp_state_sc_set();
 	auto ppm_sc_final_set = additional_syscalls.merge(sinsp_state_set);
 
+	ASSERT_PPM_SC_CODES_EQ(ppm_sc_matching_set, ppm_sc_final_set);
 	ASSERT_TRUE(ppm_sc_matching_set.equals(ppm_sc_final_set));
 }
 
-/// TODO: we can add also some tests for `enforce_io_ppm_sc_set`, `enforce_net_ppm_sc_set`, ... here.
-
-/* This test asserts that `get_event_set_from_ppm_sc_set` correctly returns the events
- * associated with the provided `ppm_sc_set`.
- */
-TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
+TEST(interesting_syscalls, io_sc_set)
 {
-	libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
+	libsinsp::events::set<ppm_sc_code> io_sc_matching_set;
+
+#ifdef __NR_read
+	io_sc_matching_set.insert(PPM_SC_READ);
+#endif
+
+#ifdef __NR_recv
+	io_sc_matching_set.insert(PPM_SC_RECV);
+#endif
+
+#ifdef __NR_recvfrom
+	io_sc_matching_set.insert(PPM_SC_RECVFROM);
+#endif
+
+#ifdef __NR_recvmsg
+	io_sc_matching_set.insert(PPM_SC_RECVMSG);
+#endif
+
+#ifdef __NR_recvmmsg
+	io_sc_matching_set.insert(PPM_SC_RECVMMSG);
+#endif
+
+#ifdef __NR_pread
+	io_sc_matching_set.insert(PPM_SC_PREAD);
+#endif
+
+#ifdef __NR_readv
+	io_sc_matching_set.insert(PPM_SC_READV);
+#endif
+
+#ifdef __NR_pread
+	io_sc_matching_set.insert(PPM_SC_PREAD);
+#endif
+
+#ifdef __NR_preadv
+	io_sc_matching_set.insert(PPM_SC_PREADV);
+#endif
+
+#ifdef __NR_write
+	io_sc_matching_set.insert(PPM_SC_WRITE);
+#endif
+
+#ifdef __NR_write
+	io_sc_matching_set.insert(PPM_SC_WRITE);
+#endif
+
+#ifdef __NR_pwrite
+	io_sc_matching_set.insert(PPM_SC_PWRITE);
+#endif
+
+#ifdef __NR_writev
+	io_sc_matching_set.insert(PPM_SC_WRITEV);
+#endif
+
+#ifdef __NR_pwritev
+	io_sc_matching_set.insert(PPM_SC_PWRITEV);
+#endif
+
+#ifdef __NR_sendfile
+	io_sc_matching_set.insert(PPM_SC_SENDFILE);
+#endif
+
+#ifdef __NR_send
+	io_sc_matching_set.insert(PPM_SC_SEND);
+#endif
+
+#ifdef __NR_sendto
+	io_sc_matching_set.insert(PPM_SC_SENDTO);
+#endif
+
+#ifdef __NR_sendmsg
+	io_sc_matching_set.insert(PPM_SC_SENDMSG);
+#endif
+
+#ifdef __NR_sendmsg
+	io_sc_matching_set.insert(PPM_SC_SENDMSG);
+#endif
+
+#ifdef __NR_sendmmsg
+	io_sc_matching_set.insert(PPM_SC_SENDMMSG);
+#endif
+
+#ifdef __NR_pread64
+	io_sc_matching_set.insert(PPM_SC_PREAD64);
+#endif
+
+#ifdef __NR_pwrite64
+	io_sc_matching_set.insert(PPM_SC_PWRITE64);
+#endif
+
+	auto io_sc_set = libsinsp::events::io_sc_set();
+	ASSERT_PPM_SC_CODES_EQ(io_sc_matching_set, io_sc_set);
+	ASSERT_TRUE(io_sc_matching_set.equals(io_sc_set));
+
+}
+
+TEST(interesting_syscalls, all_sc_set)
+{
+	auto sc_set = libsinsp::events::all_sc_set();
+
+	/* Assert that all the syscalls are taken */
+	ASSERT_EQ(sc_set.size(), PPM_SC_MAX);
+}
+
+TEST(interesting_syscalls, sc_set_to_names)
+{
+	// "syncfs" is a generic event / syscall
+	static std::set<std::string> orderd_syscall_names_matching_set = {"kill", "read", "syncfs"};
+	static libsinsp::events::set<ppm_sc_code> sc_set = {PPM_SC_KILL, PPM_SC_READ, PPM_SC_SYNCFS};
+
+	auto syscall_names_final_set = libsinsp::events::sc_set_to_names(sc_set);
+	auto ordered_syscall_names_final_set = test_utils::unordered_set_to_ordered(syscall_names_final_set);
+	ASSERT_NAMES_EQ(ordered_syscall_names_final_set, orderd_syscall_names_matching_set);
+	ASSERT_EQ(orderd_syscall_names_matching_set.size(), syscall_names_final_set.size());
+}
+
+TEST(interesting_syscalls, names_to_sc_set)
+{
+	// "syncfs" is a generic event / syscall
+	static std::set<std::string> orderd_syscall_names = {"kill", "read", "syncfs"};
+	static std::unordered_set<std::string> syscall_names = {"kill", "read", "syncfs"};
+	static libsinsp::events::set<ppm_sc_code> sc_set_matching_set = {PPM_SC_KILL, PPM_SC_READ, PPM_SC_SYNCFS};
+
+	auto sc_set_final = libsinsp::events::names_to_sc_set(syscall_names);
+	ASSERT_PPM_SC_CODES_EQ(sc_set_final, sc_set_matching_set);
+	ASSERT_TRUE(sc_set_final.equals(sc_set_matching_set));
+}
+
+// TODO add
+TEST(interesting_syscalls, event_set_to_sc_set)
+{
+		libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
 #ifdef __NR_kill
 	PPM_SC_KILL,
 #endif
@@ -324,9 +445,14 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	PPM_SC_SENDTO,
 #endif
 
-#ifdef __NR_alarm
-	PPM_SC_ALARM,
-#endif
+// TODO discuss
+// #ifdef __NR_setresuid32
+	// PPM_SC_SETRESUID32,
+// #endif
+
+// #ifdef __NR_alarm
+// 	PPM_SC_ALARM,
+// #endif
 	};
 
 	libsinsp::events::set<ppm_event_code> event_set = {
@@ -340,86 +466,21 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	PPME_SOCKET_SENDTO_X,
 #endif
 
-#ifdef __NR_alarm
-	PPME_GENERIC_E,
-	PPME_GENERIC_X,
-#endif
+// #ifdef __NR_setresuid32
+	// PPME_SYSCALL_SETRESUID_E,
+	// PPME_SYSCALL_SETRESUID_X,
+// #endif
+
+// #ifdef __NR_alarm
+// 	PPME_GENERIC_E,
+// 	PPME_GENERIC_X,
+// #endif
 	};
 
-	auto final_evt_set = libsinsp::events::sc_set_to_event_set(ppm_sc_set);
-
-	ASSERT_TRUE(final_evt_set.equals(event_set));
+	auto final_sc_set = libsinsp::events::event_set_to_sc_set(event_set);
+	// TODO fix when having a generic event, given the fuzzy mapping from event set when a generic event is included 
+	// need to verify what all generic PPM syscalls are and then compare to ground truth 
+	ASSERT_PPM_SC_CODES_EQ(final_sc_set, ppm_sc_set);
+	ASSERT_TRUE(final_sc_set.equals(ppm_sc_set));
 }
 
-/* This test asserts that `get_all_ppm_sc` correctly retrieves all the available syscalls
- */
-TEST(interesting_syscalls, get_all_ppm_sc)
-{
-	auto ppm_sc_set = libsinsp::events::all_sc_set();
-
-	/* Assert that all the syscalls are taken */
-	ASSERT_EQ(ppm_sc_set.size(), PPM_SC_MAX);
-}
-
-/* This test asserts that `get_syscalls_names` correctly retrieves all the syscalls names
- */
-TEST(interesting_syscalls, get_syscalls_names)
-{
-	std::set<std::string> orderd_syscall_names_matching_set;
-	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-
-	/* Here we don't need ifdefs, our ppm_sc codes are always defined. */
-	ppm_sc_set.insert(PPM_SC_KILL);
-	orderd_syscall_names_matching_set.insert("kill");
-
-	ppm_sc_set.insert(PPM_SC_READ);
-	orderd_syscall_names_matching_set.insert("read");
-
-	auto syscall_names_final_set = libsinsp::events::sc_set_to_names(ppm_sc_set);
-
-	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(orderd_syscall_names_matching_set.size(), syscall_names_final_set.size());
-
-	auto ordered_syscall_names_final_set = test_utils::unordered_set_to_ordered(syscall_names_final_set);
-
-	auto final = ordered_syscall_names_final_set.begin();
-	auto matching = orderd_syscall_names_matching_set.begin();
-
-	for(; final != ordered_syscall_names_final_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
-}
-
-/* This test asserts that `get_events_names` correctly retrieves all the events names
- */
-TEST(interesting_syscalls, get_events_names)
-{
-	std::set<std::string> orderd_events_names_matching_set;
-	libsinsp::events::set<ppm_event_code> events_set;
-
-	/* Here we don't need ifdefs, our events are always defined. */
-	events_set.insert(PPME_SYSCALL_KILL_E);
-	events_set.insert(PPME_SYSCALL_KILL_X);
-	/* Please note the name of the 2 events should be the same: "kill" */
-	orderd_events_names_matching_set.insert("kill");
-
-	events_set.insert(PPME_SYSCALL_DUP_1_E);
-	events_set.insert(PPME_SYSCALL_DUP_1_X);
-	orderd_events_names_matching_set.insert("dup");
-
-	auto events_names_final_set = libsinsp::events::event_set_to_names(events_set);
-
-	/* Assert that the 2 sets have the same size */
-	ASSERT_EQ(events_names_final_set.size(), orderd_events_names_matching_set.size());
-
-	auto ordered_events_names_final_set = test_utils::unordered_set_to_ordered(events_names_final_set);
-
-	auto final = ordered_events_names_final_set.begin();
-	auto matching = orderd_events_names_matching_set.begin();
-
-	for(; final != ordered_events_names_final_set.end(); final++, matching++)
-	{
-		ASSERT_EQ(*matching, *final);
-	}
-}
