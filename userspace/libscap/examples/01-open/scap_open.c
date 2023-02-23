@@ -143,8 +143,6 @@ static int simple_set[] = {
 	PPM_SC_UNSHARE,
 	PPM_SC_USERFAULTFD,
 	PPM_SC_VFORK,
-	PPM_SC_SYS_ENTER,
-	PPM_SC_SYS_EXIT,
 	-1
 };
 

@@ -112,7 +112,10 @@ set(DRIVER_SOURCES
 	ppm_cputime.c
 	ppm_compat_unistd_32.h
 	ppm_version.h
-	systype_compat.h)
+	systype_compat.h
+	ppm_tp.h
+		ppm_tp.c
+)
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)
 	configure_file(${FILENAME} src/${FILENAME} COPYONLY)

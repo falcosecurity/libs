@@ -125,7 +125,8 @@ add_library(scap_event_schema
 		../../driver/dynamic_params_table.c
 		../../driver/event_table.c
 		../../driver/flags_table.c
-        )
+		../../driver/ppm_tp.c
+)
 
 target_link_libraries(scap scap_event_schema)
 

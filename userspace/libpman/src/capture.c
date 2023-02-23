@@ -19,35 +19,48 @@ limitations under the License.
 #include <scap.h>
 #include <libpman.h>
 
-int pman_enable_capture(bool *ppm_sc_set)
+int pman_enable_capture(bool *ppm_sc_set, bool *ppm_tp_set)
 {
+	if (!ppm_tp_set)
+	{
+		pman_attach_all_programs();
+	}
+	else
+	{
+		int ret = 0;
+		/* Enable requested tracepoints */
+		for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+		{
+			if(ppm_tp_set[i])
+			{
+				ret = pman_update_single_program(i, true);
+			}
+		}
+		if (ret != 0)
+		{
+			return ret;
+		}
+	}
+
 	if (!ppm_sc_set)
 	{
 		for (int i = 0; i < PPM_SC_SYSCALL_END; i++)
 		{
 			pman_mark_single_ppm_sc(i, true);
 		}
-		return pman_attach_all_programs();
+
 	}
-
-	int ret = 0;
-
-	/* Enable requested sc codes */
-	for (int i = 0; i < PPM_SC_MAX && ret == 0; i++)
+	else
 	{
-		if (ppm_sc_set[i])
+		for (int i = 0; i < PPM_SC_SYSCALL_END; i++)
 		{
-			if (i >= PPM_SC_TP_START)
-			{
-				ret = pman_update_single_program(i, true);
-			}
-			else
+			if (ppm_sc_set[i])
 			{
 				pman_mark_single_ppm_sc(i, true);
 			}
 		}
 	}
-	return ret;
+	return 0;
 }
 
 int pman_disable_capture()

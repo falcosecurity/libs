@@ -349,7 +349,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 		++j;
 	}
 
-	/* Store interesting scap codes */
+	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	return SCAP_SUCCESS;
@@ -425,20 +425,18 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 		return SCAP_SUCCESS;
 	}
 
-	/* Disable all scap codes */
-	int ret = SCAP_SUCCESS;
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret == SCAP_SUCCESS; ppm_sc++)
+	/* Disable all sc codes */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_SYSCALL_END; ppm_sc++)
 	{
-		if (ppm_sc >= PPM_SC_TP_START)
-		{
-			ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, ppm_sc);
-		}
-		else
-		{
-			ret = scap_kmod_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, ppm_sc);
-		}
+		scap_kmod_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, ppm_sc);
 	}
-	return ret;
+
+	/* Disable all tp */
+	for (int tp = 0; tp < TP_VAL_MAX; tp++)
+	{
+		scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, tp);
+	}
+	return SCAP_SUCCESS;
 }
 
 //
@@ -448,19 +446,29 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 {
 	struct kmod_engine* handle = engine.m_handle;
 
-	/* Enable requested scap codes */
+	bool tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(engine.m_handle->open_sc_set.ppm_sc, tp_set);
+
 	int ret = SCAP_SUCCESS;
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX && ret == SCAP_SUCCESS; ppm_sc++)
+	/* Enable requested tracepoints */
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
 	{
-		if (ppm_sc >= PPM_SC_TP_START)
+		if (tp_set[i])
 		{
-			uint32_t op = handle->open_sc_set.ppm_sc[ppm_sc] ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET;
-			ret = scap_kmod_handle_tp_mask(engine, op, ppm_sc);
+			ret = scap_kmod_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
 		}
-		else
+	}
+	if (ret != SCAP_SUCCESS)
+	{
+		return ret;
+	}
+
+	/* Enable requested scap codes */
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_SYSCALL_END && ret == SCAP_SUCCESS; ppm_sc++)
+	{
+		if (handle->open_sc_set.ppm_sc[ppm_sc])
 		{
-			uint32_t op = handle->open_sc_set.ppm_sc[ppm_sc] ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET;
-			ret = scap_kmod_handle_ppm_sc_mask(engine, op, ppm_sc);
+			ret = scap_kmod_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_SET, ppm_sc);
 		}
 	}
 	return ret;

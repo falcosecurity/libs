@@ -47,6 +47,7 @@ limitations under the License.
 #include "strlcpy.h"
 #include "noop.h"
 #include "strerror.h"
+#include <ppm_tp.h>
 
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
 {
@@ -636,16 +637,16 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	return SCAP_SUCCESS;
 }
 
-static bool is_tp_enabled(interesting_ppm_sc_set *sc_of_interest, const char *shname)
+static bool is_tp_enabled(interesting_ppm_tp_set *sc_of_interest, const char *shname)
 {
-	const ppm_sc_code val = scap_ppm_sc_from_name(shname);
+	const ppm_tp_code val = tp_from_name(shname);
 	if(!sc_of_interest || val == -1)
 	{
 		// Null sc set? Enable everything!
 		// Not found? Enable it!
 		return true;
 	}
-	return sc_of_interest->ppm_sc[val];
+	return sc_of_interest->tp[val];
 }
 
 static int32_t load_bpf_file(struct bpf_engine *handle)
@@ -802,7 +803,7 @@ end:
 }
 
 static int load_tracepoints(struct bpf_engine *handle,
-			    interesting_ppm_sc_set *sc_of_interest)
+			    interesting_ppm_tp_set *tp_of_interest)
 {
 	int j;
 	int32_t res = SCAP_FAILURE;
@@ -820,7 +821,7 @@ static int load_tracepoints(struct bpf_engine *handle,
 		if(memcmp(shname, "tracepoint/", sizeof("tracepoint/") - 1) == 0 ||
 		   memcmp(shname, "raw_tracepoint/", sizeof("raw_tracepoint/") - 1) == 0)
 		{
-			if(is_tp_enabled(sc_of_interest, shname))
+			if(is_tp_enabled(tp_of_interest, shname))
 			{
 				bool already_attached = false;
 				for (int i = 0; i < handle->m_bpf_prog_cnt && !already_attached; i++)
@@ -1013,20 +1014,30 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
 
-	/* Enable requested scap codes */
+	bool tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(engine.m_handle->open_sc_set.ppm_sc, tp_set);
+
 	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < PPM_SC_MAX && ret == SCAP_SUCCESS; i++)
+	/* Enable requested tracepoints */
+	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	{
+		if (tp_set[i])
+		{
+			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
+		}
+	}
+	if (ret != SCAP_SUCCESS)
+	{
+		return ret;
+	}
+
+
+	/* Enable requested sc codes */
+	for (int i = 0; i < PPM_SC_SYSCALL_END && ret == SCAP_SUCCESS; i++)
 	{
 		if (handle->open_sc_set.ppm_sc[i])
 		{
-			if (i >= PPM_SC_TP_START)
-			{
-				ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
-			}
-			else
-			{
-				ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_SET, i);
-			}
+			ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_SET, i);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1047,19 +1058,17 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
 	/* Disable all scap codes */
-	int ret = SCAP_SUCCESS;
-	for (int i = 0; i < PPM_SC_MAX && ret == SCAP_SUCCESS; i++)
+	for (int i = 0; i < PPM_SC_MAX; i++)
 	{
-		if (i >= PPM_SC_TP_START)
-		{
-			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
-		}
-		else
-		{
-			ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, i);
-		}
+		scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, i);
 	}
-	return ret;
+
+	/* Disable all tracepoints */
+	for (int i = 0; i < TP_VAL_MAX; i++)
+	{
+		scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
+	}
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)
@@ -1416,9 +1425,9 @@ int32_t scap_bpf_load(
 		return SCAP_FAILURE;
 	}
 
-	/* Start with all scap codes disabled */
-	interesting_ppm_sc_set initial_sc_set = {0};
-	if (load_tracepoints(handle, &initial_sc_set) != SCAP_SUCCESS)
+	/* Start with all tp disabled */
+	interesting_ppm_tp_set initial_tp_set = {0};
+	if (load_tracepoints(handle, &initial_tp_set) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -1632,7 +1641,7 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 	int prg_idx = -1;
 	for (int i = 0; i < handle->m_bpf_prog_cnt; i++)
 	{
-		const ppm_sc_code val = scap_ppm_sc_from_name(handle->m_bpf_progs[i].name);
+		const ppm_tp_code val = tp_from_name(handle->m_bpf_progs[i].name);
 		if (val == tp)
 		{
 			prg_idx = i;
@@ -1669,8 +1678,8 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 		return SCAP_SUCCESS;
 	}
 
-	interesting_ppm_sc_set new_tp_set = {0};
-	new_tp_set.ppm_sc[tp] = 1;
+	interesting_ppm_tp_set new_tp_set = {0};
+	new_tp_set.tp[tp] = 1;
 	return load_tracepoints(handle, &new_tp_set);
 }
 
@@ -1780,7 +1789,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 		return rc;
 	}
 
-	/* Store interesting scap codes */
+	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	return SCAP_SUCCESS;

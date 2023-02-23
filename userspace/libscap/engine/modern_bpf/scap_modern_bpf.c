@@ -194,7 +194,11 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	return pman_enable_capture(handle->open_sc_set.ppm_sc);
+
+	bool tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(engine.m_handle->open_sc_set.ppm_sc, tp_set);
+
+	return pman_enable_capture(handle->open_sc_set.ppm_sc, tp_set);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
@@ -254,7 +258,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
-	/* Store interesting scap codes */
+	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	/* Set the boot time */

@@ -186,8 +186,6 @@ int open_engine(int argc, char** argv)
 			{
 				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
 			}
-			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_SYS_ENTER] = 1;
-			oargs.ppm_sc_of_interest.ppm_sc[PPM_SC_SYS_EXIT] = 1;
 			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
 			break;
 

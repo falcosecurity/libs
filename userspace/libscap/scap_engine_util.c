@@ -71,7 +71,7 @@ static int32_t check_api_compatibility_impl(uint64_t current_version, uint64_t m
 	return SCAP_SUCCESS;
 }
 
-	int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error)
+int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error)
 {
 	int rc;
 	if(vtable && vtable->get_api_version)

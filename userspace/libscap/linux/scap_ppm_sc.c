@@ -525,44 +525,6 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 			sc_codes++;
 		}
 	}
-
-	/*==============================================================
-	 *
-	 * Force-set tracepoints that are not mapped to a single event
-	 * Ie: PPM_SC_SYS_ENTER, PPM_SC_SYS_EXIT, PPM_SC_SCHED_PROCESS_FORK, PPM_SC_SCHED_PROCESS_EXEC
-	 *
-	 *==============================================================*/
-	if (at_least_one_syscall_enter)
-	{
-		// If there is at least one syscall enter,
-		// make sure to include sys_enter
-		ppm_sc_array[PPM_SC_SYS_ENTER] = 1;
-	}
-	if (at_least_one_syscall_exit)
-	{
-		// If there is at least one syscall exit,
-		// make sure to include sys_exit
-		ppm_sc_array[PPM_SC_SYS_EXIT] = 1;
-	}
-
-	// If users requested CLONE3, CLONE, FORK, VFORK,
-	// enable also tracepoint to receive them on arm64
-	if (ppm_sc_array[PPM_SC_FORK] ||
-	   ppm_sc_array[PPM_SC_VFORK] ||
-	   ppm_sc_array[PPM_SC_CLONE] ||
-	   ppm_sc_array[PPM_SC_CLONE3])
-	{
-		ppm_sc_array[PPM_SC_SCHED_PROCESS_FORK] = 1;
-	}
-
-	// If users requested EXECVE, EXECVEAT
-	// enable also tracepoint to receive them on arm64
-	if (ppm_sc_array[PPM_SC_EXECVE] ||
-	   ppm_sc_array[PPM_SC_EXECVEAT])
-	{
-		ppm_sc_array[PPM_SC_SCHED_PROCESS_EXEC] = 1;
-	}
-
 	return SCAP_SUCCESS;
 }
 
@@ -571,19 +533,6 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name)
 	int start = 0;
 	int max = PPM_SC_MAX;
 	const char *sc_name = name;
-
-	// Find last '/' occurrence to take only the basename
-	// This is useful when used internally, eg: to parse
-	// raw_tracepoint/raw_syscalls/sys_enter.
-	// This is a small optimization.
-	const char *tp_name = strrchr(name, '/');
-	if (tp_name && strlen(tp_name) > 1)
-	{
-		start = PPM_SC_TP_START;
-		sc_name = tp_name + 1;
-	}
-	// else, perhaps users passed a tracepoint name like `signal_deliver` or a syscall name.
-	// Since we do not know, try everything.
 
 	const struct ppm_syscall_desc *info_table = scap_get_syscall_info_table();
 	for (int i = start; i < max; i++)

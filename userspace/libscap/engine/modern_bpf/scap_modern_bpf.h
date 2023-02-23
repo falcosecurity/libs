@@ -21,6 +21,7 @@ limitations under the License.
 #include <stdlib.h>
 #include "../../../../driver/ppm_events_public.h"
 #include "scap_open.h"
+#include <ppm_tp.h>
 
 struct scap;
 
@@ -29,6 +30,7 @@ struct modern_bpf_engine
 	unsigned long m_retry_us; /* Microseconds to wait if all ring buffers are empty */
 	char* m_lasterr; /* Last error caught by the engine */
 	interesting_ppm_sc_set open_sc_set; /* Interesting ppm_sc */
+	interesting_ppm_tp_set open_tp_set; /* Interesting tps */
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 };

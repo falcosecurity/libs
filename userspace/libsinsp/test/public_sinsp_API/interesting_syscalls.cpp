@@ -93,11 +93,7 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 	PPM_SC_VFORK,
 	PPM_SC_EPOLL_CREATE,
 	PPM_SC_EPOLL_CREATE1,
-	PPM_SC_SYS_ENTER,
-	PPM_SC_SYS_EXIT,
 	PPM_SC_SCHED_PROCESS_EXIT,
-	PPM_SC_SCHED_PROCESS_FORK,
-	PPM_SC_SCHED_PROCESS_EXEC
 };
 
 /* This test asserts that `enforce_sinsp_state_ppm_sc` correctly retrieves
@@ -191,11 +187,8 @@ TEST(interesting_syscalls, get_sc_names)
 	ppm_sc_set.insert(PPM_SC_READ);
 	orderd_sc_names_matching_set.insert("read");
 
-	ppm_sc_set.insert(PPM_SC_SYS_ENTER);
-	orderd_sc_names_matching_set.insert("sys_enter");
-
-	ppm_sc_set.insert(PPM_SC_SCHED_PROCESS_FORK);
-	orderd_sc_names_matching_set.insert("sched_process_fork");
+	ppm_sc_set.insert(PPM_SC_SCHED_SWITCH);
+	orderd_sc_names_matching_set.insert("sched_switch");
 
 	auto syscall_names_final_set = libsinsp::events::sc_set_to_names(ppm_sc_set);
 

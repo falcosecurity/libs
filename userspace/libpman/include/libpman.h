@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <ppm_tp.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -293,7 +294,7 @@ extern "C"
 	 * @brief Enable BPF-capture if we have previously
 	 * disabled it.
 	 */
-	int pman_enable_capture(bool *tp_set);
+	int pman_enable_capture(bool *ppm_sc_set, bool *ppm_tp_set);
 
 	/**
 	 * @brief Disable BPF capture for example when we
