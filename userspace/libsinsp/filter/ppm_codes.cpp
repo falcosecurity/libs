@@ -59,22 +59,13 @@ static bool is_evttype_operator(const std::string& op)
     return op == "==" || op == "=" || op == "!=" || op == "in";
 }
 
+using name_set_t = std::unordered_set<std::string>;
+
+template<typename code_set_t,
+         code_set_t all_codes_set(),
+         code_set_t names_to_codes(const name_set_t&)>
 struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
 {
-    using code_set_t = libsinsp::events::set<ppm_sc_code>;
-
-    using name_set_t = std::unordered_set<std::string>;
-
-    static inline code_set_t all_codes_set()
-    {
-        return libsinsp::events::all_sc_set();
-    }
-
-    static inline code_set_t names_to_codes(const name_set_t& s)
-    {
-        return libsinsp::events::names_to_sc_set(s);
-    }
-
     ppm_code_visitor():
 		m_expect_value(false),
 		m_inside_negation(false),
@@ -240,7 +231,10 @@ struct ppm_code_visitor: public libsinsp::filter::ast::const_expr_visitor
 libsinsp::events::set<ppm_sc_code>
 libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
 {
-    ppm_code_visitor v;
+    ppm_code_visitor<
+        libsinsp::events::set<ppm_sc_code>,
+        libsinsp::events::all_sc_set,
+        libsinsp::events::names_to_sc_set> v;
     e->accept(&v);
     return v.m_last_node_codes;
 }
@@ -248,6 +242,10 @@ libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
 libsinsp::events::set<ppm_event_code>
 libsinsp::filter::ast::ppm_event_codes(const libsinsp::filter::ast::expr* e)
 {
-    auto sc_set = libsinsp::filter::ast::ppm_sc_codes(e);
-    return libsinsp::events::sc_set_to_event_set(sc_set);
+    ppm_code_visitor<
+        libsinsp::events::set<ppm_event_code>,
+        libsinsp::events::all_event_set,
+        libsinsp::events::names_to_event_set> v;
+    e->accept(&v);
+    return v.m_last_node_codes;
 }
