@@ -25,45 +25,9 @@ static sc_to_tp_map ppm_sc_to_tp_table[] = {
 
 _Static_assert(sizeof(ppm_sc_to_tp_table) / sizeof(*ppm_sc_to_tp_table) == PPM_SC_TP_LEN, "Wrong number of ppm_sc_to_tp_table entries.");
 
-void tp_set_from_single_sc(const ppm_sc_code sc, bool *tp_set)
-{
-	memset(tp_set, 0, sizeof(*tp_set));
-	if (sc < PPM_SC_SYSCALL_END)
-	{
-		// It's a syscall and is enabled!
-		// Enable sys_enter and sys_exit
-		tp_set[SYS_ENTER] = true;
-		tp_set[SYS_EXIT] = true;
-		if (sc  == PPM_SC_FORK ||
-		    sc == PPM_SC_VFORK ||
-		    sc == PPM_SC_CLONE ||
-		    sc == PPM_SC_CLONE3)
-		{
-			tp_set[SCHED_PROC_FORK] = true;
-		}
-
-		// If users requested EXECVE, EXECVEAT
-		// enable also tracepoint to receive them on arm64
-		if (sc == PPM_SC_EXECVE || sc == PPM_SC_EXECVEAT)
-		{
-			tp_set[SCHED_PROC_EXEC] = true;
-		}
-		return;
-	}
-
-	for (int j = 0; j < PPM_SC_TP_LEN; j++)
-	{
-		if (ppm_sc_to_tp_table[j].sc_code == sc)
-		{
-			tp_set[ppm_sc_to_tp_table[j].tp_code] = true;
-			return;
-		}
-	}
-}
-
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set)
 {
-	memset(tp_set, 0, sizeof(*tp_set));
+	memset(tp_set, 0, TP_VAL_MAX * sizeof(*tp_set));
 	if (!sc_set)
 	{
 		for (int i = 0; i < TP_VAL_MAX; i++)

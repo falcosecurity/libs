@@ -802,7 +802,7 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
   \param enabled whether to enable or disable the syscall
   \note This function can only be called for live captures.
 */
-int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
+int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled);
 
 /*!
   \brief Get the root directory of the system. This usually changes

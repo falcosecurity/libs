@@ -1112,30 +1112,6 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 	return SCAP_FAILURE;
 }
 
-static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_sc_code tp)
-{
-	switch(op)
-	{
-	case SCAP_TP_MASK_SET:
-	case SCAP_TP_MASK_UNSET:
-		break;
-
-	default:
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-		ASSERT(false);
-		return SCAP_FAILURE;
-		break;
-	}
-
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_TP_MASK, op, tp);
-	}
-
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
-	return SCAP_FAILURE;
-}
-
 int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 	if (handle == NULL)
 	{
@@ -1147,10 +1123,6 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
 		ASSERT(false);
 		return SCAP_FAILURE;
-	}
-
-	if (ppm_sc >= PPM_SC_TP_START) {
-		return scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, ppm_sc);
 	}
 	return scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc);
 }

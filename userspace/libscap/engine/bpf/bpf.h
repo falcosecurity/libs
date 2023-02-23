@@ -54,7 +54,7 @@ struct bpf_engine
 	Elf *elf;
 	GElf_Ehdr ehdr;
 
-	interesting_ppm_sc_set open_sc_set;
+	interesting_ppm_sc_set curr_sc_set;
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 };

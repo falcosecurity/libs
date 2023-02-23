@@ -141,6 +141,55 @@ int32_t scap_modern_bpf_stop_dropping_mode()
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_modern_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
+	struct modern_bpf_engine* handle = engine.m_handle;
+	int32_t ret = SCAP_SUCCESS;
+
+	// Load initial tp_set
+	bool curr_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
+	switch(op)
+	{
+	case SCAP_PPM_SC_MASK_SET:
+		if(handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
+		break;
+	case SCAP_PPM_SC_MASK_UNSET:
+		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
+		break;
+
+	default:
+		return SCAP_FAILURE;
+	}
+
+
+	if(ppm_sc < PPM_SC_SYSCALL_END)
+	{
+		pman_mark_single_ppm_sc(ppm_sc, op == SCAP_PPM_SC_MASK_SET);
+	}
+
+	// Load final tp_set
+	bool final_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
+	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
+	{
+		if (curr_tp_set[tp] != final_tp_set[tp])
+		{
+			ret = pman_update_single_program(tp, final_tp_set[tp]);
+		}
+	}
+	return ret;
+}
 
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
@@ -161,14 +210,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
 	case SCAP_PPM_SC_MASK:
-		/* We use this setting just to modify the interesting syscalls. */
-		if(arg1 == SCAP_PPM_SC_MASK_SET || arg1 == SCAP_PPM_SC_MASK_UNSET)
-		{
-			pman_mark_single_ppm_sc(arg2, arg1 == SCAP_PPM_SC_MASK_SET);
-		}
-		return SCAP_SUCCESS;
-	case SCAP_TP_MASK:
-		return pman_update_single_program(arg2, arg1 == SCAP_TP_MASK_SET);
+		return scap_modern_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;
@@ -196,9 +238,9 @@ int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 	struct modern_bpf_engine* handle = engine.m_handle;
 
 	bool tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(engine.m_handle->open_sc_set.ppm_sc, tp_set);
+	tp_set_from_sc_set(engine.m_handle->curr_sc_set.ppm_sc, tp_set);
 
-	return pman_enable_capture(handle->open_sc_set.ppm_sc, tp_set);
+	return pman_enable_capture(handle->curr_sc_set.ppm_sc, tp_set);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
@@ -259,7 +301,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	}
 
 	/* Store interesting sc codes */
-	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
+	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	/* Set the boot time */
 	uint64_t boot_time = 0;

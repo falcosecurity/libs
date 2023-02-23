@@ -70,8 +70,8 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 
 #include "ringbuffer/ringbuffer.h"
 
+static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable);
 static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
-static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
 
 //
 // Some of this code is taken from the kernel samples under samples/bpf,
@@ -946,7 +946,7 @@ static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
-static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, ppm_sc_code ppm_sc)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	return set_single_syscall_of_interest(handle, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
@@ -1014,16 +1014,17 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 {
 	struct bpf_engine* handle = engine.m_handle;
 
+	// Load initial tp_set
 	bool tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(engine.m_handle->open_sc_set.ppm_sc, tp_set);
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, tp_set);
 
 	int ret = SCAP_SUCCESS;
 	/* Enable requested tracepoints */
-	for (int i = 0; i < TP_VAL_MAX && ret == SCAP_SUCCESS; i++)
+	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
 	{
-		if (tp_set[i])
+		if (tp_set[tp])
 		{
-			ret = scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_SET, i);
+			ret = scap_bpf_enable_tp(engine, tp, true);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1031,13 +1032,12 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 		return ret;
 	}
 
-
 	/* Enable requested sc codes */
-	for (int i = 0; i < PPM_SC_SYSCALL_END && ret == SCAP_SUCCESS; i++)
+	for (int sc = 0; sc < PPM_SC_SYSCALL_END && ret == SCAP_SUCCESS; sc++)
 	{
-		if (handle->open_sc_set.ppm_sc[i])
+		if (handle->curr_sc_set.ppm_sc[sc])
 		{
-			ret = scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_SET, i);
+			ret = update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_SET, sc);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1057,16 +1057,16 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
-	/* Disable all scap codes */
-	for (int i = 0; i < PPM_SC_MAX; i++)
+	/* Disable all sc codes */
+	for (int i = 0; i < PPM_SC_SYSCALL_END; i++)
 	{
-		scap_bpf_handle_ppm_sc_mask(engine, SCAP_PPM_SC_MASK_UNSET, i);
+		update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_UNSET, i);
 	}
 
 	/* Disable all tracepoints */
-	for (int i = 0; i < TP_VAL_MAX; i++)
+	for (int tp = 0; tp < TP_VAL_MAX; tp++)
 	{
-		scap_bpf_handle_tp_mask(engine, SCAP_TP_MASK_UNSET, i);
+		scap_bpf_enable_tp(engine, tp, false);
 	}
 	return SCAP_SUCCESS;
 }
@@ -1634,7 +1634,7 @@ static int32_t unsupported_config(struct scap_engine_handle engine, const char* 
 	return SCAP_FAILURE;
 }
 
-static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_t op, uint32_t tp)
+static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable)
 {
 	struct bpf_engine *handle = engine.m_handle;
 
@@ -1650,17 +1650,17 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 	}
 
 	// We want to unload a never loaded tracepoint
-	if (prg_idx == -1 && op != SCAP_TP_MASK_SET)
+	if (prg_idx == -1 && !enable)
 	{
 		return SCAP_SUCCESS;
 	}
 	// We want to load an already loaded tracepoint
-	if (prg_idx >= 0 && op != SCAP_TP_MASK_UNSET)
+	if (prg_idx >= 0 && enable)
 	{
 		return SCAP_SUCCESS;
 	}
 
-	if (op == SCAP_TP_MASK_UNSET)
+	if (!enable)
 	{
 		// Algo:
 		// Close the event and tracepoint fds,
@@ -1685,17 +1685,52 @@ static int32_t scap_bpf_handle_tp_mask(struct scap_engine_handle engine, uint32_
 
 static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
+	struct bpf_engine* handle = engine.m_handle;
 	int32_t ret = SCAP_SUCCESS;
+
+	// Load initial tp_set
+	bool curr_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
+
 	switch(op)
 	{
 	case SCAP_PPM_SC_MASK_SET:
+		if(handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
+		break;
 	case SCAP_PPM_SC_MASK_UNSET:
-		ret = update_interesting_syscalls_map(engine, op, ppm_sc);
+		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
 		break;
 
 	default:
-		ret = SCAP_FAILURE;
-		break;
+		return SCAP_FAILURE;
+	}
+
+	// Only if the sc code maps a syscall
+	if(ppm_sc < PPM_SC_SYSCALL_END)
+	{
+		update_interesting_syscalls_map(engine, op, ppm_sc);
+	}
+
+	// Load final tp_set -> note we must check this for syscalls too
+	// because we want to be able to enable/disable sys_{enter,exit} tracepoints dynamically.
+	bool final_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
+	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
+	{
+		if (curr_tp_set[tp] != final_tp_set[tp])
+		{
+			ret = scap_bpf_enable_tp(engine, tp, final_tp_set[tp]);
+		}
 	}
 	return ret;
 }
@@ -1723,8 +1758,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 		return scap_bpf_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
 		return scap_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
-	case SCAP_TP_MASK:
-		return scap_bpf_handle_tp_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		if(arg1 == 0)
 		{
@@ -1790,7 +1823,7 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	}
 
 	/* Store interesting sc codes */
-	memcpy(&engine.m_handle->open_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
+	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	return SCAP_SUCCESS;
 }

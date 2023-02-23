@@ -470,7 +470,6 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	case SCAP_SNAPLEN:
 		return udig_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
-	case SCAP_TP_MASK:
 	case SCAP_DYNAMIC_SNAPLEN:
 	case SCAP_STATSD_PORT:
 	case SCAP_FULLCAPTURE_PORT_RANGE:
