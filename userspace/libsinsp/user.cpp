@@ -256,9 +256,11 @@ scap_userinfo *sinsp_usergroup_manager::userinfo_map_insert(
 	auto &usr = map[uid];
 	usr.uid = uid;
 	usr.gid = gid;
-	strlcpy(usr.name, name, MAX_CREDENTIALS_STR_LEN);
-	strlcpy(usr.homedir, home, SCAP_MAX_PATH_SIZE);
-	strlcpy(usr.shell, shell, SCAP_MAX_PATH_SIZE);
+	// In case the node is configured to use NIS,
+	// some struct passwd* fields may be set to NULL.
+	strlcpy(usr.name, (name != nullptr) ? name : "<NA>", MAX_CREDENTIALS_STR_LEN);
+	strlcpy(usr.homedir, (home != nullptr) ? home : "<NA>", SCAP_MAX_PATH_SIZE);
+	strlcpy(usr.shell, (shell != nullptr) ? shell : "<NA>", SCAP_MAX_PATH_SIZE);
 
 	return &usr;
 }
@@ -272,7 +274,7 @@ scap_groupinfo *sinsp_usergroup_manager::groupinfo_map_insert(
 
 	auto &grp = map[gid];
 	grp.gid = gid;
-	strlcpy(grp.name, name, MAX_CREDENTIALS_STR_LEN);
+	strlcpy(grp.name, (name != nullptr) ? name : "<NA>", MAX_CREDENTIALS_STR_LEN);
 
 	return &grp;
 }
