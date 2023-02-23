@@ -213,6 +213,14 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 BPF_PROBE("sched/", sched_switch, sched_switch_args)
 {
+	struct task_struct *p = (struct task_struct *) ctx->prev;
+	struct task_struct *n = (struct task_struct *) ctx->next;
+#else
+BPF_KPROBE(finish_task_switch)
+{
+	struct task_struct *p = (struct task_struct *) ctx->si;
+	struct task_struct *n = (struct task_struct *) bpf_get_current_task();
+#endif
 	struct sysdig_bpf_settings *settings;
 	enum ppm_event_type evt_type = PPME_CPU_ANALYSIS_E;
 
@@ -223,56 +231,51 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 	if (!settings->capture_enabled)
 		return 0;
 
-	if (evt_type < PPM_EVENT_MAX && !settings->events_mask[evt_type]) {
+	if (evt_type < PPM_EVENT_MAX && !settings->events_mask[evt_type])
 		return 0;
-	}
 
-	struct task_struct *p = (struct task_struct *) ctx->prev;
-	struct task_struct *n = (struct task_struct *) ctx->next;
 	u32 tid = _READ(p->pid);
 	u32 pid = _READ(p->tgid);
 	u64 ts, *tsp;
 	if (FILTER) {
-		if (_READ(p->state) == TASK_RUNNING) {
-			u64 ts = bpf_ktime_get_ns();
-			bpf_map_update_elem(&cpu_runq, &pid, &ts, BPF_ANY);
-		}
-		// record previous thread (current) sleep time
+		// record previous thread offcpu start time
 		ts = bpf_ktime_get_ns();
 		bpf_map_update_elem(&off_start_ts, &tid, &ts, BPF_ANY);
 
-		// calculate oncpu time, sleep time - &on_start_ts
-		// p is the focus thread, it switch off
 		u64 *on_ts;
 		on_ts = bpf_map_lookup_elem(&on_start_ts, &tid);
 		if (on_ts != 0) {
+			// calculate previous thread's oncpu delta time
 			u64 delta = ts - *on_ts;
 			u64 delta_us = delta / 1000; // convert to us
 			bpf_map_delete_elem(&on_start_ts, &tid);
 			if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
 				if (check_filter(pid)) {
 					record_cpu_ontime_and_out(ctx, settings, pid, tid, *on_ts, delta);
-					// aggregate(pid, tid, *on_ts, delta, 1);
 				}
 			}
 		}
+		// record enqueue time
+		if (_READ(p->state) == TASK_RUNNING) {
+			u64 ts = bpf_ktime_get_ns();
+			bpf_map_update_elem(&cpu_runq, &tid, &ts, BPF_ANY);
+		}
 	}
-	// get the next thread's start time
+
 	tid = _READ(n->pid);
 	pid = _READ(n->tgid);
 	if (!(FILTER))
 		return 0;
 
-	// record oncpu start time
+	// record next thread's oncpu start time
 	u64 on_ts = bpf_ktime_get_ns();
-	// record on start time
 	bpf_map_update_elem(&on_start_ts, &tid, &on_ts, BPF_ANY);
 
 	tsp = bpf_map_lookup_elem(&off_start_ts, &tid);
 	if (tsp != 0) {
 		u64 off_ts = *tsp;
 		bpf_map_delete_elem(&off_start_ts, &tid);
-		// calculate current thread's off delta time
+		// calculate next thread's offcpu delta time
 		u64 delta = on_ts - off_ts;
 		u64 delta_us = delta / 1000;
 		if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
@@ -285,91 +288,13 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 					bpf_map_delete_elem(&cpu_runq, &tid);
 				}
 				record_cpu_offtime(ctx, settings, pid, tid, off_ts, rq_la, delta);
-				// aggregate(pid, tid, off_ts, delta, 0);
 			}
 		}
 	}
+
 	return 0;
 }
-#else
-BPF_KPROBE(finish_task_switch)
-{
-	struct sysdig_bpf_settings *settings;
-	enum ppm_event_type evt_type;
 
-	settings = get_bpf_settings();
-	if (!settings)
-		return 0;
-
-	if (!settings->capture_enabled)
-		return 0;
-
-	struct task_struct *p = (struct task_struct *) ctx->si;
-	u32 tid = _READ(p->pid);
-	u32 pid = _READ(p->tgid);
-	u64 ts, *tsp;
-	if (FILTER) {
-		if (_READ(p->state) == TASK_RUNNING) {
-			u64 ts = bpf_ktime_get_ns();
-			bpf_map_update_elem(&cpu_runq, &pid, &ts, BPF_ANY);
-		}
-		// record previous thread (current) sleep time
-		ts = bpf_ktime_get_ns();
-		bpf_map_update_elem(&off_start_ts, &tid, &ts, BPF_ANY);
-
-		// calculate oncpu time, sleep time - &on_start_ts
-		// p is the focus thread, it switch off
-		u64 *on_ts;
-		on_ts = bpf_map_lookup_elem(&on_start_ts, &tid);
-		if (on_ts != 0) {
-			u64 delta = ts - *on_ts;
-			u64 delta_us = delta / 1000; // convert to us
-			bpf_map_delete_elem(&on_start_ts, &tid);
-			if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
-				if (check_filter(pid)) {
-					record_cpu_ontime_and_out(ctx, settings, pid, tid, *on_ts, delta);
-					// aggregate(pid, tid, *on_ts, delta, 1);
-				}
-			}
-		}
-	}
-	// get the next thread's start time
-	struct task_struct *n = (struct task_struct *)bpf_get_current_task();
-
-	tid = _READ(n->pid);
-	pid = _READ(n->tgid);
-	if (!(FILTER))
-		return 0;
-
-	// record oncpu start time
-	u64 on_ts = bpf_ktime_get_ns();
-	// record on start time
-	bpf_map_update_elem(&on_start_ts, &tid, &on_ts, BPF_ANY);
-
-	tsp = bpf_map_lookup_elem(&off_start_ts, &tid);
-	if (tsp != 0) {
-		u64 off_ts = *tsp;
-		bpf_map_delete_elem(&off_start_ts, &tid);
-		// calculate current thread's off delta time
-		u64 delta = on_ts - off_ts;
-		u64 delta_us = delta / 1000;
-		if ((delta_us >= MINBLOCK_US) && (delta_us <= MAXBLOCK_US)) {
-			if (check_filter(pid)) {
-				u64 *rq_ts = bpf_map_lookup_elem(&cpu_runq, &tid);
-				u64 rq_la = 0;
-				if (rq_ts != 0) {
-					if (on_ts > *rq_ts)
-						rq_la = (on_ts - *rq_ts) / 1000;
-					bpf_map_delete_elem(&cpu_runq, &tid);
-				}
-				record_cpu_offtime(ctx, settings, pid, tid, off_ts, rq_la, delta);
-				// aggregate(pid, tid, off_ts, delta, 0);
-			}
-		}
-	}
-	return 0;
-}
-#endif
 static __always_inline int bpf_trace_enqueue(struct sched_process_exit_args *ctx)
 {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
@@ -383,6 +308,7 @@ static __always_inline int bpf_trace_enqueue(struct sched_process_exit_args *ctx
 		return 0;
 	u64 ts = bpf_ktime_get_ns();
 	bpf_map_update_elem(&cpu_runq, &pid, &ts, BPF_ANY);
+
 	return 0;
 }
 BPF_PROBE("sched/", sched_wakeup_new, sched_process_exit_args)

@@ -136,19 +136,6 @@ struct info_t {
     u8 time_type[NUM];
 };
 
-#define TYPE_NUM 8
-struct time_aggregate_t {
-    u32 pid;
-    u32 tid;
-    char comm[TASK_COMM_LEN]; // 16
-    u64 start_time;
-    // on_total_time, off_total_time;
-    u64 total_times[2];
-    // net, io, futex, idle, other
-    // 0, 1, 2, 3, 4
-    u64 time_specs[TYPE_NUM]; // 展开成各个参数；1 + 2 + 4
-};
-
 struct bpf_map_def __bpf_section("maps") on_start_ts = {
         .type = BPF_MAP_TYPE_HASH,
         .key_size = sizeof(u32),
