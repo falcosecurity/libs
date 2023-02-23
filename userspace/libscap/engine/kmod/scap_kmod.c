@@ -32,6 +32,7 @@ limitations under the License.
 #include "ringbuffer/ringbuffer.h"
 #include "strlcpy.h"
 #include "strerror.h"
+#include <ppm_tp.h>
 
 //#define NDEBUG
 #include <assert.h>

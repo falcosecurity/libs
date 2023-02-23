@@ -506,8 +506,6 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 	 */
 	memset(ppm_sc_array, 0, sizeof(*ppm_sc_array) * PPM_SC_MAX);
 
-	bool at_least_one_syscall_enter = false;
-	bool at_least_one_syscall_exit = false;
 	// Load associated ppm_sc from event_table
 	for (int ev = 0; ev < PPM_EVENT_MAX; ev++)
 	{
@@ -520,8 +518,6 @@ int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OU
 		while (sc_codes && *sc_codes != -1)
 		{
 			ppm_sc_array[*sc_codes] = 1;
-			at_least_one_syscall_enter |= *sc_codes < PPM_SC_SYSCALL_END && PPME_IS_ENTER(ev);
-			at_least_one_syscall_exit |= *sc_codes < PPM_SC_SYSCALL_END && PPME_IS_EXIT(ev);
 			sc_codes++;
 		}
 	}

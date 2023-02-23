@@ -70,6 +70,7 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 
 #include "ringbuffer/ringbuffer.h"
 
+static int32_t scap_bpf_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc, bool enabled);
 static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable);
 static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
 
@@ -637,6 +638,26 @@ static int32_t load_tracepoint(struct bpf_engine* handle, const char *event, str
 	return SCAP_SUCCESS;
 }
 
+static ppm_tp_code tp_from_name(const char *tp_path)
+{
+	// Find last '/' occurrence to take only the basename
+	const char *tp_name = strrchr(tp_path, '/');
+	if (tp_name == NULL || strlen(tp_name) <= 1)
+	{
+		return -1;
+	}
+
+	tp_name++;
+	for (int i = 0; i < TP_VAL_MAX; i++)
+	{
+		if (strcmp(tp_name, tp_names[i]) == 0)
+		{
+			return i;
+		}
+	}
+	return -1;
+}
+
 static bool is_tp_enabled(interesting_ppm_tp_set *sc_of_interest, const char *shname)
 {
 	const ppm_tp_code val = tp_from_name(shname);
@@ -946,10 +967,10 @@ static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
-static int32_t update_interesting_syscalls_map(struct scap_engine_handle engine, uint32_t op, ppm_sc_code ppm_sc)
+static int32_t scap_bpf_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc, bool enabled)
 {
 	struct bpf_engine *handle = engine.m_handle;
-	return set_single_syscall_of_interest(handle, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
+	return set_single_syscall_of_interest(handle, ppm_sc, enabled);
 }
 
 static int32_t populate_event_table_map(struct bpf_engine *handle)
@@ -1037,7 +1058,7 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	{
 		if (handle->curr_sc_set.ppm_sc[sc])
 		{
-			ret = update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_SET, sc);
+			ret = scap_bpf_enable_sc(engine, sc, true);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1058,9 +1079,9 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
 	/* Disable all sc codes */
-	for (int i = 0; i < PPM_SC_SYSCALL_END; i++)
+	for (int sc = 0; sc < PPM_SC_SYSCALL_END; sc++)
 	{
-		update_interesting_syscalls_map(engine, SCAP_PPM_SC_MASK_UNSET, i);
+		scap_bpf_enable_sc(engine, sc, false);
 	}
 
 	/* Disable all tracepoints */
@@ -1718,7 +1739,7 @@ static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uin
 	// Only if the sc code maps a syscall
 	if(ppm_sc < PPM_SC_SYSCALL_END)
 	{
-		update_interesting_syscalls_map(engine, op, ppm_sc);
+		scap_bpf_enable_sc(engine, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
 	}
 
 	// Load final tp_set -> note we must check this for syscalls too

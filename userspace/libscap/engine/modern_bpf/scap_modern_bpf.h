@@ -21,7 +21,6 @@ limitations under the License.
 #include <stdlib.h>
 #include "../../../../driver/ppm_events_public.h"
 #include "scap_open.h"
-#include <ppm_tp.h>
 
 struct scap;
 

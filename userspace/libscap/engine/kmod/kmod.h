@@ -19,7 +19,6 @@ limitations under the License.
 #include <stdint.h>
 #include "ringbuffer/devset.h"
 #include "scap_open.h"
-#include <ppm_tp.h>
 
 struct kmod_engine
 {

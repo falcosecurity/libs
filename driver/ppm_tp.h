@@ -16,7 +16,7 @@ typedef enum {
 #define X(name, path) name,
 	TP_FIELDS
 #undef X
-		TP_VAL_MAX,
+	TP_VAL_MAX,
 } ppm_tp_code;
 
 extern const char *tp_names[];
@@ -30,6 +30,5 @@ typedef struct
 	bool tp[TP_VAL_MAX];
 } interesting_ppm_tp_set;
 
-ppm_tp_code tp_from_name(const char *tp_path);
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set);
 #endif
