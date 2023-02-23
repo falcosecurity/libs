@@ -3781,21 +3781,20 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
 	int res;
-	unsigned long pos0;
-	unsigned long pos1;
-	uint64_t pos64;
+	unsigned long pos64;
+	int32_t fd;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
@@ -3810,6 +3809,10 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	/*
 	 * pos
 	 */
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+{
+	unsigned long pos0;
+	unsigned long pos1;
 #if defined CONFIG_X86
 	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
 	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
@@ -3821,6 +3824,10 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 #endif
 
 	pos64 = merge_64(pos1, pos0);
+}
+#else 
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+#endif
 
 	res = val_to_ring(args, pos64, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3829,6 +3836,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
