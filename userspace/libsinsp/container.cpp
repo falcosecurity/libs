@@ -392,18 +392,14 @@ bool sinsp_container_manager::async_allowed() const
 	return m_inspector->m_inited;
 }
 
-void sinsp_container_manager::dump_containers(scap_dumper_t* dumper)
+void sinsp_container_manager::dump_containers(sinsp_dumper& dumper)
 {
 	for(const auto& it : (*m_containers.lock()))
 	{
 		sinsp_evt evt;
 		if(container_to_sinsp_event(container_to_json(*it.second), &evt, it.second->get_tinfo(m_inspector)))
 		{
-			int32_t res = scap_dump(dumper, evt.m_pevt, evt.m_cpuid, SCAP_DF_LARGE);
-			if(res != SCAP_SUCCESS)
-			{
-				throw sinsp_exception(scap_dump_getlasterr(dumper));
-			}
+			dumper.dump(&evt);
 		}
 	}
 }

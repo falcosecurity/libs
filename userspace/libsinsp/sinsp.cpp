@@ -85,7 +85,6 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 #endif
 	m_h = NULL;
 	m_parser = NULL;
-	m_dumper = NULL;
 	m_is_dumping = false;
 	m_metaevt = NULL;
 	m_meinfo.m_piscapevt = NULL;
@@ -786,10 +785,10 @@ void sinsp::close()
 		m_h = NULL;
 	}
 
-	if(NULL != m_dumper)
+	if(m_dumper != nullptr)
 	{
-		scap_dump_close(m_dumper);
-		m_dumper = NULL;
+		m_dumper->close();
+		m_dumper.reset(nullptr);
 	}
 
 	m_is_dumping = false;
@@ -825,25 +824,24 @@ void sinsp::autodump_start(const std::string& dump_filename, bool compress)
 		throw sinsp_exception("inspector not opened yet");
 	}
 
+	std::unique_ptr<sinsp_dumper> dumper(new sinsp_dumper);
+
 	if(compress)
 	{
-		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, false);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_GZIP, false);
 	}
 	else
 	{
-		m_dumper = scap_dump_open(m_h, dump_filename.c_str(), SCAP_COMPRESSION_NONE, false);
+		dumper->open(this, dump_filename.c_str(), SCAP_COMPRESSION_NONE, false);
 	}
 
 	m_is_dumping = true;
 
-	if(NULL == m_dumper)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
+	m_dumper = std::move(dumper);
 
-	m_container_manager.dump_containers(m_dumper);
+	m_container_manager.dump_containers(*m_dumper);
 
-	m_usergroup_manager.dump_users_groups(m_dumper);
+	m_usergroup_manager.dump_users_groups(*m_dumper);
 }
 
 void sinsp::autodump_next_file()
@@ -861,7 +859,7 @@ void sinsp::autodump_stop()
 
 	if(m_dumper != NULL)
 	{
-		scap_dump_close(m_dumper);
+		m_dumper->close();
 		m_dumper = NULL;
 	}
 
@@ -1448,19 +1446,9 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	if(NULL != m_dumper)
 	{
-		scap_dump_flags dflags;
-
-		bool do_drop = false;
-		dflags = evt->get_dump_flags(&do_drop);
-		if(do_drop)
-		{
-			*puevt = evt;
-			return SCAP_TIMEOUT;
-		}
-
 		if(m_write_cycling)
 		{
-			switch(m_cycle_writer->consider(evt, scap_dump_get_offset(m_dumper)))
+			switch(m_cycle_writer->consider(evt, m_dumper->written_bytes()))
 			{
 				case cycle_writer::NEWFILE:
 					autodump_next_file();
@@ -1477,14 +1465,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			}
 		}
 
-		scap_evt* pdevt = (evt->m_poriginal_evt)? evt->m_poriginal_evt : evt->m_pevt;
-
-		res = scap_dump(m_dumper, pdevt, evt->m_cpuid, dflags);
-
-		if(SCAP_SUCCESS != res)
-		{
-			throw sinsp_exception(scap_dump_getlasterr(m_dumper));
-		}
+		m_dumper->dump(evt);
 	}
 
 	if(evt->m_filtered_out)

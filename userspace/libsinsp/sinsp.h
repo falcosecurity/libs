@@ -1067,7 +1067,7 @@ private:
 	// the parsing engine
 	sinsp_parser* m_parser;
 	// the statistics analysis engine
-	scap_dumper_t* m_dumper;
+	std::unique_ptr<sinsp_dumper> m_dumper;
 	bool m_is_dumping;
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
