@@ -4795,7 +4795,32 @@ FILLER(sys_pread64_e, true)
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
 #endif
-	return PPM_FAILURE_BUG;
+	unsigned long val;
+	unsigned long size;
+	int res;
+	uint64_t pos64;
+	int32_t fd;
+
+	/*
+	 * fd
+	 */
+	val = bpf_syscall_get_argument(data, 0);
+	fd = (int32_t)val;
+	res = bpf_val_to_ring(data, (int64_t)fd);
+	CHECK_RES(res);
+
+	/*
+	 * size
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
+
+	/*
+	 * pos
+	 */
+	val = bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, val);
 }
 
 FILLER(sys_preadv64_e, true)

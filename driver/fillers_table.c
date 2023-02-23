@@ -111,11 +111,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNLINK_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_UNLINKAT_E] = {FILLER_REF(sys_autofill), 2, APT_REG, {{0}, {1} } },
 	[PPME_SYSCALL_UNLINKAT_X] = {FILLER_REF(sys_single_x)},
-#ifdef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-	[PPME_SYSCALL_PREAD_E] = {FILLER_REF(sys_autofill), 3, APT_REG, {{0}, {2}, {3} } },
-#else
 	[PPME_SYSCALL_PREAD_E] = {FILLER_REF(sys_pread64_e)},
-#endif
 	[PPME_SYSCALL_PREAD_X] = {FILLER_REF(sys_read_x)},
 #ifdef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PWRITE_E] = {FILLER_REF(sys_autofill), 3, APT_REG, {{0}, {2}, {3} } },
