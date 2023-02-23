@@ -4734,9 +4734,34 @@ KP_FILLER(tcp_retransmit_skb_kprobe_e)
 {
 	struct pt_regs *args = (struct pt_regs*)data->ctx;
 	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
+	int segs = 1;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0)
+	segs = _READ(PT_REGS_PARAM3(args));
+#endif
 
 	int res;
 	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring(data, segs);
+	if (res != PPM_SUCCESS)
+		return res;
+	return 0;
+}
+
+KP_FILLER(tcp_send_loss_probe_e)
+{
+	struct pt_regs *args = (struct pt_regs*)data->ctx;
+	struct sock *sk = (struct sock *)_READ(PT_REGS_PARAM1(args));
+	int segs = 1;
+
+	int res;
+	res = sock_to_ring(data, sk);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	res = bpf_val_to_ring(data, segs);
 	if (res != PPM_SUCCESS)
 		return res;
 	return 0;

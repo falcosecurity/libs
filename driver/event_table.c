@@ -344,7 +344,7 @@ const struct ppm_event_info g_event_info[PPM_EVENT_MAX] = {
 	/* PPME_TCP_CLOSE_X */{"tcp_close", EC_NET, EF_UNUSED, 0},
 	/* PPME_TCP_DROP_E */{"tcp_drop", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 1, {{"tuple", PT_SOCKTUPLE, PF_NA}} },
 	/* PPME_TCP_DROP_X */{"tcp_drop", EC_NET, EF_UNUSED, 0},
-	/* PPME_TCP_RETRANSMIT_SKB_E */{"tcp_retransmit_skb", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 1, {{"tuple", PT_SOCKTUPLE, PF_NA}} },
+	/* PPME_TCP_RETRANSMIT_SKB_E */{"tcp_retransmit_skb", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 2, {{"tuple", PT_SOCKTUPLE, PF_NA}, {"segs", PT_INT32, PF_DEC}} },
 	/* PPME_TCP_RETRANSMIT_SKB_X */{"tcp_retransmit_skb", EC_NET, EF_UNUSED, 0},
 	/* PPME_TCP_CONNECT_E */{"tcp_connect", EC_NET, EF_UNUSED, 0},
 	/* PPME_TCP_CONNECT_X */{"tcp_connect", EC_NET, EF_DROP_SIMPLE_CONS | EF_NONE_PARSE, 2, {{"retval", PT_UINT64, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA}} },
