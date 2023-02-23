@@ -156,13 +156,16 @@ public:
 	}
 
 	iterator begin() const { return iterator(m_types.data(), 0, m_max); }
-        iterator end() const { return iterator(m_types.data(), m_max, m_max); }
+	iterator end() const { return iterator(m_types.data(), m_max, m_max); }
 
 	inline void insert(T e)
 	{
 		check_range(e);
+		if (m_types[e] == 0)
+		{
+			m_size++;
+		}
 		m_types[e] = 1;
-		m_size++;
 	}
 
 	template<typename InputIterator>
@@ -177,8 +180,11 @@ public:
 	inline void remove(T e)
 	{
 		check_range(e);
+		if (m_types[e] == 1)
+		{
+			m_size--;
+		}
 		m_types[e] = 0;
-		m_size--;
 	}
 
 	inline bool contains(T e) const
@@ -325,13 +331,13 @@ inline bool operator!=(const libsinsp::events::set<T>& lhs, const libsinsp::even
 template<typename T>
 std::ostream& operator<<(std::ostream& os, const libsinsp::events::set<T>& s)
 {
-    os << "(";
+	os << "(";
 	auto first = true;
 	for (const auto& v : s)
 	{
 		os << (first ? "" : ", ") << v;
-        first = false;
+		first = false;
 	}
-    os << ")";
-    return os;
+	os << ")";
+	return os;
 }
