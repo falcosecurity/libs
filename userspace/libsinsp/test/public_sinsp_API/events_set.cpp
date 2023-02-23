@@ -27,6 +27,12 @@ TEST(events_set, check_size)
 	sc_set.insert(PPM_SC_ACCEPT);
 	ASSERT_EQ(sc_set.size(), 1);
 
+	sc_set.insert(PPM_SC_ACCEPT);
+	ASSERT_EQ(sc_set.size(), 1);
+
+	sc_set.remove(PPM_SC_ACCEPT4);
+	ASSERT_EQ(sc_set.size(), 1);
+
 	sc_set.insert(PPM_SC_ACCEPT4);
 	ASSERT_EQ(sc_set.size(), 2);
 
