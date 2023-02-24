@@ -77,24 +77,24 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 	std::unordered_set<std::string> events_names_set;
 	for (const auto& val : events_set)
 	{
-		if (!libsinsp::events::is_generic(val))
+		if(libsinsp::events::is_generic(val))
 		{
-			events_names_set.insert(scap_get_event_info_table()[val].name);
-		}
-		else
-		{
-			// Skip unknown
-			for (uint32_t i = 1; i < PPM_SC_MAX; i++)
+			libsinsp::events::set<ppm_event_code> generic_evt{(ppm_event_code)val};
+			std::vector<uint8_t> generic_ppm_sc(PPM_SC_MAX, 0);
+			/// throw exception in case of failure (?)
+			scap_get_ppm_sc_from_events(generic_evt.data(), generic_ppm_sc.data());
+			/// here we could also start from `1` we don't want the `unknown` syscall, scap_api already discards it but
+			/// we can enforce it also here
+			for (uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 			{
-				auto single_ev_set = libsinsp::events::set<ppm_sc_code>();
-				single_ev_set.insert((ppm_sc_code)i);
-				const auto evts = sc_set_to_event_set(single_ev_set);
-				if (evts.contains(val))
+				if(generic_ppm_sc[ppm_sc])
 				{
-					events_names_set.insert(scap_get_syscall_info_table()[i].name);
+					events_names_set.insert(scap_get_syscall_info_table()[ppm_sc].name);
 				}
 			}
+			continue;
 		}
+		events_names_set.insert(scap_get_event_info_table()[val].name);
 	}
 	return events_names_set;
 }
