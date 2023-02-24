@@ -101,35 +101,30 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const std::unordered_set<std::string>& events)
 {
-	std::unordered_set<std::string> remaining_events = events;
-	libsinsp::events::set<ppm_event_code> ppm_event_set;
+	libsinsp::events::set<ppm_event_code> ppm_event_set = {};
 
-	// Main loop, on events (ie: non generic events)
+	/* Main loop, on events (ie: non generic events)
+	 * We skip `syscall` name associated with `GENERIC_E`/`GENERIC_X`
+	 */
 	for (int ppm_ev = 2; ppm_ev < PPM_EVENT_MAX; ++ppm_ev)
 	{
-		const char* ppm_ev_name = scap_get_event_info_table()[ppm_ev].name;
-		if (events.find(ppm_ev_name) != events.end())
+		if(events.find(scap_get_event_info_table()[ppm_ev].name) != events.end())
 		{
 			ppm_event_set.insert((ppm_event_code)ppm_ev);
-			remaining_events.erase(ppm_ev_name);
 		}
 	}
 
-	// Only if there are some leftover events:
-	// try to find a ppm_sc name that matches the event,
-	// to eventually enable generic events too!
-	if (!remaining_events.empty())
+	libsinsp::events::set<ppm_event_code> generic_events{PPME_GENERIC_E, PPME_GENERIC_X};
+	std::vector<uint8_t> generic_syscalls(PPM_SC_MAX, 0);
+	/// throw exception in case of failure (?)
+	scap_get_ppm_sc_from_events(generic_events.data(), generic_syscalls.data());
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		// Secondary loop, on syscalls and remaining events
-		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
+		if(generic_syscalls[ppm_sc] && events.find(scap_get_syscall_info_table()[ppm_sc].name) != events.end())
 		{
-			const char* ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
-			if(remaining_events.find(ppm_sc_name) != remaining_events.end())
-			{
-				ppm_event_set.insert(PPME_GENERIC_E);
-				ppm_event_set.insert(PPME_GENERIC_X);
-				break;
-			}
+			ppm_event_set.insert(PPME_GENERIC_E);
+			ppm_event_set.insert(PPME_GENERIC_X);
+			break;
 		}
 	}
 	return ppm_event_set;
