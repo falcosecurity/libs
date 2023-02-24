@@ -118,15 +118,12 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_subdirectory(linux)
 	include_directories(linux)
+	target_link_libraries(scap scap_platform)
 elseif(WIN32)
-	add_subdirectory(win32)
 	include_directories(win32)
 elseif(APPLE)
-	add_subdirectory(macos)
 	include_directories(macos)
 endif()
-
-target_link_libraries(scap scap_platform)
 
 add_library(scap_event_schema
 		scap_event.c
