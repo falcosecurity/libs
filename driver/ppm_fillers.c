@@ -2316,6 +2316,159 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_sendmmsg_x(struct event_filler_arguments *args)
+{
+	int res;
+	unsigned long val;
+	int64_t retval;
+	struct mmsghdr mmh;
+	char *targetbuf = args->str_storage;
+	u32 targetbuflen = STR_STORAGE_SIZE;
+	unsigned long bufsize = 0;
+#ifdef CONFIG_COMPAT
+	struct compat_mmsghdr compat_mmh;
+#endif
+	const struct iovec __user *iov, *iovsrc;
+	unsigned long iovcnt = 0;
+	unsigned int msglen = 0;
+	unsigned int vlen;
+	unsigned int i;
+
+	u64 copylen;
+	u32 notcopied_len;
+	size_t tocopy_len;
+	/*
+	 * res
+	 */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	// Retrieve vlen and the message headers array pointer
+	if (!args->is_socketcall) {
+        	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+        	vlen = (unsigned int) val;
+		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	}
+#ifndef UDIG
+	else {
+		val = args->socketcall_args[1];
+		vlen = (unsigned int)args->socketcall_args[2];
+	}
+#endif /* UDIG */
+
+	/*
+	 * vlen
+	 */
+	res = val_to_ring(args, vlen, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	/*
+	 * Merge the buffers
+	 * refer to parse_readv_writev_bufs()
+	 */
+
+	for (i = 0; i < retval; ++i) {
+#ifdef CONFIG_COMPAT
+        	if (!args->compat) {
+#endif
+			u32 j;
+			uint32_t size = 0;
+			if (unlikely(ppm_copy_from_user(&mmh, (const void __user *)(val + (sizeof(mmh) * i)), sizeof(mmh)))) {
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+			}
+
+			iovsrc = (const struct iovec __user *) mmh.msg_hdr.msg_iov;
+			iovcnt = mmh.msg_hdr.msg_iovlen;
+			msglen = mmh.msg_len;
+
+			copylen = iovcnt * sizeof(struct iovec);
+
+			if (unlikely(iovcnt >= 0xffffffff))
+				return PPM_FAILURE_BUFFER_FULL;
+
+			if (unlikely(copylen >= STR_STORAGE_SIZE))
+				return PPM_FAILURE_BUFFER_FULL;
+
+			if (unlikely(ppm_copy_from_user(args->str_storage, iovsrc, copylen)))
+				return PPM_FAILURE_INVALID_USER_MEMORY;
+
+			iov = (const struct iovec *)(args->str_storage);
+			if (i == 0) {
+				targetbuf += copylen;
+				targetbuflen -= copylen;
+			}
+
+			for (j = 0; j < iovcnt; ++j)
+				size += iov[j].iov_len;
+			/*
+			 * Size is the total size of the buffers provided by the user. The number of
+			 * received bytes can be smaller
+			 */
+			if (size > msglen)
+				size = msglen;
+			/*
+			 * msg size
+			 */
+			*(uint32_t *)(targetbuf + bufsize) = (uint32_t)size;
+			bufsize += sizeof(uint32_t);
+
+			for (j = 0; j < iovcnt; ++j) {
+				if (bufsize >= args->consumer->snaplen) {
+					ASSERT(bufsize >= args->consumer->snaplen);
+
+					/*
+					* Copied all the data even if we haven't reached the
+					* end of the buffer.
+					* Copy must stop here.
+					*/
+					break;
+				}
+
+				tocopy_len = min(iov[j].iov_len, (size_t)args->consumer->snaplen - bufsize);
+				tocopy_len = min(tocopy_len, (size_t)targetbuflen - bufsize - 1);
+
+				notcopied_len = (int)ppm_copy_from_user(targetbuf + bufsize,
+						iov[j].iov_base,
+						tocopy_len);
+
+				if (unlikely(notcopied_len != 0)) {
+					/*
+					 * This means we had a page fault. Skip this event.
+					 */
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+				}
+
+				bufsize += tocopy_len;
+
+				if (tocopy_len != iov[j].iov_len) {
+					/*
+					 * No space left in the args->str_storage buffer.
+					 * Copy must stop here.
+					 */
+					break;
+				}
+			}
+#ifdef CONFIG_COMPAT
+	} else {
+        }
+#endif
+	}
+
+	args->enforce_snaplen = true;
+	res = val_to_ring(args,
+			    (uint64_t)(unsigned long)targetbuf,
+			    bufsize,
+			    false,
+			    0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
+	return add_sentinel(args);
+}
+
 int f_sys_recvmsg_x(struct event_filler_arguments *args)
 {
 	int res;

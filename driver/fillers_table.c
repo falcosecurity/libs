@@ -72,8 +72,8 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 #ifndef WDIG
 	[PPME_SOCKET_SENDMSG_E] = {FILLER_REF(sys_sendmsg_e)},
 	[PPME_SOCKET_SENDMSG_X] = {FILLER_REF(sys_sendmsg_x)},
-	[PPME_SOCKET_SENDMMSG_E] = {FILLER_REF(sys_empty)},
-	[PPME_SOCKET_SENDMMSG_X] = {FILLER_REF(sys_empty)},
+	[PPME_SOCKET_SENDMMSG_E] = {FILLER_REF(sys_single)},
+	[PPME_SOCKET_SENDMMSG_X] = {FILLER_REF(sys_sendmmsg_x)},
 	[PPME_SOCKET_RECVMSG_E] = {FILLER_REF(sys_autofill), 1, APT_SOCK, {{0} } },
 	[PPME_SOCKET_RECVMSG_X] = {FILLER_REF(sys_recvmsg_x)},
 	[PPME_SOCKET_RECVMMSG_E] = {FILLER_REF(sys_empty)},

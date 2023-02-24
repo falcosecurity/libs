@@ -51,6 +51,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_sendto_e)			\
 	FN(sys_sendmsg_e)			\
 	FN(sys_sendmsg_x)			\
+	FN(sys_sendmmsg_x)                      \
 	FN(sys_recv_x)				\
 	FN(sys_recvfrom_x)			\
 	FN(sys_recvmsg_x)			\

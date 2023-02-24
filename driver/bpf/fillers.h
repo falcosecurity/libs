@@ -3250,6 +3250,203 @@ FILLER(sys_sendmsg_x, true)
 	return res;
 }
 
+#define MAX_MSG_LEN 4
+#define MAX_SENDMMSG_IOVCNT 7
+
+FILLER(sys_sendmmsg_x, true)
+{
+	const struct iovec *iovsrc;
+	struct mmsghdr mmh;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct user_msghdr mh;
+#else
+	struct msghdr mh;
+#endif
+	unsigned long iovcnt;
+	unsigned long val;
+	long retval;
+	int res = PPM_SUCCESS;
+
+	/*
+	 * res
+	 */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * vlen
+	 */
+	val = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring_type(data, val, PT_UINT32);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * data
+	 */
+	// data format: size(u32) + data(bytes)
+	// message headers array pointer
+	val = bpf_syscall_get_argument(data, 1);
+
+	const struct iovec *iov;
+	unsigned int copylen;
+	unsigned int msglen;
+	long size = 0;
+	int i, j;
+	unsigned long off = data->state->tail_ctx.curoff;
+	unsigned totalsize = 0;
+
+	#pragma unroll
+	for (i = 0; i < MAX_MSG_LEN; ++i) {
+		// using retval as real number of messages, rather than vlen
+		if (i == retval)
+			break;
+
+		if (bpf_probe_read(&mmh, sizeof(mmh), (void *)(val + i * sizeof(mmh))))
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		iovsrc = (const struct iovec *)mmh.msg_hdr.msg_iov;
+		iovcnt = mmh.msg_hdr.msg_iovlen;
+		msglen = mmh.msg_len;
+
+		copylen = iovcnt * sizeof(struct iovec);
+		iov = (const struct iovec *)data->tmp_scratch;
+
+		if (copylen > SCRATCH_SIZE_MAX)
+			return PPM_FAILURE_BUFFER_FULL;
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+		if (copylen)
+			if (bpf_probe_read((void *)iov,
+					   ((copylen - 1) & SCRATCH_SIZE_MAX) + 1,
+					   (void *)iovsrc))
+#else
+		if (bpf_probe_read((void *)iov,
+				   copylen & SCRATCH_SIZE_MAX,
+				   (void *)iovsrc))
+#endif
+			return PPM_FAILURE_INVALID_USER_MEMORY;
+
+		#pragma unroll
+		for (j = 0; j < MAX_SENDMMSG_IOVCNT; ++j) {
+			if (j == iovcnt)
+				break;
+			// BPF seems to require a hard limit to avoid overflows
+			if (size == LONG_MAX)
+				break;
+
+			size += iov[j].iov_len;
+		}
+
+		if (size > msglen)
+			size = msglen;
+
+		if (size > 0) {
+			// write the total size of one message
+			if (off > SCRATCH_SIZE_HALF)
+				break;
+			*(u32 *)&data->buf[off & SCRATCH_SIZE_HALF] = size;
+			off += sizeof(u32);
+			totalsize += sizeof(u32);
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Declare parameter as volatile to force re-evaluation
+ */
+			volatile unsigned long off_bounded;
+#else /* SYSDIG */
+			unsigned long off_bounded;
+#endif /* SYSDIG */
+			unsigned long remaining = size;
+			int j;
+
+			#pragma unroll
+			for (j = 0; j < MAX_SENDMMSG_IOVCNT; ++j) {
+				volatile unsigned int to_read;
+
+				if (j == iovcnt)
+					break;
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Move assignment of curoff_bounded to near its usage
+ */
+#else /* SYSDIG */
+				off_bounded = off & SCRATCH_SIZE_HALF;
+#endif /* SYSDIG */
+				if (off > SCRATCH_SIZE_HALF)
+					break;
+
+				if (iov[j].iov_len <= remaining)
+					to_read = iov[j].iov_len;
+				else
+					to_read = remaining;
+
+				if (to_read > SCRATCH_SIZE_HALF)
+					to_read = SCRATCH_SIZE_HALF;
+
+#if 1
+/*
+ * SYSDIG -- generate code which satisfies kernel verifier on ARM
+ * - Use volatile local variable to gratuitously calculate bounded amount to read, near usage
+ * - Move assignment/check of off_bounded to near its usage
+ * - Add gratuitous mask to satisfy verifier
+ */
+				{
+					volatile unsigned int to_read_bounded;
+					to_read_bounded = to_read;
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+					if (to_read_bounded) {
+						off_bounded = off;
+						if (bpf_probe_read(&data->buf[off_bounded & SCRATCH_SIZE_HALF],
+								   ((to_read_bounded - 1) & SCRATCH_SIZE_HALF) + 1,
+								   iov[j].iov_base))  {
+							return PPM_FAILURE_INVALID_USER_MEMORY;
+						}
+					}
+#else
+					off_bounded = off;
+					if (bpf_probe_read(&data->buf[off_bounded & SCRATCH_SIZE_HALF],
+							   to_read_bounded & SCRATCH_SIZE_HALF,
+							   iov[j].iov_base)) {
+						return PPM_FAILURE_INVALID_USER_MEMORY;
+					}
+#endif
+				}
+
+#else /* SYSDIG */
+
+#ifdef BPF_FORBIDS_ZERO_ACCESS
+				if (to_read)
+					if (bpf_probe_read(&data->buf[off_bounded],
+							   ((to_read - 1) & SCRATCH_SIZE_HALF) + 1,
+							   iov[j].iov_base))
+#else
+				if (bpf_probe_read(&data->buf[off_bounded],
+						   to_read & SCRATCH_SIZE_HALF,
+						   iov[j].iov_base))
+#endif
+					return PPM_FAILURE_INVALID_USER_MEMORY;
+
+#endif /* SYSDIG */
+
+				remaining -= to_read;
+				off += to_read;
+			}
+		} else {
+			size = 0;
+		}
+		totalsize += size;
+	}
+
+	data->fd = bpf_syscall_get_argument(data, 0);
+	data->curarg_already_on_frame = true;
+
+	return __bpf_val_to_ring(data, 0, totalsize, PT_BYTEBUF, -1, true);
+}
+
 FILLER(sys_creat_x, true)
 {
 	unsigned long dev;
