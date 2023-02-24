@@ -88,6 +88,7 @@ libsinsp::events::set<ppm_sc_code> expected_sinsp_state_ppm_sc_set = {
 	PPM_SC_SOCKET,
 	PPM_SC_SOCKETPAIR,
 	PPM_SC_TIMERFD_CREATE,
+	PPM_SC_UMOUNT,
 	PPM_SC_UMOUNT2,
 	PPM_SC_USERFAULTFD,
 	PPM_SC_VFORK,
@@ -143,18 +144,16 @@ TEST(interesting_syscalls, get_event_set_from_ppm_sc_set)
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set = {
 		PPM_SC_KILL,
 		PPM_SC_SENDTO,
-		PPM_SC_UMOUNT, // this is generic!
+		PPM_SC_UMOUNT,
 		PPM_SC_UMOUNT2,
 	};
 
 	libsinsp::events::set<ppm_event_code> event_set = {
-		PPME_GENERIC_E,
-		PPME_GENERIC_X,
 		PPME_SYSCALL_KILL_E,
 		PPME_SYSCALL_KILL_X,
 		PPME_SOCKET_SENDTO_E,
 		PPME_SOCKET_SENDTO_X,
-		PPME_SYSCALL_UMOUNT_E,
+		PPME_SYSCALL_UMOUNT_E, // this pair maps both `UMOUNT` and `UMOUNT2`
 		PPME_SYSCALL_UMOUNT_X,
 	};
 
