@@ -1616,7 +1616,10 @@ enum extra_event_prog_code
 	PPM_SC_X(MEMBARRIER, 389) \
 	PPM_SC_X(IOPL, 390) \
 	PPM_SC_X(CLOSE_RANGE, 391) \
-	PPM_SC_X(FANOTIFY_MARK, 392)
+	PPM_SC_X(FANOTIFY_MARK, 392) \
+	PPM_SC_X(RECV, 393) \
+	PPM_SC_X(SEND, 394)
+
 
 // Tracepoint based events start from 1 << 10 (1024)
 #define PPM_SC_TP_SHIFT 10

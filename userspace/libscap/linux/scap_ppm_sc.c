@@ -25,8 +25,6 @@ limitations under the License.
 /*
  * When adding a new event, a new line should be added with the list of ppm_sc codes mapping that event.
  * Events that are not mapped to any ppm_sc (ie: "container", "useradded"..., have NULL entries.
- * Events that are mapped to an unknown syscall (eg: `send` that is not available on any of the supported architectures),
- * will have PPM_SC_UNKNOWN value.
  *
  * If adding a specific event mapping an existing generic event, remember to
  * remove the generic events from the first 2 lines.
@@ -62,12 +60,12 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	[PPME_SOCKET_LISTEN_X] = (ppm_sc_code[]){PPM_SC_LISTEN, -1},
 	[PPME_SOCKET_ACCEPT_E] = (ppm_sc_code[]){PPM_SC_ACCEPT, -1},
 	[PPME_SOCKET_ACCEPT_X] = (ppm_sc_code[]){PPM_SC_ACCEPT, -1},
-	[PPME_SOCKET_SEND_E] = (ppm_sc_code[]){PPM_SC_UNKNOWN, -1}, // send -> is not impl by supported archs
-	[PPME_SOCKET_SEND_X] = (ppm_sc_code[]){PPM_SC_UNKNOWN, -1}, // send -> is not impl by supported archs
+	[PPME_SOCKET_SEND_E] = (ppm_sc_code[]){PPM_SC_SEND, -1},
+	[PPME_SOCKET_SEND_X] = (ppm_sc_code[]){PPM_SC_SEND, -1},
 	[PPME_SOCKET_SENDTO_E] = (ppm_sc_code[]){PPM_SC_SENDTO, -1},
 	[PPME_SOCKET_SENDTO_X] = (ppm_sc_code[]){PPM_SC_SENDTO, -1},
-	[PPME_SOCKET_RECV_E] = (ppm_sc_code[]){PPM_SC_UNKNOWN, -1}, // recv -> is not impl by supported archs
-	[PPME_SOCKET_RECV_X] = (ppm_sc_code[]){PPM_SC_UNKNOWN, -1}, // recv -> is not impl by supported archs
+	[PPME_SOCKET_RECV_E] = (ppm_sc_code[]){PPM_SC_RECV, -1},
+	[PPME_SOCKET_RECV_X] = (ppm_sc_code[]){PPM_SC_RECV, -1},
 	[PPME_SOCKET_RECVFROM_E] = (ppm_sc_code[]){PPM_SC_RECVFROM, -1},
 	[PPME_SOCKET_RECVFROM_X] = (ppm_sc_code[]){PPM_SC_RECVFROM, -1},
 	[PPME_SOCKET_SHUTDOWN_E] = (ppm_sc_code[]){PPM_SC_SHUTDOWN, -1},

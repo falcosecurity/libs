@@ -427,6 +427,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_umount
 	[__NR_umount - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT},
 #endif
+#ifdef __NR_recv
+	[__NR_recv - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SOCKET_RECV_E, PPME_SOCKET_RECV_X, PPM_SC_RECV},
+#endif
+#ifdef __NR_send
+	[__NR_send - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SOCKET_SEND_E, PPME_SOCKET_SEND_X, PPM_SC_SEND},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -1233,6 +1239,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_umount
 	[__NR_ia32_umount - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT},
+#endif
+#ifdef __NR_ia32_recv
+	[__NR_ia32_recv - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SOCKET_RECV_E, PPME_SOCKET_RECV_X, PPM_SC_RECV},
+#endif
+#ifdef __NR_ia32_send
+	[__NR_ia32_send - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SOCKET_SEND_E, PPME_SOCKET_SEND_X, PPM_SC_SEND},
 #endif
 	[__NR_ia32_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_ia32_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
