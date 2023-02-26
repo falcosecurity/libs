@@ -221,6 +221,19 @@ set<ppm_event_code> sinsp_state_event_set();
 
 /*!
   \brief Get the name of all the events provided in the set.
+  Note:
+
+  When setting resolve_sc to false exact event table names are returned for each
+  ppm_event w/ exception of "syscall" and "unknown" placeholder strings.
+
+  When setting resolve_sc to true each ppm_event will be resolved to its entirety of true
+  syscall string names, which can result in more syscalls in the following cases where
+  there is no 1:1 mapping from event code to syscall:
+
+  e.g. overloaded case: accept -> accept, accept4
+  e.g. ppm_event sharing: eventfd or eventfd2 -> always both eventfd, eventfd2
+  e.g. snowflake cases: umount or umount2 -> always both umount, umount2
+  e.g. generic events -> will map to ALL generic syscalls (over 200 generic syscalls)
 */
 std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set, bool resolve_sc = true);
 
@@ -229,13 +242,17 @@ std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& ev
 */
 set<ppm_event_code> names_to_event_set(const std::unordered_set<std::string>& events);
 
-/**
-	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to
-	 * pass a single-element set, with just the specific `ppm_sc`. On the other side, you want all the events
-	 * associated with a set of `ppm_sc` you have to pass the entire set of `ppm_sc`.
-	 *
-	 * @param ppm_sc_set set of `ppm_sc` from which you want to obtain information
-	 * @return set of events associated with the provided `ppm_sc` set.
+/*!
+  \brief When you want to retrieve the events associated with a particular `ppm_event` you have to
+  pass a single-element set, with just the specific `ppm_event`. On the other side, you want all the events
+  associated with a set of `ppm_event` you have to pass the entire set of `ppm_event`.
+
+  @param events_of_interest set of `ppm_event` from which you want to obtain information
+  @return set of `ppm_sc` associated with the provided `ppm_event` set.
+  Note:
+
+  When passing a ppm_event set containing PPME_GENERIC_E, PPME_GENERIC_X, ALL generic syscalls
+  (over 200 generic syscalls) will be returned given the information loss when going from event_set to sc_set.
  */
 set<ppm_sc_code> event_set_to_sc_set(const set<ppm_event_code> &events_of_interest);
 
