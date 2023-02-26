@@ -222,7 +222,7 @@ set<ppm_event_code> sinsp_state_event_set();
 /*!
   \brief Get the name of all the events provided in the set.
 */
-std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set);
+std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set, bool resolve_sc = true);
 
 /*!
   \brief Get the ppm_event of all the event names provided in the set.
