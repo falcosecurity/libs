@@ -401,10 +401,82 @@ TEST(interesting_syscalls, sc_set_to_names)
 
 TEST(interesting_syscalls, names_to_sc_set)
 {
-	// "syncfs" is a generic event / syscall
-	static libsinsp::events::set<ppm_sc_code> sc_set_truth = {PPM_SC_KILL, PPM_SC_READ, PPM_SC_SYNCFS};
-	auto sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{"kill", "read", "syncfs"});
+	static libsinsp::events::set<ppm_sc_code> sc_set_truth = {
+#ifdef __NR_kill
+	PPM_SC_KILL,
+#endif
+
+#ifdef __NR_read
+	PPM_SC_READ,
+#endif
+
+#ifdef __NR_syncfs
+	PPM_SC_SYNCFS,
+#endif
+
+#ifdef __NR_accept
+	PPM_SC_ACCEPT,
+#endif
+
+#ifdef __NR_accept4
+	PPM_SC_ACCEPT4,
+#endif
+
+#ifdef __NR_execve
+	PPM_SC_EXECVE,
+#endif
+
+#ifdef __NR_setresuid
+	PPM_SC_SETRESUID,
+#endif
+
+// #ifdef __NR_setresuid32 // TOOD later after ifdef cleanup
+// 	PPM_SC_SETRESUID32,
+// #endif
+
+// #ifdef __NR_eventfd
+// 	PPM_SC_EVENTFD,
+// #endif
+
+#ifdef __NR_eventfd2
+	PPM_SC_EVENTFD2,
+#endif
+
+// #ifdef __NR_umount
+// 	PPM_SC_UMOUNT,
+// #endif
+
+#ifdef __NR_umount2
+	PPM_SC_UMOUNT2,
+#endif
+
+// #ifdef __NR_pipe
+// 	PPM_SC_PIPE,
+// #endif
+
+#ifdef __NR_pipe2
+	PPM_SC_PIPE2,
+#endif
+
+// #ifdef __NR_signalfd
+// 	PPM_SC_SIGNALFD,
+// #endif
+
+#ifdef __NR_signalfd4
+	PPM_SC_SIGNALFD4
+#endif
+	};
+	auto sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{"kill",
+	"read", "syncfs", "accept", "execve", "setresuid", "eventfd2", "umount2", "pipe2", "signalfd4"});
 	ASSERT_PPM_SC_CODES_EQ(sc_set_truth, sc_set);
+
+	static std::unordered_set<std::string> sc_set_names_truth = {"accept",
+	"accept4", "execve", "syncfs", "eventfd", "eventfd2", "umount", "umount2",
+	"pipe", "pipe2", "signalfd", "signalfd4"};
+	auto tmp_sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{"accept",
+	"execve", "syncfs", "eventfd", "umount", "pipe", "signalfd"});
+	auto sc_set_names = libsinsp::events::sc_set_to_names(tmp_sc_set);
+	ASSERT_NAMES_EQ(sc_set_names_truth, sc_set_names);
 }
 
 // API limitations -> we can only map events to syscalls
