@@ -244,7 +244,16 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
 		}
 	}
-	return ppm_sc_set;
+	/* Extra back and forth mapping to resolve overloaded event <-> sc names, e.g. accept -> accept, accept4
+	 * Plus account for variants that share event codes, e.g. eventfd, eventfd2 share PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X
+	 * Plus handle special snowflakes, e.g. "umount" event string maps to PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, but
+	 * in actuality applies for "umount2" syscall as "umount" syscall is a generic event -> end result is activating both umount, umount2
+	 *
+	 * Since names_to_event_set would resolve generic sc events, we only apply these extra lookups for non generic sc event codes
+	*/
+	auto tmp_event_set = libsinsp::events::all_non_generic_sc_event_set().intersect(libsinsp::events::names_to_event_set(syscalls));
+	auto tmp_sc_set = libsinsp::events::event_set_to_sc_set(tmp_event_set);
+	return ppm_sc_set.merge(tmp_sc_set);
 }
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
