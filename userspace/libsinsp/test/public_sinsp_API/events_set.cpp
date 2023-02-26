@@ -207,6 +207,43 @@ TEST(events_set, sc_set_to_event_set)
 	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
 }
 
+TEST(events_set, all_generic_sc_event_set)
+{
+	static libsinsp::events::set<ppm_event_code> event_set_truth = {PPME_GENERIC_E, PPME_GENERIC_X};
+	auto event_set = libsinsp::events::all_generic_sc_event_set();
+	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
+}
+
+TEST(events_set, all_non_generic_sc_event_set)
+{
+	auto event_set = libsinsp::events::all_non_generic_sc_event_set();
+	/* No generic sc events expected. */
+	ASSERT_FALSE(event_set.contains(PPME_GENERIC_E));
+	ASSERT_FALSE(event_set.contains(PPME_GENERIC_X));
+	/* No non sc events expected. */
+	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_E));
+	ASSERT_FALSE(event_set.contains(PPME_CONTAINER_X));
+	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_E));
+	ASSERT_FALSE(event_set.contains(PPME_PROCEXIT_X));
+}
+
+TEST(events_set, all_non_sc_event_set)
+{
+	auto event_set = libsinsp::events::all_non_sc_event_set();
+	/* No sc events at all expected. */
+	ASSERT_FALSE(event_set.contains(PPME_GENERIC_E));
+	ASSERT_FALSE(event_set.contains(PPME_GENERIC_X));
+	ASSERT_FALSE(event_set.contains(PPME_SOCKET_ACCEPT_E));
+	ASSERT_FALSE(event_set.contains(PPME_SOCKET_ACCEPT_X));
+	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_E));
+	ASSERT_FALSE(event_set.contains(PPME_SYSCALL_OPENAT2_X));
+	/* Some critical expected non sc events. */
+	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_E));
+	ASSERT_TRUE(event_set.contains(PPME_CONTAINER_X));
+	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_E));
+	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_X));
+}
+
 // TODO -> future PR after other PRs have been merged and few other things clarified
 TEST(events_set, sinsp_state_event_set)
 {

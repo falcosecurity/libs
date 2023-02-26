@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include "sinsp_events.h"
+#include "../utils.h"
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 {
