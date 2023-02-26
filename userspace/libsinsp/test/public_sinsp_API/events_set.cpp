@@ -152,13 +152,40 @@ TEST(events_set, names_to_event_set)
 	ASSERT_EQ(event_set.size(), 8); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
 }
 
-// TODO include generic event case after clarifying what name(s) generic events should map to
 TEST(events_set, event_set_to_names)
 {
-	static std::set<std::string> names_truth = {"kill", "dup"};
+	static std::set<std::string> names_truth = {"kill", "dup", "umount", "umount2", "eventfd", "eventfd2", "procexit", "container"};
 	auto names = test_utils::unordered_set_to_ordered(libsinsp::events::event_set_to_names(libsinsp::events::set<ppm_event_code>{PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
-	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X}));
+	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPME_PROCEXIT_E, PPME_CONTAINER_E, PPME_CONTAINER_X}));
 	ASSERT_NAMES_EQ(names_truth, names);
+}
+
+TEST(events_set, event_set_to_names_generic_events)
+{
+	auto names = libsinsp::events::event_set_to_names(libsinsp::events::all_generic_sc_event_set());
+	/* Negative assertions. */
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"execve"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"accept"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"mprotect"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"mmap"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"container"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"procexit"}).empty());
+	/* Random checks for some generic sc events. */
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"syncfs"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"perf_event_open"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"timer_create"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"lsetxattr"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"getsid"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"sethostname"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"readlinkat"}).empty());
+
+	/* Solely check for some conservative lower bound to roughly ensure
+	 * we are getting a whole bunch of generic sc events.
+	 * At the time of writing we have about 234 generic sc syscalls as defined
+	 * by not having a dedicated PPME_SYSCALL_* or PPME_SOCKET_* definition.
+	*/
+	ASSERT_GT(names.size(), 210);
 }
 
 TEST(events_set, sc_set_to_event_set)
