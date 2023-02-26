@@ -3968,6 +3968,11 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					ASSERT(parinfo->m_len == sizeof(uint16_t));
 					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
 					evid = scap_native_id_to_ppm_sc(nativeid);
+					if(evid == -1)
+					{
+						/* if there is an unknown `nativeid` we fallback to `PPM_SC_UNKNOWN` */
+						evid = 0;
+					}
 				}
 				evname = (uint8_t*)g_infotables.m_syscall_info_table[evid].name;
 			}
