@@ -528,6 +528,11 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name)
 	int max = PPM_SC_MAX;
 	const char *sc_name = name;
 
+	if(name == NULL)
+	{
+		return -1;
+	}
+
 	const struct ppm_syscall_desc *info_table = scap_get_syscall_info_table();
 	for (int i = start; i < max; i++)
 	{
