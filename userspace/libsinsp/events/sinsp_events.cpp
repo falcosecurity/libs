@@ -116,27 +116,15 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::all_non_generic_sc_event
 std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsinsp::events::set<ppm_event_code>& events_set)
 {
 	std::unordered_set<std::string> events_names_set;
-	for (const auto& val : events_set)
+	for (const auto& ev : events_set)
 	{
-		if (!libsinsp::events::is_generic(val))
-		{
-			events_names_set.insert(scap_get_event_info_table()[val].name);
-		}
-		else
-		{
-			// Skip unknown
-			for (uint32_t i = 1; i < PPM_SC_MAX; i++)
-			{
-				auto single_ev_set = libsinsp::events::set<ppm_sc_code>();
-				single_ev_set.insert((ppm_sc_code)i);
-				const auto evts = sc_set_to_event_set(single_ev_set);
-				if (evts.contains(val))
-				{
-					events_names_set.insert(scap_get_syscall_info_table()[i].name);
-				}
-			}
-		}
+		events_names_set.insert(scap_get_event_info_table()[ev].name);
 	}
+	events_names_set.erase("syscall"); // generic event placeholder string, not needed
+
+	auto sc_set = libsinsp::events::event_set_to_sc_set(events_set);
+	events_names_set = unordered_set_union(libsinsp::events::sc_set_to_names(sc_set), events_names_set);
+	events_names_set.erase("unknown"); // not needed
 	return events_names_set;
 }
 
