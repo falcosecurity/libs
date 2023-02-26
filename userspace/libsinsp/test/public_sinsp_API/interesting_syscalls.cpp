@@ -479,8 +479,6 @@ TEST(interesting_syscalls, names_to_sc_set)
 	ASSERT_NAMES_EQ(sc_set_names_truth, sc_set_names);
 }
 
-// API limitations -> we can only map events to syscalls
-// when a 1:1 mapping is defined, we only test for 1:1 mapping cases
 TEST(interesting_syscalls, event_set_to_sc_set)
 {
 	libsinsp::events::set<ppm_sc_code> sc_set_truth = {
@@ -507,4 +505,36 @@ TEST(interesting_syscalls, event_set_to_sc_set)
 
 	auto sc_set = libsinsp::events::event_set_to_sc_set(event_set);
 	ASSERT_PPM_SC_CODES_EQ(sc_set_truth, sc_set);
+}
+
+TEST(interesting_syscalls, event_set_to_sc_set_generic_events)
+{
+
+	libsinsp::events::set<ppm_event_code> event_set = {
+#ifdef __NR_kill
+	PPME_SYSCALL_KILL_E,
+	PPME_SYSCALL_KILL_X,
+#endif
+
+#ifdef __NR_sendto
+	PPME_SOCKET_SENDTO_E,
+	PPME_SOCKET_SENDTO_X,
+#endif
+
+#ifdef __NR_syncfs
+	PPME_GENERIC_E,
+	PPME_GENERIC_X,
+#endif
+	};
+
+	auto sc_set = libsinsp::events::event_set_to_sc_set(event_set);
+	ASSERT_GT(sc_set.size(), 210);
+	ASSERT_TRUE(sc_set.contains(PPM_SC_SYNCFS));
+	ASSERT_TRUE(sc_set.contains(PPM_SC_KILL));
+	ASSERT_TRUE(sc_set.contains(PPM_SC_SENDTO));
+	/* Random checks for some generic sc events. */
+	ASSERT_TRUE(sc_set.contains(PPM_SC_PERF_EVENT_OPEN));
+	ASSERT_TRUE(sc_set.contains(PPM_SC_GETSID));
+	ASSERT_TRUE(sc_set.contains(PPM_SC_INIT_MODULE));
+	ASSERT_TRUE(sc_set.contains(PPM_SC_READLINKAT));
 }
