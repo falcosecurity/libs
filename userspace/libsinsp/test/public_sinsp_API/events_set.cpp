@@ -188,6 +188,26 @@ TEST(events_set, event_set_to_names_generic_events)
 	ASSERT_GT(names.size(), 210);
 }
 
+TEST(events_set, event_set_to_names_no_generic_events)
+{
+	auto names = libsinsp::events::event_set_to_names(libsinsp::events::all_event_set(), false);
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"execve"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"accept"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"mprotect"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"mmap"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"container"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"procexit"}).empty());
+
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"syncfs"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"perf_event_open"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"timer_create"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"lsetxattr"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"getsid"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"init_module"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"sethostname"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"readlinkat"}).empty());
+}
+
 TEST(events_set, sc_set_to_event_set)
 {
 	libsinsp::events::set<ppm_sc_code> sc_set = {
