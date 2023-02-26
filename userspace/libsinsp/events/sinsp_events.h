@@ -199,6 +199,21 @@ set<ppm_event_code> sc_set_to_event_set(const set<ppm_sc_code> &ppm_sc_of_intere
 set<ppm_event_code> all_event_set();
 
 /*!
+  \brief Get the ppm_event for each non sc events.
+*/
+set<ppm_event_code> all_non_sc_event_set();
+
+/*!
+  \brief Get the ppm_event for each generic sc event.
+*/
+set<ppm_event_code> all_generic_sc_event_set();
+
+/*!
+  \brief Get the ppm_event for each non generic sc event.
+*/
+set<ppm_event_code> all_non_generic_sc_event_set();
+
+/*!
   \brief Returns set of events with critical non syscalls events,
   e.g. container or procexit events.
 */
