@@ -251,7 +251,9 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 	 *
 	 * Since names_to_event_set would resolve generic sc events, we only apply these extra lookups for non generic sc event codes
 	*/
-	auto tmp_event_set = libsinsp::events::all_non_generic_sc_event_set().intersect(libsinsp::events::names_to_event_set(syscalls));
+	auto all_non_generic_sc_event_set = libsinsp::events::all_event_set().filter([&](ppm_event_code e) { return libsinsp::events::is_syscall_event(e); })\
+	.diff(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
+	auto tmp_event_set = all_non_generic_sc_event_set.intersect(libsinsp::events::names_to_event_set(syscalls));
 	auto tmp_sc_set = libsinsp::events::event_set_to_sc_set(tmp_event_set);
 	return ppm_sc_set.merge(tmp_sc_set);
 }
