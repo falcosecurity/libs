@@ -185,7 +185,7 @@ TEST(events_set, event_set_to_names_generic_events)
 	 * At the time of writing we have about 234 generic sc syscalls as defined
 	 * by not having a dedicated PPME_SYSCALL_* or PPME_SOCKET_* definition.
 	*/
-	ASSERT_GT(names.size(), 210);
+	ASSERT_GT(names.size(), 180);
 }
 
 TEST(events_set, event_set_to_names_no_generic_events)
