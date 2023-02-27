@@ -171,13 +171,6 @@ struct bpf_map_def __bpf_section("maps") syscall_map = {
         .max_entries = 1000,
 };
 
-struct bpf_map_def __bpf_section("maps") aggregate_time = {
-        .type = BPF_MAP_TYPE_HASH,
-        .key_size = sizeof(u32),
-        .value_size = sizeof(struct time_aggregate_t),
-        .max_entries = 65535,
-};
-
 struct bpf_map_def __bpf_section("maps") cpu_analysis_pid_whitelist = {
         .type = BPF_MAP_TYPE_HASH,
         .key_size = sizeof(u32),
