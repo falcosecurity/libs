@@ -208,10 +208,10 @@ set<ppm_event_code> sinsp_state_event_set();
   \brief Get the name of all the events provided in the set.
   Note:
 
-  When setting resolve_sc to false exact event table names are returned for each
+  When setting resolve_generic to false exact event table names are returned for each
   ppm_event w/ exception of "syscall" and "unknown" placeholder strings.
 
-  When setting resolve_sc to true each ppm_event will be resolved to its entirety of true
+  When setting resolve_generic to true each ppm_event will be resolved to its entirety of true
   syscall string names, which can result in more syscalls in the following cases where
   there is no 1:1 mapping from event code to syscall:
 
@@ -220,7 +220,7 @@ set<ppm_event_code> sinsp_state_event_set();
   e.g. snowflake cases: umount or umount2 -> always both umount, umount2
   e.g. generic events -> will map to ALL generic syscalls (over 200 generic syscalls)
 */
-std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set, bool resolve_sc = true);
+std::unordered_set<std::string> event_set_to_names(const set<ppm_event_code>& events_set, bool resolve_generic = true);
 
 /*!
   \brief Get the ppm_event of all the event names provided in the set.
