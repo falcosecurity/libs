@@ -24,13 +24,17 @@ int BPF_PROG(listen_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to  manage socketcalls */
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
 	/* Parameter 2: backlog (type: PT_UINT32) */
 	/// TODO: This should be an `int` not a `uint32_t`
-	u32 backlog = (u32)extract__syscall_argument(regs, 1);
+	u32 backlog = (u32)args[1];
 	ringbuf__store_u32(&ringbuf, backlog);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

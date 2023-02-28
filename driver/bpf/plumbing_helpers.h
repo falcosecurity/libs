@@ -677,6 +677,11 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_bind;
 #endif
 
+#ifdef __NR_listen
+	case SYS_LISTEN:
+		return __NR_listen;
+#endif
+
 #ifdef __NR_connect
 	case SYS_CONNECT:
 		return __NR_connect;
