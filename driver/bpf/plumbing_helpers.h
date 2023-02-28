@@ -687,9 +687,19 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_connect;
 #endif
 
+#ifdef __NR_recv
+	case SYS_RECV:
+		return __NR_recv;
+#endif
+
 #ifdef __NR_recvmmsg
 	case SYS_RECVMMSG:
 		return __NR_recvmmsg;
+#endif
+
+#ifdef __NR_send
+	case SYS_SEND:
+		return __NR_send;
 #endif
 
 #ifdef __NR_sendmmsg
