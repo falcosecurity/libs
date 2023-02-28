@@ -33,7 +33,23 @@ void pman_print_error(const char* error_message)
 
 	if(errno != 0)
 	{
-		fprintf(stderr, "libpman: %s (errno: %d | message: %s)\n", error_message, errno, strerror(errno));
+		/*
+		 * libbpf uses -ESRCH to indicate that something could not be found,
+		 * e.g. vmlinux or btf id. This will be interpreted via strerror as "No
+		 * such process" (which was the original meaning of the error code),
+		 * and it is extremely confusing. Avoid that by having a special case
+		 * for this error code.
+		 */
+		if (errno == ESRCH)
+		{
+			fprintf(stderr, "libpman: %s (errno: %d | message: %s)\n",
+					error_message, errno, "Object not found");
+		}
+		else
+		{
+			fprintf(stderr, "libpman: %s (errno: %d | message: %s)\n",
+					error_message, errno, strerror(errno));
+		}
 	}
 	else
 	{
