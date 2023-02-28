@@ -25,12 +25,16 @@ int BPF_PROG(recvfrom_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to  manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 socket_fd = (s32)extract__syscall_argument(regs, 0);
+	s32 socket_fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	u32 size = (u32)extract__syscall_argument(regs, 2);
+	u32 size = (u32)args[2];
 	ringbuf__store_u32(&ringbuf, size);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -78,12 +82,16 @@ int BPF_PROG(recvfrom_x,
 			bytes_to_read = ret;
 		}
 
+		/* Collect parameters at the beginning to manage socketcalls */
+		unsigned long args[2];
+		extract__network_args(args, 2, regs);
+
 		/* Parameter 2: data (type: PT_BYTEBUF) */
-		unsigned long received_data_pointer = extract__syscall_argument(regs, 1);
+		unsigned long received_data_pointer = args[1];
 		auxmap__store_bytebuf_param(auxmap, received_data_pointer, bytes_to_read, USER);
 
 		/* Parameter 3: tuple (type: PT_SOCKTUPLE) */
-		u32 socket_fd = (u32)extract__syscall_argument(regs, 0);
+		u32 socket_fd = (u32)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
 	}
 	else

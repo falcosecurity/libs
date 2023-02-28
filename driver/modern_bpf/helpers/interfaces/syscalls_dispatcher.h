@@ -80,6 +80,11 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 		return __NR_recv;
 #endif
 
+#ifdef __NR_recvfrom
+	case SYS_RECVFROM:
+		return __NR_recvfrom;
+#endif
+
 #ifdef __NR_recvmmsg
 	case SYS_RECVMMSG:
 		return __NR_recvmmsg;
