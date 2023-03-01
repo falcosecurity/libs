@@ -110,6 +110,11 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 		return __NR_send;
 #endif
 
+#ifdef __NR_sendto
+	case SYS_SENDTO:
+		return __NR_sendto;
+#endif
+
 #ifdef __NR_sendmmsg
 	case SYS_SENDMMSG:
 		return __NR_sendmmsg;

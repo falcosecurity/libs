@@ -23,12 +23,16 @@ int BPF_PROG(sendto_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 socket_fd = (s32)extract__syscall_argument(regs, 0);
+	s32 socket_fd = (s32)args[0];
 	auxmap__store_s64_param(auxmap, (s64)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	u32 size = (u32)extract__syscall_argument(regs, 2);
+	u32 size = (u32)args[2];
 	auxmap__store_u32_param(auxmap, size);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
@@ -93,8 +97,12 @@ int BPF_PROG(sendto_x,
 			bytes_to_read = ret;
 		}
 
+		/* Collect parameters at the beginning to manage socketcalls */
+		unsigned long args[2];
+		extract__network_args(args, 2, regs);
+
 		/* Parameter 2: data (type: PT_BYTEBUF) */
-		unsigned long sent_data_pointer = extract__syscall_argument(regs, 1);
+		unsigned long sent_data_pointer = args[1];
 		auxmap__store_bytebuf_param(auxmap, sent_data_pointer, bytes_to_read, USER);
 	}
 	else
