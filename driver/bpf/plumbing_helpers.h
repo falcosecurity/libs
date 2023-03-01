@@ -727,6 +727,11 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_sendto;
 #endif
 
+#ifdef __NR_sendmsg
+	case SYS_SENDMSG:
+		return __NR_sendmsg;
+#endif
+
 #ifdef __NR_sendmmsg
 	case SYS_SENDMMSG:
 		return __NR_sendmmsg;
