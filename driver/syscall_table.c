@@ -421,6 +421,12 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_epoll_create1
 	[__NR_epoll_create1 - SYSCALL_TABLE_ID0] = {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE1_E, PPME_SYSCALL_EPOLL_CREATE1_X, PPM_SC_EPOLL_CREATE1},
 #endif
+#ifdef __NR_lstat64
+	[__NR_lstat64 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_LSTAT64_E, PPME_SYSCALL_LSTAT64_X, PPM_SC_LSTAT64},
+#endif
+#ifdef __NR_umount
+	[__NR_umount - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -636,9 +642,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ipc
 	[__NR_ipc - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IPC},
 #endif
-#ifdef __NR_lstat64
-	[__NR_lstat64 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LSTAT64},
-#endif
 #ifdef __NR__newselect
 	[__NR__newselect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC__NEWSELECT},
 #endif
@@ -653,9 +656,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_olduname
 	[__NR_olduname - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDUNAME},
-#endif
-#ifdef __NR_umount
-	[__NR_umount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_UMOUNT},
 #endif
 #ifdef __NR_signal
 	[__NR_signal - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGNAL},
@@ -1228,6 +1228,12 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_epoll_create1
 	[__NR_ia32_epoll_create1 - SYSCALL_TABLE_ID0] = {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_EPOLL_CREATE1_E, PPME_SYSCALL_EPOLL_CREATE1_X, PPM_SC_EPOLL_CREATE1},
 #endif
+#ifdef __NR_ia32_lstat64
+	[__NR_ia32_lstat64 - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_LSTAT64_E, PPME_SYSCALL_LSTAT64_X, PPM_SC_LSTAT64},
+#endif
+#ifdef __NR_ia32_umount
+	[__NR_ia32_umount - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT},
+#endif
 	[__NR_ia32_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_ia32_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_ia32_time
@@ -1443,9 +1449,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_ia32_ipc
 	[__NR_ia32_ipc - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IPC},
 #endif
-#ifdef __NR_ia32_lstat64
-	[__NR_ia32_lstat64 - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_LSTAT64},
-#endif
 #ifdef __NR_ia32__newselect
 	[__NR_ia32__newselect - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC__NEWSELECT},
 #endif
@@ -1460,9 +1463,6 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_olduname
 	[__NR_ia32_olduname - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_OLDUNAME},
-#endif
-#ifdef __NR_ia32_umount
-	[__NR_ia32_umount - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_UMOUNT},
 #endif
 #ifdef __NR_ia32_signal
 	[__NR_ia32_signal - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGNAL},

@@ -252,6 +252,10 @@ libsinsp::events::set<ppm_sc_code> state_sc_set_truth = {
 	PPM_SC_TIMERFD_CREATE,
 #endif
 
+#ifdef __NR_umount
+	PPM_SC_UMOUNT,
+#endif
+
 #ifdef __NR_umount2
 	PPM_SC_UMOUNT2,
 #endif
