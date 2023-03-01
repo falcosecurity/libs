@@ -90,6 +90,11 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 		return __NR_getpeername;
 #endif
 
+#ifdef __NR_getsockopt
+	case SYS_GETSOCKOPT:
+		return __NR_getsockopt;
+#endif
+
 #ifdef __NR_recv
 	case SYS_RECV:
 		return __NR_recv;
