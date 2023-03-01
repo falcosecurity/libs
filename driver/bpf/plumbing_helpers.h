@@ -659,6 +659,11 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_socket;
 #endif
 
+#ifdef __NR_socketpair
+	case SYS_SOCKETPAIR:
+		return __NR_socketpair;
+#endif
+
 	case SYS_ACCEPT:
 #if defined(CONFIG_S390) && defined(__NR_accept4)
 		return __NR_accept4;
