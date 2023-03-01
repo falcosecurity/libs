@@ -2084,7 +2084,12 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Get all the five arguments */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
+	if (!args->is_socketcall)
+		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
+#ifndef UDIG
+	else
+		memcpy(val, args->socketcall_args, 5*sizeof(syscall_arg_t));
+#endif
 
 	/* Parameter 2: fd (type: PT_FD) */
 	fd = (s32)val[0];
@@ -2117,7 +2122,14 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	uint32_t optlen = 0;
 	s32 fd = 0;
 	syscall_arg_t val[5] = {0};
-	syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
+
+	/* Get all the five arguments */
+	if (!args->is_socketcall)
+		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
+#ifndef UDIG
+	else
+		memcpy(val, args->socketcall_args, 5*sizeof(syscall_arg_t));
+#endif
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
