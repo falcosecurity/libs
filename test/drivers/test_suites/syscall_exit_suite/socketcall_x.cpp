@@ -1,6 +1,8 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_socketcall) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_connect)
+#ifdef __NR_socketcall
+
+#if defined(__NR_socket) && defined(__NR_bind) && defined(__NR_connect)
 
 #include <sys/socket.h>
 #include <linux/net.h>
@@ -2898,3 +2900,5 @@ TEST(SyscallExit, socketcall_setsockoptX_ZERO_OPTLEN)
 }
 
 #endif
+
+#endif /* __NR_socketcall */
