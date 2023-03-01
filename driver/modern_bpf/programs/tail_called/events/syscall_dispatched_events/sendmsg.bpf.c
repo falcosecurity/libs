@@ -23,12 +23,16 @@ int BPF_PROG(sendmsg_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
+
 	/* Parameter 1: fd (type: PT_FD) */
-	s32 socket_fd = (s32)extract__syscall_argument(regs, 0);
+	s32 socket_fd = (s32)args[0];
 	auxmap__store_s64_param(auxmap, (s64)socket_fd);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	unsigned long msghdr_pointer = extract__syscall_argument(regs, 1);
+	unsigned long msghdr_pointer = args[1];
 	auxmap__store_iovec_size_param(auxmap, msghdr_pointer);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
@@ -94,7 +98,11 @@ int BPF_PROG(sendmsg_x,
 			bytes_to_read = ret;
 		}
 
-		unsigned long msghdr_pointer = extract__syscall_argument(regs, 1);
+		/* Collect parameters at the beginning to manage socketcalls */
+		unsigned long args[2];
+		extract__network_args(args, 2, regs);
+
+		unsigned long msghdr_pointer = args[1];
 		auxmap__store_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
 	}
 	else
