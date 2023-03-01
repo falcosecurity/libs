@@ -324,9 +324,9 @@ typedef struct _scap_machine_info
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
 	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
-	uint64_t self_pid_start_ts; ///< Agent start ts in nanoseconds (epoch)
+	uint64_t self_pid_ts_epoch; ///< Agent start ts in nanoseconds (epoch)
 	uint64_t flags; ///< flags
-	char uname_r[128]; ///< Kernel release `uname -r`
+	uint64_t reserved4; ///< reserved for future use, note: because of scap file captures needs to remain uint64_t, use flags if possible
 }scap_machine_info;
 
 /*!
@@ -1030,7 +1030,7 @@ void scap_gethostname(scap_t* handle);
 /**
  * Agent start ts in nanoseconds (epoch).
  */
-void scap_get_self_pid_start_ts(scap_t* handle);
+void scap_get_self_pid_ts_epoch(scap_t* handle);
 
 /**
  * Check is kernel.bpf_stats_enabled is set.
