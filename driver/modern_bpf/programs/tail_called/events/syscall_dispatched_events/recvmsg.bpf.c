@@ -25,8 +25,12 @@ int BPF_PROG(recvmsg_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[1];
+	extract__network_args(args, 1, regs);
+
 	/* Parameter 1: fd (type: PT_FD)*/
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
@@ -78,12 +82,16 @@ int BPF_PROG(recvmsg_x,
 			bytes_to_read = ret;
 		}
 
+		/* Collect parameters at the beginning to manage socketcalls */
+		unsigned long args[2];
+		extract__network_args(args, 2, regs);
+
 		/* Parameter 3: data (type: PT_BYTEBUF) */
-		unsigned long msghdr_pointer = extract__syscall_argument(regs, 1);
+		unsigned long msghdr_pointer = args[1];
 		auxmap__store_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
 
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
-		u32 socket_fd = (u32)extract__syscall_argument(regs, 0);
+		u32 socket_fd = (u32)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
 	}
 	else
