@@ -24,7 +24,6 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/utsname.h>
 #endif // _WIN32
 
 #include "scap.h"
@@ -88,9 +87,9 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(handle);
 	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_self_pid_start_ts(handle);
+	scap_get_self_pid_ts_epoch(handle);
 	scap_get_bpf_stats_enabled(handle);
-	scap_get_uname_r(handle);
+	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
 
@@ -205,9 +204,9 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(handle);
 	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_self_pid_start_ts(handle);
+	scap_get_self_pid_ts_epoch(handle);
 	scap_get_bpf_stats_enabled(handle);
-	scap_get_uname_r(handle);
+	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
 
@@ -451,9 +450,9 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 	scap_gethostname(handle);
 	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_self_pid_start_ts(handle);
+	scap_get_self_pid_ts_epoch(handle);
 	scap_get_bpf_stats_enabled(handle);
-	scap_get_uname_r(handle);
+	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 
 	if(!engine_params || !engine_params->full_proc_scan)
@@ -537,9 +536,9 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 #endif
 	scap_gethostname(handle);
 	handle->m_machine_info.boot_ts_epoch = 0; // plugin does not need boot_ts_epoch
-	scap_get_self_pid_start_ts(handle);
+	scap_get_self_pid_ts_epoch(handle);
 	scap_get_bpf_stats_enabled(handle);
-	scap_get_uname_r(handle);
+	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 
@@ -1230,16 +1229,19 @@ void scap_gethostname(scap_t* handle)
 	}
 }
 
-void scap_get_self_pid_start_ts(scap_t* handle)
+void scap_get_self_pid_ts_epoch(scap_t* handle)
 {
+	handle->m_machine_info.self_pid_ts_epoch = 0;
+#ifdef __linux__
 	struct stat st = {0};
 	char path[256];
 	// proc dir as seen from the calling process pid namespace
 	snprintf(path, sizeof(path), "/proc/%d/", getpid());
 	if(stat(path, &st) == 0)
 	{
-		handle->m_machine_info.self_pid_start_ts = st.st_ctim.tv_sec * (uint64_t) 1000000000 + st.st_ctim.tv_nsec;
+		handle->m_machine_info.self_pid_ts_epoch = st.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + st.st_ctim.tv_nsec;
 	}
+#endif
 }
 
 void scap_get_bpf_stats_enabled(scap_t* handle)
@@ -1249,7 +1251,7 @@ void scap_get_bpf_stats_enabled(scap_t* handle)
 	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
 	{
 		char line[256];
-		uint8_t bpf_stats_enabled;
+		uint32_t bpf_stats_enabled;
 		while(fgets(line, sizeof(line), f) != NULL)
 		{
 			sscanf(line, "%" PRIu32, &bpf_stats_enabled);
@@ -1261,14 +1263,6 @@ void scap_get_bpf_stats_enabled(scap_t* handle)
 		}
 	}
 }
-
-void scap_get_uname_r(scap_t* handle)
-{
-	struct utsname uts;
-	uname(&uts);
-	snprintf(handle->m_machine_info.uname_r, sizeof(handle->m_machine_info.uname_r), "%s", uts.release);
-}
-
 
 int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
 {
