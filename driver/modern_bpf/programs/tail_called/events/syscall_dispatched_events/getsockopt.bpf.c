@@ -53,19 +53,23 @@ int BPF_PROG(getsockopt_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[5];
+	extract__network_args(args, 5, regs);
+
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	auxmap__store_s64_param(auxmap, (s64)fd);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
-	int level = extract__syscall_argument(regs, 1);
+	int level = args[1];
 	auxmap__store_u8_param(auxmap, sockopt_level_to_scap(level));
 
 	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
-	int optname = extract__syscall_argument(regs, 2);
+	int optname = args[2];
 	auxmap__store_u8_param(auxmap, sockopt_optname_to_scap(level, optname));
 
 	/* `optval` and `optlen` will be the ones provided by the user if the syscall fails
@@ -73,9 +77,9 @@ int BPF_PROG(getsockopt_x,
 	 */
 
 	/* Parameter 5: optval (type: PT_DYN) */
-	unsigned long optval = extract__syscall_argument(regs, 3);
+	unsigned long optval = args[3];
 	int optlen = 0;
-	unsigned long optlen_pointer = extract__syscall_argument(regs, 4);
+	unsigned long optlen_pointer = args[4];
 	bpf_probe_read_user(&optlen, sizeof(optlen), (void *)optlen_pointer);
 	auxmap__store_sockopt_param(auxmap, level, optname, optlen, optval);
 
