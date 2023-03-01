@@ -1223,8 +1223,7 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 void scap_gethostname(scap_t* handle)
 {
 	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	char *env_hostname;
-	env_hostname = getenv("FALCO_HOSTNAME");
+	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
 	if(env_hostname != NULL)
 	{
 		snprintf(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname), "%s", env_hostname);
