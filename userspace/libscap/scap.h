@@ -1020,8 +1020,10 @@ uint64_t scap_get_driver_schema_version(scap_t* handle);
 
 /**
  * Get hostname.
- * Supports env variable FALCO_HOSTNAME lookup for
- * cloud native integrations where hostname can be the pod name.
+ *
+ * Supports env variable lookup for cloud native integrations
+ * where the hostname can be equivalent to the Kubernetes pod name.
+ * Customizable over cmake setup SCAP_HOSTNAME_ENV_VAR.
  */
 void scap_gethostname(scap_t* handle);
 
