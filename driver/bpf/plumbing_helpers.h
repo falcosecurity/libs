@@ -707,6 +707,11 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_getsockopt;
 #endif
 
+#ifdef __NR_setsockopt
+	case SYS_SETSOCKOPT:
+		return __NR_setsockopt;
+#endif
+
 #ifdef __NR_recv
 	case SYS_RECV:
 		return __NR_recv;
