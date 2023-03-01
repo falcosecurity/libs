@@ -1,6 +1,8 @@
 #include "../../event_class/event_class.h"
 
-#if defined(__NR_socketcall) && defined(__NR_socket) && defined(__NR_bind) && defined(__NR_connect)
+#ifdef __NR_socketcall
+
+#if defined(__NR_socket) && defined(__NR_bind) && defined(__NR_connect)
 
 #include <sys/socket.h>
 #include <linux/net.h>
@@ -887,3 +889,5 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 	evt_test->assert_num_params_pushed(0);
 }
 #endif
+
+#endif /* __NR_socketcall */
