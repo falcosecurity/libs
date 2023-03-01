@@ -687,6 +687,16 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		return __NR_connect;
 #endif
 
+#ifdef __NR_getsockname
+	case SYS_GETSOCKNAME:
+		return __NR_getsockname;
+#endif
+
+#ifdef __NR_getpeername
+	case SYS_GETPEERNAME:
+		return __NR_getpeername;
+#endif
+
 #ifdef __NR_recv
 	case SYS_RECV:
 		return __NR_recv;
