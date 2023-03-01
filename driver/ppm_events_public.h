@@ -2005,4 +2005,9 @@ struct ppm_event_entry {
 #define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
 #define RW_MAX_FULLCAPTURE_PORT_SNAPLEN 16000
 
+/*
+ * machine_info flags.
+ */
+#define PPM_BPF_STATS_ENABLED		(1 << 0)
+
 #endif /* EVENTS_PUBLIC_H_ */
