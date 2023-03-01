@@ -164,8 +164,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 std::unordered_set<std::string> extract_filter_events(sinsp& inspector)
 {
 	auto ast = inspector.get_filter_ast();
-	auto codes = libsinsp::filter::ast::ppm_event_codes(ast.get());
-	return libsinsp::events::event_set_to_names(codes);
+	if(ast != nullptr)
+	{
+		auto codes = libsinsp::filter::ast::ppm_event_codes(ast.get());
+		return libsinsp::events::event_set_to_names(codes);
+	}
+
+	return {};
 }
 
 void open_engine(sinsp& inspector)
