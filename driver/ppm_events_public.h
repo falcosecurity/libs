@@ -1617,7 +1617,9 @@ enum extra_event_prog_code
 	PPM_SC_X(MEMBARRIER, 390) \
 	PPM_SC_X(IOPL, 391) \
 	PPM_SC_X(CLOSE_RANGE, 392) \
-	PPM_SC_X(FANOTIFY_MARK, 393)
+	PPM_SC_X(FANOTIFY_MARK, 393) \
+	PPM_SC_X(RECV, 394) \
+	PPM_SC_X(SEND, 395)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = value,
