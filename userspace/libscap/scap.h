@@ -325,7 +325,7 @@ typedef struct _scap_machine_info
 	char hostname[128]; ///< The machine hostname
 	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
 	uint64_t self_pid_start_ts; ///< Agent start ts in nanoseconds (epoch)
-	bool bpf_stats_enabled; ///< Check if kernel.bpf_stats_enabled is set
+	uint64_t flags; ///< flags
 	char uname_r[128]; ///< Kernel release `uname -r`
 }scap_machine_info;
 

@@ -1257,7 +1257,7 @@ void scap_get_bpf_stats_enabled(scap_t* handle)
 		fclose(f);
 		if (bpf_stats_enabled != 0)
 		{
-			handle->m_machine_info.bpf_stats_enabled = true;
+			handle->m_machine_info.flags |= PPM_BPF_STATS_ENABLED;
 		}
 	}
 }
