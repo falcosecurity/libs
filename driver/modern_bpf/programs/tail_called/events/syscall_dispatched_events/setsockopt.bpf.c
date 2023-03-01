@@ -53,24 +53,28 @@ int BPF_PROG(setsockopt_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[5];
+	extract__network_args(args, 5, regs);
+
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	s32 fd = (s32)extract__syscall_argument(regs, 0);
+	s32 fd = (s32)args[0];
 	auxmap__store_s64_param(auxmap, (s64)fd);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
-	int level = (int)extract__syscall_argument(regs, 1);
+	int level = (int)args[1];
 	auxmap__store_u8_param(auxmap, sockopt_level_to_scap(level));
 
 	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
-	int optname = (int)extract__syscall_argument(regs, 2);
+	int optname = (int)args[2];
 	auxmap__store_u8_param(auxmap, sockopt_optname_to_scap(level, optname));
 
 	/* Parameter 5: optval (type: PT_DYN) */
-	unsigned long optval = extract__syscall_argument(regs, 3);
-	u16 optlen = (u16)extract__syscall_argument(regs, 4);
+	unsigned long optval = args[3];
+	u16 optlen = (u16)args[4];
 	auxmap__store_sockopt_param(auxmap, level, optname, optlen, optval);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
