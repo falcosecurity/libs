@@ -150,6 +150,19 @@ TEST(events_set, names_to_event_set)
 	PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X, PPME_GENERIC_E, PPME_GENERIC_X};
 	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
 	ASSERT_EQ(event_set.size(), 8); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
+	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));
+	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
+}
+
+// Tests that no generic ppm sc is mapped to an event too
+// basically, avoid that someone added a new event mapping a once-generic syscall,
+// and forgot to update libscap/linux/scap_ppm_sc.c::g_events_to_sc_map.
+TEST(events_set, generic_no_events)
+{
+	auto generic_ev_set = libsinsp::events::set<ppm_event_code>({PPME_GENERIC_E, PPME_GENERIC_X});
+	auto generic_sc_set = libsinsp::events::event_set_to_sc_set(generic_ev_set);
+	auto final_ev_set = libsinsp::events::sc_set_to_event_set(generic_sc_set);
+	ASSERT_EQ(final_ev_set, generic_ev_set);
 }
 
 TEST(events_set, event_set_to_names_generic_events)

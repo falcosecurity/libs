@@ -733,6 +733,11 @@ int scap_get_events_from_ppm_sc(IN const uint8_t ppm_sc_array[PPM_SC_MAX], OUT u
 int scap_get_ppm_sc_from_events(IN const uint8_t events_array[PPM_EVENT_MAX], OUT uint8_t ppm_sc_array[PPM_SC_MAX]);
 
 /*!
+  \brief Given a name, returns associated ppm_sc.
+*/
+ppm_sc_code scap_ppm_sc_from_name(const char *name);
+
+/*!
   \brief Convert a native syscall nr to ppm_sc
 */
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id);

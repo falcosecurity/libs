@@ -100,6 +100,7 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const std::unordered_set<std::string>& events)
 {
+	libsinsp::events::set<ppm_event_code> ppm_event_set = {};
 	std::unordered_set<std::string> remaining_events = events;
 	libsinsp::events::set<ppm_event_code> ppm_event_set;
 

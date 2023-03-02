@@ -237,12 +237,12 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sys_sc_set()
 libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::unordered_set<std::string>& syscalls)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	for (int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
+	for (const auto &syscall_name : syscalls)
 	{
-		std::string ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
-		if (syscalls.find(ppm_sc_name) != syscalls.end())
+		auto ppm_sc = scap_ppm_sc_from_name(syscall_name.c_str());
+		if(ppm_sc != -1)
 		{
-			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
+			ppm_sc_set.insert(ppm_sc);
 		}
 	}
 	/* Extra back and forth mapping to resolve overloaded event <-> sc names, e.g. accept -> accept, accept4
@@ -287,7 +287,11 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::all_sc_set()
 	{
 		for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 		{
-			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
+			if (scap_get_syscall_info_table()[ppm_sc].name[0] != '\0')
+			{
+				// Skip non-existent
+				ppm_sc_set.insert((ppm_sc_code)ppm_sc);
+			}
 		}
 	}
 	return ppm_sc_set;
@@ -299,7 +303,11 @@ std::unordered_set<std::string> libsinsp::events::sc_set_to_names(const libsinsp
 	for (const auto& val : ppm_sc_set)
 	{
 		std::string ppm_sc_name = scap_get_syscall_info_table()[val].name;
-	    ppm_sc_names_set.insert(ppm_sc_name);
+		if (ppm_sc_name != "")
+		{
+			// Skip non-existent
+			ppm_sc_names_set.insert(ppm_sc_name);
+		}
 	}
 	return ppm_sc_names_set;
 }
