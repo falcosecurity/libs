@@ -66,6 +66,13 @@ extern "C"
 	 */
 	int pman_get_required_buffers(void);
 
+	/**
+	 * @brief Return whether modern bpf is supported by running kernel.
+	 *
+	 * @return supported true or false.
+	 */
+	bool pman_check_support();
+
 	/////////////////////////////
 	// PROBE LIFECYCLE
 	/////////////////////////////
