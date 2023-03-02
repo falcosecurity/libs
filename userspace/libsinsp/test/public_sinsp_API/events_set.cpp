@@ -17,16 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include <sinsp.h>
-#include <sys/syscall.h>
 #include "../test_utils.h"
-// We need to include syscall compat tables
-#ifdef __x86_64__
-#include "syscall_compat_x86_64.h"
-#elif __aarch64__
-#include "syscall_compat_aarch64.h"
-#elif __s390x__
-#include "syscall_compat_s390x.h"
-#endif /* __x86_64__ */
 
 TEST(events_set, check_size)
 {
@@ -150,8 +141,6 @@ TEST(events_set, names_to_event_set)
 	PPME_SYSCALL_EXECVEAT_E, PPME_SYSCALL_EXECVEAT_X, PPME_GENERIC_E, PPME_GENERIC_X};
 	ASSERT_PPM_EVENT_CODES_EQ(event_set_truth, event_set);
 	ASSERT_EQ(event_set.size(), 8); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
-	ASSERT_TRUE(event_codes.contains(PPME_GENERIC_X));
-	ASSERT_EQ(event_codes.size(), 6); // enter/exit events for each event name
 }
 
 // Tests that no generic ppm sc is mapped to an event too
@@ -233,43 +222,21 @@ TEST(events_set, event_set_to_names_no_generic_events2)
 TEST(events_set, sc_set_to_event_set)
 {
 	libsinsp::events::set<ppm_sc_code> sc_set = {
-#ifdef __NR_kill
 	PPM_SC_KILL,
-#endif
-
-#ifdef __NR_sendto
 	PPM_SC_SENDTO,
-#endif
-
-#ifdef __NR_setresuid
 	PPM_SC_SETRESUID, // note: corner case PPM_SC_SETRESUID32 would fail
-#endif
-
-#ifdef __NR_alarm
 	PPM_SC_ALARM,
-#endif
 	};
 
 	libsinsp::events::set<ppm_event_code> event_set_truth = {
-#ifdef __NR_kill
 	PPME_SYSCALL_KILL_E,
 	PPME_SYSCALL_KILL_X,
-#endif
-
-#ifdef __NR_sendto
 	PPME_SOCKET_SENDTO_E,
 	PPME_SOCKET_SENDTO_X,
-#endif
-
-#ifdef __NR_setresuid
 	PPME_SYSCALL_SETRESUID_E,
 	PPME_SYSCALL_SETRESUID_X,
-#endif
-
-#ifdef __NR_alarm
 	PPME_GENERIC_E,
 	PPME_GENERIC_X,
-#endif
 	};
 
 	auto event_set = libsinsp::events::sc_set_to_event_set(sc_set);
