@@ -439,8 +439,8 @@ int scap_get_modifies_state_ppm_sc(OUT uint8_t ppm_sc_array[PPM_SC_MAX])
 	for (int event_nr = 2; event_nr < PPM_EVENT_MAX; event_nr++)
 	{
 		if (g_event_info[event_nr].flags & EF_MODIFIES_STATE &&
-		   (g_event_info[event_nr].category & EC_SYSCALL ||
-		    g_event_info[event_nr].category & EC_TRACEPOINT))
+		   (g_event_info[event_nr].category & EC_SYSCALL))
+		    // TODO || g_event_info[event_nr].category & EC_TRACEPOINT))
 		{
 			events_array[event_nr] = 1;
 		}
