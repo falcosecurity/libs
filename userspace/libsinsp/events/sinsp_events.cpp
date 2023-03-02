@@ -84,6 +84,7 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 
 	if (resolve_generic)
 	{
+		/* note: Using existing ppm sc APIs and generic set operations in order to not introduce logic that requires maintenance beyond what we already have. */
 		auto tmp_events_set = events_set.intersect(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
 		if (!tmp_events_set.empty())
 		{
