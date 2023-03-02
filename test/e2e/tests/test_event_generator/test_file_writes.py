@@ -13,10 +13,9 @@ def generate_ids(parameters: list) -> list:
 
     for parameter in parameters:
         containers = parameter[0]
-        sinsp_id = sinsp.generate_id(containers['sinsp'])
         generator_id = event_generator.generate_id(containers['generator'])
 
-        ret.append(f'{sinsp_id}-{generator_id}')
+        ret.append(generator_id)
 
     return ret
 
@@ -35,25 +34,29 @@ expected_args = [
 ]
 generator_tuples = zip(generator_containers, expected_args)
 
-sinsp_filters = [
-    "-f", "evt.is_open_write=true and fd.typechar='f' and fd.num>=0"]
-
 parameters = [
     (
         {
-            'sinsp': sinsp_container,
             'generator': generator_container
         },
         expected_arg
     )
     for (generator_container, expected_arg) in generator_tuples
-    for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+]
+
+sinsp_filters = [
+    "-f", "evt.is_open_write=true and fd.typechar='f' and fd.num>=0"]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_filters)
+]
+sinsp_ids = [
+    sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples
 ]
 
 
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=sinsp_ids)
 @pytest.mark.parametrize('run_containers,expected_arg', parameters, indirect=['run_containers'], ids=generate_ids(parameters))
-def test_file_writes(run_containers: dict, expected_arg: str):
-    sinsp_container = run_containers['sinsp']
+def test_file_writes(sinsp, run_containers: dict, expected_arg: str):
     generator_container = run_containers['generator']
     generator_container.wait()
 
@@ -70,4 +73,4 @@ def test_file_writes(run_containers: dict, expected_arg: str):
         }
     ]
 
-    assert_events(expected_events, sinsp_container)
+    assert_events(expected_events, sinsp)

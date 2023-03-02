@@ -1,6 +1,7 @@
 FROM debian:buster
 
 WORKDIR /tests
+ENV CONTAINERIZED=1
 
 RUN mkdir -p /logs && \
     apt-get update && \
