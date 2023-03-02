@@ -250,6 +250,9 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::
 	 * in actuality applies for "umount2" syscall as "umount" syscall is a generic event -> end result is activating both umount, umount2
 	 *
 	 * Since names_to_event_set would resolve generic sc events, we only apply these extra lookups for non generic sc event codes
+	 *
+	 * note: todo @jasondellaluce, @incertum once we refactor tables and/or introduce a paradigm change of not supporting shared event names across syscall variants
+	 * we can remove this extra logic again. Timing can be relaxed as these extra lookups won't break anything, at worst they are redundant.
 	*/
 	auto all_non_generic_sc_event_set = libsinsp::events::all_event_set().filter([&](ppm_event_code e) { return libsinsp::events::is_syscall_event(e); })\
 	.diff(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
