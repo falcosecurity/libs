@@ -10,21 +10,24 @@ sinsp_args = [
 
 containers = [
     {
-        'sinsp': sinsp_container,
         'http-hello': {
             'image': 'hashicorp/http-echo:alpine',
             'args': ['-text=hello'],
             'user': '11:100'
         }
-    } for sinsp_container in sinsp.generate_specs(args=sinsp_args)
+    }
 ]
 
-ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_args)
+]
+ids = [sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples]
 
-@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_exec_in_container(run_containers: dict):
+
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
+@pytest.mark.parametrize("run_containers", containers, indirect=True)
+def test_exec_in_container(sinsp, run_containers: dict):
     app_container = run_containers['http-hello']
-    sinsp_container = run_containers['sinsp']
 
     container_id = get_container_id(app_container)
 
@@ -64,25 +67,27 @@ def test_exec_in_container(run_containers: dict):
         }
     ]
 
-    assert_events(expected_events, sinsp_container)
-
+    assert_events(expected_events, sinsp)
 
 
 containers = [
     {
-        'sinsp': sinsp_container,
         'nginx': {
             'image': 'nginx:1.14-alpine',
         }
-    } for sinsp_container in sinsp.generate_specs(args=sinsp_args)
+    }
 ]
 
-ids = [ sinsp.generate_id(c['sinsp']) for c in containers ]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_args)
+]
+ids = [sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples]
 
-@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_container_root_user(run_containers: dict):
+
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
+@pytest.mark.parametrize("run_containers", containers, indirect=True)
+def test_container_root_user(sinsp, run_containers: dict):
     app_container = run_containers['nginx']
-    sinsp_container = run_containers['sinsp']
 
     container_id = get_container_id(app_container)
 
@@ -111,4 +116,4 @@ def test_container_root_user(run_containers: dict):
         }
     ]
 
-    assert_events(expected_events, sinsp_container)
+    assert_events(expected_events, sinsp)

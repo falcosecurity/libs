@@ -2,8 +2,9 @@ import pytest
 import docker
 import os
 from time import sleep
-from sinspqa import LOGS_PATH
-from sinspqa.docker import get_container_id
+from subprocess import Popen, PIPE
+
+from sinspqa import LOGS_PATH, is_containerized
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -15,19 +16,6 @@ def docker_client():
         A docker.DockerClient object created from the environment the tests run on.
     """
     return docker.from_env()
-
-
-@pytest.fixture(scope="module")
-def tester_id(docker_client: docker.client.DockerClient):
-    """
-    Get the truncated ID of the test runner.
-
-    Returns:
-        A 12 character string with the ID.
-    """
-    tester_container = docker_client.containers.get('sinsp-e2e-tester')
-
-    return get_container_id(tester_container)
 
 
 def wait_container_running(container: docker.models.containers.Container, additional_wait: int = 0, retries: int = 5):
@@ -49,6 +37,70 @@ def wait_container_running(container: docker.models.containers.Container, additi
         sleep(additional_wait)
 
 
+def run_container(docker_client: docker.client.DockerClient, name: str, container: dict):
+    image = container['image']
+    args = container.get('args', '')
+    privileged = container.get('privileged', False)
+    mounts = container.get('mounts', [])
+    environment = container.get('env', {})
+    user = container.get('user', '')
+    pid_mode = container.get('pid_mode', '')
+    network_mode = container.get('network_mode', '')
+
+    additional_wait = container.get('init_wait', 0)
+    post_validation = container.get('post_validation', None)
+    stop_signal = container.get('signal', None)
+
+    handle = docker_client.containers.run(
+        image,
+        args,
+        name=name,
+        detach=True,
+        privileged=privileged,
+        mounts=mounts,
+        environment=environment,
+        user=user,
+        pid_mode=pid_mode,
+        network_mode=network_mode,
+    )
+
+    post = {
+        'validation': post_validation,
+        'signal': stop_signal
+    }
+
+    try:
+        wait_container_running(handle, additional_wait)
+    except TimeoutError:
+        print(f'{name} failed to start, the test will fail')
+
+    return (handle, post)
+
+
+def teardown_container(name, container, validation, stop_signal):
+    if stop_signal:
+        container.kill(stop_signal)
+
+    # The stop command is issued regardless of the kill command to ensure
+    # the container stops
+    container.stop()
+
+    logs = container.logs().decode('utf-8')
+    if logs:
+        with open(os.path.join(LOGS_PATH, f'{name}.log'), 'w') as f:
+            f.write(logs)
+
+    result = ''
+    if validation:
+        try:
+            validation(container)
+        except AssertionError as e:
+            result = f'{name}: {e}'
+
+    container.remove()
+    return result
+
+
 @pytest.fixture(scope="function")
 def run_containers(request, docker_client: docker.client.DockerClient):
     """
@@ -58,41 +110,10 @@ def run_containers(request, docker_client: docker.client.DockerClient):
     post = {}
 
     for name, container in request.param.items():
-        image = container['image']
-        args = container.get('args', '')
-        privileged = container.get('privileged', False)
-        mounts = container.get('mounts', [])
-        environment = container.get('env', {})
-        additional_wait = container.get('init_wait', 0)
-        post_validation = container.get('post_validation', None)
-        stop_signal = container.get('signal', None)
-        user = container.get('user', '')
-        pid_mode = container.get('pid_mode', '')
-        network_mode = container.get('network_mode', '')
-
-        handle = docker_client.containers.run(
-            image,
-            args,
-            name=name,
-            detach=True,
-            privileged=privileged,
-            mounts=mounts,
-            environment=environment,
-            user=user,
-            pid_mode=pid_mode,
-            network_mode=network_mode,
-        )
+        handle, post_validation = run_container(docker_client, name, container)
 
         containers[name] = handle
-        post[name] = {
-            'validation': post_validation,
-            'signal': stop_signal
-        }
-
-        try:
-            wait_container_running(handle, additional_wait)
-        except TimeoutError as e:
-            print(f'{name} failed to start, the test will fail')
+        post[name] = post_validation
 
     yield containers
 
@@ -103,28 +124,52 @@ def run_containers(request, docker_client: docker.client.DockerClient):
         validation = post[name]['validation']
         stop_signal = post[name]['signal']
 
-        if stop_signal:
-            container.kill(stop_signal)
+        result = teardown_container(name, container, validation, stop_signal)
 
-        # The stop command is issued regardless of the kill command to ensure
-        # the container stops
-        container.stop()
-
-        logs = container.logs().decode('utf-8')
-        if logs:
-            with open(os.path.join(LOGS_PATH, f'{name}.log'), 'w') as f:
-                f.write(logs)
-
-        if validation:
-            try:
-                validation(container)
-            except AssertionError as e:
-                errors.append(f'{name}: {e}')
-                success = False
-
-        container.remove()
+        if result != '':
+            errors.append(result)
+            success = False
 
     assert success, '\n'.join(errors)
+
+
+@pytest.fixture(scope='function')
+def sinsp(request, docker_client: docker.client.DockerClient):
+    """
+    Runs an instance of sinsp-example, either in a container or as a regular
+    process
+    """
+    if is_containerized():
+        container = request.param
+        handle, post = run_container(docker_client, 'sinsp', container)
+
+        yield handle
+
+        validation = container.get('post_validation', None)
+        stop_signal = container.get('signal', None)
+
+        result = teardown_container(
+            'sinsp', handle, validation, stop_signal)
+        assert result == '', result
+
+    else:
+        process = request.param
+        args = process['args']
+        args.insert(0, process['path'])
+        env = os.environ.copy()
+        additional_wait = process.get('init_wait', 0)
+        for k, v in process['env'].items():
+            env[k] = v
+        process = Popen(args, env=env, stdout=PIPE, universal_newlines=True)
+
+        if additional_wait:
+            sleep(additional_wait)
+
+        yield process
+
+        process.terminate()
+        process.wait()
+        assert process.returncode == 0, f'sinsp-example terminated with code {process.returncode}'
 
 
 def pytest_html_report_title(report):

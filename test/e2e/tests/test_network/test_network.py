@@ -3,11 +3,8 @@ from sinspqa import sinsp
 from sinspqa.sinsp import assert_events
 from sinspqa.docker import get_container_id, get_network_data
 
-sinsp_filters = ["-f", "evt.category=net and not container.id=host"]
-
 containers = [
     {
-        'sinsp': sinsp_container,
         'nginx': {
             'image': 'nginx:1.14-alpine',
         },
@@ -15,10 +12,14 @@ containers = [
             'image': 'pstauffer/curl:latest',
             'args': ["sleep", "300"]
         }
-    } for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+    }
 ]
 
-ids = [ sinsp.generate_id(c["sinsp"]) for c in containers ]
+sinsp_filters = ["-f", "evt.category=net and not container.id=host"]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_filters)
+]
+ids = [sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples]
 
 
 def expected_events(origin: dict, destination: dict) -> list:
@@ -87,12 +88,12 @@ def expected_events(origin: dict, destination: dict) -> list:
     ]
 
 
-@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_curl_nginx(run_containers: dict):
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
+@pytest.mark.parametrize("run_containers", containers, indirect=True)
+def test_curl_nginx(sinsp, run_containers: dict):
     # Use a specific local port so validation of events is easier
     local_port = 40000
 
-    sinsp_container = run_containers['sinsp']
     nginx_container = run_containers['nginx']
     curl_container = run_containers['curl']
 
@@ -109,4 +110,4 @@ def test_curl_nginx(run_containers: dict):
     curl_container.exec_run(
         f'curl --local-port {local_port} {destination["ip"]}')
 
-    assert_events(expected_events(origin, destination), sinsp_container)
+    assert_events(expected_events(origin, destination), sinsp)

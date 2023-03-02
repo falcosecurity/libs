@@ -2,25 +2,24 @@ import pytest
 from sinspqa import sinsp, event_generator
 from sinspqa.sinsp import assert_events
 
-sinsp_filters = ["-f", "evt.type=setuid", "-E"]
-
 containers = [
     {
-        'sinsp': sinsp_container,
         'generator': event_generator.container_spec('syscall.NonSudoSetuid'),
-    } for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+    }
 ]
 
+sinsp_filters = ["-f", "evt.type=setuid", "-E"]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_filters)
+]
 ids = [
-    f'{sinsp.generate_id(c["sinsp"])}-{event_generator.generate_id(c["generator"])}'
-    for c in containers
+    sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples
 ]
 
 
-@pytest.mark.parametrize("run_containers", containers, indirect=True, ids=ids)
-def test_non_sudo_setuid(run_containers):
-    sinsp_container = run_containers['sinsp']
-
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
+@pytest.mark.parametrize("run_containers", containers, indirect=True)
+def test_non_sudo_setuid(sinsp, run_containers):
     generator_container = run_containers['generator']
     generator_container.wait()
 
@@ -51,4 +50,4 @@ def test_non_sudo_setuid(run_containers):
         },
     ]
 
-    assert_events(expected_events, sinsp_container)
+    assert_events(expected_events, sinsp)

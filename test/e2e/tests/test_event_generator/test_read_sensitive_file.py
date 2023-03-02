@@ -5,9 +5,9 @@ from sinspqa.sinsp import assert_events, SinspField
 generator_containers = [
     event_generator.container_spec(syscall)
     for syscall in [
-            'syscall.ReadSensitiveFileUntrusted',
-            'syscall.ReadSensitiveFileTrustedAfterStartup'
-        ]
+        'syscall.ReadSensitiveFileUntrusted',
+        'syscall.ReadSensitiveFileTrustedAfterStartup'
+    ]
 ]
 expected_processes = [
     'event-generator',
@@ -15,18 +15,23 @@ expected_processes = [
 ]
 generator_tuples = zip(generator_containers, expected_processes)
 
-sinsp_filters = [
-    "-f", "evt.type in (open,openat,openat2) and evt.is_open_read=true and fd.typechar='f' and fd.num>=0"]
 parameters = [
     (
         {
-            'sinsp': sinsp_container,
             'generator': generator_container,
         },
         expected_process
     )
     for (generator_container, expected_process) in generator_tuples
-    for sinsp_container in sinsp.generate_specs(args=sinsp_filters)
+]
+
+sinsp_filters = [
+    "-f", "evt.type in (open,openat,openat2) and evt.is_open_read=true and fd.typechar='f' and fd.num>=0"]
+sinsp_examples = [
+    sinsp_example for sinsp_example in sinsp.generate_specs(args=sinsp_filters)
+]
+sinsp_ids = [
+    sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples
 ]
 
 
@@ -35,18 +40,16 @@ def generate_ids(parameters: list) -> list:
 
     for parameter in parameters:
         containers = parameter[0]
-        sinsp_id = sinsp.generate_id(containers['sinsp'])
         generator_id = event_generator.generate_id(containers['generator'])
 
-        ret.append(f'{sinsp_id}-{generator_id}')
+        ret.append(generator_id)
 
     return ret
 
 
+@pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=sinsp_ids)
 @pytest.mark.parametrize("run_containers,expected_process", parameters, indirect=['run_containers'], ids=generate_ids(parameters))
-def test_read_sensitive_file(run_containers: dict, expected_process: str):
-    sinsp_container = run_containers['sinsp']
-
+def test_read_sensitive_file(sinsp, run_containers: dict, expected_process: str):
     generator_container = run_containers['generator']
     generator_container.wait()
 
@@ -63,4 +66,4 @@ def test_read_sensitive_file(run_containers: dict, expected_process: str):
         }
     ]
 
-    assert_events(expected_events, sinsp_container)
+    assert_events(expected_events, sinsp)

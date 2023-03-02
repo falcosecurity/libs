@@ -5,15 +5,34 @@ import json
 import docker
 import re
 from enum import Enum
+from abc import ABC, abstractmethod
+from subprocess import Popen
+from queue import Queue, Empty
+from threading import Thread
+from typing import IO, AnyStr
+
+from sinspqa import is_containerized, LOGS_PATH
 
 SINSP_TAG = os.environ.get('SINSP_TAG', 'latest')
 
 
-class SinspStreamer:
+class SinspStreamer(ABC):
     """
     Allows streaming of `sinsp-example` logs for analysis.
     """
 
+    @abstractmethod
+    def read(self):
+        """
+        Reads logs from a container and returns them as a generator.
+
+        Returns:
+            A string holding a single log line from the container.
+        """
+        pass
+
+
+class SinspContainerStreamer(SinspStreamer):
     def __init__(self, container: docker.models.containers.Container, timeout: int = 10):
         """
         Parameters:
@@ -25,12 +44,6 @@ class SinspStreamer:
         self.last_timestamp = None
 
     def read(self):
-        """
-        Reads logs from a container and returns them as a generator.
-
-        Returns:
-            A string holding a single log line from the container.
-        """
         start = datetime.now()
 
         while True:
@@ -64,6 +77,77 @@ class SinspStreamer:
         decoded_log = raw_log.decode("utf-8").strip()
         split_log = decoded_log.split(" ")
         return datetime.strptime(split_log[0][:-4], "%Y-%m-%dT%H:%M:%S.%f"), " ".join(split_log[1:])
+
+
+class SinspProcessStreamer(SinspStreamer):
+    _running = True
+
+    def __init__(self, process: Popen, timeout: int = 10):
+        """
+        Parameters:
+            container (docker.Container): A container object to stream logs from.
+            timeout (int): The maximum amount of time the streamer will read logs from the container.
+        """
+        self.process = process
+        self.timeout = timeout
+        self.queue = Queue()
+        self.stdout_thread = Thread(target=SinspProcessStreamer._readline,
+                                    args=[self.process.stdout, self.queue])
+        SinspProcessStreamer._running = True
+        self.stdout_thread.start()
+
+    def __del__(self):
+        SinspProcessStreamer._running = False
+        self.stdout_thread.join(timeout=1)
+
+    @staticmethod
+    def _readline(stream: IO[AnyStr], queue: Queue):
+        with open(os.path.join(LOGS_PATH, 'sinsp.log'), 'a') as f:
+            while SinspProcessStreamer._running:
+                for line in iter(stream.readline, ''):
+                    if line != '' and line != 'null':
+                        f.write(line)
+                        queue.put(line.rstrip())
+
+    def read(self):
+        start = datetime.now()
+
+        while self.process.poll() is None:
+            sleep(0.2)
+
+            while not self.queue.empty():
+                yield self.queue.get(block=False)
+
+            if (datetime.now() - start).total_seconds() > self.timeout:
+                break
+
+
+class SinspStreamerBuilder:
+    def __init__(self):
+        self._timeout = 10
+        self._sinsp = None
+        self._container = False
+
+    def build(self) -> SinspStreamer:
+        if self._sinsp is None:
+            raise "sinsp must be set"
+
+        if self._container:
+            return SinspContainerStreamer(self._sinsp, timeout=self._timeout)
+        else:
+            return SinspProcessStreamer(self._sinsp, timeout=self._timeout)
+
+    def setContainerized(self, containerized: bool):
+        self._container = containerized
+        return self
+
+    def setTimeout(self, timeout: int):
+        self._timeout = timeout
+        return self
+
+    def setSinsp(self, sinsp: dict):
+        self._sinsp = sinsp
+        return self
 
 
 class SinspFieldTypes(Enum):
@@ -153,7 +237,7 @@ def validate_event(expected_fields: dict, event: dict) -> bool:
 
 
 def assert_events(expected_events: dict,
-                  container: docker.models.containers.Container,
+                  sinsp,
                   timeout: int = 10):
     """
     Takes a list of dictionaries describing the events we want to receive
@@ -166,8 +250,11 @@ def assert_events(expected_events: dict,
         timeout (int): The seconds to wait for the events to be asserted
     """
 
-    reader = SinspStreamer(container, timeout=timeout)
-    received_events = []
+    reader = SinspStreamerBuilder() \
+        .setContainerized(is_containerized()) \
+        .setSinsp(sinsp) \
+        .setTimeout(timeout) \
+        .build()
 
     for event in expected_events:
         success = False
@@ -178,11 +265,10 @@ def assert_events(expected_events: dict,
                 continue
 
             received_event = parse_log(log)
-            received_events.append(received_event)
             if validate_event(event, received_event):
                 success = True
                 break
-        assert success, f"Did not receive expected event: {event}, got instead: {received_event}\n\nExpected events: {expected_events}\n\nReceived so far: {received_events}"
+        assert success, f"Did not receive expected event: {event}"
 
 
 def sinsp_validation(container: docker.models.containers.Container) -> (bool, str):
@@ -225,12 +311,24 @@ def container_spec(image: str = 'sinsp-example:latest', args: list = [], env: di
     }
 
 
-def generate_specs(image: str = 'sinsp-example:latest', args: list = []) -> list:
+def process_spec(path: str, args: list, env: dict) -> dict:
+    return {
+        'path': path,
+        'args': args,
+        'env': env,
+        'init_wait': 2,
+    }
+
+
+def generate_specs(image: str = 'sinsp-example:latest',
+                   path: str = os.environ.get('SINSP_EXAMPLE_PATH', ''),
+                   args: list = []) -> list:
     """
-    Generates a list of dictionaries describing how to run the sinsp-example container
+    Generates a list of dictionaries describing how to run sinsp-example
 
     Parameters:
         image (str): The name of the image used for running
+        path (str): The path to the sinsp-example binary
         args (list): A list of arguments to supply into the container
     Returns:
         A dictionary describing how to run the sinsp-example container
@@ -241,10 +339,18 @@ def generate_specs(image: str = 'sinsp-example:latest', args: list = []) -> list
         '-b', os.environ.get('BPF_PROBE'),
     ])
 
-    specs.append(container_spec(
-        image, args, {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE')}))
-    specs.append(container_spec(
-        image, bpf_args, {'BPF_PROBE': os.environ.get('BPF_PROBE')}))
+    kernel_module_env = {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE', '')}
+    bpf_env = {'BPF_PROBE': os.environ.get('BPF_PROBE', '')}
+
+    if is_containerized():
+        specs.append(container_spec(image, args, kernel_module_env))
+        specs.append(container_spec(image, bpf_args, bpf_env))
+    else:
+        args.extend(['-j', '-a'])
+        bpf_args.extend(['-j', '-a'])
+
+        specs.append(process_spec(path, args, kernel_module_env))
+        specs.append(process_spec(path, bpf_args, bpf_env))
 
     return specs
 
