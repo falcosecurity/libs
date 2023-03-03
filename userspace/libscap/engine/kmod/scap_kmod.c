@@ -202,7 +202,6 @@ int32_t scap_kmod_handle_event_mask(struct scap_engine_handle engine, uint32_t o
 
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 {
-	uint32_t j = 0;
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_kmod_engine_params* params  = oargs->engine_params;
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
@@ -211,7 +210,6 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	int32_t rc = 0;
 
 	int mapped_len = 0;
-	uint32_t all_scanned_devs = 0;
 	uint64_t api_version = 0;
 	uint64_t schema_version = 0;
 
@@ -256,7 +254,7 @@ int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 	mapped_len = single_buffer_dim * 2;
 
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
-	for(j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
+	for(uint32_t j = 0, all_scanned_devs = 0; j < devset->m_ndevs && all_scanned_devs < ncpus; ++all_scanned_devs)
 	{
 		struct scap_device *dev = &devset->m_devs[j];
 
