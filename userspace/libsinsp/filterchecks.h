@@ -344,6 +344,8 @@ public:
 		TYPE_PCMDLINE,
 		TYPE_APID,
 		TYPE_ANAME,
+		TYPE_PEXEPATH,
+		TYPE_AEXEPATH,
 		TYPE_LOGINSHELLID,
 		TYPE_DURATION,
 		TYPE_FDOPENCOUNT,
@@ -406,6 +408,7 @@ private:
 	uint8_t* extract_thread_cpu(sinsp_evt *evt, OUT uint32_t* len, sinsp_threadinfo* tinfo, bool extract_user, bool extract_system);
 	inline bool compare_full_apid(sinsp_evt *evt);
 	bool compare_full_aname(sinsp_evt *evt);
+	bool compare_full_aexepath(sinsp_evt *evt);
 
 	int32_t m_argid;
 	std::string m_argname;

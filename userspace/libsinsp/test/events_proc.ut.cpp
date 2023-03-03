@@ -337,12 +337,25 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
 	// check that the name is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aname[0]"), "test-exe");
+	// check that the pid is updated
+	ASSERT_EQ(get_field_as_string(evt, "proc.pid"), "20");
+	ASSERT_EQ(get_field_as_string(evt, "proc.apid[0]"), "20");
+	// check that the exepath is updated
+	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/bin/test-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/bin/test-exe");
 
 	// check that parent/ancestor info are taken from the parent process
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[2]", true), "null");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[3]", true), "null");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aname[2]", true), "null");
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "proc.apid[2]", true), "null");
 }
 
 // check parsing of container events (possibly from capture files)
