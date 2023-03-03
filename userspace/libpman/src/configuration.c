@@ -156,7 +156,18 @@ bool pman_check_support()
 	bool res;
 
 	res = libbpf_probe_bpf_map_type(BPF_MAP_TYPE_RINGBUF, NULL) > 0;
-	res = res ?: libbpf_probe_bpf_prog_type(BPF_PROG_TYPE_TRACING, NULL) > 0;
+	if (!res)
+	{
+		pman_print_error("ring buffer map type is not supported");
+		return res;
+	}
+
+	res = libbpf_probe_bpf_prog_type(BPF_PROG_TYPE_TRACING, NULL) > 0;
+	if (!res)
+	{
+		pman_print_error("tracing program type is not supported");
+		return res;
+	}
 
 	/* Probe result depends on the success of map creation, no additional
 	 * check required for unprivileged users
