@@ -29,10 +29,6 @@ limitations under the License.
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 
-#define REQUIRED_MAJOR 5
-#define REQUIRED_MINOR 8
-#define REQUIRED_PATCH 0
-
 /*=============================== UTILS ===============================*/
 
 static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting)
