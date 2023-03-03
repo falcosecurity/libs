@@ -1877,6 +1877,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "Parent Command Line", "the full command line (proc.name + proc.args) of the parent of the process generating the event."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.apid", "Ancestor Process ID", "the pid of one of the process ancestors. E.g. proc.apid[1] returns the parent pid, proc.apid[2] returns the grandparent pid, and so on. proc.apid[0] is the pid of the current process. proc.apid without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.apid=1234."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aname", "Ancestor Name", "the name (excluding the path) of one of the process ancestors. E.g. proc.aname[1] returns the parent name, proc.aname[2] returns the grandparent name, and so on. proc.aname[0] is the name of the current process. proc.aname without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aname=bash."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pexepath", "Parent Process Executable Path", "The full executable path of the parent process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.aexepath", "Ancestor Executable Path", "The full executable path of one of the process ancestors. E.g. proc.aexepath[1] returns the parent full executable path, proc.aexepath[2] returns the grandparent full executable path, and so on. proc.aexepath[0] is the full executable path of the current process. proc.aexepath without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.aexepath contains java."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.loginshellid", "Login Shell ID", "the pid of the oldest shell among the ancestors of the current process, if there is one. This field can be used to separate different user sessions, and is useful in conjunction with chisels like spy_user."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "Duration", "number of nanoseconds since the process started."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "FD Count", "number of open FDs for the process"},
@@ -1951,7 +1953,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME)
+	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME || m_field_id == TYPE_AEXEPATH)
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -2038,6 +2040,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aname")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.aexepath"))
+	{
+		m_field_id = TYPE_AEXEPATH;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.aexepath", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.aexepath")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -2498,6 +2522,52 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			m_tstr = mt->get_comm();
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+	case TYPE_PEXEPATH:
+		{
+			sinsp_threadinfo* ptinfo =
+				m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
+
+			if(ptinfo != NULL)
+			{
+				m_tstr = ptinfo->get_exepath();
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else
+			{
+				return NULL;
+			}
+		}
+	case TYPE_AEXEPATH:
+		{
+			sinsp_threadinfo* mt = NULL;
+
+			if(tinfo->is_main_thread())
+			{
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			for(int32_t j = 0; j < m_argid; j++)
+			{
+				mt = mt->get_parent_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			m_tstr = mt->get_exepath();
+			RETURN_EXTRACT_STRING(m_tstr);
+		}
 	case TYPE_LOGINSHELLID:
 		{
 			sinsp_threadinfo* mt = NULL;
@@ -2949,6 +3019,59 @@ bool sinsp_filter_check_thread::compare_full_aname(sinsp_evt *evt)
 	return found;
 }
 
+bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
+{
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return false;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return false;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
+	{
+		bool res;
+
+		res = flt_compare(m_cmpop,
+				  PT_CHARBUF,
+				  (void*)pt->m_exepath.c_str());
+
+		if(res == true)
+		{
+			found = true;
+
+			// Can stop traversing parent state
+			return false;
+		}
+
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
+}
+
 bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 {
 	if(m_field_id == TYPE_APID)
@@ -2963,6 +3086,13 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		if(m_argid == -1)
 		{
 			return compare_full_aname(evt);
+		}
+	}
+	else if(m_field_id == TYPE_AEXEPATH)
+	{
+		if(m_argid == -1)
+		{
+			return compare_full_aexepath(evt);
 		}
 	}
 
