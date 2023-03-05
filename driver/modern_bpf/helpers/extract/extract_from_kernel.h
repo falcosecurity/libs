@@ -494,12 +494,26 @@ static __always_inline unsigned long extract__vm_size(struct mm_struct *mm)
  */
 static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
 {
-	unsigned long file_pages = 0;
-	unsigned long anon_pages = 0;
-	unsigned long shmem_pages = 0;
-	BPF_CORE_READ_INTO(&file_pages, mm, rss_stat.count[MM_FILEPAGES].counter);
-	BPF_CORE_READ_INTO(&anon_pages, mm, rss_stat.count[MM_ANONPAGES].counter);
-	BPF_CORE_READ_INTO(&shmem_pages, mm, rss_stat.count[MM_SHMEMPAGES].counter);
+	s64 file_pages = 0;
+	s64 anon_pages = 0;
+	s64 shmem_pages = 0;
+
+	/* In recent kernel versions (https://github.com/torvalds/linux/commit/f1a7941243c102a44e8847e3b94ff4ff3ec56f25)
+	 * `struct mm_rss_stat` doesn't exist anymore.
+	 */
+	if(bpf_core_type_exists(struct mm_rss_stat))
+	{
+		BPF_CORE_READ_INTO(&file_pages, mm, rss_stat.count[MM_FILEPAGES].counter);
+		BPF_CORE_READ_INTO(&anon_pages, mm, rss_stat.count[MM_ANONPAGES].counter);
+		BPF_CORE_READ_INTO(&shmem_pages, mm, rss_stat.count[MM_SHMEMPAGES].counter);
+	}
+	else
+	{
+		struct mm_struct___v6_2 *mm_v6_2 = (void *)mm;
+		BPF_CORE_READ_INTO(&file_pages, mm_v6_2, rss_stat[MM_FILEPAGES].count);
+		BPF_CORE_READ_INTO(&anon_pages, mm_v6_2, rss_stat[MM_ANONPAGES].count);
+		BPF_CORE_READ_INTO(&shmem_pages, mm_v6_2, rss_stat[MM_SHMEMPAGES].count);
+	}
 	return DO_PAGE_SHIFT(file_pages + anon_pages + shmem_pages);
 }
 
@@ -511,8 +525,16 @@ static __always_inline unsigned long extract__vm_rss(struct mm_struct *mm)
  */
 static __always_inline unsigned long extract__vm_swap(struct mm_struct *mm)
 {
-	unsigned long swap_entries = 0;
-	BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
+	s64 swap_entries = 0;
+	if(bpf_core_type_exists(struct mm_rss_stat))
+	{
+		BPF_CORE_READ_INTO(&swap_entries, mm, rss_stat.count[MM_SWAPENTS].counter);
+	}
+	else
+	{
+		struct mm_struct___v6_2 *mm_v6_2 = (void *)mm;
+		BPF_CORE_READ_INTO(&swap_entries, mm_v6_2, rss_stat[MM_SWAPENTS].count);
+	}
 	return DO_PAGE_SHIFT(swap_entries);
 }
 
