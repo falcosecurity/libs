@@ -49,6 +49,7 @@ scap_t* open_modern_bpf_engine(char* error_buf, int32_t* rc, unsigned long buffe
 		.cpus_for_each_buffer = cpus_for_each_buffer,
 		.allocate_online_only = online_only,
 		.buffer_bytes_dim = buffer_dim,
+		.verbose = false,
 	};
 	oargs.engine_params = &modern_bpf_params;
 
