@@ -75,22 +75,24 @@ bool libsinsp::events::is_plugin_event(ppm_event_code event_type)
 
 std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsinsp::events::set<ppm_event_code>& events_set, bool resolve_generic)
 {
+	bool resolved_generic = false;
 	std::unordered_set<std::string> events_names_set;
 	for (const auto& ev : events_set)
 	{
-		events_names_set.insert(scap_get_event_info_table()[ev].name);
-	}
-	events_names_set.erase("syscall"); // generic event placeholder string, not needed
-
-	if (resolve_generic)
-	{
-		/* note: Using existing ppm sc APIs and generic set operations in order to not introduce logic that requires maintenance beyond what we already have. */
-		auto tmp_events_set = events_set.intersect(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
-		if (!tmp_events_set.empty())
+		if (libsinsp::events::is_generic(ev))
 		{
-			auto sc_set = libsinsp::events::event_set_to_sc_set(tmp_events_set);
-			events_names_set = unordered_set_union(libsinsp::events::sc_set_to_names(sc_set), events_names_set);
-			events_names_set.erase("unknown"); // not needed
+			if (resolve_generic && !resolved_generic)
+			{
+				/* note: using existing ppm sc APIs and generic set operations to minimize new logic that requires maintenance beyond what we already have. */
+				auto sc_set = libsinsp::events::event_set_to_sc_set(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
+				events_names_set = unordered_set_union(libsinsp::events::sc_set_to_names(sc_set), events_names_set);
+				events_names_set.erase("unknown"); // not needed
+				resolved_generic = true;
+			}
+		}
+		else
+		{
+			events_names_set.insert(scap_get_event_info_table()[ev].name);
 		}
 	}
 	return events_names_set;
