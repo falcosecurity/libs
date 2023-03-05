@@ -152,14 +152,6 @@ TEST(events_set, names_to_event_set)
 	ASSERT_EQ(event_set.size(), 8); // enter/exit events for each event name, special case "openat" has 4 PPME instead of 2
 }
 
-TEST(events_set, event_set_to_names)
-{
-	static std::set<std::string> names_truth = {"kill", "dup", "umount", "eventfd", "procexit", "container"};
-	auto names = test_utils::unordered_set_to_ordered(libsinsp::events::event_set_to_names(libsinsp::events::set<ppm_event_code>{PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
-	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPME_PROCEXIT_E, PPME_CONTAINER_E, PPME_CONTAINER_X}));
-	ASSERT_NAMES_EQ(names_truth, names);
-}
-
 TEST(events_set, event_set_to_names_generic_events)
 {
 	static libsinsp::events::set<ppm_event_code> generic_event_set = {PPME_GENERIC_E, PPME_GENERIC_X};
@@ -173,6 +165,7 @@ TEST(events_set, event_set_to_names_generic_events)
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"procexit"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"umount2"}).empty());
 	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"eventfd2"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names, std::unordered_set<std::string> {"syscall"}).empty());
 	/* Random checks for some generic sc events. */
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"syncfs"}).empty());
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"perf_event_open"}).empty());
@@ -191,7 +184,20 @@ TEST(events_set, event_set_to_names_generic_events)
 	ASSERT_GT(names.size(), 180);
 }
 
-TEST(events_set, event_set_to_names_no_generic_events)
+TEST(events_set, event_set_to_names_no_generic_events1)
+{
+	static std::set<std::string> names_truth = {"kill", "dup", "umount", "eventfd", "procexit", "container"};
+	auto names_unordered = libsinsp::events::event_set_to_names(libsinsp::events::set<ppm_event_code>{PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
+	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPME_PROCEXIT_E, PPME_CONTAINER_E, PPME_CONTAINER_X});
+	auto names = test_utils::unordered_set_to_ordered(names_unordered);
+	ASSERT_NAMES_EQ(names_truth, names);
+	ASSERT_TRUE(unordered_set_intersection(names_unordered, std::unordered_set<std::string> {"syncfs"}).empty());
+	ASSERT_TRUE(unordered_set_intersection(names_unordered, std::unordered_set<std::string> {"eventfd2"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names_unordered, std::unordered_set<std::string> {"container"}).empty());
+	ASSERT_FALSE(unordered_set_intersection(names_unordered, std::unordered_set<std::string> {"eventfd"}).empty());
+}
+
+TEST(events_set, event_set_to_names_no_generic_events2)
 {
 	auto names = libsinsp::events::event_set_to_names(libsinsp::events::all_event_set(), false);
 	ASSERT_FALSE(unordered_set_intersection(names, std::unordered_set<std::string> {"execve"}).empty());
