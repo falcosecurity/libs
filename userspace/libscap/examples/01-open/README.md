@@ -190,3 +190,47 @@ sudo ./libscap/examples/01-open/scap-open --tp | grep sys_enter
 ```bash
 sudo ./libscap/examples/01-open/scap-open --bpf driver/bpf/probe.o --ppm_sc 27 --tp 0
 ```
+
+## Build a docker image for scap-open
+
+### `runner-image` tag
+
+The Dockerfile will use `runner-image` tag to build the final image as you can see here:
+
+```dockerfile
+FROM runner-image AS runner
+...
+```
+
+For example, if I build scap-open locally on a un `ubuntu:22-04` machine I will instruct docker to use `ubuntu:22-04` as a final running image.
+
+```bash
+docker tag ubuntu:22.04 runner-image
+```
+
+### Build scap-open and drivers
+
+```bash
+mkdir build && cd build
+cmake -DUSE_BUNDLED_DEPS=On -DBUILD_LIBSCAP_GVISOR=Off -DBUILD_BPF=On -DBUILD_LIBSCAP_MODERN_BPF=On -DCREATE_TEST_TARGETS=Off -DMODERN_BPF_DEBUG_MODE=On ..
+make scap-open driver bpf
+```
+
+### Build the docker image
+
+From the build directory:
+
+```bash
+docker build --tag scap-open-dev -f ./../userspace/libscap/examples/01-open/Dockerfile .
+```
+
+### Run it
+
+From the build directory:
+
+```bash
+docker run --rm -i -t --privileged \
+           -v /dev:/host/dev \
+           -v /proc:/host/proc:ro \
+           scap-open-dev
+```
