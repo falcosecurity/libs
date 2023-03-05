@@ -774,6 +774,7 @@ void parse_CLI_options(int argc, char** argv)
 			modern_bpf_params.buffer_bytes_dim = buffer_bytes_dim;
 			modern_bpf_params.cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER;
 			modern_bpf_params.allocate_online_only = true;
+			modern_bpf_params.verbose = true;
 			oargs.engine_params = &modern_bpf_params;
 		}
 		if(!strcmp(argv[i], SCAP_FILE_OPTION))

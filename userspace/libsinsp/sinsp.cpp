@@ -678,7 +678,7 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, bool verbose, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest, const libsinsp::events::set<ppm_tp_code> &tp_of_interest)
 {
 	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
 
@@ -691,6 +691,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
 	params.cpus_for_each_buffer = cpus_for_each_buffer;
 	params.allocate_online_only = online_only;
+	params.verbose = verbose;
 	oargs.engine_params = &params;
 	open_common(&oargs);
 }
