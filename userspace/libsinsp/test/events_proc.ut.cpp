@@ -341,16 +341,26 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	// check that the pid is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.pid"), "20");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[0]"), "20");
+	// check that the exe is updated (first arg given in this test setup is same as full exepath)
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe"), "/bin/test-exe");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexe[0]"), "/bin/test-exe");
 	// check that the exepath is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/bin/test-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/bin/test-exe");
 
 	// check that parent/ancestor info are taken from the parent process
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
+
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/sbin/init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), "/sbin/init");
 	ASSERT_FALSE(field_exists(evt, "proc.aexepath[2]"));
 	ASSERT_FALSE(field_exists(evt, "proc.aexepath[3]"));
+
+	ASSERT_EQ(get_field_as_string(evt, "proc.pexe"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.aexe[1]"), "/sbin/init");
+	ASSERT_FALSE(field_exists(evt, "proc.aexe[2]"));
+	ASSERT_FALSE(field_exists(evt, "proc.aexe[3]"));
+
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
 	ASSERT_FALSE(field_exists(evt, "proc.aname[2]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
