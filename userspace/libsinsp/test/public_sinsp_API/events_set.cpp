@@ -188,7 +188,7 @@ TEST(events_set, event_set_to_names_no_generic_events1)
 {
 	static std::set<std::string> names_truth = {"kill", "dup", "umount", "eventfd", "procexit", "container"};
 	auto names_unordered = libsinsp::events::event_set_to_names(libsinsp::events::set<ppm_event_code>{PPME_SYSCALL_KILL_E, PPME_SYSCALL_KILL_X,
-	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPME_PROCEXIT_E, PPME_CONTAINER_E, PPME_CONTAINER_X});
+	PPME_SYSCALL_DUP_1_E, PPME_SYSCALL_DUP_1_X, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X, PPME_PROCEXIT_E, PPME_CONTAINER_E});
 	auto names = test_utils::unordered_set_to_ordered(names_unordered);
 	ASSERT_NAMES_EQ(names_truth, names);
 	ASSERT_TRUE(unordered_set_intersection(names_unordered, std::unordered_set<std::string> {"syncfs"}).empty());
