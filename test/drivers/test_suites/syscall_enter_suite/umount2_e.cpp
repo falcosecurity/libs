@@ -12,8 +12,8 @@ TEST(SyscallEnter, umount2E)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	const char* target = "/no_mount_point/xyzk-target";
-	unsigned long flags = MNT_FORCE;
+	const char* target = "//**null-file-path**//";
+	unsigned long flags = MNT_FORCE | MNT_DETACH | MNT_EXPIRE | UMOUNT_NOFOLLOW;
 	assert_syscall_state(SYSCALL_FAILURE, "umount2", syscall(__NR_umount2, target, flags));
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
@@ -34,7 +34,7 @@ TEST(SyscallEnter, umount2E)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	evt_test->assert_numeric_param(1, (uint32_t)MNT_FORCE);
+	evt_test->assert_numeric_param(1, (uint32_t)(PPM_MNT_FORCE | PPM_MNT_DETACH | PPM_MNT_EXPIRE | PPM_UMOUNT_NOFOLLOW));
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

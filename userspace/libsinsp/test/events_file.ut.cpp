@@ -220,3 +220,18 @@ TEST_F(sinsp_with_test_input, umount)
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/target_name");
 }
+
+TEST_F(sinsp_with_test_input, umount2)
+{
+    add_default_init_thread();
+
+    open_inspector();
+    sinsp_evt* evt = NULL;
+
+    add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_E, 1, 10);
+    evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_X, 2, 0, "/target_name");
+    ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount2");
+    ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
+    ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), "0");
+    ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/target_name");
+}

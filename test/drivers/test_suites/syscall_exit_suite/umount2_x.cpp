@@ -12,7 +12,7 @@ TEST(SyscallExit, umount2X)
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
-	const char* target = "/no_mount_point/xyzk-target";
+	const char* target = "//**null-file-path**//";
 	unsigned long flags = MNT_FORCE;
 	assert_syscall_state(SYSCALL_FAILURE, "umount2", syscall(__NR_umount2, target, flags));
 	int64_t errno_value = -errno;

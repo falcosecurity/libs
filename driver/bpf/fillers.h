@@ -133,6 +133,7 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_MOUNT_E:
 			case PPME_SYSCALL_UMOUNT_E:
 			case PPME_SYSCALL_UMOUNT_1_E:
+			case PPME_SYSCALL_UMOUNT2_E:
 			case PPME_SYSCALL_RENAME_E:
 			case PPME_SYSCALL_RENAMEAT_E:
 			case PPME_SYSCALL_RENAMEAT2_E:
@@ -216,6 +217,7 @@ FILLER_RAW(terminate_filler)
 			case PPME_SYSCALL_MOUNT_X:
 			case PPME_SYSCALL_UMOUNT_X:
 			case PPME_SYSCALL_UMOUNT_1_X:
+			case PPME_SYSCALL_UMOUNT2_X:
 			case PPME_SYSCALL_RENAME_X:
 			case PPME_SYSCALL_RENAMEAT_X:
 			case PPME_SYSCALL_RENAMEAT2_X:
@@ -6195,6 +6197,25 @@ FILLER(sys_dup3_x, true)
 FILLER(sys_umount_x, true)
 {
 	/* Parameter 1: ret (type: PT_FD) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
+
+	/* Parameter 2: name (type: PT_FSPATH) */
+	unsigned long target_pointer = bpf_syscall_get_argument(data, 0);
+	return  bpf_val_to_ring(data, target_pointer);
+}
+
+FILLER(sys_umount2_e, true)
+{
+	/* Parameter 1: flags (type: PT_FLAGS32) */
+	u32 flags = (u32)bpf_syscall_get_argument(data, 1);
+	return bpf_val_to_ring(data, flags);
+}
+
+FILLER(sys_umount2_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
 	CHECK_RES(res);
