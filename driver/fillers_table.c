@@ -340,4 +340,6 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_FCHOWN_X] = {FILLER_REF(sys_fchown_x)},
 	[PPME_SYSCALL_FCHOWNAT_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_FCHOWNAT_X] = {FILLER_REF(sys_fchownat_x)},
+	[PPME_SYSCALL_UMOUNT_1_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_UMOUNT_1_X] = {FILLER_REF(sys_umount_x)},
 };

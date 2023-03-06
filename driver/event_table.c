@@ -270,7 +270,7 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PPOLL_X] = {"ppoll", EC_WAIT | EC_SYSCALL, EF_WAITS, 2, {{"res", PT_ERRNO, PF_DEC}, {"fds", PT_FDLIST, PF_DEC} } },
 	[PPME_SYSCALL_MOUNT_E] = {"mount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, mount_flags} } },
 	[PPME_SYSCALL_MOUNT_X] = {"mount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 4, {{"res", PT_ERRNO, PF_DEC}, {"dev", PT_CHARBUF, PF_NA}, {"dir", PT_FSPATH, PF_NA}, {"type", PT_CHARBUF, PF_NA} } },
-	[PPME_SYSCALL_UMOUNT_E] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, umount_flags} } }, // we need to create separate events for umount and umount2, umount doesn't have the flag parameter!!
+	[PPME_SYSCALL_UMOUNT_E] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 1, {{"flags", PT_FLAGS32, PF_HEX, umount_flags} } }, // right now this event pair is used by umount2 syscall, we need to create a new event pair `PPME_SYSCALL_UMOUNT2_E/PPME_SYSCALL_UMOUNT2_X` with name "umount2" we cannot change the name here otherwise we break scap-files compatibility.
 	[PPME_SYSCALL_UMOUNT_X] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } },
 	[PPME_K8S_E] = {"k8s", EC_INTERNAL | EC_METAEVENT, EF_SKIPPARSERESET | EF_MODIFIES_STATE, 1, {{"json", PT_CHARBUF, PF_NA} } },
 	[PPME_K8S_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
@@ -398,6 +398,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_FCHOWN_X] = {"fchown", EC_FILE | EC_SYSCALL, EF_NONE, 4, {{"res", PT_ERRNO, PF_DEC}, {"fd", PT_FD, PF_DEC}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC} } },
 	[PPME_SYSCALL_FCHOWNAT_E] = {"fchownat", EC_FILE | EC_SYSCALL, EF_NONE, 0},
 	[PPME_SYSCALL_FCHOWNAT_X] = {"fchownat", EC_FILE | EC_SYSCALL, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"pathname", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, fchownat_flags}} },
+	[PPME_SYSCALL_UMOUNT_1_E] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 0},
+	[PPME_SYSCALL_UMOUNT_1_X] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } },
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.

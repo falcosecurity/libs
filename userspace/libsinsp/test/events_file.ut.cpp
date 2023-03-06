@@ -183,3 +183,17 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
 }
 
+TEST_F(sinsp_with_test_input, umount)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_X, 2, 0, "/target_name");
+	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount");
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/target_name");
+}
