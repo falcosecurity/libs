@@ -179,7 +179,9 @@ const struct ppm_name_value mount_flags[] = {
 	{0, 0},
 };
 
-/* http://lxr.free-electrons.com/source/include/linux/fs.h?v=4.2#L1251 */
+/* There is a 1:1 mapping between `umount2` flags and our `PPM` notation, so we don't
+ * need a dedicated helper for the conversion.
+ */
 const struct ppm_name_value umount_flags[] = {
 	{"FORCE", PPM_MNT_FORCE},
 	{"DETACH", PPM_MNT_DETACH},

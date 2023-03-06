@@ -178,7 +178,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_CHMOD_E, PPME_SYSCALL_CHMOD_X, PPM_SC_CHMOD},
 #endif
 	[__NR_mount - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MOUNT_E, PPME_SYSCALL_MOUNT_X, PPM_SC_MOUNT},
-	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT2},
+#ifdef __NR_umount2
+	[__NR_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_UMOUNT2_E, PPME_SYSCALL_UMOUNT2_X, PPM_SC_UMOUNT2},
+#endif
 	[__NR_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X, PPM_SC_PTRACE},
 #ifdef __NR_socket
 	[__NR_socket - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_NEVER_DROP, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X, PPM_SC_SOCKET},
@@ -1018,7 +1020,9 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_chmod - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_CHMOD_E, PPME_SYSCALL_CHMOD_X, PPM_SC_CHMOD},
 #endif
 	[__NR_ia32_mount - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MOUNT_E, PPME_SYSCALL_MOUNT_X, PPM_SC_MOUNT},
-	[__NR_ia32_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, PPM_SC_UMOUNT2},
+#ifdef __NR_ia32_umount2
+	[__NR_ia32_umount2 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SYSCALL_UMOUNT2_E, PPME_SYSCALL_UMOUNT2_X, PPM_SC_UMOUNT2},
+#endif
 	[__NR_ia32_ptrace - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_PTRACE_E, PPME_SYSCALL_PTRACE_X, PPM_SC_PTRACE},
 
 #ifndef __NR_ia32_socketcall

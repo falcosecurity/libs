@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -21,8 +21,7 @@ int BPF_PROG(umount2_e,
 		return 0;
 	}
 
-	/// TODO: This event should be called `PPME_SYSCALL_UMOUNT2_E`.
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UMOUNT_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_UMOUNT2_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -52,8 +51,7 @@ int BPF_PROG(umount2_x,
 		return 0;
 	}
 
-	/// TODO: This event should be called `PPME_SYSCALL_UMOUNT2_X`.
-	auxmap__preload_event_header(auxmap, PPME_SYSCALL_UMOUNT_X);
+	auxmap__preload_event_header(auxmap, PPME_SYSCALL_UMOUNT2_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

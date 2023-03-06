@@ -138,9 +138,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_UNSHARE_X] = "unshare_x",
 	[PPME_SYSCALL_MOUNT_E] = "mount_e",
 	[PPME_SYSCALL_MOUNT_X] = "mount_x",
-	/* These events should be called `PPME_SYSCALL_UMOUNT2_...` */
-	[PPME_SYSCALL_UMOUNT_E] = "umount2_e",
-	[PPME_SYSCALL_UMOUNT_X] = "umount2_x",
+	[PPME_SYSCALL_UMOUNT2_E] = "umount2_e",
+	[PPME_SYSCALL_UMOUNT2_X] = "umount2_x",
 	[PPME_SYSCALL_LINK_2_E] = "link_e",
 	[PPME_SYSCALL_LINK_2_X] = "link_x",
 	[PPME_SYSCALL_LINKAT_2_E] = "linkat_e",
