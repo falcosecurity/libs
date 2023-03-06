@@ -160,116 +160,40 @@ TEST(interesting_syscalls, sc_set_to_names)
 TEST(interesting_syscalls, names_to_sc_set)
 {
 	static libsinsp::events::set<ppm_sc_code> sc_set_truth = {
-#ifdef __NR_kill
 	PPM_SC_KILL,
-#endif
-
-#ifdef __NR_read
 	PPM_SC_READ,
-#endif
-
-#ifdef __NR_syncfs
 	PPM_SC_SYNCFS,
-#endif
-
-// s390x test issues
-// #ifdef __NR_accept
-// 	PPM_SC_ACCEPT,
-// #endif
-
-// #ifdef __NR_accept4
-// 	PPM_SC_ACCEPT4,
-// #endif
-
-#ifdef __NR_execve
+	PPM_SC_ACCEPT,
+ 	PPM_SC_ACCEPT4,
 	PPM_SC_EXECVE,
-#endif
-
-#ifdef __NR_setresuid
 	PPM_SC_SETRESUID,
-#endif
-
-// #ifdef __NR_setresuid32 // TOOD later after ifdef cleanup
-// 	PPM_SC_SETRESUID32,
-// #endif
-
-// #ifdef __NR_eventfd
-// 	PPM_SC_EVENTFD,
-// #endif
-
-#ifdef __NR_eventfd2
+ 	PPM_SC_SETRESUID32,
+ 	PPM_SC_EVENTFD,
 	PPM_SC_EVENTFD2,
-#endif
-
-// #ifdef __NR_umount
-// 	PPM_SC_UMOUNT,
-// #endif
-
-#ifdef __NR_umount2
+ 	PPM_SC_UMOUNT,
 	PPM_SC_UMOUNT2,
-#endif
-
-// #ifdef __NR_pipe
-// 	PPM_SC_PIPE,
-// #endif
-
-#ifdef __NR_pipe2
+ 	PPM_SC_PIPE,
 	PPM_SC_PIPE2,
-#endif
-
-// #ifdef __NR_signalfd
-// 	PPM_SC_SIGNALFD,
-// #endif
-
-#ifdef __NR_signalfd4
+ 	PPM_SC_SIGNALFD,
 	PPM_SC_SIGNALFD4
-#endif
 	};
 
 	auto sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{
-#ifdef __NR_kill
 	"kill",
-#endif
-
-#ifdef __NR_read
 	"read",
-#endif
-
-#ifdef __NR_syncfs
 	"syncfs",
-#endif
-
-// #ifdef __NR_accept
-// 	"accept",
-// #endif
-
-// #ifdef __NR_accept4
-// 	"accept",
-// #endif
-
-#ifdef __NR_execve
+ 	"accept",
+ 	"accept4",
 	"execve",
-#endif
-
-#ifdef __NR_setresuid
 	"setresuid",
-#endif
-
-#ifdef __NR_eventfd2
+	"eventfd",
 	"eventfd2",
-#endif
-
-#ifdef __NR_umount2
+	"umount",
 	"umount2",
-#endif
-
-#ifdef __NR_pipe2
+	"pipe",
 	"pipe2",
-#endif
-
-#ifdef __NR_signalfd4
+	"signalfd",
 	"signalfd4",
-#endif
 	});
 	ASSERT_PPM_SC_CODES_EQ(sc_set_truth, sc_set);
 
@@ -304,20 +228,12 @@ TEST(interesting_syscalls, event_set_to_sc_set_generic_events)
 {
 
 	libsinsp::events::set<ppm_event_code> event_set = {
-#ifdef __NR_kill
 	PPME_SYSCALL_KILL_E,
 	PPME_SYSCALL_KILL_X,
-#endif
-
-#ifdef __NR_sendto
 	PPME_SOCKET_SENDTO_E,
 	PPME_SOCKET_SENDTO_X,
-#endif
-
-#ifdef __NR_syncfs
 	PPME_GENERIC_E,
 	PPME_GENERIC_X,
-#endif
 	};
 
 	auto sc_set = libsinsp::events::event_set_to_sc_set(event_set);
