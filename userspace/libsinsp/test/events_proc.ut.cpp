@@ -349,13 +349,13 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/sbin/init");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[1]"), "/sbin/init");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[2]", true), "null");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[3]", true), "null");
+	ASSERT_FALSE(field_exists(evt, "proc.aexepath[2]"));
+	ASSERT_FALSE(field_exists(evt, "proc.aexepath[3]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.aname[1]"), "init");
-	ASSERT_EQ(get_field_as_string(evt, "proc.aname[2]", true), "null");
+	ASSERT_FALSE(field_exists(evt, "proc.aname[2]"));
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
-	ASSERT_EQ(get_field_as_string(evt, "proc.apid[2]", true), "null");
+	ASSERT_FALSE(field_exists(evt, "proc.apid[2]"));
 }
 
 // check parsing of container events (possibly from capture files)
