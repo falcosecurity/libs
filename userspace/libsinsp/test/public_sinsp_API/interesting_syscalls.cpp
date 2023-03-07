@@ -118,18 +118,15 @@ TEST(interesting_syscalls, io_sc_set)
 	libsinsp::events::set<ppm_sc_code> io_sc_set_truth;
 
 	io_sc_set_truth.insert(PPM_SC_READ);
-	//io_sc_set_truth.insert(PPM_SC_RECV);
 	io_sc_set_truth.insert(PPM_SC_RECVFROM);
 	io_sc_set_truth.insert(PPM_SC_RECVMSG);
 	io_sc_set_truth.insert(PPM_SC_RECVMMSG);
 	io_sc_set_truth.insert(PPM_SC_READV);
 	io_sc_set_truth.insert(PPM_SC_PREADV);
 	io_sc_set_truth.insert(PPM_SC_WRITE);
-	//io_sc_set_truth.insert(PPM_SC_PWRITE);
 	io_sc_set_truth.insert(PPM_SC_WRITEV);
 	io_sc_set_truth.insert(PPM_SC_PWRITEV);
 	io_sc_set_truth.insert(PPM_SC_SENDFILE);
-	//io_sc_set_truth.insert(PPM_SC_SEND);
 	io_sc_set_truth.insert(PPM_SC_SENDTO);
 	io_sc_set_truth.insert(PPM_SC_SENDMSG);
 	io_sc_set_truth.insert(PPM_SC_SENDMMSG);

@@ -148,10 +148,35 @@ TEST(events_set, names_to_event_set)
 // and forgot to update libscap/linux/scap_ppm_sc.c::g_events_to_sc_map.
 TEST(events_set, generic_no_events)
 {
-	auto generic_ev_set = libsinsp::events::set<ppm_event_code>({PPME_GENERIC_E, PPME_GENERIC_X});
-	auto generic_sc_set = libsinsp::events::event_set_to_sc_set(generic_ev_set);
+	auto generic_ev_set_truth = libsinsp::events::set<ppm_event_code>({PPME_GENERIC_E, PPME_GENERIC_X});
+	auto generic_sc_set = libsinsp::events::event_set_to_sc_set(generic_ev_set_truth);
 	auto final_ev_set = libsinsp::events::sc_set_to_event_set(generic_sc_set);
-	ASSERT_EQ(final_ev_set, generic_ev_set);
+	ASSERT_PPM_EVENT_CODES_EQ(final_ev_set, generic_ev_set_truth);
+}
+
+TEST(events_set, non_syscalls_events)
+{
+	auto ev_set_truth = libsinsp::events::set<ppm_event_code>({PPME_SYSCALL_POLL_E, PPME_SYSCALL_POLL_X,
+								   PPME_SIGNALDELIVER_E, PPME_SIGNALDELIVER_X, // PPME_SIGNALDELIVER_E will bring all PPM_SC_UNKNOWN events
+								   PPME_PROCINFO_E, PPME_PROCINFO_X});
+	auto sc_set = libsinsp::events::event_set_to_sc_set(ev_set_truth);
+	ASSERT_TRUE(sc_set.contains(PPM_SC_UNKNOWN));
+	
+	auto final_ev_set = libsinsp::events::sc_set_to_event_set(sc_set);
+
+	auto unknown_ev_set = libsinsp::events::sc_set_to_event_set({PPM_SC_UNKNOWN});
+	for (const auto &ev : unknown_ev_set)
+	{
+		ASSERT_TRUE(final_ev_set.contains(ev));
+	}
+	// POLL_{E,X} are syscalls driven events, therefore they are correctly mapped back.
+	ASSERT_TRUE(final_ev_set.contains(PPME_SYSCALL_POLL_E));
+	ASSERT_TRUE(final_ev_set.contains(PPME_SYSCALL_POLL_X));
+	// PPME_PROCINFO_{E,X} are never sent, therefore they are mapped to NULL in scap_ppm_sc table
+	// Same goes for PPME_SIGNALDELIVER_X.
+	ASSERT_FALSE(final_ev_set.contains(PPME_SIGNALDELIVER_X));
+	ASSERT_FALSE(final_ev_set.contains(PPME_PROCINFO_E));
+	ASSERT_FALSE(final_ev_set.contains(PPME_PROCINFO_X));
 }
 
 TEST(events_set, event_set_to_names_generic_events)
