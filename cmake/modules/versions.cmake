@@ -39,7 +39,6 @@ function(_get_git_version _var is_driver)
     endif()
     string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+$" libs_tag ${dev_version})
     string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+\\+driver$" driver_tag ${dev_version})
-    message("Tags: ${libs_tag} ${driver_tag}")
     if(dev_version MATCHES "NOTFOUND$" OR (libs_tag STREQUAL "" AND driver_tag STREQUAL ""))
         # Fetch current hash
         get_git_head_revision(refspec LIBS_HASH)
