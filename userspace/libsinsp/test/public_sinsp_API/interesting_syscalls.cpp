@@ -197,13 +197,19 @@ TEST(interesting_syscalls, names_to_sc_set)
 	"signalfd4",
 	});
 	ASSERT_PPM_SC_CODES_EQ(sc_set_truth, sc_set);
+}
 
+/* This test asserts the behavior of `names_to_sc_set` API when corner cases like `accept/accept4` are involved */
+TEST(interesting_syscalls, names_sc_set_names_corner_cases)
+{
 	static std::unordered_set<std::string> sc_set_names_truth = {"accept",
-	"accept4", "execve", "syncfs", "eventfd", "eventfd2", "umount", "umount2",
+	"accept4", "execve", "syncfs", "eventfd", "eventfd2", "umount",
 	"pipe", "pipe2", "signalfd", "signalfd4"};
+
 	auto tmp_sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{"accept",
 	"execve", "syncfs", "eventfd", "umount", "pipe", "signalfd"});
-	auto sc_set_names = libsinsp::events::sc_set_to_names(tmp_sc_set);
+		
+	auto sc_set_names = libsinsp::events::sc_set_to_names(tmp_sc_set);	
 	ASSERT_NAMES_EQ(sc_set_names_truth, sc_set_names);
 }
 
