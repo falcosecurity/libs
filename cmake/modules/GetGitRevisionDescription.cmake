@@ -87,6 +87,111 @@ function(get_git_head_revision _refspecvar _hashvar)
             PARENT_SCOPE)
 endfunction()
 
+function(git_get_latest_tag _var)
+    if(NOT GIT_FOUND)
+        find_package(Git QUIET)
+    endif()
+
+    # We use git describe --tags `git rev-list --tags --max-count=1`
+    execute_process(COMMAND
+            "${GIT_EXECUTABLE}"
+            rev-list
+            ${ARGN}
+            --max-count=1
+            WORKING_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMAND tail -n1
+            RESULT_VARIABLE
+            res
+            OUTPUT_VARIABLE
+            tag_hash
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(out "${tag_hash}-${res}-NOTFOUND" PARENT_SCOPE)
+        return()
+    endif()
+
+    execute_process(COMMAND
+            "${GIT_EXECUTABLE}"
+            describe
+            --tags
+            ${tag_hash}
+            WORKING_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE
+            res
+            OUTPUT_VARIABLE
+            out
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(out "${out}-${res}-NOTFOUND")
+    endif()
+    set(${_var} "${out}" PARENT_SCOPE)
+endfunction()
+
+function(git_get_delta_from_tag _var tag hash)
+    if(NOT GIT_FOUND)
+        find_package(Git QUIET)
+    endif()
+
+    # Count commits in HEAD
+    execute_process(COMMAND
+            "${GIT_EXECUTABLE}"
+            rev-list
+            --count
+            ${hash}
+            WORKING_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE
+            res
+            OUTPUT_VARIABLE
+            out_counter_head
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(${_var} "HEADCOUNT-NOTFOUND" PARENT_SCOPE)
+        return()
+    endif()
+
+    # Count commits in latest tag
+    execute_process(COMMAND
+            "${GIT_EXECUTABLE}"
+            rev-list
+            --count
+            ${tag}
+            WORKING_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE
+            res
+            OUTPUT_VARIABLE
+            out_counter_tag
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(${_var} "TAGCOUNT-NOTFOUND" PARENT_SCOPE)
+        return()
+    endif()
+
+    execute_process(COMMAND
+            expr
+            ${out_counter_head} - ${out_counter_tag}
+            WORKING_DIRECTORY
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            RESULT_VARIABLE
+            res
+            OUTPUT_VARIABLE
+            out_delta
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(NOT res EQUAL 0)
+        set(${_var} "DELTA-NOTFOUND" PARENT_SCOPE)
+        return()
+    endif()
+    set(${_var} "${out_delta}" PARENT_SCOPE)
+endfunction()
+
 function(git_describe _var)
     if(NOT GIT_FOUND)
         find_package(Git QUIET)
