@@ -19,9 +19,9 @@ include(GetGitRevisionDescription)
 function(_get_git_version _var is_driver)
     # Try to obtain the exact git tag
     if (is_driver)
-        git_get_exact_tag(tag "--match=*+driver")
+        git_get_exact_tag(tag --match=*+driver)
     else()
-        git_get_exact_tag(tag "--exclude=*+driver")
+        git_get_exact_tag(tag --exclude=*+driver)
     endif()
     if(tag)
         # A tag has been found: use it as the libs version
@@ -33,9 +33,9 @@ function(_get_git_version _var is_driver)
 
     # Obtain the closest tag
     if (is_driver)
-        git_describe(dev_version "--always" "--tags" "--abbrev=7" "--match=*+driver")
+        git_describe(dev_version "--always" "--tags" "--abbrev=7" --match=*+driver)
     else()
-        git_describe(dev_version "--always" "--tags" "--abbrev=7" "--exclude=*+driver")
+        git_describe(dev_version "--always" "--tags" "--abbrev=7" --exclude=*+driver)
     endif()
     string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+$" libs_tag ${dev_version})
     string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+\\+driver$" driver_tag ${dev_version})
@@ -47,10 +47,11 @@ function(_get_git_version _var is_driver)
         else()
             # Obtain the closest tag
             if (is_driver)
-                git_get_latest_tag(LIBS_LATEST_TAG "--tags=*+driver")
+                git_get_latest_tag(LIBS_LATEST_TAG --tags=*+driver)
             else()
-                git_get_latest_tag(LIBS_LATEST_TAG "--exclude=*+driver --tags")
+                git_get_latest_tag(LIBS_LATEST_TAG --exclude=*+driver --tags)
             endif()
+
             if(NOT LIBS_LATEST_TAG OR LIBS_LATEST_TAG MATCHES "NOTFOUND$")
                 set(dev_version "0.0.0")
             else()
@@ -77,7 +78,7 @@ function(_get_git_version _var is_driver)
 endfunction()
 
 function(get_libs_version _var)
-    _get_git_version(ver false "--exclude=*+driver")
+    _get_git_version(ver false)
 
     set(${_var}
         "${ver}"
