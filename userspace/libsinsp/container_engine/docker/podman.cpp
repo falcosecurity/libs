@@ -140,7 +140,7 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 		}
 
 		int uid;
-		if (sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
+		if (sscanf(systemd_cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
 		{
 			return uid;
 		}
