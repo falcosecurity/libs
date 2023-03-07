@@ -16,9 +16,13 @@
 
 include(GetGitRevisionDescription)
 
-function(_get_git_version _var)
-    git_describe(tag "--tags" "--exact-match" ${ARGN})
-
+function(_get_git_version _var is_driver)
+    # Try to obtain the exact git tag
+    if (is_driver)
+        git_get_exact_tag(tag "--match=*+driver")
+    else()
+        git_get_exact_tag(tag "--exclude=*+driver")
+    endif()
     if(tag)
         # A tag has been found: use it as the libs version
         set(${_var}
@@ -28,24 +32,44 @@ function(_get_git_version _var)
     endif()
 
     # Obtain the closest tag
-    git_describe(dev_version "--always" "--tags" "--abbrev=7" ${ARGN})
-
-    if(dev_version MATCHES "NOTFOUND$")
-        # Fallback version
-        set(dev_version "0.0.0")
+    if (is_driver)
+        git_describe(dev_version "--always" "--tags" "--abbrev=7" "--match=*+driver")
     else()
-        # Extract the git version part and make it SemVer friendly (ie. "-1-g02682d7" to "-1+02682d7" )
-        string(REGEX MATCH "(-[1-9][0-9]*-g[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])$"
-            git_ver_part "${dev_version}")
-        string(REPLACE "${git_ver_part}" "" dev_version "${dev_version}")
-        string(REPLACE "-g" "+" git_ver_part "${git_ver_part}")
-
-        if(dev_version MATCHES "\\+")
-            string(REPLACE "+" "${git_ver_part}-" dev_version "${dev_version}")
+        git_describe(dev_version "--always" "--tags" "--abbrev=7" "--exclude=*+driver")
+    endif()
+    string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+$" libs_tag ${dev_version})
+    string(REGEX MATCH "^[0-9]+.[0-9]+.[0-9]+\\+driver$" driver_tag ${dev_version})
+    message("Tags: ${libs_tag} ${driver_tag}")
+    if(dev_version MATCHES "NOTFOUND$" OR (libs_tag STREQUAL "" AND driver_tag STREQUAL ""))
+        # Fetch current hash
+        get_git_head_revision(refspec LIBS_HASH)
+        if(NOT LIBS_HASH OR LIBS_HASH MATCHES "NOTFOUND$")
+            set(dev_version "0.0.0")
         else()
-            string(CONCAT dev_version "${dev_version}" "${git_ver_part}")
+            # Obtain the closest tag
+            if (is_driver)
+                git_get_latest_tag(LIBS_LATEST_TAG "--tags=*+driver")
+            else()
+                git_get_latest_tag(LIBS_LATEST_TAG "--exclude=*+driver --tags")
+            endif()
+            if(NOT LIBS_LATEST_TAG OR LIBS_LATEST_TAG MATCHES "NOTFOUND$")
+                set(dev_version "0.0.0")
+            else()
+                # Compute commit delta since tag
+                git_get_delta_from_tag(LIBS_DELTA ${LIBS_LATEST_TAG} ${LIBS_HASH})
+                if(NOT LIBS_DELTA OR LIBS_DELTA MATCHES "NOTFOUND$")
+                    set(FALCO_VERSION "0.0.0")
+                else()
+                    # Cut hash to 7 bytes
+                    string(SUBSTRING ${LIBS_HASH} 0 7 LIBS_HASH)
+                    # Format dev_version to be semver with prerelease and build part
+                    set(dev_version "${LIBS_LATEST_TAG}-${LIBS_DELTA}+${LIBS_HASH}")
+                endif()
+            endif()
         endif()
     endif()
+     # Format dev_version to be semver with prerelease and build part
+    string(REPLACE "-g" "+" dev_version "${dev_version}")
 
     set(${_var}
         "${dev_version}"
@@ -54,7 +78,7 @@ function(_get_git_version _var)
 endfunction()
 
 function(get_libs_version _var)
-    _get_git_version(ver "--exclude=+driver")
+    _get_git_version(ver false "--exclude=*+driver")
 
     set(${_var}
         "${ver}"
@@ -63,7 +87,7 @@ function(get_libs_version _var)
 endfunction()
 
 function(get_drivers_version _var)
-    _get_git_version(ver "--match=*+driver")
+    _get_git_version(ver true)
 
     set(${_var}
         "${ver}"
