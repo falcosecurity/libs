@@ -15,6 +15,8 @@ limitations under the License.
 
 */
 
+#pragma once
+
 #include <string>
 
 namespace gvisor_config 
