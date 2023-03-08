@@ -322,7 +322,7 @@ void sinsp_container_manager::replace_container(const sinsp_container_info::ptr_
 
 void sinsp_container_manager::notify_new_container(const sinsp_container_info& container_info, sinsp_threadinfo *tinfo)
 {
-	if (!m_inspector->m_inited || m_inspector->is_capture())
+	if (!m_inspector->m_inited || m_inspector->is_offline())
 	{
 		// This is either:
 		// * being called from a threadinfo->resolve_container
