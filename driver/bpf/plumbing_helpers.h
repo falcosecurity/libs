@@ -647,7 +647,7 @@ cleanup:
 	release_local_state(state);
 }
 
-#if defined(CAPTURE_SOCKETCALL)  && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 static __always_inline long convert_network_syscalls(void *ctx)
 {
 	int socketcall_id = (int)bpf_syscall_get_argument_from_ctx(ctx, 0);
@@ -667,7 +667,7 @@ static __always_inline long convert_network_syscalls(void *ctx)
 	case SYS_ACCEPT:
 #if defined(CONFIG_S390) && defined(__NR_accept4)
 		return __NR_accept4;
-#elif defined(__NR_ACCEPT)
+#elif defined(__NR_accept)
 		return __NR_accept;
 #endif
 		break;

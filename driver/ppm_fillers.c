@@ -2088,7 +2088,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 #ifndef UDIG
 	else
-		memcpy(val, args->socketcall_args, 5*sizeof(syscall_arg_t));
+		memcpy(val, args->socketcall_args, 5*sizeof(unsigned long));
 #endif
 
 	/* Parameter 2: fd (type: PT_FD) */
@@ -2128,7 +2128,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
 #ifndef UDIG
 	else
-		memcpy(val, args->socketcall_args, 5*sizeof(syscall_arg_t));
+		memcpy(val, args->socketcall_args, 5*sizeof(unsigned long));
 #endif
 
 	/* Parameter 1: res (type: PT_ERRNO) */
