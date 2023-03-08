@@ -19,7 +19,12 @@ else()
 	set(TBB_LIB "${TBB_SRC}/lib_release/libtbb.a")
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
-
+		set(TBB_FLAGS "")
+		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+			# latest TBB has issues with GCC >= 12
+			# see: https://github.com/oneapi-src/oneTBB/issues/843#issuecomment-1152646035
+			set(TBB_FLAGS "-Wno-error=stringop-overflow")
+		endif()
 		ExternalProject_Add(tbb
 			PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
 			URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.8.0.tar.gz"
@@ -30,7 +35,7 @@ else()
 				-DBUILD_SHARED_LIBS=Off
 				-DCMAKE_BUILD_TYPE=release
 				-DTBB_OUTPUT_DIR_BASE=lib
-				-DCMAKE_CXX_FLAGS="-Wno-error=stringop-overflow"
+				-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
 			BUILD_BYPRODUCTS ${TBB_LIB}
 			INSTALL_COMMAND "")
 		install(FILES "${TBB_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
