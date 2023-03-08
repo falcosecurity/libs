@@ -13,30 +13,44 @@ its flexibility and ease of configuration and a Python module is used to hold
 common helper functions.
 
 ### Install Python dependencies
-It is recommended to use a virtual environment for installing Python
-dependencies in order to prevent polluting your host. In order to create a
-virtual environment and install all dependencies in it, from the `test/e2e/`
-directory run the following commands:
+You can run the following commands for installing the python dependencies
+needed for the e2e tests:
 
 ```sh
-python3 -m venv e2e-venv
-source e2e-venv/bin/activate
-pip3 install -r tests/requirements.txt
-pip3 install tests/commons
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make e2e-install-deps
 ```
 
-Once you are done running the tests, deactivate the virtual environment by
-running `deactivate`. If you want to go back to the virtual environment to keep
-running tests, simply source the `e2e-venv/bin/activate` script again.
-
-More information can be found here: https://docs.python.org/3/tutorial/venv.html
+It is recommended to use a virtual environment for installing Python
+dependencies in order to prevent polluting your host. You can find instructions
+on how to create a virtual environment here:
+https://docs.python.org/3/tutorial/venv.html
 
 ### Run the tests
-Once the python dependencies have been installed and the virtual environment
-is active, you can go ahead and configure the project with `cmake` as usual,
-the `e2e-tests` target will compile the `sinsp-example` binary, the kernel
-module, the eBPF probe and run the e2e-tests, leaving an html report in the
-build directory, under `report/report.html`.
+Once the python dependencies have been installed, you can configure the project
+and run the e2e tests with the `e2e-tests` make target.
+
+```sh
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make e2e-tests
+```
+
+An html report with the results and additional information useful for debugging
+when something fails will be generated under `build/report/report.html`.
+
+The e2e tests require that they be run with root privileges in order for
+sinsp-example to insert the drivers, if you don't feel like compiling the
+entire repo as root, you can use the following commands instead:
+
+```sh
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver bpf
+mkdir -p report/
+sudo ../test/e2e/scripts/run_tests.sh
+```
 
 ## Containerized tests
 ### sinsp container
