@@ -59,6 +59,10 @@ jobs:
         run: |
           .github/install-deps.sh
 
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
@@ -84,6 +88,10 @@ jobs:
       - name: Install deps ⛓️
         run: |
           .github/install-deps.sh
+
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Build and test 🏗️🧪
         run: |
@@ -128,7 +136,7 @@ jobs:
             apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential clang llvm git pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev linux-headers-generic
 
           run: |
-            git config --global --add safe.directory ${{ github.workspace }}
+            git config --global --add safe.directory $GITHUB_WORKSPACE
             .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DBUILD_BPF=On -DUSE_BUNDLED_DEPS=False ../
@@ -252,7 +260,7 @@ jobs:
 
           # Please note: we cannot inject the BPF probe inside QEMU, so right now, we only build it
           run: |
-            git config --global --add safe.directory ${{ github.workspace }}
+            git config --global --add safe.directory $GITHUB_WORKSPACE
             .github/install-deps.sh
             mkdir -p build
             cd build && cmake -DUSE_BUNDLED_DEPS=OFF -DENABLE_DRIVERS_TESTS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DMODERN_BPF_DEBUG_MODE=ON -DBUILD_LIBSCAP_GVISOR=OFF ../
@@ -364,6 +372,10 @@ jobs:
       - name: Install deps ⛓️
         run: |
           .github/install-deps.sh
+
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
 
       - name: Build and test 🏗️🧪
         run: |
