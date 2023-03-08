@@ -320,6 +320,14 @@ def process_spec(path: str, args: list, env: dict) -> dict:
     }
 
 
+def btf_is_available() -> bool:
+    kernel = os.uname().release.split('.')
+    kernel_major = int(kernel[0])
+    kernel_minor = int(kernel[1])
+
+    return kernel_major > 5 or (kernel_major == 5 and kernel_minor >= 8)
+
+
 def generate_specs(image: str = 'sinsp-example:latest',
                    path: str = os.environ.get('SINSP_EXAMPLE_PATH', ''),
                    args: list = []) -> list:
@@ -338,6 +346,8 @@ def generate_specs(image: str = 'sinsp-example:latest',
     bpf_args.extend([
         '-b', os.environ.get('BPF_PROBE'),
     ])
+    modern_bpf_args = args.copy()
+    modern_bpf_args.append('-m')
 
     kernel_module_env = {'KERNEL_MODULE': os.environ.get('KERNEL_MODULE', '')}
     bpf_env = {'BPF_PROBE': os.environ.get('BPF_PROBE', '')}
@@ -345,17 +355,25 @@ def generate_specs(image: str = 'sinsp-example:latest',
     if is_containerized():
         specs.append(container_spec(image, args, kernel_module_env))
         specs.append(container_spec(image, bpf_args, bpf_env))
+        if btf_is_available():
+            specs.append(container_spec(image, modern_bpf_args, {}))
     else:
         args.extend(['-j', '-a'])
         bpf_args.extend(['-j', '-a'])
+        modern_bpf_args.extend(['-j', '-a'])
 
         specs.append(process_spec(path, args, kernel_module_env))
         specs.append(process_spec(path, bpf_args, bpf_env))
+        if btf_is_available():
+            specs.append(process_spec(path, modern_bpf_args, {}))
 
     return specs
 
 
 def generate_id(spec: dict) -> str:
-    if 'BPF_PROBE' in spec['env']:
+    env = spec['env']
+    if 'BPF_PROBE' in env:
         return 'ebpf'
-    return 'kmod'
+    elif 'KERNEL_MODULE' in env:
+        return 'kmod'
+    return 'modern_bpf'
