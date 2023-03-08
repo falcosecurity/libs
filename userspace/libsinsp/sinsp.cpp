@@ -698,7 +698,7 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 
 void sinsp::open_test_input(scap_test_input_data* data)
 {
-	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_LIVE);
+	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_TEST);
 	struct scap_test_input_engine_params params;
 	params.test_input_data = data;
 	oargs.engine_params = &params;
@@ -1033,7 +1033,7 @@ void sinsp::import_user_list()
 void sinsp::refresh_ifaddr_list()
 {
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-	if(!is_capture())
+	if(!is_offline())
 	{
 		ASSERT(m_network_interfaces);
 		scap_refresh_iflist(m_h);
@@ -1335,7 +1335,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			remove_thread(remove_tid, false);
 		}
 
-		if(!is_capture())
+		if(!is_offline())
 		{
 			m_thread_manager->remove_inactive_threads();
 		}
@@ -1398,7 +1398,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	//
 	// Run the periodic connection, thread and users/groups table cleanup
 	//
-	if(!is_capture())
+	if(!is_offline())
 	{
 		m_container_manager.remove_inactive_containers();
 

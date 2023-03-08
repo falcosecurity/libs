@@ -113,7 +113,7 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 
 const struct scap_vtable scap_test_input_engine = {
 	.name = TEST_INPUT_ENGINE,
-	.mode = SCAP_MODE_LIVE,
+	.mode = SCAP_MODE_TEST,
 	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,

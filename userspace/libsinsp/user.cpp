@@ -145,7 +145,7 @@ void sinsp_usergroup_manager::subscribe_container_mgr()
 {
 	// Do nothing if subscribe_container_mgr() is called in capture mode, because
 	// events shall not be sent as they will be loaded from capture file.
-	if (m_import_users && !m_inspector->is_capture())
+	if (m_import_users && !m_inspector->is_offline())
 	{
 		// Emplace container manager listener to delete container users upon container deletion
 		m_inspector->m_container_manager.subscribe_on_remove_container([&](const sinsp_container_info &cinfo) -> void {

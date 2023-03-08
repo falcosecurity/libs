@@ -443,7 +443,7 @@ void sinsp_fdtable::lookup_device(sinsp_fdinfo_t* fdi, uint64_t fd)
 {
 #ifdef HAS_CAPTURE
 #ifndef _WIN32
-	if(m_inspector->is_capture())
+	if(m_inspector->is_offline())
 	{
 		return;
 	}
