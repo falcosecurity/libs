@@ -22,9 +22,10 @@ limitations under the License.
 struct testdata_sc_set 
 {
     using set_t = libsinsp::events::set<ppm_sc_code>;
-    const set_t all_set = libsinsp::events::all_sc_set();
     const set_t close_set = { PPM_SC_CLOSE };
     const set_t openat_set = { PPM_SC_OPENAT };
+
+    virtual set_t all_set() const { return libsinsp::events::all_sc_set(); };
     virtual set_t filter_set(const std::string filter) const
     {
         return libsinsp::filter::ast::ppm_sc_codes(
@@ -36,11 +37,12 @@ struct testdata_sc_set
 struct testdata_event_set 
 {
     using set_t = libsinsp::events::set<ppm_event_code>;
-    const set_t all_set = libsinsp::events::all_event_set();
     const set_t close_set = { PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X };
     const set_t openat_set = {
         PPME_SYSCALL_OPENAT_E, PPME_SYSCALL_OPENAT_X,
         PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X };
+
+    virtual set_t all_set() const { return  libsinsp::events::all_event_set(); };
     virtual set_t filter_set(const std::string filter) const
     {
         return libsinsp::filter::ast::ppm_event_codes(
@@ -53,7 +55,18 @@ struct testdata_event_set
 // libsinsp::events::sc_set_to_event_set conversion utility
 struct testdata_event_set_converted: testdata_event_set
 {
-    virtual set_t filter_set(const std::string filter) const override
+    set_t all_set() const override {
+        return libsinsp::events::all_event_set().filter([](ppm_event_code e) {
+            // the following categories are expected to have information loss
+            // loss as they are not mappable through the PPM_SC enumerative,
+            // due to them not being related to actual linux kernel events.
+            return !libsinsp::events::is_unused_event(e)
+                && !libsinsp::events::is_metaevent(e)
+                && !libsinsp::events::is_plugin_event(e);
+        });
+    };
+
+    set_t filter_set(const std::string filter) const override
     {
         testdata_sc_set s;
         return libsinsp::events::sc_set_to_event_set(s.filter_set(filter));
@@ -65,7 +78,7 @@ struct testdata_event_set_converted: testdata_event_set
 // libsinsp::events::event_set_to_sc_set conversion utility
 struct testdata_sc_set_converted: testdata_sc_set
 {
-    virtual set_t filter_set(const std::string filter) const override
+    set_t filter_set(const std::string filter) const override
     {
         testdata_event_set s;
         return libsinsp::events::event_set_to_sc_set(s.filter_set(filter));
@@ -85,16 +98,12 @@ struct testdata_sc_set_converted: testdata_sc_set
 // ppm_sc_code <-> ppm_event_code, which in general can cause information loss.
 // However, in none of the tests below this is significant, because no filter
 // deals with corner cases such as generic events, meta events, etc.
-// However, the current implementation would still make "_converted" tests fail
-// due to the conversion logic still having some faults.
-// Fixes are in the working in https://github.com/falcosecurity/libs/pull/889.
-// todo(jasondellaluce): enabled "_converted" tests once pull#889 gets merged
 #define TEST_CODES(test_suite_name, test_name) \
     template <typename T> void test_##test_name(); \
     TEST(test_suite_name, sc_##test_name) {test_##test_name<testdata_sc_set>();}; \
     TEST(test_suite_name, event_##test_name) {test_##test_name<testdata_event_set>();}; \
-    /* TEST(test_suite_name, sc_converted_##test_name) {test_##test_name<testdata_sc_set_converted>();}; */ \
-    /* TEST(test_suite_name, event_converted_##test_name) {test_##test_name<testdata_event_set_converted>();}; */ \
+    TEST(test_suite_name, sc_converted_##test_name) {test_##test_name<testdata_sc_set_converted>();}; \
+    TEST(test_suite_name, event_converted_##test_name) {test_##test_name<testdata_event_set_converted>();}; \
     template <typename T> void test_##test_name()
 
 
@@ -102,7 +111,7 @@ TEST_CODES(filter_ppm_codes, check_openat)
 {
     T t;
     auto openat_only = t.openat_set;
-    auto not_openat = t.all_set.diff(openat_only);
+    auto not_openat = t.all_set().diff(openat_only);
 
     /* `openat_only` */
     ASSERT_FILTER_SET_EQ(t, "evt.type=openat", openat_only);
@@ -128,7 +137,7 @@ TEST_CODES(filter_ppm_codes, check_openat_or_close)
 {
     T t;
     auto openat_close_only = t.openat_set.merge(t.close_set);
-    auto not_openat_close = t.all_set.diff(openat_close_only);
+    auto not_openat_close = t.all_set().diff(openat_close_only);
 
     /* `openat_close_only` */
     ASSERT_FILTER_SET_EQ(t, "evt.type in (openat, close)", openat_close_only);
@@ -146,7 +155,7 @@ TEST_CODES(filter_ppm_codes, check_all_events)
 {
     /* Computed as a difference of the empty set */
     T t;
-    auto all_events = t.all_set;
+    auto all_events = t.all_set();
 
     ASSERT_FILTER_SET_EQ(t, "evt.type!=openat or evt.type!=close", all_events);
     ASSERT_FILTER_SET_EQ(t, "proc.name=nginx", all_events);
@@ -160,7 +169,7 @@ TEST_CODES(filter_ppm_codes, check_all_events)
 TEST_CODES(filter_ppm_codes, check_no_events)
 {
     T t;
-    auto no_events = t.all_set;
+    auto no_events = t.all_set();
     no_events.clear();
 
     ASSERT_FILTER_SET_EQ(t, "evt.type=close and evt.type=openat", no_events);
@@ -171,7 +180,7 @@ TEST_CODES(filter_ppm_codes, check_no_events)
 TEST_CODES(filter_ppm_codes, check_properties)
 {
     T t;
-    auto no_events = t.all_set;
+    auto no_events = t.all_set();
     no_events.clear();
 
     // see: https://github.com/falcosecurity/libs/pull/854#issuecomment-1411151732
