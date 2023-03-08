@@ -16,6 +16,9 @@ ids = [
     sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples
 ]
 
+# modern probe doesn't support EXE_WRITABLE flag yet
+sinsp_examples[2] = pytest.param(sinsp_examples[2], marks=pytest.mark.xfail)
+
 
 @pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
 @pytest.mark.parametrize("run_containers", containers, indirect=True)
