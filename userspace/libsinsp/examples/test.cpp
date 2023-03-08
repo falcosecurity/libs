@@ -16,9 +16,9 @@ limitations under the License.
 
 #include <cstdlib>
 #include <iostream>
-#ifndef WIN32
+#ifndef _WIN32
 #include <getopt.h>
-#endif
+#endif // _WIN32
 #include <csignal>
 #include <sinsp.h>
 #include <functional>
@@ -26,13 +26,14 @@ limitations under the License.
 #include "filter/ppm_codes.h"
 #include <unordered_set>
 
-#ifndef WIN32
+#ifndef _WIN32
 extern "C" {
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 }
-#endif
+#endif // _WIN32
 
 using namespace std;
 
@@ -91,7 +92,7 @@ Options:
 	cout << usage << endl;
 }
 
-#ifndef WIN32
+#ifndef _WIN32
 // Parse CLI options.
 void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 {
@@ -159,7 +160,7 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		}
 	}
 }
-#endif /* WIN32 */
+#endif // _WIN32
 
 std::unordered_set<std::string> extract_filter_events(sinsp& inspector)
 {
@@ -269,7 +270,7 @@ error:
 
 	return false;
 }
-#endif
+#endif // __linux__
 
 //
 // Sample filters:
@@ -281,7 +282,7 @@ int main(int argc, char** argv)
 	sinsp inspector;
 	dump = plaintext_dump;
 
-#ifndef WIN32
+#ifndef _WIN32
 	parse_CLI_options(inspector, argc, argv);
 
 #ifdef __linux__
@@ -291,10 +292,10 @@ int main(int argc, char** argv)
 	{
 		return -1;
 	}
-#endif
+#endif // __linux__
 
 	signal(SIGPIPE, sigint_handler);
-#endif
+#endif // _WIN32
 
 	signal(SIGINT, sigint_handler);
 	signal(SIGTERM, sigint_handler);
