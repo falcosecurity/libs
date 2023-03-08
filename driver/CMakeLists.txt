@@ -5,7 +5,7 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 3.12)
 project(driver)
 
 set(TARGET_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
