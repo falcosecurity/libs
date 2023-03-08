@@ -26,6 +26,7 @@ limitations under the License.
 #include <sys/mman.h>
 #endif // _WIN32
 
+#include "compat/misc.h"
 #include "scap.h"
 #include "strlcpy.h"
 #include "../../driver/ppm_ringbuffer.h"

@@ -3951,7 +3951,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				uint16_t evid = *(uint16_t *)parinfo->m_val;
 
 				// Only generic enter event has the nativeID as second param
-				if (m_inspector->is_capture() && evid == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
+				if (m_inspector && m_inspector->is_capture() && evid == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
 				{
 					// try to enforce a forward compatibility for syscalls added
 					// after a scap file was generated,

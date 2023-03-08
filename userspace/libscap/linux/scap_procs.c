@@ -30,12 +30,12 @@ limitations under the License.
 #include <fcntl.h>
 #include "unixid.h"
 
-#include "clock_helpers.h"
-#include "debug_log_helpers.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_linux_int.h"
 #include "strerror.h"
+#include "clock_helpers.h"
+#include "debug_log_helpers.h"
 
 
 int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
