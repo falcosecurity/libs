@@ -30,7 +30,7 @@ if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/CMakeLists.txt)
 		"( rm -f CMakeCache.txt; mkdir build; cd build; cmake ..; make )")
 endif()
 
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 3.12)
 
 project(falcosecurity-libs)
 
@@ -100,7 +100,7 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	if(ENABLE_DRIVERS_TESTS)
 		add_subdirectory(test/drivers)
 	endif()
-	
+
 	if(ENABLE_LIBSCAP_TESTS)
 		add_subdirectory(test/libscap)
 	endif()
