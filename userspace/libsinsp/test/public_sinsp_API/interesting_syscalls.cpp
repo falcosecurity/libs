@@ -141,8 +141,12 @@ TEST(interesting_syscalls, all_sc_set)
 {
 	auto sc_set = libsinsp::events::all_sc_set();
 
-	/* Assert that all the syscalls are taken */
-	ASSERT_EQ(sc_set.size(), PPM_SC_MAX);
+	/*
+	 * Assert that all the syscalls are taken
+	 * -> note: since some PPM_SC might be skipped because unused,
+	 * max size might be lower than PPM_SC_MAX.
+	 */
+	ASSERT_TRUE(sc_set.size() <= PPM_SC_MAX);
 }
 
 TEST(interesting_syscalls, sc_set_to_names)
