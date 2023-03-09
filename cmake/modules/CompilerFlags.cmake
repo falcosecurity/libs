@@ -38,7 +38,9 @@ if(NOT MSVC)
 	endif()
 
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${FALCOSECURITY_LIBS_COMMON_FLAGS}")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FALCOSECURITY_LIBS_COMMON_FLAGS}")
+	# we need also `-std=c++17` here beacuse `set(CMAKE_CXX_STANDARD 17)` is not enough to enforce c++17
+	# with some Cmake versions: https://github.com/falcosecurity/libs/pull/950
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FALCOSECURITY_LIBS_COMMON_FLAGS} -std=c++17")
 
 	set(CMAKE_C_FLAGS_DEBUG "${FALCOSECURITY_LIBS_DEBUG_FLAGS}")
 	set(CMAKE_CXX_FLAGS_DEBUG "${FALCOSECURITY_LIBS_DEBUG_FLAGS}")
@@ -70,4 +72,6 @@ else() # MSVC
 
 	set(CMAKE_C_FLAGS_RELEASE "${FALCOSECURITY_LIBS_RELEASE_FLAGS}")
 	set(CMAKE_CXX_FLAGS_RELEASE "${FALCOSECURITY_LIBS_RELEASE_FLAGS}")
+
+	add_definitions(-D_HAS_STD_BYTE=0)
 endif()
