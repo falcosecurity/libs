@@ -96,7 +96,7 @@ typedef struct ppm_evt_hdr scap_evt;
 // and handle the result
 //
 #define SCAP_MINIMUM_DRIVER_API_VERSION PPM_API_VERSION(4, 0, 0)
-#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(2, 0, 0)
+#define SCAP_MINIMUM_DRIVER_SCHEMA_VERSION PPM_API_VERSION(3, 0, 0)
 
 // 
 // This is the dimension we used before introducing the variable buffer size.
