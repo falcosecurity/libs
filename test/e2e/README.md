@@ -77,6 +77,66 @@ dockerfile for this image can be found under `containers/tests.Dockerfile`.
 An `e2e-tests-container` target has been added. It requires the `BUILD_BPF`
 option to be set.
 
+## Contributing new e2e tests
+In order to add new tests, the simplest approach is to run `sinsp-example` with
+the `-j -a` flags and manually run the commands you'd like to catch events
+from. This will cause the events to be output to the terminal in JSON format,
+you can then copy paste them to a new test_*.py file, modify them as needed
+and write a test that runs the commands you ran manually previously.
+
+As a simple example, imagine you want to catch a sleep command being run inside
+a container. You could run `sinsp-example` in the following way:
+
+```sh
+sinsp-example -j -a -k -f "evt.category=process and not container.id=host"
+```
+
+Then on a separate terminal you could do:
+
+```sh
+docker run --rm debian:buster sleep 1
+```
+
+`sinsp-example` will output a bunch of events, one of which looks something
+like this:
+```json
+{"container.id":"e397c8dcbb3f","evt.args":"res=0 exe=sleep args=1. tid=472318(sleep) pid=472318(sleep) ptid=472295(containerd-shim) cwd=<NA> fdlimit=1073741816 pgft_maj=1 pgft_min=1026 vm_size=364 vm_rss=4 vm_swap=0 comm=sleep cgroups=cpuset=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.cpu=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.cpuacct=/.io=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.memory=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.devices=/.freezer=/.net_cls=/.perf_event=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.net_prio=/.hugetlb=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.pids=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope.misc=/system.slice/docker-e397c8dcbb3fbf1dfdf05eb4bd5c45bb78066506ac662b481fb475b05cca28da.scope. env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin.HOSTNAME=e397c8dcbb3f.HOME=/root. tty=0 pgid=1(systemd) loginuid=-1 flags=1(EXE_WRITABLE) cap_inheritable=0 cap_permitted=A80425FB cap_effective=A80425FB exe_ino=1213089 exe_ino_ctime=2023-02-10 09:33:30.56273065 exe_ino_mtime=2019-02-28 15:30:31.00000000 uid=0 ","evt.category":"process","evt.num":1483230,"evt.time":1678289852166558200,"evt.type":"execve","proc.cmdline":"sleep 1","proc.exe":"sleep","proc.pid":472318,"proc.ppid":472308}
+```
+
+Because JSON is valid Python, you can copy and paste it directly, we'll drop
+the `evt.args` for readability, but you could turn it to a regex if there is a
+need to validate some fields in it.
+
+```python
+expected_events = [{
+  "container.id": "e397c8dcbb3f",
+  "evt.category": "process",
+  "evt.num": 1483230,
+  "evt.time": 1678289852166558200,
+  "evt.type": "execve",
+  "proc.cmdline": "sleep 1",
+  "proc.exe": "sleep",
+  "proc.pid": 472318,
+  "proc.ppid": 472308
+}]
+```
+You should familiarize yourself with the sinspqa module and its helpers, the
+previous event can be modified to be a bit more generic as follows:
+
+```python
+expected_events = [{
+  "container.id": get_container_id(app_container),
+  "evt.category": "process",
+  "evt.num": SinspField.numeric_field(),
+  "evt.time": SinspField.numeric_field(),
+  "evt.type": "execve",
+  "proc.cmdline": "sleep 1",
+  "proc.exe": "sleep",
+  "proc.pid": SinspField.numeric_field(),
+  "proc.ppid": SinspField.numeric_field()
+}]
+```
+
 ## Potential future improvements
 Aside from the obvious improvement of adding additional tests, here are some
 ideas of things that could be changed to improve the quality of the tests:
