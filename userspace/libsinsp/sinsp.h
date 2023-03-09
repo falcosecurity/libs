@@ -582,7 +582,7 @@ public:
 	*/
 	inline bool is_offline()
 	{
-		return m_mode == SCAP_MODE_CAPTURE || m_mode == SCAP_MODE_TEST;
+		return is_capture() || m_mode == SCAP_MODE_TEST;
 	}
 
 	/*!
