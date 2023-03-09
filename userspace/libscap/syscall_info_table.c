@@ -29,7 +29,7 @@ static struct ppm_syscall_desc g_syscall_info_table[PPM_SC_MAX];
 
 static void load_syscall_info_table() {
 	const char *sc_names[PPM_SC_MAX] = {
-#define PPM_SC_X(name, value) #name,
+#define PPM_SC_X(name, value) [value] = #name,
 		PPM_SC_FIELDS
 #undef PPM_SC_X
 	};
@@ -37,6 +37,11 @@ static void load_syscall_info_table() {
 	int i;
 	for (i = 0; i < PPM_SC_MAX; i++)
 	{
+		if (!sc_names[i])
+		{
+			continue;
+		}
+
 		strlcpy(g_syscall_info_table[i].name, sc_names[i], PPM_MAX_NAME_LEN);
 		// tolower on name string
 		char *p = g_syscall_info_table[i].name;
