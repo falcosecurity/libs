@@ -845,6 +845,7 @@ public:
 		ppm_print_format print_format)
 	{
 		m_finfo.m_type = type;
+		m_finfo.m_flags = EPF_NONE;
 		m_val = val;
 		m_len = len;
 		m_cnt = cnt;
