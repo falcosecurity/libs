@@ -14,12 +14,11 @@ elseif(NOT USE_BUNDLED_PROTOBUF)
 else()
 	if(BUILD_SHARED_LIBS)
 		set(PROTOBUF_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
-		set(PROTOBUF_CONFIGURE_FLAGS --enable-shared --disable-static)
+		set(PROTOBUF_BUILD_SHARED ON)
 	else()
 		set(PROTOBUF_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
-		set(PROTOBUF_CONFIGURE_FLAGS --disable-shared --enable-static)
+		set(PROTOBUF_BUILD_SHARED OFF)
 	endif()
-	include(zlib)
 
 	set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
 	set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
@@ -32,11 +31,9 @@ else()
 		message(STATUS "Using bundled protobuf in '${PROTOBUF_SRC}'")
 		ExternalProject_Add(protobuf
 			PREFIX "${PROJECT_BINARY_DIR}/protobuf-prefix"
-			DEPENDS zlib
-			URL "https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/protobuf-cpp-3.17.3.tar.gz"
-			URL_HASH "SHA256=51cec99f108b83422b7af1170afd7aeb2dd77d2bcbb7b6bad1f92509e9ccf8cb"
-			# TODO what if using system zlib?
-			CONFIGURE_COMMAND CPPFLAGS=-I${ZLIB_INCLUDE} LDFLAGS=-L${ZLIB_SRC} ./configure --with-zlib ${PROTOBUF_CONFIGURE_FLAGS} --prefix=${PROTOBUF_INSTALL_DIR}
+			URL "https://github.com/protocolbuffers/protobuf/archive/v21.12/$pkgname-21.12.tar.gz"
+			URL_HASH "SHA256=22fdaf641b31655d4b2297f9981fa5203b2866f8332d3c6333f6b0107bb320de"
+			CMAKE_ARGS -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_BUILD_SHARED_LIBS=${PROTOBUF_BUILD_SHARED} -Dprotobuf_WITH_ZLIB=OFF -DCMAKE_INSTALL_PREFIX=${PROTOBUF_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${PROTOC} ${PROTOBUF_INCLUDE} ${PROTOBUF_LIB}
