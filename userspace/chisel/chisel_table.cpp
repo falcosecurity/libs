@@ -620,6 +620,7 @@ void chisel_table::print_raw(vector<chisel_sample_row>* sample_data, uint64_t ti
 			}
 
 			m_printer->set_val(m_types->at(j + 1), 
+				EPF_NONE,
 				it->m_values[j].m_val,
 				it->m_values[j].m_len,
 				it->m_values[j].m_cnt,
@@ -679,6 +680,7 @@ void chisel_table::print_json(vector<chisel_sample_row>* sample_data, uint64_t t
 			}
 
 			m_printer->set_val(m_types->at(j + 1), 
+				EPF_NONE,
 				row.m_values[j].m_val,
 				row.m_values[j].m_len,
 				row.m_values[j].m_cnt,
@@ -742,6 +744,7 @@ void chisel_table::filter_sample()
 				type == PT_UID || type == PT_GID)
 			{
 				m_printer->set_val(type, 
+					EPF_NONE,
 					it.m_values[j].m_val, 
 					it.m_values[j].m_len,
 					it.m_values[j].m_cnt,
@@ -789,6 +792,7 @@ chisel_table_field* chisel_table::search_in_sample(string text)
 				type == PT_UID || type == PT_GID)
 			{
 				m_printer->set_val(type,
+					EPF_NONE,
 					it->m_values[j].m_val,
 					it->m_values[j].m_len,
 					it->m_values[j].m_cnt,
@@ -1549,6 +1553,7 @@ pair<filtercheck_field_info*, string> chisel_table::get_row_key_name_and_val(uin
 		ASSERT(res.first != NULL);
 
 		m_printer->set_val(types->at(0),
+			EPF_NONE,
 			m_sample_data->at(rownum).m_key.m_val, 
 			m_sample_data->at(rownum).m_key.m_len,
 			m_sample_data->at(rownum).m_key.m_cnt,
