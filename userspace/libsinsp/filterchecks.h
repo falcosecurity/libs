@@ -840,12 +840,12 @@ public:
 
 	sinsp_filter_check_reference();
 	sinsp_filter_check* allocate_new();
-	inline void set_val(ppm_param_type type, uint8_t* val,
-		int32_t len, uint32_t cnt,
-		ppm_print_format print_format)
+	inline void set_val(ppm_param_type type, filtercheck_field_flags flags,
+		uint8_t* val, int32_t len,
+		uint32_t cnt, ppm_print_format print_format)
 	{
 		m_finfo.m_type = type;
-		m_finfo.m_flags = EPF_NONE;
+		m_finfo.m_flags = flags;
 		m_val = val;
 		m_len = len;
 		m_cnt = cnt;
