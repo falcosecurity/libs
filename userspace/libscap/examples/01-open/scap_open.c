@@ -22,7 +22,6 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include "strlcpy.h"
-#include "../../../driver/ppm_tp.h"
 
 #define SYSCALL_NAME_MAX_LEN 40
 #define UNKNOWN_ENGINE "unknown"
@@ -272,17 +271,17 @@ void print_supported_sc()
 	// Skip PPM_SC_UNKNOWN
 	for (int i = 1; i < PPM_SC_MAX; i++)
 	{
-		if(ppm_sc_is_tp(i))
+		if (scap_get_syscall_info_table()[i].name[0] != '\0')
 		{
 			int native_id = scap_ppm_sc_to_native_id(i);
 			if (native_id != -1)
 			{
-				printf("- SYSCALL > %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[i].name, native_id, i);
+				printf("- PPM_SC > %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[i].name, native_id, i);
 			}
-		}
-		else
-		{
-			printf("- TRACEPOINT > %-25s ppm_code: (%d)\n", g_syscall_info_table[i].name, i);
+			else
+			{
+				printf("- PPM_SC > %-25s ppm_code: (%d)\n", g_syscall_info_table[i].name, i);
+			}
 		}
 	}
 }

@@ -70,8 +70,8 @@ static inline void scap_bpf_advance_to_next_evt(scap_device* dev, scap_evt *even
 
 #include "ringbuffer/ringbuffer.h"
 
-static int32_t scap_bpf_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc, bool enabled);
-static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable);
+static int32_t scap_bpf_enable_sc(struct bpf_engine *handle, ppm_sc_code ppm_sc, bool enabled);
+static int32_t scap_bpf_enable_tp(struct bpf_engine *handlee, ppm_tp_code tp, bool enable);
 static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t sc);
 
 //
@@ -967,9 +967,8 @@ static int32_t populate_interesting_syscalls_map(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_bpf_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc, bool enabled)
+static int32_t scap_bpf_enable_sc(struct bpf_engine *handle, ppm_sc_code ppm_sc, bool enabled)
 {
-	struct bpf_engine *handle = engine.m_handle;
 	return set_single_syscall_of_interest(handle, ppm_sc, enabled);
 }
 
@@ -1045,7 +1044,7 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	{
 		if (tp_set[tp])
 		{
-			ret = scap_bpf_enable_tp(engine, tp, true);
+			ret = scap_bpf_enable_tp(handle, tp, true);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1058,7 +1057,7 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 	{
 		if (handle->curr_sc_set.ppm_sc[sc])
 		{
-			ret = scap_bpf_enable_sc(engine, sc, true);
+			ret = scap_bpf_enable_sc(handle, sc, true);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -1078,16 +1077,18 @@ int32_t scap_bpf_start_capture(struct scap_engine_handle engine)
 
 int32_t scap_bpf_stop_capture(struct scap_engine_handle engine)
 {
+	struct bpf_engine* handle = engine.m_handle;
+
 	/* Disable all sc codes */
 	for (int sc = 0; sc < PPM_SC_MAX; sc++)
 	{
-		scap_bpf_enable_sc(engine, sc, false);
+		scap_bpf_enable_sc(handle, sc, false);
 	}
 
 	/* Disable all tracepoints */
 	for (int tp = 0; tp < TP_VAL_MAX; tp++)
 	{
-		scap_bpf_enable_tp(engine, tp, false);
+		scap_bpf_enable_tp(handle, tp, false);
 	}
 	return SCAP_SUCCESS;
 }
@@ -1655,10 +1656,8 @@ static int32_t unsupported_config(struct scap_engine_handle engine, const char* 
 	return SCAP_FAILURE;
 }
 
-static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable)
+static int32_t scap_bpf_enable_tp(struct bpf_engine *handle, ppm_tp_code tp, bool enable)
 {
-	struct bpf_engine *handle = engine.m_handle;
-
 	int prg_idx = -1;
 	for (int i = 0; i < handle->m_bpf_prog_cnt; i++)
 	{
@@ -1707,53 +1706,7 @@ static int32_t scap_bpf_enable_tp(struct scap_engine_handle engine, ppm_tp_code 
 static int32_t scap_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct bpf_engine* handle = engine.m_handle;
-	int32_t ret = SCAP_SUCCESS;
-
-	// Load initial tp_set
-	bool curr_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
-
-	switch(op)
-	{
-	case SCAP_PPM_SC_MASK_SET:
-		if(handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
-		break;
-	case SCAP_PPM_SC_MASK_UNSET:
-		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
-		break;
-
-	default:
-		return SCAP_FAILURE;
-	}
-
-	// Only if the sc code maps a syscall
-	if(ppm_sc_is_tp(ppm_sc))
-	{
-		scap_bpf_enable_sc(engine, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
-	}
-
-	// Load final tp_set -> note we must check this for syscalls too
-	// because we want to be able to enable/disable sys_{enter,exit} tracepoints dynamically.
-	bool final_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
-	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
-	{
-		if (curr_tp_set[tp] != final_tp_set[tp])
-		{
-			ret = scap_bpf_enable_tp(engine, tp, final_tp_set[tp]);
-		}
-	}
-	return ret;
+	return handle_ppm_sc_mask(handle, handle->curr_sc_set.ppm_sc, op == SCAP_PPM_SC_MASK_SET, ppm_sc, scap_bpf_enable_sc, scap_bpf_enable_tp);
 }
 
 static int32_t configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)

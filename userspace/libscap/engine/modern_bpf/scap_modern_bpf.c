@@ -17,10 +17,10 @@ limitations under the License.
 #include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <libpman.h>
 
 #define SCAP_HANDLE_T struct modern_bpf_engine
 #include "scap_modern_bpf.h"
+#include <libpman.h>
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_procs.h"
@@ -141,55 +141,21 @@ int32_t scap_modern_bpf_stop_dropping_mode()
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_modern_bpf_enable_tp(struct modern_bpf_engine* handle, ppm_tp_code tp, bool enable)
+{
+	return pman_update_single_program(tp, enable);
+}
+
+static int32_t scap_modern_bpf_enable_sc(struct modern_bpf_engine* handle, ppm_sc_code ppm_sc, bool enable)
+{
+	pman_mark_single_ppm_sc(ppm_sc, enable);
+	return 0;
+}
+
 static int32_t scap_modern_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	int32_t ret = SCAP_SUCCESS;
-
-	// Load initial tp_set
-	bool curr_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
-	switch(op)
-	{
-	case SCAP_PPM_SC_MASK_SET:
-		if(handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
-		break;
-	case SCAP_PPM_SC_MASK_UNSET:
-		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
-		break;
-
-	default:
-		return SCAP_FAILURE;
-	}
-
-
-	// Only if the sc code maps a syscall
-	if(ppm_sc_is_tp(ppm_sc))
-	{
-		pman_mark_single_ppm_sc(ppm_sc, op == SCAP_PPM_SC_MASK_SET);
-	}
-
-	// Load final tp_set
-	bool final_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
-	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
-	{
-		if (curr_tp_set[tp] != final_tp_set[tp])
-		{
-			ret = pman_update_single_program(tp, final_tp_set[tp]);
-		}
-	}
-	return ret;
+	return handle_ppm_sc_mask(handle, handle->curr_sc_set.ppm_sc, op == SCAP_PPM_SC_MASK_SET, ppm_sc, scap_modern_bpf_enable_sc, scap_modern_bpf_enable_tp);
 }
 
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
