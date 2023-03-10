@@ -320,6 +320,8 @@ TEST_F(sinsp_with_test_input, spawn_process)
 
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20, null_pid = 0;
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
+	uint64_t exe_ino = 242048, ctime = 1676262698000004588, mtime = 1676262698000004577;
+
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
@@ -327,12 +329,12 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
 	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
 	std::string envv = test_utils::to_null_delimited(env);
-	std::vector<std::string> args = {"--help"};
+	std::vector<std::string> args = {"-c", "'echo aGVsbG8K | base64 -d'"};
 	std::string argsv = test_utils::to_null_delimited(args);
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, null_pid, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_pid, child_tid);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, 2000);
 
 	// check that the cwd is inherited from the parent (default process has /root/)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
@@ -367,7 +369,29 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.ppid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
 	ASSERT_FALSE(field_exists(evt, "proc.apid[2]"));
+
+	// check more fields
+	ASSERT_EQ(get_field_as_string(evt, "proc.args"), "-c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exeline"), "/bin/test-exe -c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.tty"), "34818");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "user.loginuid"), "1000");
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "2000");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmsize"), "29612");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmrss"), "4");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vmswap"), "0");
 	ASSERT_EQ(get_field_as_string(evt, "proc.fdlimit"), "1024");
+	ASSERT_EQ(get_field_as_string(evt, "thread.pfmajor"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "thread.pfminor"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_writable"), "true");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe_ino"), "242048");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe_ino.ctime"), "1676262698000004588");
+	ASSERT_EQ(get_field_as_string(evt, "proc.exe_ino.mtime"), "1676262698000004577");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cmdnargs"), "2");
+	ASSERT_EQ(get_field_as_string(evt, "proc.cmdlenargs"), "29");
+	ASSERT_EQ(get_field_as_string(evt, "proc.sname"), "init");
 }
 
 // check parsing of container events (possibly from capture files)
@@ -381,6 +405,8 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 
 	uint64_t parent_pid = 1, parent_tid = 1, child_pid = 20, child_tid = 20;
 	uint64_t fdlimit = 1024, pgft_maj = 0, pgft_min = 1;
+	uint64_t exe_ino = 242048, ctime = 1676262698000004577, mtime = 1676262698000004588;
+
 	scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
 
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_E, 0);
@@ -388,23 +414,27 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	std::string cgroupsv = test_utils::to_null_delimited(cgroups);
 	std::vector<std::string> env = {"SHELL=/bin/bash", "PWD=/home/user", "HOME=/home/user"};
 	std::string envv = test_utils::to_null_delimited(env);
-	std::vector<std::string> args = {"--help"};
+	std::vector<std::string> args = {"-c", "'echo aGVsbG8K | base64 -d'"};
 	std::string argsv = test_utils::to_null_delimited(args);
 
 	std::string container = R"({"container":{"Mounts":[],"cpu_period":100000,"cpu_quota":0,"cpu_shares":1024,"cpuset_cpu_count":0,"created_time":1663770709,"env":[],"full_id":"f9c7a020960a15738167a77594bff1f7ac5f5bfdb6646ecbc9b17c7ed7ec5066","id":"f9c7a020960a","image":"ubuntu","imagedigest":"sha256:a0d9e826ab87bd665cfc640598a871b748b4b70a01a4f3d174d4fb02adad07a9","imageid":"597ce1600cf4ac5f449b66e75e840657bb53864434d6bd82f00b172544c32ee2","imagerepo":"ubuntu","imagetag":"latest","ip":"172.17.0.2","is_pod_sandbox":false,"labels":null,"lookup_state":1,"memory_limit":0,"metadata_deadline":0,"name":"eloquent_mirzakhani","port_mappings":[],"privileged":false,"swap_limit":0,"type":0}})";
 	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, 1, 1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container.c_str());
+
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, 2000);
 
 	// check that the container has been correctly detected and the short ID is correct
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "f9c7a020960a");
 	// check that metadata is correctly parsed from the container event
 	ASSERT_EQ(get_field_as_string(evt, "container.image"), "ubuntu");
-
+	// check vpid reflecting container pid namespace
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "thread.vtid"), "1");
+	// check more fields
+	ASSERT_EQ(get_field_as_string(evt, "proc.is_exe_upper_layer"), "true");
+	ASSERT_EQ(get_field_as_string(evt, "user.uid"), "2000");
 }
 #endif // MINIMAL_BUILD
 
