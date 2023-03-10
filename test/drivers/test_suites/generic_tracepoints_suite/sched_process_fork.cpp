@@ -8,7 +8,7 @@
 #ifdef __NR_clone3
 TEST(GenericTracepoints, sched_proc_fork_case_clone3)
 {
-	auto evt_test = get_generic_event_test(SCHED_PROC_FORK);
+	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -109,7 +109,7 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone3)
 #ifdef __NR_clone
 TEST(GenericTracepoints, sched_proc_fork_case_clone)
 {
-	auto evt_test = get_generic_event_test(SCHED_PROC_FORK);
+	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
@@ -219,7 +219,7 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone)
 #ifdef __NR_fork
 TEST(GenericTracepoints, sched_proc_fork_case_fork)
 {
-	auto evt_test = get_generic_event_test(SCHED_PROC_FORK);
+	auto evt_test = get_syscall_event_test(__NR_clone, EXIT_EVENT);
 
 	evt_test->enable_capture();
 

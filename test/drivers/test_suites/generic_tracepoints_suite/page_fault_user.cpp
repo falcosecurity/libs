@@ -3,7 +3,7 @@
 #if defined(CAPTURE_PAGE_FAULTS) && defined(__NR_fork) && defined(__NR_wait4)
 TEST(GenericTracepoints, page_fault_user)
 {
-	auto evt_test = get_generic_event_test(PAGE_FAULT_USER);
+	auto evt_test = get_generic_event_test(PPM_SC_PAGE_FAULT_USER);
 
 	evt_test->enable_capture();
 
