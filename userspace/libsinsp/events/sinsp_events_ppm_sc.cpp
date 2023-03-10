@@ -285,7 +285,8 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::all_sc_set()
 	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	if (ppm_sc_set.empty())
 	{
-		for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+		// Skip UNKNOWN
+		for(uint32_t ppm_sc = 1; ppm_sc < PPM_SC_MAX; ppm_sc++)
 		{
 			if (scap_get_syscall_info_table()[ppm_sc].name[0] != '\0')
 			{

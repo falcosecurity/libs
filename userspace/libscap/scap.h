@@ -743,6 +743,11 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name);
 ppm_sc_code scap_native_id_to_ppm_sc(int native_id);
 
 /*!
+  \brief Convert a native ppm_sc to native syscall id, if syscall
+*/
+int scap_ppm_sc_to_native_id(ppm_sc_code sc_code);
+
+/*!
   \brief This function can be used to temporarily interrupt event capture.
 
   \param handle Handle to the capture that will be stopped.
@@ -847,18 +852,6 @@ int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen);
   \note This function can only be called for live captures.
 */
 int32_t scap_set_ppm_sc(scap_t* handle, uint32_t ppm_sc, bool enabled);
-
-/*!
-  \brief (Un)Set the tp into the tracepoint mask so that
-  users can (detach)attach the requested tracepoint.
-
-  \param handle Handle to the capture instance.
-  \param tp id (example SYS_ENTER)
-  \param enabled whether to enable or disable the tracepoint
-  \note This function can only be called for live captures.
-*/
-int32_t scap_set_tp(scap_t* handle, ppm_tp_code tp, bool enabled);
-
 
 /*!
   \brief Get the root directory of the system. This usually changes

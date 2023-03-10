@@ -21,6 +21,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "strlcpy.h"
 #include <ctype.h>
+#include "../../driver/ppm_tp.h"
 
 /*
  * SYSCALL INFO TABLE

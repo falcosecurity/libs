@@ -45,3 +45,8 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 {
 	return PPM_SC_UNKNOWN;
 }
+
+int scap_ppm_sc_to_native_id(ppm_sc_code sc_code)
+{
+	return -1;
+}

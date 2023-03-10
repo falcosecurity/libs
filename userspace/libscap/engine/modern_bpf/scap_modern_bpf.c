@@ -238,11 +238,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-
-	bool tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(engine.m_handle->curr_sc_set.ppm_sc, tp_set);
-
-	return pman_enable_capture(handle->curr_sc_set.ppm_sc, tp_set);
+	return pman_enable_capture(handle->curr_sc_set.ppm_sc);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)

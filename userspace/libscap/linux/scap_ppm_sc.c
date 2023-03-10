@@ -560,3 +560,16 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 	}
 	return g_syscall_table[native_id].ppm_sc;
 }
+
+int scap_ppm_sc_to_native_id(ppm_sc_code sc_code)
+{
+	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
+	{
+		if(g_syscall_table[syscall_nr].ppm_sc == sc_code)
+		{
+			return syscall_nr;
+		}
+	}
+	return -1;
+}
+
