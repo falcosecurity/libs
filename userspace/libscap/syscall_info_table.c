@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "../common/types.h"
 #include "../../driver/ppm_events_public.h"
+#include "../../driver/ppm_tp.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "strlcpy.h"
@@ -50,7 +51,18 @@ static void load_syscall_info_table() {
 			*p = tolower(*p);
 		}
 
-		g_syscall_info_table[i].category = EC_UNKNOWN;
+		// Fallback at considering all non existing syscalls as tracepoints
+		g_syscall_info_table[i].category = EC_UNKNOWN | EC_TRACEPOINT;
+#ifdef __linux__
+		// Syscall table is only present on linux
+		int j;
+		for (j = 0; j < SYSCALL_TABLE_SIZE; j++) {
+			if (g_syscall_table[j].ppm_sc == i) {
+				g_syscall_info_table[i].category = g_event_info[g_syscall_table[j].enter_event_type].category;
+				break;
+			}
+		}
+#endif
 	}
 }
 
