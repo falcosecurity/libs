@@ -78,16 +78,6 @@ extern "C"
 		bool ppm_sc[PPM_SC_MAX];
 	} interesting_ppm_sc_set;
 
-	/*!
-	 * \brief Argument for scap_open
-	 * Set any tracepoint idx to true to enable its tracing at driver level,
-	 * otherwise a tp is not attached (so called "uninteresting tracepoint").
-	 */
-	typedef struct
-	{
-		bool tp[TP_VAL_MAX];
-	} interesting_tp_set;
-
 	typedef struct scap_open_args
 	{
 		const char* engine_name;				 ///< engine name ("kmod", "bpf", ...).
@@ -100,7 +90,6 @@ extern "C"
 									 // You can provide additional comm
 									 // values via scap_suppress_events_comm().
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
-		interesting_tp_set tp_of_interest; ///< tp of interest. If left empty, no tracepoints will be attached
 		void(*debug_log_fn)(const char* msg); //< Function which SCAP may use to log a debug message
 		uint64_t proc_scan_timeout_ms; //< Timeout in msec, after which so-far-successful scan of /proc should be cut short with success return
 		uint64_t proc_scan_log_interval_ms; //< Interval for logging progress messages from /proc scan

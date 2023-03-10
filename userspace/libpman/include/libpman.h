@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <ppm_tp.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -427,6 +428,15 @@ extern "C"
 	 *
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
+
+	/**
+	 * @brief Mark a single ppm_sc code syscall as (un)interesting
+	 *
+	 * @param ppm_sc code for syscall.
+	 * @param interesting true if the syscall must be marked as interesting.
+	 *
+	 */
+	void pman_mark_single_ppm_sc(int ppm_sc, bool interesting);
 
 	/**
 	 * @brief Mark all syscalls as uninteresting.
