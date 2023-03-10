@@ -27,7 +27,7 @@ limitations under the License.
 //
 
 #ifndef BPF_PROGS_MAX
-#define BPF_PROGS_MAX 156
+#define BPF_PROGS_MAX 256
 #endif
 
 #define BPF_MAPS_MAX 32
