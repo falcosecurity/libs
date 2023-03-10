@@ -123,11 +123,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_READV_X] = {FILLER_REF(sys_readv_preadv_x)},
 	[PPME_SYSCALL_WRITEV_E] = {FILLER_REF(sys_writev_e)},
 	[PPME_SYSCALL_WRITEV_X] = {FILLER_REF(sys_writev_pwritev_x)},
-#ifdef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 	[PPME_SYSCALL_PREADV_E] = {FILLER_REF(sys_preadv_e)},
-#else
-	[PPME_SYSCALL_PREADV_E] = {FILLER_REF(sys_preadv64_e)},
-#endif
 	[PPME_SYSCALL_PREADV_X] = {FILLER_REF(sys_readv_preadv_x)},
 	[PPME_SYSCALL_PWRITEV_E] = {FILLER_REF(sys_pwritev_e)},
 	[PPME_SYSCALL_PWRITEV_X] = {FILLER_REF(sys_writev_pwritev_x)},

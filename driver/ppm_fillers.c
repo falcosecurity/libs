@@ -3885,45 +3885,50 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 
 	return add_sentinel(args);
 }
+#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
-int f_sys_preadv64_e(struct event_filler_arguments *args)
+int f_sys_preadv_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	unsigned long pos0;
-	unsigned long pos1;
-	uint64_t pos64;
+	int32_t fd;
+	unsigned long pos64;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (int32_t)val;
+	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
+	CHECK_RES(res);
 
 	/*
 	 * pos
 	 */
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+	{
+		unsigned long pos0;
+		unsigned long pos1;
+		/*
+		* Note that in preadv and pwritev have NO 64-bit arguments in the
+		* syscall (despite having one in the userspace API), so no alignment
+		* requirements apply here. For an overly-detailed discussion about
+		* this, see https://lwn.net/Articles/311630/
+		*/
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
 
-	/*
-	 * Note that in preadv and pwritev have NO 64-bit arguments in the
-	 * syscall (despite having one in the userspace API), so no alignment
-	 * requirements apply here. For an overly-detailed discussion about
-	 * this, see https://lwn.net/Articles/311630/
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
-
-	pos64 = merge_64(pos1, pos0);
+		pos64 = merge_64(pos1, pos0);
+	}
+#else
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+#endif
 
 	res = val_to_ring(args, pos64, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
-#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
 int f_sys_readv_e(struct event_filler_arguments *args)
 {
@@ -3935,31 +3940,6 @@ int f_sys_readv_e(struct event_filler_arguments *args)
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
-	CHECK_RES(res);
-
-	return add_sentinel(args);
-}
-
-int f_sys_preadv_e(struct event_filler_arguments *args)
-{
-	unsigned long val;
-	int32_t fd;
-	int res;
-
-	/*
-	 * fd
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	fd = (int32_t)val;
-	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * pos
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
