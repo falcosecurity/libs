@@ -49,8 +49,19 @@ static void load_syscall_info_table() {
 		{
 			*p = tolower(*p);
 		}
-		// try to load category from event_table, else EC_UNKNOWN
-		g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
+
+		const ppm_tp_code tp = get_tp_from_sc(i);
+		if (tp == -1)
+		{
+			// try to load category from event_table, else EC_UNKNOWN
+			g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
+		}
+		else
+		{
+			g_syscall_info_table[i].category = EC_UNKNOWN | EC_TRACEPOINT;
+		}
+
+		// TODO use new table to fill category? scap_ppm_sc.c
 #ifdef __linux__
 		// Syscall table is only present on linux
 		int j;

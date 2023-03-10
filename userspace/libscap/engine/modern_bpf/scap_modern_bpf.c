@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,41 +29,64 @@ limitations under the License.
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 
+#define REQUIRED_MAJOR 5
+#define REQUIRED_MINOR 8
+#define REQUIRED_PATCH 0
+
 /*=============================== UTILS ===============================*/
 
-static void update_single_64bit_syscall_of_interest(int ppm_sc, bool interesting)
-{
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
-		if (g_syscall_table[syscall_nr].ppm_sc == ppm_sc)
-		{
-			pman_mark_single_64bit_syscall(syscall_nr, interesting);
-		}
-	}
-}
-
 /// TODO: in the next future, from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
-static int32_t populate_64bit_interesting_syscalls_table(bool* ppm_sc_array)
+static int32_t populate_64bit_interesting_syscalls_table()
 {
 	int ret = SCAP_SUCCESS;
-	if(ppm_sc_array == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		update_single_64bit_syscall_of_interest(ppm_sc, ppm_sc_array[ppm_sc]);
+		pman_mark_single_ppm_sc(ppm_sc, false);
 	}
 	return ret;
 }
 
-/*
- * Verify prerequisites for modern probes are met.
- */
-static int32_t check_modern_probe_support(char* last_err)
+static int32_t check_minimum_kernel_version(char* last_err)
 {
-	return pman_check_support() ? SCAP_SUCCESS : SCAP_FAILURE;
+	uint32_t major = 0;
+	uint32_t minor = 0;
+	uint32_t patch = 0;
+
+	struct utsname info;
+	if(uname(&info) != 0)
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the kernel version with uname: %s", strerror(errno));
+		}
+		return SCAP_FAILURE;
+	}
+
+	if(sscanf(info.release, "%u.%u.%u", &major, &minor, &patch) != 3)
+	{
+		if(last_err != NULL)
+		{
+			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to parse info.release '%s'. %s", info.release, strerror(errno));
+		}
+		return SCAP_FAILURE;
+	}
+
+	if(major > REQUIRED_MAJOR)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	if(major == REQUIRED_MAJOR && minor > REQUIRED_MINOR)
+	{
+		return SCAP_SUCCESS;
+	}
+
+	if(major == REQUIRED_MAJOR && minor == REQUIRED_MINOR && patch >= REQUIRED_PATCH)
+	{
+		return SCAP_SUCCESS;
+	}
+	snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
+	return SCAP_FAILURE;
 }
 
 /*=============================== UTILS ===============================*/
@@ -118,6 +141,57 @@ int32_t scap_modern_bpf_stop_dropping_mode()
 	return SCAP_SUCCESS;
 }
 
+static int32_t scap_modern_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+{
+	struct modern_bpf_engine* handle = engine.m_handle;
+	int32_t ret = SCAP_SUCCESS;
+
+	// Load initial tp_set
+	bool curr_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
+	switch(op)
+	{
+	case SCAP_PPM_SC_MASK_SET:
+		if(handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
+		break;
+	case SCAP_PPM_SC_MASK_UNSET:
+		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
+		{
+			// nothing to do
+			return ret;
+		}
+		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
+		break;
+
+	default:
+		return SCAP_FAILURE;
+	}
+
+
+	const ppm_tp_code tracepoint = get_tp_from_sc(ppm_sc);
+	// Only if the sc code maps a syscall
+	if(tracepoint == -1)
+	{
+		pman_mark_single_ppm_sc(ppm_sc, op == SCAP_PPM_SC_MASK_SET);
+	}
+
+	// Load final tp_set
+	bool final_tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
+	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
+	{
+		if (curr_tp_set[tp] != final_tp_set[tp])
+		{
+			ret = pman_update_single_program(tp, final_tp_set[tp]);
+		}
+	}
+	return ret;
+}
 
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
 {
@@ -138,14 +212,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 	case SCAP_SNAPLEN:
 		pman_set_snaplen(arg1);
 	case SCAP_PPM_SC_MASK:
-		/* We use this setting just to modify the interesting syscalls. */
-		if(arg1 == SCAP_PPM_SC_MASK_SET || arg1 == SCAP_PPM_SC_MASK_UNSET)
-		{
-			update_single_64bit_syscall_of_interest(arg2, arg1 == SCAP_PPM_SC_MASK_SET);
-		}
-		return SCAP_SUCCESS;
-	case SCAP_TP_MASK:
-		return pman_update_single_program(arg2, arg1 == SCAP_TP_MASK_SET);
+		return scap_modern_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
 	case SCAP_DYNAMIC_SNAPLEN:
 		/* Not supported */
 		return SCAP_SUCCESS;
@@ -171,7 +238,11 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	return pman_enable_capture(handle->open_tp_set.tp);
+
+	bool tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(engine.m_handle->curr_sc_set.ppm_sc, tp_set);
+
+	return pman_enable_capture(handle->curr_sc_set.ppm_sc, tp_set);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
@@ -184,6 +255,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	int ret = 0;
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
+	bool libbpf_verbosity = false;
 
 	pman_clear_state();
 
@@ -198,7 +270,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	if(check_modern_probe_support(handle->m_lasterr) != SCAP_SUCCESS)
+	if(check_minimum_kernel_version(handle->m_lasterr) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -207,7 +279,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	 * Validation of `cpus_for_each_buffer` is made inside libpman
 	 * since this is the unique place where we have the number of CPUs
 	 */
-	if(pman_init_state(params->verbose, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
+	if(pman_init_state(libbpf_verbosity, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
@@ -230,8 +302,8 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
-	/* Store interesting Tracepoints */
-	memcpy(&engine.m_handle->open_tp_set, &oargs->tp_of_interest, sizeof(interesting_tp_set));
+	/* Store interesting sc codes */
+	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
 	/* Set the boot time */
 	uint64_t boot_time = 0;

@@ -1625,7 +1625,12 @@ enum extra_event_prog_code
 	PPM_SC_X(CLOSE_RANGE, 392) \
 	PPM_SC_X(FANOTIFY_MARK, 393) \
 	PPM_SC_X(RECV, 394) \
-	PPM_SC_X(SEND, 395)
+	PPM_SC_X(SEND, 395) \
+	PPM_SC_X(SCHED_PROCESS_EXIT, 396) \
+	PPM_SC_X(SCHED_SWITCH, 397) \
+	PPM_SC_X(PAGE_FAULT_USER, 398) \
+	PPM_SC_X(PAGE_FAULT_KERNEL, 399) \
+	PPM_SC_X(SIGNAL_DELIVER, 400)
 
 typedef enum {
 #define PPM_SC_X(name, value) PPM_SC_##name = (value),

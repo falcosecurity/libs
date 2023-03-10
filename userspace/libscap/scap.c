@@ -851,30 +851,6 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-int scap_get_modifies_state_tracepoints(OUT uint8_t tp_array[TP_VAL_MAX])
-{
-	if(tp_array == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
-	/* Clear the array before using it.
-	 * This is not necessary but just to be future-proof.
-	 */
-	memset(tp_array, 0, sizeof(*tp_array) * TP_VAL_MAX);
-
-	tp_array[SYS_ENTER] = 1;
-	tp_array[SYS_EXIT] = 1;
-	tp_array[SCHED_PROC_EXIT] = 1;
-	tp_array[SCHED_SWITCH] = 1;
-	/* With `aarch64` and `s390x` we need also this,
-	 * in `x86` they are not considered at all.
-	 */
-	tp_array[SCHED_PROC_FORK] = 1;
-	tp_array[SCHED_PROC_EXEC] = 1;
-	return SCAP_SUCCESS;
-}
-
 //
 // Stop capturing the events
 //
@@ -1016,11 +992,6 @@ int64_t scap_get_readfile_offset(scap_t* handle)
 
 static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code ppm_sc)
 {
-	if(handle == NULL)
-	{
-		return SCAP_FAILURE;
-	}
-
 	switch(op)
 	{
 	case SCAP_PPM_SC_MASK_SET:
@@ -1034,13 +1005,6 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 		break;
 	}
 
-	if (ppm_sc >= PPM_SC_MAX)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_PPM_SC_MASK, op, ppm_sc);
@@ -1051,47 +1015,17 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 }
 
 int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
-	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
-}
-
-static int32_t scap_handle_tpmask(scap_t* handle, uint32_t op, ppm_tp_code tp)
-{
-	switch(op)
-	{
-	case SCAP_TP_MASK_SET:
-	case SCAP_TP_MASK_UNSET:
-		break;
-
-	default:
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) internal error", __FUNCTION__, op);
-		ASSERT(false);
-		return SCAP_FAILURE;
-		break;
-	}
-
-	if (tp >= TP_VAL_MAX)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, tp);
-		ASSERT(false);
-		return SCAP_FAILURE;
-	}
-
 	if (handle == NULL)
 	{
 		return SCAP_FAILURE;
 	}
-
-	if(handle->m_vtable)
+	if (ppm_sc >= PPM_SC_MAX)
 	{
-		return handle->m_vtable->configure(handle->m_engine, SCAP_TP_MASK, op, tp);
+		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "%s(%d) wrong param", __FUNCTION__, ppm_sc);
+		ASSERT(false);
+		return SCAP_FAILURE;
 	}
-
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
-	return SCAP_FAILURE;
-}
-
-int32_t scap_set_tp(scap_t* handle, ppm_tp_code tp, bool enabled) {
-	return(scap_handle_tpmask(handle, enabled ? SCAP_TP_MASK_SET : SCAP_TP_MASK_UNSET, tp));
+	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
 uint32_t scap_event_get_dump_flags(scap_t* handle)

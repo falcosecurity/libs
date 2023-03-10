@@ -114,7 +114,7 @@ set(DRIVER_SOURCES
 	ppm_version.h
 	systype_compat.h
 	ppm_tp.h
-	tp_table.c
+	ppm_tp.c
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)

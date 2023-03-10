@@ -36,11 +36,6 @@ enum scap_ppm_sc_mask_op {
 	SCAP_PPM_SC_MASK_UNSET = 2, //< disable a syscall
 };
 
-enum scap_tp_mask_op {
-	SCAP_TP_MASK_SET = 0, //< enable a tp
-	SCAP_TP_MASK_UNSET = 1, //< disable a tp
-};
-
 /**
  * @brief settings configurable for scap engines
  */
@@ -83,12 +78,6 @@ enum scap_setting {
 	 * arg1: statsd port
 	 */
 	SCAP_STATSD_PORT,
-	/**
-	 * @brief enable/disable individual tracepoints
-	 * arg1: scap_tp_mask_op
-	 * arg2: tp id, see ppm_tp.h
-	 */
-	SCAP_TP_MASK,
 };
 
 struct scap_savefile_vtable {
