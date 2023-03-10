@@ -754,8 +754,7 @@ bool sinsp_utils::concatenate_paths(char* target,
 									const char* path1,
 									uint32_t len1,
 									const char* path2,
-									uint32_t len2,
-									bool windows_paths)
+									uint32_t len2)
 {
 	if(targetlen < (len1 + len2 + 1))
 	{
@@ -763,35 +762,17 @@ bool sinsp_utils::concatenate_paths(char* target,
 		return false;
 	}
 
-	if(windows_paths)
+	if(len2 != 0 && path2[0] != '/')
 	{
-		if(len2 != 0 && path2[0] != '\\' && path2[1] != ':')
-		{
-			memcpy(target, path1, len1);
-			copy_and_sanitize_path(target + len1, target, path2, '\\');
-			return true;
-		}
-		else
-		{
-			target[0] = 0;
-			copy_and_sanitize_path(target, target, path2, '\\');
-			return false;
-		}
+		memcpy(target, path1, len1);
+		copy_and_sanitize_path(target + len1, target, path2, '/');
+		return true;
 	}
 	else
 	{
-		if(len2 != 0 && path2[0] != '/')
-		{
-			memcpy(target, path1, len1);
-			copy_and_sanitize_path(target + len1, target, path2, '/');
-			return true;
-		}
-		else
-		{
-			target[0] = 0;
-			copy_and_sanitize_path(target, target, path2, '/');
-			return false;
-		}
+		target[0] = 0;
+		copy_and_sanitize_path(target, target, path2, '/');
+		return false;
 	}
 }
 

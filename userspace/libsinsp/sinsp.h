@@ -1253,7 +1253,6 @@ private:
 	// <m_input_fd>". Otherwise, reading from m_input_filename.
 	int m_input_fd;
 	std::string m_input_filename;
-	bool m_is_windows;
 	bool m_isdebug_enabled;
 	bool m_isfatfile_enabled;
 	bool m_isinternal_events_enabled;

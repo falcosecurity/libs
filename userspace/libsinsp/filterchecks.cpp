@@ -263,8 +263,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 				sdir.c_str(),
 				(uint32_t)sdir.length(),
 				name,
-				namelen,
-				m_inspector->m_is_windows);
+				namelen);
 
 			if(fd_nameraw)
 			{
@@ -3539,7 +3538,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 			parinfo = evt->get_param(3);
 
 			sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, "", 0,
-				parinfo->m_val, parinfo->m_len, m_inspector->m_is_windows);
+				parinfo->m_val, parinfo->m_len);
 
 			m_strstorage = fullname;
 			RETURN_EXTRACT_STRING(m_strstorage);
@@ -3647,7 +3646,7 @@ uint8_t *sinsp_filter_check_event::extract_abspath(sinsp_evt *evt, OUT uint32_t 
 
 	char fullname[SCAP_MAX_PATH_SIZE];
 	sinsp_utils::concatenate_paths(fullname, SCAP_MAX_PATH_SIZE, sdir.c_str(),
-		(uint32_t)sdir.length(), path, pathlen, m_inspector->m_is_windows);
+		(uint32_t)sdir.length(), path, pathlen);
 
 	m_strstorage = fullname;
 
