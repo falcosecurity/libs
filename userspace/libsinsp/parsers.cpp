@@ -3053,12 +3053,12 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
     parinfo = evt->get_param(1);
     if(parinfo->m_len == 0)
     {
-        //
-        // No address, there's nothing we can really do with this.
-        // This happens for socket types that we don't support, so we have the assertion
-        // to make sure that this is not a type of socket that we support.
-        //
-        ASSERT(!(evt->m_fdinfo->is_unix_socket() || evt->m_fdinfo->is_ipv4_socket()));
+		//
+		// Address can be NULL:
+		// sk is a TCP fastopen active socket and
+		// TCP_FASTOPEN_CONNECT sockopt is set and
+		// we already have a valid cookie for this socket.
+		//
         return;
     }
 
@@ -3250,11 +3250,11 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	if(parinfo->m_len == 0)
 	{
 		//
-		// No address, there's nothing we can really do with this.
-		// This happens for socket types that we don't support, so we have the assertion
-		// to make sure that this is not a type of socket that we support.
+		// Address can be NULL:
+		// sk is a TCP fastopen active socket and
+		// TCP_FASTOPEN_CONNECT sockopt is set and
+		// we already have a valid cookie for this socket.
 		//
-		ASSERT(!(evt->m_fdinfo->is_unix_socket() || evt->m_fdinfo->is_ipv4_socket()));
 		return;
 	}
 
