@@ -85,7 +85,7 @@ libsinsp::events::set<ppm_sc_code> state_sc_set_truth = {
 	PPM_SC_VFORK,
 	PPM_SC_EPOLL_CREATE,
 	PPM_SC_EPOLL_CREATE1,
-	// TODO PPM_SC_SCHED_PROCESS_EXIT,
+	PPM_SC_SCHED_PROCESS_EXIT,
 };
 
 TEST(interesting_syscalls, sinsp_state_sc_set)
