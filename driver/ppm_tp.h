@@ -30,6 +30,6 @@ typedef struct
 	bool tp[TP_VAL_MAX];
 } interesting_ppm_tp_set;
 
-ppm_tp_code get_tp_from_sc(int sc);
+bool ppm_sc_is_tp(int sc);
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set);
 #endif

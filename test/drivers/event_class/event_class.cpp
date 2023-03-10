@@ -152,7 +152,6 @@ event_test::event_test(int syscall_id, int event_direction):
 	else
 	{
 		m_event_type = g_syscall_table[syscall_id].exit_event_type;
-
 		/* We need this patch to set the right event, the syscall table will
 		 * always return `PPME_GENERIC_E`.
 		 */
@@ -176,14 +175,10 @@ event_test::event_test():
 {
 	m_current_param = 0;
 
-	/* Enable all the syscalls */
+	/* Enable all the syscalls and tracepoints */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		const int tp = get_tp_from_sc(ppm_sc);
-		if (tp == -1)
-		{
-			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, true);
-		}
+		scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, true);
 	}
 }
 
@@ -216,6 +211,10 @@ void event_test::disable_sampling_logic()
 void event_test::disable_capture()
 {
 	scap_stop_capture(s_scap_handle);
+	for (int i = 0; i < PPM_SC_MAX; i++)
+	{
+		scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, false);
+	}
 }
 
 void event_test::clear_ring_buffers()
