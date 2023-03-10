@@ -39,13 +39,6 @@ struct hash<ppm_sc_code> {
 };
 
 template<>
-struct hash<ppm_tp_code> {
-	size_t operator()(const ppm_tp_code &pt) const {
-		return std::hash<uint32_t>()((uint32_t)pt);
-	}
-};
-
-template<>
 struct hash<ppm_event_code> {
 	size_t operator()(const ppm_event_code &pt) const {
 		return std::hash<uint32_t>()((uint32_t)pt);
@@ -305,11 +298,6 @@ inline set<ppm_sc_code>::set(): set(PPM_SC_MAX)
 
 template<>
 inline set<ppm_event_code>::set(): set(PPM_EVENT_MAX)
-{
-}
-
-template<>
-inline set<ppm_tp_code>::set(): set(TP_VAL_MAX)
 {
 }
 
