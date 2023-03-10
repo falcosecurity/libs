@@ -16,8 +16,8 @@ limitations under the License.
 */
 
 #include "state.h"
+#include <libpman.h> // before including scap so that handle_ppm_sc_mask() is not built
 #include <scap.h>
-#include <libpman.h>
 
 int pman_enable_capture(bool *sc_set)
 {

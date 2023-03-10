@@ -126,23 +126,23 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_tp(struct scap_engine_handle engine, ppm_tp_code tp, bool enable)
+static int32_t scap_kmod_enable_tp(struct kmod_engine* handle, ppm_tp_code tp, bool enable)
 {
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_dev_set;
 	uint32_t ioctl_op = enable ? PPM_IOCTL_ENABLE_TP : PPM_IOCTL_DISABLE_TP;
 	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, tp))
 	{
 		ASSERT(false);
-		return scap_errprintf(engine.m_handle->m_lasterr, errno,
+		return scap_errprintf(handle->m_lasterr, errno,
 				      "%s(%d) failed for tp %d",
 				      __FUNCTION__, ioctl_op, tp);
 	}
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_kmod_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc, bool enable)
+static int32_t scap_kmod_enable_sc(struct kmod_engine* handle, ppm_sc_code ppm_sc, bool enable)
 {
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	struct scap_device_set *devset = &handle->m_dev_set;
 	int ioctl_op = enable == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
 	// Find any syscall table entry that matches requested ppm_sc code
 	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
@@ -152,7 +152,7 @@ int32_t scap_kmod_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc
 			if(ioctl(devset->m_devs[0].m_fd, ioctl_op, i))
 			{
 				ASSERT(false);
-				return scap_errprintf(engine.m_handle->m_lasterr, errno,
+				return scap_errprintf(handle->m_lasterr, errno,
 						      "%s(%d) failed for syscall %d",
 						      __FUNCTION__, ioctl_op, i);
 			}
@@ -164,53 +164,7 @@ int32_t scap_kmod_enable_sc(struct scap_engine_handle engine, ppm_sc_code ppm_sc
 static int32_t scap_kmod_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
 {
 	struct kmod_engine* handle = engine.m_handle;
-	int32_t ret = SCAP_SUCCESS;
-
-	// Load initial tp_set
-	bool curr_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, curr_tp_set);
-
-	switch(op)
-	{
-	case SCAP_PPM_SC_MASK_SET:
-		if(handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = true;
-		break;
-	case SCAP_PPM_SC_MASK_UNSET:
-		if(!handle->curr_sc_set.ppm_sc[ppm_sc])
-		{
-			// nothing to do
-			return ret;
-		}
-		handle->curr_sc_set.ppm_sc[ppm_sc] = false;
-		break;
-
-	default:
-		return SCAP_FAILURE;
-	}
-
-	// Only if the sc code maps a syscall
-	if(ppm_sc_is_tp(ppm_sc))
-	{
-		scap_kmod_enable_sc(engine, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
-	}
-
-	// Load final tp_set -> note we must check this for syscalls too
-	// because we want to be able to enable/disable sys_{enter,exit} tracepoints dynamically.
-	bool final_tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, final_tp_set);
-	for (int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
-	{
-		if (curr_tp_set[tp] != final_tp_set[tp])
-		{
-			ret = scap_kmod_enable_tp(engine, tp, final_tp_set[tp]);
-		}
-	}
-	return ret;
+	return handle_ppm_sc_mask(handle, handle->curr_sc_set.ppm_sc, op == SCAP_PPM_SC_MASK_SET, ppm_sc, scap_kmod_enable_sc, scap_kmod_enable_tp);
 }
 
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
@@ -470,6 +424,8 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 //
 int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 {
+	struct kmod_engine* handle = engine.m_handle;
+
 	/* This could happen if we fail to instantiate `m_devs` in the init method */
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	if(devset->m_devs == NULL)
@@ -480,13 +436,13 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 	/* Disable all sc codes */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		scap_kmod_enable_sc(engine, ppm_sc, false);
+		scap_kmod_enable_sc(handle, ppm_sc, false);
 	}
 
 	/* Disable all tracepoints */
 	for(int tp = 0; tp < TP_VAL_MAX; tp++)
 	{
-		scap_kmod_enable_tp(engine, tp, false);
+		scap_kmod_enable_tp(handle, tp, false);
 	}
 	return SCAP_SUCCESS;
 }
@@ -508,7 +464,7 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 	{
 		if (tp_set[tp])
 		{
-			ret = scap_kmod_enable_tp(engine, tp, true);
+			ret = scap_kmod_enable_tp(handle, tp, true);
 		}
 	}
 	if (ret != SCAP_SUCCESS)
@@ -521,7 +477,7 @@ int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 	{
 		if (handle->curr_sc_set.ppm_sc[sc])
 		{
-			ret = scap_kmod_enable_sc(engine, sc, true);
+			ret = scap_kmod_enable_sc(handle, sc, true);
 		}
 	}
 	return ret;

@@ -37,11 +37,6 @@ static inline ppm_tp_code get_tp_from_sc(ppm_sc_code sc)
 	return -1;
 }
 
-bool ppm_sc_is_tp(int sc)
-{
-	return get_tp_from_sc(sc) != -1;
-}
-
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set)
 {
 	memset(tp_set, 0, TP_VAL_MAX * sizeof(*tp_set));

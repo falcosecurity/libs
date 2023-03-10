@@ -21,7 +21,6 @@ limitations under the License.
 #include "scap-int.h"
 #include "strlcpy.h"
 #include <ctype.h>
-#include "../../driver/ppm_tp.h"
 
 /*
  * SYSCALL INFO TABLE
@@ -51,26 +50,7 @@ static void load_syscall_info_table() {
 			*p = tolower(*p);
 		}
 
-		if (!ppm_sc_is_tp(i))
-		{
-			// try to load category from event_table, else EC_UNKNOWN
-			g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;
-		}
-		else
-		{
-			g_syscall_info_table[i].category = EC_UNKNOWN | EC_TRACEPOINT;
-		}
-
-#ifdef __linux__
-		// Syscall table is only present on linux
-		int j;
-		for (j = 0; j < SYSCALL_TABLE_SIZE; j++) {
-			if (g_syscall_table[j].ppm_sc == i) {
-				g_syscall_info_table[i].category = g_event_info[g_syscall_table[j].enter_event_type].category;
-				break;
-			}
-		}
-#endif
+		g_syscall_info_table[i].category = EC_UNKNOWN;
 	}
 }
 
