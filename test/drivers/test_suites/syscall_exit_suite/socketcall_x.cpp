@@ -1273,7 +1273,7 @@ TEST(SyscallExit, socketcall_socketpairX_failure)
 	int domain = PF_LOCAL;
 	int type = SOCK_STREAM;
 	int protocol = 0;
-	int32_t* fd = NULL;
+	int32_t *fd = NULL;
 
 	unsigned long args[4] = {0};
 	args[0] = domain;
@@ -1464,10 +1464,10 @@ TEST(SyscallExit, socketcall_sendtoX_fail)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	char* sent_data = NULL;
+	char *sent_data = NULL;
 	size_t len = 0;
 	uint32_t sendto_flags = 0;
-	struct sockaddr* dest_addr = NULL;
+	struct sockaddr *dest_addr = NULL;
 	socklen_t addrlen = 0;
 
 	unsigned long args[6] = {0};
@@ -1536,7 +1536,7 @@ TEST(SyscallExit, socketcall_sendmsgX_no_snaplen)
 	struct iovec iov[2];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr*)&server_addr;
+	send_msg.msg_name = (struct sockaddr *)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -1609,7 +1609,7 @@ TEST(SyscallExit, socketcall_sendmsgX_snaplen)
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr*)&server_addr;
+	send_msg.msg_name = (struct sockaddr *)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -1675,7 +1675,7 @@ TEST(SyscallExit, socketcall_sendmsgX_fail)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr* send_msg = NULL;
+	struct msghdr *send_msg = NULL;
 	uint32_t sendmsg_flags = 0;
 
 	unsigned long args[3] = {0};
@@ -2899,6 +2899,57 @@ TEST(SyscallExit, socketcall_setsockoptX_ZERO_OPTLEN)
 	evt_test->assert_num_params_pushed(6);
 }
 
+#endif
+
+#ifdef __NR_send
+
+TEST(SyscallExit, socketcall_sendX)
+{
+	auto evt_test = get_syscall_event_test(__NR_send, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
+	char buf[data_len] = "some-data";
+	int flags = 0;
+
+	unsigned long args[4] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)buf;
+	args[2] = data_len;
+	args[3] = (unsigned long)flags;
+	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_socketcall, SYS_SEND, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
 #endif
 
 #endif /* __NR_socketcall */

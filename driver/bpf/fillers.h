@@ -1551,7 +1551,7 @@ static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd)
 	/*
 	 * fd
 	 */
-	res = bpf_val_to_ring(data, fd);
+	res = bpf_val_to_ring(data, (s64)fd);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -1637,42 +1637,19 @@ FILLER(sys_sendto_e, true)
 
 FILLER(sys_send_x, true)
 {
-	unsigned long bufsize;
-	unsigned long val;
-	long retval;
-	int res;
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
 
-	/*
-	 * res
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * data
-	 */
-	if (retval < 0) {
-		/*
-		 * The operation failed, return an empty buffer
-		 */
-		val = 0;
-		bufsize = 0;
-	} else {
-		val = bpf_syscall_get_argument(data, 1);
-
-		/*
-		 * The return value can be lower than the value provided by the user,
-		 * and we take that into account.
-		 */
-		bufsize = retval;
-	}
-
+	unsigned long bytes_to_read = retval > 0 ? retval : bpf_syscall_get_argument(data, 2);
+	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
 	data->fd = bpf_syscall_get_argument(data, 0);
-	res = __bpf_val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true, USER);
-
-	return res;
+	return __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
 }
 
 FILLER(sys_execve_e, true)
