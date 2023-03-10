@@ -61,7 +61,6 @@ static void load_syscall_info_table() {
 			g_syscall_info_table[i].category = EC_UNKNOWN | EC_TRACEPOINT;
 		}
 
-		// TODO use new table to fill category? scap_ppm_sc.c
 #ifdef __linux__
 		// Syscall table is only present on linux
 		int j;
