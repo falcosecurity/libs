@@ -8,6 +8,7 @@ const char *tp_names[] = {
 
 #ifndef __KERNEL__
 #include <string.h>
+#include "ppm_events_public.h"
 
 typedef struct {
 	ppm_sc_code sc_code;
@@ -24,7 +25,7 @@ static sc_to_tp_map ppm_sc_to_tp_table[] = {
 
 // TODO _Static_assert(sizeof(ppm_sc_to_tp_table) / sizeof(*ppm_sc_to_tp_table) == PPM_SC_TP_LEN, "Wrong number of ppm_sc_to_tp_table entries.");
 
-ppm_tp_code get_tp_from_sc(ppm_sc_code sc)
+ppm_tp_code get_tp_from_sc(int sc)
 {
 	for (int j = 0; j < sizeof(ppm_sc_to_tp_table) / sizeof(*ppm_sc_to_tp_table); j++)
 	{

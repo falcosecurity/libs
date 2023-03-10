@@ -16,7 +16,7 @@ typedef enum {
 #define X(name, path) name,
 	TP_FIELDS
 #undef X
-		TP_VAL_MAX,
+	TP_VAL_MAX,
 } ppm_tp_code;
 
 extern const char *tp_names[];
@@ -24,13 +24,12 @@ extern const char *tp_names[];
 #ifndef __KERNEL__
 
 #include <stdbool.h>
-#include "ppm_events_public.h"
 
 typedef struct
 {
 	bool tp[TP_VAL_MAX];
 } interesting_ppm_tp_set;
 
-ppm_tp_code get_tp_from_sc(ppm_sc_code sc);
+ppm_tp_code get_tp_from_sc(int sc);
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set);
 #endif
