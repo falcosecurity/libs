@@ -386,7 +386,6 @@ TEST(SyscallEnter, socketcall_acceptE)
 
 #endif /* __NR_accept || __s390x__ */
 
-
 #ifdef __NR_accept4
 
 TEST(SyscallEnter, socketcall_accept4E)
@@ -553,7 +552,7 @@ TEST(SyscallEnter, socketcall_socketpairE)
 	int domain = PF_LOCAL;
 	int type = SOCK_STREAM;
 	int protocol = 0;
-	int32_t* fds = NULL;
+	int32_t *fds = NULL;
 
 	unsigned long args[4] = {0};
 	args[0] = domain;
@@ -683,7 +682,7 @@ TEST(SyscallEnter, socketcall_sendmsgE)
 	struct iovec iov[3];
 	memset(&send_msg, 0, sizeof(send_msg));
 	memset(iov, 0, sizeof(iov));
-	send_msg.msg_name = (struct sockaddr*)&server_addr;
+	send_msg.msg_name = (struct sockaddr *)&server_addr;
 	send_msg.msg_namelen = sizeof(server_addr);
 	char sent_data_1[FIRST_MESSAGE_LEN] = "hey! there is a first message here.";
 	char sent_data_2[SECOND_MESSAGE_LEN] = "hey! there is a second message here.";
@@ -854,7 +853,7 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 	int socket_fd = 0;
 	int level = 0;
 	int option_name = 0;
-	const void* option_value = NULL;
+	const void *option_value = NULL;
 	socklen_t option_len = 0;
 
 	unsigned long args[5] = {0};
@@ -887,6 +886,57 @@ TEST(SyscallEnter, socketcall_setsockoptE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(0);
+}
+#endif
+
+#ifdef __NR_send
+
+TEST(SyscallEnter, socketcall_sendE)
+{
+	auto evt_test = get_syscall_event_test(__NR_send, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	char mock_buf[8];
+	size_t mock_count = 4096;
+	int flags = 0;
+
+	unsigned long args[4] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)mock_buf;
+	args[2] = mock_count;
+	args[3] = (unsigned long)flags;
+	assert_syscall_state(SYSCALL_FAILURE, "send", syscall(__NR_socketcall, SYS_SEND, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)mock_fd);
+
+	/* Parameter 2: size (type: PT_UINT32)*/
+	evt_test->assert_numeric_param(2, (uint32_t)mock_count);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
 }
 #endif
 

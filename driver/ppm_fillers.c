@@ -2411,6 +2411,7 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long bufsize;
+	unsigned long sent_data_pointer;
 
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
@@ -2424,42 +2425,33 @@ int f_sys_send_x(struct event_filler_arguments *args)
 
 	args->fd = (int)val;
 
-	/*
-	 * res
-	 */
+	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * data
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	if (retval < 0) {
-		/*
-		 * The operation failed, return an empty buffer
-		 */
-		val = 0;
-		bufsize = 0;
-	} else {
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	if (!args->is_socketcall)
+		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 #ifndef UDIG
-		else
-			val = args->socketcall_args[1];
+	else
+		val = args->socketcall_args[1];
 #endif
-
-		/*
-		 * The return value can be lower than the value provided by the user,
-		 * and we take that into account.
-		 */
-		bufsize = retval;
-	}
+	sent_data_pointer = val;
+	
+	if (!args->is_socketcall)
+		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+#ifndef UDIG
+	else
+		val = args->socketcall_args[2];
+#endif
+	bufsize = retval > 0 ? retval : val;
 
 	args->enforce_snaplen = true;
-	res = val_to_ring(args, val, bufsize, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	res = val_to_ring(args, sent_data_pointer, bufsize, true, 0);
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
