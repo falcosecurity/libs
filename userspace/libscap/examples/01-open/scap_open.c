@@ -272,8 +272,7 @@ void print_supported_sc()
 	// Skip PPM_SC_UNKNOWN
 	for (int i = 1; i < PPM_SC_MAX; i++)
 	{
-		const ppm_tp_code tp = get_tp_from_sc(i);
-		if (tp == -1)
+		if(ppm_sc_is_tp(i))
 		{
 			int native_id = scap_ppm_sc_to_native_id(i);
 			if (native_id != -1)
@@ -283,7 +282,7 @@ void print_supported_sc()
 		}
 		else
 		{
-			printf("- TRACEPOINT > %-25s internal_tp_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[i].name, tp, i);
+			printf("- TRACEPOINT > %-25s ppm_code: (%d)\n", g_syscall_info_table[i].name, i);
 		}
 	}
 }

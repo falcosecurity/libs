@@ -51,8 +51,7 @@ static void load_syscall_info_table() {
 			*p = tolower(*p);
 		}
 
-		const ppm_tp_code tp = get_tp_from_sc(i);
-		if (tp == -1)
+		if (!ppm_sc_is_tp(i))
 		{
 			// try to load category from event_table, else EC_UNKNOWN
 			g_syscall_info_table[i].category = EC_UNKNOWN | EC_SYSCALL;

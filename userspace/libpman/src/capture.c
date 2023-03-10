@@ -31,18 +31,25 @@ int pman_enable_capture(bool *sc_set)
 	}
 
 	int ret = 0;
-	/* Enable requested scap codes */
+	/* Enable requested tracepoints */
+	bool tp_set[TP_VAL_MAX];
+	tp_set_from_sc_set(sc_set, tp_set);
+	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	{
+		if(tp_set[i])
+		{
+			ret = pman_update_single_program(i, true);
+		}
+	}
+	if (ret != 0)
+	{
+		return ret;
+	}
+
+	/* Enable requested syscalls */
 	for (int i = 0; i < PPM_SC_MAX && ret == 0; i++)
 	{
-		const ppm_tp_code tp = get_tp_from_sc(i);
-		if (tp != -1)
-		{
-			ret = pman_update_single_program(tp, true);
-		}
-		else
-		{
-			pman_mark_single_ppm_sc(i, true);
-		}
+		pman_mark_single_ppm_sc(i, true);
 	}
 	return ret;
 }

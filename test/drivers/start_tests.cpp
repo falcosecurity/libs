@@ -184,11 +184,7 @@ int open_engine(int argc, char** argv)
 			 */
 			for(int i = 0; i < PPM_SC_MAX; i++)
 			{
-				const int tp = get_tp_from_sc(ppm_sc);
-				if (tp == -1)
-				{
-					oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
-				}
+				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
 			}
 
 			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;

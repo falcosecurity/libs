@@ -25,7 +25,7 @@ static sc_to_tp_map ppm_sc_to_tp_table[] = {
 
 // TODO _Static_assert(sizeof(ppm_sc_to_tp_table) / sizeof(*ppm_sc_to_tp_table) == PPM_SC_TP_LEN, "Wrong number of ppm_sc_to_tp_table entries.");
 
-ppm_tp_code get_tp_from_sc(int sc)
+static inline ppm_tp_code get_tp_from_sc(ppm_sc_code sc)
 {
 	for (int j = 0; j < sizeof(ppm_sc_to_tp_table) / sizeof(*ppm_sc_to_tp_table); j++)
 	{
@@ -35,6 +35,11 @@ ppm_tp_code get_tp_from_sc(int sc)
 		}
 	}
 	return -1;
+}
+
+bool ppm_sc_is_tp(int sc)
+{
+	return get_tp_from_sc(sc) != -1;
 }
 
 void tp_set_from_sc_set(const bool *sc_set, bool *tp_set)

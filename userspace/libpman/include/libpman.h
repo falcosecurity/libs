@@ -301,7 +301,7 @@ extern "C"
 	 * @brief Enable BPF-capture if we have previously
 	 * disabled it.
 	 */
-	int pman_enable_capture(bool *tp_set);
+	int pman_enable_capture(bool *sc_set);
 
 	/**
 	 * @brief Disable BPF capture for example when we

@@ -167,9 +167,9 @@ TEST(scap_ppm_sc, scap_ppm_sc_from_name)
 
 TEST(scap_ppm_sc, scap_native_id_to_ppm_sc)
 {
-	ASSERT_EQ(scap_native_id_to_ppm_sc(80000000), -1);
-	ASSERT_EQ(scap_native_id_to_ppm_sc(-12), -1);
-	ASSERT_EQ(scap_native_id_to_ppm_sc(SYSCALL_TABLE_SIZE), -1);
+	ASSERT_EQ(scap_native_id_to_ppm_sc(80000000), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_native_id_to_ppm_sc(-12), PPM_SC_UNKNOWN);
+	ASSERT_EQ(scap_native_id_to_ppm_sc(SYSCALL_TABLE_SIZE), PPM_SC_UNKNOWN);
 #ifdef __NR_read
 	ASSERT_EQ(scap_native_id_to_ppm_sc(__NR_read), PPM_SC_READ);
 #endif

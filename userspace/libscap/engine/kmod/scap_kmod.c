@@ -193,9 +193,8 @@ static int32_t scap_kmod_handle_ppm_sc_mask(struct scap_engine_handle engine, ui
 		return SCAP_FAILURE;
 	}
 
-	const ppm_tp_code tracepoint = get_tp_from_sc(ppm_sc);
 	// Only if the sc code maps a syscall
-	if(tracepoint == -1)
+	if(ppm_sc_is_tp(ppm_sc))
 	{
 		scap_kmod_enable_sc(engine, ppm_sc, op == SCAP_PPM_SC_MASK_SET);
 	}
