@@ -62,27 +62,19 @@ int BPF_PROG(write_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	if(ret > 0)
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
+	 */
+	unsigned long bytes_to_read = ret > 0 ? ret : extract__syscall_argument(regs, 2);
+	unsigned long snaplen = maps__get_snaplen();
+	if(bytes_to_read > snaplen)
 	{
-		/* We read the minimum between `snaplen` and what we really
-		 * have in the buffer.
-		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
-		{
-			bytes_to_read = ret;
-		}
-
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		unsigned long data_pointer = extract__syscall_argument(regs, 1);
-		auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_read, USER);
+		bytes_to_read = snaplen;
 	}
-	else
-	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		auxmap__store_empty_param(auxmap);
-	}
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	unsigned long data_pointer = extract__syscall_argument(regs, 1);
+	auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_read, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
