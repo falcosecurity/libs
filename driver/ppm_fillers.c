@@ -2417,14 +2417,6 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
 	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
-	sent_data_pointer = val;
-	
-	if (!args->is_socketcall)
 		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 #ifndef UDIG
 	else
@@ -2432,8 +2424,15 @@ int f_sys_send_x(struct event_filler_arguments *args)
 #endif
 	bufsize = retval > 0 ? retval : val;
 
+	if (!args->is_socketcall)
+		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+#ifndef UDIG
+	else
+		val = args->socketcall_args[1];
+#endif
+
 	args->enforce_snaplen = true;
-	res = val_to_ring(args, sent_data_pointer, bufsize, true, 0);
+	res = val_to_ring(args, val, bufsize, true, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);

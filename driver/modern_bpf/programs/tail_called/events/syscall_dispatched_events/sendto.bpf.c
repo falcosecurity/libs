@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -82,34 +82,23 @@ int BPF_PROG(sendto_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* Here we want to read some data sent by the `sendto()` syscall.
-	 * If the syscall fails we send an empty parameter.
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	if(ret >= 0)
+	unsigned long bytes_to_read = ret > 0 ? ret : args[2];
+	unsigned long snaplen = maps__get_snaplen();
+	if(bytes_to_read > snaplen)
 	{
-		/* We read the minimum between `snaplen` and what we really
-		 * have in the buffer.
-		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
-		{
-			bytes_to_read = ret;
-		}
-
-		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[2];
-		extract__network_args(args, 2, regs);
-
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		unsigned long sent_data_pointer = args[1];
-		auxmap__store_bytebuf_param(auxmap, sent_data_pointer, bytes_to_read, USER);
+		bytes_to_read = snaplen;
 	}
-	else
-	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		auxmap__store_empty_param(auxmap);
-	}
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	unsigned long sent_data_pointer = args[1];
+	auxmap__store_bytebuf_param(auxmap, sent_data_pointer, bytes_to_read, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
