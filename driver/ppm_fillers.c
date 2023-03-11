@@ -440,35 +440,18 @@ int f_sys_write_x(struct event_filler_arguments *args)
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
-
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
-
-	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
-	if(retval < 0)
-	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		res = push_empty_param(args);
-		CHECK_RES(res);
-
-		return add_sentinel(args);
-	}
+	CHECK_RES(res);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* Get the size from userspace paramater */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	bufsize = val;
+	bufsize = retval > 0 ? retval : val;
 
-	/*
-	 * Copy the buffer
-	 */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 	args->enforce_snaplen = true;
 	res = val_to_ring(args, val, bufsize, true, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }

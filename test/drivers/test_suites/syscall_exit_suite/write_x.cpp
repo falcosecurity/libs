@@ -102,7 +102,7 @@ TEST(SyscallExit, writeX_snaplen)
 	evt_test->assert_num_params_pushed(2);
 }
 
-TEST(SyscallExit, writeXfail)
+TEST(SyscallExit, writeX_fail)
 {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
 
@@ -111,11 +111,51 @@ TEST(SyscallExit, writeXfail)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	/* Write data to an invalid fd */
-	const unsigned data_len = 64;
-	char buf[data_len];
-	ssize_t write_bytes = syscall(__NR_write, -1, (void *)buf, data_len);
+	const unsigned data_len = DEFAULT_SNAPLEN * 2;
+	char buf[data_len] = "some-data";
+	assert_syscall_state(SYSCALL_FAILURE, "write", syscall(__NR_write, -1, (void *)buf, data_len));
 	int errno_value = -errno;
-	assert_syscall_state(SYSCALL_FAILURE, "write", write_bytes);
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, writeX_empty)
+{
+	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	const unsigned data_len = 6;
+	char *buf = NULL;
+	assert_syscall_state(SYSCALL_FAILURE, "write", syscall(__NR_write, -1, (void *)buf, data_len));
+	int errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 

@@ -495,35 +495,19 @@ FILLER(sys_write_e, true)
 
 FILLER(sys_write_x, true)
 {
-	unsigned long bufsize;
-	unsigned long val;
-	long retval;
-	int res;
-
 	/* Parameter 1: res (type: PT_ERRNO) */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
-	if(retval < 0)
-	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		return bpf_push_empty_param(data);
-	}
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring(data, retval);
+	CHECK_RES(res);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
+	/* If the syscall doesn't fail we use the return value as `size`
+	 * otherwise we need to rely on the syscall parameter provided by the user.
+	 */
+	unsigned long bytes_to_read = retval > 0 ? retval : bpf_syscall_get_argument(data, 2);
+	unsigned long sent_data_pointer = bpf_syscall_get_argument(data, 1);
 	data->fd = bpf_syscall_get_argument(data, 0);
-
-	val = bpf_syscall_get_argument(data, 1);
-	bufsize = bpf_syscall_get_argument(data, 2);
-
-	res = __bpf_val_to_ring(data, val, bufsize, PT_BYTEBUF, -1, true, USER);
-
-	return res;
+	return __bpf_val_to_ring(data, sent_data_pointer, bytes_to_read, PT_BYTEBUF, -1, true, USER);
 }
 
 #define POLL_MAXFDS 16
