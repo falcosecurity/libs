@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -82,33 +82,24 @@ int BPF_PROG(sendmsg_x,
 	/* Parameter 1: res (type: PT_ERRNO) */
 	auxmap__store_s64_param(auxmap, ret);
 
-	/* Parameter 2: data (type: PT_BYTEBUF) */
-	/* Here we want to read some data sent by the `sendmsg()` syscall.
-	 * If the syscall fails we send an empty parameter.
+	/* Collect parameters at the beginning to manage socketcalls */
+	unsigned long args[2];
+	extract__network_args(args, 2, regs);
+
+	/* In case of failure `bytes_to_read` could be also lower than `snaplen`
+	 * but we will discover it directly into `auxmap__store_iovec_data_param`
+	 * otherwise we need to extract it now and it has a cost. Here we check just
+	 * the return value if the syscall is successful.
 	 */
-	if(ret >= 0)
+	unsigned long bytes_to_read = maps__get_snaplen();
+	if(ret > 0 && bytes_to_read > ret)
 	{
-		/* We read the minimum between `snaplen` and what we really
-		 * have in the buffer.
-		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
-		{
-			bytes_to_read = ret;
-		}
-
-		/* Collect parameters at the beginning to manage socketcalls */
-		unsigned long args[2];
-		extract__network_args(args, 2, regs);
-
-		unsigned long msghdr_pointer = args[1];
-		auxmap__store_msghdr_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
+		bytes_to_read = ret;
 	}
-	else
-	{
-		auxmap__store_empty_param(auxmap);
-	}
+
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	unsigned long msghdr_pointer = args[1];
+	auxmap__store_msghdr_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

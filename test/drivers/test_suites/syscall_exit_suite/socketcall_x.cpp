@@ -1675,12 +1675,141 @@ TEST(SyscallExit, socketcall_sendmsgX_fail)
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
 	int32_t mock_fd = -1;
-	struct msghdr *send_msg = NULL;
+	struct msghdr send_msg = {0};
+	struct iovec iov[1] = {0};
+	memset(&send_msg, 0, sizeof(send_msg));
+	memset(iov, 0, sizeof(iov));
+	char sent_data_1[DEFAULT_SNAPLEN / 2] = "some-data";
+	iov[0].iov_base = sent_data_1;
+	iov[0].iov_len = sizeof(sent_data_1);
+	send_msg.msg_iov = iov;
+	/* here we pass a wrong `iovlen` to check the behavior */
+	send_msg.msg_iovlen = 3;
 	uint32_t sendmsg_flags = 0;
 
 	unsigned long args[3] = {0};
 	args[0] = mock_fd;
 	args[1] = (unsigned long)&send_msg;
+	args[2] = sendmsg_flags;
+	assert_syscall_state(SYSCALL_FAILURE, "sendmsg", syscall(__NR_socketcall, SYS_SENDMSG, args));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_event_presence();
+	}
+	else
+	{
+		/* we need to rewrite the logic in old drivers to support this partial collection
+		 * right now we drop the entire event.
+		 */
+		evt_test->assert_event_absence();
+		GTEST_SKIP() << "[SENDMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+	}
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_bytebuf_param(2, sent_data_1, DEFAULT_SNAPLEN / 2);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, socketcall_sendmsgX_null_iovec)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	int32_t mock_fd = -1;
+	struct msghdr send_msg = {0};
+	memset(&send_msg, 0, sizeof(send_msg));
+	send_msg.msg_iov = NULL;
+	/* here we pass a wrong `iovlen` to check the behavior */
+	send_msg.msg_iovlen = 3;
+	uint32_t sendmsg_flags = 0;
+
+	unsigned long args[3] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)&send_msg;
+	args[2] = sendmsg_flags;
+	assert_syscall_state(SYSCALL_FAILURE, "sendmsg", syscall(__NR_socketcall, SYS_SENDMSG, args));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_event_presence();
+	}
+	else
+	{
+		/* we need to rewrite the logic in old drivers to support this partial collection
+		 * right now we drop the entire event.
+		 */
+		evt_test->assert_event_absence();
+		GTEST_SKIP() << "[SENDMSG_X]: what we receive is correct but we need to reimplement it, see the code" << std::endl;
+	}
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: data (type: PT_BYTEBUF)*/
+	evt_test->assert_empty_param(2);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallExit, socketcall_sendmsgX_null_msghdr)
+{
+	auto evt_test = get_syscall_event_test(__NR_sendmsg, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	int32_t mock_fd = -1;
+	struct msghdr *send_msg = NULL;
+	uint32_t sendmsg_flags = 0;
+
+	unsigned long args[3] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)send_msg;
 	args[2] = sendmsg_flags;
 	assert_syscall_state(SYSCALL_FAILURE, "sendmsg", syscall(__NR_socketcall, SYS_SENDMSG, args));
 	int64_t errno_value = -errno;

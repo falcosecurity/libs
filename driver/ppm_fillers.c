@@ -2819,18 +2819,6 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
 
-	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
-	if(retval < 0)
-	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
-		res = push_empty_param(args);
-		CHECK_RES(res);
-
-		return add_sentinel(args);
-	}
-
 	/*
 	 * Retrieve the message header
 	 */
@@ -2841,14 +2829,16 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 		val = args->socketcall_args[1];
 #endif
 
-	/*
-	 * data
-	 */
+	/* Parameter 2: data (type: PT_BYTEBUF) */
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
 		if (unlikely(ppm_copy_from_user(&mh, (const void __user *)val, sizeof(mh))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		{
+			res = val_to_ring(args, 0, 0, false, 0);
+			CHECK_RES(res);
+			return add_sentinel(args);
+		}
 
 
 		iov = (const struct iovec __user *)mh.msg_iov;
@@ -2860,7 +2850,11 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 #ifdef CONFIG_COMPAT
 	} else {
 		if (unlikely(ppm_copy_from_user(&compat_mh, (const void __user *)compat_ptr(val), sizeof(compat_mh))))
-			return PPM_FAILURE_INVALID_USER_MEMORY;
+		{
+			res = val_to_ring(args, 0, 0, false, 0);
+			CHECK_RES(res);
+			return add_sentinel(args);
+		}
 
 		compat_iov = (const struct compat_iovec __user *)compat_ptr(compat_mh.msg_iov);
 		iovcnt = compat_mh.msg_iovlen;

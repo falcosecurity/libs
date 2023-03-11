@@ -4373,34 +4373,22 @@ FILLER(sys_sendmsg_e, true)
 
 FILLER(sys_sendmsg_x, true)
 {
-	const struct iovec *iov;
-	struct user_msghdr mh;
-	unsigned long iovcnt;
-	unsigned long val;
-
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
 	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
 	CHECK_RES(res);
 
-	/* If the syscall fails we are not able to collect reliable params
-	 * so we return empty ones.
-	 */
-	if(retval < 0)
+	/* Parameter 2: data (type: PT_BYTEBUF) */
+	struct user_msghdr mh = {0};
+	unsigned long msghdr_pointer = bpf_syscall_get_argument(data, 1);
+	if (bpf_probe_read_user(&mh, sizeof(mh), (void *)msghdr_pointer))
 	{
-		/* Parameter 2: data (type: PT_BYTEBUF) */
+		/* in case of NULL msghdr we return an empty param */
 		return bpf_push_empty_param(data);
 	}
 
-	/*
-	 * data
-	 */
-	val = bpf_syscall_get_argument(data, 1);
-	if (bpf_probe_read_user(&mh, sizeof(mh), (void *)val))
-		return PPM_FAILURE_INVALID_USER_MEMORY;
-
-	iov = (const struct iovec *)mh.msg_iov;
-	iovcnt = mh.msg_iovlen;
+	const struct iovec *iov = (const struct iovec *)mh.msg_iov;
+	unsigned long  iovcnt = mh.msg_iovlen;
 
 	res = bpf_parse_readv_writev_bufs(data, iov, iovcnt, retval,
 					  PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
