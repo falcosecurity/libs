@@ -1096,6 +1096,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 			       SAFE_ACCESS(total_iovec_size),
 			       (void *)iov_pointer))
 	{
+		/* in case of NULL iovec vector we return an empty param */
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;
 	}
@@ -1107,6 +1108,9 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 	{
 		if(total_size_to_read > len_to_read)
 		{
+			/* If we break here it could be that `payload_pos` overcame the max `len_to_read` for this reason
+			 * we have an enforcement after the for loop.
+			 */
 			total_size_to_read = len_to_read;
 			break;
 		}
@@ -1124,6 +1128,7 @@ static __always_inline void auxmap__store_iovec_data_param(struct auxiliary_map 
 		}
 		total_size_to_read += bytes_read;
 	}
+	/* We need this enforcement to be sure that we don't overcome the max `len_to_read` */
 	auxmap->payload_pos = initial_payload_pos + total_size_to_read;
 	push__param_len(auxmap->data, &auxmap->lengths_pos, total_size_to_read);
 }
@@ -1143,6 +1148,7 @@ static __always_inline void auxmap__store_msghdr_iovec_data_param(struct auxilia
 	struct user_msghdr msghdr = {0};
 	if(bpf_probe_read_user((void *)&msghdr, bpf_core_type_size(struct user_msghdr), (void *)msghdr_pointer))
 	{
+		/* in case of NULL msghdr we return an empty param */
 		push__param_len(auxmap->data, &auxmap->lengths_pos, 0);
 		return;
 	}
