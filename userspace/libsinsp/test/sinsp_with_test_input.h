@@ -96,7 +96,7 @@ protected:
 	scap_evt* add_event_v(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, va_list args)
 	{
 		struct scap_sized_buffer event_buf = {NULL, 0};
-		size_t event_size;
+		size_t event_size = 0;
 		char error[SCAP_LASTERR_SIZE] = {'\0'};
 		va_list args2;
 		va_copy(args2, args);
