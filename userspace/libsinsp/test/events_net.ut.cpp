@@ -39,13 +39,15 @@ TEST_F(sinsp_with_test_input, ipv4_connect)
 
 	std::vector<uint8_t> dest_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest));
 
+	int64_t fd = 7, test_errno = 0;
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, 0x80002, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 7);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "false");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 7, scap_const_sized_buffer{dest_sockaddr.data(), dest_sockaddr.size()});
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, scap_const_sized_buffer{dest_sockaddr.data(), dest_sockaddr.size()});
 	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, test_errno, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "172.40.111.222:54321->142.251.111.147:443");
 	ASSERT_EQ(get_field_as_string(evt, "fd.connected"), "true");
 }
@@ -73,21 +75,23 @@ TEST_F(sinsp_with_test_input, ipv6_multiple_connects)
 	std::vector<uint8_t> dest2_sockaddr = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&dest2));
 	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_DGRAM, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest2_sockaddr.data(), dest2_sockaddr.size()});
-	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest2));
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	int64_t fd = 3, test_errno = 0;
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, 3, scap_const_sized_buffer{dest1_sockaddr.data(), dest1_sockaddr.size()});
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, fd);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, scap_const_sized_buffer{dest2_sockaddr.data(), dest2_sockaddr.size()});
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest2));
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, test_errno, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_E, 2, fd, scap_const_sized_buffer{dest1_sockaddr.data(), dest1_sockaddr.size()});
 	// check that upon entry to the new connect the fd name is the same as during the last connection
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->::1:2345");
 
 	socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest1));
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, 0, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, test_errno, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
 	ASSERT_EQ(get_field_as_string(evt, "fd.name_changed"), "true");
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, 3, 6, null_buf);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, fd, 6, null_buf);
 	// check that the socket name upon the next entry event has been properly updated
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "::1:38255->2001:4860:4860::8888:53");
 }
@@ -119,20 +123,21 @@ TEST_F(sinsp_with_test_input, bind_listen_accept_ipv4)
 	inet_aton(remote_client, &src.sin_addr);
 
 	std::vector<uint8_t> sa = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&serv));
+	int64_t fd = 3, fd2 = 4, test_errno = 0;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, 3);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, fd);
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, 0, scap_const_sized_buffer{sa.data(), sa.size()});
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, test_errno, scap_const_sized_buffer{sa.data(), sa.size()});
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "0.0.0.0:80");
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, 3, 5);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, test_errno);
 
 	std::vector<uint8_t> st = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, 4, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, fd2, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "192.168.0.3:40556->192.168.0.2:80");
 	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), local_server);
@@ -153,8 +158,10 @@ TEST_F(sinsp_with_test_input, bind_listen_accept_ipv6)
 	open_inspector();
 	sinsp_evt* evt;
 
+	int64_t fd = 3, fd2 = 4, test_errno = 0;
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_STREAM, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, 3);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, fd);
 
 	sockaddr_in6 src, dest, serv;
 	serv.sin6_family = AF_INET6;
@@ -174,19 +181,19 @@ TEST_F(sinsp_with_test_input, bind_listen_accept_ipv6)
 
 	std::vector<uint8_t> sa = test_utils::pack_sockaddr(reinterpret_cast<sockaddr*>(&serv));
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, 3);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, fd);
 
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, 0, scap_const_sized_buffer{sa.data(), sa.size()});
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_X, 2, test_errno, scap_const_sized_buffer{sa.data(), sa.size()});
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), ":::80");
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, 3, 5);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, test_errno);
 
 	std::vector<uint8_t> st = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&src), reinterpret_cast<sockaddr*>(&dest));
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, 4, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, fd2, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
 
 	std::string fdname = std::string(remote_client) + ":40556->" + std::string(local_server) + ":80";
 
