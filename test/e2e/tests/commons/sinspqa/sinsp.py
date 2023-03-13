@@ -7,7 +7,7 @@ import re
 from enum import Enum
 from abc import ABC, abstractmethod
 from subprocess import Popen
-from queue import Queue, Empty
+from queue import Queue
 from threading import Thread
 from typing import IO, AnyStr
 
@@ -96,7 +96,7 @@ class SinspProcessStreamer(SinspStreamer):
         SinspProcessStreamer._running = True
         self.stdout_thread.start()
 
-    def __del__(self):
+    def stop(self):
         SinspProcessStreamer._running = False
         self.stdout_thread.join(timeout=1)
 
@@ -249,18 +249,11 @@ def assert_events(expected_events: dict,
         container (docker.Container): A container object to stream logs from.
         timeout (int): The seconds to wait for the events to be asserted
     """
-
-    reader = SinspStreamerBuilder() \
-        .setContainerized(is_containerized()) \
-        .setSinsp(sinsp) \
-        .setTimeout(timeout) \
-        .build()
-
     for event in expected_events:
         success = False
         received_event = None
 
-        for log in reader.read():
+        for log in sinsp.read():
             if not log:
                 continue
 

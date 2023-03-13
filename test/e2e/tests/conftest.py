@@ -5,6 +5,7 @@ from time import sleep
 from subprocess import Popen, PIPE
 
 from sinspqa import LOGS_PATH, is_containerized
+from sinspqa.sinsp import SinspStreamerBuilder
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -148,7 +149,11 @@ def sinsp(request, docker_client: docker.client.DockerClient):
         container = request.param
         handle, post = run_container(docker_client, 'sinsp', container)
 
-        yield handle
+        yield SinspStreamerBuilder() \
+            .setContainerized(True) \
+            .setSinsp(handle) \
+            .setTimeout(10) \
+            .build()
 
         validation = container.get('post_validation', None)
         stop_signal = container.get('signal', None)
@@ -170,8 +175,15 @@ def sinsp(request, docker_client: docker.client.DockerClient):
         if additional_wait:
             sleep(additional_wait)
 
-        yield process
+        reader = SinspStreamerBuilder() \
+            .setContainerized(False) \
+            .setSinsp(process) \
+            .setTimeout(10) \
+            .build()
 
+        yield reader
+
+        reader.stop()
         process.terminate()
         process.wait()
         assert process.returncode == 0, f'sinsp-example terminated with code {process.returncode}'
