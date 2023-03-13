@@ -32,7 +32,7 @@ def expected_events(origin: dict, destination: dict) -> list:
     return [
         {
             "container.id": origin['id'],
-            "evt.args": "domain=2 type=1 proto=0 ",
+            "evt.args": "domain=2(AF_INET) type=1 proto=0 ",
             "evt.category": "net",
             "evt.type": "socket",
             "fd.name": None,
