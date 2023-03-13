@@ -1197,33 +1197,37 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
 			uint32_t initial_val = val;
 
-			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
+			while(flags != NULL && flags->name != NULL)
 			{
-				if ((exact_match && flags->value == initial_val) ||
+				bool match = false;
+				if (exact_match)
+				{
+					match = flags->value == initial_val;
+				}
+				else
+				{
 					// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
-					((flags->value == 0 && initial_val == 0) ||
-				     (flags->value != 0 && (val & flags->value) == flags->value && val != 0)))
+					if ((flags->value == 0 && initial_val == 0) ||
+					   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
+					{
+						match = true;
+						// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
+						val &= ~flags->value;
+					}
+				}
+				if (match)
 				{
 					ret["flags"].append(flags->name);
-
-					if (exact_match)
+					if (!exact_match && flags->value == initial_val)
 					{
-						// We found the match!
+						// if we reached initial val, we have finished.
+						// NOTE: for enum flags, we might have multiple flags matching same enum value
+						// see socket_families (eg: AF_LOCAL, AF_UNIX). Don't break.
 						break;
 					}
-
-					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
-					val &= ~flags->value;
 				}
-
 				flags++;
 			}
-
-			if(!exact_match && flags != NULL && flags->name != NULL)
-			{
-				ret["flags"].append(flags->name);
-			}
-
 			break;
 		}
 	case PT_MODE:
@@ -2084,41 +2088,36 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_ENUMFLAGS16:
 	case PT_ENUMFLAGS32:
 		{
-			uint32_t val = 0;
-			switch(param_info->type)
-			{
-			case PT_FLAGS8:
-			case PT_ENUMFLAGS8:
-				val = *(uint8_t *)payload;
-				break;
-			case PT_FLAGS16:
-			case PT_ENUMFLAGS16:
-				val = *(uint16_t *)payload;
-				break;
-			case PT_FLAGS32:
-			case PT_ENUMFLAGS32:
-				val = *(uint32_t *)payload;
-				break;
-			default:
-				ASSERT(false);
-			}
+			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
 
-			const bool exact_match = param_info->type == PT_ENUMFLAGS8 || param_info->type == PT_ENUMFLAGS16 || param_info->type == PT_ENUMFLAGS32;
-
 			const struct ppm_name_value *flags = (const struct ppm_name_value *)m_info->params[id].info;
+			const bool exact_match = param_info->type == PT_ENUMFLAGS8 || param_info->type == PT_ENUMFLAGS16 || param_info->type == PT_ENUMFLAGS32;
 			const char *separator = "";
 			uint32_t initial_val = val;
 			uint32_t j = 0;
 
-			while(flags != NULL && flags->name != NULL && flags->value != initial_val)
+			while(flags != NULL && flags->name != NULL)
 			{
-				// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
-				if ((exact_match && flags->value == initial_val) ||
-				    ((flags->value == 0 && initial_val == 0) ||
-				    (flags->value != 0 && (val & flags->value) == flags->value && val != 0)))
+				bool match = false;
+				if (exact_match)
+				{
+					match = flags->value == initial_val;
+				}
+				else
+				{
+					// If flag is 0, then initial_val needs to be 0 for the flag to be resolved
+					if ((flags->value == 0 && initial_val == 0) ||
+					   (flags->value != 0 && (val & flags->value) == flags->value && val != 0))
+					{
+						match = true;
+						// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
+						val &= ~flags->value;
+					}
+				}
+				if (match)
 				{
 					if(m_resolved_paramstr_storage.size() < j + strlen(separator) + strlen(flags->name))
 					{
@@ -2126,32 +2125,30 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 					}
 
 					j += snprintf(&m_resolved_paramstr_storage[j],
-								  m_resolved_paramstr_storage.size(),
-							 	  "%s%s",
-							 	  separator,
-							 	  flags->name);
-
+						      m_resolved_paramstr_storage.size(),
+						      "%s%s",
+						      separator,
+						      flags->name);
 					if (exact_match)
 					{
-						// We found the match!
-						break;
+						// Multiple flags name match same enum value
+						separator = " ";
 					}
-
-					separator = "|";
-					// We remove current flags value to avoid duplicate flags e.g. PPM_O_RDWR, PPM_O_RDONLY, PPM_O_WRONLY
-					val &= ~flags->value;
+					else
+					{
+						// It is a bitmask, ok to use bitwise OR
+						separator = "|";
+						if (flags->value == initial_val)
+						{
+							// if we reached initial val, we have finished.
+							// NOTE: for enum flags, we might have multiple flags matching same enum value
+							// see socket_families (eg: AF_LOCAL, AF_UNIX). Don't break.
+							break;
+						}
+					}
 				}
 
 				flags++;
-			}
-
-			if(!exact_match && flags != NULL && flags->name != NULL)
-			{
-				j += snprintf(&m_resolved_paramstr_storage[j],
-							  m_resolved_paramstr_storage.size(),
-							  "%s%s",
-							  separator,
-							  flags->name);
 			}
 
 			break;
