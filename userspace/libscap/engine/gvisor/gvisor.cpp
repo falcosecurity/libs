@@ -47,9 +47,21 @@ static SCAP_HANDLE_T *gvisor_alloc_handle(scap_t* main_handle, char *lasterr_ptr
 
 static int32_t gvisor_init(scap_t* main_handle, scap_open_args* oargs)
 {
+	int32_t ret;
 	scap_gvisor::engine *gv = main_handle->m_engine.m_handle;
 	struct scap_gvisor_engine_params *params = (struct scap_gvisor_engine_params *)oargs->engine_params;
-	return gv->init(params->gvisor_config_path, params->gvisor_root_path);
+	ret = gv->init(params->gvisor_config_path, params->gvisor_root_path);
+	if(ret != SCAP_SUCCESS)
+	{
+		return ret;
+	}
+
+	if(!oargs->no_events)
+	{
+		return gv->open_socket();
+	}
+
+	return SCAP_SUCCESS;
 }
 
 static void gvisor_free_handle(struct scap_engine_handle engine)

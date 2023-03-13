@@ -24,4 +24,9 @@ limitations under the License.
 struct SINSP_PUBLIC sinsp_driver_params : public scap_open_args
 {
 	sinsp_driver_params& set_ppm_sc_of_interest(const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest_set);
+	sinsp_driver_params& set_no_events(bool f)
+	{
+		no_events = f;
+		return *this;
+	}
 };

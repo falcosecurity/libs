@@ -78,6 +78,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	//
 	// Extract machine information
@@ -195,6 +196,7 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	//
 	// Extract machine information
@@ -298,6 +300,7 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -345,6 +348,7 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
@@ -391,6 +395,7 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
@@ -440,6 +445,7 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	//
 	// Extract machine information
@@ -517,6 +523,7 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_no_events = oargs->no_events;
 
 	//
 	// Extract machine information
@@ -747,7 +754,7 @@ scap_os_platform scap_get_os_platform(scap_t* handle)
 
 uint32_t scap_get_ndevs(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->get_n_devs(handle->m_engine);
 	}
@@ -763,7 +770,7 @@ int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT uint32_
 
 uint64_t scap_max_buf_used(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->get_max_buf_used(handle->m_engine);
 	}
@@ -773,7 +780,7 @@ uint64_t scap_max_buf_used(scap_t* handle)
 int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 {
 	int32_t res = SCAP_FAILURE;
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		res = handle->m_vtable->next(handle->m_engine, pevent, pcpuid);
 	}
@@ -843,7 +850,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_suppressed = handle->m_suppress.m_num_suppressed_evts;
 	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppress.m_suppressed_tids);
 
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->get_stats(handle->m_engine, stats);
 	}
@@ -856,7 +863,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 int32_t scap_stop_capture(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->stop_capture(handle->m_engine);
 	}
@@ -871,7 +878,7 @@ int32_t scap_stop_capture(scap_t* handle)
 //
 int32_t scap_start_capture(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->start_capture(handle->m_engine);
 	}
@@ -883,7 +890,7 @@ int32_t scap_start_capture(scap_t* handle)
 
 int32_t scap_enable_tracers_capture(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_TRACERS_CAPTURE, 1, 0);
 	}
@@ -895,7 +902,7 @@ int32_t scap_enable_tracers_capture(scap_t* handle)
 
 int32_t scap_stop_dropping_mode(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, 1, 0);
 	}
@@ -922,7 +929,7 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 			return snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "invalid sampling ratio size");
 	}
 
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SAMPLING_RATIO, sampling_ratio, 1);
 	}
@@ -968,7 +975,7 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle)
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_SNAPLEN, snaplen, 0);
 	}
@@ -1005,7 +1012,7 @@ static int32_t scap_handle_ppm_sc_mask(scap_t* handle, uint32_t op, ppm_sc_code 
 		break;
 	}
 
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_PPM_SC_MASK, op, ppm_sc);
 	}
@@ -1025,6 +1032,7 @@ int32_t scap_set_ppm_sc(scap_t* handle, ppm_sc_code ppm_sc, bool enabled) {
 		ASSERT(false);
 		return SCAP_FAILURE;
 	}
+
 	return(scap_handle_ppm_sc_mask(handle, enabled ? SCAP_PPM_SC_MASK_SET : SCAP_PPM_SC_MASK_UNSET, ppm_sc));
 }
 
@@ -1042,7 +1050,7 @@ uint32_t scap_event_get_dump_flags(scap_t* handle)
 
 int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 1, 0);
 	}
@@ -1053,7 +1061,7 @@ int32_t scap_enable_dynamic_snaplen(scap_t* handle)
 
 int32_t scap_disable_dynamic_snaplen(scap_t* handle)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_DYNAMIC_SNAPLEN, 0, 0);
 	}
@@ -1147,7 +1155,7 @@ void scap_fseek(scap_t *handle, uint64_t off)
 
 int32_t scap_get_n_tracepoint_hit(scap_t* handle, long* ret)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->get_n_tracepoint_hit(handle->m_engine, ret);
 	}
@@ -1177,7 +1185,7 @@ bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_FULLCAPTURE_PORT_RANGE, range_start, range_end);
 	}
@@ -1188,7 +1196,7 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 
 int32_t scap_set_statsd_port(scap_t* const handle, const uint16_t port)
 {
-	if(handle->m_vtable)
+	if(handle->m_vtable && !handle->m_no_events)
 	{
 		return handle->m_vtable->configure(handle->m_engine, SCAP_STATSD_PORT, port, 0);
 	}

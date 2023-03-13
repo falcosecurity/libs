@@ -133,6 +133,7 @@ public:
     engine(char *lasterr);
     ~engine();
     int32_t init(std::string config_path, std::string root_path);
+    int32_t open_socket();
     int32_t close();
 
     int32_t start_capture();

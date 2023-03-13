@@ -92,6 +92,7 @@ extern "C"
 		void(*debug_log_fn)(const char* msg); //< Function which SCAP may use to log a debug message
 		uint64_t proc_scan_timeout_ms; //< Timeout in msec, after which so-far-successful scan of /proc should be cut short with success return
 		uint64_t proc_scan_log_interval_ms; //< Interval for logging progress messages from /proc scan
+		bool no_events; //< Pinky swear we don't want any event from it (i.e. next will always fail, just have proc scan)
 		void* engine_params;			   ///< engine-specific params.
 	} scap_open_args;
 

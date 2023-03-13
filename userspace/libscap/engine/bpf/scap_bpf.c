@@ -1756,6 +1756,11 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 
 static int32_t init(scap_t* handle, scap_open_args *oargs)
 {
+	if(oargs->no_events)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	int32_t rc = 0;
 	char bpf_probe_buf[SCAP_MAX_PATH_SIZE] = {0};
 	struct scap_engine_handle engine = handle->m_engine;

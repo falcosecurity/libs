@@ -542,6 +542,11 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 	struct udig_engine *handle = main_handle->m_engine.m_handle;
 	int rc;
 
+	if(oargs->no_events)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	rc = devset_init(&handle->m_dev_set, 1, handle->m_lasterr);
 	if(rc != SCAP_SUCCESS)
 	{

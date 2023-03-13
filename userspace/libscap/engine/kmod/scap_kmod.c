@@ -169,6 +169,11 @@ static int32_t scap_kmod_handle_ppm_sc_mask(struct scap_engine_handle engine, ui
 
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
 {
+	if(oargs->no_events)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_kmod_engine_params* params  = oargs->engine_params;
 	char filename[SCAP_MAX_PATH_SIZE] = {0};
