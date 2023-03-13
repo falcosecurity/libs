@@ -227,7 +227,7 @@ public:
 	virtual void open_nodriver(bool full_proc_scan = false);
 	virtual void open_savefile(const std::string &filename, int fd = 0);
 	virtual void open_plugin(const std::string &plugin_name, const std::string &plugin_open_params);
-	virtual void open_gvisor(const std::string &config_path, const std::string &root_path);
+	virtual void open_gvisor(const std::string &config_path, const std::string &root_path, bool no_events = false);
 	/*[EXPERIMENTAL] This API could change between releases, we are trying to find the right configuration to deploy the modern bpf probe:
 	 * `cpus_for_each_buffer` and `online_only` are the 2 experimental params. The first one allows associating more than one CPU to a single ring buffer.
 	 * The last one allows allocating ring buffers only for online CPUs and not for all system-available CPUs.
