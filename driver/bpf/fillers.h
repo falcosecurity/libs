@@ -754,6 +754,9 @@ FILLER(sys_readv_e, true)
 
 FILLER(sys_preadv_e, true)
 {
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+#error Implement this
+#endif
 	unsigned long val;
 	int32_t fd;
 	int res;
@@ -4790,7 +4793,7 @@ FILLER(sys_mkdir_e, true)
 	return bpf_val_to_ring(data, mode);
 }
 
-FILLER(sys_pread64_e, true)
+FILLER(sys_pread_e, true)
 {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
@@ -4821,14 +4824,6 @@ FILLER(sys_pread64_e, true)
 	 */
 	val = bpf_syscall_get_argument(data, 3);
 	return bpf_val_to_ring(data, val);
-}
-
-FILLER(sys_preadv64_e, true)
-{
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
-#error Implement this
-#endif
-	return PPM_FAILURE_BUG;
 }
 
 FILLER(sys_pwrite64_e, true)

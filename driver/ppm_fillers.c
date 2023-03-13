@@ -3781,7 +3781,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pread64_e(struct event_filler_arguments *args)
+int f_sys_pread_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
