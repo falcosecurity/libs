@@ -1,5 +1,5 @@
 import pytest
-from sinspqa import sinsp, event_generator
+from sinspqa import sinsp, event_generator, BTF_IS_AVAILABLE
 from sinspqa.sinsp import assert_events, SinspField
 from sinspqa.docker import get_container_id
 
@@ -19,7 +19,9 @@ ids = [
 ]
 
 # modern probe doesn't support EXE_WRITABLE flag yet
-sinsp_examples[2] = pytest.param(sinsp_examples[2], marks=pytest.mark.xfail)
+if BTF_IS_AVAILABLE:
+    sinsp_examples[2] = pytest.param(
+        sinsp_examples[2], marks=pytest.mark.xfail)
 
 
 @pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)

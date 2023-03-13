@@ -11,7 +11,7 @@ from queue import Queue, Empty
 from threading import Thread
 from typing import IO, AnyStr
 
-from sinspqa import is_containerized, LOGS_PATH
+from sinspqa import is_containerized, LOGS_PATH, BTF_IS_AVAILABLE
 
 SINSP_TAG = os.environ.get('SINSP_TAG', 'latest')
 
@@ -320,14 +320,6 @@ def process_spec(path: str, args: list, env: dict) -> dict:
     }
 
 
-def btf_is_available() -> bool:
-    kernel = os.uname().release.split('.')
-    kernel_major = int(kernel[0])
-    kernel_minor = int(kernel[1])
-
-    return kernel_major > 5 or (kernel_major == 5 and kernel_minor >= 8)
-
-
 def generate_specs(image: str = 'sinsp-example:latest',
                    path: str = os.environ.get('SINSP_EXAMPLE_PATH', ''),
                    args: list = []) -> list:
@@ -355,7 +347,7 @@ def generate_specs(image: str = 'sinsp-example:latest',
     if is_containerized():
         specs.append(container_spec(image, args, kernel_module_env))
         specs.append(container_spec(image, bpf_args, bpf_env))
-        if btf_is_available():
+        if BTF_IS_AVAILABLE:
             specs.append(container_spec(image, modern_bpf_args, {}))
     else:
         args.extend(['-j', '-a'])
@@ -364,7 +356,7 @@ def generate_specs(image: str = 'sinsp-example:latest',
 
         specs.append(process_spec(path, args, kernel_module_env))
         specs.append(process_spec(path, bpf_args, bpf_env))
-        if btf_is_available():
+        if BTF_IS_AVAILABLE:
             specs.append(process_spec(path, modern_bpf_args, {}))
 
     return specs

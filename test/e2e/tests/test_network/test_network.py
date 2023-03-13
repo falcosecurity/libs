@@ -1,5 +1,5 @@
 import pytest
-from sinspqa import sinsp
+from sinspqa import sinsp, BTF_IS_AVAILABLE
 from sinspqa.sinsp import assert_events
 from sinspqa.docker import get_container_id, get_network_data
 
@@ -23,7 +23,9 @@ ids = [sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples]
 
 # For some reason, the modern probe gives a longer proc.exe than the legacy
 # drivers, needs further investigation.
-sinsp_examples[2] = pytest.param(sinsp_examples[2], marks=pytest.mark.xfail)
+if BTF_IS_AVAILABLE:
+    sinsp_examples[2] = pytest.param(
+        sinsp_examples[2], marks=pytest.mark.xfail)
 
 
 def expected_events(origin: dict, destination: dict) -> list:
