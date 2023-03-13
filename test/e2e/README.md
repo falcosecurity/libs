@@ -18,7 +18,7 @@ needed for the e2e tests:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
 make e2e-install-deps
 ```
 
@@ -33,7 +33,7 @@ and run the e2e tests with the `e2e-tests` make target.
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
 make e2e-tests
 ```
 
@@ -46,10 +46,33 @@ entire repo as root, you can use the following commands instead:
 
 ```sh
 mkdir -p build && cd build
-cmake -DCREATE_TEST_TARGETS=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
 make sinsp-example driver bpf
 mkdir -p report/
 sudo ../test/e2e/scripts/run_tests.sh
+```
+
+#### Passing parameters to pytest
+The last command in the previous block of code can take any parameter accepted
+by pytest. A common use case for this could be to run a subset of tests by
+passing the path to those tests:
+
+```sh
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver bpf
+mkdir -p report/
+sudo ../test/e2e/scripts/run_tests.sh ../test/e2e/tests/test_network/
+```
+
+Another common option could be to stop at the first failure:
+
+```sh
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver bpf
+mkdir -p report/
+sudo ../test/e2e/scripts/run_tests.sh -x
 ```
 
 ## Containerized tests

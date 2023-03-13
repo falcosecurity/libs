@@ -16,4 +16,9 @@ else
     E2E_REPORT="/tmp"
 fi
 
-pytest --html="${E2E_REPORT}/report/report.html" "${E2E_DIR}/tests/"
+args="$*"
+if (($#==0)); then
+    args="${E2E_DIR}/tests/"
+fi
+
+pytest --html="${E2E_REPORT}/report/report.html" "${args}"
