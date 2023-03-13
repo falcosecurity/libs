@@ -72,7 +72,27 @@ mkdir -p build && cd build
 cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
 make sinsp-example driver bpf
 mkdir -p report/
-sudo ../test/e2e/scripts/run_tests.sh -x
+sudo ../test/e2e/scripts/run_tests.sh -x ../test/e2e/tests/
+```
+
+The tests also provide an easy way to skip running the tests with some drivers
+in case there is a need to narrow down the scope even further. If you wanted to
+run the tests skipping the kernel module you can use the following commands:
+
+```sh
+mkdir -p build && cd build
+cmake -DCREATE_TEST_TARGETS=ON -DBUILD_LIBSCAP_MODERN_BPF=ON -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=ON -DBUILD_DRIVER=ON ..
+make sinsp-example driver bpf
+mkdir -p report/
+sudo ../test/e2e/scripts/run_tests.sh --no-kmod ../test/e2e/tests/
+```
+
+These are the three accepted parameters for skipping drivers:
+
+```
+--no-kmod: Skip tests using the kernel module as driver
+--no-ebpf: Skip tests using the eBPF probe as driver
+--no-modern: Skip tests using the modern probe as driver
 ```
 
 ## Containerized tests
