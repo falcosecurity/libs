@@ -98,7 +98,7 @@ engine::~engine()
 
 }
 
-int32_t engine::init(std::string config_path, std::string root_path)
+int32_t engine::init(std::string config_path, std::string root_path, bool no_events)
 {
 	if(root_path.empty())
 	{
@@ -128,6 +128,14 @@ int32_t engine::init(std::string config_path, std::string root_path)
 		return config_result.status;
 	}
 
+	// Check if runsc is installed in the system
+	runsc::result version = runsc::version();
+	if(version.error)
+	{
+		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
+		return SCAP_FAILURE;
+	}
+
 	// Initialize the listen fd
 	m_socket_path = config_result.socket_path;
 	if (m_socket_path.empty())
@@ -136,15 +144,13 @@ int32_t engine::init(std::string config_path, std::string root_path)
 		return SCAP_FAILURE;
 	}
 
-	unlink(m_socket_path.c_str());
-	
-	// Check if runsc is installed in the system
-	runsc::result version = runsc::version();
-	if(version.error)
+	m_no_events = no_events;
+	if(no_events)
 	{
-		strlcpy(m_lasterr, "Cannot find runsc binary", SCAP_LASTERR_SIZE);
-		return SCAP_FAILURE;
+		return SCAP_SUCCESS;
 	}
+
+	unlink(m_socket_path.c_str());
 
 	int sock = socket(PF_UNIX, SOCK_SEQPACKET, 0);
 	if(sock == -1)
@@ -190,6 +196,11 @@ int32_t engine::init(std::string config_path, std::string root_path)
 
 int32_t engine::close()
 {
+	if(m_no_events)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	stop_capture();
 	unlink(m_socket_path.c_str());
     return SCAP_SUCCESS;
@@ -267,6 +278,10 @@ static void accept_thread(int listenfd, int epollfd)
 
 int32_t engine::start_capture()
 {
+	if(m_no_events)
+	{
+		return SCAP_FAILURE;
+	}
 	//
 	// Retrieve all running sandboxes
 	// We will need to recreate a session for each of them
@@ -506,6 +521,11 @@ int32_t engine::process_message_from_fd(int fd)
 
 int32_t engine::next(scap_evt **pevent, uint16_t *pcpuid)
 {
+	if(m_no_events)
+	{
+		return SCAP_FAILURE;
+	}
+
 	epoll_event evts[max_ready_sandboxes];
 	*pcpuid = 0;
 

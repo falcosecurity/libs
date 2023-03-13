@@ -24,6 +24,8 @@ extern "C"
 	{
 		const char* gvisor_root_path;	///< When using gvisor, the root path used by runsc commands
 		const char* gvisor_config_path; ///< When using gvisor, the path to the configuration file
+
+		bool no_events; //< Pinky swear we don't want any event from it (i.e. next will always fail, just have proc scan)
 	};
 
 #ifdef __cplusplus
