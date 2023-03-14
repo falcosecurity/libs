@@ -5,12 +5,6 @@ if(ENABLE_PIC)
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
-option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
-if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)
-	# scap_engine_savefile uses target_sources
-	message(FATAL_ERROR "Shared libraries requires CMake 3.1 or later.")
-endif()
-
 # NOTE: do not add `add_definition` in this file because consumers project won't import it.
 
 if(CMAKE_SYSTEM_NAME MATCHES "SunOS")

@@ -45,6 +45,12 @@ option(MUSL_OPTIMIZED_BUILD "Enable if you want a musl optimized build" OFF)
 option(USE_BUNDLED_DRIVER "Use the driver/ subdirectory in the build process (only available in Linux)" ON)
 option(ENABLE_DRIVERS_TESTS "Enable driver tests (bpf, kernel module, modern bpf)" OFF)
 option(ENABLE_LIBSCAP_TESTS "Enable libscap unit tests" OFF)
+option(BUILD_SHARED_LIBS "Build libscap and libsinsp as shared libraries" OFF)
+
+if(${CMAKE_VERSION} VERSION_LESS "3.1.0" AND BUILD_SHARED_LIBS)
+	# scap_engine_savefile uses target_sources
+	message(FATAL_ERROR "Shared libraries requires CMake 3.1 or later.")
+endif()
 
 include(GNUInstallDirs)
 
@@ -110,7 +116,7 @@ if(CREATE_TEST_TARGETS AND NOT WIN32)
 	if(ENABLE_DRIVERS_TESTS)
 		add_subdirectory(test/drivers)
 	endif()
-	
+
 	if(ENABLE_LIBSCAP_TESTS)
 		add_subdirectory(test/libscap)
 	endif()
