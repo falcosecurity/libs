@@ -167,6 +167,8 @@ endif()
 
 add_definitions(-DHAS_ENGINE_SAVEFILE)
 add_subdirectory(engine/savefile)
+# The static and shared build differs here because a shared scap_engine_savefile
+# will result in circular dependencies.
 if(NOT BUILD_SHARED_LIBS)
 	target_link_libraries(scap scap_engine_savefile)
 endif()
