@@ -144,16 +144,16 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	// encode clone exit
 
 	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_CLONE_20_X, 20,
-		0, // child tid (0 in the child)
+		(int64_t) 0, // child tid (0 in the child)
 		gvisor_evt.args(0).c_str(), // actual exe is not currently sent
 		scap_const_sized_buffer{args.data(), args.size()},
 		tid_field, // tid
 		tgid_field, // pid
-		1,
+		(int64_t) 1, // ptid
 		"", // cwd
-		75000, // fdlimit
-		0, // pgft_maj
-		0, // pgft_min
+		(uint64_t) 75000, // fdlimit
+		(uint64_t) 0, // pgft_maj
+		(uint64_t) 0, // pgft_min
 		0, // vm_size
 		0, // vm_rss
 		0, // vm_swap
@@ -162,8 +162,8 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 		0, // clone_flags
 		context_data.credentials().real_uid(), // uid
 		context_data.credentials().real_gid(), // gid
-		1, // vtid
-		1); // vpid
+		(int64_t) 1, // vtid
+		(int64_t) 1); // vpid
 
 	if (ret.status == SCAP_FAILURE) {
 		ret.error = scap_err;
@@ -211,16 +211,16 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 	// encode execve exit
 
 	ret.status = scap_event_encode_params(event_buf, &event_size, scap_err, PPME_SYSCALL_EXECVE_19_X, 20,
-		0, // res
+		(int64_t) 0, // res
 		gvisor_evt.args(0).c_str(), // actual exe missing
 		scap_const_sized_buffer{args.data(), args.size()},
 		tid_field, // tid
 		tgid_field, // pid
-		-1, // ptid is only needed if we don't have the corresponding clone event
+		(int64_t) -1, // ptid is only needed if we don't have the corresponding clone event
 		cwd.c_str(), // cwd
-		75000, // fdlimit ?
-		0, // pgft_maj
-		0, // pgft_min
+		(uint64_t) 75000, // fdlimit ?
+		(uint64_t) 0, // pgft_maj
+		(uint64_t) 0, // pgft_min
 		0, // vm_size
 		0, // vm_rss
 		0, // vm_swap
@@ -228,7 +228,7 @@ static parse_result parse_container_start(const char *proto, size_t proto_size, 
 		scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
 		scap_const_sized_buffer{env.data(), env.size()}, // env
 		0, // tty
-		0, // pgid
+		(int64_t) 0, // pgid
 		0, // loginuid
 		0); // flags (not necessary)
 	
@@ -301,11 +301,11 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			scap_const_sized_buffer{args.data(), args.size()}, // args
 			generate_tid_field(context_data.thread_id(), context_data.container_id()), // tid
 			generate_tid_field(context_data.thread_group_id(), context_data.container_id()), // pid
-			-1, // ptid is only needed if we don't have the corresponding clone event
+			(int64_t) -1, // ptid is only needed if we don't have the corresponding clone event
 			cwd.c_str(), // cwd
-			75000, // fdlimit
-			0, // pgft_maj
-			0, // pgft_min
+			(uint64_t) 75000, // fdlimit
+			(uint64_t) 0, // pgft_maj
+			(uint64_t) 0, // pgft_min
 			0, // vm_size
 			0, // vm_rss
 			0, // vm_swap
@@ -313,7 +313,7 @@ static parse_result parse_execve(const char *proto, size_t proto_size, scap_size
 			scap_const_sized_buffer{cgroups.c_str(), cgroups.length() + 1}, // cgroups
 			scap_const_sized_buffer{env.data(), env.size()}, // env
 			0, // tty
-			0, // pgid
+			(int64_t) 0, // pgid
 			0, // loginuid
 			0); // flags (not necessary)
 
@@ -352,14 +352,14 @@ static parse_result parse_clone(const gvisor::syscall::Syscall &gvisor_evt, scap
 			scap_const_sized_buffer{"", 0}, // args
 			generate_tid_field(context_data.thread_id(), context_data.container_id()), // tid
 			generate_tid_field(context_data.thread_group_id(), context_data.container_id()), // pid
-			0, // ptid
+			(int64_t) 0, // ptid
 			context_data.cwd().c_str(), // cwd
-			16,
-			0,
-			0,
-			0,
-			0,
-			0,
+			(uint64_t) 75000, // fdlimit
+			(uint64_t) 0, // pgft_maj
+			(uint64_t) 0, // pgft_min
+			0, // vm_size
+			0, // vm_rss
+			0, // vm_swap
 			context_data.process_name().c_str(), // comm
 			scap_const_sized_buffer{"", 0},
 			is_fork ? PPM_CL_CLONE_CHILD_CLEARTID|PPM_CL_CLONE_CHILD_SETTID : clone_flags_to_scap(gvisor_evt.arg1()),
@@ -415,7 +415,12 @@ static parse_result parse_sentry_clone(const char *proto, size_t proto_size, sca
 		generate_tid_field(gvisor_evt.created_thread_group_id(), context_data.container_id()), // pid
 		generate_tid_field(context_data.thread_id(), context_data.container_id()), // ptid
 		"", // cwd
-		16, 0, 0, 0, 0, 0,
+		(uint64_t) 75000, // fdlimit
+		(uint64_t) 0, // pgft_maj
+		(uint64_t) 0, // pgft_min
+		0, // vm_size
+		0, // vm_rss
+		0, // vm_swap
 		context_data.process_name().c_str(), // comm
 		scap_const_sized_buffer{cgroups.c_str(), cgroups.size() + 1},
 		0,
@@ -1187,7 +1192,7 @@ static parse_result parse_task_exit(const char *proto, size_t proto_size, scap_s
 	}
 
 	ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_PROCEXIT_1_E, 4, gvisor_evt.exit_status(),
-					0, 0, 0);
+					(int64_t) 0, 0, 0);
 
 	if(ret.status != SCAP_SUCCESS)
 	{
