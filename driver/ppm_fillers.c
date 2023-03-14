@@ -842,8 +842,6 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 #else /* UDIG */
 	unsigned long val = 0;
 	int res = 0;
-	unsigned int exe_len = 0;  /* the length of the executable string */
-	int args_len = 0; /*the combined length of the arguments string + executable string */
 	struct mm_struct *mm = current->mm;
 	int64_t retval;
 	int ptid;
@@ -853,87 +851,53 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	int available = STR_STORAGE_SIZE;
 	const struct cred *cred;
 	u64 pidns_init_start_time = 0;
-
+	bool empty_params = false;
+	unsigned int exe_len = 0;	 /* the length of the executable string */
+	unsigned long int total_len = 0; /* the combined length of the arguments string + executable string */
 #ifdef __NR_clone3
 	struct clone_args cl_args;
 #endif
+	const ppm_event_code type = args->event_type;
 
-	/*
-	 * Make sure the operation was successful
-	 */
+	args->str_storage[0] = 0;
+
+	if(unlikely(!mm))
+	{
+		pr_info("f_proc_startupdate drop, mm=NULL\n");
+		return PPM_FAILURE_BUG;
+	}
+
+	/* Parameter 1: res (type: PT_PID) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	if (unlikely(retval < 0 &&
-		     args->event_type != PPME_SYSCALL_EXECVE_19_X &&
-			 args->event_type != PPME_SYSCALL_EXECVEAT_X)) {
-
-		/* The call failed, but this syscall has no exe, args
-		 * anyway, so I report empty ones */
-		*args->str_storage = 0;
-
-		/*
-		 * exe
-		 */
-		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
-
-		/*
-		 * Args
-		 */
-		res = val_to_ring(args, (int64_t)(long)args->str_storage, 0, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
-	} else {
-
-		if (likely(retval >= 0)) {
-			/*
-			 * The call succeeded. Get exe, args from the current
-			 * process; put one \0-separated exe-args string into
-			 * str_storage
-			 */
-
-			if (unlikely(!mm)) {
-				args->str_storage[0] = 0;
-				pr_info("f_proc_startupdate drop, mm=NULL\n");
-				return PPM_FAILURE_BUG;
+	/* To reduce a little bit the complexity we split the cases for different syscalls at least
+	 * for the first 2 args `exe` and `args`
+	 */
+	if(type == PPME_SYSCALL_EXECVE_19_X ||
+	   type == PPME_SYSCALL_EXECVEAT_X)
+	{
+		if(retval == 0)
+		{
+			total_len = (mm->arg_end - mm->arg_start) & (STR_STORAGE_SIZE-1);
+			if(unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, total_len)))
+			{
+				empty_params = true;
 			}
-
-			if (unlikely(!mm->arg_end)) {
-				args->str_storage[0] = 0;
-				pr_info("f_proc_startupdate drop, mm->arg_end=NULL\n");
-				return PPM_FAILURE_BUG;
+			else
+			{
+				empty_params = false;
 			}
-
-			args_len = mm->arg_end - mm->arg_start;
-
-			if (args_len) {
-				if (args_len > PAGE_SIZE)
-					args_len = PAGE_SIZE;
-
-				if (unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, args_len)))
-					args_len = 0;
-				else
-					args->str_storage[args_len - 1] = 0;
-			}
-		} else {
-
-			/*
-			 * The execve or execveat call failed. I get exe, args from the
-			 * input args; put one \0-separated exe-args string into
-			 * str_storage
-			 */
-			args->str_storage[0] = 0;
-
-			switch (args->event_type)
+		}
+		else
+		{
+			switch(type)
 			{
 			case PPME_SYSCALL_EXECVE_19_X:
 				syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 				break;
-			
+
 			case PPME_SYSCALL_EXECVEAT_X:
 				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
 				break;
@@ -943,40 +907,86 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 				break;
 			}
 #ifdef CONFIG_COMPAT
-			if (unlikely(args->compat))
-				args_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
-							   args->str_storage, available);
+			if(unlikely(args->compat))
+				total_len = compat_accumulate_argv_or_env((compat_uptr_t)val,
+									  args->str_storage, STR_STORAGE_SIZE);
 			else
 #endif
-				args_len = accumulate_argv_or_env((const char __user * __user *)val,
-							   args->str_storage, available);
+				total_len = accumulate_argv_or_env((const char __user *__user *)val,
+								   args->str_storage, STR_STORAGE_SIZE);
 
-			if (unlikely(args_len < 0))
-				args_len = 0;
+			if(unlikely(total_len < 0))
+			{
+				empty_params = true;
+			}
+			empty_params = false;
 		}
+	}
+	else
+	{
+		// PPME_SYSCALL_CLONE_20_X
+		// PPME_SYSCALL_FORK_20_X
+		// PPME_SYSCALL_VFORK_20_X
+		// PPME_SYSCALL_CLONE3_X
+		if(retval >= 0)
+		{
+			total_len = (mm->arg_end - mm->arg_start) & (STR_STORAGE_SIZE-1);
 
-		if (args_len == 0)
-			*args->str_storage = 0;
-
-		exe_len = strnlen(args->str_storage, args_len);
-		if (exe_len < args_len)
-			++exe_len;
-
-		/*
-		 * exe
-		 */
-		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
-
-		/*
-		 * Args
-		 */
-		res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, args_len - exe_len, false, 0);
-		if (unlikely(res != PPM_SUCCESS))
-			return res;
+			if(unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->arg_start, total_len)))
+			{
+				empty_params = true;
+			}
+			else if(args->str_storage[total_len - 1] == '\0')
+			{
+				empty_params = false;
+			}
+			else
+			{
+				/* Take params from the env */
+				total_len = (mm->env_end - mm->env_start) & (STR_STORAGE_SIZE-1);
+				if(unlikely(ppm_copy_from_user(args->str_storage, (const void __user *)mm->env_start, total_len)))
+				{
+					empty_params = true;
+				}
+				else
+				{
+					empty_params = false;
+				}
+			}
+		}
+		else
+		{
+			empty_params = true;
+		}
 	}
 
+	if(empty_params)
+	{
+		/* Parameter 2: exe (type: PT_CHARBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+
+		/* Parameter 3: args (type: PT_BYTEBUF) */
+		res = push_empty_param(args);
+		CHECK_RES(res);
+	}
+	else
+	{
+
+		args->str_storage[total_len - 1] = '\0';
+		exe_len = strnlen(args->str_storage, total_len);
+		/* We need to include also the string terminator if there is space */
+		if(exe_len < total_len)
+			++exe_len;
+
+		/* Parameter 2: exe (type: PT_CHARBUF) */
+		res = val_to_ring(args, (uint64_t)(long)args->str_storage, 0, false, 0);
+		CHECK_RES(res);
+
+		/* Parameter 3: args (type: PT_BYTEBUF) */
+		res = val_to_ring(args, (int64_t)(long)args->str_storage + exe_len, total_len - exe_len, false, 0);
+		CHECK_RES(res);
+	}
 
 	/*
 	 * tid

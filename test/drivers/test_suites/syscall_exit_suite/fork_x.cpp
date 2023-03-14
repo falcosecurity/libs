@@ -231,4 +231,86 @@ TEST(SyscallExit, forkX_child)
 
 #endif
 }
+
+#ifdef __NR_prctl
+
+#include <sys/prctl.h>
+
+TEST(SyscallExit, forkX_father_setproctitle)
+{
+	auto evt_test = get_syscall_event_test(__NR_fork, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	/* setproctitle uses the arg area for the title */
+	char args[10] = "title";
+	/* Remove the null terminator */
+	args[9] = 'n';
+	unsigned long arg_start = (unsigned long)args;
+	unsigned long arg_end = (unsigned long)args + 10;
+
+	/* the env area contains the args */
+	char env[] = "hello\0darkness\0my\0old\0friend";
+	unsigned long env_start = (unsigned long)env;
+	unsigned long env_end = (unsigned long)env + sizeof(env);
+
+	const char *expected_env[] = {"hello", "darkness", "my", "old", "friend", NULL};
+
+	assert_syscall_state(SYSCALL_SUCCESS, "prctl (1)", syscall(__NR_prctl, PR_SET_MM, PR_SET_MM_ARG_START, arg_start, 0, 0), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "prctl (2)", syscall(__NR_prctl, PR_SET_MM, PR_SET_MM_ARG_END, arg_end, 0, 0), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "prctl (3)", syscall(__NR_prctl, PR_SET_MM, PR_SET_MM_ENV_START, env_start, 0, 0), NOT_EQUAL, -1);
+	assert_syscall_state(SYSCALL_SUCCESS, "prctl (2)", syscall(__NR_prctl, PR_SET_MM, PR_SET_MM_ENV_END, env_end, 0, 0), NOT_EQUAL, -1);
+
+	pid_t ret_pid = syscall(__NR_fork);
+	if(ret_pid == 0)
+	{
+		/* Child terminates immediately. */
+		exit(EXIT_SUCCESS);
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "fork", ret_pid, NOT_EQUAL, -1);
+
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "Something in the child failed." << std::endl;
+	}
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_PID)*/
+	evt_test->assert_numeric_param(1, (int64_t)ret_pid);
+
+	/* Parameter 2: exe (type: PT_CHARBUF) */
+	evt_test->assert_charbuf_param(2, expected_env[0]);
+
+	/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+	/* Starting from `1` because the first is `exe`. */
+	evt_test->assert_charbuf_array_param(3, &expected_env[1]);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(21);
+}
+#endif
 #endif

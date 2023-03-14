@@ -2314,138 +2314,164 @@ FILLER(proc_startupdate, true)
 {
 	struct task_struct *real_parent;
 	struct signal_struct *signal;
-	struct task_struct *task;
 	unsigned long total_vm;
 	unsigned long min_flt;
 	unsigned long maj_flt;
 	unsigned long fdlimit;
-	struct mm_struct *mm;
 	long total_rss;
 	char empty = 0;
 	long args_len;
-	long retval;
 	pid_t tgid;
 	long swap;
 	pid_t pid;
-	int res;
 
-	/*
-	 * Make sure the operation was successful
-	 */
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
-
-	task = (struct task_struct *)bpf_get_current_task();
-	mm = _READ(task->mm);
-	if (!mm)
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	struct mm_struct *mm = _READ(task->mm);
+	if(!mm)
 		return PPM_FAILURE_BUG;
 
-	if (retval >= 0) {
-		/*
-		 * The call succeeded. Get exe, args from the current
-		 * process; put one \0-separated exe-args string into
-		 * str_storage
-		 */
-		unsigned long arg_start;
-		unsigned long arg_end;
+	/* Parameter 1: res (type: PT_PID) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
 
-		arg_end = _READ(mm->arg_end);
-		if (!arg_end)
-			return PPM_FAILURE_BUG;
+	/* To reduce a little bit the complexity we split the cases for different syscalls at least
+	 * for the first 2 args `exe` and `args`
+	 */
+	const ppm_event_code type = data->state->tail_ctx.evt_type;
 
-		arg_start = _READ(mm->arg_start);
-		args_len = arg_end - arg_start;
+	if((type == PPME_SYSCALL_EXECVE_19_X ||
+	    type == PPME_SYSCALL_EXECVEAT_X))
+	{
+		/* Execve/execveat success */
+		if(retval == 0)
+		{
+			unsigned long int arg_start_pointer = 0;
+			unsigned long int arg_end_pointer = 0;
+			bpf_probe_read_kernel(&arg_start_pointer, sizeof(arg_start_pointer), &mm->arg_start);
+			bpf_probe_read_kernel(&arg_end_pointer, sizeof(arg_end_pointer), &mm->arg_end);
+			unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
 
-		if (args_len > 0) {
-			if (args_len > ARGS_ENV_SIZE_MAX)
-				args_len = ARGS_ENV_SIZE_MAX;
+			/* Parameter 2: exe (type: PT_CHARBUF) */
+			res = __bpf_val_to_ring(data, arg_start_pointer, 0, PT_CHARBUF, -1, false, USER);
+			CHECK_RES(res);
+
+			/* We get the len of the `exe` param */
+			u16 exe_arg_len = get_param_len(data->buf, 1);
+
+			/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+			res = __bpf_val_to_ring(data, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & SCRATCH_SIZE_HALF, PT_BYTEBUF, -1, false, USER);
+			CHECK_RES(res);
+		}
+		else /* Failure */
+		{
+			char **argv = NULL;
+			switch(type)
+			{
+			case PPME_SYSCALL_EXECVE_19_X:
+				argv = (char **)bpf_syscall_get_argument(data, 1);
+				break;
+
+			case PPME_SYSCALL_EXECVEAT_X:
+				argv = (char **)bpf_syscall_get_argument(data, 2);
+				break;
+
+			default:
+				break;
+			}
+
+			unsigned long total_args_len = 0;
+			/* Here we put already all we need into our auxmap */
+			res = bpf_accumulate_argv_or_env(data, argv, &total_args_len);
+			if(res != PPM_SUCCESS)
+				total_args_len = 0;
+
+			u16 exe_arg_len = bpf_probe_read_kernel_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+								    (total_args_len & SCRATCH_SIZE_HALF),
+								    &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
+
+			/* Parameter 2: exe (type: PT_CHARBUF) */
+			data->curarg_already_on_frame = true;
+			res = __bpf_val_to_ring(data, 0, exe_arg_len, PT_CHARBUF, -1, false, KERNEL);
+			CHECK_RES(res);
+
+			/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+			data->curarg_already_on_frame = true;
+			res = __bpf_val_to_ring(data, 0, (total_args_len - exe_arg_len) & SCRATCH_SIZE_HALF, PT_BYTEBUF, -1, false, KERNEL);
+			CHECK_RES(res);
+		}
+	}
+	else
+	{
+		// PPME_SYSCALL_CLONE_20_X
+		// PPME_SYSCALL_FORK_20_X
+		// PPME_SYSCALL_VFORK_20_X
+		// PPME_SYSCALL_CLONE3_X
+		if(retval >= 0)
+		{
+			unsigned long int start_pointer = 0;
+			unsigned long int end_pointer = 0;
+			unsigned long int total_len = 0;
+			bpf_probe_read_kernel(&start_pointer, sizeof(start_pointer), &mm->arg_start);
+			bpf_probe_read_kernel(&end_pointer, sizeof(end_pointer), &mm->arg_end);
+			total_len = end_pointer - start_pointer;
 
 #ifdef BPF_FORBIDS_ZERO_ACCESS
-			if (bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						((args_len - 1) & SCRATCH_SIZE_HALF) + 1,
-						(void *)arg_start))
+			bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					    ((total_len - 1) & SCRATCH_SIZE_HALF) + 1,
+					    (void *)start_pointer);
 #else
-			if (bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						args_len & SCRATCH_SIZE_HALF,
-						(void *)arg_start))
+			bpf_probe_read_user(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
+					    total_len & SCRATCH_SIZE_HALF,
+					    (void *)start_pointer);
 #endif
-				args_len = 0;
+
+			/* if true application is using setproctitle() */
+			if(data->buf[(data->state->tail_ctx.curoff + total_len - 1) & SCRATCH_SIZE_HALF] == '\0')
+			{
+				/* Parameter 2: exe (type: PT_CHARBUF) */
+				res = __bpf_val_to_ring(data, start_pointer, 0, PT_CHARBUF, -1, false, USER);
+				CHECK_RES(res);
+
+				/* We get the len of the `exe` param */
+				u16 exe_arg_len = get_param_len(data->buf, 1);
+
+				/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+				res = __bpf_val_to_ring(data, start_pointer + exe_arg_len, (total_len - exe_arg_len) & SCRATCH_SIZE_HALF, PT_BYTEBUF, -1, false, USER);
+				CHECK_RES(res);
+			}
 			else
-				data->buf[(data->state->tail_ctx.curoff + args_len - 1) & SCRATCH_SIZE_MAX] = 0;
-		}
-	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
-	           data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVEAT_X ) {
-		unsigned long val;
-		char **argv;
+			{
+				bpf_probe_read_kernel(&start_pointer, sizeof(start_pointer), &mm->env_start);
+				bpf_probe_read_kernel(&end_pointer, sizeof(end_pointer), &mm->env_end);
+				total_len = end_pointer - start_pointer;
 
-		switch (data->state->tail_ctx.evt_type)
+				/* Parameter 2: exe (type: PT_CHARBUF) */
+				res = __bpf_val_to_ring(data, start_pointer, 0, PT_CHARBUF, -1, false, USER);
+				CHECK_RES(res);
+
+				/* We get the len of the `exe` param */
+				u16 exe_arg_len = get_param_len(data->buf, 1);
+
+				/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+				res = __bpf_val_to_ring(data, start_pointer + exe_arg_len, (total_len - exe_arg_len) & SCRATCH_SIZE_HALF, PT_BYTEBUF, -1, false, USER);
+				CHECK_RES(res);
+			}
+		}
+		else /* Failure */
 		{
-		case PPME_SYSCALL_EXECVE_19_X:
-			val = bpf_syscall_get_argument(data, 1);
-			break;
+			/* in clone/fork we cannot extract these params from the syscalls args */
 
-		case PPME_SYSCALL_EXECVEAT_X:
-			val = bpf_syscall_get_argument(data, 2);
-			break;
+			/* Parameter 2: exe (type: PT_CHARBUF) */
+			res = bpf_push_empty_param(data);
+			if(res != PPM_SUCCESS)
+				return res;
 
-		default:
-			val = 0;
-			break;
+			/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+			res = bpf_push_empty_param(data);
+			if(res != PPM_SUCCESS)
+				return res;
 		}
-		argv = (char **)val;
-
-		res = bpf_accumulate_argv_or_env(data, argv, &args_len);
-		if (res != PPM_SUCCESS)
-			args_len = 0;
-	} else {
-		args_len = 0;
-	}
-
-	if (args_len > 0) {
-		int exe_len;
-
-		exe_len = bpf_probe_read_kernel_str(&data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF],
-						    SCRATCH_SIZE_HALF,
-						    &data->buf[data->state->tail_ctx.curoff & SCRATCH_SIZE_HALF]);
-
-		if (exe_len < 0)
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		/*
-		 * exe
-		 */
-		data->curarg_already_on_frame = true;
-		res = __bpf_val_to_ring(data, 0, exe_len, PT_CHARBUF, -1, false, KERNEL);
-		if (res != PPM_SUCCESS)
-			return res;
-
-		args_len -= exe_len;
-		if (args_len < 0)
-			return PPM_FAILURE_INVALID_USER_MEMORY;
-
-		/*
-		 * Args
-		 */
-		data->curarg_already_on_frame = true;
-		res = __bpf_val_to_ring(data, 0, args_len, PT_BYTEBUF, -1, false, KERNEL);
-		if (res != PPM_SUCCESS)
-			return res;
-	} else {
-		/*
-		 * exe
-		 */
-		res = bpf_push_empty_param(data);
-		if (res != PPM_SUCCESS)
-			return res;
-
-		/*
-		 * Args
-		 */
-		res = bpf_push_empty_param(data);
-		if (res != PPM_SUCCESS)
-			return res;
 	}
 
 	/*
