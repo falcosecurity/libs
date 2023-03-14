@@ -1,6 +1,6 @@
 name: Driver SCHEMA_VERSION checks
 on:
-  pull_request:
+  pull_request_target:
     paths:
       - 'driver/event_table.c'
 
