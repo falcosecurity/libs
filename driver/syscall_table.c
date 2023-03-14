@@ -223,7 +223,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X, PPM_SC_SENDMSG},
 #endif
 #ifdef __NR_accept4
-	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X, PPM_SC_ACCEPT4},
+	[__NR_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_6_E, PPME_SOCKET_ACCEPT4_6_X, PPM_SC_ACCEPT4},
 #endif
 #ifdef __NR_sendmmsg
 	[__NR_sendmmsg - SYSCALL_TABLE_ID0] =                   {UF_USED, PPME_SOCKET_SENDMMSG_E, PPME_SOCKET_SENDMMSG_X, PPM_SC_SENDMMSG},
@@ -1036,7 +1036,7 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32_setsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED | UF_ALWAYS_DROP, PPME_SOCKET_SETSOCKOPT_E, PPME_SOCKET_SETSOCKOPT_X, PPM_SC_SETSOCKOPT},
 	[__NR_ia32_getsockopt - SYSCALL_TABLE_ID0] =                 {UF_USED, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X, PPM_SC_GETSOCKOPT},
 	[__NR_ia32_sendmsg - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_SENDMSG_E, PPME_SOCKET_SENDMSG_X, PPM_SC_SENDMSG},
-	[__NR_ia32_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_5_E, PPME_SOCKET_ACCEPT4_5_X, PPM_SC_ACCEPT4},
+	[__NR_ia32_accept4 - SYSCALL_TABLE_ID0] =                    {UF_USED, PPME_SOCKET_ACCEPT4_6_E, PPME_SOCKET_ACCEPT4_6_X, PPM_SC_ACCEPT4},
 #else
 	[__NR_ia32_socketcall - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SOCKETCALL},
 #endif

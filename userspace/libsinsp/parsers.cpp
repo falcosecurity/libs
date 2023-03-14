@@ -362,6 +362,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
 	case PPME_SOCKET_ACCEPT4_5_X:
+	case PPME_SOCKET_ACCEPT4_6_X:
 		parse_accept_exit(evt);
 		break;
 	case PPME_SYSCALL_CLOSE_E:
