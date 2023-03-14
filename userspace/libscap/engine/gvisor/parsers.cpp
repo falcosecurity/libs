@@ -759,7 +759,7 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 			return ret;
 		}
 
-		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_5_X : PPME_SOCKET_ACCEPT_5_X;
+		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_6_X : PPME_SOCKET_ACCEPT_5_X;
 
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 5,
 			gvisor_evt.fd(),
@@ -768,7 +768,7 @@ static parse_result parse_accept(const char *proto, size_t proto_size, scap_size
 	}
 	else
 	{
-		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_5_E : PPME_SOCKET_ACCEPT_5_E;
+		type = gvisor_evt.sysno() == SYS_accept4 ? PPME_SOCKET_ACCEPT4_6_E : PPME_SOCKET_ACCEPT_5_E;
 
 		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, type, 0);
 	}

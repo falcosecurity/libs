@@ -96,8 +96,6 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SOCKET_SOCKETPAIR_X] = "socketpair_x",
 	[PPME_SOCKET_ACCEPT_5_E] = "accept_e",
 	[PPME_SOCKET_ACCEPT_5_X] = "accept_x",
-	[PPME_SOCKET_ACCEPT4_5_E] = "accept4_e",
-	[PPME_SOCKET_ACCEPT4_5_X] = "accept4_x",
 	[PPME_SOCKET_BIND_E] = "bind_e",
 	[PPME_SOCKET_BIND_X] = "bind_x",
 	[PPME_SOCKET_LISTEN_E] = "listen_e",
@@ -281,6 +279,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_NANOSLEEP_X] = "nanosleep_x",
 	[PPME_SYSCALL_UMOUNT_1_E] = "umount_e",
 	[PPME_SYSCALL_UMOUNT_1_X] = "umount_x",
+	[PPME_SOCKET_ACCEPT4_6_E] = "accept4_e",
+	[PPME_SOCKET_ACCEPT4_6_X] = "accept4_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

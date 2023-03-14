@@ -194,6 +194,7 @@ bool sinsp_filter_check_fd::extract_fdname_from_creator(sinsp_evt *evt, OUT uint
 	case PPME_SOCKET_ACCEPT_5_X:
 	case PPME_SOCKET_ACCEPT4_X:
 	case PPME_SOCKET_ACCEPT4_5_X:
+	case PPME_SOCKET_ACCEPT4_6_X:
 	case PPME_SYSCALL_CREAT_X:
 		{
 			const char* argstr = evt->get_param_as_str(1, &resolved_argstr,
@@ -422,6 +423,7 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 		case PPME_SOCKET_ACCEPT_5_E:
 		case PPME_SOCKET_ACCEPT4_E:
 		case PPME_SOCKET_ACCEPT4_5_E:
+		case PPME_SOCKET_ACCEPT4_6_E:
                 	//
                 	// Note, this is not accurate, because it always
                 	// returns IPv4 even if this could be IPv6 or unix.
@@ -4778,6 +4780,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
 					etype == PPME_SOCKET_ACCEPT4_5_X ||
+				        etype == PPME_SOCKET_ACCEPT4_6_X ||
 					etype == PPME_SOCKET_CONNECT_X)
 				{
 					return extract_error_count(evt, len);
@@ -4829,6 +4832,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					etype == PPME_SOCKET_ACCEPT_5_X ||
 					etype == PPME_SOCKET_ACCEPT4_X ||
 					etype == PPME_SOCKET_ACCEPT4_5_X ||
+				        etype == PPME_SOCKET_ACCEPT4_6_X ||
 					etype == PPME_SOCKET_CONNECT_X ||
 					evt->get_category() == EC_MEMORY))
 				{

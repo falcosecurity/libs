@@ -1420,7 +1420,7 @@ static ppm_event_code parse_socketcall(struct event_filler_arguments *filler_arg
 		return PPME_SOCKET_RECVMMSG_E;
 #endif
 	case SYS_ACCEPT4:
-		return PPME_SOCKET_ACCEPT4_5_E;
+		return PPME_SOCKET_ACCEPT4_6_E;
 	default:
 		ASSERT(false);
 		return PPME_GENERIC_E;

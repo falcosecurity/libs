@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -21,7 +21,7 @@ int BPF_PROG(accept4_e,
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_ACCEPT4_5_E);
+	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_ACCEPT4_6_E);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -53,7 +53,7 @@ int BPF_PROG(accept4_x,
 		return 0;
 	}
 
-	auxmap__preload_event_header(auxmap, PPME_SOCKET_ACCEPT4_5_X);
+	auxmap__preload_event_header(auxmap, PPME_SOCKET_ACCEPT4_6_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

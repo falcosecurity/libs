@@ -260,8 +260,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_CPU_HOTPLUG_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
 	[PPME_SOCKET_ACCEPT_5_E] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 0},
 	[PPME_SOCKET_ACCEPT_5_X] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA}, {"queuepct", PT_UINT8, PF_DEC}, {"queuelen", PT_UINT32, PF_DEC}, {"queuemax", PT_UINT32, PF_DEC} } },
-	[PPME_SOCKET_ACCEPT4_5_E] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"flags", PT_INT32, PF_HEX} } },
-	[PPME_SOCKET_ACCEPT4_5_X] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA}, {"queuepct", PT_UINT8, PF_DEC}, {"queuelen", PT_UINT32, PF_DEC}, {"queuemax", PT_UINT32, PF_DEC} } },
+	[PPME_SOCKET_ACCEPT4_5_E] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 1, {{"flags", PT_INT32, PF_HEX} } },
+	[PPME_SOCKET_ACCEPT4_5_X] = {"accept", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE | EF_OLD_VERSION, 5, {{"fd", PT_FD, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA}, {"queuepct", PT_UINT8, PF_DEC}, {"queuelen", PT_UINT32, PF_DEC}, {"queuemax", PT_UINT32, PF_DEC} } },
 	[PPME_SYSCALL_SEMOP_E] = {"semop", EC_PROCESS | EC_SYSCALL, EF_NONE, 1, {{"semid", PT_INT32, PF_DEC} } },
 	[PPME_SYSCALL_SEMOP_X] = {"semop", EC_PROCESS | EC_SYSCALL, EF_NONE, 8, {{"res", PT_ERRNO, PF_DEC}, {"nsops", PT_UINT32, PF_DEC}, {"sem_num_0", PT_UINT16, PF_DEC}, {"sem_op_0", PT_INT16, PF_DEC}, {"sem_flg_0", PT_FLAGS16, PF_HEX, semop_flags}, {"sem_num_1", PT_UINT16, PF_DEC}, {"sem_op_1", PT_INT16, PF_DEC}, {"sem_flg_1", PT_FLAGS16, PF_HEX, semop_flags} } },
 	[PPME_SYSCALL_SEMCTL_E] = {"semctl", EC_PROCESS | EC_SYSCALL, EF_NONE, 4, {{"semid", PT_INT32, PF_DEC}, {"semnum", PT_INT32, PF_DEC}, {"cmd", PT_FLAGS16, PF_HEX, semctl_commands}, {"val", PT_INT32, PF_DEC} } },
@@ -400,6 +400,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_FCHOWNAT_X] = {"fchownat", EC_FILE | EC_SYSCALL, EF_NONE, 6, {{"res", PT_ERRNO, PF_DEC}, {"dirfd", PT_FD, PF_DEC}, {"pathname", PT_FSRELPATH, PF_NA, DIRFD_PARAM(1)}, {"uid", PT_UINT32, PF_DEC}, {"gid", PT_UINT32, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX, fchownat_flags}} },
 	[PPME_SYSCALL_UMOUNT_1_E] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 0},
 	[PPME_SYSCALL_UMOUNT_1_X] = {"umount", EC_FILE | EC_SYSCALL, EF_MODIFIES_STATE, 2, {{"res", PT_ERRNO, PF_DEC}, {"name", PT_FSPATH, PF_NA} } },
+	[PPME_SOCKET_ACCEPT4_6_E] = {"accept4", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 1, {{"flags", PT_INT32, PF_HEX} } },
+	[PPME_SOCKET_ACCEPT4_6_X] = {"accept4", EC_NET | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 5, {{"fd", PT_FD, PF_DEC}, {"tuple", PT_SOCKTUPLE, PF_NA}, {"queuepct", PT_UINT8, PF_DEC}, {"queuelen", PT_UINT32, PF_DEC}, {"queuemax", PT_UINT32, PF_DEC} } },
 
 	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
 	 *     New event types are allowed only for new syscalls or new internal events.
