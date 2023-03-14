@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <cstdlib>
 #include <iostream>
+#include <chrono>
 #ifndef _WIN32
 #include <getopt.h>
 #endif // _WIN32
@@ -55,6 +56,7 @@ string file_path = "";
 string bpf_path = "";
 string output_fields_json = "";
 unsigned long buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM;
+static uint64_t max_events = UINT64_MAX;
 
 sinsp_evt* get_event(sinsp& inspector);
 
@@ -81,13 +83,14 @@ Options:
   -f <filter>, --filter <filter>             Filter string for events (see https://falco.org/docs/rules/supported-fields/ for supported fields).
   -j, --json                                 Use JSON as the output format.
   -a, --all-threads                          Output information about all threads, not just the main one.
-  -b <path>, --bpf <path>               	 BPF probe.
-  -m, --modern_bpf               			 modern BPF probe.
-  -k, --kmod								 Kernel module
-  -s <path>, --scap_file <path>   			 Scap file
+  -b <path>, --bpf <path>                    BPF probe.
+  -m, --modern_bpf               	     modern BPF probe.
+  -k, --kmod				     Kernel module
+  -s <path>, --scap_file <path>   	     Scap file
   -d <dim>, --buffer_dim <dim>               Dimension in bytes that every per-CPU buffer will have.
-  -o <fields>, --output-fields-json <fields>    [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
+  -o <fields>, --output-fields-json <fields> [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
+  -n, --num-events                           Number of events to be retrieved (no limit by default)
 )";
 	cout << usage << endl;
 }
@@ -108,12 +111,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"buffer_dim", required_argument, 0, 'd'},
 		{"output-fields-json", required_argument, 0, 'o'},
 		{"exclude-users", no_argument, 0, 'E'},
+		{"num-events", required_argument, 0, 'n'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:E",
+				"hf:jab:mks:d:o:En:",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -154,6 +158,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 			break;
 		case 'E':
 			inspector.set_import_users(false);
+			break;
+		case 'n':
+			max_events = std::atol(optarg);
 			break;
 		default:
 			break;
@@ -323,11 +330,26 @@ int main(int argc, char** argv)
 	std::cout << "-- Start capture" << std::endl;
 
 	inspector.start_capture();
-	while(!g_interrupted)
+
+	std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+	uint64_t num_events = 0;
+	while(!g_interrupted && num_events < max_events)
 	{
 		dump(inspector);
+		num_events++;
 	}
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count();
+
 	inspector.stop_capture();
+
+	std::cout << "-- Stop capture" << std::endl;
+	std::cout << "Retrieved events: " << std::to_string(num_events) << std::endl;
+	std::cout << "Time spent: " << duration << "ms" << std::endl;
+	if (duration > 0)
+	{
+		std::cout << "Events/ms: " << num_events / (long double)duration << std::endl;
+	}
 
 	// Cleanup JSON formatters
 	delete default_formatter;
