@@ -365,8 +365,9 @@ TEST_F(sinsp_with_test_input, bitmaskparams)
 	sinsp_evt* evt = NULL;
 	sinsp_evt_param* param = NULL;
 
+	int64_t dirfd = 0;
 	/* `PPME_SYSCALL_OPENAT_E` is a simple event that uses a PT_FLAGS32 (param 3) */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_E, 4, 0, "/tmp/foo", PPM_O_RDONLY|PPM_O_CLOEXEC, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPENAT_E, 4, dirfd, "/tmp/foo", PPM_O_RDONLY|PPM_O_CLOEXEC, 0);
 
 	param = evt->get_param(2);
 	ASSERT_EQ(*(uint32_t *)param->m_val, PPM_O_RDONLY|PPM_O_CLOEXEC);
