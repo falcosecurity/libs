@@ -1,8 +1,5 @@
 #include "../../event_class/event_class.h"
 
-#include <unistd.h>
-#include <sys/uio.h>
-
 #ifdef __NR_readv
 
 TEST(SyscallExit, readvX_fail)
@@ -81,9 +78,9 @@ TEST(SyscallExit, readvX_success)
 
 	assert_syscall_state(SYSCALL_SUCCESS, "readv", syscall(__NR_readv, pipefds[0], iov, iovcnt), EQUAL, strlen(test_string) + 1);
 
-	for(int  i = 0; i < iovcnt; i++)
+	for(int i = 0; i < iovcnt; i++)
 	{
-		delete (char *)iov[i].iov_base;
+		delete(char *)iov[i].iov_base;
 	}
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
