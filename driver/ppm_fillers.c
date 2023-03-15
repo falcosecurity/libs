@@ -3970,23 +3970,16 @@ int f_sys_writev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-#ifdef CONFIG_COMPAT
-	const struct compat_iovec __user *compat_iov;
-#endif
-	const struct iovec __user *iov;
+	s32 fd = 0;
 	unsigned long iovcnt;
 
-	/*
-	 * fd
-	 */
+	/* Parameter 1: fd (type: PT_FD) */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
-	/*
-	 * size
-	 */
+	/* Parameter 2: size (type: PT_UINT32) */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
 
 	/*
@@ -3995,20 +3988,27 @@ int f_sys_writev_e(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt,
 											args->consumer->snaplen,
 											PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	} else
 #endif
 	{
-		iov = (const struct iovec __user *)val;
+		const struct iovec __user *iov = (const struct iovec __user *)val;
 		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen,
 									  PRB_FLAG_PUSH_SIZE | PRB_FLAG_IS_WRITE);
 	}
 
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	/* if there was an error we send a size equal to `0`.
+	 * we can improve this in the future but at least we don't lose the whole event.
+	 */
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		res = val_to_ring(args, 0, 0, true, 0);
+	}
+
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
@@ -4018,10 +4018,6 @@ int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int res;
 	int64_t retval;
-#ifdef CONFIG_COMPAT
-	const struct compat_iovec __user *compat_iov;
-#endif
-	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
 	/*
@@ -4044,16 +4040,24 @@ int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (unlikely(args->compat)) {
-		compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 		res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	} else
 #endif
 	{
-		iov = (const struct iovec __user *)val;
+		const struct iovec __user *iov = (const struct iovec __user *)val;
 		res = parse_readv_writev_bufs(args, iov, iovcnt, args->consumer->snaplen, PRB_FLAG_PUSH_DATA | PRB_FLAG_IS_WRITE);
 	}
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+
+	/* if there was an error we send an empty param.
+	 * we can improve this in the future but at least we don't lose the whole event.
+	 */
+	if(res == PPM_FAILURE_INVALID_USER_MEMORY)
+	{
+		res = push_empty_param(args);
+	}
+
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
