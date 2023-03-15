@@ -29,10 +29,6 @@ limitations under the License.
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 
-#define REQUIRED_MAJOR 5
-#define REQUIRED_MINOR 8
-#define REQUIRED_PATCH 0
-
 /*=============================== UTILS ===============================*/
 
 /// TODO: in the next future, from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
@@ -46,47 +42,12 @@ static int32_t populate_64bit_interesting_syscalls_table()
 	return ret;
 }
 
-static int32_t check_minimum_kernel_version(char* last_err)
+/*
+* Verify prerequisites for modern probes are met.
+*/
+static int32_t check_modern_probe_support(char* last_err)
 {
-	uint32_t major = 0;
-	uint32_t minor = 0;
-	uint32_t patch = 0;
-
-	struct utsname info;
-	if(uname(&info) != 0)
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to get the kernel version with uname: %s", strerror(errno));
-		}
-		return SCAP_FAILURE;
-	}
-
-	if(sscanf(info.release, "%u.%u.%u", &major, &minor, &patch) != 3)
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "unable to parse info.release '%s'. %s", info.release, strerror(errno));
-		}
-		return SCAP_FAILURE;
-	}
-
-	if(major > REQUIRED_MAJOR)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	if(major == REQUIRED_MAJOR && minor > REQUIRED_MINOR)
-	{
-		return SCAP_SUCCESS;
-	}
-
-	if(major == REQUIRED_MAJOR && minor == REQUIRED_MINOR && patch >= REQUIRED_PATCH)
-	{
-		return SCAP_SUCCESS;
-	}
-	snprintf(last_err, SCAP_LASTERR_SIZE, "Actual kernel version is: '%d.%d.%d' while the minimum required is: '%d.%d.%d'\n", major, minor, patch, REQUIRED_MAJOR, REQUIRED_MINOR, REQUIRED_PATCH);
-	return SCAP_FAILURE;
+	return pman_check_support() ? SCAP_SUCCESS : SCAP_FAILURE;
 }
 
 /*=============================== UTILS ===============================*/
@@ -216,7 +177,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	int ret = 0;
 	struct scap_engine_handle engine = handle->m_engine;
 	struct scap_modern_bpf_engine_params* params = oargs->engine_params;
-	bool libbpf_verbosity = false;
 
 	pman_clear_state();
 
@@ -231,7 +191,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return SCAP_FAILURE;
 	}
 
-	if(check_minimum_kernel_version(handle->m_lasterr) != SCAP_SUCCESS)
+	if(check_modern_probe_support(handle->m_lasterr) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
@@ -240,7 +200,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	 * Validation of `cpus_for_each_buffer` is made inside libpman
 	 * since this is the unique place where we have the number of CPUs
 	 */
-	if(pman_init_state(libbpf_verbosity, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
+	if(pman_init_state(params->verbose, params->buffer_bytes_dim, params->cpus_for_each_buffer, params->allocate_online_only))
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "unable to configure the libpman state.");
 		return SCAP_FAILURE;
