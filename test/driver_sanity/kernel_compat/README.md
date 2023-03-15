@@ -11,7 +11,7 @@ Status: **Under development, experimental**
 
 ### System Requirements (Host OS)
 
-It is recommended to follow instructions in the official docs to install all dependencies as well as run official smoke-tests for each. See [Support Matrix](#support-matrix) for supported host and guest OS / VM specs.
+Highly recommended to follow installation instructions in the official docs as well as run official smoke-tests for each dependency. See [Support Matrix](#support-matrix) for supported host and guest OS / VM specs.
 
 - [Docker](https://www.docker.com/products/docker-desktop/) >= 20.10.9
 	- Configure docker to run as non-root
@@ -23,34 +23,53 @@ It is recommended to follow instructions in the official docs to install all dep
 
 ### CMake Targets
 
-Targets `driver-sanity-init` and `driver-sanity-tests` require the `CREATE_TEST_TARGETS` option to be set. These test suites integrate with the broader project's CMake setup. However, in a way they are completely separate. For example, the primary driver-sanity build output folder resides in the libs src directory under `libs/test/driver-sanity/kernel_compat/build` in order to take advantage of caching even if the `libs/build` folder is re-created. In addition, all `scap-open` and `kmod` or `bpf` driver builds are done from scratch in containers - not using the `libs/build` dir.
+These test suites integrate with the broader project's CMake setup. However, in a way they are completely separate. For example, the primary driver-sanity build output folder resides in the libs src directory under `libs/test/driver-sanity/kernel_compat/build` in order to take advantage of caching even if the `libs/build` folder is re-created. In addition, all `scap-open` and `kmod` or `bpf` driver builds are done from scratch in containers - not using the `libs/build` dir.
 
 More information around each step is provided in later sections of this document.
 
 ```bash
+# cmake
 git clone https://github.com/falcosecurity/libs.git;
 cd libs;
 mkdir -p build;
 cd build;
-cmake -DCREATE_TEST_TARGETS=ON ../;
+cmake -DCREATE_TEST_TARGETS=ON -DENABLE_DRIVER_SANITY_TESTS=ON ../;
 ```
 
 Create containers, download kernel and header packages, extract kernel headers, build vagrant VMs.
 
-
 ```bash
 # Target driver-sanity-init first run can take up to 25 min
 # Re-running only re-builds VMs - can take up to 6 min
+# Use target driver-sanity-cleanup when wanting to start from scratch or delete libs/test/driver-sanity/kernel_compat/build/ manually
+make driver-sanity-init;
+
+# Alternatively run each step separately
+make driver-sanity-container; # about 5 min
+make driver-sanity-kernel; # about 14 min
 make driver-sanity-init;
 ```
 
-Build scap-open and all driver artifacts, run vagrant VM scap-open tests for kmod and bpf, generate results table (.png).
+Build scap-open and each driver artifact for array of compiler versions.
 
 ```bash
-# Target driver-sanity-tests, can take up to 20 min
-# Re-run in case of failure, vagrant VM loop based on re-booting into kernels can be unstable
-make driver-sanity-tests;
-# Results table preserved in both build folders
+# takes about 2 min
+make driver-sanity-compile;
+```
+
+Vagrant VM loop boots into each downloaded kernel within `libs/test/driver-sanity/kernel_compat/build/kernels/` folder and runs `scap-open` for `kmod` and `bpf` if the driver was successfully compiled for the respective compiler version. As a last step a results table (.png) is generated -> blue means driver works. Re-running the loops can increase confidence in results and reduce test flakiness issues (each re-run keeps old passed tests in the `driver-ok` dir). Re-running tests randomizes the order of kernels to be tested in order to be more resilient against failures. When rebooting into a new kernel script always sleeps x seconds.
+
+```bash
+# centos7: should be under 7 min, centos7 loop seems more stable
+make driver-sanity-tests-centos7;
+
+# ubuntu: can take 10-20 min, ubuntu VM kernel change is often flaky -> keep re-running, re-running also randomizes kernel loop order for more resiliency, a trick is to keep re-launching until you get the kernel that is still untested ...
+make driver-sanity-tests-ubuntu;
+# make driver-sanity-init; # would destroy and re-create VMs, can be helpful if ubuntu loop just keeps failing
+
+# Results table preserved in both build folders, will be generated or updated at the end of each test above (centos7 or ubuntu) -> option to re-create results output manually
+# Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982
+make driver-sanity-results;
 ls -l libs/build/test/driver_sanity/kernel_compat/driver_compat_matrix.png;
 ls -l libs/test/driver-sanity/kernel_compat/build/driver_compat_matrix.png;
 ```
@@ -61,6 +80,17 @@ Cleanup. Destroy all VMs, untag containers, delete entire `libs/test/driver-sani
 make driver-sanity-cleanup;
 ```
 
+### How To Customize Tests?
+
+There are a few ways to customize the `driver-sanity` test grid:
+
+- The kernel grid is statically defined in [kernels.txt](kernels.txt). However, subsequently everything is auto-discovered based on downloaded kernel packages. This means changing the URLs in [kernels.txt](kernels.txt) allows you to customize the entire test suite.
+- In addition, kernel packages are downloaded into `libs/test/driver-sanity/kernel_compat/build/kernels/` or `libs/test/driver-sanity/kernel_compat/build/headers/` -> can purge packages to constraint VM loop as vagrant loop script runs `ls` on these folders ...
+- Want different or more compiler versions? Currently supported versions are `gcc-7`, `gcc-8`, `gcc-9`, `gcc-10`, `gcc-11`, `gcc-12`, `gcc-13` (for kmod) and `clang-7`, `clang-8`, `clang-9`, `clang-10`, `clang-11`, `clang-12`, `clang-13`, `clang-14`, `clang-15` (for bpf) -> update input args to Go script within `all_driver_sanity_test_compile.sh` script.
+- Recommended to run target `driver-sanity-cleanup` or performing parts of the cleanups manually when changing a lot of setups.
+- More options and robustness may be added in the future. At the moment changing scripts slightly can result in breaking tests.
+
+
 ## Support Matrix
 
 Current virtualization framework of choice is [VirtualBox](https://www.virtualbox.org/wiki/) + [vagrant virtualbox](https://www.vagrantup.com/docs/providers/virtualbox) which at the time of writing does not support emulation. Possible alternative framework [libvirt](https://libvirt.org/) + [vagrant libvirt](https://github.com/vagrant-libvirt/vagrant-libvirt) appears less stable at the moment. In the future, emulation support is planned, likely native [qemu](https://www.qemu.org/) VMs. Options that require a license e.g. `parallels` or `vmware` are not considered at the moment.
@@ -69,17 +99,18 @@ Current virtualization framework of choice is [VirtualBox](https://www.virtualbo
 |     Host OS Spec            |     Guest OS / VM Spec   |   Emulated Guest OS / VM Spec   |
 |-----------------------------|--------------------------|---------------------------------|
 |   ✔  Linux (x86_64)         |     ✔  Linux (x86_64)    |   ❌ Linux (arm64)              |
-|   ✔  MacOS (x86_64)         |     ✔  Linux (x86_64)    |   ❌ Linux (arm64)              |
+|   ✔  macOS (x86_64)         |     ✔  Linux (x86_64)    |   ❌ Linux (arm64)              |
 |   ❌ Windows (x86_64)       |     ❌ Linux (x86_64)    |   ❌ Linux (arm64)              |
 |   ❌ Linux (arm64)          |     ❌ Linux (arm64)     |   ❌ Linux (x86_64)             |
-|   ❌ MacOS (Apple Silicon)  |     ❌ Linux (arm64)     |   ❌ Linux (x86_64)             |
+|   ❌ macOS (Apple Silicon)  |     ❌ Linux (arm64)     |   ❌ Linux (x86_64)             |
 
 
 Driver Sanity Test Suites tested on:
 
 - Linux fedora36 - Intel x86_64  
 - Linux ubuntu 22.04 - Intel x86_64  
-- MacOS (latest) - Intel x86_64
+- macOS (latest) - Intel x86_64
+- Note: For macOS on Apple Silicon, Falco published a [blog post](https://falco.org/blog/falco-apple-silicon/), this test framework however does not yet support Apple Silicon.
 
 
 ## Motivation
@@ -101,10 +132,11 @@ Finally, this project also serves as guide for new developers joining the projec
 - Disentangle cmake and GLIBC versions dependencies as well.
 - Useful scripts for building drivers for custom kernels that are not supported in [driverkit](https://github.com/falcosecurity/driverkit).
 - Self-serve project everyone can use and modify on localhost.
+- Entire `scap-open` terminal output is printed to the terminal during the VM test loops -> developer can manually scroll through the entire history and inspect issues such as eBPF verifier issues.
 
 *Tool Maintainer's Perspective*
 
-- Run sanity checks to spot possible regressions and issues early on for significant kernel driver changes or new kernels.
+- Run sanity checks to spot possible regressions and issues early on beyond currently supported CI checks for significant kernel driver changes or new kernels.
 - Have a resource that can be shared with end users who run into issues when building drivers from source.
 - Scripted VMs and setup to collectively debug, disentangling differences in developer's machine settings.
 
@@ -114,7 +146,7 @@ Finally, this project also serves as guide for new developers joining the projec
 - As is not intended for CI.
 - Kernel grid in this project does not reflect officially supported driver builds or kernel versions.
 
-## Don'ts
+*Don'ts*
 
 - Do not try to install more than 9-10 kernels at a time in a VM.
 - If one compiled driver artifact didn't work for one kernel no need to over interpret results. Alarming are only larger consistent gaps in the results table. This is because compilers in general and the eBPF verifier are not perfect and the vagrant VM looping approach can also be unstable.
@@ -122,59 +154,20 @@ Finally, this project also serves as guide for new developers joining the projec
 
 ## More Detailed Explanations of Steps
 
-*Steps 1-4*:
-
-Create containers, download kernel and header packages, extract kernel headers, build vagrant VMs.
-
-
-```bash
-# Target driver-sanity-init first run can take up to 25 min
-# Re-running only re-builds VMs - can take up to 6 min
-make driver-sanity-init;
-```
-
-
-*Steps 5-7*:
-
-Build scap-open and all driver artifacts, run vagrant VM scap-open tests for kmod and bpf, generate results table (.png).
-
-```bash
-# Target driver-sanity-tests, can take up to 20 min
-# Re-run in case of failure, vagrant VM loop based on re-booting into kernels can be unstable
-make driver-sanity-tests;
-# Results table preserved in both build folders
-ls -l libs/build/test/driver_sanity/kernel_compat/driver_compat_matrix.png;
-ls -l libs/test/driver-sanity/kernel_compat/build/driver_compat_matrix.png;
-```
 
 ### Step 1 - Build Containers
 
-> Done as part of `driver-sanity-init` target.
+> Target `driver-sanity-container`. Done as part of `driver-sanity-init` target.
 
-Build all containers.
+Builds all containers. For building userspace binary we pull the officially supported falco-builder container, else we build custom ubuntu containers. The following compiler versions are supported:
 
-Info about versions:
+- `gcc-7`, `gcc-8`, `gcc-9`, `gcc-10`, `gcc-11`, `gcc-12`, `gcc-13`
+- `clang-7`, `clang-8`, `clang-9`, `clang-10`, `clang-11`, `clang-12`, `clang-13`, `clang-14`, `clang-15`
 
-```bash
-UBUNTU_CONTAINER1="driver-sanity1:ubuntu20.04";
-	# cmake version 3.22.1
-	# GLIBC 2.35 # ldd --version
-	RUN apt-get install -y llvm-11 clang-11 gcc-11
-	RUN apt-get install -y llvm-12 clang-12 gcc-12
-	RUN apt-get install -y llvm-13 clang-13
-	RUN apt-get install -y llvm-14 clang-14
-UBUNTU_CONTAINER2="driver-sanity2:ubuntu22.04";
-	# cmake version 3.16.3
-	# GLIBC 2.31
-	RUN apt-get install -y llvm-7 clang-7 gcc-7
-	RUN apt-get install -y llvm-8 clang-8 gcc-8
-	RUN apt-get install -y llvm-9 clang-9 gcc-9
-	RUN apt-get install -y llvm-10 clang-10 gcc-10
-```
 
 ### Step 2 - Download Kernel Sources
 
-> Done as part of `driver-sanity-init` target.
+> Target `driver-sanity-kernel`. Done as part of `driver-sanity-init` target.
 
 All relevant `.deb` or `.rpm` packages are downloaded into the following folders.
 
@@ -186,7 +179,7 @@ libs/test/driver-sanity/kernel_compat/build/headers/ # kernel headers needed to 
 
 ### Step 3 - Extract Kernel Headers
 
-> Done as part of `driver-sanity-init` target.
+> Target `driver-sanity-kernel`. Done as part of `driver-sanity-init` target.
 
 Extract kernel headers for each kernel into a new sub directory. Extracted kernel headers are only needed for bpf and kmod. They won't be needed for modern_bpf.
 
@@ -223,11 +216,11 @@ Init VMs while pre-installing all kernels. `ubuntu` and `centos7` are are a good
 
 ### Step 5 - Build `scap-open` and `driver` Artifacts (Big Loop)
 
-> Done as part of `driver-sanity-tests` target
+> Done as part of `driver-sanity-compile` target.
 
-Package up current libs source code (`libs/test/driver-sanity/kernel_compat/build/libs-src.tar.gz` file). `libs-src.tar.gz` is passed into containers to build the scap-open binary and all drivers.
+Package up current libs source code (`libs/test/driver-sanity/kernel_compat/build/libs-src.tar.gz` file). `libs-src.tar.gz` is passed into containers to build the scap-open binary and each driver.
 
-Drivers are built over a Go launcher scripts that simultaneously launches multiple build containers for concurrent driver builds in order to build the grid of all compiler and kernel versions in under 1 min.
+Drivers are built over a Go launcher scripts that simultaneously launches multiple build containers for concurrent driver builds in order to build the compiler and kernel versions grid in under 2 min.
 
 Note that `.o` are eBPF object files and `.ko` are the compiled kernel modules. eBPF uses clang/llvm as compiler while the kernel module uses gcc as compiler.
 
@@ -262,7 +255,7 @@ libs/test/driver-sanity/kernel_compat/build/driver/
 
 ### Step 6 - Test Run all Drivers (Big Loop)
 
-> Done as part of `driver-sanity-tests` target
+> Done as part of `driver-sanity-tests-centos7` or `driver-sanity-tests-ubuntu` targets.
 
 Loop over kernels in both `centos7` and `ubuntu` VMs. Re-booting into each kernel while performing strict kernel change verification checks.
 
@@ -284,7 +277,7 @@ Connection to 127.0.0.1 closed by remote host.
 
 
 
-Sleeping ...
+Sleeping for 45 seconds ...
 
 Kernel updated correctly to 5.10.16-1.el7.elrepo.x86_64, proceed with scap-open unit tests
 
@@ -292,7 +285,7 @@ Kernel updated correctly to 5.10.16-1.el7.elrepo.x86_64, proceed with scap-open 
 ```
 
 
-Upon successful kernel change we loop over all drivers for each compiler versions to test run scap-open binary and verify that there were no issues. This means that the driver loaded and served events up to userspace. For kmod we don't unload the kernel module after the unit test and rather force reboot the VM to be resilient against possible buggy kernel modules.
+Upon successful kernel change we loop over each driver and compiler version to test run the `scap-open` binary and perform verifications. Success implies that the driver loaded and served events up to userspace. For kmod we do not unload the kernel module after the unit test and rather force reboot the VM to be resilient against possible buggy kernel modules.
 
 
 ```bash
@@ -321,25 +314,20 @@ Number of dropped events: 0
 
 ### Step 7 - Generate Final Results Table
 
-> Done as part of `driver-sanity-tests` target
+> target `driver-sanity-results`. Done as part of `driver-sanity-tests-centos7` or `driver-sanity-tests-ubuntu` targets as well.
 
 For easy results inspection, results are served as table depicting boolean values. Color blue means that the driver works with this particular compiler version (e.g. in the eBPF case it means the eBPF probe loaded, passed the eBPF verifier and serves events up to userspace - all ok). Note that besides compiler version, GLIBC version in build container can influence results as well. Results are preserved in both build folders.
+
+Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982.
 
 ```bash
 ls -l libs/build/test/driver_sanity/kernel_compat/driver_compat_matrix.png;
 ls -l libs/test/driver-sanity/kernel_compat/build/driver_compat_matrix.png;
 ```
 
-Example results for libs commit 61c133eaebb0e12effdcb5ebec16643bb663cd83 generated on 2022-11-04.
-
-<div style="text-align:center"><img src="example_result_driver_compat_matrix.png" width="800" /></div>
-
-
-
 ## Maintenance Overhead Projection
 
 - Occasionally update [kernels.txt](kernels.txt) kernel test grid.
+- Add new containers to support newest clang/llvm or gcc compilers for building drivers.
 - Update project if either scap-open or driver build setup changes.
 - Add additional tips as issues or problems with building or running Falco drivers come up (re-use this project as troubleshooting guide for both devs and end users).
-- Add new clang/llvm or gcc versions to the containers used for building drivers.
-
