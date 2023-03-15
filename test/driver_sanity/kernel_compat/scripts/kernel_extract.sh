@@ -8,6 +8,8 @@ fi
 HEADERS_RPMS_DIR="${1}";
 HEADERS_EXTRACT_OUT_DIR="${2}";
 
+set -eou pipefail
+
 if [[ ! -d "${HEADERS_EXTRACT_OUT_DIR}" ]]; then
   mkdir -p "${HEADERS_EXTRACT_OUT_DIR}";
   chown -R 1000:1000 "${HEADERS_EXTRACT_OUT_DIR}";

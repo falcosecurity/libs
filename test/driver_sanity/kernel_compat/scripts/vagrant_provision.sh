@@ -3,11 +3,13 @@ set -e
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Usage: sudo bash vagrant_provision.sh"
-  echo "Run as root user"
+  echo "Run as root user in VM"
   exit 1
 fi
 
 UNAME_R=$(uname -r);
+set -eou pipefail
+
 echo "Running vagrant_provision.sh in VM";
 
 if [[ "${UNAME_R}" == *"el7"* ]]; then

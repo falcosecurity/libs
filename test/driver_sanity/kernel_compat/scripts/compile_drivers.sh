@@ -23,6 +23,8 @@ GCC="${3}"; # only needed for kmod
 KMOD="${4}";                    
 BPF="${5}";
 
+set -eou pipefail
+
 LIBS_DIR="/libs";
 mkdir -p "${DRIVER_OUT_DIR}";
 mkdir -p "${LIBS_DIR}/build";
@@ -31,7 +33,7 @@ tar -xvf ${LIBS_TAR_GZ} -C ${LIBS_DIR}/;  # fresh extraction of libs src in cont
 pushd "${LIBS_DIR}/build";
 pwd
 
-cmake -DFALCOSECURITY_LIBS_VERSION="sanity" -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF="${BPF}" -DBUILD_DRIVER="${KMOD}" -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ..
+cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF="${BPF}" -DBUILD_DRIVER="${KMOD}" -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ..
 
 CLANG_VERSION=$(echo ${CLANG} | sed "s/.*\///");
 GCC_VERSION=$(echo ${GCC} | sed "s/.*\///");

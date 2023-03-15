@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -eou pipefail
+
 echo "Building scap-open"
 
 LIBS_DIR="/falco-libs"; # dir mounted in container
@@ -17,8 +19,8 @@ mkdir -p "${LIBS_DIR}/build";
 tar -xvf ${LIBS_TAR_GZ} -C ${LIBS_DIR}/;  # fresh extraction of libs src in container, clean build dir
 
 pushd "${LIBS_DIR}/build";
-cmake -DFALCOSECURITY_LIBS_VERSION="sanity" -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=OFF -DBUILD_DRIVER=OFF -DBUILD_LIBSCAP_GVISOR=OFF ..;
-make scap-open -B;
+cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF=OFF -DBUILD_DRIVER=OFF -DBUILD_LIBSCAP_GVISOR=OFF ..
+make scap-open;
 popd;
 
 cp -f ${LIBS_DIR}/build/libscap/examples/01-open/scap-open /driver-sanity/build/scap-open;

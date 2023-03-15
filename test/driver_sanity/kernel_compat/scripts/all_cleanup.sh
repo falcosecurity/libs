@@ -1,8 +1,6 @@
 
 #!/bin/bash
 
-set -e
-
 if [[ $# -ne 2 ]]; then
 	echo "Usage: all_vm_init.sh BASE_DIR VM_PROVIDER"
   exit 1
@@ -10,6 +8,8 @@ fi
 
 BASE_DIR="${1}";
 VM_PROVIDER="${2}";
+
+set -eou pipefail
 
 echo "Destroy VMs";
 pushd ${BASE_DIR}/vm_provider/${VM_PROVIDER};

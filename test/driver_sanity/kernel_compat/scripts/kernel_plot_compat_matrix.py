@@ -11,7 +11,7 @@ pd.set_option('display.max_rows', None, 'display.max_columns', None)
 
 Example Usage:
 python kernel_plot_compat_matrix.py --driver_artifacts_dir=build/driver-ok --save_png=build/driver_compat_matrix.png \
---title="Falco (clang - bpf) and (gcc - kmod) driver kernel compat matrix"
+--title="Falco (clang -> bpf) and (gcc -> kmod) driver kernel compat matrix"
 
 """
 
