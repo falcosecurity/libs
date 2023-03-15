@@ -88,7 +88,7 @@ int BPF_PROG(recvmsg_x,
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		unsigned long msghdr_pointer = args[1];
-		auxmap__store_msghdr_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
+		auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, bytes_to_read);
 		
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 		u32 socket_fd = (u32)args[0];

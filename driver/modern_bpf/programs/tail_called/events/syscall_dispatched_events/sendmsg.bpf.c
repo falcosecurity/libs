@@ -33,7 +33,7 @@ int BPF_PROG(sendmsg_e,
 
 	/* Parameter 2: size (type: PT_UINT32) */
 	unsigned long msghdr_pointer = args[1];
-	auxmap__store_iovec_size_param(auxmap, msghdr_pointer);
+	auxmap__store_msghdr_size_param(auxmap, msghdr_pointer);
 
 	/* Parameter 3: tuple (type: PT_SOCKTUPLE)*/
 	/* TODO: Here we don't know if this fd is a socket or not,
@@ -99,7 +99,7 @@ int BPF_PROG(sendmsg_x,
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	unsigned long msghdr_pointer = args[1];
-	auxmap__store_msghdr_iovec_data_param(auxmap, msghdr_pointer, bytes_to_read);
+	auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, bytes_to_read);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
