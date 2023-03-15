@@ -214,6 +214,7 @@
 #define LLSEEK_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + sizeof(uint8_t) + 3 * PARAM_LEN 
 #define LLSEEK_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define WRITE_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
+#define WRITEV_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define GETRESGID_E_SIZE HEADER_LEN
 #define GETRESGID_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
 #define BRK_E_SIZE HEADER_LEN + sizeof(uint64_t) + PARAM_LEN

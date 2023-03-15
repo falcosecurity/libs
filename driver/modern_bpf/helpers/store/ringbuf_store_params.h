@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Falco Authors.
+ * Copyright (C) 2023 The Falco Authors.
  *
  * This file is dual licensed under either the MIT or GPL 2. See MIT.txt
  * or GPL2.txt for full copies of the license.
@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <helpers/base/shared_size.h>
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
 
@@ -277,4 +278,51 @@ static __always_inline void ringbuf__store_u32(struct ringbuf_struct *ringbuf, u
 static __always_inline void ringbuf__store_u64(struct ringbuf_struct *ringbuf, u64 param)
 {
 	PUSH_FIXED_SIZE_TO_RINGBUF(ringbuf, param, sizeof(u64));
+}
+
+/**
+ * @brief Store the size of a message extracted from an `iovec` struct array.
+ *
+ * @param auxmap pointer to the ringbuf in which we are storing the param.
+ * @param iov_pointer pointer to `iovec` struct array.
+ * @param iov_cnt number of `iovec` structs to be read from userspace.
+ */
+static __always_inline void ringbuf__store_iovec_size_param(struct ringbuf_struct *ringbuf, unsigned long iov_pointer, unsigned long iov_cnt)
+{
+	/* The idea here is to use the auxmap of this CPU as a scratch space
+	 * and normally use the ringbuf to send data to userspace. Note that
+	 * we are running on this CPU so nobody else can use the auxmap in the meanwhile.
+	 * Here we don't have to use the second half of the map, we can use all the space
+	 * we want since we will never use the map to send data to userspace!
+	 */
+
+	struct auxiliary_map *auxmap = maps__get_auxiliary_map();
+	if(!auxmap)
+	{
+		ringbuf__store_u32(ringbuf, 0);
+		return;
+	}
+
+	u32 total_iovec_size = iov_cnt * bpf_core_type_size(struct iovec);
+	if(bpf_probe_read_user((void *)&auxmap->data[0],
+			       SAFE_ACCESS(total_iovec_size),
+			       (void *)iov_pointer))
+	{
+		ringbuf__store_u32(ringbuf, 0);
+		return;
+	}
+
+	u32 total_size_to_read = 0;
+
+	/* Pointer to iovec structs */
+	const struct iovec *iovec = (const struct iovec *)&auxmap->data[0];
+	for(int j = 0; j < MAX_IOVCNT; j++)
+	{
+		if(j == iov_cnt)
+		{
+			break;
+		}
+		total_size_to_read += iovec[j].iov_len;
+	}
+	ringbuf__store_u32(ringbuf, total_size_to_read);
 }
