@@ -1,13 +1,17 @@
 #!/bin/bash
 
-if [[ $# -ne 3 ]]; then
+if [[ $# -ne 3 || "${EUID}" -eq 0 ]]; then
 	echo "Usage: bash vagrant_loop.sh BASE_DIR VM_PROVIDER VM_NAME"
+  echo "Run as non-root user outside of VM"
   exit 1
 fi
 
 BASE_DIR="${1}";
 VM_PROVIDER="${2}";
 VM_NAME="${3}";
+
+# note: script needs to continue on failures by design
+# script invokes vagrant_scap-open_test.sh and vagrant_change_kernel.sh within VM while looping and rebooting into kernels
 
 pushd ${BASE_DIR}/vm_provider/${VM_PROVIDER};
 
@@ -20,7 +24,8 @@ if [[ ${VM_NAME} == *"ubuntu"* ]]; then
     KERNEL_FILTER="generic";
 fi
 
-KERNELS=$( ls ${KERNEL_DIR} | grep -e ${KERNEL_FILTER} | grep -v "linux-modules" );
+# randomize order of loop, to help with flakiness when re-running tests
+KERNELS=$( ls ${KERNEL_DIR} | grep -e ${KERNEL_FILTER} | grep -v "linux-modules" | shuf );
 ${SCP_BASE_COMMAND} ../../build/driver localhost:/home/vagrant/driver;
 ${SCP_BASE_COMMAND} ../../build/kernels localhost:/home/vagrant/kernels;
 ${SCP_BASE_COMMAND} ../../build/scap-open localhost:/home/vagrant/scap-open;
@@ -42,9 +47,7 @@ function unit_test()
   versions="../../build/driver/*";
   for compiler_version in $versions
   do
-    if [[ ! -f "../../build/driver/${compiler_version}/${kernel_uname_r}.o" && ${compiler_version} == *"clang"* ]]; then
-      continue
-    elif [[ ! -f "../../build/driver/${compiler_version}/${kernel_uname_r}.ko" && ${compiler_version} == *"gcc"* ]]; then
+    if [[ ( ! -f "../../build/driver/${compiler_version}/${kernel_uname_r}.o" && ${compiler_version} == *"clang"* ) || ( ! -f "../../build/driver/${compiler_version}/${kernel_uname_r}.ko" && ${compiler_version} == *"gcc"* ) ]]; then
       continue
     fi
     compiler_version=$(basename $compiler_version);
@@ -78,8 +81,8 @@ do
   ${SCP_BASE_COMMAND} ../../build/vagrant_change_kernel.sh localhost:/home/vagrant/vagrant_change_kernel.sh;
   ${SSH_BASE_COMMAND} "sudo bash /home/vagrant/vagrant_change_kernel.sh";
 
-  printf "\n\n\n\nSleeping ...\n\n\n\n";
-  sleep 40;
+  printf "\n\n\n\nSleeping for 45 seconds ...\n\n\n\n";
+  sleep 45;
   new_kernel=$(${SSH_BASE_COMMAND} "uname -r");
   new_kernel=$(echo ${new_kernel} | sed $'s/[^[:print:]\t]//g');
   verify_kernel_change_success ${next_uname_r} ${new_kernel};

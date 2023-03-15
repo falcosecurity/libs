@@ -18,6 +18,7 @@ var (
 	sem               = semaphore.NewWeighted(int64(maxWorkers))
 	ubuntu_container1 = "driver-sanity1:ubuntu20.04"
 	ubuntu_container2 = "driver-sanity2:ubuntu22.04"
+	ubuntu_container3 = "driver-sanity3:ubuntu23.04"
 )
 
 func dockerRunCompileDriver(ctx context.Context, ver [2]string, headers string, dir string) {
@@ -31,11 +32,15 @@ func dockerRunCompileDriver(ctx context.Context, ver [2]string, headers string, 
 	if verNumeric >= 10 {
 		dockerImage = ubuntu_container2
 	}
-	shArgs := []string{"-c", fmt.Sprintf("docker run -v %s:/driver-sanity:z -v %s:/headers:z %s \"/bin/bash /driver-sanity/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d OFF ON\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
-	if compilerType == "gcc" {
-		dockerImage = ubuntu_container1
-		if verNumeric >= 10 {
-			dockerImage = ubuntu_container2
+	shArgs := []string{""}
+	if compilerType == "clang" {
+		if verNumeric >= 15 {
+			dockerImage = ubuntu_container3
+		}
+		shArgs = []string{"-c", fmt.Sprintf("docker run -v %s:/driver-sanity:z -v %s:/headers:z %s \"/bin/bash /driver-sanity/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d OFF ON\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
+	} else if compilerType == "gcc" {
+		if verNumeric >= 13 {
+			dockerImage = ubuntu_container3
 		}
 		shArgs = []string{"-c", fmt.Sprintf("docker run -v %s:/driver-sanity:z -v %s:/headers:z %s \"/bin/bash /driver-sanity/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d ON OFF\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
 	}
@@ -85,9 +90,10 @@ func semLaunchCompileDriver(compilerVersionsClang string, compilerVersionsGcc st
 func main() {
 
 	// This script is only relevant for kmod and bpf (old eBPF) not modern_bpf
-	// GO111MODULE=off bash -c 'go get golang.org/x/sync/semaphore; go run scripts/main.go -compilerVersionsClang=7,9,12,14 -compilerVersionsGcc=8,9,11,12 -dirExtractedKernelHeaders=$(pwd)/build/headers_extracted/ -dir=$(pwd)'
-	compilerVersionsClang := flag.String("compilerVersionsClang", "7,9,12,14", `comma separated list of compiler versions for /usr/bin/clang-<version>, fails gracefully if compiler does not exist`)
-	compilerVersionsGcc := flag.String("compilerVersionsGcc", "8,9,11,12", `comma separated list of compiler versions for /usr/bin/gcc-<version>, fails gracefully if compiler does not exist`)
+	// GO111MODULE=off bash -c 'go get golang.org/x/sync/semaphore; go run scripts/main.go -compilerVersionsClang=7,12,14,15 -compilerVersionsGcc=8,9,11,13 -dirExtractedKernelHeaders=$(pwd)/build/headers_extracted/ -dir=$(pwd)'
+	// TODO consider better compilerVersion <-> container compatibility and eligibility checks
+	compilerVersionsClang := flag.String("compilerVersionsClang", "7,12,14,15", `comma separated list of compiler versions for /usr/bin/clang-<version>, fails gracefully if compiler does not exist`)
+	compilerVersionsGcc := flag.String("compilerVersionsGcc", "8,9,11,13", `comma separated list of compiler versions for /usr/bin/gcc-<version>, fails gracefully if compiler does not exist`)
 	dirExtractedKernelHeaders := flag.String("dirExtractedKernelHeaders", "build/headers_extracted/", `path to dir containing extracted kernel headers sub dirs`)
 	dir := flag.String("dir", "", `path to dir driver-sanity/kernel_compat base directory`)
 	flag.Parse()

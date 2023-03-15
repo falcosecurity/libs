@@ -13,6 +13,8 @@ BASE_DIR="${1}";
 VM_PROVIDER="${2}";
 VM_NAMES="${3}";
 
+set -eou pipefail
+
 echo "Init VMs";
 pushd ${BASE_DIR}/vm_provider/${VM_PROVIDER};
 vagrant destroy -f || true;

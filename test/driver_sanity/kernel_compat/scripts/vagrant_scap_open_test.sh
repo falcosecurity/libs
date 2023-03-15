@@ -2,11 +2,13 @@
 
 if [[ $# -ne 1 || "${EUID}" -ne 0 ]]; then
   echo "Usage: sudo bash vagrant_scap_open_test.sh COMPILER"
-  echo "Run as root user"
+  echo "Run as root user in VM"
   exit 1
 fi
 
 COMPILER="${1}";
+set -eou pipefail
+
 echo "Test run for compiler/kernel ${COMPILER}/$(uname -r)"
 
 rm -f /tmp/o;

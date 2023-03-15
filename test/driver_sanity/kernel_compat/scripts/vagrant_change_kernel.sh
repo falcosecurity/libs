@@ -2,9 +2,11 @@
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "Usage: sudo bash vagrant_change_kernel.sh"
-  echo "Run as root user"
+  echo "Run as root user in VM"
   exit 1
 fi
+
+set -eou pipefail
 
 NEXT_UNAME_R=""; # Leave empty, this is a template script
 UNAME_R=$(uname -r);
