@@ -238,11 +238,11 @@ if (scap_event_schema_link_libraries)
 	list(APPEND scap_link_libraries ${scap_event_schema_link_libraries})
 endif()
 
-set(scap_link_flags)
+set(scap_link_flags "")
 foreach(link_library scap_engine_noop ${scap_link_libraries})
 	list(APPEND scap_link_flags "-l${link_library}")
 endforeach()
-list(REMOVE_DUPLICATES SCAP_LINK_LIBRARIES_FLAGS)
+list(REMOVE_DUPLICATES scap_link_flags)
 string(REPLACE ";" " " SCAP_LINK_LIBRARIES_FLAGS "${scap_link_flags}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libscap.pc.in ${CMAKE_CURRENT_BINARY_DIR}/libscap.pc @ONLY)
 
