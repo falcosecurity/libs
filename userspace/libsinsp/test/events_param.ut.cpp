@@ -352,7 +352,7 @@ TEST_F(sinsp_with_test_input, enumparams)
 	evt->get_param_as_str(0, &val_str);
 	// Since the enum value "1" matches multiple flags values,
 	// we expect a space-separated list of them
-	ASSERT_STREQ(val_str, "AF_LOCAL AF_UNIX");
+	ASSERT_STREQ(val_str, "AF_LOCAL|AF_UNIX");
 }
 
 /* Check that bitmask flags are correctly handled
