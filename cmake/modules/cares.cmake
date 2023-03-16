@@ -11,9 +11,16 @@ elseif(NOT USE_BUNDLED_CARES)
 		message(FATAL_ERROR "Couldn't find system c-ares")
 	endif()
 else()
+	if(BUILD_SHARED_LIBS)
+		set(CARES_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+		set(CARES_STATIC_OPTION )
+	else()
+		set(CARES_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+		set(CARES_STATIC_OPTION --disable-shared)
+	endif()
 	set(CARES_SRC "${PROJECT_BINARY_DIR}/c-ares-prefix/src/c-ares")
 	set(CARES_INCLUDE "${CARES_SRC}/target/include/")
-	set(CARES_LIB "${CARES_SRC}/target/lib/libcares.a")
+	set(CARES_LIB "${CARES_SRC}/target/lib/libcares${CARES_LIB_SUFFIX}")
 	set(CARES_INSTALL_DIR "${CARES_SRC}/target")
 
 	if(NOT TARGET c-ares)
@@ -22,7 +29,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/c-ares-prefix"
 			URL "https://c-ares.haxx.se/download/c-ares-1.18.1.tar.gz"
 			URL_HASH "SHA256=1a7d52a8a84a9fbffb1be9133c0f6e17217d91ea5a6fa61f6b4729cda78ebbcf"
-			CONFIGURE_COMMAND CPPFLAGS=-DCARES_STATICLIB ./configure --disable-shared --prefix=${CARES_INSTALL_DIR}
+			CONFIGURE_COMMAND CPPFLAGS=-DCARES_STATICLIB ./configure ${CARES_STATIC_OPTION} --prefix=${CARES_INSTALL_DIR}
 			BUILD_COMMAND ${CMD_MAKE}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CARES_INCLUDE} ${CARES_LIB}

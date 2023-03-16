@@ -17,9 +17,14 @@ elseif(NOT USE_BUNDLED_LIBELF)
     # without distinguishing between "bundled" and "not-bundled" case
     add_custom_target(libelf)
 else()
+    if(BUILD_SHARED_LIBS)
+        set(LIBELF_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+    else()
+        set(LIBELF_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+    endif()
     set(LIBELF_SRC "${PROJECT_BINARY_DIR}/libelf-prefix/src")
     set(LIBELF_INCLUDE "${LIBELF_SRC}/libelf/libelf")
-    set(LIBELF_LIB "${LIBELF_SRC}/libelf/libelf/libelf.a")
+    set(LIBELF_LIB "${LIBELF_SRC}/libelf/libelf/libelf${LIBELF_LIB_SUFFIX}")
     ExternalProject_Add(
             libelf
             PREFIX "${PROJECT_BINARY_DIR}/libelf-prefix"
@@ -28,7 +33,7 @@ else()
             URL_HASH "SHA256=e70b0dfbe610f90c4d1fe0d71af142a4e25c3c4ef9ebab8d2d72b65159d454c8"
             CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=-I${ZLIB_INCLUDE}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
             BUILD_IN_SOURCE 1
-            BUILD_COMMAND ${CMD_MAKE} -C libelf libelf.a
+            BUILD_COMMAND ${CMD_MAKE} -C libelf libelf${LIBELF_LIB_SUFFIX}
             INSTALL_COMMAND ""
             UPDATE_COMMAND ""
     )
