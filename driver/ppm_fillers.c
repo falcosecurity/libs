@@ -3804,56 +3804,54 @@ int f_sys_pread_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 int f_sys_pwrite64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
 	int res;
-	unsigned long pos0;
-	unsigned long pos1;
 	uint64_t pos64;
+	s32 fd = 0;
 
 	/*
 	 * fd
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
 
 	/*
 	 * size
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &size);
 	res = val_to_ring(args, size, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/*
-	 * pos
-	 * NOTE: this is a 64bit value, which means that on 32bit systems it uses two
-	 * separate registers that we need to merge.
-	 */
+	/* Parameter 3: pos (type: PT_UINT64) */
+#ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
+	{
+		unsigned long pos0 = 0;
+		unsigned long pos1 = 0;
 #if defined CONFIG_X86
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
 #elif defined CONFIG_ARM && CONFIG_AEABI
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos0);
-	syscall_get_arguments_deprecated(current, args->regs, 5, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args->regs, 5, 1, &pos1);
 #else
-  #error This architecture/abi not yet supported
+  		#error This architecture/abi not yet supported
 #endif
-
-	pos64 = merge_64(pos1, pos0);
+		pos64 = merge_64(pos1, pos0);
+	}
+#else
+	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER*/
 
 	res = val_to_ring(args, pos64, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
-#endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
 int f_sys_preadv_e(struct event_filler_arguments *args)
 {
