@@ -162,3 +162,58 @@ TEST(interesting_syscalls, event_set_to_sc_set_generic_events)
 	ASSERT_TRUE(sc_set.contains(PPM_SC_INIT_MODULE));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_READLINKAT));
 }
+
+TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
+{
+    libsinsp::events::set<ppm_sc_code> truth;
+    libsinsp::events::set<ppm_sc_code> input_sc_set;
+    libsinsp::events::set<ppm_sc_code> sc_set;
+
+    truth = libsinsp::events::names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork",
+        "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
+		"setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+    truth = libsinsp::events::names_to_sc_set({
+        "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "connect",
+        "execve", "execveat", "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect", "accept", "accept4"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+    truth = libsinsp::events::names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "close", "connect", "execve", "execveat",
+        "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+    truth = libsinsp::events::names_to_sc_set({
+        "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "execve",
+        "execveat", "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "accept", "accept4"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+    truth = libsinsp::events::names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork",
+        "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
+		"setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+    truth = libsinsp::events::names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "close", "execve", "execveat", "fchdir", "fork", "open", "openat", "openat2",
+        "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::names_to_sc_set({"open", "openat", "openat2"});
+    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
+
+}
