@@ -292,8 +292,3 @@ TEST(events_set, all_non_sc_event_set)
 	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_E));
 	ASSERT_TRUE(event_set.contains(PPME_PROCEXIT_X));
 }
-
-// TODO -> future PR after other PRs have been merged and few other things clarified
-TEST(events_set, sinsp_state_event_set)
-{
-}

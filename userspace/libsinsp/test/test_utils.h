@@ -23,22 +23,67 @@ limitations under the License.
 #include <unordered_set>
 #include <netinet/in.h>
 
-#define ASSERT_NAMES_EQ(a, b) { \
-	ASSERT_EQ(std::set<std::string>(a.begin(), a.end()), std::set<std::string>(b.begin(), b.end())); \
-	ASSERT_EQ(a.size(), b.size()); \
-}
+#define ASSERT_NAMES_EQ(a, b)                                                                                        \
+	{                                                                                                            \
+		auto a1 = a;                                                                                         \
+		auto b1 = b;                                                                                         \
+		ASSERT_EQ(std::set<std::string>(a1.begin(), a1.end()), std::set<std::string>(b1.begin(), b1.end())); \
+		ASSERT_EQ(a1.size(), b1.size());                                                                     \
+	}
 
-#define ASSERT_PPM_EVENT_CODES_EQ(a, b) { \
-	ASSERT_EQ(libsinsp::events::set<ppm_event_code>(a.begin(), a.end()), libsinsp::events::set<ppm_event_code>(b.begin(), b.end())); \
-	ASSERT_TRUE(a.equals(b)); \
-	ASSERT_EQ(a.size(), b.size()); \
-}
+// `merge` requires cpp17...
+#define ASSERT_CONTAINS(a, b)                    \
+	{                                        \
+		auto a1 = a;                     \
+		auto b1 = b;                     \
+		uint32_t prev_size = a1.size();  \
+		for(const auto& val : b1)        \
+		{                                \
+			a1.insert(val);          \
+		}                                \
+		ASSERT_EQ(prev_size, a1.size()); \
+	}
 
-#define ASSERT_PPM_SC_CODES_EQ(a, b) { \
-	ASSERT_EQ(libsinsp::events::set<ppm_sc_code>(a.begin(), a.end()), libsinsp::events::set<ppm_sc_code>(b.begin(), b.end())); \
-	ASSERT_TRUE(a.equals(b)); \
-	ASSERT_EQ(a.size(), b.size()); \
-}
+// `merge` requires cpp17...
+#define ASSERT_NOT_CONTAINS(a, b)                            \
+	{                                                    \
+		auto a1 = a;                                 \
+		auto b1 = b;                                 \
+		uint32_t prev_size = a1.size();              \
+		for(const auto& val : b1)                    \
+		{                                            \
+			a1.insert(val);                      \
+		}                                            \
+		ASSERT_EQ(prev_size + b1.size(), a1.size()); \
+	}
+
+#define ASSERT_PPM_EVENT_CODES_EQ(a, b)                                                                                                              \
+	{                                                                                                                                            \
+		auto a1 = a;                                                                                                                         \
+		auto b1 = b;                                                                                                                         \
+		ASSERT_EQ(libsinsp::events::set<ppm_event_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_event_code>(b1.begin(), b1.end())); \
+		ASSERT_TRUE(a1.equals(b1));                                                                                                          \
+		ASSERT_EQ(a1.size(), b1.size());                                                                                                     \
+	}
+
+#define ASSERT_PPM_SC_CODES_EQ(a, b)                                                                                                           \
+	{                                                                                                                                      \
+		auto a1 = a;                                                                                                                   \
+		auto b1 = b;                                                                                                                   \
+		ASSERT_EQ(libsinsp::events::set<ppm_sc_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_sc_code>(b1.begin(), b1.end())); \
+		ASSERT_TRUE(a1.equals(b1));                                                                                                    \
+		ASSERT_EQ(a1.size(), b1.size());                                                                                               \
+	}
+
+/* These numbers must be updated when we add new events in the event table */
+#define SYSCALL_EVENTS_NUM 346
+#define TRACEPOINT_EVENTS_NUM 6
+#define METAEVENTS_NUM 19
+#define PLUGIN_EVENTS_NUM 1
+#define UNKNOWN_EVENTS_NUM 20
+
+/* This number should be increased when we add/remove a generic syscall */
+#define GENERIC_SYSCALLS_NUM 235
 
 namespace test_utils {
 

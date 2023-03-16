@@ -165,6 +165,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::event_set_to_sc_set(const s
 	return ppm_sc_set;
 }
 
+/// todo(@Andreagit97): we need to decide if we want to keep this API
 libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 {
 	static libsinsp::events::set<ppm_event_code> ppm_event_info_of_interest;
@@ -173,20 +174,19 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::sinsp_state_event_set()
 		ppm_event_info_of_interest = sc_set_to_event_set(sinsp_state_sc_set());
 		/*
 		 * Fill-up the set of event infos of interest.
-		 * This is needed to ensure critical non syscall PPME events are activated,
-		 * e.g. container or proc exit events.
+		 * This is needed to ensure critical non syscall/tracepoint PPME events are activated,
+		 * e.g. container
 		 * Skip generic events.
 		 */
 		for(uint32_t ev = 2; ev < PPM_EVENT_MAX; ev++)
 		{
-			if(!libsinsp::events::is_old_version_event((ppm_event_code)ev)
-				&& !libsinsp::events::is_unused_event((ppm_event_code)ev)
+			if(!libsinsp::events::is_unused_event((ppm_event_code)ev)
 				&& !libsinsp::events::is_unknown_event((ppm_event_code)ev))
 			{
-				/* So far we only covered syscalls, so we add other kinds of
-				interesting events. In this case, we are also interested in
-				metaevents and in the procexit tracepoint event. */
-				if(libsinsp::events::is_metaevent((ppm_event_code)ev) || ev == PPME_PROCEXIT_1_E)
+				/* So far we only covered syscalls, so we need to add
+				 * other kinds of metaevents.
+				 */
+				if(libsinsp::events::is_metaevent((ppm_event_code)ev))
 				{
 					ppm_event_info_of_interest.insert((ppm_event_code)ev);
 				}
