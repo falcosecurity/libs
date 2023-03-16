@@ -12,9 +12,16 @@ elseif(NOT USE_BUNDLED_CURL)
 	find_package(CURL REQUIRED)
 	message(STATUS "Found CURL: include: ${CURL_INCLUDE_DIRS}, lib: ${CURL_LIBRARIES}")
 else()
+	if(BUILD_SHARED_LIBS)
+		set(CURL_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+		set(CURL_STATIC_OPTION )
+	else()
+		set(CURL_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+		set(CURL_STATIC_OPTION --disable-shared)
+	endif()
 	set(CURL_BUNDLE_DIR "${PROJECT_BINARY_DIR}/curl-prefix/src/curl")
 	set(CURL_INCLUDE_DIRS "${CURL_BUNDLE_DIR}/include/")
-	set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl.a")
+	set(CURL_LIBRARIES "${CURL_BUNDLE_DIR}/lib/.libs/libcurl${CURL_LIB_SUFFIX}")
 
 	if(NOT USE_BUNDLED_OPENSSL)
 		set(CURL_SSL_OPTION "--with-ssl")
@@ -42,7 +49,7 @@ else()
 			./configure
 			${CURL_SSL_OPTION}
 			${CURL_ZLIB_OPTION}
-			--disable-shared
+			${CURL_STATIC_OPTION}
 			--enable-optimize
 			--disable-curldebug
 			--disable-rt

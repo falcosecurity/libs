@@ -18,8 +18,17 @@ else()
 	message(STATUS "Using bundled jq in '${JQ_SRC}'")
 	set(JQ_INCLUDE "${JQ_SRC}/target/include/")
 	set(JQ_INSTALL_DIR "${JQ_SRC}/target")
-	set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq.a")
-	set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig.a")
+	if(BUILD_SHARED_LIBS)
+		set(JQ_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+		set(JQ_STATIC_OPTION --enable-shared --disable-static)
+		set(JQ_LDFLAGS )
+	else()
+		set(JQ_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+		set(JQ_STATIC_OPTION --enable-all-static)
+		set(JQ_LDFLAGS -all-static)
+	endif()
+	set(JQ_LIB "${JQ_INSTALL_DIR}/lib/libjq${JQ_LIB_SUFFIX}")
+	set(ONIGURUMA_LIB "${JQ_INSTALL_DIR}/lib/libonig${JQ_LIB_SUFFIX}")
 
 	if(NOT TARGET jq)
 		message(STATUS "Bundled jq: include: ${JQ_INCLUDE}, lib: ${JQ_LIB}")
@@ -44,8 +53,8 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/jq-prefix"
 			URL "https://download.falco.org/dependencies/jq-1.6.tar.gz"
 			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
-			CONFIGURE_COMMAND ./configure --disable-maintainer-mode --enable-all-static --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
-			BUILD_COMMAND ${CMD_MAKE} LDFLAGS=-all-static
+			CONFIGURE_COMMAND ./configure --disable-maintainer-mode ${JQ_STATIC_OPTION} --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
+			BUILD_COMMAND ${CMD_MAKE} clean all LDFLAGS=${JQ_LDFLAGS}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${JQ_LIB} ${ONIGURUMA_LIB}
 			INSTALL_COMMAND ${CMD_MAKE} install)

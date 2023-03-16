@@ -58,6 +58,11 @@ else()
 	include(protobuf)
 	include(zlib)
 	include(openssl)
+	if(BUILD_SHARED_LIBS)
+		set(GRPC_OPENSSL_STATIC_LIBS_OPTION FALSE)
+	else()
+		set(GRPC_OPENSSL_STATIC_LIBS_OPTION TRUE)
+	endif()
 	include(re2)
 	set(GRPC_SRC "${PROJECT_BINARY_DIR}/grpc-prefix/src/grpc")
 	set(GRPC_INSTALL_DIR "${GRPC_SRC}/target")
@@ -173,7 +178,7 @@ else()
 				# https://cmake.org/cmake/help/v3.6/module/FindOpenSSL.html
 				-DgRPC_SSL_PROVIDER:STRING=package
 				-DOPENSSL_ROOT_DIR:PATH=${OPENSSL_INSTALL_DIR}
-				-DOPENSSL_USE_STATIC_LIBS:BOOL=TRUE
+				-DOPENSSL_USE_STATIC_LIBS:BOOL=${GRPC_OPENSSL_STATIC_LIBS_OPTION}
 				# https://cmake.org/cmake/help/v3.6/module/FindZLIB.html
 				-DgRPC_ZLIB_PROVIDER:STRING=package
 				-DZLIB_ROOT:STRING=${ZLIB_SRC}

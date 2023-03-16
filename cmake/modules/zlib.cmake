@@ -33,12 +33,19 @@ else()
 	if(NOT TARGET zlib)
 		message(STATUS "Using bundled zlib in '${ZLIB_SRC}'")
 		if(NOT WIN32)
-			set(ZLIB_LIB "${ZLIB_SRC}/libz.a")
+			if(BUILD_SHARED_LIBS)
+				set(ZLIB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
+				set(ZLIB_CONFIGURE_FLAGS )
+			else()
+				set(ZLIB_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
+				set(ZLIB_CONFIGURE_FLAGS "--static")
+			endif()
+			set(ZLIB_LIB "${ZLIB_SRC}/libz${ZLIB_LIB_SUFFIX}")
 			ExternalProject_Add(zlib
 				PREFIX "${PROJECT_BINARY_DIR}/zlib-prefix"
 				URL "https://github.com/madler/zlib/archive/v1.2.13.tar.gz"
 				URL_HASH "SHA256=1525952a0a567581792613a9723333d7f8cc20b87a81f920fb8bc7e3f2251428"
-				CONFIGURE_COMMAND ./configure --prefix=${ZLIB_SRC} --static
+				CONFIGURE_COMMAND ./configure --prefix=${ZLIB_SRC} ${ZLIB_CONFIGURE_FLAGS}
 				BUILD_COMMAND ${CMD_MAKE}
 				BUILD_IN_SOURCE 1
 				BUILD_BYPRODUCTS ${ZLIB_LIB}
