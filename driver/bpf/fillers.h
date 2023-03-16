@@ -4905,7 +4905,20 @@ FILLER(sys_pwrite64_e, true)
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
 #endif
-	return PPM_FAILURE_BUG;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	int res = bpf_val_to_ring(data, (s64)fd);
+	CHECK_RES(res);
+	
+	/* Parameter 2: size (type: PT_UINT32) */
+	size_t size = bpf_syscall_get_argument(data, 2);
+	res = bpf_val_to_ring(data, size);
+	CHECK_RES(res);
+
+	/* Parameter 3: pos (type: PT_UINT64) */
+	u64 pos = (u64)bpf_syscall_get_argument(data, 3);
+	return bpf_val_to_ring(data, pos);
 }
 
 FILLER(sys_renameat_x, true)
