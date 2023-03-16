@@ -207,10 +207,6 @@ TEST(SyscallExit, execveX_success)
 
 	evt_test->disable_capture();
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
-	/* We search for a child event. */
-	evt_test->assert_event_absence(ret_pid);
-#else
 	/* We search for a child event. */
 	evt_test->assert_event_presence(ret_pid);
 
@@ -289,6 +285,5 @@ TEST(SyscallExit, execveX_success)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	evt_test->assert_num_params_pushed(27);
-#endif
 }
 #endif

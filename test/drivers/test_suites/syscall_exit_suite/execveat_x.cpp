@@ -347,12 +347,8 @@ TEST(SyscallExit, execveatX_execve_exit)
 
 	evt_test->disable_capture();
 
-/* Some architectures like aarch64 don't return either an `EXECVEAT_X` or
- * an `EXECVE_X` event, this is a known issue you look at `feature_gates.h`
- * for more info. `s390x` already returns an `EXECVEAT_X` event so here we shouldn't
- * receive anything.
- */
-#if defined(__s390x__) || defined(CAPTURE_SCHED_PROC_EXEC)
+/* `s390x` returns an `EXECVEAT_X` event while other architectures retun an `EXECVE_X` */
+#if defined(__s390x__)
 	/* We search for a child event. */
 	evt_test->assert_event_absence(ret_pid);
 #else
