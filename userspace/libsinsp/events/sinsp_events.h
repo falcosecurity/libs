@@ -189,6 +189,23 @@ set<ppm_sc_code> names_to_sc_set(const std::unordered_set<std::string>& syscalls
  */
 set<ppm_event_code> sc_set_to_event_set(const set<ppm_sc_code> &ppm_sc_of_interest);
 
+/*!
+  * \brief [Experimental] Enforce sinsp state `ppm_sc` set conditioned by filter `ppm_sc` set.
+  * This has a resource-conscious effect in that the driver only subscribes to a set of `ppm_sc`
+  * that is effectively needed for the absolute minimum sinsp state build-up and
+  * life-cycle management.
+  * 
+  * In addition, this option can be used to "repair" a custom set of user defined `ppm_sc`
+  * to ensure Falco runs correctly.
+  * 
+  * TODO @incertum create new e2e test format to model sinsp state dependencies.
+  *
+  * @param ppm_sc_set set of `ppm_sc` from filter(s)
+  * @return sinsp state compliant set of `ppm_sc` conditioned by set of `ppm_sc` from filter(s)
+*/
+set<ppm_sc_code> sinsp_repair_state_sc_set(const set<ppm_sc_code>& ppm_sc_set);
+
+
 /*=============================== PPM_SC set related (sinsp_events_ppm_sc.cpp) ===============================*/
 
 /*=============================== PPME set related (sinsp_events.cpp) ===============================*/
