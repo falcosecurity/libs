@@ -2129,15 +2129,9 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 						      "%s%s",
 						      separator,
 						      flags->name);
-					if (exact_match)
+					separator = "|";
+					if (!exact_match)
 					{
-						// Multiple flags name match same enum value
-						separator = " ";
-					}
-					else
-					{
-						// It is a bitmask, ok to use bitwise OR
-						separator = "|";
 						if (flags->value == initial_val)
 						{
 							// if we reached initial val, we have finished.
