@@ -596,9 +596,17 @@ void sinsp::open_nodriver(sinsp_driver_params* driver_params)
 	open_common(driver_params);
 }
 
-void sinsp::open_savefile(const std::string& filename, int fd)
+void sinsp::open_savefile(const std::string& filename, int fd, sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(SAVEFILE_ENGINE, SCAP_MODE_CAPTURE);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = SAVEFILE_ENGINE;
+	driver_params->mode = SCAP_MODE_CAPTURE;
+
 	struct scap_savefile_engine_params params;
 
 	m_input_filename = filename;
@@ -631,8 +639,8 @@ void sinsp::open_savefile(const std::string& filename, int fd)
 
 	params.start_offset = 0;
 	params.fbuffer_size = 0;
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 }
 
 void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params)
