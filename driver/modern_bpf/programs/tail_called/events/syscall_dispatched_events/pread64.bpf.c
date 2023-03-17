@@ -11,12 +11,12 @@
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
-int BPF_PROG(pread_e,
+int BPF_PROG(pread64_e,
 	     struct pt_regs *regs,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PREAD_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, PREAD64_E_SIZE))
 	{
 		return 0;
 	}
@@ -49,7 +49,7 @@ int BPF_PROG(pread_e,
 /*=============================== EXIT EVENT ===========================*/
 
 SEC("tp_btf/sys_exit")
-int BPF_PROG(pread_x,
+int BPF_PROG(pread64_x,
 	     struct pt_regs *regs,
 	     long ret)
 {

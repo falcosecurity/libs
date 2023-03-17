@@ -3853,7 +3853,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pread_e(struct event_filler_arguments *args)
+int f_sys_pread64_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	unsigned long size;
@@ -4022,10 +4022,6 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 	unsigned long val;
 	int64_t retval;
 	int res;
-#ifdef CONFIG_COMPAT
-	const struct compat_iovec __user *compat_iov;
-#endif
-	const struct iovec __user *iov;
 	unsigned long iovcnt;
 
 	/*
@@ -4043,12 +4039,12 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 
 	#ifdef CONFIG_COMPAT
 		if (unlikely(args->compat)) {
-			compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
+			const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
 			res = compat_parse_readv_writev_bufs(args, compat_iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 		} else
 	#endif
 		{
-			iov = (const struct iovec __user *)val;
+			const struct iovec __user *iov = (const struct iovec __user *)val;
 			res = parse_readv_writev_bufs(args, iov, iovcnt, retval, PRB_FLAG_PUSH_ALL);
 		}
 
@@ -4061,7 +4057,7 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 		CHECK_RES(res);
 
 		/* pushing empty data */
-		res = val_to_ring(args, 0, 0, true, 0);
+		res = push_empty_param(args);
 		CHECK_RES(res);
 	}
 

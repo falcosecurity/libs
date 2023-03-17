@@ -4867,7 +4867,7 @@ FILLER(sys_mkdir_e, true)
 	return bpf_val_to_ring(data, mode);
 }
 
-FILLER(sys_pread_e, true)
+FILLER(sys_pread64_e, true)
 {
 #ifndef CAPTURE_64BIT_ARGS_SINGLE_REGISTER
 #error Implement this
