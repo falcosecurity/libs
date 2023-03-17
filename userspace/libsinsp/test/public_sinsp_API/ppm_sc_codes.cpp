@@ -189,6 +189,14 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
 	PPME_SOCKET_ACCEPT4_6_X,
 	PPME_SYSCALL_UMOUNT2_E,
 	PPME_SYSCALL_UMOUNT2_X,
+	PPME_SYSCALL_PIPE2_E,
+	PPME_SYSCALL_PIPE2_X,
+	PPME_SYSCALL_INOTIFY_INIT1_E,
+	PPME_SYSCALL_INOTIFY_INIT1_X,
+	PPME_SYSCALL_EVENTFD2_E,
+	PPME_SYSCALL_EVENTFD2_X,
+	PPME_SYSCALL_SIGNALFD4_E,
+	PPME_SYSCALL_SIGNALFD4_X,
 };
 
 const libsinsp::events::set<ppm_sc_code> expected_sinsp_state_sc_set = {
@@ -364,7 +372,7 @@ TEST(ppm_sc_API, all_event_names)
 	 */
 	auto events_names = test_utils::unordered_set_to_ordered(libsinsp::events::event_set_to_names(libsinsp::events::all_event_set()));
 	/* `NA*` events were now removed so we don't want them again, all other syscall names have no events associated so they shouldn't be in this set */
-	std::set<std::string> some_not_desired_names{"syscall", "pipe2", "inotify_init1", "eventfd2", "signalfd4", "ugetrlimit", "fcntl64", "sendfile64", "setresuid32", "setresgid32", "setuid32", "setgid32", "getuid32", "geteuid32", "getgid32", "getegid32", "getresuid32", "getresgid32", "NA1", "NA2", "NA3", "NA4", "NA5", "NA6"};
+	std::set<std::string> some_not_desired_names{"syscall", "ugetrlimit", "fcntl64", "sendfile64", "setresuid32", "setresgid32", "setuid32", "setgid32", "getuid32", "geteuid32", "getgid32", "getegid32", "getresuid32", "getresgid32", "NA1", "NA2", "NA3", "NA4", "NA5", "NA6"};
 	ASSERT_NOT_CONTAINS(events_names, some_not_desired_names);
 
 	/* We count old version events to be sure about the final number of names we should expect */
@@ -905,25 +913,20 @@ TEST(ppm_sc_API, NGSS_event_set_NGSS)
 	const libsinsp::events::set<ppm_sc_code> not_generic_sc_set{PPM_SC_UNKNOWN, PPM_SC_PIPE2, PPM_SC_EVENTFD2, PPM_SC_BRK};
 	const auto not_generic_event_set = libsinsp::events::sc_set_to_event_set(not_generic_sc_set);
 	const libsinsp::events::set<ppm_event_code> expected_not_generic_event_set{
-		PPME_SYSCALL_PIPE_E,
-		PPME_SYSCALL_PIPE_X,
-		PPME_SYSCALL_EVENTFD_E,
-		PPME_SYSCALL_EVENTFD_X,
+		PPME_SYSCALL_PIPE2_E,
+		PPME_SYSCALL_PIPE2_X,
+		PPME_SYSCALL_EVENTFD2_E,
+		PPME_SYSCALL_EVENTFD2_X,
 		PPME_SYSCALL_BRK_1_E,
 		PPME_SYSCALL_BRK_1_X,
 		PPME_SYSCALL_BRK_4_E,
 		PPME_SYSCALL_BRK_4_X};
 	ASSERT_PPM_EVENT_CODES_EQ(expected_not_generic_event_set, not_generic_event_set);
 
-	/* Converting again we are not able to understand that the initial syscall was `PPM_SC_PIPE2` we return also PIPE.
-	 * Same for EVENTFD and EVENTFD2.
-	 * We lose also the `PPM_SC_UNKNOWN`
-	 */
+	/* We lose also the `PPM_SC_UNKNOWN` */
 	const auto not_generic_sc_set_again = libsinsp::events::event_set_to_sc_set(not_generic_event_set);
-	ASSERT_TRUE(not_generic_sc_set_again.contains(PPM_SC_PIPE));
-	ASSERT_TRUE(not_generic_sc_set_again.contains(PPM_SC_EVENTFD));
-	ASSERT_FALSE(not_generic_sc_set_again.contains(PPM_SC_UNKNOWN));
-	ASSERT_EQ(not_generic_sc_set_again.size(), 5);
+	ASSERT_CONTAINS(not_generic_sc_set, not_generic_sc_set_again);
+	ASSERT_EQ(not_generic_sc_set_again.size(), 3);
 }
 
 TEST(ppm_sc_API, SSN_sc_set_SSN)

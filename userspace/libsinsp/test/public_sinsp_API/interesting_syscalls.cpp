@@ -112,12 +112,12 @@ TEST(interesting_syscalls, names_sc_set_names_corner_cases)
 	/* INCONSISTENCY: `names_to_sc_set` is converting event names to ppm_sc, but this was not its original scope, the original scope was to convert sc_names -> to sc_set  */
 	std::unordered_set<std::string> event_names{"accept", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2"};
 	auto sc_set = libsinsp::events::names_to_sc_set(event_names);
-	libsinsp::events::set<ppm_sc_code> expected_sc_set{PPM_SC_ACCEPT, PPM_SC_ACCEPT4, PPM_SC_EXECVE, PPM_SC_SYNCFS, PPM_SC_EVENTFD, PPM_SC_EVENTFD2, PPM_SC_UMOUNT, PPM_SC_PIPE, PPM_SC_PIPE2, PPM_SC_SIGNALFD, PPM_SC_SIGNALFD4, PPM_SC_UMOUNT2};
+	libsinsp::events::set<ppm_sc_code> expected_sc_set{PPM_SC_ACCEPT, PPM_SC_ACCEPT4, PPM_SC_EXECVE, PPM_SC_SYNCFS, PPM_SC_EVENTFD, PPM_SC_UMOUNT, PPM_SC_PIPE, PPM_SC_SIGNALFD, PPM_SC_UMOUNT2};
 	ASSERT_PPM_SC_CODES_EQ(sc_set, expected_sc_set);
 
 	/* Please note that here we are converting sc_set to sc_names not event_names! */
 	auto sc_names = libsinsp::events::sc_set_to_names(sc_set);	
-	static std::unordered_set<std::string> expected_sc_names = {"accept", "accept4", "execve", "syncfs", "eventfd", "eventfd2", "umount", "pipe", "pipe2", "signalfd", "signalfd4", "umount2"};
+	static std::unordered_set<std::string> expected_sc_names = {"accept", "accept4", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2"};
 	ASSERT_NAMES_EQ(expected_sc_names, sc_names);
 }
 
