@@ -209,7 +209,7 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 	if (BUILD_LIBSCAP_GVISOR)
 		add_definitions(-DHAS_ENGINE_GVISOR)
 		add_subdirectory(engine/gvisor)
-		# The static and shared build differs here because a shared scap_engine_savefile
+		# The static and shared build differs here because a shared scap_engine_gvisor
 		# will result in circular dependencies.
 		if(BUILD_SHARED_LIBS)
 			# We can move this to the gvisor CMakeFile when we use

@@ -42,7 +42,7 @@ add_custom_command(
 )
 
 if (BUILD_SHARED_LIBS)
-    # Trying to build a shared scap_engine_savefile will result in circular
+    # Trying to build a shared scap_engine_gvisor will result in circular
     # dependencies, so just add our sources to scap.
     # Additionally, the GENERATED property doesn't propogate across directories,
     # so enforce our dependency chain using an object library.
