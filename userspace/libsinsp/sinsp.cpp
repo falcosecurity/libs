@@ -708,13 +708,20 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	open_common(driver_params);
 }
 
-void sinsp::open_test_input(scap_test_input_data* data)
+void sinsp::open_test_input(scap_test_input_data* data, sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_TEST);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = TEST_INPUT_ENGINE;
+	driver_params->mode = SCAP_MODE_TEST;
 	struct scap_test_input_engine_params params;
 	params.test_input_data = data;
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 
 	set_get_procs_cpu_from_driver(false);
 }
