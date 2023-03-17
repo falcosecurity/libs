@@ -525,18 +525,22 @@ static void fill_ppm_sc_of_interest(scap_open_args *oargs, const libsinsp::event
 	}
 }
 
-void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
+void sinsp::open_kmod(unsigned long driver_buffer_bytes_dim, sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(KMOD_ENGINE, SCAP_MODE_LIVE);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
 
-	/* Set interesting syscalls and tracepoints. */
-	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
+	driver_params->engine_name = KMOD_ENGINE;
+	driver_params->mode = SCAP_MODE_LIVE;
 
 	/* Engine-specific args. */
 	struct scap_kmod_engine_params params;
 	params.buffer_bytes_dim = driver_buffer_bytes_dim;
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 }
 
 void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_bytes_dim, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)

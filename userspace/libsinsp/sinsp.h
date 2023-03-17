@@ -222,7 +222,7 @@ public:
 
 
 	/* Wrappers to open a specific engine. */
-	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
+	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, sinsp_driver_params* driver_params = nullptr);
 	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest = {});
 	virtual void open_udig();
 	virtual void open_nodriver();
