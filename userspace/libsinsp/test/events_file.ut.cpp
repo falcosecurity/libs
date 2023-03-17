@@ -60,7 +60,7 @@ TEST_F(sinsp_with_test_input, file_open)
 	// since adding and reading events happens on a single thread they can be interleaved.
 	// tests may need to change if that will not be the case anymore
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t) 3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t) 123);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
@@ -78,7 +78,7 @@ TEST_F(sinsp_with_test_input, dup_dup2_dup3)
 	int64_t fd = 3, res = 1, oldfd = 3, newfd = 123;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/test", PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY, 0666);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, "/tmp/test", PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY, 0666, 0xCA02, (uint64_t) 123);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, "/tmp/test", PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY, 0666, 0xCA02, (uint64_t)123);
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_E, 1, fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_X, 1, newfd);
@@ -150,7 +150,7 @@ TEST_F(sinsp_with_test_input, path_too_long)
 	int64_t fd = 3, mountfd = 5;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, long_path.c_str(), PPM_O_RDWR, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, long_path.c_str(), PPM_O_RDWR, 0, 5, (uint64_t) 123);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, long_path.c_str(), PPM_O_RDWR, 0, 5, (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
 
 	fd = 4;
@@ -167,20 +167,22 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 
 	open_inspector();
 	sinsp_evt* evt = NULL;
-	int64_t fd = 5;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, (uint64_t) -1, NULL, 0);
+	int64_t fd = 5;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, (uint64_t)-1, NULL, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, 2, 67);
+	fd = 2;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, (uint64_t)0, (uint32_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, fd, (uint16_t)67);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "2");
 
+	fd = 6;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_E, 2, 0, 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_TIMERFD_CREATE_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "timerfd");
@@ -195,7 +197,7 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
 
 	fd = 8;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, (int64_t) 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, (int64_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 1, fd);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "bpf");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "b");
@@ -231,31 +233,31 @@ TEST_F(sinsp_with_test_input, creates_fd_generic)
 
 	int64_t fd1 = 3, fd2 = 4;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, 0, fd1, fd2, (uint64_t) 81976492);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, 0, fd1, fd2, (uint64_t)81976492);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, 0, 6, 7, 81976492, 17);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, 0, (int64_t)6, (int64_t)7, (uint64_t)81976492, (uint32_t)17);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "7");
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, 12, 32);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "12");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, 0, 45);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, 34);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, (uint64_t)0, (uint16_t)45);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, (int64_t)34);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "34");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_E, 1, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_X, 2, 31, 34);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_E, 1, (uint64_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_X, 2, (int64_t)31, (uint16_t)34);
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "31");
@@ -267,29 +269,39 @@ TEST_F(sinsp_with_test_input, umount)
 
 	open_inspector();
 	sinsp_evt* evt = NULL;
-
 	int64_t res = 0;
+	const char* name = "/target_name";
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_X, 2, res, "/target_name");
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT_1_X, 2, res, name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount");
 	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), "0");
-	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/target_name");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), std::to_string(res));
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), name);
+
+	sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+	ASSERT_EQ(fdinfo, nullptr);
 }
 
 TEST_F(sinsp_with_test_input, umount2)
 {
-    add_default_init_thread();
+	add_default_init_thread();
 
-    open_inspector();
-    sinsp_evt* evt = NULL;
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	uint32_t flags = 10;
+	int64_t res = 0;
+	const char* name = "/target_name";
 
-    add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_E, 1, 10);
-    evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_X, 2, 0, "/target_name");
-    ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount2");
-    ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
-    ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), "0");
-    ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), "/target_name");
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_E, 1, flags);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_UMOUNT2_X, 2, res, name);
+	ASSERT_EQ(get_field_as_string(evt, "evt.type"), "umount2");
+	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.res"), std::to_string(res));
+	ASSERT_EQ(get_field_as_string(evt, "evt.arg.name"), name);
+
+	sinsp_fdinfo_t* fdinfo = evt->get_fd_info();
+	ASSERT_EQ(fdinfo, nullptr);
 }
 
 TEST_F(sinsp_with_test_input, pipe)
@@ -298,8 +310,12 @@ TEST_F(sinsp_with_test_input, pipe)
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
+	int64_t res = 0;
+	int64_t fd1 = 3, fd2 = 4;
+	uint64_t ino = 7479253124;
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, 0, 3, 4, 7479253124);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE_X, 4, res, fd1, fd2, ino);
 
 	/* `pipe` is particular because it generates 2 file descriptors but a single event can have at most one `fdinfo` associated.
 	 * So in this case the associated file descriptor is the second one (`4`). Please note that both file descriptors are added to
@@ -307,12 +323,12 @@ TEST_F(sinsp_with_test_input, pipe)
 	 */
 
 	/* Here we assert some info regarding the second file descriptor `4` through filter-checks */
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "4");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(fd2));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	/* `14` where `1` is the thread-id and `4` is the fd */
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "14");
-	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), "7479253124");
+	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), std::to_string(ino));
 	ASSERT_FD_FILTER_CHECK_NOT_FILE()
 
 	/* Here we check the `openflags` field of the fdinfo2, it should be 0 since pipe has no flags */
@@ -322,16 +338,15 @@ TEST_F(sinsp_with_test_input, pipe)
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo2)
 
 	/* Now we get the first file descriptor (`3`) and we assert some fields directly through the `fdinfo` pointer. */
-	/// TODO: @Andreagit97 it would be great to have a method to overwrite the `fdinfo` of an event.
 
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	sinsp_fdinfo_t* fdinfo1 = evt->get_thread_info()->get_fd(3);
+	sinsp_fdinfo_t* fdinfo1 = evt->get_thread_info()->get_fd(fd1);
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');
 	ASSERT_EQ(fdinfo1->m_openflags, 0);
 	ASSERT_TRUE(fdinfo1->is_pipe());
-	ASSERT_EQ(fdinfo1->get_ino(), 7479253124);
+	ASSERT_EQ(fdinfo1->get_ino(), ino);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo1)
 }
 
@@ -341,8 +356,13 @@ TEST_F(sinsp_with_test_input, pipe2)
 	open_inspector();
 	sinsp_evt* evt = NULL;
 
+	int64_t res = 0;
+	int64_t fd1 = 5, fd2 = 6;
+	uint64_t ino = 7479253124;
+	uint32_t flags = 17;
+
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, 0, 5, 6, 7479253124, 17);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIPE2_X, 5, res, fd1, fd2, ino, flags);
 
 	/* `pipe2` is particular because it generates 2 file descriptors but a single event can have at most one `fdinfo` associated.
 	 * So in this case the associated file descriptor is the second one (`4`). Please note that both file descriptors are added to
@@ -350,29 +370,29 @@ TEST_F(sinsp_with_test_input, pipe2)
 	 */
 
 	/* Here we assert some info regarding the second file descriptor `6` through filter-checks */
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "6");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(fd2));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "pipe");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "p");
 	/* `16` where `1` is the thread-id and `6` is the fd */
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "16");
-	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), "7479253124");
+	ASSERT_EQ(get_field_as_string(evt, "fd.ino"), std::to_string(ino));
 	ASSERT_FD_FILTER_CHECK_NOT_FILE()
 
 	/* Here we check the `openflags` field of the fdinfo2, it should be 17 since pipe2 has flags field */
 	sinsp_fdinfo_t* fdinfo2 = evt->get_fd_info();
 	ASSERT_NE(fdinfo2, nullptr);
-	ASSERT_EQ(fdinfo2->m_openflags, 17);
+	ASSERT_EQ(fdinfo2->m_openflags, flags);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo2)
 
 	/* Now we get the first file descriptor (`3`) and we assert some fields directly through the `fdinfo` pointer. */
 	ASSERT_NE(evt->get_thread_info(), nullptr);
-	sinsp_fdinfo_t* fdinfo1 = evt->get_thread_info()->get_fd(5);
+	sinsp_fdinfo_t* fdinfo1 = evt->get_thread_info()->get_fd(fd1);
 	ASSERT_NE(fdinfo1, nullptr);
 	ASSERT_STREQ(fdinfo1->get_typestring(), "pipe");
 	ASSERT_EQ(fdinfo1->get_typechar(), 'p');
-	ASSERT_EQ(fdinfo1->m_openflags, 17);
+	ASSERT_EQ(fdinfo1->m_openflags, flags);
 	ASSERT_TRUE(fdinfo1->is_pipe());
-	ASSERT_EQ(fdinfo1->get_ino(), 7479253124);
+	ASSERT_EQ(fdinfo1->get_ino(), ino);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo1)
 }
 
@@ -381,11 +401,13 @@ TEST_F(sinsp_with_test_input, inotify_init)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 15;
+	uint8_t flags = 79;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, 79);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, 15);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_E, 1, flags);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT_X, 1, res);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "15");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "115");
@@ -408,11 +430,13 @@ TEST_F(sinsp_with_test_input, inotify_init1)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 14;
+	uint16_t flags = 89;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, 14, 89);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, res, flags);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "14");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "inotify");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "i");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "114");
@@ -424,7 +448,7 @@ TEST_F(sinsp_with_test_input, inotify_init1)
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "inotify");
 	ASSERT_EQ(fdinfo->get_typechar(), 'i');
-	ASSERT_EQ(fdinfo->m_openflags, 89);
+	ASSERT_EQ(fdinfo->m_openflags, flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -434,11 +458,14 @@ TEST_F(sinsp_with_test_input, eventfd)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 21;
+	uint16_t flags = 6;
+	uint64_t initval = 0;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, 0, 6);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, 21);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_E, 2, initval, flags);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD_X, 1, res);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "21");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "121");
@@ -461,11 +488,14 @@ TEST_F(sinsp_with_test_input, eventfd2)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 22;
+	uint16_t flags = 54;
+	uint64_t initval = 0;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_E, 1, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_X, 2, 22, 54);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_E, 1, initval);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EVENTFD2_X, 2, res, flags);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "22");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "event");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "e");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "122");
@@ -477,7 +507,7 @@ TEST_F(sinsp_with_test_input, eventfd2)
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "event");
 	ASSERT_EQ(fdinfo->get_typechar(), 'e');
-	ASSERT_EQ(fdinfo->m_openflags, 54);
+	ASSERT_EQ(fdinfo->m_openflags, flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
@@ -487,11 +517,15 @@ TEST_F(sinsp_with_test_input, signalfd)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 5;
+	int64_t fd = -1;
+	uint32_t mask = 0;
+	uint8_t flags = 12;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, -1, 0, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_E, 3, fd, mask, flags);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD_X, 1, res);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "15");
@@ -513,11 +547,15 @@ TEST_F(sinsp_with_test_input, signalfd4)
 	add_default_init_thread();
 	open_inspector();
 	sinsp_evt* evt = NULL;
+	int64_t res = 5;
+	int64_t fd = -1;
+	uint32_t mask = 0;
+	uint16_t flags = 47;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, -1, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, 5, 47);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_E, 2, fd, mask);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_SIGNALFD4_X, 2, res, flags);
 
-	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "5");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(res));
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "signalfd");
 	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "s");
 	ASSERT_EQ(get_field_as_string(evt, "fd.uid"), "15");
@@ -529,7 +567,7 @@ TEST_F(sinsp_with_test_input, signalfd4)
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->get_typestring(), "signalfd");
 	ASSERT_EQ(fdinfo->get_typechar(), 's');
-	ASSERT_EQ(fdinfo->m_openflags, 47);
+	ASSERT_EQ(fdinfo->m_openflags, flags);
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
