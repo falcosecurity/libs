@@ -88,13 +88,7 @@ target_link_libraries(scap scap_error)
 set_scap_target_properties(scap_error)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
-
-    if (BUILD_LIBSCAP_EXAMPLES)
-        add_subdirectory(examples/01-open)
-        add_subdirectory(examples/02-validatebuffer)
-    endif()
-
+	option(BUILD_LIBSCAP_EXAMPLES "Build libscap examples" ON)
 	include(FindMakedev)
 endif()
 
@@ -224,4 +218,9 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 			target_link_libraries(scap scap_engine_gvisor)
 		endif()
 	endif()
+endif()
+
+if (BUILD_LIBSCAP_EXAMPLES)
+	add_subdirectory(examples/01-open)
+	add_subdirectory(examples/02-validatebuffer)
 endif()

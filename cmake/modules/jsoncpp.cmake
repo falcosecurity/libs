@@ -1,6 +1,12 @@
 #
 # JsonCpp
 #
+
+# If we're building a bundled jsoncpp, JSONCPP_LIB_SRC will be set to
+# the path to jsoncpp.cpp and JSONCPP_LIB will be unset.
+# If we're using an external jsoncpp, JSONCPP_LIB will be set to the
+# path to the jsoncpp library and JSONCPP_LIB_SRC will be unset.
+
 option(USE_BUNDLED_JSONCPP "Enable building of the bundled jsoncpp" ${USE_BUNDLED_DEPS})
 
 if(JSONCPP_INCLUDE AND JSONCPP_LIB)
