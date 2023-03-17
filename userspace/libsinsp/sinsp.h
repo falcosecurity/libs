@@ -42,6 +42,7 @@ limitations under the License.
 #pragma once
 
 #include "capture_stats_source.h"
+#include "sinsp_driver_params.h"
 
 #ifdef _WIN32
 #pragma warning(disable: 4251 4200 4221 4190)

@@ -106,6 +106,7 @@ set(SINSP_SOURCES
 	threadinfo.cpp
 	tuples.cpp
 	sinsp.cpp
+	sinsp_driver_params.cpp
 	stats.cpp
 	token_bucket.cpp
 	stopwatch.cpp
