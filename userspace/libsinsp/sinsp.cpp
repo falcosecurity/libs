@@ -662,19 +662,27 @@ void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugi
 	open_common(driver_params);
 }
 
-void sinsp::open_gvisor(const std::string& config_path, const std::string& root_path)
+void sinsp::open_gvisor(const std::string& config_path, const std::string& root_path, sinsp_driver_params* driver_params)
 {
 	if(config_path.empty())
 	{
 		throw sinsp_exception("When you use the 'gvisor' engine you need to provide a path to the config file.");
 	}
 
-	scap_open_args oargs = factory_open_args(GVISOR_ENGINE, SCAP_MODE_LIVE);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = GVISOR_ENGINE;
+	driver_params->mode = SCAP_MODE_LIVE;
+
 	struct scap_gvisor_engine_params params;
 	params.gvisor_root_path = root_path.c_str();
 	params.gvisor_config_path = config_path.c_str();
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 
 	set_get_procs_cpu_from_driver(false);
 }
