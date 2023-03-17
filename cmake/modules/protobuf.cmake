@@ -24,7 +24,7 @@ else()
 	set(PROTOBUF_SRC "${PROJECT_BINARY_DIR}/protobuf-prefix/src/protobuf")
 	set(PROTOC "${PROTOBUF_SRC}/target/bin/protoc")
 	set(PROTOBUF_INCLUDE "${PROTOBUF_SRC}/target/include/")
-	set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf${PROTOBUF_LIB_SUFFIX}")
+	set(PROTOBUF_LIB "${PROTOBUF_SRC}/target/lib/libprotobuf${PROTOBUF_LIB_SUFFIX}" CACHE PATH "Path to libprotobuf")
 	set(PROTOC_LIB "${PROTOBUF_SRC}/target/lib/libprotoc${PROTOBUF_LIB_SUFFIX}")
 	set(PROTOBUF_INSTALL_DIR "${PROTOBUF_SRC}/target")
 

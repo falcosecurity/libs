@@ -50,6 +50,7 @@ if (BUILD_SHARED_LIBS)
     add_library(scap_engine_gvisor_o OBJECT
         ${scap_engine_gvisor_sources}
         ${scap_engine_gvisor_generated_sources}
+        ${JSONCPP_LIB_SRC}
     )
     set_property(TARGET scap_engine_gvisor_o PROPERTY POSITION_INDEPENDENT_CODE ON)
 
