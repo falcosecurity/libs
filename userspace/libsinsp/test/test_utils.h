@@ -76,7 +76,7 @@ limitations under the License.
 	}
 
 /* These numbers must be updated when we add new events in the event table */
-#define SYSCALL_EVENTS_NUM 346
+#define SYSCALL_EVENTS_NUM 354
 #define TRACEPOINT_EVENTS_NUM 6
 #define METAEVENTS_NUM 19
 #define PLUGIN_EVENTS_NUM 1
