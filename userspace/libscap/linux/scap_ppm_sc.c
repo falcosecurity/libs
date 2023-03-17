@@ -424,6 +424,14 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	[PPME_SOCKET_ACCEPT4_6_X] = (ppm_sc_code[]){PPM_SC_ACCEPT4, -1},
 	[PPME_SYSCALL_UMOUNT2_E] = (ppm_sc_code[]){PPM_SC_UMOUNT2, -1},
 	[PPME_SYSCALL_UMOUNT2_X] = (ppm_sc_code[]){PPM_SC_UMOUNT2, -1},
+	[PPME_SYSCALL_PIPE2_E] = (ppm_sc_code[]){PPM_SC_PIPE2, -1},
+	[PPME_SYSCALL_PIPE2_X] = (ppm_sc_code[]){PPM_SC_PIPE2, -1},
+	[PPME_SYSCALL_INOTIFY_INIT1_E] = (ppm_sc_code[]){PPM_SC_INOTIFY_INIT1, -1},
+	[PPME_SYSCALL_INOTIFY_INIT1_X] = (ppm_sc_code[]){PPM_SC_INOTIFY_INIT1, -1},
+	[PPME_SYSCALL_EVENTFD2_E] = (ppm_sc_code[]){PPM_SC_EVENTFD2, -1},
+	[PPME_SYSCALL_EVENTFD2_X] = (ppm_sc_code[]){PPM_SC_EVENTFD2, -1},
+	[PPME_SYSCALL_SIGNALFD4_E] = (ppm_sc_code[]){PPM_SC_SIGNALFD4, -1},
+	[PPME_SYSCALL_SIGNALFD4_X] = (ppm_sc_code[]){PPM_SC_SIGNALFD4, -1},
 };
 
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");
@@ -572,4 +580,3 @@ int scap_ppm_sc_to_native_id(ppm_sc_code sc_code)
 	}
 	return -1;
 }
-
