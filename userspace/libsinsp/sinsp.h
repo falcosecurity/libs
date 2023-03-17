@@ -236,8 +236,6 @@ public:
 	virtual void open_modern_bpf(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, uint16_t cpus_for_each_buffer = DEFAULT_CPU_FOR_EACH_BUFFER, bool online_only = true, sinsp_driver_params* driver_params = nullptr);
 	virtual void open_test_input(scap_test_input_data *data, sinsp_driver_params* driver_params = nullptr);
 
-	scap_open_args factory_open_args(const char* engine_name, scap_mode_t scap_mode);
-
 	std::string generate_gvisor_config(std::string socket_path);
 
 

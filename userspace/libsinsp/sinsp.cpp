@@ -482,14 +482,6 @@ void sinsp::open_common(scap_open_args* oargs)
 	init();
 }
 
-scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)
-{
-	scap_open_args oargs{};
-	oargs.engine_name = engine_name;
-	oargs.mode = scap_mode;
-	return oargs;
-}
-
 void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
 {
 	/* This API must be used only after the initialization phase. */
@@ -505,23 +497,6 @@ void sinsp::mark_ppm_sc_of_interest(ppm_sc_code ppm_sc, bool enable)
 	if (ret != SCAP_SUCCESS)
 	{
 		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-}
-
-
-static void fill_ppm_sc_of_interest(scap_open_args *oargs, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
-{
-	for (int i = 0; i < PPM_SC_MAX; i++)
-	{
-		/* If the set is empty, fallback to all interesting syscalls */
-		if (ppm_sc_of_interest.empty())
-		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = true;
-		}
-		else
-		{
-			oargs->ppm_sc_of_interest.ppm_sc[i] = ppm_sc_of_interest.contains((ppm_sc_code)i);
-		}
 	}
 }
 
