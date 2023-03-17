@@ -133,7 +133,7 @@
 #define RECVMSG_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define READV_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define PREADV_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint64_t) + PARAM_LEN * 2
-#define PREAD_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
+#define PREAD64_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + sizeof(uint64_t) + PARAM_LEN * 3
 #define RECVFROM_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
 #define FCNTL_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint8_t) + PARAM_LEN * 2
 #define FCNTL_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
