@@ -569,6 +569,9 @@ ppm_sc_code scap_native_id_to_ppm_sc(int native_id)
 	return g_syscall_table[native_id].ppm_sc;
 }
 
+/* Here we must be sure that there is a 1:1 relation between syscall_id:ppm_sc 
+ * otherwise there is the risk to return only the first occurrence
+ */
 int scap_ppm_sc_to_native_id(ppm_sc_code sc_code)
 {
 	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
