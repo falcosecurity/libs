@@ -210,6 +210,19 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 	if (BUILD_LIBSCAP_GVISOR)
 		add_definitions(-DHAS_ENGINE_GVISOR)
 		add_subdirectory(engine/gvisor)
-		target_link_libraries(scap scap_engine_gvisor)
+		# The static and shared build differs here because a shared scap_engine_savefile
+		# will result in circular dependencies.
+		if(BUILD_SHARED_LIBS)
+			# We can move this to the gvisor CMakeFile when we use
+			# CMake 3.13 or later.
+			# https://cmake.org/cmake/help/latest/policy/CMP0079.html
+			target_link_libraries(scap
+				${CMAKE_THREAD_LIBS_INIT}
+				${PROTOBUF_LIB}
+				${JSONCPP_LIB}
+			)
+		else()
+			target_link_libraries(scap scap_engine_gvisor)
+		endif()
 	endif()
 endif()
