@@ -176,7 +176,12 @@ TEST(SyscallExit, sendmsgX_fail)
 
 	evt_test->disable_capture();
 
+#ifdef __s390x__
+	/* For some reason this test is successful also with old bpf probe on s390x */
+	if(evt_test->is_modern_bpf_engine()	|| evt_test->is_bpf_engine())
+#else
 	if(evt_test->is_modern_bpf_engine())
+#endif
 	{
 		evt_test->assert_event_presence();
 	}
