@@ -687,12 +687,16 @@ void sinsp::open_gvisor(const std::string& config_path, const std::string& root_
 	set_get_procs_cpu_from_driver(false);
 }
 
-void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, const libsinsp::events::set<ppm_sc_code> &ppm_sc_of_interest)
+void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus_for_each_buffer, bool online_only, sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(MODERN_BPF_ENGINE, SCAP_MODE_LIVE);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
 
-	/* Set interesting syscalls and tracepoints. */
-	fill_ppm_sc_of_interest(&oargs, ppm_sc_of_interest);
+	driver_params->engine_name = MODERN_BPF_ENGINE;
+	driver_params->mode = SCAP_MODE_LIVE;
 
 	/* Engine-specific args. */
 	struct scap_modern_bpf_engine_params params;
@@ -700,8 +704,8 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	params.cpus_for_each_buffer = cpus_for_each_buffer;
 	params.allocate_online_only = online_only;
 	params.verbose = g_logger.get_severity() >= sinsp_logger::severity::SEV_DEBUG;
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 }
 
 void sinsp::open_test_input(scap_test_input_data* data)
