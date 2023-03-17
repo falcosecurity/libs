@@ -582,10 +582,18 @@ void sinsp::open_udig(sinsp_driver_params* driver_params)
 	open_common(driver_params);
 }
 
-void sinsp::open_nodriver()
+void sinsp::open_nodriver(sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
-	open_common(&oargs);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = NODRIVER_ENGINE;
+	driver_params->mode = SCAP_MODE_NODRIVER;
+
+	open_common(driver_params);
 }
 
 void sinsp::open_savefile(const std::string& filename, int fd)

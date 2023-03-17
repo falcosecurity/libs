@@ -225,7 +225,7 @@ public:
 	virtual void open_kmod(unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, sinsp_driver_params* driver_params = nullptr);
 	virtual void open_bpf(const std::string &bpf_path, unsigned long driver_buffer_bytes_dim = DEFAULT_DRIVER_BUFFER_BYTES_DIM, sinsp_driver_params* driver_params = nullptr);
 	virtual void open_udig(sinsp_driver_params* driver_params = nullptr);
-	virtual void open_nodriver();
+	virtual void open_nodriver(sinsp_driver_params* driver_params = nullptr);
 	virtual void open_savefile(const std::string &filename, int fd = 0);
 	virtual void open_plugin(const std::string &plugin_name, const std::string &plugin_open_params);
 	virtual void open_gvisor(const std::string &config_path, const std::string &root_path);
