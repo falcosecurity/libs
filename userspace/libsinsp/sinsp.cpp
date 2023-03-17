@@ -568,10 +568,18 @@ void sinsp::open_bpf(const std::string& bpf_path, unsigned long driver_buffer_by
 	open_common(driver_params);
 }
 
-void sinsp::open_udig()
+void sinsp::open_udig(sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(UDIG_ENGINE, SCAP_MODE_LIVE);
-	open_common(&oargs);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = UDIG_ENGINE;
+	driver_params->mode = SCAP_MODE_LIVE;
+
+	open_common(driver_params);
 }
 
 void sinsp::open_nodriver()
