@@ -2409,7 +2409,6 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	int res;
 	int64_t retval;
 	unsigned long bufsize;
-	unsigned long sent_data_pointer;
 
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
