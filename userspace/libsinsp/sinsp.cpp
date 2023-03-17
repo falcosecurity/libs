@@ -643,15 +643,23 @@ void sinsp::open_savefile(const std::string& filename, int fd, sinsp_driver_para
 	open_common(driver_params);
 }
 
-void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params)
+void sinsp::open_plugin(const std::string& plugin_name, const std::string& plugin_open_params, sinsp_driver_params* driver_params)
 {
-	scap_open_args oargs = factory_open_args(SOURCE_PLUGIN_ENGINE, SCAP_MODE_PLUGIN);
+	sinsp_driver_params p = {};
+	if(driver_params == nullptr)
+	{
+		driver_params = &p;
+	}
+
+	driver_params->engine_name = SOURCE_PLUGIN_ENGINE;
+	driver_params->mode = SCAP_MODE_PLUGIN;
+
 	struct scap_source_plugin_engine_params params;
 	set_input_plugin(plugin_name, plugin_open_params);
 	params.input_plugin = &m_input_plugin->as_scap_source();
 	params.input_plugin_params = (char*)m_input_plugin_open_params.c_str();
-	oargs.engine_params = &params;
-	open_common(&oargs);
+	driver_params->engine_params = &params;
+	open_common(driver_params);
 }
 
 void sinsp::open_gvisor(const std::string& config_path, const std::string& root_path)
