@@ -7074,6 +7074,33 @@ int f_sys_umount2_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_getcwd_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = syscall_get_return_value(current, args->regs);
+	int res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
+	/* we get the path only in case of success, in case of failure we would read only userspace junk */
+	if(retval >= 0)
+	{
+		/* Parameter 2: path (type: PT_CHARBUF) */
+		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+		res = val_to_ring(args, val, 0, true, 0);
+	}
+	else
+	{
+		/* Parameter 2: path (type: PT_CHARBUF) */
+		push_empty_param(args);
+	}
+
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
