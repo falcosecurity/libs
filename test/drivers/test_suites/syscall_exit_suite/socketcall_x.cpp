@@ -3229,4 +3229,48 @@ TEST(SyscallExit, socketcall_getpeernameX)
 }
 #endif
 
+#ifdef __NR_getsockname
+TEST(SyscallExit, socketcall_getsocknameX)
+{
+	auto evt_test = get_syscall_event_test(__NR_getsockname, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	int32_t mock_fd = -1;
+	void *usockaddr = NULL;
+	int *usockaddr_len = NULL;
+
+	unsigned long args[3] = {0};
+	args[0] = mock_fd;
+	args[1] = (unsigned long)usockaddr;
+	args[2] = (unsigned long)usockaddr_len;
+	assert_syscall_state(SYSCALL_FAILURE, "getsockname", syscall(__NR_socketcall, SYS_GETSOCKNAME, args));
+
+	/*=============================== TRIGGER SYSCALL  ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	// Here we have no parameters to assert.
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(0);
+}
+#endif
+
 #endif /* __NR_socketcall */
