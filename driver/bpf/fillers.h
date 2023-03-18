@@ -6219,6 +6219,13 @@ FILLER(sys_getcwd_x, true)
 	return res;
 }
 
+FILLER(sys_getdents_e, true)
+{
+	/* Parameter 1: fd (type: PT_FD)*/
+	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
+	return bpf_val_to_ring(data, (s64)fd);
+}
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 /* We set `is_syscall` flag to `false` since this is not
  * a real syscall, we only send the same event from another

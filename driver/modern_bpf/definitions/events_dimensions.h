@@ -23,6 +23,8 @@
 #define GENERIC_E_SIZE HEADER_LEN + sizeof(uint16_t) * 2 + PARAM_LEN * 2
 #define GENERIC_X_SIZE HEADER_LEN + sizeof(uint16_t) + PARAM_LEN
 #define GETCWD_E_SIZE HEADER_LEN
+#define GETDENTS_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
+#define GETDENTS_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define MKDIR_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define MMAP_E_SIZE HEADER_LEN + sizeof(uint64_t) * 3 + sizeof(int64_t) + sizeof(uint32_t) * 2 + PARAM_LEN * 6
 #define MMAP_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) * 3 + PARAM_LEN * 4
