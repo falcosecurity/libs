@@ -217,7 +217,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SIGNALDELIVER_E] = {FILLER_REF(sys_signaldeliver_e)},
 	[PPME_SIGNALDELIVER_X] = {FILLER_REF(sys_empty)},
 #endif
-	[PPME_SYSCALL_GETDENTS_E] = {FILLER_REF(sys_single)},
+	[PPME_SYSCALL_GETDENTS_E] = {FILLER_REF(sys_getdents_e)},
 	[PPME_SYSCALL_GETDENTS_X] = {FILLER_REF(sys_single_x)},
 	[PPME_SYSCALL_GETDENTS64_E] = {FILLER_REF(sys_single)},
 	[PPME_SYSCALL_GETDENTS64_X] = {FILLER_REF(sys_single_x)},

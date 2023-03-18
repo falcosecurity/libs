@@ -15,6 +15,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_generic)				\
 	FN(sys_empty)				\
 	FN(sys_getcwd_x)			\
+	FN(sys_getdents_e)			\
 	FN(sys_single)				\
 	FN(sys_single_x)			\
 	FN(sys_open_e)				\
