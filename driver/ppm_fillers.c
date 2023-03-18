@@ -7116,6 +7116,21 @@ int f_sys_getdents_e(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_getdents64_e(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	s32 fd = 0; 
+	int res;
+
+	/* Parameter 1: fd (type: PT_FD) */
+	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	fd = (int32_t)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 int f_sched_prog_exec(struct event_filler_arguments *args)
 {
