@@ -24,6 +24,8 @@ limitations under the License.
 static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_GENERIC_E] = "generic_e",
 	[PPME_GENERIC_X] = "generic_x",
+	[PPME_SYSCALL_GETCWD_E] = "getcwd_e",
+	[PPME_SYSCALL_GETCWD_X] = "getcwd_x",
 	[PPME_SYSCALL_MKDIR_2_E] = "mkdir_e",
 	[PPME_SYSCALL_MKDIR_2_X] = "mkdir_x",
 	[PPME_SYSCALL_MMAP_E] = "mmap_e",

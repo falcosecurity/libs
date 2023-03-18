@@ -6197,6 +6197,28 @@ FILLER(sys_umount2_x, true)
 	return  bpf_val_to_ring(data, target_pointer);
 }
 
+FILLER(sys_getcwd_x, true)
+{
+	/* Parameter 1: res (type: PT_ERRNO) */
+	long retval = bpf_syscall_get_retval(data->ctx);
+	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	CHECK_RES(res);
+
+	/* we get the path only in case of success, in case of failure we would read only userspace junk */
+	if(retval >= 0)
+	{
+		/* Parameter 2: path (type: PT_CHARBUF) */
+		unsigned long path_pointer = bpf_syscall_get_argument(data, 0);
+		res = bpf_val_to_ring(data, path_pointer);
+	}
+	else
+	{
+		/* Parameter 2: path (type: PT_CHARBUF) */
+		res = bpf_push_empty_param(data);
+	}
+	return res;
+}
+
 #ifdef CAPTURE_SCHED_PROC_EXEC
 /* We set `is_syscall` flag to `false` since this is not
  * a real syscall, we only send the same event from another
