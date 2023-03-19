@@ -68,13 +68,28 @@ struct af_hash_func<AF_INET>
 	}
 };
 
+static size_t hash_combine(size_t lhs, size_t rhs)
+{
+	// This formula is indicated as superior to a simpler xor-ing of the two
+	// values. One reason is that for a pair of equal values xor-ing them would
+	// always result in a null hash (A ^ A = 0), thus xor-ing potentially leads
+	// to a higher probability of collision.
+	if constexpr (sizeof(size_t) >= 8) {
+		lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
+	} else {
+		lhs ^= rhs + 0x9e3779b9 + (lhs << 6) + (lhs >> 2);
+	}
+	return lhs;
+}
+
 template <>
 struct af_hash_func<AF_INET6>
 {
 	using type = typename af_type_traits<AF_INET6>::type;
-	std::size_t operator ()(const type& v) const
+	std::size_t operator()(const type& v) const
 	{
-		return tbb::tbb_hash<type>{}(v);
+		return hash_combine(std::hash<type::first_type>()(v.first),
+		                    std::hash<type::second_type>()(v.second));
 	}
 };
 
@@ -457,7 +472,7 @@ public:
 	}
 
 private:
-	tbb::concurrent_unordered_map<addr_t, std::pair<std::string, const dns_info*>> m_map;
+	tbb::concurrent_unordered_map<addr_t, std::pair<std::string, const dns_info*>, af_hash_func<AF>> m_map;
 };
 
 // combined v4, v6 maps
