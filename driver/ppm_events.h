@@ -1,6 +1,6 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
@@ -13,6 +13,7 @@ or GPL2.txt for full copies of the license.
 /* To know about __NR_socketcall */
 #ifndef UDIG
 #include <asm/unistd.h>
+#include "ppm_consumer.h"
 #endif
 #ifdef CONFIG_COMPAT
 #include <linux/compat.h>
@@ -26,8 +27,6 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #include "ppm_events_public.h"
-
-typedef struct ppm_consumer_t ppm_consumer_t;
 
 /*
  * Various crap that a callback might need
