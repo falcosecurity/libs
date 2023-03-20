@@ -1201,7 +1201,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// See if this process includes tasks that need to be added
 		// Note the use of recursion will re-enter this function for the childdir.
 		//
-		if(parenttid == -1 && handle->m_mode != SCAP_MODE_NODRIVER)
+		if(parenttid == -1 && !handle->m_minimal_scan)
 		{
 			snprintf(childdir, sizeof(childdir), "%s/%u/task", procdirname, (int)tid);
 			if(_scap_proc_scan_proc_dir_impl(handle, childdir, tid, error) == SCAP_FAILURE)
