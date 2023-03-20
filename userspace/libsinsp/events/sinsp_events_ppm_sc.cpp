@@ -21,9 +21,9 @@ limitations under the License.
 /*
  * Repair base syscalls flags.
  */
-#define PPM_ADAPTIVE_SC_NETWORK_BASE (1 << 0)
-#define PPM_ADAPTIVE_SC_NETWORK_BIND (1 << 1)
-#define PPM_ADAPTIVE_SC_FD_CLOSE (1 << 2)
+#define PPM_REPAIR_STATE_SC_NETWORK_BASE (1 << 0)
+#define PPM_REPAIR_STATE_SC_NETWORK_BIND (1 << 1)
+#define PPM_REPAIR_STATE_SC_FD_CLOSE (1 << 2)
 
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
@@ -326,21 +326,21 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 	uint32_t flags = 0;
 	if (!libsinsp::events::net_sc_set().intersect(ppm_sc_set).empty())
 	{
-		flags |= PPM_ADAPTIVE_SC_NETWORK_BASE;
-		flags |= PPM_ADAPTIVE_SC_FD_CLOSE;
+		flags |= PPM_REPAIR_STATE_SC_NETWORK_BASE;
+		flags |= PPM_REPAIR_STATE_SC_FD_CLOSE;
 	}
 
 	static libsinsp::events::set<ppm_sc_code> accept_listen_sc_set = {PPM_SC_ACCEPT, PPM_SC_ACCEPT4, PPM_SC_LISTEN};
 	if (!accept_listen_sc_set.intersect(ppm_sc_set).empty())
 	{
-		flags |= PPM_ADAPTIVE_SC_NETWORK_BIND;
+		flags |= PPM_REPAIR_STATE_SC_NETWORK_BIND;
 	}
 
 	if (!libsinsp::events::file_sc_set().intersect(ppm_sc_set).empty() ||
 		!libsinsp::events::io_sc_set().intersect(ppm_sc_set).empty() ||
 		!libsinsp::events::io_other_sc_set().intersect(ppm_sc_set).empty())
 	{
-		flags |= PPM_ADAPTIVE_SC_FD_CLOSE;
+		flags |= PPM_REPAIR_STATE_SC_FD_CLOSE;
 	}
 
 	/* These syscalls are used to build up or modify info of the basic process (tinfo) struct.
@@ -369,16 +369,16 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 		PPM_SC_SETUID32,
 	};
 
-	if ((flags & PPM_ADAPTIVE_SC_NETWORK_BASE))
+	if ((flags & PPM_REPAIR_STATE_SC_NETWORK_BASE))
 	{
 		repaired_sinsp_state_sc_set.insert(PPM_SC_SOCKET);
 		repaired_sinsp_state_sc_set.insert(PPM_SC_GETSOCKOPT);
 	}
-	if ((flags & PPM_ADAPTIVE_SC_NETWORK_BIND))
+	if ((flags & PPM_REPAIR_STATE_SC_NETWORK_BIND))
 	{
 		repaired_sinsp_state_sc_set.insert(PPM_SC_BIND);
 	}
-	if ((flags & PPM_ADAPTIVE_SC_FD_CLOSE))
+	if ((flags & PPM_REPAIR_STATE_SC_FD_CLOSE))
 	{
 		repaired_sinsp_state_sc_set.insert(PPM_SC_CLOSE);
 	}
