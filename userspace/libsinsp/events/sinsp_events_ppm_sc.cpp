@@ -333,9 +333,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 	static libsinsp::events::set<ppm_sc_code> accept_listen_sc_set = {PPM_SC_ACCEPT, PPM_SC_ACCEPT4, PPM_SC_LISTEN};
 	if (!accept_listen_sc_set.intersect(ppm_sc_set).empty())
 	{
-		flags |= PPM_ADAPTIVE_SC_NETWORK_BASE;
 		flags |= PPM_ADAPTIVE_SC_NETWORK_BIND;
-		flags |= PPM_ADAPTIVE_SC_FD_CLOSE;
 	}
 
 	if (!libsinsp::events::file_sc_set().intersect(ppm_sc_set).empty() ||
@@ -388,5 +386,6 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 	/* Enforce proc exit tp as safety even if enforced elsewhere. */
 	repaired_sinsp_state_sc_set.insert(PPM_SC_SCHED_PROCESS_EXIT);
 
-	return repaired_sinsp_state_sc_set;
+	/* Merge input sc set with sinsp_state_sc_set and return a complete "repaired" set. */
+	return repaired_sinsp_state_sc_set.merge(ppm_sc_set);
 }
