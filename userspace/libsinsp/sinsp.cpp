@@ -566,9 +566,13 @@ void sinsp::open_udig()
 	open_common(&oargs);
 }
 
-void sinsp::open_nodriver()
+void sinsp::open_nodriver(bool full_proc_scan)
 {
 	scap_open_args oargs = factory_open_args(NODRIVER_ENGINE, SCAP_MODE_NODRIVER);
+	struct scap_nodriver_engine_params params;
+	params.full_proc_scan = full_proc_scan;
+
+	oargs.engine_params = &params;
 	open_common(&oargs);
 }
 
