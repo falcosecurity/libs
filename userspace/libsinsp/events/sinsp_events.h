@@ -190,18 +190,28 @@ set<ppm_sc_code> names_to_sc_set(const std::unordered_set<std::string>& syscalls
 set<ppm_event_code> sc_set_to_event_set(const set<ppm_sc_code> &ppm_sc_of_interest);
 
 /*!
-  * \brief [Experimental] Enforce sinsp state `ppm_sc` set conditioned by filter `ppm_sc` set.
-  * This has a resource-conscious effect in that the driver only subscribes to a set of `ppm_sc`
-  * that is effectively needed for the absolute minimum sinsp state build-up and
-  * life-cycle management.
+  * \brief [Experimental]
+  * Enforce minimum sinsp state `ppm_sc` set conditioned by filter `ppm_sc` set.
   * 
-  * In addition, this option can be used to "repair" a custom set of user defined `ppm_sc`
-  * to ensure Falco runs correctly.
+  * Use Cases:
   * 
-  * TODO @incertum create new e2e test format to model sinsp state dependencies.
+  * (1) Resourceful minimal sinsp state enforcement. The driver only activates a set of `ppm_sc`
+  *     that is needed based on the current `ppm_sc` configuration from filter(s).
+  * 
+  * (2) "repair" a custom set of user defined `ppm_sc` to ensure the agent runs correctly.
+  *     This setting is useful for cases where the end user takes advantage of complete default
+  *     sinsp state enforcement override, but still would like to rely on some safety minimal sinsp
+  *     state enforcement mechanisms.
+  * 
+  * `sinsp_repair_state_sc_set` is a more resourceful alternative to the default `sinsp_state_sc_set`
+  * option as it takes the filter `ppm_sc` set into consideration when selecting the effective set of
+  * `ppm_sc` that needs to be activated in addition to the filter `ppm_sc` set.
+  * 
+  * todo: possibly extend e2e tests.
   *
   * @param ppm_sc_set set of `ppm_sc` from filter(s)
   * @return sinsp state compliant set of `ppm_sc` conditioned by set of `ppm_sc` from filter(s)
+  *         -> the returned set includes the set of `ppm_sc` from filter(s)
 */
 set<ppm_sc_code> sinsp_repair_state_sc_set(const set<ppm_sc_code>& ppm_sc_set);
 
