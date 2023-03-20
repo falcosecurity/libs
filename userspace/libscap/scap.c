@@ -542,13 +542,7 @@ scap_t* scap_open_offline_int(scap_open_args* oargs, int* rc, char* error)
 #endif
 
 #ifdef HAS_ENGINE_NODRIVER
-scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
-			       proc_entry_callback proc_callback,
-			       void* proc_callback_context,
-			       bool import_users,
-			       void(*debug_log_fn)(const char* msg),
-			       uint64_t proc_scan_timeout_ms,
-			       uint64_t proc_scan_log_interval_ms)
+scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	scap_t* handle = NULL;
@@ -588,13 +582,13 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	}
 
 	handle->m_proclist.m_main_handle = handle;
-	handle->m_proclist.m_proc_callback = proc_callback;
-	handle->m_proclist.m_proc_callback_context = proc_callback_context;
+	handle->m_proclist.m_proc_callback = oargs->proc_callback;
+	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	handle->m_proclist.m_proclist = NULL;
 
-	handle->m_debug_log_fn = debug_log_fn;
-	handle->m_proc_scan_timeout_ms = proc_scan_timeout_ms;
-	handle->m_proc_scan_log_interval_ms = proc_scan_log_interval_ms;
+	handle->m_debug_log_fn = oargs->debug_log_fn;
+	handle->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
+	handle->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;
 
 	//
 	// Extract machine information
@@ -623,7 +617,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc,
 	//
 	// Create the user list
 	//
-	if(import_users)
+	if(oargs->import_users)
 	{
 		if((*rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
 		{
@@ -774,12 +768,7 @@ scap_t* scap_open(scap_open_args* oargs, char *error, int32_t *rc)
 #ifdef HAS_ENGINE_NODRIVER
 	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
-		return scap_open_nodriver_int(error, rc, oargs->proc_callback,
-					      oargs->proc_callback_context,
-					      oargs->import_users,
-						  oargs->debug_log_fn,
-						  oargs->proc_scan_timeout_ms,
-						  oargs->proc_scan_log_interval_ms);
+		return scap_open_nodriver_int(error, rc, oargs);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
