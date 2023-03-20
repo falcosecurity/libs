@@ -176,7 +176,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
         "setuid", "setuid32", "vfork"})\
         .merge({PPM_SC_SCHED_PROCESS_EXIT});
     input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat"});
-    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
     truth = libsinsp::events::names_to_sc_set({
@@ -185,7 +185,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
         "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
         .merge({PPM_SC_SCHED_PROCESS_EXIT});
     input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect", "accept", "accept4"});
-    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
     truth = libsinsp::events::names_to_sc_set({
@@ -194,7 +194,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
         "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
         .merge({PPM_SC_SCHED_PROCESS_EXIT});
     input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect"});
-    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
     truth = libsinsp::events::names_to_sc_set({
@@ -203,7 +203,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
         "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
         .merge({PPM_SC_SCHED_PROCESS_EXIT});
     input_sc_set = libsinsp::events::names_to_sc_set({"execve", "accept", "accept4"});
-    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
     truth = libsinsp::events::names_to_sc_set({
@@ -221,7 +221,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
         "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork"})\
         .merge({PPM_SC_SCHED_PROCESS_EXIT});
     input_sc_set = libsinsp::events::names_to_sc_set({"open", "openat", "openat2"});
-    sc_set = sinsp_repair_state_sc_set(input_sc_set).merge(input_sc_set);
+    sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
 }
