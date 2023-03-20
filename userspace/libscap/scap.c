@@ -603,6 +603,7 @@ scap_t* scap_open_nodriver_int(char *error, int32_t *rc, scap_open_args *oargs)
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
+	handle->m_minimal_scan = true;
 
 	//
 	// Create the interface list

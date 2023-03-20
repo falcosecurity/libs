@@ -1288,7 +1288,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 
 		// In no driver mode to limit cpu usage we just parse sockets
 		// because we are interested only on them
-		if(handle->m_mode == SCAP_MODE_NODRIVER && !S_ISSOCK(sb.st_mode))
+		if(handle->m_minimal_scan && !S_ISSOCK(sb.st_mode))
 		{
 			continue;
 		}
