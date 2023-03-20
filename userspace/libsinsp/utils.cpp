@@ -665,7 +665,10 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path, ch
 		}
 		else
 		{
-			if(*pc == '.')
+			//
+			// If path begins with '.' or '.' is the first char after a '/'
+			//
+			if(*pc == '.' && (tc == targetbase || *(tc - 1) == separator))
 			{
 				//
 				// '../', rewind to the previous separator
@@ -698,16 +701,13 @@ void copy_and_sanitize_path(char* target, char* targetbase, const char* path, ch
 					pc++;
 				}
 				//
-				// Otherwise, we leave the string intact up to the next separator or the end of string.
+				// Otherwise, we leave the string intact.
 				//
 				else
 				{
-					while(*pc != separator && *pc != 0)
-					{
-						*tc = *pc;
-						pc++;
-						tc++;
-					}
+					*tc = *pc;
+					pc++;
+					tc++;
 				}
 			}
 			else if(*pc == separator)
