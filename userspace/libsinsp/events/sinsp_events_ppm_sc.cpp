@@ -385,5 +385,8 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 		repaired_sinsp_state_sc_set.insert(PPM_SC_CLOSE);
 	}
 
+	/* Enforce proc exit tp as safety even if enforced elsewhere. */
+	repaired_sinsp_state_sc_set.insert(PPM_SC_SCHED_PROCESS_EXIT);
+
 	return repaired_sinsp_state_sc_set;
 }
