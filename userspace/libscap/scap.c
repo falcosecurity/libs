@@ -411,6 +411,7 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 {
 	int32_t rc;
+	struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
 
 	//
 	// Get boot_time
@@ -453,8 +454,12 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
 	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
-	handle->m_minimal_scan = true;
+
+	if(!engine_params || !engine_params->full_proc_scan)
+	{
+		handle->m_minimal_scan = true;
+		handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
+	}
 
 	//
 	// Create the interface list
