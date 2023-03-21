@@ -120,4 +120,20 @@ TEST(sinsp_utils_test, copy_and_sanitize_path)
 	path = "..";
 	copy_and_sanitize_path(target, target, path.c_str(), '/');
 	EXPECT_EQ("", std::string(target));
+
+	path = "/dir//./term";
+	copy_and_sanitize_path(target, target, path.c_str(), '/');
+	EXPECT_EQ("/dir/term", std::string(target));
+
+	path = "/dir//../term";
+	copy_and_sanitize_path(target, target, path.c_str(), '/');
+	EXPECT_EQ("/term", std::string(target));
+
+	path = "/dir//.../term";
+	copy_and_sanitize_path(target, target, path.c_str(), '/');
+	EXPECT_EQ("/dir/.../term", std::string(target));
+
+	path = "/dir//...";
+	copy_and_sanitize_path(target, target, path.c_str(), '/');
+	EXPECT_EQ("/dir/...", std::string(target));
 }
