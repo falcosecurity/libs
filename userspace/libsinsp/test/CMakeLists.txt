@@ -47,6 +47,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_ppm_codes.ut.cpp
 	user.ut.cpp
 	container_info.ut.cpp
+	sinsp_utils.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
 )
 
