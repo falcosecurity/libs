@@ -26,7 +26,7 @@ struct ppm_consumer_t {
 	u32 sampling_interval;
 	int is_dropping;
 	int dropping_mode;
-	int drop_failed;
+	bool drop_failed;
 	volatile int need_to_insert_drop_e;
 	volatile int need_to_insert_drop_x;
 	struct list_head node;

@@ -521,7 +521,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	consumer->sampling_interval = 0;
 	consumer->is_dropping = 0;
 	consumer->do_dynamic_snaplen = false;
-	consumer->drop_failed = 0;
+	consumer->drop_failed = false;
 	consumer->need_to_insert_drop_e = 0;
 	consumer->need_to_insert_drop_x = 0;
 	consumer->fullcapture_port_range_start = 0;
