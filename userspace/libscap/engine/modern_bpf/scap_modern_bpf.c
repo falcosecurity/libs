@@ -29,29 +29,6 @@ limitations under the License.
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 
-/*=============================== UTILS ===============================*/
-
-/// TODO: in the next future, from `oargs` we should directly receive a table of internal syscall code, not ppm_sc.
-static int32_t populate_64bit_interesting_syscalls_table()
-{
-	int ret = SCAP_SUCCESS;
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		pman_mark_single_ppm_sc(ppm_sc, false);
-	}
-	return ret;
-}
-
-/*
-* Verify prerequisites for modern probes are met.
-*/
-static int32_t check_modern_probe_support(char* last_err)
-{
-	return pman_check_support() ? SCAP_SUCCESS : SCAP_FAILURE;
-}
-
-/*=============================== UTILS ===============================*/
-
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct modern_bpf_engine* engine = calloc(1, sizeof(struct modern_bpf_engine));
@@ -102,21 +79,16 @@ int32_t scap_modern_bpf_stop_dropping_mode()
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_modern_bpf_enable_tp(struct modern_bpf_engine* handle, ppm_tp_code tp, bool enable)
-{
-	return pman_update_single_program(tp, enable);
-}
-
-static int32_t scap_modern_bpf_enable_sc(struct modern_bpf_engine* handle, ppm_sc_code ppm_sc, bool enable)
-{
-	pman_mark_single_ppm_sc(ppm_sc, enable);
-	return 0;
-}
-
-static int32_t scap_modern_bpf_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+static int32_t scap_modern_bpf_handle_sc(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	return handle_ppm_sc_mask(handle, handle->curr_sc_set.ppm_sc, op == SCAP_PPM_SC_MASK_SET, ppm_sc, scap_modern_bpf_enable_sc, scap_modern_bpf_enable_tp);
+	handle->curr_sc_set.ppm_sc[sc] = op == SCAP_PPM_SC_MASK_SET;
+	/* We update the system state only if the capture is started */
+	if(handle->capturing)
+	{
+		return pman_enforce_sc_set(handle->curr_sc_set.ppm_sc);
+	}
+	return SCAP_SUCCESS;
 }
 
 static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2)
@@ -139,7 +111,7 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		pman_set_snaplen(arg1);
 		break;
 	case SCAP_PPM_SC_MASK:
-		return scap_modern_bpf_handle_ppm_sc_mask(engine, arg1, arg2);
+		return scap_modern_bpf_handle_sc(engine, arg1, arg2);
 	case SCAP_DROP_FAILED:
 		pman_set_drop_failed(arg1);
 		return SCAP_SUCCESS;
@@ -168,12 +140,16 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 int32_t scap_modern_bpf__start_capture(struct scap_engine_handle engine)
 {
 	struct modern_bpf_engine* handle = engine.m_handle;
-	return pman_enable_capture(handle->curr_sc_set.ppm_sc);
+	handle->capturing = true;
+	return pman_enforce_sc_set(handle->curr_sc_set.ppm_sc);
 }
 
 int32_t scap_modern_bpf__stop_capture(struct scap_engine_handle engine)
 {
-	return pman_disable_capture();
+	struct modern_bpf_engine* handle = engine.m_handle;
+	handle->capturing = false;
+	/* NULL is equivalent to an empty array */
+	return pman_enforce_sc_set(NULL);
 }
 
 int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
@@ -186,16 +162,14 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 	/* Some checks to test if we can use the modern BPF probe
 	 * - check the ring-buffer dimension in bytes.
-	 * - check the minimum required kernel version.
-	 *
-	 * Please note the presence of BTF is directly checked by `libbpf` see `bpf_object__load_vmlinux_btf` method.
+	 * - check the presence of ring buffer and of BTF.
 	 */
 	if(check_buffer_bytes_dim(handle->m_lasterr, params->buffer_bytes_dim) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
 
-	if(check_modern_probe_support(handle->m_lasterr) != SCAP_SUCCESS)
+	if(!pman_check_support())
 	{
 		return SCAP_FAILURE;
 	}
@@ -220,8 +194,6 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	ret = ret ?: pman_load_probe();
 	ret = ret ?: pman_finalize_maps_after_loading();
 	ret = ret ?: pman_finalize_ringbuf_array_after_loading();
-	ret = ret ?: populate_64bit_interesting_syscalls_table(oargs->ppm_sc_of_interest.ppm_sc);
-	// Do not attach tracepoints at this stage.
 	if(ret != SCAP_SUCCESS)
 	{
 		return ret;

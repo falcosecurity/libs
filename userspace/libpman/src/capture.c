@@ -19,53 +19,115 @@ limitations under the License.
 #include <libpman.h> // before including scap so that handle_ppm_sc_mask() is not built
 #include <scap.h>
 
-int pman_enable_capture(bool *sc_set)
+/* This function should be idempotent, every time it is called it should enforce again the state */
+int pman_enforce_sc_set(bool *sc_set)
 {
-	if (!sc_set)
+	/* If we fail at initialization time the BPF skeleton
+	 * is not initialized when we stop the capture for example
+	 */
+	if(!g_state.skel)
 	{
-		for (int i = 0; i < PPM_SC_MAX; i++)
-		{
-			pman_mark_single_ppm_sc(i, true);
-		}
-		return pman_attach_all_programs();
+		return SCAP_FAILURE;
+	}
+
+	/* When we want to disable the capture we receive a NULL pointer here */
+	bool empty_sc_set[PPM_SC_MAX] = {0};
+	if(!sc_set)
+	{
+		sc_set = empty_sc_set;
 	}
 
 	int ret = 0;
-	/* Enable requested tracepoints */
-	bool tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(sc_set, tp_set);
-	for (int i = 0; i < TP_VAL_MAX && ret == 0; i++)
+	int syscall_id = 0;
+	/* Special tracepoints, their attachment depends on interesting syscalls */
+	bool sys_enter = false;
+	bool sys_exit = false;
+	bool sched_prog_fork = false;
+	bool sched_prog_exec = false;
+
+	/* Enforce interesting syscalls */
+	for(int sc = 0; sc < PPM_SC_MAX; sc++)
 	{
-		if(tp_set[i])
+		syscall_id = scap_ppm_sc_to_native_id(sc);
+		/* if `syscall_id` is -1 this is not a syscall */
+		if(syscall_id == -1)
 		{
-			ret = pman_update_single_program(i, true);
+			continue;
+		}
+
+		if(!sc_set[sc])
+		{
+			pman_mark_single_64bit_syscall(syscall_id, false);
+		}
+		else
+		{
+			sys_enter = true;
+			sys_exit = true;
+			pman_mark_single_64bit_syscall(syscall_id, true);
 		}
 	}
-	if (ret != 0)
+
+	if(sc_set[PPM_SC_FORK] ||
+	   sc_set[PPM_SC_VFORK] ||
+	   sc_set[PPM_SC_CLONE] ||
+	   sc_set[PPM_SC_CLONE3])
 	{
-		return ret;
+		sched_prog_fork = true;
 	}
 
-	/* Enable requested syscalls */
-	for (int i = 0; i < PPM_SC_MAX && ret == 0; i++)
+	if(sc_set[PPM_SC_EXECVE] ||
+	   sc_set[PPM_SC_EXECVEAT])
 	{
-		pman_mark_single_ppm_sc(i, true);
+		sched_prog_exec = true;
 	}
+
+	/* Enable desired tracepoints */
+	if(sys_enter)
+		ret = ret ?: pman_attach_syscall_enter_dispatcher();
+	else
+		ret = ret ?: pman_detach_syscall_enter_dispatcher();
+
+	if(sys_exit)
+		ret = ret ?: pman_attach_syscall_exit_dispatcher();
+	else
+		ret = ret ?: pman_detach_syscall_exit_dispatcher();
+
+	if(sched_prog_fork)
+		ret = ret ?: pman_attach_sched_proc_fork();
+	else
+		ret = ret ?: pman_detach_sched_proc_fork();
+
+	if(sched_prog_exec)
+		ret = ret ?: pman_attach_sched_proc_exec();
+	else
+		ret = ret ?: pman_detach_sched_proc_exec();
+
+	if(sc_set[PPM_SC_SCHED_PROCESS_EXIT])
+		ret = ret ?: pman_attach_sched_proc_exit();
+	else
+		ret = ret ?: pman_detach_sched_proc_exit();
+
+	if(sc_set[PPM_SC_SCHED_SWITCH])
+		ret = ret ?: pman_attach_sched_switch();
+	else
+		ret = ret ?: pman_detach_sched_switch();
+
+	if(sc_set[PPM_SC_PAGE_FAULT_USER])
+		ret = ret ?: pman_attach_page_fault_user();
+	else
+		ret = ret ?: pman_detach_page_fault_user();
+
+	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
+		ret = ret?: pman_attach_page_fault_kernel();
+	else
+		ret = ret?: pman_detach_page_fault_kernel();
+
+	if(sc_set[PPM_SC_SIGNAL_DELIVER])
+		ret = ret?: pman_attach_signal_deliver();
+	else
+		ret = ret?: pman_detach_signal_deliver();
+
 	return ret;
-}
-
-int pman_disable_capture()
-{
-	/* If we fail at initialization time the BPF skeleton is not initialized */
-	if(g_state.skel)
-	{
-		for (int i = 0; i < PPM_SC_MAX; i++)
-		{
-			pman_mark_single_ppm_sc(i, false);
-		}
-		return pman_detach_all_programs();
-	}
-	return 0;
 }
 
 int pman_get_scap_stats(void *scap_stats_struct)
