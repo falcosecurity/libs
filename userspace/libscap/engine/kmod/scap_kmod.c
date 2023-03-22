@@ -32,7 +32,7 @@ limitations under the License.
 #include "ringbuffer/ringbuffer.h"
 #include "strlcpy.h"
 #include "strerror.h"
-#include <ppm_tp.h>
+#include "../../driver/ppm_tp.h"
 
 //#define NDEBUG
 #include <assert.h>
@@ -126,10 +126,9 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_kmod_enable_tp(struct kmod_engine* handle, ppm_tp_code tp, bool enable)
+static int32_t mark_attached_prog(struct kmod_engine* handle, uint32_t ioctl_op, ppm_tp_code tp)
 {
 	struct scap_device_set *devset = &handle->m_dev_set;
-	uint32_t ioctl_op = enable ? PPM_IOCTL_ENABLE_TP : PPM_IOCTL_DISABLE_TP;
 	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, tp))
 	{
 		ASSERT(false);
@@ -140,31 +139,133 @@ static int32_t scap_kmod_enable_tp(struct kmod_engine* handle, ppm_tp_code tp, b
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_kmod_enable_sc(struct kmod_engine* handle, ppm_sc_code ppm_sc, bool enable)
+static int32_t mark_syscall(struct kmod_engine* handle, uint32_t ioctl_op, int syscall_id)
 {
 	struct scap_device_set *devset = &handle->m_dev_set;
-	int ioctl_op = enable == SCAP_PPM_SC_MASK_SET ? PPM_IOCTL_ENABLE_SYSCALL : PPM_IOCTL_DISABLE_SYSCALL;
-	// Find any syscall table entry that matches requested ppm_sc code
-	for (int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, syscall_id))
 	{
-		if (g_syscall_table[i].ppm_sc == ppm_sc)
-		{
-			if(ioctl(devset->m_devs[0].m_fd, ioctl_op, i))
-			{
-				ASSERT(false);
-				return scap_errprintf(handle->m_lasterr, errno,
-						      "%s(%d) failed for syscall %d",
-						      __FUNCTION__, ioctl_op, i);
-			}
-		}
+		ASSERT(false);
+		return scap_errprintf(handle->m_lasterr, errno,
+						"%s(%d) failed for syscall %d",
+						__FUNCTION__, ioctl_op, syscall_id);
 	}
 	return SCAP_SUCCESS;
 }
 
-static int32_t scap_kmod_handle_ppm_sc_mask(struct scap_engine_handle engine, uint32_t op, uint32_t ppm_sc)
+static int enforce_sc_set(struct kmod_engine* handle)
+{
+	/* handle->capturing == false means that we want to disable the capture */
+	bool* sc_set = handle->curr_sc_set.ppm_sc;
+	bool empty_sc_set[PPM_SC_MAX] = {0};
+	if(!handle->capturing)
+	{
+		/* empty set to erase all */
+		sc_set = empty_sc_set;
+	}
+
+	int ret = 0;
+	int syscall_id = 0;
+	/* Special tracepoints, their attachment depends on interesting syscalls */
+	bool sys_enter = false;
+	bool sys_exit = false;
+	bool sched_prog_fork = false;
+	bool sched_prog_exec = false;
+
+	/* Enforce interesting syscalls */
+	for(int sc = 0; sc < PPM_SC_MAX; sc++)
+	{
+		syscall_id = scap_ppm_sc_to_native_id(sc);
+		/* if `syscall_id` is -1 this is not a syscall */
+		if(syscall_id == -1)
+		{
+			continue;
+		}
+
+		if(!sc_set[sc])
+		{
+			ret = ret ?: mark_syscall(handle, PPM_IOCTL_DISABLE_SYSCALL, syscall_id);
+		}
+		else
+		{
+			sys_enter = true;
+			sys_exit = true;
+			ret = ret ?: mark_syscall(handle, PPM_IOCTL_ENABLE_SYSCALL, syscall_id);
+		}
+	}
+
+	if(sc_set[PPM_SC_FORK] ||
+	   sc_set[PPM_SC_VFORK] ||
+	   sc_set[PPM_SC_CLONE] ||
+	   sc_set[PPM_SC_CLONE3])
+	{
+		sched_prog_fork = true;
+	}
+
+	if(sc_set[PPM_SC_EXECVE] ||
+	   sc_set[PPM_SC_EXECVEAT])
+	{
+		sched_prog_exec = true;
+	}
+
+	/* Enable desired tracepoints */
+	if(sys_enter)
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SYS_ENTER);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SYS_ENTER);
+
+	if(sys_exit)
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SYS_EXIT);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SYS_EXIT);
+
+	if(sched_prog_fork)
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_FORK);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_FORK);
+
+	if(sched_prog_exec)
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_EXEC);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_EXEC);
+
+	if(sc_set[PPM_SC_SCHED_PROCESS_EXIT])
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_EXIT);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_EXIT);
+
+	if(sc_set[PPM_SC_SCHED_SWITCH])
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_SWITCH);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_SWITCH);
+
+	if(sc_set[PPM_SC_PAGE_FAULT_USER])
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, PAGE_FAULT_USER);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, PAGE_FAULT_USER);
+
+	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, PAGE_FAULT_KERN);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, PAGE_FAULT_KERN);
+
+	if(sc_set[PPM_SC_SIGNAL_DELIVER])
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SIGNAL_DELIVER);
+	else
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SIGNAL_DELIVER);
+
+	return ret;
+}
+
+static int32_t scap_kmod_handle_sc(struct scap_engine_handle engine, uint32_t op, uint32_t sc)
 {
 	struct kmod_engine* handle = engine.m_handle;
-	return handle_ppm_sc_mask(handle, handle->curr_sc_set.ppm_sc, op == SCAP_PPM_SC_MASK_SET, ppm_sc, scap_kmod_enable_sc, scap_kmod_enable_tp);
+	handle->curr_sc_set.ppm_sc[sc] = op == SCAP_PPM_SC_MASK_SET;
+	/* We update the system state only if the capture is started */
+	if(handle->capturing)
+	{
+		return enforce_sc_set(handle);
+	}
+	return SCAP_SUCCESS;
 }
 
 int32_t scap_kmod_init(scap_t *handle, scap_open_args *oargs)
@@ -423,6 +524,7 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 {
 	struct kmod_engine* handle = engine.m_handle;
+	handle->capturing = false;
 
 	/* This could happen if we fail to instantiate `m_devs` in the init method */
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
@@ -430,19 +532,7 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 	{
 		return SCAP_SUCCESS;
 	}
-
-	/* Disable all sc codes */
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		scap_kmod_enable_sc(handle, ppm_sc, false);
-	}
-
-	/* Disable all tracepoints */
-	for(int tp = 0; tp < TP_VAL_MAX; tp++)
-	{
-		scap_kmod_enable_tp(handle, tp, false);
-	}
-	return SCAP_SUCCESS;
+	return enforce_sc_set(handle);
 }
 
 //
@@ -451,34 +541,8 @@ int32_t scap_kmod_stop_capture(struct scap_engine_handle engine)
 int32_t scap_kmod_start_capture(struct scap_engine_handle engine)
 {
 	struct kmod_engine* handle = engine.m_handle;
-
-	// Load initial tp_set
-	bool tp_set[TP_VAL_MAX];
-	tp_set_from_sc_set(handle->curr_sc_set.ppm_sc, tp_set);
-
-	int ret = SCAP_SUCCESS;
-	/* Enable requested tracepoints */
-	for(int tp = 0; tp < TP_VAL_MAX && ret == SCAP_SUCCESS; tp++)
-	{
-		if (tp_set[tp])
-		{
-			ret = scap_kmod_enable_tp(handle, tp, true);
-		}
-	}
-	if (ret != SCAP_SUCCESS)
-	{
-		return ret;
-	}
-
-	/* Enable requested sc codes */
-	for (int sc = 0; sc < PPM_SC_MAX && ret == SCAP_SUCCESS; sc++)
-	{
-		if (handle->curr_sc_set.ppm_sc[sc])
-		{
-			ret = scap_kmod_enable_sc(handle, sc, true);
-		}
-	}
-	return ret;
+	handle->capturing = true;
+	return enforce_sc_set(handle);
 }
 
 static int32_t scap_kmod_set_dropping_mode(struct scap_engine_handle engine, int request, uint32_t sampling_ratio)
@@ -692,7 +756,7 @@ static int32_t configure(struct scap_engine_handle engine, enum scap_setting set
 	case SCAP_SNAPLEN:
 		return scap_kmod_set_snaplen(engine, arg1);
 	case SCAP_PPM_SC_MASK:
-		return scap_kmod_handle_ppm_sc_mask(engine, arg1, arg2);
+		return scap_kmod_handle_sc(engine, arg1, arg2);
 	case SCAP_DROP_FAILED:
 		return scap_kmod_handle_dropfailed(engine, arg1);
 	case SCAP_DYNAMIC_SNAPLEN:
