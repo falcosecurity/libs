@@ -46,8 +46,8 @@ if(NOT DEFINED SCAP_HOST_ROOT_ENV_VAR_NAME)
 endif()
 add_definitions(-DSCAP_HOST_ROOT_ENV_VAR_NAME="${SCAP_HOST_ROOT_ENV_VAR_NAME}")
 
-if (DEFINED SCAP_BPF_PROGS_MAX)
-	add_definitions(-DBPF_PROGS_MAX=${SCAP_BPF_PROGS_MAX})
+if (DEFINED SCAP_BPF_PROGS_TAIL_CALLED_MAX)
+	add_definitions(-DBPF_PROGS_TAIL_CALLED_MAX=${SCAP_BPF_PROGS_TAIL_CALLED_MAX})
 endif()
 
 list(APPEND targetfiles
@@ -132,8 +132,7 @@ set_scap_target_properties(scap_event_schema)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
 		../../driver/syscall_table.c
-		../../driver/fillers_table.c
-		../../driver/ppm_tp.c)
+		../../driver/fillers_table.c)
 	target_link_libraries(scap_event_schema driver_event_schema)
 	set_scap_target_properties(scap_event_schema)
 endif()
