@@ -18,33 +18,30 @@ limitations under the License.
 #pragma once
 
 #include <stdbool.h>
-#include <limits.h>
 #include "../../ringbuffer/devset.h"
 #include "scap_open.h"
+#include "attached_prog.h"
 
 //
 // ebpf defs
 //
 
-#ifndef BPF_PROGS_MAX
-#define BPF_PROGS_MAX 256
+#ifndef BPF_PROGS_TAIL_CALLED_MAX
+#define BPF_PROGS_TAIL_CALLED_MAX 256
 #endif
 
 #define BPF_MAPS_MAX 32
-
-struct bpf_prog {
-	int fd;
-	int efd;
-	char name[NAME_MAX];
-};
 
 struct bpf_engine
 {
 	struct scap_device_set m_dev_set;
 	size_t m_ncpus;
 	char* m_lasterr;
-	struct bpf_prog m_bpf_progs[BPF_PROGS_MAX];
-	int m_bpf_prog_cnt;
+
+	int m_tail_called_fds[BPF_PROGS_TAIL_CALLED_MAX];
+	int m_tail_called_cnt;
+	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
+
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
 	char m_filepath[PATH_MAX];
@@ -57,4 +54,5 @@ struct bpf_engine
 	interesting_ppm_sc_set curr_sc_set;
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
+	bool capturing;
 };

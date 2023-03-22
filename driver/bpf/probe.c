@@ -217,7 +217,7 @@ BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 }
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
-__bpf_section(TP_NAME "sched/sched_process_fork")
+__bpf_section(TP_NAME "sched/sched_process_fork&1")
 int bpf_sched_process_fork(struct sched_process_fork_args *ctx)
 {
 	ppm_event_code evt_type;
@@ -279,7 +279,7 @@ BPF_PROBE("sched/", sched_process_exec, sched_process_exec_args)
 #endif /* CAPTURE_SCHED_PROC_EXEC */
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-__bpf_section("raw_tracepoint/sched_process_fork")
+__bpf_section("raw_tracepoint/sched_process_fork&2")
 int bpf_sched_process_fork(struct sched_process_fork_raw_args *ctx)
 {
 	struct scap_bpf_settings *settings;
