@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "../common/types.h"
 #include "../../driver/ppm_events_public.h"
-#include "../../driver/ppm_tp.h"
 #include "scap.h"
 #include "scap-int.h"
 #include "strlcpy.h"
