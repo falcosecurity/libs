@@ -4817,7 +4817,7 @@ FILLER(sys_socket_x, true)
 	if (res != PPM_SUCCESS)
 		return res;
 
-	if (retval > 0 &&
+	if (retval >= 0 &&
 	    !data->settings->socket_file_ops) {
 		struct file *file = bpf_fget(retval);
 
