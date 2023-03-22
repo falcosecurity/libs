@@ -1,3 +1,7 @@
+# NOTE: it is UNSAFE to run ANY kind of script when using the pull_request_target trigger!
+# DO NOT TOUCH THIS FILE UNLESS THE TRIGGER IS CHANGED.
+# See warning in https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request_target.
+
 name: Driver SCHEMA_VERSION checks
 on:
   pull_request_target:
