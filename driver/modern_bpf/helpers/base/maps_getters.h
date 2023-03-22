@@ -36,7 +36,7 @@ static __always_inline uint32_t maps__get_sampling_ratio()
 	return g_settings.sampling_ratio;
 }
 
-static __always_inline u64 maps__get_drop_failed()
+static __always_inline bool maps__get_drop_failed()
 {
 	return g_settings.drop_failed;
 }
