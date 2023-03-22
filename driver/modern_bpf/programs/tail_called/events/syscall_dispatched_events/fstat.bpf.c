@@ -7,7 +7,6 @@
 
 
 #include <helpers/interfaces/fixed_size_event.h>
-#include <helpers/interfaces/variable_size_event.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
@@ -26,7 +25,7 @@ int BPF_PROG(fstat_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: file descriptor (type: PT_FD) */
+	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)extract__syscall_argument(regs, 0);
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
