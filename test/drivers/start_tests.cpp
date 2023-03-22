@@ -178,15 +178,6 @@ int open_engine(int argc, char** argv)
 			}
 			oargs.engine_params = &bpf_params;
 
-			/* The BPF `calibrate_socker` method needs to call the socket filler
-			 * before starting the real capture. So we attach all syscalls and
-			 * `sys_enter` and `sys_exit` tracepoints.
-			 */
-			for(int i = 0; i < PPM_SC_MAX; i++)
-			{
-				oargs.ppm_sc_of_interest.ppm_sc[i] = 1;
-			}
-
 			std::cout << "* Configure BPF probe tests! Probe path: " << bpf_params.bpf_probe << std::endl;
 			break;
 
@@ -267,28 +258,10 @@ int main(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	/* We need to start the capture to calibrate socket with bpf engine */
-	if(scap_start_capture(event_test::s_scap_handle) != SCAP_SUCCESS)
-	{
-		std::cout << "Error in starting the capture: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
-		goto cleanup_tests;
-	}
-
-	/* We need to detach all tracepoints before starting tests. */
-	if(scap_stop_capture(event_test::s_scap_handle) != SCAP_SUCCESS)
-	{
-		std::cout << "Error in stopping the capture: " << scap_getlasterr(event_test::s_scap_handle) << std::endl;
-		goto cleanup_tests;
-	}
-
-	/* We need to disable also all the interesting syscalls */
-	event_test::clear_ppm_sc_mask();
-
 	print_message("Testing phase");
 
 	res = RUN_ALL_TESTS();
 
-cleanup_tests:
 	print_message("Teardown phase");
 	scap_close(event_test::s_scap_handle);
 	remove_kmod();
