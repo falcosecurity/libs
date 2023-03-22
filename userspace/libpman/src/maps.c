@@ -87,29 +87,9 @@ void pman_set_drop_failed(bool drop_failed)
 	g_state.skel->bss->g_settings.drop_failed = drop_failed;
 }
 
-void pman_clean_all_64bit_interesting_syscalls()
-{
-	/* All syscalls are not interesting. */
-	for(int j = 0; j < SYSCALL_TABLE_SIZE; ++j)
-	{
-		g_state.skel->bss->g_64bit_interesting_syscalls_table[j] = false;
-	}
-}
-
 void pman_mark_single_64bit_syscall(int intersting_syscall_id, bool interesting)
 {
 	g_state.skel->bss->g_64bit_interesting_syscalls_table[intersting_syscall_id] = interesting;
-}
-
-void pman_mark_single_ppm_sc(int ppm_sc, bool interesting)
-{
-	for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-	{
-		if (g_syscall_table[syscall_nr].ppm_sc == ppm_sc)
-		{
-			pman_mark_single_64bit_syscall(syscall_nr, interesting);
-		}
-	}
 }
 
 void pman_fill_syscall_sampling_table()

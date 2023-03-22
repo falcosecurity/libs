@@ -27,10 +27,14 @@ set(PMAN_LINK_LIBRARIES
     "${LIBELF_LIB}"
     "${ZLIB_LIB}"
     scap_event_schema
+    scap_platform
 )
 
+set(PMAN_DEPENDENCIES scap_platform)
+
 if(USE_BUNDLED_MODERN_BPF)
-    set(PMAN_DEPENDENCIES
+    list(APPEND
+        PMAN_DEPENDENCIES
         ProbeSkeleton
     )
 endif()

@@ -19,7 +19,6 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <ppm_tp.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -106,26 +105,7 @@ extern "C"
 	// ATTACH PROGRAMS
 	/////////////////////////////
 
-	/**
-	 * @brief Attach all available BPF programs
-	 *
-	 * @return `0` on success, `errno` in case of error.
-	 */
-	int pman_attach_all_programs(void);
-
-	/**
-	 * @brief Detach all available BPF programs
-	 *
-	 * @return `0` on success, `errno` in case of error.
-	 */
-	int pman_detach_all_programs(void);
-
-	/**
-	 * @brief Update single program state,
-	 * attaching or detaching it.
-	 */
-	int pman_update_single_program(int tp, bool enabled);
-
+/// todo(@Andreagit97): these methods probably shouldn't be exposed to the final users
 	/**
 	 * @brief Attach only the syscall_exit_dispatcher
 	 *
@@ -182,7 +162,6 @@ extern "C"
 	 */
 	int pman_detach_sched_switch(void);
 
-#ifdef CAPTURE_SCHED_PROC_EXEC
 	/**
 	 * @brief Attach only the sched_proc_exec tracepoint
 	 *
@@ -196,9 +175,7 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_detach_sched_proc_exec(void);
-#endif
 
-#ifdef CAPTURE_SCHED_PROC_FORK
 	/**
 	 * @brief Attach only the sched_proc_fork tracepoint
 	 *
@@ -212,9 +189,7 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_detach_sched_proc_fork(void);
-#endif
 
-#ifdef CAPTURE_PAGE_FAULTS
 	/**
 	 * @brief Attach only the page_fault_user tracepoint
 	 *
@@ -242,7 +217,6 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_detach_page_fault_kernel(void);
-#endif
 
 	/**
 	 * @brief Attach only the signal_deliver tracepoint
@@ -298,16 +272,14 @@ extern "C"
 	/////////////////////////////
 
 	/**
-	 * @brief Enable BPF-capture if we have previously
-	 * disabled it.
+	 * @brief Instrument the bpf probe with the right sc_set. This API
+	 * sets both interesting syscalls and interesting tracepoints.
+	 *
+	 * @param sc_set pointer to the interesting sc_set 
+	 *
+	 * @return `0` on success, `1` in case of error.
 	 */
-	int pman_enable_capture(bool *sc_set);
-
-	/**
-	 * @brief Disable BPF capture for example when we
-	 * want to dump a particular event.
-	 */
-	int pman_disable_capture(void);
+	int pman_enforce_sc_set(bool *sc_set);
 
 	/**
 	 * @brief Receive a pointer to `struct scap_stats` and fill it
@@ -436,20 +408,6 @@ extern "C"
 	 *
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
-
-	/**
-	 * @brief Mark a single ppm_sc code syscall as (un)interesting
-	 *
-	 * @param ppm_sc code for syscall.
-	 * @param interesting true if the syscall must be marked as interesting.
-	 *
-	 */
-	void pman_mark_single_ppm_sc(int ppm_sc, bool interesting);
-
-	/**
-	 * @brief Mark all syscalls as uninteresting.
-	 */
-	void pman_clean_all_64bit_interesting_syscalls(void);
 
 #ifdef __cplusplus
 }
