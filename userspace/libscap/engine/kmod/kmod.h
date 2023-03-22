@@ -27,4 +27,5 @@ struct kmod_engine
 	interesting_ppm_sc_set curr_sc_set;
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
+	bool capturing;
 };
