@@ -58,8 +58,8 @@ int BPF_PROG(lstat_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
-	unsigned long ppath = extract__syscall_argument(regs, 0);
-	auxmap__store_charbuf_param(auxmap, ppath, MAX_PATH, USER);
+	unsigned long path = extract__syscall_argument(regs, 0);
+	auxmap__store_charbuf_param(auxmap, path, MAX_PATH, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
