@@ -3808,7 +3808,7 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	unsigned long val;
 	unsigned long size;
 	int res;
-	uint64_t pos64;
+	unsigned long pos64;
 	s32 fd = 0;
 
 	/*
@@ -4059,7 +4059,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 {
 	unsigned long val;
 	int res;
-	uint64_t pos64;
+	unsigned long pos64;
 	s32 fd = 0;
 	unsigned long iovcnt;
 
