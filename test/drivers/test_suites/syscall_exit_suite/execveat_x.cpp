@@ -304,7 +304,7 @@ TEST(SyscallExit, execveatX_correct_exit)
 
 TEST(SyscallExit, execveatX_execve_exit)
 {
-	auto evt_test = get_syscall_event_test(__NR_execve, EXIT_EVENT);
+	auto evt_test = get_syscall_event_test();
 
 	evt_test->enable_capture();
 
@@ -350,10 +350,10 @@ TEST(SyscallExit, execveatX_execve_exit)
 /* `s390x` returns an `EXECVEAT_X` event while other architectures retun an `EXECVE_X` */
 #if defined(__s390x__)
 	/* We search for a child event. */
-	evt_test->assert_event_absence(ret_pid);
+	evt_test->assert_event_absence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 #else
 	/* We search for a child event. */
-	evt_test->assert_event_presence(ret_pid);
+	evt_test->assert_event_presence(ret_pid, PPME_SYSCALL_EXECVE_19_X);
 
 	if(HasFatalFailure())
 	{

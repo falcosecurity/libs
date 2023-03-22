@@ -68,10 +68,10 @@ TEST(Actions, sampling_ratio_NO_FLAGS)
 	 */
 	auto evt_test = get_syscall_event_test(__NR_capset, ENTER_EVENT);
 
-	evt_test->enable_capture();
-
 	/* With sampling==1 we shouldn't drop events without flags */
 	evt_test->enable_sampling_logic(1);
+
+	evt_test->enable_capture();
 
 	/* Call the syscall */
 	syscall(__NR_capset, NULL, NULL);

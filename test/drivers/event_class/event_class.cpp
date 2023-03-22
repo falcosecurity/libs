@@ -85,20 +85,9 @@ void assert_syscall_state(int syscall_state, const char* syscall_name, long sysc
 
 event_test::~event_test()
 {
-	/*
-	 * Cleaning phase.
-	 */
-
-	/*
-	 * NOTE: we always expect disable_capture to be manually called,
-	 * just like enable_capture is.
-	 */
-
-	/* 1 - clean all the ring_buffers until they are empty. */
+	/* Stop the capture just to be sure and clean ring buffers */
+	scap_stop_capture(s_scap_handle);
 	clear_ring_buffers();
-
-	/* 2 - clean all interesting syscalls. */
-	clear_ppm_sc_mask();
 }
 
 /* This constructor must be used with generic tracepoints
@@ -119,7 +108,6 @@ event_test::event_test(ppm_sc_code sc_code):
 		m_event_type = PPME_SCHEDSWITCH_6_E;
 		break;
 
-#ifdef CAPTURE_PAGE_FAULTS
 	case PPM_SC_PAGE_FAULT_USER:
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
@@ -127,7 +115,6 @@ event_test::event_test(ppm_sc_code sc_code):
 	case PPM_SC_PAGE_FAULT_KERNEL:
 		m_event_type = PPME_PAGE_FAULT_E;
 		break;
-#endif
 
 	case PPM_SC_SIGNAL_DELIVER:
 		m_event_type = PPME_SIGNALDELIVER_E;
@@ -162,9 +149,7 @@ event_test::event_test(int syscall_id, int event_direction):
 	}
 
 	m_current_param = 0;
-
-	/* Set the current as the only interesting syscall. */
-	scap_set_ppm_sc(s_scap_handle, g_syscall_table[syscall_id].ppm_sc, true);
+	m_sc_set[g_syscall_table[syscall_id].ppm_sc] = 1;
 }
 
 /* This constructor must be used with syscalls events when you
@@ -178,24 +163,26 @@ event_test::event_test():
 	/* Enable all the syscalls and tracepoints */
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, true);
+		m_sc_set[ppm_sc] = 1;
 	}
 }
 
 void event_test::enable_capture()
 {
-	/* Here we should enable the necessary tracepoints */
-	for(int i = 0; i < PPM_SC_MAX; i++)
+	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if(m_sc_set[i])
+		if(m_sc_set[ppm_sc])
 		{
-			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, true);
+			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, true);
+		}
+		else
+		{
+			scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)ppm_sc, false);
 		}
 	}
-	/* We need to clear all the `ring-buffers` because maybe during
-	 * the tracepoint attachment we triggered some syscalls
-	 */
+	/* We need to clear all the `ring-buffers` in case of some dirty state */
 	clear_ring_buffers();
+	scap_start_capture(s_scap_handle);
 }
 
 void event_test::enable_sampling_logic(uint32_t sampling_ratio)
@@ -221,10 +208,6 @@ void event_test::disable_drop_failed()
 void event_test::disable_capture()
 {
 	scap_stop_capture(s_scap_handle);
-	for (int i = 0; i < PPM_SC_MAX; i++)
-	{
-		scap_set_ppm_sc(s_scap_handle, (ppm_sc_code)i, false);
-	}
 }
 
 void event_test::clear_ring_buffers()
@@ -895,7 +878,6 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 {
 	uint16_t cpu_id = 0;
 	pid_t pid = 0;
-	uint16_t evt_type = 0;
 
 	if(pid_to_search == CURRENT_PID)
 	{
@@ -906,13 +888,9 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 		pid = pid_to_search;
 	}
 
-	if(event_to_search == CURRENT_EVENT_TYPE)
+	if(event_to_search != CURRENT_EVENT_TYPE)
 	{
-		evt_type = m_event_type;
-	}
-	else
-	{
-		evt_type = event_to_search;
+		m_event_type = (ppm_event_code)event_to_search;
 	}
 
 	/* We need the while loop because in the buffers there could be different events
@@ -926,14 +904,14 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 		{
 			if(presence)
 			{
-				FAIL() << "There is no event '" << evt_type << "' in the buffers." << std::endl;
+				FAIL() << "There is no event '" << m_event_type << "' in the buffers." << std::endl;
 			}
 			else
 			{
 				break;
 			}
 		}
-		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == evt_type)
+		if(m_event_header->tid == (uint64_t)pid && m_event_header->type == m_event_type)
 		{
 			if(presence)
 			{
@@ -941,7 +919,7 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 			}
 			else
 			{
-				FAIL() << "There is an event '" << evt_type << "' in the buffers, but it shouldn't be there" << std::endl;
+				FAIL() << "There is an event '" << m_event_type << "' in the buffers, but it shouldn't be there" << std::endl;
 			}
 		}
 	}
