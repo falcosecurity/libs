@@ -4875,7 +4875,6 @@ FILLER(sys_pread64_e, true)
 	unsigned long val;
 	unsigned long size;
 	int res;
-	uint64_t pos64;
 	int32_t fd;
 
 	/*
