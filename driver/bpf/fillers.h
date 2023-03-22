@@ -896,7 +896,6 @@ static __always_inline unsigned long bpf_get_mm_swap(struct mm_struct *mm)
 	return bpf_get_mm_counter(mm, MM_SWAPENTS);
 }
 
-// TOPKEK START FROM HERE
 FILLER(sys_brk_munmap_mmap_x, true)
 {
 	struct task_struct *task;
@@ -912,9 +911,8 @@ FILLER(sys_brk_munmap_mmap_x, true)
 	bpf_probe_read_kernel(&mm, sizeof(mm), &task->mm);
 
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_UINT64);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
 	if (mm) {
 		total_vm = _READ(mm->total_vm);
@@ -926,22 +924,19 @@ FILLER(sys_brk_munmap_mmap_x, true)
 	/*
 	 * vm_size
 	 */
-	res = bpf_val_to_ring_type(data, total_vm, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u32_to_ring(data, total_vm);
+	CHECK_RES(res);
 
 	/*
 	 * vm_rss
 	 */
-	res = bpf_val_to_ring_type(data, total_rss, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u32_to_ring(data, total_rss);
+	CHECK_RES(res);
 
 	/*
 	 * vm_swap
 	 */
-	res = bpf_val_to_ring_type(data, swap, PT_UINT32);
-
+	res = bpf_push_u32_to_ring(data, swap);
 	return res;
 }
 
@@ -1006,26 +1001,21 @@ FILLER(sys_mprotect_e, true)
 	 * addr
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, val);
+	CHECK_RES(res);
 
 	/*
 	 * length
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, val);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, val);
+	CHECK_RES(res);
 
 	/*
 	 * prot
 	 */
 	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, prot_flags_to_scap(val));
-	if (res != PPM_SUCCESS)
-		return res;
-
+	res = bpf_push_u32_to_ring(data, prot_flags_to_scap(val));
 	return res;
 }
 
@@ -1038,7 +1028,7 @@ FILLER(sys_mprotect_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
+	res = bpf_push_u64_to_ring(data, retval);
 	
 	return res;
 }
@@ -1047,12 +1037,12 @@ FILLER(sys_fcntl_e, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	int res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	int res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
 	s32 cmd = (s32)bpf_syscall_get_argument(data, 1);
-	return bpf_val_to_ring_type(data, fcntl_cmd_to_scap(cmd), PT_FLAGS8);
+	return bpf_push_u8_to_ring(data, fcntl_cmd_to_scap(cmd));
 }
 
 FILLER(sys_access_e, true)
@@ -1064,7 +1054,7 @@ FILLER(sys_access_e, true)
 	 * mode
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, access_flags_to_scap(val));
+	res = bpf_push_u32_to_ring(data, access_flags_to_scap(val));
 
 	return res;
 }
@@ -1078,7 +1068,7 @@ FILLER(sys_getrlimit_setrlimit_e, true)
 	 * resource
 	 */
 	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, rlimit_resource_to_scap(val), PT_FLAGS8);
+	res = bpf_push_u8_to_ring(data, rlimit_resource_to_scap(val));
 
 	return res;
 }
@@ -1095,9 +1085,8 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 	 * res
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
 	/*
 	 * Copy the user structure and extract cur and max
@@ -1120,14 +1109,13 @@ FILLER(sys_getrlimit_setrlrimit_x, true)
 	/*
 	 * cur
 	 */
-	res = bpf_val_to_ring(data, cur);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, cur);
+	CHECK_RES(res);
 
 	/*
 	 * max
 	 */
-	res = bpf_val_to_ring(data, max);
+	res = bpf_push_s64_to_ring(data, max);
 
 	return res;
 }
@@ -1143,9 +1131,8 @@ FILLER(sys_connect_e, true)
 	int fd;
 
 	fd = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, fd, PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, fd);
+	CHECK_RES(res);
 
 	if (fd >= 0) {
 		usrsockaddr = (struct sockaddr *)bpf_syscall_get_argument(data, 1);
@@ -1191,9 +1178,8 @@ FILLER(sys_connect_x, true)
 	 * Push the result
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
 	/*
 	 * Retrieve the fd and push it to the ring.
@@ -1247,9 +1233,8 @@ FILLER(sys_socketpair_x, true)
 
 	/* ret */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
 	if (retval >= 0) {
 		val = bpf_syscall_get_argument(data, 3);
@@ -1264,23 +1249,25 @@ FILLER(sys_socketpair_x, true)
 		}
 	}
 	/* fd1 */
-	res = bpf_val_to_ring_type(data, (s64)fds[0], PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, (s64)fds[0]);
+	CHECK_RES(res);
+
 	/* fd2 */
-	res = bpf_val_to_ring_type(data, (s64)fds[1], PT_FD);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, (s64)fds[1]);
+	CHECK_RES(res);
+
 	/* source */
-	res = bpf_val_to_ring_type(data, (unsigned long)us, PT_UINT64);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, (unsigned long)us);
+	CHECK_RES(res);
+
 	/* peer */
-	res = bpf_val_to_ring_type(data, (unsigned long)speer, PT_UINT64);
+	res = bpf_push_u64_to_ring(data, (unsigned long)speer);
 
 	return res;
 }
 
+// TODO bpf_val_to_ring_dyn?
+// TODO RESUME FROM HERE
 static int __always_inline parse_sockopt(struct filler_data *data, int level, int optname, void *optval, int optlen)
 {
 	/* We use a signed int because in some case we have to convert it to a negative value. */
