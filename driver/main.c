@@ -86,7 +86,10 @@ MODULE_AUTHOR("the Falco authors");
 #define _PAGE_ENC 0
 #endif
 
-#define TP_VAL_INTERNAL TP_VAL_MAX
+/* This is a workaround we use to exclude internal events (like drop_e/x)
+ * from the interesting tracepoint logic.
+ */
+#define INTERNAL_EVENTS KMOD_PROG_ATTACHED_MAX
 
 struct ppm_device {
 	dev_t dev;
@@ -146,11 +149,11 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
                                  enum syscall_flags drop_flags,
                                  nanoseconds ns,
                                  struct event_data_t *event_datap,
-				 ppm_tp_code tp_type);
+				 kmod_prog_codes tp_type);
 static void record_event_all_consumers(ppm_event_code event_type,
                                        enum syscall_flags drop_flags,
                                        struct event_data_t *event_datap,
-				       ppm_tp_code tp_type);
+				       kmod_prog_codes tp_type);
 static int init_ring_buffer(struct ppm_ring_buffer_context *ring, unsigned long buffer_bytes_dim);
 static void free_ring_buffer(struct ppm_ring_buffer_context *ring);
 static void reset_ring_buffer(struct ppm_ring_buffer_context *ring);
@@ -215,7 +218,7 @@ static const struct file_operations g_ppm_fops = {
 LIST_HEAD(g_consumer_list);
 static DEFINE_MUTEX(g_consumer_mutex);
 static u32 g_tracepoints_attached; // list of attached tracepoints; bitmask using ppm_tp.h enum
-static u32 g_tracepoints_refs[TP_VAL_MAX];
+static u32 g_tracepoints_refs[KMOD_PROG_ATTACHED_MAX];
 static unsigned long g_buffer_bytes_dim = DEFAULT_BUFFER_BYTES_DIM; // dimension of a single per-CPU buffer in bytes.
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 static struct tracepoint *tp_sys_enter;
@@ -633,7 +636,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 	int ret;
 
 	ret = 0;
-	for(idx = 0; idx < TP_VAL_MAX && ret == 0; idx++)
+	for(idx = 0; idx < KMOD_PROG_ATTACHED_MAX && ret == 0; idx++)
 	{
 		new_val = new_tp_set & (1 << idx);
 		curr_val = g_tracepoints_attached & (1 << idx);
@@ -672,11 +675,11 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 
 		switch(idx)
 		{
-		case SYS_ENTER:
+		case KMOD_PROG_SYS_ENTER:
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+				ret = compat_register_trace(syscall_enter_probe, kmod_prog_names[idx], tp_sys_enter);
 #else
 				ret = register_trace_syscall_enter(syscall_enter_probe);
 #endif
@@ -684,17 +687,17 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 			else
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_enter_probe, tp_names[idx], tp_sys_enter);
+				compat_unregister_trace(syscall_enter_probe, kmod_prog_names[idx], tp_sys_enter);
 #else
 				unregister_trace_syscall_enter(syscall_enter_probe);
 #endif
 			}
 			break;
-		case SYS_EXIT:
+		case KMOD_PROG_SYS_EXIT:
 			if(new_val)
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				ret = compat_register_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+				ret = compat_register_trace(syscall_exit_probe, kmod_prog_names[idx], tp_sys_exit);
 #else
 				ret = register_trace_syscall_exit(syscall_exit_probe);
 #endif
@@ -702,47 +705,47 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 			else
 			{
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-				compat_unregister_trace(syscall_exit_probe, tp_names[idx], tp_sys_exit);
+				compat_unregister_trace(syscall_exit_probe, kmod_prog_names[idx], tp_sys_exit);
 #else
 				unregister_trace_syscall_exit(syscall_exit_probe);
 #endif
 			}
 			break;
-		case SCHED_PROC_EXIT:
-			ret = compat_set_tracepoint(syscall_procexit_probe, tp_names[idx], tp_sched_process_exit, new_val);
+		case KMOD_PROG_SCHED_PROC_EXIT:
+			ret = compat_set_tracepoint(syscall_procexit_probe, kmod_prog_names[idx], tp_sched_process_exit, new_val);
 			break;
 #ifdef CAPTURE_CONTEXT_SWITCHES
-		case SCHED_SWITCH:
-			ret = compat_set_tracepoint(sched_switch_probe, tp_names[idx], tp_sched_switch, new_val);
+		case KMOD_PROG_SCHED_SWITCH:
+			ret = compat_set_tracepoint(sched_switch_probe, kmod_prog_names[idx], tp_sched_switch, new_val);
 			break;
 #endif
 #ifdef CAPTURE_PAGE_FAULTS
-		case PAGE_FAULT_USER:
+		case KMOD_PROG_PAGE_FAULT_USER:
 			if (!g_fault_tracepoint_disabled)
 			{
-				ret = compat_set_tracepoint(page_fault_user_probe, tp_names[idx], tp_page_fault_user, new_val);
+				ret = compat_set_tracepoint(page_fault_user_probe, kmod_prog_names[idx], tp_page_fault_user, new_val);
 			}
 			break;
-		case PAGE_FAULT_KERN:
+		case KMOD_PROG_PAGE_FAULT_KERNEL:
 			if (!g_fault_tracepoint_disabled)
 			{
-				ret = compat_set_tracepoint(page_fault_kern_probe, tp_names[idx], tp_page_fault_kernel, new_val);
+				ret = compat_set_tracepoint(page_fault_kern_probe, kmod_prog_names[idx], tp_page_fault_kernel, new_val);
 			}
 			break;
 #endif
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-		case SIGNAL_DELIVER:
-			ret = compat_set_tracepoint(signal_deliver_probe, tp_names[idx], tp_signal_deliver, new_val);
+		case KMOD_PROG_SIGNAL_DELIVER:
+			ret = compat_set_tracepoint(signal_deliver_probe, kmod_prog_names[idx], tp_signal_deliver, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_FORK
-		case SCHED_PROC_FORK:
-			ret = compat_set_tracepoint(sched_proc_fork_probe, tp_names[idx], tp_sched_proc_fork, new_val);
+		case KMOD_PROG_SCHED_PROC_FORK:
+			ret = compat_set_tracepoint(sched_proc_fork_probe, kmod_prog_names[idx], tp_sched_proc_fork, new_val);
 			break;
 #endif
 #ifdef CAPTURE_SCHED_PROC_EXEC
-		case SCHED_PROC_EXEC:
-			ret = compat_set_tracepoint(sched_proc_exec_probe, tp_names[idx], tp_sched_proc_exec, new_val);
+		case KMOD_PROG_SCHED_PROC_EXEC:
+			ret = compat_set_tracepoint(sched_proc_exec_probe, kmod_prog_names[idx], tp_sched_proc_exec, new_val);
 			break;
 #endif
 		default:
@@ -757,7 +760,7 @@ static int force_tp_set(struct ppm_consumer_t *consumer, u32 new_tp_set)
 		}
 		else
 		{
-			pr_err("can't %s the %s tracepoint\n", new_val ? "attach" : "detach", tp_names[idx]);
+			pr_err("can't %s the %s tracepoint\n", new_val ? "attach" : "detach", kmod_prog_names[idx]);
 		}
 	}
 
@@ -1131,7 +1134,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_ENABLE_TP:
 	{
 		u32 new_tp_set;
-		if ((u32)arg >= TP_VAL_MAX) {
+		if ((u32)arg >= KMOD_PROG_ATTACHED_MAX) {
 			pr_err("invalid tp %u\n", (u32)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -1145,7 +1148,7 @@ cleanup_ioctl_procinfo:
 	case PPM_IOCTL_DISABLE_TP:
 	{
 		u32 new_tp_set;
-		if ((u32)arg >= TP_VAL_MAX) {
+		if ((u32)arg >= KMOD_PROG_ATTACHED_MAX) {
 			pr_err("invalid tp %u\n", (u32)arg);
 			ret = -EINVAL;
 			goto cleanup_ioctl;
@@ -1449,7 +1452,7 @@ static inline void record_drop_e(struct ppm_consumer_t *consumer,
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ns, &event_data, TP_VAL_INTERNAL) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_E, UF_NEVER_DROP, ns, &event_data, INTERNAL_EVENTS) == 0) {
 		consumer->need_to_insert_drop_e = 1;
 	} else {
 		if (consumer->need_to_insert_drop_e == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1619,7 +1622,7 @@ static inline void record_drop_x(struct ppm_consumer_t *consumer,
 {
 	struct event_data_t event_data = {0};
 
-	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ns, &event_data, TP_VAL_INTERNAL) == 0) {
+	if (record_event_consumer(consumer, PPME_DROP_X, UF_NEVER_DROP, ns, &event_data, INTERNAL_EVENTS) == 0) {
 		consumer->need_to_insert_drop_x = 1;
 	} else {
 		if (consumer->need_to_insert_drop_x == 1 && !(drop_flags & UF_ATOMIC)) {
@@ -1742,7 +1745,7 @@ static inline int drop_event(struct ppm_consumer_t *consumer,
 static void record_event_all_consumers(ppm_event_code event_type,
 	enum syscall_flags drop_flags,
 	struct event_data_t *event_datap,
-				       ppm_tp_code tp_type)
+				       kmod_prog_codes tp_type)
 {
 	struct ppm_consumer_t *consumer;
 	nanoseconds ns = ppm_nsecs();
@@ -1762,7 +1765,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	enum syscall_flags drop_flags,
 	nanoseconds ns,
 	struct event_data_t *event_datap,
-				 ppm_tp_code tp_type)
+				 kmod_prog_codes tp_type)
 {
 	int res = 0;
 	size_t event_size = 0;
@@ -1781,7 +1784,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	long table_index;
 	int64_t retval;
 
-	if (tp_type < TP_VAL_INTERNAL && !(consumer->tracepoints_attached & (1 << tp_type)))
+	if (tp_type < INTERNAL_EVENTS && !(consumer->tracepoints_attached & (1 << tp_type)))
 	{
 		return res;
 	}
@@ -1795,7 +1798,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			return res;
 		}
 
-		if (tp_type == SYS_EXIT && consumer->drop_failed)
+		if (tp_type == KMOD_PROG_SYS_EXIT && consumer->drop_failed)
 		{
 			retval = (int64_t)syscall_get_return_value(current, event_datap->event_info.syscall_data.regs);
 			if (retval < 0)
@@ -2212,9 +2215,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, SYS_ENTER);
+			record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_ENTER);
 		else
-			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, SYS_ENTER);
+			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_ENTER);
 	}
 }
 
@@ -2318,9 +2321,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		event_data.compat = compat;
 
 		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, SYS_EXIT);
+			record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_EXIT);
 		else
-			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, SYS_EXIT);
+			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_EXIT);
 	}
 }
 
@@ -2350,7 +2353,7 @@ TRACEPOINT_PROBE(syscall_procexit_probe, struct task_struct *p)
 	event_data.event_info.context_data.sched_prev = p;
 	event_data.event_info.context_data.sched_next = p;
 
-	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data, SCHED_PROC_EXIT);
+	record_event_all_consumers(PPME_PROCEXIT_1_E, UF_NEVER_DROP, &event_data, KMOD_PROG_SCHED_PROC_EXIT);
 }
 
 #include <linux/ip.h>
@@ -2378,7 +2381,7 @@ TRACEPOINT_PROBE(sched_switch_probe, bool preempt, struct task_struct *prev, str
 	 * Need to indicate ATOMIC (i.e. interrupt) context to avoid the event
 	 * handler calling printk() and potentially deadlocking the system.
 	 */
-	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data, SCHED_SWITCH);
+	record_event_all_consumers(PPME_SCHEDSWITCH_6_E, UF_USED | UF_ATOMIC, &event_data, KMOD_PROG_SCHED_SWITCH);
 }
 #endif
 
@@ -2407,12 +2410,12 @@ TRACEPOINT_PROBE(signal_deliver_probe, int sig, struct siginfo *info, struct k_s
 		event_data.event_info.signal_data.info = info;
 	event_data.event_info.signal_data.ka = ka;
 
-	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data, SIGNAL_DELIVER);
+	record_event_all_consumers(PPME_SIGNALDELIVER_E, UF_USED | UF_ALWAYS_DROP, &event_data, KMOD_PROG_SIGNAL_DELIVER);
 }
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, ppm_tp_code tp_type)
+static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsigned long error_code, kmod_prog_codes tp_type)
 {
 	struct event_data_t event_data;
 
@@ -2438,12 +2441,12 @@ static void page_fault_probe(unsigned long address, struct pt_regs *regs, unsign
 
 TRACEPOINT_PROBE(page_fault_user_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
-	return page_fault_probe(address, regs, error_code, PAGE_FAULT_USER);
+	return page_fault_probe(address, regs, error_code, KMOD_PROG_PAGE_FAULT_USER);
 }
 
 TRACEPOINT_PROBE(page_fault_kern_probe, unsigned long address, struct pt_regs *regs, unsigned long error_code)
 {
-	return page_fault_probe(address, regs, error_code, PAGE_FAULT_KERN);
+	return page_fault_probe(address, regs, error_code, KMOD_PROG_PAGE_FAULT_KERNEL);
 }
 #endif
 
@@ -2461,7 +2464,7 @@ TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, st
 	}
 
 	event_data.category = PPMC_SCHED_PROC_EXEC;
-	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data, SCHED_PROC_EXEC);
+	record_event_all_consumers(PPME_SYSCALL_EXECVE_19_X, UF_NEVER_DROP, &event_data, KMOD_PROG_SCHED_PROC_EXEC);
 }
 #endif 
 
@@ -2482,7 +2485,7 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 
 	event_data.category = PPMC_SCHED_PROC_FORK;
 	event_data.event_info.sched_proc_fork_data.child = child;
-	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data, SCHED_PROC_FORK);
+	record_event_all_consumers(PPME_SYSCALL_CLONE_20_X, UF_NEVER_DROP, &event_data, KMOD_PROG_SCHED_PROC_FORK);
 }
 #endif
 
@@ -2588,37 +2591,37 @@ static void reset_ring_buffer(struct ppm_ring_buffer_context *ring)
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
 static void visit_tracepoint(struct tracepoint *tp, void *priv)
 {
-	if (!strcmp(tp->name, tp_names[SYS_ENTER]))
+	if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SYS_ENTER]))
 		tp_sys_enter = tp;
-	else if (!strcmp(tp->name, tp_names[SYS_EXIT]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SYS_EXIT]))
 		tp_sys_exit = tp;
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXIT]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SCHED_PROC_EXIT]))
 		tp_sched_process_exit = tp;
 
 #ifdef CAPTURE_CONTEXT_SWITCHES
-	else if (!strcmp(tp->name, tp_names[SCHED_SWITCH]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SCHED_SWITCH]))
 		tp_sched_switch = tp;
 #endif
 
 #ifdef CAPTURE_SIGNAL_DELIVERIES
-	else if (!strcmp(tp->name, tp_names[SIGNAL_DELIVER]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SIGNAL_DELIVER]))
 		tp_signal_deliver = tp;
 #endif
 
 #ifdef CAPTURE_PAGE_FAULTS
-	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_USER]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_PAGE_FAULT_USER]))
 		tp_page_fault_user = tp;
-	else if (!strcmp(tp->name, tp_names[PAGE_FAULT_KERN]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_PAGE_FAULT_KERNEL]))
 		tp_page_fault_kernel = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_EXEC
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_EXEC]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SCHED_PROC_EXEC]))
 		tp_sched_proc_exec = tp;
 #endif
 
 #ifdef CAPTURE_SCHED_PROC_FORK
-	else if (!strcmp(tp->name, tp_names[SCHED_PROC_FORK]))
+	else if (!strcmp(tp->name, kmod_prog_names[KMOD_PROG_SCHED_PROC_FORK]))
 		tp_sched_proc_fork = tp;	
 #endif
 }
@@ -2743,7 +2746,7 @@ static int do_cpu_callback(unsigned long cpu, long sd_action)
 		event_data.category = PPMC_CONTEXT_SWITCH;
 		event_data.event_info.context_data.sched_prev = (void *)cpu;
 		event_data.event_info.context_data.sched_next = (void *)sd_action;
-		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, TP_VAL_INTERNAL);
+		record_event_all_consumers(PPME_CPU_HOTPLUG_E, UF_NEVER_DROP, &event_data, INTERNAL_EVENTS);
 	}
 	return 0;
 }
@@ -2928,7 +2931,7 @@ int scap_init(void)
 
 	// Initialize globals
 	g_tracepoints_attached = 0;
-	for (j = 0; j < TP_VAL_MAX; j++)
+	for (j = 0; j < KMOD_PROG_ATTACHED_MAX; j++)
 	{
 		g_tracepoints_refs[j] = 0;
 	}

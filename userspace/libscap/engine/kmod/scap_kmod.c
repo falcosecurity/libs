@@ -126,7 +126,7 @@ static int32_t enforce_into_kmod_buffer_bytes_dim(scap_t *handle, unsigned long 
 	return SCAP_SUCCESS;
 }
 
-static int32_t mark_attached_prog(struct kmod_engine* handle, uint32_t ioctl_op, ppm_tp_code tp)
+static int32_t mark_attached_prog(struct kmod_engine* handle, uint32_t ioctl_op, kmod_prog_codes tp)
 {
 	struct scap_device_set *devset = &handle->m_dev_set;
 	if(ioctl(devset->m_devs[0].m_fd, ioctl_op, tp))
@@ -209,49 +209,49 @@ static int enforce_sc_set(struct kmod_engine* handle)
 
 	/* Enable desired tracepoints */
 	if(sys_enter)
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SYS_ENTER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SYS_ENTER);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SYS_ENTER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SYS_ENTER);
 
 	if(sys_exit)
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SYS_EXIT);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SYS_EXIT);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SYS_EXIT);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SYS_EXIT);
 
 	if(sched_prog_fork)
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_FORK);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SCHED_PROC_FORK);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_FORK);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SCHED_PROC_FORK);
 
 	if(sched_prog_exec)
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_EXEC);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SCHED_PROC_EXEC);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_EXEC);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SCHED_PROC_EXEC);
 
 	if(sc_set[PPM_SC_SCHED_PROCESS_EXIT])
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_PROC_EXIT);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SCHED_PROC_EXIT);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_PROC_EXIT);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SCHED_PROC_EXIT);
 
 	if(sc_set[PPM_SC_SCHED_SWITCH])
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SCHED_SWITCH);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SCHED_SWITCH);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SCHED_SWITCH);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SCHED_SWITCH);
 
 	if(sc_set[PPM_SC_PAGE_FAULT_USER])
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, PAGE_FAULT_USER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_PAGE_FAULT_USER);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, PAGE_FAULT_USER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_PAGE_FAULT_USER);
 
 	if(sc_set[PPM_SC_PAGE_FAULT_KERNEL])
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, PAGE_FAULT_KERN);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_PAGE_FAULT_KERNEL);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, PAGE_FAULT_KERN);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_PAGE_FAULT_KERNEL);
 
 	if(sc_set[PPM_SC_SIGNAL_DELIVER])
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, SIGNAL_DELIVER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_ENABLE_TP, KMOD_PROG_SIGNAL_DELIVER);
 	else
-		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, SIGNAL_DELIVER);
+		ret = ret ?: mark_attached_prog(handle, PPM_IOCTL_DISABLE_TP, KMOD_PROG_SIGNAL_DELIVER);
 
 	return ret;
 }
