@@ -98,6 +98,8 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	int drop_flags;
 	long id;
 	bool enabled;
+	struct scap_bpf_settings *settings;
+	long retval;
 
 	if (bpf_in_ia32_syscall())
 		return 0;
@@ -117,6 +119,20 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	if (!enabled)
 	{
 		return 0;
+	}
+
+	settings = get_bpf_settings();
+	if (!settings)
+		return 0;
+
+	/* Check if syscall was successful */
+	if (settings->drop_failed)
+	{
+		retval = bpf_syscall_get_retval(ctx);
+		if (retval < 0)
+		{
+			return 0;
+		}
 	}
 
 	sc_evt = get_syscall_info(id);
