@@ -15,6 +15,7 @@ or GPL2.txt for full copies of the license.
 
 #include "types.h"
 #include "builtins.h"
+#include "../ppm_events_public.h"
 
 #ifdef CAPTURE_SOCKETCALL
 #include <linux/net.h>
@@ -621,7 +622,7 @@ static __always_inline void call_filler(void *ctx,
 	/* Check if syscall was successful */
 	// Odd evt types are used for exit events;
 	// Note that for non-syscall event types we always use enter events
-	if (evt_type & 1 && settings->drop_failed)
+	if (PPME_IS_EXIT(evt_type) && settings->drop_failed)
 	{
 		retval = bpf_syscall_get_retval(ctx);
 		if (retval < 0)
