@@ -147,7 +147,7 @@ else()
 			PREFIX "${PROJECT_BINARY_DIR}/grpc-prefix"
 			DEPENDS openssl protobuf c-ares zlib re2
 			GIT_REPOSITORY https://github.com/grpc/grpc.git
-			GIT_TAG v1.44.0
+			GIT_TAG v1.53.0
 			GIT_SUBMODULES "third_party/abseil-cpp"
 			CMAKE_CACHE_ARGS
 				-DCMAKE_INSTALL_PREFIX:PATH=${GRPC_INSTALL_DIR}
@@ -155,6 +155,8 @@ else()
 				-DgRPC_INSTALL:BOOL=OFF
 				# disable unused stuff
 				-DgRPC_BUILD_TESTS:BOOL=OFF
+				-DCMAKE_CXX_STANDARD=17
+				-DgRPC_BUILD_CODEGEN=OFF
 				-DgRPC_BUILD_CSHARP_EXT:BOOL=OFF
 				-DgRPC_BUILD_GRPC_CSHARP_PLUGIN:BOOL=OFF
 				-DgRPC_BUILD_GRPC_NODE_PLUGIN:BOOL=OFF
