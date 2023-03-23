@@ -37,10 +37,10 @@ typedef enum
 
 typedef struct bpf_attached_prog
 {
-	int fd;
-	int efd;
-	char name[NAME_MAX];
-	bool raw_tp;
+	int fd;		     /* fd used to load/unload bpf progs */
+	int efd;	     /* fd used to attach/detach bpf progs */
+	char name[NAME_MAX]; /* name of the program, used to attach it into the kernel */
+	bool raw_tp;	     /* tells if a program is a raw tracepoint or not */
 } bpf_attached_prog;
 
 bool is_sys_enter(const char* name);
