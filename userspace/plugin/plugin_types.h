@@ -78,6 +78,12 @@ typedef struct ss_plugin_event
 	uint64_t ts;
 } ss_plugin_event;
 
+struct const_sized_buffer {
+	size_t size;
+	const void* buf;
+};
+typedef struct const_sized_buffer const_sized_buffer;
+
 // Used in extract_fields functions below to receive a field/arg
 // pair and return an extracted value.
 // field_id: id of the field, as of its index in the list of
@@ -126,6 +132,9 @@ typedef struct ss_plugin_extract_field
     {
 		const char** str;
 		uint64_t* u64;
+		uint32_t* u32;
+		bool* boolean;
+		const_sized_buffer* buf;
 	} res;
 	uint64_t res_len;
 

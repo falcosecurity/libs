@@ -197,16 +197,34 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 		extract_value_t res;
 		switch(type)
 		{
+			case PT_UINT64:
+			case PT_RELTIME:
+			case PT_ABSTIME:
+			{
+				res.len = sizeof(uint64_t);
+				res.ptr = (uint8_t*) &efield.res.u64[i];
+				break;
+			}
+			// maybe these fields could use directly str instead buf
+			case PT_IPV4NET:
+			case PT_IPV6ADDR:
+			case PT_IPV6NET:
+			{
+				res.len = (uint32_t) efield.res.buf[i]->size;
+				res.ptr = (uint8_t*) efield.res.buf[i]->buf;
+				break;
+			}
 			case PT_CHARBUF:
 			{
 				res.len = strlen(efield.res.str[i]);
 				res.ptr = (uint8_t*) efield.res.str[i];
 				break;
 			}
-			case PT_UINT64:
+			case PT_BOOL:
+			case PT_IPV4ADDR:
 			{
-				res.len = sizeof(uint64_t);
-				res.ptr = (uint8_t*) &efield.res.u64[i];
+				res.len = sizeof(uint32_t);
+				res.ptr = (uint8_t*) &efield.res.u32[i];
 				break;
 			}
 			default:
