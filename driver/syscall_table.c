@@ -244,10 +244,10 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X, PPM_SC__LLSEEK},
 #endif
 #ifdef __NR_mmap
-	[__NR_mmap - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X, PPM_SC_MMAP},
+	[__NR_mmap - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X, PPM_SC_MMAP},
 #endif
 #ifdef __NR_mmap2
-	[__NR_mmap2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X, PPM_SC_MMAP2},
+	[__NR_mmap2 - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X, PPM_SC_MMAP2},
 #endif
 	[__NR_munmap - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X, PPM_SC_MUNMAP},
 	[__NR_splice - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SPLICE_E, PPME_SYSCALL_SPLICE_X, PPM_SC_SPLICE},
@@ -1050,10 +1050,10 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_ia32__llseek - SYSCALL_TABLE_ID0] =                    {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_LLSEEK_E, PPME_SYSCALL_LLSEEK_X, PPM_SC__LLSEEK},
 #endif
 #ifdef __NR_ia32_mmap
-	[__NR_ia32_mmap - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X, PPM_SC_MMAP},
+	[__NR_ia32_mmap - SYSCALL_TABLE_ID0] =                       {UF_USED, PPME_SYSCALL_MMAP_E, PPME_SYSCALL_MMAP_X, PPM_SC_MMAP},
 #endif
 #ifdef __NR_ia32_mmap2
-	[__NR_ia32_mmap2 - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X, PPM_SC_MMAP2},
+	[__NR_ia32_mmap2 - SYSCALL_TABLE_ID0] =                      {UF_USED, PPME_SYSCALL_MMAP2_E, PPME_SYSCALL_MMAP2_X, PPM_SC_MMAP2},
 #endif
 	[__NR_ia32_munmap - SYSCALL_TABLE_ID0] =                     {UF_USED | UF_ALWAYS_DROP, PPME_SYSCALL_MUNMAP_E, PPME_SYSCALL_MUNMAP_X, PPM_SC_MUNMAP},
 	[__NR_ia32_splice - SYSCALL_TABLE_ID0] =                     {UF_USED, PPME_SYSCALL_SPLICE_E, PPME_SYSCALL_SPLICE_X, PPM_SC_SPLICE},
