@@ -1795,10 +1795,13 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			return res;
 		}
 
-		if (event_type & 1 && consumer->drop_failed)
+		if (PPME_IS_EXIT(event_type) && consumer->drop_failed)
 		{
 			retval = (int64_t)syscall_get_return_value(current, event_datap->event_info.syscall_data.regs);
-			return res;
+			if (retval < 0)
+			{
+				return res;
+			}
 		}
 	}
 

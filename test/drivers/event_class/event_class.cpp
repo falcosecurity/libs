@@ -208,6 +208,16 @@ void event_test::disable_sampling_logic()
 	scap_stop_dropping_mode(s_scap_handle);
 }
 
+void event_test::enable_drop_failed()
+{
+	scap_set_dropfailed(s_scap_handle, true);
+}
+
+void event_test::disable_drop_failed()
+{
+	scap_set_dropfailed(s_scap_handle, false);
+}
+
 void event_test::disable_capture()
 {
 	scap_stop_capture(s_scap_handle);

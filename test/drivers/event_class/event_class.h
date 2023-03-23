@@ -162,6 +162,18 @@ public:
 	void disable_sampling_logic();
 
 	/**
+	 * @brief Enable driver drop failed logic
+	 *
+	 */
+	void enable_drop_failed();
+
+	/**
+	 * @brief Disable driver drop failed logic
+	 *
+	 */
+	void disable_drop_failed();
+
+	/**
 	 * @brief Clear the ring buffers from all previous events until they
 	 * are all empty.
 	 *
