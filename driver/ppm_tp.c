@@ -1,7 +1,7 @@
 #include "ppm_tp.h"
 
-const char *tp_names[] = {
+const char *kmod_prog_names[] = {
 #define X(name, path) path,
-	TP_FIELDS
+	KMOD_PROGS
 #undef X
 };
