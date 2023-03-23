@@ -117,7 +117,14 @@ public:
 	 *
 	 * Note that this is intentionally inline.
 	 */
-	bool is_enabled(const severity sev) const { return (sev <= m_sev); }
+	bool is_logging(const severity sev) const { return (sev <= m_sev); }
+
+	/**
+	 * Returns true if the logger has at least one output configured.
+	 *
+	 * Note that this is intentionally inline.
+	 */
+	bool has_output() const { return (!(m_flags == OT_NONE)); }
 
 	/**
 	 * Emit the given msg to the configured log sink if the given sev
@@ -172,7 +179,7 @@ extern sinsp_logger g_logger;
 #define SINSP_LOG_(severity, fmt, ...)                                         \
 	do                                                                     \
 	{                                                                      \
-		if(g_logger.is_enabled(severity))                              \
+		if(g_logger.is_logging(severity))                              \
 		{                                                              \
 			g_logger.format((severity), ("" fmt), ##__VA_ARGS__);  \
 		}                                                              \
@@ -182,7 +189,7 @@ extern sinsp_logger g_logger;
 #define SINSP_LOG_STR_(severity, msg)                                          \
 	do                                                                     \
 	{                                                                      \
-		if(g_logger.is_enabled(severity))                              \
+		if(g_logger.is_logging(severity))                              \
 		{                                                              \
 			g_logger.log((msg), (severity));                       \
 		}                                                              \
