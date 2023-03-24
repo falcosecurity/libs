@@ -33,14 +33,6 @@ For each `scap` source you can set additional configurations:
 '--evt_type <event_type>': every event of this type will be printed to console. (default: -1, no print)
 ```
 
-### Validation
-
-There are also some options to validate the content of our tables:
-
-```
-'--validate_syscalls': validation checks.
-```
-
 ### Print
 
 Print some information like the supported syscalls or the help menu:

@@ -81,7 +81,6 @@ sinsp_initializer::sinsp_initializer()
 	// Init the event tables
 	//
 	g_infotables.m_event_info = scap_get_event_info_table();
-	g_infotables.m_syscall_info_table = scap_get_syscall_info_table();
 
 	//
 	// Init the logger

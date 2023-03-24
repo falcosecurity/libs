@@ -81,7 +81,6 @@ class SINSP_PUBLIC sinsp_evttables
 {
 public:
 	const struct ppm_event_info* m_event_info; ///< List of events supported by the capture and analysis subsystems. Each entry fully documents an event and its parameters.
-	const struct ppm_syscall_desc* m_syscall_info_table; ///< List of system calls that the capture subsystem recognizes, including the ones that are not decoded yet.
 };
 
 /*!

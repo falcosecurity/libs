@@ -464,14 +464,6 @@ typedef enum scap_dump_flags
 }scap_dump_flags;
 
 /*!
-  \brief System call description struct.
-*/
-struct ppm_syscall_desc {
-	enum ppm_event_category category; /**< System call category. */
-	char name[PPM_MAX_NAME_LEN]; /**< System call name, e.g. 'open'. */
-};
-
-/*!
   \brief Structure used to pass a buffer and its size.
 */
 struct scap_sized_buffer {
@@ -803,16 +795,39 @@ scap_userlist* scap_get_user_list(scap_t* handle);
 const struct ppm_event_info* scap_get_event_info_table();
 
 /*!
-  \brief Retrieve the table with the description of system call that
-  the capture driver supports.
-
-  \return The pointer to a table of \ref ppm_syscall_desc entries, each of which describes
-  one of the events that can come from the driver. The table contains SYSCALL_TABLE_SIZE entries,
-  and the position of each entry in the table corresponds to the system call ID.
-
-  This table can be used to interpret the ID parameter of PPME_GENERIC_E and PPME_GENERIC_X.
+  \brief Retrieve the syscall category of the event.
+  The event category is composed of 2 parts:
+  1. The highest bits represent the event category:
+    - `EC_SYSCALL`
+    - `EC_TRACEPOINT
+    - `EC_PLUGIN`
+    - `EC_METAEVENT`
+ 
+  2. The lowest bits represent the syscall category to which the specific event belongs.
+  
+  With this method, we are retrieving the syscall category
 */
-const struct ppm_syscall_desc* scap_get_syscall_info_table();
+const enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
+
+/*!
+  \brief Retrieve the event category of the event
+  The event category is composed of 2 parts:
+  1. The highest bits represent the event category:
+    - `EC_SYSCALL`
+    - `EC_TRACEPOINT
+    - `EC_PLUGIN`
+    - `EC_METAEVENT`
+ 
+  2. The lowest bits represent the syscall category to which the specific event belongs.
+  
+  With this method, we are retrieving the event category
+*/
+const enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
+
+/*!
+  \brief Retrieve the name associated with the specified ppm_sc.
+*/
+const char* scap_get_ppm_sc_name(ppm_sc_code sc);
 
 /*!
   \brief Get generic machine information

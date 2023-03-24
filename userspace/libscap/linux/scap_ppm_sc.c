@@ -546,13 +546,12 @@ ppm_sc_code scap_ppm_sc_from_name(const char *name)
 		return -1;
 	}
 
-	const struct ppm_syscall_desc *info_table = scap_get_syscall_info_table();
 	for (int i = start; i < max; i++)
 	{
 		/* We need the strlen because all empty entries in the syscall_info_table are "", so
 		 * if we pass a "" we will have a match!
 		 */
-		if(strlen(sc_name)!=0 && strcmp(sc_name, info_table[i].name) == 0)
+		if(strlen(sc_name) !=0 && strcmp(sc_name, scap_get_ppm_sc_name(i)) == 0)
 		{
 			return i;
 		}

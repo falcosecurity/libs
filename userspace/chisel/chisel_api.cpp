@@ -262,11 +262,15 @@ int lua_cbacks::get_type(lua_State *ls)
 
 	if(etype == PPME_GENERIC_E || etype == PPME_GENERIC_X)
 	{
+		/* We have no name associated with a generic event, for this reason
+		 * we get the ppm_sc from the event (first param) and we consider
+		 * the syscall name as the event name.
+		 */
 		sinsp_evt_param *parinfo = evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(uint16_t));
-		uint16_t evid = *(uint16_t *)parinfo->m_val;
+		uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
 
-		evname = g_infotables.m_syscall_info_table[evid].name;
+		evname = scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 	}
 	else
 	{

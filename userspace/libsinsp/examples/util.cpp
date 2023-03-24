@@ -59,11 +59,10 @@ std::string get_event_type_name(sinsp& inspector, sinsp_evt* ev)
 	}
 	if (type != PPME_GENERIC_E && type != PPME_GENERIC_X)
 	{
-		return g_infotables.m_event_info[type].name;
+		return scap_get_event_info_table()[type].name;
 	}
 
-	auto tables = inspector.get_event_info_tables();
 	sinsp_evt_param *parinfo = ev->get_param(0);
 	uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
-	return tables->m_syscall_info_table[ppm_sc].name;
+	return scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 }

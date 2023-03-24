@@ -122,7 +122,7 @@ libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const
 		// Secondary loop, on syscalls and remaining events
 		for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ++ppm_sc)
 		{
-			const char* ppm_sc_name = scap_get_syscall_info_table()[ppm_sc].name;
+			const char* ppm_sc_name = scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 			if(remaining_events.find(ppm_sc_name) != remaining_events.end())
 			{
 				ppm_event_set.insert(PPME_GENERIC_E);

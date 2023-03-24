@@ -1131,8 +1131,8 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 
 	case PT_SYSCALLID:
 		{
-			uint16_t scid = *(uint16_t *)payload;
-			if(scid >= PPM_SC_MAX)
+			uint16_t ppm_sc = *(uint16_t *)payload;
+			if(ppm_sc >= PPM_SC_MAX)
 			{
 				ASSERT(false);
 				snprintf(&m_resolved_paramstr_storage[0],
@@ -1140,15 +1140,11 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 						 "<unknown syscall>");
 				break;
 			}
-
-			const struct ppm_syscall_desc* desc = &(g_infotables.m_syscall_info_table[scid]);
-
-			ret = scid;
-
+			ret = ppm_sc;
 			snprintf(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
 				"%s",
-				desc->name);
+				scap_get_ppm_sc_name((ppm_sc_code)ppm_sc));
 		}
 		break;
 	case PT_SIGTYPE:
@@ -2006,8 +2002,8 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 		break;
 	case PT_SYSCALLID:
 		{
-			uint16_t scid  = *(uint16_t *)payload;
-			if(scid >= PPM_SC_MAX)
+			uint16_t ppm_sc  = *(uint16_t *)payload;
+			if(ppm_sc >= PPM_SC_MAX)
 			{
 				ASSERT(false);
 				snprintf(&m_paramstr_storage[0],
@@ -2016,17 +2012,15 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 				break;
 			}
 
-			const struct ppm_syscall_desc* desc = &(g_infotables.m_syscall_info_table[scid]);
-
 			snprintf(&m_paramstr_storage[0],
 				m_paramstr_storage.size(),
 				"%" PRIu16,
-				scid);
+				ppm_sc);
 
 			snprintf(&m_resolved_paramstr_storage[0],
 				m_resolved_paramstr_storage.size(),
 				"%s",
-				desc->name);
+				scap_get_ppm_sc_name((ppm_sc_code)ppm_sc));
 		}
 		break;
 	case PT_SIGTYPE:
@@ -2584,96 +2578,68 @@ const sinsp_evt_param* sinsp_evt::get_param_value_raw(const char* name)
 
 void sinsp_evt::get_category(OUT sinsp_evt::category* cat)
 {
-	if(m_pevt->type == PPME_GENERIC_E ||
-		m_pevt->type == PPME_GENERIC_X)
-	{
-		//
-		// This event is a syscall that doesn't have a filler yet.
-		// The category can be found in g_syscall_info_table.
-		//
-		sinsp_evt_param *parinfo = get_param(0);
-		ASSERT(parinfo->m_len == sizeof(uint16_t));
-		uint16_t id = *(uint16_t *)parinfo->m_val;
+	/* We always search the category inside the event table */
+	cat->m_category = get_category();
 
-		if(id < PPM_SC_MAX)
+	//
+	// For EC_IO and EC_WAIT events, we dig into the fd state to get the category
+	// and fdtype
+	//
+	if(cat->m_category & EC_IO_BASE)
+	{
+		if(!m_fdinfo)
 		{
-			cat->m_category = g_infotables.m_syscall_info_table[id].category;
-			cat->m_subcategory = sinsp_evt::SC_NONE;
+			//
+			// The fd info is not present, likely because we missed its creation.
+			//
+			cat->m_subcategory = SC_UNKNOWN;
+			return;
 		}
 		else
 		{
-			ASSERT(false);
+			switch(m_fdinfo->m_type)
+			{
+				case SCAP_FD_FILE:
+				case SCAP_FD_FILE_V2:
+				case SCAP_FD_DIRECTORY:
+					cat->m_subcategory = SC_FILE;
+					break;
+				case SCAP_FD_IPV4_SOCK:
+				case SCAP_FD_IPV6_SOCK:
+					cat->m_subcategory = SC_NET;
+					break;
+				case SCAP_FD_IPV4_SERVSOCK:
+				case SCAP_FD_IPV6_SERVSOCK:
+					cat->m_subcategory = SC_NET;
+					break;
+				case SCAP_FD_FIFO:
+				case SCAP_FD_UNIX_SOCK:
+				case SCAP_FD_EVENT:
+				case SCAP_FD_SIGNALFD:
+				case SCAP_FD_INOTIFY:
+				case SCAP_FD_USERFAULTFD:
+					cat->m_subcategory = SC_IPC;
+					break;
+				case SCAP_FD_UNSUPPORTED:
+				case SCAP_FD_EVENTPOLL:
+				case SCAP_FD_TIMERFD:
+				case SCAP_FD_BPF:
+				case SCAP_FD_IOURING:
+				case SCAP_FD_NETLINK:
+					cat->m_subcategory = SC_OTHER;
+					break;
+				case SCAP_FD_UNKNOWN:
+					cat->m_subcategory = SC_OTHER;
+					break;
+				default:
+					cat->m_subcategory = SC_UNKNOWN;
+					break;
+			}
 		}
 	}
 	else
 	{
-		//
-		// This event has a real filler.
-		// The category can be found in the info struct.
-		//
-		cat->m_category = get_category();
-
-		//
-		// For EC_IO and EC_WAIT events, we dig into the fd state to get the category
-		// and fdtype
-		//
-		if(cat->m_category & EC_IO_BASE)
-		{
-			if(!m_fdinfo)
-			{
-				//
-				// The fd info is not present, likely because we missed its creation.
-				//
-				cat->m_subcategory = SC_UNKNOWN;
-				return;
-			}
-			else
-			{
-				switch(m_fdinfo->m_type)
-				{
-					case SCAP_FD_FILE:
-					case SCAP_FD_FILE_V2:
-					case SCAP_FD_DIRECTORY:
-						cat->m_subcategory = SC_FILE;
-						break;
-					case SCAP_FD_IPV4_SOCK:
-					case SCAP_FD_IPV6_SOCK:
-						cat->m_subcategory = SC_NET;
-						break;
-					case SCAP_FD_IPV4_SERVSOCK:
-					case SCAP_FD_IPV6_SERVSOCK:
-						cat->m_subcategory = SC_NET;
-						break;
-					case SCAP_FD_FIFO:
-					case SCAP_FD_UNIX_SOCK:
-					case SCAP_FD_EVENT:
-					case SCAP_FD_SIGNALFD:
-					case SCAP_FD_INOTIFY:
-					case SCAP_FD_USERFAULTFD:
-						cat->m_subcategory = SC_IPC;
-						break;
-					case SCAP_FD_UNSUPPORTED:
-					case SCAP_FD_EVENTPOLL:
-					case SCAP_FD_TIMERFD:
-					case SCAP_FD_BPF:
-					case SCAP_FD_IOURING:
-					case SCAP_FD_NETLINK:
-						cat->m_subcategory = SC_OTHER;
-						break;
-					case SCAP_FD_UNKNOWN:
-						cat->m_subcategory = SC_OTHER;
-						break;
-					default:
-//						ASSERT(false);
-						cat->m_subcategory = SC_UNKNOWN;
-						break;
-				}
-			}
-		}
-		else
-		{
-			cat->m_subcategory = sinsp_evt::SC_NONE;
-		}
+		cat->m_subcategory = sinsp_evt::SC_NONE;
 	}
 }
 

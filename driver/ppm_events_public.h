@@ -1715,7 +1715,7 @@ enum ppm_param_type {
 	PT_PID = 15, /* A pid/tid, 64bit */
 	PT_FDLIST = 16, /* A list of fds, 16bit count + count * (64bit fd + 16bit flags) */
 	PT_FSPATH = 17,	/* A string containing a relative or absolute file system path, null terminated */
-	PT_SYSCALLID = 18, /* A 16bit system call ID. Can be used as a key for the g_syscall_info_table table. */
+	PT_SYSCALLID = 18, /* A 16bit system call ID. Can be used as a key for the g_ppm_sc_names table. */
 	PT_SIGTYPE = 19, /* An 8bit signal number */
 	PT_RELTIME = 20, /* A relative time. Seconds * 10^9  + nanoseconds. 64bit. */
 	PT_ABSTIME = 21, /* An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit. */

@@ -119,7 +119,7 @@ target_link_libraries(scap scap_platform)
 
 add_library(scap_event_schema
 		scap_event.c
-		syscall_info_table.c
+		ppm_sc_names.c
 		../../driver/dynamic_params_table.c
 		../../driver/event_table.c
 		../../driver/flags_table.c
