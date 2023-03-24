@@ -36,7 +36,7 @@ TEST(syscall_table, check_1_1_match_between_ppm_sc_syscall_id)
 	{
         if(ppm_sc != PPM_SC_UNKNOWN)
         {
-		    ASSERT_TRUE(ppm_sc_count[ppm_sc] <= 1) << "[fail] SYSCALL (" << scap_get_syscall_info_table()[ppm_sc].name << ") is found '" << ppm_sc_count[ppm_sc] << "' times" << std::endl;
+		    ASSERT_TRUE(ppm_sc_count[ppm_sc] <= 1) << "[fail] SYSCALL (" << scap_get_ppm_sc_name((ppm_sc_code)ppm_sc) << ") is found '" << ppm_sc_count[ppm_sc] << "' times" << std::endl;
         }
 	}
 }

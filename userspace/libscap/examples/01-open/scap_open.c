@@ -49,8 +49,6 @@ limitations under the License.
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
 
-static const struct ppm_syscall_desc *g_syscall_info_table;
-
 /* Engine params */
 static struct scap_bpf_engine_params bpf_params;
 static struct scap_kmod_engine_params kmod_params;
@@ -187,85 +185,6 @@ void print_sorted_syscalls(char string_vector[SYSCALL_TABLE_SIZE][SYSCALL_NAME_M
 	printf("Interesting syscalls: %d\n", dim);
 }
 
-void print_UF_NEVER_DROP_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
-			{
-				continue;
-			}
-
-			if(g_syscall_table[syscall_nr].flags & UF_NEVER_DROP)
-			{
-				strlcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name, SYSCALL_NAME_MAX_LEN);
-			}
-		}
-	}
-
-	printf("\n------- Print UF_NEVER_DROP syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
-void print_EF_MODIFIES_STATE_syscalls()
-{
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
-			{
-				continue;
-			}
-
-			int enter_event = g_syscall_table[syscall_nr].enter_event_type;
-			if(g_event_info[enter_event].flags & EF_MODIFIES_STATE)
-			{
-				strlcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name, SYSCALL_NAME_MAX_LEN);
-			}
-		}
-	}
-
-	printf("\n------- Print EF_MODIFIES_STATE syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
-void print_sinsp_modifies_state_syscalls()
-{
-	uint8_t ppm_scs[PPM_SC_MAX];
-	char str[SYSCALL_TABLE_SIZE][SYSCALL_NAME_MAX_LEN];
-	int interesting_syscall = 0;
-
-	scap_get_modifies_state_ppm_sc(ppm_scs);
-
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
-	{
-		if (!ppm_scs[ppm_sc])
-		{
-			continue;
-		}
-		for(int syscall_nr = 0; syscall_nr < SYSCALL_TABLE_SIZE; syscall_nr++)
-		{
-			if(g_syscall_table[syscall_nr].ppm_sc != ppm_sc)
-			{
-				continue;
-			}
-			strlcpy(str[interesting_syscall++], g_syscall_info_table[ppm_sc].name, SYSCALL_NAME_MAX_LEN);
-		}
-	}
-
-	printf("\n------- Print 'scap_get_modifies_state_ppm_sc' syscalls: \n");
-	print_sorted_syscalls(str, interesting_syscall);
-}
-
 void print_supported_sc()
 {
 	printf("\n------- Print supported ppm_sc: \n");
@@ -273,16 +192,16 @@ void print_supported_sc()
 	// Skip PPM_SC_UNKNOWN
 	for (int i = 1; i < PPM_SC_MAX; i++)
 	{
-		if (scap_get_syscall_info_table()[i].name[0] != '\0')
+		if (scap_get_ppm_sc_name(i)[0] != '\0')
 		{
 			int native_id = scap_ppm_sc_to_native_id(i);
 			if (native_id != -1)
 			{
-				printf("- PPM_SC > %-25s system_code: (%d) ppm_code: (%d)\n", g_syscall_info_table[i].name, native_id, i);
+				printf("- PPM_SC > %-25s system_code: (%d) ppm_code: (%d)\n", scap_get_ppm_sc_name(i), native_id, i);
 			}
 			else
 			{
-				printf("- PPM_SC > %-25s ppm_code: (%d)\n", g_syscall_info_table[i].name, i);
+				printf("- PPM_SC > %-25s ppm_code: (%d)\n", scap_get_ppm_sc_name(i), i);
 			}
 		}
 	}
@@ -309,7 +228,7 @@ void enable_single_ppm_sc(int ppm_sc_code)
 		exit(EXIT_FAILURE);
 	}
 
-	if (g_syscall_info_table[ppm_sc_code].name[0] == '\0')
+	if (scap_get_ppm_sc_name(ppm_sc_code)[0] == '\0')
 	{
 		fprintf(stderr, "Unmapped ppm_sc code: %d. Wrong parameter?\n", ppm_sc_code);
 		print_supported_sc();
@@ -329,7 +248,7 @@ void enable_sc_and_print()
 		{
 			if(oargs.ppm_sc_of_interest.ppm_sc[j])
 			{
-				printf("- %s\n", g_syscall_info_table[j].name);
+				printf("- %s\n", scap_get_ppm_sc_name(j));
 			}
 		}
 	}
@@ -818,9 +737,6 @@ void parse_CLI_options(int argc, char** argv)
 
 		if(!strcmp(argv[i], PRINT_SYSCALLS_OPTION))
 		{
-			print_UF_NEVER_DROP_syscalls();
-			print_EF_MODIFIES_STATE_syscalls();
-			print_sinsp_modifies_state_syscalls();
 			print_supported_sc();
 			exit(EXIT_SUCCESS);
 		}
@@ -902,8 +818,6 @@ int main(int argc, char** argv)
 		fprintf(stderr, "An error occurred while setting SIGINT signal handler.\n");
 		return EXIT_FAILURE;
 	}
-
-	g_syscall_info_table = scap_get_syscall_info_table();
 
 	parse_CLI_options(argc, argv);
 

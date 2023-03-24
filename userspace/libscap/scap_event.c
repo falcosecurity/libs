@@ -38,6 +38,18 @@ const struct ppm_event_info* scap_get_event_info_table()
 	return g_event_info;
 }
 
+const enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev)
+{
+	ASSERT(ev < PPM_EVENT_MAX);
+	return g_event_info[ev].category & (EC_SYSCALL -1);
+}
+
+const enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev)
+{
+	ASSERT(ev < PPM_EVENT_MAX);
+	return g_event_info[ev].category & ~(EC_SYSCALL -1);
+}
+
 uint32_t scap_event_getlen(scap_evt* e)
 {
 	return e->len;

@@ -24,7 +24,9 @@ EXPORTS
 		scap_get_ifaddr_list
 		scap_get_stats
 		scap_get_event_info_table
-		scap_get_syscall_info_table
+		scap_get_syscall_category_from_event
+		scap_get_event_category_from_event
+		scap_get_ppm_sc_name
 		scap_proc_get
 		scap_proc_free
 		scap_start_capture

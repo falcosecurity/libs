@@ -3683,7 +3683,6 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 	{
 		sinsp_evttables* einfo = m_inspector->get_event_info_tables();
 		const struct ppm_event_info* etable = einfo->m_event_info;
-		const struct ppm_syscall_desc* stable = einfo->m_syscall_info_table;
 		string stype(str, len);
 
 		for(uint32_t j = 0; j < PPM_EVENT_MAX; j++)
@@ -3694,9 +3693,9 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 			}
 		}
 
-		for(uint32_t j = 0; j < PPM_SC_MAX; j++)
+		for(uint16_t j = 0; j < PPM_SC_MAX; j++)
 		{
-			if(stype == stable[j].name)
+			if(stype == scap_get_ppm_sc_name((ppm_sc_code)j))
 			{
 				return;
 			}
@@ -4221,10 +4220,10 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				sinsp_evt_param *parinfo = evt->get_param(0);
 				ASSERT(parinfo->m_len == sizeof(uint16_t));
-				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
 
 				// Only generic enter event has the nativeID as second param
-				if (m_inspector->is_capture() && evid == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
+				if(m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
 				{
 					// try to enforce a forward compatibility for syscalls added
 					// after a scap file was generated,
@@ -4234,9 +4233,9 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 					parinfo = evt->get_param(1);
 					ASSERT(parinfo->m_len == sizeof(uint16_t));
 					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
-					evid = scap_native_id_to_ppm_sc(nativeid);
+					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
 				}
-				evname = (uint8_t*)g_infotables.m_syscall_info_table[evid].name;
+				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 			}
 			else
 			{
@@ -4275,9 +4274,22 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			{
 				sinsp_evt_param *parinfo = evt->get_param(0);
 				ASSERT(parinfo->m_len == sizeof(uint16_t));
-				uint16_t evid = *(uint16_t *)parinfo->m_val;
+				uint16_t ppm_sc = *(uint16_t *)parinfo->m_val;
 
-				evname = (uint8_t*)g_infotables.m_syscall_info_table[evid].name;
+				// Only generic enter event has the nativeID as second param
+				if (m_inspector->is_capture() && ppm_sc == PPM_SC_UNKNOWN && etype == PPME_GENERIC_E)
+				{
+					// try to enforce a forward compatibility for syscalls added
+					// after a scap file was generated,
+					// by looking up using nativeID.
+					// Of course, this will only reliably work for
+					// same architecture scap capture->replay.
+					parinfo = evt->get_param(1);
+					ASSERT(parinfo->m_len == sizeof(uint16_t));
+					uint16_t nativeid = *(uint16_t *)parinfo->m_val;
+					ppm_sc = scap_native_id_to_ppm_sc(nativeid);
+				}
+				evname = (uint8_t*)scap_get_ppm_sc_name((ppm_sc_code)ppm_sc);
 			}
 			else
 			{

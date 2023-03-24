@@ -396,7 +396,7 @@ TEST(ppm_sc_API, all_event_names)
 	{
 		if(generic_syscalls[ppm_sc])
 		{
-			all_expected_events_names.insert(scap_get_syscall_info_table()[ppm_sc].name);
+			all_expected_events_names.insert(scap_get_ppm_sc_name((ppm_sc_code)ppm_sc));
 		}
 	}
 	ASSERT_NAMES_EQ(events_names, all_expected_events_names);
@@ -428,7 +428,7 @@ TEST(ppm_sc_API, all_generic_events_names)
 	{
 		if(generic_syscalls[ppm_sc])
 		{
-			expected_generic_event_names.insert(scap_get_syscall_info_table()[ppm_sc].name);
+			expected_generic_event_names.insert(scap_get_ppm_sc_name((ppm_sc_code)ppm_sc));
 		}
 	}
 
@@ -799,13 +799,13 @@ TEST(ppm_sc_API, all_sc_names)
 	auto sc_names = test_utils::unordered_set_to_ordered(libsinsp::events::sc_set_to_names(libsinsp::events::all_sc_set()));
 	std::set<std::string> expected_sc_names;
 	/* In all_sc we don't have `PPM_SC_UNKNOWN` so we don't have to retrieve the "unknown" name, we start the for loop from 1 */
-	for(int i = 1; i < PPM_SC_MAX; i++)
+	for(int ppm_sc = 1; ppm_sc < PPM_SC_MAX; ppm_sc++)
 	{
-		if(std::string("").compare(scap_get_syscall_info_table()[i].name) == 0)
+		if(std::string("").compare(scap_get_ppm_sc_name((ppm_sc_code)ppm_sc)) == 0)
 		{
 			continue;
 		}
-		expected_sc_names.insert(scap_get_syscall_info_table()[i].name);
+		expected_sc_names.insert(scap_get_ppm_sc_name((ppm_sc_code)ppm_sc));
 	}
 	ASSERT_NAMES_EQ(sc_names, expected_sc_names);
 }

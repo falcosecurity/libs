@@ -143,103 +143,92 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::enforce_simple_sc_set(libsi
 	return ppm_sc_set.merge(final_set);
 }
 
-static inline void get_sc_set_from_cat(libsinsp::events::set<ppm_sc_code> &ppm_sc_set, const std::function<bool(ppm_event_category)>& filter)
+/* The filter should contain only conditions on the syscall category (lower bits)*/
+static inline libsinsp::events::set<ppm_sc_code> get_sc_set_from_cat(const std::function<bool(ppm_event_category)>& filter)
 {
-	const int bitmask = EC_SYSCALL - 1;
-	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	std::vector<uint8_t> ev_vec(PPM_EVENT_MAX, 0);
+	std::vector<uint8_t> sc_vec(PPM_SC_MAX, 0);
+
+	/* Find all the events involved in that category */
+	for(int ev = 0; ev < PPM_EVENT_MAX; ev++)
 	{
-		auto cat = scap_get_syscall_info_table()[ppm_sc].category & bitmask;
-		if (filter((ppm_event_category)cat))
+		auto cat = scap_get_syscall_category_from_event((ppm_event_code)ev);
+		if(filter((ppm_event_category)cat))
 		{
-			ppm_sc_set.insert((ppm_sc_code)ppm_sc);
+			ev_vec[ev] = 1;
 		}
 	}
+	
+	/* Obtain all sc associated with those events */
+	if(scap_get_ppm_sc_from_events(ev_vec.data(), sc_vec.data()) != SCAP_SUCCESS)
+	{
+		throw sinsp_exception("'sc_vec' or 'ev_vec' is unexpected NULL vector!");
+	}
+
+	libsinsp::events::set<ppm_sc_code> sc_set;
+	
+	for(int sc = 0; sc < PPM_SC_MAX; sc++)
+	{
+		if(sc_vec[sc])
+		{
+			sc_set.insert((ppm_sc_code)sc);
+		}
+	}
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::io_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
-		   if (cat == EC_IO_READ || cat == EC_IO_WRITE)
-		   {
-			   return true;
-		   }
-		   return false;
+			return cat == EC_IO_READ || cat == EC_IO_WRITE;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::io_other_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
 			return cat == EC_IO_OTHER;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::file_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
 			return cat == EC_FILE;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::net_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
 			return cat == EC_NET;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::proc_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
-		        return cat == EC_PROCESS;
+			return cat == EC_PROCESS;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sys_sc_set()
 {
-	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	if (ppm_sc_set.empty())
-	{
-		get_sc_set_from_cat(ppm_sc_set, [](ppm_event_category cat)
+	static auto sc_set = get_sc_set_from_cat([](ppm_event_category cat)
 		{
-		    if (cat == EC_SYSTEM || cat == EC_MEMORY || cat == EC_SIGNAL)
-		    {
-			    return true;
-		    }
-		    return false;
+			return cat == EC_SYSTEM || cat == EC_MEMORY || cat == EC_SIGNAL;
 		});
-	}
-	return ppm_sc_set;
+	return sc_set;
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::unordered_set<std::string>& syscalls)
@@ -296,7 +285,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::all_sc_set()
 		// Skip UNKNOWN
 		for(uint32_t ppm_sc = 1; ppm_sc < PPM_SC_MAX; ppm_sc++)
 		{
-			if (scap_get_syscall_info_table()[ppm_sc].name[0] != '\0')
+			if (scap_get_ppm_sc_name((ppm_sc_code)ppm_sc)[0] != '\0')
 			{
 				// Skip non-existent
 				ppm_sc_set.insert((ppm_sc_code)ppm_sc);
@@ -311,7 +300,7 @@ std::unordered_set<std::string> libsinsp::events::sc_set_to_names(const libsinsp
 	std::unordered_set<std::string> ppm_sc_names_set;
 	for (const auto& val : ppm_sc_set)
 	{
-		std::string ppm_sc_name = scap_get_syscall_info_table()[val].name;
+		std::string ppm_sc_name = scap_get_ppm_sc_name(val);
 		if (ppm_sc_name != "")
 		{
 			// Skip non-existent
