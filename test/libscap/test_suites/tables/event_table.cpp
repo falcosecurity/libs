@@ -2,6 +2,26 @@
 #include <gtest/gtest.h>
 #include <event_stats.h>
 
+TEST(event_table, scap_get_syscall_category_from_event)
+{
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_CONTAINER_JSON_2_E), EC_PROCESS);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SYSCALL_EXECVE_17_E), EC_PROCESS);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_TRACER_X), EC_OTHER);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_PROCINFO_E), EC_INTERNAL);
+	ASSERT_EQ(scap_get_syscall_category_from_event(PPME_SCHEDSWITCH_1_E), EC_SCHEDULER);
+}
+
+TEST(event_table, scap_get_event_category_from_event)
+{
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_CONTAINER_JSON_2_E), EC_METAEVENT);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_SYSCALL_EXECVE_17_E), EC_SYSCALL);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_MESOS_X), EC_UNKNOWN);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_TRACER_X), EC_METAEVENT);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_PROCINFO_E), EC_METAEVENT);
+	ASSERT_EQ(scap_get_event_category_from_event(PPME_SCHEDSWITCH_1_E), EC_TRACEPOINT);
+}
+
 /* Check if the events category is correct in our event table.
  * This test will not pass if we forget to update the event table
  * with one of these event categories!
@@ -68,7 +88,7 @@ TEST(event_table, check_events_category)
  */
 TEST(event_table, check_unique_events_syscall_category)
 {
-    int event_num = 0;
+	int event_num = 0;
 	for(event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
 	{
 		switch(scap_get_syscall_category_from_event((ppm_event_code)event_num))
