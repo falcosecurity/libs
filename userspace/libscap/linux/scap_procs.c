@@ -37,6 +37,8 @@ limitations under the License.
 #include "clock_helpers.h"
 #include "debug_log_helpers.h"
 
+#define SECOND_TO_NS 1000000000
+
 int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
@@ -504,10 +506,13 @@ int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo
 	char proc_cmdline_pidns[SCAP_MAX_PATH_SIZE];
 	struct stat targetstat = {0};
 
+	// Note: with this implementation, the "container start time" for host
+	// processes will not be equal to the boot time but to the time when the
+	// host init started.
 	snprintf(proc_cmdline_pidns, sizeof(proc_cmdline_pidns), "%sroot/proc/1/cmdline", procdirname);
 	if(stat(proc_cmdline_pidns, &targetstat) == 0)
 	{
-		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
+		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
 		return SCAP_SUCCESS;
 	}
 	else
@@ -977,11 +982,13 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 	}
 
+	// Container start time for host processes will be equal to when the
+	// host init started
 	char proc_cmdline[SCAP_MAX_PATH_SIZE];
 	snprintf(proc_cmdline, sizeof(proc_cmdline), "%scmdline", dir_name);
 	if(stat(proc_cmdline, &dirstat) == 0)
 	{
-		tinfo->clone_ts = dirstat.st_ctim.tv_sec * (uint64_t) 1000000000 + dirstat.st_ctim.tv_nsec;
+		tinfo->clone_ts = dirstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + dirstat.st_ctim.tv_nsec;
 	}
 
 	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
