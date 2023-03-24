@@ -38,7 +38,9 @@ or GPL2.txt for full copies of the license.
  *   remove some existing parameters you must create a new event pair. The new enum name should be equal to the previous one
  *   but with the version bumped by 1.
  * 	 Consider the `PPME_SYSCALL_EXECVE_19_E` event as an example, if you want to create a new version for it, the new enum 
- *   will be called `PPME_SYSCALL_EXECVE_20_E`.  
+ *   will be called `PPME_SYSCALL_EXECVE_20_E`. 
+ * 
+ * - All the versions of the same event must have the same name 
  */
 
 

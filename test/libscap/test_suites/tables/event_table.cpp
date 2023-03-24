@@ -1,6 +1,6 @@
+#include "scap.h"
 #include <gtest/gtest.h>
-#include <sinsp.h>
-#include "../test_utils.h"
+#include <event_stats.h>
 
 /* Check if the events category is correct in our event table.
  * This test will not pass if we forget to update the event table
@@ -16,22 +16,22 @@ TEST(event_table, check_events_category)
 
 	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
 	{
-		if(g_infotables.m_event_info[event_num].category & EC_SYSCALL)
+		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_SYSCALL)
 		{
 			num_syscall_events++;
 		}
 
-		if(g_infotables.m_event_info[event_num].category & EC_TRACEPOINT)
+		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_TRACEPOINT)
 		{
 			num_tracepoint_events++;
 		}
 
-		if(g_infotables.m_event_info[event_num].category & EC_METAEVENT)
+		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_METAEVENT)
 		{
 			num_metaevents++;
 		}
 
-		if(g_infotables.m_event_info[event_num].category & EC_PLUGIN)
+		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_PLUGIN)
 		{
 			num_plugin_events++;
 		}
@@ -39,7 +39,7 @@ TEST(event_table, check_events_category)
 		/* Please note this is not an `&` but an `==` if one event has
 		 * the `EC_UNKNOWN` category, it must have only this category!
 		 */
-		if(g_infotables.m_event_info[event_num].category == EC_UNKNOWN)
+		if(scap_get_syscall_category_from_event((ppm_event_code)event_num) == EC_UNKNOWN)
 		{
 			num_unknown_events++;
 		}
@@ -68,12 +68,10 @@ TEST(event_table, check_events_category)
  */
 TEST(event_table, check_unique_events_syscall_category)
 {
-	const int bitmask = EC_SYSCALL - 1;
-	int event_num = 0;
+    int event_num = 0;
 	for(event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
 	{
-
-		switch(g_infotables.m_event_info[event_num].category & bitmask)
+		switch(scap_get_syscall_category_from_event((ppm_event_code)event_num))
 		{
 		case EC_UNKNOWN:
 		case EC_OTHER:
@@ -107,18 +105,20 @@ end:
 	ASSERT_EQ(event_num, PPM_EVENT_MAX);
 }
 
-TEST(events, check_event_names)
+TEST(event_table, check_event_names)
 {
 	std::map<std::string, int> event_names_count;
 
 	for(int evt = 0; evt < PPM_EVENT_MAX; evt++)
 	{
-		if(libsinsp::events::is_old_version_event((ppm_event_code)evt))
+		struct ppm_event_info info = scap_get_event_info_table()[evt];
+
+		if(info.flags & EF_OLD_VERSION)
 		{
 			continue;
 		}
 
-		event_names_count[scap_get_event_info_table()[evt].name]++;
+		event_names_count[info.name]++;
 	}
 
 	for(const auto& evt : event_names_count)
@@ -134,7 +134,7 @@ TEST(events, check_event_names)
 	}
 }
 
-TEST(events, check_usage_of_EC_UNKNOWN_flag)
+TEST(event_table, check_usage_of_EC_UNKNOWN_flag)
 {
 	/* Every time an event is marked with the `EC_UNKNOWN` flag we should use `NA` as its name */
 	std::string unknown_name = "NA";
@@ -142,10 +142,10 @@ TEST(events, check_usage_of_EC_UNKNOWN_flag)
 	{
 		if(unknown_name.compare(scap_get_event_info_table()[evt].name) == 0)
 		{
-			ASSERT_TRUE(libsinsp::events::is_unknown_event((ppm_event_code)evt)) << "[fail] event " << evt << " should have the EC_UNKNOWN flag";
+			ASSERT_TRUE(scap_get_syscall_category_from_event((ppm_event_code)evt) == EC_UNKNOWN) << "[fail] event " << evt << " should have the EC_UNKNOWN flag";
 		}
 
-		if(libsinsp::events::is_unknown_event((ppm_event_code)evt))
+		if(scap_get_syscall_category_from_event((ppm_event_code)evt) == EC_UNKNOWN)
 		{
 			ASSERT_TRUE(unknown_name.compare(scap_get_event_info_table()[evt].name) == 0) << "[fail] event " << evt << " should have NA as its name";
 		}
