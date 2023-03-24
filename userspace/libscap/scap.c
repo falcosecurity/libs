@@ -1552,53 +1552,52 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 
 int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
 {
-#ifdef __linux__
-	struct timespec ts_uptime = {0};
-	struct timespec tv_now = {0};
-	uint64_t now = 0;
-	uint64_t uptime = 0;
-	char proc_cmdline[PPM_MAX_PATH_SIZE];
-	struct stat targetstat = {0};
-
-	/* More reliable way to get boot time, similar to Docker */
-	snprintf(proc_cmdline, sizeof(proc_cmdline), "%s/proc/1/cmdline", scap_get_host_root());
-	if (stat(proc_cmdline, &targetstat) == 0)
-	{
-		/* This approach is constant between agent re-boots */
-		*boot_time = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
-		return SCAP_SUCCESS;
-	}
-
-	/*
-	 * Fall-back method
-	 */
-
-	/* Get the actual time */
-	if(clock_gettime(CLOCK_REALTIME, &tv_now))
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_REALTIME'");
-		}
-		return SCAP_FAILURE;
-	}
-	now = tv_now.tv_sec * (uint64_t)SECOND_TO_NS + tv_now.tv_nsec;
-
-	/* Get the uptime since the boot */
-	if(clock_gettime(CLOCK_BOOTTIME, &ts_uptime))
-	{
-		if(last_err != NULL)
-		{
-			snprintf(last_err, SCAP_LASTERR_SIZE, "clock_gettime(): unable to get the 'CLOCK_BOOTTIME'");
-		}
-		return SCAP_FAILURE;
-	}
-	uptime = ts_uptime.tv_sec * (uint64_t)SECOND_TO_NS + ts_uptime.tv_nsec;
-
-	/* Compute the boot time as the difference between actual time and the uptime. */
-	*boot_time = now - uptime;
-#else
 	*boot_time = 0;
+
+#ifdef __linux__
+	uint64_t btime = 0;
+	char proc_stat[PPM_MAX_PATH_SIZE];
+	char line[512];
+
+	/* Get boot time from btime value in /proc/stat
+	 * ref: https://github.com/falcosecurity/libs/issues/932
+	 * /proc/uptime and btime in /proc/stat are fed by the same kernel sources.
+	 *
+	 * Multiple ways to get boot time:
+	 *	btime in /proc/stat
+	 *	calculation via clock_gettime(CLOCK_REALTIME - CLOCK_BOOTTIME)
+	 *	calculation via time(NULL) - sysinfo().uptime
+	 *
+	 * Maintainers preferred btime in /proc/stat because:
+	 *	value does not depend on calculation using current timestamp
+	 *	btime is "static" and doesn't change once set
+	 *	btime is available in kernels from 2008
+	 *	CLOCK_BOOTTIME is available in kernels from 2011 (2.6.38
+	 *
+	 * By scraping btime from /proc/stat,
+	 * it is both the heaviest and most likely to succeed
+	 */
+	snprintf(proc_stat, sizeof(proc_stat), "%s/proc/stat", scap_get_host_root());
+	FILE* f = fopen(proc_stat, "r");
+	if (f == NULL)
+	{
+		ASSERT(false);
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		if(sscanf(line, "btime %" PRIu64, &btime) == 1)
+		{
+			fclose(f);
+			*boot_time = btime * (uint64_t) SECOND_TO_NS;
+			return SCAP_SUCCESS;
+		}
+	}
+	fclose(f);
+	ASSERT(false);
+	return SCAP_FAILURE;
+
 #endif
 	return SCAP_SUCCESS;
 }
