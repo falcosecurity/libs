@@ -38,6 +38,9 @@ TEST(interesting_syscalls, io_sc_set)
 	io_sc_set_truth.insert(PPM_SC_SENDMMSG);
 	io_sc_set_truth.insert(PPM_SC_PREAD64);
 	io_sc_set_truth.insert(PPM_SC_PWRITE64);
+	io_sc_set_truth.insert(PPM_SC_SENDFILE64);
+	io_sc_set_truth.insert(PPM_SC_RECV);
+	io_sc_set_truth.insert(PPM_SC_SEND);
 
 	auto io_sc_set = libsinsp::events::io_sc_set();
 	ASSERT_PPM_SC_CODES_EQ(io_sc_set_truth, io_sc_set);

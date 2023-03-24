@@ -1,11 +1,46 @@
 /*
 
-Copyright (C) 2021 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 This file is dual licensed under either the MIT or GPL 2. See MIT.txt
 or GPL2.txt for full copies of the license.
 
 */
+
+/* Some rules on how to populate this table:
+ * - Enter and exit events should have the same flags unless the exit one is `EC_UNKNOWN`.
+ *
+ * - The `ppm_event_category` is composed of 2 parts:
+ * 	
+ *    1. The highest bits represent the event category:
+ *  	- `EC_SYSCALL`
+ *   	- `EC_TRACEPOINT
+ *   	- `EC_PLUGIN`
+ *   	- `EC_METAEVENT`
+ * 
+ *    2. The lowest bits represent the syscall category to which the specific event belongs.
+ * 
+ *   All events must have only one syscall category and one event category. Exception: events 
+ *   marked with `EC_UNKNOWN` flag must only have the syscall category equal to `EC_UNKNOWN`.
+ * 
+ * - All events that are no more sent by our drivers must have the `EF_OLD_VERSION` flag.
+ * 
+ * - Events marked with `EC_UNKNOWN` must have a name equal to `NA`.
+ * 
+ * - All events that have the "EF_USES_FD" flag should return as first parameter a file descriptor.
+ *	 "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has 
+ *	 0 parameters but has the "EF_USES_FD" flag then a runtime error will occur shutting down the process. 
+ *   Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have 
+ *   it (following the logic described above). Otherwise the exit event will not trigger "libsinsp" code 
+ *   in order to properly manage the file descriptor returned by the exit event.
+ * 
+ * - The only kind of change permitted for pre-existent events is adding parameters. If you need to modify or
+ *   remove some existing parameters you must create a new event pair. The new enum name should be equal to the previous one
+ *   but with the version bumped by 1.
+ * 	 Consider the `PPME_SYSCALL_EXECVE_19_E` event as an example, if you want to create a new version for it, the new enum 
+ *   will be called `PPME_SYSCALL_EXECVE_20_E`.  
+ */
+
 
 #include "ppm_events_public.h"
 
@@ -412,18 +447,6 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_EVENTFD2_X] = {"eventfd2", EC_IPC | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC}, {"flags", PT_FLAGS16, PF_HEX, file_flags} } },
 	[PPME_SYSCALL_SIGNALFD4_E] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"fd", PT_FD, PF_DEC}, {"mask", PT_UINT32, PF_HEX}}},
 	[PPME_SYSCALL_SIGNALFD4_X] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC},  {"flags", PT_FLAGS16, PF_HEX}}},
-
-	/* NB: Starting from scap version 1.2, event types will no longer be changed when an event is modified, and the only kind of change permitted for pre-existent events is adding parameters.
-	 *     New event types are allowed only for new syscalls or new internal events.
-	 *     The number of parameters can be used to differentiate between event versions.
-	 */
-	/* NB: all events that have the "EF_USES_FD" flag should return as first parameter a file descriptor.
-	 *	   "libsinsp" will try to access the first parameter and use it as a file descriptor. If the event has 
-	 *	   0 parameters but has the "EF_USES_FD" flag then a runtime error will occurr shutting down the process. 
-	 *     Furthermore if an exit event has the "EF_USES_FD" then also the related enter event must have 
-	 *     it (following the logic described above).Otherwise the exit event will not trigger "libsinsp" code 
-	 *     in order to properly manage the file descriptor returned by the exit event.
-	 */
 };
 
 // This code is compiled on windows and osx too!
