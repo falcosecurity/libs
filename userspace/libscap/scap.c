@@ -1557,12 +1557,12 @@ int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)
 	struct timespec tv_now = {0};
 	uint64_t now = 0;
 	uint64_t uptime = 0;
-	char proc_dir[PPM_MAX_PATH_SIZE];
+	char proc_cmdline[PPM_MAX_PATH_SIZE];
 	struct stat targetstat = {0};
 
-	/* More reliable way to get boot time */
-	snprintf(proc_dir, sizeof(proc_dir), "%s/proc/1/", scap_get_host_root());
-	if (stat(proc_dir, &targetstat) == 0)
+	/* More reliable way to get boot time, similar to Docker */
+	snprintf(proc_cmdline, sizeof(proc_cmdline), "%s/proc/1/cmdline", scap_get_host_root());
+	if (stat(proc_cmdline, &targetstat) == 0)
 	{
 		/* This approach is constant between agent re-boots */
 		*boot_time = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
