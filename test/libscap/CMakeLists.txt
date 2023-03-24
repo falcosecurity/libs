@@ -32,6 +32,7 @@ set(LIBSCAP_TESTS_INCLUDE
   "${GTEST_INCLUDE}"
   "${CMAKE_CURRENT_SOURCE_DIR}" # for test helpers <helpers/...>
   "${CMAKE_SOURCE_DIR}/userspace/libscap" # this is for libscap includes
+  "${CMAKE_SOURCE_DIR}/driver" # for the event_stats.h file
   "${CMAKE_CURRENT_BINARY_DIR}" # used to include `libscap_test_var.h`
 )
 

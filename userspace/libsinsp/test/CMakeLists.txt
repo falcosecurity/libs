@@ -26,9 +26,6 @@ include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver)
 ## Public libsinsp API
 file(GLOB_RECURSE PUBLIC_SINSP_API_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/public_sinsp_API/*.cpp)
 
-## Internal tables assertions
-file(GLOB_RECURSE TABLE_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/table/*.cpp)
-
 set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
@@ -51,7 +48,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	user.ut.cpp
 	container_info.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
-	"${TABLE_SUITE}"
 )
 
 if(NOT MINIMAL_BUILD)
