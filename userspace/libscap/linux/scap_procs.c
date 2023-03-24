@@ -501,11 +501,11 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 
 int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo, const char* procdirname)
 {
-	char filename[SCAP_MAX_PATH_SIZE];
+	char proc_cmdline_pidns[SCAP_MAX_PATH_SIZE];
 	struct stat targetstat = {0};
 
-	snprintf(filename, sizeof(filename), "%sroot/proc/1", procdirname);
-	if(stat(filename, &targetstat) == 0)
+	snprintf(proc_cmdline_pidns, sizeof(proc_cmdline_pidns), "%sroot/proc/1/cmdline", procdirname);
+	if(stat(proc_cmdline_pidns, &targetstat) == 0)
 	{
 		tinfo->pidns_init_start_ts = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
 		return SCAP_SUCCESS;
@@ -977,9 +977,11 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, handle->m_lasterr);
 	}
 
-	if(stat(dir_name, &dirstat) == 0)
+	char proc_cmdline[SCAP_MAX_PATH_SIZE];
+	snprintf(proc_cmdline, sizeof(proc_cmdline), "%scmdline", dir_name);
+	if(stat(proc_cmdline, &dirstat) == 0)
 	{
-		tinfo->clone_ts = dirstat.st_ctim.tv_sec*1000000000 + dirstat.st_ctim.tv_nsec;
+		tinfo->clone_ts = dirstat.st_ctim.tv_sec * (uint64_t) 1000000000 + dirstat.st_ctim.tv_nsec;
 	}
 
 	// If tid is different from pid, assume this is a thread and that the FDs are shared, and set the
