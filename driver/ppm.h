@@ -26,13 +26,8 @@ or GPL2.txt for full copies of the license.
 
 #endif /* UDIG */
 
-#define RW_SNAPLEN_EVENT 4096
-#define DPI_LOOKAHEAD_SIZE 16
+#include "capture_macro.h"
 #define PPM_NULL_RDEV MKDEV(1, 3)
-#define PPM_PORT_MYSQL 3306
-#define PPM_PORT_POSTGRES 5432
-#define PPM_PORT_STATSD 8125
-#define PPM_PORT_MONGODB 27017
 
 typedef u64 nanoseconds;
 

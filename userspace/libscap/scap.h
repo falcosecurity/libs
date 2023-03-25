@@ -62,6 +62,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #include "../common/types.h"
 #include "../../driver/ppm_api_version.h"
 #include "../../driver/ppm_events_public.h"
+#include "../../driver/capture_macro.h"
 #ifdef _WIN32
 #include <time.h>
 #endif

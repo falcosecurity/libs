@@ -10,12 +10,10 @@
 #include <definitions/vmlinux.h>
 #include <definitions/struct_flavors.h>
 #include <definitions/missing_definitions.h>
+#include <driver/capture_macro.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
-
-/* Convert seconds to nanoseconds */
-#define SECOND_TO_NS 1000000000
 
 /*=============================== LIBBPF MISSING TRACING DEFINITION ===========================*/
 
