@@ -1254,11 +1254,14 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 
 void scap_gethostname(scap_t* handle)
 {
-	gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
 	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
 	if(env_hostname != NULL)
 	{
 		snprintf(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname), "%s", env_hostname);
+	}
+	else
+	{
+		gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
 	}
 }
 
@@ -1326,6 +1329,7 @@ void scap_retrieve_agent_info(scap_t* handle)
 void scap_get_bpf_stats_enabled(scap_t* handle)
 {
 #ifdef __linux__
+	handle->m_machine_info.flags &= ~PPM_BPF_STATS_ENABLED;
 	FILE* f;
 	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
 	{
