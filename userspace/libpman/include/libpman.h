@@ -334,6 +334,28 @@ extern "C"
 	void pman_set_drop_failed(bool drop_failed);
 
 	/**
+	 * @brief Ask driver to enable/disable dynamic_snaplen.
+	 *
+	 * @param do_dynamic_snaplen whether to enable the dynamic_snaplen.
+	 */
+	void pman_set_do_dynamic_snaplen(bool do_dynamic_snaplen);
+
+	/**
+	 * @brief Ask driver to set a range of interesting ports.
+	 *
+	 * @param range_start first interesting port.
+	 * @param range_end last interesting port.
+	 */
+	void pman_set_fullcapture_port_range(uint16_t range_start, uint16_t range_end);
+
+	/**
+	 * @brief Ask driver to set a specific statsd_port.
+	 *
+	 * @param statsd_port port number.
+	 */
+	void pman_set_statsd_port(uint16_t statsd_port);
+
+	/**
 	 * @brief Get API version to check it a runtime.
 	 *
 	 * @return API version

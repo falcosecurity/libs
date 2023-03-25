@@ -41,6 +41,26 @@ static __always_inline bool maps__get_drop_failed()
 	return g_settings.drop_failed;
 }
 
+static __always_inline bool maps__get_do_dynamic_snaplen()
+{
+	return g_settings.do_dynamic_snaplen;
+}
+
+static __always_inline uint16_t maps__get_fullcapture_port_range_start()
+{
+	return g_settings.fullcapture_port_range_start;
+}
+
+static __always_inline uint16_t maps__get_fullcapture_port_range_end()
+{
+	return g_settings.fullcapture_port_range_end;
+}
+
+static __always_inline uint16_t maps__get_statsd_port()
+{
+	return g_settings.statsd_port;
+}
+
 /*=============================== SETTINGS ===========================*/
 
 /*=============================== KERNEL CONFIGS ===========================*/
