@@ -1074,9 +1074,9 @@ int32_t scap_bpf_set_snaplen(struct scap_engine_handle engine, uint32_t snaplen)
 	int k = 0;
 	int ret;
 
-	if(snaplen > RW_MAX_SNAPLEN)
+	if(snaplen > SNAPLEN_MAX)
 	{
-		return scap_errprintf(handle->m_lasterr, 0, "snaplen can't exceed %d\n", RW_MAX_SNAPLEN);
+		return scap_errprintf(handle->m_lasterr, 0, "snaplen can't exceed %d\n", SNAPLEN_MAX);
 	}
 
 	if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_SETTINGS_MAP], &k, &settings)) != 0)
@@ -1359,7 +1359,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 
 	settings.boot_time = boot_time;
 	settings.socket_file_ops = NULL;
-	settings.snaplen = RW_SNAPLEN;
+	settings.snaplen = SNAPLEN;
 	settings.sampling_ratio = 1;
 	settings.do_dynamic_snaplen = false;
 	settings.dropping_mode = false;
@@ -1368,7 +1368,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	settings.tracers_enabled = false;
 	settings.fullcapture_port_range_start = 0;
 	settings.fullcapture_port_range_end = 0;
-	settings.statsd_port = 8125;
+	settings.statsd_port = PPM_PORT_STATSD;
 
 	int k = 0;
 	int ret;

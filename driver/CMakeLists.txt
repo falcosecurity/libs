@@ -116,6 +116,7 @@ set(DRIVER_SOURCES
 	ppm_tp.h
 	ppm_tp.c
 	ppm_consumer.h
+	capture_macro.h
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)

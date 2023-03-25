@@ -519,7 +519,7 @@ static int ppm_open(struct inode *inode, struct file *filp)
 	 * ring->preempt_count which will become < 0, leading to the complete loss of all the events for that CPU.
 	 */
 	consumer->dropping_mode = 0;
-	consumer->snaplen = RW_SNAPLEN;
+	consumer->snaplen = SNAPLEN;
 	consumer->sampling_ratio = 1;
 	consumer->sampling_interval = 0;
 	consumer->is_dropping = 0;
@@ -989,7 +989,7 @@ cleanup_ioctl_procinfo:
 		vpr_info("PPM_IOCTL_SET_SNAPLEN, consumer %p\n", consumer_id);
 		new_snaplen = (u32)arg;
 
-		if (new_snaplen > RW_MAX_SNAPLEN) {
+		if (new_snaplen > SNAPLEN_MAX) {
 			pr_err("invalid snaplen %u\n", new_snaplen);
 			ret = -EINVAL;
 			goto cleanup_ioctl;

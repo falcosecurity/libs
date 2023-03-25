@@ -1280,6 +1280,7 @@
 #define MAJOR(dev) ((unsigned int)((dev) >> MINORBITS))
 #define MINOR(dev) ((unsigned int)((dev)&MINORMASK))
 #define MKDEV(ma, mi) (((ma) << MINORBITS) | (mi))
+#define PPM_NULL_RDEV MKDEV(1, 3)
 
 /*=============================== DEVICE_VERSIONS ===========================*/
 

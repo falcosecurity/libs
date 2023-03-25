@@ -372,7 +372,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 	struct sockaddr_storage peer_address;
 	u16 sport, dport;
 	u16 min_port = 0, max_port = 0;
-	u32 dynamic_snaplen = 2000;
+	u32 dynamic_snaplen = SNAPLEN_EXTENDED;
 
 	if (args->consumer->snaplen > dynamic_snaplen) {
 		/*
@@ -389,7 +389,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 
 		if (f.file && f.file->f_inode) {
 			if (f.file->f_inode->i_rdev == PPM_NULL_RDEV) {
-				res = RW_SNAPLEN_EVENT;
+				res = SNAPLEN_TRACERS_ENABLED;
 				fdput(f);
 				return res;
 			}
@@ -412,7 +412,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		if (file && file->f_path.dentry && file->f_path.dentry->d_inode) {
 			if (file->f_path.dentry->d_inode->i_rdev == PPM_NULL_RDEV) {
 #endif
-				res = RW_SNAPLEN_EVENT;
+				res = SNAPLEN_TRACERS_ENABLED;
 				fput(file);
 				return res;
 			}
@@ -575,7 +575,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		 * an increased snaplen for the port in question.
 		 */
 		sockfd_put(sock);
-		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
+		return SNAPLEN_FULLCAPTURE_PORT;
 	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 		if (lookahead_size >= 5) {
 			if (buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) {

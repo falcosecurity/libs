@@ -20,8 +20,6 @@
 #include "strerror.h"
 #include "strlcpy.h"
 
-#define PPM_PORT_STATSD 8125
-
 #ifndef UDIG_INSTRUMENTER
 #define ud_shm_open shm_open
 #else
@@ -263,7 +261,7 @@ bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 
 		memset(consumer, 0, sizeof(struct udig_consumer_t));
 		consumer->dropping_mode = 0;
-		consumer->snaplen = RW_SNAPLEN;
+		consumer->snaplen = SNAPLEN;
 		consumer->sampling_ratio = 1;
 		consumer->sampling_interval = 0;
 		consumer->is_dropping = 0;

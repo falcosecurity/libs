@@ -34,8 +34,6 @@ limitations under the License.
 
 #include "scap_engines.h"
 
-#define SECOND_TO_NS 1000000000
-
 //#define NDEBUG
 #include <assert.h>
 

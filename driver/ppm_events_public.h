@@ -2012,10 +2012,6 @@ struct ppm_event_entry {
 #define PPM_SKIP_EVENT -4
 #define PPM_FAILURE_FRAME_SCRATCH_MAP_FULL -5	/* this is used only inside bpf, kernel module does not have a frame scratch map*/
 
-#define RW_SNAPLEN 80
-#define RW_MAX_SNAPLEN PPM_MAX_ARG_SIZE
-#define RW_MAX_FULLCAPTURE_PORT_SNAPLEN 16000
-
 /*
  * machine_info flags.
  */

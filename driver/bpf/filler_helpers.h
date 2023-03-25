@@ -328,7 +328,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 
 		i_rdev = _READ(f_inode->i_rdev);
 		if (i_rdev == PPM_NULL_RDEV)
-			return RW_SNAPLEN_EVENT;
+			return SNAPLEN_TRACERS_ENABLED;
 	}
 
 	if (!data->settings->do_dynamic_snaplen)
@@ -418,7 +418,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		 * Before checking the well-known ports, see if the user has requested
 		 * an increased snaplen for the port in question.
 		 */
-		return RW_MAX_FULLCAPTURE_PORT_SNAPLEN;
+		return SNAPLEN_FULLCAPTURE_PORT;
 	} else if (sport == PPM_PORT_MYSQL || dport == PPM_PORT_MYSQL) {
 		if (lookahead_size >= 5) {
 			if (get_buf(0) == 3 ||
@@ -426,9 +426,9 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    get_buf(2) == 3 ||
 			    get_buf(3) == 3 ||
 			    get_buf(4) == 3) {
-				return 2000;
+				return SNAPLEN_EXTENDED;
 			} else if (get_buf(2) == 0 && get_buf(3) == 0) {
-				return 2000;
+				return SNAPLEN_EXTENDED;
 			}
 		}
 	} else if (sport == PPM_PORT_POSTGRES || dport == PPM_PORT_POSTGRES) {
@@ -438,10 +438,10 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 			    (get_buf(4) == 0 && get_buf(5) == 3 && get_buf(6) == 0) || /* startup command */
 			    (get_buf(0) == 'E' && get_buf(1) == 0) /* error or execute command */
 			) {
-				return 2000;
+				return SNAPLEN_EXTENDED;
 			}
 		}
-	} else if ((lookahead_size >= 4 && get_buf(1) == 0 && get_buf(2) == 0 && get_buf(2) == 0) || /* matches command */
+	} else if ((lookahead_size >= 4 && get_buf(1) == 0 && get_buf(2) == 0) || /* matches command */
 			(lookahead_size >= 16 && (*(s32 *)&get_buf(12) == 1 || /* matches header */
 						  *(s32 *)&get_buf(12) == 2001 ||
 						  *(s32 *)&get_buf(12) == 2002 ||
@@ -450,22 +450,22 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 						  *(s32 *)&get_buf(12) == 2005 ||
 						  *(s32 *)&get_buf(12) == 2006 ||
 						  *(s32 *)&get_buf(12) == 2007))) {
-		return 2000;
+		return SNAPLEN_EXTENDED;
 	} else if (dport == data->settings->statsd_port) {
-		return 2000;
+		return SNAPLEN_EXTENDED;
 	} else {
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);
 
-			if (buf == 0x20544547 || // "GET "
-			    buf == 0x54534F50 || // "POST"
-			    buf == 0x20545550 || // "PUT "
-			    buf == 0x454C4544 || // "DELE"
-			    buf == 0x43415254 || // "TRAC"
-			    buf == 0x4E4E4F43 || // "CONN"
-			    buf == 0x4954504F || // "OPTI"
-			    (buf == 0x50545448 && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
-				return 2000;
+			if (buf == BPF_HTTP_GET ||
+			    buf == BPF_HTTP_POST ||
+			    buf == BPF_HTTP_PUT ||
+			    buf == BPF_HTTP_DELETE ||
+			    buf == BPF_HTTP_TRACE ||
+			    buf == BPF_HTTP_CONNECT ||
+			    buf == BPF_HTTP_OPTIONS ||
+			    (buf == BPF_HTTP_PREFIX && data->buf[(data->state->tail_ctx.curoff + 4) & SCRATCH_SIZE_HALF] == '/')) { // "HTTP/"
+				return SNAPLEN_EXTENDED;
 			}
 		}
 	}
