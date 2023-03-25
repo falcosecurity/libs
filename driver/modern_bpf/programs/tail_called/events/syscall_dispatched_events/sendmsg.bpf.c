@@ -91,15 +91,16 @@ int BPF_PROG(sendmsg_x,
 	 * otherwise we need to extract it now and it has a cost. Here we check just
 	 * the return value if the syscall is successful.
 	 */
-	unsigned long bytes_to_read = maps__get_snaplen();
-	if(ret > 0 && bytes_to_read > ret)
+	u16 snaplen = maps__get_snaplen();
+	apply_dynamic_snaplen(regs, &snaplen, true);
+	if(ret > 0 && snaplen > ret)
 	{
-		bytes_to_read = ret;
+		snaplen = ret;
 	}
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	unsigned long msghdr_pointer = args[1];
-	auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, bytes_to_read);
+	auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -67,16 +67,16 @@ int BPF_PROG(read_x,
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
+		u16 snaplen = maps__get_snaplen();
+		apply_dynamic_snaplen(regs, &snaplen, false);
+		if(snaplen > ret)
 		{
-			bytes_to_read = ret;
+			snaplen = ret;
 		}
 
 		/* Parameter 2: data (type: PT_BYTEBUF) */
 		unsigned long data_pointer = extract__syscall_argument(regs, 1);
-		auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_read, USER);
+		auxmap__store_bytebuf_param(auxmap, data_pointer, snaplen, USER);
 	}
 	else
 	{

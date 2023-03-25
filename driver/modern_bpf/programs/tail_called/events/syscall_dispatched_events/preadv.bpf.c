@@ -65,23 +65,23 @@ int BPF_PROG(preadv_x,
 	if(ret > 0)
 	{
 		/* Parameter 2: size (type: PT_UINT32) */
-        auxmap__store_u32_param(auxmap, (u32)ret);
+		auxmap__store_u32_param(auxmap, (u32)ret);
 
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
+		u16 snaplen = maps__get_snaplen();
+		apply_dynamic_snaplen(regs, &snaplen, true);
+		if(snaplen > ret)
 		{
-			bytes_to_read = ret;
+			snaplen = ret;
 		}
 
 		unsigned long iov_pointer = extract__syscall_argument(regs, 1);
 		unsigned long iov_cnt = extract__syscall_argument(regs, 2);
 
 		//* Parameter 3: data (type: PT_BYTEBUF) */
-		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, bytes_to_read);
+		auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
 	}
 	else
 	{

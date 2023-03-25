@@ -70,16 +70,17 @@ int BPF_PROG(send_x,
 	unsigned long args[3];
 	extract__network_args(args, 3, regs);
 
-	unsigned long bytes_to_read = ret > 0 ? ret : args[2];
-	unsigned long snaplen = maps__get_snaplen();
-	if(bytes_to_read > snaplen)
+	u16 bytes_to_read = ret > 0 ? ret : args[2];
+	u16 snaplen = maps__get_snaplen();
+	apply_dynamic_snaplen(regs, &snaplen, false);
+	if(snaplen > bytes_to_read)
 	{
-		bytes_to_read = snaplen;
+		snaplen = bytes_to_read;
 	}
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	unsigned long sent_data_pointer = args[1];
-	auxmap__store_bytebuf_param(auxmap, sent_data_pointer, bytes_to_read, USER);
+	auxmap__store_bytebuf_param(auxmap, sent_data_pointer, snaplen, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
