@@ -347,7 +347,12 @@ int pman_finalize_maps_after_loading()
 
 	/* set bpf global variables. */
 	pman_set_snaplen(80);
+	pman_set_dropping_mode(false);
+	pman_set_sampling_ratio(1);
 	pman_set_drop_failed(false);
+	pman_set_do_dynamic_snaplen(false);
+	pman_set_fullcapture_port_range(0, 0);
+	pman_set_statsd_port(PPM_PORT_STATSD);
 
 	/* We have to fill all ours tail tables. */
 	pman_fill_syscall_sampling_table();
