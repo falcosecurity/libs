@@ -744,7 +744,6 @@ static __always_inline void auxmap__store_socktuple_param(struct auxiliary_map *
 
 	case AF_INET6:
 	{
-		/* Map the user-provided address to a sockaddr_in6. */
 		struct inet_sock *inet = (struct inet_sock *)sk;
 
 		u32 ipv6_local[4] = {0, 0, 0, 0};
@@ -1384,4 +1383,172 @@ static __always_inline void auxmap__store_fdlist_param(struct auxiliary_map *aux
 	}
 	/* The param size is: 16 bit for the number of pairs + size of the pairs */
 	push__param_len(auxmap->data, &auxmap->lengths_pos, sizeof(u16) + (num_pairs * (sizeof(s64) + sizeof(s16))));
+}
+
+static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, u16 *snaplen, bool only_port_range)
+{
+	if(!maps__get_do_dynamic_snaplen())
+	{
+		return;
+	}
+
+	/* Please note that we can use this helper also for syscalls not related to the network.
+	 * The advantage of using it is that we can handle also socketcalls!
+	 * The syscalls involved in this logic are:
+	 *  - read
+	 *  - pread64
+	 *  - readv
+	 *  - preadv
+	 *  - write
+	 *  - pwrite64
+	 *  - writev
+	 *  - pwritev
+	 *  - recvmsg
+	 *  - sendmsg
+	 *  - send
+	 *  - recv
+	 *  - recvfrom
+	 *  - sendto
+	 *
+	 * Almost all syscalls involved have:
+	 *  - `fd` as the first argument.
+	 *  - `buf` as the second argument.
+	 *  - `len` as the third argument.
+	 * So extracting data is quite simple in this case.
+	 *
+	 * Some syscalls use `iovec` structs so their extraction would be quite complex,
+	 * for this reason we apply only the port_range logic. The following syscalls fall
+	 * in this category:
+	 *  - readv
+	 *  - preadv
+	 *  - writev
+	 *  - pwritev
+	 *  - recvmsg
+	 *  - sendmsg
+	 */
+	unsigned long args[3];
+	extract__network_args(args, 3, regs);
+
+	/* All the syscalls involved in this logic have the `fd` as first syscall argument */
+	s32 socket_fd = (s32)args[0];
+	if(socket_fd < 0)
+	{
+		return;
+	}
+
+	struct file *file = extract__file_struct_from_fd(socket_fd);
+	struct socket *socket = BPF_CORE_READ(file, private_data);
+	struct sock *sk = BPF_CORE_READ(socket, sk);
+	if(!sk)
+	{
+		return;
+	}
+
+	u16 port_local = 0;
+	u16 port_remote = 0;
+
+	/* We perform some checks regarding ports only for these 2 families */
+	u16 socket_family = BPF_CORE_READ(sk, __sk_common.skc_family);
+	/* We return if `fd` is not a socket */
+	if(socket_family == 0)
+	{
+		return;
+	}
+
+	if(socket_family == AF_INET || socket_family == AF_INET6)
+	{
+		struct inet_sock *inet = (struct inet_sock *)sk;
+		BPF_CORE_READ_INTO(&port_local, inet, inet_sport);
+		BPF_CORE_READ_INTO(&port_remote, sk, __sk_common.skc_dport);
+		port_local = ntohs(port_local);
+		port_remote = ntohs(port_remote);
+	}
+
+	/* Port range specified by the user */
+	uint16_t min_port = maps__get_fullcapture_port_range_start();
+	uint16_t max_port = maps__get_fullcapture_port_range_end();
+
+	if(max_port > 0 &&
+	   ((port_local >= min_port && port_local <= max_port) ||
+	    (port_remote >= min_port && port_remote <= max_port)))
+	{
+		/* Max value since this is a port of interest */
+		*snaplen = *snaplen > SNAPLEN_FULLCAPTURE_PORT ? *snaplen : SNAPLEN_FULLCAPTURE_PORT;
+		return;
+	}
+	else if(port_remote == maps__get_statsd_port())
+	{
+		/* Expanded snaplen for statsd port */
+		*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		return;
+	}
+
+	/* If we check only port range without reading syscall data we can stop here */
+	if(only_port_range)
+	{
+		return;
+	}
+
+	/* Read first `DPI_LOOKAHEAD_SIZE` bytes from syscall data, so userspace data */
+	char buf[DPI_LOOKAHEAD_SIZE] = {0};
+	unsigned long data_ptr = args[1];
+	u32 size = (u32)args[2];
+
+	if(bpf_probe_read_user((void *)&buf[0],
+			       DPI_LOOKAHEAD_SIZE,
+			       (void *)data_ptr) != 0)
+	{
+		return;
+	}
+
+	/* MYSQL */
+	if((port_local == PPM_PORT_MYSQL || port_remote == PPM_PORT_MYSQL) && size >= 5)
+	{
+		if((buf[0] == 3 || buf[1] == 3 || buf[2] == 3 || buf[3] == 3 || buf[4] == 3) ||
+		   (buf[2] == 0 && buf[3] == 0))
+		{
+			*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		}
+		return;
+	}
+
+	/* POSTGRES */
+	if((port_local == PPM_PORT_POSTGRES || port_remote == PPM_PORT_POSTGRES) && size >= 2)
+	{
+		if((buf[0] == 'Q' && buf[1] == 0) ||		  /* SimpleQuery command */
+		   (buf[0] == 'P' && buf[1] == 0) ||		  /* Prepare statement command */
+		   (buf[4] == 0 && buf[5] == 3 && buf[6] == 0) || /* Startup command */
+		   (buf[0] == 'E' && buf[1] == 0))		  /* Error or execute command */
+		{
+			*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		}
+		return;
+	}
+
+	/* MONGODB */
+	s32 m = *(s32 *)(&buf[12]);
+	if((port_local == PPM_PORT_MONGODB || port_remote == PPM_PORT_MONGODB) ||
+	   (size >= 16 && (m == 1 || (m >= 2001 && m <= 2007))))
+	{
+		*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		return;
+	}
+
+	/* HTTP */
+	if(size >= 5)
+	{
+		u32 h = *(u32 *)(&buf[0]);
+		if(h == BPF_HTTP_GET ||
+		   h == BPF_HTTP_POST ||
+		   h == BPF_HTTP_PUT ||
+		   h == BPF_HTTP_DELETE ||
+		   h == BPF_HTTP_TRACE ||
+		   h == BPF_HTTP_CONNECT ||
+		   h == BPF_HTTP_OPTIONS ||
+		   (h == BPF_HTTP_PREFIX && buf[4] == '/')) /* "HTTP/" */
+		{
+			*snaplen = *snaplen > SNAPLEN_EXTENDED ? *snaplen : SNAPLEN_EXTENDED;
+		}
+		return;
+	}
 }

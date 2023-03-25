@@ -114,16 +114,16 @@ static int32_t scap_modern_bpf__configure(struct scap_engine_handle engine, enum
 		return scap_modern_bpf_handle_sc(engine, arg1, arg2);
 	case SCAP_DROP_FAILED:
 		pman_set_drop_failed(arg1);
-		return SCAP_SUCCESS;
+		break;
 	case SCAP_DYNAMIC_SNAPLEN:
-		/* Not supported */
-		return SCAP_SUCCESS;
+		pman_set_do_dynamic_snaplen(arg1);
+		break;
 	case SCAP_FULLCAPTURE_PORT_RANGE:
-		/* Not supported */
-		return SCAP_SUCCESS;
+		pman_set_fullcapture_port_range(arg1, arg2);
+		break;
 	case SCAP_STATSD_PORT:
-		/* Not supported */
-		return SCAP_SUCCESS;
+		pman_set_statsd_port(arg1);
+		break;
 	default:
 	{
 		char msg[SCAP_LASTERR_SIZE];

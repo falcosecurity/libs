@@ -23,11 +23,15 @@
  */
 struct capture_settings
 {
-	uint64_t boot_time;	 /* boot time. */
-	uint32_t snaplen;	 /* we use it when we want to read a maximum size from a event and no more. */
-	bool dropping_mode;	 /* this flag actives the sampling logic */
-	uint32_t sampling_ratio; /* this config tells tracepoints when they have to drop events  */
-	bool drop_failed;     /* whether to drop failed syscalls (exit events) */
+	uint64_t boot_time;		       /* boot time. */
+	uint32_t snaplen;		       /* we use it when we want to read a maximum size from an event and no more. */
+	bool dropping_mode;		       /* this flag actives the sampling logic */
+	uint32_t sampling_ratio;	       /* this config tells tracepoints when they have to drop events  */
+	bool drop_failed;		       /* whether to drop failed syscalls (exit events) */
+	bool do_dynamic_snaplen;	       /* enforce snaplen according to the event content */
+	uint16_t fullcapture_port_range_start; /* first interesting port */
+	uint16_t fullcapture_port_range_end;   /* last interesting port */
+	uint16_t statsd_port;		       /* port for statsd metrics */
 };
 
 /**
