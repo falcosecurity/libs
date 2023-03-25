@@ -69,17 +69,18 @@ int BPF_PROG(writev_x,
 	 * otherwise we need to extract it now and it has a cost. Here we check just
 	 * the return value if the syscall is successful.
 	 */
-	unsigned long bytes_to_read = maps__get_snaplen();
-	if(ret > 0 && bytes_to_read > ret)
+	u16 snaplen = maps__get_snaplen();
+	apply_dynamic_snaplen(regs, &snaplen, true);
+	if(ret > 0 && snaplen > ret)
 	{
-		bytes_to_read = ret;
+		snaplen = ret;
 	}
 
 	unsigned long iov_pointer = extract__syscall_argument(regs, 1);
 	unsigned long iov_cnt = extract__syscall_argument(regs, 2);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
-	auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, bytes_to_read);
+	auxmap__store_iovec_data_param(auxmap, iov_pointer, iov_cnt, snaplen);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

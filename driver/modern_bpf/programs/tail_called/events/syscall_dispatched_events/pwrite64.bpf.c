@@ -69,16 +69,17 @@ int BPF_PROG(pwrite64_x,
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	unsigned long bytes_to_read = ret > 0 ? ret : extract__syscall_argument(regs, 2);
-	unsigned long snaplen = maps__get_snaplen();
-	if(bytes_to_read > snaplen)
+	u16 bytes_to_read = ret > 0 ? ret : extract__syscall_argument(regs, 2);
+	u16 snaplen = maps__get_snaplen();
+	apply_dynamic_snaplen(regs, &snaplen, false);
+	if(snaplen > bytes_to_read)
 	{
-		bytes_to_read = snaplen;
+		snaplen = bytes_to_read;
 	}
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	unsigned long data_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_bytebuf_param(auxmap, data_pointer, bytes_to_read, USER);
+	auxmap__store_bytebuf_param(auxmap, data_pointer, snaplen, USER);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -75,11 +75,11 @@ int BPF_PROG(recvmsg_x,
 		/* We read the minimum between `snaplen` and what we really
 		 * have in the buffer.
 		 */
-		unsigned long bytes_to_read = maps__get_snaplen();
-
-		if(bytes_to_read > ret)
+		u16 snaplen = maps__get_snaplen();
+		apply_dynamic_snaplen(regs, &snaplen, true);
+		if(snaplen > ret)
 		{
-			bytes_to_read = ret;
+			snaplen = ret;
 		}
 
 		/* Collect parameters at the beginning to manage socketcalls */
@@ -88,8 +88,8 @@ int BPF_PROG(recvmsg_x,
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		unsigned long msghdr_pointer = args[1];
-		auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, bytes_to_read);
-		
+		auxmap__store_msghdr_data_param(auxmap, msghdr_pointer, snaplen);
+
 		/* Parameter 4: tuple (type: PT_SOCKTUPLE) */
 		u32 socket_fd = (u32)args[0];
 		auxmap__store_socktuple_param(auxmap, socket_fd, INBOUND);
