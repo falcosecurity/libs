@@ -324,10 +324,20 @@ typedef struct _scap_machine_info
 	uint64_t max_pid; ///< Highest PID number on this machine
 	char hostname[128]; ///< The machine hostname
 	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
-	uint64_t self_pid_ts_epoch; ///< Agent start ts in nanoseconds (epoch)
 	uint64_t flags; ///< flags
+	uint64_t reserved3; ///< reserved for future use
 	uint64_t reserved4; ///< reserved for future use, note: because of scap file captures needs to remain uint64_t, use flags if possible
 }scap_machine_info;
+
+/*!
+  \brief Agent information, not intended for scap file use
+*/
+typedef struct _scap_agent_info
+{
+	uint64_t start_ts_epoch; ///< Agent start timestamp, stat /proc/self/cmdline approach, unit: epoch in nanoseconds
+	double start_time; ///< /proc/self/stat start_time divided by HZ, unit: seconds
+	char uname_r[128]; ///< Kernel release `uname -r`
+}scap_agent_info;
 
 /*!
   \brief Interface address type
@@ -840,6 +850,15 @@ const char* scap_get_ppm_sc_name(ppm_sc_code sc);
 const scap_machine_info* scap_get_machine_info(scap_t* handle);
 
 /*!
+  \brief Get generic agent information
+
+  \return The pointer to a \ref scap_agent_info structure containing the information.
+
+  \note for live captures only.
+*/
+const scap_agent_info* scap_get_agent_info(scap_t* handle);
+
+/*!
   \brief Set the capture snaplen, i.e. the maximum size an event parameter can
   reach before the driver starts truncating it.
 
@@ -1030,7 +1049,7 @@ void scap_gethostname(scap_t* handle);
 /**
  * Agent start ts in nanoseconds (epoch).
  */
-void scap_get_self_pid_ts_epoch(scap_t* handle);
+void scap_retrieve_agent_info(scap_t* handle);
 
 /**
  * Check is kernel.bpf_stats_enabled is set.

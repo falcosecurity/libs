@@ -53,6 +53,7 @@ struct scap
 	uint64_t m_evtcnt;
 	scap_addrlist* m_addrlist;
 	scap_machine_info m_machine_info;
+	scap_agent_info m_agent_info;
 	scap_userlist* m_userlist;
 	struct ppm_proclist_info* m_driver_procinfo;
 	uint32_t m_fd_lookup_limit;

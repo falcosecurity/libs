@@ -1846,6 +1846,11 @@ const scap_machine_info* sinsp::get_machine_info()
 	return m_machine_info;
 }
 
+const scap_agent_info* sinsp::get_agent_info()
+{
+	return m_agent_info;
+}
+
 void sinsp::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);
