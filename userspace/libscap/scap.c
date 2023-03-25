@@ -84,15 +84,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	// Extract machine information
 	//
 
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-	scap_gethostname(handle);
-	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_bpf_stats_enabled(handle);
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = 0;
+	scap_retrieve_machine_info(handle, boot_time);
 
 	//
 	// Extract agent information
@@ -207,15 +199,7 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	// Extract machine information
 	//
 
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-	scap_gethostname(handle);
-	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_bpf_stats_enabled(handle);
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = 0;
+	scap_retrieve_machine_info(handle, boot_time);
 
 	//
 	// Extract agent information
@@ -459,15 +443,7 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	// Extract machine information
 	//
 
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-	scap_gethostname(handle);
-	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_bpf_stats_enabled(handle);
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
-
+	scap_retrieve_machine_info(handle, boot_time);
 	if(!engine_params || !engine_params->full_proc_scan)
 	{
 		handle->m_minimal_scan = true;
@@ -546,19 +522,7 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 	//
 	// Extract machine information
 	//
-#ifdef _WIN32
-	handle->m_machine_info.num_cpus = 0;
-	handle->m_machine_info.memory_size_bytes = 0;
-#else
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-#endif
-	scap_gethostname(handle);
-	handle->m_machine_info.boot_ts_epoch = 0; // plugin does not need boot_ts_epoch
-	scap_get_bpf_stats_enabled(handle);
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
+	scap_retrieve_machine_info(handle, (uint64_t)0);
 	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 
 	//
@@ -1265,6 +1229,23 @@ void scap_gethostname(scap_t* handle)
 	}
 }
 
+void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time)
+{
+#ifdef _WIN32
+	handle->m_machine_info.num_cpus = 0;
+	handle->m_machine_info.memory_size_bytes = 0;
+#else
+	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+#endif
+	scap_gethostname(handle);
+	handle->m_machine_info.boot_ts_epoch = boot_time;
+	scap_get_bpf_stats_enabled(handle);
+	handle->m_machine_info.reserved3 = 0;
+	handle->m_machine_info.reserved4 = 0;
+	handle->m_driver_procinfo = NULL;
+	handle->m_fd_lookup_limit = 0;
+}
 
 long scap_get_hertz()
 {
