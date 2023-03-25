@@ -1047,9 +1047,14 @@ uint64_t scap_get_driver_schema_version(scap_t* handle);
 void scap_gethostname(scap_t* handle);
 
 /**
- * Agent start ts in nanoseconds (epoch).
+ * Retrieve agent info.
  */
 void scap_retrieve_agent_info(scap_t* handle);
+
+/**
+ * Retrieve machine info.
+ */
+void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time);
 
 /**
  * Check is kernel.bpf_stats_enabled is set.
