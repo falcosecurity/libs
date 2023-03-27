@@ -62,6 +62,7 @@ list(APPEND targetfiles
 	scap_savefile.c
 	scap_procs.c
 	scap_userlist.c
+	scap_machine_agent.c
 	scap_suppress.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
