@@ -1047,21 +1047,6 @@ uint64_t scap_get_driver_schema_version(scap_t* handle);
 void scap_gethostname(scap_t* handle);
 
 /**
- * Retrieve agent info.
- */
-void scap_retrieve_agent_info(scap_t* handle);
-
-/**
- * Retrieve machine info.
- */
-void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time);
-
-/**
- * Check is kernel.bpf_stats_enabled is set.
- */
-void scap_get_bpf_stats_enabled(scap_t* handle);
-
-/**
  * This helper returns the system boot time computed as the actual time - the uptime of the system since the boot.
  * We need to use this helper in drivers like BPF, because in BPF we are not able to obtain the current system time
  * since Epoch, so we need to compute it as `time_from_the_boot(bpf_ktime_get_boot_ns) + boot_time`.

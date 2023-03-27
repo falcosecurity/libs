@@ -124,6 +124,21 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);
 
 //
+// Retrieve agent info.
+//
+void scap_retrieve_agent_info(scap_t* handle);
+
+//
+// Retrieve machine info.
+//
+void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time);
+
+//
+// Check if kernel.bpf_stats_enabled is set.
+//
+void scap_get_bpf_stats_enabled(scap_t* handle);
+
+//
 // Useful stuff
 //
 #ifndef MIN
