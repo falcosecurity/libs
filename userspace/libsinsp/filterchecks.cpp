@@ -3235,6 +3235,11 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 	return sinsp_filter_check::compare(evt);
 }
 
+int32_t sinsp_filter_check_thread::get_argid()
+{
+	return m_argid;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_event implementation
 ///////////////////////////////////////////////////////////////////////////////
