@@ -12,8 +12,9 @@ TEST(SyscallEnter, fcntlE)
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
+	/* If the dropping logic is not enabled we should be always able to collect this event */
 	int32_t invalid_fd = -1;
-	int cmd = F_DUPFD_CLOEXEC;
+	int cmd = F_NOTIFY;
 	assert_syscall_state(SYSCALL_FAILURE, "fcntl", syscall(__NR_fcntl, invalid_fd, cmd));
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -37,7 +38,7 @@ TEST(SyscallEnter, fcntlE)
 	evt_test->assert_numeric_param(1, (int64_t)invalid_fd);
 
 	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
-	evt_test->assert_numeric_param(2, (uint8_t)PPM_FCNTL_F_DUPFD_CLOEXEC);
+	evt_test->assert_numeric_param(2, (uint8_t)PPM_FCNTL_F_NOTIFY);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
