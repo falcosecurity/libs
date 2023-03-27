@@ -1185,6 +1185,7 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	// XXX/mstemm this doesn't work if someone called
 	// add_filter_value more than once for a given index.
 	filter_value_t item(filter_value_p(i), parsed_len);
+	m_vals.push_back(item);
 	m_val_storages_members.insert(item);
 
 	if(parsed_len < m_val_storages_min_size)
