@@ -604,8 +604,8 @@ int32_t scap_proc_fill_exe_ino_ctime_mtime(char* error, struct scap_threadinfo* 
 	if(stat(exetarget, &targetstat) == 0)
 	{
 		tinfo->exe_ino = targetstat.st_ino;
-		tinfo->exe_ino_ctime = targetstat.st_ctim.tv_sec * (uint64_t) 1000000000 + targetstat.st_ctim.tv_nsec;
-		tinfo->exe_ino_mtime = targetstat.st_mtim.tv_sec * (uint64_t) 1000000000 + targetstat.st_mtim.tv_nsec;
+		tinfo->exe_ino_ctime = targetstat.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_ctim.tv_nsec;
+		tinfo->exe_ino_mtime = targetstat.st_mtim.tv_sec * (uint64_t) SECOND_TO_NS + targetstat.st_mtim.tv_nsec;
 	}
 
 	return SCAP_SUCCESS;
