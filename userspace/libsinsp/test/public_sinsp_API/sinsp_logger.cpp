@@ -62,10 +62,10 @@ TEST(sinsp_logger, get_set_severity)
 	auto logger = sinsp_logger();
 	logger.set_severity(sinsp_logger::SEV_FATAL);
 	ASSERT_EQ(logger.get_severity(), sinsp_logger::SEV_FATAL);
-	ASSERT_TRUE(logger.is_logging(sinsp_logger::SEV_FATAL));
-	ASSERT_FALSE(logger.is_logging(sinsp_logger::SEV_TRACE));
-	ASSERT_FALSE(logger.is_logging(sinsp_logger::SEV_CRITICAL));
+	ASSERT_TRUE(logger.is_enabled(sinsp_logger::SEV_FATAL));
+	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_TRACE));
+	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_CRITICAL));
 	logger.set_severity(sinsp_logger::SEV_NOTICE);
-	ASSERT_FALSE(logger.is_logging(sinsp_logger::SEV_INFO));
-	ASSERT_TRUE(logger.is_logging(sinsp_logger::SEV_ERROR));
+	ASSERT_FALSE(logger.is_enabled(sinsp_logger::SEV_INFO));
+	ASSERT_TRUE(logger.is_enabled(sinsp_logger::SEV_ERROR));
 }
