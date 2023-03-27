@@ -1397,4 +1397,13 @@
 
 /*=============================== SOCKETCALL CODES ===========================*/
 
+/*=============================== OPENED FILE DESCRIPTORS ===========================*/
+
+/* `/include/asm-generic/bitsperlong.h` from kernel source tree. */
+
+#define BITS_PER_LONG 64
+#define BIT_WORD(nr)		((nr) / BITS_PER_LONG)
+
+/*=============================== OPENED FILE DESCRIPTORS ===========================*/
+
 #endif /* __MISSING_DEFINITIONS_H__ */

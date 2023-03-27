@@ -49,6 +49,11 @@ int BPF_PROG(bind_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
+	if(maps__get_dropping_mode() && ret < 0)
+	{
+		return 0;
+	}
+
 	struct auxiliary_map *auxmap = auxmap__get();
 	if(!auxmap)
 	{

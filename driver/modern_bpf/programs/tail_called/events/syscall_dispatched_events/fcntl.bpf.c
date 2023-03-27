@@ -7,6 +7,16 @@
 
 #include <helpers/interfaces/fixed_size_event.h>
 
+static __always_inline bool check_fcntl_dropping(struct pt_regs *regs)
+{
+	int cmd = (s32)extract__syscall_argument(regs, 1);
+	if(cmd != F_DUPFD && cmd != F_DUPFD_CLOEXEC)
+	{
+		return true;
+	}
+	return false;
+}
+
 /*=============================== ENTER EVENT ===========================*/
 
 SEC("tp_btf/sys_enter")
@@ -14,6 +24,11 @@ int BPF_PROG(fcntl_e,
 	     struct pt_regs *regs,
 	     long id)
 {
+	if(maps__get_dropping_mode() && check_fcntl_dropping(regs))
+	{
+		return 0;
+	}
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, FCNTL_E_SIZE))
 	{
@@ -48,6 +63,11 @@ int BPF_PROG(fcntl_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
+	if(maps__get_dropping_mode() && check_fcntl_dropping(regs))
+	{
+		return 0;
+	}
+
 	struct ringbuf_struct ringbuf;
 	if(!ringbuf__reserve_space(&ringbuf, FCNTL_X_SIZE))
 	{
