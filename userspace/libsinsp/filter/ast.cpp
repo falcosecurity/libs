@@ -66,6 +66,52 @@ void base_expr_visitor::visit(list_expr* e) { }
 
 void base_expr_visitor::visit(unary_check_expr* e) { }
 
+void const_base_expr_visitor::visit(const and_expr* e)
+{
+    for(auto &c: e->children)
+    {
+        if (m_should_stop_visit)
+        {
+            return;
+        }
+        c->accept(this);
+    }
+}
+
+void const_base_expr_visitor::visit(const or_expr* e)
+{
+    for(auto &c: e->children)
+    {
+        if (m_should_stop_visit)
+        {
+            return;
+        }
+        c->accept(this);
+    }
+}
+
+void const_base_expr_visitor::visit(const not_expr* e)
+{
+    if (!m_should_stop_visit)
+    {
+        e->child->accept(this);
+    }
+}
+
+void const_base_expr_visitor::visit(const binary_check_expr* e)
+{
+    if (!m_should_stop_visit)
+    {
+        e->value->accept(this);
+    }
+}
+
+void const_base_expr_visitor::visit(const value_expr* e) { }
+
+void const_base_expr_visitor::visit(const list_expr* e) { }
+
+void const_base_expr_visitor::visit(const unary_check_expr* e) { }
+
 void string_visitor::visit_logical_op(const char *op, const std::vector<std::unique_ptr<expr>> &children)
 {
 	bool first = true;
