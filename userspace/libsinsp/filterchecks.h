@@ -203,6 +203,8 @@ protected:
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline std::vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
 
+	std::vector<filter_value_t> m_vals;
+
 	std::unordered_set<filter_value_t,
 		g_hash_membuf,
 		g_equal_to_membuf> m_val_storages_members;
