@@ -67,7 +67,7 @@ static void load_ppm_sc_table()
 const char *scap_get_ppm_sc_name(ppm_sc_code sc)
 {
 	/* We avoid the check for perf reasons */
-	ASSERT(sc < PPM_SC_MAX);
+	ASSERT(sc >= 0 && sc < PPM_SC_MAX);
 
 	/* Lazy loading */
 	if(g_ppm_sc_names[0] && (strcmp(g_ppm_sc_names[0], "") == 0))
