@@ -355,6 +355,26 @@ TEST_F(sinsp_with_test_input, enumparams)
 	ASSERT_STREQ(val_str, "AF_LOCAL|AF_UNIX");
 }
 
+TEST_F(sinsp_with_test_input, enumparams_fcntl_dupfd)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	sinsp_evt_param* param = NULL;
+
+	/* `PPME_SYSCALL_FCNTL_E` is a simple event that uses a PT_ENUMFLAGS32 (param 2) */
+	uint8_t flag = PPM_FCNTL_F_DUPFD;
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCNTL_E, 2, 0, flag);
+
+	param = evt->get_param(1);
+	ASSERT_EQ(*(uint8_t *)param->m_val, PPM_FCNTL_F_DUPFD);
+
+	const char *val_str = NULL;
+	evt->get_param_as_str(1, &val_str);
+	ASSERT_STREQ(val_str, "F_DUPFD");
+}
+
 /* Check that bitmask flags are correctly handled
  */
 TEST_F(sinsp_with_test_input, bitmaskparams)
