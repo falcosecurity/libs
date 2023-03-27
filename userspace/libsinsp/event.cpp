@@ -1184,7 +1184,24 @@ Json::Value sinsp_evt::get_param_as_json(uint32_t id, OUT const char** resolved_
 	case PT_ENUMFLAGS16:
 	case PT_ENUMFLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			uint32_t val = 0;
+			switch(param_info->type)
+			{
+			case PT_FLAGS8:
+			case PT_ENUMFLAGS8:
+				val = *(uint8_t *)payload;
+				break;
+			case PT_FLAGS16:
+			case PT_ENUMFLAGS16:
+				val = *(uint16_t *)payload;
+				break;
+			case PT_FLAGS32:
+			case PT_ENUMFLAGS32:
+				val = *(uint32_t *)payload;
+				break;
+			default:
+				ASSERT(false);
+			}
 			ret["val"] = val;
 			ret["flags"] = Json::arrayValue;
 
@@ -2082,7 +2099,24 @@ const char* sinsp_evt::get_param_as_str(uint32_t id, OUT const char** resolved_s
 	case PT_ENUMFLAGS16:
 	case PT_ENUMFLAGS32:
 		{
-			uint32_t val = *(uint32_t *)payload & (((uint64_t)1 << payload_len * 8) - 1);
+			uint32_t val = 0;
+			switch(param_info->type)
+			{
+			case PT_FLAGS8:
+			case PT_ENUMFLAGS8:
+				val = *(uint8_t *)payload;
+				break;
+			case PT_FLAGS16:
+			case PT_ENUMFLAGS16:
+				val = *(uint16_t *)payload;
+				break;
+			case PT_FLAGS32:
+			case PT_ENUMFLAGS32:
+				val = *(uint32_t *)payload;
+				break;
+			default:
+				ASSERT(false);
+			}
 			snprintf(&m_paramstr_storage[0],
 				     m_paramstr_storage.size(),
 				     "%" PRIu32, val);
