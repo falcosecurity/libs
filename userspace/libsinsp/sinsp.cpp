@@ -100,6 +100,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_filter = NULL;
 	m_fds_to_remove = new std::vector<int64_t>;
 	m_machine_info = NULL;
+	m_agent_info = NULL;
 #ifdef SIMULATE_DROP_MODE
 	m_isdropping = false;
 #endif
@@ -317,6 +318,15 @@ void sinsp::init()
 	{
 		ASSERT(false);
 		m_num_cpus = 0;
+	}
+
+	//
+	// Retrieve agent information
+	//
+	m_agent_info = scap_get_agent_info(m_h);
+	if (m_agent_info == NULL)
+	{
+		ASSERT(false);
 	}
 
 	//
