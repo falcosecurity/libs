@@ -79,8 +79,8 @@ typedef struct ss_plugin_event
 } ss_plugin_event;
 
 struct const_sized_buffer {
-	size_t size;
-	const void* buf;
+	uint32_t len;
+	const void* ptr;
 };
 typedef struct const_sized_buffer const_sized_buffer;
 
@@ -134,7 +134,7 @@ typedef struct ss_plugin_extract_field
 		uint64_t* u64;
 		uint32_t* u32;
 		bool* boolean;
-		const_sized_buffer* buf;
+		const_sized_buffer** buf;
 	} res;
 	uint64_t res_len;
 
