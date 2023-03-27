@@ -31,6 +31,7 @@ EXPORTS
 		scap_proc_free
 		scap_start_capture
 		scap_get_machine_info
+		scap_get_agent_info
 		scap_stop_dropping_mode
 		scap_start_dropping_mode
 		scap_get_user_list
