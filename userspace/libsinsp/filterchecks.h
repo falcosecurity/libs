@@ -407,6 +407,8 @@ public:
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
 
+	int32_t get_argid();
+
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);
 	int32_t extract_arg(std::string fldname, std::string val, OUT const struct ppm_param_info** parinfo);
