@@ -31,6 +31,19 @@ limitations under the License.
 
 #define SECOND_TO_NS 1000000000
 
+void scap_gethostname(scap_t* handle)
+{
+	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
+	if(env_hostname != NULL)
+	{
+		snprintf(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname), "%s", env_hostname);
+	}
+	else
+	{
+		gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
+	}
+}
+
 void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time)
 {
 #ifdef _WIN32
