@@ -24,7 +24,6 @@ limitations under the License.
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <sys/utsname.h>
 #endif // _WIN32
 
 #include "scap.h"
@@ -1214,19 +1213,6 @@ uint64_t scap_get_driver_schema_version(scap_t* handle)
 	}
 
 	return 0;
-}
-
-void scap_gethostname(scap_t* handle)
-{
-	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
-	if(env_hostname != NULL)
-	{
-		snprintf(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname), "%s", env_hostname);
-	}
-	else
-	{
-		gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
-	}
 }
 
 int32_t scap_get_boot_time(char* last_err, uint64_t *boot_time)

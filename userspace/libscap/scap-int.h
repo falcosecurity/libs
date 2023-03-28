@@ -124,6 +124,15 @@ int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_
 int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error);
 
 //
+// Get hostname.
+//
+// Supports env variable lookup for cloud native integrations
+// where the hostname can be equivalent to the Kubernetes pod name.
+// Customizable over cmake setup SCAP_HOSTNAME_ENV_VAR.
+//
+void scap_gethostname(scap_t* handle);
+
+//
 // Retrieve agent info.
 //
 void scap_retrieve_agent_info(scap_t* handle);

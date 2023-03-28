@@ -1036,16 +1036,6 @@ uint64_t scap_get_driver_api_version(scap_t* handle);
  */
 uint64_t scap_get_driver_schema_version(scap_t* handle);
 
-
-/**
- * Get hostname.
- *
- * Supports env variable lookup for cloud native integrations
- * where the hostname can be equivalent to the Kubernetes pod name.
- * Customizable over cmake setup SCAP_HOSTNAME_ENV_VAR.
- */
-void scap_gethostname(scap_t* handle);
-
 /**
  * This helper returns the system boot time computed as the actual time - the uptime of the system since the boot.
  * We need to use this helper in drivers like BPF, because in BPF we are not able to obtain the current system time
