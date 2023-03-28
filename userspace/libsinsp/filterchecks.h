@@ -203,6 +203,8 @@ protected:
 	inline uint8_t* filter_value_p(uint16_t i = 0) { return &m_val_storages[i][0]; }
 	inline vector<uint8_t>* filter_value(uint16_t i = 0) { return &m_val_storages[i]; }
 
+	std::vector<filter_value_t> m_vals;
+
 	unordered_set<filter_value_t,
 		g_hash_membuf,
 		g_equal_to_membuf> m_val_storages_members;
@@ -399,6 +401,8 @@ public:
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	bool compare(sinsp_evt *evt);
+
+	int32_t get_argid();
 
 private:
 	uint64_t extract_exectime(sinsp_evt *evt);

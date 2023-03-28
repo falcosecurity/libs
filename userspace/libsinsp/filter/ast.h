@@ -145,6 +145,35 @@ private:
 };
 
 /*!
+    \brief An analog of base_expr_visitor, but const.
+*/
+struct SINSP_PUBLIC const_base_expr_visitor: public const_expr_visitor
+{
+public:
+    /*!
+        \brief Can be set to true by subclasses to instruct the
+        visitor that the exploration can be stopped, so
+        that the recursion gets rewinded and no more nodes
+        are explored.
+    */
+    inline void stop(bool v)
+    {
+        m_should_stop_visit = v;
+    }
+
+    virtual void visit(const and_expr*) override;
+    virtual void visit(const or_expr*) override;
+    virtual void visit(const not_expr*) override;
+    virtual void visit(const value_expr*) override;
+    virtual void visit(const list_expr*) override;
+    virtual void visit(const unary_check_expr*) override;
+    virtual void visit(const binary_check_expr*) override;
+
+private:
+    bool m_should_stop_visit = false;
+};
+
+/*!
     \brief A visitor that builds a string as it traverses the
     ast. Used to convert to strings.
 */
