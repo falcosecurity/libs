@@ -128,19 +128,10 @@ TEST(SyscallExit, execveatX_failure)
 	/* Parameter 19: loginuid (type: PT_UINT32) */
 	evt_test->assert_numeric_param(19, (uint32_t)info.loginuid);
 
-	/* Parameter 20: flags (type: PT_UINT32) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/// TODO: In the modern probe `exe_writable` is not yet implemented.
-		evt_test->assert_numeric_param(20, (uint32_t)0);
-	}
-	else
-	{
-		/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-		 * file that is used to spawn it or is its owner or otherwise capable.
-		 */
-		evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
-	}
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
+	 * file that is used to spawn it or is its owner or otherwise capable.
+	 */
+	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
 	evt_test->assert_numeric_param(21, (uint64_t)capabilities_to_scap(((unsigned long)data[1].inheritable << 32) | data[0].inheritable));
@@ -267,19 +258,10 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_charbuf_array_param(16, &envp[0]);
 
-	/* Parameter 20: flags (type: PT_UINT32) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/// TODO: In the modern probe `exe_writable` is not yet implemented.
-		evt_test->assert_numeric_param(20, (uint32_t)0);
-	}
-	else
-	{
-		/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-		 * file that is used to spawn it or is its owner or otherwise capable.
-		 */
-		evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
-	}
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
+	 * file that is used to spawn it or is its owner or otherwise capable.
+	 */
+	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
@@ -401,19 +383,10 @@ TEST(SyscallExit, execveatX_execve_exit)
 	/* Parameter 16: env (type: PT_CHARBUFARRAY) */
 	evt_test->assert_charbuf_array_param(16, &envp[0]);
 
-	/* Parameter 20: flags (type: PT_UINT32) */
-	if(evt_test->is_modern_bpf_engine())
-	{
-		/// TODO: In the modern probe `exe_writable` is not yet implemented.
-		evt_test->assert_numeric_param(20, (uint32_t)0);
-	}
-	else
-	{
-		/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
-		 * file that is used to spawn it or is its owner or otherwise capable.
-		 */
-		evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
-	}
+	/* PPM_EXE_WRITABLE is set when the user that executed a process can also write to the executable
+	 * file that is used to spawn it or is its owner or otherwise capable.
+	 */
+	evt_test->assert_numeric_param(20, (uint32_t)PPM_EXE_WRITABLE);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	evt_test->assert_numeric_param(24, (uint64_t)1, GREATER_EQUAL);
