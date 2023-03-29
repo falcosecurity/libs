@@ -712,6 +712,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_EPOLL_CLOEXEC       (1 << 0)
 
 /*
+ * Prctl flags
+ */
+//XXX TODO ADD FLAGS
+
+/*
  * SuS says limits have to be unsigned.
  * Which makes a ton more sense anyway.
  *
@@ -1202,7 +1207,9 @@ typedef enum {
 	PPME_SYSCALL_EVENTFD2_X = 397,
 	PPME_SYSCALL_SIGNALFD4_E = 398,
 	PPME_SYSCALL_SIGNALFD4_X = 399,
-	PPM_EVENT_MAX = 400
+	PPME_SYSCALL_PRCTL_E = 400,
+	PPME_SYSCALL_PRCTL_X = 401,
+	PPM_EVENT_MAX = 402
 } ppm_event_code;
 /*@}*/
 
@@ -1916,6 +1923,7 @@ extern const struct ppm_name_value mlock2_flags[];
 extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
+//XXX ADD HERE IF PRCTL FLAGS ARE PRESENT
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
