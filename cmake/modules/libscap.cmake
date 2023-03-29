@@ -64,6 +64,7 @@ set(libscap_conditional_libs
 	scap_engine_modern_bpf
 	scap_engine_nodriver
 	scap_engine_savefile
+	scap_engine_test_input
 	scap_engine_udig
 	scap_engine_util
 	scap_platform)
