@@ -117,7 +117,17 @@ void libsinsp::resource_utilization::get_container_memory_usage(uint32_t &memory
 	 * typically libs clients (e.g. Falco) pods contain sidekick containers that use memory as well.
 	 * This metric accounts only for the container with the security monitoring agent running.
 	*/
-	char filename[1024] = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
+	char filename[1024];
+	const char *env_filename = getenv(SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR);
+	if(env_filename != NULL)
+	{
+		snprintf(filename, sizeof(filename), "%s", env_filename);
+	}
+	else
+	{
+		snprintf(filename, sizeof(filename), "%s", "/sys/fs/cgroup/memory/memory.usage_in_bytes");
+	}
+
 	if(FILE* f = fopen(filename, "r"))
 	{
 		uint64_t tmp_memory_used = 0;
