@@ -916,6 +916,13 @@
 
 /* `/include/uapi/linux/capability.h` from kernel source tree. */
 
+/*
+ * Bit location of each capability (used by user-space library and kernel)
+ */
+
+#define CAP_TO_INDEX(x) ((x) >> 5)	/* 1 << 5 == bits in __u32 */
+#define CAP_TO_MASK(x) (1U << ((x)&31)) /* mask for indexed __u32 */
+
 /* In a system with the [_POSIX_CHOWN_RESTRICTED] option defined, this
    overrides the restriction of changing file ownership and group
    ownership. */
@@ -1227,6 +1234,10 @@
 
 #define CAP_LAST_CAP CAP_CHECKPOINT_RESTORE
 
+/* `/include/linux/capability.h` from kernel source tree. */
+
+#define cap_raised(c, flag) ((c).cap[CAP_TO_INDEX(flag)] & CAP_TO_MASK(flag))
+
 /*=============================== CAPABILITIES ===========================*/
 
 /*=============================== DIRECTORY_NOTIFICATIONS ===========================*/
@@ -1371,6 +1382,32 @@
 #define SPLICE_F_ALL (SPLICE_F_MOVE|SPLICE_F_NONBLOCK|SPLICE_F_MORE|SPLICE_F_GIFT)
 
 /*=============================== SPLICE SYSCALL =============================*/
+
+/*=============================== INODE/SUPERBLOCK FLAGS ===========================*/
+
+/* `/include/linux/fs.h` from kernel source tree. */
+
+#define SB_RDONLY 1	     /* Mount read-only */
+#define S_IMMUTABLE (1 << 3) /* Immutable file */
+
+/* `/include/uapi/linux/stat.h` from kernel source tree. */
+
+#define S_IFMT 00170000
+#define S_IFSOCK 0140000
+#define S_IFLNK 0120000
+#define S_IFREG 0100000
+#define S_IFBLK 0060000
+#define S_IFDIR 0040000
+#define S_IFCHR 0020000
+#define S_IFIFO 0010000
+#define S_ISUID 0004000
+#define S_ISGID 0002000
+#define S_ISVTX 0001000
+#define S_ISREG(m) (((m)&S_IFMT) == S_IFREG)
+#define S_ISDIR(m) (((m)&S_IFMT) == S_IFDIR)
+#define S_ISLNK(m) (((m)&S_IFMT) == S_IFLNK)
+
+/*=============================== INODE/SUPERBLOCK FLAGS ===========================*/
 
 /*=============================== SOCKETCALL CODES ===========================*/
 

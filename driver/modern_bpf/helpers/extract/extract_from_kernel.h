@@ -693,3 +693,185 @@ static __always_inline bool extract__exe_upper_layer(struct inode *inode)
 
 	return false;
 }
+
+/* log(NGROUPS_MAX) = log(65536) */
+#define MAX_GROUP_SEARCH_DEPTH 16
+
+/* defined in /include/linux/user_namespace.h */
+#define UID_GID_MAP_MAX_BASE_EXTENTS 5
+
+/* UP means get NS id (uid/gid) from kuid/kgid */
+static __always_inline u32 bpf_map_id_up(struct uid_gid_map *map, u32 id)
+{
+	u32 first = 0;
+	u32 last = 0;
+	u32 nr_extents = BPF_CORE_READ(map, nr_extents);
+	struct uid_gid_extent *extent = NULL;
+
+	for(int j = 0; j < UID_GID_MAP_MAX_BASE_EXTENTS; j++)
+	{
+		if(j >= nr_extents)
+		{
+			break;
+		}
+
+		first = BPF_CORE_READ(map, extent[j].lower_first);
+		last = first + BPF_CORE_READ(map, extent[j].count) - 1;
+		if(id >= first && id <= last)
+		{
+			extent = &map->extent[j];
+			break;
+		}
+	}
+
+	/* Map the id or note failure */
+	if(extent)
+	{
+		u32 first = BPF_CORE_READ(extent, first);
+		u32 lower_first = BPF_CORE_READ(extent, lower_first);
+		id = id - lower_first + first;
+	}
+	else
+	{
+		id = (u32)-1;
+	}
+
+	return id;
+}
+
+static __always_inline bool groups_search(struct task_struct *task, u32 grp)
+{
+	struct group_info *group_info = NULL;
+	READ_TASK_FIELD_INTO(&group_info, task, cred, group_info);
+	if(!group_info)
+	{
+		return false;
+	}
+
+	unsigned int left = 0;
+	unsigned int right = BPF_CORE_READ(group_info, ngroups);
+	unsigned int mid = 0;
+	u32 grp_mid = 0;
+
+	for(int j = 0; j < MAX_GROUP_SEARCH_DEPTH; j++)
+	{
+		if(left >= right)
+		{
+			break;
+		}
+
+		mid = (left + right) / 2;
+		BPF_CORE_READ_INTO(&grp_mid, group_info, gid[mid].val);
+
+		if(grp > grp_mid)
+		{
+			left = mid + 1;
+		}
+		else if(grp < grp_mid)
+		{
+			right = mid;
+		}
+		else
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static __always_inline bool extract__exe_writable(struct task_struct *task, struct inode *inode)
+{
+	umode_t i_mode = BPF_CORE_READ(inode, i_mode);
+	u32 i_flags = BPF_CORE_READ(inode, i_flags);
+	long unsigned int s_flags = BPF_CORE_READ(inode, i_sb, s_flags);
+
+	/* Check superblock permissions, i.e. if the FS is read only */
+	if((s_flags & SB_RDONLY) && (S_ISREG(i_mode) || S_ISDIR(i_mode) || S_ISLNK(i_mode)))
+	{
+		return false;
+	}
+
+	if(i_flags & S_IMMUTABLE)
+	{
+		return false;
+	}
+
+	u32 i_uid = BPF_CORE_READ(inode, i_uid.val);
+	u32 i_gid = BPF_CORE_READ(inode, i_gid.val);
+
+	u32 fsuid;
+	u32 fsgid;
+	READ_TASK_FIELD_INTO(&fsuid, task, cred, fsuid.val);
+	READ_TASK_FIELD_INTO(&fsgid, task, cred, fsgid.val);
+
+	/* HAS_UNMAPPED_ID() */
+	if(i_uid == -1 || i_gid == -1)
+	{
+		return false;
+	}
+
+	/* inode_owner_or_capable check. If the owner matches the exe counts as writable */
+	if(fsuid == i_uid)
+	{
+		return true;
+	}
+
+	// Basic file permission check -- this may not work in all cases as kernel functions are more complex
+	// and take into account different types of ACLs which can use custom function pointers,
+	// but I don't think we can inspect those in eBPF
+
+	// basic acl_permission_check()
+
+	// XXX this doesn't attempt to locate extra POSIX ACL checks (if supported by the kernel)
+
+	umode_t mode = i_mode;
+
+	if(i_uid == fsuid)
+	{
+		mode >>= 6;
+	}
+	else
+	{
+		bool in_group = false;
+
+		if(i_gid == fsgid)
+		{
+			in_group = true;
+		}
+		else
+		{
+			in_group = groups_search(task, i_gid);
+		}
+
+		if(in_group)
+		{
+			mode >>= 3;
+		}
+	}
+
+	if((MAY_WRITE & ~mode) == 0)
+	{
+		return true;
+	}
+
+	struct user_namespace *ns;
+	READ_TASK_FIELD_INTO(&ns, task, cred, user_ns);
+	bool kuid_mapped = bpf_map_id_up(&ns->uid_map, i_uid) != (u32)-1;
+	bool kgid_mapped = bpf_map_id_up(&ns->gid_map, i_gid) != (u32)-1;
+
+	kernel_cap_t cap_struct = {0};
+	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
+	if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
+	{
+		return true;
+	}
+
+	/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
+	if(cap_raised(cap_struct, CAP_FOWNER) && kuid_mapped)
+	{
+		return true;
+	}
+
+	return false;
+}
