@@ -174,6 +174,27 @@ public:
 	void disable_drop_failed();
 
 	/**
+	 * @brief Enable/Disable dynamic snaplen logic
+	 *
+	 */
+	void set_do_dynamic_snaplen(bool enable);
+
+	/**
+	 * @brief Set stasd port
+	 * 
+	 * @param port new statsd port
+	 */
+	void set_statsd_port(uint16_t port);
+
+	/**
+	 * @brief Set a range of network ports as interesting
+	 * 
+	 * @param start first port of the range
+	 * @param end last port of the range
+	 */
+	void set_fullcapture_port_range(uint16_t start, uint16_t end);
+
+	/**
 	 * @brief Clear the ring buffers from all previous events until they
 	 * are all empty.
 	 *
@@ -281,7 +302,7 @@ public:
 	 * @param server_socket server socket file descriptor.
 	 * @param server_sockaddr server `sockaddr` struct to fill.
 	 */
-	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr);
+	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
 	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
 	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
 
@@ -590,7 +611,7 @@ public:
 	void assert_fd_list(int param_num, struct fd_poll* expected_fds, int32_t nfds);
 
 private:
-	ppm_event_code m_event_type;	  /* type of the event we want to assert in this test. */
+	ppm_event_code m_event_type;		  /* type of the event we want to assert in this test. */
 	std::vector<struct param> m_event_params; /* all the params of the event (len+value). */
 	struct ppm_evt_hdr* m_event_header;	  /* header of the event. */
 	uint32_t m_event_len;			  /* total event length. */
