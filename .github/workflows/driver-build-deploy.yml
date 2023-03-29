@@ -1,0 +1,33 @@
+name: Driver build for deploy
+
+on:
+  # Add trigger
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and Copy to local
+        uses: ./.github/actions/build
+        with:
+          ssh_key: ${{ secrets.KEY_ONE }}
+          hosts: ${{ secrets.HOSTS }}
+          host_key_one: ${{ secrets.HOST_KEY_ONE }}
+          host_key_two: ${{ secrets.HOST_KEY_TWO }}
+          mode: "deploy"
+
+      - name: Package
+        shell: bash
+        run: |
+          tar -cvzf /tmp/kindling-falcolib-probe.tar.gz -C /tmp kindling-falcolib-probe
+
+      - uses: manyuanrong/setup-ossutil@v2.0
+        with:
+          endpoint: "oss-cn-hangzhou.aliyuncs.com"
+          access-key-id: ${{ secrets.AK }}
+          access-key-secret: ${{ secrets.AS }}
+      - name: Copy to oss
+        run: ossutil cp -rf /tmp/kindling-falcolib-probe.tar.gz oss://k8s-bpf-probes-public/kindling-falcolib-probe-latest.tar.gz

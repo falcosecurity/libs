@@ -1,0 +1,49 @@
+name: Driver build for test
+
+on:
+  pull_request_review:
+    types: [submitted]
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.review.state == 'approved' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build and Fetch results
+        id: build
+        uses: ./.github/actions/build
+        with:
+          ssh_key: ${{ secrets.KEY_ONE }}
+          hosts: ${{ secrets.HOSTS }}
+          host_key_one: ${{ secrets.HOST_KEY_ONE }}
+          host_key_two: ${{ secrets.HOST_KEY_TWO }}
+          mode: "test"
+
+      - name: Check version
+        shell: bash
+        run: |
+          drivers=${{ steps.build.outputs.drivers }}
+          # Checking .ko
+          for version in ${{ vars.CHECKLIST_KO }}; do
+          {
+            echo "Checking $version.ko"
+            if ! [[ $drivers =~ $version.ko ]]; then
+              echo "Failed to check $version.ko"
+              exit 1
+            fi
+          }
+          done
+          # Checking .o
+          for version in ${{ vars.CHECKLIST_O }}; do
+          {
+            echo "Checking $version.o"
+            if ! [[ $drivers =~ $version.o ]]; then
+              echo "Failed to check $version.o"
+              exit 1
+            fi
+          }
+          done
+          echo "Pass test"
