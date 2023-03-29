@@ -256,9 +256,12 @@ int BPF_PROG(t1_execveat_x,
 	auxmap__store_s32_param(auxmap, (s32)loginuid);
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	/// TODO: we still have to manage `exe_writable` flag.
 	u32 flags = 0;
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
+	if(extract__exe_writable(task, exe_inode))
+	{
+		flags |= PPM_EXE_WRITABLE;
+	}
 	if(extract__exe_upper_layer(exe_inode))
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
