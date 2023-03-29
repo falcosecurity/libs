@@ -27,6 +27,7 @@ limitations under the License.
 #include "filter/ppm_codes.h"
 #include <unordered_set>
 #include <memory>
+#include "sinsp_resource_utilization.h"
 
 #ifndef _WIN32
 extern "C" {

@@ -94,6 +94,7 @@ set(SINSP_SOURCES
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
+	sinsp_resource_utilization.cpp
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
