@@ -441,7 +441,7 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 				return SNAPLEN_EXTENDED;
 			}
 		}
-	} else if ((lookahead_size >= 4 && get_buf(1) == 0 && get_buf(2) == 0) || /* matches command */
+	} else if ((sport == PPM_PORT_MONGODB || dport == PPM_PORT_MONGODB) ||
 			(lookahead_size >= 16 && (*(s32 *)&get_buf(12) == 1 || /* matches header */
 						  *(s32 *)&get_buf(12) == 2001 ||
 						  *(s32 *)&get_buf(12) == 2002 ||
