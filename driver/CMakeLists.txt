@@ -13,19 +13,19 @@ if((NOT TARGET_ARCH STREQUAL "x86_64") AND
    (NOT TARGET_ARCH STREQUAL "aarch64") AND
    (NOT TARGET_ARCH STREQUAL "s390x"))
 	message(WARNING "Target architecture not officially supported by our drivers!")
-endif()
+else()
+	# Load current kernel version
+	execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
+	string(REGEX MATCH "[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
+	message(STATUS  "Kernel version: ${UNAME_RESULT}")
 
-# Load current kernel version
-execute_process(COMMAND uname -r OUTPUT_VARIABLE UNAME_RESULT OUTPUT_STRIP_TRAILING_WHITESPACE)
-string(REGEX MATCH "[0-9]+.[0-9]+" LINUX_KERNEL_VERSION ${UNAME_RESULT})
-message(STATUS  "Kernel version: ${UNAME_RESULT}")
-
-# Check minimum kernel version
-set(kmod_min_kver_map_x86_64 2.6)
-set(kmod_min_kver_map_aarch64 3.16)
-set(kmod_min_kver_map_s390x 2.6)
-if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
-	message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+	# Check minimum kernel version
+	set(kmod_min_kver_map_x86_64 2.6)
+	set(kmod_min_kver_map_aarch64 3.16)
+	set(kmod_min_kver_map_s390x 2.6)
+	if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
+		message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
+	endif()
 endif()
 
 option(BUILD_DRIVER "Build the driver on Linux" ON)
