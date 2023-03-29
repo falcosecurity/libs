@@ -37,8 +37,6 @@ limitations under the License.
 #include "clock_helpers.h"
 #include "debug_log_helpers.h"
 
-#define SECOND_TO_NS 1000000000
-
 int32_t scap_proc_fill_cwd(char* error, char* procdirname, struct scap_threadinfo* tinfo)
 {
 	int target_res;
