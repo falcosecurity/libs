@@ -29,8 +29,6 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-#define SECOND_TO_NS 1000000000
-
 void scap_gethostname(scap_t* handle)
 {
 	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
