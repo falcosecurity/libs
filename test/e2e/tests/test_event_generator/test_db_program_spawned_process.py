@@ -18,12 +18,6 @@ ids = [
     sinsp.generate_id(sinsp_example) for sinsp_example in sinsp_examples
 ]
 
-# modern probe doesn't support EXE_WRITABLE flag yet
-if BTF_IS_AVAILABLE:
-    sinsp_examples[2] = pytest.param(
-        sinsp_examples[2], marks=pytest.mark.xfail)
-
-
 @pytest.mark.parametrize('sinsp', sinsp_examples, indirect=True, ids=ids)
 @pytest.mark.parametrize("run_containers", containers, indirect=True)
 def test_db_program_spawned_process(sinsp, run_containers: dict):
