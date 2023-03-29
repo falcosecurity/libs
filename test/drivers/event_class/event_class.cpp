@@ -205,6 +205,28 @@ void event_test::disable_drop_failed()
 	scap_set_dropfailed(s_scap_handle, false);
 }
 
+void event_test::set_do_dynamic_snaplen(bool enable)
+{
+	if(enable)
+	{
+		scap_enable_dynamic_snaplen(s_scap_handle);
+	}
+	else
+	{
+		scap_disable_dynamic_snaplen(s_scap_handle);
+	}
+}
+
+void event_test::set_statsd_port(uint16_t port)
+{
+	scap_set_statsd_port(s_scap_handle, port);
+}
+
+void event_test::set_fullcapture_port_range(uint16_t start, uint16_t end)
+{
+	scap_set_fullcapture_port_range(s_scap_handle, start, end);
+}
+
 void event_test::disable_capture()
 {
 	scap_stop_capture(s_scap_handle);
@@ -340,7 +362,7 @@ void event_test::server_fill_sockaddr_un(struct sockaddr_un* sockaddr, const cha
 	strlcpy(sockaddr->sun_path, unix_path, MAX_SUN_PATH);
 }
 
-void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr)
+void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t port_client, int32_t port_server)
 {
 	/* Create the server socket. */
 	*server_socket = syscall(__NR_socket, AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
@@ -348,7 +370,7 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct so
 	server_reuse_address_port(*server_socket);
 
 	memset(server_sockaddr, 0, sizeof(*server_sockaddr));
-	server_fill_sockaddr_in(server_sockaddr);
+	server_fill_sockaddr_in(server_sockaddr, port_server);
 
 	/* Now we bind the server socket with the server address. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, *server_socket, (struct sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
@@ -361,7 +383,7 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct so
 	client_reuse_address_port(*client_socket);
 
 	memset(client_sockaddr, 0, sizeof(*client_sockaddr));
-	client_fill_sockaddr_in(client_sockaddr);
+	client_fill_sockaddr_in(client_sockaddr, port_client);
 
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (struct sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
