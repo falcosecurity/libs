@@ -8,6 +8,8 @@ endif()
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
+include(GNUInstallDirs)
+
 include(ExternalProject)
 
 include(CheckSymbolExists)
