@@ -29,7 +29,27 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 
-void scap_gethostname(scap_t* handle)
+#define SECOND_TO_NS 1000000000
+
+static void scap_get_bpf_stats_enabled(scap_t* handle)
+{
+#ifdef __linux__
+	handle->m_machine_info.flags &= ~PPM_BPF_STATS_ENABLED;
+	FILE* f;
+	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
+	{
+		uint32_t bpf_stats_enabled = 0;
+		fscanf(f, "%u", &bpf_stats_enabled);
+		fclose(f);
+		if (bpf_stats_enabled != 0)
+		{
+			handle->m_machine_info.flags |= PPM_BPF_STATS_ENABLED;
+		}
+	}
+#endif
+}
+
+static void scap_gethostname(scap_t* handle)
 {
 	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
 	if(env_hostname != NULL)
@@ -112,23 +132,5 @@ void scap_retrieve_agent_info(scap_t* handle)
 	struct utsname uts;
 	uname(&uts);
 	snprintf(handle->m_agent_info.uname_r, sizeof(handle->m_agent_info.uname_r), "%s", uts.release);
-#endif
-}
-
-void scap_get_bpf_stats_enabled(scap_t* handle)
-{
-#ifdef __linux__
-	handle->m_machine_info.flags &= ~PPM_BPF_STATS_ENABLED;
-	FILE* f;
-	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
-	{
-		uint32_t bpf_stats_enabled = 0;
-		fscanf(f, "%u", &bpf_stats_enabled);
-		fclose(f);
-		if (bpf_stats_enabled != 0)
-		{
-			handle->m_machine_info.flags |= PPM_BPF_STATS_ENABLED;
-		}
-	}
 #endif
 }
