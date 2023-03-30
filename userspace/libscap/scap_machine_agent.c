@@ -31,10 +31,10 @@ limitations under the License.
 
 #define SECOND_TO_NS 1000000000
 
-static void scap_get_bpf_stats_enabled(scap_t* handle)
+static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
 {
 #ifdef __linux__
-	handle->m_machine_info.flags &= ~PPM_BPF_STATS_ENABLED;
+	machine_info->flags &= ~PPM_BPF_STATS_ENABLED;
 	FILE* f;
 	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
 	{
@@ -43,39 +43,39 @@ static void scap_get_bpf_stats_enabled(scap_t* handle)
 		fclose(f);
 		if (bpf_stats_enabled != 0)
 		{
-			handle->m_machine_info.flags |= PPM_BPF_STATS_ENABLED;
+			machine_info->flags |= PPM_BPF_STATS_ENABLED;
 		}
 	}
 #endif
 }
 
-static void scap_gethostname(scap_t* handle)
+static void scap_gethostname(char* buf, size_t size)
 {
 	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
 	if(env_hostname != NULL)
 	{
-		snprintf(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname), "%s", env_hostname);
+		snprintf(buf, size, "%s", env_hostname);
 	}
 	else
 	{
-		gethostname(handle->m_machine_info.hostname, sizeof(handle->m_machine_info.hostname) / sizeof(handle->m_machine_info.hostname[0]));
+		gethostname(buf, size);
 	}
 }
 
-void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time)
+void scap_retrieve_machine_info(scap_machine_info* machine_info, uint64_t boot_time)
 {
 #ifdef _WIN32
-	handle->m_machine_info.num_cpus = 0;
-	handle->m_machine_info.memory_size_bytes = 0;
+	machine_info->num_cpus = 0;
+	machine_info->memory_size_bytes = 0;
 #else
-	handle->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
-	handle->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+	machine_info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 #endif
-	scap_gethostname(handle);
-	handle->m_machine_info.boot_ts_epoch = boot_time;
-	scap_get_bpf_stats_enabled(handle);
-	handle->m_machine_info.reserved3 = 0;
-	handle->m_machine_info.reserved4 = 0;
+	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
+	machine_info->boot_ts_epoch = boot_time;
+	scap_get_bpf_stats_enabled(machine_info);
+	machine_info->reserved3 = 0;
+	machine_info->reserved4 = 0;
 }
 
 void scap_retrieve_agent_info(scap_t* handle)

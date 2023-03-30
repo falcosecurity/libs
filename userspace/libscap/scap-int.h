@@ -131,7 +131,7 @@ void scap_retrieve_agent_info(scap_t* handle);
 //
 // Retrieve machine info.
 //
-void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time);
+void scap_retrieve_machine_info(scap_machine_info* machine_info, uint64_t boot_time);
 
 //
 //
