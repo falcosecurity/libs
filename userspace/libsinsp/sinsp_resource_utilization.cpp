@@ -22,8 +22,6 @@ limitations under the License.
 #include "utils.h"
 #include <sinsp.h>
 #include "sinsp_public.h"
-#include <sys/sysinfo.h>
-
 
 struct sinsp_resource_utilization;
 
@@ -91,11 +89,6 @@ void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const
 		hz = 100;
 	}
 #endif
-	struct sysinfo s_info;
-	if(sysinfo(&s_info) != 0)
-	{
-		ASSERT(false);
-	}
 
 	/* Current utime is amount of processor time in user mode of calling process. Convert to seconds. */
 	double user_sec = (double)time.tms_utime / hz;
@@ -103,8 +96,22 @@ void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const
 	/* Current stime is amount of time the calling process has been scheduled in kernel mode. Convert to seconds. */
 	double system_sec = (double)time.tms_stime / hz;
 
-	/* Current uptime of the host machine from sysinfo in seconds. */
-	long machine_uptime_sec = s_info.uptime;
+	/* Current uptime of the host machine in seconds.
+	 * Can't use sysconf as it is not portable (only Linux)
+	 * plus /proc/uptime offers higher precision w/ 2 decimals.
+	 */
+	double machine_uptime_sec = 0;
+	char filepath[512];
+	snprintf(filepath, sizeof(filepath), "%s/proc/uptime", scap_get_host_root());
+	FILE* f = fopen(filepath, "r");
+	if(!f)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	fscanf(f, "%lf", &machine_uptime_sec);
+	fclose(f);
 
 	/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
 	 * currently elapsed time of the calling process. Compare to `ps` linux util. */
