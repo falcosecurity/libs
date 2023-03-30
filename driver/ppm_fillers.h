@@ -173,6 +173,7 @@ or GPL2.txt for full copies of the license.
 	FN(sys_signalfd4_e)          \
 	FN(sys_signalfd4_x)          \
 	FN(sys_prctl_e)				\
+	FN(sys_prctl_x)				\
 	FN(terminate_filler)
 
 #define FILLER_ENUM_FN(x) PPM_FILLER_##x,

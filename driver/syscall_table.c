@@ -459,7 +459,7 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 	[__NR_sched_get_priority_min - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SCHED_GET_PRIORITY_MIN},
 	[__NR_sched_rr_get_interval - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SCHED_RR_GET_INTERVAL},
 	[__NR_mremap - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MREMAP},
-	[__NR_prctl - SYSCALL_TABLE_ID0] = { UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRCTL_E, PPME_SYSCALL_PRCTL_X },
+	[__NR_prctl - SYSCALL_TABLE_ID0] = { UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRCTL_E, PPME_SYSCALL_PRCTL_X, PPM_SC_PRCTL },
 #ifdef __NR_arch_prctl
 	[__NR_arch_prctl - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_ARCH_PRCTL},
 #endif
