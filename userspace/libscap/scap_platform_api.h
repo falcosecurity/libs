@@ -29,6 +29,7 @@ extern "C" {
 
 struct scap;
 struct scap_addrlist;
+struct _scap_machine_info;
 struct scap_threadinfo;
 typedef struct _scap_agent_info scap_agent_info;
 
@@ -98,6 +99,16 @@ bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const c
 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(struct scap* handle, int64_t* pid);
+
+/*!
+  \brief Get generic machine information
+
+  \return The pointer to a \ref scap_machine_info structure containing the information.
+
+  \note for live captures, the information is collected from the operating system. For
+  offline captures, it comes from the capture file.
+*/
+const struct _scap_machine_info* scap_get_machine_info(struct scap* handle);
 
 /*!
   \brief Get generic agent information

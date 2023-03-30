@@ -90,6 +90,7 @@ struct scap_platform
 	struct scap_proclist m_proclist;
 
 	scap_agent_info m_agent_info;
+	scap_machine_info m_machine_info;
 };
 
 #ifdef __cplusplus

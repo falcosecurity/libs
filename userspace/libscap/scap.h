@@ -318,21 +318,6 @@ typedef struct scap_mountinfo {
 #endif
 
 /*!
-  \brief Machine information
-*/
-typedef struct _scap_machine_info
-{
-	uint32_t num_cpus;	///< Number of processors
-	uint64_t memory_size_bytes; ///< Physical memory size
-	uint64_t max_pid; ///< Highest PID number on this machine
-	char hostname[128]; ///< The machine hostname
-	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
-	uint64_t flags; ///< flags
-	uint64_t reserved3; ///< reserved for future use
-	uint64_t reserved4; ///< reserved for future use, note: because of scap file captures needs to remain uint64_t, use flags if possible
-}scap_machine_info;
-
-/*!
   \brief Interface address type
 */
 typedef enum scap_ifinfo_type
@@ -782,16 +767,6 @@ const enum ppm_event_category scap_get_event_category_from_event(ppm_event_code 
   \brief Retrieve the name associated with the specified ppm_sc.
 */
 const char* scap_get_ppm_sc_name(ppm_sc_code sc);
-
-/*!
-  \brief Get generic machine information
-
-  \return The pointer to a \ref scap_machine_info structure containing the information.
-
-  \note for live captures, the information is collected from the operating system. For
-  offline captures, it comes from the capture file.
-*/
-const scap_machine_info* scap_get_machine_info(scap_t* handle);
 
 /*!
   \brief Set the capture snaplen, i.e. the maximum size an event parameter can

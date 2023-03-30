@@ -54,15 +54,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	int32_t rc;
 
 	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	//
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
@@ -82,12 +73,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	}
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
 
 	//
 	// Open and initialize all the devices
@@ -120,15 +105,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	int32_t rc;
 
 	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	//
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
@@ -154,12 +130,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	}
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
 
 	//
 	// Additional initializations
@@ -290,7 +260,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 	}
 
 	handle->m_evtcnt = 0;
-	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
@@ -315,15 +284,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	int32_t rc;
 
 	//
-	// Get boot_time
-	//
-	uint64_t boot_time = 0;
-	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	//
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_NODRIVER;
@@ -343,12 +303,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	}
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-
-	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
 
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
@@ -384,11 +338,6 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs, struct scap_
 	}
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Extract machine information
-	//
-	scap_retrieve_machine_info(&handle->m_machine_info, (uint64_t)0);
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
@@ -822,24 +771,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-}
-
-//
-// Get the machine information
-//
-const scap_machine_info* scap_get_machine_info(scap_t* handle)
-{
-	if(handle->m_machine_info.num_cpus != (uint32_t)-1)
-	{
-		return (const scap_machine_info*)&handle->m_machine_info;
-	}
-	else
-	{
-		//
-		// Reading from a file with no process info block
-		//
-		return NULL;
-	}
 }
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)

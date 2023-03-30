@@ -1063,7 +1063,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the machine info
 		//
-		if(scap_write_machine_info(d, &handle->m_machine_info) != SCAP_SUCCESS)
+		if(scap_write_machine_info(d, &handle->m_platform->m_machine_info) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}

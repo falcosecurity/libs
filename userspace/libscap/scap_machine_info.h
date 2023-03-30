@@ -23,6 +23,39 @@ limitations under the License.
 extern "C" {
 #endif
 
+//
+// The following stuff is byte aligned because we save it to disk.
+//
+#if defined _MSC_VER
+#pragma pack(push)
+#pragma pack(1)
+#elif defined __sun
+#pragma pack(1)
+#else
+#pragma pack(push, 1)
+#endif
+
+/*!
+  \brief Machine information
+*/
+typedef struct _scap_machine_info
+{
+	uint32_t num_cpus;	///< Number of processors
+	uint64_t memory_size_bytes; ///< Physical memory size
+	uint64_t max_pid; ///< Highest PID number on this machine
+	char hostname[128]; ///< The machine hostname
+	uint64_t boot_ts_epoch; ///< Host boot ts in nanoseconds (epoch)
+	uint64_t flags; ///< flags
+	uint64_t reserved3; ///< reserved for future use
+	uint64_t reserved4; ///< reserved for future use, note: because of scap file captures needs to remain uint64_t, use flags if possible
+}scap_machine_info;
+
+#if defined __sun
+#pragma pack()
+#else
+#pragma pack(pop)
+#endif
+
 /*!
   \brief Agent information, not intended for scap file use
 */
