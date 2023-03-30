@@ -6,6 +6,7 @@
  */
 
 #include <helpers/interfaces/fixed_size_event.h>
+#include <helpers/interfaces/variable_size_event.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
@@ -24,32 +25,15 @@ int BPF_PROG(prctl_e,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: option (type: PT_UINT32)*/
-	s32 option = (s32)extract__syscall_argument(regs, 0);
-	ringbuf__store_s32(&ringbuf, (s32)option);
-
-	/* Parameter 2: arg2 (type: PT_UINT64)*/
-	s32 arg2 = (s32)extract__syscall_argument(regs, 1);
-	ringbuf__store_s32(&ringbuf, (s32)arg2);
-
-	/* Parameter 3: arg3 (type: PT_UINT64)*/
-	s32 arg3 = (s32)extract__syscall_argument(regs, 2);
-	ringbuf__store_s32(&ringbuf, (s32)arg3);
-
-	/* Parameter 4: arg4 (type: PT_UINT64)*/
-	s32 arg4 = (s32)extract__syscall_argument(regs, 3);
-	ringbuf__store_s32(&ringbuf, (s32)arg4);
-
-	/* Parameter 5: arg5 (type: PT_UINT64)*/
-	s32 arg5 = (s32)extract__syscall_argument(regs, 4);
-	ringbuf__store_s32(&ringbuf, (s32)arg5);
-
+	// Here we have no parameters to collect.
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	ringbuf__submit_event(&ringbuf);
 
 	return 0;
+
+
 }
 
 /*=============================== ENTER EVENT ===========================*/
@@ -61,23 +45,33 @@ int BPF_PROG(prctl_x,
 	     struct pt_regs *regs,
 	     long ret)
 {
-	struct ringbuf_struct ringbuf;
-	//XXX the +2 is problably wrong but without it the verifier will complain
-	if(!ringbuf__reserve_space(&ringbuf, PRCTL_X_SIZE+2))
+	struct auxiliary_map *auxmap = auxmap__get();
+	if(!auxmap)
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PRCTL_X);
+	auxmap__preload_event_header(auxmap, PPME_SYSCALL_PRCTL_X);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: res (type: PT_ERRNO)*/
-	ringbuf__store_s64(&ringbuf, (s64)ret);
+	/* Parameter 1: option (type: PT_UINT32) */
+	u32 flags = (u32)extract__syscall_argument(regs, 0);
+	auxmap__store_u32_param(auxmap, open_flags_to_scap(flags));
+
+	/* Parameter 1: name (type: PT_CHARBUF) */
+	unsigned long name_pointer = extract__syscall_argument(regs, 1);
+	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
+
+	/* Parameter 3: mode (type: PT_UINT32) */
+	//unsigned long mode = extract__syscall_argument(regs, 2);
+	//auxmap__store_u32_param(auxmap, open_modes_to_scap(flags, mode));
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	ringbuf__submit_event(&ringbuf);
+	auxmap__finalize_event_header(auxmap);
+
+	auxmap__submit_event(auxmap);
 
 	return 0;
 }
