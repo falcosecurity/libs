@@ -23,10 +23,10 @@ limitations under the License.
 typedef struct sinsp_resource_utilization
 {
 	double cpu_usage_perc; ///< Current CPU usage, `ps` like, unit: percentage of one CPU.
-	uint32_t memory_rss; ///< Current RSS (Resident Set Size), unit: MB.
-	uint32_t memory_vsz; ///< Current VSZ (Virtual Memory Size), unit: MB.
-	uint32_t memory_pss; ///< Current PSS (Proportional Set Size), unit: MB.
-	uint32_t container_memory_used; ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: MB.
+	uint32_t memory_rss; ///< Current RSS (Resident Set Size), unit: kb.
+	uint32_t memory_vsz; ///< Current VSZ (Virtual Memory Size), unit: kb.
+	uint32_t memory_pss; ///< Current PSS (Proportional Set Size), unit: kb.
+	uint64_t container_memory_used; ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: bytes.
 }sinsp_resource_utilization;
 
 namespace libsinsp {
@@ -41,17 +41,17 @@ namespace resource_utilization {
 
 	/*!
 	  \brief Retrieve current standard memory usage snapshot via a proc file approach.
-	  Unit: MB. Precision loss because of division on UINT32 by design when converting from kb to MB.
+	  Unit: kb.
 	  \note Intended to be called once every x hours.
 	*/
 	void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss);
 
 	/*!
 	  \brief Retrieve current container_memory_usage snapshot via a proc file approach.
-	  Unit: MB. Precision loss because of division on UINT32 by design when converting from bytes to MB.
+	  Unit: bytes.
 	  \note Defaults to Kubernetes / "cloud-native" standard cgroup path. Intended to be called once every x hours.
 	*/
-	void get_container_memory_usage(uint32_t &memory_used);
+	void get_container_memory_usage(uint64_t &memory_used);
 
 	/*!
 	  \brief Retrieve current resource_utilization snapshot via filling utilization struct.

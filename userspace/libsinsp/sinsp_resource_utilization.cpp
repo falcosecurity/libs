@@ -29,85 +29,92 @@ struct sinsp_resource_utilization;
 
 void libsinsp::resource_utilization::get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
-	char filename[1024];
+	char filepath[512];
 	char line[512];
 	pid_t pid = getpid();
 
-	snprintf(filename, sizeof(filename), "/proc/%d/status", pid);
-	if(FILE* f = fopen(filename, "r"))
+	snprintf(filepath, sizeof(filepath), "/proc/%d/status", pid);
+	FILE* f = fopen(filepath, "r");
+	if(!f)
 	{
-		while(fgets(line, sizeof(line), f) != NULL)
-		{
-			if(strstr(line, "VmSize:") == line)
-			{
-				sscanf(line, "VmSize: %u", &vsz);		/* memory size returned in kb */
-				vsz /= 1024;		/* convert to MB with precision loss by design */
-			} else if(strstr(line, "VmRSS:") == line)
-			{
-				sscanf(line, "VmRSS: %u", &rss);		/* memory size returned in kb */
-				rss /= 1024;		/* convert to MB with precision loss by design */
-			}
-		}
-		fclose(f);
+		ASSERT(false);
+		return;
 	}
 
-    snprintf(filename, sizeof(filename), "/proc/%d/smaps_rollup", pid);
-	if(FILE* f = fopen(filename, "r"))
+	while(fgets(line, sizeof(line), f) != NULL)
 	{
-		while(fgets(line, sizeof(line), f) != NULL)
+		if(strncmp(line, "VmSize:", 7) == 0)
 		{
-			if(strstr(line, "Pss:") == line)
-			{
-				sscanf(line, "Pss: %u", &pss);		/* memory size returned in kb */
-				pss /= 1024;		/* convert to MB with precision loss by design */
-				break;
-			}
+			sscanf(line, "VmSize: %u", &vsz);		/* memory size returned in kb */
 		}
-		fclose(f);
+		else if(strncmp(line, "VmRSS:", 6) == 0)
+		{
+			sscanf(line, "VmRSS: %u", &rss);		/* memory size returned in kb */
+		}
 	}
+	fclose(f);
+
+    snprintf(filepath, sizeof(filepath), "/proc/%d/smaps_rollup", pid);
+	f = fopen(filepath, "r");
+	if(!f)
+	{
+		ASSERT(false);
+		return;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		if(strncmp(line, "Pss:", 4) == 0)
+		{
+			sscanf(line, "Pss: %u", &pss);		/* memory size returned in kb */
+			break;
+		}
+	}
+	fclose(f);
 }
 
 void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const scap_agent_info* agent_info)
 {
 
 	struct tms time;
-	if (times (&time) != (clock_t) -1)
+	if (times (&time) == (clock_t) -1)
 	{
-
-		/* Number of clock ticks per second, often referred to as USER_HZ / jiffies. */
-		long hz = 100;
-#ifdef _SC_CLK_TCK
-		if ((hz = sysconf(_SC_CLK_TCK)) < 0)
-		{
-			ASSERT(false);
-		}
-#endif
-		struct sysinfo s_info;
-		if(sysinfo(&s_info) != 0)
-		{
-			ASSERT(false);
-		}
-
-		/* Current utime is amount of processor time in user mode of calling process.
-		 * Convert to seconds. */
-		double user_sec = (double)time.tms_utime / hz;
-
-		/* Current stime is amount of time the calling process has been scheduled in kernel mode.
-		 * Convert to seconds. */
-		double system_sec = (double)time.tms_stime / hz;
-
-		/* Current uptime of the host machine from sysinfo in seconds. */
-		long machine_uptime_sec = s_info.uptime;
-
-		/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
-		 * currently elapsed time of the calling process. Compare to `ps` linux util. */
-		double elapsed_sec = machine_uptime_sec - agent_info->start_time;
-		cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
-		cpu_usage_perc = std::round(cpu_usage_perc * 10.0) / 10.0; // round to 1 decimal
+		return;
 	}
+
+	/* Number of clock ticks per second, often referred to as USER_HZ / jiffies. */
+	long hz = 100;
+#ifdef _SC_CLK_TCK
+	if ((hz = sysconf(_SC_CLK_TCK)) < 0)
+	{
+		ASSERT(false);
+		hz = 100;
+	}
+#endif
+	struct sysinfo s_info;
+	if(sysinfo(&s_info) != 0)
+	{
+		ASSERT(false);
+	}
+
+	/* Current utime is amount of processor time in user mode of calling process. Convert to seconds. */
+	double user_sec = (double)time.tms_utime / hz;
+
+	/* Current stime is amount of time the calling process has been scheduled in kernel mode. Convert to seconds. */
+	double system_sec = (double)time.tms_stime / hz;
+
+	/* Current uptime of the host machine from sysinfo in seconds. */
+	long machine_uptime_sec = s_info.uptime;
+
+	/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
+	 * currently elapsed time of the calling process. Compare to `ps` linux util. */
+	double elapsed_sec = machine_uptime_sec - agent_info->start_time;
+	cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
+	cpu_usage_perc = std::round(cpu_usage_perc * 10.0) / 10.0; // round to 1 decimal
+
 }
 
-void libsinsp::resource_utilization::get_container_memory_usage(uint32_t &memory_used)
+void libsinsp::resource_utilization::get_container_memory_usage(uint64_t &memory_used)
 {
 	/* In Kubernetes `container_memory_working_set_bytes` is the memory measure the OOM killer uses
 	 * and values from `/sys/fs/cgroup/memory/memory.usage_in_bytes` are close enough.
@@ -117,24 +124,22 @@ void libsinsp::resource_utilization::get_container_memory_usage(uint32_t &memory
 	 * typically libs clients (e.g. Falco) pods contain sidekick containers that use memory as well.
 	 * This metric accounts only for the container with the security monitoring agent running.
 	*/
-	char filename[1024];
-	const char *env_filename = getenv(SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR);
-	if(env_filename != NULL)
+
+	const char* filepath = getenv(SINSP_AGENT_CGROUP_MEM_PATH_ENV_VAR);
+	if (filepath == nullptr)
 	{
-		snprintf(filename, sizeof(filename), "%s", env_filename);
-	}
-	else
-	{
-		snprintf(filename, sizeof(filename), "%s", "/sys/fs/cgroup/memory/memory.usage_in_bytes");
+		filepath = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
 	}
 
-	if(FILE* f = fopen(filename, "r"))
+	FILE* f = fopen(filepath, "r");
+	if(!f)
 	{
-		uint64_t tmp_memory_used = 0;
-		fscanf(f, "%lu", &tmp_memory_used);		/* memory size returned in bytes */
-		memory_used = (uint32_t)(tmp_memory_used / 1024 / 1024);		/* convert to MB with precision loss by design */
-		fclose(f);
+		ASSERT(false);
+		return;
 	}
+
+	fscanf(f, "%lu", &memory_used);		/* memory size returned in bytes */
+	fclose(f);
 }
 
 void libsinsp::resource_utilization::get_resource_utilization_snapshot(sinsp_resource_utilization* utilization, const scap_agent_info* agent_info)
