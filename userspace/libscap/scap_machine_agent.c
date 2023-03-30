@@ -76,8 +76,6 @@ void scap_retrieve_machine_info(scap_t* handle, uint64_t boot_time)
 	scap_get_bpf_stats_enabled(handle);
 	handle->m_machine_info.reserved3 = 0;
 	handle->m_machine_info.reserved4 = 0;
-	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = 0;
 }
 
 void scap_retrieve_agent_info(scap_t* handle)
