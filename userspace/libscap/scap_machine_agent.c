@@ -96,6 +96,7 @@ void scap_retrieve_agent_info(scap_t* handle)
 		if ((hz = sysconf(_SC_CLK_TCK)) < 0)
 		{
 			ASSERT(false);
+			hz = 100;
 		}
 #endif
 		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*lu %*lu %*lu %*lu %*lu %*llu %*llu %*llu %*llu %*d %*d %*d %*lu %llu", &stat_start_time))
