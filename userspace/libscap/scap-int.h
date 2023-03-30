@@ -126,7 +126,7 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 //
 // Retrieve agent info.
 //
-void scap_retrieve_agent_info(scap_t* handle);
+void scap_retrieve_agent_info(scap_agent_info* agent_info);
 
 //
 // Retrieve machine info.

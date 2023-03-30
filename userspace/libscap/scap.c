@@ -87,7 +87,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	// Extract agent information
 	//
 
-	scap_retrieve_agent_info(handle);
+	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Create the interface list
@@ -202,7 +202,7 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	// Extract agent information
 	//
 
-	scap_retrieve_agent_info(handle);
+	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Create the interface list
@@ -451,7 +451,7 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	// Extract agent information
 	//
 
-	scap_retrieve_agent_info(handle);
+	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Create the interface list
@@ -526,7 +526,7 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs)
 	// Extract agent information
 	//
 
-	scap_retrieve_agent_info(handle);
+	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{

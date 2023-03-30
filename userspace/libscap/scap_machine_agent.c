@@ -78,10 +78,10 @@ void scap_retrieve_machine_info(scap_machine_info* machine_info, uint64_t boot_t
 	machine_info->reserved4 = 0;
 }
 
-void scap_retrieve_agent_info(scap_t* handle)
+void scap_retrieve_agent_info(scap_agent_info* agent_info)
 {
-	handle->m_agent_info.start_ts_epoch = 0;
-	handle->m_agent_info.start_time = 0;
+	agent_info->start_ts_epoch = 0;
+	agent_info->start_time = 0;
 #ifdef __linux__
 
 	/* Info 1:
@@ -93,7 +93,7 @@ void scap_retrieve_agent_info(scap_t* handle)
 	snprintf(path, sizeof(path), "/proc/%d/cmdline", getpid());
 	if(stat(path, &st) == 0)
 	{
-		handle->m_agent_info.start_ts_epoch = st.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + st.st_ctim.tv_nsec;
+		agent_info->start_ts_epoch = st.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + st.st_ctim.tv_nsec;
 	}
 
 	/* Info 2:
@@ -117,7 +117,7 @@ void scap_retrieve_agent_info(scap_t* handle)
 #endif
 		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*lu %*lu %*lu %*lu %*lu %*llu %*llu %*llu %*llu %*d %*d %*d %*lu %llu", &stat_start_time))
 		{
-			handle->m_agent_info.start_time = (double)stat_start_time / hz; // unit: seconds as type (double)
+			agent_info->start_time = (double)stat_start_time / hz; // unit: seconds as type (double)
 		}
 		fclose(f);
 	}
@@ -129,6 +129,6 @@ void scap_retrieve_agent_info(scap_t* handle)
 
 	struct utsname uts;
 	uname(&uts);
-	snprintf(handle->m_agent_info.uname_r, sizeof(handle->m_agent_info.uname_r), "%s", uts.release);
+	snprintf(agent_info->uname_r, sizeof(agent_info->uname_r), "%s", uts.release);
 #endif
 }
