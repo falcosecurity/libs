@@ -90,12 +90,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
 
 	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
 	// Open and initialize all the devices
 	//
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
@@ -166,12 +160,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	//
 
 	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	//
 	// Additional initializations
@@ -362,12 +350,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 
 	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
 
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
-
 	if((rc = scap_platform_init(handle->m_platform, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
@@ -407,12 +389,6 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs, struct scap_
 	// Extract machine information
 	//
 	scap_retrieve_machine_info(&handle->m_machine_info, (uint64_t)0);
-
-	//
-	// Extract agent information
-	//
-
-	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
@@ -864,14 +840,6 @@ const scap_machine_info* scap_get_machine_info(scap_t* handle)
 		//
 		return NULL;
 	}
-}
-
-//
-// Get the agent information
-//
-const scap_agent_info* scap_get_agent_info(scap_t* handle)
-{
-	return (const scap_agent_info*)&handle->m_agent_info;
 }
 
 int32_t scap_set_snaplen(scap_t* handle, uint32_t snaplen)

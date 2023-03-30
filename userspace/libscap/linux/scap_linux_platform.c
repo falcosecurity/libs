@@ -25,6 +25,10 @@ limitations under the License.
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/utsname.h>
+
+#define SECOND_TO_NS 1000000000
 
 static int32_t scap_linux_close_platform(struct scap_platform* platform)
 {
@@ -75,6 +79,55 @@ static int scap_get_cgroup_version()
 	return cgroup_version;
 }
 
+static void scap_linux_retrieve_agent_info(scap_agent_info* agent_info)
+{
+	agent_info->start_ts_epoch = 0;
+	agent_info->start_time = 0;
+
+	/* Info 1:
+	 *
+	 * Get epoch timestamp based on procfs stat, only used for (constant) agent start time reporting.
+	 */
+	struct stat st = {0};
+	if(stat("/proc/self/cmdline", &st) == 0)
+	{
+		agent_info->start_ts_epoch = st.st_ctim.tv_sec * (uint64_t) SECOND_TO_NS + st.st_ctim.tv_nsec;
+	}
+
+	/* Info 2:
+	 *
+	 * Get /proc/self/stat start_time (22nd item) to calculate subsequent snapshots of the elapsed time
+	 * of the agent for CPU usage calculations, e.g. sysinfo uptime - /proc/self/stat start_time.
+	 */
+	FILE* f;
+	if((f = fopen("/proc/self/stat", "r")))
+	{
+		unsigned long long stat_start_time = 0; // unit: USER_HZ / jiffies / clock ticks
+		long hz = 100;
+#ifdef _SC_CLK_TCK
+		if ((hz = sysconf(_SC_CLK_TCK)) < 0)
+		{
+			hz = 100;
+			ASSERT(false);
+		}
+#endif
+		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*lu %*lu %*lu %*lu %*lu %*llu %*llu %*llu %*llu %*d %*d %*d %*lu %llu", &stat_start_time))
+		{
+			agent_info->start_time = (double)stat_start_time / hz; // unit: seconds as type (double)
+		}
+		fclose(f);
+	}
+
+	/* Info 3:
+	 *
+	 * Kernel release `uname -r` of the machine the agent is running on.
+	 */
+
+	struct utsname uts;
+	uname(&uts);
+	snprintf(agent_info->uname_r, sizeof(agent_info->uname_r), "%s", uts.release);
+}
+
 int32_t scap_linux_early_init_platform(struct scap_platform* platform, char* lasterr, struct scap_open_args* oargs)
 {
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
@@ -90,6 +143,8 @@ int32_t scap_linux_early_init_platform(struct scap_platform* platform, char* las
 		ASSERT(false);
 		return scap_errprintf(lasterr, errno, "failed to fetch cgroup version information");
 	}
+
+	scap_linux_retrieve_agent_info(&platform->m_agent_info);
 
 	return SCAP_SUCCESS;
 }

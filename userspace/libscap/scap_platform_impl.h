@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 #include "engine_handle.h"
+#include "scap_machine_info.h"
 #include "scap_procs.h"
 #include "scap_suppress.h"
 
@@ -87,6 +88,8 @@ struct scap_platform
 	struct scap_userlist *m_userlist;
 	struct scap_suppress m_suppress;
 	struct scap_proclist m_proclist;
+
+	scap_agent_info m_agent_info;
 };
 
 #ifdef __cplusplus
