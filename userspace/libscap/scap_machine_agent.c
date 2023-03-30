@@ -16,24 +16,22 @@ limitations under the License.
 */
 
 #include <stdio.h>
-#ifdef _WIN32
-#include <Winsock2.h>
-#else
+#ifdef __linux__
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/utsname.h>
-#endif // _WIN32
+#endif // __linux__
 
 #include "scap.h"
 #include "scap-int.h"
 
 #define SECOND_TO_NS 1000000000
 
+#ifdef __linux__
 static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
 {
-#ifdef __linux__
 	machine_info->flags &= ~PPM_BPF_STATS_ENABLED;
 	FILE* f;
 	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
@@ -46,7 +44,6 @@ static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
 			machine_info->flags |= PPM_BPF_STATS_ENABLED;
 		}
 	}
-#endif
 }
 
 static void scap_gethostname(char* buf, size_t size)
@@ -61,21 +58,21 @@ static void scap_gethostname(char* buf, size_t size)
 		gethostname(buf, size);
 	}
 }
+#endif
 
 void scap_retrieve_machine_info(scap_machine_info* machine_info, uint64_t boot_time)
 {
-#ifdef _WIN32
 	machine_info->num_cpus = 0;
 	machine_info->memory_size_bytes = 0;
-#else
+	machine_info->reserved3 = 0;
+	machine_info->reserved4 = 0;
+#ifdef __linux__
 	machine_info->num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
 	machine_info->memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
-#endif
 	scap_gethostname(machine_info->hostname, sizeof(machine_info->hostname));
 	machine_info->boot_ts_epoch = boot_time;
 	scap_get_bpf_stats_enabled(machine_info);
-	machine_info->reserved3 = 0;
-	machine_info->reserved4 = 0;
+#endif
 }
 
 void scap_retrieve_agent_info(scap_agent_info* agent_info)
