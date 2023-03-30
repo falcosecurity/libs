@@ -7111,11 +7111,30 @@ FILLER(sched_prog_fork_3, false)
 }
 #endif
 
+/*
 FILLER(sys_prctl_e, true)
+{
+	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+
+	return res;
+}
+*/
+
+FILLER(sys_prctl_x, true)
 {
 	int val;
 	unsigned long arg;
 	int res;
+	long retval;
+
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_val_to_ring(data, retval);
+	if (res != PPM_SUCCESS)
+		return res;
 
 	/*
 	 * option
@@ -7156,17 +7175,6 @@ FILLER(sys_prctl_e, true)
 	res = bpf_val_to_ring(data, arg);
 	if (res != PPM_SUCCESS)
 		return res;
-
-	return res;
-}
-
-FILLER(sys_prctl_x, true)
-{
-	int res;
-	long retval;
-
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
 
 	return res;
 }

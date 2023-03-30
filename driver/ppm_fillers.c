@@ -7979,11 +7979,18 @@ cgroups_error:
 }
 #endif
 
-int f_sys_prctl_e(struct event_filler_arguments *args)
+int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	int res;
+	int retval;
 	syscall_arg_t val;
 	//unsigned long flags;
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	retval = (int64_t)syscall_get_return_value(current, args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res);
+
 
 	/*
 	 * option
