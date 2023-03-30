@@ -16,8 +16,6 @@ limitations under the License.
 */
 #pragma once
 
-#include <sys/times.h>
-#include <sys/stat.h>
 #include "utils.h"
 
 typedef struct sinsp_resource_utilization
@@ -33,28 +31,7 @@ namespace libsinsp {
 namespace resource_utilization {
 
 	/*!
-	  \brief Retrieve current CPU usage snapshot via a ps like approach.
-	  Unit: percentage of one CPU.
-	  \note Intended to be called once every x hours.
-	*/
-	void get_cpu_usage(double &cpu_usage_perc, const scap_agent_info* agent_info);
-
-	/*!
-	  \brief Retrieve current standard memory usage snapshot via a proc file approach.
-	  Unit: kb.
-	  \note Intended to be called once every x hours.
-	*/
-	void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss);
-
-	/*!
-	  \brief Retrieve current container_memory_usage snapshot via a proc file approach.
-	  Unit: bytes.
-	  \note Defaults to Kubernetes / "cloud-native" standard cgroup path. Intended to be called once every x hours.
-	*/
-	void get_container_memory_usage(uint64_t &memory_used);
-
-	/*!
-	  \brief Retrieve current resource_utilization snapshot via filling utilization struct.
+	  \brief Retrieve current resource_utilization snapshot.
 	  \note Intended to be called once every x hours.
 	*/
 	void get_resource_utilization_snapshot(sinsp_resource_utilization* utilization, const scap_agent_info* agent_info);

@@ -16,16 +16,22 @@ limitations under the License.
 */
 
 #include <cmath>
-#include "sinsp_resource_utilization.h"
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
+#include <unistd.h>
+#include <inttypes.h>
 #include <sys/times.h>
 #include <sys/stat.h>
+#endif // _WIN32
+#include "sinsp_resource_utilization.h"
 #include "utils.h"
 #include <sinsp.h>
 #include "sinsp_public.h"
 
 struct sinsp_resource_utilization;
 
-void libsinsp::resource_utilization::get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
+void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
 	char filepath[512];
 	char line[512];
@@ -52,7 +58,7 @@ void libsinsp::resource_utilization::get_rss_vsz_pss_memory(uint32_t &rss, uint3
 	}
 	fclose(f);
 
-    snprintf(filepath, sizeof(filepath), "/proc/%d/smaps_rollup", pid);
+	snprintf(filepath, sizeof(filepath), "/proc/%d/smaps_rollup", pid);
 	f = fopen(filepath, "r");
 	if(!f)
 	{
@@ -71,13 +77,13 @@ void libsinsp::resource_utilization::get_rss_vsz_pss_memory(uint32_t &rss, uint3
 	fclose(f);
 }
 
-void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const scap_agent_info* agent_info)
+double get_cpu_usage(double start_time)
 {
 
 	struct tms time;
 	if (times (&time) == (clock_t) -1)
 	{
-		return;
+		return 0;
 	}
 
 	/* Number of clock ticks per second, often referred to as USER_HZ / jiffies. */
@@ -107,7 +113,7 @@ void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const
 	if(!f)
 	{
 		ASSERT(false);
-		return;
+		return 0;
 	}
 
 	fscanf(f, "%lf", &machine_uptime_sec);
@@ -115,13 +121,13 @@ void libsinsp::resource_utilization::get_cpu_usage(double &cpu_usage_perc, const
 
 	/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
 	 * currently elapsed time of the calling process. Compare to `ps` linux util. */
-	double elapsed_sec = machine_uptime_sec - agent_info->start_time;
-	cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
+	double elapsed_sec = machine_uptime_sec - start_time;
+	double cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
 	cpu_usage_perc = std::round(cpu_usage_perc * 10.0) / 10.0; // round to 1 decimal
-
+	return cpu_usage_perc;
 }
 
-void libsinsp::resource_utilization::get_container_memory_usage(uint64_t &memory_used)
+uint64_t get_container_memory_usage()
 {
 	/* In Kubernetes `container_memory_working_set_bytes` is the memory measure the OOM killer uses
 	 * and values from `/sys/fs/cgroup/memory/memory.usage_in_bytes` are close enough.
@@ -142,15 +148,18 @@ void libsinsp::resource_utilization::get_container_memory_usage(uint64_t &memory
 	if(!f)
 	{
 		ASSERT(false);
-		return;
+		return 0;
 	}
-
-	fscanf(f, "%lu", &memory_used);		/* memory size returned in bytes */
+	unsigned long long memory_used = 0;
+	fscanf(f, "%llu", &memory_used);		/* memory size returned in bytes */
 	fclose(f);
+
+	return memory_used;
 }
 
 void libsinsp::resource_utilization::get_resource_utilization_snapshot(sinsp_resource_utilization* utilization, const scap_agent_info* agent_info)
 {
+
 	/* Init */
 	utilization->cpu_usage_perc = 0.0;
 	utilization->memory_rss = 0;
@@ -159,10 +168,10 @@ void libsinsp::resource_utilization::get_resource_utilization_snapshot(sinsp_res
 	utilization->container_memory_used = 0;
 
 	/* CPU usage snapshot, "ps" utility like approach. */
-	libsinsp::resource_utilization::get_cpu_usage(utilization->cpu_usage_perc, agent_info);
+	utilization->cpu_usage_perc = get_cpu_usage(agent_info->start_time);
 
 	/* Memory usage snapshot, "cloud-native" support via container_memory_used. */
-	libsinsp::resource_utilization::get_rss_vsz_pss_memory(utilization->memory_rss, utilization->memory_vsz, utilization->memory_pss);
-	libsinsp::resource_utilization::get_container_memory_usage(utilization->container_memory_used);
+	get_rss_vsz_pss_memory(utilization->memory_rss, utilization->memory_vsz, utilization->memory_pss);
+	utilization->container_memory_used = get_container_memory_usage();
 }
 
