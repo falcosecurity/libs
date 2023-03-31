@@ -32,11 +32,17 @@ namespace resource_utilization {
 
 	/*!
 	  \brief Retrieve current resource_utilization snapshot.
+	  \param scap_agent_info pointer containing relevant constants from the agent start up moment.
 	  \note Intended to be called once every x hours.
+
+	  \return sinsp_resource_utilization pointer.
 	*/
-	void get_resource_utilization_snapshot(sinsp_resource_utilization* utilization, const scap_agent_info* agent_info);
+	sinsp_resource_utilization* get_resource_utilization_snapshot(const scap_agent_info* agent_info);
+
+	/*!
+	  \brief Free sinsp_resource_utilization pointer.
+	*/
+	void free_resource_utilization_snapshot(sinsp_resource_utilization* utilization);
 
 }
 }
-
-

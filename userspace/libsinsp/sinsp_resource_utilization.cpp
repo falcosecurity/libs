@@ -29,8 +29,6 @@ limitations under the License.
 #include <sinsp.h>
 #include "sinsp_public.h"
 
-struct sinsp_resource_utilization;
-
 void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
 	char filepath[512];
@@ -157,15 +155,11 @@ uint64_t get_container_memory_usage()
 	return memory_used;
 }
 
-void libsinsp::resource_utilization::get_resource_utilization_snapshot(sinsp_resource_utilization* utilization, const scap_agent_info* agent_info)
+sinsp_resource_utilization* libsinsp::resource_utilization::get_resource_utilization_snapshot(const scap_agent_info* agent_info)
 {
-
-	/* Init */
-	utilization->cpu_usage_perc = 0.0;
-	utilization->memory_rss = 0;
-	utilization->memory_vsz = 0;
-	utilization->memory_pss = 0;
-	utilization->container_memory_used = 0;
+	sinsp_resource_utilization* utilization = new sinsp_resource_utilization{
+		0, 0, 0, 0, 0
+	};
 
 	/* CPU usage snapshot, "ps" utility like approach. */
 	utilization->cpu_usage_perc = get_cpu_usage(agent_info->start_time);
@@ -173,5 +167,10 @@ void libsinsp::resource_utilization::get_resource_utilization_snapshot(sinsp_res
 	/* Memory usage snapshot, "cloud-native" support via container_memory_used. */
 	get_rss_vsz_pss_memory(utilization->memory_rss, utilization->memory_vsz, utilization->memory_pss);
 	utilization->container_memory_used = get_container_memory_usage();
+	return utilization;
 }
 
+void libsinsp::resource_utilization::free_resource_utilization_snapshot(sinsp_resource_utilization* utilization)
+{
+	free(utilization);
+}
