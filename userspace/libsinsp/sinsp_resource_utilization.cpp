@@ -167,5 +167,5 @@ sinsp_resource_utilization* libsinsp::resource_utilization::get_resource_utiliza
 
 void libsinsp::resource_utilization::free_resource_utilization_snapshot(sinsp_resource_utilization* utilization)
 {
-	free(utilization);
+	delete utilization;
 }
