@@ -16,14 +16,10 @@ limitations under the License.
 */
 
 #include <cmath>
-#ifdef _WIN32
-#include <Winsock2.h>
-#else
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/times.h>
 #include <sys/stat.h>
-#endif // _WIN32
 #include "sinsp_resource_utilization.h"
 #include "utils.h"
 #include <sinsp.h>
@@ -101,8 +97,7 @@ double get_cpu_usage(double start_time)
 	double system_sec = (double)time.tms_stime / hz;
 
 	/* Current uptime of the host machine in seconds.
-	 * Can't use sysconf as it is not portable (only Linux)
-	 * plus /proc/uptime offers higher precision w/ 2 decimals.
+	 * /proc/uptime offers higher precision w/ 2 decimals.
 	 */
 	double machine_uptime_sec = 0;
 	char filepath[512];

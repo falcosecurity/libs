@@ -94,7 +94,6 @@ set(SINSP_SOURCES
 	memmem.cpp
 	tracers.cpp
 	internal_metrics.cpp
-	sinsp_resource_utilization.cpp
 	"${JSONCPP_LIB_SRC}"
 	logger.cpp
 	parsers.cpp
@@ -186,6 +185,7 @@ if(NOT MINIMAL_BUILD)
 			cgroup_limits.cpp
 			cri.cpp
 			container_engine/cri.cpp
+			sinsp_resource_utilization.cpp
 			${CMAKE_CURRENT_BINARY_DIR}/cri.grpc.pb.cc
 			${CMAKE_CURRENT_BINARY_DIR}/cri.pb.cc
 			grpc_channel_registry.cpp
