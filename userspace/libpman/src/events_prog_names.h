@@ -333,4 +333,5 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T2_VFORK_X] = "t2_vfork_x",
 	[T1_DROP_E] = "t1_drop_e",
 	[T1_DROP_X] = "t1_drop_x",
+	[T1_HOTPLUG_E] = "t1_hotplug_e",
 };

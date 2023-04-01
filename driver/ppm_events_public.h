@@ -1232,7 +1232,8 @@ enum extra_event_prog_code
 	T2_VFORK_X = 12,
 	T1_DROP_E = 13,
 	T1_DROP_X = 14,
-	TAIL_EXTRA_EVENT_PROG_MAX = 15
+	T1_HOTPLUG_E = 15,
+	TAIL_EXTRA_EVENT_PROG_MAX = 16
 };
 
 /*
