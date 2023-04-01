@@ -16,6 +16,7 @@ This table represents the syscalls supported by our drivers.
 | adjtimex                | 🟡        |
 | alarm                   | 🟡        |
 | arch_prctl              | 🟡        |
+| bdflush                 | 🟡        |
 | bind                    | 🟢        |
 | bpf                     | 🟢        |
 | brk                     | 🟢        |
@@ -82,6 +83,7 @@ This table represents the syscalls supported by our drivers.
 | fspick                  | 🟡        |
 | fstat                   | 🟢        |
 | fstatfs                 | 🟡        |
+| fstatfs64               | 🟡        |
 | fsync                   | 🟡        |
 | ftruncate               | 🟡        |
 | futex                   | 🟢        |
@@ -119,6 +121,7 @@ This table represents the syscalls supported by our drivers.
 | gettimeofday            | 🟡        |
 | getuid                  | 🟢        |
 | getxattr                | 🟡        |
+| idle                    | 🟡        |
 | init_module             | 🟡        |
 | inotify_add_watch       | 🟡        |
 | inotify_init            | 🟢        |
@@ -138,6 +141,7 @@ This table represents the syscalls supported by our drivers.
 | iopl                    | 🟡        |
 | ioprio_get              | 🟡        |
 | ioprio_set              | 🟡        |
+| ipc                     | 🟡        |
 | kcmp                    | 🟡        |
 | kexec_file_load         | 🟡        |
 | kexec_load              | 🟡        |
@@ -198,6 +202,7 @@ This table represents the syscalls supported by our drivers.
 | nanosleep               | 🟢        |
 | newfstatat              | 🟡        |
 | nfsservctl              | 🟡        |
+| nice                    | 🟡        |
 | open                    | 🟢        |
 | open_by_handle_at       | 🟢        |
 | open_tree               | 🟡        |
@@ -236,6 +241,7 @@ This table represents the syscalls supported by our drivers.
 | quotactl_fd             | 🟡        |
 | read                    | 🟢        |
 | readahead               | 🟡        |
+| readdir                 | 🟡        |
 | readlink                | 🟡        |
 | readlinkat              | 🟡        |
 | readv                   | 🟢        |
@@ -260,6 +266,11 @@ This table represents the syscalls supported by our drivers.
 | rt_sigsuspend           | 🟡        |
 | rt_sigtimedwait         | 🟡        |
 | rt_tgsigqueueinfo       | 🟡        |
+| s390_guarded_storage    | 🟡        |
+| s390_pci_mmio_read      | 🟡        |
+| s390_pci_mmio_write     | 🟡        |
+| s390_runtime_instr      | 🟡        |
+| s390_sthyi              | 🟡        |
 | sched_get_priority_max  | 🟡        |
 | sched_get_priority_min  | 🟡        |
 | sched_getaffinity       | 🟡        |
@@ -312,14 +323,22 @@ This table represents the syscalls supported by our drivers.
 | shmdt                   | 🟡        |
 | shmget                  | 🟡        |
 | shutdown                | 🟢        |
+| sigaction               | 🟡        |
 | sigaltstack             | 🟡        |
+| signal                  | 🟡        |
 | signalfd                | 🟢        |
 | signalfd4               | 🟢        |
+| sigpending              | 🟡        |
+| sigprocmask             | 🟡        |
+| sigreturn               | 🟡        |
+| sigsuspend              | 🟡        |
 | socket                  | 🟢        |
+| socketcall              | 🟡        |
 | socketpair              | 🟢        |
 | splice                  | 🟢        |
 | stat                    | 🟢        |
 | statfs                  | 🟡        |
+| statfs64                | 🟡        |
 | statx                   | 🟡        |
 | swapoff                 | 🟡        |
 | swapon                  | 🟡        |
@@ -339,6 +358,7 @@ This table represents the syscalls supported by our drivers.
 | timer_getoverrun        | 🟡        |
 | timer_gettime           | 🟡        |
 | timer_settime           | 🟡        |
+| timerfd                 | 🟡        |
 | timerfd_create          | 🟢        |
 | timerfd_gettime         | 🟡        |
 | timerfd_settime         | 🟡        |
@@ -346,6 +366,7 @@ This table represents the syscalls supported by our drivers.
 | tkill                   | 🟢        |
 | truncate                | 🟡        |
 | umask                   | 🟡        |
+| umount                  | 🟢        |
 | umount2                 | 🟢        |
 | uname                   | 🟡        |
 | unlink                  | 🟢        |

@@ -919,6 +919,39 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_alarm
 	[__NR_alarm - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_ALARM},
 #endif
+#ifdef __NR_s390_pci_mmio_write
+	[__NR_s390_pci_mmio_write - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_PCI_MMIO_WRITE},
+#endif
+#ifdef __NR_s390_guarded_storage
+	[__NR_s390_guarded_storage - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_GUARDED_STORAGE},
+#endif
+#ifdef __NR_readdir
+	[__NR_readdir - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_READDIR},
+#endif
+#ifdef __NR_s390_sthyi
+	[__NR_s390_sthyi - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_STHYI},
+#endif
+#ifdef __NR_s390_runtime_instr
+	[__NR_s390_runtime_instr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_RUNTIME_INSTR},
+#endif
+#ifdef __NR_sigreturn
+	[__NR_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGRETURN},
+#endif
+#ifdef __NR_timerfd
+	[__NR_timerfd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD},
+#endif
+#ifdef __NR_sigaction
+	[__NR_sigaction - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGACTION},
+#endif
+#ifdef __NR_idle
+	[__NR_idle - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IDLE},
+#endif
+#ifdef __NR_s390_pci_mmio_read
+	[__NR_s390_pci_mmio_read - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_PCI_MMIO_READ},
+#endif
+#ifdef __NR_sigsuspend
+	[__NR_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGSUSPEND},
+#endif
 };
 
 #ifdef CONFIG_IA32_EMULATION
@@ -1740,6 +1773,39 @@ const struct syscall_evt_pair g_syscall_ia32_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_ia32_uselib
 	[__NR_ia32_uselib - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_USELIB},
+#endif
+#ifdef __NR_ia32_s390_pci_mmio_write
+	[__NR_ia32_s390_pci_mmio_write - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_PCI_MMIO_WRITE},
+#endif
+#ifdef __NR_ia32_s390_guarded_storage
+	[__NR_ia32_s390_guarded_storage - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_GUARDED_STORAGE},
+#endif
+#ifdef __NR_ia32_readdir
+	[__NR_ia32_readdir - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_READDIR},
+#endif
+#ifdef __NR_ia32_s390_sthyi
+	[__NR_ia32_s390_sthyi - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_STHYI},
+#endif
+#ifdef __NR_ia32_s390_runtime_instr
+	[__NR_ia32_s390_runtime_instr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_RUNTIME_INSTR},
+#endif
+#ifdef __NR_ia32_sigreturn
+	[__NR_ia32_sigreturn - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGRETURN},
+#endif
+#ifdef __NR_ia32_timerfd
+	[__NR_ia32_timerfd - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_TIMERFD},
+#endif
+#ifdef __NR_ia32_sigaction
+	[__NR_ia32_sigaction - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGACTION},
+#endif
+#ifdef __NR_ia32_idle
+	[__NR_ia32_idle - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_IDLE},
+#endif
+#ifdef __NR_ia32_s390_pci_mmio_read
+	[__NR_ia32_s390_pci_mmio_read - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_S390_PCI_MMIO_READ},
+#endif
+#ifdef __NR_ia32_sigsuspend
+	[__NR_ia32_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGSUSPEND},
 #endif
 };
 
