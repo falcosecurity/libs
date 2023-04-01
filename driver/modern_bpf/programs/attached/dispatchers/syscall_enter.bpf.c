@@ -36,7 +36,7 @@ int BPF_PROG(sys_enter,
 		return 0;
 	}
 
-	if(sampling_logic(syscall_id, SYSCALL))
+	if(sampling_logic(ctx, syscall_id, SYSCALL))
 	{
 		return 0;
 	}
