@@ -714,7 +714,52 @@ or GPL2.txt for full copies of the license.
 /*
  * Prctl flags
  */
-//XXX TODO ADD FLAGS
+//XXX take a look at https://github.com/torvalds/linux/blob/master/include/uapi/linux/prctl.h
+/* Get/set current->mm->dumpable */
+#define PPM_PR_GET_DUMPABLE			3
+#define PPM_PR_SET_DUMPABLE			4
+/* Get/set whether or not to drop capabilities on setuid() away from
+ * uid 0 (as per security/commoncap.c) */
+#define PPM_PR_GET_KEEPCAPS			7
+#define PPM_PR_SET_KEEPCAPS			8
+
+#define PPM_PR_SET_NAME				15		/* Set process name */
+#define PPM_PR_GET_NAME				16		/* Get process name */
+/* Get/set process seccomp mode */
+#define PPM_PR_GET_SECCOMP			21
+#define PPM_PR_SET_SECCOMP			22
+/* Get/set the capability bounding set (as per security/commoncap.c) */
+#define PPM_PR_CAPBSET_READ			23
+#define PPM_PR_CAPBSET_DROP			24
+
+/* Get/set securebits (as per security/commoncap.c) */
+#define PPM_PR_GET_SECUREBITS		27
+#define PPM_PR_SET_SECUREBITS		28
+
+/*
+ * Set early/late kill mode for hwpoison memory corruption.
+ * This influences when the process gets killed on a memory corruption.
+ */
+#define PPM_PR_MCE_KILL				33
+
+/*
+ * Tune up process memory map specifics.
+ */
+#define PPM_PR_SET_MM				35
+
+#define PPM_PR_SET_CHILD_SUBREAPER	36
+#define PPM_PR_GET_CHILD_SUBREAPER	37
+
+#define PPM_PR_SET_NO_NEW_PRIVS		38
+#define PPM_PR_GET_NO_NEW_PRIVS		39
+
+#define PPM_PR_GET_TID_ADDRESS		40
+
+#define PPM_PR_SET_THP_DISABLE		41
+#define PPM_PR_GET_THP_DISABLE		42
+
+/* Control the ambient capability set */
+#define PPM_PR_CAP_AMBIENT			47
 
 /*
  * SuS says limits have to be unsigned.
@@ -1924,6 +1969,7 @@ extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
 //XXX ADD HERE IF PRCTL FLAGS ARE PRESENT
+extern const struct ppm_name_value prctl_options[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

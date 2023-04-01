@@ -450,7 +450,7 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_SIGNALFD4_E] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"fd", PT_FD, PF_DEC}, {"mask", PT_UINT32, PF_HEX}}},
 	[PPME_SYSCALL_SIGNALFD4_X] = {"signalfd4", EC_SIGNAL | EC_SYSCALL, EF_CREATES_FD | EF_MODIFIES_STATE, 2, {{"res", PT_FD, PF_DEC},  {"flags", PT_FLAGS16, PF_HEX}}},
 	[PPME_SYSCALL_PRCTL_E] = {"prctl", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 0 },
-	[PPME_SYSCALL_PRCTL_X] = {"prctl", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 6, {{"res", PT_ERRNO, PF_DEC}, {"option", PF_DEC}, {"arg2", PT_CHARBUF,PT_UINT64}, {"arg3", PT_UINT64}, {"arg4", PT_UINT64}, {"arg5", PT_UINT64}  } },
+	[PPME_SYSCALL_PRCTL_X] = {"prctl", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 6, {{"res", PT_ERRNO, PF_DEC}, {"option", PT_ENUMFLAGS32, PF_DEC, prctl_options}, {"arg2", PT_CHARBUF,PT_UINT64}, {"arg3", PT_UINT64}, {"arg4", PT_UINT64}, {"arg5", PT_UINT64}  } },
 };
 
 // This code is compiled on windows and osx too!
