@@ -331,4 +331,6 @@ static const char* extra_event_prog_names[TAIL_EXTRA_EVENT_PROG_MAX] = {
 	[T2_CLONE3_X] = "t2_clone3_x",
 	[T2_FORK_X] = "t2_fork_x",
 	[T2_VFORK_X] = "t2_vfork_x",
+	[T1_DROP_E] = "t1_drop_e",
+	[T1_DROP_X] = "t1_drop_x",
 };
