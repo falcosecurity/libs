@@ -199,6 +199,15 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 		return ret;
 	}
 
+	/* Here we are covering the case in which some syscalls don't have an associated ppm_sc
+	 * and so we cannot set them as (un)interesting. For this reason, we default them to 0.
+	 * Please note this is an extra check since our ppm_sc should already cover all possible syscalls.
+	 */
+	for(int i = 0; i < SYSCALL_TABLE_SIZE; i++)
+	{
+		pman_mark_single_64bit_syscall(i, false);
+	}
+
 	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
