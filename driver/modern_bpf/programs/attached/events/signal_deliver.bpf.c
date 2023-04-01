@@ -21,7 +21,7 @@ int BPF_PROG(signal_deliver,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SIGNAL_DELIVER_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNAL_DELIVER_SIZE))
 	{
 		return 0;
 	}

@@ -82,10 +82,11 @@ struct ringbuf_struct
  * to know the event dimension at compile time.
  *
  * @param ringbuf pointer to the `ringbuf_struct`
+ * @param ctx BPF prog context
  * @param event_size exact size of the fixed-size event
  * @return `1` in case of success, `0` in case of failure.
  */
-static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, u32 event_size)
+static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size)
 {
 
 	struct ringbuf_map *rb = maps__get_ringbuf_map();

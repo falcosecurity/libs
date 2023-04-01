@@ -16,7 +16,7 @@ int BPF_PROG(open_by_handle_at_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, OPEN_BY_HANDLE_AT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, OPEN_BY_HANDLE_AT_E_SIZE))
 	{
 		return 0;
 	}

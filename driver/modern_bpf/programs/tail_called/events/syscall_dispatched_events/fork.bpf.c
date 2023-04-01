@@ -16,7 +16,7 @@ int BPF_PROG(fork_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FORK_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FORK_E_SIZE))
 	{
 		return 0;
 	}

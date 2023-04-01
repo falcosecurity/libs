@@ -15,7 +15,7 @@ int BPF_PROG(shutdown_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SHUTDOWN_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_E_SIZE))
 	{
 		return 0;
 	}
@@ -53,7 +53,7 @@ int BPF_PROG(shutdown_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SHUTDOWN_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_X_SIZE))
 	{
 		return 0;
 	}

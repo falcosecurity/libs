@@ -16,7 +16,7 @@ int BPF_PROG(fchmodat_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FCHMODAT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMODAT_E_SIZE))
 	{
 		return 0;
 	}

@@ -17,7 +17,7 @@ int BPF_PROG(getrlimit_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETRLIMIT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_E_SIZE))
 	{
 		return 0;
 	}
@@ -47,7 +47,7 @@ int BPF_PROG(getrlimit_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETRLIMIT_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETRLIMIT_X_SIZE))
 	{
 		return 0;
 	}

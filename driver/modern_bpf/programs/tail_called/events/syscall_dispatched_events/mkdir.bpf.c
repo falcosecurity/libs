@@ -16,7 +16,7 @@ int BPF_PROG(mkdir_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, MKDIR_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, MKDIR_E_SIZE))
 	{
 		return 0;
 	}

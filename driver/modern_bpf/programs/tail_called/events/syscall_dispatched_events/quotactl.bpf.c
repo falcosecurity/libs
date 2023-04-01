@@ -16,7 +16,7 @@ int BPF_PROG(quotactl_e,
 	     long syscall_id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, QUOTACTL_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, QUOTACTL_E_SIZE))
 	{
 		return 0;
 	}

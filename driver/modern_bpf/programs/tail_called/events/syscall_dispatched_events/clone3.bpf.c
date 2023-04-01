@@ -16,7 +16,7 @@ int BPF_PROG(clone3_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, CLONE3_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, CLONE3_E_SIZE))
 	{
 		return 0;
 	}

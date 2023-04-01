@@ -15,7 +15,7 @@ int BPF_PROG(getegid_e,
 	     long id)
 {
         struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, GETEGID_E_SIZE))
+        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEGID_E_SIZE))
         {
                 return 0;
         }
@@ -41,7 +41,7 @@ int BPF_PROG(getegid_x,
 	     long ret)
 {
         struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, GETEGID_X_SIZE))
+        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEGID_X_SIZE))
         {
                 return 0;
         }

@@ -17,7 +17,7 @@ int BPF_PROG(lstat_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, LSTAT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, LSTAT_E_SIZE))
 	{
 		return 0;
 	}

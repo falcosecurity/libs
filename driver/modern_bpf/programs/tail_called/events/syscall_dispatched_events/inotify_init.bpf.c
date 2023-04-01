@@ -15,7 +15,7 @@ int BPF_PROG(inotify_init_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT_E_SIZE))
 	{
 		return 0;
 	}
@@ -48,7 +48,7 @@ int BPF_PROG(inotify_init_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, INOTIFY_INIT_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, INOTIFY_INIT_X_SIZE))
 	{
 		return 0;
 	}

@@ -16,7 +16,7 @@ int BPF_PROG(symlink_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SYMLINK_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SYMLINK_E_SIZE))
 	{
 		return 0;
 	}
