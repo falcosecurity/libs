@@ -88,10 +88,11 @@ struct ringbuf_struct
  */
 static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size)
 {
-
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb)
 	{
+		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
+		bpf_printk("failed to tail call into the 'hotplug' prog");
 		return 0;
 	}
 

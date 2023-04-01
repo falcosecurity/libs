@@ -119,10 +119,11 @@ static __always_inline void auxmap__finalize_event_header(struct auxiliary_map *
  */
 static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, void* ctx)
 {
-
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb)
 	{
+		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_HOTPLUG_E);
+		bpf_printk("failed to tail call into the 'hotplug' prog");
 		return;
 	}
 
