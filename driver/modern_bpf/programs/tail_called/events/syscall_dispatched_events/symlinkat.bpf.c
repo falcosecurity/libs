@@ -76,7 +76,7 @@ int BPF_PROG(symlinkat_x,
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	auxmap__submit_event(auxmap, ctx);
 
 	return 0;
 }

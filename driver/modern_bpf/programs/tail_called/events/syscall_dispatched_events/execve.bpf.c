@@ -31,7 +31,7 @@ int BPF_PROG(execve_e,
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	auxmap__submit_event(auxmap, ctx);
 	return 0;
 }
 
@@ -286,7 +286,7 @@ int BPF_PROG(t1_execve_x,
 
 	auxmap__finalize_event_header(auxmap);
 
-	auxmap__submit_event(auxmap);
+	auxmap__submit_event(auxmap, ctx);
 	return 0;
 }
 
