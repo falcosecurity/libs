@@ -221,27 +221,27 @@ void event_test::clear_ring_buffers()
 	}
 }
 
-void event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
+struct ppm_evt_hdr* event_test::get_event_from_ringbuffer(uint16_t* cpu_id)
 {
-	/* Clear acutal event */
-	m_event_header = NULL;
+	struct ppm_evt_hdr* hdr = NULL;
 	uint16_t attempts = 0;
 	int32_t res = 0;
 
 	/* Try 2 times just to be sure that all the buffers are empty. */
 	while(attempts <= 1)
 	{
-		res = scap_next(s_scap_handle, (scap_evt**)&m_event_header, cpu_id);
-		if(res == SCAP_SUCCESS && m_event_header != NULL)
+		res = scap_next(s_scap_handle, (scap_evt**)&hdr, cpu_id);
+		if(res == SCAP_SUCCESS && hdr != NULL)
 		{
-			return;
+			break;
 		}
 		else if(res != SCAP_TIMEOUT && res != SCAP_SUCCESS)
 		{
-			FAIL() << "Unexpected error value from scap-next: " << res << std::endl;
+			return NULL;
 		}
 		attempts++;
 	}
+	return hdr;
 }
 
 void event_test::parse_event()
@@ -899,7 +899,7 @@ void event_test::assert_event_in_buffers(pid_t pid_to_search, int event_to_searc
 	 */
 	while(true)
 	{
-		get_event_from_ringbuffer(&cpu_id);
+		m_event_header = get_event_from_ringbuffer(&cpu_id);
 		if(m_event_header == NULL)
 		{
 			if(presence)

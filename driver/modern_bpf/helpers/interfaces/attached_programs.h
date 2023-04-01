@@ -8,8 +8,6 @@
 #pragma once
 
 #include <helpers/base/maps_getters.h>
-#include <definitions/events_dimensions.h>
-#include <helpers/store/ringbuf_store_params.h>
 
 /* This enum is used to tell if we are considering a syscall or a tracepoint */
 enum intrumentation_type
@@ -17,46 +15,6 @@ enum intrumentation_type
 	SYSCALL = 0,
 	TRACEPOINT = 1,
 };
-
-
-static __always_inline void send_drop_e_event()
-{
-	// struct ringbuf_struct ringbuf;
-	// if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_E_SIZE))
-	// {
-	// 	return;
-	// }
-
-	// ringbuf__store_event_header(&ringbuf, PPME_DROP_E);
-
-	// /*=============================== COLLECT PARAMETERS ===========================*/
-
-	// ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
-
-	// /*=============================== COLLECT PARAMETERS ===========================*/
-
-	// ringbuf__submit_event(&ringbuf);
-}
-
-static __always_inline void send_drop_x_event()
-{
-	// struct ringbuf_struct ringbuf;
-	// if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_X_SIZE))
-	// {
-	// 	return;
-	// }
-
-	// ringbuf__store_event_header(&ringbuf, PPME_DROP_X);
-
-	// /*=============================== COLLECT PARAMETERS ===========================*/
-
-	// ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
-
-	// /*=============================== COLLECT PARAMETERS ===========================*/
-
-	// ringbuf__submit_event(&ringbuf);
-}
-
 
 /* The sampling logic is used by all BPF programs attached to the kernel.
  * We treat the syscalls tracepoints in a dedicated way because they could generate
@@ -110,20 +68,17 @@ static __always_inline bool sampling_logic(void* ctx, u32 id, enum intrumentatio
 			 * an iteration we will synchronize again the next time the logic is enabled.
 			 */
 			maps__set_is_dropping(true);
-			send_drop_e_event();
-			return true;
+			bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_E);
+			bpf_printk("unable to tail call into 'drop_e' prog");
 		}
-		else
-		{
-			return true;
-		}
+		return true;
 	}
 
 	if(maps__get_is_dropping())
 	{
 		maps__set_is_dropping(false);
-		send_drop_x_event();
-		return true;
+		bpf_tail_call(ctx, &extra_event_prog_tail_table, T1_DROP_X);
+		bpf_printk("unable to tail call into 'drop_x' prog");
 	}
 
 	return false;

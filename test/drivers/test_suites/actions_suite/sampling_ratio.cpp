@@ -278,3 +278,52 @@ TEST(Actions, sampling_ratio_dropping_BIND_X)
 	evt_test->disable_capture();
 }
 #endif
+
+TEST(Actions, sampling_ratio_check_DROP_E_DROP_X)
+{
+	/* Enable all syscalls */
+	auto evt_test = get_syscall_event_test();
+
+	evt_test->enable_sampling_logic(128);
+
+	evt_test->enable_capture();
+
+	uint32_t max_events_to_process = 50000;
+	uint32_t events_processed = 0;
+	uint16_t cpu_id = 0;
+	bool drop_e = false;
+	bool drop_x = false;
+	struct ppm_evt_hdr* evt = NULL;
+
+	while(events_processed < max_events_to_process)
+	{
+		evt = evt_test->get_event_from_ringbuffer(&cpu_id);
+		events_processed++;
+		if(evt != NULL)
+		{
+			if(evt->type == PPME_DROP_E)
+			{
+				drop_e = true;
+			}
+
+			if(evt->type == PPME_DROP_X)
+			{
+				drop_x = true;
+			}
+
+			if(drop_e && drop_x)
+			{
+				break;
+			}
+		}
+	}
+
+	if(events_processed >= max_events_to_process)
+	{
+		FAIL() << "Found 'drop_e' = " << drop_e << ", found 'drop_x' = " << drop_x << std::endl;
+	}
+
+	evt_test->disable_sampling_logic();
+
+	evt_test->disable_capture();
+}
