@@ -18,7 +18,7 @@ int BPF_PROG(pf_kernel,
 	     unsigned long address, struct pt_regs *regs,
 	     unsigned long error_code)
 {
-	if(sampling_logic(PPME_PAGE_FAULT_E, TRACEPOINT))
+	if(sampling_logic(ctx, PPME_PAGE_FAULT_E, TRACEPOINT))
 	{
 		return 0;
 	}

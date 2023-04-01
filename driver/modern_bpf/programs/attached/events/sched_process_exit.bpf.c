@@ -9,7 +9,7 @@ SEC("tp_btf/sched_process_exit")
 int BPF_PROG(sched_proc_exit,
 	     struct task_struct *task)
 {
-	if(sampling_logic(PPME_PROCEXIT_1_E, TRACEPOINT))
+	if(sampling_logic(ctx, PPME_PROCEXIT_1_E, TRACEPOINT))
 	{
 		return 0;
 	}
