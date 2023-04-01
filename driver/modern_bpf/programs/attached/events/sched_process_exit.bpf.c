@@ -24,7 +24,7 @@ int BPF_PROG(sched_proc_exit,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PROC_EXIT_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PROC_EXIT_SIZE))
 	{
 		return 0;
 	}

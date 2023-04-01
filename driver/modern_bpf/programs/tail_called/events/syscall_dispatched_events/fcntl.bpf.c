@@ -30,7 +30,7 @@ int BPF_PROG(fcntl_e,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FCNTL_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_E_SIZE))
 	{
 		return 0;
 	}
@@ -69,7 +69,7 @@ int BPF_PROG(fcntl_x,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, FCNTL_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCNTL_X_SIZE))
 	{
 		return 0;
 	}

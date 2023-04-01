@@ -21,40 +21,40 @@ enum intrumentation_type
 
 static __always_inline void send_drop_e_event()
 {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, DROP_E_SIZE))
-	{
-		return;
-	}
+	// struct ringbuf_struct ringbuf;
+	// if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_E_SIZE))
+	// {
+	// 	return;
+	// }
 
-	ringbuf__store_event_header(&ringbuf, PPME_DROP_E);
+	// ringbuf__store_event_header(&ringbuf, PPME_DROP_E);
 
-	/*=============================== COLLECT PARAMETERS ===========================*/
+	// /*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+	// ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
 
-	/*=============================== COLLECT PARAMETERS ===========================*/
+	// /*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__submit_event(&ringbuf);
+	// ringbuf__submit_event(&ringbuf);
 }
 
 static __always_inline void send_drop_x_event()
 {
-	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, DROP_X_SIZE))
-	{
-		return;
-	}
+	// struct ringbuf_struct ringbuf;
+	// if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_X_SIZE))
+	// {
+	// 	return;
+	// }
 
-	ringbuf__store_event_header(&ringbuf, PPME_DROP_X);
+	// ringbuf__store_event_header(&ringbuf, PPME_DROP_X);
 
-	/*=============================== COLLECT PARAMETERS ===========================*/
+	// /*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
+	// ringbuf__store_u32(&ringbuf, maps__get_sampling_ratio());
 
-	/*=============================== COLLECT PARAMETERS ===========================*/
+	// /*=============================== COLLECT PARAMETERS ===========================*/
 
-	ringbuf__submit_event(&ringbuf);
+	// ringbuf__submit_event(&ringbuf);
 }
 
 

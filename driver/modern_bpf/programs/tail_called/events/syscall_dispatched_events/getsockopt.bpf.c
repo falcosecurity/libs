@@ -16,7 +16,7 @@ int BPF_PROG(getsockopt_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETSOCKOPT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETSOCKOPT_E_SIZE))
 	{
 		return 0;
 	}

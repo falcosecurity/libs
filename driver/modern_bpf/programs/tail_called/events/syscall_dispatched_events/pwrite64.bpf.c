@@ -16,7 +16,7 @@ int BPF_PROG(pwrite64_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PWRITE64_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PWRITE64_E_SIZE))
 	{
 		return 0;
 	}

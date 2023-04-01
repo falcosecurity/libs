@@ -15,7 +15,7 @@ int BPF_PROG(copy_file_range_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, COPY_FILE_RANGE_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, COPY_FILE_RANGE_E_SIZE))
 	{
 		return 0;
 	}
@@ -53,7 +53,7 @@ int BPF_PROG(copy_file_range_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, COPY_FILE_RANGE_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, COPY_FILE_RANGE_X_SIZE))
 	{
 		return 0;
 	}

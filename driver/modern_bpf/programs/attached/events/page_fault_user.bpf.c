@@ -24,7 +24,7 @@ int BPF_PROG(pf_user,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PAGE_FAULT_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE))
 	{
 		return 0;
 	}

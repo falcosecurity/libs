@@ -15,7 +15,7 @@ int BPF_PROG(getpeername_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETPEERNAME_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETPEERNAME_E_SIZE))
 	{
 		return 0;
 	}
@@ -43,7 +43,7 @@ int BPF_PROG(getpeername_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, GETPEERNAME_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETPEERNAME_X_SIZE))
 	{
 		return 0;
 	}

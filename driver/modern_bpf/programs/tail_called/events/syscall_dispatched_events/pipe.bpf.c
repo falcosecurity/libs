@@ -15,7 +15,7 @@ int BPF_PROG(pipe_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PIPE_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_E_SIZE))
 	{
 		return 0;
 	}
@@ -43,7 +43,7 @@ int BPF_PROG(pipe_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, PIPE_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE_X_SIZE))
 	{
 		return 0;
 	}

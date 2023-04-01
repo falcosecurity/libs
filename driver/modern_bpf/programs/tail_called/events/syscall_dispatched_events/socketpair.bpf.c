@@ -15,7 +15,7 @@ int BPF_PROG(socketpair_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SOCKETPAIR_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_E_SIZE))
 	{
 		return 0;
 	}
@@ -60,7 +60,7 @@ int BPF_PROG(socketpair_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SOCKETPAIR_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SOCKETPAIR_X_SIZE))
 	{
 		return 0;
 	}

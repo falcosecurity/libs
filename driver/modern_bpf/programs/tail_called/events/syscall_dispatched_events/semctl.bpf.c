@@ -15,7 +15,7 @@ int BPF_PROG(semctl_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SEMCTL_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_E_SIZE))
 	{
 		return 0;
 	}
@@ -57,7 +57,7 @@ int BPF_PROG(semctl_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, SEMCTL_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SEMCTL_X_SIZE))
 	{
 		return 0;
 	}

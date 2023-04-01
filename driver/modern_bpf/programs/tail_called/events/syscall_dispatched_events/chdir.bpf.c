@@ -16,7 +16,7 @@ int BPF_PROG(chdir_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, CHDIR_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, CHDIR_E_SIZE))
 	{
 		return 0;
 	}

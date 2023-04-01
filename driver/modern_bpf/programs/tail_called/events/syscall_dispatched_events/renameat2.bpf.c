@@ -16,7 +16,7 @@ int BPF_PROG(renameat2_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, RENAMEAT2_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, RENAMEAT2_E_SIZE))
 	{
 		return 0;
 	}
