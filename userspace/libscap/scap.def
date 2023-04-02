@@ -23,6 +23,7 @@ EXPORTS
 		scap_stop_capture
 		scap_get_ifaddr_list
 		scap_get_stats
+		scap_get_libbpf_stats
 		scap_get_event_info_table
 		scap_get_syscall_category_from_event
 		scap_get_event_category_from_event

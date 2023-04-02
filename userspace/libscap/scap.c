@@ -809,7 +809,7 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle)
 }
 
 //
-// Return the number of dropped events for the given handle
+// Return the number of dropped events for the given handle.
 //
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
@@ -838,6 +838,34 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	if(handle->m_vtable)
 	{
 		return handle->m_vtable->get_stats(handle->m_engine, stats);
+	}
+
+	return SCAP_SUCCESS;
+}
+
+//
+// Return the libbpf stats snapshot for the given handle (compare to `bpftool prog show` CLI).
+//
+int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stats)
+{
+	// Init
+	libbpf_stats->run_cnt_total = 0;
+	libbpf_stats->run_time_ns_total = 0;
+	int bpf_prog;
+	for(bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
+	{
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].fd = -1;
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].id = 0;
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].run_cnt = 0;
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].run_time_ns = 0;
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].avg_time_ns = 0;
+		libbpf_stats->attached_progs_libbpf_stats[bpf_prog].type = 0;
+		strlcpy(libbpf_stats->attached_progs_libbpf_stats[bpf_prog].name, "", NAME_MAX);
+	}
+
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_libbpf_stats(handle->m_engine, libbpf_stats);
 	}
 
 	return SCAP_SUCCESS;
