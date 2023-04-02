@@ -219,6 +219,14 @@ struct scap_vtable {
 	int32_t (*get_stats)(struct scap_engine_handle engine, struct scap_stats *stats);
 
 	/**
+	 * @brief get libbpf engine statistics (`bpftool prog show` like stats)
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param libbpf_stats Pointer to a \ref libbpf_stats structure that will be filled with the statistics.
+	 * @return SCAP_SUCCESS or a failure code
+	 */
+	int32_t (*get_libbpf_stats)(struct scap_engine_handle engine, struct scap_libbpf_stats *libbpf_stats);
+
+	/**
 	 * @brief get the number of tracepoint hits
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @param ret [out] the number of hits
