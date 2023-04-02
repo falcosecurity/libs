@@ -856,7 +856,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	/* We use a signed int because in some case we have to convert it to a negative value. */
 	s32 val32 = 0;
 	u64 val64 = 0;
-	struct __kernel_timex_timeval tv;
+	struct modern_bpf__kernel_timex_timeval tv;
 	u16 total_size_to_push = sizeof(u8); /* 1 byte for the PPM type. */
 
 	/* Levels different from `SOL_SOCKET` are not supported
@@ -885,7 +885,7 @@ static __always_inline void auxmap__store_sockopt_param(struct auxiliary_map *au
 	case SO_SNDTIMEO_OLD:
 	case SO_SNDTIMEO_NEW:
 		push__u8(auxmap->data, &auxmap->payload_pos, PPM_SOCKOPT_IDX_TIMEVAL);
-		bpf_probe_read_user((void *)&tv, bpf_core_type_size(struct __kernel_timex_timeval), (void *)optval);
+		bpf_probe_read_user((void *)&tv, sizeof(tv), (void *)optval);
 		push__u64(auxmap->data, &auxmap->payload_pos, tv.tv_sec * SEC_FACTOR + tv.tv_usec * USEC_FACTOR);
 		total_size_to_push += sizeof(u64);
 		break;

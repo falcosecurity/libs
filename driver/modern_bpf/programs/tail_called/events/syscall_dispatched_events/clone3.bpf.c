@@ -191,11 +191,15 @@ int BPF_PROG(t1_clone3_x,
 
 	/* Parameter 16: flags (type: PT_FLAGS32) */
 	/* the `clone_args` struct is defined since kernel version 5.3 */
-	unsigned long cl_args_pointer = extract__syscall_argument(regs, 0);
-	struct clone_args cl_args = {0};
-	bpf_probe_read_user((void *)&cl_args, bpf_core_type_size(struct clone_args), (void *)cl_args_pointer);
-	unsigned long flags = cl_args.flags;
-	auxmap__store_u32_param(auxmap, (u32)extract__clone_flags(task, flags));
+	unsigned long flags = 0;
+	if(bpf_core_type_exists(struct clone_args))
+	{
+		unsigned long cl_args_pointer = extract__syscall_argument(regs, 0);
+		struct clone_args cl_args = {0};
+		bpf_probe_read_user((void *)&cl_args, bpf_core_type_size(struct clone_args), (void *)cl_args_pointer);
+		flags = extract__clone_flags(task, cl_args.flags);
+	}
+	auxmap__store_u32_param(auxmap, (u32)flags);
 
 	/* Parameter 17: uid (type: PT_UINT32) */
 	u32 euid = 0;

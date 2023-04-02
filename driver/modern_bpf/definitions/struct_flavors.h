@@ -18,4 +18,22 @@ struct mm_struct___v6_2
 #pragma clang attribute pop
 #endif
 
+/* We don't need relocation on these structs, they are internally defined by us as a fallback!
+ * Use the prefix `modern_bpf__` before the real name of the struct we want to replace.
+ */
+
+/* We use this as a fallback for kernels where `struct __kernel_timespec` is not defined. */
+struct modern_bpf__kernel_timespec
+{
+	long int tv_sec;
+	long int tv_nsec;
+};
+
+/* We use this as a fallback for kernels where `struct __kernel_timex_timeval` is not defined. */
+struct modern_bpf__kernel_timex_timeval
+{
+	long long int tv_sec;
+	long long int tv_usec;
+};
+
 #endif /* __STRUCT_FLAVORS_H__ */
