@@ -60,29 +60,55 @@ int BPF_PROG(io_uring_setup_x,
 	ringbuf__store_u32(&ringbuf, entries);
 
 	/* Get the second syscall argument that is a `struct io_uring_params*`
-	 * This struct is defined since kernel release 5.1
+	 * This struct is defined since kernel release 5.1.
+	 * Some machines like almalinux8 and almalinux9 don't have the
+	 * `struct io_uring_params` defined in their vmlinux, for this reason, we send
+	 * empty params.
 	 */
-	unsigned long params_pointer = extract__syscall_argument(regs, 1);
-	struct io_uring_params params = {0};
-	bpf_probe_read_user((void *)&params, bpf_core_type_size(struct io_uring_params), (void *)params_pointer);
+	if(bpf_core_type_exists(struct io_uring_params))
+	{
+		unsigned long params_pointer = extract__syscall_argument(regs, 1);
+		struct io_uring_params params = {0};
+		bpf_probe_read_user((void *)&params, bpf_core_type_size(struct io_uring_params), (void *)params_pointer);
 
-	/* Parameter 3: sq_entries (type: PT_UINT32) */
-	ringbuf__store_u32(&ringbuf, params.sq_entries);
+		/* Parameter 3: sq_entries (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, params.sq_entries);
 
-	/* Parameter 4: cq_entries (type: PT_UINT32) */
-	ringbuf__store_u32(&ringbuf, params.cq_entries);
+		/* Parameter 4: cq_entries (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, params.cq_entries);
 
-	/* Parameter 5: flags (type: PT_FLAGS32) */
-	ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_flags_to_scap(params.flags));
+		/* Parameter 5: flags (type: PT_FLAGS32) */
+		ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_flags_to_scap(params.flags));
 
-	/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
-	ringbuf__store_u32(&ringbuf, params.sq_thread_cpu);
+		/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, params.sq_thread_cpu);
 
-	/* Parameter 7: sq_thread_idle (type: PT_UINT32) */
-	ringbuf__store_u32(&ringbuf, params.sq_thread_idle);
+		/* Parameter 7: sq_thread_idle (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, params.sq_thread_idle);
 
-	/* Parameter 8: features (type: PT_FLAGS32) */
-	ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_feats_to_scap(params.features));
+		/* Parameter 8: features (type: PT_FLAGS32) */
+		ringbuf__store_u32(&ringbuf, (u32)io_uring_setup_feats_to_scap(params.features));
+	}
+	else
+	{
+		/* Parameter 3: sq_entries (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, 0);
+
+		/* Parameter 4: cq_entries (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, 0);
+
+		/* Parameter 5: flags (type: PT_FLAGS32) */
+		ringbuf__store_u32(&ringbuf, 0);
+
+		/* Parameter 6: sq_thread_cpu (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, 0);
+
+		/* Parameter 7: sq_thread_idle (type: PT_UINT32) */
+		ringbuf__store_u32(&ringbuf, 0);
+
+		/* Parameter 8: features (type: PT_FLAGS32) */
+		ringbuf__store_u32(&ringbuf, 0);
+	}
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
