@@ -887,6 +887,7 @@ struct scap_vtable scap_kmod_engine = {
 	.stop_capture = scap_kmod_stop_capture,
 	.configure = configure,
 	.get_stats = scap_kmod_get_stats,
+	.get_libbpf_stats = NULL,
 	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
 	.get_n_devs = scap_kmod_get_n_devs,
 	.get_max_buf_used = scap_kmod_get_max_buf_used,
