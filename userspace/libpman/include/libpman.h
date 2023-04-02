@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <scap.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -291,6 +292,18 @@ extern "C"
 	 * @return `0` on success, `errno` in case of error.
 	 */
 	int pman_get_scap_stats(void* scap_stats_struct);
+
+	/**
+	 * @brief Receive a pointer to `struct scap_libbpf_stats_struct` and fill it
+	 * with info about the number of events and number of drops.
+	 *
+	 * @param scap_libbpf_stats_struct opaque pointer to `struct scap_libbpf_stats_struct`.
+	 * @param attached_progs listing of each attached program
+	 * We used an opaque pointer because we don't want to introduce scap
+	 * definitions in this file.
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_get_scap_libbpf_stats(void* scap_libbpf_stats_struct, bpf_attached_prog* attached_progs);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU

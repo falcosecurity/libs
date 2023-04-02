@@ -178,6 +178,11 @@ clean_print_stats:
 	return errno;
 }
 
+int pman_get_scap_libbpf_stats(void* scap_libbpf_stats_struct, bpf_attached_prog* attached_progs)
+{
+	return 0;
+}
+
 int pman_get_n_tracepoint_hit(long *n_events_per_cpu)
 {
 	char error_message[MAX_ERROR_MESSAGE_LEN];
