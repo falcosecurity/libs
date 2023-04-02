@@ -21,6 +21,7 @@ limitations under the License.
 #include <stdlib.h>
 #include "../../../../driver/ppm_events_public.h"
 #include "scap_open.h"
+#include <scap.h>
 
 struct scap;
 
@@ -32,4 +33,5 @@ struct modern_bpf_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
+	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
 };
