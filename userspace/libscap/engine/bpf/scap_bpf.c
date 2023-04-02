@@ -135,6 +135,11 @@ static int sys_perf_event_open(struct perf_event_attr *attr,
 	return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
 }
 
+static inline __u64 ptr_to_u64(const void *ptr)
+{
+	return (__u64) (unsigned long) ptr;
+}
+
 /* Here the filler_name is something like 'sys_open_x'.
  * Starting from the entire section name 'raw_tracepoint/filler/sys_open_x'
  * here we obtain just the final part 'sys_open_x'.
@@ -211,6 +216,22 @@ static int bpf_map_freeze(int fd)
 
 	/* Do not check for errors as BPF_MAP_FREEZE was introduced in kernel 5.2 */
 	sys_bpf(BPF_MAP_FREEZE, &attr, sizeof(attr));
+	return SCAP_SUCCESS;
+}
+
+static int bpf_obj_get_info_by_fd(int fd, void *info, __u32 *info_len)
+{
+	union bpf_attr attr;
+	int err;
+
+	bzero(&attr, sizeof(attr));
+	attr.info.bpf_fd = fd;
+	attr.info.info_len = *info_len;
+	attr.info.info = ptr_to_u64(info);
+
+	err = sys_bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr));
+	if (!err)
+		*info_len = attr.info.info_len;
 	return SCAP_SUCCESS;
 }
 
