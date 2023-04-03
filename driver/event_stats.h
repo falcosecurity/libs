@@ -8,4 +8,4 @@
 #define UNKNOWN_EVENTS_NUM 20
 
 /* This number should be increased when we add/remove a generic syscall */
-#define GENERIC_SYSCALLS_NUM 235
+#define GENERIC_SYSCALLS_NUM 246
