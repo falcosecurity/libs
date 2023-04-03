@@ -24,36 +24,36 @@ limitations under the License.
 #include <netinet/in.h>
 #include <event_stats.h>
 
-#define ASSERT_NAMES_EQ(a, b)                                                                                        \
-	{                                                                                                            \
+#define ASSERT_NAMES_EQ(a, b)                                                                                \
+	{                                                                                                        \
 		auto a1 = a;                                                                                         \
 		auto b1 = b;                                                                                         \
+		EXPECT_EQ(a1.size(), b1.size());                                                                     \
 		ASSERT_EQ(std::set<std::string>(a1.begin(), a1.end()), std::set<std::string>(b1.begin(), b1.end())); \
-		ASSERT_EQ(a1.size(), b1.size());                                                                     \
 	}
 
 // `merge` requires cpp17...
-#define ASSERT_CONTAINS(a, b)                    \
-	{                                        \
+#define ASSERT_CONTAINS(a, b)            \
+	{                                    \
 		auto a1 = a;                     \
 		auto b1 = b;                     \
 		uint32_t prev_size = a1.size();  \
 		for(const auto& val : b1)        \
 		{                                \
-			a1.insert(val);          \
+			a1.insert(val);              \
 		}                                \
 		ASSERT_EQ(prev_size, a1.size()); \
 	}
 
 // `merge` requires cpp17...
-#define ASSERT_NOT_CONTAINS(a, b)                            \
-	{                                                    \
+#define ASSERT_NOT_CONTAINS(a, b)                    \
+	{                                                \
 		auto a1 = a;                                 \
 		auto b1 = b;                                 \
 		uint32_t prev_size = a1.size();              \
 		for(const auto& val : b1)                    \
 		{                                            \
-			a1.insert(val);                      \
+			a1.insert(val);                          \
 		}                                            \
 		ASSERT_EQ(prev_size + b1.size(), a1.size()); \
 	}
@@ -62,18 +62,18 @@ limitations under the License.
 	{                                                                                                                                            \
 		auto a1 = a;                                                                                                                         \
 		auto b1 = b;                                                                                                                         \
+		EXPECT_EQ(a1.size(), b1.size());                                                                                               \
 		ASSERT_EQ(libsinsp::events::set<ppm_event_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_event_code>(b1.begin(), b1.end())); \
 		ASSERT_TRUE(a1.equals(b1));                                                                                                          \
-		ASSERT_EQ(a1.size(), b1.size());                                                                                                     \
 	}
 
 #define ASSERT_PPM_SC_CODES_EQ(a, b)                                                                                                           \
 	{                                                                                                                                      \
 		auto a1 = a;                                                                                                                   \
 		auto b1 = b;                                                                                                                   \
+		EXPECT_EQ(a1.size(), b1.size());                                                                                               \
 		ASSERT_EQ(libsinsp::events::set<ppm_sc_code>(a1.begin(), a1.end()), libsinsp::events::set<ppm_sc_code>(b1.begin(), b1.end())); \
 		ASSERT_TRUE(a1.equals(b1));                                                                                                    \
-		ASSERT_EQ(a1.size(), b1.size());                                                                                               \
 	}
 
 namespace test_utils {
