@@ -234,7 +234,7 @@ libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
     ppm_code_visitor<
         libsinsp::events::set<ppm_sc_code>,
         libsinsp::events::all_sc_set,
-        libsinsp::events::names_to_sc_set> v;
+        libsinsp::events::event_names_to_sc_set> v;
     e->accept(&v);
     return v.m_last_node_codes;
 }

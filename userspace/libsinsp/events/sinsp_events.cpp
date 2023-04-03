@@ -85,7 +85,7 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 			{
 				/* note: using existing ppm sc APIs and generic set operations to minimize new logic that requires maintenance beyond what we already have. */
 				auto sc_set = libsinsp::events::event_set_to_sc_set(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
-				events_names_set = unordered_set_union(libsinsp::events::sc_set_to_names(sc_set), events_names_set);
+				events_names_set = unordered_set_union(libsinsp::events::sc_set_to_sc_names(sc_set), events_names_set);
 				events_names_set.erase("unknown"); // not needed
 				resolved_generic = true;
 			}

@@ -170,14 +170,24 @@ set<ppm_sc_code> sys_sc_set();
 set<ppm_sc_code> all_sc_set();
 
 /*!
-  \brief Get the name of all the ppm_sc provided in the set.
+  \brief Get the sc name of all the ppm_sc provided in the set.
 */
-std::unordered_set<std::string> sc_set_to_names(const set<ppm_sc_code>& ppm_sc_set);
+std::unordered_set<std::string> sc_set_to_sc_names(const set<ppm_sc_code>& ppm_sc_set);
+
+/*!
+  \brief Get the event name of all the ppm_sc provided in the set.
+*/
+std::unordered_set<std::string> sc_set_to_event_names(const set<ppm_sc_code>& ppm_sc_set);
+
+/*!
+  \brief Get the ppm_sc of all the event names provided in the set.
+*/
+set<ppm_sc_code> event_names_to_sc_set(const std::unordered_set<std::string>& events);
 
 /*!
   \brief Get the ppm_sc of all the syscalls names provided in the set.
 */
-set<ppm_sc_code> names_to_sc_set(const std::unordered_set<std::string>& syscalls);
+set<ppm_sc_code> sc_names_to_sc_set(const std::unordered_set<std::string>& syscalls);
 
 /**
 	 * @brief When you want to retrieve the events associated with a particular `ppm_sc` you have to

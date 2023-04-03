@@ -231,32 +231,50 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sys_sc_set()
 	return sc_set;
 }
 
-libsinsp::events::set<ppm_sc_code> libsinsp::events::names_to_sc_set(const std::unordered_set<std::string>& syscalls)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::event_names_to_sc_set(const std::unordered_set<std::string>& events)
+{
+	/* Convert event names into an event set, and then convert that into a
+	 * syscall set. We exclude generics due to the potential information loss
+	 * (e.g. one generic event will include all generic syscalls in the
+	 * conversion). Generics are handled below using their actuall syacall name.
+	 * Note: this is the same logic with which the "evt.type" filter field
+	 * is extracted. */
+	auto gen_event_set = libsinsp::events::set<ppm_event_code>(
+		{ PPME_GENERIC_E, PPME_GENERIC_X });
+	auto event_set = libsinsp::events::names_to_event_set(events);
+	bool has_gen_event = !event_set.intersect(gen_event_set).empty();
+	event_set = event_set.diff(gen_event_set);
+
+	auto ppm_sc_set = libsinsp::events::event_set_to_sc_set(event_set);
+	if (has_gen_event)
+	{
+		std::string name;
+		auto gen_sc_set = libsinsp::events::event_set_to_sc_set(gen_event_set);
+		for (const auto &sc : gen_sc_set)
+		{
+			name.assign(scap_get_ppm_sc_name(sc));
+			if (events.find(name) != events.end())
+			{
+				ppm_sc_set.insert(sc);
+			}
+		}
+	}
+
+	return ppm_sc_set;
+}
+
+libsinsp::events::set<ppm_sc_code> libsinsp::events::sc_names_to_sc_set(const std::unordered_set<std::string>& syscalls)
 {
 	libsinsp::events::set<ppm_sc_code> ppm_sc_set;
-	for (const auto &syscall_name : syscalls)
+	for (const auto &name : syscalls)
 	{
-		auto ppm_sc = scap_ppm_sc_from_name(syscall_name.c_str());
+		auto ppm_sc = scap_ppm_sc_from_name(name.c_str());
 		if(ppm_sc != -1)
 		{
 			ppm_sc_set.insert(ppm_sc);
 		}
 	}
-	/* Extra back and forth mapping to resolve overloaded event <-> sc names, e.g. accept -> accept, accept4
-	 * Plus account for variants that share event codes, e.g. eventfd, eventfd2 share PPME_SYSCALL_EVENTFD_E, PPME_SYSCALL_EVENTFD_X
-	 * Plus handle special snowflakes, e.g. "umount" event string maps to PPME_SYSCALL_UMOUNT_E, PPME_SYSCALL_UMOUNT_X, but
-	 * in actuality applies for "umount2" syscall as "umount" syscall is a generic event -> end result is activating both umount, umount2
-	 *
-	 * Since names_to_event_set would resolve generic sc events, we only apply these extra lookups for non generic sc event codes
-	 *
-	 * note: todo @jasondellaluce, @incertum once we refactor tables and/or introduce a paradigm change of not supporting shared event names across syscall variants
-	 * we can remove this extra logic again. Timing can be relaxed as these extra lookups won't break anything, at worst they are redundant.
-	*/
-	auto all_non_generic_sc_event_set = libsinsp::events::all_event_set().filter([&](ppm_event_code e) { return libsinsp::events::is_syscall_event(e); })\
-	.diff(libsinsp::events::set<ppm_event_code>{PPME_GENERIC_E, PPME_GENERIC_X});
-	auto tmp_event_set = all_non_generic_sc_event_set.intersect(libsinsp::events::names_to_event_set(syscalls));
-	auto tmp_sc_set = libsinsp::events::event_set_to_sc_set(tmp_event_set);
-	return ppm_sc_set.merge(tmp_sc_set);
+	return ppm_sc_set;
 }
 
 libsinsp::events::set<ppm_event_code> libsinsp::events::sc_set_to_event_set(const libsinsp::events::set<ppm_sc_code> &ppm_sc_set)
@@ -295,7 +313,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::all_sc_set()
 	return ppm_sc_set;
 }
 
-std::unordered_set<std::string> libsinsp::events::sc_set_to_names(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
+std::unordered_set<std::string> libsinsp::events::sc_set_to_sc_names(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
 {
 	std::unordered_set<std::string> ppm_sc_names_set;
 	for (const auto& val : ppm_sc_set)
@@ -308,6 +326,24 @@ std::unordered_set<std::string> libsinsp::events::sc_set_to_names(const libsinsp
 		}
 	}
 	return ppm_sc_names_set;
+}
+
+std::unordered_set<std::string> libsinsp::events::sc_set_to_event_names(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
+{
+	// convert all sc code to their event codes mappings, generic event excluded
+	auto event_set = sc_set_to_event_set(ppm_sc_set);
+	event_set.remove(ppm_event_code::PPME_GENERIC_E);
+	event_set.remove(ppm_event_code::PPME_GENERIC_X);
+
+	// obtain the names set from the event code set
+	auto event_names_set = event_set_to_names(event_set);
+
+	// collect the remaining sc codes in the set that don't have an
+	// event code mapping. This is only expected to happen for generic events.
+	auto remaining_sc_set = ppm_sc_set.diff(event_set_to_sc_set(event_set));
+	auto remaining_sc_names_set = sc_set_to_sc_names(remaining_sc_set);
+	
+	return unordered_set_union(event_names_set, remaining_sc_names_set);
 }
 
 libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(const libsinsp::events::set<ppm_sc_code>& ppm_sc_set)
