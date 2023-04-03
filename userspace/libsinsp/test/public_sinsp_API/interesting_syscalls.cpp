@@ -58,16 +58,16 @@ TEST(interesting_syscalls, all_sc_set)
 	ASSERT_TRUE(sc_set.size() <= PPM_SC_MAX);
 }
 
-TEST(interesting_syscalls, sc_set_to_names)
+TEST(interesting_syscalls, sc_set_to_event_names)
 {
 	// "syncfs" is a generic event / syscall
-	static std::set<std::string> names_truth = {"kill", "read", "syncfs"};
-	static libsinsp::events::set<ppm_sc_code> sc_set = {PPM_SC_KILL, PPM_SC_READ, PPM_SC_SYNCFS};
-	auto names = test_utils::unordered_set_to_ordered(libsinsp::events::sc_set_to_names(sc_set));
+	static std::set<std::string> names_truth = {"kill", "read", "syncfs", "procexit", "switch"};
+	static libsinsp::events::set<ppm_sc_code> sc_set = {PPM_SC_KILL, PPM_SC_READ, PPM_SC_SYNCFS, PPM_SC_SCHED_PROCESS_EXIT, PPM_SC_SCHED_SWITCH};
+	auto names = test_utils::unordered_set_to_ordered(libsinsp::events::sc_set_to_event_names(sc_set));
 	ASSERT_NAMES_EQ(names_truth, names);
 }
 
-TEST(interesting_syscalls, names_to_sc_set)
+TEST(interesting_syscalls, event_names_to_sc_set)
 {
 	static libsinsp::events::set<ppm_sc_code> sc_set_truth = {
 	PPM_SC_KILL,
@@ -88,7 +88,7 @@ TEST(interesting_syscalls, names_to_sc_set)
 	PPM_SC_SIGNALFD4
 	};
 
-	auto sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{
+	auto sc_set = libsinsp::events::event_names_to_sc_set(std::unordered_set<std::string>{
 	"kill",
 	"read",
 	"syncfs",
@@ -108,19 +108,18 @@ TEST(interesting_syscalls, names_to_sc_set)
 	ASSERT_PPM_SC_CODES_EQ(sc_set_truth, sc_set);
 }
 
-/* This test asserts the behavior of `names_to_sc_set` API when corner cases like `accept/accept4` are involved */
-/// todo: @Andreagit97 revisit this test after new APIs to convert from event_names -> sc_set and sc_set -> event_names.
+/* This test asserts the behavior of `event_names_to_sc_set` API when corner cases like `accept/accept4` are involved */
 TEST(interesting_syscalls, names_sc_set_names_corner_cases)
 {
-	/* INCONSISTENCY: `names_to_sc_set` is converting event names to ppm_sc, but this was not its original scope, the original scope was to convert sc_names -> to sc_set  */
-	std::unordered_set<std::string> event_names{"accept", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2"};
-	auto sc_set = libsinsp::events::names_to_sc_set(event_names);
-	libsinsp::events::set<ppm_sc_code> expected_sc_set{PPM_SC_ACCEPT, PPM_SC_ACCEPT4, PPM_SC_EXECVE, PPM_SC_SYNCFS, PPM_SC_EVENTFD, PPM_SC_UMOUNT, PPM_SC_PIPE, PPM_SC_SIGNALFD, PPM_SC_UMOUNT2};
+	/* INCONSISTENCY: `event_names_to_sc_set` is converting event names to ppm_sc, but this was not its original scope, the original scope was to convert sc_names -> to sc_set  */
+	std::unordered_set<std::string> event_names{"accept", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2", "procexit"};
+	auto sc_set = libsinsp::events::event_names_to_sc_set(event_names);
+	libsinsp::events::set<ppm_sc_code> expected_sc_set{PPM_SC_ACCEPT, PPM_SC_EXECVE, PPM_SC_SYNCFS, PPM_SC_EVENTFD, PPM_SC_UMOUNT, PPM_SC_PIPE, PPM_SC_SIGNALFD, PPM_SC_UMOUNT2, PPM_SC_SCHED_PROCESS_EXIT};
 	ASSERT_PPM_SC_CODES_EQ(sc_set, expected_sc_set);
 
 	/* Please note that here we are converting sc_set to sc_names not event_names! */
-	auto sc_names = libsinsp::events::sc_set_to_names(sc_set);	
-	static std::unordered_set<std::string> expected_sc_names = {"accept", "accept4", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2"};
+	auto sc_names = libsinsp::events::sc_set_to_event_names(sc_set);	
+	static std::unordered_set<std::string> expected_sc_names = {"accept", "execve", "syncfs", "eventfd", "umount", "pipe", "signalfd", "umount2", "procexit"};
 	ASSERT_NAMES_EQ(expected_sc_names, sc_names);
 }
 
@@ -172,58 +171,51 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     libsinsp::events::set<ppm_sc_code> input_sc_set;
     libsinsp::events::set<ppm_sc_code> sc_set;
 
-    /* todo: @incertum update / revisit once names_to_sc_set is refactored featuring new tp names as well. */
-    truth = libsinsp::events::names_to_sc_set({
-        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork",
+    truth = libsinsp::events::event_names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork", "procexit",
         "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
-        "setuid", "setuid32", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat"});
+        "setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
-    truth = libsinsp::events::names_to_sc_set({
+    truth = libsinsp::events::event_names_to_sc_set({
         "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "connect",
-        "execve", "execveat", "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect", "accept", "accept4"});
+        "execve", "execveat", "fchdir", "fork", "getsockopt",  "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat", "connect", "accept", "accept4"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
-    truth = libsinsp::events::names_to_sc_set({
+    truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "close", "connect", "execve", "execveat",
-        "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat", "connect"});
+        "fchdir", "fork", "getsockopt",  "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat", "connect"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
-    truth = libsinsp::events::names_to_sc_set({
+    truth = libsinsp::events::event_names_to_sc_set({
         "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "execve",
-        "execveat", "fchdir", "fork", "getsockopt", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "accept", "accept4"});
+        "execveat", "fchdir", "fork", "getsockopt", "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "accept", "accept4"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
-    truth = libsinsp::events::names_to_sc_set({
-        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork",
+    truth = libsinsp::events::event_names_to_sc_set({
+        "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork", "procexit",
         "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
-        "setuid", "setuid32", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"execve", "execveat"});
+        "setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 
-    truth = libsinsp::events::names_to_sc_set({
+    truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "close", "execve", "execveat", "fchdir", "fork",
-        "open", "openat", "openat2", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork"})\
-        .merge({PPM_SC_SCHED_PROCESS_EXIT});
-    input_sc_set = libsinsp::events::names_to_sc_set({"open", "openat", "openat2"});
+        "open", "openat", "openat2", "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork"});
+    input_sc_set = libsinsp::events::event_names_to_sc_set({"open", "openat", "openat2"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
 

@@ -821,7 +821,7 @@ TEST(ppm_sc_API, all_sc_set)
 
 TEST(ppm_sc_API, all_sc_names)
 {
-	auto sc_names = test_utils::unordered_set_to_ordered(libsinsp::events::sc_set_to_names(libsinsp::events::all_sc_set()));
+	auto sc_names = test_utils::unordered_set_to_ordered(libsinsp::events::sc_set_to_sc_names(libsinsp::events::all_sc_set()));
 	std::set<std::string> expected_sc_names;
 	/* In all_sc we don't have `PPM_SC_UNKNOWN` so we don't have to retrieve the "unknown" name, we start the for loop from 1 */
 	for(int ppm_sc = 1; ppm_sc < PPM_SC_MAX; ppm_sc++)
@@ -855,9 +855,9 @@ TEST(ppm_sc_API, enforce_sinsp_state_sc_set)
 TEST(ppm_sc_API, sc_empty_sets)
 {
 	std::unordered_set<std::string> empty_string_set;
-	const auto empty_sc_set = libsinsp::events::names_to_sc_set(empty_string_set);
+	const auto empty_sc_set = libsinsp::events::sc_names_to_sc_set(empty_string_set);
 	const auto empty_event_set = libsinsp::events::sc_set_to_event_set(empty_sc_set);
-	const auto empty_sc_names = libsinsp::events::sc_set_to_names(empty_sc_set);
+	const auto empty_sc_names = libsinsp::events::sc_set_to_sc_names(empty_sc_set);
 	ASSERT_TRUE(empty_sc_set.empty());
 	ASSERT_TRUE(empty_event_set.empty());
 	ASSERT_TRUE(empty_sc_names.empty());
@@ -867,14 +867,22 @@ TEST(ppm_sc_API, sc_unknown)
 {
 	libsinsp::events::set<ppm_sc_code> unknown_sc{PPM_SC_UNKNOWN};
 	ASSERT_TRUE(libsinsp::events::sc_set_to_event_set(unknown_sc).empty());
-	ASSERT_NAMES_EQ(libsinsp::events::sc_set_to_names(unknown_sc), std::unordered_set<std::string>{"unknown"});
+	ASSERT_NAMES_EQ(libsinsp::events::sc_set_to_sc_names(unknown_sc), std::unordered_set<std::string>{"unknown"});
 }
 
-TEST(ppm_sc_API, ASS_names_ASS)
+TEST(ppm_sc_API, ASS_sc_names_ASS)
 {
 	const auto all_sc = libsinsp::events::all_sc_set();
-	const auto all_sc_names = libsinsp::events::sc_set_to_names(all_sc);
-	const auto all_sc_again = libsinsp::events::names_to_sc_set(all_sc_names);
+	const auto all_sc_names = libsinsp::events::sc_set_to_sc_names(all_sc);
+	const auto all_sc_again = libsinsp::events::sc_names_to_sc_set(all_sc_names);
+	ASSERT_PPM_SC_CODES_EQ(all_sc, all_sc_again);
+}
+
+TEST(ppm_sc_API, ASS_event_names_ASS)
+{
+	const auto all_sc = libsinsp::events::all_sc_set();
+	const auto all_event_names = libsinsp::events::sc_set_to_event_names(all_sc);
+	const auto all_sc_again = libsinsp::events::event_names_to_sc_set(all_event_names);
 	ASSERT_PPM_SC_CODES_EQ(all_sc, all_sc_again);
 }
 
@@ -956,7 +964,7 @@ TEST(ppm_sc_API, NGSS_event_set_NGSS)
 
 TEST(ppm_sc_API, SSN_sc_set_SSN)
 {
-	auto sc_set = libsinsp::events::names_to_sc_set(std::unordered_set<std::string>{"open", "openat", "alarm", "****!!!!!", "NOT-SC", "", "unknown", "sched_process_exit"});
+	auto sc_set = libsinsp::events::sc_names_to_sc_set(std::unordered_set<std::string>{"open", "openat", "alarm", "****!!!!!", "NOT-SC", "", "unknown", "sched_process_exit"});
 	ASSERT_TRUE(sc_set.contains(PPM_SC_OPEN));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_OPENAT));
 	ASSERT_TRUE(sc_set.contains(PPM_SC_ALARM));
@@ -965,7 +973,7 @@ TEST(ppm_sc_API, SSN_sc_set_SSN)
 	ASSERT_EQ(sc_set.size(), 5);
 
 	std::unordered_set<std::string> expected_sc_names{"open", "openat", "alarm", "unknown", "sched_process_exit"};
-	auto sc_names_again = libsinsp::events::sc_set_to_names(sc_set);
+	auto sc_names_again = libsinsp::events::sc_set_to_sc_names(sc_set);
 	ASSERT_NAMES_EQ(expected_sc_names, sc_names_again);
 }
 
