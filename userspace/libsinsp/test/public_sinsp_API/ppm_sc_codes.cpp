@@ -19,6 +19,11 @@ limitations under the License.
 #include <sinsp.h>
 #include "../test_utils.h"
 
+// This is loaded in the first test
+static libsinsp::events::set<ppm_sc_code> sinsp_generic_syscalls_set;
+
+#define GENERIC_SYSCALLS_NUM (sinsp_generic_syscalls_set.size())
+
 /*
  * Please note these sets must be kept in sync if we update the sinsp internal state set
  * otherwise some of the following checks will fail.
@@ -353,6 +358,26 @@ TEST(ppm_sc_API, check_skip_parse_reset_events)
  * - (SEN) -> event set -> (SEN)     SEN = shared event names
  * - (NGEN) -> event set -> (NGEN)   NGEN = not generic event names
  */
+
+TEST(ppm_sc_API, generic_syscalls_set)
+{
+	libsinsp::events::set<ppm_event_code> generic_enter_event{PPME_GENERIC_E};
+	libsinsp::events::set<ppm_event_code> generic_exit_event{PPME_GENERIC_X};
+	std::vector<uint8_t> generic_syscalls_enter(PPM_SC_MAX, 0);
+	std::vector<uint8_t> generic_syscalls_exit(PPM_SC_MAX, 0);
+	ASSERT_EQ(scap_get_ppm_sc_from_events(generic_enter_event.data(), generic_syscalls_enter.data()), SCAP_SUCCESS);
+	ASSERT_EQ(scap_get_ppm_sc_from_events(generic_exit_event.data(), generic_syscalls_exit.data()), SCAP_SUCCESS);
+	ASSERT_EQ(generic_syscalls_enter, generic_syscalls_exit);
+
+	// Load generic syscalls in the sinsp_generic_syscalls_set
+	for(uint32_t ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
+	{
+		if (generic_syscalls_enter[ppm_sc])
+		{
+			sinsp_generic_syscalls_set.insert((ppm_sc_code)ppm_sc);
+		}
+	}
+}
 
 TEST(ppm_sc_API, all_event_set)
 {
