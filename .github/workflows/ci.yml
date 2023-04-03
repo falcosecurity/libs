@@ -103,12 +103,11 @@ jobs:
   build-shared-libs-linux-amd64:
     name: build-shared-libs-linux-amd64 🧐
     runs-on: ubuntu-latest
-    container:
-      image: debian:buster
     steps:
       - name: Install deps ⛓️
         run: |
-          apt update && apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libre2-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-amd64
 
       - name: Checkout Libs ⤵️
         uses: actions/checkout@v3
