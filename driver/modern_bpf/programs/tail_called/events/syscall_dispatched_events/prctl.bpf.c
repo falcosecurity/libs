@@ -55,17 +55,47 @@ int BPF_PROG(prctl_x,
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
-	/* Parameter 1: option (type: PT_UINT32) */
-	u32 flags = (u32)extract__syscall_argument(regs, 0);
-	auxmap__store_u32_param(auxmap, open_flags_to_scap(flags));
+	/* Parameter 1: res (type: PT_ERRNO) */
+	auxmap__store_s64_param(auxmap, ret);
 
-	/* Parameter 1: name (type: PT_CHARBUF) */
-	unsigned long name_pointer = extract__syscall_argument(regs, 1);
-	auxmap__store_charbuf_param(auxmap, name_pointer, MAX_PATH, USER);
+	/* Parameter 2: option (type: PT_UINT64) */
+	u64 option = (u64)extract__syscall_argument(regs, 0);
+	auxmap__store_u64_param(auxmap, option);
 
-	/* Parameter 3: mode (type: PT_UINT32) */
-	//unsigned long mode = extract__syscall_argument(regs, 2);
-	//auxmap__store_u32_param(auxmap, open_modes_to_scap(flags, mode));
+	/* Parameter 3: arg2 (type: PT_CHARBUF) */
+	unsigned long arg2 = extract__syscall_argument(regs, 1);
+	auxmap__store_u64_param(auxmap, arg2);
+
+	/* Parameter 4: arg3 (type: PT_UINT64) */
+	unsigned long arg3 = extract__syscall_argument(regs, 2);
+	auxmap__store_u64_param(auxmap, arg3);
+
+	/* Parameter 5: arg4 (type: PT_UINT64) */
+	unsigned long arg4 = extract__syscall_argument(regs, 3);
+	auxmap__store_u64_param(auxmap, arg4);
+
+	/* Parameter 6: arg5 (type: PT_UINT64) */
+	unsigned long arg5 = extract__syscall_argument(regs, 4);
+	auxmap__store_u64_param(auxmap, arg5);
+
+	/* Parameter 7: arg2str (type: PT_CHARBUF) */
+	if(option == 15){
+		auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
+	}else{
+		auxmap__store_charbuf_param(auxmap, 0, MAX_PATH, USER);
+	}
+
+	/* Parameter 8: arg2int (type: PT_UINT64) */
+	if(option == 37){
+		u64 reaper_pid;
+		bpf_probe_read_user(&reaper_pid, sizeof(reaper_pid), (void*)arg2);
+		auxmap__store_u64_param(auxmap, (int)reaper_pid);
+	}else if(option == 15){
+		auxmap__store_u64_param(auxmap, 0);
+	}else{
+		auxmap__store_u64_param(auxmap, arg2);
+	}
+
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

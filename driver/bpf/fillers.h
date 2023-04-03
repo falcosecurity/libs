@@ -7111,23 +7111,12 @@ FILLER(sched_prog_fork_3, false)
 }
 #endif
 
-/*
-FILLER(sys_prctl_e, true)
-{
-	int res;
-	long retval;
-
-	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
-
-	return res;
-}
-*/
-
 FILLER(sys_prctl_x, true)
 {
 	int val;
+	unsigned long option;
 	unsigned long arg;
+	unsigned long arg2;
 	int res;
 	long retval;
 
@@ -7139,16 +7128,16 @@ FILLER(sys_prctl_x, true)
 	/*
 	 * option
 	 */
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring(data, val);
+	option = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, option);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	/*
 	 * arg2
 	 */
-	arg = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring(data, arg);
+	arg2 = bpf_syscall_get_argument(data, 1);
+	res = bpf_val_to_ring(data, arg2);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -7173,6 +7162,34 @@ FILLER(sys_prctl_x, true)
 	 */
 	arg = bpf_syscall_get_argument(data, 4);
 	res = bpf_val_to_ring(data, arg);
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * arg2str
+	 */
+	if(option == 15){
+		res = bpf_val_to_ring(data, arg2);
+	}else if(option == 37){
+		res = bpf_val_to_ring(data, 0);
+	}else{
+		res = bpf_val_to_ring(data, arg2);
+	}
+	if (res != PPM_SUCCESS)
+		return res;
+
+	/*
+	 * arg2int
+	 */
+	if(option == 15){
+		res = bpf_val_to_ring(data, 0);
+	}else if(option == 37){
+		unsigned long arg2int;
+		bpf_probe_read_user(&arg2int,sizeof(arg2int),(void*)arg2);
+		res = bpf_val_to_ring(data, (int)arg2int);
+	}else{
+		res = bpf_val_to_ring(data, arg2);
+	}
 	if (res != PPM_SUCCESS)
 		return res;
 
