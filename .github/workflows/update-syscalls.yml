@@ -34,6 +34,11 @@ jobs:
           base: master
           branch: update/syscalls
           title: 'update(driver): update syscalls tables and driver report.'
-          body: 'This PR updates the list of supported syscalls from the latest kernel. Do not edit this PR.\n/area driver\n\`\`\`\release-note\nNONE\n\`\`\`'
+          body: |
+            This PR updates the list of supported syscalls from the latest kernel. Do not edit this PR.
+            /area driver
+            ```release-note
+            NONE
+            ```
           commit-message: 'update(driver): update syscalls tables and driver report.'
           token: ${{ secrets.GITHUB_TOKEN }}
