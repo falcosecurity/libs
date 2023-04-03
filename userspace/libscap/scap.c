@@ -851,6 +851,7 @@ int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stat
 	// Init
 	libbpf_stats->run_cnt_total = 0;
 	libbpf_stats->run_time_ns_total = 0;
+#ifdef __linux__
 	int bpf_prog;
 	for(bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
 	{
@@ -867,7 +868,7 @@ int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stat
 	{
 		return handle->m_vtable->get_libbpf_stats(handle->m_engine, libbpf_stats);
 	}
-
+#endif
 	return SCAP_SUCCESS;
 }
 

@@ -81,7 +81,9 @@ typedef struct ppm_evt_hdr scap_evt;
 #include <engine/source_plugin/source_plugin_public.h>
 #include <engine/test_input/test_input_public.h>
 #include <engine/udig/udig_public.h>
+#ifdef __linux
 #include <engine/bpf/attached_prog.h>
+#endif
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
@@ -117,6 +119,9 @@ typedef struct ppm_evt_hdr scap_evt;
 //
 #define SCAP_PROC_SCAN_LOG_NONE 0
 
+#ifndef __linux
+#define NAME_MAX 255
+#endif
 
 /*!
   \brief Statistics about an in progress capture
@@ -148,14 +153,14 @@ typedef struct scap_stats
 
 typedef struct bpf_attached_prog_libbpf_stats
 {
-  /* Can extend schema in the future based on fields available in libbpf `struct bpf_prog_info` */
+	/* Can extend schema in the future based on fields available in libbpf `struct bpf_prog_info` */
 	char name[NAME_MAX]; ///< Name of program attached in kernel, see program definitions.
-  int fd; ///< fd used to load/unload bpf program.
+	int fd; ///< fd used to load/unload bpf program.
 	uint32_t type; ///< `bpf_prog_info` type.
-  uint32_t id; ///< `bpf_prog_info` id.
+	uint32_t id; ///< `bpf_prog_info` id.
 	uint64_t run_cnt; ///< `bpf_prog_info` run_cnt.
-  uint64_t run_time_ns; ///<`bpf_prog_info` run_time_ns.
-  uint64_t avg_time_ns; ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
+	uint64_t run_time_ns; ///<`bpf_prog_info` run_time_ns.
+	uint64_t avg_time_ns; ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
 }bpf_attached_prog_libbpf_stats;
 
 /*!
@@ -163,9 +168,11 @@ typedef struct bpf_attached_prog_libbpf_stats
 */
 typedef struct scap_libbpf_stats
 {
-  uint64_t run_cnt_total; ///< Total number of bpf program invocations (sum of each `bpf_attached_prog`).
-  uint64_t run_time_ns_total; ///< Total time spent in bpf program (sum of each `bpf_attached_prog`).
-  bpf_attached_prog_libbpf_stats attached_progs_libbpf_stats[BPF_PROG_ATTACHED_MAX]; ///< Stats per `bpf_attached_prog`, see `bpf_attached_prog_libbpf_stats` schema.
+	uint64_t run_cnt_total; ///< Total number of bpf program invocations (sum of each `bpf_attached_prog`).
+	uint64_t run_time_ns_total; ///< Total time spent in bpf program (sum of each `bpf_attached_prog`).
+#ifdef __linux
+	bpf_attached_prog_libbpf_stats attached_progs_libbpf_stats[BPF_PROG_ATTACHED_MAX]; ///< Stats per `bpf_attached_prog`, see `bpf_attached_prog_libbpf_stats` schema.
+#endif
 }scap_libbpf_stats;
 
 /*!
