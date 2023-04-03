@@ -236,7 +236,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::event_names_to_sc_set(const
 	/* Convert event names into an event set, and then convert that into a
 	 * syscall set. We exclude generics due to the potential information loss
 	 * (e.g. one generic event will include all generic syscalls in the
-	 * conversion). Generics are handled below using their actuall syacall name.
+	 * conversion). Generics are handled below using their actuall syscall name.
 	 * Note: this is the same logic with which the "evt.type" filter field
 	 * is extracted. */
 	auto gen_event_set = libsinsp::events::set<ppm_event_code>(
