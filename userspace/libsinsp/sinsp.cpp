@@ -1882,14 +1882,6 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 	}
 }
 
-void sinsp::get_capture_libbpf_stats(scap_libbpf_stats* libbpf_stats) const
-{
-	if(scap_get_libbpf_stats(m_h, libbpf_stats) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-}
-
 #ifdef GATHER_INTERNAL_STATS
 sinsp_stats sinsp::get_stats()
 {

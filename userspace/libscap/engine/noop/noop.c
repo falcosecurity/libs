@@ -132,7 +132,6 @@ const struct scap_vtable scap_noop_engine = {
 	.get_stats = noop_get_stats,
 	.get_stats_size_hint = NULL,
 	.get_stats_v2 = NULL,
-	.get_libbpf_stats = NULL,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,

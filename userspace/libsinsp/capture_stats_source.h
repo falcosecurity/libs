@@ -19,7 +19,6 @@ limitations under the License.
 #include "sinsp_public.h"
 
 struct scap_stats;
-struct scap_libbpf_stats;
 
 /**
  * Interface to an object that can provide capture statistics.
@@ -44,14 +43,4 @@ public:
 	 * @param[out] stats The capture statistics
 	 */
 	virtual void get_capture_stats(scap_stats* stats) const = 0;
-
-	/**
-	 * Fill the given structure with statistics about the currently
-	 * open capture.
-	 *
-	 * @note This may not work for a file-based capture source.
-	 *
-	 * @param[out] libbpf_stats The capture statistics
-	 */
-	virtual void get_capture_libbpf_stats(scap_libbpf_stats* libbpf_stats) const = 0;
 };

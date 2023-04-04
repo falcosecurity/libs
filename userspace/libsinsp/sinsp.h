@@ -522,15 +522,6 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats) const override;
 
-	/*!
-	  \brief Fill the given structure with libbpf statistics about the currently
-	   open capture.
-
-	  \note Call won't work on file captures or for kmod engine. In addition,
-	    requires `/proc/sys/kernel/bpf_stats_enabled` be enabled.
-	*/
-	void get_capture_libbpf_stats(scap_libbpf_stats* libbpf_stats) const override;
-
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif

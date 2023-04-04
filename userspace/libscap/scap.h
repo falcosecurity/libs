@@ -81,9 +81,6 @@ typedef struct ppm_evt_hdr scap_evt;
 #include <engine/source_plugin/source_plugin_public.h>
 #include <engine/test_input/test_input_public.h>
 #include <engine/udig/udig_public.h>
-#ifdef __linux
-#include <engine/bpf/attached_prog.h>
-#endif
 
 //
 // The minimum API and schema versions the driver has to support before we can use it
@@ -148,30 +145,6 @@ typedef struct scap_stats
 	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids.
 	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed.
 }scap_stats;
-
-typedef struct bpf_attached_prog_libbpf_stats
-{
-	/* Can extend schema in the future based on fields available in libbpf `struct bpf_prog_info` */
-	char name[NAME_MAX]; ///< Name of program attached in kernel, see program definitions.
-	int fd; ///< fd used to load/unload bpf program.
-	uint32_t type; ///< `bpf_prog_info` type.
-	uint32_t id; ///< `bpf_prog_info` id.
-	uint64_t run_cnt; ///< `bpf_prog_info` run_cnt.
-	uint64_t run_time_ns; ///<`bpf_prog_info` run_time_ns.
-	uint64_t avg_time_ns; ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
-}bpf_attached_prog_libbpf_stats;
-
-/*!
-  \brief Relevant statistics from libbpf stats snapshot (compare to `bpftool prog show` CLI).
-*/
-typedef struct scap_libbpf_stats
-{
-	uint64_t run_cnt_total; ///< Total number of bpf program invocations (sum of each `bpf_attached_prog`).
-	uint64_t run_time_ns_total; ///< Total time spent in bpf program (sum of each `bpf_attached_prog`).
-#ifdef __linux
-	bpf_attached_prog_libbpf_stats attached_progs_libbpf_stats[BPF_PROG_ATTACHED_MAX]; ///< Stats per `bpf_attached_prog`, see `bpf_attached_prog_libbpf_stats` schema.
-#endif
-}scap_libbpf_stats;
 
 /*!
   \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
@@ -761,19 +734,6 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
    the cause of the error.
 */
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
-
-/*!
-  \brief Return the libbpf snapshot statistics for the given capture handle. Compare to `bpftool prog show` CLI.
-
-  \param handle Handle to the capture instance.
-  \param libbpf_stats Pointer to a \ref libbpf_stats structure that will be filled with the
-  statistics.
-
-  \return SCAP_SECCESS if the call is successful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
-   the cause of the error.
-*/
-int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stats);
 
 /*!
   \brief Get size of required buffer to support each featured statistic

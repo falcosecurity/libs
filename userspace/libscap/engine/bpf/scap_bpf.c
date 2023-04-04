@@ -1684,51 +1684,6 @@ int32_t scap_bpf_get_stats_v2(struct scap_engine_handle engine, size_t buf_size,
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_bpf_get_libbpf_stats(struct scap_engine_handle engine, OUT scap_libbpf_stats* libbpf_stats)
-{
-	struct bpf_engine *handle = engine.m_handle;
-	int ret;
-	int j;
-	int fd;
-
-	/* At the time of writing (Apr 2, 2023) libbpf stats are only available on a per program granularity.
-	 * This means we cannot measure the statistics for each filler / tail call individually.
-	 * Hopefully someone upstreams such capabilities to libbpf one day :)
-	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
-	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
-	 */
-	for(j = 0; j < BPF_PROG_ATTACHED_MAX; j++)
-	{
-		fd = handle->m_attached_progs[j].fd;
-		if (fd > 0)
-		{
-			struct bpf_prog_info info = {};
-			__u32 len = sizeof(info);
-			if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
-			{
-				// todo: possibly add a warning message or just ignore?
-			}
-			else
-			{
-				libbpf_stats->run_cnt_total += info.run_cnt;
-				libbpf_stats->run_time_ns_total += info.run_time_ns;
-				libbpf_stats->attached_progs_libbpf_stats[j].fd = fd;
-				libbpf_stats->attached_progs_libbpf_stats[j].id = info.id;
-				libbpf_stats->attached_progs_libbpf_stats[j].run_cnt = info.run_cnt;
-				libbpf_stats->attached_progs_libbpf_stats[j].run_time_ns = info.run_time_ns;
-				if (info.run_cnt > 0)
-				{
-					libbpf_stats->attached_progs_libbpf_stats[j].avg_time_ns = info.run_time_ns / info.run_cnt;
-				}
-				libbpf_stats->attached_progs_libbpf_stats[j].type = info.type;
-				strlcpy(libbpf_stats->attached_progs_libbpf_stats[j].name, info.name, NAME_MAX);
-			}
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_bpf_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
 {
 	struct bpf_engine *handle = engine.m_handle;
@@ -1959,7 +1914,6 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_stats = scap_bpf_get_stats,
 	.get_stats_size_hint = scap_bpf_get_stats_size_hint,
 	.get_stats_v2 = scap_bpf_get_stats_v2,
-	.get_libbpf_stats = scap_bpf_get_libbpf_stats,
 	.get_n_tracepoint_hit = scap_bpf_get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
