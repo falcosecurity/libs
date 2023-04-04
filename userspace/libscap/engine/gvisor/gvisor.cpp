@@ -161,7 +161,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_stats = gvisor_get_stats,
 	.get_stats_size_hint = NULL,
 	.get_stats_v2 = NULL,
-	.get_libbpf_stats = NULL,
 	.get_n_tracepoint_hit = gvisor_get_n_tracepoint_hit,
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,

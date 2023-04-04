@@ -786,8 +786,6 @@ void print_stats()
 	/* !!! Requires bpf stats enabled, /proc/sys/kernel/bpf_stats_enabled */
 	if(strcmp(oargs.engine_name, KMOD_ENGINE) != 0 && (scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
 	{
-		scap_libbpf_stats libbpf_s;
-		scap_get_libbpf_stats(g_h, &libbpf_s);
 		size_t buf_size = scap_get_stats_size_hint(g_h);
 		if (buf_size == 0)
 		{
@@ -805,24 +803,6 @@ void print_stats()
 			}
 			printf("%s: %lu\n", stats_v2[i].name, stats_v2[i].u64value);
 			i++;
-		}
-
-		printf("\n[SCAP-OPEN]: libbpf statistics\n");
-		printf("\nNumber of total bpf program invocations (sum run_cnt): %" PRIu64 "\n", libbpf_s.run_cnt_total);
-		printf("Nanoseconds spent in total across bpf programs (sum run_time_ns): %" PRIu64 "\n", libbpf_s.run_time_ns_total);
-		if (libbpf_s.run_cnt_total > 0)
-		{
-			printf("Average time spent across bpf programs (avg_time_ns): %" PRIu64 "\n", libbpf_s.run_time_ns_total / libbpf_s.run_cnt_total);
-		}
-		int bpf_prog;
-		for(bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
-		{
-			if (libbpf_s.attached_progs_libbpf_stats[bpf_prog].fd > 0)
-			{
-				printf("Prog [%s] run_cnt: %" PRIu64 "\n", libbpf_s.attached_progs_libbpf_stats[bpf_prog].name, libbpf_s.attached_progs_libbpf_stats[bpf_prog].run_cnt);
-				printf("Prog [%s] run_time_ns: %" PRIu64 "\n", libbpf_s.attached_progs_libbpf_stats[bpf_prog].name, libbpf_s.attached_progs_libbpf_stats[bpf_prog].run_time_ns);
-				printf("Prog [%s] avg_time_ns: %lu" "\n", libbpf_s.attached_progs_libbpf_stats[bpf_prog].name, libbpf_s.attached_progs_libbpf_stats[bpf_prog].avg_time_ns);
-			}
 		}
 	}
 #endif

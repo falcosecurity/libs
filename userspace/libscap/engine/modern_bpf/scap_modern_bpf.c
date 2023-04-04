@@ -245,15 +245,6 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_modern_bpf__get_libbpf_stats(struct scap_engine_handle engine, OUT scap_libbpf_stats* libbpf_stats)
-{
-	if(pman_get_scap_libbpf_stats((void*)libbpf_stats, engine.m_handle->m_attached_progs))
-	{
-		return SCAP_FAILURE;
-	}
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, OUT long* ret)
 {
 	if(pman_get_n_tracepoint_hit(ret))
@@ -289,7 +280,6 @@ struct scap_vtable scap_modern_bpf_engine = {
 	.get_stats = scap_modern_bpf__get_stats,
 	.get_stats_size_hint = NULL,
 	.get_stats_v2 = NULL,
-	.get_libbpf_stats = scap_modern_bpf__get_libbpf_stats,
 	.get_n_tracepoint_hit = scap_modern_bpf__get_n_tracepoint_hit,
 	.get_n_devs = scap_modern_bpf__get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
