@@ -119,9 +119,7 @@ typedef struct ppm_evt_hdr scap_evt;
 //
 #define SCAP_PROC_SCAN_LOG_NONE 0
 
-#ifndef __linux
-#define NAME_MAX 255
-#endif
+#define STATS_NAME_MAX 512
 
 /*!
   \brief Statistics about an in progress capture
@@ -174,6 +172,20 @@ typedef struct scap_libbpf_stats
 	bpf_attached_prog_libbpf_stats attached_progs_libbpf_stats[BPF_PROG_ATTACHED_MAX]; ///< Stats per `bpf_attached_prog`, see `bpf_attached_prog_libbpf_stats` schema.
 #endif
 }scap_libbpf_stats;
+
+/*!
+  \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
+*/
+typedef struct scap_stats_v2
+{
+	/* Metadata */
+	char name[STATS_NAME_MAX];
+	int valid;
+	/* Stats values */
+	uint64_t u64value;
+	int64_t s64value;
+	// todo: add unit enum
+}scap_stats_v2;
 
 /*!
   \brief File Descriptor type
@@ -762,6 +774,29 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
    the cause of the error.
 */
 int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stats);
+
+/*!
+  \brief Get size of required buffer to support each featured statistic
+
+  \param handle Handle to the capture instance.
+
+  \return size of required buffer to support each statistic.
+*/
+size_t scap_get_stats_size_hint(scap_t* handle);
+
+/*!
+  \brief Get engine statistics (including counters and `bpftool prog show` like stats)
+
+  \param handle Handle to the capture instance.
+  \param buf_size size of buffer to hold statistics.
+  \param stats Pointer to a \ref scap_stats structure that will be filled with the
+  statistics.
+
+  \return SCAP_SECCESS if the call is successful.
+   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
+   the cause of the error.
+*/
+int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, OUT scap_stats_v2* stats);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.

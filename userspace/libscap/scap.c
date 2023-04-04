@@ -873,6 +873,39 @@ int32_t scap_get_libbpf_stats(scap_t* handle, OUT scap_libbpf_stats* libbpf_stat
 }
 
 //
+// Return engine statistics (including counters and `bpftool prog show` like stats)
+//
+size_t scap_get_stats_size_hint(scap_t* handle)
+{
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_stats_size_hint();
+	}
+	return 0;
+}
+
+//
+// Return engine statistics (including counters and `bpftool prog show` like stats)
+//
+int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, OUT scap_stats_v2* stats)
+{
+	int i = 0;
+	while (i < buf_size) {
+		stats[i].valid = -1;
+		stats[i].u64value = 0;
+		stats[i].s64value = 0;
+		strlcpy(stats[i].name, "", 1);
+		i++;
+	}
+
+	if(handle->m_vtable)
+	{
+		return handle->m_vtable->get_stats_v2(handle->m_engine, buf_size, stats);
+	}
+	return SCAP_SUCCESS;
+}
+
+//
 // Stop capturing the events
 //
 int32_t scap_stop_capture(scap_t* handle)
