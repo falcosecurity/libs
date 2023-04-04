@@ -784,7 +784,7 @@ void print_stats()
 
 #ifdef __linux
 	/* !!! Requires bpf stats enabled, /proc/sys/kernel/bpf_stats_enabled */
-	if(strcmp(oargs.engine_name, KMOD_ENGINE) != 0 && (scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
+	if(strcmp(oargs.engine_name, BPF_ENGINE) == 0 && (scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
 	{
 		size_t buf_size = scap_get_stats_size_hint(g_h);
 		if (buf_size == 0)
@@ -794,7 +794,7 @@ void print_stats()
 		}
 		scap_stats_v2 stats_v2[buf_size];
 		scap_get_stats_v2(g_h, buf_size, &stats_v2);
-		printf("\n[SCAP-OPEN]: libbpf statistics\n\n");
+		printf("\n[SCAP-OPEN]: Stats v2 (kernel-side counters, libbpf stats buffer)\n\n");
 		int i = 0;
 		while (i < buf_size) {
 			if(stats_v2[i].valid == -1)
