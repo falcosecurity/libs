@@ -47,7 +47,7 @@ if(RESULT STREQUAL NOTFOUND)
   message(FATAL_ERROR "${MODERN_BPF_LOG_PREFIX} problem with compute_versions.cmake in ${CMAKE_MODULE_PATH}")
 endif()
 compute_versions(../API_VERSION ../SCHEMA_VERSION)
-configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_config.h)
+configure_file(../driver_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/driver/driver_config.h)
 
 ########################
 # Check clang version.
@@ -211,6 +211,7 @@ list(APPEND CLANG_FLAGS
     -I${LIBBPF_INCLUDE}
     ${MODERN_PROBE_INCLUDE}
     -I${PPM_INCLUDE}
+    -I${CMAKE_CURRENT_BINARY_DIR}
     -isystem
 )
 
