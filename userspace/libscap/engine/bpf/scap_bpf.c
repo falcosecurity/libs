@@ -49,6 +49,8 @@ limitations under the License.
 #include "noop.h"
 #include "strerror.h"
 
+#define STATS_NAME_MAX 512
+
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
 {
 	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
@@ -1602,6 +1604,86 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 	return SCAP_SUCCESS;
 }
 
+enum libbpf_stats {
+	RUN_CNT = 0,
+	RUN_TIME_NS,
+	AVG_TIME_NS,
+	MAX_LIBBPF_STATS,
+};
+
+static const char * const libbpf_stats_names[] = {
+	[RUN_CNT] = ".run_cnt", ///< `bpf_prog_info` run_cnt.
+	[RUN_TIME_NS] = ".run_time_ns", ///<`bpf_prog_info` run_time_ns.
+	[AVG_TIME_NS] = ".avg_time_ns", ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
+};
+
+size_t scap_bpf_get_stats_size_hint()
+{
+	size_t n_old_stats = 18; // will be refactored
+	return (BPF_PROG_ATTACHED_MAX * MAX_LIBBPF_STATS) + n_old_stats;
+}
+
+int32_t scap_bpf_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+{
+	struct bpf_engine *handle = engine.m_handle;
+	int ret;
+	int fd;
+
+	/* At the time of writing (Apr 2, 2023) libbpf stats are only available on a per program granularity.
+	 * This means we cannot measure the statistics for each filler / tail call individually.
+	 * Hopefully someone upstreams such capabilities to libbpf one day :)
+	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
+	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
+	 */
+	int i = 0;
+	for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
+	{
+		fd = handle->m_attached_progs[bpf_prog].fd;
+		if (fd > 0)
+		{
+			struct bpf_prog_info info = {};
+			__u32 len = sizeof(info);
+			if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
+			{
+				// todo: possibly add a warning message or just ignore?
+			}
+			else
+			{
+				for(int stat =  0;  stat < MAX_LIBBPF_STATS; stat++)
+				{
+					if (i > buf_size - 1)
+					{
+						return SCAP_FAILURE;
+					}
+
+					stats[i].valid = 0;
+					strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
+					if (stat == RUN_CNT)
+					{
+						strncat(stats[i].name, libbpf_stats_names[RUN_CNT], strlen(libbpf_stats_names[RUN_CNT]));
+						stats[i].u64value = info.run_cnt;
+					}
+					else if (stat == RUN_TIME_NS)
+					{
+						strncat(stats[i].name, libbpf_stats_names[RUN_TIME_NS], strlen(libbpf_stats_names[RUN_TIME_NS]));
+						stats[i].u64value = info.run_time_ns;
+					}
+					else if (stat == AVG_TIME_NS)
+					{
+						if (info.run_cnt > 0)
+						{
+							strncat(stats[i].name, libbpf_stats_names[AVG_TIME_NS], strlen(libbpf_stats_names[AVG_TIME_NS]));
+							stats[i].u64value = info.run_time_ns / info.run_cnt;
+						}
+					}
+					i++;
+				}
+			}
+		}
+	}
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_bpf_get_libbpf_stats(struct scap_engine_handle engine, OUT scap_libbpf_stats* libbpf_stats)
 {
 	struct bpf_engine *handle = engine.m_handle;
@@ -1875,6 +1957,8 @@ const struct scap_vtable scap_bpf_engine = {
 	.stop_capture = scap_bpf_stop_capture,
 	.configure = configure,
 	.get_stats = scap_bpf_get_stats,
+	.get_stats_size_hint = scap_bpf_get_stats_size_hint,
+	.get_stats_v2 = scap_bpf_get_stats_v2,
 	.get_libbpf_stats = scap_bpf_get_libbpf_stats,
 	.get_n_tracepoint_hit = scap_bpf_get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,

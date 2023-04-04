@@ -782,11 +782,31 @@ void print_stats()
 	printf("Number of events skipped due to the tid being in a set of suppressed tids: %" PRIu64 "\n", s.n_suppressed);
 	printf("Number of threads currently being suppressed: %" PRIu64 "\n", s.n_tids_suppressed);
 
+#ifdef __linux
 	/* !!! Requires bpf stats enabled, /proc/sys/kernel/bpf_stats_enabled */
 	if(strcmp(oargs.engine_name, KMOD_ENGINE) != 0 && (scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
 	{
 		scap_libbpf_stats libbpf_s;
 		scap_get_libbpf_stats(g_h, &libbpf_s);
+		size_t buf_size = scap_get_stats_size_hint(g_h);
+		if (buf_size == 0)
+		{
+			// TBD random fall-back for now
+			buf_size == 60;
+		}
+		scap_stats_v2 stats_v2[buf_size];
+		scap_get_stats_v2(g_h, buf_size, &stats_v2);
+		printf("\n[SCAP-OPEN]: libbpf statistics\n\n");
+		int i = 0;
+		while (i < buf_size) {
+			if(stats_v2[i].valid == -1)
+			{
+				break;
+			}
+			printf("%s: %lu\n", stats_v2[i].name, stats_v2[i].u64value);
+			i++;
+		}
+
 		printf("\n[SCAP-OPEN]: libbpf statistics\n");
 		printf("\nNumber of total bpf program invocations (sum run_cnt): %" PRIu64 "\n", libbpf_s.run_cnt_total);
 		printf("Nanoseconds spent in total across bpf programs (sum run_time_ns): %" PRIu64 "\n", libbpf_s.run_time_ns_total);
@@ -805,6 +825,7 @@ void print_stats()
 			}
 		}
 	}
+#endif
 
 	printf("\n[SCAP-OPEN]: Kernel side buffer drop statistics\n");
 	printf("\nNumber of dropped events caused by full buffer (total / all buffer drops - includes all categories below, likely higher than sum of syscall categories): %" PRIu64 "\n", s.n_drops_buffer);
