@@ -46,6 +46,7 @@ int BPF_PROG(prctl_x,
 	     long ret)
 {
 	struct auxiliary_map *auxmap = auxmap__get();
+	u64 reaper_pid;
 	if(!auxmap)
 	{
 		return 0;
@@ -59,43 +60,34 @@ int BPF_PROG(prctl_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: option (type: PT_UINT64) */
-	u64 option = (u64)extract__syscall_argument(regs, 0);
-	auxmap__store_u64_param(auxmap, option);
+	u32 option = (u32)extract__syscall_argument(regs, 0);
+	auxmap__store_u32_param(auxmap, option);
 
-	/* Parameter 3: arg2 (type: PT_CHARBUF) */
 	unsigned long arg2 = extract__syscall_argument(regs, 1);
-	auxmap__store_u64_param(auxmap, arg2);
 
-	/* Parameter 4: arg3 (type: PT_UINT64) */
-	unsigned long arg3 = extract__syscall_argument(regs, 2);
-	auxmap__store_u64_param(auxmap, arg3);
-
-	/* Parameter 5: arg4 (type: PT_UINT64) */
-	unsigned long arg4 = extract__syscall_argument(regs, 3);
-	auxmap__store_u64_param(auxmap, arg4);
-
-	/* Parameter 6: arg5 (type: PT_UINT64) */
-	unsigned long arg5 = extract__syscall_argument(regs, 4);
-	auxmap__store_u64_param(auxmap, arg5);
-
-	/* Parameter 7: arg2str (type: PT_CHARBUF) */
-	if(option == 15){
-		auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
-	}else{
-		auxmap__store_charbuf_param(auxmap, 0, MAX_PATH, USER);
+	/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+	switch(option){
+		case PPM_PR_SET_NAME:
+			auxmap__store_charbuf_param(auxmap, arg2, 16, USER);
+			break;
+		default:
+			auxmap__store_charbuf_param(auxmap, 0, 0, USER);
+			break;
 	}
 
-	/* Parameter 8: arg2int (type: PT_UINT64) */
-	if(option == 37){
-		u64 reaper_pid;
-		bpf_probe_read_user(&reaper_pid, sizeof(reaper_pid), (void*)arg2);
-		auxmap__store_u64_param(auxmap, (int)reaper_pid);
-	}else if(option == 15){
-		auxmap__store_u64_param(auxmap, 0);
-	}else{
-		auxmap__store_u64_param(auxmap, arg2);
+	/* Parameter 4: arg2_int (type: PT_UINT64) */
+	switch(option){
+		case PPM_PR_SET_NAME:
+			auxmap__store_u64_param(auxmap, 0);
+			break;
+		case PPM_PR_GET_CHILD_SUBREAPER:
+			bpf_probe_read_user(&reaper_pid, sizeof(reaper_pid), (void*)arg2);
+			auxmap__store_s64_param(auxmap, (int)reaper_pid);
+			break;
+		default:
+			auxmap__store_s64_param(auxmap, arg2);
+			break;
 	}
-
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
