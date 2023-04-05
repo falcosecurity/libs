@@ -49,6 +49,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 		FAIL() << "The prctl call is successful while it should fail..." << std::endl;
 	}
 
+	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
 
@@ -128,6 +129,7 @@ TEST(SyscallExit, prctlX_set_name)
 		FAIL() << "The prctl call is successful while it should fail..." << std::endl;
 	}
 
+	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	evt_test->disable_capture();
 

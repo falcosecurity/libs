@@ -715,6 +715,7 @@ or GPL2.txt for full copies of the license.
  * Prctl flags
  */
 //XXX take a look at https://github.com/torvalds/linux/blob/master/include/uapi/linux/prctl.h
+#define PPM_PR_UNKNOWN				0
 /* Get/set current->mm->dumpable */
 #define PPM_PR_GET_DUMPABLE			3
 #define PPM_PR_SET_DUMPABLE			4

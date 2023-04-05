@@ -1444,4 +1444,32 @@
 
 /*=============================== OPENED FILE DESCRIPTORS ===========================*/
 
+/*==================================== PRCTL OPTIONS ================================*/
+
+#define PR_GET_DUMPABLE				3
+#define PR_SET_DUMPABLE				4
+#define PR_GET_KEEPCAPS				7
+#define PR_SET_KEEPCAPS				8
+#define PR_SET_NAME					15
+#define PR_GET_NAME					16
+#define PR_GET_SECCOMP				21
+#define PR_SET_SECCOMP				22
+#define PR_CAPBSET_READ				23
+#define PR_CAPBSET_DROP				24
+#define PR_GET_SECUREBITS			27
+#define PR_SET_SECUREBITS			28
+#define PR_MCE_KILL					33
+#define PR_SET_MM					35
+#define PR_SET_CHILD_SUBREAPER		36
+#define PR_GET_CHILD_SUBREAPER		37
+#define PR_SET_NO_NEW_PRIVS			38
+#define PR_GET_NO_NEW_PRIVS			39
+#define PR_GET_TID_ADDRESS			40
+#define PR_SET_THP_DISABLE			41
+#define PR_GET_THP_DISABLE			42
+#define PR_CAP_AMBIENT				47
+
+/*==================================== PRCTL OPTIONS ================================*/
+
+
 #endif /* __MISSING_DEFINITIONS_H__ */
