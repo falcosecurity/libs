@@ -236,7 +236,7 @@
 #define SIGNALFD4_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + 2 * PARAM_LEN
 #define SIGNALFD4_X_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint16_t) + 2 * PARAM_LEN
 #define PRCTL_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define PRCTL_X_SIZE HEADER_LEN + sizeof(int32_t) * 1 + sizeof(uint64_t) * 7 + 8 * PARAM_LEN
+#define PRCTL_X_SIZE HEADER_LEN + sizeof(int32_t) * 1 + sizeof(uint64_t) * 3 + 4 * PARAM_LEN
 
 /* Generic tracepoints events. */
 #define PROC_EXIT_SIZE HEADER_LEN + sizeof(int64_t) * 2 + sizeof(uint8_t) * 2 + PARAM_LEN * 4

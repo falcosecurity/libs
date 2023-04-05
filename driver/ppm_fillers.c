@@ -7986,14 +7986,12 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	syscall_arg_t val;
 	syscall_arg_t option;
 	syscall_arg_t arg2;
-	char *name = NULL;
-	//unsigned long flags;
+	char name[16] = "\0";
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
 	res = val_to_ring(args, retval, 0, false, 0);
 	CHECK_RES(res);
-
 
 	/*
 	 * option
@@ -8006,54 +8004,41 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	 * arg2
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &arg2);
-	res = val_to_ring(args, arg2, 0, true, 0);
-	CHECK_RES(res);
-
-	/*
-	 * arg3
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * arg4
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * arg5
-	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
 
 	/*
 	 * arg2str
 	 */
-	if(option == 15){
-		ppm_strncpy_from_user(args->str_storage, (const void __user *)arg2, 15);
-		name = args->str_storage;
-		name[PPM_MAX_PATH_SIZE - 1] = '\0';
-		res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
-	}else{
-		res = val_to_ring(args, arg2, 0, false, 0);
+	switch(option){
+		case PPM_PR_SET_NAME:
+			ppm_strncpy_from_user(name, (const void __user *)arg2, sizeof(name));
+			name[15] = '\0';
+			val = (int64_t)(long)name;
+			break;
+		default:
+			val = 0;
+			break;
 	}
+	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/*
 	 * arg2int
 	 */
-	if(option == 15){
-		arg2 = (unsigned long)NULL;
-	}else if(option == 37){
-		int reaper_pid;
-		ppm_copy_from_user(&reaper_pid, (void *)arg2, sizeof(int));
-		arg2 = (unsigned long)reaper_pid;
+	switch(option){
+		case PPM_PR_SET_NAME:
+			arg2 = (unsigned long)NULL;
+			break;
+		case PPM_PR_SET_CHILD_SUBREAPER:
+			break;
+		case PPM_PR_GET_CHILD_SUBREAPER:
+			int reaper_pid;
+			ppm_copy_from_user(&reaper_pid, (void *)arg2, sizeof(int));
+			arg2 = (unsigned long)reaper_pid;
+			break;
+		default:
+			break;
 	}
-	res = val_to_ring(args, arg2, 0, true, 0);
+	res = val_to_ring(args, arg2, 0, false, 0);
 	CHECK_RES(res);
 
 	return add_sentinel(args);
