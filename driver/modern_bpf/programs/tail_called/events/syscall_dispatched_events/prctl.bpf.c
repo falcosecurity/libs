@@ -60,31 +60,29 @@ int BPF_PROG(prctl_x,
 	auxmap__store_s64_param(auxmap, ret);
 
 	/* Parameter 2: option (type: PT_UINT64) */
-	u32 option = (u32)extract__syscall_argument(regs, 0);
+	u32 option = (u32)prctl_options_to_scap(extract__syscall_argument(regs, 0));
 	auxmap__store_u32_param(auxmap, option);
 
 	unsigned long arg2 = extract__syscall_argument(regs, 1);
 
-	/* Parameter 3: arg2_str (type: PT_CHARBUF) */
 	switch(option){
 		case PPM_PR_SET_NAME:
+			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
 			auxmap__store_charbuf_param(auxmap, arg2, 16, USER);
-			break;
-		default:
-			auxmap__store_charbuf_param(auxmap, 0, 0, USER);
-			break;
-	}
-
-	/* Parameter 4: arg2_int (type: PT_INT64) */
-	switch(option){
-		case PPM_PR_SET_NAME:
+			/* Parameter 4: arg2_int (type: PT_INT64) */
 			auxmap__store_s64_param(auxmap, 0);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
+			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+			auxmap__store_charbuf_param(auxmap, 0, 0, USER);
 			bpf_probe_read_user(&reaper_pid, sizeof(reaper_pid), (void*)arg2);
+			/* Parameter 4: arg2_int (type: PT_INT64) */
 			auxmap__store_s64_param(auxmap, (int)reaper_pid);
 			break;
 		default:
+			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+			auxmap__store_charbuf_param(auxmap, 0, 0, USER);
+			/* Parameter 4: arg2_int (type: PT_INT64) */
 			auxmap__store_s64_param(auxmap, arg2);
 			break;
 	}

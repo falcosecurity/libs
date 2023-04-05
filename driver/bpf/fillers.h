@@ -7127,48 +7127,58 @@ FILLER(sys_prctl_x, true)
 	/*
 	 * option
 	 */
-	option = bpf_syscall_get_argument(data, 0);
+	option = prctl_options_to_scap(bpf_syscall_get_argument(data, 0));
 	res = bpf_val_to_ring(data, option);
 	if (res != PPM_SUCCESS)
 		return res;
 
 	arg2 = bpf_syscall_get_argument(data, 1);
 
-	/*
-	 * arg2_str
-	 */
 	switch(option){
-		case PPM_PR_GET_CHILD_SUBREAPER:
-			res = bpf_val_to_ring(data, 0);
-			break;
 		case PPM_PR_SET_NAME:
-		default:
+			/*
+			 * arg2_str
+			 */
 			res = bpf_val_to_ring(data, arg2);
-			break;
-	}
-	if (res != PPM_SUCCESS)
-		return res;
-
-	/*
-	 * arg2_int
-	 */
-	switch(option){
-		case PPM_PR_SET_NAME:
+			if (res != PPM_SUCCESS)
+				return res;
+			/*
+			 * arg2_int
+			 */
 			res = bpf_val_to_ring(data, 0);
+			if (res != PPM_SUCCESS)
+				return res;
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
+			/*
+			 * arg2_str
+			 */
+			res = bpf_val_to_ring(data, 0);
+			if (res != PPM_SUCCESS)
+				return res;
+			/*
+			 * arg2_int
+			 */
 			bpf_probe_read_user(&arg2_int,sizeof(arg2_int),(void*)arg2);
 			res = bpf_val_to_ring(data, (int)arg2_int);
 			break;
 		default:
+			/*
+			 * arg2_str
+			 */
 			res = bpf_val_to_ring(data, arg2);
+			if (res != PPM_SUCCESS)
+				return res;
+			/*
+			 * arg2_int
+			 */
+			res = bpf_val_to_ring(data, arg2);
+			if (res != PPM_SUCCESS)
+				return res;
 			break;
 	}
-	if (res != PPM_SUCCESS)
-		return res;
 
 	return res;
 }
-
 
 #endif

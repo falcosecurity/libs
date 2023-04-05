@@ -7983,9 +7983,9 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	int res;
 	int retval;
-	syscall_arg_t val;
 	syscall_arg_t option;
 	syscall_arg_t arg2;
+	int reaper_pid;
 	char name[16] = "\0";
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -7997,6 +7997,7 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	 * option
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &option);
+	option = prctl_options_to_scap(option);
 	res = val_to_ring(args, option, 0, false, 0);
 	CHECK_RES(res);
 
@@ -8005,41 +8006,49 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	 */
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &arg2);
 
-	/*
-	 * arg2str
-	 */
 	switch(option){
 		case PPM_PR_SET_NAME:
+			/*
+			 * arg2_str
+			 */
 			ppm_strncpy_from_user(name, (const void __user *)arg2, sizeof(name));
 			name[15] = '\0';
-			val = (int64_t)(long)name;
-			break;
-		default:
-			val = 0;
-			break;
-	}
-	res = val_to_ring(args, val, 0, false, 0);
-	CHECK_RES(res);
-
-	/*
-	 * arg2int
-	 */
-	switch(option){
-		case PPM_PR_SET_NAME:
-			arg2 = (unsigned long)NULL;
-			break;
-		case PPM_PR_SET_CHILD_SUBREAPER:
+			res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+			CHECK_RES(res);
+			/*
+			 * arg2_int
+			 */
+			res = val_to_ring(args, (unsigned long)NULL, 0, false, 0);
+			CHECK_RES(res);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
-			int reaper_pid;
+			/*
+			 * arg2_str
+			 */
+			res = val_to_ring(args, 0, 0, false, 0);
+			CHECK_RES(res);
+			/*
+			 * arg2_int
+			 */
 			ppm_copy_from_user(&reaper_pid, (void *)arg2, sizeof(int));
 			arg2 = (unsigned long)reaper_pid;
+			res = val_to_ring(args, arg2, 0, false, 0);
+			CHECK_RES(res);
 			break;
+		case PPM_PR_SET_CHILD_SUBREAPER:
 		default:
+			/*
+			 * arg2_str
+			 */
+			res = val_to_ring(args, 0, 0, false, 0);
+			CHECK_RES(res);
+			/*
+			 * arg2_int
+			 */
+			res = val_to_ring(args, arg2, 0, false, 0);
+			CHECK_RES(res);
 			break;
 	}
-	res = val_to_ring(args, arg2, 0, false, 0);
-	CHECK_RES(res);
 
 	return add_sentinel(args);
 }
