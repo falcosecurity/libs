@@ -1968,7 +1968,6 @@ extern const struct ppm_name_value mlock2_flags[];
 extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
-//XXX ADD HERE IF PRCTL FLAGS ARE PRESENT
 extern const struct ppm_name_value prctl_options[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];

@@ -73,7 +73,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	evt_test->assert_numeric_param(2, option); //PR_SET_CHILD_SUBREAPER
 
 	/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-	//evt_test->assert_charbuf_param(3, newname);
+	evt_test->assert_empty_param(3);
 
 	/* Parameter 4: arg2_int (type: PT_INT64) */
 	evt_test->assert_numeric_param(4, (int64_t)arg2);
@@ -155,7 +155,7 @@ TEST(SyscallExit, prctlX_set_name)
 	evt_test->assert_charbuf_param(3, newname);
 
 	/* Parameter 4: arg2_int (type: PT_INT64) */
-	evt_test->assert_numeric_param(4, (uint64_t)0);
+	evt_test->assert_numeric_param(4, (int64_t)0);
 
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

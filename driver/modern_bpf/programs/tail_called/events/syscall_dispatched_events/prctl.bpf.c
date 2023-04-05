@@ -75,10 +75,10 @@ int BPF_PROG(prctl_x,
 			break;
 	}
 
-	/* Parameter 4: arg2_int (type: PT_UINT64) */
+	/* Parameter 4: arg2_int (type: PT_INT64) */
 	switch(option){
 		case PPM_PR_SET_NAME:
-			auxmap__store_u64_param(auxmap, 0);
+			auxmap__store_s64_param(auxmap, 0);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
 			bpf_probe_read_user(&reaper_pid, sizeof(reaper_pid), (void*)arg2);
