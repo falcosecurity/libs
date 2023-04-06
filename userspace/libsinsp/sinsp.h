@@ -963,7 +963,10 @@ public:
 	// to by filepath, and add it to the inspector.
 	// The created sinsp_plugin is returned.
 	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
-	const sinsp_plugin_manager* get_plugin_manager();
+	inline std::shared_ptr<const sinsp_plugin_manager> get_plugin_manager() const
+	{
+		return m_plugin_manager;
+	}
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
@@ -1263,12 +1266,12 @@ public:
 	//
 	// Internal manager for plugins
 	//
-	sinsp_plugin_manager* m_plugin_manager;
+	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
 	//
 	// The ID of the plugin to use as event input, or zero
 	// if no source plugin should be used as source
 	//
-	std::shared_ptr<sinsp_plugin_cap_sourcing> m_input_plugin;
+	std::shared_ptr<sinsp_plugin> m_input_plugin;
 	//
 	// String with the parameters for the plugin to be used as input.
 	// These parameters will be passed to the open function of the plugin.

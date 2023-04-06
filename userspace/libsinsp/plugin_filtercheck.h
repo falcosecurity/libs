@@ -18,7 +18,6 @@ limitations under the License.
 #pragma once
 
 #include <memory>
-#include <set>
 #include <string>
 #include <vector>
 #include "sinsp_int.h"
@@ -39,7 +38,7 @@ public:
 
 	explicit sinsp_filter_check_plugin(const sinsp_filter_check_plugin &p);
 
-	virtual ~sinsp_filter_check_plugin();
+	virtual ~sinsp_filter_check_plugin() = default;
 
 	sinsp_filter_check* allocate_new() override;
 
@@ -58,8 +57,8 @@ private:
 	char* m_arg_key;
 	uint64_t m_arg_index;
 	bool m_arg_present;
-	std::set<size_t>* m_compatible_sources = NULL;
-	std::shared_ptr<sinsp_plugin_cap_extraction> m_eplugin;
+	std::vector<bool> m_compatible_plugin_sources_bitmap;
+	std::shared_ptr<sinsp_plugin> m_eplugin;
 
 	// extract_arg_index() extracts a valid index from the argument if 
 	// format is valid, otherwise it throws an exception.
