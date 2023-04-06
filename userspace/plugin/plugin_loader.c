@@ -55,6 +55,11 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     // alloc and init memory
     err[0] = '\0';
     plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
+    if (!ret)
+    {
+        strlcpy(err, "error allocating plugin handle", PLUGIN_MAX_ERRLEN);
+        return NULL;
+    }
 
     // open dynamic library
 #ifdef _WIN32
@@ -108,6 +113,20 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     SYM_RESOLVE(ret, get_fields);
     SYM_RESOLVE(ret, extract_fields);
     SYM_RESOLVE(ret, get_extract_event_sources);
+    return ret;
+}
+
+plugin_handle_t* plugin_load_api(const plugin_api* api, char* err)
+{
+    // alloc and init memory
+    err[0] = '\0';
+    plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
+    if (!ret)
+    {
+        strlcpy(err, "error allocating plugin handle", PLUGIN_MAX_ERRLEN);
+        return NULL;
+    }
+    ret->api = *api;
     return ret;
 }
 

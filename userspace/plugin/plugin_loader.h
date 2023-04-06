@@ -60,6 +60,13 @@ typedef struct plugin_handle_t
 } plugin_handle_t;
 
 /*!
+    \brief Uses the given plugin api and returns a plugin_handle_t*
+    representing the loaded plugin. In case of error, returns NULL and fills
+    the err string up to PLUGIN_MAX_ERRLEN chars.
+*/
+plugin_handle_t* plugin_load_api(const plugin_api* api, char* err);
+
+/*!
     \brief Loads a dynamic library from the given path and returns a
     plugin_handle_t* representing the loaded plugin. In case of error,
     returns NULL and fills the err string up to PLUGIN_MAX_ERRLEN chars.
