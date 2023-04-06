@@ -24,6 +24,7 @@ limitations under the License.
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
+#include "sinsp_event_source.h"
 #include "scap.h"
 #include "gen_filter.h"
 #include "settings.h"
@@ -197,6 +198,26 @@ public:
 	}
 
 	/*!
+	  \brief Get the event source index, as in the positional order of
+	  used by the event's inspector event sources.
+	  Returns sinsp_no_event_source_idx if the event source is unknown.
+	*/
+	inline size_t get_source_idx() const
+	{
+		return m_source_idx;
+	}
+
+	/*!
+	  \brief Get the event source name, as in the event's inspector
+	  event source manager. Returns sinsp_no_event_source_name if
+	  the event source is unknown.
+	*/
+	inline const char* get_source_name() const
+	{
+		return m_source_name;
+	}
+
+	/*!
 	  \brief Get the event's flags.
 	*/
 	inline ppm_event_flags get_info_flags() const
@@ -345,6 +366,7 @@ public:
 	bool is_filtered_out();
 	scap_dump_flags get_dump_flags(OUT bool* should_drop);
 
+	// todo(jasondellaluce): this is deprecated and will need to be removed
 	inline uint16_t get_source() const override
 	{
 		return ESRC_SINSP;
@@ -405,6 +427,8 @@ private:
 		m_fdinfo_name_changed = false;
 		m_iosize = 0;
 		m_poriginal_evt = NULL;
+		m_source_idx = sinsp_no_event_source_idx;
+		m_source_name = sinsp_no_event_source_name;
 	}
 	inline void init()
 	{
@@ -426,6 +450,8 @@ private:
 		m_iosize = 0;
 		m_cpuid = cpuid;
 		m_poriginal_evt = NULL;
+		m_source_idx = sinsp_no_event_source_idx;
+		m_source_name = sinsp_no_event_source_name;
 	}
 	inline void init(scap_evt *scap_event,
 			 ppm_event_info * ppm_event,
@@ -437,6 +463,8 @@ private:
 		m_tinfo_ref.reset(); // we don't own the threadinfo so don't try to manage its lifetime
 		m_tinfo = threadinfo;
 		m_fdinfo = fdinfo;
+		m_source_idx = sinsp_no_event_source_idx;
+		m_source_name = sinsp_no_event_source_name;
 	}
 	inline void load_params()
 	{
@@ -562,6 +590,9 @@ VISIBILITY_PRIVATE
 	const struct ppm_event_info* m_event_info_table;
 
 	std::shared_ptr<sinsp_fdinfo_t> m_fdinfo_ref;
+
+	size_t m_source_idx;
+	const char* m_source_name;
 
 	friend class sinsp;
 	friend class sinsp_parser;

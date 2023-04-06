@@ -37,7 +37,10 @@ public:
 
 TEST(sinsp_plugin_manager, add_and_queries)
 {
-	sinsp_plugin_manager m;
+	std::vector<std::string> sources;
+	sinsp_plugin_manager m(sources);
+
+	sources.push_back("some_source");
 
 	auto p1 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin1", 1, "source1");
 	m.add(p1);
@@ -58,21 +61,23 @@ TEST(sinsp_plugin_manager, add_and_queries)
 	ASSERT_EQ(m.plugin_by_id(2), p2);
 	ASSERT_EQ(m.plugin_by_id(3), nullptr);
 
-	ASSERT_EQ(m.sources().size(), (std::size_t) 2);
-	ASSERT_EQ(m.sources()[0], "source1");
-	ASSERT_EQ(m.sources()[1], "source2");
+	ASSERT_EQ(sources.size(), (std::size_t) 3);
+	ASSERT_EQ(sources[0], "some_source");
+	ASSERT_EQ(sources[1], "source1");
+	ASSERT_EQ(sources[2], "source2");
 
 	bool found = false;
 	std::size_t res = 0;
 	res = m.source_idx_by_plugin_id(0, found);
 	ASSERT_EQ(found, false);
 	res = m.source_idx_by_plugin_id(1, found);
-	ASSERT_EQ(res, (std::size_t) 0);
-	ASSERT_EQ(found, true);
-	res = m.source_idx_by_plugin_id(2, found);
 	ASSERT_EQ(res, (std::size_t) 1);
 	ASSERT_EQ(found, true);
+	res = m.source_idx_by_plugin_id(2, found);
+	ASSERT_EQ(res, (std::size_t) 2);
+	ASSERT_EQ(found, true);
 	res = m.source_idx_by_plugin_id(3, found);
+	ASSERT_EQ(res, sinsp_no_event_source_idx);
 	ASSERT_EQ(found, false);
 }
 
@@ -80,7 +85,8 @@ TEST(sinsp_plugin_manager, add_and_queries)
 // constraint in the future
 TEST(sinsp_plugin_manager, add_with_same_name)
 {
-	sinsp_plugin_manager m;
+	std::vector<std::string> sources;
+	sinsp_plugin_manager m(sources);
 	auto p1 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin1", 1, "source1");
 	auto p2 = std::make_shared<mock_sinsp_plugin>(CAP_EXTRACTION, "plugin1", -1, "");
 

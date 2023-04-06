@@ -99,7 +99,6 @@ set(SINSP_SOURCES
 	parsers.cpp
 	../plugin/plugin_loader.c
 	plugin.cpp
-	plugin_manager.cpp
 	plugin_filtercheck.cpp
 	prefix_search.cpp
 	protodecoder.cpp

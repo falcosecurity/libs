@@ -193,6 +193,10 @@ private:
 	metaevents_state m_mesos_metaevents_state;
 
 	std::stack<uint8_t*> m_tmp_events_buffer;
+
+	// caches the index of the "syscall" event source
+	size_t m_syscall_event_source_idx;
+
 	friend class sinsp_analyzer;
 	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
