@@ -414,6 +414,43 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
+size_t get_udig_stats_size_hint()
+{
+	return MAX_UDIG_COUNTERS_STATS;
+}
+
+//
+// Return the number of dropped events for the given handle
+//
+static int32_t get_udig_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+{
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	uint32_t j;
+
+	if (MAX_UDIG_COUNTERS_STATS > buf_size)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* UDIG STATS COUNTERS */
+	for(int stat =  0;  stat < MAX_UDIG_COUNTERS_STATS; stat++)
+	{
+		stats[stat].valid = true;
+		strlcpy(stats[stat].name, udig_counters_stats_names[stat], STATS_NAME_MAX);
+	}
+	for(j = 0; j < devset->m_ndevs; j++)
+	{
+		stats[N_EVTS].u64value += devset->m_devs[j].m_bufinfo->n_evts;
+		stats[N_DROPS_BUFFER_TOTAL].u64value += devset->m_devs[j].m_bufinfo->n_drops_buffer;
+		stats[N_DROPS_PAGE_FAULTS].u64value += devset->m_devs[j].m_bufinfo->n_drops_pf;
+		stats[N_DROPS].u64value += devset->m_devs[j].m_bufinfo->n_drops_buffer +
+				devset->m_devs[j].m_bufinfo->n_drops_pf;
+		stats[N_PREEMPTIONS].u64value += devset->m_devs[j].m_bufinfo->n_preemptions;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Stop capturing the events
 //
@@ -586,8 +623,8 @@ const struct scap_vtable scap_udig_engine = {
 	.stop_capture = stop_capture,
 	.configure = configure,
 	.get_stats = get_stats,
-	.get_stats_size_hint = NULL,
-	.get_stats_v2 = NULL,
+	.get_stats_size_hint = get_udig_stats_size_hint,
+	.get_stats_v2 = get_udig_stats_v2,
 	.get_n_tracepoint_hit = get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,

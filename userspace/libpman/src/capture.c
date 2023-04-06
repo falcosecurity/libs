@@ -18,6 +18,7 @@ limitations under the License.
 #include "state.h"
 #include <libpman.h> // before including scap so that handle_ppm_sc_mask() is not built
 #include <scap.h>
+#include "strlcpy.h"
 
 /* This function should be idempotent, every time it is called it should enforce again the state */
 int pman_enforce_sc_set(bool *sc_set)
@@ -172,6 +173,60 @@ int pman_get_scap_stats(void *scap_stats_struct)
 		stats->n_drops += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 	}
 	return 0;
+
+clean_print_stats:
+	close(counter_maps_fd);
+	return errno;
+}
+
+size_t pman_get_stats_size_hint()
+{
+	return MAX_KERNEL_COUNTERS_STATS;
+}
+
+int pman_get_scap_stats_v2(size_t buf_size, void *scap_stats_struct)
+{
+	struct scap_stats_v2 *stats = (struct scap_stats_v2 *)scap_stats_struct;
+	char error_message[MAX_ERROR_MESSAGE_LEN];
+	struct counter_map cnt_map;
+
+	if(!stats)
+	{
+		pman_print_error("pointer to scap_stats is empty");
+		return errno;
+	}
+
+	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
+	if(counter_maps_fd <= 0)
+	{
+		pman_print_error("unable to get counter maps");
+		return errno;
+	}
+
+	/* We always take statistics from all the CPUs, even if some of them are not online.
+	 * If the CPU is not online the counter map will be empty.
+	 */
+	for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
+	{
+		stats[stat].valid = true;
+		strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
+	}
+
+	for(int index = 0; index < g_state.n_possible_cpus; index++)
+	{
+		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
+		{
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
+			pman_print_error((const char *)error_message);
+			goto clean_print_stats;
+		}
+		stats[N_EVTS].u64value += cnt_map.n_evts;
+		stats[N_DROPS_BUFFER_TOTAL].u64value += cnt_map.n_drops_buffer;
+		stats[N_DROPS_SCRATCH_MAP].u64value += cnt_map.n_drops_max_event_size;
+		stats[N_DROPS].u64value += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+	}
+	return 0;
+	// todo @incertum add libbpf stats in here as well
 
 clean_print_stats:
 	close(counter_maps_fd);

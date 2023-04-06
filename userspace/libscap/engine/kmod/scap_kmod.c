@@ -531,6 +531,54 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
+size_t scap_kmod_get_stats_size_hint()
+{
+	return MAX_KERNEL_COUNTERS_STATS;
+}
+
+int32_t scap_kmod_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+{
+	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	uint32_t j;
+
+	if (MAX_KERNEL_COUNTERS_STATS > buf_size)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* KERNEL SIDE STATS COUNTERS */
+	for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
+	{
+		stats[stat].valid = true;
+		strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
+	}
+
+	for(j = 0; j < devset->m_ndevs; j++)
+	{
+		struct scap_device *dev = &devset->m_devs[j];
+		stats[N_EVTS].u64value += dev->m_bufinfo->n_evts;
+		stats[N_DROPS_BUFFER_TOTAL].u64value += dev->m_bufinfo->n_drops_buffer;
+		stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_clone_fork_enter;
+		stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_clone_fork_exit;
+		stats[N_DROPS_BUFFER_EXECVE_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_execve_enter;
+		stats[N_DROPS_BUFFER_EXECVE_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_execve_exit;
+		stats[N_DROPS_BUFFER_CONNECT_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_connect_enter;
+		stats[N_DROPS_BUFFER_CONNECT_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_connect_exit;
+		stats[N_DROPS_BUFFER_OPEN_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_open_enter;
+		stats[N_DROPS_BUFFER_OPEN_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_open_exit;
+		stats[N_DROPS_BUFFER_DIR_FILE_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_dir_file_enter;
+		stats[N_DROPS_BUFFER_DIR_FILE_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
+		stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
+		stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
+		stats[N_DROPS_PAGE_FAULTS].u64value += dev->m_bufinfo->n_drops_pf;
+		stats[N_DROPS].u64value += dev->m_bufinfo->n_drops_buffer +
+				  dev->m_bufinfo->n_drops_pf;
+		stats[N_PREEMPTIONS].u64value += dev->m_bufinfo->n_preemptions;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 //
 // Stop capturing the events
 //
@@ -887,8 +935,8 @@ struct scap_vtable scap_kmod_engine = {
 	.stop_capture = scap_kmod_stop_capture,
 	.configure = configure,
 	.get_stats = scap_kmod_get_stats,
-	.get_stats_size_hint = NULL,
-	.get_stats_v2 = NULL,
+	.get_stats_size_hint = scap_kmod_get_stats_size_hint,
+	.get_stats_v2 = scap_kmod_get_stats_v2,
 	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
 	.get_n_devs = scap_kmod_get_n_devs,
 	.get_max_buf_used = scap_kmod_get_max_buf_used,

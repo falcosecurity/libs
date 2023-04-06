@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "engine_handle.h"
 #include "scap_vtable.h"
+#include "scap.h"
 
 typedef struct scap scap_t;
 typedef struct ppm_evt_hdr scap_evt;
@@ -33,6 +34,8 @@ int32_t noop_stop_capture(struct scap_engine_handle engine);
 int32_t unimplemented_op(char* err, size_t err_size);
 int32_t noop_configure(struct scap_engine_handle engine, enum scap_setting setting, unsigned long arg1, unsigned long arg2);
 int32_t noop_get_stats(struct scap_engine_handle engine, scap_stats* stats);
+size_t noop_get_stats_size_hint();
+int32_t noop_get_stats_v2(struct scap_engine_handle engine, scap_stats_v2* stats);
 int32_t noop_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret);
 uint32_t noop_get_n_devs(struct scap_engine_handle engine);
 uint64_t noop_get_max_buf_used(struct scap_engine_handle engine);

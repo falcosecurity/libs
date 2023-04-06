@@ -293,6 +293,25 @@ extern "C"
 	int pman_get_scap_stats(void* scap_stats_struct);
 
 	/**
+	 * @brief Communicate required stats buffer size to consumer
+	 * to fill in all stats.
+	 *
+	 * @return required size of buffer to fill in all stats.
+	 */
+	size_t pman_get_stats_size_hint();
+
+	/**
+	 * @brief Receive a pointer to `struct scap_stats_v2` and fill it
+	 * with info about the number of events and number of drops.
+	 *
+	 * @param scap_stats_struct opaque pointer to `struct scap_stats_v2`.
+	 * We used an opaque pointer because we don't want to introduce scap
+	 * definitions in this file.
+	 * @return `0` on success, `errno` in case of error.
+	 */
+	int pman_get_scap_stats_v2(size_t buf_size, void* scap_stats_struct);
+
+	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU
 	 * we set the number of events caught.
 	 *
@@ -430,6 +449,21 @@ extern "C"
 	 *
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
+
+	typedef enum kernel_counters_stats {
+		N_EVTS = 0,
+		N_DROPS_BUFFER_TOTAL,
+		N_DROPS_SCRATCH_MAP,
+		N_DROPS,
+		MAX_KERNEL_COUNTERS_STATS
+	}kernel_counters_stats;
+
+	static const char * const kernel_counters_stats_names[] = {
+		[N_EVTS] = "n_evts",
+		[N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+		[N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
+		[N_DROPS] = "n_drops",
+	};
 
 #ifdef __cplusplus
 }

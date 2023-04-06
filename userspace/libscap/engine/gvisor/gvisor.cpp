@@ -87,6 +87,16 @@ static int32_t gvisor_get_stats(struct scap_engine_handle engine, scap_stats* st
 	return engine.m_handle->get_stats(stats);
 }
 
+static size_t gvisor_get_stats_size_hint(struct scap_engine_handle engine)
+{
+	return engine.m_handle->get_stats_size_hint();
+}
+
+static int32_t gvisor_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, scap_stats_v2* stats)
+{
+	return engine.m_handle->get_stats_v2(stats, buf_size);
+}
+
 static int32_t gvisor_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
 {
 	return SCAP_NOT_SUPPORTED;
@@ -160,7 +170,7 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.configure = gvisor_configure,
 	.get_stats = gvisor_get_stats,
 	.get_stats_size_hint = NULL,
-	.get_stats_v2 = NULL,
+	.get_stats_v2 = gvisor_get_stats_v2,
 	.get_n_tracepoint_hit = gvisor_get_n_tracepoint_hit,
 	.get_n_devs = gvisor_get_n_devs,
 	.get_max_buf_used = gvisor_get_max_buf_used,
