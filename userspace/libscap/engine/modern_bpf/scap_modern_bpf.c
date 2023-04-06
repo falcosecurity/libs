@@ -245,18 +245,9 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 	return SCAP_SUCCESS;
 }
 
-size_t scap_modern_bpf__get_stats_size_hint()
+struct scap_stats_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
-	return pman_get_stats_size_hint();
-}
-
-int32_t scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
-{
-	if(pman_get_scap_stats_v2(buf_size, flags, (void*)stats))
-	{
-		return SCAP_FAILURE;
-	}
-	return SCAP_SUCCESS;
+	return pman_get_scap_stats_v2(flags, (void*)nstats, (void*)rc);
 }
 
 int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, OUT long* ret)
@@ -292,7 +283,6 @@ struct scap_vtable scap_modern_bpf_engine = {
 	.stop_capture = scap_modern_bpf__stop_capture,
 	.configure = scap_modern_bpf__configure,
 	.get_stats = scap_modern_bpf__get_stats,
-	.get_stats_size_hint = scap_modern_bpf__get_stats_size_hint,
 	.get_stats_v2 = scap_modern_bpf__get_stats_v2,
 	.get_n_tracepoint_hit = scap_modern_bpf__get_n_tracepoint_hit,
 	.get_n_devs = scap_modern_bpf__get_n_devs,

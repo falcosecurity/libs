@@ -414,28 +414,28 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
-size_t get_udig_stats_size_hint()
-{
-	return MAX_UDIG_COUNTERS_STATS;
-}
-
 //
 // Return the number of dropped events for the given handle
 //
-static int32_t get_udig_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
+struct scap_stats_v2* get_udig_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	*nstats = MAX_UDIG_COUNTERS_STATS;
+	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
 	uint32_t j;
 
-	if (MAX_UDIG_COUNTERS_STATS > buf_size)
+	if (MAX_UDIG_COUNTERS_STATS > *nstats)
 	{
-		return SCAP_FAILURE;
+		*rc = SCAP_FAILURE;
+		return stats;
 	}
 
 	/* UDIG STATS COUNTERS */
 	for(int stat =  0;  stat < MAX_UDIG_COUNTERS_STATS; stat++)
 	{
 		stats[stat].valid = true;
+		stats[stat].flags = 0;
+		stats[stat].u64value = 0;
 		strlcpy(stats[stat].name, udig_counters_stats_names[stat], STATS_NAME_MAX);
 	}
 	for(j = 0; j < devset->m_ndevs; j++)
@@ -448,7 +448,8 @@ static int32_t get_udig_stats_v2(struct scap_engine_handle engine, size_t buf_si
 		stats[N_PREEMPTIONS].u64value += devset->m_devs[j].m_bufinfo->n_preemptions;
 	}
 
-	return SCAP_SUCCESS;
+	*rc = SCAP_SUCCESS;
+	return stats;
 }
 
 //
@@ -623,7 +624,6 @@ const struct scap_vtable scap_udig_engine = {
 	.stop_capture = stop_capture,
 	.configure = configure,
 	.get_stats = get_stats,
-	.get_stats_size_hint = get_udig_stats_size_hint,
 	.get_stats_v2 = get_udig_stats_v2,
 	.get_n_tracepoint_hit = get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,

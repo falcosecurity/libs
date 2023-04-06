@@ -179,22 +179,12 @@ clean_print_stats:
 	return errno;
 }
 
-size_t pman_get_stats_size_hint()
+struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
-	return MAX_KERNEL_COUNTERS_STATS;
-}
-
-int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void *scap_stats_struct)
-{
-	struct scap_stats_v2 *stats = (struct scap_stats_v2 *)scap_stats_struct;
+	*nstats = MAX_KERNEL_COUNTERS_STATS;
+	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
-
-	if(!stats)
-	{
-		pman_print_error("pointer to scap_stats is empty");
-		return errno;
-	}
 
 	int counter_maps_fd;
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
@@ -202,17 +192,23 @@ int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void *scap_stats_str
 		counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
 		if(counter_maps_fd <= 0)
 		{
-			pman_print_error("unable to get counter maps");
-			return errno;
+			*rc = errno;
+			return stats;
 		}
 
 		/* We always take statistics from all the CPUs, even if some of them are not online.
 		* If the CPU is not online the counter map will be empty.
 		*/
+		if (MAX_KERNEL_COUNTERS_STATS > *nstats)
+		{
+			goto clean_print_stats;
+		}
 		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].valid = true;
+			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
+			stats[stat].u64value = 0;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -229,13 +225,14 @@ int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void *scap_stats_str
 			stats[N_DROPS_SCRATCH_MAP].u64value += cnt_map.n_drops_max_event_size;
 			stats[N_DROPS].u64value += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 		}
-		return 0;
+		return stats;
 	}
 	// todo @incertum add libbpf stats in here as well
 
 clean_print_stats:
 	close(counter_maps_fd);
-	return errno;
+	*rc = errno;
+	return stats;
 }
 
 int pman_get_n_tracepoint_hit(long *n_events_per_cpu)

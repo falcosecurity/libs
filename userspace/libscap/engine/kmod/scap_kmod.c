@@ -531,33 +531,29 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-size_t scap_kmod_get_stats_size_hint()
-{
-	return MAX_KERNEL_COUNTERS_STATS;
-}
-
-int32_t scap_kmod_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
+struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	uint32_t j;
-
-	if(!stats)
-	{
-		return SCAP_FAILURE;
-	}
+	int i = 0; // offset in stats
+	*nstats = MAX_KERNEL_COUNTERS_STATS;
+	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
 
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
 	{
-		if (MAX_KERNEL_COUNTERS_STATS > buf_size)
+		if (MAX_KERNEL_COUNTERS_STATS > *nstats)
 		{
-			return SCAP_FAILURE;
+			*rc = SCAP_FAILURE;
+			return stats;
 		}
 
 		/* KERNEL SIDE STATS COUNTERS */
 		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].valid = true;
+			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
+			stats[stat].u64value = 0;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -585,7 +581,8 @@ int32_t scap_kmod_get_stats_v2(struct scap_engine_handle engine, size_t buf_size
 		}
 	}
 
-	return SCAP_SUCCESS;
+	*rc = SCAP_SUCCESS;
+	return stats;
 }
 
 //
@@ -944,7 +941,6 @@ struct scap_vtable scap_kmod_engine = {
 	.stop_capture = scap_kmod_stop_capture,
 	.configure = configure,
 	.get_stats = scap_kmod_get_stats,
-	.get_stats_size_hint = scap_kmod_get_stats_size_hint,
 	.get_stats_v2 = scap_kmod_get_stats_v2,
 	.get_n_tracepoint_hit = scap_kmod_get_n_tracepoint_hit,
 	.get_n_devs = scap_kmod_get_n_devs,

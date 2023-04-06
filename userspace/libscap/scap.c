@@ -846,34 +846,21 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 //
 // Return engine statistics (including counters and `bpftool prog show` like stats)
 //
-size_t scap_get_stats_size_hint(scap_t* handle)
+struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	if(handle->m_vtable)
 	{
-		return handle->m_vtable->get_stats_size_hint();
+		return handle->m_vtable->get_stats_v2(handle->m_engine, flags, nstats, rc);
 	}
-	return 0;
+	*rc = SCAP_SUCCESS;
 }
 
 //
-// Return engine statistics (including counters and `bpftool prog show` like stats)
+// Free engine statistics
 //
-int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
+void scap_free_stats_v2(struct scap_stats_v2* scap_stats_v2)
 {
-	int i = 0;
-	while (i < buf_size) {
-		stats[i].valid = false;
-		stats[i].flags = 0;
-		stats[i].u64value = 0;
-		strlcpy(stats[i].name, "", 1);
-		i++;
-	}
-
-	if(handle->m_vtable)
-	{
-		return handle->m_vtable->get_stats_v2(handle->m_engine, buf_size, flags, stats);
-	}
-	return SCAP_SUCCESS;
+	free(scap_stats_v2);
 }
 
 //

@@ -293,25 +293,14 @@ extern "C"
 	int pman_get_scap_stats(void* scap_stats_struct);
 
 	/**
-	 * @brief Communicate required stats buffer size to consumer
-	 * to fill in all stats.
+	 * @brief Get scap_stats_v2 structure filled with the statistics.
 	 *
-	 * @return required size of buffer to fill in all stats.
+	 * @param flags holding statistics category flags.
+	 * @param nstats Pointer reflecting number of statistics in returned buffer.
+	 * @param rc Pointer to return code.
+	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	 */
-	size_t pman_get_stats_size_hint();
-
-	/**
-	 * @brief Receive a pointer to `struct scap_stats_v2` and fill it
-	 * with info about the number of events and number of drops.
-	 *
-	 * @param buf_size size of stats buffer
-	 * @param flags used to select stats category to be returned
-	 * @param scap_stats_struct opaque pointer to `struct scap_stats_v2`.
-	 * We used an opaque pointer because we don't want to introduce scap
-	 * definitions in this file.
-	 * @return `0` on success, `errno` in case of error.
-	 */
-	int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void* scap_stats_struct);
+	struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU

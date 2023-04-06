@@ -86,14 +86,9 @@ int32_t noop_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-size_t noop_get_stats_size_hint()
+struct scap_stats_v2* noop_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
-	return SCAP_SUCCESS;
-}
-
-int32_t noop_get_stats_v2(struct scap_engine_handle engine, scap_stats_v2* stats)
-{
-	return SCAP_SUCCESS;
+	return NULL;
 }
 
 int32_t noop_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)
@@ -140,7 +135,6 @@ const struct scap_vtable scap_noop_engine = {
 	.stop_capture = noop_stop_capture,
 	.configure = noop_configure,
 	.get_stats = noop_get_stats,
-	.get_stats_size_hint = noop_get_stats_size_hint,
 	.get_stats_v2 = noop_get_stats_v2,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
