@@ -760,20 +760,16 @@ void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
 	timersub(&tval_end, &tval_start, &tval_result);
-	size_t buf_size = scap_get_stats_size_hint(g_h);
-	if (buf_size == 0)
-	{
-		buf_size = 60; // TBD random fall-back for now
-	}
-	scap_stats_v2 stats_v2[buf_size];
 	uint32_t flags = 0;
 	flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
 	flags |= PPM_SCAP_STATS_LIBBPF_STATS;
-	scap_get_stats_v2(g_h, buf_size, flags, &stats_v2);
+	uint32_t nstats;
+	int32_t rc;
+	const scap_stats_v2* stats_v2 = scap_get_stats_v2(g_h, flags, &nstats, &rc);
 	const scap_machine_info* scap_machine_info = scap_get_machine_info(g_h);
 	/* Current contract of n_evts always being the first stats item for now. */
 	uint64_t n_evts = 0;
-	if (buf_size > 0)
+	if (nstats > 0 && rc == 0)
 	{
 		if (stats_v2[0].valid && (strncmp(stats_v2[0].name, "n_evts", 6) == 0))
 		{
@@ -795,10 +791,12 @@ void print_stats()
 	printf("Number of timeouts: %ld\n", number_of_timeouts);
 	printf("Number of 'next' calls: %ld\n", number_of_scap_next);
 
-	printf("\n[SCAP-OPEN]: Stats v2\n");
+	printf("\n[SCAP-OPEN]: Stats v2.\n");
+	printf("\n[SCAP-OPEN]: %u metrics in total.\n", nstats);
 	if((strncmp(oargs.engine_name, BPF_ENGINE, 3) == 0) || (strncmp(oargs.engine_name, MODERN_BPF_ENGINE, 10) == 0))
 	{
-		printf("[kernel-side counters and libbpf stats]\n\n");
+		printf("[SCAP-OPEN]: [1] kernel-side counters.\n");
+		printf("[SCAP-OPEN]: [2] libbpf stats.\n\n");
 		if (!(scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
 		{
 			printf("\n[Notice]: `/proc/sys/kernel/bpf_stats_enabled` not enabled, no `libbpf` stats retrieved.\n\n");
@@ -806,17 +804,18 @@ void print_stats()
 	}
 	else
 	{
-		printf("[kernel-side counters]\n\n");
+		printf("[SCAP-OPEN]: [1] kernel-side counters.\n\n");
 	}
 	int i = 0;
-	while (i < buf_size) {
+	while (i < nstats) {
 		if(!stats_v2[i].valid)
 		{
 			break;
 		}
-		printf("%s: %lu\n", stats_v2[i].name, stats_v2[i].u64value);
+		printf("[%u] %s: %lu\n", stats_v2[i].flags, stats_v2[i].name, stats_v2[i].u64value);
 		i++;
 	}
+	scap_free_stats_v2(stats_v2);
 	printf("\n\n------------------------------------------------------------------\n\n");
 	printf("\n[SCAP-OPEN]: Bye!\n");
 }

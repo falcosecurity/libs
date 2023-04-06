@@ -229,28 +229,30 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
-size_t get_source_plugin_stats_size_hint()
-{
-	return MAX_SOURCE_PLUGIN_COUNTERS_STATS;
-}
-
-static int32_t get_source_plugin_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
+struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
-	if (MAX_SOURCE_PLUGIN_COUNTERS_STATS > buf_size)
+	*nstats = MAX_SOURCE_PLUGIN_COUNTERS_STATS;
+	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
+
+	if (MAX_SOURCE_PLUGIN_COUNTERS_STATS > *nstats)
 	{
-		return SCAP_FAILURE;
+		*rc = SCAP_FAILURE;
+		return stats;
 	}
 
 	/* UDIG STATS COUNTERS */
 	for(int stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
 	{
 		stats[stat].valid = true;
+		stats[stat].flags = 0;
+		stats[stat].u64value = 0;
 		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);
 	}
 	stats[N_EVTS].u64value += handle->m_nevts;
 
-	return SCAP_SUCCESS;
+	*rc = SCAP_SUCCESS;
+	return stats;
 }
 
 const struct scap_vtable scap_source_plugin_engine = {
@@ -267,7 +269,6 @@ const struct scap_vtable scap_source_plugin_engine = {
 	.stop_capture = noop_stop_capture,
 	.configure = noop_configure,
 	.get_stats = get_stats,
-	.get_stats_size_hint = get_source_plugin_stats_size_hint,
 	.get_stats_v2 = get_source_plugin_stats_v2,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,

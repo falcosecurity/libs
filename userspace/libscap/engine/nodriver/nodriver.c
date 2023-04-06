@@ -67,7 +67,6 @@ const struct scap_vtable scap_nodriver_engine = {
 	.stop_capture = noop_stop_capture,
 	.configure = noop_configure,
 	.get_stats = noop_get_stats,
-	.get_stats_size_hint = noop_get_stats_size_hint,
 	.get_stats_v2 = noop_get_stats_v2,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,

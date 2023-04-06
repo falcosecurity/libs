@@ -736,27 +736,21 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle);
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
 /*!
-  \brief Get size of required buffer to support each featured statistic
-
-  \param handle Handle to the capture instance.
-
-  \return size of required buffer to support each statistic.
-*/
-size_t scap_get_stats_size_hint(scap_t* handle);
-
-/*!
   \brief Get engine statistics (including counters and `bpftool prog show` like stats)
 
   \param handle Handle to the capture instance.
-  \param buf_size size of buffer to hold statistics.
-  \param stats Pointer to a \ref scap_stats structure that will be filled with the
-  statistics.
+  \param flags holding statistics category flags.
+  \param nstats Pointer reflecting number of statistics in returned buffer.
+  \param rc Pointer to return code.
 
-  \return SCAP_SECCESS if the call is successful.
-   On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
-   the cause of the error.
+  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 */
-int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats);
+struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
+
+/*!
+  \brief Free \ref scap_stats_v2 structure filled with the statistics.
+*/
+void scap_free_stats_v2(struct scap_stats_v2* scap_stats_v2);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.

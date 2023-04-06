@@ -24,7 +24,8 @@ limitations under the License.
 #include <deque>
 #include <vector>
 #include <unordered_map>
-
+#include <stdint.h>
+#include <utility>
 #include "scap.h"
 
 namespace scap_gvisor {
@@ -144,8 +145,7 @@ public:
     uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
     uint32_t get_vxid(uint64_t pid);
     int32_t get_stats(scap_stats *stats);
-    size_t get_stats_size_hint();
-    int32_t get_stats_v2(scap_stats_v2* stats, size_t buf_size, uint32_t flags);
+    struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();
