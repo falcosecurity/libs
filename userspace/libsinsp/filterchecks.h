@@ -454,6 +454,7 @@ public:
 		TYPE_RELTS_NS = 11,
 		TYPE_PLUGINNAME = 12,
 		TYPE_PLUGININFO = 13,
+		TYPE_SOURCE = 14,
 	};
 
 	sinsp_filter_check_gen_event();
