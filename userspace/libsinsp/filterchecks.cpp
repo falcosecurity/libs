@@ -3259,6 +3259,7 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_10_PADDED_DEC, "evt.reltime.ns", "Relative Time (ns)", "fractional part (in ns) of the time from the beginning of the capture."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "Plugin Name", "if the event comes from a plugin, the name of the plugin that generated it. The plugin must be currently loaded."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "Plugin Info", "if the event comes from a plugin, a summary of the event as formatted by the plugin. The plugin must be currently loaded."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.source", "Event Source", "the name of the source that produced the event."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
@@ -3374,6 +3375,13 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 		}
 
 		RETURN_EXTRACT_STRING(m_strstorage);
+	case TYPE_SOURCE:
+		if (evt->get_source_idx() == sinsp_no_event_source_idx
+			|| evt->get_source_name() == sinsp_no_event_source_name)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_CSTR(evt->get_source_name());
 	default:
 		ASSERT(false);
 		return NULL;
