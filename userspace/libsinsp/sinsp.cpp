@@ -168,7 +168,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	m_replay_scap_evt = NULL;
 
-	m_plugin_manager = new sinsp_plugin_manager();
+	m_plugin_manager = std::make_shared<sinsp_plugin_manager>();
 }
 
 sinsp::~sinsp()
@@ -1733,11 +1733,6 @@ void sinsp::set_input_plugin(const std::string& name, const std::string& params)
 		}
 	}
 	throw sinsp_exception("plugin " + name + " does not exist");
-}
-
-const sinsp_plugin_manager* sinsp::get_plugin_manager()
-{
-	return m_plugin_manager;
 }
 
 void sinsp::stop_capture()

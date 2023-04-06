@@ -3308,7 +3308,7 @@ Json::Value sinsp_filter_check_gen_event::extract_as_js(sinsp_evt *evt, OUT uint
 uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
 {
 
-	std::shared_ptr<sinsp_plugin_cap_sourcing> plugin;
+	std::shared_ptr<sinsp_plugin> plugin;
 
 	*len = 0;
 	switch(m_field_id)

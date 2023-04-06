@@ -22,39 +22,30 @@ limitations under the License.
 class mock_sinsp_plugin: public sinsp_plugin
 {
 public:
-	inline mock_sinsp_plugin(): sinsp_plugin(nullptr) { }
-	inline plugin_caps_t caps() const override { return m_caps; };
-	inline uint32_t id() const override { return m_id; };
-	inline const std::string &name() const { return m_name; }
-	inline const std::string &event_source() const override { return m_source; }
-
-	uint32_t m_id;
-	std::string m_source;
-	std::string m_name;
-	plugin_caps_t m_caps;
+	inline mock_sinsp_plugin(
+		plugin_caps_t caps,
+		const std::string& name,
+		uint32_t id,
+		const std::string& source): sinsp_plugin(nullptr)
+	{
+		m_caps = caps;
+		m_name = name;
+		m_id = id;
+		m_event_source = source;
+	}
 };
 
 TEST(sinsp_plugin_manager, add_and_queries)
 {
 	sinsp_plugin_manager m;
 
-	std::shared_ptr<mock_sinsp_plugin> p1(new mock_sinsp_plugin());
-	p1->m_name = "plugin1";
-	p1->m_caps = CAP_SOURCING;
-	p1->m_id = 1;
-	p1->m_source = "source1";
+	auto p1 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin1", 1, "source1");
 	m.add(p1);
 
-	std::shared_ptr<mock_sinsp_plugin> p2(new mock_sinsp_plugin());
-	p2->m_name = "plugin2";
-	p2->m_caps = CAP_SOURCING;
-	p2->m_id = 2;
-	p2->m_source = "source2";
+	auto p2 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin2", 2, "source2");
 	m.add(p2);
 
-	std::shared_ptr<mock_sinsp_plugin> p3(new mock_sinsp_plugin());
-	p3->m_name = "plugin3";
-	p3->m_caps = CAP_EXTRACTION;
+	auto p3 = std::make_shared<mock_sinsp_plugin>(CAP_EXTRACTION, "plugin3", -1, "");
 	m.add(p3);
 	
 	ASSERT_EQ(m.plugins().size(), (std::size_t) 3);
@@ -85,20 +76,13 @@ TEST(sinsp_plugin_manager, add_and_queries)
 	ASSERT_EQ(found, false);
 }
 
-// note: this is a design chocie, but we may drop this constraint in the future
+// note(jasondellaluce): this is a design chocie, but we may drop this
+// constraint in the future
 TEST(sinsp_plugin_manager, add_with_same_name)
 {
 	sinsp_plugin_manager m;
-
-	std::shared_ptr<mock_sinsp_plugin> p1(new mock_sinsp_plugin());
-	p1->m_name = "plugin1";
-	p1->m_caps = CAP_SOURCING;
-	p1->m_id = 1;
-	p1->m_source = "source1";
-
-	std::shared_ptr<mock_sinsp_plugin> p2(new mock_sinsp_plugin());
-	p2->m_name = "plugin1";
-	p2->m_caps = CAP_EXTRACTION;
+	auto p1 = std::make_shared<mock_sinsp_plugin>(CAP_SOURCING, "plugin1", 1, "source1");
+	auto p2 = std::make_shared<mock_sinsp_plugin>(CAP_EXTRACTION, "plugin1", -1, "");
 
 	EXPECT_NO_THROW(m.add(p1));
 	EXPECT_ANY_THROW(m.add(p1));
