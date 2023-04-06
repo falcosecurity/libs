@@ -92,9 +92,9 @@ static size_t gvisor_get_stats_size_hint(struct scap_engine_handle engine)
 	return engine.m_handle->get_stats_size_hint();
 }
 
-static int32_t gvisor_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, scap_stats_v2* stats)
+static int32_t gvisor_get_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, scap_stats_v2* stats)
 {
-	return engine.m_handle->get_stats_v2(stats, buf_size);
+	return engine.m_handle->get_stats_v2(stats, buf_size, flags);
 }
 
 static int32_t gvisor_get_n_tracepoint_hit(struct scap_engine_handle engine, long* ret)

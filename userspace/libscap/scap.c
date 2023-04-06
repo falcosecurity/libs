@@ -858,7 +858,7 @@ size_t scap_get_stats_size_hint(scap_t* handle)
 //
 // Return engine statistics (including counters and `bpftool prog show` like stats)
 //
-int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, OUT scap_stats_v2* stats)
+int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
 {
 	int i = 0;
 	while (i < buf_size) {
@@ -870,7 +870,7 @@ int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, OUT scap_stats_v2* st
 
 	if(handle->m_vtable)
 	{
-		return handle->m_vtable->get_stats_v2(handle->m_engine, buf_size, stats);
+		return handle->m_vtable->get_stats_v2(handle->m_engine, buf_size, flags, stats);
 	}
 	return SCAP_SUCCESS;
 }

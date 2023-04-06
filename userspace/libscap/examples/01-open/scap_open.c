@@ -766,7 +766,10 @@ void print_stats()
 		buf_size = 60; // TBD random fall-back for now
 	}
 	scap_stats_v2 stats_v2[buf_size];
-	scap_get_stats_v2(g_h, buf_size, &stats_v2);
+	uint32_t flags = 0;
+	flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
+	flags |= PPM_SCAP_STATS_LIBBPF_STATS;
+	scap_get_stats_v2(g_h, buf_size, flags, &stats_v2);
 	const scap_machine_info* scap_machine_info = scap_get_machine_info(g_h);
 	/* Current contract of n_evts always being the first stats item for now. */
 	uint64_t n_evts = 0;

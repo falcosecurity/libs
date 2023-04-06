@@ -234,7 +234,7 @@ size_t get_source_plugin_stats_size_hint()
 	return MAX_SOURCE_PLUGIN_COUNTERS_STATS;
 }
 
-static int32_t get_source_plugin_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+static int32_t get_source_plugin_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	if (MAX_SOURCE_PLUGIN_COUNTERS_STATS > buf_size)

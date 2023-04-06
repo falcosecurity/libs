@@ -184,7 +184,7 @@ size_t pman_get_stats_size_hint()
 	return MAX_KERNEL_COUNTERS_STATS;
 }
 
-int pman_get_scap_stats_v2(size_t buf_size, void *scap_stats_struct)
+int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void *scap_stats_struct)
 {
 	struct scap_stats_v2 *stats = (struct scap_stats_v2 *)scap_stats_struct;
 	char error_message[MAX_ERROR_MESSAGE_LEN];
@@ -196,36 +196,40 @@ int pman_get_scap_stats_v2(size_t buf_size, void *scap_stats_struct)
 		return errno;
 	}
 
-	int counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
-	if(counter_maps_fd <= 0)
+	int counter_maps_fd;
+	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
 	{
-		pman_print_error("unable to get counter maps");
-		return errno;
-	}
-
-	/* We always take statistics from all the CPUs, even if some of them are not online.
-	 * If the CPU is not online the counter map will be empty.
-	 */
-	for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
-	{
-		stats[stat].valid = true;
-		strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
-	}
-
-	for(int index = 0; index < g_state.n_possible_cpus; index++)
-	{
-		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
+		counter_maps_fd = bpf_map__fd(g_state.skel->maps.counter_maps);
+		if(counter_maps_fd <= 0)
 		{
-			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
-			pman_print_error((const char *)error_message);
-			goto clean_print_stats;
+			pman_print_error("unable to get counter maps");
+			return errno;
 		}
-		stats[N_EVTS].u64value += cnt_map.n_evts;
-		stats[N_DROPS_BUFFER_TOTAL].u64value += cnt_map.n_drops_buffer;
-		stats[N_DROPS_SCRATCH_MAP].u64value += cnt_map.n_drops_max_event_size;
-		stats[N_DROPS].u64value += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+
+		/* We always take statistics from all the CPUs, even if some of them are not online.
+		* If the CPU is not online the counter map will be empty.
+		*/
+		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
+		{
+			stats[stat].valid = true;
+			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
+		}
+
+		for(int index = 0; index < g_state.n_possible_cpus; index++)
+		{
+			if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
+			{
+				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
+				pman_print_error((const char *)error_message);
+				goto clean_print_stats;
+			}
+			stats[N_EVTS].u64value += cnt_map.n_evts;
+			stats[N_DROPS_BUFFER_TOTAL].u64value += cnt_map.n_drops_buffer;
+			stats[N_DROPS_SCRATCH_MAP].u64value += cnt_map.n_drops_max_event_size;
+			stats[N_DROPS].u64value += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+		}
+		return 0;
 	}
-	return 0;
 	// todo @incertum add libbpf stats in here as well
 
 clean_print_stats:

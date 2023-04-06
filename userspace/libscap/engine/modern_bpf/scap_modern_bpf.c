@@ -250,9 +250,9 @@ size_t scap_modern_bpf__get_stats_size_hint()
 	return pman_get_stats_size_hint();
 }
 
-int32_t scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+int32_t scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
 {
-	if(pman_get_scap_stats_v2(buf_size, (void*)stats))
+	if(pman_get_scap_stats_v2(buf_size, flags, (void*)stats))
 	{
 		return SCAP_FAILURE;
 	}

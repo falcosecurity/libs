@@ -755,7 +755,7 @@ size_t scap_get_stats_size_hint(scap_t* handle);
    On Failure, SCAP_FAILURE is returned and scap_getlasterr() can be used to obtain
    the cause of the error.
 */
-int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, OUT scap_stats_v2* stats);
+int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.

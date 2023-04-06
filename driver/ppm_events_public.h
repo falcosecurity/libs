@@ -2185,4 +2185,10 @@ struct ppm_event_entry {
  */
 #define PPM_BPF_STATS_ENABLED		(1 << 0)
 
+/*
+ * scap_stats_v2 flags.
+ */
+#define PPM_SCAP_STATS_KERNEL_COUNTERS (1 << 0)
+#define PPM_SCAP_STATS_LIBBPF_STATS (1 << 1)
+
 #endif /* EVENTS_PUBLIC_H_ */

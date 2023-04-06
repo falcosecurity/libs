@@ -646,11 +646,6 @@ const struct ppm_name_value epoll_create1_flags[] = {
 	{0, 0},
 };
 
-const struct ppm_name_value machine_info_flags[] = {
-	{"BPF_STATS_ENABLED", PPM_BPF_STATS_ENABLED},
-	{0, 0},
-};
-
 const struct ppm_name_value prctl_options[] = {
 	{"PR_GET_DUMPABLE",PPM_PR_GET_DUMPABLE},
 	{"PR_SET_DUMPABLE",PPM_PR_SET_DUMPABLE},
