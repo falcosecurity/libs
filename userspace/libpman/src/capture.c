@@ -212,6 +212,7 @@ int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void *scap_stats_str
 		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].valid = true;
+			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 

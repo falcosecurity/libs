@@ -154,6 +154,7 @@ typedef struct scap_stats_v2
 	/* Metadata */
 	char name[STATS_NAME_MAX];
 	bool valid;
+	uint32_t flags;
 	/* Stats values */
 	uint64_t u64value;
 	// todo: add unit enum

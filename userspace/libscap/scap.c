@@ -863,6 +863,7 @@ int32_t scap_get_stats_v2(scap_t* handle, size_t buf_size, uint32_t flags, OUT s
 	int i = 0;
 	while (i < buf_size) {
 		stats[i].valid = false;
+		stats[i].flags = 0;
 		stats[i].u64value = 0;
 		strlcpy(stats[i].name, "", 1);
 		i++;

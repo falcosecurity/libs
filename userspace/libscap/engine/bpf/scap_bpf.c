@@ -1632,6 +1632,7 @@ int32_t scap_bpf_get_stats_v2(struct scap_engine_handle engine, size_t buf_size,
 		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].valid = true;
+			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -1698,6 +1699,7 @@ int32_t scap_bpf_get_stats_v2(struct scap_engine_handle engine, size_t buf_size,
 						}
 
 						stats[i].valid = true;
+						stats[i].flags |= PPM_SCAP_STATS_LIBBPF_STATS;
 						strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
 						if (stat == RUN_CNT)
 						{

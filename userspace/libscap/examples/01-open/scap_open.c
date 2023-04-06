@@ -240,7 +240,7 @@ void enable_single_ppm_sc(int ppm_sc_code)
 
 void enable_sc_and_print()
 {
-	printf("---------------------- INTERESTING SYSCALLS ----------------------\n");
+	printf("\n---------------------- INTERESTING SYSCALLS ----------------------\n");
 	if(ppm_sc_is_set)
 	{
 		printf("* sc codes enabled:\n");
@@ -524,7 +524,7 @@ void print_event(scap_evt* ev)
 
 void print_help()
 {
-	printf("\n----------------------- MENU -----------------------\n");
+	printf("\n------------------------------ MENU ------------------------------\n");
 	printf("------> SCAP SOURCES\n");
 	printf("'%s': enable the kernel module.\n", KMOD_OPTION);
 	printf("'%s <probe_path>': enable the BPF probe.\n", BPF_OPTION);
@@ -542,12 +542,12 @@ void print_help()
 	printf("\n------> PRINT OPTIONS\n");
 	printf("'%s': print all supported syscalls with different sources and configurations.\n", PRINT_SYSCALLS_OPTION);
 	printf("'%s': print this menu.\n", PRINT_HELP_OPTION);
-	printf("-----------------------------------------------------\n");
+	printf("\n------------------------------------------------------------------\n\n");
 }
 
 void print_scap_source()
 {
-	printf("\n---------------------- SCAP SOURCE ----------------------\n");
+	printf("\n--------------------------- SCAP SOURCE --------------------------\n");
 	if(strcmp(oargs.engine_name, KMOD_ENGINE) == 0)
 	{
 		printf("* Kernel module.\n");
@@ -573,15 +573,15 @@ void print_scap_source()
 		print_help();
 		exit(EXIT_FAILURE);
 	}
-	printf("-----------------------------------------------------------\n\n");
+	printf("------------------------------------------------------------------\n\n");
 }
 
 void print_configurations()
 {
-	printf("--------------------- CONFIGURATIONS ----------------------\n");
+	printf("\n------------------------- CONFIGURATIONS -------------------------\n");
 	printf("* Print single event type: %d (`-1` means no event to print).\n", evt_type);
 	printf("* Run until '%lu' events are catched.\n", num_events);
-	printf("-----------------------------------------------------------\n\n");
+	printf("------------------------------------------------------------------\n\n");
 }
 
 void print_start_capture()
@@ -781,7 +781,7 @@ void print_stats()
 		}
 	}
 
-	printf("\n---------------------- STATS -----------------------\n");
+	printf("\n----------------------------- STATS ------------------------------\n");
 
 	printf("\n[SCAP-OPEN]: General statistics\n");
 	printf("\nEvents correctly captured (SCAP_SUCCESS): %" PRIu64 "\n", g_nevts);
@@ -817,7 +817,7 @@ void print_stats()
 		printf("%s: %lu\n", stats_v2[i].name, stats_v2[i].u64value);
 		i++;
 	}
-	printf("-----------------------------------------------------\n");
+	printf("\n\n------------------------------------------------------------------\n\n");
 	printf("\n[SCAP-OPEN]: Bye!\n");
 }
 
