@@ -33,6 +33,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	events_file.ut.cpp
 	events_net.ut.cpp
 	events_param.ut.cpp
+	events_plugin.ut.cpp
 	events_proc.ut.cpp
 	events_user.ut.cpp
 	external_processor.ut.cpp
