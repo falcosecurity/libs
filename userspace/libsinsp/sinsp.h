@@ -964,6 +964,11 @@ public:
 	// The created sinsp_plugin is returned.
 	std::shared_ptr<sinsp_plugin> register_plugin(const std::string& filepath);
 
+	// Create and register a plugin given a custom API vtable.
+	// The passed-in api pointer will not be retained, its values will be copied
+	// internally.
+	std::shared_ptr<sinsp_plugin> register_plugin(const plugin_api* api);
+
 	inline std::shared_ptr<const sinsp_plugin_manager> get_plugin_manager() const
 	{
 		return m_plugin_manager;

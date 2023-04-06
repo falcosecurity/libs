@@ -1713,6 +1713,27 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	return plugin;
 }
 
+std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const plugin_api* api)
+{
+	std::string errstr;
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(api, errstr);
+	if (!plugin)
+	{
+		throw sinsp_exception("cannot load plugin with custom vtable: " + errstr);
+	}
+
+	try
+	{
+		m_plugin_manager->add(plugin);
+	}
+	catch(sinsp_exception const& e)
+	{
+		throw sinsp_exception("cannot register plugin with custom vtable in inspector: " + std::string(e.what()));
+	}
+
+	return plugin;
+}
+
 void sinsp::set_input_plugin(const std::string& name, const std::string& params)
 {
 	for(auto& it : m_plugin_manager->plugins())

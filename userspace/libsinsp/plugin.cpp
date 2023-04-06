@@ -51,6 +51,26 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
+std::shared_ptr<sinsp_plugin> sinsp_plugin::create(const plugin_api* api, std::string& errstr)
+{
+	char loadererr[PLUGIN_MAX_ERRLEN];
+	auto handle = plugin_load_api(api, loadererr);
+	if (handle == NULL)
+	{
+		errstr = loadererr;
+		return nullptr;
+	}
+
+	std::shared_ptr<sinsp_plugin> plugin(new sinsp_plugin(handle));
+	if (!plugin->resolve_dylib_symbols(errstr))
+	{
+		// plugin and handle get deleted here by shared_ptr
+		return nullptr;
+	}
+
+	return plugin;
+}
+
 std::shared_ptr<sinsp_plugin> sinsp_plugin::create(
 	const std::string &filepath,
 	std::string &errstr)
