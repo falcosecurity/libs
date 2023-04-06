@@ -53,9 +53,13 @@ public:
 	 * @brief Create a plugin from the dynamic library at the provided path.
 	 * On error, the shared_ptr will == nullptr and errstr is set with an error.
 	 */
-	static std::shared_ptr<sinsp_plugin> create(
-		const std::string& filepath,
-		std::string& errstr);
+	static std::shared_ptr<sinsp_plugin> create(const std::string& path, std::string& errstr);
+	
+	/**
+	 * @brief Create a plugin from the provided api vtable.
+	 * On error, the shared_ptr will == nullptr and errstr is set with an error.
+	 */
+	static std::shared_ptr<sinsp_plugin> create(const plugin_api* api, std::string& errstr);
 
 	/**
 	 * @brief Return whether a filesystem dynamic library object is loaded.
