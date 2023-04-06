@@ -178,6 +178,20 @@ protected:
 private:
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
+	//
+	// Plugin Type Look Up Table
+	//
+	const std::unordered_map<std::string, ppm_param_type> m_pt_lut = {
+		{"string", PT_CHARBUF},
+		{"uint64", PT_UINT64},
+		{"reltime", PT_RELTIME},
+		{"abstime", PT_ABSTIME},
+		{"bool", PT_BOOL},
+		{"ipv4addr", PT_IPV4ADDR},
+		{"ipv4net", PT_IPV4NET},
+		{"ipv6addr", PT_IPV6ADDR},
+		{"ipv6net", PT_IPV6NET},
+	};
 
 	/** Event Sourcing **/
 	scap_source_plugin m_scap_source_plugin;
