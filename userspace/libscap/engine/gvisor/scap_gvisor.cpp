@@ -469,7 +469,7 @@ size_t engine::get_stats_size_hint()
 	return MAX_GVISOR_COUNTERS_STATS;
 }
 
-int32_t engine::get_stats_v2(scap_stats_v2* stats, size_t buf_size)
+int32_t engine::get_stats_v2(scap_stats_v2* stats, size_t buf_size, uint32_t flags)
 {
 	if (MAX_GVISOR_COUNTERS_STATS > buf_size)
 	{

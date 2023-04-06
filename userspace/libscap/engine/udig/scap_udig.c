@@ -422,7 +422,7 @@ size_t get_udig_stats_size_hint()
 //
 // Return the number of dropped events for the given handle
 //
-static int32_t get_udig_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+static int32_t get_udig_stats_v2(struct scap_engine_handle engine, size_t buf_size, uint32_t flags, OUT scap_stats_v2* stats)
 {
 	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
 	uint32_t j;

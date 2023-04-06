@@ -304,12 +304,14 @@ extern "C"
 	 * @brief Receive a pointer to `struct scap_stats_v2` and fill it
 	 * with info about the number of events and number of drops.
 	 *
+	 * @param buf_size size of stats buffer
+	 * @param flags used to select stats category to be returned
 	 * @param scap_stats_struct opaque pointer to `struct scap_stats_v2`.
 	 * We used an opaque pointer because we don't want to introduce scap
 	 * definitions in this file.
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int pman_get_scap_stats_v2(size_t buf_size, void* scap_stats_struct);
+	int pman_get_scap_stats_v2(size_t buf_size, uint32_t flags, void* scap_stats_struct);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU
