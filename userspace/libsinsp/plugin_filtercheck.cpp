@@ -210,8 +210,8 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 			case PT_IPV6ADDR:
 			case PT_IPV6NET:
 			{
-				res.len = (uint32_t) efield.res.buf[i]->len;
-				res.ptr = (uint8_t*) efield.res.buf[i]->ptr;
+				res.len = (uint32_t) efield.res.buf[i].len;
+				res.ptr = (uint8_t*) efield.res.buf[i].ptr;
 				break;
 			}
 			case PT_CHARBUF:

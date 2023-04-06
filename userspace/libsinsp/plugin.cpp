@@ -311,19 +311,8 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			strlcpy(tf.m_display, fdisplay.c_str(), sizeof(tf.m_display));
 			strlcpy(tf.m_description, fdesc.c_str(), sizeof(tf.m_description));
 			tf.m_print_format = PF_DEC;
-			std::map<std::string, ppm_param_type> pt_lut = {
-				{"string", PT_CHARBUF},
-				{"uint64", PT_UINT64},
-				{"reltime", PT_RELTIME},
-				{"abstime", PT_ABSTIME},
-				{"bool", PT_BOOL},
-				{"ipv4addr", PT_IPV4ADDR},
-				{"ipv4net", PT_IPV4NET},
-				{"ipv6addr", PT_IPV6ADDR},
-				{"ipv6net", PT_IPV6NET},
-			};
-			if(pt_lut.find(ftype) != pt_lut.end()) {
-				tf.m_type = pt_lut[ftype];
+			if(m_pt_lut.find(ftype) != m_pt_lut.end()) {
+				tf.m_type = m_pt_lut.at(ftype);
 			} else {
 				throw sinsp_exception(
 						string("error in plugin ") + name() + ": invalid field type " + ftype);
