@@ -168,7 +168,10 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	m_replay_scap_evt = NULL;
 
-	m_plugin_manager = std::make_shared<sinsp_plugin_manager>();
+	// the "syscall" event source is implemented by sinsp itself
+	// and is always present
+	m_event_sources.push_back(sinsp_syscall_event_source_name);
+	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
 }
 
 sinsp::~sinsp()
@@ -201,12 +204,6 @@ sinsp::~sinsp()
 	if(m_meinfo.m_piscapevt)
 	{
 		delete[] m_meinfo.m_piscapevt;
-	}
-
-	if(m_plugin_manager)
-	{
-		delete m_plugin_manager;
-		m_plugin_manager = NULL;
 	}
 
 	m_container_manager.cleanup();
@@ -1695,7 +1692,6 @@ void sinsp::set_statsd_port(const uint16_t port)
 	}
 }
 
-
 std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath)
 {
 	std::string errstr;
@@ -1711,7 +1707,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	}
 	catch(sinsp_exception const& e)
 	{
-		throw sinsp_exception("cannot add plugin " + filepath + " to inspector: " + e.what());
+		throw sinsp_exception("cannot register plugin " + filepath + " in inspector: " + e.what());
 	}
 
 	return plugin;
