@@ -449,6 +449,47 @@ int32_t engine::get_stats(scap_stats *stats)
 	return SCAP_SUCCESS;
 }
 
+enum gvisor_counters_stats {
+	N_EVTS = 0,
+	N_DROPS_BUG,
+	N_DROPS_BUFFER_TOTAL,
+	N_DROPS,
+	MAX_GVISOR_COUNTERS_STATS
+};
+
+static const char * const gvisor_counters_stats_names[] = {
+	"n_evts",
+	"n_drops_buffer_total",
+	"n_drops_bug",
+	"n_drops",
+};
+
+size_t engine::get_stats_size_hint()
+{
+	return MAX_GVISOR_COUNTERS_STATS;
+}
+
+int32_t engine::get_stats_v2(scap_stats_v2* stats, size_t buf_size)
+{
+	if (MAX_GVISOR_COUNTERS_STATS > buf_size)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* GVISOR STATS COUNTERS */
+	for(int stat =  0;  stat < MAX_GVISOR_COUNTERS_STATS; stat++)
+	{
+		stats[stat].valid = true;
+		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], STATS_NAME_MAX);
+	}
+	stats[N_EVTS].u64value = m_gvisor_stats.n_evts;
+	stats[N_DROPS_BUFFER_TOTAL].u64value = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
+	stats[N_DROPS_BUG].u64value = m_gvisor_stats.n_drops_parsing;
+	stats[N_DROPS].u64value = m_gvisor_stats.n_drops_gvisor;
+
+	return SCAP_SUCCESS;
+}
+
 // Reads one gvisor message from the specified fd, stores the resulting events overwriting m_buffers and adds pointers to m_event_queue.
 // Returns:
 // * SCAP_SUCCESS in case of success

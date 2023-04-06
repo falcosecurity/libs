@@ -229,6 +229,30 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
+size_t get_source_plugin_stats_size_hint()
+{
+	return MAX_SOURCE_PLUGIN_COUNTERS_STATS;
+}
+
+static int32_t get_source_plugin_stats_v2(struct scap_engine_handle engine, size_t buf_size, OUT scap_stats_v2* stats)
+{
+	struct source_plugin_engine *handle = engine.m_handle;
+	if (MAX_SOURCE_PLUGIN_COUNTERS_STATS > buf_size)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* UDIG STATS COUNTERS */
+	for(int stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
+	{
+		stats[stat].valid = true;
+		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);
+	}
+	stats[N_EVTS].u64value += handle->m_nevts;
+
+	return SCAP_SUCCESS;
+}
+
 const struct scap_vtable scap_source_plugin_engine = {
 	.name = SOURCE_PLUGIN_ENGINE,
 	.mode = SCAP_MODE_PLUGIN,
@@ -243,8 +267,8 @@ const struct scap_vtable scap_source_plugin_engine = {
 	.stop_capture = noop_stop_capture,
 	.configure = noop_configure,
 	.get_stats = get_stats,
-	.get_stats_size_hint = NULL,
-	.get_stats_v2 = NULL,
+	.get_stats_size_hint = get_source_plugin_stats_size_hint,
+	.get_stats_v2 = get_source_plugin_stats_v2,
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,

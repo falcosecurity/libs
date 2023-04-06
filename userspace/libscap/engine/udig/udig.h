@@ -59,3 +59,20 @@ struct udig_engine
 	char* m_lasterr;
 	bool m_udig_capturing;
 };
+
+typedef enum udig_counters_stats {
+	N_EVTS = 0,
+	N_DROPS_BUFFER_TOTAL,
+	N_DROPS_PAGE_FAULTS,
+	N_DROPS,
+	N_PREEMPTIONS,
+	MAX_UDIG_COUNTERS_STATS,
+}udig_counters_stats;
+
+static const char * const udig_counters_stats_names[] = {
+	[N_EVTS] = "n_evts",
+	[N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+	[N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
+	[N_DROPS] = "n_drops",
+	[N_PREEMPTIONS] = "n_drops_preemptions",
+};
