@@ -17,6 +17,7 @@ limitations under the License.
 #pragma once
 
 #include "sinsp_public.h"
+#include <stdint.h>
 
 struct scap_stats;
 
@@ -43,4 +44,18 @@ public:
 	 * @param[out] stats The capture statistics
 	 */
 	virtual void get_capture_stats(scap_stats* stats) const = 0;
+
+	/**
+	 * Get engine statistics (including counters and `bpftool prog show` like stats).
+	 *
+	 * @note Won't work on file captures.
+	 *
+	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
+	 */
+	virtual struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const = 0;
+
+	/**
+	 * Free scap_stats_v2.
+	 */
+	virtual void free_capture_stats_v2(scap_stats_v2* scap_stats_v2) const = 0;
 };

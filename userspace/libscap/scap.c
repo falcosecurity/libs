@@ -858,7 +858,7 @@ struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint
 //
 // Free engine statistics
 //
-void scap_free_stats_v2(struct scap_stats_v2* scap_stats_v2)
+void scap_free_stats_v2(scap_stats_v2* scap_stats_v2)
 {
 	free(scap_stats_v2);
 }
