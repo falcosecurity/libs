@@ -761,7 +761,7 @@ struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint
 /*!
   \brief Free \ref scap_stats_v2 structure filled with the statistics.
 */
-void scap_free_stats_v2(struct scap_stats_v2* scap_stats_v2);
+void scap_free_stats_v2(scap_stats_v2* scap_stats_v2);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.

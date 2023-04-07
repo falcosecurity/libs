@@ -1882,6 +1882,21 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 	}
 }
 
+struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
+{
+	scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
+	if(*rc != SCAP_SUCCESS)
+	{
+		throw sinsp_exception(scap_getlasterr(m_h));
+	}
+	return stats_v2;
+}
+
+void sinsp::free_capture_stats_v2(scap_stats_v2* scap_stats_v2) const
+{
+	scap_free_stats_v2(scap_stats_v2);
+}
+
 #ifdef GATHER_INTERNAL_STATS
 sinsp_stats sinsp::get_stats()
 {

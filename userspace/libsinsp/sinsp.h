@@ -522,6 +522,20 @@ public:
 	*/
 	void get_capture_stats(scap_stats* stats) const override;
 
+	/*!
+	  \brief Get engine statistics (including counters and `bpftool prog show` like stats).
+
+	  \note Won't work on file captures.
+	  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
+	*/
+	struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const override;
+
+	/*!
+	  \brief Free scap_stats_v2.
+	*/
+	void free_capture_stats_v2(scap_stats_v2* scap_stats_v2) const override;
+
+
 #ifdef GATHER_INTERNAL_STATS
 	sinsp_stats get_stats();
 #endif
