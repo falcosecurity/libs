@@ -1636,7 +1636,8 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			struct scap_bpf_per_cpu_state v;
 			if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v)))
 			{
-				return scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
+				scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
+				return stats;
 			}
 			stats[N_EVTS].value.u64 += v.n_evts;
 			stats[N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
@@ -1690,7 +1691,8 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 					{
 						if (i > *nstats - 1)
 						{
-							return SCAP_FAILURE;
+							*rc = SCAP_FAILURE;
+							return stats;
 						}
 
 						stats[i].valid = true;
@@ -1699,19 +1701,22 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 						strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
 						if (stat == RUN_CNT)
 						{
-							strncat(stats[i].name, libbpf_stats_names[RUN_CNT], strlen(libbpf_stats_names[RUN_CNT]));
+							size_t dest_len = strlen(stats[i].name);
+							strncat(stats[i].name, libbpf_stats_names[RUN_CNT], sizeof(stats[i].name) - dest_len);
 							stats[i].value.u64 = info.run_cnt;
 						}
 						else if (stat == RUN_TIME_NS)
 						{
-							strncat(stats[i].name, libbpf_stats_names[RUN_TIME_NS], strlen(libbpf_stats_names[RUN_TIME_NS]));
+							size_t dest_len = strlen(stats[i].name);
+							strncat(stats[i].name, libbpf_stats_names[RUN_TIME_NS], sizeof(stats[i].name) - dest_len);
 							stats[i].value.u64 = info.run_time_ns;
 						}
 						else if (stat == AVG_TIME_NS)
 						{
 							if (info.run_cnt > 0)
 							{
-								strncat(stats[i].name, libbpf_stats_names[AVG_TIME_NS], strlen(libbpf_stats_names[AVG_TIME_NS]));
+								size_t dest_len = strlen(stats[i].name);
+								strncat(stats[i].name, libbpf_stats_names[AVG_TIME_NS], sizeof(stats[i].name) - dest_len);
 								stats[i].value.u64 = info.run_time_ns / info.run_cnt;
 							}
 						}
