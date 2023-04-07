@@ -208,7 +208,7 @@ struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, i
 			stats[stat].valid = true;
 			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
-			stats[stat].u64value = 0;
+			stats[stat].value.u64 = 0;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -220,10 +220,10 @@ struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, i
 				pman_print_error((const char *)error_message);
 				goto clean_print_stats;
 			}
-			stats[N_EVTS].u64value += cnt_map.n_evts;
-			stats[N_DROPS_BUFFER_TOTAL].u64value += cnt_map.n_drops_buffer;
-			stats[N_DROPS_SCRATCH_MAP].u64value += cnt_map.n_drops_max_event_size;
-			stats[N_DROPS].u64value += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
+			stats[N_EVTS].value.u64 += cnt_map.n_evts;
+			stats[N_DROPS_BUFFER_TOTAL].value.u64 += cnt_map.n_drops_buffer;
+			stats[N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
+			stats[N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 		}
 		return stats;
 	}

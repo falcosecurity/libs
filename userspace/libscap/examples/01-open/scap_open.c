@@ -773,7 +773,7 @@ void print_stats()
 	{
 		if (stats_v2[0].valid && (strncmp(stats_v2[0].name, "n_evts", 6) == 0))
 		{
-			n_evts = stats_v2[0].u64value;
+			n_evts = stats_v2[0].value.u64;
 		}
 	}
 
@@ -812,7 +812,7 @@ void print_stats()
 		{
 			break;
 		}
-		printf("[%u] %s: %lu\n", stats_v2[i].flags, stats_v2[i].name, stats_v2[i].u64value);
+		printf("[%u] %s: %lu\n", stats_v2[i].flags, stats_v2[i].name, stats_v2[i].value.u64);
 		i++;
 	}
 	scap_free_stats_v2(stats_v2);

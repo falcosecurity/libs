@@ -246,10 +246,10 @@ struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engin
 	{
 		stats[stat].valid = true;
 		stats[stat].flags = 0;
-		stats[stat].u64value = 0;
+		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);
 	}
-	stats[N_EVTS].u64value += handle->m_nevts;
+	stats[N_EVTS].value.u64 += handle->m_nevts;
 
 	*rc = SCAP_SUCCESS;
 	return stats;
