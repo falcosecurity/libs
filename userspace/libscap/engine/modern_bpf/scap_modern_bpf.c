@@ -213,7 +213,7 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 
 	/* Set the boot time */
 	uint64_t boot_time = 0;
-	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
+	if(scap_get_precise_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}

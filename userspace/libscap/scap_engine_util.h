@@ -40,3 +40,17 @@ bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uin
 							uint32_t required_major, uint32_t required_minor, uint32_t required_patch);
 
 int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error);
+
+/**
+ * \brief Get the timestamp of boot with subsecond accuracy
+ *
+ * @param last_err a buffer of SCAP_LASTERR_SIZE for the error message, if any
+ * @param boot_time pointer to the result (boot time in nanoseconds since the epoch)
+ * @return SCAP_SUCCESS or an error code
+ *
+ * As opposed to scap_get_boot_time, this function:
+ * - is an internal helper, intended only for the engines' use (BPF-based in particular)
+ * - doesn't need wide compatibility (only needs to work on systems supporting eBPF)
+ * - needs as much accuracy as we can get (otherwise eBPF event timestamps will be wrong)
+ */
+int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time);
