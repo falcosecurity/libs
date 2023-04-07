@@ -40,7 +40,6 @@ limitations under the License.
 #include "protodecoder.h"
 #include "strlcpy.h"
 #include "plugin_manager.h"
-#include "events/sinsp_events.h"
 
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
@@ -596,13 +595,13 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 	}
 
 	// determine the event source
-	if (libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
+	if (evt->m_info->category & EC_METAEVENT)
 	{
 		// metaevent are internal events, and as such they have no concrete event source
 		evt->m_source_idx = sinsp_no_event_source_idx;
 		evt->m_source_name = sinsp_no_event_source_name;
 	}
-	else if (libsinsp::events::is_plugin_event((ppm_event_code) evt->get_type()))
+	else if (evt->m_info->category & EC_PLUGIN)
 	{
 		// plugin events are produced by plugins of a certain ID, and have the
 		// event source specified by their producer plugin
