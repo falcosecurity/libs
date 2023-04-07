@@ -480,13 +480,13 @@ struct scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int
 	{
 		stats[stat].valid = true;
 		stats[stat].flags = 0;
-		stats[stat].u64value = 0;
+		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, gvisor_counters_stats_names[stat], STATS_NAME_MAX);
 	}
-	stats[N_EVTS].u64value = m_gvisor_stats.n_evts;
-	stats[N_DROPS_BUFFER_TOTAL].u64value = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
-	stats[N_DROPS_BUG].u64value = m_gvisor_stats.n_drops_parsing;
-	stats[N_DROPS].u64value = m_gvisor_stats.n_drops_gvisor;
+	stats[N_EVTS].value.u64 = m_gvisor_stats.n_evts;
+	stats[N_DROPS_BUFFER_TOTAL].value.u64 = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
+	stats[N_DROPS_BUG].value.u64 = m_gvisor_stats.n_drops_parsing;
+	stats[N_DROPS].value.u64 = m_gvisor_stats.n_drops_gvisor;
 
 	*rc = SCAP_SUCCESS;
 	return stats;

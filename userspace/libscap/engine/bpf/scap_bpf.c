@@ -1627,7 +1627,7 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			stats[stat].valid = true;
 			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
-			stats[stat].u64value = 0;
+			stats[stat].value.u64 = 0;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
@@ -1638,24 +1638,24 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			{
 				return scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
 			}
-			stats[N_EVTS].u64value += v.n_evts;
-			stats[N_DROPS_BUFFER_TOTAL].u64value += v.n_drops_buffer;
-			stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].u64value += v.n_drops_buffer_clone_fork_enter;
-			stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].u64value += v.n_drops_buffer_clone_fork_exit;
-			stats[N_DROPS_BUFFER_EXECVE_ENTER].u64value += v.n_drops_buffer_execve_enter;
-			stats[N_DROPS_BUFFER_EXECVE_EXIT].u64value += v.n_drops_buffer_execve_exit;
-			stats[N_DROPS_BUFFER_CONNECT_ENTER].u64value += v.n_drops_buffer_connect_enter;
-			stats[N_DROPS_BUFFER_CONNECT_EXIT].u64value += v.n_drops_buffer_connect_exit;
-			stats[N_DROPS_BUFFER_OPEN_ENTER].u64value += v.n_drops_buffer_open_enter;
-			stats[N_DROPS_BUFFER_OPEN_EXIT].u64value += v.n_drops_buffer_open_exit;
-			stats[N_DROPS_BUFFER_DIR_FILE_ENTER].u64value += v.n_drops_buffer_dir_file_enter;
-			stats[N_DROPS_BUFFER_DIR_FILE_EXIT].u64value += v.n_drops_buffer_dir_file_exit;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].u64value += v.n_drops_buffer_other_interest_enter;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].u64value += v.n_drops_buffer_other_interest_exit;
-			stats[N_DROPS_SCRATCH_MAP].u64value += v.n_drops_scratch_map;
-			stats[N_DROPS_PAGE_FAULTS].u64value += v.n_drops_pf;
-			stats[N_DROPS_BUG].u64value += v.n_drops_bug;
-			stats[N_DROPS].u64value += v.n_drops_buffer + \
+			stats[N_EVTS].value.u64 += v.n_evts;
+			stats[N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
+			stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += v.n_drops_buffer_clone_fork_enter;
+			stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += v.n_drops_buffer_clone_fork_exit;
+			stats[N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += v.n_drops_buffer_execve_enter;
+			stats[N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += v.n_drops_buffer_execve_exit;
+			stats[N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += v.n_drops_buffer_connect_enter;
+			stats[N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += v.n_drops_buffer_connect_exit;
+			stats[N_DROPS_BUFFER_OPEN_ENTER].value.u64 += v.n_drops_buffer_open_enter;
+			stats[N_DROPS_BUFFER_OPEN_EXIT].value.u64 += v.n_drops_buffer_open_exit;
+			stats[N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += v.n_drops_buffer_dir_file_enter;
+			stats[N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
+			stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += v.n_drops_buffer_other_interest_enter;
+			stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += v.n_drops_buffer_other_interest_exit;
+			stats[N_DROPS_SCRATCH_MAP].value.u64 += v.n_drops_scratch_map;
+			stats[N_DROPS_PAGE_FAULTS].value.u64 += v.n_drops_pf;
+			stats[N_DROPS_BUG].value.u64 += v.n_drops_bug;
+			stats[N_DROPS].value.u64 += v.n_drops_buffer + \
 				v.n_drops_scratch_map + \
 				v.n_drops_pf + \
 				v.n_drops_bug;
@@ -1694,24 +1694,25 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 						}
 
 						stats[i].valid = true;
+						stats[i].flags = 0;
 						stats[i].flags |= PPM_SCAP_STATS_LIBBPF_STATS;
 						strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
 						if (stat == RUN_CNT)
 						{
 							strncat(stats[i].name, libbpf_stats_names[RUN_CNT], strlen(libbpf_stats_names[RUN_CNT]));
-							stats[i].u64value = info.run_cnt;
+							stats[i].value.u64 = info.run_cnt;
 						}
 						else if (stat == RUN_TIME_NS)
 						{
 							strncat(stats[i].name, libbpf_stats_names[RUN_TIME_NS], strlen(libbpf_stats_names[RUN_TIME_NS]));
-							stats[i].u64value = info.run_time_ns;
+							stats[i].value.u64 = info.run_time_ns;
 						}
 						else if (stat == AVG_TIME_NS)
 						{
 							if (info.run_cnt > 0)
 							{
 								strncat(stats[i].name, libbpf_stats_names[AVG_TIME_NS], strlen(libbpf_stats_names[AVG_TIME_NS]));
-								stats[i].u64value = info.run_time_ns / info.run_cnt;
+								stats[i].value.u64 = info.run_time_ns / info.run_cnt;
 							}
 						}
 						i++;

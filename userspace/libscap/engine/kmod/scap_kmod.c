@@ -553,31 +553,31 @@ struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, u
 			stats[stat].valid = true;
 			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
-			stats[stat].u64value = 0;
+			stats[stat].value.u64 = 0;
 			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
 		for(j = 0; j < devset->m_ndevs; j++)
 		{
 			struct scap_device *dev = &devset->m_devs[j];
-			stats[N_EVTS].u64value += dev->m_bufinfo->n_evts;
-			stats[N_DROPS_BUFFER_TOTAL].u64value += dev->m_bufinfo->n_drops_buffer;
-			stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_clone_fork_enter;
-			stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_clone_fork_exit;
-			stats[N_DROPS_BUFFER_EXECVE_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_execve_enter;
-			stats[N_DROPS_BUFFER_EXECVE_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_execve_exit;
-			stats[N_DROPS_BUFFER_CONNECT_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_connect_enter;
-			stats[N_DROPS_BUFFER_CONNECT_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_connect_exit;
-			stats[N_DROPS_BUFFER_OPEN_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_open_enter;
-			stats[N_DROPS_BUFFER_OPEN_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_open_exit;
-			stats[N_DROPS_BUFFER_DIR_FILE_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_dir_file_enter;
-			stats[N_DROPS_BUFFER_DIR_FILE_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].u64value += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].u64value += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
-			stats[N_DROPS_PAGE_FAULTS].u64value += dev->m_bufinfo->n_drops_pf;
-			stats[N_DROPS].u64value += dev->m_bufinfo->n_drops_buffer +
+			stats[N_EVTS].value.u64 += dev->m_bufinfo->n_evts;
+			stats[N_DROPS_BUFFER_TOTAL].value.u64 += dev->m_bufinfo->n_drops_buffer;
+			stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_clone_fork_enter;
+			stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_clone_fork_exit;
+			stats[N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_execve_enter;
+			stats[N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_execve_exit;
+			stats[N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_connect_enter;
+			stats[N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_connect_exit;
+			stats[N_DROPS_BUFFER_OPEN_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_open_enter;
+			stats[N_DROPS_BUFFER_OPEN_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_open_exit;
+			stats[N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_dir_file_enter;
+			stats[N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_dir_file_exit;
+			stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += dev->m_bufinfo->n_drops_buffer_other_interest_enter;
+			stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += dev->m_bufinfo->n_drops_buffer_other_interest_exit;
+			stats[N_DROPS_PAGE_FAULTS].value.u64 += dev->m_bufinfo->n_drops_pf;
+			stats[N_DROPS].value.u64 += dev->m_bufinfo->n_drops_buffer +
 					dev->m_bufinfo->n_drops_pf;
-			stats[N_PREEMPTIONS].u64value += dev->m_bufinfo->n_preemptions;
+			stats[N_PREEMPTIONS].value.u64 += dev->m_bufinfo->n_preemptions;
 		}
 	}
 

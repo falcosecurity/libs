@@ -146,6 +146,17 @@ typedef struct scap_stats
 	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed.
 }scap_stats;
 
+
+typedef union scap_stats_v2_union {
+	uint32_t u32;
+	int32_t s32;
+	uint64_t u64;
+	int64_t s64;
+	double d;
+	float f;
+	int i;
+}scap_stats_v2_union;
+
 /*!
   \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
 */
@@ -156,7 +167,7 @@ typedef struct scap_stats_v2
 	bool valid;
 	uint32_t flags;
 	/* Stats values */
-	uint64_t u64value;
+	union scap_stats_v2_union value;
 	// todo: add unit enum
 }scap_stats_v2;
 
