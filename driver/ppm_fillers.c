@@ -5501,6 +5501,10 @@ int f_tcp_retransmit_skb_e(struct event_filler_arguments *args){
 			  0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
+	int segs = 1;
+	res = val_to_ring(args, segs, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
 	return 0;
 }
 
