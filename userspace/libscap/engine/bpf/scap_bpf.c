@@ -1371,7 +1371,7 @@ static int32_t set_default_settings(struct bpf_engine *handle)
 	struct scap_bpf_settings settings;
 
 	uint64_t boot_time = 0;
-	if(scap_get_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
+	if(scap_get_precise_boot_time(handle->m_lasterr, &boot_time) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
