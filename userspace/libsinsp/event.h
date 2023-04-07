@@ -209,7 +209,7 @@ public:
 
 	/*!
 	  \brief Get the event source name, as in the event's inspector
-	  event source manager. Returns sinsp_no_event_source_name if
+	  event sources. Returns sinsp_no_event_source_name if
 	  the event source is unknown.
 	*/
 	inline const char* get_source_name() const
