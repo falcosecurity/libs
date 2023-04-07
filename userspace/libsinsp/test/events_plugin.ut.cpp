@@ -110,7 +110,7 @@ TEST_F(sinsp_with_test_input, event_sources)
 	sinsp_evt* evt = NULL;
 	size_t syscall_source_idx = 0; // the "syscall" evt source is always the first one
 	std::string syscall_source_name = sinsp_syscall_event_source_name;
-	const char* sample_plugin_evtdata = "hello world";
+	const char sample_plugin_evtdata[2048] = "hello world";
 
 	add_default_init_thread();
 	open_inspector();
