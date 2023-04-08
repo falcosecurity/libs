@@ -225,4 +225,65 @@ TEST(SyscallExit, connectX_failure)
 	evt_test->assert_num_params_pushed(2);
 }
 
+TEST(SyscallExit, connectX_failure_connection_refused)
+{
+	auto evt_test = get_syscall_event_test(__NR_connect, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	int32_t client_socket_fd = syscall(__NR_socket, AF_INET, SOCK_DGRAM, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
+	evt_test->client_reuse_address_port(client_socket_fd);
+
+	struct sockaddr_in client_addr;
+	evt_test->client_fill_sockaddr_in(&client_addr);
+
+	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+
+	/* Now we associate the client socket with the server address. 
+	 * Here the server `254.254.254.3:1` should be not reachable
+	 */
+	struct sockaddr_in server_addr;
+	evt_test->server_fill_sockaddr_in(&server_addr, 1, "254.254.254.3");
+	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+	int64_t errno_value = -errno;
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+
+	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+	/* Modern BPF doesn't return the tuple in case of failure */
+	if(evt_test->is_modern_bpf_engine())
+	{
+		evt_test->assert_empty_param(2);
+	}
+	else
+	{
+		evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, "254.254.254.3", IPV4_PORT_CLIENT_STRING, "1");
+	}
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
 #endif
