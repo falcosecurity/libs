@@ -1904,6 +1904,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sid.exepath", "Process Session Executable Path", "The full executable path of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpgid", "Process Virtual Group ID", "The process group id of the process generating the event, as seen from its current PID namespace."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "Process Duration", "Number of nanoseconds since the process started."},
+	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.ppid.duration", "Parent Process Duration", "Number of nanoseconds since the parent process started."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.pid.ts", "Process start ts", "Start of process as epoch timestamp in nanoseconds."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.ppid.ts", "Parent Process start ts", "Start of parent process as epoch timestamp in nanoseconds."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "'true' if this process' executable file is writable by the same user that spawned the process."},
@@ -2844,6 +2845,25 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		else
 		{
 			return NULL;
+		}
+	case TYPE_PPID_DURATION:
+		{
+			sinsp_threadinfo* ptinfo =
+				m_inspector->get_thread_ref(tinfo->m_ptid, false, true).get();
+
+			if(ptinfo != NULL)
+			{
+				if(ptinfo->m_clone_ts != 0)
+				{
+					m_s64val = evt->get_ts() - ptinfo->m_clone_ts;
+					ASSERT(m_s64val > 0);
+					RETURN_EXTRACT_VAR(m_s64val);
+				}
+			}
+			else
+			{
+				return NULL;
+			}
 		}
 	case TYPE_FDOPENCOUNT:
 		m_u64val = tinfo->get_fd_opencount();
