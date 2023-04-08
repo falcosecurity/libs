@@ -840,7 +840,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 		return handle->m_vtable->get_stats(handle->m_engine, stats);
 	}
 
-	return SCAP_SUCCESS;
+	ASSERT(false);
+	return SCAP_FAILURE;
 }
 
 //
@@ -852,15 +853,10 @@ struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint
 	{
 		return handle->m_vtable->get_stats_v2(handle->m_engine, flags, nstats, rc);
 	}
-	*rc = SCAP_SUCCESS;
-}
-
-//
-// Free engine statistics
-//
-void scap_free_stats_v2(scap_stats_v2* scap_stats_v2)
-{
-	free(scap_stats_v2);
+	ASSERT(false);
+	*nstats = 0;
+	*rc = SCAP_FAILURE;
+	return NULL;
 }
 
 //

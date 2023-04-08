@@ -295,12 +295,13 @@ extern "C"
 	/**
 	 * @brief Get scap_stats_v2 structure filled with the statistics.
 	 *
+	 * @param scap_stats_v2_struct opaque pointer to `struct scap_stats_v2` held in modern_bpf_engine handle
 	 * @param flags holding statistics category flags.
 	 * @param nstats Pointer reflecting number of statistics in returned buffer.
 	 * @param rc Pointer to return code.
 	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	 */
-	struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
+	struct scap_stats_v2* pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU
@@ -440,21 +441,6 @@ extern "C"
 	 *
 	 */
 	void pman_mark_single_64bit_syscall(int syscall_id, bool interesting);
-
-	typedef enum kernel_counters_stats {
-		N_EVTS = 0,
-		N_DROPS_BUFFER_TOTAL,
-		N_DROPS_SCRATCH_MAP,
-		N_DROPS,
-		MAX_KERNEL_COUNTERS_STATS
-	}kernel_counters_stats;
-
-	static const char * const kernel_counters_stats_names[] = {
-		[N_EVTS] = "n_evts",
-		[N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-		[N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
-		[N_DROPS] = "n_drops",
-	};
 
 #ifdef __cplusplus
 }

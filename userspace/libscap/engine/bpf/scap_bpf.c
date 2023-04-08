@@ -1610,25 +1610,24 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 	int ret;
 	int fd;
 	int i = 0; // offset in stats
-	*nstats = (BPF_PROG_ATTACHED_MAX * MAX_LIBBPF_STATS) + MAX_KERNEL_COUNTERS_STATS;
-	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
+	*nstats = 0;
+	scap_stats_v2* stats = handle->m_stats;
+	if (!stats)
+	{
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
 
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
 	{
-		if (MAX_KERNEL_COUNTERS_STATS > *nstats)
-		{
-			*rc = SCAP_FAILURE;
-			return stats;
-		}
-
 		/* KERNEL SIDE STATS COUNTERS */
-		for(int stat =  0;  stat < MAX_KERNEL_COUNTERS_STATS; stat++)
+		for(uint32_t stat =  0;  stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
-			stats[stat].valid = true;
+			stats[stat].type = STATS_VALUE_TYPE_U64;
 			stats[stat].flags = 0;
 			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
 			stats[stat].value.u64 = 0;
-			strlcpy(stats[stat].name, kernel_counters_stats_names[stat], STATS_NAME_MAX);
+			strlcpy(stats[stat].name, bpf_kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
 
 		for(int cpu = 0; cpu < handle->m_ncpus; cpu++)
@@ -1636,32 +1635,32 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			struct scap_bpf_per_cpu_state v;
 			if((ret = bpf_map_lookup_elem(handle->m_bpf_map_fds[SCAP_LOCAL_STATE_MAP], &cpu, &v)))
 			{
-				scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
+				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error looking up local state %d", cpu);
 				return stats;
 			}
-			stats[N_EVTS].value.u64 += v.n_evts;
-			stats[N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
-			stats[N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += v.n_drops_buffer_clone_fork_enter;
-			stats[N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += v.n_drops_buffer_clone_fork_exit;
-			stats[N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += v.n_drops_buffer_execve_enter;
-			stats[N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += v.n_drops_buffer_execve_exit;
-			stats[N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += v.n_drops_buffer_connect_enter;
-			stats[N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += v.n_drops_buffer_connect_exit;
-			stats[N_DROPS_BUFFER_OPEN_ENTER].value.u64 += v.n_drops_buffer_open_enter;
-			stats[N_DROPS_BUFFER_OPEN_EXIT].value.u64 += v.n_drops_buffer_open_exit;
-			stats[N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += v.n_drops_buffer_dir_file_enter;
-			stats[N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += v.n_drops_buffer_other_interest_enter;
-			stats[N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += v.n_drops_buffer_other_interest_exit;
-			stats[N_DROPS_SCRATCH_MAP].value.u64 += v.n_drops_scratch_map;
-			stats[N_DROPS_PAGE_FAULTS].value.u64 += v.n_drops_pf;
-			stats[N_DROPS_BUG].value.u64 += v.n_drops_bug;
-			stats[N_DROPS].value.u64 += v.n_drops_buffer + \
+			stats[BPF_N_EVTS].value.u64 += v.n_evts;
+			stats[BPF_N_DROPS_BUFFER_TOTAL].value.u64 += v.n_drops_buffer;
+			stats[BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER].value.u64 += v.n_drops_buffer_clone_fork_enter;
+			stats[BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT].value.u64 += v.n_drops_buffer_clone_fork_exit;
+			stats[BPF_N_DROPS_BUFFER_EXECVE_ENTER].value.u64 += v.n_drops_buffer_execve_enter;
+			stats[BPF_N_DROPS_BUFFER_EXECVE_EXIT].value.u64 += v.n_drops_buffer_execve_exit;
+			stats[BPF_N_DROPS_BUFFER_CONNECT_ENTER].value.u64 += v.n_drops_buffer_connect_enter;
+			stats[BPF_N_DROPS_BUFFER_CONNECT_EXIT].value.u64 += v.n_drops_buffer_connect_exit;
+			stats[BPF_N_DROPS_BUFFER_OPEN_ENTER].value.u64 += v.n_drops_buffer_open_enter;
+			stats[BPF_N_DROPS_BUFFER_OPEN_EXIT].value.u64 += v.n_drops_buffer_open_exit;
+			stats[BPF_N_DROPS_BUFFER_DIR_FILE_ENTER].value.u64 += v.n_drops_buffer_dir_file_enter;
+			stats[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT].value.u64 += v.n_drops_buffer_dir_file_exit;
+			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER].value.u64 += v.n_drops_buffer_other_interest_enter;
+			stats[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT].value.u64 += v.n_drops_buffer_other_interest_exit;
+			stats[BPF_N_DROPS_SCRATCH_MAP].value.u64 += v.n_drops_scratch_map;
+			stats[BPF_N_DROPS_PAGE_FAULTS].value.u64 += v.n_drops_pf;
+			stats[BPF_N_DROPS_BUG].value.u64 += v.n_drops_bug;
+			stats[BPF_N_DROPS].value.u64 += v.n_drops_buffer + \
 				v.n_drops_scratch_map + \
 				v.n_drops_pf + \
 				v.n_drops_bug;
 		}
-		i = MAX_KERNEL_COUNTERS_STATS;
+		i = BPF_MAX_KERNEL_COUNTERS_STATS;
 	}
 
 	/* LIBBPF STATS */
@@ -1677,55 +1676,52 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 		for(int bpf_prog = 0; bpf_prog < BPF_PROG_ATTACHED_MAX; bpf_prog++)
 		{
 			fd = handle->m_attached_progs[bpf_prog].fd;
-			if (fd > 0)
+			if (fd < 0)
 			{
-				struct bpf_prog_info info = {};
-				__u32 len = sizeof(info);
-				if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
-				{
-					// todo: possibly add a warning message or just ignore?
-				}
-				else
-				{
-					for(int stat =  0;  stat < MAX_LIBBPF_STATS; stat++)
-					{
-						if (i > *nstats - 1)
-						{
-							*rc = SCAP_FAILURE;
-							return stats;
-						}
+				// we loop through each possible prog, landing here means prog was not attached
+				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error looking up bpf program fd %d", fd);
+				continue;
+			}
+			struct bpf_prog_info info = {};
+			__u32 len = sizeof(info);
+			if((bpf_obj_get_info_by_fd(fd, &info, &len)))
+			{
+				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error getting bpf prog info for fd %d", fd);
+				continue;
+			}
 
-						stats[i].valid = true;
-						stats[i].flags = 0;
-						stats[i].flags |= PPM_SCAP_STATS_LIBBPF_STATS;
-						strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
-						if (stat == RUN_CNT)
-						{
-							size_t dest_len = strlen(stats[i].name);
-							strncat(stats[i].name, libbpf_stats_names[RUN_CNT], sizeof(stats[i].name) - dest_len);
-							stats[i].value.u64 = info.run_cnt;
-						}
-						else if (stat == RUN_TIME_NS)
-						{
-							size_t dest_len = strlen(stats[i].name);
-							strncat(stats[i].name, libbpf_stats_names[RUN_TIME_NS], sizeof(stats[i].name) - dest_len);
-							stats[i].value.u64 = info.run_time_ns;
-						}
-						else if (stat == AVG_TIME_NS)
-						{
-							if (info.run_cnt > 0)
-							{
-								size_t dest_len = strlen(stats[i].name);
-								strncat(stats[i].name, libbpf_stats_names[AVG_TIME_NS], sizeof(stats[i].name) - dest_len);
-								stats[i].value.u64 = info.run_time_ns / info.run_cnt;
-							}
-						}
-						i++;
+			for(int stat =  0;  stat < BPF_MAX_LIBBPF_STATS; stat++)
+			{
+				stats[i].type = STATS_VALUE_TYPE_U64;
+				stats[i].flags = 0;
+				stats[i].flags |= PPM_SCAP_STATS_LIBBPF_STATS;
+				strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
+				if (stat == RUN_CNT)
+				{
+					size_t dest_len = strlen(stats[i].name);
+					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[i].name) - dest_len);
+					stats[i].value.u64 = info.run_cnt;
+				}
+				else if (stat == RUN_TIME_NS)
+				{
+					size_t dest_len = strlen(stats[i].name);
+					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[i].name) - dest_len);
+					stats[i].value.u64 = info.run_time_ns;
+				}
+				else if (stat == AVG_TIME_NS)
+				{
+					if (info.run_cnt > 0)
+					{
+						size_t dest_len = strlen(stats[i].name);
+						strncat(stats[i].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[i].name) - dest_len);
+						stats[i].value.u64 = info.run_time_ns / info.run_cnt;
 					}
 				}
+				i++;
 			}
 		}
 	}
+	*nstats = i; // return true number of stats that were available as libbpf metrics are a function of attached progs
 	*rc = SCAP_SUCCESS;
 	return stats;
 }
