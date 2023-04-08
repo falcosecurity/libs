@@ -17,10 +17,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <unistd.h>
+#include <string.h>
 
 /*
  * When adding a new event, a new line should be added with the list of ppm_sc codes mapping that event.
