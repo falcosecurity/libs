@@ -134,6 +134,8 @@ add_library(scap_event_schema
 		../../driver/dynamic_params_table.c
 		../../driver/event_table.c
 		../../driver/flags_table.c
+		../../driver/syscall_table.c
+		linux/scap_ppm_sc.c
         )
 
 target_link_libraries(scap scap_event_schema)
@@ -142,7 +144,6 @@ set_scap_target_properties(scap_event_schema)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	add_library(driver_event_schema
-		../../driver/syscall_table.c
 		../../driver/fillers_table.c)
 	target_link_libraries(scap_event_schema driver_event_schema)
 	set_scap_target_properties(scap_event_schema)
