@@ -45,7 +45,7 @@ void json_dump(sinsp& inspector);
 void json_dump_init(sinsp& inspector);
 void json_dump_reinit_evt_formatter(sinsp& inspector);
 
-std::unordered_set<std::string> extract_filter_events(sinsp& inspector);
+libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector);
 std::function<void(sinsp& inspector)> dump;
 static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
@@ -170,13 +170,12 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 }
 #endif // _WIN32
 
-std::unordered_set<std::string> extract_filter_events(sinsp& inspector)
+libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector)
 {
 	auto ast = inspector.get_filter_ast();
 	if(ast != nullptr)
 	{
-		auto codes = libsinsp::filter::ast::ppm_event_codes(ast.get());
-		return libsinsp::events::event_set_to_names(codes);
+		return libsinsp::filter::ast::ppm_sc_codes(ast.get());
 	}
 
 	return {};
@@ -318,10 +317,11 @@ int main(int argc, char** argv)
 		}
 	}
 
-	auto event_names = extract_filter_events(inspector);
-	if(!event_names.empty())
+	auto events_sc_codes = extract_filter_sc_codes(inspector);
+	if(!events_sc_codes.empty())
 	{
-		printf("-- Filter event types names: %s\n", concat_set_in_order(event_names).c_str());
+		auto events_sc_names = libsinsp::events::sc_set_to_sc_names(events_sc_codes);
+		printf("-- Filter event types sc codes names: %s\n", concat_set_in_order(events_sc_names).c_str());
 	}
 
 	std::cout << "-- Start capture" << std::endl;
