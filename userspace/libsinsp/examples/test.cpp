@@ -51,6 +51,7 @@ static bool g_interrupted = false;
 static const uint8_t g_backoff_timeout_secs = 2;
 static bool g_all_threads = false;
 static bool ppm_sc_modifies_state = false;
+static bool ppm_sc_repair_state = false;
 static bool json_dump_init_success = false;
 string engine_string = KMOD_ENGINE; /* Default for backward compatibility. */
 string filter_string = "";
@@ -93,6 +94,8 @@ Options:
   -o <fields>, --output-fields-json <fields> [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
   -n, --num-events                           Number of events to be retrieved (no limit by default)
+  -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc via `sinsp_state_sc_set`.
+  -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc via `sinsp_repair_state_sc_set`.
 )";
 	cout << usage << endl;
 }
@@ -115,12 +118,13 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		{"exclude-users", no_argument, 0, 'E'},
 		{"num-events", required_argument, 0, 'n'},
 		{"ppm-sc-modifies-state", no_argument, 0, 'z'},
+		{"ppm-sc-repair-state", no_argument, 0, 'x'},
 		{0, 0, 0, 0}};
 
 	int op;
 	int long_index = 0;
 	while((op = getopt_long(argc, argv,
-				"hf:jab:mks:d:o:Enz",
+				"hf:jab:mks:d:o:En:zx",
 				long_options, &long_index)) != -1)
 	{
 		switch(op)
@@ -168,6 +172,9 @@ void parse_CLI_options(sinsp& inspector, int argc, char** argv)
 		case 'z':
 			ppm_sc_modifies_state = true;
 			break;
+		case 'x':
+			ppm_sc_repair_state = true;
+			break;
 		default:
 			break;
 		}
@@ -189,20 +196,30 @@ libsinsp::events::set<ppm_sc_code> extract_filter_sc_codes(sinsp& inspector)
 void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_codes)
 {
 	std::cout << "-- Try to open: '" + engine_string + "' engine." << std::endl;
-	libsinsp::events::set<ppm_sc_code> ppm_sc;
+	libsinsp::events::set<ppm_sc_code> ppm_sc; // empty set activaes each available ppm sc in the kernel
 
 	/* Select sc codes for active tracing in the kernel.
 	 * Include all ppm sc codes from filter AST.
 	 * Provide more e2e testing options.
 	 * Demonstrate ppm sc API usage.
 	 */
-	if (ppm_sc_modifies_state)
+	if (ppm_sc_repair_state && !events_sc_codes.empty())
+	{
+		ppm_sc = libsinsp::events::sinsp_repair_state_sc_set(events_sc_codes);
+		if (!ppm_sc.empty())
+		{
+			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
+			printf("-- Activated ppm sc names in kernel using `sinsp_repair_state_sc_set` enforcement: %s\n", concat_set_in_order(events_sc_names).c_str());
+		}
+	}
+
+	if (ppm_sc_modifies_state && !events_sc_codes.empty())
 	{
 		ppm_sc = libsinsp::events::sinsp_state_sc_set().merge(events_sc_codes);
 		if (!ppm_sc.empty())
 		{
 			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
-			printf("-- Activated ppm sc names in kernel: %s\n", concat_set_in_order(events_sc_names).c_str());
+			printf("-- Activated ppm sc names in kernel using `sinsp_state_sc_set` enforcement: %s\n", concat_set_in_order(events_sc_names).c_str());
 		}
 	}
 
