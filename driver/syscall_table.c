@@ -8,45 +8,26 @@ or GPL2.txt for full copies of the license.
 */
 
 #ifdef __KERNEL__
-#include <linux/kobject.h>
-#include <linux/cdev.h>
-#include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/kdev_t.h>
-#include <linux/delay.h>
-#include <linux/proc_fs.h>
-#include <linux/sched.h>
+
 #include <linux/version.h>
-#include <linux/wait.h>
-#include <net/sock.h>
-#include <asm/unistd.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
 #else
 #include <asm/syscall.h>
 #endif
-#else /* __KERNEL__ */
 
-#ifdef UDIG
-#include <sys/syscall.h>
-#else  /* UDIG */
-#include <linux/unistd.h>
-#endif /* UDIG */
 #ifdef __mips__
 #define SYSCALL_TABLE_ID0 __NR_Linux
 #else /* __mips__ */
 #define SYSCALL_TABLE_ID0 0
 #endif /* __mips__ */
-#endif /* __KERNEL__ */
 
-
-#include "ppm_events_public.h"
-#ifdef __KERNEL__
-#include "ppm.h"
 #if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
 #include "ppm_compat_unistd_32.h"
 #endif
 #else
+#define SYSCALL_TABLE_ID0 0
+
 /*
  * In userspace, we always need to compile the full syscall table,
  * faking full support; this allows userspace code to be
@@ -62,13 +43,16 @@ or GPL2.txt for full copies of the license.
 #endif /* __x86_64__ */
 #endif /* __KERNEL__ */
 
+#include "ppm_events_public.h"
+
 /*
  * SYSCALL TABLE
  * FIXME: kmod only supports SYSCALL_TABLE_ID0
  */
 const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_open
-	[__NR_open - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E, PPME_SYSCALL_OPEN_X, PPM_SC_OPEN},
+	[__NR_open - SYSCALL_TABLE_ID0] =                       {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_OPEN_E,
+								 PPME_SYSCALL_OPEN_X, PPM_SC_OPEN},
 #endif
 #ifdef __NR_creat
 	[__NR_creat - SYSCALL_TABLE_ID0] =                      {UF_USED | UF_NEVER_DROP, PPME_SYSCALL_CREAT_E, PPME_SYSCALL_CREAT_X, PPM_SC_CREAT},
