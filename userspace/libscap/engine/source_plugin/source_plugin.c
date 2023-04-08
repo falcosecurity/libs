@@ -233,18 +233,18 @@ struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engin
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	*nstats = MAX_SOURCE_PLUGIN_COUNTERS_STATS;
-	scap_stats_v2* stats = (scap_stats_v2*)malloc(*nstats * sizeof(scap_stats_v2));
-
-	if (MAX_SOURCE_PLUGIN_COUNTERS_STATS > *nstats)
+	scap_stats_v2* stats = handle->m_stats;
+	if (!stats)
 	{
+		*nstats = 0;
 		*rc = SCAP_FAILURE;
-		return stats;
+		return NULL;
 	}
 
 	/* UDIG STATS COUNTERS */
-	for(int stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
+	for(uint32_t stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
 	{
-		stats[stat].valid = true;
+		stats[stat].type = STATS_VALUE_TYPE_U64;
 		stats[stat].flags = 0;
 		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);

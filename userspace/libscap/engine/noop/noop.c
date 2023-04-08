@@ -88,6 +88,8 @@ int32_t noop_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 
 struct scap_stats_v2* noop_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
+	*rc = SCAP_SUCCESS;
+	*nstats = 0;
 	return NULL;
 }
 

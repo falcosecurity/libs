@@ -1892,11 +1892,6 @@ struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nsta
 	return stats_v2;
 }
 
-void sinsp::free_capture_stats_v2(scap_stats_v2* scap_stats_v2) const
-{
-	scap_free_stats_v2(scap_stats_v2);
-}
-
 #ifdef GATHER_INTERNAL_STATS
 sinsp_stats sinsp::get_stats()
 {

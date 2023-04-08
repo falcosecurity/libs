@@ -147,7 +147,7 @@ typedef struct scap_stats
 }scap_stats;
 
 
-typedef union scap_stats_v2_union {
+typedef union scap_stats_v2_value {
 	uint32_t u32;
 	int32_t s32;
 	uint64_t u64;
@@ -155,7 +155,17 @@ typedef union scap_stats_v2_union {
 	double d;
 	float f;
 	int i;
-}scap_stats_v2_union;
+}scap_stats_v2_value;
+
+typedef enum scap_stats_v2_value_type{
+	STATS_VALUE_TYPE_U32,
+	STATS_VALUE_TYPE_S32,
+	STATS_VALUE_TYPE_U64,
+	STATS_VALUE_TYPE_S64,
+	STATS_VALUE_TYPE_D,
+	STATS_VALUE_TYPE_F,
+	STATS_VALUE_TYPE_I,
+}scap_stats_v2_value_type;
 
 /*!
   \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
@@ -164,10 +174,10 @@ typedef struct scap_stats_v2
 {
 	/* Metadata */
 	char name[STATS_NAME_MAX];
-	bool valid;
 	uint32_t flags;
 	/* Stats values */
-	union scap_stats_v2_union value;
+	union scap_stats_v2_value value;
+	enum scap_stats_v2_value_type type;
 	// todo: add unit enum
 }scap_stats_v2;
 
@@ -757,11 +767,6 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
   \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 */
 struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
-
-/*!
-  \brief Free \ref scap_stats_v2 structure filled with the statistics.
-*/
-void scap_free_stats_v2(scap_stats_v2* scap_stats_v2);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
