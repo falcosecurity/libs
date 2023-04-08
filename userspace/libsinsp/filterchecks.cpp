@@ -1885,6 +1885,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.args", "Arguments", "The arguments passed on the command line when starting the process generating the event excluding argv[0]."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.cmdline", "Command Line", "The full command line (proc.name + proc.args) when starting the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.pcmdline", "Parent Command Line", "The full command line (proc.name + proc.args) of the parent of the process generating the event."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.acmdline", "Ancestor Command Line", "The full command line (proc.name + proc.args) of one of the process ancestors. e.g. proc.acmdline[1] returns the parent full command line, proc.acmdline[2] returns the grandparent full command line and so on. proc.acmdline[0] is the full command line of the current process. proc.acmdline without arguments can be used in filters only and matches any of the process ancestors, e.g. proc.acmdline contains base64."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdnargs", "Number of Command Line args", "The number of command line args (proc.args)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.cmdlenargs", "Total Count of Characters in Command Line args", "The total count of characters / length of the comamnd line args (proc.args) combined excluding whitespaces between args."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.exeline", "Executable Command Line", "The full command line, with exe as first argument (proc.exe + proc.args) when starting the process generating the event."},
@@ -1899,6 +1900,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_INT64, EPF_NONE, PF_ID, "proc.pvpid", "Parent Virtual Process ID", "The id of the parent process generating the event as seen from its current PID namespace."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.sid", "Process Session ID", "The session id of the process generating the event."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sname", "Process Session Name", "The name of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sid.exe", "Process Session First Argument", "The first command line argument argv[0] (usually the executable name or a custom one) of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "proc.sid.exepath", "Process Session Executable Path", "The full executable path of the current process's session leader. This is either the process with pid=proc.sid or the eldest ancestor that has the same sid as the current process."},
 	{PT_INT64, EPF_NONE, PF_ID, "proc.vpgid", "Process Virtual Group ID", "The process group id of the process generating the event, as seen from its current PID namespace."},
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.duration", "Process Duration", "Number of nanoseconds since the process started."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "'true' if this process' executable file is writable by the same user that spawned the process."},
@@ -1966,7 +1969,7 @@ int32_t sinsp_filter_check_thread::extract_arg(string fldname, string val, OUT c
 	//
 	// 'arg' and 'resarg' are handled in a custom way
 	//
-	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME || m_field_id == TYPE_AEXE || m_field_id == TYPE_AEXEPATH)
+	if(m_field_id == TYPE_APID || m_field_id == TYPE_ANAME || m_field_id == TYPE_AEXE || m_field_id == TYPE_AEXEPATH || m_field_id == TYPE_ACMDLINE )
 	{
 		if(val[fldname.size()] == '[')
 		{
@@ -2083,7 +2086,7 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 
 		return res;
 	}
-	/* note: because of str similarity of proc.aexe to proc.aexepath, this needs to be placed after proc.aexepath*/
+	/* note: because of str similarity of proc.aexe to proc.aexepath, this needs to be placed after proc.aexepath */
 	else if(STR_MATCH("proc.aexe"))
 	{
 		m_field_id = TYPE_AEXE;
@@ -2098,6 +2101,28 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		catch(...)
 		{
 			if(val == "proc.aexe")
+			{
+				m_argid = -1;
+				res = (int32_t)val.size();
+			}
+		}
+
+		return res;
+	}
+	else if(STR_MATCH("proc.acmdline"))
+	{
+		m_field_id = TYPE_ACMDLINE;
+		m_field = &m_info.m_fields[m_field_id];
+
+		int32_t res = 0;
+
+		try
+		{
+			res = extract_arg("proc.acmdline", val, NULL);
+		}
+		catch(...)
+		{
+			if(val == "proc.acmdline")
 			{
 				m_argid = -1;
 				res = (int32_t)val.size();
@@ -2306,6 +2331,94 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
+	case TYPE_SID_EXE:
+		{
+			//
+			// Relying on the convention that a session id is the process id of the session leader
+			//
+			sinsp_threadinfo* sinfo =
+				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+
+			if(sinfo != NULL)
+			{
+				m_tstr = sinfo->get_exe();
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else
+			{
+				// This can occur when the session leader process has exited.
+				// Find the highest ancestor process that has the same session id and
+				// declare it to be the session leader.
+				sinsp_threadinfo* mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+
+				int64_t sid = mt->m_sid;
+				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
+				{
+					if(pt->m_sid != sid)
+					{
+						return false;
+					}
+					mt = pt;
+					return true;
+				};
+
+				mt->traverse_parent_state(visitor);
+
+				// mt has been updated to the highest process that has the same session id.
+				// mt's comm is considered the session leader.
+				m_tstr = mt->get_exe();
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+		}
+	case TYPE_SID_EXEPATH:
+		{
+			//
+			// Relying on the convention that a session id is the process id of the session leader
+			//
+			sinsp_threadinfo* sinfo =
+				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+
+			if(sinfo != NULL)
+			{
+				m_tstr = sinfo->get_exepath();
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+			else
+			{
+				// This can occur when the session leader process has exited.
+				// Find the highest ancestor process that has the same session id and
+				// declare it to be the session leader.
+				sinsp_threadinfo* mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+
+				int64_t sid = mt->m_sid;
+				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
+				{
+					if(pt->m_sid != sid)
+					{
+						return false;
+					}
+					mt = pt;
+					return true;
+				};
+
+				mt->traverse_parent_state(visitor);
+
+				// mt has been updated to the highest process that has the same session id.
+				// mt's comm is considered the session leader.
+				m_tstr = mt->get_exepath();
+				RETURN_EXTRACT_STRING(m_tstr);
+			}
+		}
 	case TYPE_TTY:
 		RETURN_EXTRACT_VAR(tinfo->m_tty);
 	case TYPE_NAME:
@@ -2489,6 +2602,36 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			{
 				return NULL;
 			}
+		}
+		case TYPE_ACMDLINE:
+		{
+			sinsp_threadinfo* mt = NULL;
+
+			if(tinfo->is_main_thread())
+			{
+				mt = tinfo;
+			}
+			else
+			{
+				mt = tinfo->get_main_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+
+			for(int32_t j = 0; j < m_argid; j++)
+			{
+				mt = mt->get_parent_thread();
+
+				if(mt == NULL)
+				{
+					return NULL;
+				}
+			}
+			sinsp_threadinfo::populate_cmdline(m_tstr, mt);
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_APID:
 		{
@@ -3207,6 +3350,61 @@ bool sinsp_filter_check_thread::compare_full_aexepath(sinsp_evt *evt)
 	return found;
 }
 
+bool sinsp_filter_check_thread::compare_full_acmdline(sinsp_evt *evt)
+{
+	sinsp_threadinfo* tinfo = evt->get_thread_info();
+
+	if(tinfo == NULL)
+	{
+		return false;
+	}
+
+	sinsp_threadinfo* mt = NULL;
+
+	if(tinfo->is_main_thread())
+	{
+		mt = tinfo;
+	}
+	else
+	{
+		mt = tinfo->get_main_thread();
+
+		if(mt == NULL)
+		{
+			return false;
+		}
+	}
+
+	//
+	// No id specified, search in all of the ancestors
+	//
+	bool found = false;
+	sinsp_threadinfo::visitor_func_t visitor = [this, &found] (sinsp_threadinfo *pt)
+	{
+		bool res;
+		std::string cmdline;
+		sinsp_threadinfo::populate_cmdline(cmdline, pt);
+
+		res = flt_compare(m_cmpop,
+				  PT_CHARBUF,
+				  (void*)cmdline.c_str());
+
+		if(res == true)
+		{
+			found = true;
+
+			// Can stop traversing parent state
+			return false;
+		}
+
+		return true;
+	};
+
+	mt->traverse_parent_state(visitor);
+
+	return found;
+}
+
 bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 {
 	if(m_field_id == TYPE_APID)
@@ -3235,6 +3433,13 @@ bool sinsp_filter_check_thread::compare(sinsp_evt *evt)
 		if(m_argid == -1)
 		{
 			return compare_full_aexepath(evt);
+		}
+	}
+	else if(m_field_id == TYPE_ACMDLINE)
+	{
+		if(m_argid == -1)
+		{
+			return compare_full_acmdline(evt);
 		}
 	}
 

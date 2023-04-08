@@ -346,6 +346,7 @@ public:
 		TYPE_ARGS,
 		TYPE_CMDLINE,
 		TYPE_PCMDLINE,
+		TYPE_ACMDLINE,
 		TYPE_CMDNARGS,
 		TYPE_CMDLENARGS,
 		TYPE_EXELINE,
@@ -360,6 +361,8 @@ public:
 		TYPE_PVPID,
 		TYPE_SID,
 		TYPE_SNAME,
+		TYPE_SID_EXE,
+		TYPE_SID_EXEPATH,
 		TYPE_VPGID,
 		TYPE_DURATION,
 		TYPE_IS_EXE_WRITABLE,
@@ -419,6 +422,7 @@ private:
 	bool compare_full_aname(sinsp_evt *evt);
 	bool compare_full_aexe(sinsp_evt *evt);
 	bool compare_full_aexepath(sinsp_evt *evt);
+	bool compare_full_acmdline(sinsp_evt *evt);
 
 	int32_t m_argid;
 	std::string m_argname;

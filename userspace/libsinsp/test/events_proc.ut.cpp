@@ -350,8 +350,13 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	// check that the exepath is updated
 	ASSERT_EQ(get_field_as_string(evt, "proc.exepath"), "/bin/test-exe");
 	ASSERT_EQ(get_field_as_string(evt, "proc.aexepath[0]"), "/bin/test-exe");
+	// check session leader (sid) related fields
+	ASSERT_EQ(get_field_as_string(evt, "proc.sid"), "0");
+	ASSERT_EQ(get_field_as_string(evt, "proc.sname"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.sid.exe"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.sid.exepath"), "/sbin/init");
 
-	// check that parent/ancestor info are taken from the parent process
+	// check that parent/ancestor info retrieved from the parent process lineage
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
 
 	ASSERT_EQ(get_field_as_string(evt, "proc.pexepath"), "/sbin/init");
@@ -370,9 +375,14 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	ASSERT_EQ(get_field_as_string(evt, "proc.apid[1]"), "1");
 	ASSERT_FALSE(field_exists(evt, "proc.apid[2]"));
 
+	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.pcmdline"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[0]"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
+	ASSERT_EQ(get_field_as_string(evt, "proc.acmdline[1]"), "init");
+	ASSERT_FALSE(field_exists(evt, "proc.acmdline[2]"));
+
 	// check more fields
 	ASSERT_EQ(get_field_as_string(evt, "proc.args"), "-c 'echo aGVsbG8K | base64 -d'");
-	ASSERT_EQ(get_field_as_string(evt, "proc.cmdline"), "test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.exeline"), "/bin/test-exe -c 'echo aGVsbG8K | base64 -d'");
 	ASSERT_EQ(get_field_as_string(evt, "proc.tty"), "34818");
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid"), "1");
