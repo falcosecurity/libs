@@ -34,13 +34,19 @@ or GPL2.txt for full copies of the license.
  * able to manage all syscalls->events mappings,
  * even if the driver won't be able to send all syscalls.
  */
-#ifdef __x86_64__
+#if defined(__GNUC__)
+#if defined(__x86_64__)
 #include "syscall_compat_x86_64.h"
-#elif __aarch64__
+#elif defined(__aarch64__)
 #include "syscall_compat_aarch64.h"
-#elif __s390x__
+#elif defined(__s390x__)
 #include "syscall_compat_s390x.h"
 #endif /* __x86_64__ */
+#elif defined(_MSC_VER)
+// these are Linux syscall numbers and obviously meaningless for Windows
+// but we need *some* definition so that we have a mapping for scap_ppm_sc.c
+#include "syscall_compat_x86_64.h"
+#endif /* __GNUC__ */
 #endif /* __KERNEL__ */
 
 #include "ppm_events_public.h"
