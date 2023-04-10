@@ -12,9 +12,9 @@ or GPL2.txt for full copies of the license.
 #include <linux/version.h>
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
 #include "ppm_syscall.h"
-#else
-#include <asm/syscall.h>
 #endif
+
+#include <asm/syscall.h>
 
 #ifdef __mips__
 #define SYSCALL_TABLE_ID0 __NR_Linux
@@ -43,7 +43,7 @@ or GPL2.txt for full copies of the license.
 #include "syscall_compat_s390x.h"
 #endif /* __x86_64__ */
 #elif defined(_MSC_VER)
-// these are Linux syscall numbers and obviously meaningless for Windows
+// these are Linux syscall numbers and obviously meaningless for Windows/macOS
 // but we need *some* definition so that we have a mapping for scap_ppm_sc.c
 #include "syscall_compat_x86_64.h"
 #endif /* __GNUC__ */
