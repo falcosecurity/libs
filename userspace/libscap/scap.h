@@ -231,6 +231,13 @@ typedef struct pid_vtid_info
 	UT_hash_handle hh; ///< makes this structure hashable
 }pid_vtid_info;
 
+typedef struct tid_vtid_info
+{
+	uint64_t tid;
+	uint64_t vtid;
+	UT_hash_handle hh; ///< makes this structure hashable
+}tid_vtid_info;
+
 /*!
   \brief Process information
 */
@@ -1113,7 +1120,11 @@ int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, ui
 int32_t scap_set_statsd_port(scap_t* handle, uint16_t port);
 
 bool put_pid_vtid_map(scap_t *handle, uint64_t pid, uint64_t tid, uint64_t vtid);
+void delete_pid_vtid_map(scap_t *handle, uint64_t pid, uint64_t vtid);
 uint64_t get_pid_vtid_map(scap_t *handle, uint64_t pid, uint64_t vtid);
+bool put_tid_vtid_map(scap_t *handle, uint64_t tid, uint64_t vtid);
+uint64_t get_tid_vtid_map(scap_t *handle,uint64_t tid);
+void delete_tid_vtid_map(scap_t *handle, uint64_t tid);
 #ifdef __cplusplus
 }
 #endif

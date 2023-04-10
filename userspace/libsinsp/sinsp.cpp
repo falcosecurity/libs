@@ -1475,6 +1475,11 @@ bool sinsp::add_pid_vtid_info(uint64_t pid, uint64_t tid, uint64_t vtid)
 	return put_pid_vtid_map(m_h, pid, tid, vtid);
 }
 
+void sinsp::del_pid_vtid_info(uint64_t pid, uint64_t tid)
+{
+	delete_pid_vtid_map(m_h, pid, tid);
+}
+
 uint64_t sinsp::get_pid_vtid_info(uint64_t pid, uint64_t vtid)
 {
 	return get_pid_vtid_map(m_h, pid, vtid);

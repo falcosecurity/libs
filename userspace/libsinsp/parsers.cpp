@@ -3107,6 +3107,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	//
 	if(evt->m_tinfo)
 	{
+		m_inspector->del_pid_vtid_info(evt->m_tinfo->m_pid, evt->m_tinfo->m_tid);
 		evt->m_tinfo->m_flags |= PPM_CL_CLOSED;
 		m_inspector->m_tid_to_remove = evt->get_tid();
 	}
