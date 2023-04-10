@@ -535,6 +535,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			sanitize_string(m_tstr);
 		}
 		RETURN_EXTRACT_STRING(m_tstr);
+		break;
 	case TYPE_FDTYPE:
 		if(m_fdinfo == NULL)
 		{
@@ -545,7 +546,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			uint8_t *typestr = (uint8_t*)m_fdinfo->get_typestring();
 			RETURN_EXTRACT_CSTR(typestr);
 		}
-
+		break;
 	case TYPE_DIRECTORY:
 	case TYPE_CONTAINERDIRECTORY:
 		{
@@ -588,6 +589,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_FILENAME:
 		{
 			if(m_fdinfo == NULL)
@@ -621,6 +623,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_FDTYPECHAR:
 		if(m_fdinfo == NULL)
 		{
@@ -654,7 +657,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip);
 			}
 		}
-
 		break;
 	case TYPE_CLIENTIP_NAME:
 		{
@@ -684,7 +686,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
-
 		break;
 	case TYPE_SNET:
 	case TYPE_SERVERIP:
@@ -717,7 +718,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6serverinfo.m_ip);
 			}
 		}
-
 		break;
 	case TYPE_SERVERIP_NAME:
 		{
@@ -755,7 +755,6 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				RETURN_EXTRACT_STRING(m_tstr);
 			}
 		}
-
 		break;
 	case TYPE_LNET:
 	case TYPE_RNET:
@@ -781,6 +780,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 
+			/* With local we mean that the client address corresponds to one of our local interfaces */
 			bool is_local;
 
 			if(evt_type == SCAP_FD_IPV4_SOCK)
@@ -930,6 +930,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				RETURN_EXTRACT_VAR(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sport);
 			}
 		}
+		break;
 	case TYPE_CLIENTPROTO:
 		{
 			if(m_fdinfo == NULL)
@@ -956,6 +957,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_SERVERPORT:
 		{
 			if(m_fdinfo == NULL)
@@ -996,6 +998,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				return NULL;
 			}
 		}
+		break;
 	case TYPE_SERVERPROTO:
 		{
 			if(m_fdinfo == NULL)
@@ -1048,6 +1051,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_LPORT:
 	case TYPE_RPORT:
 		{
@@ -1079,7 +1083,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				is_local = m_inspector->get_ifaddr_list()->is_ipv6addr_in_local_machine(m_fdinfo->m_sockinfo.m_ipv6info.m_fields.m_sip, m_tinfo);
 			}
 
- 	                if(is_local)
+ 	        if(is_local)
 			{
 				if(m_field_id == TYPE_LPORT || m_field_id == TYPE_LPROTO)
 				{
@@ -1130,7 +1134,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 				}
 			}
 		}
-
+		break;
 
 	case TYPE_LPROTO:
 	case TYPE_RPROTO:
@@ -1220,6 +1224,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 			m_tstr = port_to_string(nport, this->m_fdinfo->get_l4proto(), m_inspector->m_hostname_and_port_resolution_enabled);
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 
 	case TYPE_L4PROTO:
 		{
@@ -1251,6 +1256,7 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		break;
 	case TYPE_IS_SERVER:
 		{
 			if(m_fdinfo == NULL)
