@@ -14,7 +14,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_syscall.h"
 #endif
 
-#include <asm/syscall.h>
+#include <asm/unistd.h>
 
 #ifdef __mips__
 #define SYSCALL_TABLE_ID0 __NR_Linux
