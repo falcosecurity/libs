@@ -109,8 +109,9 @@ set(DRIVER_SOURCES
 	ppm_ringbuffer.h
 	ppm_syscall.h
 	syscall_table.c
+	syscall_table32.c
+	syscall_table64.c
 	ppm_cputime.c
-	ppm_compat_unistd_32.h
 	ppm_version.h
 	systype_compat.h
 	ppm_tp.h

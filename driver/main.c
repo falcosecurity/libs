@@ -56,9 +56,8 @@ or GPL2.txt for full copies of the license.
 #include "ppm_events.h"
 #include "ppm.h"
 #include "ppm_tp.h"
-#if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
-#include "ppm_compat_unistd_32.h"
-#endif
+
+#define __NR_ia32_socketcall 102
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("the Falco authors");
