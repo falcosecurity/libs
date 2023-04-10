@@ -16,7 +16,7 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 #include <linux/types.h>
-#elif __USE_VMLINUX__ 
+#elif defined(__USE_VMLINUX__ )
 /* In the modern probe, if we have the vmlinux.h we need nothing here. */
 #else
 #include "../userspace/common/types.h"

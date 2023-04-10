@@ -20,7 +20,7 @@
 #include <asm/thread_info.h>	/* for TS_COMPAT */
 #include <asm/unistd.h>
 
-#ifndef NS_syscalls
+#ifndef NR_syscalls
 #define NR_syscalls (__NR_syscall_max + 1)
 #endif
 
