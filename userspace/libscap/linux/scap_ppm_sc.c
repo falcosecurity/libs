@@ -431,8 +431,7 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	[PPME_SYSCALL_SIGNALFD4_X] = (ppm_sc_code[]){PPM_SC_SIGNALFD4, -1},
 };
 
-// TODO: or c standard is c11
-#ifndef _MSC_VER
+#if defined(__GNUC__) || (__STDC_VERSION__ >=201112L)
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");
 #endif
 
