@@ -86,6 +86,8 @@ std::string to_null_delimited(std::vector<std::string> list);
 template<typename T>
 std::set<T> unordered_set_to_ordered(std::unordered_set<T> unordered_set);
 
+struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string);
+struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string);
 std::vector<uint8_t> pack_sockaddr(sockaddr *sa);
 std::vector<uint8_t> pack_socktuple(sockaddr *src, sockaddr *dest);
 

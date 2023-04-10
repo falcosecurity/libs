@@ -27,6 +27,26 @@ limitations under the License.
 
 namespace test_utils {
 
+struct sockaddr_in fill_sockaddr_in(int32_t ipv4_port, const char* ipv4_string)
+{
+	struct sockaddr_in sockaddr;
+	memset(&sockaddr, 0, sizeof(sockaddr));
+	sockaddr.sin_family = AF_INET;
+	sockaddr.sin_port = htons(ipv4_port);
+	inet_pton(AF_INET, ipv4_string, &(sockaddr.sin_addr));
+	return sockaddr;
+}
+
+struct sockaddr_in6 fill_sockaddr_in6(int32_t ipv6_port, const char* ipv6_string)
+{
+	struct sockaddr_in6 sockaddr;
+	memset(&sockaddr, 0, sizeof(sockaddr));
+	sockaddr.sin6_family = AF_INET6;
+	sockaddr.sin6_port = htons(ipv6_port);
+	inet_pton(AF_INET6, ipv6_string, &(sockaddr.sin6_addr));
+	return sockaddr;
+}
+
 std::string to_null_delimited(const std::vector<std::string> list)
 {
 	std::string res;
