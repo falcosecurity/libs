@@ -8,12 +8,6 @@ or GPL2.txt for full copies of the license.
 */
 
 #ifdef __KERNEL__
-
-#include <linux/version.h>
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 20)
-#include "ppm_syscall.h"
-#endif
-
 #include <asm/unistd.h>
 
 #ifdef __mips__
