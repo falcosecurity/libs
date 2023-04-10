@@ -134,7 +134,7 @@ add_library(scap_event_schema
 		../../driver/dynamic_params_table.c
 		../../driver/event_table.c
 		../../driver/flags_table.c
-		../../driver/syscall_table.c
+		../../driver/syscall_table64.c
 		linux/scap_ppm_sc.c
         )
 
