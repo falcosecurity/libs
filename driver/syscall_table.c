@@ -9,6 +9,13 @@ or GPL2.txt for full copies of the license.
 
 #include "ppm_events_public.h"
 
+#if defined(__KERNEL__) && defined(__mips__)
+#define SYSCALL_TABLE_ID0 __NR_Linux
+#else
+#define SYSCALL_TABLE_ID0 0
+#endif
+
+
 /*
  * SYSCALL TABLE
  * FIXME: kmod only supports SYSCALL_TABLE_ID0

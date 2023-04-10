@@ -9,19 +9,7 @@ or GPL2.txt for full copies of the license.
 
 #ifdef __KERNEL__
 #include <asm/unistd.h>
-
-#ifdef __mips__
-#define SYSCALL_TABLE_ID0 __NR_Linux
-#else /* __mips__ */
-#define SYSCALL_TABLE_ID0 0
-#endif /* __mips__ */
-
-#if defined(CONFIG_IA32_EMULATION) && !defined(__NR_ia32_socketcall)
-#include "ppm_compat_unistd_32.h"
-#endif
 #else
-#define SYSCALL_TABLE_ID0 0
-
 /*
  * In userspace, we always need to compile the full syscall table,
  * faking full support; this allows userspace code to be
