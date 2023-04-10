@@ -62,7 +62,8 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 
 	*pevent = *(data->events++);
 	data->event_count--;
-
+	/* All the events are sent by CPU 1 */
+	*pcpuid = 1; 
 	return SCAP_SUCCESS;
 }
 
