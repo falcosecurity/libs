@@ -127,12 +127,12 @@ TEST_F(sinsp_with_test_input, event_sources)
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 
-	// metaevents have no event source
+	// metaevents have the "syscall" event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_CONTAINER_JSON_E, 1, "{\"value\": 1}");
 	ASSERT_EQ(evt->get_type(), PPME_CONTAINER_JSON_E);
-	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
-	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
-	ASSERT_FALSE(field_exists(evt, "evt.source"));
+	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
+	ASSERT_EQ(get_field_as_string(evt, "evt.source"), syscall_source_name);
 
 	// events coming from unknown plugins should have no event source
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 1, scap_const_sized_buffer{&sample_plugin_evtdata, strlen(sample_plugin_evtdata) + 1});
