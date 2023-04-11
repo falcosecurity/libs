@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,21 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 */
+
 #pragma once
 
-#include <stdint.h>
-#include "ringbuffer/devset.h"
-#include "scap_open.h"
-#include "scap_kmod_stats.h"
-#include "scap.h"
+typedef enum modern_bpf_kernel_counters_stats {
+	MODERN_BPF_N_EVTS = 0,
+	MODERN_BPF_N_DROPS_BUFFER_TOTAL,
+	MODERN_BPF_N_DROPS_SCRATCH_MAP,
+	MODERN_BPF_N_DROPS,
+	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
+}modern_bpf_kernel_counters_stats;
 
-struct kmod_engine
-{
-	struct scap_device_set m_dev_set;
-	char* m_lasterr;
-	interesting_ppm_sc_set curr_sc_set;
-	uint64_t m_api_version;
-	uint64_t m_schema_version;
-	bool capturing;
-	scap_stats_v2 m_stats[KMOD_MAX_KERNEL_COUNTERS_STATS];
+static const char * const modern_bpf_kernel_counters_stats_names[] = {
+	[MODERN_BPF_N_EVTS] = "n_evts",
+	[MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+	[MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
+	[MODERN_BPF_N_DROPS] = "n_drops",
 };
+

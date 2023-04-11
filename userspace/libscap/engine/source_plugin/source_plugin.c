@@ -241,15 +241,14 @@ struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engin
 		return NULL;
 	}
 
-	/* UDIG STATS COUNTERS */
+	/* SOURCE PLUGIN STATS COUNTERS */
 	for(uint32_t stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
 	{
 		stats[stat].type = STATS_VALUE_TYPE_U64;
-		stats[stat].flags = 0;
 		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, source_plugin_counters_stats_names[stat], STATS_NAME_MAX);
 	}
-	stats[N_EVTS].value.u64 += handle->m_nevts;
+	stats[N_EVTS].value.u64 = handle->m_nevts;
 
 	*rc = SCAP_SUCCESS;
 	return stats;

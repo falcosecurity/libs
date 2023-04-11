@@ -26,7 +26,6 @@ limitations under the License.
 #define INVALID_MAPPING MAP_FAILED
 
 #include "scap_assert.h"
-#include "scap.h"
 
 //
 // Read buffer timeout constants
@@ -35,71 +34,9 @@ limitations under the License.
 #define BUFFER_EMPTY_WAIT_TIME_US_MAX (30 * 1000)
 #define BUFFER_EMPTY_THRESHOLD_B 20000
 
-typedef enum kmod_kernel_counters_stats {
-	KMOD_N_EVTS = 0,
-	KMOD_N_DROPS_BUFFER_TOTAL,
-	KMOD_N_DROPS_BUFFER_CLONE_FORK_ENTER,
-	KMOD_N_DROPS_BUFFER_CLONE_FORK_EXIT,
-	KMOD_N_DROPS_BUFFER_EXECVE_ENTER,
-	KMOD_N_DROPS_BUFFER_EXECVE_EXIT,
-	KMOD_N_DROPS_BUFFER_CONNECT_ENTER,
-	KMOD_N_DROPS_BUFFER_CONNECT_EXIT,
-	KMOD_N_DROPS_BUFFER_OPEN_ENTER,
-	KMOD_N_DROPS_BUFFER_OPEN_EXIT,
-	KMOD_N_DROPS_BUFFER_DIR_FILE_ENTER,
-	KMOD_N_DROPS_BUFFER_DIR_FILE_EXIT,
-	KMOD_N_DROPS_BUFFER_OTHER_INTEREST_ENTER,
-	KMOD_N_DROPS_BUFFER_OTHER_INTEREST_EXIT,
-	KMOD_N_DROPS_PAGE_FAULTS,
-	KMOD_N_DROPS_BUG,
-	KMOD_N_DROPS,
-	KMOD_N_PREEMPTIONS,
-	KMOD_MAX_KERNEL_COUNTERS_STATS
-}kmod_kernel_counters_stats;
-
-static const char * const kmod_kernel_counters_stats_names[] = {
-	[KMOD_N_EVTS] = "n_evts",
-	[KMOD_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-	[KMOD_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
-	[KMOD_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
-	[KMOD_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
-	[KMOD_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
-	[KMOD_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
-	[KMOD_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
-	[KMOD_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
-	[KMOD_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
-	[KMOD_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
-	[KMOD_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
-	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
-	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
-	[KMOD_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
-	[KMOD_N_DROPS_BUG] = "n_drops_bug",
-	[KMOD_N_DROPS] = "n_drops",
-	[KMOD_N_PREEMPTIONS] = "n_preemptions",
-};
-
-typedef enum udig_counters_stats {
-	UDIG_N_EVTS = 0,
-	UDIG_N_DROPS_BUFFER_TOTAL,
-	UDIG_N_DROPS_PAGE_FAULTS,
-	UDIG_N_DROPS,
-	UDIG_N_PREEMPTIONS,
-	UDIG_MAX_COUNTERS_STATS,
-}udig_counters_stats;
-
-static const char * const udig_counters_stats_names[] = {
-	[UDIG_N_EVTS] = "n_evts",
-	[UDIG_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-	[UDIG_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
-	[UDIG_N_DROPS] = "n_drops",
-	[UDIG_N_PREEMPTIONS] = "n_drops_preemptions",
-};
-
-// MAX of KMOD_MAX_KERNEL_COUNTERS_STATS and UDIG_MAX_COUNTERS_STATS
-#define MAX_KMOD_UDIG_COUNTERS_STATS KMOD_MAX_KERNEL_COUNTERS_STATS
-
 struct ppm_ring_buffer_info;
 struct udig_ring_buffer_status;
+
 //
 // The device descriptor
 //
@@ -131,7 +68,6 @@ struct scap_device_set
 	uint32_t m_ndevs;
 	uint64_t m_buffer_empty_wait_time_us;
 	char* m_lasterr;
-	scap_stats_v2 m_stats[MAX_KMOD_UDIG_COUNTERS_STATS]; // used for scap_stats_v2 in kmod and udig
 };
 
 int32_t devset_init(struct scap_device_set *devset, size_t num_devs, char *lasterr);

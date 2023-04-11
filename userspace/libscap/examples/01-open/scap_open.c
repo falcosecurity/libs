@@ -760,9 +760,7 @@ void print_stats()
 {
 	gettimeofday(&tval_end, NULL);
 	timersub(&tval_end, &tval_start, &tval_result);
-	uint32_t flags = 0;
-	flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
-	flags |= PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
 	const scap_stats_v2* stats_v2;
@@ -770,7 +768,7 @@ void print_stats()
 	const scap_machine_info* scap_machine_info = scap_get_machine_info(g_h);
 	/* Current contract: `n_evts` always first stats item. */
 	uint64_t n_evts = 0;
-	if (stats_v2 && nstats > 0 && rc == 0)
+	if (stats_v2 && nstats > 0)
 	{
 		if ((strncmp(stats_v2[0].name, "n_evts", 6) == 0) && stats_v2[0].type == STATS_VALUE_TYPE_U64)
 		{
@@ -807,7 +805,7 @@ void print_stats()
 	{
 		printf("[SCAP-OPEN]: [1] kernel-side counters.\n\n");
 	}
-	if (stats_v2 && nstats > 0 && rc == 0)
+	if (stats_v2 && nstats > 0)
 	{
 		for(int stat =  0;  stat < nstats; stat++)
 		{

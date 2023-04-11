@@ -23,23 +23,9 @@ limitations under the License.
 #include "scap_open.h"
 #include "scap.h"
 #include "../libscap/engine/modern_bpf/modern_bpf_public.h"
+#include "scap_modern_bpf_stats.h"
 
 struct scap;
-
-typedef enum modern_bpf_kernel_counters_stats {
-	MODERN_BPF_N_EVTS = 0,
-	MODERN_BPF_N_DROPS_BUFFER_TOTAL,
-	MODERN_BPF_N_DROPS_SCRATCH_MAP,
-	MODERN_BPF_N_DROPS,
-	MODERN_BPF_MAX_KERNEL_COUNTERS_STATS
-}modern_bpf_kernel_counters_stats;
-
-static const char * const modern_bpf_kernel_counters_stats_names[] = {
-	[MODERN_BPF_N_EVTS] = "n_evts",
-	[MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-	[MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
-	[MODERN_BPF_N_DROPS] = "n_drops",
-};
 
 struct modern_bpf_engine
 {

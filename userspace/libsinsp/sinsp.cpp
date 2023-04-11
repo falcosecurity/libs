@@ -1876,20 +1876,12 @@ uint32_t sinsp::reserve_thread_memory(uint32_t size)
 
 void sinsp::get_capture_stats(scap_stats* stats) const
 {
-	if(scap_get_stats(m_h, stats) != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
+	scap_get_stats(m_h, stats);
 }
 
 struct scap_stats_v2* sinsp::get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const
 {
-	scap_stats_v2* stats_v2 = scap_get_stats_v2(m_h, flags, nstats, rc);
-	if(*rc != SCAP_SUCCESS)
-	{
-		throw sinsp_exception(scap_getlasterr(m_h));
-	}
-	return stats_v2;
+	return scap_get_stats_v2(m_h, flags, nstats, rc);
 }
 
 #ifdef GATHER_INTERNAL_STATS

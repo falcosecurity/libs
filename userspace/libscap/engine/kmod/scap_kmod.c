@@ -533,13 +533,13 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 
 struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
-	struct scap_device_set *devset = &engine.m_handle->m_dev_set;
+	struct kmod_engine *handle = engine.m_handle;
+	struct scap_device_set *devset = &handle->m_dev_set;
 	uint32_t j;
 	*nstats = 0;
-	scap_stats_v2* stats = devset->m_stats;
-	uint32_t nstats_verify = sizeof(devset->m_stats)/sizeof(devset->m_stats[0]);
+	scap_stats_v2* stats = handle->m_stats;
 
-	if (!stats && nstats_verify >= KMOD_MAX_KERNEL_COUNTERS_STATS) // check because devset->m_stats shared among udig and kmod
+	if (!stats)
 	{
 		*rc = SCAP_FAILURE;
 		return NULL;
@@ -547,13 +547,11 @@ struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, u
 
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
 	{
-		*nstats = KMOD_MAX_KERNEL_COUNTERS_STATS;
 		/* KERNEL SIDE STATS COUNTERS */
 		for(uint32_t stat =  0;  stat < KMOD_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].type = STATS_VALUE_TYPE_U64;
-			stats[stat].flags = 0;
-			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
+			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
 			stats[stat].value.u64 = 0;
 			strlcpy(stats[stat].name, kmod_kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
@@ -582,6 +580,7 @@ struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, u
 		}
 	}
 
+	*nstats = KMOD_MAX_KERNEL_COUNTERS_STATS;
 	*rc = SCAP_SUCCESS;
 	return stats;
 }
