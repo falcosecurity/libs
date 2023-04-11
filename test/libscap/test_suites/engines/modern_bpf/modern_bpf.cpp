@@ -192,3 +192,22 @@ TEST(modern_bpf, read_in_order_one_buffer_shared_between_all_possible_CPUs)
 	check_event_order(h);
 	scap_close(h);
 }
+
+TEST(modern_bpf, scap_stats_v2_check_results)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
+	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t nstats;
+	int32_t rc;
+	const scap_stats_v2* stats_v2;
+	stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	const char* name = stats_v2[nstats-1].name;
+	ASSERT_GT(nstats, 0);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(strlen(name), 3);
+	scap_close(h);
+}
