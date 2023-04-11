@@ -631,6 +631,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		// cache index of "syscall" event source in case we haven't already
 		if (m_syscall_event_source_idx == sinsp_no_event_source_idx)
 		{
+			// note: the current inspector's implementation guarantees
+			// that the "syscall" event source is always at index 0, being
+			// the first one in the list. However we don't want to leak
+			// that knowledge down to this level, so we search for it
+			// in order to be resilient to future changes.
+			// The search happens only once.
 			for (size_t i = 0; i < m_inspector->event_sources().size(); i++)
 			{
 				if (m_inspector->event_sources()[i] == sinsp_syscall_event_source_name)
