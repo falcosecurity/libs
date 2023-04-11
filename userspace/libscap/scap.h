@@ -176,8 +176,8 @@ typedef struct scap_stats_v2
 	char name[STATS_NAME_MAX];
 	uint32_t flags;
 	/* Stats values */
-	union scap_stats_v2_value value;
-	enum scap_stats_v2_value_type type;
+	scap_stats_v2_value value;
+	scap_stats_v2_value_type type;
 	// todo: add unit enum
 }scap_stats_v2;
 

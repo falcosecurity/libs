@@ -49,8 +49,6 @@ limitations under the License.
 #include "noop.h"
 #include "strerror.h"
 
-#define STATS_NAME_MAX 512
-
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
 {
 	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
@@ -1624,8 +1622,7 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 		for(uint32_t stat =  0;  stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].type = STATS_VALUE_TYPE_U64;
-			stats[stat].flags = 0;
-			stats[stat].flags |= PPM_SCAP_STATS_KERNEL_COUNTERS;
+			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
 			stats[stat].value.u64 = 0;
 			strlcpy(stats[stat].name, bpf_kernel_counters_stats_names[stat], STATS_NAME_MAX);
 		}
@@ -1679,7 +1676,6 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			if (fd < 0)
 			{
 				// we loop through each possible prog, landing here means prog was not attached
-				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error looking up bpf program fd %d", fd);
 				continue;
 			}
 			struct bpf_prog_info info = {};
@@ -1693,29 +1689,28 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 			for(int stat =  0;  stat < BPF_MAX_LIBBPF_STATS; stat++)
 			{
 				stats[i].type = STATS_VALUE_TYPE_U64;
-				stats[i].flags = 0;
-				stats[i].flags |= PPM_SCAP_STATS_LIBBPF_STATS;
+				stats[i].flags = PPM_SCAP_STATS_LIBBPF_STATS;
 				strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
-				if (stat == RUN_CNT)
+				size_t dest_len = strlen(stats[i].name);
+				switch(stat)
 				{
-					size_t dest_len = strlen(stats[i].name);
+				case RUN_CNT:
 					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[i].name) - dest_len);
 					stats[i].value.u64 = info.run_cnt;
-				}
-				else if (stat == RUN_TIME_NS)
-				{
-					size_t dest_len = strlen(stats[i].name);
+					break;
+				case RUN_TIME_NS:
 					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[i].name) - dest_len);
 					stats[i].value.u64 = info.run_time_ns;
-				}
-				else if (stat == AVG_TIME_NS)
-				{
+					break;
+				case AVG_TIME_NS:
 					if (info.run_cnt > 0)
 					{
-						size_t dest_len = strlen(stats[i].name);
 						strncat(stats[i].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[i].name) - dest_len);
 						stats[i].value.u64 = info.run_time_ns / info.run_cnt;
 					}
+					break;
+				default:
+					break;
 				}
 				i++;
 			}

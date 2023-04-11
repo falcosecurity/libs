@@ -32,6 +32,7 @@ limitations under the License.
 #include "pkg/sentry/seccheck/points/common.pb.h"
 
 #include "strlcpy.h"
+#include "scap_gvisor_stats.h"
 
 namespace scap_gvisor {
 
@@ -464,13 +465,12 @@ struct scap_stats_v2* engine::get_stats_v2(uint32_t flags, uint32_t* nstats, int
 	for(uint32_t stat =  0;  stat < scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS; stat++)
 	{
 		stats[stat].type = STATS_VALUE_TYPE_U64;
-		stats[stat].flags = 0;
 		stats[stat].value.u64 = 0;
 		strlcpy(stats[stat].name, scap_gvisor::stats::gvisor_counters_stats_names[stat], STATS_NAME_MAX);
 	}
 	stats[scap_gvisor::stats::GVISOR_N_EVTS].value.u64 = m_gvisor_stats.n_evts;
-	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUFFER_TOTAL].value.u64 = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
 	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUG].value.u64 = m_gvisor_stats.n_drops_parsing;
+	stats[scap_gvisor::stats::GVISOR_N_DROPS_BUFFER_TOTAL].value.u64 = m_gvisor_stats.n_drops_parsing + m_gvisor_stats.n_drops_gvisor;
 	stats[scap_gvisor::stats::GVISOR_N_DROPS].value.u64 = m_gvisor_stats.n_drops_gvisor;
 
 	*rc = SCAP_SUCCESS;

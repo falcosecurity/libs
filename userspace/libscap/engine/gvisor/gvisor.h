@@ -27,6 +27,7 @@ limitations under the License.
 #include <stdint.h>
 #include <utility>
 #include "scap.h"
+#include "scap_gvisor_stats.h"
 
 namespace scap_gvisor {
 
@@ -99,24 +100,6 @@ uint64_t get_vxid(uint64_t vxid);
 config_result parse_config(std::string config);
 
 } // namespace parsers
-
-namespace stats
-{
-    enum gvisor_counters_stats {
-        GVISOR_N_EVTS = 0,
-        GVISOR_N_DROPS_BUG,
-        GVISOR_N_DROPS_BUFFER_TOTAL,
-        GVISOR_N_DROPS,
-        MAX_GVISOR_COUNTERS_STATS
-    };
-
-    static const char * const gvisor_counters_stats_names[] = {
-        "n_evts",
-        "n_drops_buffer_total",
-        "n_drops_bug",
-        "n_drops",
-    };
-} // namespace stats
 
 namespace runsc
 {

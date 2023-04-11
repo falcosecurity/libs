@@ -299,9 +299,8 @@ extern "C"
 	 * @param flags holding statistics category flags.
 	 * @param nstats Pointer reflecting number of statistics in returned buffer.
 	 * @param rc Pointer to return code.
-	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	 */
-	struct scap_stats_v2* pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats, int32_t* rc);
+	void* pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU

@@ -19,17 +19,9 @@ limitations under the License.
 #include <stdint.h>
 #include "plugin_info.h"
 #include "scap.h"
+#include "source_plugin_stats.h"
 
 struct scap;
-
-typedef enum source_plugin_counters_stats {
-	N_EVTS = 0,
-	MAX_SOURCE_PLUGIN_COUNTERS_STATS,
-}source_plugin_counters_stats;
-
-static const char * const source_plugin_counters_stats_names[] = {
-	[N_EVTS] = "n_evts",
-};
 
 struct source_plugin_engine
 {
