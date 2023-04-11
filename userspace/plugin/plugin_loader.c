@@ -120,6 +120,12 @@ plugin_handle_t* plugin_load_api(const plugin_api* api, char* err)
 {
     // alloc and init memory
     err[0] = '\0';
+    if (!api)
+    {
+        strlcpy(err, "can't allocate plugin handle with invalid API table", PLUGIN_MAX_ERRLEN);
+        return NULL;
+    }
+
     plugin_handle_t* ret = (plugin_handle_t*) calloc (1, sizeof(plugin_handle_t));
     if (!ret)
     {
