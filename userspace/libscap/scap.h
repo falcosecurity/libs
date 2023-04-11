@@ -116,7 +116,21 @@ typedef struct ppm_evt_hdr scap_evt;
 //
 #define SCAP_PROC_SCAN_LOG_NONE 0
 
+//
+// Limits for scap_stats_v2 metric name
+//
 #define STATS_NAME_MAX 512
+
+//
+// machine_info flags
+//
+#define PPM_BPF_STATS_ENABLED (1 << 0)
+
+//
+// scap_stats_v2 flags
+//
+#define PPM_SCAP_STATS_KERNEL_COUNTERS (1 << 0)
+#define PPM_SCAP_STATS_LIBBPF_STATS (1 << 1)
 
 /*!
   \brief Statistics about an in progress capture
