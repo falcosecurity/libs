@@ -43,10 +43,6 @@ struct bpf_engine
 	int m_tail_called_fds[BPF_PROGS_TAIL_CALLED_MAX];
 	int m_tail_called_cnt;
 	bpf_attached_prog m_attached_progs[BPF_PROG_ATTACHED_MAX];
-	/* buffer m_stats holds scap_stats_v2 statistics, static const sized for now,
-	 * may be refactored to allow for dynamic allocation in the future
-	 * in order to reflect true available stats and not over allocate. */
-	scap_stats_v2 m_stats[(BPF_PROG_ATTACHED_MAX * BPF_MAX_LIBBPF_STATS) + BPF_MAX_KERNEL_COUNTERS_STATS];
 
 	int m_bpf_map_fds[BPF_MAPS_MAX];
 	int m_bpf_prog_array_map_idx;
@@ -61,4 +57,5 @@ struct bpf_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
+	scap_stats_v2* m_stats;
 };

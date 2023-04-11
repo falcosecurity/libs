@@ -819,6 +819,24 @@ static int load_all_progs(struct bpf_engine *handle)
 	return SCAP_SUCCESS;
 }
 
+static int allocate_scap_stats_v2(struct bpf_engine *handle)
+{
+	int nprogs = 0;
+	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
+	{
+		if (handle->m_attached_progs[j].fd != -1)
+		{
+			nprogs++;
+		}
+	}
+	handle->m_stats = (scap_stats_v2 *)malloc((BPF_MAX_KERNEL_COUNTERS_STATS + (nprogs * BPF_MAX_LIBBPF_STATS)) * sizeof(scap_stats_v2));
+	if(!handle->m_stats)
+	{
+		return SCAP_FAILURE;
+	}
+	return SCAP_SUCCESS;
+}
+
 static void *perf_event_mmap(struct bpf_engine *handle, int fd, unsigned long *size, unsigned long buf_bytes_dim)
 {
 	int page_size = getpagesize();
@@ -1298,6 +1316,11 @@ int32_t scap_bpf_close(struct scap_engine_handle engine)
 		elf_end(handle->elf);
 		handle->elf = NULL;
 	}
+	if (handle->m_stats)
+	{
+		free(handle->m_stats);
+		handle->m_stats = NULL;
+	}
 	if (handle->program_fd > 0)
 	{
 		close(handle->program_fd);
@@ -1434,6 +1457,14 @@ int32_t scap_bpf_load(
 
 	/* load all progs but don't attach anything */
 	if(load_all_progs(handle) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	/* allocate_scap_stats_v2 dynamically based on number of valid m_attached_progs,
+	 * In the future, it may change when and how we perform the allocation.
+	 */
+	if(allocate_scap_stats_v2(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
