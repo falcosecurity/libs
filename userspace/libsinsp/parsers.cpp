@@ -594,14 +594,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		evt->init();
 	}
 
-	// determine the event source
-	if (evt->m_info->category & EC_METAEVENT)
-	{
-		// metaevent are internal events, and as such they have no concrete event source
-		evt->m_source_idx = sinsp_no_event_source_idx;
-		evt->m_source_name = sinsp_no_event_source_name;
-	}
-	else if (evt->m_info->category & EC_PLUGIN)
+	if (evt->m_info->category & EC_PLUGIN)
 	{
 		// plugin events are produced by plugins of a certain ID, and have the
 		// event source specified by their producer plugin
@@ -609,6 +602,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		{
 			throw sinsp_exception("unknown plugin event type in sinsp parser: " + std::to_string(evt->get_type()));
 		}
+
 		bool pfound = false;
 		auto parinfo = evt->get_param(0);
 		ASSERT(parinfo->m_len == sizeof(int32_t));
