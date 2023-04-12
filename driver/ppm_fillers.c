@@ -7983,7 +7983,6 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	int res;
 	int retval;
-	char *name = NULL;
 	syscall_arg_t option;
 	syscall_arg_t arg2;
 
@@ -8011,12 +8010,7 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 			/*
 			 * arg2_str
 			 */
-			if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)arg2, PPM_MAX_PATH_SIZE) >= 0))
-			{
-				name = args->str_storage;
-				name[PPM_MAX_PATH_SIZE - 1] = '\0';
-			}
-			res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
+			res = val_to_ring(args, arg2, 0, true, 0);
 			CHECK_RES(res);
 			/*
 			 * arg2_int
