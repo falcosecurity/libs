@@ -443,18 +443,12 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 
 	/* Try to get the source and destination port */
 	if (args->event_type == PPME_SOCKET_SENDTO_X) {
-		unsigned long syscall_args[6] = {};
 		unsigned long val;
 		struct sockaddr __user * usrsockaddr;
 		/*
 		 * Get the address
 		 */
-		if (!args->is_socketcall) {
-			ppm_syscall_get_arguments(current, args->regs, syscall_args);
-			val = syscall_args[4];
-		} else {
-			val = args->socketcall_args[4];
-		}
+		val = args->args[4];
 
 		usrsockaddr = (struct sockaddr __user *)val;
 
@@ -467,13 +461,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 			/*
 			 * Get the address len
 			 */
-			if (!args->is_socketcall) {
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[5];
-			} else {
-				val = args->socketcall_args[5];
-			}
-
+			val = args->args[5];
 			if (val != 0) {
 				/*
 				 * Copy the address
@@ -487,7 +475,6 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 			}
 		}
 	} else if (args->event_type == PPME_SOCKET_SENDMSG_X) {
-		unsigned long syscall_args[6] = {};
 		unsigned long val;
 		struct sockaddr __user * usrsockaddr;
 		int addrlen;
@@ -500,12 +487,7 @@ inline u32 compute_snaplen(struct event_filler_arguments *args, char *buf, u32 l
 		struct msghdr mh;
 #endif
 
-		if (!args->is_socketcall) {
-			ppm_syscall_get_arguments(current, args->regs, syscall_args);
-			val = syscall_args[1];
-		} else {
-			val = args->socketcall_args[1];
-		}
+		val = args->args[1];
 
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
@@ -1480,7 +1462,6 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
-	unsigned long syscall_args[6] = {};
 	unsigned long val;
 	u32 notcopied_len;
 	size_t tocopy_len;
@@ -1529,14 +1510,7 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall) {
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[0];
-			}
-#ifndef UDIG
-			else
-				val = args->socketcall_args[0];
-#endif
+			val = args->args[0];
 			args->fd = (int)val;
 
 			/*
@@ -1621,7 +1595,6 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 	unsigned long bufsize;
 	char *targetbuf = args->str_storage;
 	u32 targetbuflen = STR_STORAGE_SIZE;
-	unsigned long syscall_args[6] = {};
 	unsigned long val;
 	u32 notcopied_len;
 	compat_size_t tocopy_len;
@@ -1670,11 +1643,7 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
-			if (!args->is_socketcall) {
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[0];
-			} else
-				val = args->socketcall_args[0];
+			val = args->args[0];
 			args->fd = (int)val;
 
 			/*
@@ -1758,7 +1727,6 @@ int32_t compat_parse_readv_writev_bufs(struct event_filler_arguments *args, cons
 int f_sys_autofill(struct event_filler_arguments *args)
 {
 	int res;
-	syscall_arg_t syscall_args[6] = {0};
 	syscall_arg_t val;
 	u32 j;
 	int64_t retval;
@@ -1768,19 +1736,7 @@ int f_sys_autofill(struct event_filler_arguments *args)
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
-#ifdef _HAS_SOCKETCALL
-			if (args->is_socketcall && evinfo->paramtype == APT_SOCK) {
-				val = args->socketcall_args[evinfo->autofill_args[j].id];
-			} else
-#endif
-			{
-				/*
-				 * Regular argument
-				 */
-				ppm_syscall_get_arguments(current, args->regs, syscall_args);
-				val = syscall_args[evinfo->autofill_args[j].id];
-			}
-
+			val = args->args[evinfo->autofill_args[j].id];
 			res = val_to_ring(args, val, 0, true, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;

@@ -98,8 +98,8 @@ struct ppm_device {
 
 struct event_data_t {
 	enum ppm_capture_category category;
-	int socketcall_syscall;
 	bool compat;
+	bool is_socketcall;
 
 	union {
 		struct {
@@ -1357,41 +1357,12 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
-static long parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
+static long convert_network_syscalls(struct pt_regs *regs)
 {
 	unsigned long __user args[6] = {};
-	unsigned long __user *scargs;
 	int socketcall_id;
 	ppm_syscall_get_arguments(current, regs, args);
 	socketcall_id = args[0];
-	scargs = (unsigned long __user *)args[1];
-
-	if (unlikely(socketcall_id < SYS_SOCKET ||
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
-		socketcall_id > SYS_SENDMMSG))
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-		socketcall_id > SYS_RECVMMSG))
-#else
-		socketcall_id > SYS_ACCEPT4))
-#endif
-		return 0;
-
-#ifdef CONFIG_COMPAT
-	if (unlikely(filler_args->compat)) {
-		compat_ulong_t socketcall_args32[6];
-		int j;
-
-		if (unlikely(ppm_copy_from_user(socketcall_args32, compat_ptr(args[1]), compat_nas[socketcall_id])))
-			return 0;
-		for (j = 0; j < 6; ++j)
-			filler_args->socketcall_args[j] = (unsigned long)socketcall_args32[j];
-	} else {
-#endif
-		if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
-			return 0;
-#ifdef CONFIG_COMPAT
-	}
-#endif
 
 	switch(socketcall_id)
 	{
@@ -1503,7 +1474,48 @@ static long parse_socketcall(struct event_filler_arguments *filler_args, struct 
 
 	return 0;
 }
+
+static int load_socketcall_params(struct event_filler_arguments *filler_args)
+{
+	unsigned long __user args[6] = {};
+	unsigned long __user *scargs;
+	int socketcall_id;
+	ppm_syscall_get_arguments(current, filler_args->regs, args);
+	socketcall_id = args[0];
+	scargs = (unsigned long __user *)args[1];
+
+#ifdef CONFIG_COMPAT
+	if (unlikely(filler_args->compat)) {
+		compat_ulong_t socketcall_args32[6];
+		int j;
+
+		if (unlikely(ppm_copy_from_user(socketcall_args32, compat_ptr(args[1]), compat_nas[socketcall_id])))
+			return -1;
+		for (j = 0; j < 6; ++j)
+			filler_args->args[j] = (unsigned long)socketcall_args32[j];
+	} else {
+#endif
+		if (unlikely(ppm_copy_from_user(filler_args->args, scargs, nas[socketcall_id])))
+			return -1;
+#ifdef CONFIG_COMPAT
+	}
+#endif
+	return 0;
+}
+
 #endif /* _HAS_SOCKETCALL */
+
+static int preload_params(struct event_filler_arguments *filler_args)
+{
+#ifdef _HAS_SOCKETCALL
+	if (filler_args->is_socketcall)
+	{
+		return load_socketcall_params(filler_args);
+	}
+#endif
+	ppm_syscall_get_arguments(current, filler_args->regs, filler_args->args);
+	return 0;
+}
 
 static inline void record_drop_e(struct ppm_consumer_t *consumer,
                                  nanoseconds ns,
@@ -1849,7 +1861,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	}
 
 	// Check if syscall is interesting for the consumer
-	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.id != event_datap->socketcall_syscall)
+	if (event_datap->category == PPMC_SYSCALL)
 	{
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 		if (!test_bit(table_index, consumer->syscalls_mask))
@@ -1942,49 +1954,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	ASSERT(head <= consumer->buffer_bytes_dim);
 	ASSERT(delta_from_end < consumer->buffer_bytes_dim + (2 * PAGE_SIZE));
 	ASSERT(delta_from_end > (2 * PAGE_SIZE) - 1);
-#ifdef _HAS_SOCKETCALL
-	/*
-	 * If this is a socketcall system call, determine the correct event type
-	 * by parsing the arguments and patch event_type accordingly
-	 * A bit of explanation: most linux architectures don't have a separate
-	 * syscall for each of the socket functions (bind, connect...). Instead,
-	 * the socket functions are aggregated into a single syscall, called
-	 * socketcall. The first socketcall argument is the call type, while the
-	 * second argument contains a pointer to the arguments of the original
-	 * call. I guess this was done to reduce the number of syscalls...
-	 */
-	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == event_datap->socketcall_syscall) {
-		long syscall_id;
-		ppm_event_code tet;
-
-		args.is_socketcall = true;
-		args.compat = event_datap->compat;
-		syscall_id = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
-		// Filter interesting syscalls even for socketcall resolved ones
-		table_index = syscall_id - SYSCALL_TABLE_ID0;
-		if (!test_bit(table_index, consumer->syscalls_mask))
-		{
-			return res;
-		}
-
-
-		tet = event_datap->event_info.syscall_data.cur_g_syscall_table[syscall_id].enter_event_type;
-		// We do not directly use exit_event_type since
-		// when `syscall_id` is 0 (ie: parse_socketcall could not match anything),
-		// we still need to map PPME_GENERIC_{E,X}
-		if (event_type == PPME_GENERIC_E)
-			event_type = tet;
-		else
-			event_type = tet + 1;
-
-	} else {
-		args.is_socketcall = false;
-		args.compat = false;
-	}
-
-	args.socketcall_syscall = event_datap->socketcall_syscall;
-#endif
-
 	ASSERT(event_type < PPM_EVENT_MAX);
 
 	/*
@@ -2027,6 +1996,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			args.syscall_id = event_datap->event_info.syscall_data.id;
 			args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
 			args.compat = event_datap->compat;
+			preload_params(&args);
 		} else {
 			args.regs = NULL;
 			args.syscall_id = -1;
@@ -2236,6 +2206,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	long table_index;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	bool compat = false;
+	bool is_socketcall = false;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
 #else
@@ -2261,35 +2232,35 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	g_n_tracepoint_hit_inc();
 
 	table_index = id - SYSCALL_TABLE_ID0;
-	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
-		struct event_data_t event_data;
-		int used = cur_g_syscall_table[table_index].flags & UF_USED;
-		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-		ppm_event_code type;
+	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
+	{
+		return;
+	}
 
 #ifdef _HAS_SOCKETCALL
-		if (id == socketcall_syscall) {
-			used = true;
-			drop_flags = UF_NEVER_DROP;
-			type = PPME_GENERIC_E;
-		} else
-			type = cur_g_syscall_table[table_index].enter_event_type;
-#else
-		type = cur_g_syscall_table[table_index].enter_event_type;
-#endif
-
-		event_data.category = PPMC_SYSCALL;
-		event_data.event_info.syscall_data.regs = regs;
-		event_data.event_info.syscall_data.id = id;
-		event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
-		event_data.socketcall_syscall = socketcall_syscall;
-		event_data.compat = compat;
-
-		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_ENTER);
-		else
-			record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_ENTER);
+	if (id == socketcall_syscall)
+	{
+		id = convert_network_syscalls(regs);
+		table_index = id - SYSCALL_TABLE_ID0;
+		is_socketcall = true;
 	}
+#endif
+	struct event_data_t event_data;
+	int used = cur_g_syscall_table[table_index].flags & UF_USED;
+	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
+	ppm_event_code type = cur_g_syscall_table[table_index].enter_event_type;
+
+	event_data.category = PPMC_SYSCALL;
+	event_data.event_info.syscall_data.regs = regs;
+	event_data.event_info.syscall_data.id = id;
+	event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
+	event_data.compat = compat;
+	event_data.is_socketcall = is_socketcall;
+
+	if (used)
+		record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_ENTER);
+	else
+		record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_ENTER);
 }
 
 static __always_inline bool kmod_drop_syscall_exit_events(long ret, ppm_event_code evt_type)
@@ -2333,6 +2304,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	long table_index;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	bool compat = false;
+	bool is_socketcall = false;
 #ifdef __NR_socketcall
 	int socketcall_syscall = __NR_socketcall;
 #else
@@ -2362,40 +2334,40 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	g_n_tracepoint_hit_inc();
 
 	table_index = id - SYSCALL_TABLE_ID0;
-	if (likely(table_index >= 0 && table_index < SYSCALL_TABLE_SIZE)) {
-		struct event_data_t event_data;
-		int used = cur_g_syscall_table[table_index].flags & UF_USED;
-		enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-		ppm_event_code type;
+	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
+	{
+		return;
+	}
 
 #ifdef _HAS_SOCKETCALL
-		if (id == socketcall_syscall) {
-			used = true;
-			drop_flags = UF_NEVER_DROP;
-			type = PPME_GENERIC_X;
-		} else
-			type = cur_g_syscall_table[table_index].exit_event_type;
-#else
-		type = cur_g_syscall_table[table_index].exit_event_type;
+	if (id == socketcall_syscall)
+	{
+		id = convert_network_syscalls(regs);
+		table_index = id - SYSCALL_TABLE_ID0;
+		is_socketcall = true;
+	}
 #endif
+	struct event_data_t event_data;
+	int used = cur_g_syscall_table[table_index].flags & UF_USED;
+	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
+	ppm_event_code type = cur_g_syscall_table[table_index].exit_event_type;
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
-		if(kmod_drop_syscall_exit_events(ret, type))
-			return;
+	if(kmod_drop_syscall_exit_events(ret, type))
+		return;
 #endif
 
-		event_data.category = PPMC_SYSCALL;
-		event_data.event_info.syscall_data.regs = regs;
-		event_data.event_info.syscall_data.id = id;
-		event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
-		event_data.socketcall_syscall = socketcall_syscall;
-		event_data.compat = compat;
+	event_data.category = PPMC_SYSCALL;
+	event_data.event_info.syscall_data.regs = regs;
+	event_data.event_info.syscall_data.id = id;
+	event_data.event_info.syscall_data.cur_g_syscall_table = cur_g_syscall_table;
+	event_data.compat = compat;
+	event_data.is_socketcall = is_socketcall;
 
-		if (used)
-			record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_EXIT);
-		else
-			record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_EXIT);
-	}
+	if (used)
+		record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_EXIT);
+	else
+		record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_EXIT);
 }
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 9, 1)
