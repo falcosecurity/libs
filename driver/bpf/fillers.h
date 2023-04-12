@@ -7143,7 +7143,7 @@ FILLER(sys_prctl_x, true)
 			/*
 			 * arg2_int
 			 */
-			res = bpf_push_empty_param(data);
+			res = bpf_val_to_ring(data, 0);
 			CHECK_RES(res);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
