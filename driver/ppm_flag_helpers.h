@@ -2065,56 +2065,9 @@ static __always_inline uint32_t splice_flags_to_scap(uint32_t flags)
 #define PPM_OVERLAYFS_SUPER_MAGIC 0x794c7630
 #endif
 
-static __always_inline u32 prctl_options_to_scap(unsigned long options)
+static __always_inline u32 prctl_options_to_scap(int options)
 {
-	switch(options){
-		case PR_GET_DUMPABLE:
-			return PPM_PR_GET_DUMPABLE;
-		case PR_SET_DUMPABLE:
-			return PPM_PR_SET_DUMPABLE;
-		case PR_GET_KEEPCAPS:
-			return PPM_PR_GET_KEEPCAPS;
-		case PR_SET_KEEPCAPS:
-			return PPM_PR_SET_KEEPCAPS;
-		case PR_SET_NAME:
-			return PPM_PR_SET_NAME;
-		case PR_GET_NAME:
-			return PPM_PR_GET_NAME;
-		case PR_GET_SECCOMP:
-			return PPM_PR_GET_SECCOMP;
-		case PR_SET_SECCOMP:
-			return PPM_PR_SET_SECCOMP;
-		case PR_CAPBSET_READ:
-			return PPM_PR_CAPBSET_READ;
-		case PR_CAPBSET_DROP:
-			return PPM_PR_CAPBSET_DROP;
-		case PR_GET_SECUREBITS:
-			return PPM_PR_GET_SECUREBITS;
-		case PR_SET_SECUREBITS:
-			return PPM_PR_SET_SECUREBITS;
-		case PR_MCE_KILL:
-			return PPM_PR_MCE_KILL;
-		case PR_SET_MM:
-			return PPM_PR_SET_MM;
-		case PR_SET_CHILD_SUBREAPER:
-			return PPM_PR_SET_CHILD_SUBREAPER;
-		case PR_GET_CHILD_SUBREAPER:
-			return PPM_PR_GET_CHILD_SUBREAPER;
-		case PR_SET_NO_NEW_PRIVS:
-			return PPM_PR_SET_NO_NEW_PRIVS;
-		case PR_GET_NO_NEW_PRIVS:
-			return PPM_PR_GET_NO_NEW_PRIVS;
-		case PR_GET_TID_ADDRESS:
-			return PPM_PR_GET_TID_ADDRESS;
-		case PR_SET_THP_DISABLE:
-			return PPM_PR_SET_THP_DISABLE;
-		case PR_GET_THP_DISABLE:
-			return PPM_PR_GET_THP_DISABLE;
-		case PR_CAP_AMBIENT:
-			return PPM_PR_CAP_AMBIENT;
-		default:
-			return PPM_PR_UNKNOWN;
-	}
+	return (u32)options;
 }
 
 #endif /* PPM_FLAG_HELPERS_H_ */

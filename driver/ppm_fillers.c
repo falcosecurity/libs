@@ -7983,10 +7983,9 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 {
 	int res;
 	int retval;
+	char *name = NULL;
 	syscall_arg_t option;
 	syscall_arg_t arg2;
-	int reaper_pid;
-	char name[16] = "\0";
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)syscall_get_return_value(current, args->regs);
@@ -8007,40 +8006,45 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &arg2);
 
 	switch(option){
+		case PPM_PR_GET_NAME:
 		case PPM_PR_SET_NAME:
 			/*
 			 * arg2_str
 			 */
-			ppm_strncpy_from_user(name, (const void __user *)arg2, sizeof(name));
-			name[15] = '\0';
+			if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)arg2, PPM_MAX_PATH_SIZE) >= 0))
+			{
+				name = args->str_storage;
+				name[PPM_MAX_PATH_SIZE - 1] = '\0';
+			}
 			res = val_to_ring(args, (int64_t)(long)name, 0, false, 0);
 			CHECK_RES(res);
 			/*
 			 * arg2_int
 			 */
-			res = val_to_ring(args, (unsigned long)NULL, 0, false, 0);
+			res = push_empty_param(args);
 			CHECK_RES(res);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
-			/*
-			 * arg2_str
-			 */
-			res = val_to_ring(args, 0, 0, false, 0);
-			CHECK_RES(res);
-			/*
-			 * arg2_int
-			 */
-			ppm_copy_from_user(&reaper_pid, (void *)arg2, sizeof(int));
-			arg2 = (unsigned long)reaper_pid;
-			res = val_to_ring(args, arg2, 0, false, 0);
-			CHECK_RES(res);
+			{
+				int reaper_attr = 0;
+				/* Parameter 3: arg2_str (type: PT_CHARBUF) */
+				res = push_empty_param(args);
+				CHECK_RES(res);
+				/* Parameter 4: arg2_int (type: PT_INT64) */
+				if(unlikely(ppm_copy_from_user(&reaper_attr, (void *)arg2, sizeof(reaper_attr))))
+				{
+					reaper_attr = 0;
+				}
+				res = val_to_ring(args, (s64)reaper_attr, 0, false, 0);
+				CHECK_RES(res);
+			}
 			break;
 		case PPM_PR_SET_CHILD_SUBREAPER:
 		default:
 			/*
 			 * arg2_str
 			 */
-			res = val_to_ring(args, 0, 0, false, 0);
+			res = push_empty_param(args);
 			CHECK_RES(res);
 			/*
 			 * arg2_int
