@@ -111,16 +111,6 @@ int f_sys_generic(struct event_filler_arguments *args)
 	long table_index = args->syscall_id - SYSCALL_TABLE_ID0;
 	const struct syscall_evt_pair *cur_g_syscall_table = args->cur_g_syscall_table;
 
-#ifdef _HAS_SOCKETCALL
-	if (unlikely(args->syscall_id == args->socketcall_syscall)) {
-		/*
-		 * All the socket calls should be implemented
-		 */
-		ASSERT(false);
-		return PPM_FAILURE_BUG;
-	}
-#endif
-
 	/*
 	 * name
 	 */
@@ -164,7 +154,7 @@ int f_sys_single(struct event_filler_arguments *args)
 	int res;
 	syscall_arg_t val;
 
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -192,7 +182,7 @@ int f_sys_fstat_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -256,7 +246,7 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
 	{
 		name = args->str_storage;
@@ -270,7 +260,7 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -278,7 +268,7 @@ int f_sys_open_e(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -308,7 +298,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -317,7 +307,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -325,7 +315,7 @@ int f_sys_open_x(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -356,13 +346,13 @@ int f_sys_read_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -379,7 +369,7 @@ int f_sys_read_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	args->fd = (int)val;
 
 	/*
@@ -400,7 +390,7 @@ int f_sys_read_x(struct event_filler_arguments *args)
 		val = 0;
 		bufsize = 0;
 	} else {
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 		/*
 		 * The return value can be lower than the value provided by the user,
@@ -427,13 +417,13 @@ int f_sys_write_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -450,7 +440,7 @@ int f_sys_write_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	args->fd = (int)val;
 
 	/* Parameter 1: res (type: PT_ERRNO) */
@@ -460,10 +450,10 @@ int f_sys_write_x(struct event_filler_arguments *args)
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 	/* Get the size from userspace paramater */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	bufsize = retval > 0 ? retval : val;
 
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	args->enforce_snaplen = true;
 	res = val_to_ring(args, val, bufsize, true, 0);
 	CHECK_RES(res);
@@ -929,11 +919,11 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 			switch (args->event_type)
 			{
 			case PPME_SYSCALL_EXECVE_19_X:
-				syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+				syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 				break;
 			
 			case PPME_SYSCALL_EXECVEAT_X:
-				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+				syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 				break;
 
 			default:
@@ -1119,15 +1109,15 @@ cgroups_error:
 		{
 		case PPME_SYSCALL_CLONE_20_X:
 #ifdef CONFIG_S390
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+			syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 #else
-			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+			syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 #endif
 			break;
 
 		case PPME_SYSCALL_CLONE3_X:
 #ifdef __NR_clone3
-			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+			syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 			res = ppm_copy_from_user(&cl_args, (void *)val, sizeof(struct clone_args));
 			if (unlikely(res != 0))
 			{
@@ -1250,11 +1240,11 @@ cgroups_error:
 			switch (args->event_type)
 			{
 			case PPME_SYSCALL_EXECVE_19_X:
-				syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+				syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 				break;
 			
 			case PPME_SYSCALL_EXECVEAT_X:
-				syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+				syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 				break;
 
 			default:
@@ -1470,7 +1460,7 @@ int f_sys_execve_e(struct event_filler_arguments *args)
 	/*
 	 * filename
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if(unlikely(res != PPM_SUCCESS))
 	{
@@ -1489,7 +1479,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	/*
 	 * dirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 	{
@@ -1505,7 +1495,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	/*
 	 * pathname
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 	{
@@ -1515,7 +1505,7 @@ int f_sys_execveat_e(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	flags = execveat_flags_to_scap(val);
 
 	res = val_to_ring(args, flags, 0, false, 0);
@@ -1532,18 +1522,9 @@ int f_sys_socket_bind_e(struct event_filler_arguments *args)
 	int res = 0;
 	s32 fd = 0;
 	unsigned long val = 0;
-
-	if(!args->is_socketcall)
-	{
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	}
-#ifndef UDIG
-	else
-	{
-		val = args->socketcall_args[0];
-	}
-#endif
-
+	
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
+	
 	/* Parameter 1: fd (type: PT_FD) */
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
@@ -1572,24 +1553,14 @@ int f_sys_socket_bind_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	usrsockaddr = (struct sockaddr __user *)val;
 
 	/*
 	 * Get the address len
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[2];
-#endif
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if (usrsockaddr != NULL && val != 0) {
 		/*
@@ -1632,14 +1603,8 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 	struct sockaddr_storage address;
 	syscall_arg_t val;
 
-	if (!args->is_socketcall) {
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-	}
-#ifndef UDIG
-	else
-		fd = (int)args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
+	fd = (int)val;
 
 	res = val_to_ring(args, fd, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -1649,24 +1614,14 @@ int f_sys_connect_e(struct event_filler_arguments *args)
 		/*
 		 * Get the address
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[1];
-#endif
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 		usrsockaddr = (struct sockaddr __user *)val;
 
 		/*
 		 * Get the address len
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[2];
-#endif
+		syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 		if (usrsockaddr != NULL && val != 0) {
 			/*
@@ -1722,37 +1677,21 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	 * Note that, even if we are in the exit callback, the arguments are still
 	 * in the stack, and therefore we can consume them.
 	 */
-	if (!args->is_socketcall) {
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-		fd = (int)val;
-	}
-#ifndef UDIG
-	else
-		fd = (int)args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
+	fd = (int)val;
 
 	if (fd >= 0) {
 		/*
 		 * Get the address
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[1];
-#endif
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 		usrsockaddr = (struct sockaddr __user *)val;
 
 		/*
 		 * Get the address len
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[2];
-#endif
+		syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 		if (usrsockaddr != NULL && val != 0) {
 			/*
@@ -1820,10 +1759,7 @@ int f_sys_socketpair_x(struct event_filler_arguments *args)
 		/*
 		 * fds
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
-		else
-			val = args->socketcall_args[3];
+		syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
 #endif
@@ -2095,12 +2031,7 @@ int f_sys_setsockopt_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Get all the five arguments */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
-#ifndef UDIG
-	else
-		memcpy(val, args->socketcall_args, 5*sizeof(unsigned long));
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 5, val);
 
 	/* Parameter 2: fd (type: PT_FD) */
 	fd = (s32)val[0];
@@ -2135,12 +2066,7 @@ int f_sys_getsockopt_x(struct event_filler_arguments *args)
 	syscall_arg_t val[5] = {0};
 
 	/* Get all the five arguments */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 5, val);
-#ifndef UDIG
-	else
-		memcpy(val, args->socketcall_args, 5*sizeof(unsigned long));
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 5, val);
 
 	/* Parameter 1: res (type: PT_ERRNO) */
 	retval = (int64_t)(long)syscall_get_return_value(current, args->regs);
@@ -2233,12 +2159,7 @@ int f_sys_accept_x(struct event_filler_arguments *args)
 		/*
 		 * queuepct
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &srvskfd);
-#ifndef UDIG
-		else
-			srvskfd = args->socketcall_args[0];
-#endif
+		syscall_get_arguments_deprecated(current, args, 0, 1, &srvskfd);
 
 #ifndef UDIG
 		sock = sockfd_lookup(srvskfd, &err);
@@ -2299,12 +2220,7 @@ int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * fd
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2315,12 +2231,7 @@ int f_sys_send_e_common(struct event_filler_arguments *args, int *fd)
 	/*
 	 * size
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &size);
-#ifndef UDIG
-	else
-		size = args->socketcall_args[2];
-#endif
+	syscall_get_arguments_deprecated(current, args, 2, 1, &size);
 
 	res = val_to_ring(args, size, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -2364,24 +2275,14 @@ int f_sys_sendto_e(struct event_filler_arguments *args)
 	/*
 	 * Get the address
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[4];
-#endif
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 
 	usrsockaddr = (struct sockaddr __user *)val;
 
 	/*
 	 * Get the address len
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[5];
-#endif
+	syscall_get_arguments_deprecated(current, args, 5, 1, &val);
 
 	if (usrsockaddr != NULL && val != 0) {
 		/*
@@ -2426,12 +2327,7 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	args->fd = (int)val;
 
@@ -2443,20 +2339,10 @@ int f_sys_send_x(struct event_filler_arguments *args)
 	/* If the syscall doesn't fail we use the return value as `size`
 	 * otherwise we need to rely on the syscall parameter provided by the user.
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[2];
-#endif
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	bufsize = retval > 0 ? retval : val;
 
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	args->enforce_snaplen = true;
 	res = val_to_ring(args, val, bufsize, true, 0);
@@ -2474,12 +2360,7 @@ int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 	/*
 	 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	args->fd = (int)val;
 
@@ -2501,12 +2382,7 @@ int f_sys_recv_x_common(struct event_filler_arguments *args, int64_t *retval)
 		val = 0;
 		bufsize = 0;
 	} else {
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[1];
-#endif
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 		/*
 		 * The return value can be lower than the value provided by the user,
@@ -2540,31 +2416,13 @@ int f_sys_recvfrom_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	if(!args->is_socketcall)
-	{
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	}
-#ifndef UDIG
-	else
-	{
-		val = args->socketcall_args[0];
-	}
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	if(!args->is_socketcall)
-	{
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
-	}
-#ifndef UDIG
-	else
-	{
-		val = args->socketcall_args[2];
-	}
-#endif
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -2595,35 +2453,19 @@ int f_sys_recvfrom_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-		if (!args->is_socketcall) {
-			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-			fd = (int)val;
-		} 
-#ifndef UDIG
-		else
-			fd = (int)args->socketcall_args[0];
-#endif
+		syscall_get_arguments_deprecated(current, args, 0, 1, &val);
+		fd = (int)val;
 
 		/*
 		 * Get the address
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[4];
-#endif			
+		syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 		usrsockaddr = (struct sockaddr __user *)val;
 
 		/*
 		 * Get the address len
 		 */
-		if (!args->is_socketcall)
-			syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
-#ifndef UDIG
-		else
-			val = args->socketcall_args[5];
-#endif			
+		syscall_get_arguments_deprecated(current, args, 5, 1, &val);
 		if (usrsockaddr != NULL && val != 0) {
 #ifdef CONFIG_COMPAT
 			if (!args->compat) {
@@ -2700,12 +2542,7 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	fd = val;
 	res = val_to_ring(args, val, 0, false, 0);
@@ -2715,12 +2552,7 @@ int f_sys_sendmsg_e(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
@@ -2831,12 +2663,7 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
 #ifdef CONFIG_COMPAT
@@ -2884,16 +2711,7 @@ int f_sys_recvmsg_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	if(!args->is_socketcall)
-	{
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-	}
-#ifndef UDIG
-	else
-	{
-		val = args->socketcall_args[0];
-	}
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -2957,12 +2775,7 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 	/*
 	 * Retrieve the message header
 	 */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
@@ -3002,14 +2815,8 @@ int f_sys_recvmsg_x(struct event_filler_arguments *args)
 		/*
 		 * Get the fd
 		 */
-		if (!args->is_socketcall) {
-			syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-			fd = (int)val;
-		} 
-#ifndef UDIG
-		else
-			fd = (int)args->socketcall_args[0];
-#endif
+		syscall_get_arguments_deprecated(current, args, 0, 1, &val);
+		fd = (int)val;
 
 		/*
 		 * Get the address
@@ -3059,7 +2866,7 @@ int f_sys_creat_e(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
 	{
 		name = args->str_storage;
@@ -3072,7 +2879,7 @@ int f_sys_creat_e(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(O_CREAT, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3100,7 +2907,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3108,7 +2915,7 @@ int f_sys_creat_x(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(O_CREAT, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3147,7 +2954,7 @@ int f_sys_pipe_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Here `val` is a pointer to the vector with the 2 file descriptors. */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
@@ -3203,7 +3010,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Here `val` is a pointer to the vector with the 2 file descriptors. */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
@@ -3242,7 +3049,7 @@ int f_sys_pipe2_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 5: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, pipe2_flags_to_scap((s32)val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -3255,7 +3062,7 @@ int f_sys_eventfd_e(struct event_filler_arguments *args)
 	unsigned long val = 0;
 
 	/* Parameter 1: initval (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -3275,7 +3082,7 @@ int f_sys_eventfd2_e(struct event_filler_arguments *args)
 	unsigned long val = 0;
 
 	/* Parameter 1: initval (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -3294,7 +3101,7 @@ int f_sys_eventfd2_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, eventfd2_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -3308,24 +3115,14 @@ int f_sys_shutdown_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[0];
-#endif
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
-	if (!args->is_socketcall)
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-#ifndef UDIG
-	else
-		val = args->socketcall_args[1];
-#endif
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	res = val_to_ring(args, (unsigned long)shutdown_how_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
@@ -3341,7 +3138,7 @@ int f_sys_futex_e(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3349,7 +3146,7 @@ int f_sys_futex_e(struct event_filler_arguments *args)
 	/*
 	 * op
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, (unsigned long)futex_op_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3357,7 +3154,7 @@ int f_sys_futex_e(struct event_filler_arguments *args)
 	/*
 	 * val
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3374,7 +3171,7 @@ int f_sys_lseek_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3383,7 +3180,7 @@ int f_sys_lseek_e(struct event_filler_arguments *args)
 	/*
 	 * offset
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3391,7 +3188,7 @@ int f_sys_lseek_e(struct event_filler_arguments *args)
 	/*
 	 * whence
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3411,7 +3208,7 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3421,8 +3218,8 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	 * offset
 	 * We build it by combining the offset_high and offset_low system call arguments
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &oh);
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &ol);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &oh);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &ol);
 	offset = (((uint64_t)oh) << 32) + ((uint64_t)ol);
 	res = val_to_ring(args, offset, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3431,7 +3228,7 @@ int f_sys_llseek_e(struct event_filler_arguments *args)
 	/*
 	 * whence
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	res = val_to_ring(args, lseek_whence_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3455,7 +3252,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 	 *
 	 * Get the number of fds
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &nfds);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &nfds);
 
 	/*
 	 * Check if we have enough space to store both the fd list
@@ -3465,7 +3262,7 @@ static int poll_parse_fds(struct event_filler_arguments *args, bool enter_event)
 		return PPM_FAILURE_BUFFER_FULL;
 
 	/* Get the fds pointer */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	fds = (struct pollfd *)args->str_storage;
 
@@ -3527,7 +3324,7 @@ int f_sys_poll_e(struct event_filler_arguments *args)
 	/*
 	 * timeout
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3586,12 +3383,12 @@ int f_sys_ppoll_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: timeout (type: PT_RELTIME) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = timespec_parse(args, val);
 	CHECK_RES(res);
 
 	/* Parameter 3: sigmask (type: PT_SIGSET) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	if (val == (unsigned long)NULL || ppm_copy_from_user(&val, (void __user *)val, sizeof(val)))
 	{
 		val = 0;
@@ -3632,7 +3429,7 @@ int f_sys_mount_e(struct event_filler_arguments *args)
 	 * Fix mount flags in arg 3.
 	 * See http://lxr.free-electrons.com/source/fs/namespace.c?v=4.2#L2650
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	if ((val & PPM_MS_MGC_MSK) == PPM_MS_MGC_VAL)
 		val &= ~PPM_MS_MGC_MSK;
 	res = val_to_ring(args, val, 0, false, 0);
@@ -3653,7 +3450,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	/*
 	 * dirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -3665,7 +3462,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
 	{
 		name = args->str_storage;
@@ -3679,7 +3476,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3687,7 +3484,7 @@ int f_sys_openat_e(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3713,7 +3510,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	/*
 	 * dirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -3725,7 +3522,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3734,7 +3531,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &flags);
 	res = val_to_ring(args, open_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3742,7 +3539,7 @@ int f_sys_openat_x(struct event_filler_arguments *args)
 	/*
 	 *  mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &modes);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &modes);
 	res = val_to_ring(args, open_modes_to_scap(flags, modes), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3779,7 +3576,7 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	dirfd = (s32)val;
 	if(dirfd == AT_FDCWD)
 	{
@@ -3789,12 +3586,12 @@ int f_sys_unlinkat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: path (type: PT_FSRELPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, unlinkat_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -3816,7 +3613,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	/*
 	 * olddir
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -3828,7 +3625,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	/*
 	 * oldpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3836,7 +3633,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	/*
 	 * newdir
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -3848,7 +3645,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	/*
 	 * newpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3857,7 +3654,7 @@ int f_sys_linkat_x(struct event_filler_arguments *args)
 	 * Flags
 	 * Note that we convert them into the ppm portable representation before pushing them to the ring
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &flags);
 	res = val_to_ring(args, linkat_flags_to_scap(flags), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3876,7 +3673,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -3885,7 +3682,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &size);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &size);
 	res = val_to_ring(args, size, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -3898,11 +3695,11 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	unsigned long pos0;
 	unsigned long pos1;
 #if defined CONFIG_X86
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &pos0);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &pos1);
 #elif defined CONFIG_ARM && CONFIG_AEABI
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos0);
-	syscall_get_arguments_deprecated(current, args->regs, 5, 1, &pos1);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &pos0);
+	syscall_get_arguments_deprecated(current, args, 5, 1, &pos1);
 #else
  #error This architecture/abi not yet supported
 #endif
@@ -3910,7 +3707,7 @@ int f_sys_pread64_e(struct event_filler_arguments *args)
 	pos64 = merge_64(pos1, pos0);
 }
 #else 
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &pos64);
 #endif
 
 	res = val_to_ring(args, pos64, 0, false, 0);
@@ -3931,7 +3728,7 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -3939,7 +3736,7 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &size);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &size);
 	res = val_to_ring(args, size, 0, false, 0);
 	CHECK_RES(res);
 
@@ -3949,18 +3746,18 @@ int f_sys_pwrite64_e(struct event_filler_arguments *args)
 		unsigned long pos0 = 0;
 		unsigned long pos1 = 0;
 #if defined CONFIG_X86
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args, 4, 1, &pos1);
 #elif defined CONFIG_ARM && CONFIG_AEABI
-		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos0);
-		syscall_get_arguments_deprecated(current, args->regs, 5, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args, 4, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args, 5, 1, &pos1);
 #else
   		#error This architecture/abi not yet supported
 #endif
 		pos64 = merge_64(pos1, pos0);
 	}
 #else
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &pos64);
 #endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER*/
 
 	res = val_to_ring(args, pos64, 0, false, 0);
@@ -3979,7 +3776,7 @@ int f_sys_preadv_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -3997,13 +3794,13 @@ int f_sys_preadv_e(struct event_filler_arguments *args)
 		* requirements apply here. For an overly-detailed discussion about
 		* this, see https://lwn.net/Articles/311630/
 		*/
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args, 4, 1, &pos1);
 
 		pos64 = merge_64(pos1, pos0);
 	}
 #else
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &pos64);
 #endif
 
 	res = val_to_ring(args, pos64, 0, false, 0);
@@ -4021,7 +3818,7 @@ int f_sys_readv_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -4046,8 +3843,8 @@ int f_sys_readv_preadv_x(struct event_filler_arguments *args)
 
 	if(retval > 0)
 	{
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 2, 1, &iovcnt);
 
 	#ifdef CONFIG_COMPAT
 		if (unlikely(args->compat)) {
@@ -4084,18 +3881,18 @@ int f_sys_writev_e(struct event_filler_arguments *args)
 	unsigned long iovcnt;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: size (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &iovcnt);
 
 	/*
 	 * Copy the buffer
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (unlikely(args->compat)) {
 		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
@@ -4141,13 +3938,13 @@ int f_sys_writev_pwritev_x(struct event_filler_arguments *args)
 	/*
 	 * data and size
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &iovcnt);
 
 
 	/*
 	 * Copy the buffer
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (unlikely(args->compat)) {
 		const struct compat_iovec __user *compat_iov = (const struct compat_iovec __user *)compat_ptr(val);
@@ -4183,7 +3980,7 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -4191,12 +3988,12 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &iovcnt);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &iovcnt);
 
 	/*
 	 * Copy the buffer
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (unlikely(args->compat))
 	{
@@ -4233,13 +4030,13 @@ int f_sys_pwritev_e(struct event_filler_arguments *args)
 		* requirements apply here. For an overly-detailed discussion about
 		* this, see https://lwn.net/Articles/311630/
 		*/
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos0);
-		syscall_get_arguments_deprecated(current, args->regs, 4, 1, &pos1);
+		syscall_get_arguments_deprecated(current, args, 3, 1, &pos0);
+		syscall_get_arguments_deprecated(current, args, 4, 1, &pos1);
 
 		pos64 = merge_64(pos1, pos0);
 	}
 #else
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &pos64);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &pos64);
 #endif /* CAPTURE_64BIT_ARGS_SINGLE_REGISTER */
 
 	res = val_to_ring(args, pos64, 0, false, 0);
@@ -4253,7 +4050,7 @@ int f_sys_nanosleep_e(struct event_filler_arguments *args)
 	unsigned long val;
 	int res;
 
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = timespec_parse(args, val);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4270,7 +4067,7 @@ int f_sys_getrlimit_setrlimit_e(struct event_filler_arguments *args)
 	/*
 	 * resource
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	ppm_resource = rlimit_resource_to_scap(val);
 
@@ -4305,7 +4102,7 @@ int f_sys_getrlimit_setrlrimit_x(struct event_filler_arguments *args)
 	 * Copy the user structure and extract cur and max
 	 */
 	if (retval >= 0 || args->event_type == PPME_SYSCALL_SETRLIMIT_X) {
-		syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
@@ -4351,13 +4148,13 @@ int f_sys_prlimit_e(struct event_filler_arguments *args)
 	pid_t pid = 0;
 
 	/* Parameter 1: pid (type: PT_PID) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	pid = (s32)val;
 	res = val_to_ring(args, (s64)pid, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: resource (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, rlimit_resource_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -4390,7 +4187,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 	 * Copy the user structure and extract cur and max
 	 */
 	if (retval >= 0) {
-		syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 #ifdef CONFIG_COMPAT
 		if (!args->compat) {
@@ -4418,7 +4215,7 @@ int f_sys_prlimit_x(struct event_filler_arguments *args)
 		newmax = -1;
 	}
 
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
@@ -4572,13 +4369,13 @@ int f_sys_fcntl_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: cmd (type: PT_ENUMFLAGS8) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, fcntl_cmd_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -4591,7 +4388,7 @@ static inline int parse_ptrace_addr(struct event_filler_arguments *args, u16 req
 	uint64_t dst;
 	u8 idx;
 
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	switch (request) {
 	default:
 		idx = PPM_PTRACE_IDX_UINT64;
@@ -4608,7 +4405,7 @@ static inline int parse_ptrace_data(struct event_filler_arguments *args, u16 req
 	uint64_t dst;
 	u8 idx;
 
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	switch (request) {
 	case PPM_PTRACE_PEEKTEXT:
 	case PPM_PTRACE_PEEKDATA:
@@ -4655,12 +4452,12 @@ int f_sys_ptrace_e(struct event_filler_arguments *args)
 	pid_t pid = 0;
 
 	/* Parameter 1: request (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, ptrace_requests_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: pid (type: PT_PID) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	pid = (s32)val;
 	res = val_to_ring(args, (s64)pid, 0, false, 0);
 	CHECK_RES(res);
@@ -4698,7 +4495,7 @@ int f_sys_ptrace_x(struct event_filler_arguments *args)
 	/*
 	 * request
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	request = ptrace_requests_to_scap(val);
 
 	res = parse_ptrace_addr(args, request);
@@ -4769,7 +4566,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4777,7 +4574,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * length
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4785,7 +4582,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * prot
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4793,7 +4590,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, mmap_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4801,7 +4598,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * fd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -4810,7 +4607,7 @@ int f_sys_mmap_e(struct event_filler_arguments *args)
 	/*
 	 * offset/pgoffset
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 5, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4826,7 +4623,7 @@ int f_sys_mprotect_e(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4834,7 +4631,7 @@ int f_sys_mprotect_e(struct event_filler_arguments *args)
 	/*
 	 * length
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4842,7 +4639,7 @@ int f_sys_mprotect_e(struct event_filler_arguments *args)
 	/*
 	 * prot
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, prot_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4877,7 +4674,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	/*
 	 * olddirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -4889,7 +4686,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	/*
 	 * oldpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4897,7 +4694,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	/*
 	 * newdirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -4909,7 +4706,7 @@ int f_sys_renameat_x(struct event_filler_arguments *args)
 	/*
 	 * newpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4931,7 +4728,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	/*
 	 * olddirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -4943,7 +4740,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	/*
 	 * oldpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4951,7 +4748,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	/*
 	 * newdirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -4963,7 +4760,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	/*
 	 * newpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4972,7 +4769,7 @@ int f_sys_renameat2_x(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -4994,7 +4791,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	/*
 	 * oldpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5002,7 +4799,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	/*
 	 * newdirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -5014,7 +4811,7 @@ int f_sys_symlinkat_x(struct event_filler_arguments *args)
 	/*
 	 * newpath
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5037,7 +4834,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	/*
 	 * dirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -5049,7 +4846,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	if(likely(ppm_strncpy_from_user(args->str_storage, (const void __user *)val, PPM_MAX_PATH_SIZE) >= 0))
 	{
 		name = args->str_storage;
@@ -5064,7 +4861,7 @@ int f_sys_openat2_e(struct event_filler_arguments *args)
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = ppm_copy_from_user(&how, (void *)val, sizeof(struct open_how));
 	if (unlikely(res != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -5124,7 +4921,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	/*
 	 * dirfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
@@ -5136,7 +4933,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	/*
 	 * name
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5146,7 +4943,7 @@ int f_sys_openat2_x(struct event_filler_arguments *args)
 	/*
 	 * how: we get the data structure, and put its fields in the buffer one by one
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = ppm_copy_from_user(&how, (void *)val, sizeof(struct open_how));
 	if (unlikely(res != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -5195,7 +4992,7 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args)
 	int res = 0;
 
 	/* Parameter 1: fdin (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fdin = (s32)val;
 	res = val_to_ring(args, (s64)fdin, 0, false, 0);
 	CHECK_RES(res);
@@ -5203,14 +5000,14 @@ int f_sys_copy_file_range_e(struct event_filler_arguments *args)
 	/*
 	* offin
 	*/
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &offin);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &offin);
 	res = val_to_ring(args, offin, 0, false, 0);
 	CHECK_RES(res);
 
 	/*
 	* len
 	*/
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &len);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &len);
 	res = val_to_ring(args, len, 0, false, 0);
 	CHECK_RES(res);
 	
@@ -5231,13 +5028,13 @@ int f_sys_copy_file_range_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: fdout (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	fdout = (s32)val;
 	res = val_to_ring(args, (s64)fdout, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: offout (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &offout);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &offout);
 	res = val_to_ring(args, offout, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5258,7 +5055,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: mountfd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	mountfd = (s32)val;
 	if(mountfd == AT_FDCWD)
 	{
@@ -5268,7 +5065,7 @@ int f_sys_open_by_handle_at_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, open_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -5316,7 +5113,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 
 #ifdef __NR_io_uring_setup
 	struct io_uring_params params = {0};
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = ppm_copy_from_user(&params, (void *)val, sizeof(struct io_uring_params));
 	if(unlikely(res != 0))
 	{
@@ -5344,7 +5141,7 @@ int f_sys_io_uring_setup_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 	
 	/* Parameter 2: entries (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -5387,28 +5184,28 @@ int f_sys_io_uring_enter_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: to_submit (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: min_complete (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 5: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, io_uring_enter_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 6: sig (type: PT_SIGSET) */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -5430,23 +5227,23 @@ int f_sys_io_uring_register_x (struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: opcode (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, io_uring_register_opcodes_to_scap(val) , 0 , true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: arg (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 5: nr_args (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -5476,7 +5273,7 @@ int f_sys_inotify_init1_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, inotify_init1_flags_to_scap((s32)val), 0, true, 0);
 	CHECK_RES(res);
 
@@ -5494,14 +5291,14 @@ int f_sys_mlock_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	/*
 	 * len
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5520,21 +5317,21 @@ int f_sys_mlock2_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	/*
 	 * len
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, mlock2_flags_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5553,14 +5350,14 @@ int f_sys_munlock_x(struct event_filler_arguments *args)
 	/*
 	 * addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 	/*
 	 * len
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5579,7 +5376,7 @@ int f_sys_mlockall_x(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, mlockall_flags_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5616,22 +5413,22 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 
 	/* Parameter 2: fd (type: PT_FD) */
 	/* This is the file-system fd */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &fd);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &fd);
 	res = val_to_ring(args, fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: cmd (type: PT_ENUMFLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &cmd);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &cmd);
 	scap_cmd = fsconfig_cmds_to_scap(cmd);
 	res = val_to_ring(args, scap_cmd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: key (type: PT_CHARBUF) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &key_pointer);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &key_pointer);
 	res = val_to_ring(args, key_pointer, 0, true, 0);
 	CHECK_RES(res);
 
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &aux);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &aux);
 
 	if(ret < 0)
 	{
@@ -5647,7 +5444,7 @@ int f_sys_fsconfig_x(struct event_filler_arguments *args)
 	}
 	else
 	{
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &value_pointer);
+		syscall_get_arguments_deprecated(current, args, 3, 1, &value_pointer);
 
 		/* According to the command we need to understand what value we have to push to userspace. */
 		/* see https://elixir.bootlin.com/linux/latest/source/fs/fsopen.c#L271 */
@@ -5725,7 +5522,7 @@ int f_sys_signalfd_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -5752,7 +5549,7 @@ int f_sys_signalfd4_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -5777,7 +5574,7 @@ int f_sys_signalfd4_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: flags (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, signalfd4_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -5792,7 +5589,7 @@ int f_sys_epoll_create_e(struct event_filler_arguments *args)
 	/*
 	 * size
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &size);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &size);
 	res = val_to_ring(args, size, 0, false, 0);
 	CHECK_RES(res);
 
@@ -5819,7 +5616,7 @@ int f_sys_epoll_create1_e(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &flags);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &flags);
 	res = val_to_ring(args, epoll_create1_flags_to_scap(flags), 0, false, 0);
 	CHECK_RES(res);
 
@@ -5846,7 +5643,7 @@ int f_sys_dup_e(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5868,7 +5665,7 @@ int f_sys_dup_x(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5884,7 +5681,7 @@ int f_sys_dup2_e(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5906,7 +5703,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5914,7 +5711,7 @@ int f_sys_dup2_x(struct event_filler_arguments *args)
 	/*
 	 * newfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5930,7 +5727,7 @@ int f_sys_dup3_e(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5952,7 +5749,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	/*
 	 * oldfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5960,7 +5757,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	/*
 	 * newfd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -5968,7 +5765,7 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	/*
 	 * flags
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, dup3_flags_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6041,20 +5838,20 @@ int f_sys_sendfile_e(struct event_filler_arguments *args)
 	s32 in_fd = 0;
 
 	/* Parameter 1: out_fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	out_fd = (s32)val;
 	res = val_to_ring(args, (s64)out_fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: in_fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	in_fd = (s32)val;
 	res = val_to_ring(args, (s64)in_fd, 0, true, 0);
 	CHECK_RES(res);
 
 
 	/* Parameter 3: offset (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if (val != 0) {
 #ifdef CONFIG_COMPAT
@@ -6076,7 +5873,7 @@ int f_sys_sendfile_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 4: size (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -6101,7 +5898,7 @@ int f_sys_sendfile_x(struct event_filler_arguments *args)
 	/*
 	 * offset
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	if (val != 0) {
 #ifdef CONFIG_COMPAT
@@ -6136,7 +5933,7 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 	uint16_t scap_cmd = 0;
 
 	/* Parameter 1: cmd (type: PT_FLAGS16) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	cmd = (uint32_t)val;
 	scap_cmd = quotactl_cmd_to_scap(cmd);
 	res = val_to_ring(args, scap_cmd, 0, false, 0);
@@ -6147,7 +5944,7 @@ int f_sys_quotactl_e(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: id (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	id = (u32)val;
 	if ((scap_cmd != PPM_Q_GETQUOTA) &&
 		 (scap_cmd != PPM_Q_SETQUOTA) &&
@@ -6188,7 +5985,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	/*
 	 * extract cmd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	cmd = quotactl_cmd_to_scap(val);
 
 	/*
@@ -6202,7 +5999,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	/*
 	 * Add special
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6210,7 +6007,7 @@ int f_sys_quotactl_x(struct event_filler_arguments *args)
 	/*
 	 * get addr
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 
 	/*
 	 * get quotafilepath only for QUOTAON
@@ -6388,7 +6185,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	/*
 	 * ruid
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 #ifdef CONFIG_COMPAT
 	if (!args->compat) {
 #endif
@@ -6408,7 +6205,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	/*
 	 * euid
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
 	if (unlikely(len != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -6420,7 +6217,7 @@ int f_sys_getresuid_and_gid_x(struct event_filler_arguments *args)
 	/*
 	 * suid
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	len = ppm_copy_from_user(&uid, (void *)val, sizeof(uint32_t));
 	if (unlikely(len != 0))
 		return PPM_FAILURE_INVALID_USER_MEMORY;
@@ -6440,13 +6237,13 @@ int f_sys_flock_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: operation (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	flags = flock_flags_to_scap(val);
 	res = val_to_ring(args, flags, 0, false, 0);
 	CHECK_RES(res);
@@ -6461,18 +6258,18 @@ int f_sys_ioctl_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: request (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: argument (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -6485,7 +6282,7 @@ int f_sys_mkdir_e(struct event_filler_arguments *args)
 	int res = 0;
 
 	/* Parameter 1: mode (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -6499,13 +6296,13 @@ int f_sys_setns_e(struct event_filler_arguments *args)
 	s32 fd = 0;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: nstype (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, clone_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res);
 
@@ -6520,13 +6317,13 @@ int f_sys_setpgid_e(struct event_filler_arguments *args)
 	pid_t pgid = 0;
 
 	/* Parameter 1: pid (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	pid = (s32)val;
 	res = val_to_ring(args, (s64)pid, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: pgid (type: PT_PID) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	pgid = (s32)val;
 	res = val_to_ring(args, (s64)pgid, 0, true, 0);
 	CHECK_RES(res);
@@ -6543,7 +6340,7 @@ int f_sys_unshare_e(struct event_filler_arguments *args)
 	/*
 	 * get type, parse as clone flags as it's a subset of it
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	flags = clone_flags_to_scap(val);
 	res = val_to_ring(args, flags, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
@@ -6638,12 +6435,12 @@ int f_sys_semop_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: nsops (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &nsops);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &nsops);
 	res = val_to_ring(args, nsops, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Extract pointer to the `sembuf` struct */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, (unsigned long *) &sops_pointer);
+	syscall_get_arguments_deprecated(current, args, 1, 1, (unsigned long *) &sops_pointer);
 
 	if(retval != 0 || sops_pointer == 0 || nsops == 0)
 	{
@@ -6705,7 +6502,7 @@ int f_sys_semget_e(struct event_filler_arguments *args)
 	/*
 	 * key
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6713,7 +6510,7 @@ int f_sys_semget_e(struct event_filler_arguments *args)
 	/*
 	 * nsems
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6721,7 +6518,7 @@ int f_sys_semget_e(struct event_filler_arguments *args)
 	/*
 	 * semflg
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, semget_flags_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6737,7 +6534,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	/*
 	 * semid
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6745,7 +6542,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	/*
 	 * semnum
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6753,7 +6550,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	/*
 	 * cmd
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, semctl_cmd_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6762,7 +6559,7 @@ int f_sys_semctl_e(struct event_filler_arguments *args)
 	 * optional argument semun/val
 	 */
 	if (val == SETVAL)
-		syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 	else
 		val = 0;
 	res = val_to_ring(args, val, 0, true, 0);
@@ -6780,7 +6577,7 @@ int f_sys_access_e(struct event_filler_arguments *args)
 	/*
 	 * mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, access_flags_to_scap(val), 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6795,7 +6592,7 @@ int f_sys_fchdir_e(struct event_filler_arguments *args)
 	unsigned long val = 0;
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -6820,7 +6617,7 @@ int f_sys_close_e(struct event_filler_arguments *args)
 	unsigned long val = 0;
 
 	/* Parameter 1: fd (type: PT_FD)*/
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -6843,7 +6640,7 @@ int f_sys_bpf_e(struct event_filler_arguments *args)
 	int res = 0;
 	s32 cmd = 0;
 	unsigned long val = 0;
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	/* Parameter 1: cmd (type: PT_INT64) */
 	cmd = (int32_t)val;
@@ -6881,7 +6678,7 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	dirfd = (s32)val;
 	if(dirfd == AT_FDCWD)
 	{
@@ -6891,12 +6688,12 @@ int f_sys_mkdirat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: path (type: PT_FSRELPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: mode (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
@@ -6916,7 +6713,7 @@ int f_sys_fchmodat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	dirfd = (s32)val;
 	if(dirfd == AT_FDCWD)
 	{
@@ -6926,12 +6723,12 @@ int f_sys_fchmodat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: filename (type: PT_FSRELPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: mode (type: PT_MODE) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -6952,7 +6749,7 @@ int f_sys_chmod_x(struct event_filler_arguments *args)
 	/*
 	 * filename
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6960,7 +6757,7 @@ int f_sys_chmod_x(struct event_filler_arguments *args)
 	/*
 	 * mode
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
@@ -6981,13 +6778,13 @@ int f_sys_fchmod_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: mode (type: PT_MODE) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, chmod_mode_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -7006,19 +6803,19 @@ int f_sys_chown_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: path (type: PT_FSPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: uid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: gid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
@@ -7038,19 +6835,19 @@ int f_sys_lchown_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: path (type: PT_FSPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: uid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: gid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
@@ -7071,19 +6868,19 @@ int f_sys_fchown_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: uid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: gid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
@@ -7104,7 +6901,7 @@ int f_sys_fchownat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: dirfd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (s32)val;
 
 	if ((int)fd == AT_FDCWD)
@@ -7114,25 +6911,25 @@ int f_sys_fchownat_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 3: pathname (type: PT_FSRELPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: uid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 5: gid (type: PT_UINT32) */
-	syscall_get_arguments_deprecated(current, args->regs, 3, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 3, 1, &val);
 
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 6: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	res = val_to_ring(args, fchownat_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -7195,24 +6992,24 @@ int f_sys_splice_e(struct event_filler_arguments *args)
 	int res;
 
 	/* Parameter 1: fd_in (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd_in = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd_in, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 2: fd_out (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 2, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 2, 1, &val);
 	fd_out = (int32_t)val;
 	res = val_to_ring(args, (int64_t)fd_out, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 3: size (type: PT_UINT64) */
-	syscall_get_arguments_deprecated(current, args->regs, 4, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 4, 1, &val);
 	res = val_to_ring(args, val, 0, false, 0);
 	CHECK_RES(res);
 
 	/* Parameter 4: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 5, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 5, 1, &val);
 	res = val_to_ring(args, splice_flags_to_scap(val), 0, false, 0);
 	CHECK_RES(res);
 
@@ -7231,7 +7028,7 @@ int f_sys_umount_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -7244,7 +7041,7 @@ int f_sys_umount2_e(struct event_filler_arguments *args)
 	int res;
 
 	/* Parameter 1: flags (type: PT_FLAGS32) */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -7263,7 +7060,7 @@ int f_sys_umount2_x(struct event_filler_arguments *args)
 	CHECK_RES(res);
 
 	/* Parameter 2: name (type: PT_FSPATH) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
 	CHECK_RES(res);
 
@@ -7283,7 +7080,7 @@ int f_sys_getcwd_x(struct event_filler_arguments *args)
 	if(retval >= 0)
 	{
 		/* Parameter 2: path (type: PT_CHARBUF) */
-		syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+		syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 		res = val_to_ring(args, val, 0, true, 0);
 	}
 	else
@@ -7304,7 +7101,7 @@ int f_sys_getdents_e(struct event_filler_arguments *args)
 	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
@@ -7319,7 +7116,7 @@ int f_sys_getdents64_e(struct event_filler_arguments *args)
 	int res;
 
 	/* Parameter 1: fd (type: PT_FD) */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &val);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &val);
 	fd = (int32_t)val;
 	res = val_to_ring(args, (s64)fd, 0, false, 0);
 	CHECK_RES(res);
