@@ -262,7 +262,7 @@ TEST(SyscallExit, prctlX_set_name)
 	evt_test->assert_charbuf_param(3, arg2);
 
 	/* Parameter 4: arg2_int (type: PT_INT64) */
-	evt_test->assert_numeric_param(4, (uint64_t)0);
+	evt_test->assert_numeric_param(4, (int64_t)0);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
