@@ -8021,7 +8021,7 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 			/*
 			 * arg2_int
 			 */
-			res = push_empty_param(args);
+			res = val_to_ring(args, 0, 0, false, 0);
 			CHECK_RES(res);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:

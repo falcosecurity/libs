@@ -72,7 +72,7 @@ int BPF_PROG(prctl_x,
 			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
 			auxmap__store_charbuf_param(auxmap, arg2, MAX_PATH, USER);
 			/* Parameter 4: arg2_int (type: PT_INT64) */
-			auxmap__store_empty_param(auxmap);
+			auxmap__store_s64_param(auxmap, 0);
 			break;
 		case PPM_PR_GET_CHILD_SUBREAPER:
 			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
