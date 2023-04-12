@@ -1357,7 +1357,7 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
-static ppm_event_code parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
+static long parse_socketcall(struct event_filler_arguments *filler_args, struct pt_regs *regs)
 {
 	unsigned long __user args[6] = {};
 	unsigned long __user *scargs;
@@ -1374,7 +1374,7 @@ static ppm_event_code parse_socketcall(struct event_filler_arguments *filler_arg
 #else
 		socketcall_id > SYS_ACCEPT4))
 #endif
-		return PPME_GENERIC_E;
+		return 0;
 
 #ifdef CONFIG_COMPAT
 	if (unlikely(filler_args->compat)) {
@@ -1382,66 +1382,126 @@ static ppm_event_code parse_socketcall(struct event_filler_arguments *filler_arg
 		int j;
 
 		if (unlikely(ppm_copy_from_user(socketcall_args32, compat_ptr(args[1]), compat_nas[socketcall_id])))
-			return PPME_GENERIC_E;
+			return 0;
 		for (j = 0; j < 6; ++j)
 			filler_args->socketcall_args[j] = (unsigned long)socketcall_args32[j];
 	} else {
 #endif
 		if (unlikely(ppm_copy_from_user(filler_args->socketcall_args, scargs, nas[socketcall_id])))
-			return PPME_GENERIC_E;
+			return 0;
 #ifdef CONFIG_COMPAT
 	}
 #endif
 
-	switch (socketcall_id) {
+	switch(socketcall_id)
+	{
+#ifdef __NR_socket
 	case SYS_SOCKET:
-		return PPME_SOCKET_SOCKET_E;
-	case SYS_BIND:
-		return PPME_SOCKET_BIND_E;
-	case SYS_CONNECT:
-		return PPME_SOCKET_CONNECT_E;
-	case SYS_LISTEN:
-		return PPME_SOCKET_LISTEN_E;
-	case SYS_ACCEPT:
-		return PPME_SOCKET_ACCEPT_5_E;
-	case SYS_GETSOCKNAME:
-		return PPME_SOCKET_GETSOCKNAME_E;
-	case SYS_GETPEERNAME:
-		return PPME_SOCKET_GETPEERNAME_E;
+		return __NR_socket;
+#endif
+
+#ifdef __NR_socketpair
 	case SYS_SOCKETPAIR:
-		return PPME_SOCKET_SOCKETPAIR_E;
-	case SYS_SEND:
-		return PPME_SOCKET_SEND_E;
-	case SYS_SENDTO:
-		return PPME_SOCKET_SENDTO_E;
-	case SYS_RECV:
-		return PPME_SOCKET_RECV_E;
-	case SYS_RECVFROM:
-		return PPME_SOCKET_RECVFROM_E;
-	case SYS_SHUTDOWN:
-		return PPME_SOCKET_SHUTDOWN_E;
-	case SYS_SETSOCKOPT:
-		return PPME_SOCKET_SETSOCKOPT_E;
-	case SYS_GETSOCKOPT:
-		return PPME_SOCKET_GETSOCKOPT_E;
-	case SYS_SENDMSG:
-		return PPME_SOCKET_SENDMSG_E;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0)
-	case SYS_SENDMMSG:
-		return PPME_SOCKET_SENDMMSG_E;
+		return __NR_socketpair;
 #endif
-	case SYS_RECVMSG:
-		return PPME_SOCKET_RECVMSG_E;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 33)
-	case SYS_RECVMMSG:
-		return PPME_SOCKET_RECVMMSG_E;
+
+	case SYS_ACCEPT:
+#if defined(__TARGET_ARCH_s390) && defined(__NR_accept4)
+		return __NR_accept4;
+#elif defined(__NR_accept)
+		return __NR_accept;
 #endif
+		break;
+
+#ifdef __NR_accept4
 	case SYS_ACCEPT4:
-		return PPME_SOCKET_ACCEPT4_6_E;
+		return __NR_accept4;
+#endif
+
+#ifdef __NR_bind
+	case SYS_BIND:
+		return __NR_bind;
+#endif
+
+#ifdef __NR_listen
+	case SYS_LISTEN:
+		return __NR_listen;
+#endif
+
+#ifdef __NR_connect
+	case SYS_CONNECT:
+		return __NR_connect;
+#endif
+
+#ifdef __NR_getsockname
+	case SYS_GETSOCKNAME:
+		return __NR_getsockname;
+#endif
+
+#ifdef __NR_getpeername
+	case SYS_GETPEERNAME:
+		return __NR_getpeername;
+#endif
+
+#ifdef __NR_getsockopt
+	case SYS_GETSOCKOPT:
+		return __NR_getsockopt;
+#endif
+
+#ifdef __NR_setsockopt
+	case SYS_SETSOCKOPT:
+		return __NR_setsockopt;
+#endif
+
+#ifdef __NR_recv
+	case SYS_RECV:
+		return __NR_recv;
+#endif
+
+#ifdef __NR_recvfrom
+	case SYS_RECVFROM:
+		return __NR_recvfrom;
+#endif
+
+#ifdef __NR_recvmsg
+	case SYS_RECVMSG:
+		return __NR_recvmsg;
+#endif
+
+#ifdef __NR_recvmmsg
+	case SYS_RECVMMSG:
+		return __NR_recvmmsg;
+#endif
+
+#ifdef __NR_send
+	case SYS_SEND:
+		return __NR_send;
+#endif
+
+#ifdef __NR_sendto
+	case SYS_SENDTO:
+		return __NR_sendto;
+#endif
+
+#ifdef __NR_sendmsg
+	case SYS_SENDMSG:
+		return __NR_sendmsg;
+#endif
+
+#ifdef __NR_sendmmsg
+	case SYS_SENDMMSG:
+		return __NR_sendmmsg;
+#endif
+
+#ifdef __NR_shutdown
+	case SYS_SHUTDOWN:
+		return __NR_shutdown;
+#endif
 	default:
-		ASSERT(false);
-		return PPME_GENERIC_E;
+		break;
 	}
+
+	return 0;
 }
 #endif /* _HAS_SOCKETCALL */
 
@@ -1894,12 +1954,24 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	 * call. I guess this was done to reduce the number of syscalls...
 	 */
 	if (event_datap->category == PPMC_SYSCALL && event_datap->event_info.syscall_data.regs && event_datap->event_info.syscall_data.id == event_datap->socketcall_syscall) {
+		long syscall_id;
 		ppm_event_code tet;
 
 		args.is_socketcall = true;
 		args.compat = event_datap->compat;
-		tet = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
+		syscall_id = parse_socketcall(&args, event_datap->event_info.syscall_data.regs);
+		// Filter interesting syscalls even for socketcall resolved ones
+		table_index = syscall_id - SYSCALL_TABLE_ID0;
+		if (!test_bit(table_index, consumer->syscalls_mask))
+		{
+			return res;
+		}
 
+
+		tet = event_datap->event_info.syscall_data.cur_g_syscall_table[syscall_id].enter_event_type;
+		// We do not directly use exit_event_type since
+		// when `syscall_id` is 0 (ie: parse_socketcall could not match anything),
+		// we still need to map PPME_GENERIC_{E,X}
 		if (event_type == PPME_GENERIC_E)
 			event_type = tet;
 		else
