@@ -714,53 +714,164 @@ or GPL2.txt for full copies of the license.
 /*
  * Prctl flags
  */
-//XXX take a look at https://github.com/torvalds/linux/blob/master/include/uapi/linux/prctl.h
-#define PPM_PR_UNKNOWN				0
+//taken from https://github.com/torvalds/linux/blob/master/include/uapi/linux/prctl.h
+/* Values to pass as first argument to prctl() */
+#define PPM_PR_SET_PDEATHSIG  1  /* Second arg is a signal */
+#define PPM_PR_GET_PDEATHSIG  2  /* Second arg is a ptr to return the signal */
 /* Get/set current->mm->dumpable */
-#define PPM_PR_GET_DUMPABLE			3
-#define PPM_PR_SET_DUMPABLE			4
+#define PPM_PR_GET_DUMPABLE   3
+#define PPM_PR_SET_DUMPABLE   4
+
+/* Get/set unaligned access control bits (if meaningful) */
+#define PPM_PR_GET_UNALIGN	  5
+#define PPM_PR_SET_UNALIGN	  6
+
 /* Get/set whether or not to drop capabilities on setuid() away from
  * uid 0 (as per security/commoncap.c) */
-#define PPM_PR_GET_KEEPCAPS			7
-#define PPM_PR_SET_KEEPCAPS			8
+#define PPM_PR_GET_KEEPCAPS   7
+#define PPM_PR_SET_KEEPCAPS   8
 
-#define PPM_PR_SET_NAME				15		/* Set process name */
-#define PPM_PR_GET_NAME				16		/* Get process name */
+/* Get/set floating-point emulation control bits (if meaningful) */
+#define PPM_PR_GET_FPEMU  9
+#define PPM_PR_SET_FPEMU 10
+
+/* Get/set floating-point exception mode (if meaningful) */
+#define PPM_PR_GET_FPEXC	11
+#define PPM_PR_SET_FPEXC	12
+
+/* Get/set whether we use statistical process timing or accurate timestamp
+ * based process timing */
+#define PPM_PR_GET_TIMING   13
+#define PPM_PR_SET_TIMING   14
+
+#define PPM_PR_SET_NAME    15		/* Set process name */
+#define PPM_PR_GET_NAME    16		/* Get process name */
+
+/* Get/set process endian */
+#define PPM_PR_GET_ENDIAN	19
+#define PPM_PR_SET_ENDIAN	20
+
 /* Get/set process seccomp mode */
-#define PPM_PR_GET_SECCOMP			21
-#define PPM_PR_SET_SECCOMP			22
+#define PPM_PR_GET_SECCOMP	21
+#define PPM_PR_SET_SECCOMP	22
+
 /* Get/set the capability bounding set (as per security/commoncap.c) */
-#define PPM_PR_CAPBSET_READ			23
-#define PPM_PR_CAPBSET_DROP			24
+#define PPM_PR_CAPBSET_READ 23
+#define PPM_PR_CAPBSET_DROP 24
+
+/* Get/set the process' ability to use the timestamp counter instruction */
+#define PPM_PR_GET_TSC 25
+#define PPM_PR_SET_TSC 26
 
 /* Get/set securebits (as per security/commoncap.c) */
-#define PPM_PR_GET_SECUREBITS		27
-#define PPM_PR_SET_SECUREBITS		28
+#define PPM_PR_GET_SECUREBITS 27
+#define PPM_PR_SET_SECUREBITS 28
+
+/*
+ * Get/set the timerslack as used by poll/select/nanosleep
+ * A value of 0 means "use default"
+ */
+#define PPM_PR_SET_TIMERSLACK 29
+#define PPM_PR_GET_TIMERSLACK 30
+
+#define PPM_PR_TASK_PERF_EVENTS_DISABLE		31
+#define PPM_PR_TASK_PERF_EVENTS_ENABLE		32
 
 /*
  * Set early/late kill mode for hwpoison memory corruption.
  * This influences when the process gets killed on a memory corruption.
  */
-#define PPM_PR_MCE_KILL				33
+#define PPM_PR_MCE_KILL	33
+
+
+#define PPM_PR_MCE_KILL_GET 34
 
 /*
  * Tune up process memory map specifics.
  */
-#define PPM_PR_SET_MM				35
+#define PPM_PR_SET_MM		35
+
+/*
+ * Set specific pid that is allowed to ptrace the current task.
+ * A value of 0 mean "no process".
+ */
+#define PPM_PR_SET_PTRACER 0x59616d61
 
 #define PPM_PR_SET_CHILD_SUBREAPER	36
 #define PPM_PR_GET_CHILD_SUBREAPER	37
 
-#define PPM_PR_SET_NO_NEW_PRIVS		38
-#define PPM_PR_GET_NO_NEW_PRIVS		39
+/*
+ * If no_new_privs is set, then operations that grant new privileges (i.e.
+ * execve) will either fail or not grant them.  This affects suid/sgid,
+ * file capabilities, and LSMs.
+ *
+ * Operations that merely manipulate or drop existing privileges (setresuid,
+ * capset, etc.) will still work.  Drop those privileges if you want them gone.
+ *
+ * Changing LSM security domain is considered a new privilege.  So, for example,
+ * asking selinux for a specific new context (e.g. with runcon) will result
+ * in execve returning -EPERM.
+ *
+ * See Documentation/userspace-api/no_new_privs.rst for more details.
+ */
+#define PPM_PR_SET_NO_NEW_PRIVS	38
+#define PPM_PR_GET_NO_NEW_PRIVS	39
 
-#define PPM_PR_GET_TID_ADDRESS		40
+#define PPM_PR_GET_TID_ADDRESS	40
 
-#define PPM_PR_SET_THP_DISABLE		41
-#define PPM_PR_GET_THP_DISABLE		42
+#define PPM_PR_SET_THP_DISABLE	41
+#define PPM_PR_GET_THP_DISABLE	42
+
+/*
+ * No longer implemented, but left here to ensure the numbers stay reserved:
+ */
+#define PPM_PR_MPX_ENABLE_MANAGEMENT  43
+#define PPM_PR_MPX_DISABLE_MANAGEMENT 44
+
+#define PPM_PR_SET_FP_MODE		45
+#define PPM_PR_GET_FP_MODE		46
 
 /* Control the ambient capability set */
 #define PPM_PR_CAP_AMBIENT			47
+
+/* arm64 Scalable Vector Extension controls */
+/* Flag values must be kept in sync with ptrace NT_ARM_SVE interface */
+#define PPM_PR_SVE_SET_VL			50	/* set task vector length */
+#define PPM_PR_SVE_GET_VL			51	/* get task vector length */
+
+/* Per task speculation control */
+#define PPM_PR_GET_SPECULATION_CTRL		52
+#define PPM_PR_SET_SPECULATION_CTRL		53
+
+/* Reset arm64 pointer authentication keys */
+#define PPM_PR_PAC_RESET_KEYS		54
+
+/* Tagged user address controls for arm64 */
+#define PPM_PR_SET_TAGGED_ADDR_CTRL		55
+#define PPM_PR_GET_TAGGED_ADDR_CTRL		56
+
+/* Control reclaim behavior when allocating memory */
+#define PPM_PR_SET_IO_FLUSHER		57
+#define PPM_PR_GET_IO_FLUSHER		58
+
+/* Dispatch syscalls to a userspace handler */
+#define PPM_PR_SET_SYSCALL_USER_DISPATCH	59
+
+/* Set/get enabled arm64 pointer authentication keys */
+#define PPM_PR_PAC_SET_ENABLED_KEYS		60
+#define PPM_PR_PAC_GET_ENABLED_KEYS		61
+
+/* Request the scheduler to share a core */
+#define PPM_PR_SCHED_CORE			62
+
+/* arm64 Scalable Matrix Extension controls */
+/* Flag values must be in sync with SVE versions */
+#define PPM_PR_SME_SET_VL			63	/* set task vector length */
+#define PPM_PR_SME_GET_VL			64	/* get task vector length */
+/* Bits common to PR_SME_SET_VL and PR_SME_GET_VL */
+
+#define PPM_PR_SET_VMA		0x53564d41
+
 
 /*
  * SuS says limits have to be unsigned.
