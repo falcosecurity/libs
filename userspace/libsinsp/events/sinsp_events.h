@@ -119,7 +119,7 @@ bool is_plugin_event(ppm_event_code event_type);
 	WARNING: without merging your ppm_sc set with the one provided by this method,
  	we cannot guarantee that `libsinsp` state will always be up to date, or even work at all.
 */
-set<ppm_sc_code> sinsp_state_sc_set();
+set<ppm_sc_code> sinsp_state_sc_set(bool remove_io_sc_set = false);
 
 /*!
   \brief Enforce simple set of syscalls with all the security-valuable syscalls.
