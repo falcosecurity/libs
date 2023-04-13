@@ -325,7 +325,7 @@ FILLER(sys_single, true)
 	int res;
 
 	val = bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring(data, val);
+	return bpf_push_s64_to_ring(data, val);
 }
 
 FILLER(sys_single_x, true)
@@ -341,7 +341,7 @@ FILLER(sys_fstat_e, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring(data, (s64)fd);
+	return bpf_push_s64_to_ring(data, (s64)fd);
 }
 
 FILLER(sys_open_e, true)
@@ -750,7 +750,7 @@ FILLER(sys_readv_preadv_x, true)
 	else 
 	{
 		/* Parameter 2: size (type: PT_UINT32) */
-		res = bpf_val_to_ring(data, 0);
+		res = bpf_push_u32_to_ring(data, 0);
 
 		/* Parameter 3: data (type: PT_BYTEBUF) */
 		res = bpf_push_empty_param(data);
@@ -832,7 +832,7 @@ static __always_inline int timespec_parse(struct filler_data *data,
 	struct timespec ts = {};
 #endif	
 	bpf_probe_read_user(&ts, sizeof(ts), (void *)val);
-	return bpf_val_to_ring_type(data, ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec, PT_RELTIME);
+	return bpf_push_u64_to_ring(data, ((u64)ts.tv_sec) * 1000000000 + ts.tv_nsec);
 }
 
 FILLER(sys_nanosleep_e, true)
@@ -5070,8 +5070,6 @@ static __always_inline int siginfo_not_a_pointer(struct siginfo* info)
 	return info == (struct siginfo*)SEND_SIG_NOINFO || info == (struct siginfo*)SEND_SIG_PRIV;
 #endif
 }
-
-// TODO RESUME FROM HERE
 
 FILLER(sys_signaldeliver_e, false)
 {
