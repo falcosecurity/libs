@@ -82,11 +82,6 @@ int BPF_PROG(prctl_x,
 			auxmap__store_s64_param(auxmap, (s64)reaper_attr);
 			break;
 		case PPM_PR_SET_CHILD_SUBREAPER:
-			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
-			auxmap__store_empty_param(auxmap);
-			/* Parameter 4: arg2_int (type: PT_INT64) */
-			auxmap__store_s64_param(auxmap, arg2);
-			break;
 		default:
 			/* Parameter 3: arg2_str (type: PT_CHARBUF) */
 			auxmap__store_empty_param(auxmap);

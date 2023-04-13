@@ -1075,8 +1075,8 @@ static __always_inline int bpf_push_empty_param(struct filler_data *data)
 	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, 0);
 	data->curarg_already_on_frame = false;
 
-	/* We increment the current argument */
-	++data->state->tail_ctx.curarg;
+	 /* We increment the current argument - to make verifier happy, properly check it against u32 max */
+	data->state->tail_ctx.curarg = (data->state->tail_ctx.curarg + 1) & (PPM_MAX_EVENT_PARAMS - 1);
 	return PPM_SUCCESS;
 }
 

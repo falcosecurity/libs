@@ -174,7 +174,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork", "procexit",
         "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
-        "setuid", "setuid32", "vfork"});
+        "setuid", "setuid32", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
@@ -182,7 +182,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "connect",
         "execve", "execveat", "fchdir", "fork", "getsockopt",  "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat", "connect", "accept", "accept4"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
@@ -190,7 +190,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "close", "connect", "execve", "execveat",
         "fchdir", "fork", "getsockopt",  "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat", "connect"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
@@ -198,7 +198,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "accept", "accept4", "bind", "capset", "chdir", "chroot", "clone", "clone3", "close", "execve",
         "execveat", "fchdir", "fork", "getsockopt", "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork"});
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "socket", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "accept", "accept4"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
@@ -206,7 +206,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "execve", "execveat", "fchdir", "fork", "procexit",
         "setgid", "setgid32", "setpgid", "setresgid", "setresgid32", "setresuid", "setresuid32", "setsid",
-        "setuid", "setuid32", "vfork"});
+        "setuid", "setuid32", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"execve", "execveat"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
@@ -214,7 +214,7 @@ TEST(filter_ppm_codes, check_sinsp_repair_state_sc_set)
     truth = libsinsp::events::event_names_to_sc_set({
         "capset", "chdir", "chroot", "clone", "clone3", "close", "execve", "execveat", "fchdir", "fork",
         "open", "openat", "openat2", "procexit", "setgid", "setgid32", "setpgid", "setresgid", "setresgid32",
-        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork"});
+        "setresuid", "setresuid32", "setsid", "setuid", "setuid32", "vfork", "prctl"});
     input_sc_set = libsinsp::events::event_names_to_sc_set({"open", "openat", "openat2"});
     sc_set = sinsp_repair_state_sc_set(input_sc_set);
     ASSERT_PPM_SC_CODES_EQ(truth, sc_set);
