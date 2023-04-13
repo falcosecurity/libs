@@ -1267,7 +1267,6 @@ FILLER(sys_socketpair_x, true)
 }
 
 // TODO bpf_val_to_ring_dyn?
-// TODO RESUME FROM HERE
 static int __always_inline parse_sockopt(struct filler_data *data, int level, int optname, void *optval, int optlen)
 {
 	/* We use a signed int because in some case we have to convert it to a negative value. */
@@ -1458,22 +1457,22 @@ FILLER(sys_setsockopt_x, true)
 {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
-	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	int res = bpf_push_s64_to_ring(data, (s64)retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
 	int level = (int)bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	res = bpf_push_u8_to_ring(data, sockopt_level_to_scap(level));
 	CHECK_RES(res);
 
 	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
 	int optname = (int)bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	res = bpf_push_u8_to_ring(data, sockopt_optname_to_scap(level, optname));
 	CHECK_RES(res);
 
 	/* Parameter 5: optval (type: PT_DYN) */
@@ -1483,29 +1482,29 @@ FILLER(sys_setsockopt_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
-	return bpf_val_to_ring_type(data, (u32)optlen, PT_UINT32);
+	return bpf_push_u32_to_ring(data, (u32)optlen);
 }
 
 FILLER(sys_getsockopt_x, true)
 {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
-	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	int res = bpf_push_s64_to_ring(data, (s64)retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	/* Parameter 3: level (type: PT_ENUMFLAGS8) */
 	int level = bpf_syscall_get_argument(data, 1);
-	res = bpf_val_to_ring_type(data, sockopt_level_to_scap(level), PT_FLAGS8);
+	res = bpf_push_u8_to_ring(data, sockopt_level_to_scap(level));
 	CHECK_RES(res);
 
 	/* Parameter 4: optname (type: PT_ENUMFLAGS8) */
 	int optname = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring_type(data, sockopt_optname_to_scap(level, optname), PT_FLAGS8);
+	res = bpf_push_u8_to_ring(data, sockopt_optname_to_scap(level, optname));
 	CHECK_RES(res);
 
 	/* `optval` and `optlen` will be the ones provided by the user if the syscall fails
@@ -1522,7 +1521,7 @@ FILLER(sys_getsockopt_x, true)
 	CHECK_RES(res);
 
 	/* Parameter 6: optlen (type: PT_UINT32) */
-	res = bpf_val_to_ring_type(data, optlen, PT_UINT32);
+	res = bpf_push_u32_to_ring(data, optlen);
 	return res;
 }
 
@@ -1534,15 +1533,14 @@ static __always_inline int f_sys_send_e_common(struct filler_data *data, int fd)
 	/*
 	 * fd
 	 */
-	res = bpf_val_to_ring(data, (s64)fd);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, (s64)fd);
+	CHECK_RES(res);
 
 	/*
 	 * size
 	 */
 	val = bpf_syscall_get_argument(data, 2);
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_u32_to_ring(data, val);
 
 	return res;
 }
@@ -1622,7 +1620,7 @@ FILLER(sys_send_x, true)
 {
 	/* Parameter 1: res (type: PT_ERRNO) */
 	long retval = bpf_syscall_get_retval(data->ctx);
-	int res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
+	int res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/* Parameter 2: data (type: PT_BYTEBUF) */
@@ -1664,7 +1662,7 @@ FILLER(sys_execveat_e, true)
 		val = PPM_AT_FDCWD;
 	}
 
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, val);
 	if (res != PPM_SUCCESS)
 	{
 		return res;
@@ -1674,25 +1672,15 @@ FILLER(sys_execveat_e, true)
 	 * pathname
 	 */
 	val = bpf_syscall_get_argument(data, 1);
-
 	res = bpf_val_to_ring_mem(data, val, USER);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
+	CHECK_RES(res);
 
 	/*
 	 * flags
 	 */
 	val = bpf_syscall_get_argument(data, 4);
 	flags = execveat_flags_to_scap(val);
-
-	res = bpf_val_to_ring(data, flags);
-	if (res != PPM_SUCCESS)
-	{
-		return res;
-	}
-
+	res = bpf_push_u32_to_ring(data, flags);
 	return res;
 }
 
@@ -2264,9 +2252,8 @@ FILLER(proc_startupdate, true)
 	 * Make sure the operation was successful
 	 */
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring_type(data, retval, PT_ERRNO);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
 	task = (struct task_struct *)bpf_get_current_task();
 	mm = _READ(task->mm);
@@ -2383,19 +2370,15 @@ FILLER(proc_startupdate, true)
 	 * tid
 	 */
 	pid = _READ(task->pid);
-
-	res = bpf_val_to_ring_type(data, pid, PT_PID);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, pid);
+	CHECK_RES(res);
 
 	/*
 	 * pid
 	 */
 	tgid = _READ(task->tgid);
-
-	res = bpf_val_to_ring_type(data, tgid, PT_PID);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, tgid);
+	CHECK_RES(res);
 
 	/*
 	 * ptid
@@ -2403,17 +2386,15 @@ FILLER(proc_startupdate, true)
 	real_parent = _READ(task->real_parent);
 	pid_t ptid = _READ(real_parent->pid);
 
-	res = bpf_val_to_ring_type(data, ptid, PT_PID);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_s64_to_ring(data, ptid);
+	CHECK_RES(res);
 
 	/*
 	 * cwd, pushed empty to avoid breaking compatibility
 	 * with the older event format
 	 */
 	res = bpf_push_empty_param(data);
-	if (res != PPM_SUCCESS)
-		return res;
+	CHECK_RES(res);
 
 	/*
 	 * fdlimit
@@ -2421,27 +2402,24 @@ FILLER(proc_startupdate, true)
 	signal = _READ(task->signal);
 	fdlimit = _READ(signal->rlim[RLIMIT_NOFILE].rlim_cur);
 
-	res = bpf_val_to_ring_type(data, fdlimit, PT_UINT64);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, fdlimit);
+	CHECK_RES(res);
 
 	/*
 	 * pgft_maj
 	 */
 	maj_flt = _READ(task->maj_flt);
 
-	res = bpf_val_to_ring_type(data, maj_flt, PT_UINT64);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, maj_flt);
+	CHECK_RES(res);
 
 	/*
 	 * pgft_min
 	 */
 	min_flt = _READ(task->min_flt);
 
-	res = bpf_val_to_ring_type(data, min_flt, PT_UINT64);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u64_to_ring(data, min_flt);
+	CHECK_RES(res);
 
 	total_vm = 0;
 	total_rss = 0;
@@ -2457,21 +2435,19 @@ FILLER(proc_startupdate, true)
 	/*
 	 * vm_size
 	 */
-	res = bpf_val_to_ring_type(data, total_vm, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u32_to_ring(data, total_vm);
+	CHECK_RES(res);
 
 	/*
 	 * vm_rss
 	 */
-	res = bpf_val_to_ring_type(data, total_rss, PT_UINT32);
-	if (res != PPM_SUCCESS)
-		return res;
+	res = bpf_push_u32_to_ring(data, total_rss);
+	CHECK_RES(res);
 
 	/*
 	 * vm_swap
 	 */
-	res = bpf_val_to_ring_type(data, swap, PT_UINT32);
+	res = bpf_push_u32_to_ring(data, swap);
 	if (res != PPM_SUCCESS)
 		return res;
 
@@ -2591,7 +2567,7 @@ FILLER(proc_startupdate_3, true)
 			}
 		}
 
-		res = bpf_val_to_ring_type(data, flags, PT_FLAGS32);
+		res = bpf_push_u32_to_ring(data, flags);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2608,7 +2584,7 @@ FILLER(proc_startupdate_3, true)
 		/*
 		 * uid
 		 */
-		res = bpf_val_to_ring_type(data, euid.val, PT_UINT32);
+		res = bpf_push_u32_to_ring(data, euid.val);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2617,7 +2593,7 @@ FILLER(proc_startupdate_3, true)
 		/*
 		 * gid
 		 */
-		res = bpf_val_to_ring_type(data, egid.val, PT_UINT32);
+		res = bpf_push_u32_to_ring(data, egid.val);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2625,7 +2601,7 @@ FILLER(proc_startupdate_3, true)
 		 * vtid
 		 */
 		vtid = bpf_task_pid_vnr(task);
-		res = bpf_val_to_ring_type(data, vtid, PT_PID);
+		res = bpf_push_s64_to_ring(data, vtid);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2633,7 +2609,7 @@ FILLER(proc_startupdate_3, true)
 		 * vpid
 		 */
 		vpid = bpf_task_tgid_vnr(task);
-		res = bpf_val_to_ring_type(data, vpid, PT_PID);
+		res = bpf_push_s64_to_ring(data, vpid);
 		CHECK_RES(res);
 
 		/* Parameter 21: pid_namespace init task start_time monotonic time in ns (type: PT_UINT64) */
@@ -2644,7 +2620,7 @@ FILLER(proc_startupdate_3, true)
 			struct task_struct *child_reaper = (struct task_struct *)_READ(pidns->child_reaper);
 			pidns_init_start_time = _READ(child_reaper->start_time);
 		}
-		res = bpf_val_to_ring_type(data, pidns_init_start_time, PT_UINT64);
+		res = bpf_push_u64_to_ring(data, pidns_init_start_time);
 		CHECK_RES(res);
 
 	} else if (data->state->tail_ctx.evt_type == PPME_SYSCALL_EXECVE_19_X ||
@@ -2722,14 +2698,14 @@ FILLER(proc_startupdate_3, true)
 		 */
 		tty = bpf_ppm_get_tty(task);
 
-		res = bpf_val_to_ring_type(data, tty, PT_INT32);
+		res = bpf_push_s32_to_ring(data, tty);
 		if (res != PPM_SUCCESS)
 			return res;
 
 		/*
 		 * pgid
 		 */
-		res = bpf_val_to_ring_type(data, bpf_task_pgrp_vnr(task), PT_PID);
+		res = bpf_push_s64_to_ring(data, bpf_task_pgrp_vnr(task));
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2754,7 +2730,7 @@ FILLER(proc_startupdate_3, true)
 		loginuid.val = -1;
 #endif /* CONFIG_AUDIT... */
 
-		res = bpf_val_to_ring_type(data, loginuid.val, PT_INT32);
+		res = bpf_push_s32_to_ring(data, loginuid.val);
 		if (res != PPM_SUCCESS)
 			return res;
 
@@ -2803,44 +2779,44 @@ FILLER(execve_family_flags, true)
 	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
-	int res = bpf_val_to_ring_type(data, flags, PT_UINT32);
+	int res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */
 	kernel_cap_t cap = _READ(cred->cap_inheritable);
-	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	res = bpf_push_u64_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
 	CHECK_RES(res);
 
 	/* Parameter 22: cap_permitted (type: PT_UINT64) */
 	cap = _READ(cred->cap_permitted);
-	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	res = bpf_push_u64_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
 	CHECK_RES(res);
 
 	/* Parameter 23: cap_effective (type: PT_UINT64) */
 	cap = _READ(cred->cap_effective);
-	res = bpf_val_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
+	res = bpf_push_u64_to_ring(data, capabilities_to_scap(((unsigned long)cap.cap[1] << 32) | cap.cap[0]));
 	CHECK_RES(res);
 
 	/* Parameter 24: exe_file ino (type: PT_UINT64) */
 	unsigned long ino = _READ(inode->i_ino);
-	res = bpf_val_to_ring_type(data, ino, PT_UINT64);
+	res = bpf_push_u64_to_ring(data, ino);
 	CHECK_RES(res);
 
 	struct timespec64 time = {0};
 
 	/* Parameter 25: exe_file ctime (last status change time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_ctime);
-	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
 	/* Parameter 26: exe_file mtime (last modification time, epoch value in nanoseconds) (type: PT_ABSTIME) */
 	time = _READ(inode->i_mtime);
-	res = bpf_val_to_ring_type(data, bpf_epoch_ns_from_time(time), PT_ABSTIME);
+	res = bpf_push_u64_to_ring(data, bpf_epoch_ns_from_time(time));
 	CHECK_RES(res);
 
 	/* Parameter 27: uid */
 	euid = _READ(cred->euid);
-	return bpf_val_to_ring_type(data, euid.val, PT_UINT32);
+	return bpf_push_u32_to_ring(data, euid.val);
 }
 
 FILLER(sys_accept4_e, true)
@@ -2852,11 +2828,12 @@ FILLER(sys_accept4_e, true)
 	 * XXX we don't support flags yet and so we just return zero
 	 *     If implemented, special handling for SYS_ACCEPT socketcall is needed.
 	 */
-	res = bpf_val_to_ring(data, 0);
+	res = bpf_push_s32_to_ring(data, 0);
 
 	return res;
 }
 
+// TODO RESUME FROM HERE
 FILLER(sys_accept_x, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
