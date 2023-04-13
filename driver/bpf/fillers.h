@@ -325,7 +325,8 @@ FILLER(sys_single, true)
 	int res;
 
 	val = bpf_syscall_get_argument(data, 0);
-	return bpf_push_s64_to_ring(data, val);
+	// TODO HOW TO avoid using bpf_val_to_ring?
+	return bpf_val_to_ring(data, val);
 }
 
 FILLER(sys_single_x, true)
@@ -3065,10 +3066,10 @@ FILLER(sys_openat_x, true)
 
 FILLER(sys_openat2_e, true)
 {
-	unsigned long resolve;
-	unsigned long flags;
+	u32 resolve;
+	u32 flags;
 	unsigned long val;
-	unsigned long mode;
+	u32 mode;
 	int res;
 #ifdef __NR_openat2
 	struct open_how how;
@@ -3098,7 +3099,14 @@ FILLER(sys_openat2_e, true)
 	if (bpf_probe_read_user(&how, sizeof(struct open_how), (void *)val)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	flags = open_flags_to_scap(how.flags);
+	if (how.flags <= U32_MAX)
+	{
+		flags = open_flags_to_scap(how.flags);
+	}
+	else
+	{
+		flags = 0;
+	}
 	mode = open_modes_to_scap(how.flags, how.mode);
 	resolve = openat2_resolve_to_scap(how.resolve);
 #else
@@ -3132,10 +3140,10 @@ FILLER(sys_openat2_e, true)
 
 FILLER(sys_openat2_x, true)
 {
-	unsigned long resolve;
-	unsigned long flags;
+	u32 resolve;
+	u32 flags;
 	unsigned long val;
-	unsigned long mode;
+	u32 mode;
 	long retval;
 	int res;
 #ifdef __NR_openat2
@@ -3171,7 +3179,14 @@ FILLER(sys_openat2_x, true)
 	if (bpf_probe_read_user(&how, sizeof(struct open_how), (void *)val)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	flags = open_flags_to_scap(how.flags);
+	if (how.flags <= U32_MAX)
+	{
+		flags = open_flags_to_scap(how.flags);
+	}
+	else
+	{
+		flags = 0;
+	}
 	mode = open_modes_to_scap(how.flags, how.mode);
 	resolve = openat2_resolve_to_scap(how.resolve);
 #else
@@ -3616,7 +3631,7 @@ FILLER(sys_signalfd_e, true)
 	/* The syscall `signalfd` has no flags! only `signalfd4` has the `flags` param.
 	 * For compatibility with the event definition here we send `0` as flags.
 	 */
-	return bpf_push_u32_to_ring(data, 0);
+	return bpf_push_u8_to_ring(data, 0);
 }
 
 FILLER(sys_signalfd4_e, true)
@@ -5640,7 +5655,7 @@ FILLER(sys_autofill, true)
 		else if (arg.id == AF_ID_USEDEFAULT)
 			val = arg.default_val;
 
-		// TODO HOW TO?
+		// TODO HOW TO avoid using bpf_val_to_ring?
 		res = bpf_val_to_ring(data, val);
 		CHECK_RES(res);
 	}
