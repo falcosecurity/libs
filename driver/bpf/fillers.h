@@ -2805,7 +2805,6 @@ FILLER(sys_accept4_e, true)
 	return res;
 }
 
-// TODO RESUME FROM HERE
 FILLER(sys_accept_x, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
@@ -2814,7 +2813,7 @@ FILLER(sys_accept_x, true)
 	 * in the stack, and therefore we can consume them.
 	 */
 	s32 fd = (s32)bpf_syscall_get_retval(data->ctx);
-	int res = bpf_val_to_ring_type(data, (s64)fd, PT_FD);
+	int res = bpf_push_s64_to_ring(data, (s64)fd);
 	CHECK_RES(res);
 
 	u32 queuelen = 0;
@@ -2847,43 +2846,43 @@ FILLER(sys_accept_x, true)
 	}
 
 	/* Parameter 3: queuepct (type: PT_UINT8) */
-	res = bpf_val_to_ring_type(data, queuepct, PT_UINT8);
+	res = bpf_push_u8_to_ring(data, queuepct);
 	CHECK_RES(res);
 
 	/* Parameter 4: queuelen (type: PT_UINT32) */
-	res = bpf_val_to_ring_type(data, queuelen, PT_UINT32);
+	res = bpf_push_u32_to_ring(data, queuelen);
 	CHECK_RES(res);
 
 	/* Parameter 5: queuemax (type: PT_UINT32) */
-	return bpf_val_to_ring_type(data, queuemax, PT_UINT32);
+	return bpf_push_u32_to_ring(data, queuemax);
 }
 
 FILLER(sys_close_e, true)
 {
 	/* Parameter 1: fd (type: PT_FD)*/
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring(data, (s64)fd);
+	return bpf_push_s64_to_ring(data, (s64)fd);
 }
 
 FILLER(sys_close_x, true)
 {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	long retval = bpf_syscall_get_retval(data->ctx);
-	return bpf_val_to_ring(data, retval);
+	return bpf_push_s64_to_ring(data, retval);
 }
 
 FILLER(sys_fchdir_e, true)
 {
 	/* Parameter 1: fd (type: PT_FD) */
 	s32 fd = (s32)bpf_syscall_get_argument(data, 0);
-	return bpf_val_to_ring(data, (s64)fd);
+	return bpf_push_s64_to_ring(data, (s64)fd);
 }
 
 FILLER(sys_fchdir_x, true)
 {
 	/* Parameter 1: res (type: PT_ERRNO)*/
 	long retval = bpf_syscall_get_retval(data->ctx);
-	return bpf_val_to_ring(data, retval);
+	return bpf_push_s64_to_ring(data, retval);
 }
 
 FILLER(sys_setns_e, true)
@@ -2900,14 +2899,14 @@ FILLER(sys_setns_e, true)
 
 FILLER(sys_setpgid_e, true)
 {
-	/* Parameter 1: pid (type: PT_FD) */
+	/* Parameter 1: pid (type: PT_PID) */
 	pid_t pid = (s32)bpf_syscall_get_argument(data, 0);
-	int res = bpf_val_to_ring(data, (s64)pid);
+	int res = bpf_push_s64_to_ring(data, (s64)pid);
 	CHECK_RES(res);
 
 	/* Parameter 2: pgid (type: PT_PID) */
 	pid_t pgid = (s32)bpf_syscall_get_argument(data, 1);
-	return bpf_val_to_ring(data, (s64)pgid);
+	return bpf_push_s64_to_ring(data, (s64)pgid);
 }
 
 FILLER(sys_unshare_e, true)
@@ -2918,7 +2917,7 @@ FILLER(sys_unshare_e, true)
 
 	val = bpf_syscall_get_argument(data, 0);
 	flags = clone_flags_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
+	res = bpf_push_s32_to_ring(data, flags);
 
 	return res;
 }
@@ -2944,14 +2943,14 @@ FILLER(sys_generic, true)
 	/*
 	 * id
 	 */
-	res = bpf_val_to_ring(data, scap_id);
+	res = bpf_push_u16_to_ring(data, scap_id);
 	CHECK_RES(res);
 
 	if (data->state->tail_ctx.evt_type == PPME_GENERIC_E) {
 		/*
 		 * native id
 		 */
-		res = bpf_val_to_ring(data, native_id);
+		res = bpf_push_u16_to_ring(data, native_id);
 	}
 
 	return res;
@@ -2971,7 +2970,7 @@ FILLER(sys_openat_e, true)
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, val);
 	CHECK_RES(res);
 
 	/*
@@ -2987,7 +2986,7 @@ FILLER(sys_openat_e, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
+	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
 	/*
@@ -2995,7 +2994,7 @@ FILLER(sys_openat_e, true)
 	 */
 	mode = bpf_syscall_get_argument(data, 3);
 	mode = open_modes_to_scap(val, mode);
-	res = bpf_val_to_ring(data, mode);
+	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
 	return res;
@@ -3012,7 +3011,7 @@ FILLER(sys_openat_x, true)
 	int res;
 
 	retval = bpf_syscall_get_retval(data->ctx);
-	res = bpf_val_to_ring(data, retval);
+	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
 	/*
@@ -3022,7 +3021,7 @@ FILLER(sys_openat_x, true)
 	if ((int)val == AT_FDCWD)
 		val = PPM_AT_FDCWD;
 
-	res = bpf_val_to_ring(data, val);
+	res = bpf_push_s64_to_ring(data, val);
 	CHECK_RES(res);
 
 	/*
@@ -3038,7 +3037,7 @@ FILLER(sys_openat_x, true)
 	 */
 	val = bpf_syscall_get_argument(data, 2);
 	flags = open_flags_to_scap(val);
-	res = bpf_val_to_ring(data, flags);
+	res = bpf_push_u32_to_ring(data, flags);
 	CHECK_RES(res);
 
 	/*
@@ -3046,7 +3045,7 @@ FILLER(sys_openat_x, true)
 	 */
 	mode = bpf_syscall_get_argument(data, 3);
 	mode = open_modes_to_scap(val, mode);
-	res = bpf_val_to_ring(data, mode);
+	res = bpf_push_u32_to_ring(data, mode);
 	CHECK_RES(res);
 
 	bpf_get_fd_dev_ino(retval, &dev, &ino);
@@ -3054,16 +3053,17 @@ FILLER(sys_openat_x, true)
 	/*
 	 * Device
 	 */
-	res = bpf_val_to_ring(data, dev);
+	res = bpf_push_u32_to_ring(data, dev);
 	CHECK_RES(res);
 
 	/*
 	 * Ino
 	 */
-	res = bpf_val_to_ring(data, ino);
+	res = bpf_push_u64_to_ring(data, ino);
 	return res;
 }
 
+// TODO RESUME FROM HERE
 FILLER(sys_openat2_e, true)
 {
 	unsigned long resolve;
