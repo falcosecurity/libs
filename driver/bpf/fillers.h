@@ -6395,7 +6395,7 @@ FILLER(sched_prog_exec_3, false)
 #endif /* CONFIG_AUDIT... */
 
 	/* Parameter 19: loginuid (type: PT_INT32) */
-	res = bpf_push_s32_to_ring(data, loginuid.val, PT_INT32);
+	res = bpf_push_s32_to_ring(data, loginuid.val);
 	CHECK_RES(res);
 
 	bpf_tail_call(data->ctx, &tail_map, PPM_FILLER_sched_prog_exec_4);
@@ -6476,7 +6476,7 @@ FILLER(sched_prog_exec_4, false)
 
 	/* Parameter 27: uid */
 	euid = _READ(cred->euid);
-	return bpf_push_u32_to_ring(data, euid.val, PT_UINT32);
+	return bpf_push_u32_to_ring(data, euid.val);
 }
 #endif
 
