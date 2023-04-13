@@ -95,9 +95,9 @@ Options:
   -o <fields>, --output-fields-json <fields> [JSON support only, can also use without -j] Output fields string (see <filter> for supported display fields) that overwrites JSON default output fields for all events. * at the beginning prints JSON keys with null values, else no null fields are printed.
   -E, --exclude-users                        Don't create the user/group tables
   -n, --num-events                           Number of events to be retrieved (no limit by default)
-  -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc via `sinsp_state_sc_set`, requires valid filter expression.
-  -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc via `sinsp_repair_state_sc_set`, requires valid filter expression.
-  -q, --remove-io-sc-state                   Remove ppm sc codes belonging to ppm sc `io_sc_set()` from sinsp state enforcement `sinsp_state_sc_set`, defaults to false, only applies when choosing `-z` option.
+  -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_state_sc_set`, requires valid filter expression.
+  -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_repair_state_sc_set`, requires valid filter expression.
+  -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option.
 )";
 	cout << usage << endl;
 }
@@ -221,14 +221,7 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 
 	if (ppm_sc_modifies_state && !events_sc_codes.empty())
 	{
-		if (ppm_sc_state_remove_io_sc)
-		{
-			ppm_sc = libsinsp::events::sinsp_state_sc_set(ppm_sc_state_remove_io_sc).merge(events_sc_codes);
-
-		} else
-		{
-			ppm_sc = libsinsp::events::sinsp_state_sc_set().merge(events_sc_codes);
-		}
+		ppm_sc = libsinsp::events::sinsp_state_sc_set(ppm_sc_state_remove_io_sc).merge(events_sc_codes);
 		if (!ppm_sc.empty())
 		{
 			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
