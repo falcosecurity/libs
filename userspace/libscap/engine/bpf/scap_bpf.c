@@ -1499,19 +1499,19 @@ int32_t scap_bpf_load(
 		pmu_fd = sys_perf_event_open(&attr, -1, j, -1, 0);
 		if(pmu_fd < 0)
 		{
-			return scap_errprintf(handle->m_lasterr, -pmu_fd, "pmu_fd");
+			return scap_errprintf(handle->m_lasterr, -pmu_fd, "unable to open the perf-buffer for cpu '%d'", j);
 		}
 
 		dev->m_fd = pmu_fd;
 
 		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_PERF_MAP], &j, &pmu_fd, BPF_ANY)) != 0)
 		{
-			return scap_errprintf(handle->m_lasterr, -ret, "SCAP_PERF_MAP bpf_map_update_elem");
+			return scap_errprintf(handle->m_lasterr, -ret, "unable to update the SCAP_PERF_MAP map for cpu '%d'", j);
 		}
 
 		if(ioctl(pmu_fd, PERF_EVENT_IOC_ENABLE, 0))
 		{
-			return scap_errprintf(handle->m_lasterr, errno, "PERF_EVENT_IOC_ENABLE");
+			return scap_errprintf(handle->m_lasterr, errno, "unable to call PERF_EVENT_IOC_ENABLE on the fd for cpu '%d'", j);
 		}
 
 		//
@@ -1521,7 +1521,7 @@ int32_t scap_bpf_load(
 		dev->m_buffer_size = bpf_args->buffer_bytes_dim;
 		if(dev->m_buffer == MAP_FAILED)
 		{
-			return SCAP_FAILURE;
+			return scap_errprintf(handle->m_lasterr, errno, "unable to mmap the perf-buffer for cpu '%d'", j);
 		}
 
 		++online_cpu;
