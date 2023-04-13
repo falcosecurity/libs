@@ -392,6 +392,7 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_repair_state_sc_set(c
 		PPM_SC_SETSID,
 		PPM_SC_SETUID,
 		PPM_SC_SETUID32,
+		PPM_SC_PRCTL,
 	};
 
 	if ((flags & PPM_REPAIR_STATE_SC_NETWORK_BASE))

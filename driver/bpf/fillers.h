@@ -7159,14 +7159,12 @@ FILLER(sys_prctl_x, true)
 			res = bpf_val_to_ring(data, (int)arg2_int);
 			CHECK_RES(res);
 			break;
+		case PPM_PR_SET_CHILD_SUBREAPER:
 		default:
 			/*
 			 * arg2_str
 			 */
-			//XXX temporary workaround: the usage of `bpf_push_empty_param`
-			//    breaks the verifies
-			//res = bpf_push_empty_param(data);
-			res = bpf_val_to_ring(data, 0);
+			res = bpf_push_empty_param(data);
 			CHECK_RES(res);
 			/*
 			 * arg2_int
