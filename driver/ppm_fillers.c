@@ -7863,7 +7863,7 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	/*
 	 * option
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 0, 1, &option);
+	syscall_get_arguments_deprecated(current, args, 0, 1, &option);
 	option = prctl_options_to_scap(option);
 	res = val_to_ring(args, option, 0, false, 0);
 	CHECK_RES(res);
@@ -7871,7 +7871,7 @@ int f_sys_prctl_x(struct event_filler_arguments *args)
 	/*
 	 * arg2
 	 */
-	syscall_get_arguments_deprecated(current, args->regs, 1, 1, &arg2);
+	syscall_get_arguments_deprecated(current, args, 1, 1, &arg2);
 
 	switch(option){
 		case PPM_PR_GET_NAME:
