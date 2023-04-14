@@ -26,7 +26,7 @@ limitations under the License.
 #define PPM_REPAIR_STATE_SC_FD_CLOSE (1 << 2)
 
 
-libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set(bool remove_io_sc_set)
+libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set()
 {
 	static libsinsp::events::set<ppm_sc_code> ppm_sc_set;
 	if (ppm_sc_set.empty())
@@ -45,11 +45,6 @@ libsinsp::events::set<ppm_sc_code> libsinsp::events::sinsp_state_sc_set(bool rem
 			}
 		}
 	}
-	if (remove_io_sc_set)
-	{
-		ppm_sc_set = ppm_sc_set.diff(libsinsp::events::io_sc_set());
-	}
-
 	return ppm_sc_set;
 }
 
