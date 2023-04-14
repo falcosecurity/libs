@@ -137,7 +137,6 @@ int pman_get_scap_stats(void *scap_stats_struct)
 	struct scap_stats *stats = (struct scap_stats *)scap_stats_struct;
 	char error_message[MAX_ERROR_MESSAGE_LEN];
 	struct counter_map cnt_map;
-	int ret;
 
 	if(!stats)
 	{
@@ -165,7 +164,7 @@ int pman_get_scap_stats(void *scap_stats_struct)
 	{
 		if(bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map) < 0)
 		{
-			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
+			snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
 			pman_print_error((const char *)error_message);
 			goto clean_print_stats;
 		}
@@ -218,7 +217,7 @@ int pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t*
 		{
 			if((ret = bpf_map_lookup_elem(counter_maps_fd, &index, &cnt_map)) != 0)
 			{
-				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unbale to get the counter map for CPU %d", index);
+				snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "unable to get the counter map for CPU %d", index);
 				pman_print_error((const char *)error_message);
 				close(counter_maps_fd);
 				return -ret;

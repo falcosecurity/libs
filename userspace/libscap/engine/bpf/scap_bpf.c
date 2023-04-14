@@ -1678,10 +1678,10 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 		return NULL;
 	}
 
-	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS < nstats_allocated))
+	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS <= nstats_allocated))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
-		for(int stat = 0;  stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
+		for(int stat = 0; stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].type = STATS_VALUE_TYPE_U64;
 			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
