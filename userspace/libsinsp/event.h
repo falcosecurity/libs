@@ -446,6 +446,14 @@ private:
 		m_tinfo = threadinfo;
 		m_fdinfo = fdinfo;
 	}
+	inline void init(scap_evt* scap_event,
+			 ppm_event_info* ppm_event,
+			 int32_t errorcode)
+	{
+		m_pevt = scap_event;
+		m_info = ppm_event;
+		m_errorcode = errorcode;
+	}
 	inline void load_params()
 	{
 		uint32_t j;
