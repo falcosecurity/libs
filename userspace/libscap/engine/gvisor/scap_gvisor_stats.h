@@ -27,11 +27,5 @@ namespace stats {
         MAX_GVISOR_COUNTERS_STATS
     };
 
-    static const char * const gvisor_counters_stats_names[] = {
-        [GVISOR_N_EVTS] = "n_evts",
-        [GVISOR_N_DROPS_BUG] = "n_drops_bug",
-        [GVISOR_N_DROPS_BUFFER_TOTAL] ="n_drops_buffer_total",
-        [GVISOR_N_DROPS] = "n_drops",
-    };
 } // namespace stats
 } // namespace scap_gvisor

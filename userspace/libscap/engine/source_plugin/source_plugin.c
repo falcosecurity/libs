@@ -28,6 +28,10 @@ limitations under the License.
 #include "strlcpy.h"
 #include "gettimeofday.h"
 
+static const char * const source_plugin_counters_stats_names[] = {
+	[N_EVTS] = "n_evts",
+};
+
 static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)
 {
 	switch(plugin_rc)
@@ -229,7 +233,7 @@ static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats
 	return SCAP_SUCCESS;
 }
 
-struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	*nstats = MAX_SOURCE_PLUGIN_COUNTERS_STATS;
@@ -242,7 +246,7 @@ struct scap_stats_v2* get_source_plugin_stats_v2(struct scap_engine_handle engin
 	}
 
 	/* SOURCE PLUGIN STATS COUNTERS */
-	for(uint32_t stat =  0;  stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
+	for(uint32_t stat = 0; stat < MAX_SOURCE_PLUGIN_COUNTERS_STATS; stat++)
 	{
 		stats[stat].type = STATS_VALUE_TYPE_U64;
 		stats[stat].value.u64 = 0;

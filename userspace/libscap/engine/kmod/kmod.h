@@ -19,8 +19,9 @@ limitations under the License.
 #include <stdint.h>
 #include "ringbuffer/devset.h"
 #include "scap_open.h"
+#include "scap_stats_v2.h"
 #include "scap_kmod_stats.h"
-#include "scap.h"
+
 
 struct kmod_engine
 {

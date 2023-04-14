@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include "scap_const.h"
+#include "scap_stats_v2.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -116,22 +117,6 @@ typedef struct ppm_evt_hdr scap_evt;
 //
 #define SCAP_PROC_SCAN_LOG_NONE 0
 
-//
-// Limits for scap_stats_v2 metric name
-//
-#define STATS_NAME_MAX 512
-
-//
-// machine_info flags
-//
-#define PPM_BPF_STATS_ENABLED (1 << 0)
-
-//
-// scap_stats_v2 flags
-//
-#define PPM_SCAP_STATS_KERNEL_COUNTERS (1 << 0)
-#define PPM_SCAP_STATS_LIBBPF_STATS (1 << 1)
-
 /*!
   \brief Statistics about an in progress capture
 */
@@ -159,41 +144,6 @@ typedef struct scap_stats
 	uint64_t n_suppressed; ///< Number of events skipped due to the tid being in a set of suppressed tids.
 	uint64_t n_tids_suppressed; ///< Number of threads currently being suppressed.
 }scap_stats;
-
-
-typedef union scap_stats_v2_value {
-	uint32_t u32;
-	int32_t s32;
-	uint64_t u64;
-	int64_t s64;
-	double d;
-	float f;
-	int i;
-}scap_stats_v2_value;
-
-typedef enum scap_stats_v2_value_type{
-	STATS_VALUE_TYPE_U32,
-	STATS_VALUE_TYPE_S32,
-	STATS_VALUE_TYPE_U64,
-	STATS_VALUE_TYPE_S64,
-	STATS_VALUE_TYPE_D,
-	STATS_VALUE_TYPE_F,
-	STATS_VALUE_TYPE_I,
-}scap_stats_v2_value_type;
-
-/*!
-  \brief Statistics about an in progress capture (including counters and libbpf stats, compare to `bpftool prog show` CLI).
-*/
-typedef struct scap_stats_v2
-{
-	/* Metadata */
-	char name[STATS_NAME_MAX];
-	uint32_t flags;
-	/* Stats values */
-	scap_stats_v2_value value;
-	scap_stats_v2_value_type type;
-	// todo: add unit enum
-}scap_stats_v2;
 
 /*!
   \brief File Descriptor type
@@ -780,7 +730,7 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats);
 
   \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 */
-struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
+const struct scap_stats_v2* scap_get_stats_v2(scap_t* handle, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc);
 
 /*!
   \brief Returns the set of ppm_sc whose events have EF_MODIFIES_STATE flag or whose syscall have UF_NEVER_DROP flag.
