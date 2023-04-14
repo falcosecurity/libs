@@ -3035,14 +3035,7 @@ FILLER(sys_openat2_e, true)
 	if (bpf_probe_read_user(&how, sizeof(struct open_how), (void *)val)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	if (how.flags <= U32_MAX)
-	{
-		flags = open_flags_to_scap(how.flags);
-	}
-	else
-	{
-		flags = 0;
-	}
+	flags = open_flags_to_scap(how.flags);
 	mode = open_modes_to_scap(how.flags, how.mode);
 	resolve = openat2_resolve_to_scap(how.resolve);
 #else
@@ -3114,14 +3107,7 @@ FILLER(sys_openat2_x, true)
 	if (bpf_probe_read_user(&how, sizeof(struct open_how), (void *)val)) {
 		return PPM_FAILURE_INVALID_USER_MEMORY;
 	}
-	if (how.flags <= U32_MAX)
-	{
-		flags = open_flags_to_scap(how.flags);
-	}
-	else
-	{
-		flags = 0;
-	}
+	flags = open_flags_to_scap(how.flags);
 	mode = open_modes_to_scap(how.flags, how.mode);
 	resolve = openat2_resolve_to_scap(how.resolve);
 #else
