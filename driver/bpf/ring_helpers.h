@@ -30,6 +30,12 @@ static __always_inline void fixup_evt_len(char *p, unsigned long len)
 	evt_hdr->len = len;
 }
 
+/* Should be used only on a param already pushed */
+static __always_inline u16 get_param_len(char *p, const unsigned int argnum)
+{
+	return *((u16 *)&p[sizeof(struct ppm_evt_hdr)] + (argnum & (PPM_MAX_EVENT_PARAMS - 1)));
+}
+
 static __always_inline void fixup_evt_arg_len(char *p,
 					      unsigned int argnum,
 					      unsigned int arglen)

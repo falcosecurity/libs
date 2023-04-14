@@ -75,33 +75,39 @@ int BPF_PROG(fork_x,
 	 */
 	if(ret >= 0)
 	{
-		unsigned long arg_start_pointer = 0;
-		unsigned long arg_end_pointer = 0;
+		unsigned long int start_pointer = 0;
+		unsigned long int end_pointer = 0;
+		unsigned long int total_len = 0;
 
-		/* Please note: these are the arguments of the process, not the
-		 * argument with which we call the `clone` syscall.
-		 * `arg_start` points to the memory area where arguments start.
-		 * We directly read charbufs from there, not pointers to charbufs!
-		 * We will store charbufs directly from memory.
-		 */
-		READ_TASK_FIELD_INTO(&arg_start_pointer, task, mm, arg_start);
-		READ_TASK_FIELD_INTO(&arg_end_pointer, task, mm, arg_end);
+		READ_TASK_FIELD_INTO(&start_pointer, task, mm, arg_start);
+		READ_TASK_FIELD_INTO(&end_pointer, task, mm, arg_end);
+		total_len = end_pointer - start_pointer;
 
-		unsigned long total_args_len = arg_end_pointer - arg_start_pointer;
+		bpf_probe_read_user(&auxmap->data[SAFE_ACCESS(auxmap->payload_pos)],
+				    (total_len & (MAX_PROC_ARG_ENV - 1)),
+				    (void *)start_pointer);
 
-		/* Parameter 2: exe (type: PT_CHARBUF) */
-		/* We need to extract the len of `exe` arg so we can undestand
-		 * the overall length of the remaining args.
-		 */
-		u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, arg_start_pointer, MAX_PROC_EXE, USER);
+		/* if true application is using setproctitle() */
+		if(auxmap->data[SAFE_ACCESS(auxmap->payload_pos + total_len - 1)] == '\0')
+		{
+			/* Parameter 2: exe (type: PT_CHARBUF) */
+			u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, start_pointer, MAX_PROC_EXE, USER);
 
-		/* Parameter 3: args (type: PT_CHARBUFARRAY) */
-		/* Here we read all the array starting from the pointer to the first
-		 * element. We could also read the array element per element but
-		 * since we know the total len we read it as a `bytebuf`.
-		 * The `\0` after every argument are preserved.
-		 */
-		auxmap__store_bytebuf_param(auxmap, arg_start_pointer + exe_arg_len, (total_args_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+			/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+			auxmap__store_bytebuf_param(auxmap, start_pointer + exe_arg_len, (total_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+		}
+		else
+		{
+			READ_TASK_FIELD_INTO(&start_pointer, task, mm, env_start);
+			READ_TASK_FIELD_INTO(&end_pointer, task, mm, env_end);
+			total_len = end_pointer - start_pointer;
+
+			/* Parameter 2: exe (type: PT_CHARBUF) */
+			u16 exe_arg_len = auxmap__store_charbuf_param(auxmap, start_pointer, MAX_PROC_EXE, USER);
+
+			/* Parameter 3: args (type: PT_CHARBUFARRAY) */
+			auxmap__store_bytebuf_param(auxmap, start_pointer + exe_arg_len, (total_len - exe_arg_len) & (MAX_PROC_ARG_ENV - 1), USER);
+		}
 	}
 	else
 	{
