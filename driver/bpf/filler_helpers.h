@@ -25,6 +25,9 @@ or GPL2.txt for full copies of the license.
 #define MAX_PATH_COMPONENTS 16
 #define MAX_PATH_LENGTH 4096
 
+/* Helper used to please the verifier with operations on the number of arguments */
+#define SAFE_ARG_NUMBER(x) x & (PPM_MAX_EVENT_PARAMS - 1)
+
 /* This enum is used to tell our helpers if they have to
  * read from kernel or user memory.
  */
@@ -1069,8 +1072,8 @@ static __always_inline int bpf_push_empty_param(struct filler_data *data)
 	fixup_evt_arg_len(data->buf, data->state->tail_ctx.curarg, 0);
 	data->curarg_already_on_frame = false;
 
-	 /* We increment the current argument */
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1130,7 +1133,8 @@ static __always_inline int bpf_push_s64_to_ring(struct filler_data *data, s64 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1146,7 +1150,8 @@ static __always_inline int bpf_push_u64_to_ring(struct filler_data *data, u64 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1162,7 +1167,8 @@ static __always_inline int bpf_push_u32_to_ring(struct filler_data *data, u32 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1178,7 +1184,8 @@ static __always_inline int bpf_push_s32_to_ring(struct filler_data *data, s32 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1194,7 +1201,8 @@ static __always_inline int bpf_push_u16_to_ring(struct filler_data *data, u16 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1210,7 +1218,8 @@ static __always_inline int bpf_push_s16_to_ring(struct filler_data *data, s16 va
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1226,7 +1235,8 @@ static __always_inline int bpf_push_u8_to_ring(struct filler_data *data, u8 val)
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
@@ -1242,7 +1252,8 @@ static __always_inline int bpf_push_s8_to_ring(struct filler_data *data, s16 val
 	data->state->tail_ctx.curoff += len;
 	data->state->tail_ctx.len += len;
 	data->curarg_already_on_frame = false;
-	++data->state->tail_ctx.curarg;
+	/* We increment the current argument - to make verifier happy, properly check it */
+	data->state->tail_ctx.curarg = SAFE_ARG_NUMBER(data->state->tail_ctx.curarg + 1);
 	return PPM_SUCCESS;
 }
 
