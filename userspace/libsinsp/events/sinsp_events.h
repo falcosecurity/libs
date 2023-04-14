@@ -117,14 +117,14 @@ bool is_plugin_event(ppm_event_code event_type);
  	\brief Provide the minimum set of syscalls required by `libsinsp` state collection.
  	Each returned `ppm_sc` code is tagged with `EF_MODIFIES_STATE` in the event table.
 
- 	\param remove_io_sc_set Option to natively remove `ppm_sc` codes belonging to `io_sc_set()`,
- 	because they can be high volume and sometimes not feasible to enforce.
  	\note Ongoing research to document the influence of each `ppm_sc` on `libsinsp` state.
+ 	The returned set contains some `ppm_sc` codes belonging to `io_sc_set()`, it is up to the
+ 	client to analyze trade-offs and possibly remove some enforced `ppm_sc` codes.
 
  	WARNING: Without merging your ppm_sc set with the one provided by this method,
  	we cannot guarantee that `libsinsp` state will always be up to date, or even work at all.
 */
-set<ppm_sc_code> sinsp_state_sc_set(bool remove_io_sc_set = false);
+set<ppm_sc_code> sinsp_state_sc_set();
 
 /*!
   \brief Enforce simple set of syscalls with all the security-valuable syscalls.

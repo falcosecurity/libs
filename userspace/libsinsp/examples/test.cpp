@@ -97,7 +97,7 @@ Options:
   -n, --num-events                           Number of events to be retrieved (no limit by default)
   -z, --ppm-sc-modifies-state                Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_state_sc_set`, requires valid filter expression.
   -x, --ppm-sc-repair-state                  Select ppm sc codes from filter AST plus enforce sinsp state ppm sc codes via `sinsp_repair_state_sc_set`, requires valid filter expression.
-  -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option.
+  -q, --remove-io-sc-state                   Remove ppm sc codes belonging to `io_sc_set` from `sinsp_state_sc_set` sinsp state enforcement, defaults to false and only applies when choosing `-z` option, used for e2e testing of sinsp state.
 )";
 	cout << usage << endl;
 }
@@ -221,7 +221,15 @@ void open_engine(sinsp& inspector, libsinsp::events::set<ppm_sc_code> events_sc_
 
 	if (ppm_sc_modifies_state && !events_sc_codes.empty())
 	{
-		ppm_sc = libsinsp::events::sinsp_state_sc_set(ppm_sc_state_remove_io_sc).merge(events_sc_codes);
+		ppm_sc = libsinsp::events::sinsp_state_sc_set();
+		if (ppm_sc_state_remove_io_sc)
+		{
+			/* Currently used for testing sinsp_state_sc_set() without I/O sc codes.
+			 * Approach may change in the future. */
+			ppm_sc = ppm_sc.diff(libsinsp::events::io_sc_set());
+
+		}
+		ppm_sc = ppm_sc.merge(events_sc_codes);
 		if (!ppm_sc.empty())
 		{
 			auto events_sc_names = libsinsp::events::sc_set_to_sc_names(ppm_sc);
