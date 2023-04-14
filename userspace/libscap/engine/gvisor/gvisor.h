@@ -27,6 +27,7 @@ limitations under the License.
 #include <stdint.h>
 #include <utility>
 #include "scap.h"
+#include "scap_stats_v2.h"
 #include "scap_gvisor_stats.h"
 
 namespace scap_gvisor {
@@ -146,7 +147,7 @@ public:
     uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
     uint32_t get_vxid(uint64_t pid);
     int32_t get_stats(scap_stats *stats);
-    struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
+    const struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 private:
     int32_t process_message_from_fd(int fd);
     void free_sandbox_buffers();

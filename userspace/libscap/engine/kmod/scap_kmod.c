@@ -37,6 +37,27 @@ limitations under the License.
 //#define NDEBUG
 #include <assert.h>
 
+static const char * const kmod_kernel_counters_stats_names[] = {
+	[KMOD_N_EVTS] = "n_evts",
+	[KMOD_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+	[KMOD_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
+	[KMOD_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
+	[KMOD_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
+	[KMOD_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
+	[KMOD_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
+	[KMOD_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
+	[KMOD_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
+	[KMOD_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
+	[KMOD_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
+	[KMOD_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
+	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
+	[KMOD_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+	[KMOD_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
+	[KMOD_N_DROPS_BUG] = "n_drops_bug",
+	[KMOD_N_DROPS] = "n_drops",
+	[KMOD_N_PREEMPTIONS] = "n_preemptions",
+};
+
 static struct kmod_engine* alloc_handle(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct kmod_engine *engine = calloc(1, sizeof(struct kmod_engine));
@@ -531,7 +552,7 @@ int32_t scap_kmod_get_stats(struct scap_engine_handle engine, scap_stats* stats)
 	return SCAP_SUCCESS;
 }
 
-struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct kmod_engine *handle = engine.m_handle;
 	struct scap_device_set *devset = &handle->m_dev_set;
@@ -548,7 +569,7 @@ struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, u
 	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
-		for(uint32_t stat =  0;  stat < KMOD_MAX_KERNEL_COUNTERS_STATS; stat++)
+		for(uint32_t stat = 0; stat < KMOD_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].type = STATS_VALUE_TYPE_U64;
 			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
@@ -578,9 +599,9 @@ struct scap_stats_v2* scap_kmod_get_stats_v2(struct scap_engine_handle engine, u
 					dev->m_bufinfo->n_drops_pf;
 			stats[KMOD_N_PREEMPTIONS].value.u64 += dev->m_bufinfo->n_preemptions;
 		}
+		*nstats = KMOD_MAX_KERNEL_COUNTERS_STATS;
 	}
 
-	*nstats = KMOD_MAX_KERNEL_COUNTERS_STATS;
 	*rc = SCAP_SUCCESS;
 	return stats;
 }

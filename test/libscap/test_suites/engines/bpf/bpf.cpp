@@ -109,3 +109,19 @@ TEST(bpf, scap_stats_v2_check_results)
 	ASSERT_GT(strlen(name), 3);
 	scap_close(h);
 }
+
+TEST(bpf, scap_stats_v2_check_empty)
+{
+	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	int ret = 0;
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+	uint32_t flags = 0;
+	uint32_t nstats;
+	int32_t rc;
+	const scap_stats_v2* stats_v2;
+	stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(nstats, 0);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	scap_close(h);
+}

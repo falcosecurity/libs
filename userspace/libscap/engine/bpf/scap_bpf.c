@@ -49,6 +49,33 @@ limitations under the License.
 #include "noop.h"
 #include "strerror.h"
 
+static const char * const bpf_kernel_counters_stats_names[] = {
+	[BPF_N_EVTS] = "n_evts",
+	[BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
+	[BPF_N_DROPS_BUFFER_CLONE_FORK_ENTER] = "n_drops_buffer_clone_fork_enter",
+	[BPF_N_DROPS_BUFFER_CLONE_FORK_EXIT] = "n_drops_buffer_clone_fork_exit",
+	[BPF_N_DROPS_BUFFER_EXECVE_ENTER] = "n_drops_buffer_execve_enter",
+	[BPF_N_DROPS_BUFFER_EXECVE_EXIT] = "n_drops_buffer_execve_exit",
+	[BPF_N_DROPS_BUFFER_CONNECT_ENTER] = "n_drops_buffer_connect_enter",
+	[BPF_N_DROPS_BUFFER_CONNECT_EXIT] = "n_drops_buffer_connect_exit",
+	[BPF_N_DROPS_BUFFER_OPEN_ENTER] = "n_drops_buffer_open_enter",
+	[BPF_N_DROPS_BUFFER_OPEN_EXIT] = "n_drops_buffer_open_exit",
+	[BPF_N_DROPS_BUFFER_DIR_FILE_ENTER] = "n_drops_buffer_dir_file_enter",
+	[BPF_N_DROPS_BUFFER_DIR_FILE_EXIT] = "n_drops_buffer_dir_file_exit",
+	[BPF_N_DROPS_BUFFER_OTHER_INTEREST_ENTER] = "n_drops_buffer_other_interest_enter",
+	[BPF_N_DROPS_BUFFER_OTHER_INTEREST_EXIT] = "n_drops_buffer_other_interest_exit",
+	[BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
+	[BPF_N_DROPS_PAGE_FAULTS] = "n_drops_page_faults",
+	[BPF_N_DROPS_BUG] = "n_drops_bug",
+	[BPF_N_DROPS] = "n_drops",
+};
+
+static const char * const bpf_libbpf_stats_names[] = {
+	[RUN_CNT] = ".run_cnt", ///< `bpf_prog_info` run_cnt.
+	[RUN_TIME_NS] = ".run_time_ns", ///<`bpf_prog_info` run_time_ns.
+	[AVG_TIME_NS] = ".avg_time_ns", ///< Average time spent in bpg program, calculation: run_time_ns / run_cnt.
+};
+
 static inline scap_evt* scap_bpf_next_event(scap_device* dev)
 {
 	return scap_bpf_evt_from_perf_sample(dev->m_sn_next_event);
@@ -821,17 +848,20 @@ static int load_all_progs(struct bpf_engine *handle)
 
 static int allocate_scap_stats_v2(struct bpf_engine *handle)
 {
-	int nprogs = 0;
+	int nprogs_attached = 0;
 	for(int j=0; j < BPF_PROG_ATTACHED_MAX; j++)
 	{
 		if (handle->m_attached_progs[j].fd != -1)
 		{
-			nprogs++;
+			nprogs_attached++;
 		}
 	}
-	handle->m_stats = (scap_stats_v2 *)malloc((BPF_MAX_KERNEL_COUNTERS_STATS + (nprogs * BPF_MAX_LIBBPF_STATS)) * sizeof(scap_stats_v2));
+	handle->m_nstats = (BPF_MAX_KERNEL_COUNTERS_STATS + (nprogs_attached * BPF_MAX_LIBBPF_STATS));
+	handle->m_stats = (scap_stats_v2 *)malloc(handle->m_nstats * sizeof(scap_stats_v2));
+
 	if(!handle->m_stats)
 	{
+		handle->m_nstats = 0;
 		return SCAP_FAILURE;
 	}
 	return SCAP_SUCCESS;
@@ -1633,13 +1663,14 @@ int32_t scap_bpf_get_stats(struct scap_engine_handle engine, OUT scap_stats* sta
 	return SCAP_SUCCESS;
 }
 
-struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
+const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
 	struct bpf_engine *handle = engine.m_handle;
 	int ret;
 	int fd;
-	int i = 0; // offset in stats
+	int offset = 0; // offset in stats buffer
 	*nstats = 0;
+	uint32_t nstats_allocated = handle->m_nstats;
 	scap_stats_v2* stats = handle->m_stats;
 	if (!stats)
 	{
@@ -1647,10 +1678,10 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 		return NULL;
 	}
 
-	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS))
+	if ((flags & PPM_SCAP_STATS_KERNEL_COUNTERS) && (BPF_MAX_KERNEL_COUNTERS_STATS < nstats_allocated))
 	{
 		/* KERNEL SIDE STATS COUNTERS */
-		for(uint32_t stat =  0;  stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
+		for(int stat = 0;  stat < BPF_MAX_KERNEL_COUNTERS_STATS; stat++)
 		{
 			stats[stat].type = STATS_VALUE_TYPE_U64;
 			stats[stat].flags = PPM_SCAP_STATS_KERNEL_COUNTERS;
@@ -1688,7 +1719,7 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 				v.n_drops_pf + \
 				v.n_drops_bug;
 		}
-		i = BPF_MAX_KERNEL_COUNTERS_STATS;
+		offset = BPF_MAX_KERNEL_COUNTERS_STATS;
 	}
 
 	/* LIBBPF STATS */
@@ -1717,37 +1748,41 @@ struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engine, ui
 				continue;
 			}
 
-			for(int stat =  0;  stat < BPF_MAX_LIBBPF_STATS; stat++)
+			for(int stat = 0; stat < BPF_MAX_LIBBPF_STATS; stat++)
 			{
-				stats[i].type = STATS_VALUE_TYPE_U64;
-				stats[i].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				strlcpy(stats[i].name, info.name, STATS_NAME_MAX);
-				size_t dest_len = strlen(stats[i].name);
+				if (offset > nstats_allocated - 1)
+				{
+					break;
+				}
+				stats[offset].type = STATS_VALUE_TYPE_U64;
+				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
+				strlcpy(stats[offset].name, info.name, STATS_NAME_MAX);
+				size_t dest_len = strlen(stats[offset].name);
 				switch(stat)
 				{
 				case RUN_CNT:
-					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[i].name) - dest_len);
-					stats[i].value.u64 = info.run_cnt;
+					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name) - dest_len);
+					stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
-					strncat(stats[i].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[i].name) - dest_len);
-					stats[i].value.u64 = info.run_time_ns;
+					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name) - dest_len);
+					stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
 					if (info.run_cnt > 0)
 					{
-						strncat(stats[i].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[i].name) - dest_len);
-						stats[i].value.u64 = info.run_time_ns / info.run_cnt;
+						strncat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name) - dest_len);
+						stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
 					}
 					break;
 				default:
 					break;
 				}
-				i++;
+				offset++;
 			}
 		}
 	}
-	*nstats = i; // return true number of stats that were available as libbpf metrics are a function of attached progs
+	*nstats = offset; // return true number of stats that were available as libbpf metrics are a function of attached progs
 	*rc = SCAP_SUCCESS;
 	return stats;
 }

@@ -766,13 +766,16 @@ void print_stats()
 	const scap_stats_v2* stats_v2;
 	stats_v2 = scap_get_stats_v2(g_h, flags, &nstats, &rc);
 	const scap_machine_info* scap_machine_info = scap_get_machine_info(g_h);
-	/* Current contract: `n_evts` always first stats item. */
 	uint64_t n_evts = 0;
 	if (stats_v2 && nstats > 0)
 	{
-		if ((strncmp(stats_v2[0].name, "n_evts", 6) == 0) && stats_v2[0].type == STATS_VALUE_TYPE_U64)
+		for(int stat = 0; stat < nstats; stat++)
 		{
-			n_evts = stats_v2[0].value.u64;
+			if ((strncmp(stats_v2[stat].name, "n_evts", 6) == 0) && stats_v2[0].type == STATS_VALUE_TYPE_U64)
+			{
+				n_evts = stats_v2[stat].value.u64;
+				break;
+			}
 		}
 	}
 
@@ -807,7 +810,7 @@ void print_stats()
 	}
 	if (stats_v2 && nstats > 0)
 	{
-		for(int stat =  0;  stat < nstats; stat++)
+		for(int stat = 0; stat < nstats; stat++)
 		{
 			if (stats_v2[stat].type == STATS_VALUE_TYPE_U64)
 			{

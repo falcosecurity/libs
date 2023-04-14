@@ -298,9 +298,10 @@ extern "C"
 	 * @param scap_stats_v2_struct opaque pointer to `struct scap_stats_v2` held in modern_bpf_engine handle
 	 * @param flags holding statistics category flags.
 	 * @param nstats Pointer reflecting number of statistics in returned buffer.
-	 * @param rc Pointer to return code.
+	 *
+	 * @return `0` on success, `errno` in case of error.
 	 */
-	void* pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats, int32_t* rc);
+	int pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU

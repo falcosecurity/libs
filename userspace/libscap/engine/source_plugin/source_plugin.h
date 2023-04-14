@@ -18,8 +18,8 @@ limitations under the License.
 
 #include <stdint.h>
 #include "plugin_info.h"
-#include "scap.h"
 #include "source_plugin_stats.h"
+#include "scap_stats_v2.h"
 
 struct scap;
 

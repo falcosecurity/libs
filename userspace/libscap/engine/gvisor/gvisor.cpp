@@ -89,7 +89,7 @@ static int32_t gvisor_get_stats(struct scap_engine_handle engine, scap_stats* st
 	return engine.m_handle->get_stats(stats);
 }
 
-static struct scap_stats_v2* gvisor_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
+static const struct scap_stats_v2* gvisor_get_stats_v2(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc)
 {
 	return engine.m_handle->get_stats_v2(flags, nstats, rc);
 }

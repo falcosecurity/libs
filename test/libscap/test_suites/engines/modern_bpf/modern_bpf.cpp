@@ -211,3 +211,20 @@ TEST(modern_bpf, scap_stats_v2_check_results)
 	ASSERT_GT(strlen(name), 3);
 	scap_close(h);
 }
+
+TEST(modern_bpf, scap_stats_v2_check_empty)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
+	uint32_t flags = 0;
+	uint32_t nstats;
+	int32_t rc;
+	const scap_stats_v2* stats_v2;
+	stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(nstats, 0);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	scap_close(h);
+}

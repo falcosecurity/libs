@@ -226,7 +226,7 @@ struct scap_vtable {
 	 * @param rc Pointer to return code
 	 * @return Pointer to a \ref scap_stats_v2 structure filled with the statistics
 	 */
-	struct scap_stats_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);
+	const struct scap_stats_v2* (*get_stats_v2)(struct scap_engine_handle engine, uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief get the number of tracepoint hits

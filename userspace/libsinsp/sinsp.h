@@ -527,7 +527,7 @@ public:
 
 	  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	*/
-	struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const override;
+	const struct scap_stats_v2* get_capture_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc) const override;
 
 
 #ifdef GATHER_INTERNAL_STATS
