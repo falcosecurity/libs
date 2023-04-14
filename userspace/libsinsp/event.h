@@ -466,6 +466,14 @@ private:
 		m_source_idx = sinsp_no_event_source_idx;
 		m_source_name = sinsp_no_event_source_name;
 	}
+	inline void init(scap_evt* scap_event,
+			 ppm_event_info* ppm_event,
+			 int32_t errorcode)
+	{
+		m_pevt = scap_event;
+		m_info = ppm_event;
+		m_errorcode = errorcode;
+	}
 	inline void load_params()
 	{
 		uint32_t j;
