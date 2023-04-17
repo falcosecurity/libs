@@ -71,9 +71,6 @@ struct event_filler_arguments {
 	char *str_storage; /* String storage. Size is one page. */
 #ifndef UDIG
 	unsigned long args[6];
-#endif
-	bool is_socketcall;
-#ifndef UDIG
 	bool compat;
 #endif
 	int fd; /* Passed by some of the fillers to val_to_ring to compute the snaplen dynamically */
