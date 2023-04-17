@@ -65,6 +65,9 @@ static inline struct inode *file_inode(struct file *f)
 }
 #endif
 
+/* We keep this macro because we want to preserve udig compatibility otherwise
+ * we could simply use _args->args[...] in our fillers, avoiding a useless memcpy
+ */
 #define syscall_get_arguments_deprecated(_task, _args, _start, _len, _out) \
 	do { \
 	    memcpy(_out, &_args->args[_start], _len * sizeof(unsigned long)); \
