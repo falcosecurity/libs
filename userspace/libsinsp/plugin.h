@@ -191,6 +191,7 @@ private:
 		{"ipv4net", PT_IPV4NET},
 		{"ipv6addr", PT_IPV6ADDR},
 		{"ipv6net", PT_IPV6NET},
+		{"ipnet", PT_IPNET},
 	};
 
 	/** Event Sourcing **/
