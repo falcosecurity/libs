@@ -6,6 +6,7 @@
  */
 
 #include <helpers/interfaces/variable_size_event.h>
+#include <asm/errno.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
@@ -73,7 +74,7 @@ int BPF_PROG(connect_x,
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* We need a valid sockfd to extract source data.*/
-	if(ret == 0)
+	if(ret == 0 || ret == -EINPROGRESS)
 	{
 		auxmap__store_socktuple_param(auxmap, socket_fd, OUTBOUND);
 	}
