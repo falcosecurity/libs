@@ -2231,20 +2231,20 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	g_n_tracepoint_hit_inc();
 
+#ifdef _HAS_SOCKETCALL
+	if (id == socketcall_syscall)
+	{
+		id = convert_network_syscalls(regs);
+		is_socketcall = true;
+	}
+#endif
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
 		return;
 	}
 
-#ifdef _HAS_SOCKETCALL
-	if (id == socketcall_syscall)
-	{
-		id = convert_network_syscalls(regs);
-		table_index = id - SYSCALL_TABLE_ID0;
-		is_socketcall = true;
-	}
-#endif
 	struct event_data_t event_data;
 	int used = cur_g_syscall_table[table_index].flags & UF_USED;
 	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
@@ -2333,20 +2333,20 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	g_n_tracepoint_hit_inc();
 
+#ifdef _HAS_SOCKETCALL
+	if (id == socketcall_syscall)
+	{
+		id = convert_network_syscalls(regs);
+		is_socketcall = true;
+	}
+#endif
+
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
 		return;
 	}
 
-#ifdef _HAS_SOCKETCALL
-	if (id == socketcall_syscall)
-	{
-		id = convert_network_syscalls(regs);
-		table_index = id - SYSCALL_TABLE_ID0;
-		is_socketcall = true;
-	}
-#endif
 	struct event_data_t event_data;
 	int used = cur_g_syscall_table[table_index].flags & UF_USED;
 	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
