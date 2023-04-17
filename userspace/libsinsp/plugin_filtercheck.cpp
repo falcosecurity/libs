@@ -209,6 +209,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 			case PT_IPV4NET:
 			case PT_IPV6ADDR:
 			case PT_IPV6NET:
+			case PT_IPNET:
 			{
 				res.len = (uint32_t) efield.res.buf[i].len;
 				res.ptr = (uint8_t*) efield.res.buf[i].ptr;
