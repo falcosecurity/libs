@@ -107,6 +107,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.sid = -1;
 		tinfo.vpgid = -1;
 		tinfo.clone_ts = 0;
+		tinfo.pidns_init_start_ts = 0;
 		tinfo.tty = 0;
 		tinfo.exepath[0] = 0;
 		tinfo.loginuid = -1;
@@ -114,6 +115,10 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.cap_inheritable = 0;
 		tinfo.cap_permitted = 0;
 		tinfo.cap_effective = 0;
+		tinfo.exe_upper_layer = false;
+		tinfo.exe_ino = 0;
+		tinfo.exe_ino_ctime = 0;
+		tinfo.exe_ino_mtime = 0;
 
 		//
 		// len
@@ -563,6 +568,26 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		// }
 
 		//
+		// pidns_init_start_ts
+		//
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.pidns_init_start_ts), sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
+			subreadsize += readsize;
+		}
+
+		//
+		// tty
+		//
+		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.tty), sizeof(int32_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(int32_t), error);
+			subreadsize += readsize;
+		}
+
+		//
 		// loginuid
 		//
 		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
@@ -602,6 +627,38 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
 		{
 			readsize = r->read(r, &(tinfo.cap_effective), sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
+			subreadsize += readsize;
+		}
+
+		// exe_upper_layer
+		if(sub_len && (subreadsize + sizeof(uint8_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.exe_upper_layer), sizeof(uint8_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint8_t), error);
+			subreadsize += readsize;
+		}
+
+		// exe_ino
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.exe_ino), sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
+			subreadsize += readsize;
+		}
+
+		// exe_ino_ctime
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.exe_ino_ctime), sizeof(uint64_t));
+			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
+			subreadsize += readsize;
+		}
+
+		// exe_ino_mtime
+		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		{
+			readsize = r->read(r, &(tinfo.exe_ino_mtime), sizeof(uint64_t));
 			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
 			subreadsize += readsize;
 		}
