@@ -2204,6 +2204,10 @@ static inline void g_n_tracepoint_hit_inc(void)
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	long table_index;
+	struct event_data_t event_data;
+	bool used;
+	enum syscall_flags drop_flags;
+	ppm_event_code event_type;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	bool compat = false;
 	bool is_socketcall = false;
@@ -2245,10 +2249,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		return;
 	}
 
-	struct event_data_t event_data;
-	int used = cur_g_syscall_table[table_index].flags & UF_USED;
-	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-	ppm_event_code type = cur_g_syscall_table[table_index].enter_event_type;
+	used = cur_g_syscall_table[table_index].flags & UF_USED;
+	drop_flags = cur_g_syscall_table[table_index].flags;
+	event_type = cur_g_syscall_table[table_index].enter_event_type;
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
@@ -2258,7 +2261,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	event_data.is_socketcall = is_socketcall;
 
 	if (used)
-		record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_ENTER);
+		record_event_all_consumers(event_type, drop_flags, &event_data, KMOD_PROG_SYS_ENTER);
 	else
 		record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_ENTER);
 }
@@ -2302,6 +2305,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	int id;
 	long table_index;
+	struct event_data_t event_data;
+	bool used;
+	enum syscall_flags drop_flags;
+	ppm_event_code event_type;
 	const struct syscall_evt_pair *cur_g_syscall_table = g_syscall_table;
 	bool compat = false;
 	bool is_socketcall = false;
@@ -2347,13 +2354,12 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		return;
 	}
 
-	struct event_data_t event_data;
-	int used = cur_g_syscall_table[table_index].flags & UF_USED;
-	enum syscall_flags drop_flags = cur_g_syscall_table[table_index].flags;
-	ppm_event_code type = cur_g_syscall_table[table_index].exit_event_type;
+	used = cur_g_syscall_table[table_index].flags & UF_USED;
+	drop_flags = cur_g_syscall_table[table_index].flags;
+	event_type = cur_g_syscall_table[table_index].exit_event_type;
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
-	if(kmod_drop_syscall_exit_events(ret, type))
+	if(kmod_drop_syscall_exit_events(ret, event_type))
 		return;
 #endif
 
@@ -2365,7 +2371,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	event_data.is_socketcall = is_socketcall;
 
 	if (used)
-		record_event_all_consumers(type, drop_flags, &event_data, KMOD_PROG_SYS_EXIT);
+		record_event_all_consumers(event_type, drop_flags, &event_data, KMOD_PROG_SYS_EXIT);
 	else
 		record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_EXIT);
 }
