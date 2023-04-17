@@ -567,24 +567,56 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		//    ...
 		// }
 
-		//
-		// pidns_init_start_ts
-		//
-		if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+		// In 0.10.x libs tag, 2 fields were added to the scap file producer,
+		// written in the middle of the proclist entry, breaking forward compatibility
+		// for old scap file readers.
+		// Detect this hacky behavior, and manage it.
+		// Added fields:
+		// * exe_upper_layer
+		// * exe_ino
+		// * exe_ino_ctime
+		// * exe_ino_mtime
+		// * pidns_init_start_ts (in the middle)
+		// * tty (in the middle)
+		// So, to check if we need to enable the "pre-0.10.x hack",
+		// we need to check if remaining data to be read is <= than
+		// sum of sizes for fields existent in libs < 0.10.x, ie:
+		// * loginuid (4B)
+		// * exe_writable (1B)
+		// * cap_inheritable (8B)
+		// * cap_permitted (8B)
+		// * cap_effective (8B)
+		// TOTAL: 29B
+		bool pre_0100_hack = false;
+		if (sub_len - subreadsize <= 29)
 		{
-			readsize = r->read(r, &(tinfo.pidns_init_start_ts), sizeof(uint64_t));
-			CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
-			subreadsize += readsize;
+			pre_0100_hack = true;
 		}
 
-		//
-		// tty
-		//
-		if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
+		if (!pre_0100_hack)
 		{
-			readsize = r->read(r, &(tinfo.tty), sizeof(int32_t));
-			CHECK_READ_SIZE_ERR(readsize, sizeof(int32_t), error);
-			subreadsize += readsize;
+			// Ok we are in libs >= 0.10.x; read the fields that
+			// were added interleaved in libs 0.10.0
+
+			//
+			// pidns_init_start_ts
+			//
+			if(sub_len && (subreadsize + sizeof(uint64_t)) <= sub_len)
+			{
+				readsize = r->read(r, &(tinfo.pidns_init_start_ts), sizeof(uint64_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(uint64_t), error);
+				subreadsize += readsize;
+			}
+
+			//
+			// tty
+			//
+			if(sub_len && (subreadsize + sizeof(int32_t)) <= sub_len)
+			{
+				readsize = r->read(r, &(tinfo.tty), sizeof(int32_t));
+				CHECK_READ_SIZE_ERR(readsize, sizeof(int32_t), error);
+				subreadsize += readsize;
+			}
 		}
 
 		//
