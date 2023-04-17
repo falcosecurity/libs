@@ -587,13 +587,13 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		// * cap_permitted (8B)
 		// * cap_effective (8B)
 		// TOTAL: 29B
-		bool pre_0100_hack = false;
+		bool pre_0_10_0 = false;
 		if (sub_len - subreadsize <= 29)
 		{
-			pre_0100_hack = true;
+			pre_0_10_0 = true;
 		}
 
-		if (!pre_0100_hack)
+		if (!pre_0_10_0)
 		{
 			// Ok we are in libs >= 0.10.x; read the fields that
 			// were added interleaved in libs 0.10.0
