@@ -2216,7 +2216,6 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
-	event_data.event_info.syscall_data.id = id;
 
 	/* This is used when we preload params */
 	event_data.is_socketcall = false;
@@ -2255,6 +2254,8 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	}
 #endif
 
+	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
+	event_data.event_info.syscall_data.id = id;
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
@@ -2313,7 +2314,6 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
-	event_data.event_info.syscall_data.id = id;
 
 	/* This is used when we preload params */
 	event_data.is_socketcall = false;
@@ -2354,6 +2354,8 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	}
 #endif
 
+	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
+	event_data.event_info.syscall_data.id = id;
 	table_index = id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
