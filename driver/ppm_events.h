@@ -19,10 +19,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/compat.h>
 #endif
 
-#ifdef __NR_socketcall
-	#define _HAS_SOCKETCALL
-#endif
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+#if defined(__NR_socketcall) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
 	#define _HAS_SOCKETCALL
 #endif
 
