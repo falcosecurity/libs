@@ -1854,6 +1854,11 @@ const scap_agent_info* sinsp::get_agent_info()
 	return m_agent_info;
 }
 
+scap_stats_v2* sinsp::get_sinsp_stats_v2_buffer()
+{
+	return m_sinsp_stats_v2;
+}
+
 void sinsp::get_filtercheck_fields_info(OUT std::vector<const filter_check_info*>& list)
 {
 	sinsp_utils::get_filtercheck_fields_info(list);

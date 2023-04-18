@@ -24,6 +24,7 @@ limitations under the License.
 #include "utils.h"
 #include <sinsp.h>
 #include "sinsp_public.h"
+#include "strlcpy.h"
 
 void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
@@ -73,6 +74,7 @@ void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 
 double get_cpu_usage(double start_time)
 {
+	double cpu_usage_perc = 0.0;
 
 	struct tms time;
 	if (times (&time) == (clock_t) -1)
@@ -115,8 +117,12 @@ double get_cpu_usage(double start_time)
 	/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
 	 * currently elapsed time of the calling process. Compare to `ps` linux util. */
 	double elapsed_sec = machine_uptime_sec - start_time;
-	double cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
-	cpu_usage_perc = std::round(cpu_usage_perc * 10.0) / 10.0; // round to 1 decimal
+	if (elapsed_sec > 0)
+	{
+		cpu_usage_perc = (double)100.0 * (user_sec + system_sec) / elapsed_sec;
+		cpu_usage_perc = std::round(cpu_usage_perc * 10.0) / 10.0; // round to 1 decimal
+	}
+
 	return cpu_usage_perc;
 }
 
@@ -150,22 +156,46 @@ uint64_t get_container_memory_usage()
 	return memory_used;
 }
 
-sinsp_resource_utilization* libsinsp::resource_utilization::get_resource_utilization_snapshot(const scap_agent_info* agent_info)
+const scap_stats_v2* libsinsp::resource_utilization::get_resource_utilization(const scap_agent_info* agent_info, scap_stats_v2* stats, uint32_t* nstats, int32_t* rc)
 {
-	sinsp_resource_utilization* utilization = new sinsp_resource_utilization{
-		0, 0, 0, 0, 0
-	};
+	if (!stats)
+	{
+		*nstats = 0;
+		*rc = SCAP_FAILURE;
+		return NULL;
+	}
 
-	/* CPU usage snapshot, "ps" utility like approach. */
-	utilization->cpu_usage_perc = get_cpu_usage(agent_info->start_time);
+	stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].type = STATS_VALUE_TYPE_D;
+	stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].value.d = get_cpu_usage(agent_info->start_time);
+	strlcpy(stats[SINSP_RESOURCE_UTILIZATION_CPU_PERC].name, "cpu_usage_perc", STATS_NAME_MAX);
 
-	/* Memory usage snapshot, "cloud-native" support via container_memory_used. */
-	get_rss_vsz_pss_memory(utilization->memory_rss, utilization->memory_vsz, utilization->memory_pss);
-	utilization->container_memory_used = get_container_memory_usage();
-	return utilization;
-}
+	uint32_t rss = 0;
+	uint32_t vsz = 0;
+	uint32_t pss = 0;
+	get_rss_vsz_pss_memory(rss, vsz, pss);
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].type = STATS_VALUE_TYPE_U32;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].value.u32 = rss;
+	strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_RSS].name, "memory_rss", STATS_NAME_MAX);
 
-void libsinsp::resource_utilization::free_resource_utilization_snapshot(sinsp_resource_utilization* utilization)
-{
-	delete utilization;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].type = STATS_VALUE_TYPE_U32;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].value.u32 = vsz;
+	strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ].name, "memory_vsz", STATS_NAME_MAX);
+
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].type = STATS_VALUE_TYPE_U32;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].value.u32 = pss;
+	strlcpy(stats[SINSP_RESOURCE_UTILIZATION_MEMORY_PSS].name, "memory_pss", STATS_NAME_MAX);
+
+	stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].type = STATS_VALUE_TYPE_U64;
+	stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].flags = PPM_SCAP_STATS_RESOURCE_UTILIZATION;
+	stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].value.u64 = get_container_memory_usage();
+	strlcpy(stats[SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY].name, "container_memory_used", STATS_NAME_MAX);
+
+	*nstats = SINSP_MAX_RESOURCE_UTILIZATION;
+	*rc = SCAP_SUCCESS;
+
+	return stats;
 }

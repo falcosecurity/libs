@@ -77,6 +77,7 @@ limitations under the License.
 #include "container.h"
 #include "user.h"
 #include "utils.h"
+#include "sinsp_resource_utilization.h"
 
 #ifndef VISIBILITY_PRIVATE
 // Some code defines VISIBILITY_PRIVATE to nothing to get private access to sinsp
@@ -494,6 +495,13 @@ public:
 	const scap_agent_info* get_agent_info();
 
 	/*!
+	  \brief Return sinsp stats v2 static size buffer w/ scap_stats_v2 schema.
+
+	  \note sinsp stats may be refactored near-term.
+	*/
+	scap_stats_v2* get_sinsp_stats_v2_buffer();
+
+	/*!
 	  \brief Look up a thread given its tid and return its information,
 	   and optionally go dig into proc if the thread is not in the thread table.
 
@@ -518,12 +526,14 @@ public:
 	  \brief Fill the given structure with statistics about the currently
 	   open capture.
 
-	  \note this call won't work on file captures.
+	  \note sinsp stats may be refactored near-term, see also scap_stats_v2.
 	*/
 	void get_capture_stats(scap_stats* stats) const override;
 
 	/*!
 	  \brief Get engine statistics (including counters and `bpftool prog show` like stats).
+
+	  \note sinsp stats may be refactored near-term.
 
 	  \return Pointer to a \ref scap_stats_v2 structure filled with the statistics.
 	*/
@@ -1093,6 +1103,7 @@ private:
 	bool m_is_dumping;
 	const scap_machine_info* m_machine_info;
 	const scap_agent_info* m_agent_info;
+	scap_stats_v2 m_sinsp_stats_v2[SINSP_MAX_RESOURCE_UTILIZATION];
 	uint32_t m_num_cpus;
 	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
