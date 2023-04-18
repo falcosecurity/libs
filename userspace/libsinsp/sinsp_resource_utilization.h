@@ -18,31 +18,29 @@ limitations under the License.
 
 #include "utils.h"
 
-typedef struct sinsp_resource_utilization
-{
-	double cpu_usage_perc; ///< Current CPU usage, `ps` like, unit: percentage of one CPU.
-	uint32_t memory_rss; ///< Current RSS (Resident Set Size), unit: kb.
-	uint32_t memory_vsz; ///< Current VSZ (Virtual Memory Size), unit: kb.
-	uint32_t memory_pss; ///< Current PSS (Proportional Set Size), unit: kb.
-	uint64_t container_memory_used; ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: bytes.
-}sinsp_resource_utilization;
+typedef enum sinsp_resource_utilization_stats {
+	SINSP_RESOURCE_UTILIZATION_CPU_PERC = 0, ///< Current CPU usage, `ps` like, unit: percentage of one CPU.
+	SINSP_RESOURCE_UTILIZATION_MEMORY_RSS, ///< Current RSS (Resident Set Size), unit: kb.
+	SINSP_RESOURCE_UTILIZATION_MEMORY_VSZ, ///< Current VSZ (Virtual Memory Size), unit: kb.
+	SINSP_RESOURCE_UTILIZATION_MEMORY_PSS, ///< Current PSS (Proportional Set Size), unit: kb.
+	SINSP_RESOURCE_UTILIZATION_CONTAINER_MEMORY, ///< Cgroup current memory used, default Kubernetes /sys/fs/cgroup/memory/memory.usage_in_bytes, unit: bytes.
+	SINSP_MAX_RESOURCE_UTILIZATION
+}sinsp_resource_utilization_stats;
 
 namespace libsinsp {
 namespace resource_utilization {
 
 	/*!
-	  \brief Retrieve current resource_utilization snapshot.
-	  \param scap_agent_info pointer containing relevant constants from the agent start up moment.
+	  \brief Retrieve current resource utilization metrics.
+	  \param agent_info Pointer to a \ref scap_agent_info containing relevant constants from the agent start up moment.
+	  \param stats Pointer to a \ref scap_stats_v2 pre-allocated sinsp stats v2 buffer w/ scap_stats_v2 schema.
+	  \param nstats Pointer reflecting number of statistics in returned buffer
+	  \param rc Pointer to return code
 	  \note Intended to be called once every x hours.
 
-	  \return sinsp_resource_utilization pointer.
+	  \return Pointer to a \ref scap_stats_v2 buffer filled with the current resource utilization metrics
 	*/
-	sinsp_resource_utilization* get_resource_utilization_snapshot(const scap_agent_info* agent_info);
-
-	/*!
-	  \brief Free sinsp_resource_utilization pointer.
-	*/
-	void free_resource_utilization_snapshot(sinsp_resource_utilization* utilization);
+	const scap_stats_v2* get_resource_utilization(const scap_agent_info* agent_info, scap_stats_v2* stats, uint32_t* nstats, int32_t* rc);
 
 }
 }
