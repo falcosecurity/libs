@@ -2316,7 +2316,7 @@ FILLER(proc_startupdate, true)
 	 * ptid
 	 */
 	real_parent = _READ(task->real_parent);
-	pid_t ptid = _READ(real_parent->pid);
+	pid_t ptid = _READ(real_parent->tgid);
 
 	res = bpf_push_s64_to_ring(data, ptid);
 	CHECK_RES(res);
@@ -6072,7 +6072,7 @@ FILLER(sched_prog_exec, false)
 
 	/* Parameter 6: ptid (type: PT_PID) */
 	struct task_struct *real_parent = _READ(task->real_parent);
-	pid_t ptid = _READ(real_parent->pid);
+	pid_t ptid = _READ(real_parent->tgid);
 	res = bpf_push_s64_to_ring(data, ptid);
 	CHECK_RES(res);
 
@@ -6433,7 +6433,7 @@ FILLER(sched_prog_fork, false)
 
 	/* Parameter 6: ptid (type: PT_PID) */
 	struct task_struct *real_parent = _READ(child->real_parent);
-	pid_t ptid = _READ(real_parent->pid);
+	pid_t ptid = _READ(real_parent->tgid);
 	res = bpf_push_s64_to_ring(data, ptid);
 	CHECK_RES(res);
 
