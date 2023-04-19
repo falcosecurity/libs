@@ -405,7 +405,7 @@ static __always_inline pid_t extract__task_xid_nr(struct task_struct *task, enum
 		return READ_TASK_FIELD(task, tgid);
 
 	case PIDTYPE_PGID:
-		return READ_TASK_FIELD(task, real_parent, pid);
+		return READ_TASK_FIELD(task, real_parent, tgid);
 
 	default:
 		return 0;
