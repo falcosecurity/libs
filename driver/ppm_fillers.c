@@ -995,7 +995,7 @@ int f_proc_startupdate(struct event_filler_arguments *args)
 	 */
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
 	if (current->real_parent)
-		ptid = current->real_parent->pid;
+		ptid = current->real_parent->tgid;
 #else
 	if (current->parent)
 		ptid = current->parent->pid;
@@ -7418,7 +7418,7 @@ int f_sched_prog_exec(struct event_filler_arguments *args)
 	/* Parameter 6: ptid (type: PT_PID) */
 	if(current->real_parent)
 	{
-		ptid = current->real_parent->pid;
+		ptid = current->real_parent->tgid;
 	}
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
@@ -7798,7 +7798,7 @@ int f_sched_prog_fork(struct event_filler_arguments *args)
 	/* Parameter 6: ptid (type: PT_PID) */
 	if(child->real_parent)
 	{
-		ptid = child->real_parent->pid;
+		ptid = child->real_parent->tgid;
 	}
 
 	res = val_to_ring(args, (int64_t)ptid, 0, false, 0);
