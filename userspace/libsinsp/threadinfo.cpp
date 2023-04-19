@@ -1055,6 +1055,20 @@ const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
 	return notfound;
 }
 
+bool sinsp_threadinfo::get_cgroup(const std::string& subsys, std::string& cgroup) const
+{
+	for(const auto& it : cgroups())
+	{
+		if(it.first == subsys)
+		{
+			cgroup = it.second;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 {
 	// Use two pointers starting at this, traversing the parent
