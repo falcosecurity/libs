@@ -944,10 +944,6 @@ public:
 		m_container_manager.set_container_engine_mask(mask);
 	}
 
-#if defined(HAS_CAPTURE) && !defined(_WIN32)
-	static std::shared_ptr<std::string> lookup_cgroup_dir(const std::string& subsys);
-#endif
-
 	// Add comm to the list of comms for which the inspector
 	// should not return events.
 	bool suppress_events_comm(const std::string &comm);

@@ -118,8 +118,8 @@ set(SINSP_SOURCES
 	events/sinsp_events.cpp
 	events/sinsp_events_ppm_sc.cpp)
 
-if(NOT WIN32)
-	list(APPEND SINSP_SOURCES procfs_utils.cpp)
+if(NOT WIN32 AND NOT APPLE)
+	list(APPEND SINSP_SOURCES procfs_utils.cpp sinsp_cgroup.cpp)
 endif()
 
 if(WITH_CHISEL)
