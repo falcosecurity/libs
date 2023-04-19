@@ -371,7 +371,6 @@ public:
 
 	size_t args_len() const;
 	size_t env_len() const;
-	size_t cgroups_len() const;
 
 	void args_to_iovec(struct iovec **iov, int *iovcnt,
 			   std::string &rem) const;

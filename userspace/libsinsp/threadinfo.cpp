@@ -1201,19 +1201,6 @@ size_t sinsp_threadinfo::env_len() const
 	return strvec_len(m_env);
 }
 
-size_t sinsp_threadinfo::cgroups_len() const
-{
-	size_t totlen = 0;
-
-	for(auto &cgroup : cgroups())
-	{
-		totlen += cgroup.first.size() + 1 + cgroup.second.size();
-		totlen++; // Trailing NULL
-	}
-
-	return totlen;
-}
-
 void sinsp_threadinfo::args_to_iovec(struct iovec **iov, int *iovcnt,
 				     std::string &rem) const
 {
