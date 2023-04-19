@@ -1872,6 +1872,12 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			return res;
 		}
 
+		/* If the syscall is interesting we need to preload params */
+		if(unlikely(preload_params(&args, event_datap->is_socketcall) == -1))
+		{
+			return res;
+		}
+
 		if (tp_type == KMOD_PROG_SYS_EXIT && consumer->drop_failed)
 		{
 			retval = (int64_t)syscall_get_return_value(current, event_datap->event_info.syscall_data.regs);
@@ -1999,10 +2005,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			args.syscall_id = event_datap->event_info.syscall_data.id;
 			args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
 			args.compat = event_datap->compat;
-			if(unlikely(preload_params(&args, event_datap->is_socketcall) == -1))
-			{
-				/* we need to do something, not sure what... */
-			}
 		} else {
 			args.regs = NULL;
 			args.syscall_id = -1;
@@ -2214,6 +2216,12 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	long table_index = 0;
 	int socketcall_syscall = -1;
 
+	/* Just to be extra-safe */
+	if(id < 0)
+	{
+		return;
+	}
+
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
 
@@ -2310,7 +2318,16 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	struct syscall_evt_pair event_pair = {};
 	long table_index = 0;
 	int socketcall_syscall = -1;
+	/* If @task is executing a system call or is at system call
+ 	 * tracing about to attempt one, returns the system call number.
+ 	 * If @task is not executing a system call, i.e. it's blocked
+ 	 * inside the kernel for a fault or signal, returns -1.
+	 */
 	long id = syscall_get_nr(current, regs);
+	if(id < 0)
+	{
+		return;
+	}
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
@@ -2349,6 +2366,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #ifdef _HAS_SOCKETCALL
 	if (id == socketcall_syscall)
 	{
+		/// TODO: we cannot return 0 we need to handle this case in all drivers.
 		id = convert_network_syscalls(regs);
 		event_data.is_socketcall = true;
 	}

@@ -1510,7 +1510,15 @@ int32_t parse_readv_writev_bufs(struct event_filler_arguments *args, const struc
 			/*
 			 * Retrieve the FD. It will be used for dynamic snaplen calculation.
 			 */
+#ifdef UDIG
+		{
+			unsigned long syscall_args[6] = {};
+			ppm_syscall_get_arguments(current, args->regs, syscall_args);
+			val = syscall_args[0];
+		}
+#else
 			val = args->args[0];
+#endif			
 			args->fd = (int)val;
 
 			/*
@@ -1736,7 +1744,15 @@ int f_sys_autofill(struct event_filler_arguments *args)
 
 	for (j = 0; j < evinfo->n_autofill_args; j++) {
 		if (evinfo->autofill_args[j].id >= 0) {
+#ifdef UDIG
+		{
+			syscall_arg_t syscall_args[6] = {0};
+			ppm_syscall_get_arguments(current, args->regs, syscall_args);
+			val = syscall_args[evinfo->autofill_args[j].id];
+		}
+#else
 			val = args->args[evinfo->autofill_args[j].id];
+#endif
 			res = val_to_ring(args, val, 0, true, 0);
 			if (unlikely(res != PPM_SUCCESS))
 				return res;
