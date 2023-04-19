@@ -1872,12 +1872,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			return res;
 		}
 
-		/* If the syscall is interesting we need to preload params */
-		if(unlikely(preload_params(&args, event_datap->is_socketcall) == -1))
-		{
-			return res;
-		}
-
 		if (tp_type == KMOD_PROG_SYS_EXIT && consumer->drop_failed)
 		{
 			retval = (int64_t)syscall_get_return_value(current, event_datap->event_info.syscall_data.regs);
@@ -1885,6 +1879,16 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 			{
 				return res;
 			}
+		}
+
+		args.regs = event_datap->event_info.syscall_data.regs;
+		args.syscall_id = event_datap->event_info.syscall_data.id;
+		args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
+		args.compat = event_datap->compat;
+		/* If the syscall is interesting we need to preload params */
+		if(unlikely(preload_params(&args, event_datap->is_socketcall) == -1))
+		{
+			return res;
 		}
 	}
 
@@ -2000,12 +2004,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		args.buffer_size = min(freespace, delta_from_end) - sizeof(struct ppm_evt_hdr); /* freespace is guaranteed to be bigger than sizeof(struct ppm_evt_hdr) */
 		args.event_type = event_type;
 
-		if (event_datap->category == PPMC_SYSCALL) {
-			args.regs = event_datap->event_info.syscall_data.regs;
-			args.syscall_id = event_datap->event_info.syscall_data.id;
-			args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
-			args.compat = event_datap->compat;
-		} else {
+		if(event_datap->category != PPMC_SYSCALL)
+		{
 			args.regs = NULL;
 			args.syscall_id = -1;
 			args.cur_g_syscall_table = NULL;
