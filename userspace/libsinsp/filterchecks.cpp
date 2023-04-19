@@ -3321,26 +3321,11 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_CGROUP:
+		if(tinfo->get_cgroup(m_argname, m_tstr))
 		{
-			auto cgroups = tinfo->cgroups();
-			uint32_t nargs = (uint32_t)cgroups.size();
-
-			if(nargs == 0)
-			{
-				return NULL;
-			}
-
-			for(uint32_t j = 0; j < nargs; j++)
-			{
-				if(cgroups[j].first == m_argname)
-				{
-					m_tstr = cgroups[j].second;
-					RETURN_EXTRACT_STRING(m_tstr);
-				}
-			}
-
-			return NULL;
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
+		return NULL;
 	case TYPE_VTID:
 		if(tinfo->m_vtid == -1)
 		{

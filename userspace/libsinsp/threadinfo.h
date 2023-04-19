@@ -228,8 +228,18 @@ public:
 
 	/*!
 	  \brief Return the cgroup name for a specific subsystem
+
+	  If the subsystem isn't mounted, return "/"
 	 */
-	 const std::string& get_cgroup(const std::string& subsys) const;
+	const std::string& get_cgroup(const std::string& subsys) const;
+
+	/*!
+	  \brief Return the cgroup name for a specific subsystem
+
+	  If the subsystem isn't mounted, return false and leave `cgroup`
+	  unchanged
+	 */
+	bool get_cgroup(const std::string& subsys, std::string& cgroup) const;
 
 	//
 	// Walk up the parent process hierarchy, calling the provided

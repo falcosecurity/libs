@@ -43,13 +43,11 @@ std::string get_systemd_cgroup(const sinsp_threadinfo *tinfo)
 	// the kernel driver does not return cgroups without subsystems (e.g. name=systemd)
 	// in the cgroups field, so we have to do a check here, and load /proc/pid/cgroups
 	// ourselves if needed
+	std::string cgroup;
 
-	for(const auto& it : tinfo->cgroups())
+	if(tinfo->get_cgroup("name=systemd", cgroup))
 	{
-		if(it.first == "name=systemd")
-		{
-			return it.second;
-		}
+		return cgroup;
 	}
 
 	std::stringstream cgroups_file;
