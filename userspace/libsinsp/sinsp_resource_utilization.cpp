@@ -28,12 +28,9 @@ limitations under the License.
 
 void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
-	char filepath[512];
 	char line[512];
-	pid_t pid = getpid();
 
-	snprintf(filepath, sizeof(filepath), "/proc/%d/status", pid);
-	FILE* f = fopen(filepath, "r");
+	FILE* f = fopen("/proc/self/status", "r");
 	if(!f)
 	{
 		ASSERT(false);
@@ -53,8 +50,7 @@ void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 	}
 	fclose(f);
 
-	snprintf(filepath, sizeof(filepath), "/proc/%d/smaps_rollup", pid);
-	f = fopen(filepath, "r");
+	f = fopen("/proc/self/smaps_rollup", "r");
 	if(!f)
 	{
 		ASSERT(false);
