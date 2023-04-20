@@ -50,6 +50,7 @@ struct scap_suppress
 
 int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppressed_comms);
 int32_t scap_suppress_events_comm_impl(struct scap_suppress *suppress, const char *comm);
+int32_t scap_suppress_events_tid_impl(struct scap_suppress *suppress, int64_t tid);
 bool scap_check_suppressed_tid_impl(struct scap_suppress* suppress, int64_t tid);
 
 // Possibly add or remove the provided comm, tid combination to the

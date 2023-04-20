@@ -940,6 +940,8 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name);
 
 int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
 
+int32_t scap_suppress_events_tid(scap_t *handle, int64_t tid);
+
 /*!
   \brief return whether the provided tid is currently being suppressed.
 */
