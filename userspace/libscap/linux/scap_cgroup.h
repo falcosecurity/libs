@@ -46,9 +46,17 @@ extern "C"
 
 		bool m_use_cache;
 		struct scap_cgroup_cache* m_cache;
+
+		// the cgroups of the current process, as seen from the host cgroupns
+		// empty if:
+		// - we're not running in a cgroupns
+		// - we can't escape the cgroupns
+		// - the `scap_cgroup_interface` was created `with_self_cg=false`
+		struct scap_cgroup_set m_self_v1;
+		char m_self_v2[SCAP_MAX_PATH_SIZE];
 	};
 
-	int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error);
+	int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error, bool with_self_cg);
 
 	int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* procdirname, struct scap_cgroup_set* cg, char* error);
 
