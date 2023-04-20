@@ -1306,6 +1306,11 @@ int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 	return scap_suppress_events_comm_impl(&handle->m_suppress, comm);
 }
 
+int32_t scap_suppress_events_tid(scap_t *handle, int64_t tid)
+{
+	return scap_suppress_events_tid_impl(&handle->m_suppress, tid);
+}
+
 bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 {
 	return scap_check_suppressed_tid_impl(&handle->m_suppress, tid);

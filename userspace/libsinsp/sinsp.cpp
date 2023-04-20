@@ -1623,6 +1623,16 @@ bool sinsp::suppress_events_comm(const std::string &comm)
 	return true;
 }
 
+bool sinsp::suppress_events_tid(int64_t tid)
+{
+	if(m_h && scap_suppress_events_tid(m_h, tid) == SCAP_SUCCESS)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 bool sinsp::check_suppressed(int64_t tid)
 {
 	return scap_check_suppressed_tid(m_h, tid);

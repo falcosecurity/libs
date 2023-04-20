@@ -58,6 +58,27 @@ int32_t scap_suppress_events_comm_impl(struct scap_suppress *suppress, const cha
 	return SCAP_SUCCESS;
 }
 
+int32_t scap_suppress_events_tid_impl(struct scap_suppress *suppress, int64_t tid)
+{
+	scap_tid *stid = (scap_tid *)malloc(sizeof(scap_tid));
+	if(stid == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
+	stid->tid = tid;
+
+	int32_t uth_status = SCAP_SUCCESS;
+	HASH_ADD_INT64(suppress->m_suppressed_tids, tid, stid);
+	if(uth_status != SCAP_SUCCESS)
+	{
+		free(stid);
+		return SCAP_FAILURE;
+	}
+
+	return SCAP_SUCCESS;
+}
+
 int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppressed_comms)
 {
 	suppress->m_suppressed_comms = NULL;
@@ -152,23 +173,14 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 	if(*suppressed && stid == NULL)
 	{
-		stid = (scap_tid *) malloc(sizeof(scap_tid));
-		if(stid == NULL)
+		if(scap_suppress_events_tid_impl(suppress, tid) == SCAP_SUCCESS)
+		{
+			*suppressed = true;
+		}
+		else
 		{
 			return SCAP_FAILURE;
 		}
-
-		stid->tid = tid;
-		int32_t uth_status = SCAP_SUCCESS;
-
-		HASH_ADD_INT64(suppress->m_suppressed_tids, tid, stid);
-
-		if(uth_status != SCAP_SUCCESS)
-		{
-			free(stid);
-			return SCAP_FAILURE;
-		}
-		*suppressed = true;
 	}
 	else if (!*suppressed && stid != NULL)
 	{
