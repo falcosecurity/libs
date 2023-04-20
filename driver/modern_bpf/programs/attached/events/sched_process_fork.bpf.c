@@ -180,8 +180,6 @@ int BPF_PROG(t1_sched_p_fork,
 	{
 		flags |= PPM_CL_CLONE_FILES;
 	}
-	auxmap__store_u32_param(auxmap, flags);
-
 
 	/* It's possible to have a process in a PID namespace that
 	 * nevertheless has tid == vtid, so we need to generate this
@@ -194,6 +192,7 @@ int BPF_PROG(t1_sched_p_fork,
 	{
 		flags |= PPM_CL_CHILD_IN_PIDNS;
 	}
+	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 17: uid (type: PT_UINT32) */
 	u32 euid = 0;
