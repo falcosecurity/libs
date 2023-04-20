@@ -1,8 +1,8 @@
 #include "cgroup_limits.h"
 
 #include <fstream>
+#include <string>
 #include "cgroup_list_counter.h"
-#include "sinsp.h"
 #include "sinsp_cgroup.h"
 
 namespace {
@@ -11,6 +11,52 @@ namespace {
 // Note: we use the same maximum value for cpu shares/quotas as well; the typical values are much lower
 // and so should never exceed CGROUP_VAL_MAX either
 constexpr const int64_t CGROUP_VAL_MAX = (1ULL << 42u) - 1;
+
+bool read_one_cgroup_val(const std::string &path, std::istream &stream, int64_t &out)
+{
+	std::string str_val;
+	int64_t val = -1;
+
+	stream >> str_val;
+
+	if(str_val == "max")
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) value of %s is set to max, ignoring",
+				path.c_str(), val);
+		return false;
+	}
+	try
+	{
+		val = std::stoll(str_val);
+	}
+	catch(const std::exception &e)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG,
+				"(cgroup-limits) Cannot convert value of %s (%s) to an integer, ignoring",
+				path.c_str(), str_val.c_str());
+		return false;
+	}
+
+	if(val <= 0 || val > CGROUP_VAL_MAX)
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) value of %s (%lld) out of range, ignoring",
+				path.c_str(), val);
+		return false;
+	}
+	out = val;
+	return true;
+}
+
+bool read_cgroup_vals(const std::string &path, std::istream &stream)
+{
+	return true;
+}
+
+template<typename... Args>
+bool read_cgroup_vals(const std::string &path, std::istream &stream, int64_t &out, Args... args)
+{
+	return read_one_cgroup_val(path, stream, out) && read_cgroup_vals(path, stream, args...);
+}
 
 /**
  * \brief Read a single int64_t value from cgroupfs
@@ -21,25 +67,17 @@ constexpr const int64_t CGROUP_VAL_MAX = (1ULL << 42u) - 1;
  * @return true if we successfully read the value and it's within reasonable range,
  *          reasonable being [0; CGROUP_VAL_MAX)
  */
-bool read_cgroup_val(std::shared_ptr<std::string>& subsys,
-		     const std::string& cgroup,
-		     const std::string& filename,
-		     int64_t& out)
+template<typename... Args>
+bool read_cgroup_val(std::shared_ptr<std::string> &subsys,
+		     const std::string &cgroup,
+		     const std::string &filename,
+		     int64_t &out,
+		     Args... args)
 {
-	std::string path = *subsys.get() + "/" + cgroup + "/" + filename;
-	std::ifstream cg_val(path);
+	std::string path = *subsys + "/" + cgroup + "/" + filename;
+	std::ifstream fs(path);
 
-	int64_t val = -1;
-	cg_val >> val;
-
-	if(val <= 0 || val > CGROUP_VAL_MAX)
-	{
-		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) value of %s (%lld) out of range, ignoring",
-			path.c_str(), val);
-		return false;
-	}
-	out = val;
-	return true;
+	return read_cgroup_vals(path, fs, out, args...);
 }
 
 /**
@@ -99,7 +137,8 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) mem cgroup for container [%s]: %s/%s",
 				key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
-		found_all = read_cgroup_val(memcg_root, key.m_mem_cgroup, "memory.limit_in_bytes", value.m_memory_limit) && found_all;
+		const char *filename = memcg_version == 2 ? "memory.max" : "memory.limit_in_bytes";
+		found_all = read_cgroup_val(memcg_root, key.m_mem_cgroup, filename, value.m_memory_limit) && found_all;
 	}
 
 	int cpu_version;
@@ -113,9 +152,20 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s",
 				key.m_container_id.c_str(), cpucg_root->c_str(), key.m_cpu_cgroup.c_str());
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.shares", value.m_cpu_shares) && found_all;
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_quota_us", value.m_cpu_quota) && found_all;
-		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", value.m_cpu_period) && found_all;
+		if(cpu_version == 2)
+		{
+			found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.weight", value.m_cpu_shares) &&
+				    found_all;
+			found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.max", value.m_cpu_quota,
+						    value.m_cpu_period) &&
+				    found_all;
+		}
+		else
+		{
+			found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.shares", value.m_cpu_shares) && found_all;
+			found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_quota_us", value.m_cpu_quota) && found_all;
+			found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", value.m_cpu_period) && found_all;
+		}
 	}
 
 	int cpuset_version;
