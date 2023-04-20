@@ -624,16 +624,17 @@ static __always_inline unsigned long extract__clone_flags(struct task_struct *ta
 
 	if(ns_level != 0)
 	{
-		flags |= PPM_CL_CHILD_IN_PIDNS;
+		ppm_flags |= PPM_CL_CHILD_IN_PIDNS;
 	}
 	else
 	{
+		/* This alternative check is meaningful only for the parent and not for the child */
 		struct pid_namespace *ns_children;
 		READ_TASK_FIELD_INTO(&ns_children, task, nsproxy, pid_ns_for_children);
 
 		if(ns_children != ns)
 		{
-			flags |= PPM_CL_CHILD_IN_PIDNS;
+			ppm_flags |= PPM_CL_CHILD_IN_PIDNS;
 		}
 	}
 	return ppm_flags;
