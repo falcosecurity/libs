@@ -99,7 +99,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
 #ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr)) != SCAP_SUCCESS)
+	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return SCAP_FAILURE;
@@ -232,7 +232,7 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
 #ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr)) != SCAP_SUCCESS)
+	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return SCAP_FAILURE;
@@ -530,7 +530,7 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	}
 
 #ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr)) != SCAP_SUCCESS)
+	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, handle->m_lasterr, true)) != SCAP_SUCCESS)
 	{
 		scap_close(handle);
 		return SCAP_FAILURE;

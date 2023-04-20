@@ -22,11 +22,14 @@ limitations under the License.
 #include "strerror.h"
 #include "uthash.h"
 
+#include <dirent.h>
 #include <errno.h>
 #include <mntent.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 struct scap_cgroup_cache
 {
@@ -59,6 +62,223 @@ scap_cgroup_printf(struct scap_cgroup_set* cgset, const char* fmt, ...)
 	}
 
 	cgset->len += nwritten + 1;
+	return SCAP_SUCCESS;
+}
+
+static int32_t scap_grep_cgroups(char* path, char* path_end, const char* pid_str)
+{
+	char line[SCAP_MAX_PATH_SIZE];
+
+	// we reuse the `path` buffer (containing the path to the cgroup) to store
+	// the path to cgroup.procs while we're opening it
+	// i.e.:
+	//
+	// before:
+	// |/sys/fs/cgroup/foo                |
+	// ^ path             ^ path_end      ^ SCAP_MAX_PATH_SIZE
+	//
+	// after snprintf:
+	// |/sys/fs/cgroup/foo/cgroup.procs   |
+	// ^ path             ^ path_end      ^ SCAP_MAX_PATH_SIZE
+	//
+	// after the fopen(), we reset the `path` buffer back to original:
+	//
+	// |/sys/fs/cgroup/foo                |
+	// ^ path             ^ path_end      ^ SCAP_MAX_PATH_SIZE
+	snprintf(path_end, SCAP_MAX_PATH_SIZE - (path_end - path), "/cgroup.procs");
+	FILE* cg = fopen(path, "r");
+	*path_end = 0;
+
+	if(!cg)
+	{
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), cg) != NULL)
+	{
+		if(strcmp(line, pid_str) == 0)
+		{
+			fclose(cg);
+			return SCAP_SUCCESS;
+		}
+	}
+
+	fclose(cg);
+	return SCAP_NOTFOUND;
+}
+
+static int32_t scap_find_my_cgroup(char* path, const char* pid_str);
+
+// `path` is a buffer of `SCAP_MAX_PATH_SIZE` bytes, containing the full
+// filesystem path to a cgroup
+// `path_end` points to NUL terminator of the path (inside `path`)
+// `pid_str` is the current pid, formatted as a string with a newline appended
+// (this is what we're looking for in .../cgroup.procs)
+static int32_t scap_cgroup_descend(char* path, char* path_end, const char* pid_str)
+{
+	DIR* cg;
+	struct dirent* pde;
+	struct stat s;
+
+	cg = opendir(path);
+	if(!cg)
+	{
+		return SCAP_FAILURE;
+	}
+
+	*path_end = '/';
+
+	while(1)
+	{
+		// For all directories in `path`, append the directory name and call scap_find_my_cgroup
+		// (which calls scap_cgroup_descend recursively if `pid_str` is not found in the directory).
+		//
+		// This results in a depth-first search across all cgroups.
+		pde = readdir(cg);
+		if(pde == NULL)
+		{
+			closedir(cg);
+			break;
+		}
+
+		if(pde->d_name[0] == '.')
+		{
+			continue;
+		}
+
+		snprintf(path_end + 1, SCAP_MAX_PATH_SIZE - (path_end + 1 - path), "%s", pde->d_name);
+		if(lstat(path, &s) != 0)
+		{
+			continue;
+		}
+
+		if(S_ISDIR(s.st_mode))
+		{
+			int ret = scap_find_my_cgroup(path, pid_str);
+			if(ret == SCAP_SUCCESS)
+			{
+				closedir(cg);
+				return ret;
+			}
+		}
+	}
+
+	// didn't find us anywhere :(
+	return SCAP_FAILURE;
+}
+
+// on entry:
+// - path contains the root directory to scan
+// - pid_str contains the pid to find with a trailing newline (e.g. "1234\n")
+// on exit:
+// - if ret == SCAP_SUCCESS, path contains the full path to the cgroup found
+// - otherwise, the content of path is unspecified
+static int32_t scap_find_my_cgroup(char* path, const char* pid_str)
+{
+	int32_t ret;
+	char* path_end = path + strlen(path);
+
+	// first, try the current directory
+	ret = scap_grep_cgroups(path, path_end, pid_str);
+	if(ret != SCAP_NOTFOUND)
+	{
+		return ret;
+	}
+
+	// we failed. look for subdirectories and descend
+	return scap_cgroup_descend(path, path_end, pid_str);
+}
+
+// This function superficially looks like strrchr, but it has
+// an important difference: strrchr starts looking for the character
+// at str+strlen(str)-1, while scan_back starts the search at
+// an arbitrary point in the string
+static const char* scan_back(const char* start, const char* end)
+{
+	const char* q = end;
+	while(1)
+	{
+		if(*q == '/')
+		{
+			return q;
+		}
+		else if(q == start)
+		{
+			return NULL;
+		}
+		else
+		{
+			q--;
+		}
+	}
+}
+
+// Determine the absolute(ish) path of prefix+path
+//
+// If `path` is absolute already (doesn't start with a "/.."), just return it
+// otherwise, strip all the "/.." prefixes from `path` and the corresponding number
+// of subdirectories from `prefix`.
+//
+// The actual interesting return value is passed via `prefix_len` and `path_len`:
+// - `prefix_len` indicates how many initial characters of `prefix` we should take
+// - `path_strip_len` indicates how many initial characters of `path` we should skip
+// with a `/` in between to get the absolute path.
+//
+// The end result is that the absolute path can be recreated via printf without extra
+// copies of the source strings:
+//
+// printf(cg, "%.*s%s", (int)prefix_len, prefix, path + path_strip_len);
+//
+// Example:
+// - on entry:
+//   prefix = "foo/bar/baz/cg1/cg2"
+//   path = "/../../something/else"
+// - pointers involved:
+//   "foo/bar/baz/cg1/cg2"
+//    ^prefix            ^prefix_p
+//   "/../../something/else"
+//    ^path_p
+// - after 1 loop:
+//   "foo/bar/baz/cg1/cg2"
+//    ^prefix        ^prefix_p
+//   "/../../something/else"
+//       ^path_p
+// - after 2 loops:
+//   "foo/bar/baz/cg1/cg2"
+//    ^prefix    ^prefix_p
+//   "/../../something/else"
+//          ^path_p
+//
+// - output
+//   "foo/bar/baz/cg1/cg2"
+//    |<-------->| prefix_len
+//   "/../../something/else"
+//    |<-->| path_strip_len
+//
+// Note: we have a special case when path is just a bunch of `/../../../`s: we strip the remaining
+// slash so that we don't end up with doubled slashes (one from the prefix, one from the path)
+static int32_t scap_cgroup_prefix_path(const char* prefix, const char* path, size_t* prefix_len, size_t* path_strip_len)
+{
+	const char* prefix_p = prefix + strlen(prefix);
+	const char* path_p = path;
+
+	while(strncmp(path_p, "/..", 3) == 0)
+	{
+		path_p += 3;
+		prefix_p = scan_back(prefix, prefix_p);
+		if(prefix_p == NULL)
+		{
+			return SCAP_FAILURE;
+		}
+	}
+
+	if(!strcmp(path_p, "/"))
+	{
+		path_p++;
+	}
+
+	*prefix_len = prefix_p - prefix;
+	*path_strip_len = path_p - path;
 	return SCAP_SUCCESS;
 }
 
@@ -198,6 +418,40 @@ static int32_t scap_get_cgroup_mount_v1(struct mntent* de, struct scap_cgroup_se
 	return SCAP_SUCCESS;
 }
 
+// Get the (v1) cgroups of the current process, bypassing cgroup namespace restrictions
+//
+// We can't simply read them from /proc/self/cgroup, since these names will be relative to the cgroup
+// namespace root (i.e. probably just "/"). Instead, we do a recursive grep of all cgroup.procs files
+// under each mountpoint for our process id.
+static int32_t scap_get_cgroup_self_v1_cgroupns(struct mntent* de, struct scap_cgroup_set* self, struct scap_cgroup_set* cg_subsystems, const char* host_root, char* pid_str, char* error)
+{
+	if(cg_subsystems->len == 0 && get_cgroup_subsystems_v1(cg_subsystems) == SCAP_FAILURE)
+	{
+		return scap_errprintf(error, 0, "failed to parse /proc/self/cgroup");
+	}
+
+	FOR_EACH_SUBSYS(cg_subsystems, cgset_subsys)
+	{
+		if(!hasmntopt(de, cgset_subsys))
+		{
+			continue;
+		}
+
+		char my_cg[SCAP_MAX_PATH_SIZE];
+		snprintf(my_cg, sizeof(my_cg), "%s/proc/1/root%s", host_root, de->mnt_dir);
+		char* p = my_cg + strlen(my_cg);
+
+		if(scap_find_my_cgroup(my_cg, pid_str) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+
+		scap_cgroup_printf(self, "%s=%s", cgset_subsys, p);
+	}
+
+	return SCAP_SUCCESS;
+}
+
 // Get all subsystem names for the v2 cgroup at `cgroup_mount`
 //
 // This is achieved by simply reading the contents of cgroup.controllers
@@ -298,10 +552,79 @@ static int32_t scap_get_cgroup_mount_v2(struct mntent* de, char* mountpoint, con
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error)
+// Get the (v2) cgroup of the current process, bypassing cgroup namespace restrictions
+//
+// We can't simply read it from /proc/self/cgroup, since the name will be relative to the cgroup
+// namespace root (i.e. probably just "/"). Instead, we do a recursive grep of all cgroup.procs files
+// under the v2 mountpoint for our process id.
+static int32_t scap_get_cgroup_self_v2_cgroupns(struct mntent* de, char* self, const char* host_root, char* pid_str)
+{
+	char my_cg[SCAP_MAX_PATH_SIZE];
+	size_t my_cg_len = snprintf(my_cg, sizeof(my_cg), "%s/proc/1/root%s", host_root, de->mnt_dir);
+	if(my_cg_len >= sizeof(my_cg))
+	{
+		return SCAP_FAILURE;
+	}
+	if(scap_find_my_cgroup(my_cg, pid_str) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	snprintf(self, SCAP_MAX_PATH_SIZE, "%s", my_cg + my_cg_len);
+	return SCAP_SUCCESS;
+}
+
+static bool scap_in_cgroupns(const char* host_root)
+{
+	// compare our cgroup ns id with init's (pid 1)
+	// when running in a container, we need access to the host's /proc directory
+	// for two reasons:
+	// - so that /proc/1 is actually the host-wide init and not a containerized process
+	// - so that we can walk through /proc/1/root and into the host's cgroup fs
+	//   (in order to find the real cgroup we're in, as seen from the root cgroup ns)
+	//
+	// if we can't access the real root, whatever we do will give us wrong cgroup names
+	// with cgroupns enabled, so it doesn't matter what we do
+	// (we just pretend we're not in a cgroupns)
+	char filename[SCAP_MAX_PATH_SIZE];
+	char our_cgroupns[SCAP_MAX_PATH_SIZE];
+	char init_cgroupns[SCAP_MAX_PATH_SIZE];
+	ssize_t link_len;
+
+	snprintf(filename, sizeof(filename), "%s/proc/self/ns/cgroup", host_root);
+	link_len = readlink(filename, our_cgroupns, sizeof(our_cgroupns));
+	if(link_len < 0 || link_len >= sizeof(our_cgroupns))
+	{
+		// < 0 means couldn't get the link; assuming cgroupns not available
+		// otherwise cgroupns link is too long, which is surprising since it has a fixed,
+		// fairly short length
+		return false;
+	}
+	our_cgroupns[link_len] = 0;
+
+	snprintf(filename, sizeof(filename), "%s/proc/1/ns/cgroup", host_root);
+	link_len = readlink(filename, init_cgroupns, sizeof(init_cgroupns));
+	if(link_len < 0 || link_len >= sizeof(our_cgroupns))
+	{
+		return false;
+	}
+	init_cgroupns[link_len] = 0;
+
+	if(strcmp(init_cgroupns, our_cgroupns) == 0)
+	{
+		// we're in the root cgroup ns, no hacks necessary
+		return false;
+	}
+
+	return true;
+}
+
+int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error, bool with_self_cg)
 {
 	const char* host_root = scap_get_host_root();
 	char filename[SCAP_MAX_PATH_SIZE];
+	bool in_cgroupns = false;
+	char pid_str[40];
 
 	cgi->m_use_cache = true;
 	cgi->m_cache = NULL;
@@ -309,6 +632,20 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* erro
 	cgi->m_subsystems_v2.len = 0;
 	cgi->m_mounts_v1.len = 0;
 	cgi->m_mount_v2[0] = 0;
+	cgi->m_self_v1.len = 0;
+	cgi->m_self_v2[0] = 0;
+
+	// if we don't need our cgroup name (will just use the mountpoints, with the full cgroup names coming
+	// from elsewhere), we can simply assume we're not in a cgroup namespace (the result is the same)
+	if(with_self_cg)
+	{
+		in_cgroupns = scap_in_cgroupns(host_root);
+	}
+
+	if(in_cgroupns)
+	{
+		snprintf(pid_str, sizeof(pid_str), "%d\n", getpid());
+	}
 
 	snprintf(filename, sizeof(filename), "%s/proc/1/mounts", host_root);
 	FILE* mounts = setmntent(filename, "r");
@@ -325,11 +662,19 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* erro
 		if(strcmp(de->mnt_type, "cgroup") == 0)
 		{
 			scap_get_cgroup_mount_v1(de, &cgi->m_mounts_v1, &cgi->m_subsystems_v1, host_root, error);
+			if(in_cgroupns)
+			{
+				scap_get_cgroup_self_v1_cgroupns(de, &cgi->m_self_v1, &cgi->m_subsystems_v1, host_root, pid_str, error);
+			}
 		}
 		else if(strcmp(de->mnt_type, "cgroup2") == 0)
 		{
 			scap_get_cgroup_mount_v2(de, cgi->m_mount_v2, host_root);
 			get_cgroup_subsystems_v2(cgi, &cgi->m_subsystems_v2, cgi->m_mount_v2);
+			if(in_cgroupns)
+			{
+				scap_get_cgroup_self_v2_cgroupns(de, cgi->m_self_v2, host_root, pid_str);
+			}
 		}
 	}
 
@@ -402,8 +747,25 @@ static int32_t scap_cgroup_resolve_v2(struct scap_cgroup_interface* cgi, const c
 {
 	char full_cgroup[SCAP_MAX_PATH_SIZE];
 	char cgroup_path[SCAP_MAX_PATH_SIZE];
+	int nwritten;
 
-	int nwritten = snprintf(full_cgroup, sizeof(full_cgroup), "%s", cgroup);
+	if(cgi->m_self_v2[0])
+	{
+		size_t prefix_len;
+		size_t suffix_skip_len;
+		if(scap_cgroup_prefix_path(cgi->m_self_v2, cgroup, &prefix_len, &suffix_skip_len) !=
+		   SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+
+		nwritten = snprintf(full_cgroup, sizeof(full_cgroup), "%.*s%s", (int)prefix_len, cgi->m_self_v2, cgroup + suffix_skip_len);
+	}
+	else
+	{
+		nwritten = snprintf(full_cgroup, sizeof(full_cgroup), "%s", cgroup);
+	}
+
 	if(nwritten >= sizeof(full_cgroup))
 	{
 		return SCAP_FAILURE;
@@ -587,10 +949,41 @@ int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* pr
 			}
 		}
 
+		const char* self_path = NULL;
+		size_t len = strlen(subsys_list);
+		FOR_EACH_SUBSYS(&cgi->m_self_v1, cgset_subsys)
+		{
+			if(strncmp(cgset_subsys, subsys_list, len) == 0 && cgset_subsys[len] == '=')
+			{
+				self_path = cgset_subsys + len + 1;
+			}
+		}
+
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
-			if(scap_cgroup_printf(cg, "%s=%s", token, cgroup) != SCAP_SUCCESS)
+			int ret;
+
+			if(self_path)
+			{
+				size_t prefix_len;
+				size_t suffix_skip_len;
+				if(scap_cgroup_prefix_path(self_path, cgroup, &prefix_len, &suffix_skip_len) !=
+				   SCAP_SUCCESS)
+				{
+					ASSERT(false);
+					fclose(f);
+					return SCAP_SUCCESS;
+				}
+				ret = scap_cgroup_printf(cg, "%s=%.*s%s", token, (int)prefix_len, self_path,
+							 cgroup + suffix_skip_len);
+			}
+			else
+			{
+				ret = scap_cgroup_printf(cg, "%s=%s", token, cgroup);
+			}
+
+			if(ret == SCAP_FAILURE)
 			{
 				ASSERT(false);
 				fclose(f);
