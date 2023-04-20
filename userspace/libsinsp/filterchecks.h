@@ -16,6 +16,8 @@ limitations under the License.
 */
 
 #pragma once
+#include <optional>
+#include <string>
 #include <unordered_set>
 #include <json/json.h>
 #include "filter_value.h"
@@ -230,6 +232,52 @@ friend class chk_compare_helper;
 ///////////////////////////////////////////////////////////////////////////////
 // Filter check classes
 ///////////////////////////////////////////////////////////////////////////////
+
+//
+// fd checks
+//
+class sinsp_filter_check_fspath : public sinsp_filter_check
+{
+public:
+	enum check_type
+	{
+		TYPE_NAME = 0,
+		TYPE_NAMERAW = 1,
+		TYPE_SOURCE = 2,
+		TYPE_SOURCERAW = 3,
+		TYPE_TARGET = 4,
+		TYPE_TARGETRAW = 5,
+	};
+
+	sinsp_filter_check_fspath();
+	sinsp_filter_check* allocate_new();
+	uint8_t* extract(sinsp_evt* evt, OUT uint32_t* len, bool sanitize_strings = true);
+
+private:
+	typedef std::map<uint16_t, std::shared_ptr<sinsp_filter_check>> filtercheck_map_t;
+
+	std::shared_ptr<sinsp_filter_check> create_event_check(const char *name,
+							       cmpop cop = CO_NONE,
+							       const char *value = NULL);
+
+	std::shared_ptr<sinsp_filter_check> create_fd_check(const char *name);
+
+	void create_fspath_checks();
+	void set_fspath_checks(std::shared_ptr<filtercheck_map_t> success_checks,
+			       std::shared_ptr<filtercheck_map_t> path_checks,
+			       std::shared_ptr<filtercheck_map_t> source_checks,
+			       std::shared_ptr<filtercheck_map_t> target_checks);
+	bool extract_fspath(sinsp_evt* evt,
+			    OUT std::vector<extract_value_t>& values,
+			    std::shared_ptr<filtercheck_map_t> map);
+	std::string m_tstr;
+	sinsp_evt m_tmp_evt;
+
+	std::shared_ptr<filtercheck_map_t> m_success_checks;
+	std::shared_ptr<filtercheck_map_t> m_path_checks;
+	std::shared_ptr<filtercheck_map_t> m_source_checks;
+	std::shared_ptr<filtercheck_map_t> m_target_checks;
+};
 
 //
 // fd checks
