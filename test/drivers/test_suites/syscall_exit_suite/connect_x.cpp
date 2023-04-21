@@ -116,9 +116,12 @@ TEST(SyscallExit, connectX_INET6)
 	/* The client performs a `connect` so the client is the src. */
 	evt_test->assert_tuple_inet6_param(2, PPM_AF_INET6, IPV6_CLIENT, IPV6_SERVER, IPV6_PORT_CLIENT_STRING, IPV6_PORT_SERVER_STRING);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 #ifdef __NR_unlinkat
@@ -180,9 +183,12 @@ TEST(SyscallExit, connectX_UNIX)
 	/* The client performs a `connect` so the client is the src. */
 	evt_test->assert_tuple_unix_param(2, PPM_AF_UNIX, UNIX_SERVER);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif /* __NR_unlinkat */
 
@@ -223,9 +229,12 @@ TEST(SyscallExit, connectX_failure)
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	evt_test->assert_empty_param(2);
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)mock_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 
 TEST(SyscallExit, connectX_failure_connection_refused)
@@ -285,8 +294,11 @@ TEST(SyscallExit, connectX_failure_connection_refused)
 		evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, "254.254.254.3", IPV4_PORT_CLIENT_STRING, "1");
 	}
 
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(2);
+	evt_test->assert_num_params_pushed(3);
 }
 #endif
