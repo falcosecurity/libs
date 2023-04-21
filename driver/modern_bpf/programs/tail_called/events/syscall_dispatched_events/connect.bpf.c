@@ -83,6 +83,9 @@ int BPF_PROG(connect_x,
 		auxmap__store_empty_param(auxmap);
 	}
 
+	/* Parameter 3: fd (type: PT_FD)*/
+	auxmap__store_s64_param(auxmap, (s64)socket_fd);
+
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
 	auxmap__finalize_event_header(auxmap);

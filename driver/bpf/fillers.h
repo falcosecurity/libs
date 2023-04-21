@@ -1174,7 +1174,10 @@ FILLER(sys_connect_x, true)
 	 */
 	data->curarg_already_on_frame = true;
 	res = bpf_val_to_ring_len(data, 0, size);
+	CHECK_RES(res);
 
+	/* Parameter 3: fd (type: PT_FD)*/
+	res = bpf_push_s64_to_ring(data, fd);
 	return res;
 }
 
