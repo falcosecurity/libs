@@ -1776,6 +1776,10 @@ int f_sys_connect_x(struct event_filler_arguments *args)
 	if (unlikely(res != PPM_SUCCESS))
 		return res;
 
+	res = val_to_ring(args, fd, 0, false, 0);
+	if (unlikely(res != PPM_SUCCESS))
+		return res;
+
 	return add_sentinel(args);
 }
 

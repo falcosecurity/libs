@@ -3172,7 +3172,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
     }
 }
 
-inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packed_data){
+inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packed_data, bool overwrite_dest) {
     uint8_t family;
     const char *parstr;
     bool changed;
@@ -3199,12 +3199,12 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
             if(!(sinsp_utils::is_ipv4_mapped_ipv6(sip) && sinsp_utils::is_ipv4_mapped_ipv6(dip)))
             {
                 evt->m_fdinfo->m_type = SCAP_FD_IPV6_SOCK;
-                changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, false);
+                changed = m_inspector->m_parser->set_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, overwrite_dest);
             }
             else
             {
                 evt->m_fdinfo->m_type = SCAP_FD_IPV4_SOCK;
-                changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, false);
+                changed = m_inspector->m_parser->set_ipv4_mapped_ipv6_addresses_and_ports(evt->m_fdinfo, packed_data, overwrite_dest);
             }
         }
         else
@@ -3214,7 +3214,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
             //
             // Update the FD info with this tuple
             //
-            changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data, false);
+            changed = m_inspector->m_parser->set_ipv4_addresses_and_ports(evt->m_fdinfo, packed_data, overwrite_dest);
         }
 
         if(changed && evt->m_fdinfo->is_role_server() && evt->m_fdinfo->is_udp_socket())
@@ -3273,10 +3273,43 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	uint8_t *packed_data;
 	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator fdit;
 	int64_t retval;
+	int64_t fd;
+	bool force_overwrite_stale_data = false;
 
 	if(evt->m_fdinfo == NULL)
 	{
-		return;
+		// Perhaps we dropped the connect enter event.
+		// try harder to be resilient.
+		if(evt->get_num_params() > 2)
+		{
+	                parinfo = evt->get_param(2);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			fd = *(int64_t *)parinfo->m_val;
+			if(fd < 0)
+			{
+				//
+				// Accept failure.
+				// Do nothing.
+				//
+				return;
+			}
+			evt->m_tinfo->m_lastevent_fd = fd;
+			evt->m_fdinfo = evt->m_tinfo->get_fd(evt->m_tinfo->m_lastevent_fd);
+			if (evt->m_fdinfo == NULL)
+			{
+				// Ok this is a completely new fd;
+				// we probably lost too many events.
+				// Bye.
+				return;
+			}
+			// ok we got stale data; we probably missed the connect enter event on this thread.
+			// Force overwrite existing fdinfo socket data
+			force_overwrite_stale_data = true;
+		}
+		else
+		{
+			return;
+		}
 	}
 
 	parinfo = evt->get_param(0);
@@ -3319,7 +3352,7 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 
 	packed_data = (uint8_t*)parinfo->m_val;
 
-    fill_client_socket_info(evt, packed_data);
+    fill_client_socket_info(evt, packed_data, force_overwrite_stale_data);
 
 	//
 	// Call the protocol decoder callbacks associated to this event

@@ -148,7 +148,7 @@ private:
 
 	inline bool update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo,
 		uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest=true);
-	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data);
+	inline void fill_client_socket_info(sinsp_evt* evt, uint8_t* packed_data, bool overwrite_dest);
 	inline void add_socket(sinsp_evt* evt, int64_t fd, uint32_t domain, uint32_t type, uint32_t protocol);
 	inline void infer_sendto_fdinfo(sinsp_evt *evt);
 	inline void add_pipe(sinsp_evt *evt, int64_t fd, uint64_t ino, uint32_t openflags);
