@@ -244,6 +244,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_EVENTFD2_E:
 	case PPME_SYSCALL_CHDIR_E:
 	case PPME_SYSCALL_FCHDIR_E:
+	case PPME_SYSCALL_LINK_E:
+	case PPME_SYSCALL_LINKAT_E:
+	case PPME_SYSCALL_MKDIR_E:
+	case PPME_SYSCALL_RMDIR_E:
 	case PPME_SOCKET_SHUTDOWN_E:
 	case PPME_SYSCALL_GETRLIMIT_E:
 	case PPME_SYSCALL_SETRLIMIT_E:
@@ -255,6 +259,8 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETUID_E:
 	case PPME_SYSCALL_SETGID_E:
 	case PPME_SYSCALL_SETPGID_E:
+	case PPME_SYSCALL_UNLINK_E:
+	case PPME_SYSCALL_UNLINKAT_E:
 		store_event(evt);
 		break;
 	case PPME_SYSCALL_EXECVE_18_E:
@@ -275,6 +281,14 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 				}
 			}
 		}
+		break;
+	case PPME_SYSCALL_MKDIR_X:
+	case PPME_SYSCALL_RMDIR_X:
+	case PPME_SYSCALL_LINK_X:
+	case PPME_SYSCALL_LINKAT_X:
+	case PPME_SYSCALL_UNLINK_X:
+	case PPME_SYSCALL_UNLINKAT_X:
+		parse_fspath_related_exit(evt);
 		break;
 	case PPME_SYSCALL_READ_X:
 	case PPME_SYSCALL_WRITE_X:
@@ -297,7 +311,6 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 		break;
 	case PPME_SYSCALL_OPEN_X:
 	case PPME_SYSCALL_CREAT_X:
-	case PPME_SYSCALL_OPENAT_X:
 	case PPME_SYSCALL_OPENAT_2_X:
 	case PPME_SYSCALL_OPENAT2_X:
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
@@ -306,6 +319,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_FCHMOD_X:
 	case PPME_SYSCALL_FCHOWN_X:
 		parse_fchmod_fchown_exit(evt);
+	case PPME_SYSCALL_OPENAT_X:
+		parse_fspath_related_exit(evt);
+		parse_open_openat_creat_exit(evt);
 		break;
 	case PPME_SYSCALL_SELECT_E:
 	case PPME_SYSCALL_POLL_E:
@@ -612,7 +628,7 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		plugin_id = *(uint32_t *) parinfo->m_val;
 	}
-	
+
 	if (plugin_id != 0)
 	{
 		bool pfound = false;
@@ -854,11 +870,11 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			//
 			// The copy_file_range syscall has the peculiarity of using two fds
 			// Set as m_lastevent_fd the output fd
-			// 
+			//
 			if(etype == PPME_SYSCALL_COPY_FILE_RANGE_X)
 			{
 				sinsp_evt_param *parinfo;
-				
+
 				parinfo = evt->get_param(1);
 				ASSERT(parinfo->m_len == sizeof(int64_t));
 				tinfo->m_lastevent_fd = *(int64_t *)parinfo->m_val;
@@ -980,18 +996,18 @@ bool sinsp_parser::retrieve_enter_event(sinsp_evt *enter_evt, sinsp_evt *exit_ev
 
 	enter_evt->init(exit_evt->m_tinfo->m_lastevent_data, exit_evt->m_tinfo->m_lastevent_cpuid);
 
-	/* The `execveat` syscall is a wrapper of `execve`, when the call 
-	 * succeeds the event returned is simply an `execve` exit event. 
-	 * So if an `execveat` is correctly executed we will have, a 
-	 * `PPME_SYSCALL_EXECVEAT_E` as enter event and a 
-	 * `PPME_SYSCALL_EXECVE_..._X` as exit one. So when we retrieve 
-	 * the enter event in the `parse_execve_exit` method  we cannot 
-	 * only check for the same syscall event, so `PPME_SYSCALL_EXECVE_..._E`, 
+	/* The `execveat` syscall is a wrapper of `execve`, when the call
+	 * succeeds the event returned is simply an `execve` exit event.
+	 * So if an `execveat` is correctly executed we will have, a
+	 * `PPME_SYSCALL_EXECVEAT_E` as enter event and a
+	 * `PPME_SYSCALL_EXECVE_..._X` as exit one. So when we retrieve
+	 * the enter event in the `parse_execve_exit` method  we cannot
+	 * only check for the same syscall event, so `PPME_SYSCALL_EXECVE_..._E`,
 	 * we have also to check for the `PPME_SYSCALL_EXECVEAT_E`.
 	 */
 	if((exit_evt->get_type() == PPME_SYSCALL_EXECVE_18_X ||
 		exit_evt->get_type() == PPME_SYSCALL_EXECVE_19_X)
-		&& 
+		&&
 		enter_evt->get_type() == PPME_SYSCALL_EXECVEAT_E)
 	{
 #ifdef GATHER_INTERNAL_STATS
@@ -2010,7 +2026,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 	/* We introduced the `filename` argument in the enter event
 	 * only from version `EXECVE_18_E`.
-	 * Moreover if we are not able to retrieve the enter event 
+	 * Moreover if we are not able to retrieve the enter event
 	 * we can do nothing.
 	 */
 	if((etype == PPME_SYSCALL_EXECVE_18_X ||
@@ -2020,7 +2036,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		retrieve_enter_event(enter_evt, evt))
 	{
 		char fullpath[SCAP_MAX_PATH_SIZE] = {0};
-	
+
 		/* We need to manage the 2 possible cases:
 		 * - enter event is an `EXECVE`
 		 * - enter event is an `EXECVEAT`
@@ -2034,7 +2050,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(0);
 			/* This could happen only if we are not able to get the info from the kernel,
 			 * because if the syscall was successful the pathname was surely here the problem
-			 * is that for some reason we were not able to get it with our instrumentation, 
+			 * is that for some reason we were not able to get it with our instrumentation,
 			 * for example when the `bpf_probe_read()` call fails in BPF.
 			 */
 			if(strncmp(parinfo->m_val, "<NA>", 5) == 0)
@@ -2059,7 +2075,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			parinfo = enter_evt->get_param(0);
 			ASSERT(parinfo->m_len == sizeof(int64_t));
 			int64_t dirfd = *(int64_t *)parinfo->m_val;
-			
+
 			/*
 			 * Get flags
 			 */
@@ -2092,7 +2108,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			std::string sdir;
 			parse_dirfd(evt, pathname, dirfd, &sdir);
 
-			/* (4) In this case, we were not able to recover the pathname from the kernel or 
+			/* (4) In this case, we were not able to recover the pathname from the kernel or
 			 * we are not able to recover information about `dirfd` in our `sinsp` state.
 			 * Fallback to `<NA>`.
 			 */
@@ -2101,21 +2117,21 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			{
 				/* we copy also the string terminator `\0`. */
 				strlcpy(fullpath, "<NA>", 5);
-			} 
+			}
 			/* (3) In this case we have already obtained the `exepath` and it is `sdir`, we just need
-			 * to sanitize it. 
+			 * to sanitize it.
 			 */
 			else if(flags & PPM_EXVAT_AT_EMPTY_PATH)
 			{
-				/* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>` 
+				/* We explicitly set the `pathlen` to `0`, since `pathname` is `<NA>`
 				 * as we said in case (3), and we don't want to consider it as a valid
-				 * part of the final path. In this case `sdir` will always be 
+				 * part of the final path. In this case `sdir` will always be
 				 * an absolute path.
 				 */
 				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-								"\0", 
+								"\0",
 								0,
-								sdir.c_str(), 
+								sdir.c_str(),
 								(uint32_t)sdir.length());
 
 			}
@@ -2125,9 +2141,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 			else
 			{
 				sinsp_utils::concatenate_paths(fullpath, SCAP_MAX_PATH_SIZE,
-											sdir.c_str(), 
+											sdir.c_str(),
 											(uint32_t)sdir.length(),
-											pathname, 
+											pathname,
 											namelen);
 			}
 		}
@@ -2314,7 +2330,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
  * - the pathname is relative:
  *   - if `dirfd` is `PPM_AT_FDCWD` -> sdir = cwd.
  *   - if we have no information about `dirfd` -> sdir = "<UNKNOWN>".
- *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end. 
+ *   - if `dirfd` has a valid vaule for us -> sdir = path + "/" at the end.
  */
 void sinsp_parser::parse_dirfd(sinsp_evt *evt, char* name, int64_t dirfd, OUT std::string* sdir)
 {
@@ -3798,7 +3814,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	}
 }
 
-inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo, 
+inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo,
 	uint32_t tsip, uint16_t tsport, uint32_t tdip, uint16_t tdport, bool overwrite_dest)
 {
 	if(fdinfo->m_type == SCAP_FD_IPV4_SOCK)
@@ -3829,7 +3845,7 @@ inline bool sinsp_parser::update_ipv4_addresses_and_ports(sinsp_fdinfo_t* fdinfo
 		changed = true;
 	}
 
-	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == 0 || 
+	if(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip == 0 ||
 		(overwrite_dest && fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip != tdip)) {
 		fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dip = tdip;
 		changed = true;
@@ -4246,6 +4262,15 @@ bool sinsp_parser::detect_and_process_tracer_write(sinsp_evt *evt,
 	}
 
 	return false;
+}
+
+void sinsp_parser::parse_fspath_related_exit(sinsp_evt* evt)
+{
+	sinsp_evt *enter_evt = &m_tmp_evt;
+	if(retrieve_enter_event(enter_evt, evt))
+	{
+		evt->save_enter_event_params(enter_evt);
+	}
 }
 
 void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
@@ -4812,14 +4837,14 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 		//
 		if (evt->get_type() == PPME_SYSCALL_DUP3_X){
 			uint32_t flags;
-			
+
 			//
 			// Get the flags parameter.
 			//
 			parinfo = evt->get_param(3);
 			ASSERT(parinfo->m_len == sizeof(uint32_t));
 			flags = *(uint32_t *)parinfo->m_val;
-			
+
 			//
 			// We keep the previously flags that has been set on the original file descriptor and
 			// just set/reset O_CLOEXEC flag base on the value received by dup3() syscall.
@@ -4835,7 +4860,7 @@ void sinsp_parser::parse_dup_exit(sinsp_evt *evt)
 				//
 				evt->m_fdinfo->m_openflags &= ~PPM_O_CLOEXEC;
 			}
-			
+
 		}
 
 		//
@@ -5296,16 +5321,16 @@ namespace
 		}
 		return false;
 	}
-	
+
 	bool check_json_val_is_convertible(const Json::Value& value, Json::ValueType other, const char* field, bool log_message=false)
 	{
 		if(value.isNull()) {
 			return false;
 		}
-	
+
 		if(!value.isConvertibleTo(other)) {
 			std::string err_msg;
-		
+
 			if(log_message) {
 				err_msg = generate_error_message(value, field);
 				SINSP_WARNING("%s",err_msg.c_str());
@@ -5314,7 +5339,7 @@ namespace
 					err_msg = generate_error_message(value, field);
 					SINSP_DEBUG("%s",err_msg.c_str());
 				}
-			}			
+			}
 			return false;
 		}
 		return true;

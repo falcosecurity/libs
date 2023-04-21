@@ -16,6 +16,10 @@ limitations under the License.
 */
 
 #pragma once
+
+#include <optional>
+#include <unordered_map>
+
 #include <json/json.h>
 
 #ifndef VISIBILITY_PRIVATE
@@ -560,6 +564,11 @@ private:
 	uint32_t get_dump_flags();
 	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);
 
+	// Save important values from the provided enter event. They
+	// are accessible from get_enter_evt_param().
+	void save_enter_event_params(sinsp_evt* enter_evt);
+	std::optional<std::reference_wrapper<std::string>> get_enter_evt_param(const std::string& param);
+
 VISIBILITY_PRIVATE
 	enum flags
 	{
@@ -599,6 +608,9 @@ VISIBILITY_PRIVATE
 	const struct ppm_event_info* m_event_info_table;
 
 	std::shared_ptr<sinsp_fdinfo_t> m_fdinfo_ref;
+	// For some exit events, the "path" argument from the
+	// corresponding enter event is stored here.
+	std::unordered_map<std::string, std::string> m_enter_path_param;
 
 	size_t m_source_idx;
 	const char* m_source_name;
