@@ -28,6 +28,9 @@ limitations under the License.
 #endif
 
 #include <limits>
+#include <string>
+#include <optional>
+#include <functional>
 
 #include "sinsp.h"
 #include "sinsp_int.h"
@@ -2849,4 +2852,62 @@ bool sinsp_evt::clone_event(sinsp_evt &dest, const sinsp_evt &src)
 	dest.m_fdinfo_name_changed = src.m_fdinfo_name_changed;
 
 	return true;
+}
+
+void sinsp_evt::save_enter_event_params(sinsp_evt* enter_evt)
+{
+	static std::vector<const char *> path_param = {"path"};
+	static std::vector<const char *> oldpath_newpath_param = {"oldpath", "newpath"};
+	static std::vector<const char *> name_param = {"name"};
+
+	std::vector<const char *> *pnames = NULL;
+	switch(get_type())
+	{
+	case PPME_SYSCALL_MKDIR_X:
+	case PPME_SYSCALL_RMDIR_X:
+	case PPME_SYSCALL_UNLINK_X:
+		pnames = &path_param;
+		break;
+
+	case PPME_SYSCALL_LINK_X:
+	case PPME_SYSCALL_LINKAT_X:
+		pnames = &oldpath_newpath_param;
+		break;
+	case PPME_SYSCALL_UNLINKAT_X:
+	case PPME_SYSCALL_OPENAT_X:
+		pnames = &name_param;
+		break;
+	};
+
+	if(!pnames)
+	{
+		return;
+	}
+
+	for(const char *pname : (*pnames))
+	{
+		const sinsp_evt_param *param;
+
+		param = enter_evt->get_param_value_raw(pname);
+		if(param)
+		{
+			std::string val;
+			val.assign((char *) param->m_val, param->m_len);
+			m_enter_path_param[pname] = val;
+		}
+	}
+}
+
+std::optional<std::reference_wrapper<std::string>> sinsp_evt::get_enter_evt_param(const std::string& param)
+{
+	std::optional<std::reference_wrapper<std::string>> ret;
+
+	auto it = m_enter_path_param.find(param);
+
+	if(it != m_enter_path_param.end())
+	{
+		ret = it->second;
+	}
+
+	return ret;
 }

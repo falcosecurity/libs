@@ -353,6 +353,7 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 			m_tstr = enter_param.value();
 			break;
 		case PPME_SYSCALL_UNLINKAT_X:
+		case PPME_SYSCALL_OPENAT_X:
 			enter_param = evt->get_enter_evt_param("name");
 			if(!enter_param.has_value())
 			{
