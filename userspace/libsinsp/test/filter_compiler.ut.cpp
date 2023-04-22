@@ -55,9 +55,11 @@ public:
 class mock_compiler_filter_factory: public gen_event_filter_factory
 {
 public:
+	mock_compiler_filter_factory(sinsp *inspector) : m_inspector(inspector) {}
+
 	inline gen_event_filter *new_filter() override
 	{
-		return new sinsp_filter(NULL);
+		return new sinsp_filter(m_inspector);
 	}
 
 	inline gen_event_filter_check *new_filtercheck(const char *fldname) override
@@ -71,6 +73,7 @@ public:
 	}
 
 	list<gen_event_filter_factory::filter_fieldclass_info> m_list;
+	sinsp *m_inspector;
 };
 
 // Compile a filter, pass a mock event to it, and
@@ -78,8 +81,9 @@ public:
 // the expected one
 void test_filter_run(bool result, string filter_str)
 {
+	sinsp inspector;
 	std::shared_ptr<gen_event_filter_factory> factory;
-	factory.reset(new mock_compiler_filter_factory());
+	factory.reset(new mock_compiler_filter_factory(&inspector));
 	sinsp_filter_compiler compiler(factory, filter_str);
 	try
 	{
@@ -176,7 +180,8 @@ TEST(sinsp_filter_compiler, str_escape)
 
 TEST(sinsp_filter_compiler, supported_operators)
 {
-	std::shared_ptr<gen_event_filter_factory> factory(new mock_compiler_filter_factory());
+	sinsp inspector;
+	std::shared_ptr<gen_event_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
 
 	// valid operators
 	test_filter_compile(factory, "c.true exists");
@@ -210,7 +215,8 @@ TEST(sinsp_filter_compiler, supported_operators)
 
 TEST(sinsp_filter_compiler, complex_filter)
 {
-	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL));
+	sinsp inspector;
+	std::shared_ptr<gen_event_filter_factory> factory(new mock_compiler_filter_factory(&inspector));
 
 	// This is derived from the Falco default rule
 	// "Unexpected outbound connection destination" coming from here:
