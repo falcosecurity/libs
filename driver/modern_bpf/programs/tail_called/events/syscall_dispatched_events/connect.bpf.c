@@ -6,7 +6,7 @@
  */
 
 #include <helpers/interfaces/variable_size_event.h>
-#include <asm/errno.h>
+#include <asm-generic/errno.h>
 
 /*=============================== ENTER EVENT ===========================*/
 
