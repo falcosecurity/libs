@@ -26,23 +26,6 @@ enum capability_type
 	CAP_EFFECTIVE = 2,
 };
 
-/* COS kernels handle audit field differently, see [1]. To support both
- * versions define COS subset of task_struct with a flavor suffix (which will
- * be ignored during relocation matching [2]).
- *
- * [1]: https://chromium.googlesource.com/chromiumos/third_party/kernel/+/096925a44076ba5c52faa84d255a847130ff341e%5E%21/#F2
- * [2]: https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf-next.git/tree/tools/lib/bpf/libbpf.c#n5347
- */
-struct audit_task_info {
-	kuid_t			loginuid;
-	unsigned int		sessionid;
-	struct audit_context	*ctx;
-};
-
-struct task_struct___cos {
-	struct audit_task_info		*audit;
-} __attribute__((preserve_access_index));
-
 /* All the functions that are called in bpf to extract parameters
  * start with the `extract` prefix.
  */
@@ -614,6 +597,8 @@ static __always_inline u32 exctract__tty(struct task_struct *task)
  */
 static __always_inline void extract__loginuid(struct task_struct *task, u32 *loginuid)
 {
+	*loginuid = -1;
+
 	if(bpf_core_field_exists(task->loginuid))
 	{
 		READ_TASK_FIELD_INTO(loginuid, task, loginuid.val);
@@ -622,7 +607,7 @@ static __always_inline void extract__loginuid(struct task_struct *task, u32 *log
 	{
 		struct task_struct___cos *task_cos = (void *) task;
 
-		READ_TASK_FIELD_INTO(loginuid, task_cos, audit->loginuid.val);
+		READ_TASK_FIELD_INTO(loginuid, task_cos, audit, loginuid.val);
 	}
 }
 
