@@ -1,7 +1,8 @@
 #include "../../event_class/event_class.h"
 #include <capture_macro.h>
 
-#ifdef __NR_write
+#if defined(__NR_write) && defined(__NR_clone3) && defined(__NR_wait4)
+#include <linux/sched.h>
 TEST(Actions, dynamic_snaplen_negative_fd)
 {
 	auto evt_test = get_syscall_event_test(__NR_write, EXIT_EVENT);
@@ -19,9 +20,37 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 	int fd = -1;
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "HTTP/\0";
-	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
-	assert_syscall_state(SYSCALL_FAILURE, "write", write_bytes);
-	int64_t errno_value = -errno;
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_write, fd, (void *)buf, data_len) == -1)
+		{
+			/* SUCCESS because we want the call to fail */
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The write call is successful while it should fail..." << std::endl;
+	}
+
+	int64_t errno_value = -EBADF;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -29,7 +58,7 @@ TEST(Actions, dynamic_snaplen_negative_fd)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -68,12 +97,40 @@ TEST(Actions, dynamic_snaplen_no_socket)
 	 * we could be able to retrieve all `DEFAULT_SNAPLEN * 2` bytes but since the fd is not
 	 * a socket we cannot enable this logic.
 	 */
-	int fd = (2 ^ 16) - 1;
+	int fd = (1 << 16) - 1;
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "HTTP/\0";
-	ssize_t write_bytes = syscall(__NR_write, fd, (void *)buf, data_len);
-	assert_syscall_state(SYSCALL_FAILURE, "write", write_bytes);
-	int64_t errno_value = -errno;
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_write, fd, (void *)buf, data_len) == -1)
+		{
+			/* SUCCESS because we want the call to fail */
+			exit(EXIT_SUCCESS);
+		}
+		else
+		{
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The write call is successful while it should fail..." << std::endl;
+	}
+
+	int64_t errno_value = -EBADF;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -81,7 +138,7 @@ TEST(Actions, dynamic_snaplen_no_socket)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
