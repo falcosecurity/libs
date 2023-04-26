@@ -605,9 +605,12 @@ static __always_inline void extract__loginuid(struct task_struct *task, u32 *log
 	}
 	else
 	{
-		struct task_struct___cos *task_cos = (void *) task;
+		struct task_struct___cos *task_cos = (void *)task;
 
-		READ_TASK_FIELD_INTO(loginuid, task_cos, audit, loginuid.val);
+		if(bpf_core_field_exists(task_cos->audit->loginuid))
+		{
+			READ_TASK_FIELD_INTO(loginuid, task_cos, audit, loginuid.val);
+		}
 	}
 }
 
