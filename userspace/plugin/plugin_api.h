@@ -326,8 +326,17 @@ typedef struct
 	struct
 	{
 		//
-		// Return a string describing the event sources that this
-		// plugin can consume.
+		// Return the list of event types that this plugin can consume
+		// for field extraction.
+		// Required: no
+		//
+		// This function is optional--if NULL or an empty array, then:
+		// - the plugin will receive every event type if the result of
+		//   get_extract_event_sources (either default or custom) contains
+		//   the "syscall" event source, otherwise
+		// - the plugin will only receive events of type
+		//   PPME_PLUGINEVENT_E (code 322).
+		uint16_t* (*get_extract_event_types)(uint32_t* numtypes);
 
 		//
 		// Return a string describing the event sources that this plugin
