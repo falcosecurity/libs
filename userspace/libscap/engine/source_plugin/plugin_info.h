@@ -32,6 +32,6 @@ typedef struct
 
 	ss_instance_t* (*open)(ss_plugin_t* s, const char* params, ss_plugin_rc* rc);
 	void (*close)(ss_plugin_t* s, ss_instance_t* h);
-	ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event **evts);
+	ss_plugin_rc (*next_batch)(ss_plugin_t* s, ss_instance_t* h, uint32_t *nevts, ss_plugin_event ***evts);
 	const char *(*get_last_error)(ss_plugin_t *s);
 } scap_source_plugin;

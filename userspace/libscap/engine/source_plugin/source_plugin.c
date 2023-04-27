@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include "source_plugin.h"
 #include "noop.h"
@@ -31,6 +32,31 @@ limitations under the License.
 static const char * const source_plugin_counters_stats_names[] = {
 	[N_EVTS] = "n_evts",
 };
+
+// We need to check that ppm_evt_hdr and ss_plugin_event are the same struct
+// right at compile time. We do so by thecking for their size and the offset
+// of each of their subfields. This allows us to avoid divergences while at the
+// same time not sharing the same headers.
+#if defined __GNUC__ || __STDC_VERSION__ >= 201112L
+_Static_assert(
+	sizeof(struct ppm_evt_hdr) == sizeof(ss_plugin_event),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync");
+_Static_assert(
+	offsetof(struct ppm_evt_hdr, ts) == offsetof(ss_plugin_event, ts),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync (ts)");
+_Static_assert(
+	offsetof(struct ppm_evt_hdr, tid) == offsetof(ss_plugin_event, tid),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync (tid)");
+_Static_assert(
+	offsetof(struct ppm_evt_hdr, len) == offsetof(ss_plugin_event, len),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync (len)");
+_Static_assert(
+	offsetof(struct ppm_evt_hdr, type) == offsetof(ss_plugin_event, type),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync (type)");
+_Static_assert(
+	offsetof(struct ppm_evt_hdr, nparams) == offsetof(ss_plugin_event, nparams),
+	"structs ppm_evt_hdr and ss_plugin_event are out of sync (nparams)");
+#endif
 
 static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)
 {
@@ -115,8 +141,6 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 {
 	struct source_plugin_engine *handle = engine.m_handle;
 	char *lasterr = engine.m_handle->m_lasterr;
-	ss_plugin_event *plugin_evt;
-	int32_t res = SCAP_FAILURE;
 
 	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 	{
@@ -161,69 +185,41 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	}
 
 	uint32_t pos = handle->m_input_plugin_batch_idx;
+	scap_evt* evt = (scap_evt*) handle->m_input_plugin_batch_evts[pos];
 
-	plugin_evt = &(handle->m_input_plugin_batch_evts[pos]);
-
-	handle->m_input_plugin_batch_idx++;
-
-	res = SCAP_SUCCESS;
-
-	/*
-	 * | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
-	 * Note: we need to use 4B for len_id too because the PPME_PLUGINEVENT_E has
-	 * EF_LARGE_PAYLOAD flag!
-	 */
-	uint32_t reqsize = sizeof(scap_evt) + 4 + 4 + 4 + plugin_evt->datalen;
-	if(handle->m_input_plugin_evt_storage_len < reqsize)
+	// Sanity checks in case a plugin implements a non-syscall event source.
+	// If a plugin has event sourcing capability and has a specific ID, then
+	// it is allowed to proce only plugin events of its own event source.
+	if (handle->m_input_plugin->id != 0)
 	{
-		uint8_t *tmp = (uint8_t*)realloc(handle->m_input_plugin_evt_storage, reqsize);
-		if (tmp)
+		/*
+		* | scap_evt | len_id (4B) | len_pl (4B) | id | payload |
+		* Note: we need to use 4B for len_id too because the
+		* PPME_PLUGINEVENT_E has EF_LARGE_PAYLOAD flag!
+		*/
+		if (evt->type != PPME_PLUGINEVENT_E
+			|| evt->tid != (uint64_t) -1
+			|| evt->nparams != 2)
 		{
-			handle->m_input_plugin_evt_storage = tmp;
-			handle->m_input_plugin_evt_storage_len = reqsize;
-		}
-		else
-		{
-			free(handle->m_input_plugin_evt_storage);
-			snprintf(lasterr, SCAP_LASTERR_SIZE, "%s", "failed to alloc space for plugin storage");
-			ASSERT(false);
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin: plugin='%s'", handle->m_input_plugin->name);
 			return SCAP_FAILURE;
 		}
+
+		// forcely setting plugin ID with the one of the open plugin
+		uint32_t* plugin_id = (uint32_t*)((uint8_t*) evt + sizeof(scap_evt) + 4 + 4);
+		*plugin_id = handle->m_input_plugin->id;
 	}
-
-	scap_evt* evt = (scap_evt*)handle->m_input_plugin_evt_storage;
-	evt->len = reqsize;
-	evt->tid = -1;
-	evt->type = PPME_PLUGINEVENT_E;
-	evt->nparams = 2;
-
-	uint8_t* buf = handle->m_input_plugin_evt_storage + sizeof(scap_evt);
-
-	const uint32_t plugin_id_size = 4;
-	memcpy(buf, &plugin_id_size, sizeof(plugin_id_size));
-	buf += sizeof(plugin_id_size);
-
-	uint32_t datalen = plugin_evt->datalen;
-	memcpy(buf, &(datalen), sizeof(datalen));
-	buf += sizeof(datalen);
-
-	memcpy(buf, &(handle->m_input_plugin->id), sizeof(handle->m_input_plugin->id));
-	buf += sizeof(handle->m_input_plugin->id);
-
-	memcpy(buf, plugin_evt->data, plugin_evt->datalen);
-
-	if(plugin_evt->ts != UINT64_MAX)
-	{
-		evt->ts = plugin_evt->ts;
-	}
-	else
+	
+	// automatically set timestamp if none was specified
+	if(evt->ts == UINT64_MAX)
 	{
 		evt->ts = get_timestamp_ns();
 	}
 
-	handle->m_nevts++;
 	*pevent = evt;
-	return res;
+	handle->m_nevts++;
+	handle->m_input_plugin_batch_idx++;
+	return SCAP_SUCCESS;
 }
 
 static int32_t get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)

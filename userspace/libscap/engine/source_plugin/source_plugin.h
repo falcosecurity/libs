@@ -31,15 +31,13 @@ struct source_plugin_engine
 	uint32_t m_nevts;
 
 	scap_source_plugin* m_input_plugin;
-	uint8_t* m_input_plugin_evt_storage;
-	uint32_t m_input_plugin_evt_storage_len;
 
 	// The number of items held in batch_evts
 	uint32_t m_input_plugin_batch_nevts;
 
 	// A set of events returned from next_batch. The array is
 	// allocated and must be free()d when done.
-	ss_plugin_event* m_input_plugin_batch_evts;
+	ss_plugin_event** m_input_plugin_batch_evts;
 
 	// The current position into the above arrays (0-indexed),
 	// reflecting how many of the above items have been returned
