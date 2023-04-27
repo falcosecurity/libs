@@ -1,0 +1,216 @@
+/*
+Copyright (C) 2023 The Falco Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+*/
+
+#include <gtest/gtest.h>
+#include <plugin.h>
+
+#include "sinsp_with_test_input.h"
+#include "test_utils.h"
+#include "plugins/test_plugins.h"
+
+static std::shared_ptr<sinsp_plugin> register_plugin(
+		sinsp* i,
+		std::function<void(plugin_api&)> constructor,
+		const std::string& initcfg = "")
+{
+	std::string err;
+	plugin_api api;
+	constructor(api);
+	auto pl = i->register_plugin(&api);
+	if (!pl->init(initcfg, err))
+	{
+		throw sinsp_exception(err);
+	}
+	return pl;
+}
+
+static void add_plugin_filterchecks(
+		sinsp* i,
+		std::shared_ptr<sinsp_plugin> p,
+		const std::string& src,
+		filter_check_list& fl = g_filterlist)
+{
+	if (p->caps() & CAP_EXTRACTION
+		&& sinsp_plugin::is_source_compatible(p->extract_event_sources(), src))
+	{
+		fl.add_filter_check(i->new_generic_filtercheck());
+		fl.add_filter_check(sinsp_plugin::new_filtercheck(p));
+	}
+}
+
+// scenario: a plugin with field extraction capability compatible with the
+// "syscall" event source should be able to extract filter values from
+// regular syscall events produced by any scap engine.
+TEST_F(sinsp_with_test_input, plugin_syscall_extract)
+{
+	size_t syscall_source_idx = 0;
+	std::string syscall_source_name = sinsp_syscall_event_source_name;
+
+	filter_check_list pl_flist;
+	register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
+	auto pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
+	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
+	add_default_init_thread();
+	open_inspector();
+
+	// should extract legit values for non-ignored event codes
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
+	ASSERT_EQ(get_field_as_string(evt, "sample.is_open", pl_flist), "1");
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
+	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_INOTIFY_INIT1_X);
+	ASSERT_EQ(get_field_as_string(evt, "sample.is_open", pl_flist), "0");
+
+	// should extract NULL for ignored event codes
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
+	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_BY_HANDLE_AT_X);
+	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
+
+	// should extract NULL for unknown event sources
+	const char data[2048] = "hello world";
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 1, scap_const_sized_buffer{&data, strlen(data) + 1});
+	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
+	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
+	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
+	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
+
+	// should extract NULL for non-compatible event sources
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 999, scap_const_sized_buffer{&data, strlen(data) + 1});
+	ASSERT_EQ(evt->get_source_idx(), 1);
+	ASSERT_EQ(std::string(evt->get_source_name()), std::string("sample"));
+	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
+	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
+}
+
+// scenario: an event sourcing plugin should produce events of "syscall"
+// event source and we're should be able to extract filter values implemented
+// by both libsinsp and another plugin with field extraction capability
+TEST_F(sinsp_with_test_input, plugin_syscall_source)
+{
+	size_t syscall_source_idx = 0;
+	std::string syscall_source_name = sinsp_syscall_event_source_name;
+
+	auto src_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_source);
+	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
+	add_plugin_filterchecks(&m_inspector, ext_pl, sinsp_syscall_event_source_name);
+
+	// we will not use the test scap engine here, but open the src plugin instead
+	// note: we configure the plugin to just emit 1 event through its open params
+	m_inspector.open_plugin(src_pl->name(), "1");
+
+	auto evt = next_event();
+	ASSERT_NE(evt, nullptr);
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
+	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
+	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
+	ASSERT_EQ(get_field_as_string(evt, "sample.is_open"), "1");
+	ASSERT_EQ(next_event(), nullptr); // EOF is expected
+}
+
+// scenario: a plugin with field extraction capability compatible with the
+// event source of another plugin should extract values from its events
+TEST_F(sinsp_with_test_input, plugin_custom_source)
+{
+	auto src_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
+	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_plugin_extract);
+	add_plugin_filterchecks(&m_inspector, ext_pl, src_pl->event_source());
+
+	// we will not use the test scap engine here, but open the src plugin instead
+	// note: we configure the plugin to just emit 1 event through its open params
+	m_inspector.open_plugin(src_pl->name(), "1");
+
+	auto evt = next_event();
+	ASSERT_NE(evt, nullptr);
+	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
+	ASSERT_EQ(evt->get_source_idx(), 1);
+	ASSERT_EQ(std::string(evt->get_source_name()), src_pl->event_source());
+	ASSERT_FALSE(field_exists(evt, "fd.name"));
+	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname"), src_pl->name());
+	ASSERT_EQ(get_field_as_string(evt, "sample.hello"), "hello world");
+	ASSERT_EQ(next_event(), nullptr); // EOF is expected
+}
+
+TEST(sinsp_plugin, plugin_extract_compatibility)
+{
+	sinsp i;
+	plugin_api api;
+	get_plugin_api_sample_plugin_extract(api);
+
+	// compatible event sources specified, event types not specified
+	api.get_name = [](){ return "p1"; };
+	auto p = i.register_plugin(&api);
+	ASSERT_EQ(p->extract_event_sources().size(), 1);
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_EQ(p->extract_event_codes().size(), 1);
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
+	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
+
+	// compatible event sources specified, event types specified
+	api.get_name = [](){ return "p2"; };
+	api.get_extract_event_types = [](uint32_t* n) {
+		static uint16_t ret[] = { PPME_SYSCALL_OPEN_E };
+    	*n = sizeof(ret) / sizeof(uint16_t);
+    	return &ret[0];
+	};
+	p = i.register_plugin(&api);
+	ASSERT_EQ(p->extract_event_sources().size(), 1);
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_EQ(p->extract_event_codes().size(), 1);
+	ASSERT_FALSE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
+
+	// compatible event sources not specified, event types not specified
+	api.get_name = [](){ return "p3"; };
+	api.get_extract_event_sources = NULL;
+	api.get_extract_event_types = NULL;
+	p = i.register_plugin(&api);
+	ASSERT_EQ(p->extract_event_sources().size(), 0);
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
+
+	// compatible event sources not specified, event types not specified,
+	// event sourcing capability is detected with specific event source
+	plugin_api src_api;
+	get_plugin_api_sample_plugin_source(src_api);
+	api.get_name = [](){ return "p4"; };
+	api.get_id = src_api.get_id;
+	api.get_event_source = src_api.get_event_source;
+	api.open = src_api.open;
+	api.close = src_api.close;
+	api.next_batch = src_api.next_batch;
+	p = i.register_plugin(&api);
+	ASSERT_EQ(p->extract_event_sources().size(), 1);
+	ASSERT_TRUE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), "sample"));
+	ASSERT_FALSE(sinsp_plugin::is_source_compatible(p->extract_event_sources(), sinsp_syscall_event_source_name));
+	ASSERT_EQ(p->extract_event_codes().size(), 1);
+	ASSERT_TRUE(p->extract_event_codes().contains(PPME_PLUGINEVENT_E));
+	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
+}

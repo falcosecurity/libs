@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2021 The Falco Authors.
+# Copyright (C) 2023 The Falco Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	external_processor.ut.cpp
 	token_bucket.ut.cpp
 	ppm_api_version.ut.cpp
+	plugins.ut.cpp
 	plugin_manager.ut.cpp
 	string_visitor.ut.cpp
 	filter_escaping.ut.cpp
