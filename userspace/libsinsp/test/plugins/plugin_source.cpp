@@ -23,6 +23,8 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+static constexpr const char* s_evt_data = "hello world";
+
 typedef struct plugin_state
 {
     std::string lasterr;
@@ -47,7 +49,7 @@ static const char* plugin_get_version()
 
 static const char* plugin_get_name()
 {
-    return "sample_syscall_source";
+    return "sample_plugin_source";
 }
 
 static const char* plugin_get_description()
@@ -58,6 +60,16 @@ static const char* plugin_get_description()
 static const char* plugin_get_contact()
 {
     return "some contact";
+}
+
+static uint32_t plugin_get_id()
+{
+	return 999;
+}
+
+static const char* plugin_get_event_source()
+{
+	return "sample";
 }
 
 static const char* plugin_get_last_error(ss_plugin_t* s)
@@ -108,48 +120,32 @@ static ss_plugin_rc plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t
 
     *nevts = 1;
     *evts = &istate->evt;
-    istate->evt->type = PPME_SYSCALL_OPEN_X;
-    istate->evt->tid = 1;
+    istate->evt->type = PPME_PLUGINEVENT_E;
+    istate->evt->tid = -1;
     istate->evt->ts = UINT64_MAX;
     istate->evt->len = sizeof(ss_plugin_event);
-    istate->evt->nparams = 6;
+    istate->evt->nparams = 2;
 
     uint8_t* parambuf = &istate->evt_buf[0] + sizeof(ss_plugin_event);
 
     // lenghts
-    *((uint16_t*) parambuf) = sizeof(uint64_t);
-    parambuf += sizeof(uint16_t);
-    *((uint16_t*) parambuf) = strlen("/tmp/the_file") + 1;
-    parambuf += sizeof(uint16_t);
-    *((uint16_t*) parambuf) = sizeof(uint32_t);
-    parambuf += sizeof(uint16_t);
-    *((uint16_t*) parambuf) = sizeof(uint32_t);
-    parambuf += sizeof(uint16_t);
-    *((uint16_t*) parambuf) = sizeof(uint32_t);
-    parambuf += sizeof(uint16_t);
-    *((uint16_t*) parambuf) = sizeof(uint64_t);
-    parambuf += sizeof(uint16_t);
+    *((uint32_t*) parambuf) = sizeof(uint32_t);
+    parambuf += sizeof(uint32_t);
+    *((uint32_t*) parambuf) = strlen(s_evt_data) + 1;
+    parambuf += sizeof(uint32_t);
 
     // params
-    *((uint64_t*) parambuf) = 3;
-    parambuf += sizeof(uint64_t);
-    strcpy((char*) parambuf, "/tmp/the_file");
-    parambuf += strlen("/tmp/the_file") + 1;
-    *((uint32_t*) parambuf) = ((1 << 0) | (1 << 1));
+    *((uint32_t*) parambuf) = plugin_get_id();
     parambuf += sizeof(uint32_t);
-    *((uint32_t*) parambuf) = 0;
-    parambuf += sizeof(uint32_t);
-    *((uint32_t*) parambuf) = 5;
-    parambuf += sizeof(uint32_t);
-    *((uint64_t*) parambuf) = 123;
-    parambuf += sizeof(uint64_t);
+    strcpy((char*) parambuf, s_evt_data);
+    parambuf += strlen(s_evt_data) + 1;
 
     istate->evt->len += parambuf - (&istate->evt_buf[0] + sizeof(ss_plugin_event));
     istate->count--;
     return SS_PLUGIN_SUCCESS;
 }
 
-void get_plugin_api_sample_syscall_source(plugin_api& out)
+void get_plugin_api_sample_plugin_source(plugin_api& out)
 {
     memset(&out, 0, sizeof(plugin_api));
 	out.get_required_api_version = plugin_get_required_api_version;
@@ -157,6 +153,8 @@ void get_plugin_api_sample_syscall_source(plugin_api& out)
 	out.get_description = plugin_get_description;
 	out.get_contact = plugin_get_contact;
 	out.get_name = plugin_get_name;
+    out.get_id = plugin_get_id;
+    out.get_event_source = plugin_get_event_source;
 	out.get_last_error = plugin_get_last_error;
 	out.init = plugin_init;
 	out.destroy = plugin_destroy;
