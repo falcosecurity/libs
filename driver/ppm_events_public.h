@@ -614,6 +614,7 @@ or GPL2.txt for full copies of the license.
  */
 #define PPM_EXE_WRITABLE		(1 << 0)
 #define PPM_EXE_UPPER_LAYER 	(1 << 1)
+#define PPM_EXE_FROM_MEMFD  	(1 << 2)
   
 /*
  * Execveat flags

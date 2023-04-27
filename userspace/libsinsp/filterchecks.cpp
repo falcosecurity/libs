@@ -1908,6 +1908,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "proc.ppid.ts", "Parent Process start ts", "Start of parent process as epoch timestamp in nanoseconds."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_writable", "Process Executable Is Writable", "'true' if this process' executable file is writable by the same user that spawned the process."},
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_upper_layer", "Process Executable Is In Upper Layer", "'true' if this process' executable file is in upper layer in overlayfs. This field value can only be trusted if the underlying kernel version is greater or equal than 3.18.0, since overlayfs was introduced at that time."},
+	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_exe_from_memfd", "Process Executable Is Stored In Memfd", "'true' if this process' executable file is stored in pathless memory referenced by a memfd. This field value can only be trusted if the underlying kernel version is greater or equal than 3.17.0, since memfds were introduced at that time."},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.exe_ino", "Inode number of executable file on disk", "The inode number of the executable file on disk. Can be correlated with fd.ino."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.ctime", "Last status change time (ctime) of executable file", "Last status change time of executable file (inode->ctime) as epoch timestamp in nanoseconds. Time is changed by writing or by setting inode information e.g. owner, group, link count, mode etc."},
 	{PT_ABSTIME, EPF_NONE, PF_DEC, "proc.exe_ino.mtime", "Last modification time (mtime) of executable file", "Last modification time of executable file (inode->mtime) as epoch timestamp in nanoseconds. Time is changed by file modifications, e.g. by mknod, truncate, utime, write of more than zero bytes etc. For tracking changes in owner, group, link count or mode, use proc.exe_ino.ctime instead."},
@@ -3077,6 +3078,9 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_IS_EXE_UPPER_LAYER:
 		m_tbool = tinfo->m_exe_upper_layer;
+		RETURN_EXTRACT_VAR(m_tbool);
+	case TYPE_IS_EXE_FROM_MEMFD:
+		m_tbool = tinfo->m_exe_from_memfd;
 		RETURN_EXTRACT_VAR(m_tbool);
 	case TYPE_CAP_PERMITTED:
 		m_tstr = sinsp_utils::caps_to_string(tinfo->m_cap_permitted);

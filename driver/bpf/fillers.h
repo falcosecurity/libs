@@ -2054,8 +2054,67 @@ static __always_inline bool bpf_kgid_has_mapping(struct user_namespace *targ, kg
 
 static __always_inline struct file *get_exe_file(struct task_struct *task)
 {
-	struct mm_struct *mm = _READ(task->mm);
-	return _READ(mm->exe_file);
+	struct mm_struct *mm = NULL;
+	if (task && (mm = _READ(task->mm))) {
+		return _READ(mm->exe_file);
+	}
+	return NULL;
+}
+
+static __always_inline struct inode *get_file_inode(struct file *file)
+{
+	if (file) {
+		return _READ(file->f_inode);
+	}
+	return NULL;
+}
+
+static __always_inline bool get_exe_from_memfd(struct file *file)
+{
+	struct dentry *dentry = _READ(file->f_path.dentry);
+	if(!dentry)
+	{
+		bpf_printk("get_exe_from_memfd(): failed to get dentry");
+		return false;
+	}
+
+	const unsigned char *name = _READ(dentry->d_name.name);
+	if(!name)
+	{
+		bpf_printk("get_exe_from_memfd(): failed to get name");
+		return false;
+	}
+
+	struct dentry *parent = _READ(dentry->d_parent);
+	if(!parent)
+	{
+		bpf_printk("get_exe_from_memfd(): failed to get parent");
+		return false;
+	}
+
+	if(parent != dentry)
+	{
+		return false;
+	}
+
+	const char expected_prefix[] = "memfd:";
+	char memfd_name[sizeof(expected_prefix)] = {'\0'};
+
+	if(bpf_probe_read_str(memfd_name, sizeof(memfd_name), name) != sizeof(expected_prefix))
+	{
+		return false;
+	}
+
+#pragma unroll
+	for(int i = 0; i < sizeof(expected_prefix); i++)
+	{
+		if(expected_prefix[i] != memfd_name[i])
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 /* `timespec64` was introduced in kernels >= 3.17 so it is ok here */
@@ -2690,7 +2749,7 @@ FILLER(execve_family_flags, true)
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct file *exe_file = get_exe_file(task);
-	struct inode *inode = _READ(exe_file->f_inode);
+	struct inode *inode = get_file_inode(exe_file);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
 
@@ -2703,6 +2762,7 @@ FILLER(execve_family_flags, true)
 	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
+
 	uint32_t flags = 0;
 	kuid_t euid;
 
@@ -2727,6 +2787,11 @@ FILLER(execve_family_flags, true)
 		}
 
 		// write all additional flags for execve family here...
+	}
+
+	if(exe_file && get_exe_from_memfd(exe_file))
+	{
+		flags |= PPM_EXE_FROM_MEMFD;
 	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */
@@ -6295,7 +6360,7 @@ FILLER(sched_prog_exec_4, false)
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct file *exe_file = get_exe_file(task);
-	struct inode *inode = _READ(exe_file->f_inode);
+	struct inode *inode = get_file_inode(exe_file);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
 
@@ -6332,6 +6397,11 @@ FILLER(sched_prog_exec_4, false)
 		}
 
 		// write all additional flags for execve family here...
+	}
+
+	if(exe_file && get_exe_from_memfd(exe_file))
+	{
+		flags |= PPM_EXE_FROM_MEMFD;
 	}
 
 	/* Parameter 20: flags (type: PT_FLAGS32) */

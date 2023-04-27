@@ -257,6 +257,7 @@ typedef struct scap_threadinfo
 	char exepath[SCAP_MAX_PATH_SIZE+1]; ///< full executable path
 	bool exe_writable; ///< true if the original executable is writable by the same user that spawned it.
 	bool exe_upper_layer; //< True if the original executable belongs to upper layer in overlayfs
+	bool exe_from_memfd;  //< True if the original executable is stored in pathless memory referenced by a memfd
 	char args[SCAP_MAX_ARGS_SIZE+1]; ///< Command line arguments (e.g. "-d1")
 	uint16_t args_len; ///< Command line arguments length
 	char env[SCAP_MAX_ENV_SIZE+1]; ///< Environment

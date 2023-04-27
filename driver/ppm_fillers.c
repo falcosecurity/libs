@@ -152,6 +152,37 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 }
 #endif /* UDIG */
 
+
+static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
+	if(!(exe_file &&
+		 exe_file->f_path.dentry &&
+		 exe_file->f_path.dentry == exe_file->f_path.dentry->d_parent))
+	{
+		return 0;
+	}
+
+	int i = 0;
+	const char expected_prefix[] = "memfd:";
+	const char *fname = exe_file->f_path.dentry->d_name.name;
+
+	for(i = 0; fname && i < sizeof(expected_prefix); i++)
+	{
+		if(expected_prefix[i] != fname[i])
+		{
+			break;
+		}
+		else if(expected_prefix[i] == ':')
+		{
+			return PPM_EXE_FROM_MEMFD;
+		}
+	}
+#endif
+	return 0;
+}
+
+
 int f_sys_generic(struct event_filler_arguments *args)
 {
 	int res;
@@ -1426,6 +1457,9 @@ cgroups_error:
 
 				/* Support exe_upper_layer */
 				exe_upper_layer = ppm_is_upper_layer(exe_file);
+
+				/* Support exe_from_memfd */
+				flags |= get_exe_from_memfd(exe_file);
 
 				/* Support inode number */
 				i_ino = file_inode(exe_file)->i_ino;
@@ -7471,6 +7505,9 @@ cgroups_error:
 
 			/* Support exe_upper_layer */
 			exe_upper_layer = ppm_is_upper_layer(exe_file);
+
+			/* Support exe_from_memfd */
+			flags |= get_exe_from_memfd(exe_file);
 
 			/* Support inode number */
 			i_ino = file_inode(exe_file)->i_ino;
