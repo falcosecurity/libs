@@ -20,3 +20,5 @@ limitations under the License.
 
 void get_plugin_api_sample_syscall_source(plugin_api& out);
 void get_plugin_api_sample_syscall_extract(plugin_api& out);
+void get_plugin_api_sample_plugin_source(plugin_api& out);
+void get_plugin_api_sample_plugin_extract(plugin_api& out);
