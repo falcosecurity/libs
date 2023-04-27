@@ -2143,25 +2143,25 @@ static __always_inline bool get_exe_writable(struct inode *inode, struct cred *c
 	return false;
 }
 
-static __always_inline bool get_exe_upper_layer(struct inode *inode)
+static __always_inline bool get_exe_upper_layer(struct inode *inode, struct super_block *sb)
 {
-	struct super_block *sb = _READ(inode->i_sb);
 	unsigned long sb_magic = _READ(sb->s_magic);
 	if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 	{
 		struct dentry *upper_dentry = NULL;
 		char *vfs_inode = (char *)inode;
-		
+
 		// Pointer arithmetics due to unexported ovl_inode struct
 		// warning: this works if and only if the dentry pointer is placed right after the inode struct
-		bpf_probe_read_kernel(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
+		//bpf_probe_read(&upper_dentry, sizeof(upper_dentry), vfs_inode + sizeof(struct inode));
+		struct dentry *tmp = (struct dentry *)(vfs_inode + sizeof(struct inode));
+		upper_dentry = _READ(tmp);
 
 		if(upper_dentry)
 		{
 			return true;
 		}
 	}
-
 	return false;
 }
 
@@ -2669,13 +2669,24 @@ FILLER(execve_family_flags, true)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct inode *inode = get_exe_inode(task);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
+	struct file *exe_file = (struct file*)_READ(mm->exe_file);
+	 
+	struct path f_path = (struct path)_READ(exe_file->f_path);
+	struct dentry* dentry = f_path.dentry;
+	struct super_block* sb = _READ(dentry->d_sb);
+#else
+	struct super_block *sb = _READ(inode->i_sb);
+#endif
+
 	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
 	uint32_t flags = 0;
 	kuid_t euid;
 
-	if(inode)
+	if(sb && inode)
 	{
 		/*
 		 * exe_writable
@@ -2689,7 +2700,7 @@ FILLER(execve_family_flags, true)
 		/*
 		 * exe_upper_layer
 		 */
-		exe_upper_layer = get_exe_upper_layer(inode);
+		exe_upper_layer = get_exe_upper_layer(inode,sb);
 		if (exe_upper_layer)
 		{
 			flags |= PPM_EXE_UPPER_LAYER;
@@ -6241,13 +6252,24 @@ FILLER(sched_prog_exec_4, false)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct inode *inode = get_exe_inode(task);
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
+	struct file *exe_file = (struct file*)_READ(mm->exe_file);
+	 
+	struct path f_path = (struct path)_READ(exe_file->f_path);
+	struct dentry* dentry = f_path.dentry;
+	struct super_block* sb = _READ(dentry->d_sb);
+#else
+	struct super_block *sb = _READ(inode->i_sb);
+#endif
+
 	/* `exe_writable` and `exe_upper_layer` flag logic */
 	bool exe_writable = false;
 	bool exe_upper_layer = false;
 	uint32_t flags = 0;
 	kuid_t euid;
 
-	if(inode)
+	if(sb && inode)
 	{
 		/*
 		 * exe_writable
@@ -6261,7 +6283,7 @@ FILLER(sched_prog_exec_4, false)
 		/*
 		 * exe_upper_layer
 		 */
-		exe_upper_layer = get_exe_upper_layer(inode);
+		exe_upper_layer = get_exe_upper_layer(inode,sb);
 		if (exe_upper_layer)
 		{
 			flags |= PPM_EXE_UPPER_LAYER;

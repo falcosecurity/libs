@@ -1342,13 +1342,28 @@ cgroups_error:
 				{
 					struct super_block *sb = NULL;
 					unsigned long sb_magic = 0;
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+					sb = exe_file->f_path.dentry->d_sb;
+#else
 					sb = exe_file->f_inode->i_sb;
+#endif
 					if(sb)
 					{
 						sb_magic = sb->s_magic;
 						if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 						{
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+							// Pointer arithmetics due to unexported __upperdentry
+							//
+							// warning: this works if and only if the dentry pointer
+							// is placed on top of ovl_entry (d_fsdata)
+							unsigned long **oe = (unsigned long **)(exe_file->f_path.dentry->d_fsdata);
+
+							if(*oe)
+							{
+								exe_upper_layer = true;
+							}
+#else
 							struct dentry **upper_dentry = NULL;
 
 							// Pointer arithmetics due to unexported ovl_inode struct
@@ -1359,6 +1374,7 @@ cgroups_error:
 							{
 								exe_upper_layer = true;
 							}
+#endif
 						}
 					}
 				}
@@ -7581,22 +7597,39 @@ cgroups_error:
 				struct super_block *sb = NULL;
 				unsigned long sb_magic = 0;
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+				sb = exe_file->f_path.dentry->d_sb;
+#else
 				sb = exe_file->f_inode->i_sb;
+#endif
 				if(sb)
 				{
 					sb_magic = sb->s_magic;
 					if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 					{
-						struct dentry **upper_dentry = NULL;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+							// Pointer arithmetics due to unexported __upperdentry
+							//
+							// warning: this works if and only if the dentry pointer
+							// is placed on top of ovl_entry (d_fsdata)
+							unsigned long **oe = (unsigned long **)(exe_file->f_path.dentry->d_fsdata);
 
-						// Pointer arithmetics due to unexported ovl_inode struct
-						// warning: this works if and only if the dentry pointer is placed right after the inode struct
-						upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+							if(*oe)
+							{
+								exe_upper_layer = true;
+							}
+#else
+							struct dentry **upper_dentry = NULL;
 
-						if(*upper_dentry)
-						{
-							exe_upper_layer = true;
-						}
+							// Pointer arithmetics due to unexported ovl_inode struct
+							// warning: this works if and only if the dentry pointer is placed right after the inode struct
+							upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+
+							if(*upper_dentry)
+							{
+								exe_upper_layer = true;
+							}
+#endif
 					}
 				}
 			}
