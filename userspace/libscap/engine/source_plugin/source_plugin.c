@@ -201,13 +201,21 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 			|| evt->tid != (uint64_t) -1
 			|| evt->nparams != 2)
 		{
-			snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin: plugin='%s'", handle->m_input_plugin->name);
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin: '%s'", handle->m_input_plugin->name);
 			return SCAP_FAILURE;
 		}
 
 		// forcely setting plugin ID with the one of the open plugin
 		uint32_t* plugin_id = (uint32_t*)((uint8_t*) evt + sizeof(scap_evt) + 4 + 4);
-		*plugin_id = handle->m_input_plugin->id;
+		if (*plugin_id == 0)
+		{
+			*plugin_id = handle->m_input_plugin->id;
+		}
+		else if (*plugin_id != handle->m_input_plugin->id)
+		{
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "unexpected plugin ID in plugin event: plugin='%s', expected_id=%d, actual_id=%d", handle->m_input_plugin->name, handle->m_input_plugin->id, *plugin_id);
+			return SCAP_FAILURE;
+		}
 	}
 	
 	// automatically set timestamp if none was specified
