@@ -260,9 +260,9 @@ protected:
 		return ret;
 	}
 
-	bool field_exists(sinsp_evt *evt, const std::string& field_name)
+	bool field_exists(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
 	{
-		std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname(field_name, &m_inspector, false));
+		std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
 		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
 		if (parse_result <= 0) {
 			throw sinsp_exception("The field " + field_name + " is not a valid field.");
@@ -272,9 +272,9 @@ protected:
 		return chk->extract(evt, values);
 	}
 
-	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name)
+	std::string get_field_as_string(sinsp_evt *evt, const std::string& field_name, filter_check_list& flist = g_filterlist)
 	{
-		std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname(field_name, &m_inspector, false));
+		std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
 		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
 		if (parse_result <= 0) {
 			throw sinsp_exception("The field " + field_name + " is not a valid field.");
