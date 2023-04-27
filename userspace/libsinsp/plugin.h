@@ -24,6 +24,7 @@ limitations under the License.
 #include <engine/source_plugin/source_plugin_public.h>
 #include "event.h"
 #include "version.h"
+#include "events/sinsp_events.h"
 #include "../plugin/plugin_loader.h"
 
 // todo(jasondellaluce: remove this forward declaration)
@@ -86,9 +87,19 @@ public:
 
 	sinsp_plugin(plugin_handle_t* handle):
 		m_caps(CAP_NONE),
-		m_id(-1),
+		m_name(),
+		m_description(),
+		m_contact(),
+		m_plugin_version(),
+		m_required_api_version(),
+		m_id(0),
+		m_event_source(),
 		m_state(nullptr),
-		m_handle(handle) { }
+		m_handle(handle),
+		m_scap_source_plugin(),
+		m_fields(),
+		m_extract_event_sources(),
+		m_extract_event_codes() { }
 	virtual ~sinsp_plugin();
 	sinsp_plugin(sinsp_plugin&&) = default;
 	sinsp_plugin& operator = (sinsp_plugin&&) = default;
@@ -153,12 +164,17 @@ public:
 		return m_extract_event_sources;
 	}
 
+	inline const libsinsp::events::set<ppm_event_code>& extract_event_codes() const
+	{
+		return m_extract_event_codes;
+	}
+
 	inline const std::vector<filtercheck_field_info>& fields() const
 	{
 		return m_fields;
 	}
 
-	bool extract_fields(ss_plugin_event& evt, uint32_t num_fields, ss_plugin_extract_field *fields) const;
+	bool extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const;
 
 // note(jasondellaluce): we set these as protected in order to allow unit
 // testing mocking these values, without having to declare their accessors
@@ -200,6 +216,7 @@ private:
 	/** Field Extraction **/
 	std::vector<filtercheck_field_info> m_fields;
 	std::unordered_set<std::string> m_extract_event_sources;
+	libsinsp::events::set<ppm_event_code> m_extract_event_codes;
 
 	void validate_init_config(std::string& config);
 	bool resolve_dylib_symbols(std::string& errstr);

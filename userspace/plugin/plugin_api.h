@@ -332,10 +332,9 @@ typedef struct
 		//
 		// This function is optional--if NULL or an empty array, then:
 		// - the plugin will receive every event type if the result of
-		//   get_extract_event_sources (either default or custom) contains
-		//   the "syscall" event source, otherwise
-		// - the plugin will only receive events of type
-		//   PPME_PLUGINEVENT_E (code 322).
+		//   get_extract_event_sources (either default or custom) is compatible
+		//   with the "syscall" event source, otherwise
+		// - the plugin will only receive events of plugin type (code 322).
 		uint16_t* (*get_extract_event_types)(uint32_t* numtypes);
 
 		//
@@ -347,7 +346,7 @@ typedef struct
 		//   function, or "syscall" for indicating support to non-plugin events.
 		// This function is optional--if NULL or an empty array, then if plugin has sourcing capability,
 		// and implements a specific event source, it will only receive events matching its event source,
-		// otherwise it will receive every event for extraction.
+		// otherwise it will receive events from all event sources.
 		//
 		const char* (*get_extract_event_sources)();
 

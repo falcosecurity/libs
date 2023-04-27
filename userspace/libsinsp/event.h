@@ -605,6 +605,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp;
 	friend class sinsp_parser;
 	friend class sinsp_threadinfo;
+	friend class sinsp_plugin;
 	friend class sinsp_analyzer;
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
