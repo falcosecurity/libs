@@ -38,6 +38,10 @@ limitations under the License.
 
 using namespace std;
 
+static constexpr const char* s_not_init_err = "plugin capability used before init";
+
+static constexpr const char* s_init_twice_err = "plugin has been initialized twice";
+
 // Used below--set a std::string from the provided allocated charbuf
 static std::string str_from_alloc_charbuf(const char* charbuf)
 {
@@ -106,6 +110,12 @@ sinsp_plugin::~sinsp_plugin()
 
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 {
+	if (m_inited)
+	{
+		errstr = std::string(s_init_twice_err) + ": " + m_name;
+		return false;
+	}
+
 	if (!m_handle->api.init)
 	{
 		errstr = string("init api symbol not found");
@@ -131,11 +141,13 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 		return false;
 	}
 
+	m_inited = true;
 	return true;
 }
 
 void sinsp_plugin::destroy()
 {
+	m_inited = false;
 	if(m_state && m_handle->api.destroy)
 	{
 		m_handle->api.destroy(m_state);
@@ -145,8 +157,12 @@ void sinsp_plugin::destroy()
 
 std::string sinsp_plugin::get_last_error() const
 {
-	std::string ret;
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
 
+	std::string ret;
 	if(m_state)
 	{
 		ret = str_from_alloc_charbuf(m_handle->api.get_last_error(m_state));
@@ -528,6 +544,11 @@ void sinsp_plugin::validate_init_config_json_schema(std::string& config, std::st
 
 scap_source_plugin& sinsp_plugin::as_scap_source()
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	if (!(caps() & CAP_SOURCING))
 	{
 		throw sinsp_exception("Can't create scap_source_plugin from a plugin without CAP_SOURCING capability.");
@@ -545,6 +566,11 @@ scap_source_plugin& sinsp_plugin::as_scap_source()
 
 std::string sinsp_plugin::get_progress(uint32_t &progress_pct) const
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	std::string ret;
 	progress_pct = 0;
 
@@ -563,6 +589,11 @@ std::string sinsp_plugin::get_progress(uint32_t &progress_pct) const
 
 std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	string ret = "";
 	auto datalen = evt->get_param(1)->m_len;
 	auto data = (const uint8_t *) evt->get_param(1)->m_val;
@@ -599,6 +630,11 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 
 std::vector<sinsp_plugin::open_param> sinsp_plugin::list_open_params() const
 {
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
 	std::vector<sinsp_plugin::open_param> list;
 	if(m_state && m_handle->api.list_open_params)
 	{
@@ -645,9 +681,9 @@ sinsp_filter_check* sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> 
 
 bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
 {
-	if(!m_state)
+	if (!m_inited)
 	{
-		return false;
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
 
 	ss_plugin_event_input input;

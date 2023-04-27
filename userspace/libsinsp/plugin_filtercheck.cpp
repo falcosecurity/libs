@@ -123,7 +123,6 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 	// reject the event if it comes from an unknown event source
 	if (evt->get_source_idx() == sinsp_no_event_source_idx)
 	{
-		ASSERT(false);
 		return false;
 	}
 

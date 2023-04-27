@@ -94,6 +94,7 @@ public:
 		m_required_api_version(),
 		m_id(0),
 		m_event_source(),
+		m_inited(false),
 		m_state(nullptr),
 		m_handle(handle),
 		m_scap_source_plugin(),
@@ -192,6 +193,7 @@ protected:
 	std::string m_event_source;
 
 private:
+	bool m_inited;
 	ss_plugin_t* m_state;
 	plugin_handle_t* m_handle;
 	//
