@@ -57,26 +57,66 @@ typedef enum ss_plugin_schema_type
 } ss_plugin_schema_type;
 
 // This struct represents an event returned by the plugin, and is used
-// below in next_batch().
-// - evtnum: incremented for each event returned. Might not be contiguous.
-// - data: pointer to a memory buffer pointer. The plugin will set it
-//   to point to the memory containing the next event.
-// - datalen: pointer to a 32bit integer. The plugin will set it the size of the
-//   buffer pointed by data.
-// - ts: the event timestamp, in nanoseconds since the epoch.
-//   Can be (uint64_t)-1, in which case the engine will automatically
-//   fill the event time with the current time.
+// below in next_batch(). It observes the event specifics of libscap.
+// An event is represented as a contiguous region of memory composed by
+// a header and a list of parameters appended, in the form of:
 //
-// Note: event numbers are assigned by the plugin
-// framework. Therefore, there isn't any need to fill in evtnum when
-// returning an event via plugin_next_batch. It will be ignored.
-typedef struct ss_plugin_event
+// | evt header | len param 1 (2B/4B) | ... | len param N (2B/4B) | data param 1 | ... | data param N |
+//
+// The event header is composed of:
+// - ts: the event timestamp, in nanoseconds since the epoch.
+//   Can be (uint64_t)-1, in which case the framework will automatically
+//   fill the event time with the current time.
+// - tid: the tid of the thread that generated this event.
+//   Can be (uint64_t)-1 in case no thread is specified, such as when generating
+//   a plugin event (type code 322).
+// - len: the event len, including the header
+// - type: the type of the event, as per the ones supported by the libscap specifics.
+//   This dictates the number and kind of parameters, and whether the lenght is
+//   encoded as a 2 bytes or 4 bytes integer.
+// - nparams: the number of parameters of the event
+#if defined _MSC_VER
+#pragma pack(push)
+#pragma pack(1)
+#elif defined __sun
+#pragma pack(1)
+#else
+#pragma pack(push, 1)
+#endif
+struct ss_plugin_event {
+#ifdef PPM_ENABLE_SENTINEL
+	uint32_t sentinel_begin;
+#endif
+	uint64_t ts; /* timestamp, in nanoseconds from epoch */
+	uint64_t tid; /* the tid of the thread that generated this event */
+	uint32_t len; /* the event len, including the header */
+	uint16_t type; /* the event type */
+	uint32_t nparams; /* the number of parameters of the event */
+};
+#if defined __sun
+#pragma pack()
+#else
+#pragma pack(pop)
+#endif
+typedef struct ss_plugin_event ss_plugin_event;
+
+// This struct represents an event provided by the framework to the plugin
+// as a read-only input.
+// - evt: a pointer to the header of the provided event.
+// - evtnum: assigned by the framework and incremented for each event.
+//   Might not be contiguous.
+// - evtsrc_idx: a numeric index of the event's source, as known by the frameowrk.
+//   The framework guarantees that the mapping between an event source name and
+//   its index remains constant.
+// - evtsrc_name: The name of the event's source. Can be "syscall" or any other
+//   event source name implemented by a plugin.
+typedef struct ss_plugin_event_input
 {
+	const ss_plugin_event* evt;
 	uint64_t evtnum;
-	const uint8_t *data;
-	uint32_t datalen;
-	uint64_t ts;
-} ss_plugin_event;
+	uint32_t evtsrc_idx;
+	const char* evtsrc_name;
+} ss_plugin_event_input;
 
 typedef struct ss_plugin_byte_buffer{
 	uint32_t len;
@@ -153,7 +193,7 @@ typedef struct ss_plugin_extract_field
 // This is the opaque pointer to the state of a plugin.
 // It points to any data that might be needed plugin-wise. It is
 // allocated by init() and must be destroyed by destroy().
-// It is defined as void because the engine doesn't care what it is
+// It is defined as void because the framework doesn't care what it is
 // and it treats is as opaque.
 //
 typedef void ss_plugin_t;
@@ -163,7 +203,7 @@ typedef void ss_plugin_t;
 // plugin.
 // It points to any data that is needed while a capture is running. It is
 // allocated by open() and must be destroyed by close().
-// It is defined as void because the engine doesn't care what it is
+// It is defined as void because the framework doesn't care what it is
 // and it treats is as opaque.
 //
 typedef void ss_instance_t;

@@ -222,13 +222,16 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
 {
     plugin_caps_t caps = CAP_NONE;
 
-    if (h->api.get_id != NULL
-        && h->api.get_event_source != NULL
-        && h->api.open != NULL
+    if (h->api.open != NULL
         && h->api.close != NULL
         && h->api.next_batch != NULL)
     {
-        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_SOURCING);
+        bool has_id = h->api.get_id != NULL && h->api.get_id() != 0;
+        bool has_source = h->api.get_event_source != NULL && strlen(h->api.get_event_source()) > 0;
+        if ((has_id && has_source) || (!has_id && !has_source))
+        {
+            caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_SOURCING);
+        }
     }
 
     if (h->api.get_fields != NULL
