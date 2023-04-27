@@ -61,7 +61,6 @@ static ss_plugin_t* mock_plugin_init(const char* cfg, ss_plugin_rc *rc)
 	return NULL;
 }
 
-
 static void mock_plugin_destroy(ss_plugin_t* p)
 {
 }
@@ -81,7 +80,7 @@ static void mock_plugin_close(ss_plugin_t* s, ss_instance_t* i)
 {
 }
 
-static ss_plugin_rc mock_plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_plugin_event **evts)
+static ss_plugin_rc mock_plugin_next_batch(ss_plugin_t* s, ss_instance_t* i, uint32_t *nevts, ss_plugin_event ***evts)
 {
 	*nevts = 0;
 	return SS_PLUGIN_EOF;

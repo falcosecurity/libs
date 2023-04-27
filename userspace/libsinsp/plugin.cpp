@@ -258,8 +258,15 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 
 	if(m_caps & CAP_SOURCING)
 	{
-		m_id = m_handle->api.get_id();
-		m_event_source = str_from_alloc_charbuf(m_handle->api.get_event_source());
+		m_id = 0;
+		m_event_source.clear();
+		if (m_handle->api.get_id != NULL
+			&& m_handle->api.get_event_source != NULL
+			&& m_handle->api.get_id() != 0)
+		{
+			m_id = m_handle->api.get_id();
+			m_event_source = str_from_alloc_charbuf(m_handle->api.get_event_source());
+		}
 	}
 
 	if(m_caps & CAP_EXTRACTION)
@@ -389,15 +396,41 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 					                      ": get_extract_event_sources did not return a json array");
 				}
 
-				m_extract_event_sources.insert(j.asString());
+				auto src = j.asString();
+				if (!src.empty())
+				{
+					m_extract_event_sources.insert(j.asString());
+				}
 			}
 		}
 
 		// A plugin with source capability
-		// must extract event from its source
-		if (m_caps & CAP_SOURCING)
+		// must extract event from its own specific source (if it has one)
+		if (m_caps & CAP_SOURCING && !m_event_source.empty())
 		{
 			m_extract_event_sources.insert(m_event_source);
+		}
+
+		m_extract_event_codes.clear();
+		if (m_handle->api.get_extract_event_types != NULL)
+		{
+			uint32_t ntypes = 0;
+			auto types = m_handle->api.get_extract_event_types(&ntypes);
+			for (uint32_t i = 0; i < ntypes; i++)
+			{
+				m_extract_event_codes.insert((ppm_event_code) types[i]);
+			}
+		}
+		if (m_extract_event_codes.empty())
+		{
+			if (is_source_compatible(m_extract_event_sources, sinsp_syscall_event_source_name))
+			{
+				m_extract_event_codes = libsinsp::events::all_event_set();
+			}
+			else
+			{
+				m_extract_event_codes.insert(ppm_event_code::PPME_PLUGINEVENT_E);
+			}
 		}
 	}
 
@@ -535,12 +568,12 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 	auto data = (const uint8_t *) evt->get_param(1)->m_val;
 	if (m_state && m_handle->api.event_to_string)
 	{
-		ss_plugin_event pevt;
-		pevt.evtnum = evt->get_num();
-		pevt.data = data;
-		pevt.datalen = datalen;
-		pevt.ts = evt->get_ts();
-		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &pevt));
+		ss_plugin_event_input input;
+		input.evt = (const ss_plugin_event*) evt->m_pevt;
+		input.evtnum = evt->get_num();
+		input.evtsrc_idx = evt->get_source_idx();
+		input.evtsrc_name = evt->get_source_name();
+		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &input));
 	}
 	if (ret.empty())
 	{
@@ -610,14 +643,19 @@ sinsp_filter_check* sinsp_plugin::new_filtercheck(std::shared_ptr<sinsp_plugin> 
 	return new sinsp_filter_check_plugin(plugin);
 }
 
-bool sinsp_plugin::extract_fields(ss_plugin_event &evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
+bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin_extract_field *fields) const
 {
 	if(!m_state)
 	{
 		return false;
 	}
 
-	return m_handle->api.extract_fields(m_state, &evt, num_fields, fields) == SS_PLUGIN_SUCCESS;
+	ss_plugin_event_input input;
+	input.evt = (const ss_plugin_event*) evt->m_pevt;
+	input.evtnum = evt->get_num();
+	input.evtsrc_idx = evt->get_source_idx();
+	input.evtsrc_name = evt->get_source_name();
+	return m_handle->api.extract_fields(m_state, &input, num_fields, fields) == SS_PLUGIN_SUCCESS;
 }
 
 /** End of Field Extraction CAP **/
