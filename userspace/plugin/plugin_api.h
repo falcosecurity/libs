@@ -314,6 +314,15 @@ typedef struct
 		//     next_batch() or close().
 		// Required: yes
 		//
+		// If a plugin implements a specific event source (get_id() is non-zero
+		// and get_event_source() is non-empty), then, it is only allowed to
+		// produce events of type plugin (code 322) containing its own plugin ID
+		// (as returned by get_id()). In such a case, when an event contains
+		// a zero plugin ID, the framework automatically sets the plugin ID of
+		// the event to the one of the plugin. If a plugin does not implement
+		// a specific event source, it is allowed to produce events of any
+		// of the types supported by the libscap specific.
+		//
 		// This function can be invoked concurrently by multiple threads,
 		// each with distinct and unique parameter values.
 		// The value of the ss_plugin_event** output parameter must be uniquely
