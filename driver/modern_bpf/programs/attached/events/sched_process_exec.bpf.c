@@ -177,6 +177,8 @@ int BPF_PROG(t1_sched_p_exec,
 	/* Parameter 20: flags (type: PT_FLAGS32) */
 	u32 flags = 0;
 	struct inode *exe_inode = extract__exe_inode_from_task(task);
+	struct file *exe_file = extract__exe_file_from_task(task);
+
 	if(extract__exe_writable(task, exe_inode))
 	{
 		flags |= PPM_EXE_WRITABLE;
@@ -185,6 +187,11 @@ int BPF_PROG(t1_sched_p_exec,
 	{
 		flags |= PPM_EXE_UPPER_LAYER;
 	}
+	if(extract__exe_from_memfd(exe_file))
+	{
+		flags |= PPM_EXE_FROM_MEMFD;
+	}
+
 	auxmap__store_u32_param(auxmap, flags);
 
 	/* Parameter 21: cap_inheritable (type: PT_UINT64) */

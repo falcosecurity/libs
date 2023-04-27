@@ -1355,6 +1355,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Copy the exe upper layer metadata from the parent
 		tinfo->m_exe_upper_layer = ptinfo->m_exe_upper_layer;
 
+		// Copy the exe from memfd metadata from the parent
+		tinfo->m_exe_from_memfd = ptinfo->m_exe_from_memfd;
+
 		// Copy the command arguments from the parent
 		tinfo->m_args = ptinfo->m_args;
 
@@ -2199,6 +2202,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 
 		evt->m_tinfo->m_exe_writable = ((flags & PPM_EXE_WRITABLE) != 0);
 		evt->m_tinfo->m_exe_upper_layer = ((flags & PPM_EXE_UPPER_LAYER) != 0);
+		evt->m_tinfo->m_exe_from_memfd = ((flags & PPM_EXE_FROM_MEMFD) != 0);
 	}
 
 	// Get capabilities
