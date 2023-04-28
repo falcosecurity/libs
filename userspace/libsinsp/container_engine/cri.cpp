@@ -128,6 +128,7 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 	}
 
 	const auto &resp_container = resp.status();
+	const auto &resp_container_info = resp.info();
 	container.m_full_id = resp_container.id();
 	container.m_name = resp_container.metadata().name();
 
@@ -142,7 +143,7 @@ bool cri_async_source::parse(const key_type& key, sinsp_container_info& containe
 		}
 	}
 
-	m_cri->parse_cri_image(resp_container, container);
+	m_cri->parse_cri_image(resp_container, resp_container_info, container);
 	m_cri->parse_cri_mounts(resp_container, container);
 
 	if(!parse_containerd(resp, container))
