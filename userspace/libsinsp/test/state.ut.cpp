@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "state/static_struct.h"
+#include "state/dynamic_struct.h"
 
 TEST(static_struct, defs_and_access)
 {
@@ -114,4 +115,60 @@ TEST(static_struct, defs_and_access)
     sample_struct2 s2;
     auto acc_num2 = s2.static_fields().find("num")->second.new_accessor<uint32_t>();
     ASSERT_NO_THROW(s.get_static_field(acc_num2));
+}
+
+TEST(dynamic_struct, defs_and_access)
+{
+    auto fields = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
+
+    struct sample_struct: public libsinsp::state::dynamic_struct
+    {
+    public:
+        sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) { }
+    };
+
+    sample_struct s(fields);
+    ASSERT_ANY_THROW(sample_struct(nullptr));
+    ASSERT_ANY_THROW(sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>()));
+
+    // check field definitions
+    ASSERT_EQ(fields->fields().size(), 0);
+    ASSERT_EQ(fields, s.dynamic_fields());
+
+    // adding new fields
+    auto field_num = fields->add_field<uint64_t>("num");
+    ASSERT_EQ(fields->fields().size(), 1);
+    ASSERT_EQ(field_num, fields->fields().find("num")->second);
+    ASSERT_EQ(field_num.name(), "num");
+    ASSERT_EQ(field_num.info(), libsinsp::state::typeinfo::of<uint64_t>());
+    ASSERT_EQ(field_num, fields->add_field<uint64_t>("num"));
+    ASSERT_ANY_THROW(fields->add_field<uint32_t>("num"));
+
+    auto field_str = fields->add_field<std::string>("str");
+    ASSERT_EQ(fields->fields().size(), 2);
+    ASSERT_EQ(field_str, fields->fields().find("str")->second);
+    ASSERT_EQ(field_str.name(), "str");
+    ASSERT_EQ(field_str.info(), libsinsp::state::typeinfo::of<std::string>());
+    ASSERT_EQ(field_str, fields->add_field<std::string>("str"));
+    ASSERT_ANY_THROW(fields->add_field<uint32_t>("str"));
+
+    // check field access
+    auto acc_num = field_num.new_accessor<uint64_t>();
+    auto acc_str = field_str.new_accessor<std::string>();
+    ASSERT_ANY_THROW(field_num.new_accessor<uint32_t>());
+    ASSERT_ANY_THROW(field_str.new_accessor<uint32_t>());
+
+    ASSERT_EQ(s.get_dynamic_field(acc_num), 0);
+    s.set_dynamic_field(acc_num, (uint64_t) 6);
+    ASSERT_EQ(s.get_dynamic_field(acc_num), 6);
+
+    ASSERT_EQ(s.get_dynamic_field(acc_str), std::string(""));
+    s.set_dynamic_field(acc_str, std::string("hello"));
+    ASSERT_EQ(s.get_dynamic_field(acc_str), std::string("hello"));
+
+    // illegal access from an accessor created from different definition list
+    auto fields2 = std::make_shared<libsinsp::state::dynamic_struct::field_infos>();
+    auto field_num2 = fields2->add_field<uint64_t>("num");
+    auto acc_num2 = field_num2.new_accessor<uint64_t>();
+    ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2));
 }
