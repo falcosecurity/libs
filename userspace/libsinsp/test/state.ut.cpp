@@ -19,6 +19,14 @@ limitations under the License.
 #include "state/static_struct.h"
 #include "state/dynamic_struct.h"
 
+TEST(typeinfo, basic_tests)
+{
+    struct some_unknown_type { };
+    ASSERT_ANY_THROW(libsinsp::state::typeinfo::of<some_unknown_type>());
+    ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>().size(), sizeof(std::string));
+    ASSERT_EQ(libsinsp::state::typeinfo::of<std::string>(), libsinsp::state::typeinfo::of<std::string>());
+}
+
 TEST(static_struct, defs_and_access)
 {
     struct err_multidef_struct: public libsinsp::state::static_struct
