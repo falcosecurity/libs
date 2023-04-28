@@ -91,6 +91,53 @@ or GPL2.txt for full copies of the license.
 #include "systype_compat.h"
 
 #endif /* UDIG */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+struct ovl_entry {
+	struct dentry *__upperdentry;
+	struct ovl_dir_cache *cache;
+	union {
+		struct {
+			u64 version;
+			const char *redirect;
+			bool opaque;
+			bool impure;
+			bool copying;
+		};
+		struct rcu_head rcu;
+	};
+	unsigned numlower;
+	struct path lowerstack[];
+};
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+struct ovl_entry {
+	union {
+		struct {
+			unsigned long has_upper;
+			bool opaque;
+		};
+		struct rcu_head rcu;
+	};
+	unsigned numlower;
+	struct path lowerstack[];
+};
+#else
+struct ovl_entry {
+	union {
+		struct {
+			unsigned long flags;
+		};
+		struct rcu_head rcu;
+	};
+	unsigned numlower;
+	//struct ovl_path lowerstack[];
+};
+
+enum ovl_entry_flag {
+	OVL_E_UPPER_ALIAS,
+	OVL_E_OPAQUE,
+	OVL_E_CONNECTED,
+};
+#endif
 
 #define merge_64(hi, lo) ((((unsigned long long)(hi)) << 32) + ((lo) & 0xffffffffUL))
 
@@ -1352,25 +1399,29 @@ cgroups_error:
 						sb_magic = sb->s_magic;
 						if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 						{
+							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-							// Pointer arithmetics due to unexported __upperdentry
-							//
-							// warning: this works if and only if the dentry pointer
-							// is placed on top of ovl_entry (d_fsdata)
-							unsigned long **oe = (unsigned long **)(exe_file->f_path.dentry->d_fsdata);
-
-							if(*oe)
+							if(oe->__upperdentry)
 							{
 								exe_upper_layer = true;
 							}
 #else
 							struct dentry **upper_dentry = NULL;
+							unsigned int d_flags = exe_file->f_path.dentry->d_flags;
+							bool disconnected = (d_flags & DCACHE_DISCONNECTED);
 
 							// Pointer arithmetics due to unexported ovl_inode struct
-							// warning: this works if and only if the dentry pointer is placed right after the inode struct
-							upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+							// warning: this works if and only if the dentry pointer
+							// is placed right after the inode struct
+							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
 
-							if(*upper_dentry)
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+							unsigned long has_upper = oe->has_upper;
+	#else
+							unsigned long has_upper = test_bit(flags, &(oe->flags));
+	#endif
+
+							if(*upper_dentry && (has_upper || disconnected))
 							{
 								exe_upper_layer = true;
 							}
@@ -7607,25 +7658,30 @@ cgroups_error:
 					sb_magic = sb->s_magic;
 					if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 					{
+							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-							// Pointer arithmetics due to unexported __upperdentry
-							//
-							// warning: this works if and only if the dentry pointer
-							// is placed on top of ovl_entry (d_fsdata)
-							unsigned long **oe = (unsigned long **)(exe_file->f_path.dentry->d_fsdata);
-
-							if(*oe)
+							if(oe->__upperdentry)
 							{
 								exe_upper_layer = true;
 							}
 #else
 							struct dentry **upper_dentry = NULL;
+							unsigned int d_flags = exe_file->f_path.dentry->d_flags;
+							bool disconnected = (d_flags & DCACHE_DISCONNECTED);
 
 							// Pointer arithmetics due to unexported ovl_inode struct
-							// warning: this works if and only if the dentry pointer is placed right after the inode struct
-							upper_dentry = (struct dentry **)((char *)exe_file->f_inode + sizeof(struct inode));
+							// warning: this works if and only if the dentry pointer
+							// is placed right after the inode struct
+							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
 
-							if(*upper_dentry)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+							unsigned long has_upper = oe->has_upper;
+#else
+							unsigned long flags = oe->flags;
+							unsigned long has_upper = test_bit(flags, OVL_E_UPPER_ALIAS);
+#endif
+
+							if(*upper_dentry && (has_upper || disconnected))
 							{
 								exe_upper_layer = true;
 							}
