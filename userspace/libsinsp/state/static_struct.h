@@ -174,7 +174,7 @@ public:
      * @brief Accesses a field with the given accessor and reads its value.
      */
     template <typename T>
-    inline T& get_static_field(const field_accessor<T>& a) const
+    inline const T& get_static_field(const field_accessor<T>& a) const
     {
         return *(reinterpret_cast<T*>((void*) (((uintptr_t) this) + a.info().m_offset)));
     }
