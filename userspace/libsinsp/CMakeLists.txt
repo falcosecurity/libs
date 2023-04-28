@@ -287,6 +287,13 @@ if(NOT WIN32)
 	list(APPEND SINSP_LIBRARIES
 		dl
 		pthread)
+
+	if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+		if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9.0)
+			list(APPEND SINSP_LIBRARIES
+				stdc++fs)
+		endif()
+	endif()
 else()
 	if(WITH_CHISEL)
 		list(APPEND SINSP_LIBRARIES
