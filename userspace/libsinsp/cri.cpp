@@ -110,7 +110,7 @@ grpc::Status cri_interface::get_container_stats(const std::string& container_id,
 	return m_cri->ContainerStats(&context, req, &resp);
 }
 
-bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container)
+bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, const google::protobuf::Map<std::string, std::string> &info, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -140,6 +140,33 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 		{
 			image_name = image_ref.substr(0, digest_start - 1);
 			get_tag_from_image = true;
+		}
+	}
+
+	if(image_name.empty() || strncmp(image_name.c_str(), "sha256", 6) == 0)
+	{
+		/* Retrieve image_name from annotations as backup when image name may start with sha256,
+		brute force try each schema we know of for containerd and crio container runtimes. */
+
+		Json::Value root;
+		Json::Reader reader;
+		if(reader.parse(info.find("info")->second, root))
+		{
+			Json::Value jvalue;
+			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
+			if(jvalue.isNull())
+			{
+				jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
+			}
+			if(jvalue.isNull())
+			{
+				jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.ImageName"];
+			}
+			if(!jvalue.isNull())
+			{
+				image_name = jvalue.asString();
+				get_tag_from_image = false;
+			}
 		}
 	}
 

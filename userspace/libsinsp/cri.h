@@ -84,10 +84,11 @@ public:
 	/**
 	 * @brief fill out container image information based on CRI response
 	 * @param status `status` field of the ContainerStatusResponse
+	 * @param info `info` field of the ContainerStatusResponse
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, sinsp_container_info &container);
+	bool parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, const google::protobuf::Map<std::string, std::string> &info, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container mount information based on CRI response
