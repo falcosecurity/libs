@@ -13,6 +13,7 @@ or GPL2.txt for full copies of the license.
 #include "../ppm_flag_helpers.h"
 #include "../ppm_version.h"
 #include "bpf_helpers.h"
+#include "missing_definitions.h"
 
 #include <linux/tty.h>
 #include <linux/audit.h>
@@ -49,36 +50,6 @@ struct timeval {
 };
 #else
 #define timeval64 timeval
-#endif
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-struct ovl_entry {
-	union {
-		struct {
-			unsigned long has_upper;
-			bool opaque;
-		};
-		struct rcu_head rcu;
-	};
-	unsigned numlower;
-	struct path lowerstack[];
-};
-#else
-struct ovl_entry {
-	union {
-		struct {
-			unsigned long flags;
-		};
-		struct rcu_head rcu;
-	};
-	unsigned numlower;
-	struct ovl_path lowerstack[];
-};
-
-enum ovl_entry_flag {
-	OVL_E_UPPER_ALIAS,
-	OVL_E_OPAQUE,
-	OVL_E_CONNECTED,
-};
 #endif
 
 #define FILLER_RAW(x)							\
@@ -2192,7 +2163,7 @@ static __always_inline bool get_exe_upper_layer(struct dentry *dentry, struct su
 		unsigned long has_upper = (unsigned long)_READ(oe->has_upper);
 #else
 		unsigned long flags = _READ(oe->flags);
-		unsigned long has_upper = test_bit(flags, OVL_E_UPPER_ALIAS);
+		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
 #endif
 		// Pointer arithmetics due to unexported ovl_inode struct
 		// warning: this works if and only if the dentry pointer is placed right after the inode struct
@@ -2711,11 +2682,11 @@ FILLER(execve_family_flags, true)
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct inode *inode = get_exe_inode(task);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
 	struct file *exe_file = (struct file*)_READ(mm->exe_file);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	struct super_block* sb = _READ(dentry->d_sb);
 #else
 	struct super_block *sb = _READ(inode->i_sb);
@@ -6316,12 +6287,12 @@ FILLER(sched_prog_exec_4, false)
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
 	struct inode *inode = get_exe_inode(task);
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
 	struct file *exe_file = (struct file*)_READ(mm->exe_file);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	struct super_block* sb = _READ(dentry->d_sb);
 #else
 	struct super_block *sb = _READ(inode->i_sb);
