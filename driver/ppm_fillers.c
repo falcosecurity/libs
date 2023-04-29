@@ -1421,7 +1421,7 @@ cgroups_error:
 	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 							unsigned long has_upper = oe->has_upper;
 	#else
-							unsigned long has_upper = test_bit(flags, &(oe->flags));
+							unsigned long has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
 	#endif
 
 							if(*upper_dentry && (has_upper || disconnected))
@@ -7701,8 +7701,7 @@ cgroups_error:
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 							unsigned long has_upper = oe->has_upper;
 #else
-							unsigned long flags = oe->flags;
-							unsigned long has_upper = test_bit(flags, OVL_E_UPPER_ALIAS);
+							unsigned long has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
 #endif
 
 							if(*upper_dentry && (has_upper || disconnected))
