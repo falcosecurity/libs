@@ -1418,11 +1418,11 @@ cgroups_error:
 							// is placed right after the inode struct
 							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
 
-	#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
 							unsigned long has_upper = oe->has_upper;
-	#else
+#else
 							unsigned long has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
-	#endif
+#endif
 
 							if(*upper_dentry && (has_upper || disconnected))
 							{

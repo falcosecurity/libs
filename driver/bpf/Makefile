@@ -49,6 +49,7 @@ $(obj)/probe.o: $(src)/probe.c \
 		$(src)/plumbing_helpers.h \
 		$(src)/quirks.h \
 		$(src)/ring_helpers.h \
+		$(src)/missing_definitions.h \
 		$(src)/types.h
 	$(CLANG) $(LINUXINCLUDE) \
 		$(KBUILD_CPPFLAGS) \

@@ -36,6 +36,7 @@ install(FILES
 	probe.c
 	quirks.h
 	ring_helpers.h
+	missing_definitions.h
 	types.h
 	DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}/bpf"
 	COMPONENT ${DRIVER_COMPONENT_NAME})
