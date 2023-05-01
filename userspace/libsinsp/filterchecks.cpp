@@ -1931,8 +1931,8 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_RELTIME, EPF_NONE, PF_DEC, "thread.totexectime", "Current Thread CPU Time", "Total CPU time, in nanoseconds since the beginning of the capture, for the current thread. Exported by switch events only."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "thread.cgroups", "Thread Cgroups", "All cgroups the thread belongs to, aggregated into a single string."},
 	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "thread.cgroup", "Thread Cgroup", "The cgroup the thread belongs to, for a specific subsystem. e.g. thread.cgroup.cpuacct."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nthreads", "Threads", "The number of threads that the process generating the event currently has, including the main process thread."},
-	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "Children", "The number of child threads that the process generating the event currently has. This excludes the main process thread."},
+	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nthreads", "Threads", "The number of alive threads that the process generating the event currently has, including the leader thread. Please note that the main process may not be here, in that case 'proc.nthreads' and 'proc.nchilds' are equal"},
+	{PT_UINT32, EPF_NONE, PF_DEC, "proc.nchilds", "Children", "The number of alive not leader threads that the process generating the event currently has. This excludes the leader thread."},
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu", "Thread CPU", "The CPU consumed by the thread in the last second."},
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu.user", "Thread User CPU", "The user CPU consumed by the thread in the last second."},
 	{PT_DOUBLE, EPF_NONE, PF_NA, "thread.cpu.system", "Thread System CPU", "The system CPU consumed by the thread in the last second."},
@@ -2382,20 +2382,16 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_STRING(m_tstr);
 	case TYPE_NTHREADS:
 		{
-			sinsp_threadinfo* ptinfo = tinfo->get_main_thread();
-			if(ptinfo)
-			{
-				m_u64val = ptinfo->m_nchilds + 1;
-				RETURN_EXTRACT_VAR(m_u64val);
-			}
-			else
-			{
-				ASSERT(false);
-				return NULL;
-			}
+			m_u64val = tinfo->get_num_threads();
+			RETURN_EXTRACT_VAR(m_u64val);
 		}
+		break;
 	case TYPE_NCHILDS:
-		RETURN_EXTRACT_VAR(tinfo->m_nchilds);
+		{
+			m_u64val = tinfo->get_num_not_leader_threads();
+			RETURN_EXTRACT_VAR(m_u64val);
+		}
+		break;
 	case TYPE_ISMAINTHREAD:
 		m_tbool = (uint32_t)tinfo->is_main_thread();
 		RETURN_EXTRACT_VAR(m_tbool);
