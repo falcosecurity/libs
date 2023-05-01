@@ -222,7 +222,7 @@ This table represents the syscalls supported by our drivers.
 | pkey_mprotect           | 🟡        |
 | poll                    | 🟢        |
 | ppoll                   | 🟢        |
-| prctl                   | 🟡        |
+| prctl                   | 🟢        |
 | pread64                 | 🟢        |
 | preadv                  | 🟢        |
 | preadv2                 | 🟡        |
