@@ -1414,7 +1414,6 @@ void sinsp_thread_manager::clear()
 	m_threadtable.clear();
 	m_thread_groups.clear();
 	m_last_tid = 0;
-	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
 
@@ -1509,8 +1508,6 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
 #endif
-
-	m_last_tinfo.reset();
 
 	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
@@ -1697,11 +1694,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		m_threadtable.erase(tid);
 	}
 
-	//
-	// Reset the cache
-	//
-	m_last_tid = 0;
-	m_last_tinfo.reset();
+	/* Maybe we removed the thread info that was cached, we clear
+	 * the cache just to be sure.
+	 */
+	m_last_tid = -1;
 #ifdef GATHER_INTERNAL_STATS
 	m_removed_threads->increment();
 #endif
@@ -1724,13 +1720,10 @@ void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 	}
 }
 
+// todo(@Andreagit97) This could be removed after we introduce shared_ptr!
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	m_last_tinfo.reset();
-	m_last_tid = 0;
-
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		tinfo.m_nchilds = 0;
 		clear_thread_pointers(tinfo);
 		return true;
 	});
@@ -1742,12 +1735,6 @@ void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
 		create_thread_dependencies(tinfo);
 		return true;
 	});
-}
-
-// todo(@Andreagit97) check if we can remove it!
-void sinsp_thread_manager::recreate_child_dependencies()
-{
-	reset_child_dependencies();
 }
 
 void sinsp_thread_manager::update_statistics()
@@ -2082,6 +2069,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 #endif
 		if(!lookup_only)
 		{
+			m_last_tinfo.reset();
 			m_last_tid = tid;
 			m_last_tinfo = thr;
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();

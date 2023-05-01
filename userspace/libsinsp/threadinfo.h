@@ -755,7 +755,6 @@ public:
 	inline bool remove_inactive_threads();
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
-	void recreate_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
 	/*!
       \brief Look up a thread given its tid and return its information,

@@ -2648,12 +2648,6 @@ bool sinsp_thread_manager::remove_inactive_threads()
 					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str()))
 					)
 			{
-				//
-				// Reset the cache
-				//
-				m_last_tid = 0;
-				m_last_tinfo.reset();
-
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
@@ -2675,7 +2669,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		// Rebalance the thread table dependency tree, so we free up threads that
 		// exited but that are stuck because of reference counting.
 		//
-		recreate_child_dependencies();
+		reset_child_dependencies();
 	}
 
 	return res;
