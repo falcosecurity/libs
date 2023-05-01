@@ -2605,6 +2605,7 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
 ///////////////////////////////////////////////////////////////////////////////
 bool sinsp_thread_manager::remove_inactive_threads()
 {
+	/* `res==true` means we scanned the table */
 	bool res = false;
 
 	if(m_last_flush_time_ns == 0)
@@ -2636,13 +2637,13 @@ bool sinsp_thread_manager::remove_inactive_threads()
 
 		g_logger.format(sinsp_logger::SEV_INFO, "Flushing thread table");
 
-		//
-		// Go through the table and remove dead entries.
-		//
+		/* Here we loop over the table in search of threads to delete. We remove:
+		 * 1. Dead threads. (we mark a thread as "dead" if we receive a "procexit" event for it)
+		 * 2. We have an invalid thread.
+		 * 3. Threads that we are not using and that are no more alive in /proc.
+		 */
 		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-			bool closed = (tinfo.m_flags & PPM_CL_CLOSED) != 0;
-
-			if(closed ||
+			if(tinfo.is_dead() || tinfo.is_invalid() ||
 				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str()))
 					)
@@ -2656,7 +2657,11 @@ bool sinsp_thread_manager::remove_inactive_threads()
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				to_delete[tinfo.m_tid] = closed;
+				///todo(@Andreagit97) Here we are removing all our main threads that are dead
+				/// not sure this is what we want to do, usually we want to keep them for
+				/// fdtable, cwd and env + some filterchecks
+				/* we set the `force` flag only if the thread is dead or invalid */
+				to_delete[tinfo.m_tid] = tinfo.is_dead() || tinfo.is_invalid();
 			}
 			return true;
 		});

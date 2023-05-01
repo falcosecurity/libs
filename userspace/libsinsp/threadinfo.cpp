@@ -1563,7 +1563,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 				continue;
 			}
 			auto thread = thread_weak.lock().get();
-			if((thread->m_flags & PPM_CL_CLOSED) == 0)
+			if(!thread->is_dead())
 			{
 				return thread;
 			}
@@ -1597,7 +1597,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 					continue;
 				}
 				auto thread = thread_weak.lock().get();
-				if((thread->m_flags & PPM_CL_CLOSED) == 0)
+				if(!thread->is_dead())
 				{
 					return thread;
 				}

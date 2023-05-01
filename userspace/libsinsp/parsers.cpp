@@ -4094,7 +4094,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	/* we set the `m_tinfo` in `reset()` */
 	if(evt->m_tinfo != nullptr)
 	{
-		evt->m_tinfo->m_flags |= PPM_CL_CLOSED;
+		evt->m_tinfo->set_dead();
 		m_inspector->m_tid_to_remove = evt->get_tid();
 	}
 }

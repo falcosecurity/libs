@@ -188,6 +188,31 @@ public:
 		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
 	}
 
+	/*!
+	  \brief Return true if the thread is invalid. Sometimes we create some
+	  invalid thread info, if we are not able to scan proc.
+	*/
+	inline bool is_invalid() const
+	{
+		return m_tid < 0 || m_pid < 0 || m_ptid < 0;
+	}
+
+	/*!
+	  \brief Return true if the thread is dead.
+	*/
+	inline bool is_dead() const
+	{
+		return m_flags & PPM_CL_CLOSED;
+	}
+
+	/*!
+	  \brief Mark thread as dead.
+	*/
+	inline void set_dead()
+	{
+		m_flags |= PPM_CL_CLOSED;
+	}
+
 	/*
 	  \brief returns true if there is a loop detected in the thread parent state.
 	  Needs traverse_parent_state() to have been called first.
