@@ -687,7 +687,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		etype == PPME_SYSCALL_VFORK_17_X ||
 		etype == PPME_SYSCALL_VFORK_20_X ||
 		etype == PPME_SYSCALL_CLONE3_X ||
-		etype == PPME_SCHEDSWITCH_6_E)
+		etype == PPME_SCHEDSWITCH_6_E ||
+		/* If we received a `procexit` event it means that the process
+		 * is dead in the kernel, `query_os==true` would just generate fake entries.
+		 */
+		etype == PPME_PROCEXIT_E ||
+		etype == PPME_PROCEXIT_1_E)
 	{
 		query_os = false;
 	}
@@ -734,11 +739,6 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
 #endif
 		}
-		else
-		{
-			ASSERT(false);
-		}
-
 		return false;
 	}
 
@@ -3740,9 +3740,7 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 {
-	//
-	// Schedule the process for removal
-	//
+	/* we set the `m_tinfo` in `reset()` */
 	if(evt->m_tinfo != nullptr)
 	{
 		evt->m_tinfo->m_flags |= PPM_CL_CLOSED;
