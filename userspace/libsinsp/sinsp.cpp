@@ -383,10 +383,8 @@ void sinsp::init()
 
 	import_user_list();
 
-	//
-	// Scan the list to create the proper parent/child dependencies
-	//
-	m_thread_manager->create_child_dependencies();
+	/* Create parent/child dependencies */
+	m_thread_manager->create_thread_dependencies_after_proc_scan();
 
 	//
 	// Scan the list to fix the direction of the sockets
@@ -1290,19 +1288,16 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	evt->m_evtnum = m_nevts;
 	m_lastevent_ts = ts;
 
-	if (m_automatic_threadtable_purging)
+	if(m_automatic_threadtable_purging)
 	{
 		//
 		// Delayed removal of threads from the thread table, so that
 		// things like exit() or close() can be parsed.
 		//
-		// Note: remove_thread() may itself identify another thread that
-		// needs removal.
-		while (m_tid_to_remove != -1)
+		if(m_tid_to_remove != -1)
 		{
-			uint64_t remove_tid = m_tid_to_remove;
+			remove_thread(m_tid_to_remove, false);
 			m_tid_to_remove = -1;
-			remove_thread(remove_tid, false);
 		}
 
 		if(!is_offline())
