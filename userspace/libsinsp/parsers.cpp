@@ -1048,31 +1048,178 @@ void sinsp_parser::register_event_callback(sinsp_pd_callback_type etype, sinsp_p
 ///////////////////////////////////////////////////////////////////////////////
 // PARSERS
 ///////////////////////////////////////////////////////////////////////////////
-void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
-{
-	sinsp_evt_param* parinfo;
-	int64_t tid = evt->get_tid();
-	int64_t childtid;
-	bool is_inverted_clone = false; // true if clone() in the child returns before the one in the parent
-	bool tid_collision = false;
-	bool valid_parent = true;
-	bool in_container = false;
-	int64_t vtid = tid;
-	int64_t vpid = -1;
-	uint16_t etype = evt->get_type();
 
-	//
-	// Validate the return value and get the child tid
-	//
-	parinfo = evt->get_param(0);
-	ASSERT(parinfo->m_len == sizeof(int64_t));
-	if(parinfo->m_val == NULL)
+#define INVALID_THREAD_INFO(tinfo) ((tinfo->m_comm == "<NA>") && (tinfo->m_user.uid == 0xffffffff))
+
+void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
+{
+	sinsp_evt_param* parinfo = nullptr;
+	uint16_t etype = evt->get_type();
+	int64_t caller_tid = evt->get_tid();
+
+	/* We have a collision when we force a removal in the thread table because
+	 * we have 2 entries with the same tid.
+	 */
+	int64_t tid_collision = -1;
+
+	/* By default we have a valid caller. `valid_caller==true` means that we can
+	 * use the caller info to fill some fields of the child, `valid_caller==false`
+	 * means that we will use some info about the child to fill the caller thread info.
+	 * We need the caller because it is the most reliable source of info for the child.
+	 */
+	bool valid_caller = true;
+
+	/* The clone caller exit event has 2 main purposes:
+	 * 1. enrich the caller thread info with fresh info or create a new one if it was not there.
+	 * 2. create a new thread info for the child if necessary. (resilience to event drops)
+	 */
+
+	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE ===========================*/
+	
+	/* Let's see if we have some info regarding the caller */
+	auto caller_tinfo = m_inspector->get_thread_ref(caller_tid, true);
+	
+	/* This happens only if we reach the max entries in our table otherwise we should obtain a new fresh empty
+	 * thread info to populate even if we are not able to recover any information!
+	 * If `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
+	 */
+	if(caller_tinfo == nullptr)
 	{
+		/* Invalidate the thread_info associated with this event */
+		ASSERT(false);
+		evt->m_tinfo = nullptr;
 		return;
 	}
-	childtid = *(int64_t *)parinfo->m_val;
 
-	switch(evt->get_type())
+	/* If the caller is an invalid thread it means that we have already scanned `/proc` without
+	 * finding anything, we will try to populate the caller now.
+	 */	
+	if(INVALID_THREAD_INFO(caller_tinfo))
+	{
+		valid_caller = false;
+	}
+	
+	/* Before trying to create the child we use this event to fill some info about the caller.
+	 * These are the essential data that we always want to fill in even if the child is already there
+	 * or if it is in a container:
+	 * - tid (filled during the lookup)
+	 * - pid (filled only if the thread is invalid, it should never change!)
+	 * - ptid
+	 * - exe
+	 * - comm
+	 * - args
+	 * - vtid (filled only if the thread is invalid, it should never change!)
+	 * - vpid (filled only if the thread is invalid, it should never change!)
+	 * 
+	 * We can add other info here but we pay in terms of perf so we need to pay attention.
+	 */
+
+	/* pid. */
+	parinfo = evt->get_param(4);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	caller_tinfo->m_pid = *(int64_t *)parinfo->m_val;
+
+	/* ptid */
+	parinfo = evt->get_param(5);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	caller_tinfo->m_ptid = *(int64_t *)parinfo->m_val;
+
+	/* comm */
+	switch(etype)
+	{
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		caller_tinfo->m_comm = caller_tinfo->m_exe;
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_17_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(13);
+		caller_tinfo->m_comm = parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
+
+	/* also exe and args should go here, but it seems to trigger wrong behaviors with proc.pname and other fields */
+
+	if(!valid_caller)
+	{
+		/* exe */
+		parinfo = evt->get_param(1);
+		caller_tinfo->m_exe = (char*)parinfo->m_val;
+
+		/* args */
+		parinfo = evt->get_param(2);
+		caller_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+
+		/* vtid & vpid */
+		/* We preset them for old scap-files compatibility. */
+		caller_tinfo->m_vtid = caller_tid;
+		caller_tinfo->m_vpid = -1;
+		switch(etype)
+		{
+		case PPME_SYSCALL_CLONE_11_X:
+		case PPME_SYSCALL_CLONE_16_X:
+		case PPME_SYSCALL_CLONE_17_X:
+		case PPME_SYSCALL_FORK_X:
+		case PPME_SYSCALL_FORK_17_X:
+		case PPME_SYSCALL_VFORK_X:
+		case PPME_SYSCALL_VFORK_17_X:
+			break;
+		case PPME_SYSCALL_CLONE_20_X:
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_20_X:
+		case PPME_SYSCALL_CLONE3_X:
+			parinfo = evt->get_param(18);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			caller_tinfo->m_vtid = *(int64_t *)parinfo->m_val;
+
+			parinfo = evt->get_param(19);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			caller_tinfo->m_vpid = *(int64_t *)parinfo->m_val;		
+			break;
+		default:
+			ASSERT(false);
+		}
+	}
+
+	/*=============================== ENRICH/CREATE ESSENTIAL CALLER STATE ===========================*/
+
+	/*=============================== CHILD ALREADY THERE ===========================*/
+
+	/* See if the child is already there, if yes and it is valid we return immediately */
+	sinsp_threadinfo* child_tinfo = m_inspector->get_thread_ref(child_tid, false, true).get();
+	if(child_tinfo != nullptr)
+	{
+		/* If this was an inverted clone, all is fine, we've already taken care
+		 * of adding the thread table entry in the child.
+		 * Otherwise, we assume that the entry is there because we missed the exit event
+		 * for a previous thread and we replace the tinfo.
+		 */
+		if(child_tinfo->m_flags & PPM_CL_CLONE_INVERTED)
+		{
+			return;
+		}
+		else
+		{
+			m_inspector->remove_thread(child_tid, true);
+			tid_collision = child_tid;
+		}
+	}
+
+	/*=============================== CHILD ALREADY THERE ===========================*/
+
+	/*=============================== CHILD IN CONTAINER CASE ===========================*/
+
+	/* Get `flags` to check if we are in a container */
+	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
 		parinfo = evt->get_param(8);
@@ -1096,423 +1243,501 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	default:
 		ASSERT(false);
 	}
-	ASSERT(parinfo->m_len == sizeof(int32_t));
-	uint32_t flags = *(int32_t *)parinfo->m_val;
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	/* we should never assign these flags to the caller otherwise if the child is a thread
+	 * also the caller will be marked as a thread with the `PPM_CL_CLONE_THREAD` flag.
+	 */
+	uint32_t flags = *(uint32_t *)parinfo->m_val;
 
-	if(childtid < 0)
+	/* If the child is running into a container, wait until we see it,
+	 * because the caller just sees the pid in the outermost namespace. 
+	 * If the child is running into a container we set the `PPM_CL_CHILD_IN_PIDNS`
+	 * flag also in the caller clone exit event.
+	 * `PPM_CL_CHILD_IN_PIDNS` should always suffice but leave
+	 * the tid/vtid check for older driver versions
+	 */
+	if(flags & PPM_CL_CHILD_IN_PIDNS || caller_tid != caller_tinfo->m_vtid)
 	{
-		//
-		// clone() failed. Do nothing and keep going.
-		//
 		return;
 	}
 
-	//
-	// Get the vtid to check if the clone is within a container
-	//
+	/*=============================== CHILD IN CONTAINER CASE ===========================*/
+
+	/* If we come here it means that we need to create the child thread info */
+
+	/*=============================== CREATE CHILD ===========================*/
+
+	/* Allocate the new thread info and initialize it.
+	 * We must avoid `malloc` here and get the item from a preallocated list.
+	 */
+	child_tinfo = m_inspector->build_threadinfo();
+
+	/* flags */
+	child_tinfo->m_flags = flags;
+
+	/* tid */
+	child_tinfo->m_tid = child_tid;
+
+	/* Thread-leader case */
+	if(!(child_tinfo->m_flags & PPM_CL_CLONE_THREAD))
+	{
+		/* fd table */
+		if(valid_caller)
+		{
+			/* Populate some other info only if we are a thread-leader */
+			child_tinfo->m_env = caller_tinfo->m_env;
+
+			///todo(@Andreagit97): revisit fdtable logic.
+			/* Copy the fd list:
+			* XXX this is a gross oversimplification that will need to be fixed.
+			* What we do is: if the child is NOT a thread, we copy all the parent fds.
+			* The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
+			* syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+			*/
+			sinsp_fdtable* fd_table_ptr = caller_tinfo->get_fd_table();
+			if(fd_table_ptr == NULL)
+			{
+				ASSERT(false);
+				g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
+				delete child_tinfo;
+				return;
+			}
+
+			child_tinfo->m_fdtable = *(fd_table_ptr);
+
+			/* Track down that those are cloned fds */
+			for(auto fdit = child_tinfo->m_fdtable.m_table.begin(); fdit != child_tinfo->m_fdtable.m_table.end(); ++fdit)
+			{
+				fdit->second.set_is_cloned();
+			}
+
+			/* It's important to reset the cache of the child thread, to prevent it from
+			* referring to an element in the parent's table.
+			*/
+			child_tinfo->m_fdtable.reset_cache();
+
+			/* Not a thread, copy cwd */
+			child_tinfo->m_cwd = caller_tinfo->get_cwd();
+		}
+
+		/* Create info about the thread group */
+
+		/* pid */
+		child_tinfo->m_pid = child_tinfo->m_tid;
+
+		/* Please note `sched_proc_fork` won't send the `PPM_CL_CLONE_PARENT` flag,
+		 * but this tracepoint generates only the child event, here we are parsing the caller one
+		 * so we shouldn't have any issues.
+		 */
+		if(child_tinfo->m_flags & PPM_CL_CLONE_PARENT)
+		{
+			/* The child parent is the parent of the calling process */
+			child_tinfo->m_ptid = caller_tinfo->m_ptid;
+		}
+		else
+		{
+			/* The child parent is the calling process */
+			child_tinfo->m_ptid = caller_tinfo->m_tid;
+		}
+
+	}
+	else /* Simple thread case */
+	{
+		/* pid */
+		child_tinfo->m_pid = caller_tinfo->m_pid;
+		
+		/* ptid */
+		/* The parent is the parent of the calling process */
+		child_tinfo->m_ptid = caller_tinfo->m_ptid;
+	}
+
+	/* We are not in a container otherwise we should never reach this point,
+	 * we have a previous check in this parser!
+	 */
+
+	/* vtid */
+	child_tinfo->m_vtid = child_tinfo->m_tid;
+	
+	/* vpid */
+	child_tinfo->m_vpid = child_tinfo->m_pid;	
+
+	/* exe */
+	child_tinfo->m_exe = caller_tinfo->m_exe;
+
+	/* comm */
+	child_tinfo->m_comm = caller_tinfo->m_comm;
+
+	/* args */
+	parinfo = evt->get_param(2);
+	child_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+	
+	/* fdlimit */
+	parinfo = evt->get_param(7);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	child_tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
+
+	/* Generic memory info */
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
+		break;
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_CLONE_20_X:
 	case PPME_SYSCALL_FORK_X:
 	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_X:
 	case PPME_SYSCALL_VFORK_17_X:
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		parinfo = evt->get_param(18);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		vtid = *(int64_t *)parinfo->m_val;
+		/* pgflt_maj */
+		parinfo = evt->get_param(8);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		child_tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 
-		parinfo = evt->get_param(19);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		vpid = *(int64_t *)parinfo->m_val;
+		/* pgflt_min */
+		parinfo = evt->get_param(9);
+		ASSERT(parinfo->m_len == sizeof(uint64_t));
+		child_tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
+
+		/* vm_size */
+		parinfo = evt->get_param(10);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		child_tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
+
+		/* vm_rss */
+		parinfo = evt->get_param(11);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		child_tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
+
+		/* vm_swap */
+		parinfo = evt->get_param(12);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		child_tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
 		break;
 	default:
 		ASSERT(false);
 	}
 
-	// the flag check should always suffice but leave the tid/vtid check for older driver versions
-	if(flags & PPM_CL_CHILD_IN_PIDNS || tid != vtid)
+	/* uid */
+	switch(etype)
 	{
-		in_container = true;
-	}
-
-	if(childtid == 0)
-	{
-		//
-		// clone() returns 0 in the child.
-		//
-		int64_t parenttid;
-
-		//
-		// Before embarking in parsing the event, check if there's already
-		// an entry in the thread table for this process. If there is one, make sure
-		// it was created recently. Otherwise, assume it's an old thread for which
-		// we lost the exit event and remove it from the table.
-		//
-		if(evt->m_tinfo != nullptr && evt->m_tinfo->m_clone_ts != 0)
-		{
-			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
-			{
-				m_inspector->remove_thread(tid, true);
-				evt->m_tinfo = NULL;
-			}
-		}
-
-		//
-		// Check if this is a process or a new thread
-		//
-		if(flags & PPM_CL_CLONE_THREAD)
-		{
-			//
-			// This is a thread, the parent tid is the pid
-			//
-			parinfo = evt->get_param(4);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
-		}
-		else
-		{
-			//
-			// This is not a thread, the parent tid is ptid
-			//
-			parinfo = evt->get_param(5);
-			ASSERT(parinfo->m_len == sizeof(int64_t));
-			parenttid = *(int64_t *)parinfo->m_val;
-		}
-
-		// Validate that the child thread info has actually been created.
-		//
-		if(evt->m_tinfo == nullptr)
-		{
-			//
-			// No thread yet.
-			// This happens if
-			//  - clone() returns in the child before than in the parent.
-			//  - we dropped the clone exit event in the parent.
-			//  - clone was executed in a container
-			// In both cases, we create the thread entry here
-			//
-			// XXX: inverted_clone flag should be useless for containers
-			// since just the child's clone is allowed to create a thread
-			//
-			is_inverted_clone = true;
-
-			//
-			// The tid to add is the one that generated this event
-			//
-			childtid = tid;
-
-			tid = parenttid;
-
-			//
-			// Keep going and add the event with the standard code below
-			//
-		}
-		else
-		{
-			//
-			// We are in the child's clone. If we are in a container, make
-			// sure the vtid/vpid are reflected because the father was maybe
-			// running outside the container so created the child thread without
-			// knowing the internal vtid/vpid
-			//
-			if(in_container)
-			{
-				evt->m_tinfo->m_vtid = vtid;
-				evt->m_tinfo->m_vpid = vpid;
-			}
-
-			return;
-		}
-	}
-	else
-	{
-		//
-		// We are in the father. If the father is running in a container,
-		// don't create the child process but wait until we see child, because
-		// the father just sees the internal tid of the child
-		//
-		if(in_container)
-		{
-			return;
-		}
-	}
-
-	//
-	// Lookup the thread that called clone() so we can copy its information
-	//
-	sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tid, true, true).get();
-	if(NULL == ptinfo)
-	{
-		//
-		// No clone() caller, we probably missed earlier events.
-		// We simply return and ignore the event, which means this thread won't be added to the table.
-		//
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(9);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(14);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		parinfo = evt->get_param(15);
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(16);
+		break;
+	default:
 		ASSERT(false);
-		return;
+	}
+	ASSERT(parinfo->m_len == sizeof(int32_t));
+	child_tinfo->set_user(*(int32_t *)parinfo->m_val);
+
+	/* gid */
+	switch(etype)
+	{
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(10);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(15);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		parinfo = evt->get_param(16);
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(17);
+		break;
+	default:
+		ASSERT(false);
+	}
+	ASSERT(parinfo->m_len == sizeof(int32_t));
+	child_tinfo->set_group(*(int32_t *)parinfo->m_val);
+
+	/* Set cgroups and heuristically detect container id */
+	switch(etype)
+	{
+		case PPME_SYSCALL_FORK_20_X:
+		case PPME_SYSCALL_VFORK_20_X:
+		case PPME_SYSCALL_CLONE_20_X:
+		case PPME_SYSCALL_CLONE3_X:
+			parinfo = evt->get_param(14);
+			child_tinfo->set_cgroups(parinfo->m_val, parinfo->m_len);
+			m_inspector->m_container_manager.resolve_container(child_tinfo, m_inspector->is_live());
+			break;
 	}
 
-	if(ptinfo->m_comm == "<NA>" && ptinfo->m_user.uid == 0xffffffff)
+	/* Initialize the thread clone time */
+	child_tinfo->m_clone_ts = evt->get_ts();
+
+	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
+	child_tinfo->m_pidns_init_start_ts = m_inspector->m_machine_info->boot_ts_epoch;
+
+	/* Get some info from the caller */
+	if(valid_caller)
 	{
-		valid_parent = false;
+		/* We should trust the info we obtain from the caller, if it is valid */
+		child_tinfo->m_exepath = caller_tinfo->m_exepath;
+
+		child_tinfo->m_exe_writable = caller_tinfo->m_exe_writable;
+
+		child_tinfo->m_exe_upper_layer = caller_tinfo->m_exe_upper_layer;
+
+		child_tinfo->m_root = caller_tinfo->m_root;
+
+		child_tinfo->m_sid = caller_tinfo->m_sid;
+
+		child_tinfo->m_vpgid = caller_tinfo->m_vpgid;
+
+		child_tinfo->m_tty = caller_tinfo->m_tty;
+
+		child_tinfo->m_loginuser = caller_tinfo->m_loginuser;
+
+		child_tinfo->m_cap_permitted = caller_tinfo->m_cap_permitted;
+
+		child_tinfo->m_cap_inheritable = caller_tinfo->m_cap_inheritable;
+
+		child_tinfo->m_cap_effective = caller_tinfo->m_cap_effective;
+
+		child_tinfo->m_exe_ino = caller_tinfo->m_exe_ino;
+
+		child_tinfo->m_exe_ino_ctime = caller_tinfo->m_exe_ino_ctime;
+
+		child_tinfo->m_exe_ino_mtime = caller_tinfo->m_exe_ino_mtime;
+
+		child_tinfo->m_exe_ino_ctime_duration_clone_ts = caller_tinfo->m_exe_ino_ctime_duration_clone_ts;
 	}
 
-	//
-	// See if the child is already there
-	//
-	sinsp_threadinfo* child = m_inspector->get_thread_ref(childtid, false, true).get();
-	if(NULL != child)
+	/*=============================== CREATE CHILD ===========================*/
+
+	/*=============================== ADD THREAD TO THE TABLE ===========================*/
+
+	/* Until we use the shared pointer we need it here, after we can move it at the end */
+	bool thread_added = m_inspector->add_thread(child_tinfo);
+
+	/* Refresh user / loginuser / group */
+	if(child_tinfo->m_container_id.empty() == false)
 	{
-		//
-		// If this was an inverted clone, all is fine, we've already taken care
-		// of adding the thread table entry in the child.
-		// Otherwise, we assume that the entry is there because we missed the exit event
-		// for a previous thread and we replace the info structure.
-		//
-		if(child->m_flags & PPM_CL_CLONE_INVERTED)
+		child_tinfo->set_user(child_tinfo->m_user.uid);
+		child_tinfo->set_loginuser(child_tinfo->m_loginuser.uid);
+		child_tinfo->set_group(child_tinfo->m_group.gid);
+	}
+
+	/* If there's a listener, invoke it */
+	if(m_fd_listener)
+	{
+		m_fd_listener->on_clone(evt, child_tinfo);
+	}
+
+	/* If we had to erase a previous entry for this tid and rebalance the table,
+	 * make sure we reinitialize the tinfo pointer for this event, as the thread
+	 * generating it might have gone away.
+	 */
+	if(tid_collision != -1)
+	{
+		reset(evt);
+#ifdef HAS_ANALYZER
+		m_inspector->m_tid_collisions.push_back(tid_collision);
+#endif
+		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
+		               tid_collision,
+		               tid_collision == child_tid ? child_tinfo->m_comm.c_str() : caller_tinfo->m_comm.c_str());
+	}
+
+	if(!thread_added)
+	{
+		delete child_tinfo;
+	}
+
+	/*=============================== ADD THREAD TO THE TABLE ===========================*/
+
+	return;
+}
+
+void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
+{
+	sinsp_evt_param* parinfo = nullptr;
+	uint16_t etype = evt->get_type();
+	int64_t child_tid = evt->get_tid();
+
+	int64_t tid_collision = -1;
+	bool valid_lookup_thread = true;
+
+	/* The clone child exit event has only 1 main purpose:
+	 * 1. create a new thread info for the child.
+	 */
+
+	/*=============================== CHILD ALREADY THERE ===========================*/
+
+	/* Before embarking on parsing the event, check if there's already
+	 * an entry in the thread table for this process. If there is one, make sure
+	 * it was created recently. Otherwise, assume it's an old thread for which
+	 * we lost the exit event and remove it from the table.
+	 * Please note that the thread info is associated with the event 
+	 * in `sinsp_parser::reset` method.
+	 */
+	if(evt->m_tinfo != nullptr && evt->m_tinfo->m_clone_ts != 0)
+	{
+		if(evt->get_ts() - evt->m_tinfo->m_clone_ts < CLONE_STALE_TIME_NS)
 		{
+			/* This is a valid thread-info, the caller populated it so we
+			 * have nothing to do here. Note that if we are in a container the caller
+			 * will never generate the child thread-info because it doesn't have
+			 * enough info. In all other cases the thread info created by the caller
+			 * should be already valid.
+			 */
 			return;
 		}
-		else
-		{
-			m_inspector->remove_thread(childtid, true);
-			tid_collision = true;
-		}
+
+		/* The info is too old, we remove it and create a new one */
+		m_inspector->remove_thread(child_tid, true);
+		tid_collision = child_tid;
+		evt->m_tinfo = nullptr;
 	}
 
-	//
-	// Allocate the new thread info and initialize it
-	// XXX this should absolutely not do a malloc, but get the item from a
-	// preallocated list
-	//
+	/*=============================== CHILD ALREADY THERE ===========================*/
+
+	/*=============================== CREATE NEW THREAD-INFO ===========================*/
+
+	/* We take this flow in the following situations:
+	 * - clone() returns in the child before then in the caller.
+	 *   This usually happens when we use the CAPTURE_SCHED_PROC_FORK logic
+	 *   because the child event is generated by the `sched_proc_fork`
+	 *   tracepoint. (Default behavior on arm64 and s390x)
+	 * - We dropped the clone exit event in the caller.
+	 * - The new process lives in a container.
+	 */
+
+	/* Allocate the new thread info and initialize it.
+	 * We must avoid `malloc` here and get the item from a preallocated list.
+	 */
 	sinsp_threadinfo* tinfo = m_inspector->build_threadinfo();
 
-	//
-	// Set the tid and parent tid
-	//
-	tinfo->m_tid = childtid;
-	tinfo->m_ptid = tid;
+	/* tid */
+	tinfo->m_tid = child_tid;
 
-	if(valid_parent)
-	{
-		// Copy the command name from the parent
-		tinfo->m_comm = ptinfo->m_comm;
-
-		// Copy the full executable name from the parent
-		tinfo->m_exe = ptinfo->m_exe;
-
-		// Copy the full executable path from the parent
-		tinfo->m_exepath = ptinfo->m_exepath;
-
-		// Copy the exe writable metadata from the parent
-		tinfo->m_exe_writable = ptinfo->m_exe_writable;
-
-		// Copy the exe upper layer metadata from the parent
-		tinfo->m_exe_upper_layer = ptinfo->m_exe_upper_layer;
-
-		// Copy the command arguments from the parent
-		tinfo->m_args = ptinfo->m_args;
-
-		// Copy the root from the parent
-		tinfo->m_root = ptinfo->m_root;
-
-		// Copy the session id from the parent
-		tinfo->m_sid = ptinfo->m_sid;
-
-		// Copy the process group id from the parent
-		tinfo->m_vpgid = ptinfo->m_vpgid;
-
-		tinfo->m_tty = ptinfo->m_tty;
-
-		tinfo->m_loginuser = ptinfo->m_loginuser;
-
-		// Copy the full sets of capabilities from the parent
-		tinfo->m_cap_permitted = ptinfo->m_cap_permitted;
-
-		tinfo->m_cap_inheritable = ptinfo->m_cap_inheritable;
-
-		tinfo->m_cap_effective = ptinfo->m_cap_effective;
-
-		// Copy full exe ino fields from parent
-		tinfo->m_exe_ino = ptinfo->m_exe_ino;
-
-		tinfo->m_exe_ino_ctime = ptinfo->m_exe_ino_ctime;
-
-		tinfo->m_exe_ino_mtime = ptinfo->m_exe_ino_mtime;
-
-		tinfo->m_exe_ino_ctime_duration_clone_ts = ptinfo->m_exe_ino_ctime_duration_clone_ts;
-
-		if(!(flags & PPM_CL_CLONE_THREAD))
-		{
-			tinfo->m_env = ptinfo->m_env;
-		}
-	}
-	else
-	{
-		//
-		// Parent is an invalid thread, which is strange since it's performing
-		// a clone. We try to remove and look it up in proc.
-		//
-		m_inspector->remove_thread(tid, true);
-		tid_collision = true;
-
-		ptinfo = m_inspector->get_thread_ref(tid,
-			true, true).get();
-
-		if(ptinfo == NULL)
-		{
-			//
-			// This can happen if the thread table has reached max capacity
-			//
-			ASSERT(false);
-			if (tid == evt->get_tid())
-			{
-				// remove_thread() above invalidated tinfo stored in child
-				evt->m_tinfo = NULL;
-			}
-			delete tinfo;
-			return;
-		}
-
-		if(ptinfo->m_comm != "<NA>" && ptinfo->m_user.uid != 0xffffffff)
-		{
-			//
-			// Parent found in proc, use its data
-			//
-			tinfo->m_comm = ptinfo->m_comm;
-			tinfo->m_exe = ptinfo->m_exe;
-			tinfo->m_exepath = ptinfo->m_exepath;
-			tinfo->m_args = ptinfo->m_args;
-			tinfo->m_root = ptinfo->m_root;
-			tinfo->m_sid = ptinfo->m_sid;
-			tinfo->m_vpgid = ptinfo->m_vpgid;
-			tinfo->m_tty = ptinfo->m_tty;
-			tinfo->m_loginuser = ptinfo->m_loginuser;
-			if(!(flags & PPM_CL_CLONE_THREAD))
-			{
-				tinfo->m_env = ptinfo->m_env;
-			}
-		}
-		else
-		{
-			//
-			// Parent not found in proc, use the event data.
-			// (The session id will remain unset)
-			//
-			parinfo = evt->get_param(1);
-			tinfo->m_exe = (char*)parinfo->m_val;
-
-			switch(etype)
-			{
-			case PPME_SYSCALL_CLONE_11_X:
-			case PPME_SYSCALL_CLONE_16_X:
-			case PPME_SYSCALL_FORK_X:
-			case PPME_SYSCALL_VFORK_X:
-				tinfo->m_comm = tinfo->m_exe;
-				break;
-			case PPME_SYSCALL_CLONE_17_X:
-			case PPME_SYSCALL_CLONE_20_X:
-			case PPME_SYSCALL_FORK_17_X:
-			case PPME_SYSCALL_FORK_20_X:
-			case PPME_SYSCALL_VFORK_17_X:
-			case PPME_SYSCALL_VFORK_20_X:
-			case PPME_SYSCALL_CLONE3_X:
-				parinfo = evt->get_param(13);
-				tinfo->m_comm = parinfo->m_val;
-				break;
-			default:
-				ASSERT(false);
-			}
-
-			parinfo = evt->get_param(2);
-			tinfo->set_args(parinfo->m_val, parinfo->m_len);
-
-			//
-			// Also, propagate the same values to the parent
-			//
-			ptinfo->m_comm = tinfo->m_comm;
-			ptinfo->m_exe = tinfo->m_exe;
-			ptinfo->m_exepath = tinfo->m_exepath;
-			ptinfo->set_args(parinfo->m_val, parinfo->m_len);
-		}
-	}
-
-	// Copy the pid
+	/* pid */
 	parinfo = evt->get_param(4);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo->m_pid = *(int64_t *)parinfo->m_val;
 
-	// Get the flags, and check if this is a thread or a new thread
-	tinfo->m_flags = flags;
+	/* ptid. */
+	parinfo = evt->get_param(5);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	tinfo->m_ptid = *(int64_t *)parinfo->m_val;
 
-	//
-	// If clone()'s PPM_CL_CLONE_THREAD is not set it means that a new
-	// thread was created. In that case, we set the pid to the one of the CHILD thread that
-	// is going to be created.
-	//
-	if(!(tinfo->m_flags & PPM_CL_CLONE_THREAD))
+	/* flags */
+	switch(etype)
 	{
-		tinfo->m_pid = childtid;
+	case PPME_SYSCALL_CLONE_11_X:
+		parinfo = evt->get_param(8);
+		break;
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_VFORK_X:
+		parinfo = evt->get_param(13);
+		break;
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		parinfo = evt->get_param(14);
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(15);
+		break;
+	default:
+		ASSERT(false);
+	}
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	tinfo->m_flags = *(uint32_t *)parinfo->m_val;
+
+	/* We add this custom `PPM_CL_CLONE_INVERTED` flag.
+	 * It means that we received the child event before the caller one and
+	 * it will notify the caller that it has to do nothing because we already
+	 * populated the thread info in the child.
+	 */
+	tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
+
+	/* Lookup the thread info of the leader thread if we are a new thread while if we are
+	 * a new process we copy it from the parent.
+	 * 
+	 * Note that the lookup thread could be different from the caller one!
+	 * If they are different we cannot completely trust the info we obtain from lookup thread
+	 * becuase they could stable! For example the caller may have called `prctl` changing its comm,
+	 * while the lookup thread still have the old `comm`.
+	 */
+	int64_t lookup_tid;
+
+	bool is_thread_leader = !(tinfo->m_flags & PPM_CL_CLONE_THREAD);
+	if(is_thread_leader)
+	{
+		/* We need to copy data from the parent */
+		lookup_tid = tinfo->m_ptid;
+	}
+	else
+	{
+		/* We need to copy data from the thread leader */
+		lookup_tid = tinfo->m_pid;
 	}
 
-	if(!(tinfo->m_flags & PPM_CL_CLONE_THREAD))
+	sinsp_threadinfo* lookup_tinfo = m_inspector->get_thread_ref(lookup_tid, true).get();
+	/* This happens only if we reach the max entries in our table otherwise we should obtain a new fresh empty
+	 * thread info to populate even if we are not able to recover any information!
+	 * If `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
+	 */
+	if(lookup_tinfo == nullptr)
 	{
-		//
-		// Copy the fd list
-		// XXX this is a gross oversimplification that will need to be fixed.
-		// What we do is: if the child is NOT a thread, we copy all the parent fds.
-		// The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
-		// syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
-		//
-		sinsp_fdtable* fd_table_ptr = ptinfo->get_fd_table();
-		if(fd_table_ptr == NULL)
-		{
-			ASSERT(false);
-			g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
-			return;
-		}
-
-		tinfo->m_fdtable = *(fd_table_ptr);
-
-		//
-		// Track down that those are cloned fds
-		//
-		for(auto fdit = tinfo->m_fdtable.m_table.begin(); fdit != tinfo->m_fdtable.m_table.end(); ++fdit)
-		{
-			fdit->second.set_is_cloned();
-		}
-
-		//
-		// It's important to reset the cache of the child thread, to prevent it from
-		// referring to an element in the parent's table.
-		//
-		tinfo->m_fdtable.reset_cache();
-
-		//
-		// Not a thread, copy cwd
-		//
-		tinfo->m_cwd = ptinfo->get_cwd();
-	}
-	//if((tinfo->m_flags & (PPM_CL_CLONE_FILES)))
-	//{
-	//    tinfo->m_fdtable = ptinfo.m_fdtable;
-	//}
-
-	if(is_inverted_clone)
-	{
-		tinfo->m_flags |= PPM_CL_CLONE_INVERTED;
+		/* Invalidate the thread_info associated with this event */
+		ASSERT(false);
+		evt->m_tinfo = nullptr;
+		delete tinfo;
+		return;
 	}
 
-	// Copy the command name
+   /* We have an invalid thread, which is strange since it's performing
+	* a clone. We try to remove and look it up in `/proc`.
+	* We need to check again in `/proc` because the first time we could
+	* have used stale info in our table.
+	*/
+	if(INVALID_THREAD_INFO(lookup_tinfo))
+	{
+		valid_lookup_thread = false;
+	}
+
+	/* We need to do this here, in this way we can use this info to populate the lookup thread
+	 * if it is invalid.
+	 */
+
+	/* exe */
 	parinfo = evt->get_param(1);
 	tinfo->m_exe = (char*)parinfo->m_val;
 
+	/* comm */
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1535,15 +1760,102 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
-	// Get the command arguments
+	/* args */
 	parinfo = evt->get_param(2);
 	tinfo->set_args(parinfo->m_val, parinfo->m_len);
 
-	// Copy the fdlimit
+	if(valid_lookup_thread)
+	{
+		/* Please note that these data could be wrong if the lookup thread
+		 * is not the caller! for example, if the child is created by a thread
+		 * the thread could have different info with respect to the thread leader, 
+		 * for example `comm` could be different! This is a sort of best effort
+		 * enrichment...
+		 */
+
+		tinfo->m_exepath = lookup_tinfo->m_exepath;
+
+		tinfo->m_exe_writable = lookup_tinfo->m_exe_writable;
+
+		tinfo->m_exe_upper_layer = lookup_tinfo->m_exe_upper_layer;
+
+		tinfo->m_root = lookup_tinfo->m_root;
+
+		tinfo->m_sid = lookup_tinfo->m_sid;
+
+		tinfo->m_vpgid = lookup_tinfo->m_vpgid;
+
+		tinfo->m_tty = lookup_tinfo->m_tty;
+
+		tinfo->m_loginuser = lookup_tinfo->m_loginuser;
+
+		tinfo->m_cap_permitted = lookup_tinfo->m_cap_permitted;
+
+		tinfo->m_cap_inheritable = lookup_tinfo->m_cap_inheritable;
+
+		tinfo->m_cap_effective = lookup_tinfo->m_cap_effective;
+
+		tinfo->m_exe_ino = lookup_tinfo->m_exe_ino;
+
+		tinfo->m_exe_ino_ctime = lookup_tinfo->m_exe_ino_ctime;
+
+		tinfo->m_exe_ino_mtime = lookup_tinfo->m_exe_ino_mtime;
+
+		tinfo->m_exe_ino_ctime_duration_clone_ts = lookup_tinfo->m_exe_ino_ctime_duration_clone_ts;
+
+		/* We are a new thread leader */
+		if(is_thread_leader)
+		{
+
+				tinfo->m_env = lookup_tinfo->m_env;
+
+				/* Copy the fd list:
+				* XXX this is a gross oversimplification that will need to be fixed.
+				* What we do is: if the child is NOT a thread, we copy all the parent fds.
+				* The right thing to do is looking at PPM_CL_CLONE_FILES, but there are
+				* syscalls like open and pipe2 that can override PPM_CL_CLONE_FILES with the O_CLOEXEC flag
+				*/
+				sinsp_fdtable* fd_table_ptr = lookup_tinfo->get_fd_table();
+				if(fd_table_ptr == NULL)
+				{
+					ASSERT(false);
+					g_logger.format(sinsp_logger::SEV_DEBUG, "cannot get fd table in sinsp_parser::parse_clone_exit.");
+					return;
+				}
+
+				tinfo->m_fdtable = *(fd_table_ptr);
+
+				/* Track down that those are cloned fds */
+				for(auto fdit = tinfo->m_fdtable.m_table.begin(); fdit != tinfo->m_fdtable.m_table.end(); ++fdit)
+				{
+					fdit->second.set_is_cloned();
+				}
+
+				/* It's important to reset the cache of the child thread, to prevent it from
+				* referring to an element in the parent's table.
+				*/
+				tinfo->m_fdtable.reset_cache();
+
+				/* Not a thread, copy cwd */
+				tinfo->m_cwd = lookup_tinfo->get_cwd();
+		}
+	}
+	else
+	{
+		/* Please note that here we shouldn't enrich the lookup thread state
+		 * if it is invalid since we have no info about it! `comm`, `exe`, ... could be different!
+		 * BTW if we don't update at least comm this thread will be invalid
+		 * every time we will get it, so we will remove it and recreate it every time, genereting some issues in the reparenting
+		 */
+		lookup_tinfo->m_comm = tinfo->m_comm;
+	}
+
+	/* fdlimit */
 	parinfo = evt->get_param(7);
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	tinfo->m_fdlimit = *(int64_t *)parinfo->m_val;
 
+	/* Generic memory info */
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1558,27 +1870,27 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	case PPME_SYSCALL_VFORK_17_X:
 	case PPME_SYSCALL_VFORK_20_X:
 	case PPME_SYSCALL_CLONE3_X:
-		// Get the pgflt_maj
+		/* pgflt_maj */
 		parinfo = evt->get_param(8);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		tinfo->m_pfmajor = *(uint64_t *)parinfo->m_val;
 
-		// Get the pgflt_min
+		/* pgflt_min */
 		parinfo = evt->get_param(9);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		tinfo->m_pfminor = *(uint64_t *)parinfo->m_val;
 
-		// Get the vm_size
+		/* vm_size */
 		parinfo = evt->get_param(10);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmsize_kb = *(uint32_t *)parinfo->m_val;
 
-		// Get the vm_rss
+		/* vm_rss */
 		parinfo = evt->get_param(11);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmrss_kb = *(uint32_t *)parinfo->m_val;
 
-		// Get the vm_swap
+		/* vm_swap */
 		parinfo = evt->get_param(12);
 		ASSERT(parinfo->m_len == sizeof(uint32_t));
 		tinfo->m_vmswap_kb = *(uint32_t *)parinfo->m_val;
@@ -1587,7 +1899,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		ASSERT(false);
 	}
 
-	// Copy the uid
+	/* uid */
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1615,7 +1927,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo->set_user(*(int32_t *)parinfo->m_val);
 
-	// Copy the gid
+	/* gid */
 	switch(etype)
 	{
 	case PPME_SYSCALL_CLONE_11_X:
@@ -1643,29 +1955,38 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	tinfo->set_group(*(int32_t *)parinfo->m_val);
 
-	//
-	// If we're in a container, vtid and vpid are
-	// initialized to the values coming from the event,
-	// otherwise they are just set to tid and pid. We can't
-	// use the event in that case because in a non-container
-	// case also the clone exit from the father can create a
-	// child process, and it doesn't have the right vtid and vpid
-	// values
-	//
-	if(in_container)
+	/* `vtid` and `vpid`
+	 * We preset these values for old scap-files compatibility.
+	 */
+	tinfo->m_vtid = tinfo->m_tid;
+	tinfo->m_vpid = -1;
+	switch(etype)
 	{
-		tinfo->m_vtid = vtid;
-		tinfo->m_vpid = vpid;
-	}
-	else
-	{
-		tinfo->m_vtid = tinfo->m_tid;
-		tinfo->m_vpid = tinfo->m_pid;
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(18);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		tinfo->m_vtid = *(int64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(19);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		tinfo->m_vpid = *(int64_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
 	}
 
-	//
-	// Set cgroups and heuristically detect container id
-	//
+	/* Set cgroups and heuristically detect container id */
 	switch(etype)
 	{
 		case PPME_SYSCALL_FORK_20_X:
@@ -1678,36 +1999,31 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 			break;
 	}
 
-	//
-	// Initialize the thread clone time
-	//
+	/* Initialize the thread clone time */
 	tinfo->m_clone_ts = evt->get_ts();
 
-	//
-	// Get pid namespace start ts - convert monotonic time in ns to epoch ts
-	//
-
+	/* Get pid namespace start ts - convert monotonic time in ns to epoch ts */
 	if(evt->get_num_params() > 20)
 	{
 		parinfo = evt->get_param(20);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
-		if (in_container)
+		/* If we are in container! */
+		if(tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS || tinfo->m_tid != tinfo->m_vtid)
 		{
 			tinfo->m_pidns_init_start_ts = *(uint64_t *)parinfo->m_val + m_inspector->m_machine_info->boot_ts_epoch;
-		} else
+		}
+		else
 		{
 			tinfo->m_pidns_init_start_ts = m_inspector->m_machine_info->boot_ts_epoch;
 		}
 	}
 
-	//
-	// Add the new thread to the table
-	//
+	/*=============================== CREATE NEW THREAD-INFO ===========================*/
+
+	/* Add the new thread to the table */
 	bool thread_added = m_inspector->add_thread(tinfo);
 
-	//
-	// Refresh user / loginuser / group
-	//
+	/* Refresh user / loginuser / group */
 	if(tinfo->m_container_id.empty() == false)
 	{
 		tinfo->set_user(tinfo->m_user.uid);
@@ -1715,34 +2031,69 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		tinfo->set_group(tinfo->m_group.gid);
 	}
 
-	//
-	// If there's a listener, invoke it
-	//
+	/* If there's a listener, invoke it */
 	if(m_fd_listener)
 	{
 		m_fd_listener->on_clone(evt, tinfo);
 	}
 
-	//
-	// If we had to erase a previous entry for this tid and rebalance the table,
-	// make sure we reinitialize the tinfo pointer for this event, as the thread
-	// generating it might have gone away.
-	//
-	if(tid_collision)
+	/* If we had to erase a previous entry for this tid and rebalance the table,
+	 * make sure we reinitialize the tinfo pointer for this event, as the thread
+	 * generating it might have gone away.
+	 */
+
+	if(tid_collision != -1)
 	{
 		reset(evt);
 #ifdef HAS_ANALYZER
-		m_inspector->m_tid_collisions.push_back(tinfo->m_tid);
+		m_inspector->m_tid_collisions.push_back(tid_collision);
 #endif
+		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
-		               tinfo->m_tid,
-		               tinfo->m_comm.c_str());
+		               tid_collision,
+		               lookup_tinfo->m_comm.c_str());
 	}
 
-	if (!thread_added) {
+	if(!thread_added)
+	{
 		delete tinfo;
 	}
 
+	/*=============================== CREATE NEW THREAD-INFO ===========================*/
+
+	return;
+}
+
+void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param* parinfo;
+	int64_t childtid;
+
+	//
+	// Validate the return value and get the child tid
+	//
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	if(parinfo->m_val == NULL)
+	{
+		return;
+	}
+	childtid = *(int64_t *)parinfo->m_val;
+	if(childtid < 0)
+	{
+		//
+		// clone() failed. Do nothing and keep going.
+		//
+		return;
+	}
+	else if(childtid == 0)
+	{
+		parse_clone_exit_child(evt);
+	}
+	else
+	{
+		parse_clone_exit_caller(evt, childtid);
+	}
 	return;
 }
 

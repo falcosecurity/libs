@@ -93,6 +93,8 @@ private:
 	//
 	// Parsers
 	//
+	void parse_clone_exit_child(sinsp_evt* evt);
+	void parse_clone_exit_caller(sinsp_evt* evt, int64_t child_tid);
 	void parse_clone_exit(sinsp_evt* evt);
 	void parse_execve_enter(sinsp_evt* evt);
 	void parse_execve_exit(sinsp_evt* evt);
