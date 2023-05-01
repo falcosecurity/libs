@@ -56,6 +56,8 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	"${TEST_PLUGINS}"
 )
 
+add_definitions(-DVISIBILITY_PRIVATE=)
+
 if(NOT MINIMAL_BUILD)
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
 endif()

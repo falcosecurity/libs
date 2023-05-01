@@ -26,6 +26,12 @@ limitations under the License.
 #include "strlcpy.h"
 #include "test_utils.h"
 
+#define DEFAULT_VALUE 0
+#define INIT_TID 1
+#define INIT_PID INIT_TID
+#define INIT_PTID 0
+#define UNUSED __attribute__((unused))
+
 class sinsp_with_test_input : public ::testing::Test {
 protected:
 	void SetUp() override
@@ -143,6 +149,57 @@ protected:
 		va_end(args2);
 		return event;
 	}
+
+	/*=============================== PROCESS GENERATION ===========================*/
+
+	sinsp_evt* generate_clone_x_event(int64_t retval, int64_t tid, int64_t pid, int64_t ppid, uint32_t flags = 0, int64_t vtid = DEFAULT_VALUE, int64_t vpid = DEFAULT_VALUE, std::string name = "bash")
+	{
+		if(vtid == DEFAULT_VALUE)
+		{
+			vtid = tid;
+		}
+
+		if(vpid == DEFAULT_VALUE)
+		{
+			vpid = pid;
+		}
+
+		/* Scaffolding needed to call the PPME_SYSCALL_CLONE_20_X */
+		uint64_t not_relevant_64 = 0;
+		uint32_t not_relevant_32 = 0;
+		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+		return add_event_advance_ts(increasing_ts(), tid, PPME_SYSCALL_CLONE_20_X, 20, retval, name.c_str(), empty_bytebuf, tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(), empty_bytebuf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
+	}
+
+	sinsp_evt* generate_execve_enter_and_exit_event(int64_t retval, int64_t old_tid, int64_t new_tid, int64_t pid, int64_t ppid, std::string filename = "/bin/test-exe")
+	{
+		/* Scaffolding needed to call the PPME_SYSCALL_EXECVE_19_X */
+		uint64_t not_relevant_64 = 0;
+		uint32_t not_relevant_32 = 0;
+		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+		add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, filename.c_str());
+		/* we have an `old_tid` and a `new_tid` because if a secondary thread calls the
+		 * execve the thread leader will take control so the `tid` between enter and exit event
+		 * will change
+		 * */
+		return add_event_advance_ts(increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 27, retval, filename.c_str(), empty_bytebuf, new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, filename.c_str(), empty_bytebuf, empty_bytebuf, not_relevant_32, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32);
+	}
+
+	void remove_thread(int64_t tid_to_remove)
+	{
+		/* Scaffolding needed to call the PPME_PROCEXIT_1_E */
+		int64_t not_relevant_64 = 0;
+		uint8_t not_relevant_8 = 0;
+
+		add_event_advance_ts(increasing_ts(), tid_to_remove, PPME_PROCEXIT_1_E, 4, not_relevant_64, not_relevant_64, not_relevant_8, not_relevant_8);
+		/* Since the removal is performed with the next event, we send a useless event
+		 * through init.
+		 */
+		add_event_advance_ts(increasing_ts(), INIT_TID, PPME_SYSCALL_GETCWD_E, 0);
+	}
+
+	/*=============================== PROCESS GENERATION ===========================*/
 
 	void add_thread(const scap_threadinfo &tinfo, const std::vector<scap_fdinfo> &fdinfos)
 	{

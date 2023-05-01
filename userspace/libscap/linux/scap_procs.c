@@ -1359,7 +1359,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	//
 	// No /proc parsing for offline captures
 	//
-	if(handle->m_mode == SCAP_MODE_CAPTURE)
+	if(handle->m_mode == SCAP_MODE_CAPTURE || handle->m_mode == SCAP_MODE_TEST)
 	{
 		return NULL;
 	}
