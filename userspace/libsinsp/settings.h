@@ -77,7 +77,7 @@ limitations under the License.
 //
 // The time after which a clone should be considered stale
 //
-#define CLONE_STALE_TIME_NS 2000000000
+#define CLONE_STALE_TIME_NS 2 * SECOND_TO_NS
 
 //
 // Port range to enable larger snaplen on
