@@ -161,7 +161,7 @@ TEST_F(sinsp_with_test_input, sockaddr_empty_param)
 	struct scap_const_sized_buffer socktuple_param;
 	socktuple_param.buf = NULL;
 	socktuple_param.size = 0;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, fd, socktuple_param);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 3, fd, socktuple_param, fd);
 	param = evt->get_param(1);
 	ASSERT_EQ(param->m_len, 0);
 
