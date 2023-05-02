@@ -1243,61 +1243,83 @@ TEST_F(sinsp_with_test_input, THRD_STATE_prctl_get_child_subreaper)
 
 /*=============================== PRCTL ===========================*/
 
-/*=============================== BROKEN CASES ===========================*/
+/*=============================== EXECVE ===========================*/
 
-TEST_F(sinsp_with_test_input, BROKEN_remove_thread_after_execve)
+TEST_F(sinsp_with_test_input, THRD_STATE_execve_from_a_not_leader_thread)
 {
-	add_default_init_thread();
-	open_inspector();
+	/* Instantiate the default tree */
+	DEFAULT_TREE
 
-	/* Init creates a new process p1 */
-	int64_t p1_t1_tid = 24;
-	int64_t p1_t1_pid = 24;
-	int64_t p1_t1_ptid = INIT_PID;
+	/* `p2_t2` calls an execve and `p2_t1` will take control in the exit event */
+	generate_execve_enter_and_exit_event(0, p2_t2_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
 
-	/* Child clone exit event */
-	generate_clone_x_event(0, p1_t1_tid, p1_t1_pid, p1_t1_ptid);
-	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid)
+	/* we should have just one thread alive, the leader one */
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
 
-	/* process p1 creates a new thread (p1_t2) */
-	int64_t p1_t2_tid = 30;
-	int64_t p1_t2_pid = p1_t1_pid;
-	int64_t p1_t2_ptid = INIT_PID;
+	/* we shouldn't be able to find old threads in the thread table */
+	sinsp_threadinfo* p2_t2_tinfo = m_inspector.get_thread_ref(p2_t2_tid, false).get();
+	ASSERT_FALSE(p2_t2_tinfo);
 
-	/* Child clone exit event */
-	generate_clone_x_event(0, p1_t2_tid, p1_t2_pid, p1_t2_ptid);
-	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
-
-	/* p1_t2 creates a new thread (p1_t3) */
-	int64_t p1_t3_tid = 36;
-	int64_t p1_t3_pid = p1_t1_pid;
-	int64_t p1_t3_ptid = INIT_PID;
-
-	/* Child clone exit event */
-	generate_clone_x_event(0, p1_t3_tid, p1_t3_pid, p1_t3_ptid);
-	ASSERT_THREAD_INFO_PIDS(p1_t3_tid, p1_t3_pid, p1_t3_ptid)
-
-	/* p1_t2 calls an execve */
-	generate_execve_enter_and_exit_event(0, p1_t2_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid);
-
-	/* Here we still have the thread info of `p1_t2_tid` */
-	sinsp_threadinfo* p1_t2_tinfo = m_inspector.get_thread_ref(p1_t2_tid, false, true).get();
-	ASSERT_TRUE(p1_t2_tinfo);
-
-	/* At the next event we should remove the thread info of `p1_t2_tid`.
-	 * `PPME_SYSCALL_UNLINK_2_E` is just a random event in this case.
-	 */
-	add_event_advance_ts(increasing_ts(), p1_t1_tid, PPME_SYSCALL_UNLINK_2_E, 0);
-
-	p1_t2_tinfo = m_inspector.get_thread_ref(p1_t2_tid, false, true).get();
-	ASSERT_FALSE(p1_t2_tinfo);
-
-	/* Please note that we still have the thread info of `p1_t3` when we should remove it */
-	sinsp_threadinfo* p1_t3_tinfo = m_inspector.get_thread_ref(p1_t3_tid, false, true).get();
-	ASSERT_TRUE(p1_t3_tinfo);
-	GTEST_SKIP() << "The expected behavior is correct but we need to remove all threads! Moreover, "
-			"if the main thread performs the execve does someone remove all other threads?";
+	sinsp_threadinfo* p2_t3_tinfo = m_inspector.get_thread_ref(p2_t3_tid, false).get();
+	ASSERT_FALSE(p2_t3_tinfo);
 }
+
+TEST_F(sinsp_with_test_input, THRD_STATE_execve_from_a_leader_thread)
+{
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* `p2_t1` calls an execve */
+	generate_execve_enter_and_exit_event(0, p2_t1_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
+
+	/* we should have just one thread alive, the leader one */
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
+
+	/* we shouldn't be able to find old threads in the thread table */
+	sinsp_threadinfo* p2_t2_tinfo = m_inspector.get_thread_ref(p2_t2_tid, false).get();
+	ASSERT_FALSE(p2_t2_tinfo);
+
+	sinsp_threadinfo* p2_t3_tinfo = m_inspector.get_thread_ref(p2_t3_tid, false).get();
+	ASSERT_FALSE(p2_t3_tinfo);
+}
+
+TEST_F(sinsp_with_test_input, THRD_STATE_execve_from_a_not_leader_thread_with_a_child)
+{
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* Create a child for `p2t3` */
+	int64_t p7_t1_tid = 100;
+	UNUSED int64_t p7_t1_pid = 100;
+	UNUSED int64_t p7_t1_ptid = p2_t3_tid;
+
+	generate_clone_x_event(p7_t1_tid, p2_t3_tid, p2_t3_pid, p2_t3_ptid);
+
+	ASSERT_THREAD_CHILDREN(p2_t3_tid, 1, 1, p7_t1_tid);
+
+	/* Right now `p2_t1` has just one child */
+	ASSERT_THREAD_CHILDREN(p2_t1_tid, 1, 1, p3_t1_tid);
+
+	/* `p2_t2` calls an execve and `p2_t1` will take control in the exit event */
+	generate_execve_enter_and_exit_event(0, p2_t2_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
+
+	/* we should have just one thread alive, the leader one */
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t1_tid);
+
+	/* we shouldn't be able to find old threads in the thread table */
+	sinsp_threadinfo* p2_t2_tinfo = m_inspector.get_thread_ref(p2_t2_tid, false).get();
+	ASSERT_FALSE(p2_t2_tinfo);
+
+	sinsp_threadinfo* p2_t3_tinfo = m_inspector.get_thread_ref(p2_t3_tid, false).get();
+	ASSERT_FALSE(p2_t3_tinfo);
+
+	/* Now the father of `p7_t1` should be `p2_t1` */
+	ASSERT_THREAD_CHILDREN(p2_t1_tid, 2, 2, p3_t1_tid, p7_t1_tid);
+}
+
+/*=============================== EXECVE ===========================*/
+
+/*=============================== BROKEN CASES ===========================*/
 
 TEST_F(sinsp_with_test_input, BROKEN_missing_both_clone_events_create_leader_thread)
 {

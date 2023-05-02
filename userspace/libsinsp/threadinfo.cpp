@@ -1111,28 +1111,6 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 	}
 }
 
-void sinsp_threadinfo::set_exec_enter_tid(int64_t tid)
-{
-	m_exec_enter_tid.reset(new int64_t(tid));
-}
-
-bool sinsp_threadinfo::get_exec_enter_tid(int64_t* tid)
-{
-	if(m_exec_enter_tid == NULL)
-	{
-		return false;
-	}
-
-	*tid = *(m_exec_enter_tid.get());
-
-	return true;
-}
-
-void sinsp_threadinfo::clear_exec_enter_tid()
-{
-	m_exec_enter_tid = NULL;
-}
-
 void sinsp_threadinfo::populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo)
 {
 	cmdline = tinfo->get_comm();
