@@ -892,6 +892,7 @@ std::string sinsp_threadinfo::get_cwd()
 	}
 	else
 	{
+		///todo(@Andreagit97) not sure we want to return "./" it seems like a valid path
 		ASSERT(false);
 		return "./";
 	}
@@ -1607,6 +1608,48 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	return m_threadtable.get(1);	
 }
 
+void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread)
+{
+	///todo(@Andreagit97): all this logic is useful only if we have a `m_fd_listener`
+	///we could avoid it if not present.
+	
+	/* Please note that the main thread is not always here, it is possible
+	 * that for some reason we lose it!
+	 */
+	if(main_thread == nullptr)
+	{
+		return;
+	}
+	
+	sinsp_fdtable* fd_table_ptr = main_thread->get_fd_table();
+	if(fd_table_ptr == nullptr)
+	{
+		return;
+	}
+
+	std::unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(fd_table_ptr->m_table);
+
+	erase_fd_params eparams;
+	eparams.m_remove_from_table = false;
+	eparams.m_tinfo = main_thread;
+	eparams.m_ts = m_inspector->m_lastevent_ts;
+
+	for(auto fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
+	{
+		eparams.m_fd = fdit->first;
+
+		//
+		// The canceled fd should always be deleted immediately, so if it appears
+		// here it means we have a problem.
+		//
+		ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
+		eparams.m_fdinfo = &(fdit->second);
+
+		/* Here we are just calling the `on_erase` callback */
+		m_inspector->m_parser->erase_fd(&eparams);
+	}
+}
+
 /* We use `force` when we have a stale thread in the table, we know it is stale
  * because we have a thread with the same `tid` and this is not possible unless
  * the old one is dead.
@@ -1624,20 +1667,24 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		return;
 	}
 
-	///todo(@Andreagit97): before implementing this we need to fix the fdtable management
-	/* This is probably due to a missing proc_exit */
-	if(force)
-	{
-
-	}
 
 	/* All threads should have a m_tginfo a part from the invalid ones which don't have a group.
 	 * We still need to understand if we need invalid thread info.
+	 *
+     * The main thread remains in our thread table even if it is dead so we need to be sure
+	 * that calling this method more than one time with the main thread is safe. We don't decrement
+	 * the counter 2 times.
 	 */
-	if(thread_to_remove->m_tginfo != nullptr)
+	if(thread_to_remove->m_tginfo != nullptr && !thread_to_remove->is_dead())
 	{
+		/* we should decrement only if the thread is alive 
+		 * Probably we need another/new flag
+		 */
 		thread_to_remove->m_tginfo->decrement_thread_count();
 	}
+
+	/* we could set it just one time but it's ok to set it every time */
+	thread_to_remove->set_dead();
 
 	/* Check if we have children, even if `size!=0`
 	 * all children could be dead, but not sure if we want
@@ -1650,43 +1697,30 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		thread_to_remove->assign_children_to_reaper(reaper);
 	}
 
-	/* Please note that the main thread is not always here, it is possible
-	 * that for some reason we lose it!
-	 */
-	if(thread_to_remove->m_tginfo->get_thread_count() == 0)
+	if((thread_to_remove->m_tginfo->get_thread_count() == 0))
 	{
-		///todo(@Andreagit97) add the `CLONE_FILES` flag in all threads that are not the leader!
-		/* this is a thread so we should return the fdtable of the main thread here */
-		sinsp_fdtable* fd_table_ptr = thread_to_remove->get_fd_table();
-		/* If the main thread is not there we have an empty fdtable for threads */
-		if(fd_table_ptr != NULL)
-		{
-			std::unordered_map<int64_t, sinsp_fdinfo_t>* fdtable = &(fd_table_ptr->m_table);
+		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
 
-			erase_fd_params eparams;
-			eparams.m_remove_from_table = false;
-			eparams.m_tinfo = thread_to_remove->get_main_thread();
-			eparams.m_ts = m_inspector->m_lastevent_ts;
-
-			for(auto fdit = fdtable->begin(); fdit != fdtable->end(); ++fdit)
-			{
-				eparams.m_fd = fdit->first;
-
-				//
-				// The canceled fd should always be deleted immediately, so if it appears
-				// here it means we have a problem.
-				//
-				ASSERT(eparams.m_fd != CANCELED_FD_NUMBER);
-				eparams.m_fdinfo = &(fdit->second);
-
-				m_inspector->m_parser->erase_fd(&eparams);
-			}
-		
-		}
-
-		/* we remove the main thread and the fdtable and the thread group */
+		/* we remove the main thread and the thread group */
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
+	}
+
+	/* if `force==true` and we are the main thread and we are not the last thread of the group 
+	 * we need to remove ourselves and the fdtable. Please note that if we are the last thread
+	 * of the group we have already done it in the previous switch.
+	 * 
+	 * Probably we need to change this logic, here we are removing the fdtable even if other threads
+	 * of the group are still alive, in this way, they can no more access the shared fdtable!
+	 * 
+	 * `force==true` for not main threads do nothing!
+	 */
+	if(force &&
+	   thread_to_remove->is_main_thread() &&
+	   thread_to_remove->m_tginfo->get_thread_count() != 0)
+	{
+		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
+		m_threadtable.erase(tid);
 	}
 
 	if(!thread_to_remove->is_main_thread())
@@ -1720,7 +1754,6 @@ void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 	}
 }
 
-// todo(@Andreagit97) This could be removed after we introduce shared_ptr!
 void sinsp_thread_manager::reset_child_dependencies()
 {
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {

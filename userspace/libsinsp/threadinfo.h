@@ -516,7 +516,7 @@ public: // types required for use in sets
 
 VISIBILITY_PROTECTED
 	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
-	 * is specified.
+	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
 	 */
 	inline sinsp_fdtable* get_fd_table()
 	{
@@ -753,6 +753,7 @@ public:
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
+	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
