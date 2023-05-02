@@ -554,7 +554,6 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing)
 	ASSERT_EQ(get_field_as_string(evt, "fd.rport"), port_client_string);
 	ASSERT_EQ(get_field_as_string(evt, "fd.lport"), port_server_string);
 
-	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser flow is truncated */
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
 	ASSERT_STREQ(fdinfo->m_name.c_str(), fdname.c_str());
@@ -567,4 +566,51 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing)
 
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_dport, std::stoi(port_server_string));
 	ASSERT_EQ(fdinfo->m_sockinfo.m_ipv4info.m_fields.m_sport, std::stoi(port_client_string));
+}
+
+/*
+ * Test that old connect exit event without the third `fd` argument
+ * were not able to load fd related data if connect enter was dropped.
+ */
+TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exit)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	sinsp_fdinfo_t* fdinfo = NULL;
+	int64_t client_fd = 7;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
+
+	int port_client = 12;
+	std::string ipv4_client = "80.9.11.45";
+	std::string port_client_string = "12";
+	sockaddr_in client = test_utils::fill_sockaddr_in(port_client, ipv4_client.c_str());
+
+	int port_server = 25632;
+	std::string ipv4_server = "152.40.111.222";
+	std::string port_server_string = "25632";
+	sockaddr_in server = test_utils::fill_sockaddr_in(port_server, ipv4_server.c_str());
+
+	/* We dropped connect enter! */
+
+	/* We read an old scap file with a connect exit event with just 2 params (no fd!) */
+	std::vector<uint8_t> socktuple = test_utils::pack_socktuple(reinterpret_cast<sockaddr*>(&client), reinterpret_cast<sockaddr*>(&server));
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_CONNECT_X, 2, return_value, scap_const_sized_buffer{socktuple.data(), socktuple.size()});
+
+	/* Check that we are not able to load any info */
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "");
+	EXPECT_THROW(get_field_as_string(evt, "fd.sip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lip"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.cport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.sport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.lport"), sinsp_exception);
+	EXPECT_THROW(get_field_as_string(evt, "fd.rport"), sinsp_exception);
+
+	/* The parser is not able to obtain an updated fdname because the syscall fails and the parser flow is truncated */
+	fdinfo = evt->get_fd_info();
+	ASSERT_EQ(fdinfo, nullptr);
 }
