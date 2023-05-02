@@ -299,7 +299,12 @@ static __always_inline u64 extract__capability(struct task_struct *task, enum ca
 		break;
 	}
 
-	return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
+	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
+	{
+		return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
+	}
+	kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
+	return capabilities_to_scap(((unsigned long)new_cap->val));
 }
 
 /////////////////////////
@@ -874,15 +879,32 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 
 	kernel_cap_t cap_struct = {0};
 	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
-	if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
+	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
 	{
-		return true;
-	}
+		if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
+		{
+			return true;
+		}
 
-	/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
-	if(cap_raised(cap_struct, CAP_FOWNER) && kuid_mapped)
+		/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
+		if(cap_raised(cap_struct, CAP_FOWNER) && kuid_mapped)
+		{
+			return true;
+		}
+	}
+	else
 	{
-		return true;
+		kernel_cap_t___v6_3 *new_cap = (kernel_cap_t___v6_3 *)&cap_struct;
+		if(cap_raised___v6_3(*new_cap, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
+		{
+			return true;
+		}
+
+		/* Check if the user is capable. Even if it doesn't own the file or the read bits are not set, root with CAP_FOWNER can do what it wants. */
+		if(cap_raised___v6_3(*new_cap, CAP_FOWNER) && kuid_mapped)
+		{
+			return true;
+		}
 	}
 
 	return false;
