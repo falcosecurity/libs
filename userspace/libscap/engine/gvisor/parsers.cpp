@@ -641,9 +641,10 @@ static parse_result parse_connect(const char *proto, size_t proto_size, scap_siz
 			return ret;
 		}
 
-		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_X, 2,
+		ret.status = scap_event_encode_params(scap_buf, &ret.size, scap_err, PPME_SOCKET_CONNECT_X, 3,
 								gvisor_evt.exit().result(),
-								scap_const_sized_buffer{targetbuf, size});
+								scap_const_sized_buffer{targetbuf, size},
+						                gvisor_evt.fd());
 		if (ret.status != SCAP_SUCCESS) {
 			ret.error = scap_err;
 			return ret;
