@@ -19,6 +19,7 @@ limitations under the License.
 #include "state/static_struct.h"
 #include "state/dynamic_struct.h"
 #include "state/table_registry.h"
+#include "sinsp.h"
 
 TEST(typeinfo, basic_tests)
 {
@@ -260,4 +261,82 @@ TEST(table_registry, defs_and_access)
     ASSERT_EQ(r.get_table<uint64_t>("sample"), &t);
     ASSERT_ANY_THROW(r.add_table(&t)); // double registration
     ASSERT_ANY_THROW(r.get_table<int>("sample")); // bad key type
+}
+
+TEST(thread_manager, table_access)
+{
+    // note: used for regression checks, keep this updated as we make
+    // new fields available
+    static const int s_threadinfo_static_fields_count = 20;
+
+    sinsp inspector;
+    sinsp_thread_manager manager(&inspector);
+    auto table = static_cast<libsinsp::state::table<int64_t>*>(&manager);
+    
+    // empty table state and info
+    ASSERT_EQ(table->name(), "threads");
+    ASSERT_EQ(table->key_info(), libsinsp::state::typeinfo::of<int64_t>());
+    ASSERT_EQ(table->static_fields(), sinsp_threadinfo().static_fields());
+    ASSERT_NE(table->dynamic_fields(), nullptr);
+    ASSERT_EQ(table->dynamic_fields()->fields().size(), 0);
+    ASSERT_EQ(table->entries_count(), 0);
+    ASSERT_EQ(table->get_entry(999), nullptr);
+    ASSERT_EQ(table->erase_entry(999), false);
+
+    // create and add a thread
+    auto newt = table->new_entry();
+    auto newtinfo = dynamic_cast<sinsp_threadinfo*>(newt.get());
+    auto tid_acc = newt->static_fields().at("tid").new_accessor<int64_t>();
+    auto comm_acc = newt->static_fields().at("comm").new_accessor<std::string>();
+    ASSERT_NE(newtinfo, nullptr);
+    ASSERT_EQ(newt->dynamic_fields(), table->dynamic_fields());
+    ASSERT_EQ(newt->static_fields(), table->static_fields());
+    ASSERT_EQ(newt->static_fields().size(), s_threadinfo_static_fields_count);
+    newtinfo->m_tid = 999;
+    newtinfo->m_comm = "test";
+    ASSERT_EQ(newt->get_static_field(tid_acc), (int64_t) 999);
+    ASSERT_EQ(newt->get_static_field(comm_acc), "test");
+    ASSERT_NO_THROW(table->add_entry(999, std::move(newt)));
+    ASSERT_EQ(table->entries_count(), 1);
+    auto addedt = table->get_entry(999);
+    ASSERT_NE(addedt, nullptr);
+    ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t) 999);
+    ASSERT_EQ(addedt->get_static_field(comm_acc), "test");
+
+    // add a dynamic field to table
+    auto dynf_acc = table->dynamic_fields()->add_field<std::string>("some_new_field").new_accessor<std::string>();
+    ASSERT_EQ(table->dynamic_fields()->fields().size(), 1);
+    ASSERT_EQ(addedt->dynamic_fields()->fields().size(), 1);
+    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "");
+    addedt->set_dynamic_field(dynf_acc, std::string("hello"));
+    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "hello");
+
+    // add another thread
+    newt = table->new_entry();
+    newt->set_static_field(tid_acc, (int64_t) 1000);
+    ASSERT_NO_THROW(table->add_entry(1000, std::move(newt)));
+    addedt = table->get_entry(1000);
+    ASSERT_EQ(addedt->get_static_field(tid_acc), (int64_t) 1000);
+    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "");
+    addedt->set_dynamic_field(dynf_acc, std::string("world"));
+    ASSERT_EQ(addedt->get_dynamic_field(dynf_acc), "world");
+
+    // loop over entries
+    int count = 0;
+    table->foreach_entry([&count, tid_acc](libsinsp::state::table_entry &e) {
+        auto tid = e.get_static_field(tid_acc);
+        if (tid == 999 || tid == 1000)
+        {
+            count++;
+        }
+        return true;
+    });
+    ASSERT_EQ(count, 2);
+
+    // remove and clear entries
+    ASSERT_EQ(table->entries_count(), 2);
+    ASSERT_EQ(table->erase_entry(1000), true);
+    ASSERT_EQ(table->entries_count(), 1);
+    table->clear_entries();
+    ASSERT_EQ(table->entries_count(), 0);
 }
