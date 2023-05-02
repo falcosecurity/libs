@@ -1400,6 +1400,7 @@ cgroups_error:
 						if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 						{
 							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
+							unsigned long has_upper = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 							if(oe->__upperdentry)
 							{
@@ -1416,9 +1417,9 @@ cgroups_error:
 							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-							unsigned long has_upper = oe->has_upper;
+							has_upper = oe->has_upper;
 #else
-							unsigned long has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
+							has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
 #endif
 
 							if(*upper_dentry && (has_upper || disconnected))
@@ -7659,6 +7660,7 @@ cgroups_error:
 					if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
 					{
 							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
+							unsigned long has_upper = 0;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
 							if(oe->__upperdentry)
 							{
@@ -7675,9 +7677,9 @@ cgroups_error:
 							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-							unsigned long has_upper = oe->has_upper;
+							has_upper = oe->has_upper;
 #else
-							unsigned long has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
+							has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
 #endif
 
 							if(*upper_dentry && (has_upper || disconnected))
