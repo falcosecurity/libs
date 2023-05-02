@@ -67,7 +67,6 @@ void sinsp_threadinfo::init()
 	m_clone_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
-	m_nchilds = 0;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
 	m_vmrss_kb = 0;
@@ -435,7 +434,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vmswap_kb = pi->vmswap_kb;
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
-	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	m_pidns_init_start_ts = pi->pidns_init_start_ts;
@@ -2032,7 +2030,6 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             newti->m_exe = "<NA>";
             newti->m_user.uid = 0xffffffff;
             newti->m_group.gid = 0xffffffff;
-            newti->m_nchilds = 0;
             newti->m_loginuser.uid = 0xffffffff;
         }
 

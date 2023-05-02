@@ -401,7 +401,6 @@ public:
 	uint64_t m_exe_ino_mtime; ///< executable inode mtime (last modification time)
 	uint64_t m_exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
 	uint64_t m_exe_ino_ctime_duration_pidns_start; ///< duration in ns between pidns start ts and executable inode ctime (last status change time) if pidns start predates ctime
-	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).

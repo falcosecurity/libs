@@ -842,9 +842,6 @@ int lua_cbacks::get_thread_table_int(lua_State *ls, bool include_fds, bool bareb
 			lua_pushliteral(ls, "gid");
 			lua_pushnumber(ls, (uint32_t)tinfo.m_group.gid);
 			lua_settable(ls, -3);
-			lua_pushliteral(ls, "nchilds");
-			lua_pushnumber(ls, (uint32_t)tinfo.m_nchilds);
-			lua_settable(ls, -3);
 			lua_pushliteral(ls, "vmsize_kb");
 			lua_pushnumber(ls, (uint32_t)tinfo.m_vmsize_kb);
 			lua_settable(ls, -3);
