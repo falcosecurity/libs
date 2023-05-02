@@ -99,7 +99,7 @@ public:
             {
                 throw sinsp_exception(
                     "incompatible type for static struct field accessor: field=" + m_name
-                    + ", expected_type=" + info().name() + ", actual_type=" + t.name());
+                    + ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
             }
             return field_accessor<T>(*this);
         }
