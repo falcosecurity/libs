@@ -299,6 +299,8 @@ static __always_inline u64 extract__capability(struct task_struct *task, enum ca
 		break;
 	}
 
+	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to u64.
+	// Luckily enough, it also changed field name from cap to val.
 	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
 	{
 		return capabilities_to_scap(((unsigned long)cap_struct.cap[1] << 32) | cap_struct.cap[0]);
@@ -879,6 +881,8 @@ static __always_inline bool extract__exe_writable(struct task_struct *task, stru
 
 	kernel_cap_t cap_struct = {0};
 	READ_TASK_FIELD_INTO(&cap_struct, task, cred, cap_effective);
+	// Kernel 6.3 changed the kernel_cap_struct type from u32[2] to u64.
+	// Luckily enough, it also changed field name from cap to val.
 	if(bpf_core_field_exists(((struct kernel_cap_struct *)0)->cap))
 	{
 		if(cap_raised(cap_struct, CAP_DAC_OVERRIDE) && kuid_mapped && kgid_mapped)
