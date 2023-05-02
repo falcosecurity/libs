@@ -82,9 +82,9 @@ typedef struct thread_group_info
 		return m_reaper;
 	}
 
-	inline void set_reaper()
+	inline void set_reaper(bool reaper)
 	{
-		m_reaper = true;
+		m_reaper = reaper;
 	}
 
 	inline int64_t get_tgroup_pid() const

@@ -1011,7 +1011,7 @@ TEST_F(sinsp_with_test_input, THRD_STATE_traverse_default_tree)
 
 	/* Set p2_t1 group as reaper, emulate prctl */
 	auto tginfo = m_inspector.m_thread_manager->get_thread_group_info(p2_t1_pid).get();
-	tginfo->set_reaper();
+	tginfo->set_reaper(true);
 
 	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 3, true, 3, 3, p2_t1_tid, p2_t2_tid, p2_t3_tid)
 
@@ -1139,6 +1139,109 @@ TEST_F(sinsp_with_test_input, THRD_STATE_force_remove_with_no_leader_threads)
 }
 
 /*=============================== FDTABLE ===========================*/
+
+/*=============================== PRCTL ===========================*/
+
+TEST_F(sinsp_with_test_input, THRD_STATE_failed_prctl)
+{
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* FAILED PPM_PR_SET_CHILD_SUBREAPER */
+
+	/* p2_t2 is not a reaper and shouldn't become it after this call */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+
+	/* Let's imagine a prctl is called on `p2_t2` but it fails */
+	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)-1,
+			     PPM_PR_SET_CHILD_SUBREAPER, "<NA>", (int64_t)1);
+
+	/* p2_t2 is not a reaper and shouldn't become it after this call */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+
+	/* FAILED PPM_PR_GET_CHILD_SUBREAPER */
+
+	/* Same thing for a failed prctl get */
+	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)-1,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)1);
+
+	/* p2_t2 is not a reaper and shouldn't become it after this call */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+
+	/* INVALID THREAD INFO */
+
+	/* this time the prctl call is successful but we call it from an invalid thread.
+	 * Our logic will generate an invalid thread info, but this shouldn't have a valid tginfo so nothing should
+	 * happen.
+	 */
+	int64_t invalid_tid = 61004;
+	add_event_advance_ts(increasing_ts(), invalid_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)1);
+
+	sinsp_threadinfo* invalid_tid_tinfo = m_inspector.get_thread_ref(invalid_tid, false).get();
+	ASSERT_TRUE(invalid_tid_tinfo);
+	ASSERT_FALSE(invalid_tid_tinfo->m_tginfo);
+
+	/* UNKNOWN prctl option */
+
+	/* Nothing should happen */
+	add_event_advance_ts(increasing_ts(), invalid_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0, PPM_PR_SET_NAME, "<NA>",
+			     (int64_t)1);
+}
+
+TEST_F(sinsp_with_test_input, THRD_STATE_prctl_set_child_subreaper)
+{
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* SET CHILD_SUBREAPER */
+
+	/* p2_t2 is not a reaper and should become it after this call */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+
+	/* Let's imagine a prctl is called on `p2_t2` */
+	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_SET_CHILD_SUBREAPER, "<NA>", (int64_t)1);
+
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, true, 3, 3);
+
+	/* UNSET CHILD_SUBREAPER */
+
+	/* Let's imagine `p2_t3` unset its group with a prctl call */
+	add_event_advance_ts(increasing_ts(), p2_t3_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_SET_CHILD_SUBREAPER, "<NA>", (int64_t)0);
+
+	/* p2_t2 group should have reaper==false */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+}
+
+TEST_F(sinsp_with_test_input, THRD_STATE_prctl_get_child_subreaper)
+{
+	/* Instantiate the default tree */
+	DEFAULT_TREE
+
+	/* SET CHILD_SUBREAPER */
+
+	/* p2_t2 is not a reaper and should become it after this call */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+
+	/* Let's imagine a prctl is called on `p2_t2` */
+	add_event_advance_ts(increasing_ts(), p2_t2_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)1);
+
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, true, 3, 3);
+
+	/* UNSET CHILD_SUBREAPER */
+
+	/* Let's imagine `p2_t3` unset its group with a prctl call */
+	add_event_advance_ts(increasing_ts(), p2_t3_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)0);
+
+	/* p2_t2 group should have reaper==false */
+	ASSERT_THREAD_GROUP_INFO(p2_t2_pid, 3, false, 3, 3);
+}
+
+/*=============================== PRCTL ===========================*/
 
 /*=============================== BROKEN CASES ===========================*/
 

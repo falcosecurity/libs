@@ -506,6 +506,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_GROUP_DELETED_E:
 		parse_group_evt(evt);
 		break;
+	case PPME_SYSCALL_PRCTL_X:
+		parse_prctl_exit_event(evt);
+		break;		
 	default:
 		break;
 	}
@@ -5997,6 +6000,64 @@ void sinsp_parser::parse_cpu_hotplug_enter(sinsp_evt *evt)
 				      " configuration change detected. Aborting.");
 	}
 }
+
+void sinsp_parser::parse_prctl_exit_event(sinsp_evt *evt)
+{
+	sinsp_evt_param* parinfo = nullptr;
+	int64_t caller_tid = evt->get_tid();
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	int64_t retval = *(int64_t *)parinfo->m_val;
+
+	if(retval < 0)
+	{
+		/* we are not interested in parsing something if the syscall fails */
+		return;
+	}
+
+	/* prctl could be called by the main thread but also by a secondary thread */
+	auto caller_tinfo = m_inspector->get_thread_ref(caller_tid, true);
+	/* only invalid threads have `caller_tinfo->m_tginfo == nullptr` */
+	if(caller_tinfo == nullptr || caller_tinfo->m_tginfo == nullptr)
+	{
+		return;
+	}
+
+	bool child_subreaper = false;
+
+	/* Parameter 2: option (type: PT_ENUMFLAGS32) */
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	uint32_t option = *(uint32_t *)parinfo->m_val;
+	switch(option)
+	{
+		case PPM_PR_SET_CHILD_SUBREAPER:
+			/* Parameter 4: arg2_int (type: PT_INT64) */
+			parinfo = evt->get_param(3);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			/* If the user provided an arg2 != 0, we set the child_subreaper
+			 * attribute for the calling process. If arg2 is zero, unset the attribute
+			 */
+			child_subreaper = (*(int64_t *)parinfo->m_val) != 0 ? true : false;
+			caller_tinfo->m_tginfo->set_reaper(child_subreaper);
+			break;
+
+		case PPM_PR_GET_CHILD_SUBREAPER:
+			/* Parameter 4: arg2_int (type: PT_INT64) */
+			parinfo = evt->get_param(3);
+			ASSERT(parinfo->m_len == sizeof(int64_t));
+			/* arg2 != 0 means the calling process is a child_subreaper */
+			child_subreaper = (*(int64_t *)parinfo->m_val) != 0 ? true : false;
+			caller_tinfo->m_tginfo->set_reaper(child_subreaper);
+			break;
+
+		default:
+			break;
+	}
+}
+
 
 uint8_t* sinsp_parser::reserve_event_buffer()
 {
