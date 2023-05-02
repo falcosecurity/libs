@@ -35,6 +35,7 @@ struct iovec {
 #include <set>
 #include "fdinfo.h"
 #include "internal_metrics.h"
+#include "state/table.h"
 
 class sinsp_delays_info;
 class sinsp_tracerparser;
@@ -64,10 +65,12 @@ typedef struct erase_fd_params
   \note sinsp_threadinfo is also used to keep process state. For the sinsp
    library, a process is just a thread with TID=PID.
 */
-class SINSP_PUBLIC sinsp_threadinfo
+class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::table_entry
 {
 public:
-	sinsp_threadinfo(sinsp *inspector = nullptr);
+	sinsp_threadinfo(
+		sinsp *inspector = nullptr,
+		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
 
 	/*!
@@ -610,7 +613,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 // This class manages the thread table
 ///////////////////////////////////////////////////////////////////////////////
-class SINSP_PUBLIC sinsp_thread_manager
+class SINSP_PUBLIC sinsp_thread_manager: public libsinsp::state::table<int64_t>
 {
 public:
 	sinsp_thread_manager(sinsp* inspector);
@@ -682,6 +685,65 @@ public:
 
 	void set_m_max_n_proc_lookups(int32_t val) { m_max_n_proc_lookups = val; }
 	void set_m_max_n_proc_socket_lookups(int32_t val) { m_max_n_proc_socket_lookups = val; }
+
+	// ---- libsinsp::state::table implementation ----
+
+	size_t entries_count() const override
+	{
+		return m_threadtable.size();
+	}
+
+	void clear_entries() override
+	{
+		m_threadtable.clear();
+	}
+
+	std::unique_ptr<libsinsp::state::table_entry> new_entry() const override;
+
+	bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
+	{
+		return m_threadtable.loop([&pred](sinsp_threadinfo& e){ return pred(e); });
+	}
+
+	std::shared_ptr<libsinsp::state::table_entry> get_entry(const int64_t& key) override
+	{
+		return find_thread(key, false);
+	}
+
+	std::shared_ptr<libsinsp::state::table_entry> add_entry(const int64_t& key, std::unique_ptr<libsinsp::state::table_entry> entry) override
+	{
+		if (!entry)
+		{
+			throw sinsp_exception("null entry added to thread table");
+		}
+		auto tinfo = dynamic_cast<sinsp_threadinfo*>(entry.get());
+		if (!tinfo)
+		{
+			throw sinsp_exception("unknown entry type added to thread table");
+		}
+		if (tinfo->m_tid != key)
+		{
+			throw sinsp_exception("key does not match pid of entry added to thread table");
+		}
+		entry.release();
+		add_thread(tinfo, false);
+		return get_entry(key);
+	}
+
+	bool erase_entry(const int64_t& key) override
+	{
+		// todo(jasondellaluce): should we trigger the whole removal logic,
+		// or should we just erase the table entry?
+		// todo(jasondellaluce): should we make m_tid_to_remove a list, in case
+		// we have more than one thread removed in a given event loop iteration?
+		if(m_threadtable.get(key))
+		{
+			this->remove_thread(key, false);
+			return true;
+		}
+		return false;
+	}
+
 private:
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
