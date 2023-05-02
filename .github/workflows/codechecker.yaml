@@ -1,0 +1,34 @@
+name: Code checker
+on:
+  pull_request:
+    branches:
+      - master
+      - 'release/**'
+      - 'maintainers/**'
+
+jobs:
+  code-checker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update && sudo apt install -y --no-install-recommends ca-certificates cmake build-essential git clang llvm pkg-config autoconf automake libtool libelf-dev wget libb64-dev libc-ares-dev libcurl4-openssl-dev libssl-dev libtbb-dev libjq-dev libjsoncpp-dev libgrpc++-dev protobuf-compiler-grpc libgtest-dev libprotobuf-dev liblua5.1-dev linux-headers-$(uname -r)
+          sudo .github/install-deps.sh
+
+      - name: "Prepare build"
+        run: |
+          mkdir build && cd build
+          cmake -DBUILD_BPF=Off -DBUILD_DRIVER=Off  -DUSE_BUNDLED_DEPS=False ../
+
+      - uses: whisperity/codechecker-analysis-action@v1
+        id: codechecker
+        with:
+          build-command: "cd ${{ github.workspace }}/build; cmake --build ."
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: "CodeChecker Bug Reports"
+          path: ${{ steps.codechecker.outputs.result-html-dir }}
