@@ -254,6 +254,11 @@ public:
 	*/
 	inline sinsp_threadinfo* get_main_thread() const
 	{
+		if(this->is_main_thread())
+		{
+			return const_cast<sinsp_threadinfo*>(this);
+		}
+
 		/* Here we could use the first element of our list */
 		/* This is possible when we have invalid threads
 		 */
