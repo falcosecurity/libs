@@ -88,7 +88,7 @@ public:
             {
                 throw sinsp_exception(
                     "incompatible type for dynamic struct field accessor: field=" + m_name
-                    + ", expected_type=" + info().name() + ", actual_type=" + t.name());
+                    + ", expected_type=" + t.name() + ", actual_type=" + m_info.name());
             }
             return field_accessor<T>(*this);
         }
@@ -209,13 +209,7 @@ public:
     };
 
     dynamic_struct(const std::shared_ptr<field_infos>& dynamic_fields)
-        : m_fields_len(0), m_fields(), m_dynamic_fields(dynamic_fields)
-    {
-        if (!dynamic_fields)
-        {
-            throw sinsp_exception("dynamic struct constructed with null field definitions");
-        }
-    }
+        : m_fields_len(0), m_fields(), m_dynamic_fields(dynamic_fields) { }
     dynamic_struct(dynamic_struct&&) = default;
     dynamic_struct& operator = (dynamic_struct&&) = default;
     dynamic_struct(const dynamic_struct& s) = default;
@@ -253,11 +247,29 @@ public:
     }
 
     /**
-     * @brief Returns information about all the static fields accessible in a struct.
+     * @brief Returns information about all the dynamic fields accessible in a struct.
      */
     inline const std::shared_ptr<field_infos>& dynamic_fields() const
     {
         return m_dynamic_fields;
+    }
+
+    /**
+     * @brief Sets the shared definitions for the dynamic fields accessible in a struct.
+     * The definitions can be set to a non-null value only once, either at
+     * construction time by invoking this method.
+     */
+    inline void set_dynamic_fields(const std::shared_ptr<field_infos>& defs)
+    {
+        if (m_dynamic_fields)
+        {
+            throw sinsp_exception("dynamic struct defintions set twice");
+        }
+        if (!defs)
+        {
+            throw sinsp_exception("dynamic struct constructed with null field definitions");
+        }
+        m_dynamic_fields = defs;
     }
 
 private:

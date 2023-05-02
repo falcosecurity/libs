@@ -17,7 +17,7 @@ limitations under the License.
 #pragma once
 
 #include "../sinsp_exception.h"
-#include <ppm_events_public.h>
+#include "../../driver/ppm_events_public.h"
 
 #include <string>
 #include <vector>

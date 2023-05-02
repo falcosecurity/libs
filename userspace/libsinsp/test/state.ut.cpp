@@ -136,9 +136,15 @@ TEST(dynamic_struct, defs_and_access)
         sample_struct(const std::shared_ptr<field_infos>& i): dynamic_struct(i) { }
     };
 
+    // struct construction and setting fields definition
     sample_struct s(fields);
-    ASSERT_ANY_THROW(sample_struct(nullptr));
-    ASSERT_ANY_THROW(sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>()));
+    ASSERT_ANY_THROW(s.set_dynamic_fields(nullptr));
+    ASSERT_ANY_THROW(s.set_dynamic_fields(fields));
+    ASSERT_NO_THROW(sample_struct(std::shared_ptr<libsinsp::state::dynamic_struct::field_infos>()));
+    ASSERT_NO_THROW(sample_struct(nullptr));
+    auto s2 = sample_struct(nullptr);
+    s2.set_dynamic_fields(fields);
+    ASSERT_ANY_THROW(s2.set_dynamic_fields(fields));
 
     // check field definitions
     ASSERT_EQ(fields->fields().size(), 0);
