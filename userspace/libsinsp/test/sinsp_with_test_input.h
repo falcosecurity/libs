@@ -221,7 +221,7 @@ protected:
 		uint64_t tid, uint64_t pid, uint64_t ptid, uint64_t vpgid, int64_t vtid, int64_t vpid,
 		std::string comm, std::string exe, std::string exepath, uint64_t clone_ts, uint32_t uid, uint32_t gid,
 
-		std::vector<std::string> args={}, uint64_t sid=0, std::vector<std::string> env={}, std::string cwd="",
+		std::vector<std::string> args={}, uint64_t sid=0, std::vector<std::string> env={}, std::string cwd="/test",
 		int64_t fdlimit=0x100000, uint32_t flags=0, bool exe_writable=true, 
 		uint64_t cap_permitted=0x1ffffffffff, uint64_t cap_inheritable=0, uint64_t cap_effective=0x1ffffffffff,
 		uint32_t vmsize_kb=10000, uint32_t vmrss_kb=100, uint32_t vmswap_kb=0, uint64_t pfmajor=222, uint64_t pfminor=22,

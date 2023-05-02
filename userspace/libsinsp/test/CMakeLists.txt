@@ -52,6 +52,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	user.ut.cpp
 	container_info.ut.cpp
 	sinsp_utils.ut.cpp
+	thread_state.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
 	"${TEST_PLUGINS}"
 )
