@@ -18,6 +18,7 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "state/static_struct.h"
 #include "state/dynamic_struct.h"
+#include "state/table_registry.h"
 
 TEST(typeinfo, basic_tests)
 {
@@ -179,4 +180,78 @@ TEST(dynamic_struct, defs_and_access)
     auto field_num2 = fields2->add_field<uint64_t>("num");
     auto acc_num2 = field_num2.new_accessor<uint64_t>();
     ASSERT_ANY_THROW(s.get_dynamic_field(acc_num2));
+}
+
+TEST(table_registry, defs_and_access)
+{
+    class sample_table: public libsinsp::state::table<uint64_t>
+    {
+    public:
+        sample_table(): table("sample") { }
+
+        size_t entries_count() const override
+        {
+            return m_entries.size();
+        }
+
+        void clear_entries() override
+        {
+            m_entries.clear();
+        }
+
+        std::unique_ptr<libsinsp::state::table_entry> new_entry() const override
+        {
+            return std::unique_ptr<libsinsp::state::table_entry>(
+                new libsinsp::state::table_entry(dynamic_fields()));
+        }
+
+        bool foreach_entry(std::function<bool(libsinsp::state::table_entry& e)> pred) override
+        {
+            for (const auto& e : m_entries)
+            {
+                if (!pred(*e.second.get()))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        std::shared_ptr<libsinsp::state::table_entry> get_entry(const uint64_t& key) override
+        {
+            const auto& it = m_entries.find(key);
+            if (it == m_entries.end())
+            {
+                return nullptr;
+            }
+            return it->second;
+        }
+
+        std::shared_ptr<libsinsp::state::table_entry> add_entry(const uint64_t& key, std::unique_ptr<libsinsp::state::table_entry> entry) override
+        {
+            m_entries[key] = std::move(entry);
+            return m_entries[key];
+        }
+
+        bool erase_entry(const uint64_t& key) override
+        {
+            return m_entries.erase(key) != 0;
+        }
+
+    private:
+        std::unordered_map<uint64_t, std::shared_ptr<libsinsp::state::table_entry>> m_entries;
+    };
+
+    libsinsp::state::table_registry r;
+    ASSERT_EQ(r.tables().size(), 0);
+    ASSERT_EQ(r.get_table<uint64_t>("sample"), nullptr);
+    ASSERT_ANY_THROW(r.add_table<uint64_t>(nullptr));
+
+    sample_table t;
+    r.add_table(&t);
+    ASSERT_EQ(r.tables().size(), 1);
+    ASSERT_EQ(r.tables().find("sample")->second, &t);
+    ASSERT_EQ(r.get_table<uint64_t>("sample"), &t);
+    ASSERT_ANY_THROW(r.add_table(&t)); // double registration
+    ASSERT_ANY_THROW(r.get_table<int>("sample")); // bad key type
 }
