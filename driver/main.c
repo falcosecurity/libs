@@ -1476,18 +1476,6 @@ static long convert_network_syscalls(struct pt_regs *regs, long socketcall_sysca
 	return socketcall_syscall;
 }
 
-#ifdef CONFIG_COMPAT
-static inline bool is_compat_syscall(struct event_filler_arguments *filler_args)
-{
-	return unlikely(filler_args->compat);
-}
-#else
-static inline bool is_compat_syscall(struct event_filler_arguments *filler_args)
-{
-	return false;
-}
-#endif
-
 static int load_socketcall_params(struct event_filler_arguments *filler_args)
 {
 	unsigned long __user original_socketcall_args[6] = {};
@@ -1497,7 +1485,8 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args)
 	socketcall_id = original_socketcall_args[0];
 	pointer_real_args = original_socketcall_args[1];
 
-	if (is_compat_syscall(filler_args))
+#ifdef CONFIG_COMPAT
+	if (unlikely(filler_args->compat))
 	{
 		compat_ulong_t socketcall_args32[6];
 		int j;
@@ -1509,9 +1498,12 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args)
 	}
 	else
 	{
+#endif
 		if (unlikely(ppm_copy_from_user(filler_args->args, (unsigned long __user*)pointer_real_args, nas[socketcall_id])))
 			return -1;
+#ifdef CONFIG_COMPAT
 	}
+#endif
 	return 0;
 }
 
