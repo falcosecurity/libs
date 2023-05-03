@@ -409,9 +409,15 @@ sinsp_evt* get_event(sinsp& inspector, std::function<void(const std::string&)> h
 
 	int32_t res = inspector.next(&ev);
 
-	if(res == SCAP_SUCCESS)
+	if (res == SCAP_SUCCESS)
 	{
 		return ev;
+	}
+	if (res == SCAP_EOF)
+	{
+		std::cout << "-- EOF" << std::endl;
+		g_interrupted = true;
+		return nullptr;
 	}
 
 	if(res != SCAP_TIMEOUT && res != SCAP_FILTERED_EVENT)
