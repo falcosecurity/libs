@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,10 +39,232 @@ extern "C" {
 #define PLUGIN_API_VERSION          PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
 #define PLUGIN_API_VERSION_STR      EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
 
+// Vtable for controlling and the fields for the entries of a state table.
+// This allows discovering the fields available in the table, defining new ones,
+// and obtaining accessors usable at runtime for reading and writing the fields'
+// data from each entry of a given state table.
+typedef struct
+{
+	// Returns a pointer to an array containing info about all the fields
+	// available in the entries of the table. nfields will be filled with the number
+	// of elements of the returned array. The array's memory is owned by the
+	// tables's owner. Returns NULL in case of error.
+	ss_plugin_table_fieldinfo* (*list_table_fields)(ss_plugin_table_t* t, uint32_t* nfields);
+	//
+	// Returns an opaque pointer representing an accessor to a data field
+	// present in all entries of the table, given its name and type.
+	// This can later be used for read and write operations for all entries of
+	// the table. The pointer is owned by the table's owner.
+	// Returns NULL in case of issues (including when the field is not defined
+	// or it has a type different than the specified one).
+	ss_plugin_table_field_t* (*get_table_field)(ss_plugin_table_t* t, const char* name, ss_plugin_state_type data_type);
+	//
+	// Defines a new field in the table given its name and data type,
+	// which will then be available in all entries contained in the table.
+	// Returns an opaque pointer representing an accessor to the newly-defined
+	// field. This can later be used for read and write operations for all entries of
+	// the table. The pointer is owned by the table's owner.
+	// Returns NULL in case of issues (including when a field is defined multiple
+	// times with different data types).
+	ss_plugin_table_field_t* (*add_table_field)(ss_plugin_table_t* t, const char* name, ss_plugin_state_type data_type);
+} ss_plugin_table_field_api;
+
+// Vtable for controlling a state table for read operations.
+// todo(jasondellaluce): support looping over a table
+typedef struct
+{
+	// Returns the table's name, or NULL in case of error.
+	// The returned pointer is owned by the table's owner.
+	const char*	(*get_table_name)(ss_plugin_table_t* t);
+	//
+	// Returns the number of entries in the table, or ((uint64_t) -1) in
+	// case of error.
+	uint64_t (*get_table_size)(ss_plugin_table_t* t);
+	//
+	// Returns an opaque pointer to an entry present in the table at the given
+	// key, or NULL in case of issues (including if no entry is found at the
+	// given key). The returned pointer is owned by the table's owner.
+	ss_plugin_table_entry_t* (*get_table_entry)(ss_plugin_table_t* t, const ss_plugin_state_data* key);
+	//
+	// Reads the value of an entry field from a table's entry.
+	// The field accessor must be obtainied during plugin_init().
+	// The read value is stored in the "out" parameter.
+	// Returns SS_PLUGIN_SUCCESS if successful, and SS_PLUGIN_FAILURE otherwise.
+	ss_plugin_rc (*read_entry_field)(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, ss_plugin_state_data* out);
+} ss_plugin_table_read_api;
+
+// Vtable for controlling a state table for write operations.
+typedef struct
+{
+	// Erases all the entries of the table.
+	// Returns SS_PLUGIN_SUCCESS if successful, and SS_PLUGIN_FAILURE otherwise.
+	ss_plugin_rc (*clear_table)(ss_plugin_table_t* t);
+	//
+	// Erases an entry from a table at the given key.
+	// Returns SS_PLUGIN_SUCCESS if successful, and SS_PLUGIN_FAILURE otherwise.
+	ss_plugin_rc (*erase_table_entry)(ss_plugin_table_t* t, const ss_plugin_state_data* key);
+	//
+	// Creates a new entry that can later be added to the same table it was
+	// created from. The entry is represented as an opaque pointer owned
+	// by the plugin. Once obtained, the plugin can either add the entry
+	// to the table through add_table_entry(), or destroy it throgh
+	// destroy_table_entry(). Returns an opaque pointer to the newly-created
+	// entry, or NULL in case of error.
+	ss_plugin_table_entry_t* (*create_table_entry)(ss_plugin_table_t* t);
+	//
+	// Destroys a table entry obtained by from previous invocation of create_table_entry().
+	void (*destroy_table_entry)(ss_plugin_table_t* t, ss_plugin_table_entry_t* e);
+	//
+	// Adds a new entry to a table obtained by from previous invocation of
+	// create_table_entry() on the same table. The entry is inserted in the table
+	// with the given key. If another entry is already present with the same key,
+	// it gets replaced. After insertion, table will be come the owner of the
+	// entry's pointer. Returns an opaque pointer to the newly-added table's entry,
+	// or NULL in case of error.
+	ss_plugin_table_entry_t* (*add_table_entry)(ss_plugin_table_t* t, const ss_plugin_state_data* key, ss_plugin_table_entry_t* entry);
+	//
+	// Updates a table's entry by writing a value for one of its fields.
+	// The field accessor must be obtainied during plugin_init().
+	// The written value is read from the "in" parameter.
+	// Returns SS_PLUGIN_SUCCESS if successful, and SS_PLUGIN_FAILURE otherwise.
+	ss_plugin_rc (*write_entry_field)(ss_plugin_table_t* t, ss_plugin_table_entry_t* e, const ss_plugin_table_field_t* f, const ss_plugin_state_data* in);
+} ss_plugin_table_write_api;
+
+// Plugin-provided input passed to the add_table() callback of
+// ss_plugin_init_tables_input, that can be used by the plugin to inform its
+// owner about one of the state tables owned by the plugin. The plugin
+// is responsible of owning all the memory pointed by this struct and
+// of implementing all the API functions. These will be used by other
+// plugins loaded by the falcosecurity libraries to interact with the state
+// of a given plugin to implement cross-plugin state access.
+typedef struct
+{
+	// The name of the state table.
+	const char* name;
+	//
+	// The type of the sta table's key.
+	ss_plugin_state_type key_type;
+	//
+	// A non-NULL opaque pointer to the state table.
+	// This will be passed as parameters to all the callbacks defined below.
+	ss_plugin_table_t* table;
+	//
+	// Vtable for controlling read operations on the state table.
+	ss_plugin_table_read_api read;
+	//
+	// Vtable for controlling write operations on the state table.
+	ss_plugin_table_write_api write;
+	//
+	// Vtable for controlling operations related to fields on the state table.
+	ss_plugin_table_field_api fields;
+} ss_plugin_table_input;
+
+// Initialization-time input related to the event parsing capability.
+// This provides the plugin with callback functions implemented by its owner
+// that can be used to discover, access, and define state tables.
+typedef struct
+{
+	// Returns a pointer to an array containing info about all the tables
+	// registered in the plugin's owner. ntables will be filled with the number
+	// of elements of the returned array. The array's memory is owned by the
+	// plugin's owner. Returns NULL in case of error.
+	ss_plugin_table_info* (*list_tables)(ss_plugin_owner_t* o, uint32_t* ntables);
+	//
+	// Returns an opaque accessor to a state table registered in the plugin's
+	// owner, given its name and key type. Returns NULL if an case of error.
+	ss_plugin_table_t* (*get_table)(ss_plugin_owner_t* o, const char* name, ss_plugin_state_type key_type);
+	//
+	// Registers a new state table in the plugin's owner. Returns
+	// SS_PLUGIN_SUCCESS in case of success, and SS_PLUGIN_FAILURE otherwise.
+	// The state table is owned by the plugin itself, and the input will be used
+	// by other actors of the plugin's owner to interact with the state table.
+	ss_plugin_rc (*add_table)(ss_plugin_owner_t* o, const ss_plugin_table_input* input);
+	//
+	// Vtable for controlling operations related to fields on the state tables
+	// registeted in the plugin's owner.
+	ss_plugin_table_field_api fields;
+} ss_plugin_init_tables_input;
+
+// Input passed at the plugin through plugin_init(). This contain information
+// common to any plugin, and also information useful only in case the plugin
+// implements a given capability. If a certain capability is not implemented
+// by the plugin, its information is set to NULL.
+typedef struct ss_plugin_init_input
+{
+	// An opaque string representing the plugin init configuration.
+	// The format of the string is arbitrary and defined by the plugin itself.
+	const char* config;
+	//
+	// The plugin's owner. Can be passed by the plugin to the callbacks available
+	// in this struct in order to invoke functions of its owner.
+	ss_plugin_owner_t* owner;
+	//
+	// Return a string with the error that was last generated by the plugin's
+	// owner, or NULL if no error is present.
+	// The string pointer is owned by the plugin's owenr.
+	const char *(*get_last_owner_error)(ss_plugin_owner_t *o);
+	//
+	// Init input related to the event parsing or field extraction capability.
+	// It's set to NULL if the plugin does not implement at least one of the two
+	// capabilities. The callbacks available in this input take the plugin's owner
+	// as a parameter.
+	const ss_plugin_init_tables_input* tables;
+} ss_plugin_init_input;
+
+// Input passed to the plugin when extracting a field from an event for
+// the field extraction capability.
+typedef struct ss_plugin_field_extract_input
+{
+	//
+	// The plugin's owner. Can be passed by the plugin to the callbacks available
+	// in this struct in order to invoke functions of its owner.
+	ss_plugin_owner_t* owner;
+	//
+	// Return a string with the error that was last generated by the plugin's
+	// owner, or NULL if no error is present.
+	// The string pointer is owned by the plugin's owenr.
+	const char *(*get_last_owner_error)(ss_plugin_owner_t *o);
+	//
+	// Vtable for controlling a state table for read operations.
+	ss_plugin_table_read_api tableread;
+	//
+	// The length of the fields array.
+	uint32_t num_fields;
+	//
+	// An array of ss_plugin_extract_field structs. Each entry
+	// contains a single field + optional argument as input, and the corresponding
+	// extracted value as output. Memory pointers set as output must be allocated
+	// by the plugin and must not be deallocated or modified until the next
+	// extract_fields() call.
+	ss_plugin_extract_field *fields;
+} ss_plugin_field_extract_input;
+
+// Input passed to the plugin when parsing an event for the event parsing
+// capability.
+typedef struct ss_plugin_event_parse_input
+{
+	//
+	// The plugin's owner. Can be passed by the plugin to the callbacks available
+	// in this struct in order to invoke functions of its owner.
+	ss_plugin_owner_t* owner;
+	//
+	// Return a string with the error that was last generated by the plugin's
+	// owner, or NULL if no error is present.
+	// The string pointer is owned by the plugin's owenr.
+	const char *(*get_last_owner_error)(ss_plugin_owner_t *o);
+	//
+	// Vtable for controlling a state table for read operations.
+	ss_plugin_table_read_api tableread;
+	//
+	// Vtable for controlling a state table for write operations.
+	ss_plugin_table_write_api tablewrite;
+} ss_plugin_event_parse_input;
+
 //
 // The struct below define the functions and arguments for plugins capabilities:
 // * event sourcing
 // * field extraction
+// * event parsing
 // The structs are used by the plugin framework to load and interface with plugins.
 //
 // From the perspective of the plugin, each function below should be
@@ -107,8 +329,7 @@ typedef struct
 	// Initialize the plugin and allocate its state.
 	// Required: yes
 	// Arguments:
-	// - config: a string with the plugin configuration. The format of the
-	//   string is chosen by the plugin itself.
+	// - input: init-time input for the plugin.
 	// - rc: pointer to a ss_plugin_rc that will contain the initialization result
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the framework and passed to the other plugin functions.
@@ -118,7 +339,7 @@ typedef struct
 	// If a non-NULL ss_plugin_t* state is returned, then subsequent invocations
 	// of init() must not return the same ss_plugin_t* value again, if not after
 	// it has been disposed with destroy() first.
-	ss_plugin_t *(*init)(const char *config, ss_plugin_rc *rc);
+	ss_plugin_t *(*init)(const ss_plugin_init_input *input, ss_plugin_rc *rc);
 
 	//
 	// Destroy the plugin and, if plugin state was allocated, free it.
@@ -336,7 +557,7 @@ typedef struct
 	{
 		//
 		// Return the list of event types that this plugin can consume
-		// for field extraction.
+		// for field extraction. The event types follow the libscap specific.
 		// Required: no
 		//
 		// This function is optional--if NULL or an empty array, then:
@@ -400,12 +621,12 @@ typedef struct
 		//   This is allocated by the framework, and it is not guaranteed
 		//   that the event struct pointer is the same returned by the last
 		//   next_batch() call.
-		// - num_fields: the length of the fields array.
-		// - fields: an array of ss_plugin_extract_field structs. Each entry
-		//   contains a single field + optional argument as input, and the corresponding
-		//   extracted value as output. Memory pointers set as output must be allocated
-		//   by the plugin and must not be deallocated or modified until the next
-		//   extract_fields() call.
+		// - input: An input struct representing the extraction request.
+		//   The input includes vtables containing callbacks that can be used by
+		//   the plugin for performing read/write operations on a state table
+		//   not owned by itelf, for which it obtained accessors at init time.
+		//   The plugin does not need to go through this vtable in order
+		//   to read and write from a table it owns.
 		//
 		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
 		//
@@ -414,7 +635,65 @@ typedef struct
 		// The value of the ss_plugin_extract_field* output parameter must be
 		// uniquely attached to the ss_plugin_t* parameter value. The pointer
 		// must not be shared across multiple distinct ss_plugin_t* values.
-		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event_input *evt, uint32_t num_fields, ss_plugin_extract_field *fields);
+		ss_plugin_rc (*extract_fields)(ss_plugin_t *s, const ss_plugin_event_input *evt, const ss_plugin_field_extract_input* input);
+	};
+
+	// Event parsing capability API
+	struct
+	{
+		//
+		// Return the list of event types that this plugin is capable of parsing.
+		// The event types follow the libscap specific.
+		//
+		// Required: no
+		//
+		// This function is optional--if NULL or an empty array, then:
+		// - the plugin will receive every event type if the result of
+		//   get_parse_event_sources (either default or custom) is compatible
+		//   with the "syscall" event source, otherwise
+		// - the plugin will only receive events of plugin type (code 322).
+		uint16_t* (*get_parse_event_types)(uint32_t* numtypes);
+		//
+		// Return a string describing the event sources that this plugin
+		// is capable of parsing.
+		//
+		// Required: no
+		//
+		// Return value: a json array of strings containing event
+		//   sources returned by a plugin with event sourcing capabilities get_event_source()
+		//   function, or "syscall" for indicating support to non-plugin events.
+		// This function is optional--if NULL or an empty array, then if plugin has sourcing capability,
+		// and implements a specific event source, it will only receive events matching its event source,
+		// otherwise it will receive events from all event sources.
+		//
+		const char* (*get_parse_event_sources)();
+		//
+		// Receives an event from the current capture and parses its content.
+		// The plugin is guaranteed to receive an event at most once, after any
+		// operation related the event sourcing capability, and before
+		// any operation related to the field extraction capability.
+		//
+		// Required: yes
+		//
+		// Arguments:
+		// - evt: an event input provided by the framework.
+		//   This is allocated by the framework, and it is not guaranteed
+		//   that the event struct pointer is the same returned by the last
+		//   next_batch() call.
+		// - input: A vtable containing callbacks that can be used by
+		//   the plugin for performing read/write operations on a state table
+		//   not owned by itelf, for which it obtained accessors at init time.
+		//   The plugin does not need to go through this vtable in order
+		//   to read and write from a table it owns.
+		//
+		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+		//
+		// This function can be invoked concurrently by multiple threads,
+		// each with distinct and unique parameter values.
+		// The value of the ss_plugin_event_parse_input* output parameter must be
+		// uniquely attached to the ss_plugin_t* parameter value. The pointer
+		// must not be shared across multiple distinct ss_plugin_t* values.
+		ss_plugin_rc (*parse_event)(ss_plugin_t *s, const ss_plugin_event_input *evt, const ss_plugin_event_parse_input* input);
 	};
 } plugin_api;
 

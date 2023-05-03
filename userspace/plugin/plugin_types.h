@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,11 @@ limitations under the License.
 extern "C" {
 #endif
 
-#include <stdbool.h>
 #include <inttypes.h>
+
+// An implementation-independent representation of boolean.
+// A 4-byte representation is equal to how bools are encoded in falcosecurity libs.
+typedef uint32_t ss_plugin_bool;
 
 // The noncontinguous numbers are to maintain equality with underlying
 // falcosecurity libs types.
@@ -168,11 +171,11 @@ typedef struct ss_plugin_extract_field
 	// changes in the plugin API. However, we must make sure that each added
 	// type is always a pointer.
 	union
-    {
+	{
 		const char** str;
 		uint64_t* u64;
 		uint32_t* u32;
-		bool* boolean;
+		ss_plugin_bool* boolean;
 		ss_plugin_byte_buffer* buf;
 	} res;
 	uint64_t res_len;
@@ -184,10 +187,73 @@ typedef struct ss_plugin_extract_field
 	const char* field;
 	const char* arg_key;
 	uint64_t arg_index;
-	bool arg_present;
+	ss_plugin_bool arg_present;
 	uint32_t ftype;
-	bool flist;
+	ss_plugin_bool flist;
 } ss_plugin_extract_field;
+
+// Types supported by entry fields of state tables.
+// The noncontinguous numbers are to maintain equality with underlying
+// falcosecurity libs types.
+// todo(jasondellaluce): should we merge this with ss_plugin_field_type?
+typedef enum ss_plugin_state_type
+{
+	SS_PLUGIN_ST_INT8 = 1,
+	SS_PLUGIN_ST_INT16 = 2,
+	SS_PLUGIN_ST_INT32 = 3,
+	SS_PLUGIN_ST_INT64 = 4,
+	SS_PLUGIN_ST_UINT8 = 5,
+	SS_PLUGIN_ST_UINT16 = 6,
+	SS_PLUGIN_ST_UINT32 = 7,
+	SS_PLUGIN_ST_UINT64 = 8,
+	SS_PLUGIN_ST_STRING = 9,
+	SS_PLUGIN_ST_BOOL = 25
+} ss_plugin_state_type;
+
+// Data representation of entry fields of state tables.
+// todo(jasondellaluce): should we merge this with what we have for field extraction?
+typedef union ss_plugin_state_data
+{
+	int8_t s8;
+	int16_t s16;
+	int32_t s32;
+	int64_t s64;
+	uint8_t u8;
+	uint16_t u16;
+	uint32_t u32;
+	uint64_t u64;
+	const char* str;
+	ss_plugin_bool b;
+} ss_plugin_state_data;
+
+// Info about a state table.
+typedef struct ss_plugin_table_info
+{
+	const char* name;
+	ss_plugin_state_type key_type;
+} ss_plugin_table_info;
+
+// Info about a data field contained in the entires of a state table.
+typedef struct ss_plugin_table_fieldinfo
+{
+	const char* name;
+	ss_plugin_state_type field_type;
+	ss_plugin_bool read_only;
+} ss_plugin_table_fieldinfo;
+
+// Opaque a pointer to a state table. The falcosecurity libs define stateful
+// components in the form of tables.
+typedef void ss_plugin_table_t;
+
+// Opaque a pointer to an entry of a state table.
+typedef void ss_plugin_table_entry_t;
+
+// Opaque accessor to a data field available in the entries of a state table.
+typedef void ss_plugin_table_field_t;
+
+// Opaque pointer to the owner of a plugin. It can be used to invert the
+// control and invoke functions of the plugin's owner from within the plugin.
+typedef void ss_plugin_owner_t;
 
 //
 // This is the opaque pointer to the state of a plugin.

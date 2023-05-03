@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2022 The Falco Authors.
+Copyright (C) 2023 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 #pragma once
 
 #include "plugin_api.h"
+
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,7 +43,8 @@ typedef enum
 {
     CAP_NONE        = 0,
     CAP_SOURCING    = 1 << 0,
-    CAP_EXTRACTION  = 1 << 1
+    CAP_EXTRACTION  = 1 << 1,
+    CAP_PARSING     = 1 << 2,
 } plugin_caps_t;
 
 /*!
