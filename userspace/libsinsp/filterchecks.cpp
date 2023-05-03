@@ -2113,7 +2113,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 		//
 		if(alloc_state)
 		{
-			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>("_tmp_sinsp_filter_thread_totexectime");
+			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
 		}
 
 		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
@@ -2130,7 +2131,8 @@ int32_t sinsp_filter_check_thread::parse_field_name(const char* str, bool alloc_
 	{
 		if(alloc_state)
 		{
-			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint64_t));
+			auto acc = m_inspector->m_thread_manager->dynamic_fields()->add_field<uint64_t>("_tmp_sinsp_filter_thread_cpu");
+			m_thread_dyn_field_accessor.reset(new libsinsp::state::dynamic_struct::field_accessor<uint64_t>(acc.new_accessor<uint64_t>()));
 		}
 
 		return sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
@@ -2199,10 +2201,10 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 
 		tcpu = user + system;
 
-		uint64_t* last_t_tot_cpu = (uint64_t*)tinfo->get_private_state(m_th_state_id);
-		if(*last_t_tot_cpu != 0)
+		uint64_t last_t_tot_cpu = tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get());
+		if(last_t_tot_cpu != 0)
 		{
-			uint64_t deltaval = tcpu - *last_t_tot_cpu;
+			uint64_t deltaval = tcpu - last_t_tot_cpu;
 			m_dval = (double)deltaval;// / (ONE_SECOND_IN_NS / 100);
 			if(m_dval > 100)
 			{
@@ -2214,7 +2216,7 @@ uint8_t* sinsp_filter_check_thread::extract_thread_cpu(sinsp_evt *evt, OUT uint3
 			m_dval = 0;
 		}
 
-		*last_t_tot_cpu = tcpu;
+		tinfo->set_dynamic_field(*m_thread_dyn_field_accessor.get(), tcpu);
 
 		RETURN_EXTRACT_VAR(m_dval);
 	}
@@ -2425,9 +2427,10 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 
 			if(tinfo != NULL)
 			{
-				uint64_t* ptot = (uint64_t*)tinfo->get_private_state(m_th_state_id);
-				*ptot += m_u64val;
-				RETURN_EXTRACT_PTR(ptot);
+				uint64_t ptot = tinfo->get_dynamic_field(*m_thread_dyn_field_accessor.get());
+				m_u64val += ptot;
+				tinfo->set_dynamic_field(*m_thread_dyn_field_accessor.get(), m_u64val);
+				RETURN_EXTRACT_VAR(m_u64val);
 			}
 			else
 			{
@@ -3630,14 +3633,6 @@ int32_t sinsp_filter_check_event::parse_field_name(const char* str, bool alloc_s
 		STR_MATCH("evt.latency.quantized") ||
 		STR_MATCH("evt.latency.human"))
 	{
-		//
-		// These fields need to store the previous event type in the thread state
-		//
-		if(alloc_state)
-		{
-			m_th_state_id = m_inspector->reserve_thread_memory(sizeof(uint16_t));
-		}
-
 		res = sinsp_filter_check::parse_field_name(str, alloc_state, needed_for_filtering);
 	}
 	else if(STR_MATCH("evt.abspath"))

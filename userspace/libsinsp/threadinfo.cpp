@@ -977,29 +977,6 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 	}
 }
 
-void sinsp_threadinfo::allocate_private_state()
-{
-	uint32_t j = 0;
-
-	if(m_inspector != NULL)
-	{
-		m_private_state.clear();
-
-		std::vector<uint32_t>* sizes = &m_inspector->m_thread_privatestate_manager.m_memory_sizes;
-
-		for(j = 0; j < sizes->size(); j++)
-		{
-			void* newbuf = malloc(sizes->at(j));
-			if(newbuf == NULL)
-			{
-				throw sinsp_exception("memory allocation error in sinsp_threadinfo::allocate_private_state.");
-			}
-			memset(newbuf, 0, sizes->at(j));
-			m_private_state.push_back(newbuf);
-		}
-	}
-}
-
 void* sinsp_threadinfo::get_private_state(uint32_t id)
 {
 	if(id >= m_private_state.size())
@@ -1497,8 +1474,16 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 		increment_mainthread_childcount(threadinfo);
 	}
 
+	if (threadinfo->dynamic_fields() == nullptr)
+	{
+		threadinfo->set_dynamic_fields(dynamic_fields());
+	}
+	if (threadinfo->dynamic_fields() != dynamic_fields())
+	{
+		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
+	}
+
 	threadinfo->compute_program_hash();
-	threadinfo->allocate_private_state();
 	m_threadtable.put(threadinfo);
 
 	return true;
@@ -2043,7 +2028,7 @@ std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() 
 	}
 	if (tinfo->dynamic_fields() != dynamic_fields())
 	{
-		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
+		throw sinsp_exception("creating entry with incompatible dynamic defs to thread table");
 	}
 	return std::unique_ptr<libsinsp::state::table_entry>(tinfo);
 }

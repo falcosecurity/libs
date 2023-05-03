@@ -889,7 +889,6 @@ public:
 	// Returns the ID to use when retrieving the memory area.
 	// Will fail if called after the capture starts.
 	//
-	uint32_t reserve_thread_memory(uint32_t size);
 
 	sinsp_parser* get_parser();
 
@@ -1105,7 +1104,6 @@ private:
 	const scap_agent_info* m_agent_info;
 	scap_stats_v2 m_sinsp_stats_v2[SINSP_MAX_RESOURCE_UTILIZATION];
 	uint32_t m_num_cpus;
-	sinsp_thread_privatestate_manager m_thread_privatestate_manager;
 	bool m_is_tracers_capture_enabled;
 	bool m_flush_memory_dump;
 	bool m_large_envs_enabled;
