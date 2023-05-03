@@ -46,7 +46,7 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
-sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields) :
+sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields):
 	table_entry(dyn_fields),
 	m_cgroups(new cgroups_t),
 	m_tracer_parser(NULL),
@@ -63,7 +63,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 	define_static_field(this, m_sid, "sid");
 	define_static_field(this, m_comm, "comm");
 	define_static_field(this, m_exe, "exe");
-	define_static_field(this, m_exepath, "exepath");
+	define_static_field(this, m_exepath, "exe_path");
 	define_static_field(this, m_exe_writable, "exe_writable");
 	define_static_field(this, m_exe_upper_layer, "exe_upper_layer");
 	// m_args
@@ -74,7 +74,7 @@ sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::s
 	// m_group
 	define_static_field(this, m_container_id, "container_id");
 	// m_flags
-	define_static_field(this, m_fdlimit, "fdlimit");
+	define_static_field(this, m_fdlimit, "fd_limit");
 	// m_cap_permitted
 	// m_cap_effective
 	// m_cap_inheritable
@@ -1445,6 +1445,12 @@ void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* thr
 	}
 }
 
+std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
+{
+	auto tinfo = new sinsp_threadinfo(m_inspector, dynamic_fields());
+	return std::unique_ptr<sinsp_threadinfo>(tinfo);
+}
+
 bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
@@ -2021,14 +2027,5 @@ void sinsp_thread_manager::set_max_thread_table_size(uint32_t value)
 
 std::unique_ptr<libsinsp::state::table_entry> sinsp_thread_manager::new_entry() const
 {
-	auto tinfo = m_inspector->build_threadinfo();
-	if (tinfo->dynamic_fields() == nullptr)
-	{
-		tinfo->set_dynamic_fields(dynamic_fields());
-	}
-	if (tinfo->dynamic_fields() != dynamic_fields())
-	{
-		throw sinsp_exception("creating entry with incompatible dynamic defs to thread table");
-	}
-	return std::unique_ptr<libsinsp::state::table_entry>(tinfo);
+	return std::unique_ptr<libsinsp::state::table_entry>(m_inspector->build_threadinfo());
 }
