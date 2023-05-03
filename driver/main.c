@@ -1475,6 +1475,18 @@ static long convert_network_syscalls(struct pt_regs *regs)
 	return 0;
 }
 
+#ifdef CONFIG_COMPAT
+static inline bool is_compat_syscall(struct event_filler_arguments *filler_args)
+{
+	return unlikely(filler_args->compat);
+}
+#else
+static inline bool is_compat_syscall(struct event_filler_arguments *filler_args)
+{
+	return false;
+}
+#endif
+
 static int load_socketcall_params(struct event_filler_arguments *filler_args)
 {
 	unsigned long __user original_socketcall_args[6] = {};
@@ -1484,8 +1496,7 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args)
 	socketcall_id = original_socketcall_args[0];
 	pointer_real_args = original_socketcall_args[1];
 
-#ifdef CONFIG_COMPAT
-	if (unlikely(filler_args->compat))
+	if (is_compat_syscall(filler_args))
 	{
 		compat_ulong_t socketcall_args32[6];
 		int j;
@@ -1497,12 +1508,9 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args)
 	}
 	else
 	{
-#endif
 		if (unlikely(ppm_copy_from_user(filler_args->args, (unsigned long __user*)pointer_real_args, nas[socketcall_id])))
 			return -1;
-#ifdef CONFIG_COMPAT
 	}
-#endif
 	return 0;
 }
 
@@ -2258,7 +2266,15 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	if (id == socketcall_syscall)
 	{
 		id = convert_network_syscalls(regs);
-		event_data.is_socketcall = true;
+		if (id > 0)
+		{
+			event_data.is_socketcall = true;
+		}
+		else
+		{
+			// reset NR_socketcall and send a generic event
+			id = socketcall_syscall;
+		}
 	}
 #endif
 
@@ -2366,9 +2382,16 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #ifdef _HAS_SOCKETCALL
 	if (id == socketcall_syscall)
 	{
-		/// TODO: we cannot return 0 we need to handle this case in all drivers.
 		id = convert_network_syscalls(regs);
-		event_data.is_socketcall = true;
+		if (id > 0)
+		{
+			event_data.is_socketcall = true;
+		}
+		else
+		{
+			// reset NR_socketcall and send a generic event
+			id = socketcall_syscall;
+		}
 	}
 #endif
 
