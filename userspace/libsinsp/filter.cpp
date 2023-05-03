@@ -662,7 +662,15 @@ Json::Value sinsp_filter_check::rawval_to_json(uint8_t* rawval,
 				ASSERT(false);
 				return Json::nullValue;
 			}
-
+		case PT_DOUBLE:
+			if(print_format == PF_DEC)
+			{
+		 		return (Json::Value::Int64)(int64_t)*(double*)rawval;
+			}
+			else
+			{
+				return (Json::Value)*(double*)rawval;
+			}
 		case PT_INT64:
 		case PT_PID:
 		case PT_FD:
