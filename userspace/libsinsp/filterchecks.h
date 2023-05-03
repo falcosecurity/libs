@@ -217,7 +217,6 @@ protected:
 	const filtercheck_field_info* m_field;
 	filter_check_info m_info;
 	uint32_t m_field_id;
-	uint32_t m_th_state_id;
 	uint32_t m_val_storage_len;
 
 private:
@@ -435,8 +434,8 @@ private:
 	int64_t m_s64val;
 	double m_dval;
 	std::vector<uint64_t> m_last_proc_switch_times;
-	uint32_t m_th_state_id;
 	uint64_t m_cursec_ts;
+	std::unique_ptr<libsinsp::state::dynamic_struct::field_accessor<uint64_t>> m_thread_dyn_field_accessor;
 };
 
 //

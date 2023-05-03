@@ -457,7 +457,6 @@ VISIBILITY_PRIVATE
 			m_lastevent_cpuid = (uint16_t) - 1;
 		}
 	}
-	void allocate_private_state();
 	void compute_program_hash();
 	std::shared_ptr<sinsp_threadinfo> lookup_thread() const;
 
@@ -581,33 +580,6 @@ public:
 
 protected:
 	std::unordered_map<int64_t, ptr_t> m_threads;
-};
-
-
-///////////////////////////////////////////////////////////////////////////////
-// Little class that manages the allocation of private state in the thread info class
-///////////////////////////////////////////////////////////////////////////////
-class sinsp_thread_privatestate_manager
-{
-public:
-	//
-	// The return value is the ID of the newly reserved memory area
-	//
-	uint32_t reserve(uint32_t size)
-	{
-		m_memory_sizes.push_back(size);
-		return (uint32_t)m_memory_sizes.size() - 1;
-	}
-
-	uint32_t get_size()
-	{
-		return (uint32_t)m_memory_sizes.size();
-	}
-
-private:
-	std::vector<uint32_t> m_memory_sizes;
-
-	friend class sinsp_threadinfo;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

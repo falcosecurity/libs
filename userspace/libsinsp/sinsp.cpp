@@ -1869,16 +1869,6 @@ sinsp_filter_check* sinsp::new_generic_filtercheck()
 	return new sinsp_filter_check_gen_event();
 }
 
-uint32_t sinsp::reserve_thread_memory(uint32_t size)
-{
-	if(m_h != NULL)
-	{
-		throw sinsp_exception("reserve_thread_memory can't be called after capture starts");
-	}
-
-	return m_thread_privatestate_manager.reserve(size);
-}
-
 void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
