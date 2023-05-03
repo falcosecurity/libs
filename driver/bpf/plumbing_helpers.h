@@ -760,7 +760,8 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		break;
 	}
 
-	return 0;
+	// Reset NR_socketcall to send a generic even with correct id
+	return __NR_socketcall;
 }
 #endif
 

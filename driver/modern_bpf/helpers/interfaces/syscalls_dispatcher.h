@@ -36,6 +36,7 @@ static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(u32 s
 	return maps__64bit_interesting_syscall(syscall_id);
 }
 
+#ifdef CAPTURE_SOCKETCALL
 static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 {
 	int socketcall_id = (int)extract__syscall_argument(regs, 0);
@@ -148,5 +149,7 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 		break;
 	}
 
-	return 0;
+	// Reset NR_socketcall to send a generic even with correct id
+	return __NR_socketcall;
 }
+#endif

@@ -1358,7 +1358,7 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
-static long convert_network_syscalls(struct pt_regs *regs)
+static long convert_network_syscalls(struct pt_regs *regs, long socketcall_syscall)
 {
 	unsigned long __user args[6] = {};
 	ppm_syscall_get_arguments(current, regs, args);
@@ -1472,7 +1472,8 @@ static long convert_network_syscalls(struct pt_regs *regs)
 		break;
 	}
 
-	return 0;
+	// reset NR_socketcall and send a generic event
+	return socketcall_syscall;
 }
 
 #ifdef CONFIG_COMPAT
@@ -2265,15 +2266,10 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 #ifdef _HAS_SOCKETCALL
 	if (id == socketcall_syscall)
 	{
-		id = convert_network_syscalls(regs);
-		if (id > 0)
+		id = convert_network_syscalls(regs, socketcall_syscall);
+		if (id != socketcall_syscall)
 		{
 			event_data.is_socketcall = true;
-		}
-		else
-		{
-			// reset NR_socketcall and send a generic event
-			id = socketcall_syscall;
 		}
 	}
 #endif
@@ -2382,15 +2378,10 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #ifdef _HAS_SOCKETCALL
 	if (id == socketcall_syscall)
 	{
-		id = convert_network_syscalls(regs);
-		if (id > 0)
+		id = convert_network_syscalls(regs, socketcall_syscall);
+		if (id != socketcall_syscall)
 		{
 			event_data.is_socketcall = true;
-		}
-		else
-		{
-			// reset NR_socketcall and send a generic event
-			id = socketcall_syscall;
 		}
 	}
 #endif
