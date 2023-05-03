@@ -644,3 +644,30 @@ TEST_F(sinsp_with_test_input, memfd_create)
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "memfd");
 
 }
+
+TEST_F(sinsp_with_test_input, test_fdtypes)
+{
+	add_default_init_thread();
+
+	open_inspector();
+	sinsp_evt* evt = NULL;
+
+	// since adding and reading events happens on a single thread they can be interleaved.
+	// tests may need to change if that will not be the case anymore
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, 1, "/tmp/the_file", PPM_O_RDWR, 0, 5, 123);
+
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "1");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "file");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, (int64_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 1, (int64_t)2);
+
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_BPF_2_X);
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "2");
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "bpf");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[2]"), "bpf");
+}
