@@ -5327,7 +5327,10 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				}
 
 				sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tid, true, true).get();
-				if(ptinfo == NULL)
+				/* If the thread info is invalid we cannot recover the main thread because we don't even
+				 * have the `pid` of the thread.
+				 */
+				if(ptinfo == nullptr || ptinfo->is_invalid())
 				{
 					ASSERT(false);
 					return;

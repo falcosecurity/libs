@@ -1388,7 +1388,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(nfdr != 0)
 	{
-		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, true, true).get();
+		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread 
+		 * to remove we are fine.
+		 */
+		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
 		if(!ptinfo)
 		{
 			ASSERT(false);
