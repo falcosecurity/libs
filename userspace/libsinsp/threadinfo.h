@@ -555,7 +555,6 @@ VISIBILITY_PRIVATE
 	}
 	void allocate_private_state();
 	void compute_program_hash();
-	std::shared_ptr<sinsp_threadinfo> lookup_thread() const;
 
 	size_t strvec_len(const std::vector<std::string> &strs) const;
 	void strvec_to_iovec(const std::vector<std::string> &strs,

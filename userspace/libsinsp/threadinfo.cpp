@@ -1169,11 +1169,6 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 	return dir_fdinfo->m_name;
 }
 
-std::shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
-{
-	return m_inspector->get_thread_ref(m_pid, true, true, true);
-}
-
 size_t sinsp_threadinfo::args_len() const
 {
 	return strvec_len(m_args);
