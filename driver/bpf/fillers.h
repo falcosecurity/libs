@@ -2049,11 +2049,10 @@ static __always_inline bool bpf_kgid_has_mapping(struct user_namespace *targ, kg
 	return bpf_map_id_up(&targ->gid_map, __kgid_val(kgid)) != (gid_t) -1;
 }
 
-static __always_inline struct inode *get_exe_inode(struct task_struct *task)
+static __always_inline struct file *get_exe_file(struct task_struct *task)
 {
 	struct mm_struct *mm = _READ(task->mm);
-	struct file *exe_file = _READ(mm->exe_file);
-	return _READ(exe_file->f_inode);
+	return _READ(mm->exe_file);
 }
 
 /* `timespec64` was introduced in kernels >= 3.17 so it is ok here */
@@ -2152,8 +2151,22 @@ static __always_inline bool get_exe_upper_layer(struct dentry *dentry, struct su
 	{
 		struct dentry *upper_dentry = NULL;
 		char *vfs_inode = (char *)_READ(dentry->d_inode);
+
+		// Pointer arithmetics due to unexported ovl_inode struct
+		// warning: this works if and only if the dentry pointer is placed right after the inode struct
+		struct dentry *tmp = (struct dentry *)(vfs_inode + sizeof(struct inode));
+		upper_dentry = _READ(tmp);
+		if(!upper_dentry)
+		{
+			return false;
+		}
+
 		unsigned int d_flags = _READ(dentry->d_flags);
 		bool disconnected = (d_flags & DCACHE_DISCONNECTED);
+		if(disconnected)
+		{
+			return true;
+		}
 
 		struct ovl_entry *oe = (struct ovl_entry*)_READ(dentry->d_fsdata);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
@@ -2162,12 +2175,8 @@ static __always_inline bool get_exe_upper_layer(struct dentry *dentry, struct su
 		unsigned long flags = _READ(oe->flags);
 		unsigned long has_upper = (flags & (1U << (OVL_E_UPPER_ALIAS)));
 #endif
-		// Pointer arithmetics due to unexported ovl_inode struct
-		// warning: this works if and only if the dentry pointer is placed right after the inode struct
-		struct dentry *tmp = (struct dentry *)(vfs_inode + sizeof(struct inode));
-		upper_dentry = _READ(tmp);
 
-		if(upper_dentry && (has_upper || disconnected) )
+		if(has_upper)
 		{
 			return true;
 		}
@@ -2677,12 +2686,11 @@ FILLER(execve_family_flags, true)
 {
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
-	struct inode *inode = get_exe_inode(task);
-
-	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
-	struct file *exe_file = (struct file*)_READ(mm->exe_file);
+	struct file *exe_file = get_exe_file(task);
+	struct inode *inode = _READ(exe_file->f_inode);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
+
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
 	struct super_block* sb = _READ(dentry->d_sb);
 #else
@@ -6259,9 +6267,8 @@ FILLER(sched_prog_exec_4, false)
 {
 	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
 	struct cred *cred = (struct cred *)_READ(task->cred);
-	struct inode *inode = get_exe_inode(task);
-	struct mm_struct *mm = (struct mm_struct*)_READ(task->mm);
-	struct file *exe_file = (struct file*)_READ(mm->exe_file);
+	struct file *exe_file = get_exe_file(task);
+	struct inode *inode = _READ(exe_file->f_inode);
 	struct path f_path = (struct path)_READ(exe_file->f_path);
 	struct dentry* dentry = f_path.dentry;
 
