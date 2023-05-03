@@ -57,6 +57,7 @@ limitations under the License.
 #include "filter/escaping.h"
 #include "filter/ppm_codes.h"
 #include "filter/parser.h"
+#include "state/table_registry.h"
 
 #include <string>
 #include <map>
@@ -996,6 +997,11 @@ public:
 		return m_event_sources;
 	}
 
+	inline std::shared_ptr<const libsinsp::state::table_registry> get_table_registry() const
+	{
+		return m_table_registry;
+	}
+
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }
 
 	const std::string& get_host_root() const { return m_host_root; }
@@ -1318,6 +1324,9 @@ public:
 	// This is related to m_replay_scap_evt, and is used to store the additional cpuid
 	// information of the replayed scap event.
 	uint16_t m_replay_scap_cpuid;
+	//
+	// A registry that managers the state tables of this inspector
+	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
 	bool m_inited;
 	static std::atomic<int> instance_count;

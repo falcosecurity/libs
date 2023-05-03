@@ -172,6 +172,10 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	// and is always present
 	m_event_sources.push_back(sinsp_syscall_event_source_name);
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
+
+	// create state tables registry
+	m_table_registry = std::make_shared<libsinsp::state::table_registry>();
+	m_table_registry->add_table(m_thread_manager);
 }
 
 sinsp::~sinsp()
