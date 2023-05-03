@@ -192,15 +192,8 @@ public:
             m_definitions.insert({ name, field_info::_build<T>(name, m_definitions.size(), this) });
             const auto& def = m_definitions.at(name);
             m_definitions_ordered.push_back(&def);
-            on_after_add_info(def);
             return def;
         }
-    protected:
-        /**
-         * @brief Internally-invoked everytime a new info is added to the list,
-         * can be overridden in order to add custom logic.
-         */
-        virtual void on_after_add_info(const field_info& i) { }
 
     private:
         std::unordered_map<std::string, field_info> m_definitions;

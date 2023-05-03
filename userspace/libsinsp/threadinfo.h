@@ -591,6 +591,7 @@ public:
 	sinsp_thread_manager(sinsp* inspector);
 	void clear();
 
+	std::unique_ptr<sinsp_threadinfo> new_threadinfo() const;
 	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
 	void remove_thread(int64_t tid, bool force);
 	// Returns true if the table is actually scanned
