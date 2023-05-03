@@ -880,6 +880,54 @@ static int ppm_get_tty(void)
 
 #endif /* UDIG */
 
+bool ppm_is_upper_layer(struct file *exe_file){
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
+	struct super_block *sb = NULL;
+	unsigned long sb_magic = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
+	sb = exe_file->f_path.dentry->d_sb;
+#else
+	sb = exe_file->f_inode->i_sb;
+#endif
+	if(sb)
+	{
+		sb_magic = sb->s_magic;
+		if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
+		{
+			struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
+			unsigned long has_upper = 0;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
+			if(oe->__upperdentry)
+			{
+				return true;
+			}
+#else
+			struct dentry **upper_dentry = NULL;
+			unsigned int d_flags = exe_file->f_path.dentry->d_flags;
+			bool disconnected = (d_flags & DCACHE_DISCONNECTED);
+
+			// Pointer arithmetics due to unexported ovl_inode struct
+			// warning: this works if and only if the dentry pointer
+			// is placed right after the inode struct
+			upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
+			has_upper = oe->has_upper;
+#else
+			has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
+#endif
+
+			if(*upper_dentry && (has_upper || disconnected))
+			{
+				return true;
+			}
+#endif
+		}
+	}
+	return false;
+#endif
+}
+
 int f_proc_startupdate(struct event_filler_arguments *args)
 {
 #ifdef UDIG
@@ -1388,52 +1436,7 @@ cgroups_error:
 #endif
 
 				/* Support exe_upper_layer */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
-				{
-					struct super_block *sb = NULL;
-					unsigned long sb_magic = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-					sb = exe_file->f_path.dentry->d_sb;
-#else
-					sb = exe_file->f_inode->i_sb;
-#endif
-					if(sb)
-					{
-						sb_magic = sb->s_magic;
-						if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
-						{
-							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
-							unsigned long has_upper = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-							if(oe->__upperdentry)
-							{
-								exe_upper_layer = true;
-							}
-#else
-							struct dentry **upper_dentry = NULL;
-							unsigned int d_flags = exe_file->f_path.dentry->d_flags;
-							bool disconnected = (d_flags & DCACHE_DISCONNECTED);
-
-							// Pointer arithmetics due to unexported ovl_inode struct
-							// warning: this works if and only if the dentry pointer
-							// is placed right after the inode struct
-							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-							has_upper = oe->has_upper;
-#else
-							has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
-#endif
-
-							if(*upper_dentry && (has_upper || disconnected))
-							{
-								exe_upper_layer = true;
-							}
-#endif
-						}
-					}
-				}
-#endif
+				exe_upper_layer = ppm_is_upper_layer(exe_file);
 
 				/* Support inode number */
 				i_ino = file_inode(exe_file)->i_ino;
@@ -7668,53 +7671,8 @@ cgroups_error:
 #endif
 
 			/* Support exe_upper_layer */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0)
-			{
-				struct super_block *sb = NULL;
-				unsigned long sb_magic = 0;
+			exe_upper_layer = ppm_is_upper_layer(exe_file);
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 18, 0)
-				sb = exe_file->f_path.dentry->d_sb;
-#else
-				sb = exe_file->f_inode->i_sb;
-#endif
-				if(sb)
-				{
-					sb_magic = sb->s_magic;
-					if(sb_magic == PPM_OVERLAYFS_SUPER_MAGIC)
-					{
-							struct ovl_entry *oe = (struct ovl_entry*)(exe_file->f_path.dentry->d_fsdata);
-							unsigned long has_upper = 0;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 13, 0)
-							if(oe->__upperdentry)
-							{
-								exe_upper_layer = true;
-							}
-#else
-							struct dentry **upper_dentry = NULL;
-							unsigned int d_flags = exe_file->f_path.dentry->d_flags;
-							bool disconnected = (d_flags & DCACHE_DISCONNECTED);
-
-							// Pointer arithmetics due to unexported ovl_inode struct
-							// warning: this works if and only if the dentry pointer
-							// is placed right after the inode struct
-							upper_dentry = (struct dentry **)((char *)exe_file->f_path.dentry->d_inode + sizeof(struct inode));
-
-#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 16, 0)
-							has_upper = oe->has_upper;
-#else
-							has_upper = test_bit(OVL_E_UPPER_ALIAS, &(oe->flags));
-#endif
-
-							if(*upper_dentry && (has_upper || disconnected))
-							{
-								exe_upper_layer = true;
-							}
-#endif
-					}
-				}
-			}
-#endif
 			/* Support inode number */
 			i_ino = file_inode(exe_file)->i_ino;
 
