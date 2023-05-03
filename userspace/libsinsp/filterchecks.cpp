@@ -1917,7 +1917,7 @@ const filtercheck_field_info sinsp_filter_check_thread_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "proc.is_container_readiness_probe", "Process Is Container Readiness", "'true' if this process is running as a part of the container's readiness probe."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.fdopencount", "FD Count", "Number of open FDs for the process"},
 	{PT_INT64, EPF_NONE, PF_DEC, "proc.fdlimit", "FD Limit", "Maximum number of FDs the process can open."},
-	{PT_DOUBLE, EPF_NONE, PF_DEC, "proc.fdusage", "FD Usage", "The ratio between open FDs and maximum available FDs for the process."},
+	{PT_DOUBLE, EPF_NONE, PF_NA, "proc.fdusage", "FD Usage", "The ratio between open FDs and maximum available FDs for the process."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmsize", "VM Size", "Total virtual memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmrss", "VM RSS", "Resident non-swapped memory for the process (as kb)."},
 	{PT_UINT64, EPF_NONE, PF_DEC, "proc.vmswap", "VM Swap", "Swapped memory for the process (as kb)."},
