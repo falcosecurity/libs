@@ -1407,16 +1407,20 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 		throw sinsp_exception("There is a NULL pointer in the thread table, this should never happen");
 	}
 
-	/* For invalid threads we attach them to init */
+	/* For invalid threads we do nothing.
+	 * They won't have a valid parent or a valid thread group.
+	 * We use them just to see which tid calls a syscall.
+	 */
 	if(tinfo->m_pid == -1 || tinfo->m_ptid == -1)
 	{
-		auto parent_thread = m_inspector->get_thread_ref(1, false);
-		if(parent_thread == nullptr)
-		{
-			throw sinsp_exception("There is no init process (tid 1) under `/proc`. We cannot build a process tree");
-		}
-		tinfo->m_ptid = 1;
-		parent_thread->m_children.push_front(tinfo);
+		return;
+	}
+
+	/* This is a defensive check, it should never happen
+	 * a thread that calls this method should never have a thread group info
+	 */
+	if(tinfo->m_tginfo != nullptr)
+	{
 		return;
 	}
 
@@ -1446,18 +1450,20 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 		return;
 	}
 
-	/* Assign the child to the parent:
+	/* Assign the child to the parent for the first time, we are a thread
+	 * just created and we need to assign us to a parent. 
 	 * Remember that in `/proc` scan the `ptid` is `ppid`.
-	 * Here we just scanned proc so `query_os_if_not_found` should be false.
 	 * If we don't find the parent in the table we can do nothing, so we consider
 	 * INIT as the new parent.
 	 */
 	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
-	if(parent_thread == nullptr)
+	if(parent_thread == nullptr || parent_thread->is_invalid())
 	{
 		/* If init is not there we can do nothing.
 		 * If for some reason the process with tid `1` is not the reaper, we need to
 		 * implement some custom way to find the init reaper.
+		 * This could become dangerous if we are in a container because the parent would be outside
+		 * the container, but we have no other ways...
 		 */
 		parent_thread = m_inspector->get_thread_ref(1, false);
 		if(parent_thread == nullptr)
@@ -1638,19 +1644,21 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 		return;
 	}
 
+	/* All threads should have a m_tginfo apart from the invalid ones which don't have a group or children. */
+	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr)
+	{
+		m_threadtable.erase(tid);
+		m_last_tid = -1;
+		return;
+	}
 
-	/* All threads should have a m_tginfo a part from the invalid ones which don't have a group.
-	 * We still need to understand if we need invalid thread info.
-	 *
-     * The main thread remains in our thread table even if it is dead so we need to be sure
+    /* The main thread remains in our thread table even if it is dead so we need to be sure
 	 * that calling this method more than one time with the main thread is safe. We don't decrement
 	 * the counter 2 times.
 	 */
-	if(thread_to_remove->m_tginfo != nullptr && !thread_to_remove->is_dead())
+	if(!thread_to_remove->is_dead())
 	{
-		/* we should decrement only if the thread is alive 
-		 * Probably we need another/new flag
-		 */
+		/* we should decrement only if the thread is alive */
 		thread_to_remove->m_tginfo->decrement_thread_count();
 	}
 
@@ -1663,7 +1671,6 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 	 */
 	if(thread_to_remove->m_children.size())
 	{
-		/* if the thread info is invalid probably the reaper will be init, but we call this method anyway */
 		auto reaper = find_new_reaper(thread_to_remove.get());
 		thread_to_remove->assign_children_to_reaper(reaper);
 	}

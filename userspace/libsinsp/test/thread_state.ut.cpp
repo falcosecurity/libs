@@ -1319,9 +1319,9 @@ TEST_F(sinsp_with_test_input, THRD_STATE_execve_from_a_not_leader_thread_with_a_
 
 /*=============================== EXECVE ===========================*/
 
-/*=============================== BROKEN CASES ===========================*/
+/*=============================== MISSING INFO ===========================*/
 
-TEST_F(sinsp_with_test_input, BROKEN_missing_both_clone_events_create_leader_thread)
+TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_leader_thread)
 {
 	add_default_init_thread();
 	open_inspector();
@@ -1344,16 +1344,43 @@ TEST_F(sinsp_with_test_input, BROKEN_missing_both_clone_events_create_leader_thr
 	int64_t p3_t1_pid = 50;
 	int64_t p3_t1_ptid = p2_t1_tid;
 
+	/* We use the clone parent exit event */
 	generate_clone_x_event(p3_t1_tid, p2_t1_tid, p2_t1_pid, p2_t1_ptid);
-	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, p3_t1_ptid)
+	ASSERT_THREAD_INFO_PIDS(p3_t1_tid, p3_t1_pid, p3_t1_ptid);
+	ASSERT_THREAD_GROUP_INFO(p3_t1_pid, 1, false, 1, 1, p3_t1_tid);
+
+	/* We should have created a valid thread info for p2_t1 */
+	ASSERT_THREAD_INFO_PIDS(p2_t1_tid, p2_t1_pid, p2_t1_ptid);
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 1, 1, p2_t1_tid);
+	ASSERT_THREAD_CHILDREN(p2_t1_tid, 1, 1, p3_t1_tid);
+	ASSERT_THREAD_CHILDREN(p1_t1_tid, 1, 1, p2_t1_tid);
 
 	/* Process p2 is generated as invalid so we have no thread info */
-	auto tginfo = m_inspector.m_thread_manager->get_thread_group_info(p2_t1_tid).get();
-	ASSERT_FALSE(tginfo);
-
-	/* Moreover if we check p2_t1 parent, it is INIT and this is not what we want! */
-	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p2_t1_tid)
-	GTEST_SKIP() << "The expected behavior is correct but we need create a correct tree also in this case!";
+	auto tinfo = m_inspector.m_thread_manager->get_thread_ref(p2_t1_tid).get();
+	ASSERT_TRUE(tinfo);
+	ASSERT_FALSE(tinfo->is_invalid());
 }
 
-/*=============================== BROKEN CASES ===========================*/
+TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_secondary_threads)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	/* Init creates a new process p1 but we miss both clone events so we know nothing about it */
+	int64_t p1_t1_tid = 24;
+	int64_t p1_t1_pid = 24;
+	int64_t p1_t1_ptid = INIT_TID;
+
+	/* The process p1 creates a second thread p1_t2 */
+	int64_t p1_t2_tid = 30;
+	int64_t p1_t2_pid = 24;
+	int64_t p1_t2_ptid = INIT_TID;
+
+	/* We use the clone parent exit event */
+	generate_clone_x_event(p1_t2_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_THREAD);
+	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
+	ASSERT_THREAD_GROUP_INFO(p1_t2_pid, 2, false, 2, 2, p1_t2_tid, p1_t1_tid);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
+}
+
+/*=============================== MISSING INFO ===========================*/
