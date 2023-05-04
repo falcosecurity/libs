@@ -17,59 +17,34 @@ limitations under the License.
 
 #include "sinsp_cgroup.h"
 #include "scap_const.h"
-#include "scap.h"
 
-#include <mntent.h>
-
-sinsp_cgroup::sinsp_cgroup() = default;
+sinsp_cgroup::sinsp_cgroup() :
+	m_scap_cgroup({})
+{
+	char error[SCAP_LASTERR_SIZE];
+	scap_cgroup_interface_init(&m_scap_cgroup, error);
+}
 
 std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &subsys, int &version)
 {
-	std::shared_ptr<std::string> cgroup_dir;
-
-	version = 1;
+	const char *scap_cgroup_dir;
 
 	const auto &it = m_cgroup_dir_cache.find(subsys);
 	if(it != m_cgroup_dir_cache.end())
 	{
-		return it->second;
+		version = it->second.second;
+		return it->second.first;
 	}
 
-	// Look for mount point of cgroup filesystem
-	// It should be already mounted on the host or by
-	// our docker-entrypoint.sh script
-	if(strcmp(scap_get_host_root(), "") != 0)
+	scap_cgroup_dir = scap_cgroup_get_subsys_mount(&m_scap_cgroup, subsys.c_str(), &version);
+	if(scap_cgroup_dir != nullptr)
 	{
-		// We are inside our container, so we should use the directory
-		// mounted by it
-		auto cgroup = std::string(scap_get_host_root()) + "/cgroup/" + subsys;
-		cgroup_dir = std::make_shared<std::string>(cgroup);
-	}
-	else
-	{
-		struct mntent mntent_buf = {};
-		char mntent_string_buf[4096];
-		FILE *fp = setmntent("/proc/mounts", "r");
-		struct mntent *entry = getmntent_r(fp, &mntent_buf,
-						   mntent_string_buf, sizeof(mntent_string_buf));
-		while(entry != nullptr)
-		{
-			if(strcmp(entry->mnt_type, "cgroup") == 0 &&
-			   hasmntopt(entry, subsys.c_str()) != nullptr)
-			{
-				cgroup_dir = std::make_shared<std::string>(entry->mnt_dir);
-				break;
-			}
-			entry = getmntent(fp);
-		}
-		endmntent(fp);
+		auto cgroup_dir = std::make_shared<std::string>(scap_cgroup_dir);
+		m_cgroup_dir_cache[subsys] = std::make_pair(cgroup_dir, version);
+		return cgroup_dir;
 	}
 
-	if(cgroup_dir != nullptr)
-	{
-		m_cgroup_dir_cache[subsys] = cgroup_dir;
-	}
-	return cgroup_dir;
+	return nullptr;
 }
 
 sinsp_cgroup &sinsp_cgroup::instance()
