@@ -8724,18 +8724,18 @@ uint8_t* sinsp_filter_check_k8s::extract(sinsp_evt *evt, OUT uint32_t* len, bool
 
 const filtercheck_field_info sinsp_filter_check_mesos_fields[] =
 {
-	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.name", "Task Name", "Mesos task name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.id", "Task ID", "Mesos task id."},
-	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "mesos.task.label", "Task Label", "Mesos task label. E.g. 'mesos.task.label.foo'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.task.labels", "Task Labels", "Mesos task comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.framework.name", "Framework Name", "Mesos framework name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "mesos.framework.id", "Framework ID", "Mesos framework id."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.name", "App Name", "Marathon app name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.id", "App ID", "Marathon app id."},
-	{PT_CHARBUF, EPF_ARG_REQUIRED, PF_NA, "marathon.app.label", "App Label", "Marathon app label. E.g. 'marathon.app.label.foo'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.app.labels", "App Labels", "Marathon app comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.group.name", "Group Name", "Marathon group name."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "marathon.group.id", "Group ID", "Marathon group id."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.name", "Task Name", "Mesos task name."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.id", "Task ID", "Mesos task id."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "mesos.task.label", "Task Label", "Mesos task label. E.g. 'mesos.task.label.foo'."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.task.labels", "Task Labels", "Mesos task comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.framework.name", "Framework Name", "Mesos framework name."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "mesos.framework.id", "Framework ID", "Mesos framework id."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.name", "App Name", "Marathon app name."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.id", "App ID", "Marathon app id."},
+	{PT_CHARBUF, EPF_ARG_REQUIRED|EPF_DEPRECATED, PF_NA, "marathon.app.label", "App Label", "Marathon app label. E.g. 'marathon.app.label.foo'."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.app.labels", "App Labels", "Marathon app comma-separated key/value labels. E.g. 'foo1:bar1,foo2:bar2'."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.group.name", "Group Name", "Marathon group name."},
+	{PT_CHARBUF, EPF_NONE|EPF_DEPRECATED, PF_NA, "marathon.group.id", "Group ID", "Marathon group id."},
 };
 
 sinsp_filter_check_mesos::sinsp_filter_check_mesos()
