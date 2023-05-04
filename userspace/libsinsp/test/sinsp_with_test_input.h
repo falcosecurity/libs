@@ -217,6 +217,31 @@ protected:
 		m_test_data->fdinfo_data = m_test_fdinfo_data.data();
 	}
 
+	void set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns)
+	{
+		auto tinfo = m_inspector.get_thread_ref(tid, false).get();
+		if(tinfo != nullptr)
+		{
+			tinfo->m_lastaccess_ts = access_time_ns;
+		}
+		else
+		{
+			throw sinsp_exception("There is no thread info associated with tid: " + std::to_string(tid));
+		}
+	}
+
+	/* Remove all threads with `tinfo->m_lastaccess_ts` minor than `m_lastevent_ts - thread_timeout` */
+	void remove_inactive_threads(uint64_t m_lastevent_ts, uint64_t thread_timeout)
+	{
+		/* We need to set these 2 variables to enable the remove_inactive_logic */
+		m_inspector.m_thread_manager->m_last_flush_time_ns = 1;
+		m_inspector.m_inactive_thread_scan_time_ns = 2;
+
+		m_inspector.m_lastevent_ts = m_lastevent_ts;
+		m_inspector.m_thread_timeout_ns = thread_timeout;
+		m_inspector.remove_inactive_threads();
+	}
+
 	static scap_threadinfo create_threadinfo(
 		uint64_t tid, uint64_t pid, uint64_t ptid, uint64_t vpgid, int64_t vtid, int64_t vpid,
 		std::string comm, std::string exe, std::string exepath, uint64_t clone_ts, uint32_t uid, uint32_t gid,

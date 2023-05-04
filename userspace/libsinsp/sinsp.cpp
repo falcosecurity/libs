@@ -2606,11 +2606,10 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
+
+/* Returns true when we scan the table */
 bool sinsp_thread_manager::remove_inactive_threads()
 {
-	/* `res==true` means we scanned the table */
-	bool res = false;
-
 	if(m_last_flush_time_ns == 0)
 	{
 		//
@@ -2632,9 +2631,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
-		std::unordered_map<uint64_t, bool> to_delete;
-
-		res = true;
+		std::unordered_set<int64_t> to_delete;
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
@@ -2646,26 +2643,21 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		 * 3. Threads that we are not using and that are no more alive in /proc.
 		 */
 		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-			if(tinfo.is_dead() || tinfo.is_invalid() ||
+			if(tinfo.is_invalid() ||
 				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str()))
-					)
+					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
 			{
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				///todo(@Andreagit97) Here we are removing all our main threads that are dead
-				/// not sure this is what we want to do, usually we want to keep them for
-				/// fdtable, cwd and env + some filterchecks
-				/* we set the `force` flag only if the thread is dead or invalid */
-				to_delete[tinfo.m_tid] = tinfo.is_dead() || tinfo.is_invalid();
+				to_delete.insert(tinfo.m_tid);
 			}
 			return true;
 		});
 
-		for (auto& it : to_delete)
+		for(const auto& tid_to_remove : to_delete)
 		{
-			remove_thread(it.first, it.second);
+			remove_thread(tid_to_remove, false);
 		}
 
 		//
@@ -2673,9 +2665,10 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		// exited but that are stuck because of reference counting.
 		//
 		reset_child_dependencies();
+		return true;
 	}
 
-	return res;
+	return false;
 }
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)

@@ -1630,6 +1630,9 @@ void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thr
 /* We use `force` when we have a stale thread in the table, we know it is stale
  * because we have a thread with the same `tid` and this is not possible unless
  * the old one is dead.
+ *
+ * `force` is useful only if we want to remove a leader thread that is dead otherwise 
+ * it should never be used.
  */
 void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 {

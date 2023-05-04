@@ -141,7 +141,7 @@ limitations under the License.
  * 	   - (p_4 - t2) tid 79 pid 76 ptid 72 (container: vtid 2 vpid 1)
  * 		- (p_5 - t1) tid 82 pid 82 ptid 79 (container: vtid 10 vpid 10)
  * 		- (p_5 - t2) tid 84 pid 82 ptid 79 (container: vtid 12 vpid 10)
- *  	 - (p_6 - t2) tid 87 pid 87 ptid 84 (container: vtid 17 vpid 17)
+ *  	 - (p_6 - t1) tid 87 pid 87 ptid 84 (container: vtid 17 vpid 17)
  * 	 - (p_2 - t2) tid 23 pid 25 ptid 1
  * 	 - (p_2 - t3) tid 24 pid 25 ptid 1
  */
@@ -908,6 +908,62 @@ TEST_F(sinsp_with_test_input, THRD_STATE_remove_non_existing_thread)
 	/* we should do nothing, here we are only checking that nothing will crash */
 	m_inspector.remove_thread(unknown_tid, false);
 	m_inspector.remove_thread(unknown_tid, true);
+}
+
+TEST_F(sinsp_with_test_input, THRD_STATE_remove_inactive_threads_1)
+{
+	DEFAULT_TREE
+
+	uint64_t old_thread_count = m_inspector.m_thread_manager->get_thread_count();
+	/* mark p2_t1 and p2_t3 to remove */
+	set_threadinfo_last_access_time(INIT_TID, 80);
+	set_threadinfo_last_access_time(p1_t1_tid, 80);
+	set_threadinfo_last_access_time(p1_t2_tid, 80);
+	set_threadinfo_last_access_time(p2_t1_tid, 80);
+	set_threadinfo_last_access_time(p3_t1_tid, 80);
+	set_threadinfo_last_access_time(p4_t1_tid, 80);
+	set_threadinfo_last_access_time(p4_t2_tid, 80);
+	set_threadinfo_last_access_time(p5_t1_tid, 80);
+	set_threadinfo_last_access_time(p5_t2_tid, 80);
+	set_threadinfo_last_access_time(p6_t1_tid, 80);
+	set_threadinfo_last_access_time(p2_t2_tid, 80);
+	set_threadinfo_last_access_time(p2_t3_tid, 80);
+
+	/* This should remove no one */
+	remove_inactive_threads(80, 20);
+	ASSERT_EQ(old_thread_count, m_inspector.m_thread_manager->get_thread_count());
+
+	set_threadinfo_last_access_time(p2_t1_tid, 20);
+	set_threadinfo_last_access_time(p2_t3_tid, 20);
+
+	/* p2_t1 shouldn't be removed from the table since it is a leader thread and we still have some threads in that
+	 * group while p2_t3 should be removed.
+	 */
+	remove_inactive_threads(80, 20);
+	ASSERT_EQ(old_thread_count - 1, m_inspector.m_thread_manager->get_thread_count());
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 2, p2_t1_tid, p2_t2_tid);
+
+	/* Calling PRCTL on an unknown thread should generate an invalid thread */
+	int64_t unknown_tid = 8000;
+	add_event_advance_ts(increasing_ts(), unknown_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)0);
+
+	/* We want to be sure that this is removed because it is inactive */
+	set_threadinfo_last_access_time(unknown_tid, 80);
+
+	/* This call should remove only invalid threads */
+	old_thread_count = m_inspector.m_thread_manager->get_thread_count();
+	remove_inactive_threads(80, 20);
+	ASSERT_EQ(old_thread_count - 1, m_inspector.m_thread_manager->get_thread_count());
+
+	/* successive remove call on `p2_t1` do nothing */
+	m_inspector.remove_thread(p2_t1_tid, false);
+	m_inspector.remove_thread(p2_t1_tid, false);
+
+	/* only a call with force equal to true should remove this thread */
+	m_inspector.remove_thread(p2_t1_tid, true);
+	ASSERT_EQ(old_thread_count - 2, m_inspector.m_thread_manager->get_thread_count());
+	ASSERT_THREAD_GROUP_INFO(p2_t1_pid, 1, false, 3, 1, p2_t2_tid);
 }
 
 /*=============================== REMOVE THREAD LOGIC ===========================*/
