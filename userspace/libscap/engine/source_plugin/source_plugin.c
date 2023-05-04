@@ -34,7 +34,7 @@ static const char * const source_plugin_counters_stats_names[] = {
 };
 
 // We need to check that ppm_evt_hdr and ss_plugin_event are the same struct
-// right at compile time. We do so by thecking for their size and the offset
+// right at compile time. We do so by checking for their size and the offset
 // of each of their subfields. This allows us to avoid divergences while at the
 // same time not sharing the same headers.
 #if defined __GNUC__ || __STDC_VERSION__ >= 201112L
