@@ -23,9 +23,11 @@ limitations under the License.
 
 sinsp_cgroup::sinsp_cgroup() = default;
 
-std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &subsys)
+std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &subsys, int &version)
 {
 	std::shared_ptr<std::string> cgroup_dir;
+
+	version = 1;
 
 	const auto &it = m_cgroup_dir_cache.find(subsys);
 	if(it != m_cgroup_dir_cache.end())
