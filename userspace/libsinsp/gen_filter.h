@@ -216,6 +216,7 @@ public:
 		std::set<std::string> tags;
 
 		bool is_skippable();
+		bool is_deprecated();
 	};
 
 	// Describes a group of filtercheck fields ("ka")

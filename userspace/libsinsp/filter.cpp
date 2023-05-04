@@ -1933,6 +1933,11 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 				info.tags.insert("EPF_TABLE_ONLY");
 			}
 
+			if(fld->m_flags & EPF_DEPRECATED)
+			{
+				info.tags.insert("EPF_DEPRECATED");
+			}
+
 			if(fld->m_flags & EPF_ARG_REQUIRED)
 			{
 				info.tags.insert("ARG_REQUIRED");

@@ -273,6 +273,12 @@ bool gen_event_filter_factory::filter_field_info::is_skippable()
 	return (tags.find("EPF_TABLE_ONLY") != tags.end());
 }
 
+bool gen_event_filter_factory::filter_field_info::is_deprecated()
+{
+	// Skip fields with the EPF_DEPRECATED flag.
+	return (tags.find("EPF_DEPRECATED") != tags.end());
+}
+
 uint32_t gen_event_filter_factory::filter_fieldclass_info::s_rightblock_start = 30;
 uint32_t gen_event_filter_factory::filter_fieldclass_info::s_width = 120;
 
@@ -346,6 +352,7 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const 
 std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources)
 {
 	std::ostringstream os;
+	uint32_t deprecated_count = 0;
 
 	os << "-------------------------------" << std::endl;
 
@@ -384,6 +391,11 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 		// (e.g. hidden fields)
 		if(fld_info.is_skippable())
 		{
+			continue;
+		}
+		if(fld_info.is_deprecated())
+		{
+			deprecated_count++;
 			continue;
 		}
 
@@ -425,6 +437,11 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 
 		wrapstring(desc, os);
 		os << std::endl;
+	}
+
+	if(deprecated_count == fields.size())
+	{
+		return "";
 	}
 
 	return os.str();
