@@ -17,6 +17,7 @@ limitations under the License.
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "scap_cgroup_set.h"
@@ -30,6 +31,7 @@ limitations under the License.
 extern "C"
 {
 #endif
+	struct scap_cgroup_cache;
 	struct scap_threadinfo;
 
 	struct scap_cgroup_interface
@@ -41,6 +43,9 @@ extern "C"
 		// cgroupfs mount points
 		struct scap_cgroup_set m_mounts_v1;
 		char m_mount_v2[SCAP_MAX_PATH_SIZE];
+
+		bool m_use_cache;
+		struct scap_cgroup_cache* m_cache;
 	};
 
 	int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error);
@@ -48,6 +53,10 @@ extern "C"
 	int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* procdirname, struct scap_cgroup_set* cg, char* error);
 
 	const char* scap_cgroup_get_subsys_mount(const struct scap_cgroup_interface* cgi, const char* subsys, int* version);
+
+	void scap_cgroup_enable_cache(struct scap_cgroup_interface* cgi);
+
+	void scap_cgroup_clear_cache(struct scap_cgroup_interface* cgi);
 #ifdef __cplusplus
 };
 #endif

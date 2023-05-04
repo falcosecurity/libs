@@ -20,12 +20,21 @@ limitations under the License.
 #include "scap_assert.h"
 #include "scap.h"
 #include "strerror.h"
+#include "uthash.h"
 
 #include <errno.h>
 #include <mntent.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+struct scap_cgroup_cache
+{
+	char path[SCAP_MAX_PATH_SIZE];
+	struct scap_cgroup_set subsystems;
+
+	UT_hash_handle hh;
+};
 
 static int32_t __attribute__((format(printf, 2, 3)))
 scap_cgroup_printf(struct scap_cgroup_set* cgset, const char* fmt, ...)
@@ -199,8 +208,24 @@ static int32_t scap_get_cgroup_mount_v1(struct mntent* de, struct scap_cgroup_se
 //
 // Note: the controller list may also be empty (e.g. when booting with
 // systemd.unified_cgroup_hierarchy=0), so we handle that case as well
+//
+// We need to walk up the directory tree when looking for subsystems,
+// so we will end up calling this function repeatedly for the same directory.
+// To minimize the overhead, we use a simple cache.
 static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi, struct scap_cgroup_set* subsystems, const char* cgroup_mount)
 {
+	if(cgi->m_use_cache)
+	{
+		struct scap_cgroup_cache* cached;
+		HASH_FIND_STR(cgi->m_cache, cgroup_mount, cached);
+
+		if(cached != NULL)
+		{
+			*subsystems = cached->subsystems;
+			return SCAP_SUCCESS;
+		}
+	}
+
 	subsystems->len = 0;
 
 	char line[SCAP_MAX_PATH_SIZE];
@@ -244,6 +269,23 @@ static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi, struc
 		//         ^p
 	}
 
+	if(cgi->m_use_cache)
+	{
+		struct scap_cgroup_cache* cached = malloc(sizeof(*cached));
+		if(cached)
+		{
+			int uth_status = SCAP_SUCCESS;
+			snprintf(cached->path, sizeof(cached->path), "%s", cgroup_mount);
+			memcpy(&cached->subsystems, subsystems, sizeof(cached->subsystems));
+
+			HASH_ADD_STR(cgi->m_cache, path, cached);
+			if(uth_status != SCAP_SUCCESS)
+			{
+				free(cached);
+			}
+		}
+	}
+
 	return SCAP_SUCCESS;
 }
 
@@ -261,6 +303,8 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* erro
 	const char* host_root = scap_get_host_root();
 	char filename[SCAP_MAX_PATH_SIZE];
 
+	cgi->m_use_cache = true;
+	cgi->m_cache = NULL;
 	cgi->m_subsystems_v1.len = 0;
 	cgi->m_subsystems_v2.len = 0;
 	cgi->m_mounts_v1.len = 0;
@@ -585,4 +629,28 @@ const char* scap_cgroup_get_subsys_mount(const struct scap_cgroup_interface* cgi
 	ASSERT(false);
 	*version = 0;
 	return NULL;
+}
+
+void scap_cgroup_clear_cache(struct scap_cgroup_interface* cgi)
+{
+	cgi->m_use_cache = false;
+
+	if(cgi->m_cache)
+	{
+		struct scap_cgroup_cache* cache;
+		struct scap_cgroup_cache* tcache;
+		HASH_ITER(hh, cgi->m_cache, cache, tcache)
+		{
+			HASH_DEL(cgi->m_cache, cache);
+			free(cache);
+		}
+
+		cgi->m_cache = NULL;
+	}
+}
+
+void scap_cgroup_enable_cache(struct scap_cgroup_interface* cgi)
+{
+	scap_cgroup_clear_cache(cgi);
+	cgi->m_use_cache = true;
 }

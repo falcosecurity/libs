@@ -58,3 +58,10 @@ sinsp_cgroup &sinsp_cgroup::instance()
 
 	return *instance;
 }
+
+sinsp_cgroup::~sinsp_cgroup()
+{
+#ifdef __linux__
+	scap_cgroup_clear_cache(&m_scap_cgroup);
+#endif // __linux__
+}
