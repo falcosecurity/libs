@@ -17,6 +17,9 @@ limitations under the License.
 #include "static_struct.h"
 #include "dynamic_struct.h"
 
+#include <functional>
+#include <type_traits>
+
 namespace libsinsp {
 namespace state {
 
