@@ -87,20 +87,23 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 {
 	sinsp_cgroup& cgroups = sinsp_cgroup::instance();
 	bool found_all = true;
-	std::shared_ptr<std::string> memcg_root = cgroups.lookup_cgroup_dir("memory");
+
+	int memcg_version;
+	std::shared_ptr<std::string> memcg_root = cgroups.lookup_cgroup_dir("memory", memcg_version);
 	if(name_check && key.m_mem_cgroup.find(key.m_container_id) == std::string::npos)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) mem cgroup for container [%s]: %s/%s -- no per-container memory cgroup, ignoring",
-			key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
+				key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
 	}
 	else
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) mem cgroup for container [%s]: %s/%s",
-			key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
+				key.m_container_id.c_str(), memcg_root->c_str(), key.m_mem_cgroup.c_str());
 		found_all = read_cgroup_val(memcg_root, key.m_mem_cgroup, "memory.limit_in_bytes", value.m_memory_limit) && found_all;
 	}
 
-	std::shared_ptr<std::string> cpucg_root = cgroups.lookup_cgroup_dir("cpu");
+	int cpu_version;
+	std::shared_ptr<std::string> cpucg_root = cgroups.lookup_cgroup_dir("cpu", cpu_version);
 	if(name_check && key.m_cpu_cgroup.find(key.m_container_id) == std::string::npos)
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "(cgroup-limits) cpu cgroup for container [%s]: %s/%s -- no per-container CPU cgroup, ignoring",
@@ -115,8 +118,9 @@ bool get_cgroup_resource_limits(const cgroup_limits_key& key, cgroup_limits_valu
 		found_all = read_cgroup_val(cpucg_root, key.m_cpu_cgroup, "cpu.cfs_period_us", value.m_cpu_period) && found_all;
 	}
 
-	std::shared_ptr<std::string> cpuset_root = cgroups.lookup_cgroup_dir("cpuset");
-	if (name_check && key.m_cpuset_cgroup.find(key.m_container_id) == std::string::npos)
+	int cpuset_version;
+	std::shared_ptr<std::string> cpuset_root = cgroups.lookup_cgroup_dir("cpuset", cpuset_version);
+	if(name_check && key.m_cpuset_cgroup.find(key.m_container_id) == std::string::npos)
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG, "(cgroup-limits) cpuset cgroup for container [%s]: %s/%s -- no per-container cpuset cgroup, ignoring",
 				key.m_container_id.c_str(), cpuset_root->c_str(), key.m_cpuset_cgroup.c_str());
