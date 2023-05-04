@@ -294,6 +294,145 @@ int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* erro
 	return SCAP_SUCCESS;
 }
 
+// does `subsys` exist in the `cg` set?
+static bool scap_cgroup_find_subsys(const struct scap_cgroup_set* cg, const char* subsys)
+{
+	FOR_EACH_SUBSYS(cg, cgset_subsys)
+	{
+		if(strcmp(cgset_subsys, subsys) == 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// does `smaller` contain all the entries in `larger`?
+static bool scap_cgroup_set_contains_all(const struct scap_cgroup_set* larger, const struct scap_cgroup_set* smaller)
+{
+	FOR_EACH_SUBSYS(larger, cgset_subsys)
+	{
+		if(!scap_cgroup_find_subsys(smaller, cgset_subsys))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Find actual cgroups for each v2 subsystem of `cgroup`
+//
+// Even though cgroups v2 have a unified hierarchy (i.e. all subsystems use the same cgroup tree
+// and there's just one entry in /proc/<pid>/cgroup), for example, the following tree:
+//
+// $ cat /proc/self/cgroup
+// 0::/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/vte-spawn-5344486b-2f3a-4de3-85d7-4cab5f76db2b.scope
+// $ cat /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/vte-spawn-5344486b-2f3a-4de3-85d7-4cab5f76db2b.scope/cgroup.controllers
+// memory pids
+// $ cat /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/cgroup.controllers
+// memory pids
+// $ cat /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/cgroup.controllers
+// memory pids
+// $ cat /sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/cgroup.controllers
+// memory pids
+// $ cat /sys/fs/cgroup/user.slice/user-1000.slice/cgroup.controllers
+// memory pids
+// $ cat /sys/fs/cgroup/user.slice/cgroup.controllers
+// cpuset cpu io memory pids
+// $ cat /sys/fs/cgroup/cgroup.controllers
+// cpuset cpu io memory hugetlb pids rdma misc
+//
+// is equivalent to a v1 setup of:
+// 1:memory,pids:/user.slice/user-1000.slice/user@1000.service/app.slice/app-org.gnome.Terminal.slice/vte-spawn-5344486b-2f3a-4de3-85d7-4cab5f76db2b.scope
+// 2:cpuset,cpu,io:/users.slice
+// 3:hugetlb,rdma,misc:/
+//
+// To find the above cgroups, we need to walk up the directory tree, starting at the process cgroup,
+// looking at cgroup.controllers at each level. For every level, we see if there are any new subsystems enabled
+// and if so, add them to the cgroup set.
+//
+// We walk the tree upwards until we either reach the cgroup mount point, or we find all the subsystems
+static int32_t scap_cgroup_resolve_v2(struct scap_cgroup_interface* cgi, const char* cgroup, struct scap_cgroup_set* cg)
+{
+	char full_cgroup[SCAP_MAX_PATH_SIZE];
+	char cgroup_path[SCAP_MAX_PATH_SIZE];
+
+	int nwritten = snprintf(full_cgroup, sizeof(full_cgroup), "%s", cgroup);
+	if(nwritten >= sizeof(full_cgroup))
+	{
+		return SCAP_FAILURE;
+	}
+
+	nwritten = snprintf(cgroup_path, sizeof(cgroup_path), "%s%s", cgi->m_mount_v2, full_cgroup);
+	if(nwritten >= sizeof(cgroup_path))
+	{
+		return SCAP_FAILURE;
+	}
+
+	struct scap_cgroup_set found_subsystems = {.len = 0};
+	while(1) // not reached cgroup mountpoint yet
+	{
+		struct scap_cgroup_set current_subsystems;
+		if(get_cgroup_subsystems_v2(cgi, &current_subsystems, cgroup_path) != SCAP_SUCCESS)
+		{
+			return SCAP_FAILURE;
+		}
+
+		FOR_EACH_SUBSYS(&current_subsystems, cgset_subsys)
+		{
+			char subsys[SCAP_MAX_PATH_SIZE];
+			char* subsys_end = strchr(cgset_subsys, '=');
+			ASSERT(subsys_end != NULL);
+			int subsys_len = (int)(subsys_end - cgset_subsys) - 1;
+
+			snprintf(subsys, sizeof(subsys), "%.*s", subsys_len, cgset_subsys);
+			if(!scap_cgroup_find_subsys(&found_subsystems, cgset_subsys))
+			{
+				if(scap_cgroup_printf(cg, "%s=%s", subsys, full_cgroup) != SCAP_SUCCESS)
+				{
+					return SCAP_FAILURE;
+				}
+				if(scap_cgroup_printf(&found_subsystems, "%s", subsys) != SCAP_SUCCESS)
+				{
+					return SCAP_FAILURE;
+				}
+			}
+		}
+
+		if(full_cgroup[1] == 0) // i.e. full_cgroup is just "/"
+		{
+			// reached the root, bail out
+			break;
+		}
+
+		if(scap_cgroup_set_contains_all(&cgi->m_subsystems_v2, &found_subsystems))
+		{
+			break;
+		}
+
+		char* q;
+
+		q = strrchr(full_cgroup, '/');
+		if(!q)
+		{
+			break;
+		}
+		if(q == full_cgroup)
+		{
+			// leave the initial '/' in
+			q++;
+		}
+		*q = 0;
+
+		q = strrchr(cgroup_path, '/');
+		ASSERT(q);
+		*q = 0;
+	}
+	return SCAP_SUCCESS;
+}
+
 // Get all cgroups (v1 and v2) for a thread whose /proc directory is `procdirname`
 int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* procdirname, struct scap_cgroup_set* cg, char* error)
 {
@@ -321,9 +460,6 @@ int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* pr
 		char* subsys_list;
 		char* cgroup;
 		char* scratch;
-		// Default subsys list for cgroups v2 unified hierarchy.
-		// These are the ones we actually use in cri container engine.
-		char default_subsys_list[] = "cpu,memory,cpuset";
 
 		// id
 		token = strtok_r(line, ":", &scratch);
@@ -375,13 +511,18 @@ int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* pr
 			if(cgi->m_mount_v2[0] != 0 && strcmp(token, "0") == 0)
 			{
 				cgroup = subsys_list;
-				subsys_list = default_subsys_list; // force-set a default subsys list
-
 				size_t cgroup_len = strlen(cgroup);
 				if(cgroup_len != 0 && cgroup[cgroup_len - 1] == '\n')
 				{
 					cgroup[cgroup_len - 1] = '\0';
 				}
+
+				if(scap_cgroup_resolve_v2(cgi, cgroup, cg) != SCAP_SUCCESS)
+				{
+					fclose(f);
+					return scap_errprintf(error, 0, "Cannot resolve v2 cgroups");
+				}
+				continue;
 			}
 			else
 			{
