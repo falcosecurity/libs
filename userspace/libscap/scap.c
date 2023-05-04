@@ -169,6 +169,10 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 		return rc;
 	}
 
+#ifdef __linux__
+	scap_cgroup_clear_cache(&handle->m_cgroups);
+#endif
+
 	return SCAP_SUCCESS;
 }
 #endif // HAS_LIVE_CAPTURE
@@ -294,6 +298,10 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	{
 		return rc;
 	}
+
+#ifdef __linux__
+	scap_cgroup_clear_cache(&handle->m_cgroups);
+#endif
 
 	return SCAP_SUCCESS;
 }
@@ -576,6 +584,10 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 		return rc;
 	}
 
+#ifdef __linux__
+	scap_cgroup_clear_cache(&handle->m_cgroups);
+#endif
+
 	return SCAP_SUCCESS;
 }
 #endif // HAS_ENGINE_NODRIVER
@@ -848,6 +860,10 @@ void scap_deinit(scap_t* handle)
 		scap_platform_close(handle->m_platform);
 		scap_platform_free(handle->m_platform);
 	}
+
+#ifdef __linux__
+	scap_cgroup_clear_cache(&handle->m_cgroups);
+#endif // __linux__
 
 	if(handle->m_vtable)
 	{
