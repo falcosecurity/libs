@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#include "linux/scap_cgroup.h"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -30,5 +32,6 @@ public:
 	static sinsp_cgroup &instance();
 
 protected:
-	std::unordered_map<std::string, std::shared_ptr<std::string>> m_cgroup_dir_cache;
+	struct scap_cgroup_interface m_scap_cgroup;
+	std::unordered_map<std::string, std::pair<std::shared_ptr<std::string>, int>> m_cgroup_dir_cache;
 };

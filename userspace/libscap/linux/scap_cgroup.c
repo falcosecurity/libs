@@ -417,3 +417,31 @@ int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* pr
 	fclose(f);
 	return SCAP_SUCCESS;
 }
+
+// Get the mountpoint and version of a particular cgroup subsystem
+//
+// Note: there's no notion of a system-wide cgroup version: each subsystem can be mounted
+// either as v1 or v2 (but once mounted, it stays there; you can't have a subsystem mounted
+// both ways)
+const char* scap_cgroup_get_subsys_mount(const struct scap_cgroup_interface* cgi, const char* subsys, int* version)
+{
+	size_t subsys_len = strlen(subsys);
+	FOR_EACH_SUBSYS(&cgi->m_mounts_v1, cgset_subsys)
+	{
+		if(strncmp(cgset_subsys, subsys, subsys_len) == 0 && cgset_subsys[subsys_len] == '=')
+		{
+			*version = 1;
+			return cgset_subsys + subsys_len + 1;
+		}
+	}
+
+	if(cgi->m_mount_v2[0])
+	{
+		*version = 2;
+		return cgi->m_mount_v2;
+	}
+
+	ASSERT(false);
+	*version = 0;
+	return NULL;
+}
