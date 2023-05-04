@@ -1685,7 +1685,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	 * 
 	 * Note that the lookup thread could be different from the caller one!
 	 * If they are different we cannot completely trust the info we obtain from lookup thread
-	 * becuase they could stable! For example the caller may have called `prctl` changing its comm,
+	 * becuase they could be stale! For example the caller may have called `prctl` changing its comm,
 	 * while the lookup thread still have the old `comm`.
 	 */
 	int64_t lookup_tid;
@@ -1708,7 +1708,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		tinfo->m_flags |= PPM_CL_CLONE_FILES;
 	}
 
-	sinsp_threadinfo* lookup_tinfo = m_inspector->get_thread_ref(lookup_tid, true).get();
+	auto lookup_tinfo = m_inspector->get_thread_ref(lookup_tid, true);
 	/* This happens only if we reach the max entries in our table otherwise we should obtain a new fresh empty
 	 * thread info to populate even if we are not able to recover any information!
 	 * If `caller_tinfo == nullptr` we return, we won't have enough space for the child in the table!
@@ -1722,14 +1722,25 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		return;
 	}
 
-   /* We have an invalid thread, which is strange since it's performing
-	* a clone. We try to remove and look it up in `/proc`.
-	* We need to check again in `/proc` because the first time we could
-	* have used stale info in our table.
-	*/
 	if(lookup_tinfo->is_invalid())
 	{
 		valid_lookup_thread = false;
+
+		if(!is_thread_leader)
+		{
+			/* If the main thread was invalid we should be able to recover some info */
+
+			/* pid. */
+			/* the new thread pid is the same of the main thread */
+			lookup_tinfo->m_pid = tinfo->m_pid;
+
+			/* ptid */
+			/* the new thread ptid is the same of the main thread */
+			lookup_tinfo->m_ptid = tinfo->m_ptid;
+
+			/* Create thread groups and parenting relationships */
+			m_inspector->m_thread_manager->create_thread_dependencies(lookup_tinfo);
+		}
 	}
 
 	/* We need to do this here, in this way we can use this info to populate the lookup thread
@@ -1854,12 +1865,19 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	}
 	else
 	{
-		/* Please note that here we shouldn't enrich the lookup thread state
-		 * if it is invalid since we have no info about it! `comm`, `exe`, ... could be different!
-		 * BTW if we don't update at least comm this thread will be invalid
-		 * every time we will get it, so we will remove it and recreate it every time, genereting some issues in the reparenting
-		 */
-		lookup_tinfo->m_comm = tinfo->m_comm;
+		/* Please note that here `comm`, `exe`, ... could be different from our thread, so this is an approximation */ 
+		if(!is_thread_leader)
+		{
+			/* exe */
+			lookup_tinfo->m_exe = tinfo->m_exe;
+
+			/* comm */
+			lookup_tinfo->m_comm = tinfo->m_comm;
+
+			/* args */
+			parinfo = evt->get_param(2);
+			lookup_tinfo->set_args(parinfo->m_val, parinfo->m_len);
+		}
 	}
 
 	/* fdlimit */
@@ -2063,7 +2081,7 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		/* Right now we have collisions only on the clone() caller */
 		DBG_SINSP_INFO("tid collision for %" PRIu64 "(%s)",
 		               tid_collision,
-		               lookup_tinfo->m_comm.c_str());
+		               tinfo->m_comm.c_str());
 	}
 
 	if(!thread_added)

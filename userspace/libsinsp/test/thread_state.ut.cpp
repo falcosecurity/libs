@@ -1361,6 +1361,7 @@ TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_leader
 	ASSERT_FALSE(tinfo->is_invalid());
 }
 
+/* Here we are using the parent clone exit event to reconstruct the tree */
 TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_secondary_threads)
 {
 	add_default_init_thread();
@@ -1378,6 +1379,29 @@ TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_second
 
 	/* We use the clone parent exit event */
 	generate_clone_x_event(p1_t2_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid, PPM_CL_CLONE_THREAD);
+	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
+	ASSERT_THREAD_GROUP_INFO(p1_t2_pid, 2, false, 2, 2, p1_t2_tid, p1_t1_tid);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
+}
+
+/* Here we are using the child clone exit event to reconstruct the tree */
+TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_secondary_threads_child_event)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	/* Init creates a new process p1 but we miss both clone events so we know nothing about it */
+	int64_t p1_t1_tid = 24;
+	UNUSED int64_t p1_t1_pid = 24;
+	UNUSED int64_t p1_t1_ptid = INIT_TID;
+
+	/* The process p1 creates a second thread p1_t2 */
+	int64_t p1_t2_tid = 30;
+	int64_t p1_t2_pid = 24;
+	int64_t p1_t2_ptid = INIT_TID;
+
+	/* We use the clone child exit event */
+	generate_clone_x_event(0, p1_t2_tid, p1_t2_pid, p1_t2_ptid, PPM_CL_CLONE_THREAD);
 	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
 	ASSERT_THREAD_GROUP_INFO(p1_t2_pid, 2, false, 2, 2, p1_t2_tid, p1_t1_tid);
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
