@@ -22,6 +22,7 @@ limitations under the License.
 #include "strerror.h"
 
 #include <errno.h>
+#include <mntent.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -52,12 +53,254 @@ scap_cgroup_printf(struct scap_cgroup_set* cgset, const char* fmt, ...)
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_threadinfo* tinfo, const char* procdirname)
+// Get all the v1 subsystems out of /proc/self/cgroup
+//
+// Given the sample content below:
+//
+// 12:devices:/user.slice
+// 11:rdma:/
+// 10:freezer:/
+// 9:blkio:/
+// 8:pids:/user.slice/user-0.slice/session-13542.scope
+// 7:net_cls,net_prio:/
+// 6:perf_event:/
+// 5:hugetlb:/
+// 4:memory:/
+// 3:cpu,cpuacct:/user.slice/user-0.slice/session-13542.scope
+// 2:cpuset:/
+// 1:name=systemd:/user.slice/user-0.slice/session-13542.scope
+// 0::/user.slice/user-0.slice/session-13542.scope
+//
+// we want to `scap_cgroup_printf()` the subsystem names into `subsystems`:
+// - devices
+// - rdma
+// - freezer
+// - blkio
+// - pids
+// - net_cls (note this is mounted together with the following one)
+// - net_prio
+// - perf_event
+// - hugetlb
+// - memory
+// - cpu
+// - cpuacct
+// - cpuset
+// - name=systemd
+//
+// (we skip the empty one since it's either v2, or an empty subsys list without a name, i.e. generally useless)
+static int32_t get_cgroup_subsystems_v1(struct scap_cgroup_set* subsystems)
+{
+	char line[SCAP_MAX_PATH_SIZE];
+	subsystems->len = 0;
+
+	FILE* cgroups = fopen("/proc/self/cgroup", "r");
+	if(!cgroups)
+	{
+		return SCAP_FAILURE;
+	}
+
+	while(fgets(line, sizeof(line), cgroups) != NULL)
+	{
+		// 3:cpu,cpuacct:/user.slice/user-0.slice/session-13542.scope
+		//  ^p
+		char* p = strchr(line, ':');
+		if(!p)
+		{
+			fclose(cgroups);
+			return SCAP_FAILURE;
+		}
+		// 3:cpu,cpuacct:/user.slice/user-0.slice/session-13542.scope
+		//  ^p          ^q
+		char* q = strchr(p, ':');
+		if(!q)
+		{
+			fclose(cgroups);
+			return SCAP_FAILURE;
+		}
+
+		// 3:cpu,cpuacct
+		//  ^p          ^q
+		*q = 0;
+		if(strlen(p) == 0)
+		{
+			continue;
+		}
+
+		while(1)
+		{
+			// 3:cpu\0cpuacct
+			//  ^p  ^q
+			char* comma = strchr(p, ',');
+			if(comma)
+			{
+				*comma = 0;
+			}
+
+			if(scap_cgroup_printf(subsystems, "%s", p) == SCAP_FAILURE)
+			{
+				fclose(cgroups);
+				return SCAP_FAILURE;
+			}
+
+			if(!comma)
+			{
+				break;
+			}
+
+			// 3:cpu\0cpuacct
+			//        ^p
+			p = comma + 1;
+		}
+	}
+
+	fclose(cgroups);
+	return SCAP_SUCCESS;
+}
+
+// Get mount points for all cgroup v1 subsystems
+//
+// Note: some v1 subsystems can be mounted together (e.g. cpu,cpuacct): we don't care and remember them separately
+// This needs to be called for each mount entry when looping over `getmntent_r`
+//
+// To bypass cgroup namespaces, we always access the host's cgroup filesystem via /proc/1/root/
+static int32_t scap_get_cgroup_mount_v1(struct mntent* de, struct scap_cgroup_set* mounts, struct scap_cgroup_set* cg_subsystems, const char* host_root, char* error)
+{
+	if(cg_subsystems->len == 0 && get_cgroup_subsystems_v1(cg_subsystems) == SCAP_FAILURE)
+	{
+		return scap_errprintf(error, 0, "failed to parse /proc/self/cgroup");
+	}
+
+	FOR_EACH_SUBSYS(cg_subsystems, cg_subsys)
+	{
+		// hasmntopt is smart enough to match comma-delimited strings, so e.g.
+		// "cpuset,cpuacct" won't match "cpu" but "cpu,cpuacct" will
+		if(!hasmntopt(de, cg_subsys))
+		{
+			continue;
+		}
+
+		if(scap_cgroup_printf(mounts, "%s=%s/proc/1/root%s", cg_subsys, host_root, de->mnt_dir) != SCAP_SUCCESS)
+		{
+			ASSERT(false);
+			return SCAP_FAILURE;
+		}
+	}
+
+	return SCAP_SUCCESS;
+}
+
+// Get all subsystem names for the v2 cgroup at `cgroup_mount`
+//
+// This is achieved by simply reading the contents of cgroup.controllers
+// in that directory (it's a single line) and splitting it across spaces.
+//
+// Example:
+// cpuset cpu io memory hugetlb pids rdma misc
+//
+// Note: the controller list may also be empty (e.g. when booting with
+// systemd.unified_cgroup_hierarchy=0), so we handle that case as well
+static int32_t get_cgroup_subsystems_v2(struct scap_cgroup_interface* cgi, struct scap_cgroup_set* subsystems, const char* cgroup_mount)
+{
+	subsystems->len = 0;
+
+	char line[SCAP_MAX_PATH_SIZE];
+	snprintf(line, sizeof(line), "%s/cgroup.controllers", cgroup_mount);
+	FILE* cgroup_controllers = fopen(line, "r");
+	if(!cgroup_controllers)
+	{
+		return SCAP_FAILURE;
+	}
+
+	if(fgets(line, sizeof(line), cgroup_controllers) == NULL)
+	{
+		// no subsystems, report an empty set
+		line[0] = 0;
+	}
+	fclose(cgroup_controllers);
+
+	// cpuset cpu io memory hugetlb pids rdma misc
+	// ^p
+	char* p = line;
+	while(1)
+	{
+		// cpuset cpu io memory hugetlb pids rdma misc
+		//       ^p
+		size_t pos = strcspn(p, " \n");
+		if(pos == 0)
+		{
+			break;
+		}
+
+		// cpuset\0cpu io memory hugetlb pids rdma misc
+		//       ^p[pos]
+		p[pos] = 0;
+		if(scap_cgroup_printf(subsystems, "%s", p) == SCAP_FAILURE)
+		{
+			return SCAP_FAILURE;
+		}
+
+		p = p + pos + 1;
+		// cpuset\0cpu io memory hugetlb pids rdma misc
+		//         ^p
+	}
+
+	return SCAP_SUCCESS;
+}
+
+// Get the v2 cgroup mount
+//
+// Since there is just one, we don't need to do anything fancy here, just glue the pieces together
+static int32_t scap_get_cgroup_mount_v2(struct mntent* de, char* mountpoint, const char* host_root)
+{
+	snprintf(mountpoint, SCAP_MAX_PATH_SIZE, "%s/proc/1/root%s", host_root, de->mnt_dir);
+	return SCAP_SUCCESS;
+}
+
+int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error)
+{
+	const char* host_root = scap_get_host_root();
+	char filename[SCAP_MAX_PATH_SIZE];
+
+	cgi->m_subsystems_v1.len = 0;
+	cgi->m_subsystems_v2.len = 0;
+	cgi->m_mounts_v1.len = 0;
+	cgi->m_mount_v2[0] = 0;
+
+	snprintf(filename, sizeof(filename), "%s/proc/1/mounts", host_root);
+	FILE* mounts = setmntent(filename, "r");
+	if(mounts == NULL)
+	{
+		return scap_errprintf(error, errno, "failed to open %s", filename);
+	}
+
+	struct mntent entry, *de;
+	char mntent_buf[4096];
+
+	while((de = getmntent_r(mounts, &entry, mntent_buf, sizeof(mntent_buf))) != NULL)
+	{
+		if(strcmp(de->mnt_type, "cgroup") == 0)
+		{
+			scap_get_cgroup_mount_v1(de, &cgi->m_mounts_v1, &cgi->m_subsystems_v1, host_root, error);
+		}
+		else if(strcmp(de->mnt_type, "cgroup2") == 0)
+		{
+			scap_get_cgroup_mount_v2(de, cgi->m_mount_v2, host_root);
+			get_cgroup_subsystems_v2(cgi, &cgi->m_subsystems_v2, cgi->m_mount_v2);
+		}
+	}
+
+	endmntent(mounts);
+
+	return SCAP_SUCCESS;
+}
+
+// Get all cgroups (v1 and v2) for a thread whose /proc directory is `procdirname`
+int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* procdirname, struct scap_cgroup_set* cg, char* error)
 {
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
 
-	tinfo->cgroups.len = 0;
+	cg->len = 0;
 	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
 
 	FILE* f = fopen(filename, "r");
@@ -129,7 +372,7 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 			//
 			// -> for cgroup2: id is always 0 and subsys list is always empty (single unified hierarchy)
 			// -> for cgroup1: skip subsys empty because it means controller is not mounted on any hierarchy
-			if(cgroup_version == 2 && strcmp(token, "0") == 0)
+			if(cgi->m_mount_v2[0] != 0 && strcmp(token, "0") == 0)
 			{
 				cgroup = subsys_list;
 				subsys_list = default_subsys_list; // force-set a default subsys list
@@ -162,7 +405,7 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
-			if(scap_cgroup_printf(&tinfo->cgroups, "%s=%s", token, cgroup) != SCAP_SUCCESS)
+			if(scap_cgroup_printf(cg, "%s=%s", token, cgroup) != SCAP_SUCCESS)
 			{
 				ASSERT(false);
 				fclose(f);

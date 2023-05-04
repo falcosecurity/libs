@@ -32,6 +32,10 @@ limitations under the License.
 #include "scap_assert.h"
 #include "scap_suppress.h"
 
+#ifdef __linux__
+#include "linux/scap_cgroup.h"
+#endif // __linux__
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,7 +63,9 @@ struct scap
 	struct ppm_proclist_info* m_driver_procinfo;
 	uint32_t m_fd_lookup_limit;
 	bool m_minimal_scan;
-	uint8_t m_cgroup_version;
+#ifdef __linux__
+	struct scap_cgroup_interface m_cgroups;
+#endif // __linux__
 
 	// /proc scan parameters
 	uint64_t m_proc_scan_timeout_ms;
