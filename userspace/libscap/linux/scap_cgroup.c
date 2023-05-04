@@ -22,8 +22,35 @@ limitations under the License.
 #include "strerror.h"
 
 #include <errno.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+
+static int32_t __attribute__((format(printf, 2, 3)))
+scap_cgroup_printf(struct scap_cgroup_set* cgset, const char* fmt, ...)
+{
+	va_list va;
+
+	int max_space = SCAP_MAX_CGROUPS_SIZE - cgset->len;
+	if(max_space <= 0)
+	{
+		// no room in the buffer
+		return SCAP_FAILURE;
+	}
+
+	va_start(va, fmt);
+	int nwritten = vsnprintf(cgset->path + cgset->len, max_space, fmt, va);
+	va_end(va);
+
+	if(nwritten > max_space)
+	{
+		// output truncated
+		return SCAP_FAILURE;
+	}
+
+	cgset->len += nwritten + 1;
+	return SCAP_SUCCESS;
+}
 
 int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_threadinfo* tinfo, const char* procdirname)
 {
@@ -135,15 +162,12 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
-			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups.len)
+			if(scap_cgroup_printf(&tinfo->cgroups, "%s=%s", token, cgroup) != SCAP_SUCCESS)
 			{
 				ASSERT(false);
 				fclose(f);
 				return SCAP_SUCCESS;
 			}
-
-			snprintf(tinfo->cgroups.path + tinfo->cgroups.len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups.len, "%s=%s", token, cgroup);
-			tinfo->cgroups.len += strlen(cgroup) + 1 + strlen(token) + 1;
 		}
 	}
 
