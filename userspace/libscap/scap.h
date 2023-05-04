@@ -71,6 +71,7 @@ typedef struct ppm_evt_hdr scap_evt;
 #include "scap_limits.h"
 #include "scap_open.h"
 #include "scap_procs.h"
+#include "scap_cgroup_set.h"
 
 /* Include engine-specific params. */
 #include <engine/bpf/bpf_public.h>
@@ -284,9 +285,8 @@ typedef struct scap_threadinfo
 	int64_t vtid;  ///< The virtual id of this thread.
 	int64_t vpid; ///< The virtual id of the process containing this thread. In single thread threads, this is equal to vtid.
 	uint64_t pidns_init_start_ts; ///<The pid_namespace init task start_time ts.
-	char cgroups[SCAP_MAX_CGROUPS_SIZE];
-	uint16_t cgroups_len;
-	char root[SCAP_MAX_PATH_SIZE+1];
+	struct scap_cgroup_set cgroups;
+	char root[SCAP_MAX_PATH_SIZE + 1];
 	int filtered_out; ///< nonzero if this entry should not be saved to file
 	scap_fdinfo* fdlist; ///< The fd table for this process
 	uint64_t clone_ts; ///< When the clone that started this process happened.

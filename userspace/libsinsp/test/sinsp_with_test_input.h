@@ -227,8 +227,8 @@ protected:
 		tinfo.args_len = argsv.size();
 		memcpy(tinfo.env, envv.data(), envv.size());
 		tinfo.env_len = envv.size();
-		memcpy(tinfo.cgroups, cgroupsv.data(), cgroupsv.size());
-		tinfo.cgroups_len = cgroupsv.size();
+		memcpy(tinfo.cgroups.path, cgroupsv.data(), cgroupsv.size());
+		tinfo.cgroups.len = cgroupsv.size();
 
 		strlcpy(tinfo.cwd, cwd.c_str(), sizeof(tinfo.cwd));
 		strlcpy(tinfo.comm, comm.c_str(), sizeof(tinfo.comm));

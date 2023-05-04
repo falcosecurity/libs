@@ -489,7 +489,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_tty = pi->tty;
 	m_category = CAT_NONE;
 
-	set_cgroups(pi->cgroups, pi->cgroups_len);
+	set_cgroups(pi->cgroups.path, pi->cgroups.len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
 	m_inspector->m_container_manager.resolve_container(this, m_inspector->is_live() || m_inspector->is_syscall_plugin());

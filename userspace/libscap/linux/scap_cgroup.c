@@ -30,7 +30,7 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 	char filename[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_CGROUPS_SIZE];
 
-	tinfo->cgroups_len = 0;
+	tinfo->cgroups.len = 0;
 	snprintf(filename, sizeof(filename), "%scgroup", procdirname);
 
 	FILE* f = fopen(filename, "r");
@@ -135,15 +135,15 @@ int32_t scap_proc_fill_cgroups(char* error, int cgroup_version, struct scap_thre
 		while((token = strtok_r(subsys_list, ",", &scratch)) != NULL)
 		{
 			subsys_list = NULL;
-			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len)
+			if(strlen(cgroup) + 1 + strlen(token) + 1 > SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups.len)
 			{
 				ASSERT(false);
 				fclose(f);
 				return SCAP_SUCCESS;
 			}
 
-			snprintf(tinfo->cgroups + tinfo->cgroups_len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups_len, "%s=%s", token, cgroup);
-			tinfo->cgroups_len += strlen(cgroup) + 1 + strlen(token) + 1;
+			snprintf(tinfo->cgroups.path + tinfo->cgroups.len, SCAP_MAX_CGROUPS_SIZE - tinfo->cgroups.len, "%s=%s", token, cgroup);
+			tinfo->cgroups.len += strlen(cgroup) + 1 + strlen(token) + 1;
 		}
 	}
 

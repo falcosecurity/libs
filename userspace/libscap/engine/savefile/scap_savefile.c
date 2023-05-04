@@ -103,7 +103,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.env_len = 0;
 		tinfo.vtid = -1;
 		tinfo.vpid = -1;
-		tinfo.cgroups_len = 0;
+		tinfo.cgroups.len = 0;
 		tinfo.filtered_out = 0;
 		tinfo.root[0] = 0;
 		tinfo.sid = -1;
@@ -519,11 +519,11 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 					snprintf(error, SCAP_LASTERR_SIZE, "invalid cgroupslen %d", stlen);
 					return SCAP_FAILURE;
 				}
-				tinfo.cgroups_len = stlen;
+				tinfo.cgroups.len = stlen;
 
 				subreadsize += readsize;
 
-				readsize = r->read(r, tinfo.cgroups, stlen);
+				readsize = r->read(r, tinfo.cgroups.path, stlen);
 				CHECK_READ_SIZE_ERR(readsize, stlen, error);
 
 				subreadsize += readsize;

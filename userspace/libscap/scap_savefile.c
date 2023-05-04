@@ -553,7 +553,7 @@ static int32_t scap_write_proclist_entry(scap_dumper_t *d, struct scap_threadinf
 {
 	struct iovec args = {tinfo->args, tinfo->args_len};
 	struct iovec env = {tinfo->env, tinfo->env_len};
-	struct iovec cgroups = {tinfo->cgroups, tinfo->cgroups_len};
+	struct iovec cgroups = {tinfo->cgroups.path, tinfo->cgroups.len};
 
 	return scap_write_proclist_entry_bufs(d, tinfo, len,
 					      tinfo->comm,
