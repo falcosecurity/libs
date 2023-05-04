@@ -311,6 +311,7 @@ void gen_event_filter_factory::filter_fieldclass_info::wrapstring(const std::str
 std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const std::set<std::string>& event_sources)
 {
 	std::ostringstream os;
+	uint32_t deprecated_count = 0;
 
 	os << "## Field Class: " << name << std::endl << std::endl;
 
@@ -342,8 +343,18 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const 
 		{
 			continue;
 		}
+		if(fld_info.is_deprecated())
+		{
+			deprecated_count++;
+			continue;
+		}
 
 		os << "`" << fld_info.name << "` | " << fld_info.data_type << " | " << fld_info.desc << std::endl;
+	}
+
+	if(deprecated_count == fields.size())
+	{
+		return "";
 	}
 
 	return os.str();
