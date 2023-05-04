@@ -1407,4 +1407,26 @@ TEST_F(sinsp_with_test_input, THRD_STATE_missing_both_clone_events_create_second
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
 }
 
+TEST_F(sinsp_with_test_input, THRD_STATE_missing_process_execve_repair)
+{
+	add_default_init_thread();
+	open_inspector();
+
+	/* A process that we don't have in the table calls prctl */
+	int64_t p1_t1_tid = 24;
+	UNUSED int64_t p1_t1_pid = 24;
+	UNUSED int64_t p1_t1_ptid = INIT_TID;
+
+	/* This event should create an invalid thread info */
+	add_event_advance_ts(increasing_ts(), p1_t1_tid, PPME_SYSCALL_PRCTL_X, 4, (int64_t)0,
+			     PPM_PR_GET_CHILD_SUBREAPER, "<NA>", (int64_t)0);
+
+	/* Now we call an execve on this event */
+	generate_execve_enter_and_exit_event(0, p1_t1_tid, p1_t1_tid, p1_t1_pid, p1_t1_ptid);
+
+	/* we should have a valid thread group info and init should have a child now */
+	ASSERT_THREAD_GROUP_INFO(p1_t1_pid, 1, false, 1, 1, p1_t1_tid);
+	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid);
+}
+
 /*=============================== MISSING INFO ===========================*/

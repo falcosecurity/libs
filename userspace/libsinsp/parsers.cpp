@@ -2207,11 +2207,15 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// try to at least patch the parent, since
 	// we have it from the execve event
 	//
-	if(evt->m_tinfo->m_ptid == -1)
+	if(evt->m_tinfo->is_invalid())
 	{
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
+
+		auto tinfo = m_inspector->get_thread_ref(evt->m_tinfo->m_tid, false);
+		/* Create thread groups and parenting relationships */
+		m_inspector->m_thread_manager->create_thread_dependencies(tinfo);
 	}
 
 	// Get the fdlimit
@@ -6002,7 +6006,7 @@ void sinsp_parser::parse_prctl_exit_event(sinsp_evt *evt)
 	/* prctl could be called by the main thread but also by a secondary thread */
 	auto caller_tinfo = m_inspector->get_thread_ref(caller_tid, true);
 	/* only invalid threads have `caller_tinfo->m_tginfo == nullptr` */
-	if(caller_tinfo == nullptr || caller_tinfo->m_tginfo == nullptr)
+	if(caller_tinfo == nullptr || caller_tinfo->is_invalid())
 	{
 		return;
 	}

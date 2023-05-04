@@ -194,7 +194,7 @@ public:
 	*/
 	inline bool is_invalid() const
 	{
-		return m_tid < 0 || m_pid < 0 || m_ptid < 0;
+		return m_tid < 0 || m_pid < 0 || m_ptid < 0 || m_tginfo == nullptr;
 	}
 
 	/*!
