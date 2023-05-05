@@ -37,12 +37,13 @@ static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
 	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
 	{
 		uint32_t bpf_stats_enabled = 0;
-		fscanf(f, "%u", &bpf_stats_enabled);
-		fclose(f);
-		if (bpf_stats_enabled != 0)
-		{
-			machine_info->flags |= PPM_BPF_STATS_ENABLED;
+		if(fscanf(f, "%u", &bpf_stats_enabled) == 1) {
+			if (bpf_stats_enabled != 0)
+			{
+				machine_info->flags |= PPM_BPF_STATS_ENABLED;
+			}
 		}
+		fclose(f);
 	}
 }
 
@@ -112,7 +113,7 @@ void scap_retrieve_agent_info(scap_agent_info* agent_info)
 			hz = 100;
 		}
 #endif
-		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*lu %*lu %*lu %*lu %*lu %*llu %*llu %*llu %*llu %*d %*d %*d %*lu %llu", &stat_start_time))
+		if(fscanf(f, "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*u %llu", &stat_start_time))
 		{
 			agent_info->start_time = (double)stat_start_time / hz; // unit: seconds as type (double)
 		}

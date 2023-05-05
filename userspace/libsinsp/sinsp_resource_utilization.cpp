@@ -111,8 +111,12 @@ double get_cpu_usage(double start_time)
 		return 0;
 	}
 
-	fscanf(f, "%lf", &machine_uptime_sec);
+	int matched = fscanf(f, "%lf", &machine_uptime_sec);
 	fclose(f);
+
+	if (matched != 1) {
+		return 0;
+	}
 
 	/* CPU usage as percentage is computed by dividing the time the process uses the CPU by the
 	 * currently elapsed time of the calling process. Compare to `ps` linux util. */
@@ -150,8 +154,14 @@ uint64_t get_container_memory_usage()
 		return 0;
 	}
 	unsigned long long memory_used = 0;
-	fscanf(f, "%llu", &memory_used);		/* memory size returned in bytes */
+
+	/* memory size returned in bytes */
+	int fscanf_matched = fscanf(f, "%llu", &memory_used);
 	fclose(f);
+
+	if (fscanf_matched != 1) {
+		return 0;
+	}
 
 	return memory_used;
 }
