@@ -830,7 +830,7 @@ const struct ppm_event_info* scap_get_event_info_table();
   
   With this method, we are retrieving the syscall category
 */
-const enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
+enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_code ev);
 
 /*!
   \brief Retrieve the event category of the event
@@ -845,7 +845,7 @@ const enum ppm_event_category scap_get_syscall_category_from_event(ppm_event_cod
   
   With this method, we are retrieving the event category
 */
-const enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
+enum ppm_event_category scap_get_event_category_from_event(ppm_event_code ev);
 
 /*!
   \brief Retrieve the name associated with the specified ppm_sc.
