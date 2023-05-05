@@ -285,7 +285,7 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 	//
 	// Preliminary initializations
 	//
-	handle->m_mode = SCAP_MODE_LIVE;
+	handle->m_mode = oargs->mode;
 
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
