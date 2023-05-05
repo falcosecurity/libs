@@ -121,7 +121,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 	, m_last_flush_time_ns(0)
 	, m_inspector(inspector)
 	, m_host_root(m_inspector->get_host_root())
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+#if defined(__linux__) && (defined(HAVE_PWD_H) || defined(HAVE_GRP_H))
 	, m_ns_helper(new libsinsp::procfs_utils::ns_helper(m_host_root))
 #else
 	, m_ns_helper(nullptr)
@@ -135,7 +135,7 @@ sinsp_usergroup_manager::sinsp_usergroup_manager(sinsp* inspector)
 
 sinsp_usergroup_manager::~sinsp_usergroup_manager()
 {
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+#if defined(__linux__) && (defined(HAVE_PWD_H) || defined(HAVE_GRP_H))
 	delete m_ns_helper;
 #endif
 }
@@ -350,7 +350,7 @@ scap_userinfo *sinsp_usergroup_manager::add_container_user(const std::string &co
 
 	scap_userinfo *retval{nullptr};
 
-#if defined HAVE_PWD_H && defined HAVE_FGET__ENT
+#if defined(__linux__) && defined HAVE_PWD_H && defined HAVE_FGET__ENT
 	if(!m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return retval;
@@ -470,7 +470,7 @@ scap_groupinfo *sinsp_usergroup_manager::add_container_group(const std::string &
 
 	scap_groupinfo *retval{nullptr};
 
-#if defined HAVE_GRP_H && defined HAVE_FGET__ENT
+#if defined(__linux__) && defined HAVE_GRP_H && defined HAVE_FGET__ENT
 	if(!m_ns_helper->in_own_ns_mnt(pid))
 	{
 		return retval;
