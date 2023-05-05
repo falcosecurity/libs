@@ -183,7 +183,7 @@ endif()
 ########################
 
 # Get modern probe include.
-set(MODERN_PROBE_INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
+list(APPEND MODERN_PROBE_INCLUDE "-I${CMAKE_CURRENT_SOURCE_DIR}")
 
 # Note here we use the libs root directory since we want to avoid conflicts between the `bpf` folder inside
 # `driver` and the `libbpf` includes.
@@ -198,10 +198,12 @@ list(APPEND CLANG_FLAGS
     -D__TARGET_ARCH_${ARCH} # Match libbpf usage in `/libbpf/src/bpf_tracing.h`
     -D__USE_VMLINUX__ # Used to compile without kernel headers.
     -I${LIBBPF_INCLUDE}
-    -I${MODERN_PROBE_INCLUDE}
+    ${MODERN_PROBE_INCLUDE}
     -I${PPM_INCLUDE}
     -isystem
 )
+
+message(STATUS "${MODERN_BPF_LOG_PREFIX} Compilation flags: ${CLANG_FLAGS}")
 
 ## Search all bpf includes files. (we can use bpf.h files)
 file(GLOB_RECURSE BPF_H_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
