@@ -308,7 +308,7 @@ void gen_event_filter_factory::filter_fieldclass_info::wrapstring(const std::str
 	}
 }
 
-std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const std::set<std::string>& event_sources)
+std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const std::set<std::string>& event_sources, bool include_deprecated)
 {
 	std::ostringstream os;
 	uint32_t deprecated_count = 0;
@@ -343,7 +343,7 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const 
 		{
 			continue;
 		}
-		if(fld_info.is_deprecated())
+		if(!include_deprecated && fld_info.is_deprecated())
 		{
 			deprecated_count++;
 			continue;
@@ -360,7 +360,7 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_markdown(const 
 	return os.str();
 }
 
-std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources)
+std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool verbose, const std::set<std::string>& event_sources, bool include_deprecated)
 {
 	std::ostringstream os;
 	uint32_t deprecated_count = 0;
@@ -404,7 +404,7 @@ std::string gen_event_filter_factory::filter_fieldclass_info::as_string(bool ver
 		{
 			continue;
 		}
-		if(fld_info.is_deprecated())
+		if(!include_deprecated && fld_info.is_deprecated())
 		{
 			deprecated_count++;
 			continue;
