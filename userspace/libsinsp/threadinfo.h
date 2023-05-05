@@ -511,6 +511,7 @@ VISIBILITY_PRIVATE
 	friend class sinsp_tracerparser;
 	friend class lua_cbacks;
 	friend class sinsp_baseliner;
+	friend class sinsp_cgroup; // for set_cgroups
 };
 
 /*@}*/

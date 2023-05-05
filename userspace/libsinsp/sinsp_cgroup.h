@@ -23,6 +23,8 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 
+class sinsp_threadinfo;
+
 class sinsp_cgroup {
 public:
 	sinsp_cgroup();
@@ -30,6 +32,8 @@ public:
 	virtual ~sinsp_cgroup();
 
 	std::shared_ptr<std::string> lookup_cgroup_dir(const std::string &subsys, int &version);
+
+	void lookup_cgroups(sinsp_threadinfo& tinfo);
 
 	static sinsp_cgroup &instance();
 

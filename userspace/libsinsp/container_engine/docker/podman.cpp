@@ -20,6 +20,7 @@ limitations under the License.
 #include "procfs_utils.h"
 #include "runc.h"
 #include "sinsp.h"
+#include "sinsp_cgroup.h"
 
 #include <glob.h>
 #include <unistd.h>
@@ -37,25 +38,6 @@ constexpr const cgroup_layout ROOT_PODMAN_CGROUP_LAYOUT[] = {
 	{"/libpod-", ".scope"}, // podman
 	{nullptr,    nullptr}
 };
-
-std::string get_systemd_cgroup(const sinsp_threadinfo *tinfo)
-{
-	// the kernel driver does not return cgroups without subsystems (e.g. name=systemd)
-	// in the cgroups field, so we have to do a check here, and load /proc/pid/cgroups
-	// ourselves if needed
-	std::string cgroup;
-
-	if(tinfo->get_cgroup("name=systemd", cgroup))
-	{
-		return cgroup;
-	}
-
-	std::stringstream cgroups_file;
-	cgroups_file << scap_get_host_root() << "/proc/" << tinfo->m_tid << "/cgroup";
-
-	std::ifstream cgroups(cgroups_file.str());
-	return libsinsp::procfs_utils::get_systemd_cgroup(cgroups);
-}
 
 int get_userns_root_uid(int64_t tid)
 {
@@ -153,8 +135,28 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id)
 		return 0; // root
 	}
 
-	std::string systemd_cgroup = get_systemd_cgroup(tinfo);
-	return get_podman_cgroup_uid(systemd_cgroup, container_id, tinfo->m_tid);
+	// the kernel driver does not return cgroups without subsystems (e.g. name=systemd)
+	// in the cgroups field, so we have to do a check here, and load /proc/pid/cgroups
+	// ourselves if needed
+	if(tinfo->get_cgroup("name=systemd", cgroup))
+	{
+		return get_podman_cgroup_uid(cgroup, container_id, tinfo->m_tid);
+	}
+
+	sinsp_threadinfo proc_cgroups_tinfo;
+	proc_cgroups_tinfo.m_tid = tinfo->m_tid;
+	sinsp_cgroup::instance().lookup_cgroups(proc_cgroups_tinfo);
+
+	for(const auto& proc_cgroup: proc_cgroups_tinfo.cgroups())
+	{
+		int ret = get_podman_cgroup_uid(proc_cgroup.second, container_id, tinfo->m_tid);
+		if(ret != libsinsp::procfs_utils::NO_MATCH)
+		{
+			return ret;
+		}
+	}
+
+	return libsinsp::procfs_utils::NO_MATCH;
 }
 }
 

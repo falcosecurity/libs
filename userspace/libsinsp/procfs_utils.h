@@ -21,13 +21,6 @@ constexpr const int NO_MATCH = -1;
 int get_userns_root_uid(std::istream& uid_map);
 
 /**
- * @brief Get the path of the `name=systemd` cgroup
- * @param cgroups a stream with the contents of /proc/<pid>/cgroup
- * @return the path of the `name=systemd` cgroup
- */
-std::string get_systemd_cgroup(std::istream& cgroups);
-
-/**
  * @brief Access container data through proc
  */
 class ns_helper
