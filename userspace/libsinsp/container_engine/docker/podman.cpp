@@ -57,13 +57,79 @@ std::string get_systemd_cgroup(const sinsp_threadinfo *tinfo)
 	return libsinsp::procfs_utils::get_systemd_cgroup(cgroups);
 }
 
-int get_userns_root_uid(const sinsp_threadinfo *tinfo)
+int get_userns_root_uid(int64_t tid)
 {
 	std::stringstream uid_map_file;
-	uid_map_file << scap_get_host_root() << "/proc/" << tinfo->m_tid << "/uid_map";
+	uid_map_file << scap_get_host_root() << "/proc/" << tid << "/uid_map";
 
 	std::ifstream uid_map(uid_map_file.str());
 	return libsinsp::procfs_utils::get_userns_root_uid(uid_map);
+}
+
+// Check whether `cgroup` describes a podman container
+//
+// Returns the uid of the container owner:
+//  0 for root containers,
+//  >0 for rootless containers,
+//  NO_MATCH if the process is not in a podman container
+int get_podman_cgroup_uid(const std::string &cgroup, std::string &container_id, int64_t tid)
+{
+	if(cgroup.empty())
+	{
+		// can't get the cgroup name
+		return libsinsp::procfs_utils::NO_MATCH;
+	}
+
+	size_t pos = cgroup.find("podman-");
+	if(pos != std::string::npos)
+	{
+		// .../podman-<pid>.scope/<container_id>
+		int podman_pid; // unused except to set the sscanf return value
+		char c;         // ^ same
+		if(sscanf(cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2)
+		{
+			// cgroup doesn't match the expected pattern
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		if(!match_one_container_id(cgroup, ".scope/", "", container_id))
+		{
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		int uid = get_userns_root_uid(tid);
+		if(uid == 0)
+		{
+			// root doesn't spawn rootless containers
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		return uid;
+	} else
+	{
+		// when rootless podman containers are run as a service,
+		// there's nothing identifying podman in the cgroup as it looks like:
+		// /user.slice/user-<uid>.slice/user@<uid>.service/<unit>/<container_id>
+		// where <unit> is whatever started the container, e.g. foo.service
+		//
+		// let's hope for the best and assume that all such cgroups are
+		// podman containers
+
+		// we can probably narrow the prefix down to ".service/" in the typical
+		// case but as we're already basically guessing, let's keep it generic
+		if(!match_one_container_id(cgroup, "/", "", container_id))
+		{
+			return libsinsp::procfs_utils::NO_MATCH;
+		}
+
+		int uid;
+		if(sscanf(cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
+		{
+			return uid;
+		}
+		return libsinsp::procfs_utils::NO_MATCH;
+	}
+
 }
 
 // Check whether `tinfo` belongs to a podman container
@@ -72,7 +138,7 @@ int get_userns_root_uid(const sinsp_threadinfo *tinfo)
 //  0 for root containers,
 //  >0 for rootless containers,
 //  NO_MATCH if the process is not in a podman container
-int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
+int detect_podman(const sinsp_threadinfo *tinfo, std::string &container_id)
 {
 	std::string cgroup;
 	if(matches_runc_cgroups(tinfo, ROOT_PODMAN_CGROUP_LAYOUT, container_id, cgroup))
@@ -88,62 +154,7 @@ int detect_podman(const sinsp_threadinfo *tinfo, std::string& container_id)
 	}
 
 	std::string systemd_cgroup = get_systemd_cgroup(tinfo);
-	if(systemd_cgroup.empty())
-	{
-		// can't get the cgroup name
-		return libsinsp::procfs_utils::NO_MATCH;
-	}
-
-	size_t pos = systemd_cgroup.find("podman-");
-	if(pos != std::string::npos)
-	{
-		// .../podman-<pid>.scope/<container_id>
-		int podman_pid; // unused except to set the sscanf return value
-		char c;         // ^ same
-		if(sscanf(systemd_cgroup.c_str() + pos, "podman-%d.scope/%c", &podman_pid, &c) != 2)
-		{
-			// cgroup doesn't match the expected pattern
-			return libsinsp::procfs_utils::NO_MATCH;
-		}
-
-		if(!match_one_container_id(systemd_cgroup, ".scope/", "", container_id))
-		{
-			return libsinsp::procfs_utils::NO_MATCH;
-		}
-
-		int uid = get_userns_root_uid(tinfo);
-		if(uid == 0)
-		{
-			// root doesn't spawn rootless containers
-			return libsinsp::procfs_utils::NO_MATCH;
-		}
-
-		return uid;
-	}
-	else
-	{
-		// when rootless podman containers are run as a service,
-		// there's nothing identifying podman in the cgroup as it looks like:
-		// /user.slice/user-<uid>.slice/user@<uid>.service/<unit>/<container_id>
-		// where <unit> is whatever started the container, e.g. foo.service
-		//
-		// let's hope for the best and assume that all such cgroups are
-		// podman containers
-
-		// we can probably narrow the prefix down to ".service/" in the typical
-		// case but as we're already basically guessing, let's keep it generic
-		if(!match_one_container_id(systemd_cgroup, "/", "", container_id))
-		{
-			return libsinsp::procfs_utils::NO_MATCH;
-		}
-
-		int uid;
-		if (sscanf(systemd_cgroup.c_str(), "/user.slice/user-%d.slice/", &uid) == 1)
-		{
-			return uid;
-		}
-		return libsinsp::procfs_utils::NO_MATCH;
-	}
+	return get_podman_cgroup_uid(systemd_cgroup, container_id, tinfo->m_tid);
 }
 }
 
