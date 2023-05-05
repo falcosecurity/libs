@@ -17,6 +17,8 @@ limitations under the License.
 
 #include "sinsp_cgroup.h"
 #include "scap_const.h"
+#include "scap.h"
+#include "sinsp.h"
 
 sinsp_cgroup::sinsp_cgroup() :
 	m_scap_cgroup({})
@@ -45,6 +47,21 @@ std::shared_ptr<std::string> sinsp_cgroup::lookup_cgroup_dir(const std::string &
 	}
 
 	return nullptr;
+}
+
+void sinsp_cgroup::lookup_cgroups(sinsp_threadinfo& tinfo)
+{
+	std::string procdirname = scap_get_host_root() + std::string("/proc/") + std::to_string(tinfo.m_tid);
+	struct scap_cgroup_set thread_cgroups = {};
+	char error[SCAP_LASTERR_SIZE];
+
+	int ret = scap_cgroup_get_thread(&m_scap_cgroup, procdirname.c_str(), &thread_cgroups, error);
+	if(ret != SCAP_SUCCESS)
+	{
+		return;
+	}
+
+	tinfo.set_cgroups(thread_cgroups.path, thread_cgroups.len);
 }
 
 sinsp_cgroup &sinsp_cgroup::instance()

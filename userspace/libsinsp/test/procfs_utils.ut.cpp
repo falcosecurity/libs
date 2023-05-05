@@ -37,23 +37,3 @@ TEST(procfs_utils_test, get_userns_uid_root)
 
 	ASSERT_EQ(get_userns_root_uid(s), 0);
 }
-
-TEST(procfs_utils_test, get_systemd_cgroup)
-{
-	std::string cgroups = "12:perf_event:/\n"
-			      "11:memory:/user.slice/user-0.slice/session-10697.scope\n"
-			      "10:cpuset:/\n"
-			      "9:cpu,cpuacct:/user.slice/user-0.slice/session-10697.scope\n"
-			      "8:hugetlb:/\n"
-			      "7:freezer:/\n"
-			      "6:rdma:/\n"
-			      "5:devices:/user.slice/user-0.slice/session-10697.scope\n"
-			      "4:pids:/user.slice/user-0.slice/session-10697.scope\n"
-			      "3:blkio:/user.slice/user-0.slice/session-10697.scope\n"
-			      "2:net_cls,net_prio:/\n"
-			      "1:name=systemd:/user.slice/user-0.slice/session-10697.scope";
-	std::stringstream s(cgroups);
-
-	ASSERT_EQ(get_systemd_cgroup(s), "/user.slice/user-0.slice/session-10697.scope");
-}
-

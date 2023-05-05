@@ -47,25 +47,6 @@ int libsinsp::procfs_utils::get_userns_root_uid(std::istream& uid_map)
 }
 
 
-std::string libsinsp::procfs_utils::get_systemd_cgroup(std::istream& cgroups)
-{
-	std::string cgroups_line;
-
-	while(std::getline(cgroups, cgroups_line))
-	{
-		size_t cgpos = cgroups_line.find(":name=systemd:");
-		if(cgpos == std::string::npos)
-		{
-			continue;
-		}
-
-		std::string systemd_cgroup = cgroups_line.substr(cgpos + strlen(":name=systemd:"), std::string::npos);
-		return systemd_cgroup;
-	}
-
-	return "";
-}
-
 //
 // ns_helper
 //
@@ -108,4 +89,3 @@ bool libsinsp::procfs_utils::ns_helper::in_own_ns_mnt(int64_t pid) const
 
 	return true;
 }
-
