@@ -460,6 +460,9 @@ static __always_inline u32 bpf_compute_snaplen(struct filler_data *data,
 		if (lookahead_size >= 5) {
 			u32 buf = *(u32 *)&get_buf(0);
 
+#ifdef CONFIG_S390
+			buf = __builtin_bswap32(buf);
+#endif
 			if (buf == BPF_HTTP_GET ||
 			    buf == BPF_HTTP_POST ||
 			    buf == BPF_HTTP_PUT ||

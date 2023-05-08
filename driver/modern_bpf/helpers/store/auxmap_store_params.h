@@ -1540,6 +1540,9 @@ static __always_inline void apply_dynamic_snaplen(struct pt_regs *regs, u16 *sna
 	if(size >= 5)
 	{
 		u32 h = *(u32 *)(&buf[0]);
+#ifdef __TARGET_ARCH_s390
+		h = __builtin_bswap32(h);
+#endif
 		if(h == BPF_HTTP_GET ||
 		   h == BPF_HTTP_POST ||
 		   h == BPF_HTTP_PUT ||
