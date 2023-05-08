@@ -55,7 +55,7 @@ static const char* mock_plugin_get_event_source()
 	return "sample_source";
 }
 
-static ss_plugin_t* mock_plugin_init(const char* cfg, ss_plugin_rc *rc)
+static ss_plugin_t* mock_plugin_init(const ss_plugin_init_input *input, ss_plugin_rc *rc)
 {
 	*rc = SS_PLUGIN_SUCCESS;
 	return NULL;

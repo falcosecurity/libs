@@ -68,7 +68,7 @@ static const char* plugin_get_extract_event_sources()
     return "[\"sample\"]";
 }
 
-static ss_plugin_t* plugin_init(const char* config, ss_plugin_rc* rc)
+static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     plugin_state *ret = new plugin_state();
     *rc = SS_PLUGIN_SUCCESS;
@@ -85,21 +85,21 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *in, uint32_t num_fields, ss_plugin_extract_field *fields)
+static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
 {
     plugin_state *ps = (plugin_state *) s;
-    for (uint32_t i = 0; i < num_fields; i++)
+    for (uint32_t i = 0; i < in->num_fields; i++)
     {
-        switch(fields[i].field_id)
+        switch(in->fields[i].field_id)
         {
             case 0: // test.hello
                 ps->strstorage = "hello world";
                 ps->strptr = ps->strstorage.c_str();
-                fields[i].res.str = &ps->strptr;
-                fields[i].res_len = 1;
+                in->fields[i].res.str = &ps->strptr;
+                in->fields[i].res_len = 1;
                 break;
             default:
-                fields[i].res_len = 0;
+                in->fields[i].res_len = 0;
                 return SS_PLUGIN_FAILURE;
         }
     }

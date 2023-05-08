@@ -65,7 +65,7 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_t* plugin_init(const char* config, ss_plugin_rc* rc)
+static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
     *rc = SS_PLUGIN_SUCCESS;
     return new plugin_state();
