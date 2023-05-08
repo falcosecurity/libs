@@ -58,6 +58,7 @@ limitations under the License.
 #include "filter/ppm_codes.h"
 #include "filter/parser.h"
 #include "state/table_registry.h"
+#include "plugin_parser.h"
 
 #include <string>
 #include <map>
@@ -1290,6 +1291,10 @@ public:
 	// Internal manager for plugins
 	//
 	std::shared_ptr<sinsp_plugin_manager> m_plugin_manager;
+	//
+	// Subset of loaded plugins that are used for event parsing.
+	std::vector<sinsp_plugin_parser> m_plugin_parsers;
+	//
 	//
 	// The event sources available in the inspector
 	std::vector<std::string> m_event_sources;

@@ -170,6 +170,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 
 	// the "syscall" event source is implemented by sinsp itself
 	// and is always present
+	m_plugin_parsers.clear();
 	m_event_sources.push_back(sinsp_syscall_event_source_name);
 	m_plugin_manager = std::make_shared<sinsp_plugin_manager>(m_event_sources);
 
@@ -1442,6 +1443,17 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	m_parser->process_event(evt);
 #endif
 
+	// run plugin-implemented parsers
+	// note: we run the parsers even if the event has been filtered out,
+	// because we have no guarantee that the plugin parsers will not use a given
+	// event for state updates. Sinsp understands this through the
+	// EF_MODIFIES_STATE flag, which however is only relevant in the context of
+	// the internal implementation of libsinsp.
+	for (auto& pp : m_plugin_parsers)
+	{
+		pp.process_event(evt, m_event_sources);
+	}
+
 	//
 	// If needed, dump the event to file
 	//
@@ -1699,7 +1711,7 @@ void sinsp::set_statsd_port(const uint16_t port)
 std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath)
 {
 	std::string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, errstr);
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(filepath, m_table_registry, errstr);
 	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin " + filepath + ": " + errstr.c_str());
@@ -1708,6 +1720,10 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 	try
 	{
 		m_plugin_manager->add(plugin);
+		if (plugin->caps() & CAP_PARSING)
+		{
+			m_plugin_parsers.push_back(sinsp_plugin_parser(plugin));
+		}
 	}
 	catch(sinsp_exception const& e)
 	{
@@ -1720,7 +1736,7 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const std::string& filepath
 std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const plugin_api* api)
 {
 	std::string errstr;
-	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(api, errstr);
+	std::shared_ptr<sinsp_plugin> plugin = sinsp_plugin::create(api, m_table_registry, errstr);
 	if (!plugin)
 	{
 		throw sinsp_exception("cannot load plugin with custom vtable: " + errstr);
@@ -1729,6 +1745,10 @@ std::shared_ptr<sinsp_plugin> sinsp::register_plugin(const plugin_api* api)
 	try
 	{
 		m_plugin_manager->add(plugin);
+		if (plugin->caps() & CAP_PARSING)
+		{
+			m_plugin_parsers.push_back(sinsp_plugin_parser(plugin));
+		}
 	}
 	catch(sinsp_exception const& e)
 	{
