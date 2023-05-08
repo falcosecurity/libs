@@ -27,6 +27,11 @@ typedef struct plugin_state
 {
     std::string lasterr;
     uint64_t u64storage;
+    std::string strstorage;
+    const char* strptrstorage;
+    ss_plugin_table_t* thread_table;
+    ss_plugin_table_field_t* thread_comm_field;
+    ss_plugin_table_field_t* thread_opencount_field;
 } plugin_state;
 
 static inline bool evt_type_is_open(uint16_t type)
@@ -73,7 +78,9 @@ static const char* plugin_get_fields()
 {
     return
     "[" \
-        "{\"type\": \"uint64\", \"name\": \"sample.is_open\", \"desc\": \"Value is 1 if event is of open family\"}" \
+        "{\"type\": \"uint64\", \"name\": \"sample.is_open\", \"desc\": \"Value is 1 if event is of open family\"}," \
+        "{\"type\": \"uint64\", \"name\": \"sample.open_count\", \"desc\": \"Counter for all the events of open family in a given thread\"}," \
+        "{\"type\": \"string\", \"name\": \"sample.proc_name\", \"desc\": \"Alias for proc.name, but implemented from a plugin\"}" \
     "]";
 }
 
@@ -104,10 +111,50 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types)
     return &types[0];
 }
 
-static ss_plugin_t* plugin_init(const char* config, ss_plugin_rc* rc)
+static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc)
 {
-    plugin_state *ret = new plugin_state();
     *rc = SS_PLUGIN_SUCCESS;
+    plugin_state *ret = new plugin_state();
+
+    if (!in || !in->tables)
+    {
+        *rc = SS_PLUGIN_FAILURE;
+        ret->lasterr = "invalid config input";
+        return ret;
+    }
+
+    // get accessor for thread table
+    ret->thread_table = in->tables->get_table(
+        in->owner, "threads", ss_plugin_state_type::SS_PLUGIN_ST_INT64);
+    if (!ret->thread_table)
+    {
+        *rc = SS_PLUGIN_FAILURE;
+        auto err = in->get_last_owner_error(in->owner);
+        ret->lasterr = err ? err : "can't access thread table";
+        return ret;
+    }
+
+    // get accessor for proc name in thread table entries
+    ret->thread_comm_field = in->tables->fields.get_table_field(
+        ret->thread_table, "comm", ss_plugin_state_type::SS_PLUGIN_ST_STRING);
+    if (!ret->thread_comm_field)
+    {
+        *rc = SS_PLUGIN_FAILURE;
+        auto err = in->get_last_owner_error(in->owner);
+        ret->lasterr = err ? err : "can't access proc name in thread table";
+        return ret;
+    }
+
+    // get a field defined from another plugin (sample_syscall_parse).
+    // we don't check for errors: if the field is not available, we'll simply
+    // extract the related field as NULL.
+    ret->thread_opencount_field = in->tables->fields.get_table_field(
+        ret->thread_table, "open_evt_count", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
+    if (!ret->thread_opencount_field)
+    {
+        printf("sample_syscall_extract: can't open counter in thread table, "
+            "field 'sample.open_count' will not be available\n");
+    }
     return ret;
 }
 
@@ -121,20 +168,69 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *in, uint32_t num_fields, ss_plugin_extract_field *fields)
+static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_input *ev, const ss_plugin_field_extract_input* in)
 {
+    ss_plugin_rc rc;
+    ss_plugin_state_data tmp;
+    ss_plugin_table_entry_t* thread = NULL;
     plugin_state *ps = (plugin_state *) s;
-    for (uint32_t i = 0; i < num_fields; i++)
+    for (uint32_t i = 0; i < in->num_fields; i++)
     {
-        switch(fields[i].field_id)
+        switch(in->fields[i].field_id)
         {
             case 0: // test.is_open
-                ps->u64storage = evt_type_is_open(in->evt->type);
-                fields[i].res.u64 = &ps->u64storage;
-                fields[i].res_len = 1;
+                ps->u64storage = evt_type_is_open(ev->evt->type);
+                in->fields[i].res.u64 = &ps->u64storage;
+                in->fields[i].res_len = 1;
+                break;
+            case 1: // sample.open_count
+                if (!ps->thread_opencount_field)
+                {
+                    in->fields[i].res_len = 0;
+                    return SS_PLUGIN_FAILURE;
+                }
+                tmp.s64 = ev->evt->tid;
+                thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
+                if (!thread)
+                {
+                    auto err = in->get_last_owner_error(in->owner);
+                    ps->lasterr = err ? err : ("can't get thread with tid=" + std::to_string(ev->evt->tid));
+                    return SS_PLUGIN_FAILURE;
+                }
+                rc = in->tableread.read_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp);
+                if (rc != SS_PLUGIN_SUCCESS)
+                {
+                    auto err = in->get_last_owner_error(in->owner);
+                    ps->lasterr = err ? err : ("can't read ope counter from thread with tid=" + std::to_string(ev->evt->tid));
+                    return SS_PLUGIN_FAILURE;
+                }
+                ps->u64storage = tmp.u64;
+                in->fields[i].res.u64 = &ps->u64storage;
+                in->fields[i].res_len = 1;
+                break;
+            case 2: // test.proc_name
+                tmp.s64 = ev->evt->tid;
+                thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
+                if (!thread)
+                {
+                    auto err = in->get_last_owner_error(in->owner);
+                    ps->lasterr = err ? err : ("can't get thread with tid=" + std::to_string(ev->evt->tid));
+                    return SS_PLUGIN_FAILURE;
+                }
+                rc = in->tableread.read_entry_field(ps->thread_table, thread, ps->thread_comm_field, &tmp);
+                if (rc != SS_PLUGIN_SUCCESS)
+                {
+                    auto err = in->get_last_owner_error(in->owner);
+                    ps->lasterr = err ? err : ("can't read proc name from thread with tid=" + std::to_string(ev->evt->tid));
+                    return SS_PLUGIN_FAILURE;
+                }
+                ps->strstorage = tmp.str;
+                ps->strptrstorage = ps->strstorage.c_str();
+                in->fields[i].res.str = &ps->strptrstorage;
+                in->fields[i].res_len = 1;
                 break;
             default:
-                fields[i].res_len = 0;
+                in->fields[i].res_len = 0;
                 return SS_PLUGIN_FAILURE;
         }
     }
