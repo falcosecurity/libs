@@ -924,8 +924,8 @@ bool ppm_is_upper_layer(struct file *exe_file){
 #endif
 		}
 	}
-	return false;
 #endif
+	return false;
 }
 
 int f_proc_startupdate(struct event_filler_arguments *args)
