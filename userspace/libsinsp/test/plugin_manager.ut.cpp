@@ -26,7 +26,7 @@ public:
 		plugin_caps_t caps,
 		const std::string& name,
 		uint32_t id,
-		const std::string& source): sinsp_plugin(nullptr)
+		const std::string& source): sinsp_plugin(nullptr, nullptr)
 	{
 		m_caps = caps;
 		m_name = name;
