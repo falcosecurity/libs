@@ -162,7 +162,6 @@ TEST(Actions, dynamic_snaplen_no_socket)
 
 	evt_test->assert_num_params_pushed(2);
 }
-#endif
 
 #if defined(__NR_sendto) && defined(__NR_socket) && defined(__NR_shutdown) && defined(__NR_close) && defined(__NR_bind) && defined(__NR_listen) && defined(__NR_connect)
 TEST(Actions, dynamic_snaplen_HTTP)
@@ -185,8 +184,34 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "HTTP/\0";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -200,7 +225,7 @@ TEST(Actions, dynamic_snaplen_HTTP)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -214,7 +239,7 @@ TEST(Actions, dynamic_snaplen_HTTP)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -245,8 +270,34 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	/* This is not recognized in the dynamic snaplen logic */
 	char buf[data_len] = "OP\0";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -260,7 +311,7 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -274,7 +325,7 @@ TEST(Actions, dynamic_snaplen_partial_HTTP_OPT)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
@@ -304,8 +355,34 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "TRACE\0";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -319,7 +396,7 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -333,7 +410,7 @@ TEST(Actions, dynamic_snaplen_HTTP_TRACE)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -365,8 +442,34 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	/* This should trigger our SQL detection logic, `3` is used as ASCII code */
 	buf[3] = 3;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -380,7 +483,7 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -394,7 +497,7 @@ TEST(Actions, dynamic_snaplen_MYSQL)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -424,8 +527,34 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "1111\0";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -439,7 +568,7 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -453,7 +582,7 @@ TEST(Actions, dynamic_snaplen_not_MYSQL)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
@@ -485,8 +614,34 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	char buf[data_len] = "P2434242\0";
 	buf[1] = 0;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -500,7 +655,7 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -514,7 +669,7 @@ TEST(Actions, dynamic_snaplen_POSTGRES)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -544,8 +699,34 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "00\0";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -559,7 +740,7 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -573,7 +754,7 @@ TEST(Actions, dynamic_snaplen_not_POSTGRES)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
@@ -604,8 +785,34 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	char buf[data_len] = {0};
 	*(int32_t *)(&buf[12]) = 0x01; // this 1 and it's ok
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -619,7 +826,7 @@ TEST(Actions, dynamic_snaplen_MONGO)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -633,7 +840,7 @@ TEST(Actions, dynamic_snaplen_MONGO)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -664,8 +871,34 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	char buf[data_len] = {0};
 	*(int32_t *)(&buf[12]) = 0x07;
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -679,7 +912,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	if(HasFatalFailure())
 	{
@@ -693,7 +926,7 @@ TEST(Actions, dynamic_snaplen_not_MONGO)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
@@ -726,8 +959,34 @@ TEST(Actions, dynamic_snaplen_fullcapture_port_range)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -741,7 +1000,7 @@ TEST(Actions, dynamic_snaplen_fullcapture_port_range)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	/* we need to clean the values after we read our event because the kernel module
 	 * flushes the ring buffers when we change this config.
@@ -760,7 +1019,7 @@ TEST(Actions, dynamic_snaplen_fullcapture_port_range)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -793,8 +1052,34 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -808,7 +1093,7 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	/* we need to clean the values after we read our event because the kernel module
 	 * flushes the ring buffers when we change this config.
@@ -827,7 +1112,7 @@ TEST(Actions, dynamic_snaplen_statsd_port)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN * 2);
@@ -860,8 +1145,34 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	const unsigned data_len = DEFAULT_SNAPLEN * 2;
 	char buf[data_len] = "simple message";
 	uint32_t sendto_flags = 0;
-	int64_t sent_bytes = syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr));
-	assert_syscall_state(SYSCALL_SUCCESS, "sendto", sent_bytes, NOT_EQUAL, -1);
+
+	struct clone_args cl_args = {0};
+	cl_args.exit_signal = SIGCHLD;
+	pid_t ret_pid = syscall(__NR_clone3, &cl_args, sizeof(cl_args));
+
+	if(ret_pid == 0)
+	{
+		/* In this way in the father we know if the call was successful or not. */
+		if(syscall(__NR_sendto, client_socket_fd, buf, data_len, sendto_flags, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+		{
+			exit(EXIT_FAILURE);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	assert_syscall_state(SYSCALL_SUCCESS, "clone3", ret_pid, NOT_EQUAL, -1);
+	/* Catch the child before doing anything else. */
+	int status = 0;
+	int options = 0;
+	assert_syscall_state(SYSCALL_SUCCESS, "wait4", syscall(__NR_wait4, ret_pid, &status, options, NULL), NOT_EQUAL, -1);
+
+	if(__WEXITSTATUS(status) == EXIT_FAILURE || __WIFSIGNALED(status) != 0)
+	{
+		FAIL() << "The sendto call shouldn't fail..." << std::endl;
+	}
 
 	/* Cleaning phase */
 	syscall(__NR_shutdown, server_socket_fd, 2);
@@ -875,7 +1186,7 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 
 	evt_test->set_do_dynamic_snaplen(false);
 
-	evt_test->assert_event_presence();
+	evt_test->assert_event_presence(ret_pid);
 
 	/* we need to clean the values after we read our event because the kernel module
 	 * flushes the ring buffers when we change this config.
@@ -894,7 +1205,7 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)sent_bytes);
+	evt_test->assert_numeric_param(1, (int64_t)data_len);
 
 	/* Parameter 2: data (type: PT_BYTEBUF)*/
 	evt_test->assert_bytebuf_param(2, buf, DEFAULT_SNAPLEN);
@@ -903,4 +1214,5 @@ TEST(Actions, dynamic_snaplen_no_statsd_port)
 
 	evt_test->assert_num_params_pushed(2);
 }
+#endif
 #endif
