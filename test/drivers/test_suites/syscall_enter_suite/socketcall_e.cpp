@@ -1079,4 +1079,50 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 }
 #endif
 
+TEST(SyscallEnter, socketcall_wrong_code)
+{
+	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	unsigned long args[3] = {0};
+	args[0] = 47;
+	args[1] = 0;
+	args[2] = 0;
+	int wrong_code = 1230;
+
+	assert_syscall_state(SYSCALL_FAILURE, "socketcall", syscall(__NR_socketcall, wrong_code, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	/* if we send a socketcall with a wrong code we should immediately drop the event */
+	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_E);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: ID (type: PT_SYSCALLID) */
+	/* this is the PPM_SC code obtained from the syscall id. */
+	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_SOCKETCALL);
+
+	/* Parameter 2: nativeID (type: PT_UINT16) */
+	evt_test->assert_numeric_param(2, (uint16_t)__NR_socketcall);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
 #endif /* __NR_socketcall */
