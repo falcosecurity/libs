@@ -42,7 +42,11 @@ public:
     class field_info
     {
     public:
-        field_info() = delete;
+        field_info():
+            m_readonly(true),
+            m_offset((size_t) -1),
+            m_name(""),
+            m_info(typeinfo::of<uint8_t>()) {}
         ~field_info() = default;
         field_info(field_info&&) = default;
         field_info& operator = (field_info&&) = default;
@@ -61,6 +65,14 @@ public:
         {
             return !(a == b);
         };
+
+        /**
+         * @brief Returns true if the field info is valid.
+         */
+        inline bool valid() const
+        {
+            return m_offset != (size_t) -1;
+        }
 
         /**
          * @brief Returns true if the field is read only.
@@ -94,6 +106,10 @@ public:
         template <typename T>
         field_accessor<T> new_accessor() const
         {
+            if (!valid())
+            {
+                throw sinsp_exception("can't create static struct field accessor for invalid field");
+            }
             auto t = libsinsp::state::typeinfo::of<T>();
             if (m_info != t)
             {
@@ -133,7 +149,7 @@ public:
     class field_accessor
     {
     public:
-        field_accessor() = delete;
+        field_accessor() = default;
         ~field_accessor() = default;
         field_accessor(field_accessor&&) = default;
         field_accessor& operator = (field_accessor&&) = default;
@@ -176,6 +192,10 @@ public:
     template <typename T>
     inline const T& get_static_field(const field_accessor<T>& a) const
     {
+        if (!a.info().valid())
+        {
+            throw sinsp_exception("can't get invalid field in static struct");
+        }
         return *(reinterpret_cast<T*>((void*) (((uintptr_t) this) + a.info().m_offset)));
     }
 
@@ -186,6 +206,10 @@ public:
     template <typename T>
     inline void set_static_field(const field_accessor<T>& a, const T& v)
     {
+        if (!a.info().valid())
+        {
+            throw sinsp_exception("can't set invalid field in static struct");
+        }
         if (a.info().readonly())
         {
             throw sinsp_exception("can't set a read-only static struct field: " + a.info().name());
