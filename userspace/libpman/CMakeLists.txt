@@ -1,11 +1,12 @@
 set(PMAN_SOURCES
-    src/capture.c
+    src/stats.c
     src/maps.c
     src/lifecycle.c
     src/programs.c
     src/ringbuffer.c
     src/configuration.c
     src/state.c
+    src/sc_set.c
 )
 
 set(PMAN_PRIVATE_INCLUDES
