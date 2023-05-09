@@ -60,6 +60,8 @@ void pman_clear_state()
 	g_state.buffer_bytes_dim = 0;
 	g_state.last_ring_read = -1;
 	g_state.last_event_size = 0;
+	g_state.n_attached_progs = 0;
+	g_state.stats = NULL;
 }
 
 int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_for_each_buffer, bool allocate_online_only)

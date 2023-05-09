@@ -29,13 +29,6 @@ limitations under the License.
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
 
-const char * const modern_bpf_kernel_counters_stats_names[] = {
-	[MODERN_BPF_N_EVTS] = "n_evts",
-	[MODERN_BPF_N_DROPS_BUFFER_TOTAL] = "n_drops_buffer_total",
-	[MODERN_BPF_N_DROPS_SCRATCH_MAP] = "n_drops_scratch_map",
-	[MODERN_BPF_N_DROPS] = "n_drops",
-};
-
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
 	struct modern_bpf_engine* engine = calloc(1, sizeof(struct modern_bpf_engine));
@@ -245,7 +238,7 @@ static uint32_t scap_modern_bpf__get_n_devs(struct scap_engine_handle engine)
 
 int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_stats* stats)
 {
-	if(pman_get_scap_stats((void*)stats))
+	if(pman_get_scap_stats(stats))
 	{
 		return SCAP_FAILURE;
 	}
@@ -254,13 +247,7 @@ int32_t scap_modern_bpf__get_stats(struct scap_engine_handle engine, OUT scap_st
 
 const struct scap_stats_v2* scap_modern_bpf__get_stats_v2(struct scap_engine_handle engine, uint32_t flags, OUT uint32_t* nstats, OUT int32_t* rc)
 {
-	*rc = SCAP_SUCCESS;
-	if(pman_get_scap_stats_v2((void*)engine.m_handle->m_stats, flags, (void*)nstats))
-	{
-		*rc = SCAP_FAILURE;
-		return NULL;
-	}
-	return engine.m_handle->m_stats;
+	return pman_get_scap_stats_v2(flags, nstats, rc);
 }
 
 int32_t scap_modern_bpf__get_n_tracepoint_hit(struct scap_engine_handle engine, OUT long* ret)
