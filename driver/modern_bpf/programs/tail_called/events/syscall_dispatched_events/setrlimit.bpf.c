@@ -15,12 +15,12 @@ int BPF_PROG(setrlimit_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SETRLIMIT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SETRLIMIT_E_SIZE, PPME_SYSCALL_SETRLIMIT_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRLIMIT_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -45,12 +45,12 @@ int BPF_PROG(setrlimit_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SETRLIMIT_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SETRLIMIT_X_SIZE, PPME_SYSCALL_SETRLIMIT_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SETRLIMIT_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

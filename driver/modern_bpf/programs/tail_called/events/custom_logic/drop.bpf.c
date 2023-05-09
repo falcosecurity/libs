@@ -13,12 +13,12 @@ SEC("tp_btf/sys_enter")
 int BPF_PROG(t1_drop_e)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_E_SIZE, PPME_DROP_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_DROP_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 
@@ -38,12 +38,12 @@ SEC("tp_btf/sys_exit")
 int BPF_PROG(t1_drop_x)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, DROP_X_SIZE, PPME_DROP_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_DROP_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 

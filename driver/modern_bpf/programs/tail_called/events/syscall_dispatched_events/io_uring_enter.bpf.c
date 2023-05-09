@@ -15,12 +15,12 @@ int BPF_PROG(io_uring_enter_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_ENTER_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_ENTER_E_SIZE, PPME_SYSCALL_IO_URING_ENTER_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IO_URING_ENTER_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -43,12 +43,12 @@ int BPF_PROG(io_uring_enter_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_ENTER_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, IO_URING_ENTER_X_SIZE, PPME_SYSCALL_IO_URING_ENTER_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_IO_URING_ENTER_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -10,6 +10,7 @@
 #include <helpers/base/shared_size.h>
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
+#include <helpers/base/stats.h>
 
 /* `reserved_size - sizeof(u64)` free space is enough because this is the max dimension
  * we put in the ring buffer in one atomic operation.
@@ -67,6 +68,7 @@ struct ringbuf_struct
 	u64 payload_pos;	 /* position of the first empty byte in the `data` buf.*/
 	u8 lengths_pos;		 /* position the first empty slot into the lengths array of the event. */
 	u16 reserved_event_size; /* reserved size in the ringbuf. */
+	u16 event_type; /* event type we want to send to userspace */
 };
 
 /////////////////////////////////
@@ -86,7 +88,7 @@ struct ringbuf_struct
  * @param event_size exact size of the fixed-size event
  * @return `1` in case of success, `0` in case of failure.
  */
-static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size)
+static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf, void* ctx, u32 event_size, u16 event_type)
 {
 	struct ringbuf_map *rb = maps__get_ringbuf_map();
 	if(!rb)
@@ -112,10 +114,12 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
 	if(!space)
 	{
 		counter->n_drops_buffer++;
+		compute_event_types_stats(event_type, counter);
 		return 0;
 	}
 
 	ringbuf->data = space;
+	ringbuf->event_type = event_type;
 	ringbuf->reserved_event_size = event_size;
 	return 1;
 }
@@ -128,16 +132,14 @@ static __always_inline u32 ringbuf__reserve_space(struct ringbuf_struct *ringbuf
  * @brief Push the event header inside the ringbuf space.
  *
  * @param ringbuf pointer to the `ringbuf_struct`.
- * @param event_type type of the event that we are storing into the ringbuf.
- * @param event_size exact size of the fixed-size event.
  */
-static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *ringbuf, u32 event_type)
+static __always_inline void ringbuf__store_event_header(struct ringbuf_struct *ringbuf)
 {
 	struct ppm_evt_hdr *hdr = (struct ppm_evt_hdr *)ringbuf->data;
-	u8 nparams = maps__get_event_num_params(event_type);
+	u8 nparams = maps__get_event_num_params(ringbuf->event_type);
 	hdr->ts = maps__get_boot_time() + bpf_ktime_get_boot_ns();
 	hdr->tid = bpf_get_current_pid_tgid() & 0xffffffff;
-	hdr->type = event_type;
+	hdr->type = ringbuf->event_type;
 	hdr->nparams = nparams;
 	hdr->len = ringbuf->reserved_event_size;
 

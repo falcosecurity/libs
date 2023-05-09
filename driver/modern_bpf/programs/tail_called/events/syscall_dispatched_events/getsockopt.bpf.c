@@ -16,12 +16,12 @@ int BPF_PROG(getsockopt_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, GETSOCKOPT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, GETSOCKOPT_E_SIZE, PPME_SOCKET_GETSOCKOPT_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_GETSOCKOPT_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

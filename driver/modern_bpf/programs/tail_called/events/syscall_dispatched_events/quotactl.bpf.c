@@ -16,12 +16,12 @@ int BPF_PROG(quotactl_e,
 	     long syscall_id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, QUOTACTL_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, QUOTACTL_E_SIZE, PPME_SYSCALL_QUOTACTL_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_QUOTACTL_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

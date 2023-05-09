@@ -15,12 +15,12 @@ int BPF_PROG(shutdown_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_E_SIZE, PPME_SOCKET_SHUTDOWN_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -53,12 +53,12 @@ int BPF_PROG(shutdown_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SHUTDOWN_X_SIZE, PPME_SOCKET_SHUTDOWN_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SHUTDOWN_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

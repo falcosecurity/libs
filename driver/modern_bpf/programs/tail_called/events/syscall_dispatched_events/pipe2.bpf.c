@@ -15,12 +15,12 @@ int BPF_PROG(pipe2_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE2_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE2_E_SIZE, PPME_SYSCALL_PIPE2_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE2_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -43,12 +43,12 @@ int BPF_PROG(pipe2_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE2_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PIPE2_X_SIZE, PPME_SYSCALL_PIPE2_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PIPE2_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -16,12 +16,12 @@ int BPF_PROG(pread64_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PREAD64_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PREAD64_E_SIZE, PPME_SYSCALL_PREAD_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_PREAD_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -15,12 +15,12 @@ int BPF_PROG(fchmod_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMOD_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMOD_E_SIZE, PPME_SYSCALL_FCHMOD_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -44,12 +44,12 @@ int BPF_PROG(fchmod_x,
 {
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMOD_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FCHMOD_X_SIZE, PPME_SYSCALL_FCHMOD_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FCHMOD_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

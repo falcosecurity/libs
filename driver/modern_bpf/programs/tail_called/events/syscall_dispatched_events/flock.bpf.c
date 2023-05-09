@@ -15,12 +15,12 @@ int BPF_PROG(flock_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_E_SIZE, PPME_SYSCALL_FLOCK_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FLOCK_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -49,12 +49,12 @@ int BPF_PROG(flock_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, FLOCK_X_SIZE, PPME_SYSCALL_FLOCK_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_FLOCK_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -18,12 +18,12 @@ int BPF_PROG(sched_switch,
 	/// TODO: we could avoid switches from kernel threads to kernel threads (?).
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SCHED_SWITCH_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SCHED_SWITCH_SIZE, PPME_SCHEDSWITCH_6_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SCHEDSWITCH_6_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

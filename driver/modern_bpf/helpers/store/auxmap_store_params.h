@@ -10,6 +10,7 @@
 #include <helpers/base/shared_size.h>
 #include <helpers/base/push_data.h>
 #include <helpers/extract/extract_from_kernel.h>
+#include <helpers/base/stats.h>
 
 /* Concept of auxamp (auxiliary map):
  *
@@ -92,6 +93,7 @@ static __always_inline void auxmap__preload_event_header(struct auxiliary_map *a
 	hdr->nparams = nparams;
 	auxmap->payload_pos = sizeof(struct ppm_evt_hdr) + nparams * sizeof(u16);
 	auxmap->lengths_pos = sizeof(struct ppm_evt_hdr);
+	auxmap->event_type = event_type;
 }
 
 /**
@@ -149,6 +151,7 @@ static __always_inline void auxmap__submit_event(struct auxiliary_map *auxmap, v
 	if(err)
 	{
 		counter->n_drops_buffer++;
+		compute_event_types_stats(auxmap->event_type, counter);
 	}
 }
 

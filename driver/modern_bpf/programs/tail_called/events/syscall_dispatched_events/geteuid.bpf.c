@@ -15,12 +15,12 @@ int BPF_PROG(geteuid_e,
 	     long id)
 {
         struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEUID_E_SIZE))
+        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEUID_E_SIZE, PPME_SYSCALL_GETEUID_E))
         {
                 return 0;
         }
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_GETEUID_E);
+        ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -41,12 +41,12 @@ int BPF_PROG(geteuid_x,
 	     long ret)
 {
         struct ringbuf_struct ringbuf;
-        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEUID_X_SIZE))
+        if(!ringbuf__reserve_space(&ringbuf, ctx, GETEUID_X_SIZE, PPME_SYSCALL_GETEUID_X))
         {
                 return 0;
         }
 
-        ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_GETEUID_X);
+        ringbuf__store_event_header(&ringbuf);
 
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/

@@ -15,12 +15,12 @@ int BPF_PROG(sendmmsg_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SENDMMSG_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SENDMMSG_E_SIZE, PPME_SOCKET_SENDMMSG_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SENDMMSG_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -43,12 +43,12 @@ int BPF_PROG(sendmmsg_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SENDMMSG_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SENDMMSG_X_SIZE, PPME_SOCKET_SENDMMSG_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SOCKET_SENDMMSG_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
