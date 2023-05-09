@@ -145,27 +145,34 @@ bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &st
 
 	if(image_name.empty() || strncmp(image_name.c_str(), "sha256", 6) == 0)
 	{
-		/* Retrieve image_name from annotations as backup when image name may start with sha256,
-		brute force try each schema we know of for containerd and crio container runtimes. */
+		/* Retrieve image_name from annotations as backup when image name may start with sha256
+		or otherwise was not retrieved. Brute force try each schema we know of for containerd and crio container runtimes. */
 
 		Json::Value root;
 		Json::Reader reader;
-		if(reader.parse(info.find("info")->second, root))
+		const auto &info_it = info.find("info");
+		if(info_it != info.end())
 		{
-			Json::Value jvalue;
-			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
-			if(jvalue.isNull())
+			if(reader.parse(info_it->second, root))
 			{
-				jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
-			}
-			if(jvalue.isNull())
-			{
-				jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.ImageName"];
-			}
-			if(!jvalue.isNull())
-			{
-				image_name = jvalue.asString();
-				get_tag_from_image = false;
+				if(!root.isNull())
+				{
+					Json::Value jvalue;
+					jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
+					if(jvalue.isNull())
+					{
+						jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
+					}
+					if(jvalue.isNull())
+					{
+						jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.ImageName"];
+					}
+					if(!jvalue.isNull())
+					{
+						image_name = jvalue.asString();
+						get_tag_from_image = false;
+					}
+				}
 			}
 		}
 	}
@@ -433,51 +440,61 @@ void cri_interface::get_pod_info_cniresult(runtime::v1alpha2::PodSandboxStatusRe
 {
 	Json::Value root;
 	Json::Reader reader;
-	const auto &info_it = resp.info();
-	if(reader.parse(info_it.find("info")->second, root))
+	const auto &info_it = resp.info().find("info");
+	if(info_it == resp.info().end())
 	{
-		Json::Value jvalue;
-		/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
+		return;
+	}
+	if(!reader.parse(info_it->second, root))
+	{
+		return;
+	}
+	if(root.isNull())
+	{
+		return;
+	}
 
-		jvalue = root["cniResult"]["Interfaces"];	/* pod info schema of CT_CONTAINERD runtime. */
+	Json::Value jvalue;
+	/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
+
+	jvalue = root["cniResult"]["Interfaces"];	/* pod info schema of CT_CONTAINERD runtime. */
+	if(!jvalue.isNull())
+	{
+		/* If applicable remove members / fields not needed for incident response. */
+		jvalue.removeMember("lo");
+		for (auto& key : jvalue.getMemberNames())
+		{
+			if (0 == strncmp(key.c_str(), "veth", 4))
+			{
+				jvalue.removeMember(key);
+			} else
+			{
+				jvalue[key].removeMember("Mac");
+				jvalue[key].removeMember("Sandbox");
+			}
+		}
+
+		Json::FastWriter fastWriter;
+		cniresult = fastWriter.write(jvalue);
+	}
+
+	if(jvalue.isNull())
+	{
+		jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];	/* pod info schema of CT_CRIO runtime. Note interfaces names are unknown here. */
 		if(!jvalue.isNull())
 		{
-			/* If applicable remove members / fields not needed for incident response. */
-			jvalue.removeMember("lo");
-			for (auto& key : jvalue.getMemberNames())
-			{
-				if (0 == strncmp(key.c_str(), "veth", 4))
-				{
-					jvalue.removeMember(key);
-				} else
-				{
-					jvalue[key].removeMember("Mac");
-					jvalue[key].removeMember("Sandbox");
-				}
-			}
-
-			Json::FastWriter fastWriter;
-			cniresult = fastWriter.write(jvalue);
+			cniresult = jvalue.asString();
 		}
+	}
 
-		if(jvalue.isNull())
-		{
-			jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];	/* pod info schema of CT_CRIO runtime. Note interfaces names are unknown here. */
-			if(!jvalue.isNull())
-			{
-				cniresult = jvalue.asString();
-			}
-		}
+	if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups if applicable. */
+	{
+		cniresult.pop_back();
+	}
 
-		if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups if applicable. */
-		{
-			cniresult.pop_back();
-		}
-
-		if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
-		{
-			cniresult.resize(MAX_CNIRESULT_LENGTH);
-		}
+	if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
+	{
+		cniresult.resize(MAX_CNIRESULT_LENGTH);
 	}
 }
 
