@@ -1769,9 +1769,10 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 					stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
+					strncat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name) - dest_len);
+					stats[offset].value.u64 = 0;
 					if (info.run_cnt > 0)
 					{
-						strncat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name) - dest_len);
 						stats[offset].value.u64 = info.run_time_ns / info.run_cnt;
 					}
 					break;
