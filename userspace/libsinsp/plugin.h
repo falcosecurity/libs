@@ -282,5 +282,5 @@ private:
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type);
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* input);
 
-	friend class sinsp_table_wrapper;
+	friend struct sinsp_table_wrapper;
 };
