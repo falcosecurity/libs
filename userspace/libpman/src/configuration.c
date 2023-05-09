@@ -110,7 +110,7 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_f
 	 */
 	if(cpus_for_each_buffer > g_state.n_interesting_cpus)
 	{
-		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "we are requiring a buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!", cpus_for_each_buffer, cpus_for_each_buffer, g_state.n_interesting_cpus);
+		snprintf(error_message, MAX_ERROR_MESSAGE_LEN, "buffer every '%d' CPUs, but '%d' is greater than our interesting CPU number (%d)!", cpus_for_each_buffer, cpus_for_each_buffer, g_state.n_interesting_cpus);
 		pman_print_error((const char*)error_message);
 		return -1;
 	}
