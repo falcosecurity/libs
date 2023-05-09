@@ -28,6 +28,38 @@ int pman_open_probe()
 	return 0;
 }
 
+static void pman_save_attached_progs()
+{
+	g_state.n_attached_progs = 0;
+	g_state.attached_progs_fds[0] = bpf_program__fd(g_state.skel->progs.sys_enter);
+	g_state.attached_progs_fds[1] = bpf_program__fd(g_state.skel->progs.sys_exit);
+	g_state.attached_progs_fds[2] = bpf_program__fd(g_state.skel->progs.sched_proc_exit);
+	g_state.attached_progs_fds[3] = bpf_program__fd(g_state.skel->progs.sched_switch);
+#ifdef CAPTURE_SCHED_PROC_EXEC
+	g_state.attached_progs_fds[4] = bpf_program__fd(g_state.skel->progs.sched_p_exec);
+#endif
+#ifdef CAPTURE_SCHED_PROC_FORK
+	g_state.attached_progs_fds[5] = bpf_program__fd(g_state.skel->progs.sched_p_fork);
+#endif
+#ifdef CAPTURE_PAGE_FAULTS
+	g_state.attached_progs_fds[6] = bpf_program__fd(g_state.skel->progs.pf_user);
+	g_state.attached_progs_fds[7] = bpf_program__fd(g_state.skel->progs.pf_kernel);
+#endif
+	g_state.attached_progs_fds[8] = bpf_program__fd(g_state.skel->progs.signal_deliver);
+
+	for(int j = 0; j < MODERN_BPF_PROG_ATTACHED_MAX; j++)
+	{
+		if(g_state.attached_progs_fds[j] < 1)
+		{
+			g_state.attached_progs_fds[j] = -1;
+		}
+		else
+		{
+			g_state.n_attached_progs++;
+		}
+	}
+}
+
 int pman_load_probe()
 {
 	if(bpf_probe__load(g_state.skel))
@@ -35,11 +67,17 @@ int pman_load_probe()
 		pman_print_error("failed to load BPF object");
 		return errno;
 	}
+	pman_save_attached_progs();
 	return 0;
 }
 
 void pman_close_probe()
 {
+	if(g_state.stats)
+	{
+		free(g_state.stats);
+	}
+
 	if(g_state.cons_pos)
 	{
 		free(g_state.cons_pos);

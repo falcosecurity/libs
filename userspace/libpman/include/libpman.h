@@ -25,6 +25,10 @@ extern "C"
 {
 #endif
 
+	/* Forward decleare them */
+	struct scap_stats_v2;
+	struct scap_stats;
+
 	/* `libpman` return values convention:
 	 * In case of success `0` is returned otherwise `errno`. If `errno` is not
 	 * available `-1` is returned.
@@ -98,6 +102,7 @@ extern "C"
 	 * - bpf_skeleton
 	 * - ringbuffer manager
 	 * - consumers/producers vectors
+	 * - stats buffer dynamically allocated
 	 */
 	void pman_close_probe(void);
 
@@ -105,7 +110,7 @@ extern "C"
 	// ATTACH PROGRAMS
 	/////////////////////////////
 
-/// todo(@Andreagit97): these methods probably shouldn't be exposed to the final users
+	/// todo(@Andreagit97): these methods probably shouldn't be exposed to the final users
 	/**
 	 * @brief Attach only the syscall_exit_dispatcher
 	 *
@@ -275,33 +280,31 @@ extern "C"
 	 * @brief Instrument the bpf probe with the right sc_set. This API
 	 * sets both interesting syscalls and interesting tracepoints.
 	 *
-	 * @param sc_set pointer to the interesting sc_set 
+	 * @param sc_set pointer to the interesting sc_set
 	 *
 	 * @return `0` on success, `1` in case of error.
 	 */
-	int pman_enforce_sc_set(bool *sc_set);
+	int pman_enforce_sc_set(bool* sc_set);
 
 	/**
 	 * @brief Receive a pointer to `struct scap_stats` and fill it
 	 * with info about the number of events and number of drops.
 	 *
-	 * @param scap_stats_struct opaque pointer to `struct scap_stats`.
-	 * We used an opaque pointer because we don't want to introduce scap
-	 * definitions in this file.
+	 * @param scap_stats_struct pointer to `struct scap_stats`.
 	 * @return `0` on success, `errno` in case of error.
 	 */
-	int pman_get_scap_stats(void* scap_stats_struct);
+	int pman_get_scap_stats(struct scap_stats* scap_stats_struct);
 
 	/**
-	 * @brief Get scap_stats_v2 structure filled with the statistics.
+	 * @brief Retutn a `scap_stats_v2` struct filled with statistics.
 	 *
-	 * @param scap_stats_v2_struct opaque pointer to `struct scap_stats_v2` held in modern_bpf_engine handle
 	 * @param flags holding statistics category flags.
-	 * @param nstats Pointer reflecting number of statistics in returned buffer.
+	 * @param nstats number of stats allocated.
+	 * @param rc return code, SCAP_FAILURE in case of error.
 	 *
-	 * @return `0` on success, `errno` in case of error.
+	 * @return pointer to `struct scap_stats_v2`
 	 */
-	int pman_get_scap_stats_v2(void* scap_stats_v2_struct, uint32_t flags, uint32_t* nstats);
+	struct scap_stats_v2* pman_get_scap_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
 
 	/**
 	 * @brief Receive an array with `nCPUs` elements. For every CPU
