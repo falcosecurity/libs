@@ -17,12 +17,12 @@ int BPF_PROG(stat_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, STAT_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, STAT_E_SIZE, PPME_SYSCALL_STAT_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_STAT_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

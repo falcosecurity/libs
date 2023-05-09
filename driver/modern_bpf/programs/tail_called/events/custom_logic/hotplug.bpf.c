@@ -36,6 +36,7 @@ int BPF_PROG(t1_hotplug_e)
 	 */
 	struct ringbuf_struct ringbuf;
 	ringbuf.reserved_event_size = HOTPLUG_E_SIZE;
+	ringbuf.event_type = PPME_CPU_HOTPLUG_E;
 	ringbuf.data = bpf_ringbuf_reserve(rb, HOTPLUG_E_SIZE, 0);
 	if(!ringbuf.data)
 	{
@@ -43,7 +44,7 @@ int BPF_PROG(t1_hotplug_e)
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_CPU_HOTPLUG_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS ===========================*/
 

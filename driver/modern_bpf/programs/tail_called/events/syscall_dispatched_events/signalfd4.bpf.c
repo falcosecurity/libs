@@ -15,12 +15,12 @@ int BPF_PROG(signalfd4_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNALFD4_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNALFD4_E_SIZE, PPME_SYSCALL_SIGNALFD4_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD4_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -49,12 +49,12 @@ int BPF_PROG(signalfd4_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNALFD4_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SIGNALFD4_X_SIZE, PPME_SYSCALL_SIGNALFD4_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SIGNALFD4_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

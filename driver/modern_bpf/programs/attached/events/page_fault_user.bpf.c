@@ -24,12 +24,12 @@ int BPF_PROG(pf_user,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PAGE_FAULT_SIZE, PPME_PAGE_FAULT_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_PAGE_FAULT_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

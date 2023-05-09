@@ -24,12 +24,12 @@ int BPF_PROG(sched_proc_exit,
 	}
 
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, PROC_EXIT_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, PROC_EXIT_SIZE, PPME_PROCEXIT_1_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_PROCEXIT_1_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 

@@ -15,12 +15,12 @@ int BPF_PROG(splice_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SPLICE_E_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SPLICE_E_SIZE, PPME_SYSCALL_SPLICE_E))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SPLICE_E);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -57,12 +57,12 @@ int BPF_PROG(splice_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, SPLICE_X_SIZE))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, SPLICE_X_SIZE, PPME_SYSCALL_SPLICE_X))
 	{
 		return 0;
 	}
 
-	ringbuf__store_event_header(&ringbuf, PPME_SYSCALL_SPLICE_X);
+	ringbuf__store_event_header(&ringbuf);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
