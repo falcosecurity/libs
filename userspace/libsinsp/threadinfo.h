@@ -210,8 +210,6 @@ public:
 	*/
 	bool uses_client_port(uint16_t number);
 
-	void* get_private_state(uint32_t id);
-
 	/*!
 	  \brief Return the ratio between open FDs and maximum available FDs for this thread.
 	*/
@@ -485,7 +483,6 @@ VISIBILITY_PRIVATE
 	std::string m_cwd; // current working directory
 	mutable std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
-	std::vector<void*> m_private_state;
 
 	uint16_t m_lastevent_type;
 	uint16_t m_lastevent_cpuid;

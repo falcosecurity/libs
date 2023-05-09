@@ -885,12 +885,6 @@ public:
 		m_track_tracers_state = true;
 	}
 
-	//
-	// Allocates private state in the thread info class.
-	// Returns the ID to use when retrieving the memory area.
-	// Will fail if called after the capture starts.
-	//
-
 	sinsp_parser* get_parser();
 
 	/*=============================== PPM_SC set related (ppm_sc.cpp) ===============================*/
@@ -995,11 +989,6 @@ public:
 	inline const std::vector<std::string>& event_sources() const
 	{
 		return m_event_sources;
-	}
-
-	inline std::shared_ptr<const libsinsp::state::table_registry> get_table_registry() const
-	{
-		return m_table_registry;
 	}
 
 	uint64_t get_lastevent_ts() const { return m_lastevent_ts; }

@@ -154,14 +154,6 @@ void sinsp_threadinfo::init()
 
 sinsp_threadinfo::~sinsp_threadinfo()
 {
-	uint32_t j;
-
-	for(j = 0; j < m_private_state.size(); j++)
-	{
-		free(m_private_state[j]);
-	}
-
-	m_private_state.clear();
 	if(m_lastevent_data)
 	{
 		free(m_lastevent_data);
@@ -975,17 +967,6 @@ void sinsp_threadinfo::set_cwd(const char* cwd, uint32_t cwdlen)
 	{
 		ASSERT(false);
 	}
-}
-
-void* sinsp_threadinfo::get_private_state(uint32_t id)
-{
-	if(id >= m_private_state.size())
-	{
-		ASSERT(false);
-		throw sinsp_exception("invalid thread state ID" + std::to_string((long long) id));
-	}
-
-	return m_private_state[id];
 }
 
 uint64_t sinsp_threadinfo::get_fd_usage_pct()
