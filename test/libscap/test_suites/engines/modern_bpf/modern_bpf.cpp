@@ -71,8 +71,7 @@ TEST(modern_bpf, not_enough_possible_CPUs)
 	char error_buffer[FILENAME_MAX] = {0};
 	int ret = 0;
 
-	ssize_t num_possible_CPUs = sysconf(_SC_NPROCESSORS_CONF);
-
+	ssize_t num_possible_CPUs = num_possible_cpus();
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, num_possible_CPUs + 1, false);
 	ASSERT_TRUE(!h || ret != SCAP_SUCCESS) << "the CPUs required for each ring buffer are greater than the system possible CPUs, we should fail: " << error_buffer << std::endl;
 }
@@ -95,7 +94,7 @@ TEST(modern_bpf, one_buffer_per_possible_CPU)
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 1, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open modern bpf engine with one ring buffer per CPU: " << error_buffer << std::endl;
 
-	ssize_t num_possible_CPUs = sysconf(_SC_NPROCESSORS_CONF);
+	ssize_t num_possible_CPUs = num_possible_cpus();
 	uint32_t num_expected_rings = scap_get_ndevs(h);
 	ASSERT_EQ(num_expected_rings, num_possible_CPUs) << "we should have a ring buffer for every possible CPU!" << std::endl;
 
@@ -110,7 +109,7 @@ TEST(modern_bpf, one_buffer_every_two_possible_CPUs)
 	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 4 * 4096, 2, false);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open modern bpf engine with one ring buffer every 2 CPUs: " << error_buffer << std::endl;
 
-	ssize_t num_possible_CPUs = sysconf(_SC_NPROCESSORS_CONF);
+	ssize_t num_possible_CPUs = num_possible_cpus();
 	uint32_t num_expected_rings = num_possible_CPUs / 2;
 	if(num_possible_CPUs % 2 != 0)
 	{
