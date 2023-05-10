@@ -4,13 +4,22 @@ BasedOnStyle: LLVM
 AccessModifierOffset: -8
 BreakBeforeBraces: Allman
 BreakConstructorInitializers: AfterColon
-ColumnLimit: 0
+ColumnLimit: 80
 ConstructorInitializerIndentWidth: 8
 ContinuationIndentWidth: 8
 DerivePointerAlignment: true
-IndentWidth: 8
-SortIncludes: false
+IndentWidth: 4
+SortIncludes: Never
 SpaceAfterTemplateKeyword: false
 SpaceBeforeCtorInitializerColon: false
 SpaceBeforeParens: Never
 UseTab: Always
+---
+Language: Proto
+DisableFormat: true
+---
+Language: JavaScript
+DisableFormat: true
+---
+Language: Java
+DisableFormat: true
