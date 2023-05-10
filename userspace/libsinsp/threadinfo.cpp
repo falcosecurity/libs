@@ -115,6 +115,7 @@ void sinsp_threadinfo::init()
 	m_prevevent_ts = 0;
 	m_lastaccess_ts = 0;
 	m_clone_ts = 0;
+	m_lastexec_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
 	m_nchilds = 0;
@@ -483,6 +484,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vpid = pi->vpid;
 	m_pidns_init_start_ts = pi->pidns_init_start_ts;
 	m_clone_ts = pi->clone_ts;
+	m_lastexec_ts = 0;
 	m_tty = pi->tty;
 	m_category = CAT_NONE;
 
