@@ -813,6 +813,11 @@ scap_threadinfo* scap_get_proc_table(scap_t* handle)
 //
 int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 {
+	if(stats == NULL)
+	{
+		return SCAP_FAILURE;
+	}
+
 	stats->n_evts = 0;
 	stats->n_drops = 0;
 	stats->n_drops_buffer = 0;
