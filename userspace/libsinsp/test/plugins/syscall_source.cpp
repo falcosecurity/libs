@@ -23,6 +23,11 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+/**
+ * Example of plugin implementing only the event sourcing capability, which:
+ * - Does not implement a specific event source, thus can create any syscall event
+ * - Sources events of type PPME_SYSCALL_OPEN_X 
+ */
 typedef struct plugin_state
 {
     std::string lasterr;

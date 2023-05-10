@@ -23,6 +23,11 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+/**
+ * Example of plugin implementing only the field extraction capability, which:
+ * - Is compatible with the "sample" event source only
+ * - Extracts a simple field containing the string inside the events' payload
+ */
 typedef struct plugin_state
 {
     std::string lasterr;

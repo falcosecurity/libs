@@ -23,6 +23,14 @@ limitations under the License.
 
 #include "test_plugins.h"
 
+/**
+ * Example of plugin implementing only the field extraction capability, which:
+ * - Is compatible with the "syscall" event source only
+ * - Extracts only from events of the "open" family, plus another one for test purposes
+ * - Uses the libsinsp's thread table and accesses the threads' "comm" field
+ * - Optionally accesses a field defined at runtime by another plugin on the thread table
+ * - Optionally accesses a table defined at runtime by another plugin
+ */
 typedef struct plugin_state
 {
     std::string lasterr;
@@ -32,6 +40,8 @@ typedef struct plugin_state
     ss_plugin_table_t* thread_table;
     ss_plugin_table_field_t* thread_comm_field;
     ss_plugin_table_field_t* thread_opencount_field;
+    ss_plugin_table_t* evtcount_table;
+    ss_plugin_table_field_t* evtcount_count_field;
 } plugin_state;
 
 static inline bool evt_type_is_open(uint16_t type)
@@ -80,6 +90,7 @@ static const char* plugin_get_fields()
     "[" \
         "{\"type\": \"uint64\", \"name\": \"sample.is_open\", \"desc\": \"Value is 1 if event is of open family\"}," \
         "{\"type\": \"uint64\", \"name\": \"sample.open_count\", \"desc\": \"Counter for all the events of open family in a given thread\"}," \
+        "{\"type\": \"uint64\", \"name\": \"sample.evt_count\", \"desc\": \"Counter of events of the same type of the current one, counting all threads\"}," \
         "{\"type\": \"string\", \"name\": \"sample.proc_name\", \"desc\": \"Alias for proc.name, but implemented from a plugin\"}" \
     "]";
 }
@@ -155,6 +166,21 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
         printf("sample_syscall_extract: can't open counter in thread table, "
             "field 'sample.open_count' will not be available\n");
     }
+
+    // we try to access a table (and one of its fields) defined and owned by
+    // another plugin
+    ret->evtcount_table = in->tables->get_table(
+        in->owner, "event_counters", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
+    if (ret->evtcount_table)
+    {
+        ret->evtcount_count_field = in->tables->fields.get_table_field(
+            ret->evtcount_table, "count", ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
+    }
+    if (!ret->evtcount_table || !ret->evtcount_count_field)
+    {
+        printf("sample_syscall_extract: can't access event counter table, "
+            "field 'sample.evt_count' will not be available\n");
+    }
     return ret;
 }
 
@@ -173,6 +199,7 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
     ss_plugin_rc rc;
     ss_plugin_state_data tmp;
     ss_plugin_table_entry_t* thread = NULL;
+    ss_plugin_table_entry_t* evtcount = NULL;
     plugin_state *ps = (plugin_state *) s;
     for (uint32_t i = 0; i < in->num_fields; i++)
     {
@@ -208,7 +235,34 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 in->fields[i].res.u64 = &ps->u64storage;
                 in->fields[i].res_len = 1;
                 break;
-            case 2: // test.proc_name
+            case 2: // evt_count
+                if (!ps->evtcount_table || !ps->evtcount_count_field)
+                {
+                    in->fields[i].res_len = 0;
+                    return SS_PLUGIN_FAILURE;
+                }
+                tmp.s64 = ev->evt->type;
+                evtcount = in->tableread.get_table_entry(ps->evtcount_table, &tmp);
+                if (!evtcount)
+                {
+                    // stubbing the counter to 0 if no entry exists
+                    ps->u64storage = 0;
+                    in->fields[i].res.u64 = &ps->u64storage;
+                    in->fields[i].res_len = 1;
+                    return SS_PLUGIN_SUCCESS;
+                }
+                rc = in->tableread.read_entry_field(ps->evtcount_table, evtcount, ps->evtcount_count_field, &tmp);
+                if (rc != SS_PLUGIN_SUCCESS)
+                {
+                    auto err = in->get_last_owner_error(in->owner);
+                    ps->lasterr = err ? err : ("can't read event counter for type=" + std::to_string(ev->evt->type));
+                    return SS_PLUGIN_FAILURE;
+                }
+                ps->u64storage = tmp.u64;
+                in->fields[i].res.u64 = &ps->u64storage;
+                in->fields[i].res_len = 1;
+                break;
+            case 3: // test.proc_name
                 tmp.s64 = ev->evt->tid;
                 thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
                 if (!thread)

@@ -76,6 +76,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.is_open", pl_flist), "1");
 	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
@@ -84,6 +85,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.is_open", pl_flist), "0");
 	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 
 	// should extract NULL for ignored event codes
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
@@ -93,6 +95,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 
 	// should extract NULL for unknown event sources
 	const char data[2048] = "hello world";
@@ -103,6 +106,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 
 	// should extract NULL for non-compatible event sources
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 999, scap_const_sized_buffer{&data, strlen(data) + 1});
@@ -112,6 +116,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.is_open", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 }
 
 // scenario: an event sourcing plugin should produce events of "syscall"
@@ -140,6 +145,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_EQ(get_field_as_string(evt, "fd.filename"), "the_file");
 	ASSERT_EQ(get_field_as_string(evt, "sample.is_open"), "1");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count"));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count"));
 	ASSERT_EQ(next_event(), nullptr); // EOF is expected
 }
 
@@ -249,17 +255,28 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 	// should extract and parse regularly for non-ignored event codes
 	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "1");
+	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
+	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
+	// the parsing plugin filters-out this kind of event, so there should be no counter for it
+	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
 
 	// should extract NULL for ignored event codes, but should still parse it (because the parsing plugin does not ignore it)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "3");
+	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)4, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "4");
+	// this is the second time we see this event type
+	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "2");
 }
