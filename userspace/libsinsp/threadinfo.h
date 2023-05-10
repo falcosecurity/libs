@@ -354,6 +354,7 @@ public:
 	uint64_t m_prevevent_ts; ///< timestamp of the event before the last for this thread.
 	uint64_t m_lastaccess_ts; ///< The last time this thread was looked up. Used when cleaning up the table.
 	uint64_t m_clone_ts; ///< When the clone that started this process happened.
+	uint64_t m_lastexec_ts; ///< The last time exec was called
 
 	//
 	// Parser for the user events. Public so that filter fields can access it

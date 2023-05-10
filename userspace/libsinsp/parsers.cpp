@@ -1299,6 +1299,12 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	tinfo->m_tid = childtid;
 	tinfo->m_ptid = tid;
 
+	//
+	// Initialise last exec time to zero (can be overidden in the case of a
+	// thread clone
+	//
+	tinfo->m_lastexec_ts = 0;
+
 	if(valid_parent)
 	{
 		// Copy the command name from the parent
@@ -1351,6 +1357,10 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		if(!(flags & PPM_CL_CLONE_THREAD))
 		{
 			tinfo->m_env = ptinfo->m_env;
+		}
+		else
+		{
+			tinfo->m_lastexec_ts = ptinfo->m_lastexec_ts;
 		}
 	}
 	else
@@ -1817,6 +1827,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	// Get the exe
 	parinfo = evt->get_param(1);
 	evt->m_tinfo->m_exe = parinfo->m_val;
+	evt->m_tinfo->m_lastexec_ts = evt->get_ts();
 
 	auto container_id = evt->m_tinfo->m_container_id;
 
