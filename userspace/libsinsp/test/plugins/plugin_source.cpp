@@ -25,6 +25,11 @@ limitations under the License.
 
 static constexpr const char* s_evt_data = "hello world";
 
+/**
+ * Example of plugin implementing only the event sourcing capability, which:
+ * - Implements a specific event source "sample"
+ * - Sources plugin events containing a sample string 
+ */
 typedef struct plugin_state
 {
     std::string lasterr;

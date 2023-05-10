@@ -20,14 +20,25 @@ limitations under the License.
 #include <sstream>
 
 #include <ppm_events_public.h>
-
+#include "sample_table.h"
 #include "test_plugins.h"
 
+/**
+ * Example of plugin implementing only the event parsing capability, which:
+ * - Is compatible with the "syscall" event source only
+ * - Parses only events of the "open" family
+ * - Defines a new field in the libsinsp's thread table representing
+ *   a counter of all events of the "open" family for each thread
+ * - Owns and defines a new table that has one entry for each event type,
+ *   with a field representing a counter for all events of that type across all threads.
+ */
 typedef struct plugin_state
 {
     std::string lasterr;
     ss_plugin_table_t* thread_table;
     ss_plugin_table_field_t* thread_opencount_field;
+    sample_table::ptr_t event_count_table;
+    ss_plugin_table_field_t* event_count_table_count_field;
 } plugin_state;
 
 static inline bool evt_type_is_open(uint16_t type)
@@ -126,6 +137,27 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
         ret->lasterr = err ? err : "can't add open counter in thread table";
         return ret;
     }
+
+    // define a new table that keeps a counter for all events. The table's key
+    // is the event code as for the libscap specific
+    ret->event_count_table = sample_table::create("event_counters");
+    ret->event_count_table_count_field = ret->event_count_table->fields.add_table_field(
+            ret->event_count_table->table, "count",
+            ss_plugin_state_type::SS_PLUGIN_ST_UINT64);
+    if (!ret->event_count_table_count_field)
+    {
+        *rc = SS_PLUGIN_FAILURE;
+        ret->lasterr = "can't define event counter fields (count)";
+        return ret;
+    }
+
+    if (SS_PLUGIN_SUCCESS != in->tables->add_table(in->owner, ret->event_count_table.get()))
+    {
+        *rc = SS_PLUGIN_FAILURE;
+        auto err = in->get_last_owner_error(in->owner);
+        ret->lasterr = err ? err : "can't add event counter table";
+        return ret;
+    }
     return ret;
 }
 
@@ -144,6 +176,34 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 {
     ss_plugin_state_data tmp;
     plugin_state *ps = (plugin_state *) s;
+
+    // update event counters
+    tmp.u64 = ev->evt->type;
+    auto evtcounter = ps->event_count_table->read.get_table_entry(ps->event_count_table->table, &tmp);
+    if (!evtcounter)
+    {
+        auto newentry = ps->event_count_table->write.create_table_entry(ps->event_count_table->table);
+        tmp.u64 = ev->evt->type;
+        evtcounter = ps->event_count_table->write.add_table_entry(ps->event_count_table->table, &tmp, newentry);
+        if (!evtcounter)
+        {
+            ps->lasterr = "can't allocate event counter in table";
+            return SS_PLUGIN_FAILURE;
+        }
+    }
+    if (SS_PLUGIN_SUCCESS != ps->event_count_table->read.read_entry_field(
+            ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
+    {
+        ps->lasterr = "can't read event counter in table";
+        return SS_PLUGIN_FAILURE;
+    }
+    tmp.u64++;
+    if (SS_PLUGIN_SUCCESS != ps->event_count_table->write.write_entry_field(
+            ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
+    {
+        ps->lasterr = "can't write event counter in table";
+        return SS_PLUGIN_FAILURE;
+    }
 
     // update counter for current thread
     if (evt_type_is_open(ev->evt->type))
