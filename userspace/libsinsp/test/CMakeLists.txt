@@ -53,6 +53,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	container_info.ut.cpp
 	sinsp_utils.ut.cpp
 	state.ut.cpp
+	eventformatter.ut.cpp
 	"${PUBLIC_SINSP_API_SUITE}"
 	"${TEST_PLUGINS}"
 )
