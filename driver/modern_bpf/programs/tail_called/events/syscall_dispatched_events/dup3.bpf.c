@@ -45,7 +45,7 @@ int BPF_PROG(dup3_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, DUP3_X_SIZE, PPME_SYSCALL_DUP3_E))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, DUP3_X_SIZE, PPME_SYSCALL_DUP3_X))
 	{
 		return 0;
 	}
