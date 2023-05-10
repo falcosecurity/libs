@@ -559,7 +559,7 @@ static int32_t load_single_prog(struct bpf_engine* handle, const char *event, st
 	{
 		/* It is possible than some old kernels don't support the prog_name so in case
 		 * of loading failure, we try again the loading without the name. See it in libbpf:
-		 * https://github.com/torvalds/linux/blob/master/tools/lib/bpf/libbpf.c#L4926
+		 * https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/tools/lib/bpf/libbpf.c#L4833
 		 */
 		fd = bpf_load_program(prog, program_type, insns_cnt, error, BPF_LOG_SIZE, NULL);
 		if(fd < 0)
@@ -1756,7 +1756,18 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				}
 				stats[offset].type = STATS_VALUE_TYPE_U64;
 				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				strlcpy(stats[offset].name, info.name, STATS_NAME_MAX);
+				/* This could happen on old kernels where we don't have names inside the info struct
+				 * https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/tools/lib/bpf/libbpf.c#L4833
+				 */
+				if(strlen(info.name) == 0)
+				{
+					/* Fallback on the section name */
+					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, STATS_NAME_MAX);
+				}
+				else
+				{
+					strlcpy(stats[offset].name, info.name, STATS_NAME_MAX);
+				}
 				size_t dest_len = strlen(stats[offset].name);
 				switch(stat)
 				{
