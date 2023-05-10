@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <syscall.h>
 #include <scap.h>
+#include <errno.h>
+#include <fcntl.h>
 
 /* We are supposing that if we overcome this threshold, all buffers are full.
  * Probably this threshold is too low, but it depends on the machine's workload.
@@ -12,7 +14,7 @@
 /* Number of events we want to assert */
 #define EVENTS_TO_ASSERT 32
 
-void check_event_is_not_overwritten(scap_t* h)
+void check_event_is_not_overwritten(scap_t *h)
 {
 	/* Start the capture */
 	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS) << "unable to start the capture: " << scap_getlasterr(h) << std::endl;
@@ -46,7 +48,7 @@ void check_event_is_not_overwritten(scap_t* h)
 	 * We call `scap_next` keeping the pointer to the event.
 	 * An event pointer becomes invalid when we call another `scap_next`, but until that moment it should be valid!
 	 */
-	scap_evt* evt = NULL;
+	scap_evt *evt = NULL;
 	uint16_t buffer_id;
 
 	/* The first 'scap_next` could return a `SCAP_TIMEOUT` according to the chosen `buffer_mode` so we ignore it. */
@@ -92,7 +94,7 @@ void check_event_is_not_overwritten(scap_t* h)
 
 #if defined(__NR_close) && defined(__NR_openat) && defined(__NR_listen) && defined(__NR_accept4) && defined(__NR_getegid) && defined(__NR_getgid) && defined(__NR_geteuid) && defined(__NR_getuid) && defined(__NR_bind) && defined(__NR_connect) && defined(__NR_sendto) && defined(__NR_getsockopt) && defined(__NR_recvmsg) && defined(__NR_recvfrom) && defined(__NR_socket) && defined(__NR_socketpair)
 
-void check_event_order(scap_t* h)
+void check_event_order(scap_t *h)
 {
 	uint32_t events_to_assert[EVENTS_TO_ASSERT] = {PPME_SYSCALL_CLOSE_E, PPME_SYSCALL_CLOSE_X, PPME_SYSCALL_OPENAT_2_E, PPME_SYSCALL_OPENAT_2_X, PPME_SOCKET_LISTEN_E, PPME_SOCKET_LISTEN_X, PPME_SOCKET_ACCEPT4_6_E, PPME_SOCKET_ACCEPT4_6_X, PPME_SYSCALL_GETEGID_E, PPME_SYSCALL_GETEGID_X, PPME_SYSCALL_GETGID_E, PPME_SYSCALL_GETGID_X, PPME_SYSCALL_GETEUID_E, PPME_SYSCALL_GETEUID_X, PPME_SYSCALL_GETUID_E, PPME_SYSCALL_GETUID_X, PPME_SOCKET_BIND_E, PPME_SOCKET_BIND_X, PPME_SOCKET_CONNECT_E, PPME_SOCKET_CONNECT_X, PPME_SOCKET_SENDTO_E, PPME_SOCKET_SENDTO_X, PPME_SOCKET_GETSOCKOPT_E, PPME_SOCKET_GETSOCKOPT_X, PPME_SOCKET_RECVMSG_E, PPME_SOCKET_RECVMSG_X, PPME_SOCKET_RECVFROM_E, PPME_SOCKET_RECVFROM_X, PPME_SOCKET_SOCKET_E, PPME_SOCKET_SOCKET_X, PPME_SOCKET_SOCKETPAIR_E, PPME_SOCKET_SOCKETPAIR_X};
 
@@ -150,7 +152,7 @@ void check_event_order(scap_t* h)
 	/* Stop the capture */
 	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS) << "unable to stop the capture: " << scap_getlasterr(h) << std::endl;
 
-	scap_evt* evt = NULL;
+	scap_evt *evt = NULL;
 	uint16_t buffer_id = 0;
 	int ret = 0;
 	uint64_t acutal_pid = getpid();
@@ -185,8 +187,127 @@ void check_event_order(scap_t* h)
 
 #else
 
-void check_event_order(scap_t* h)
+void check_event_order(scap_t *h)
 {
 	GTEST_SKIP() << "Some syscalls required by the test are not defined" << std::endl;
 }
 #endif
+
+/* Right now this is used only by the modern bpf
+ * This is extracted from `libbpf_num_possible_cpus()`.
+ * We avoid to include libbpf just for this helper.
+ */
+static int parse_cpu_mask_str(const char *s, bool **mask, int *mask_sz)
+{
+	int err = 0, n, len, start, end = -1;
+	bool *tmp;
+
+	*mask = NULL;
+	*mask_sz = 0;
+
+	/* Each sub string separated by ',' has format \d+-\d+ or \d+ */
+	while(*s)
+	{
+		if(*s == ',' || *s == '\n')
+		{
+			s++;
+			continue;
+		}
+		n = sscanf(s, "%d%n-%d%n", &start, &len, &end, &len);
+		if(n <= 0 || n > 2)
+		{
+			fprintf(stderr, "Failed to get CPU range %s: %d\n", s, n);
+			err = -EINVAL;
+			goto cleanup;
+		}
+		else if(n == 1)
+		{
+			end = start;
+		}
+		if(start < 0 || start > end)
+		{
+			fprintf(stderr, "Invalid CPU range [%d,%d] in %s\n",
+				start, end, s);
+			err = -EINVAL;
+			goto cleanup;
+		}
+		tmp = (bool *)realloc(*mask, end + 1);
+		if(!tmp)
+		{
+			err = -ENOMEM;
+			goto cleanup;
+		}
+		*mask = tmp;
+		memset(tmp + *mask_sz, 0, start - *mask_sz);
+		memset(tmp + start, 1, end - start + 1);
+		*mask_sz = end + 1;
+		s += len;
+	}
+	if(!*mask_sz)
+	{
+		fprintf(stderr, "Empty CPU range\n");
+		return -EINVAL;
+	}
+	return 0;
+cleanup:
+	free(*mask);
+	*mask = NULL;
+	return err;
+}
+
+static int parse_cpu_mask_file(const char *fcpu, bool **mask, int *mask_sz)
+{
+	int fd, err = 0, len;
+	char buf[128];
+
+	fd = open(fcpu, O_RDONLY | O_CLOEXEC);
+	if(fd < 0)
+	{
+		err = -errno;
+		fprintf(stderr, "Failed to open cpu mask file %s: %d\n", fcpu, err);
+		return err;
+	}
+	len = read(fd, buf, sizeof(buf));
+	close(fd);
+	if(len <= 0)
+	{
+		err = len ? -errno : -EINVAL;
+		fprintf(stderr, "Failed to read cpu mask from %s: %d\n", fcpu, err);
+
+		return err;
+	}
+	if(len >= sizeof(buf))
+	{
+		fprintf(stderr, "CPU mask is too big in file %s\n", fcpu);
+
+		return -E2BIG;
+	}
+	buf[len] = '\0';
+
+	return parse_cpu_mask_str(buf, mask, mask_sz);
+}
+
+int num_possible_cpus(void)
+{
+	const char *fcpu = "/sys/devices/system/cpu/possible";
+	int cpus = 0;
+	int n = 0;
+
+	/* array of bools for each CPU */
+	bool *mask;
+	int err = parse_cpu_mask_file(fcpu, &mask, &n);
+	if(err)
+		return -1;
+
+	for(int i = 0; i < n; i++)
+	{
+		if(mask[i])
+			cpus++;
+	}
+
+	if(mask)
+	{
+		free(mask);
+	}
+	return cpus;
+}
