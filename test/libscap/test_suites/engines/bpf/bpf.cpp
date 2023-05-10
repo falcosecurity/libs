@@ -92,21 +92,55 @@ TEST(bpf, read_in_order)
 	scap_close(h);
 }
 
+TEST(bpf, scap_stats_check)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
+	scap_stats stats;
+
+	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS);
+	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
+	ASSERT_GT(stats.n_evts, 0);
+	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS);
+	scap_close(h);
+}
+
 TEST(bpf, scap_stats_v2_check_results)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
 	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
 	uint32_t nstats;
 	int32_t rc;
-	const scap_stats_v2* stats_v2;
-	stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
-	const char* name = stats_v2[nstats-1].name;
-	ASSERT_GT(nstats, 0);
+	const scap_stats_v2* stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
 	ASSERT_EQ(rc, SCAP_SUCCESS);
-	ASSERT_GT(strlen(name), 3);
+	ASSERT_GT(nstats, 0);
+
+	/* These names should always be available */
+	std::unordered_set<std::string> minimal_stats_name = {"n_evts", "sys_enter.run_cnt", "sys_enter.run_time_ns", "sys_exit.run_cnt", "sys_exit.run_time_ns", "signal_deliver.run_cnt", "signal_deliver.run_time_ns"};
+
+	uint32_t i = 0;
+	for(const auto& stat_name : minimal_stats_name)
+	{
+		for(i = 0; i < nstats; i++)
+		{
+			if(stat_name.compare(stats_v2[i].name) == 0)
+			{
+				break;
+			}
+		}
+
+		if(i == nstats)
+		{
+			FAIL() << "unable to find stat '" << stat_name << "' into the array";
+		}
+	}
 	scap_close(h);
 }
 
@@ -116,11 +150,11 @@ TEST(bpf, scap_stats_v2_check_empty)
 	int ret = 0;
 	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
 	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
 	uint32_t flags = 0;
 	uint32_t nstats;
 	int32_t rc;
-	const scap_stats_v2* stats_v2;
-	stats_v2 = scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_TRUE(scap_get_stats_v2(h, flags, &nstats, &rc));
 	ASSERT_EQ(nstats, 0);
 	ASSERT_EQ(rc, SCAP_SUCCESS);
 	scap_close(h);
