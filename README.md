@@ -2,7 +2,7 @@
 
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
 [![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
-[![Drivers build against latest kernel](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
+[![Drivers build against latest mainline kernel](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
 
 As per the [OSS Libraries Contribution Plan](https://github.com/falcosecurity/falco/blob/master/proposals/20210119-libraries-contribution.md), this repository has been chosen to be the new home for **libsinsp**, **libscap**, the **kernel module** and the **eBPF probe** sources.  
 Refer to https://falco.org/blog/contribution-drivers-kmod-ebpf-libraries/ for more information.  
@@ -57,7 +57,7 @@ Right now our drivers officially support the following architectures:
 **For a list of supported syscalls through specific events, please refer to [_report_](./driver/report.md).**
 
 > **NOTE:** while we strive to achieve maximum compatibility, we cannot assure that drivers correctly build against a new kernel version minutes after it gets released, since we might need to make some adjustments.    
-> To get properly notified whenever drivers stop building, we have a [CI workflow](.github/workflows/latest-kernel.yml) that tests the build against the latest kernel available in archlinux repositories.
+> To get properly notified whenever drivers stop building, we have a [CI workflow](.github/workflows/latest-kernel.yml) that tests the build against the [latest mainline kernel](https://www.kernel.org/) (RC too!)
 
 ## Build
 
