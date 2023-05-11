@@ -25,7 +25,7 @@ extern "C"
 {
 #endif
 
-	/* Forward decleare them */
+	/* Forward declare them */
 	struct scap_stats_v2;
 	struct scap_stats;
 
@@ -296,7 +296,7 @@ extern "C"
 	int pman_get_scap_stats(struct scap_stats* scap_stats_struct);
 
 	/**
-	 * @brief Retutn a `scap_stats_v2` struct filled with statistics.
+	 * @brief Return a `scap_stats_v2` struct filled with statistics.
 	 *
 	 * @param flags holding statistics category flags.
 	 * @param nstats number of stats allocated.

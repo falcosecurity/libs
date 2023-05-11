@@ -1729,6 +1729,9 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 	 * Hopefully someone upstreams such capabilities to libbpf one day :)
 	 * Meanwhile, we can simulate perf comparisons between future LSM hooks and sys enter and exit tracepoints
 	 * via leveraging syscall selection mechanisms `handle->curr_sc_set`.
+	 * 
+	 * Please note that libbpf stats are available only on kernels >= 5.1, they could be backported but
+	 * it's possible that in some of our supported kernels they won't be available.
 	 */
 	if ((flags & PPM_SCAP_STATS_LIBBPF_STATS))
 	{
@@ -1756,12 +1759,13 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				}
 				stats[offset].type = STATS_VALUE_TYPE_U64;
 				stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
-				/* This could happen on old kernels where we don't have names inside the info struct
-				 * https://github.com/torvalds/linux/blob/16a8829130ca22666ac6236178a6233208d425c3/tools/lib/bpf/libbpf.c#L4833
+				/* The possibility to specify a name for a BPF program was introduced in kernel 4.15 
+				 * https://github.com/torvalds/linux/commit/cb4d2b3f03d8eed90be3a194e5b54b734ec4bbe9
+				 * So it's possible that in some of our supported kernels `info.name` will be "".
 				 */
 				if(strlen(info.name) == 0)
 				{
-					/* Fallback on the section name */
+					/* Fallback on the elf section name */
 					strlcpy(stats[offset].name, handle->m_attached_progs[bpf_prog].name, STATS_NAME_MAX);
 				}
 				else
