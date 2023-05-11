@@ -29,6 +29,8 @@ class sinsp_cgroup {
 public:
 	sinsp_cgroup();
 
+	explicit sinsp_cgroup(std::string &&root);
+
 	virtual ~sinsp_cgroup();
 
 	std::shared_ptr<std::string> lookup_cgroup_dir(const std::string &subsys, int &version);
@@ -38,6 +40,7 @@ public:
 	static sinsp_cgroup &instance();
 
 protected:
+	std::string m_root;
 	struct scap_cgroup_interface m_scap_cgroup;
 	std::unordered_map<std::string, std::pair<std::shared_ptr<std::string>, int>> m_cgroup_dir_cache;
 };
