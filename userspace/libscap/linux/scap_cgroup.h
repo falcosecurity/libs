@@ -56,7 +56,7 @@ extern "C"
 		char m_self_v2[SCAP_MAX_PATH_SIZE];
 	};
 
-	int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error, bool with_self_cg);
+	int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char* host_root, char* error, bool with_self_cg);
 
 	int32_t scap_cgroup_get_thread(struct scap_cgroup_interface* cgi, const char* procdirname, struct scap_cgroup_set* cg, char* error);
 

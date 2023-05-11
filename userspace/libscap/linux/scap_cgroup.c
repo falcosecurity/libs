@@ -18,7 +18,7 @@ limitations under the License.
 #include "scap_cgroup.h"
 
 #include "scap_assert.h"
-#include "scap.h"
+#include "scap_const.h"
 #include "strerror.h"
 #include "uthash.h"
 
@@ -619,9 +619,8 @@ static bool scap_in_cgroupns(const char* host_root)
 	return true;
 }
 
-int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, char* error, bool with_self_cg)
+int32_t scap_cgroup_interface_init(struct scap_cgroup_interface* cgi, const char* host_root, char* error, bool with_self_cg)
 {
-	const char* host_root = scap_get_host_root();
 	char filename[SCAP_MAX_PATH_SIZE];
 	bool in_cgroupns = false;
 	char pid_str[40];
