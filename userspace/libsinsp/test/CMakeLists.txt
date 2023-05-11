@@ -43,10 +43,12 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	ppm_api_version.ut.cpp
 	plugins.ut.cpp
 	plugin_manager.ut.cpp
+	prefix_search.ut.cpp
 	string_visitor.ut.cpp
 	filter_escaping.ut.cpp
 	filter_parser.ut.cpp
 	filter_op_bcontains.ut.cpp
+	filter_op_pmatch.ut.cpp
 	filter_compiler.ut.cpp
 	filter_ppm_codes.ut.cpp
 	user.ut.cpp
