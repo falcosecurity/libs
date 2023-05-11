@@ -18,45 +18,7 @@ limitations under the License.
 #include <sinsp.h>
 #include <gtest/gtest.h>
 
-// passing a NULL out pointer means expecting a failure
-static void filter_compile(sinsp_filter **out, std::string filter)
-{
-	std::shared_ptr<gen_event_filter_factory> factory(new sinsp_filter_factory(NULL));
-	sinsp_filter_compiler compiler(factory, filter);
-	try
-	{
-		auto f = compiler.compile();
-		if (!out)
-		{
-			delete f;
-			FAIL() << "Unexpected successful compilation for: " << filter;
-		}
-		else
-		{
-			*out = f;
-		}
-	}
-	catch(const sinsp_exception& e)
-	{
-		if (out)
-		{
-			FAIL() << "Can't compile: " << filter << " -> " << e.what();
-		}
-	}
-}
-
-static void filter_run(sinsp_evt* evt, bool result, std::string filter_str)
-{
-	sinsp_filter *filter = NULL;
-	filter_compile(&filter, filter_str);
-	if (filter->run(evt) != result)
-	{
-		FAIL() << filter_str
-			<< " -> unexpected '"
-			<< (result ? "false" : "true") << "' result";
-	}
-	delete filter;
-}
+#include "filter_compiler.h"
 
 TEST(sinsp_filter_check, bcontains_bstartswith)
 {
