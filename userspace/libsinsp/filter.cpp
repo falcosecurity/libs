@@ -42,6 +42,7 @@ limitations under the License.
 #include "value_parser.h"
 #include "filter/parser.h"
 #ifndef _WIN32
+#include <glob.h>
 #include "arpa/inet.h"
 #endif
 
@@ -1209,7 +1210,37 @@ void sinsp_filter_check::add_filter_value(const char* str, uint32_t len, uint32_
 	// If the operator is CO_PMATCH, also add the value to the paths set.
 	if (m_cmpop == CO_PMATCH)
 	{
+#ifdef _WIN32
 		m_val_storages_paths.add_search_path(item);
+#else
+		// Use glob() to expand any item first
+		glob_t expanded;
+		memset(&expanded, 0, sizeof(expanded));
+		int rc;
+		if((rc = glob(str, 0, NULL, &expanded)) == 0)
+		{
+			for(size_t i = 0; i < expanded.gl_pathc; i++)
+			{
+				size_t explen = strlen(expanded.gl_pathv[i]);
+
+				size_t cursize = m_val_storages_paths_items.size();
+				m_val_storages_paths_items.push_back(std::vector<uint8_t>(explen+1));
+				uint8_t* copy = &(m_val_storages_paths_items[cursize][0]);
+				memcpy(copy,
+				       expanded.gl_pathv[i],
+				       explen+1);
+				filter_value_t expitem(copy, explen);
+				m_val_storages_paths.add_search_path(expitem);
+			}
+		}
+		else
+		{
+			m_val_storages_paths.add_search_path(item);
+		}
+
+		globfree(&expanded);
+#endif
+
 	}
 }
 

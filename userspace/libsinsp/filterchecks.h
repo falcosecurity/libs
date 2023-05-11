@@ -211,6 +211,11 @@ protected:
 
 	path_prefix_search m_val_storages_paths;
 
+	// When the comparison operator is "pmatch", filter values are
+	// first expanded via glob and the expanded values are stored
+	// here.
+	std::vector<std::vector<uint8_t>> m_val_storages_paths_items;
+
 	uint32_t m_val_storages_min_size;
 	uint32_t m_val_storages_max_size;
 
