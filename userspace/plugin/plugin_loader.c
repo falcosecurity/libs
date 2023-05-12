@@ -117,6 +117,9 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     SYM_RESOLVE(ret, get_parse_event_types);
     SYM_RESOLVE(ret, get_parse_event_sources);
     SYM_RESOLVE(ret, parse_event);
+    SYM_RESOLVE(ret, get_async_event_sources);
+    SYM_RESOLVE(ret, get_async_events);
+    SYM_RESOLVE(ret, set_async_event_handler);
     return ret;
 }
 
@@ -247,6 +250,12 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
     if (h->api.parse_event != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_PARSING);
+    }
+
+    if (h->api.get_async_events != NULL
+        && h->api.set_async_event_handler != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_ASYNC);
     }
 
     return caps;
