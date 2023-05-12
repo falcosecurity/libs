@@ -140,7 +140,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     if (!ret->thread_table)
     {
         *rc = SS_PLUGIN_FAILURE;
-        auto err = in->get_last_owner_error(in->owner);
+        auto err = in->get_owner_last_error(in->owner);
         ret->lasterr = err ? err : "can't access thread table";
         return ret;
     }
@@ -151,7 +151,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     if (!ret->thread_comm_field)
     {
         *rc = SS_PLUGIN_FAILURE;
-        auto err = in->get_last_owner_error(in->owner);
+        auto err = in->get_owner_last_error(in->owner);
         ret->lasterr = err ? err : "can't access proc name in thread table";
         return ret;
     }
@@ -217,17 +217,17 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     return SS_PLUGIN_FAILURE;
                 }
                 tmp.s64 = ev->evt->tid;
-                thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
+                thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
                 if (!thread)
                 {
-                    auto err = in->get_last_owner_error(in->owner);
+                    auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't get thread with tid=" + std::to_string(ev->evt->tid));
                     return SS_PLUGIN_FAILURE;
                 }
-                rc = in->tableread.read_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp);
+                rc = in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp);
                 if (rc != SS_PLUGIN_SUCCESS)
                 {
-                    auto err = in->get_last_owner_error(in->owner);
+                    auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read ope counter from thread with tid=" + std::to_string(ev->evt->tid));
                     return SS_PLUGIN_FAILURE;
                 }
@@ -242,7 +242,7 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     return SS_PLUGIN_FAILURE;
                 }
                 tmp.s64 = ev->evt->type;
-                evtcount = in->tableread.get_table_entry(ps->evtcount_table, &tmp);
+                evtcount = in->table_reader.get_table_entry(ps->evtcount_table, &tmp);
                 if (!evtcount)
                 {
                     // stubbing the counter to 0 if no entry exists
@@ -251,10 +251,10 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     in->fields[i].res_len = 1;
                     return SS_PLUGIN_SUCCESS;
                 }
-                rc = in->tableread.read_entry_field(ps->evtcount_table, evtcount, ps->evtcount_count_field, &tmp);
+                rc = in->table_reader.read_entry_field(ps->evtcount_table, evtcount, ps->evtcount_count_field, &tmp);
                 if (rc != SS_PLUGIN_SUCCESS)
                 {
-                    auto err = in->get_last_owner_error(in->owner);
+                    auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read event counter for type=" + std::to_string(ev->evt->type));
                     return SS_PLUGIN_FAILURE;
                 }
@@ -264,17 +264,17 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                 break;
             case 3: // test.proc_name
                 tmp.s64 = ev->evt->tid;
-                thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
+                thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
                 if (!thread)
                 {
-                    auto err = in->get_last_owner_error(in->owner);
+                    auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't get thread with tid=" + std::to_string(ev->evt->tid));
                     return SS_PLUGIN_FAILURE;
                 }
-                rc = in->tableread.read_entry_field(ps->thread_table, thread, ps->thread_comm_field, &tmp);
+                rc = in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_comm_field, &tmp);
                 if (rc != SS_PLUGIN_SUCCESS)
                 {
-                    auto err = in->get_last_owner_error(in->owner);
+                    auto err = in->get_owner_last_error(in->owner);
                     ps->lasterr = err ? err : ("can't read proc name from thread with tid=" + std::to_string(ev->evt->tid));
                     return SS_PLUGIN_FAILURE;
                 }

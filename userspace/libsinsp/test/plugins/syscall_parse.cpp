@@ -122,7 +122,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     if (!ret->thread_table)
     {
         *rc = SS_PLUGIN_FAILURE;
-        auto err = in->get_last_owner_error(in->owner);
+        auto err = in->get_owner_last_error(in->owner);
         ret->lasterr = err ? err : "can't access thread table";
         return ret;
     }
@@ -133,7 +133,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     if (!ret->thread_opencount_field)
     {
         *rc = SS_PLUGIN_FAILURE;
-        auto err = in->get_last_owner_error(in->owner);
+        auto err = in->get_owner_last_error(in->owner);
         ret->lasterr = err ? err : "can't add open counter in thread table";
         return ret;
     }
@@ -154,7 +154,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
     if (SS_PLUGIN_SUCCESS != in->tables->add_table(in->owner, ret->event_count_table.get()))
     {
         *rc = SS_PLUGIN_FAILURE;
-        auto err = in->get_last_owner_error(in->owner);
+        auto err = in->get_owner_last_error(in->owner);
         ret->lasterr = err ? err : "can't add event counter table";
         return ret;
     }
@@ -179,26 +179,26 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
 
     // update event counters
     tmp.u64 = ev->evt->type;
-    auto evtcounter = ps->event_count_table->read.get_table_entry(ps->event_count_table->table, &tmp);
+    auto evtcounter = ps->event_count_table->reader.get_table_entry(ps->event_count_table->table, &tmp);
     if (!evtcounter)
     {
-        auto newentry = ps->event_count_table->write.create_table_entry(ps->event_count_table->table);
+        auto newentry = ps->event_count_table->writer.create_table_entry(ps->event_count_table->table);
         tmp.u64 = ev->evt->type;
-        evtcounter = ps->event_count_table->write.add_table_entry(ps->event_count_table->table, &tmp, newentry);
+        evtcounter = ps->event_count_table->writer.add_table_entry(ps->event_count_table->table, &tmp, newentry);
         if (!evtcounter)
         {
             ps->lasterr = "can't allocate event counter in table";
             return SS_PLUGIN_FAILURE;
         }
     }
-    if (SS_PLUGIN_SUCCESS != ps->event_count_table->read.read_entry_field(
+    if (SS_PLUGIN_SUCCESS != ps->event_count_table->reader.read_entry_field(
             ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
     {
         ps->lasterr = "can't read event counter in table";
         return SS_PLUGIN_FAILURE;
     }
     tmp.u64++;
-    if (SS_PLUGIN_SUCCESS != ps->event_count_table->write.write_entry_field(
+    if (SS_PLUGIN_SUCCESS != ps->event_count_table->writer.write_entry_field(
             ps->event_count_table->table, evtcounter, ps->event_count_table_count_field, &tmp))
     {
         ps->lasterr = "can't write event counter in table";
@@ -209,26 +209,26 @@ static ss_plugin_rc plugin_parse_event(ss_plugin_t *s, const ss_plugin_event_inp
     if (evt_type_is_open(ev->evt->type))
     {
         tmp.s64 = ev->evt->tid;
-        auto thread = in->tableread.get_table_entry(ps->thread_table, &tmp);
+        auto thread = in->table_reader.get_table_entry(ps->thread_table, &tmp);
         if (!thread)
         {
-            auto err = in->get_last_owner_error(in->owner);
+            auto err = in->get_owner_last_error(in->owner);
             ps->lasterr = err ? err : ("can't get thread with tid=" + std::to_string(ev->evt->tid));
             return SS_PLUGIN_FAILURE;
         }
 
-        if (SS_PLUGIN_SUCCESS != in->tableread.read_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp))
+        if (SS_PLUGIN_SUCCESS != in->table_reader.read_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp))
         {
-            auto err = in->get_last_owner_error(in->owner);
+            auto err = in->get_owner_last_error(in->owner);
             ps->lasterr = err ? err : ("can't read open counter from thread with tid=" + std::to_string(ev->evt->tid));
             return SS_PLUGIN_FAILURE;
         }
 
         // increase counter and write it back in the current thread's info
         tmp.u64++;
-        if (SS_PLUGIN_SUCCESS != in->tablewrite.write_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp))
+        if (SS_PLUGIN_SUCCESS != in->table_writer.write_entry_field(ps->thread_table, thread, ps->thread_opencount_field, &tmp))
         {
-            auto err = in->get_last_owner_error(in->owner);
+            auto err = in->get_owner_last_error(in->owner);
             ps->lasterr = err ? err : ("can't write open counter to thread with tid=" + std::to_string(ev->evt->tid));
             return SS_PLUGIN_FAILURE;
         }

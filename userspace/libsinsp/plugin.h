@@ -272,15 +272,15 @@ private:
 		std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes);
 	void validate_init_config_json_schema(std::string& config, std::string& schema);
-	static const char* get_last_owner_error(ss_plugin_owner_t* o);
+	static const char* get_owner_last_error(ss_plugin_owner_t* o);
 
 	/** Event parsing helpers **/
-	static void table_field_api(ss_plugin_table_field_api& out);
-	static void table_read_api(ss_plugin_table_read_api& out);
-	static void table_write_api(ss_plugin_table_write_api& out);
+	static void table_field_api(ss_plugin_table_fields_vtable& out);
+	static void table_read_api(ss_plugin_table_reader_vtable& out);
+	static void table_write_api(ss_plugin_table_writer_vtable& out);
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type);
-	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* input);
+	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* in);
 
 	friend struct sinsp_table_wrapper;
 };
