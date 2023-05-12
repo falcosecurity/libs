@@ -77,6 +77,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
@@ -86,6 +87,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.proc_name", pl_flist), "init");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	// should extract NULL for ignored event codes
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
@@ -96,6 +98,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.tick", pl_flist));
 
 	// should extract NULL for unknown event sources
 	const char data[2048] = "hello world";
@@ -107,6 +110,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.tick", pl_flist));
 
 	// should extract NULL for non-compatible event sources
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 999, scap_const_sized_buffer{&data, strlen(data) + 1});
@@ -117,6 +121,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.proc_name", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.tick", pl_flist));
 }
 
 // scenario: an event sourcing plugin should produce events of "syscall"
@@ -146,6 +151,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_EQ(get_field_as_string(evt, "sample.is_open"), "1");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count"));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count"));
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "false");
 	ASSERT_EQ(next_event(), nullptr); // EOF is expected
 }
 
@@ -233,7 +239,7 @@ TEST(sinsp_plugin, plugin_extract_compatibility)
 	ASSERT_FALSE(p->extract_event_codes().contains(PPME_SYSCALL_OPEN_E));
 }
 
-// scenario: a plugin with event parsing capabity and one with field
+// scenario: a plugin with event parsing capability and one with field
 // extraction capability are loaded, both compatible with the "syscall"
 // event source, and both consuming regular syscall events produced by
 // any scap engine. The first is responsible of attaching an extra field to
@@ -256,27 +262,96 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 	auto evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "1");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "1");
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "2");
 	// the parsing plugin filters-out this kind of event, so there should be no counter for it
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	// should extract NULL for ignored event codes, but should still parse it (because the parsing plugin does not ignore it)
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
 	ASSERT_FALSE(field_exists(evt, "sample.open_count", pl_flist));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count", pl_flist));
+	ASSERT_FALSE(field_exists(evt, "sample.tick", pl_flist));
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_INOTIFY_INIT1_X, 2, (int64_t)12, (uint16_t)32);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "3");
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "0");
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)4, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "sample.open_count", pl_flist), "4");
 	// this is the second time we see this event type
 	ASSERT_EQ(get_field_as_string(evt, "sample.evt_count", pl_flist), "2");
+	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
+}
+
+// scenario: a plugin with async events capability and one with field
+// extraction capability are loaded, both compatible with the "syscall"
+// event source. An inspector is opened in no driver mode, so that
+// the only events received are the ones coming from the async plugin.
+TEST_F(sinsp_with_test_input, plugin_syscall_async)
+{
+	uint64_t max_count = 10;
+	uint64_t period_ns = 1000000; // 1ms
+	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
+	std::string srcname = sinsp_syscall_event_source_name;
+
+	register_plugin(&m_inspector, get_plugin_api_sample_syscall_async, async_pl_cfg);
+	auto ext_pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
+	add_plugin_filterchecks(&m_inspector, ext_pl, srcname);
+
+	// check that the async event name is an accepted evt.type value
+	std::unique_ptr<sinsp_filter_check> chk(g_filterlist.new_filter_check_from_fldname("evt.type", &m_inspector, false));
+	ASSERT_GT(chk->parse_field_name("evt.type", true, false), 0);
+	ASSERT_NO_THROW(chk->add_filter_value("openat", strlen("openat") + 1, 0));
+	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
+	ASSERT_ANY_THROW(chk->add_filter_value("badname", strlen("badname") + 1, 2));
+
+	// we will not use the test scap engine here, but open the src plugin instead
+	// note: we configure the plugin to just emit 1 event through its open params
+	uint64_t count = 0;
+	uint64_t cycles = 0;
+	uint64_t max_cycles = max_count * 1.5; // avoid infinite loops
+	sinsp_evt *evt = NULL;
+	int32_t rc = SCAP_SUCCESS;
+	uint64_t last_ts = 0;
+	m_inspector.open_nodriver();
+	while (rc == SCAP_SUCCESS && cycles < max_cycles && count < max_count)
+	{
+		cycles++;
+		rc = m_inspector.next(&evt);
+		if (rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_X)
+		{
+			// wait a bit so that the plugin can fire the async event
+			std::this_thread::sleep_for(std::chrono::nanoseconds(period_ns));
+			rc = SCAP_SUCCESS;
+			continue;
+		}
+		count++;
+		ASSERT_NE(evt, nullptr);
+		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
+		ASSERT_EQ(evt->get_source_idx(), 0); // "syscall" source
+		ASSERT_EQ(std::string(evt->get_source_name()), srcname);
+		if (cycles > 1)
+		{
+			ASSERT_GE(evt->get_ts(), last_ts);
+		}
+		ASSERT_FALSE(field_exists(evt, "evt.pluginname")); // not available for "syscall" async events
+		ASSERT_FALSE(field_exists(evt, "evt.plugininfo"));
+		ASSERT_EQ(get_field_as_string(evt, "evt.is_async"), "true");
+		ASSERT_EQ(get_field_as_string(evt, "evt.asynctype"), "sampleticker");
+		ASSERT_EQ(get_field_as_string(evt, "evt.type"), "sampleticker");
+		ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "true");
+		last_ts = evt->get_ts();
+	}
+	m_inspector.close();
+	ASSERT_EQ(count, max_count);
 }
