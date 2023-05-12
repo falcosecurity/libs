@@ -434,6 +434,8 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	[PPME_SYSCALL_EVENTFD2_X] = (ppm_sc_code[]){PPM_SC_EVENTFD2, -1},
 	[PPME_SYSCALL_SIGNALFD4_E] = (ppm_sc_code[]){PPM_SC_SIGNALFD4, -1},
 	[PPME_SYSCALL_SIGNALFD4_X] = (ppm_sc_code[]){PPM_SC_SIGNALFD4, -1},
+	[PPME_ASYNCEVENT_E] = NULL,
+	[PPME_ASYNCEVENT_X] = NULL,
 };
 
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");

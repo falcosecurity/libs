@@ -33,44 +33,61 @@ TEST(event_table, check_events_category)
 	int num_metaevents = 0;
 	int num_plugin_events = 0;
 	int num_unknown_events = 0;
-
+	int overlaps = 0;
 	for(int event_num = 0; event_num < PPM_EVENT_MAX; event_num++)
 	{
-		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_SYSCALL)
+		auto cat = scap_get_event_category_from_event((ppm_event_code) event_num);
+		if(cat & EC_SYSCALL)
 		{
+			overlaps++;
 			num_syscall_events++;
 		}
 
-		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_TRACEPOINT)
+		if(cat & EC_TRACEPOINT)
 		{
+			overlaps++;
 			num_tracepoint_events++;
 		}
 
-		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_METAEVENT)
+		if(cat & EC_METAEVENT)
 		{
+			overlaps++;
 			num_metaevents++;
 		}
 
-		if(scap_get_event_category_from_event((ppm_event_code)event_num) == EC_PLUGIN)
+		if(cat & EC_PLUGIN)
 		{
+			overlaps++;
 			num_plugin_events++;
 		}
 
 		/* Please note this is not an `&` but an `==` if one event has
 		 * the `EC_UNKNOWN` category, it must have only this category!
 		 */
-		if(scap_get_syscall_category_from_event((ppm_event_code)event_num) == EC_UNKNOWN)
+		if(cat == EC_UNKNOWN)
 		{
+			overlaps++;
 			num_unknown_events++;
 		}
+		
+		// note: most of the event types will have only one category, so this
+		// would just be a ++ followed by a --. For those having overlapping
+		// categories, we'll find the overlaps counter being incremented for real.
+		overlaps--;
 	}
 
+	auto num_total_events = num_syscall_events
+		+ num_tracepoint_events
+		+ num_metaevents
+		+ num_plugin_events
+		+ num_unknown_events
+		- overlaps;
 	ASSERT_EQ(num_syscall_events, SYSCALL_EVENTS_NUM);
 	ASSERT_EQ(num_tracepoint_events, TRACEPOINT_EVENTS_NUM);
 	ASSERT_EQ(num_metaevents, METAEVENTS_NUM);
 	ASSERT_EQ(num_plugin_events, PLUGIN_EVENTS_NUM);
 	ASSERT_EQ(num_unknown_events, UNKNOWN_EVENTS_NUM);
-	ASSERT_EQ(num_syscall_events + num_tracepoint_events + num_metaevents + num_plugin_events + num_unknown_events, PPM_EVENT_MAX);
+	ASSERT_EQ(num_total_events, PPM_EVENT_MAX);
 }
 
 /* The event category is composed of 2 parts:
