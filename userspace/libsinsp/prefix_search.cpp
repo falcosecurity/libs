@@ -78,13 +78,13 @@ void path_prefix_map_ut::split_path(const filter_value_t &path, filter_component
 		{
 			if (sep-pos > 0)
 			{
-				components.emplace_back(pos, sep-pos);
+				components.emplace_back(std::string((const char *) pos, sep-pos));
 			}
 			pos = sep + 1;
 		}
 		else
 		{
-			components.emplace_back(pos, path.second - (pos - path.first));
+			components.emplace_back(std::string((const char *) pos, path.second - (pos - path.first)));
 			pos = path.first + path.second + 1;
 		}
 	}
