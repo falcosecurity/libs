@@ -55,7 +55,7 @@ static std::string str_from_alloc_charbuf(const char* charbuf)
 	return str;
 }
 
-const char* sinsp_plugin::get_last_owner_error(ss_plugin_owner_t* o)
+const char* sinsp_plugin::get_owner_last_error(ss_plugin_owner_t* o)
 {
 	auto t = static_cast<sinsp_plugin*>(o);
 	if (t->m_last_owner_err.empty())
@@ -143,7 +143,7 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	ss_plugin_init_input in;
 	ss_plugin_init_tables_input tables_in;
 	in.owner = this;
-	in.get_last_owner_error = sinsp_plugin::get_last_owner_error;
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
 	in.tables = NULL;
 	in.config = conf.c_str();
 	if (m_caps & (CAP_PARSING | CAP_EXTRACTION))
@@ -750,8 +750,8 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin
 	in.num_fields = num_fields;
 	in.fields = fields;
 	in.owner = (ss_plugin_owner_t *) this;
-	in.get_last_owner_error = sinsp_plugin::get_last_owner_error;
-	sinsp_plugin::table_read_api(in.tableread);
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	sinsp_plugin::table_read_api(in.table_reader);
 	return m_handle->api.extract_fields(m_state, &ev, &in) == SS_PLUGIN_SUCCESS;
 }
 
@@ -774,9 +774,9 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 
 	ss_plugin_event_parse_input in;
 	in.owner = (ss_plugin_owner_t *) this;
-	in.get_last_owner_error = sinsp_plugin::get_last_owner_error;
-	sinsp_plugin::table_read_api(in.tableread);
-	sinsp_plugin::table_write_api(in.tablewrite);
+	in.get_owner_last_error = sinsp_plugin::get_owner_last_error;
+	sinsp_plugin::table_read_api(in.table_reader);
+	sinsp_plugin::table_write_api(in.table_writer);
 
 	auto res = m_handle->api.parse_event(m_state, &ev, &in);
 	return res == SS_PLUGIN_SUCCESS;

@@ -190,15 +190,15 @@ public:
         ret->fields.list_table_fields = list_fields;
         ret->fields.get_table_field = get_field;
         ret->fields.add_table_field = add_field;
-        ret->read.get_table_name = get_name;
-        ret->read.get_table_size = get_size;
-        ret->read.get_table_entry = get_entry;
-        ret->read.read_entry_field = read_entry_field;
-        ret->write.clear_table = clear;
-        ret->write.erase_table_entry = erase_entry;
-        ret->write.create_table_entry = create_entry;
-        ret->write.add_table_entry = add_entry;
-        ret->write.write_entry_field = write_entry_field;
+        ret->reader.get_table_name = get_name;
+        ret->reader.get_table_size = get_size;
+        ret->reader.get_table_entry = get_entry;
+        ret->reader.read_entry_field = read_entry_field;
+        ret->writer.clear_table = clear;
+        ret->writer.erase_table_entry = erase_entry;
+        ret->writer.create_table_entry = create_entry;
+        ret->writer.add_table_entry = add_entry;
+        ret->writer.write_entry_field = write_entry_field;
         return ret;
     }
 
