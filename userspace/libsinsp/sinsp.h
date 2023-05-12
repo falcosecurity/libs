@@ -987,6 +987,8 @@ public:
 		return m_plugin_manager;
 	}
 
+	void handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt);
+
 	inline const std::vector<std::string>& event_sources() const
 	{
 		return m_event_sources;

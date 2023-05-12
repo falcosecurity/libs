@@ -115,7 +115,10 @@ public:
 		m_table_registry(treg),
 		m_table_infos(),
 		m_owned_tables(),
-		m_accessed_tables() { }
+		m_accessed_tables(),
+		m_async_event_sources(),
+		m_async_event_names(),
+		m_async_evt_handler() { }
 	virtual ~sinsp_plugin();
 	sinsp_plugin(sinsp_plugin&&) = default;
 	sinsp_plugin& operator = (sinsp_plugin&&) = default;
@@ -205,6 +208,21 @@ public:
 
 	bool parse_event(sinsp_evt* evt) const;
 
+	/** Async Events **/
+	inline const std::unordered_set<std::string>& async_event_sources() const
+	{
+		return m_async_event_sources;
+	}
+
+	inline const std::unordered_set<std::string>& async_event_names() const
+	{
+		return m_async_event_names;
+	}
+
+	using async_event_handler_t = std::function<void(const sinsp_plugin&, std::unique_ptr<sinsp_evt>)>;
+
+	bool set_async_event_handler(async_event_handler_t handler);
+
 // note(jasondellaluce): we set these as protected in order to allow unit
 // testing mocking these values, without having to declare their accessors
 // as virtual (thus avoiding performance loss in some hot paths).
@@ -261,15 +279,22 @@ private:
 	std::unordered_map<std::string, owned_table_t> m_owned_tables;
 	std::unordered_map<std::string, accessed_table_t> m_accessed_tables;
 
+	/** Async Events **/
+	std::unordered_set<std::string> m_async_event_sources;
+	std::unordered_set<std::string> m_async_event_names;
+	async_event_handler_t m_async_evt_handler;
+
 	/** Generic helpers **/
 	void validate_init_config(std::string& config);
 	bool resolve_dylib_symbols(std::string& errstr);
 	void resolve_dylib_field_arg(Json::Value root, filtercheck_field_info& tf);
-	void resolve_dylib_sources_codes(
-		const std::string& symsources,
+	void resolve_dylib_compatible_sources(
+		const std::string& symbol,
 		const char *(*get_sources)(),
+		std::unordered_set<std::string>& sources);
+	void resolve_dylib_compatible_codes(
 		uint16_t *(*get_codes)(uint32_t *numtypes),
-		std::unordered_set<std::string>& sources,
+		const std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes);
 	void validate_init_config_json_schema(std::string& config, std::string& schema);
 	static const char* get_owner_last_error(ss_plugin_owner_t* o);
@@ -281,6 +306,9 @@ private:
 	static ss_plugin_table_info* table_api_list_tables(ss_plugin_owner_t* o, uint32_t* ntables);
 	static ss_plugin_table_t *table_api_get_table(ss_plugin_owner_t *o, const char *name, ss_plugin_state_type key_type);
 	static ss_plugin_rc table_api_add_table(ss_plugin_owner_t *o, const ss_plugin_table_input* in);
+
+	/** Async events helpers **/
+	static ss_plugin_rc handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* evt, char* err);
 
 	friend struct sinsp_table_wrapper;
 };

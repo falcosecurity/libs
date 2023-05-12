@@ -594,20 +594,24 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		evt->init();
 	}
 
-	if (evt->m_info->category & EC_PLUGIN)
+	uint32_t plugin_id = 0;
+	if (evt->get_type() == PPME_PLUGINEVENT_E || evt->get_type() == PPME_ASYNCEVENT_E)
 	{
-		// plugin events are produced by plugins of a certain ID, and have the
-		// event source specified by their producer plugin
-		if (evt->get_type() != PPME_PLUGINEVENT_E)
-		{
-			throw sinsp_exception("unknown plugin event type in sinsp parser: " + std::to_string(evt->get_type()));
-		}
-
-		bool pfound = false;
+		// note: async events can potentially encode a non-zero plugin ID
+		// to indicate that they've been produced by a plugin with
+		// a specific event source. If an async event has a zero plugin ID, then
+		// we can assume it being of the "syscall" source. On the other hand,
+		// plugin events are not allowed to have a zero plugin ID, so we should
+		// be ok on that front.
 		auto parinfo = evt->get_param(0);
-		ASSERT(parinfo->m_len == sizeof(int32_t));
-		uint32_t pgid = *(int32_t *) parinfo->m_val;
-		auto srcidx = m_inspector->get_plugin_manager()->source_idx_by_plugin_id(pgid, pfound);
+		ASSERT(parinfo->m_len == sizeof(uint32_t));
+		plugin_id = *(uint32_t *) parinfo->m_val;
+	}
+	
+	if (plugin_id != 0)
+	{
+		bool pfound = false;
+		auto srcidx = m_inspector->get_plugin_manager()->source_idx_by_plugin_id(plugin_id, pfound);
 		if (!pfound)
 		{
 			evt->m_source_idx = sinsp_no_event_source_idx;
