@@ -3516,6 +3516,8 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.pluginname", "Plugin Name", "if the event comes from a plugin, the name of the plugin that generated it. The plugin must be currently loaded."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "Plugin Info", "if the event comes from a plugin, a summary of the event as formatted by the plugin. The plugin must be currently loaded."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.source", "Event Source", "the name of the source that produced the event."},
+	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_async", "Async Event", "'true' for asynchronous events, 'false' otherwise."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.asynctype", "Async-Event Type", "If the event is asynchronous, the name of the event (e.g. 'container')."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
@@ -3638,6 +3640,26 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 			return NULL;
 		}
 		RETURN_EXTRACT_CSTR(evt->get_source_name());
+	case TYPE_ISASYNC:
+		if (libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
+		{
+			m_u32val = 1;
+		}
+		else
+		{
+			m_u32val = 0;
+		}
+		RETURN_EXTRACT_VAR(m_u32val);
+	case TYPE_ASYNCTYPE:
+		if (!libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
+		{
+			return NULL;
+		}
+		if (evt->get_type() == PPME_ASYNCEVENT_E)
+		{
+			RETURN_EXTRACT_CSTR(evt->get_param(1)->m_val);
+		}
+		RETURN_EXTRACT_CSTR(evt->get_name());
 	default:
 		ASSERT(false);
 		return NULL;
@@ -3959,6 +3981,22 @@ void sinsp_filter_check_event::validate_filter_value(const char* str, uint32_t l
 			if(stype == scap_get_ppm_sc_name((ppm_sc_code)j))
 			{
 				return;
+			}
+		}
+
+		// note: plugins can potentially define meta-events with a certain
+		// name, which will be extracted as valid values for evt.type
+		// we loop over all plugins and check if at least one defines a
+		// meta-event with the given name
+		for (auto& p : m_inspector->get_plugin_manager()->plugins())
+		{
+			if (p->caps() & CAP_ASYNC)
+			{
+				const auto& names = p->async_event_names();
+				if (names.find(stype) != names.end())
+				{
+					return;
+				}
 			}
 		}
 
@@ -4500,7 +4538,17 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 			}
 			else
 			{
-				evname = (uint8_t*)evt->get_name();
+				// note: for async events, the event name is encoded
+				// inside the event itself. In this case libsinsp's evt.type
+				// field acts as an alias of evt.asynctype.
+				if (evt->get_type() == PPME_ASYNCEVENT_E)
+				{
+					evname = (uint8_t*) evt->get_param(1)->m_val;
+				}
+				else
+				{
+					evname = (uint8_t*)evt->get_name();
+				}
 			}
 
 			RETURN_EXTRACT_CSTR(evname);

@@ -461,6 +461,8 @@ public:
 		TYPE_PLUGINNAME = 12,
 		TYPE_PLUGININFO = 13,
 		TYPE_SOURCE = 14,
+		TYPE_ISASYNC = 15,
+		TYPE_ASYNCTYPE = 16,
 	};
 
 	sinsp_filter_check_gen_event();
@@ -470,6 +472,7 @@ public:
 	Json::Value extract_as_js(sinsp_evt *evt, OUT uint32_t* len);
 
 	uint64_t m_u64val;
+	uint32_t m_u32val;
 	std::string m_strstorage;
 };
 
