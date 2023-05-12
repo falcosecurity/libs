@@ -190,6 +190,7 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	// Sanity checks in case a plugin implements a non-syscall event source.
 	// If a plugin has event sourcing capability and has a specific ID, then
 	// it is allowed to proce only plugin events of its own event source.
+	uint32_t* plugin_id = (uint32_t*)((uint8_t*) evt + sizeof(scap_evt) + 4 + 4);
 	if (handle->m_input_plugin->id != 0)
 	{
 		/*
@@ -197,16 +198,13 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 		* Note: we need to use 4B for len_id too because the
 		* PPME_PLUGINEVENT_E has EF_LARGE_PAYLOAD flag!
 		*/
-		if (evt->type != PPME_PLUGINEVENT_E
-			|| evt->tid != (uint64_t) -1
-			|| evt->nparams != 2)
+		if (evt->type != PPME_PLUGINEVENT_E || evt->nparams != 2)
 		{
 			snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin: '%s'", handle->m_input_plugin->name);
 			return SCAP_FAILURE;
 		}
 
 		// forcely setting plugin ID with the one of the open plugin
-		uint32_t* plugin_id = (uint32_t*)((uint8_t*) evt + sizeof(scap_evt) + 4 + 4);
 		if (*plugin_id == 0)
 		{
 			*plugin_id = handle->m_input_plugin->id;
@@ -217,8 +215,16 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 			return SCAP_FAILURE;
 		}
 	}
+
+	// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
+	if (evt->type == PPME_PLUGINEVENT_E && *plugin_id == 0)
+	{
+		snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin (no ID): '%s'", handle->m_input_plugin->name);
+		return SCAP_FAILURE;
+	}
 	
-	// automatically set timestamp if none was specified
+	// automatically set tid, and timestamp if none was specified
+	evt->tid = (uint64_t) -1;
 	if(evt->ts == UINT64_MAX)
 	{
 		evt->ts = get_timestamp_ns();
