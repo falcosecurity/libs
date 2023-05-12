@@ -831,6 +831,8 @@ void sinsp::close()
 			}
 		}
 	}
+
+	m_mode = SCAP_MODE_NONE;
 }
 
 //
