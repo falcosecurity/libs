@@ -204,6 +204,7 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
 	PPME_SYSCALL_SIGNALFD4_X,
 	PPME_SYSCALL_PRCTL_E,
 	PPME_SYSCALL_PRCTL_X,
+	PPME_ASYNCEVENT_E,
 };
 
 const libsinsp::events::set<ppm_sc_code> expected_sinsp_state_sc_set = {
@@ -293,6 +294,7 @@ const libsinsp::events::set<ppm_event_code> expected_unknown_event_set = {
 	PPME_PROCINFO_X,
 	PPME_SIGNALDELIVER_X,
 	PPME_CONTAINER_X,
+	PPME_ASYNCEVENT_X,
 };
 
 /// todo(@Andreagit97): here we miss static sets for io, proc, net groups

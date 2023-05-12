@@ -59,6 +59,11 @@ static inline bool evt_type_is_open(uint16_t type)
     ;
 }
 
+static inline const char* get_async_event_name(const ss_plugin_event* e)
+{
+    return (const char*) ((uint8_t*) e + sizeof(ss_plugin_event) + 4+4+4+4);
+}
+
 static const char* plugin_get_required_api_version()
 {
     return PLUGIN_API_VERSION_STR;
@@ -91,7 +96,8 @@ static const char* plugin_get_fields()
         "{\"type\": \"uint64\", \"name\": \"sample.is_open\", \"desc\": \"Value is 1 if event is of open family\"}," \
         "{\"type\": \"uint64\", \"name\": \"sample.open_count\", \"desc\": \"Counter for all the events of open family in a given thread\"}," \
         "{\"type\": \"uint64\", \"name\": \"sample.evt_count\", \"desc\": \"Counter of events of the same type of the current one, counting all threads\"}," \
-        "{\"type\": \"string\", \"name\": \"sample.proc_name\", \"desc\": \"Alias for proc.name, but implemented from a plugin\"}" \
+        "{\"type\": \"string\", \"name\": \"sample.proc_name\", \"desc\": \"Alias for proc.name, but implemented from a plugin\"}," \
+        "{\"type\": \"string\", \"name\": \"sample.tick\", \"desc\": \"'true' if the current event is a ticker notification\"}" \
     "]";
 }
 
@@ -117,6 +123,7 @@ static uint16_t* plugin_get_extract_event_types(uint32_t* num_types)
         // note: non-filtered for testing purposes
         PPME_SYSCALL_INOTIFY_INIT1_E,
         PPME_SYSCALL_INOTIFY_INIT1_X,
+        PPME_ASYNCEVENT_E, // used for catching async events
     };
     *num_types = sizeof(types) / sizeof(uint16_t);
     return &types[0];
@@ -279,6 +286,20 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     return SS_PLUGIN_FAILURE;
                 }
                 ps->strstorage = tmp.str;
+                ps->strptrstorage = ps->strstorage.c_str();
+                in->fields[i].res.str = &ps->strptrstorage;
+                in->fields[i].res_len = 1;
+                break;
+            case 4: // sample.tick
+                if (ev->evt->type == PPME_ASYNCEVENT_E
+                    && strcmp("sampleticker", get_async_event_name(ev->evt)) == 0)
+                {
+                    ps->strstorage = "true";
+                }
+                else
+                {
+                    ps->strstorage = "false";
+                }
                 ps->strptrstorage = ps->strstorage.c_str();
                 in->fields[i].res.str = &ps->strptrstorage;
                 in->fields[i].res_len = 1;
