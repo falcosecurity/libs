@@ -1000,6 +1000,10 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	}
 	else
 	{
+		/* Probably we are doing this because `pthread_create` calls `clone()`
+		 * with `CLONE_FILES`, but this is just an assumption.
+		 * All threads populated by /proc scan will have `fdtable->size()==0`.
+		 */
 		tinfo->flags = PPM_CL_CLONE_THREAD | PPM_CL_CLONE_FILES;
 	}
 
