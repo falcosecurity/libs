@@ -268,50 +268,11 @@ void sinsp_plugin::resolve_dylib_field_arg(Json::Value root, filtercheck_field_i
 }
 
 // this logic is shared between the field extraction and event parsing caps
-void sinsp_plugin::resolve_dylib_sources_codes(
-		const std::string& symsources,
-		const char *(*get_sources)(),
+void sinsp_plugin::resolve_dylib_compatible_codes(
 		uint16_t *(*get_codes)(uint32_t *numtypes),
-		std::unordered_set<std::string>& sources,
+		const std::unordered_set<std::string>& sources,
 		libsinsp::events::set<ppm_event_code>& codes)
 {
-	sources.clear();
-	if (get_sources != NULL)
-	{
-		std::string esources = str_from_alloc_charbuf(get_sources());
-		if (!esources.empty())
-		{
-			Json::Value root;
-			if (!Json::Reader().parse(esources, root) || root.type() != Json::arrayValue)
-			{
-				throw sinsp_exception(string("error in plugin ") + name() +
-										": '" + symsources + "' did not return a json array");
-			}
-
-			for (const auto & j : root)
-			{
-				if (!j.isConvertibleTo(Json::stringValue))
-				{
-					throw sinsp_exception(string("error in plugin ") + name() +
-											": '" + symsources + "' did not return a json array");
-				}
-
-				auto src = j.asString();
-				if (!src.empty())
-				{
-					sources.insert(j.asString());
-				}
-			}
-		}
-	}
-
-	// A plugin with source capability must extract/parse events
-	// from its own specific source (if it has one)
-	if (m_caps & CAP_SOURCING && !m_event_source.empty())
-	{
-		sources.insert(m_event_source);
-	}
-
 	codes.clear();
 	if (get_codes != NULL)
 	{
@@ -335,6 +296,58 @@ void sinsp_plugin::resolve_dylib_sources_codes(
 		{
 			codes.insert(ppm_event_code::PPME_PLUGINEVENT_E);
 		}
+	}
+}
+
+static void resolve_dylib_json_strlist(
+		const std::string& plname,
+		const std::string& symbol,
+		const char *(*get_list)(),
+		std::unordered_set<std::string>& out,
+		bool allow_empty)
+{
+	out.clear();
+	if (get_list != NULL)
+	{
+		std::string jsonstr = str_from_alloc_charbuf(get_list());
+		if (!jsonstr.empty() || !allow_empty)
+		{
+			Json::Value root;
+			if (!Json::Reader().parse(jsonstr, root) || root.type() != Json::arrayValue)
+			{
+				throw sinsp_exception("error in plugin " + plname + ": '"
+					+ symbol + "' did not return a json array");
+			}
+			for (const auto& j : root)
+			{
+				if (!j.isConvertibleTo(Json::stringValue))
+				{
+					throw sinsp_exception("error in plugin " + plname + ": '"
+						+ symbol + "' did not return a json array");
+				}
+				auto src = j.asString();
+				if (!src.empty())
+				{
+					out.insert(src);
+				}
+			}
+		}
+	}
+}
+
+// this logic is shared between the field extraction and event parsing caps
+void sinsp_plugin::resolve_dylib_compatible_sources(
+		const std::string& symbol,
+		const char *(*get_sources)(),
+		std::unordered_set<std::string>& sources)
+{
+	resolve_dylib_json_strlist(name(), symbol, get_sources, sources, true);
+
+	// A plugin with source capability must extract/parse events
+	// from its own specific source (if it has one)
+	if (m_caps & CAP_SOURCING && !m_event_source.empty())
+	{
+		sources.insert(m_event_source);
 	}
 }
 
@@ -486,22 +499,26 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 			m_fields.push_back(tf);
 		}
 
-		resolve_dylib_sources_codes(
-			"get_extract_event_sources",
-			m_handle->api.get_extract_event_sources,
-			m_handle->api.get_extract_event_types,
-			m_extract_event_sources,
-			m_extract_event_codes);
+		resolve_dylib_compatible_sources("get_extract_event_sources",
+			m_handle->api.get_extract_event_sources, m_extract_event_sources);
+		resolve_dylib_compatible_codes(m_handle->api.get_extract_event_types,
+			m_extract_event_sources, m_extract_event_codes);
 	}
 
 	if(m_caps & CAP_PARSING)
 	{
-		resolve_dylib_sources_codes(
-			"get_parse_event_sources",
-			m_handle->api.get_parse_event_sources,
-			m_handle->api.get_parse_event_types,
-			m_parse_event_sources,
-			m_parse_event_codes);
+		resolve_dylib_compatible_sources("get_parse_event_sources",
+			m_handle->api.get_parse_event_sources, m_parse_event_sources);
+		resolve_dylib_compatible_codes(m_handle->api.get_parse_event_types,
+			m_parse_event_sources, m_parse_event_codes);
+	}
+
+	if(m_caps & CAP_ASYNC)
+	{
+		resolve_dylib_compatible_sources("get_async_event_sources",
+			m_handle->api.get_async_event_sources, m_async_event_sources);
+		resolve_dylib_json_strlist(name(), "get_async_events",
+			m_handle->api.get_async_events, m_async_event_names, false);
 	}
 
 	return true;
@@ -783,3 +800,99 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 }
 
 /** End of Event Parsing CAP **/
+
+/** Async Events CAP **/
+
+ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* e, char* err)
+{
+	auto p = static_cast<sinsp_plugin*>(o);
+	if (!(p->caps() & CAP_ASYNC))
+	{
+		if (err)
+		{
+			strlcpy(err, "plugin without async events cap used as async handler", PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	if (!p->m_async_evt_handler)
+	{
+		if (err)
+		{
+			auto e = "async event sent with NULL handler: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	if (e->type != PPME_ASYNCEVENT_E || e->nparams != 3)
+	{
+		if (err)
+		{
+			auto e = "malformed async event produced by plugin: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	auto name = (const char*) ((uint8_t*) e + sizeof(ss_plugin_event) + 4+4+4+4);
+	if (p->async_event_names().find(name) == p->async_event_names().end())
+	{
+		if (err)
+		{
+			auto e = "incompatible async event '" + std::string(name)
+				+ "' produced by plugin: " + p->name();
+			strlcpy(err, e.c_str(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	try
+	{
+		auto evt = std::unique_ptr<sinsp_evt>(new sinsp_evt());
+		ASSERT(evt->m_pevt_storage == nullptr);
+		evt->m_pevt_storage = new char[e->len];
+		memcpy(evt->m_pevt_storage, e, e->len);
+		evt->m_cpuid = 0;
+		evt->m_evtnum = 0;
+		evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
+		evt->m_pevt->tid = (uint64_t) -1;
+		evt->init();
+		// note: plugin ID and timestamp will be set by the inspector
+		p->m_async_evt_handler(*p, std::move(evt));
+	}
+	catch (const std::exception& _e)
+	{
+		if (err)
+		{
+			strlcpy(err, _e.what(), PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+	catch (...)
+	{
+		if (err)
+		{
+			strlcpy(err, "unknwon error in pushing async event", PLUGIN_MAX_ERRLEN);
+		}
+		return SS_PLUGIN_FAILURE;
+	}
+
+	return SS_PLUGIN_SUCCESS;
+}
+
+bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler)
+{
+	if (!m_inited)
+	{
+		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+	auto callback = handler != nullptr ? sinsp_plugin::handle_plugin_async_event : NULL;
+	auto rc = m_handle->api.set_async_event_handler(m_state, this, callback);
+	if (rc == SS_PLUGIN_SUCCESS)
+	{
+		m_async_evt_handler = handler;
+		return true;
+	}
+	return false;
+}

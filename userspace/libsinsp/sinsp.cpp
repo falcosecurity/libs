@@ -491,6 +491,23 @@ void sinsp::open_common(scap_open_args* oargs)
 	}
 
 	init();
+
+	// enable generation of async meta-events for all loaded plugins supporting
+	// that capability. Meta-events are considered only during live captures,
+	// because offline captures will have the async events already encoded
+	// in the event stream.
+	if (!is_capture())
+	{
+		for (auto& p : m_plugin_manager->plugins())
+		{
+			if (p->caps() & CAP_ASYNC)
+			{
+				p->set_async_event_handler([this](auto& p, auto e){
+					this->handle_plugin_async_event(p, std::move(e));
+				});
+			}
+		}
+	}
 }
 
 scap_open_args sinsp::factory_open_args(const char* engine_name, scap_mode_t scap_mode)
@@ -801,6 +818,18 @@ void sinsp::close()
 	{
 		delete m_filter;
 		m_filter = NULL;
+	}
+
+	// unset the meta-event callback to all plugins that support it
+	if (!is_capture())
+	{
+		for (auto& p : m_plugin_manager->plugins())
+		{
+			if (p->caps() & CAP_ASYNC)
+			{
+				p->set_async_event_handler(nullptr);
+			}
+		}
 	}
 }
 
@@ -2752,4 +2781,59 @@ sinsp_threadinfo*
 libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 {
 	return new sinsp_threadinfo(inspector);
+}
+
+void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt)
+{
+	// note: we make sure that async events are dequeued, however
+	// they are considered only during live captures, because
+	// offline captures will have the async events already encoded
+	// in the event stream.
+	if (!is_capture())
+	{
+		// note: async events get assigned the same event source as the
+		// currently-open one. In case no plugin is open, we set it to zero
+		// to indicate the regular "syscall" source. Otherwise we set the ID
+		// to the one of the currently-open ID, which can potentially be zero
+		// too in case the plugin does not define any specific event source.
+		// However, we also need to check if the plugin's async capability
+		// is compatible with the currently-open event source, and reject
+		// the event if that's not the case.
+		//
+		// todo(jasondellaluce): here we are assuming that the "syscall" event
+		// source is always at index 0 in the inspector's event source list,
+		// change this code if this assumption ever stops being true.
+		size_t cur_evtsrc_idx = 0;
+		uint32_t cur_plugin_id = 0;
+		if (is_plugin())
+		{
+			cur_plugin_id = m_input_plugin->id();
+			if (cur_plugin_id != 0)
+			{
+				bool found = false;
+				cur_evtsrc_idx = m_plugin_manager->source_idx_by_plugin_id(cur_plugin_id, found);
+				if (!found)
+				{
+					throw sinsp_exception("can't find event source for plugin ID: "
+						+ std::to_string(cur_plugin_id));
+				}
+			}
+		}
+		ASSERT(cur_evtsrc_idx < m_event_sources.size());
+		const auto& cur_evtsrc = m_event_sources[cur_evtsrc_idx];
+		if (!sinsp_plugin::is_source_compatible(p.async_event_sources(), cur_evtsrc))
+		{
+			throw sinsp_exception("async events of plugin '" + p. name()
+				+ "' are not compatible with open event source '" + cur_evtsrc+ "'");
+		}
+
+		// write plugin ID and timestamp in the event and kick it in the queue
+		auto plid = (uint32_t*)((uint8_t*) evt->m_pevt + sizeof(scap_evt) + 4+4+4);
+		*plid = cur_plugin_id;
+		evt->inspector(this);
+		evt->m_pevt->ts = (m_lastevent_ts == 0)
+			? sinsp_utils::get_current_time_ns()
+			: m_lastevent_ts;
+		m_pending_state_evts.push(std::move(evt));
+	}
 }
