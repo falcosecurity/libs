@@ -39,6 +39,11 @@ extern "C" {
 #define PLUGIN_API_VERSION          PLUGIN_API_VERSION_MAJOR.PLUGIN_API_VERSION_MINOR.PLUGIN_API_VERSION_PATCH
 #define PLUGIN_API_VERSION_STR      EXPAND_AND_QUOTE(PLUGIN_API_VERSION)
 
+//
+// The max length of errors returned by a plugin in some of its API symbols.
+//
+#define PLUGIN_MAX_ERRLEN	1024
+
 // Vtable for controlling and the fields for the entries of a state table.
 // This allows discovering the fields available in the table, defining new ones,
 // and obtaining accessors usable at runtime for reading and writing the fields'
@@ -261,6 +266,18 @@ typedef struct ss_plugin_event_parse_input
 } ss_plugin_event_parse_input;
 
 //
+// Function handler used by plugin for sending asynchronous events to the
+// Falcosecurity libs during a live event capture. The asynchronous events
+// must be encoded as an async event type (code 402) as for the libscap specific.
+// The function returns SS_PLUGIN_SUCCESS in case of success, or
+// SS_PLUGIN_FAILURE otherwise. If a non-NULL char pointer is passed for
+// the "err" argument, it will be filled with an error message string
+// in case the handler function returns SS_PLUGIN_FAILURE. The error string
+// has a max length of PLUGIN_MAX_ERRLEN (termination char included) and its
+// memory must be allocated and owned by the plugin.
+typedef ss_plugin_rc (*ss_plugin_async_event_handler_t)(ss_plugin_owner_t* o, const ss_plugin_event *evt, char* err);
+
+//
 // The struct below define the functions and arguments for plugins capabilities:
 // * event sourcing
 // * field extraction
@@ -329,7 +346,7 @@ typedef struct
 	// Initialize the plugin and allocate its state.
 	// Required: yes
 	// Arguments:
-	// - input: init-time input for the plugin.
+	// - in: init-time input for the plugin.
 	// - rc: pointer to a ss_plugin_rc that will contain the initialization result
 	// Return value: pointer to the plugin state that will be treated as opaque
 	//   by the framework and passed to the other plugin functions.
@@ -621,7 +638,7 @@ typedef struct
 		//   This is allocated by the framework, and it is not guaranteed
 		//   that the event struct pointer is the same returned by the last
 		//   next_batch() call.
-		// - input: An input struct representing the extraction request.
+		// - in: An input struct representing the extraction request.
 		//   The input includes vtables containing callbacks that can be used by
 		//   the plugin for performing read/write operations on a state table
 		//   not owned by itelf, for which it obtained accessors at init time.
@@ -680,7 +697,7 @@ typedef struct
 		//   This is allocated by the framework, and it is not guaranteed
 		//   that the event struct pointer is the same returned by the last
 		//   next_batch() call.
-		// - input: A vtable containing callbacks that can be used by
+		// - in: A vtable containing callbacks that can be used by
 		//   the plugin for performing read/write operations on a state table
 		//   not owned by itelf, for which it obtained accessors at init time.
 		//   The plugin does not need to go through this vtable in order
@@ -694,6 +711,83 @@ typedef struct
 		// uniquely attached to the ss_plugin_t* parameter value. The pointer
 		// must not be shared across multiple distinct ss_plugin_t* values.
 		ss_plugin_rc (*parse_event)(ss_plugin_t *s, const ss_plugin_event_input *evt, const ss_plugin_event_parse_input* in);
+	};
+
+	// Async events capability API
+	struct
+	{
+		//
+		// Return a string describing the event sources for which this plugin
+		// is capable of injecting async events in the event stream of a capture.
+		// 
+		// Required: no
+		//
+		// Return value: a json array of strings containing event
+		//   sources returned by a plugin with event sourcing capabilities
+		//   get_event_source() function, or "syscall" for indicating
+		//   support to non-plugin events.
+		// This function is optional--if NULL or an empty array, then async
+		// events produced by this plugin will be injected in the event stream
+		// of any data source.
+		//
+		const char* (*get_async_event_sources)();
+		//
+		// Return a string describing the name list of all asynchronous events
+		// that this plugin is capable of pushing into a live event stream.
+		// The framework rejects async events produced by a plugin if their
+		// name is not on the name list returned by this function.
+		//
+		// Required: yes
+		//
+		// Return value: a non-empty json array of strings containing the
+		//   names of the async events returned by a plugin.
+		const char* (*get_async_events)();
+		//
+		// Sets a function handler that allows the plugin to send asynchronous
+		// events to its owner during a live event capture. The handler is
+		// a thread-safe function that can be invoked concurrently by
+		// multiple threads. The asynchronous events must be encoded as
+		// an async event type (code 402) as for the libscap specific.
+		//
+		// The plugin can start sending async events through the passed-in
+		// handler right after returning from this function.
+		// set_async_event_handler() can be invoked multiple times during the
+		// lifetime of a plugin. In that case, the registered function handler
+		// remains valid up until the next invocation of set_async_event_handler()
+		// on the same plugin, after which the new handler set will replace any
+		// already-set one. If the handler is set to a NULL function pointer,
+		// the plugin is instructed about disabling or stopping the
+		// production of async events.
+		//
+		// Async events encode a plugin ID that defines its event source.
+		// However, this value is set by the framework when the async event
+		// is received, and is set to the ID associated to the plugin-defined
+		// event source currently open during a live capture, or zero in case
+		// of the "syscall" event source. The event source assigned by the
+		// framework to the async event can only be among the ones compatible
+		// with the list returned by get_async_event_sources().
+		//
+		// Async events encode a string representing their event name, which is
+		// used for runtime matching and define the encoded data payload.
+		// Plugins are allowed to only send async events with one of the names
+		// expressed in the list returned by get_async_events(). The name
+		// of an async event acts as a contract on the encoding of the data
+		// payload of all async events with the same name.
+		// 
+		// Required: yes
+		// 
+		// Arguments:
+		// - owner: Opaque pointer to the plugin's owner. Must be passed
+		//   as an argument to the async event function handler.
+		// - handler: Function handler to be used for sending asynchronous
+		//   events to the plugin's owner. The handler must be invoked with
+		//   the same owner opaque pointer passed to this function, and with
+		//   an event pointer owned and controlled by the plugin. The event
+		//   pointer is not retained by the handler after it returns.
+		//
+		// Return value: A ss_plugin_rc with values SS_PLUGIN_SUCCESS or SS_PLUGIN_FAILURE.
+		//
+		ss_plugin_rc (*set_async_event_handler)(ss_plugin_t* s, ss_plugin_owner_t* owner, const ss_plugin_async_event_handler_t handler);
 	};
 } plugin_api;
 

@@ -25,12 +25,6 @@ limitations under the License.
 extern "C" {
 #endif
 
-
-/*!
-    \brief The maximum length of the error strings written by the plugin loader
-*/
-#define PLUGIN_MAX_ERRLEN 2048
-
 /*!
     \brief This enums the capabilities supported by plugins.
     Each plugin can support one or more of these, in which case the enum flags
@@ -45,6 +39,7 @@ typedef enum
     CAP_SOURCING    = 1 << 0,
     CAP_EXTRACTION  = 1 << 1,
     CAP_PARSING     = 1 << 2,
+    CAP_ASYNC       = 1 << 3,
 } plugin_caps_t;
 
 /*!
