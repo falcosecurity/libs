@@ -125,7 +125,7 @@ TEST(SyscallExit, prctlX_set_child_subreaper)
 	/*=============================== TRIGGER SYSCALL  ===========================*/
 
 	int option = PR_SET_CHILD_SUBREAPER;
-	unsigned long arg2 = 1337;
+	unsigned long arg2 = 1337; /* This could be whatever value != 0, it is not a tid */
 	unsigned long arg3 = 0;
 	unsigned long arg4 = 0;
 	unsigned long arg5 = 0;
