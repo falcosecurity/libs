@@ -108,17 +108,13 @@ typedef struct ss_plugin_event ss_plugin_event;
 // - evt: a pointer to the header of the provided event.
 // - evtnum: assigned by the framework and incremented for each event.
 //   Might not be contiguous.
-// - evtsrc_idx: a numeric index of the event's source, as known by the frameowrk.
-//   The framework guarantees that the mapping between an event source name and
-//   its index remains constant.
-// - evtsrc_name: The name of the event's source. Can be "syscall" or any other
+// - evtsrc: The name of the event's source. Can be "syscall" or any other
 //   event source name implemented by a plugin.
 typedef struct ss_plugin_event_input
 {
 	const ss_plugin_event* evt;
 	uint64_t evtnum;
-	uint32_t evtsrc_idx;
-	const char* evtsrc_name;
+	const char* evtsrc;
 } ss_plugin_event_input;
 
 typedef struct ss_plugin_byte_buffer{
