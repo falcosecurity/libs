@@ -27,7 +27,7 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <mutex>
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT)
 #include "tbb/concurrent_unordered_map.h"
 #endif
 #include "sinsp.h"

@@ -78,8 +78,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND USE_BUNDLED_DRIVER)
 	add_subdirectory(driver ${PROJECT_BINARY_DIR}/driver)
 endif()
 
-if(NOT CMAKE_BUILD_TYPE)
-	SET(CMAKE_BUILD_TYPE Release)
+if(NOT DEFINED CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
+	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 set(LIBS_PACKAGE_NAME "falcosecurity")

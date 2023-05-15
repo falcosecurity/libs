@@ -150,6 +150,7 @@ jobs:
   build-libs-others-amd64:
     name: build-libs-others-amd64 😨
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -162,7 +163,7 @@ jobs:
       - name: Build and test 🏗️🧪
         run: |
           mkdir -p build
-          cd build && cmake -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
+          cd build && cmake -DCMAKE_BUILD_TYPE=Debug -DCREATE_TEST_TARGETS=OFF -DMINIMAL_BUILD=true ..
           cmake --build .
 
   # This job run all engine tests and scap-open

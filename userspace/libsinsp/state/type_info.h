@@ -114,14 +114,16 @@ private:
     inline typeinfo(const char* n, index_t k, size_t s, void (*c)(void*), void (*d)(void*))
         : m_name(n), m_index(k), m_size(s), m_construct(c), m_destroy(d) { }
 
-    template <typename T> static inline void _construct(void* p)
+    template <typename T, typename _Alloc = std::allocator<T>> static inline void _construct(void* p)
     {
-        std::allocator<T>().construct(reinterpret_cast<T*>(p));
+        _Alloc a;
+        std::allocator_traits<_Alloc>::construct(a, reinterpret_cast<T*>(p));
     }
 
-    template <typename T> static inline void _destroy(void* p)
+    template <typename T, typename _Alloc = std::allocator<T>> static inline void _destroy(void* p)
     {
-        std::allocator<T>().destroy(reinterpret_cast<T*>(p));
+        _Alloc a;
+        std::allocator_traits<_Alloc>::destroy(a, reinterpret_cast<T*>(p));
     }
 
     template<typename T> static inline typeinfo _build(const char* n, index_t k)

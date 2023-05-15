@@ -1203,13 +1203,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
-#ifndef _WIN32
 	else if (m_pending_state_evts.try_pop(m_state_evt))
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
 	}
-#endif
 	else
 	{
 		evt = &m_evt;

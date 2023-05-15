@@ -16,37 +16,98 @@ elseif(NOT USE_BUNDLED_TBB)
 else()
 	set(TBB_SRC "${PROJECT_BINARY_DIR}/tbb-prefix/src/tbb")
 	set(TBB_INCLUDE_DIR "${TBB_SRC}/include/")
+
 	if(BUILD_SHARED_LIBS)
+		set(TBB_LIB_PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
 		set(TBB_LIB_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})
 	else()
+		set(TBB_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
 		set(TBB_LIB_SUFFIX ${CMAKE_STATIC_LIBRARY_SUFFIX})
 	endif()
-	set(TBB_LIB "${TBB_SRC}/lib_release/libtbb${TBB_LIB_SUFFIX}")
+
+	# lib name changes depending on platform and build type
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		set(TBB_LIB_BASEDIR "${TBB_SRC}/lib_debug")
+		if(NOT WIN32)
+			set(TBB_LIB_BASENAME "tbb_debug")
+		else()
+			set(TBB_LIB_BASENAME "tbb12_debug")
+		endif()
+	else()
+		set(TBB_LIB_BASEDIR "${TBB_SRC}/lib_release")
+		if(NOT WIN32)
+			set(TBB_LIB_BASENAME "tbb")
+		else()
+			set(TBB_LIB_BASENAME "tbb12")
+		endif()
+	endif()	
+	set(TBB_LIB "${TBB_LIB_BASEDIR}/${TBB_LIB_PREFIX}${TBB_LIB_BASENAME}${TBB_LIB_SUFFIX}")
+
 	if(NOT TARGET tbb)
 		message(STATUS "Using bundled tbb in '${TBB_SRC}'")
+		set(TBB_SRC_URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.8.0.tar.gz")
+		set(TBB_SRC_URL_HASH "SHA256=eee380323bb7ce864355ed9431f85c43955faaae9e9bce35c62b372d7ffd9f8b")
 		set(TBB_FLAGS "")
 		if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 			# latest TBB has issues with GCC >= 12
 			# see: https://github.com/oneapi-src/oneTBB/issues/843#issuecomment-1152646035
 			set(TBB_FLAGS "-Wno-error=stringop-overflow")
 		endif()
-		ExternalProject_Add(tbb
-			PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
-			URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.8.0.tar.gz"
-			URL_HASH "SHA256=eee380323bb7ce864355ed9431f85c43955faaae9e9bce35c62b372d7ffd9f8b"
-			# CONFIGURE_COMMAND ""
-			BUILD_IN_SOURCE 1
-			BUILD_COMMAND ${CMAKE_COMMAND} --build . --target tbb
-			CMAKE_ARGS
-				-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-				-DCMAKE_BUILD_TYPE=release
-				-DTBB_OUTPUT_DIR_BASE=lib
-				-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
-			BUILD_BYPRODUCTS ${TBB_LIB}
-			INSTALL_COMMAND "")
-		install(DIRECTORY ${TBB_SRC}/lib_release/ DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
+
+		if(NOT WIN32)	
+			ExternalProject_Add(tbb
+				PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
+				URL "${TBB_SRC_URL}"
+				URL_HASH "${TBB_SRC_URL_HASH}"
+				BUILD_IN_SOURCE 1
+				BUILD_COMMAND ${CMAKE_COMMAND} --build . --target tbb
+				CMAKE_ARGS
+					-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+					-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+					-DTBB_OUTPUT_DIR_BASE=lib
+					-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
+				BUILD_BYPRODUCTS ${TBB_LIB}
+				INSTALL_COMMAND "")
+		else()
+			# see: https://cmake.org/cmake/help/latest/policy/CMP0091.html
+			if(CMAKE_VERSION VERSION_LESS 3.15.0)
+				ExternalProject_Add(tbb
+					PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
+					URL "${TBB_SRC_URL}"
+					URL_HASH "${TBB_SRC_URL_HASH}"
+					BUILD_IN_SOURCE 1
+					BUILD_COMMAND ${CMAKE_COMMAND} --build . --target tbb --config ${CMAKE_BUILD_TYPE}
+					CMAKE_ARGS
+						-DCMAKE_CXX_FLAGS_DEBUG="/MTd /Od"
+						-DCMAKE_CXX_FLAGS_RELEASE="/MT"
+						-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						-DTBB_OUTPUT_DIR_BASE=lib
+						-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
+					BUILD_BYPRODUCTS ${TBB_LIB}
+					INSTALL_COMMAND "")
+			else()
+				ExternalProject_Add(tbb
+					PREFIX "${PROJECT_BINARY_DIR}/tbb-prefix"
+					URL "${TBB_SRC_URL}"
+					URL_HASH "${TBB_SRC_URL_HASH}"
+					BUILD_IN_SOURCE 1
+					BUILD_COMMAND ${CMAKE_COMMAND} --build . --target tbb --config ${CMAKE_BUILD_TYPE}
+					CMAKE_ARGS
+						-DCMAKE_POLICY_DEFAULT_CMP0091:STRING=NEW
+						-DCMAKE_MSVC_RUNTIME_LIBRARY:STRING=MultiThreaded$<$<CONFIG:Debug>:Debug>
+						-DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+						-DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+						-DTBB_OUTPUT_DIR_BASE=lib
+						-DCMAKE_CXX_FLAGS="${TBB_FLAGS}"
+					BUILD_BYPRODUCTS ${TBB_LIB}
+					INSTALL_COMMAND "")
+			endif()
+		endif()
+
+		install(DIRECTORY "${TBB_LIB_BASEDIR}/" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps"
-				FILES_MATCHING PATTERN "libtbb*")
+				FILES_MATCHING PATTERN "${TBB_LIB_PREFIX}tbb*")
 		install(DIRECTORY "${TBB_INCLUDE_DIR}/tbb" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
 	endif()

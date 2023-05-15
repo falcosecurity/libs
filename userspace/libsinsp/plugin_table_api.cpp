@@ -147,17 +147,17 @@ struct plugin_table_wrapper: public libsinsp::state::table<KeyType>
 		throw sinsp_exception(invalid_access_msg());
 	}
 
-	std::shared_ptr<libsinsp::state::table_entry> get_entry(const KeyType& key)
+	std::shared_ptr<libsinsp::state::table_entry> get_entry(const KeyType& key) override
 	{
 		throw sinsp_exception(invalid_access_msg());
 	}
 
-    std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e)
+    std::shared_ptr<libsinsp::state::table_entry> add_entry(const KeyType& key, std::unique_ptr<libsinsp::state::table_entry> e) override
 	{
 		throw sinsp_exception(invalid_access_msg());
 	}
 
-    bool erase_entry(const KeyType& key)
+    bool erase_entry(const KeyType& key) override
 	{
 		throw sinsp_exception(invalid_access_msg());
 	}
