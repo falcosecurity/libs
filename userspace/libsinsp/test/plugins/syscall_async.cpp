@@ -163,7 +163,7 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
                 encode_async_event(ps->async_evt, "unsupportedname", data);
                 if (SS_PLUGIN_SUCCESS == handler(owner, ps->async_evt, err))
                 {
-                    printf("unexpected success in sending unsupported asynchronous event from plugin");
+                    printf("sample_syscall_async: unexpected success in sending unsupported asynchronous event from plugin\n");
                     exit(1);
                 }
 
@@ -171,7 +171,7 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
                 encode_async_event(ps->async_evt, name, data);
                 if (SS_PLUGIN_SUCCESS != handler(owner, ps->async_evt, err))
                 {
-                    printf("unexpected failure in sending asynchronous event from plugin: %s", err);
+                    printf("sample_syscall_async: unexpected failure in sending asynchronous event from plugin: %s\n", err);
                     exit(1);
                 }
 

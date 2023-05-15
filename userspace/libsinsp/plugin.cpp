@@ -182,7 +182,7 @@ bool sinsp_plugin::init(const std::string &config, std::string &errstr)
 	m_inited = true;
 	if (rc != SS_PLUGIN_SUCCESS)
 	{
-		errstr = "Could not initialize plugin: " + get_last_error();
+		errstr = "could not initialize plugin: " + get_last_error();
 		return false;
 	}
 
@@ -213,7 +213,7 @@ std::string sinsp_plugin::get_last_error() const
 	}
 	else
 	{
-		ret = "Plugin handle or get_last_error function not defined";
+		ret = "plugin handle or 'get_last_error' function not defined";
 	}
 
 	return ret;
@@ -393,7 +393,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	m_plugin_version = sinsp_version(version_str);
 	if(!m_plugin_version.m_valid)
 	{
-		errstr = "Plugin provided an invalid version string: '" + version_str + "'";
+		errstr = "plugin provided an invalid version string: '" + version_str + "'";
 		return false;
 	}
 
@@ -425,7 +425,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 					string("error in plugin ") + name() + ": get_fields returned a null string");
 		}
 		string json(sfields);
-		SINSP_DEBUG("Parsing Fields JSON=%s", json.c_str());
+
 		Json::Value root;
 		if (Json::Reader().parse(json, root) == false || root.type() != Json::arrayValue) {
 			throw sinsp_exception(
@@ -638,7 +638,7 @@ scap_source_plugin& sinsp_plugin::as_scap_source()
 
 	if (!(caps() & CAP_SOURCING))
 	{
-		throw sinsp_exception("Can't create scap_source_plugin from a plugin without CAP_SOURCING capability.");
+		throw sinsp_exception("can't create scap_source_plugin from a plugin without CAP_SOURCING capability.");
 	}
 
 	m_scap_source_plugin.state = m_state;
@@ -679,6 +679,11 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 	if (!m_inited)
 	{
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
+	}
+
+	if (evt->get_type() != PPME_PLUGINEVENT_E || *(uint32_t *) evt->get_param(0)->m_val != m_id)
+	{
+		throw sinsp_exception("can't format unknown non-plugin event to string");
 	}
 
 	string ret = "";
