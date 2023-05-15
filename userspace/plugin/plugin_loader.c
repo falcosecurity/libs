@@ -266,7 +266,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
     do { \
         if(a->api.s == NULL) \
         { \
-            snprintf(e, PLUGIN_MAX_ERRLEN, "symbol not implemented: %s", #s); \
+            snprintf(e, PLUGIN_MAX_ERRLEN, "required symbol not implemented: '%s'", #s); \
             return false; \
         } \
     } while(0)
