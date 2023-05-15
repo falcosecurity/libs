@@ -140,7 +140,7 @@ static ss_plugin_t* plugin_init(const ss_plugin_init_input* in, ss_plugin_rc* rc
 
     // define a new table that keeps a counter for all events. The table's key
     // is the event code as for the libscap specific
-    ret->event_count_table = sample_table::create("event_counters");
+    ret->event_count_table = sample_table::create("event_counters", ret->lasterr);
     ret->event_count_table_count_field = ret->event_count_table->fields.add_table_field(
             ret->event_count_table->table, "count",
             ss_plugin_state_type::SS_PLUGIN_ST_UINT64);

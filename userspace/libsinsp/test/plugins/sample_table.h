@@ -47,8 +47,8 @@ public:
         friend class sample_table;
     };
 
-    sample_table(const std::string& n):
-        name(n), strings(), entries(), fields() { }
+    sample_table(const std::string& n, std::string& err):
+        name(n), lasterr(err), strings(), entries(), fields() { }
     virtual ~sample_table() = default;
     sample_table(sample_table&&) = default;
     sample_table& operator = (sample_table&&) = default;
@@ -85,6 +85,7 @@ public:
                 return (ss_plugin_table_field_t*) (i + 1);
             }
         }
+        t->lasterr = "unknown field with name: " + std::string(name);
         return nullptr;
     }
 
@@ -109,6 +110,7 @@ public:
         {
             return static_cast<ss_plugin_table_entry_t*>(&it->second);
         }
+        t->lasterr = "unknown entry at key: " + std::to_string(key->u64);
         return nullptr;
     }
 
@@ -140,6 +142,7 @@ public:
             t->entries.erase(key->u64);
             return SS_PLUGIN_SUCCESS;;
         }
+        t->lasterr = "unknown entry at key: " + std::to_string(key->u64);
         return SS_PLUGIN_FAILURE;
     }
 
@@ -180,9 +183,9 @@ public:
 
     using ptr_t = std::unique_ptr<ss_plugin_table_input, deleter_t>;
 
-    static ptr_t create(const std::string& name)
+    static ptr_t create(const std::string& name, std::string& lasterr)
     {
-        auto t = new sample_table(name);
+        auto t = new sample_table(name, lasterr);
         ptr_t ret(new ss_plugin_table_input());
         ret->name = t->name.c_str();
         ret->table = t;
@@ -204,6 +207,7 @@ public:
 
 private:
     std::string name;
+    std::string& lasterr;
     std::vector<std::string> strings;
     std::unordered_map<uint64_t, entry> entries;
     std::vector<ss_plugin_table_fieldinfo> fields;
