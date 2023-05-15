@@ -29,12 +29,26 @@ limitations under the License.
 #include <string.h>
 #include "plugin_loader.h"
 
-static inline void add_err_prefix(char* s, const char* prefix)
+static inline void err_prepend(char* s, const char* prefix, const char* sep)
 {
     char tmp[PLUGIN_MAX_ERRLEN];
     size_t prefix_len = strlcpy(tmp, prefix, PLUGIN_MAX_ERRLEN);
+    if (*s != '\0')
+    {
+        strlcpy(&tmp[prefix_len], sep, PLUGIN_MAX_ERRLEN - prefix_len);
+        prefix_len += strlen(sep);
+    }
     strlcpy(&tmp[prefix_len], s, PLUGIN_MAX_ERRLEN - prefix_len);
     strlcpy(s, tmp, PLUGIN_MAX_ERRLEN);
+}
+
+static inline void err_append(char* s, const char* suffix, const char* sep)
+{
+    if (*s != '\0')
+    {
+        strncat(s, sep, PLUGIN_MAX_ERRLEN - strlen(sep));
+    }
+    strncat(s, suffix, PLUGIN_MAX_ERRLEN - strlen(suffix));
 }
 
 static void* getsym(library_handle_t handle, const char* name)
@@ -87,7 +101,7 @@ plugin_handle_t* plugin_load(const char* path, char* err)
     // return NULL if library loading had errors
     if (ret->handle == NULL)
     {
-        add_err_prefix(err, "can't load plugin dynamic library: ");
+        err_prepend(err, "can't load plugin dynamic library:", " ");
         free(ret);
         return NULL;
     }
@@ -225,13 +239,13 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
     return true;
 }
 
-plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
+
+plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err)
 {
     plugin_caps_t caps = CAP_NONE;
+    strlcpy(err, "", PLUGIN_MAX_ERRLEN);
 
-    if (h->api.open != NULL
-        && h->api.close != NULL
-        && h->api.next_batch != NULL)
+    if (h->api.open != NULL && h->api.close != NULL && h->api.next_batch != NULL)
     {
         bool has_id = h->api.get_id != NULL && h->api.get_id() != 0;
         bool has_source = h->api.get_event_source != NULL && strlen(h->api.get_event_source()) > 0;
@@ -239,12 +253,27 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
         {
             caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_SOURCING);
         }
+        else
+        {
+            caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
+            err_append(err, "must implement both 'plugin_get_id' and 'plugin_get_event_source' or neither (event sourcing)", ", ");
+        }
+    }
+    else if (h->api.open != NULL || h->api.close != NULL || h->api.next_batch != NULL
+            || h->api.get_id != NULL || h->api.get_event_source != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
+        err_append(err, "must implement all of 'plugin_open', 'plugin_close', and 'plugin_next_batch' (event sourcing)", ", ");
     }
 
-    if (h->api.get_fields != NULL
-        && h->api.extract_fields != NULL)
+    if (h->api.get_fields != NULL && h->api.extract_fields != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_EXTRACTION);
+    }
+    else if (h->api.get_fields != NULL || h->api.extract_fields != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
+        err_append(err, "must implement both 'plugin_get_fields' and 'plugin_extract_fields' (field extraction)", ", ");
     }
 
     if (h->api.parse_event != NULL)
@@ -252,10 +281,14 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h)
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_PARSING);
     }
 
-    if (h->api.get_async_events != NULL
-        && h->api.set_async_event_handler != NULL)
+    if (h->api.get_async_events != NULL && h->api.set_async_event_handler != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_ASYNC);
+    }
+    else if (h->api.get_async_events != NULL || h->api.set_async_event_handler != NULL)
+    {
+        caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
+        err_append(err, "must implement both 'plugin_get_async_events' and 'plugin_set_async_event_handler' (async events)", ", ");
     }
 
     return caps;
