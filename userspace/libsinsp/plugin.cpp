@@ -694,8 +694,7 @@ std::string sinsp_plugin::event_to_string(sinsp_evt* evt) const
 		ss_plugin_event_input input;
 		input.evt = (const ss_plugin_event*) evt->m_pevt;
 		input.evtnum = evt->get_num();
-		input.evtsrc_idx = evt->get_source_idx();
-		input.evtsrc_name = evt->get_source_name();
+		input.evtsrc = evt->get_source_name();
 		ret = str_from_alloc_charbuf(m_handle->api.event_to_string(m_state, &input));
 	}
 	if (ret.empty())
@@ -781,8 +780,7 @@ bool sinsp_plugin::extract_fields(sinsp_evt* evt, uint32_t num_fields, ss_plugin
 	ss_plugin_event_input ev;
 	ev.evt = (const ss_plugin_event*) evt->m_pevt;
 	ev.evtnum = evt->get_num();
-	ev.evtsrc_idx = evt->get_source_idx();
-	ev.evtsrc_name = evt->get_source_name();
+	ev.evtsrc = evt->get_source_name();
 
 	ss_plugin_field_extract_input in;
 	in.num_fields = num_fields;
@@ -807,8 +805,7 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 	ss_plugin_event_input ev;
 	ev.evt = (const ss_plugin_event*) evt->m_pevt;
 	ev.evtnum = evt->get_num();
-	ev.evtsrc_idx = evt->get_source_idx();
-	ev.evtsrc_name = evt->get_source_name();
+	ev.evtsrc = evt->get_source_name();
 
 	ss_plugin_event_parse_input in;
 	in.owner = (ss_plugin_owner_t *) this;
