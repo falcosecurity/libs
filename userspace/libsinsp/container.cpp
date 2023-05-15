@@ -373,9 +373,7 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		std::shared_ptr<sinsp_evt> cevt(evt);
 
 		// Enqueue it onto the queue of pending container events for the inspector
-#ifndef _WIN32
 		m_inspector->m_pending_state_evts.push(cevt);
-#endif
 	}
 	else
 	{

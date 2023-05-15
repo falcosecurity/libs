@@ -43,11 +43,7 @@ limitations under the License.
 
 #include "capture_stats_source.h"
 
-#ifdef _WIN32
-#pragma warning(disable: 4251 4200 4221 4190)
-#else
 #include "tbb/concurrent_queue.h"
-#endif
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
@@ -1259,9 +1255,8 @@ public:
 	// 	information, read from sinsp::next().
 	// *	user added/removed events
 	// * 	group added/removed events
-#ifndef _WIN32
+	// *    async events produced by sinsp or plugins
 	tbb::concurrent_queue<std::shared_ptr<sinsp_evt>> m_pending_state_evts;
-#endif
 
 	// Holds an event dequeued from the above queue
 	std::shared_ptr<sinsp_evt> m_state_evt;

@@ -63,9 +63,7 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-if(NOT WIN32)
-	include(tbb)
-endif()
+include(tbb)
 
 set(SINSP_SOURCES
 	filter/ast.cpp
@@ -202,7 +200,8 @@ set(SINSP_LIBRARIES
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
 	"${CARES_LIB}"
-	"${RE2_LIB}")
+	"${RE2_LIB}"
+	"${TBB_LIB}")
 
 if(USE_BUNDLED_VALIJSON)
 	add_dependencies(sinsp valijson)
@@ -217,8 +216,6 @@ if(WITH_CHISEL)
 endif()
 
 if(NOT WIN32)
-	list(APPEND SINSP_LIBRARIES "${TBB_LIB}")
-
 	if(NOT MINIMAL_BUILD)
 		add_dependencies(sinsp openssl curl)
 	endif()
