@@ -60,8 +60,10 @@ public:
 					"found another plugin with name " + it->name() + ". Aborting.");
 			}
 
+			// note: plugins with sourcing cap but with no ID can be loaded multiple times
 			if (it->caps() & CAP_SOURCING
 				&& plugin->caps() & CAP_SOURCING
+				&& plugin->id() != 0
 				&& it->id() == plugin->id())
 			{
 				throw sinsp_exception(
@@ -70,10 +72,24 @@ public:
 		}
 		auto plugin_index = m_plugins.size();
 		m_plugins.push_back(plugin);
-		if (plugin->caps() & CAP_SOURCING)
+		if (plugin->caps() & CAP_SOURCING && plugin->id() != 0)
 		{
+			// note: we avoid duplicate entries in the evt sources list
+			bool existing = false;
 			auto source_index = m_event_sources.size();
-			m_event_sources.push_back(plugin->event_source());
+			for (size_t i = 0; i < m_event_sources.size(); i++)
+			{
+				if (m_event_sources[i] == plugin->event_source())
+				{
+					existing = true;
+					source_index = i;
+					break;
+				}
+			}
+			if (!existing)
+			{
+				m_event_sources.push_back(plugin->event_source());
+			}
 			m_plugins_id_index[plugin->id()] = plugin_index;
 			m_plugins_id_source_index[plugin->id()] = source_index;
 		}
@@ -130,9 +146,19 @@ public:
 	 */
 	inline std::size_t source_idx_by_plugin_id(uint32_t plugin_id, bool& found) const
 	{
-		auto it = m_plugins_id_source_index.find(plugin_id);
-		found = it != m_plugins_id_source_index.end();
-		return found ? it->second : sinsp_no_event_source_idx;
+		if (plugin_id != m_last_source_in)
+		{
+			auto it = m_plugins_id_source_index.find(plugin_id);
+			if(it == m_plugins_id_index.end())
+			{
+				found = false;
+				return sinsp_no_event_source_idx;
+			}
+			m_last_source_in = plugin_id;
+			m_last_source_out = it->second;
+		}
+		found = true;
+		return m_last_source_out;
 	}
 
 private:
