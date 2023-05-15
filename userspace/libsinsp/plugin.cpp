@@ -398,7 +398,17 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	}
 
 	// read capabilities and process their info
-	m_caps = plugin_get_capabilities(m_handle);
+	m_caps = plugin_get_capabilities(m_handle, err);
+	if (m_caps & CAP_BROKEN)
+	{
+		errstr = "broken plugin capabilities: " + std::string(err);
+		return false;
+	}
+	if (m_caps == CAP_NONE)
+	{
+		errstr = "plugin does not implement any capability";
+		return false;
+	}
 
 	if(m_caps & CAP_SOURCING)
 	{
@@ -410,6 +420,11 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 		{
 			m_id = m_handle->api.get_id();
 			m_event_source = str_from_alloc_charbuf(m_handle->api.get_event_source());
+			if (m_event_source == sinsp_syscall_event_source_name)
+			{
+				errstr = "plugin can't implement the reserved event source '" + m_event_source + "'";
+				return false;
+			}
 		}
 	}
 

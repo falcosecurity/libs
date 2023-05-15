@@ -22,20 +22,28 @@ limitations under the License.
 #include "test_utils.h"
 #include "plugins/test_plugins.h"
 
-static std::shared_ptr<sinsp_plugin> register_plugin(
+static std::shared_ptr<sinsp_plugin> register_plugin_api(
 		sinsp* i,
-		std::function<void(plugin_api&)> constructor,
+		plugin_api& api,
 		const std::string& initcfg = "")
 {
 	std::string err;
-	plugin_api api;
-	constructor(api);
 	auto pl = i->register_plugin(&api);
 	if (!pl->init(initcfg, err))
 	{
 		throw sinsp_exception(err);
 	}
 	return pl;
+}
+
+static std::shared_ptr<sinsp_plugin> register_plugin(
+		sinsp* i,
+		std::function<void(plugin_api&)> constructor,
+		const std::string& initcfg = "")
+{
+	plugin_api api;
+	constructor(api);
+	return register_plugin_api(i, api, initcfg);
 }
 
 static void add_plugin_filterchecks(
@@ -50,6 +58,47 @@ static void add_plugin_filterchecks(
 		fl.add_filter_check(i->new_generic_filtercheck());
 		fl.add_filter_check(sinsp_plugin::new_filtercheck(p));
 	}
+}
+
+TEST(plugins, broken_capabilities)
+{
+	plugin_api api;
+	auto inspector = std::unique_ptr<sinsp>(new sinsp());
+
+	// event sourcing capability
+	get_plugin_api_sample_plugin_source(api);
+	api.get_event_source = [](){ return sinsp_syscall_event_source_name; };
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.get_id = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.get_event_source = NULL;
+	ASSERT_NO_THROW(register_plugin_api(inspector.get(), api));
+	inspector.reset(new sinsp());
+	api.open = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.close = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.next_batch = NULL; // at this point, the plugin has no capability
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+
+	// field extraction capability
+	get_plugin_api_sample_plugin_extract(api);
+	api.get_fields = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.extract_fields = NULL; // at this point, the plugin has no capability
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+
+	// event parsing capability
+	get_plugin_api_sample_syscall_parse(api);
+	api.parse_event = NULL; // at this point, the plugin has no capability
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+
+	// event parsing capability
+	get_plugin_api_sample_syscall_async(api);
+	api.get_async_events = NULL;
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
+	api.set_async_event_handler = NULL; // at this point, the plugin has no capability
+	ASSERT_ANY_THROW(register_plugin_api(inspector.get(), api));
 }
 
 // scenario: a plugin with field extraction capability compatible with the

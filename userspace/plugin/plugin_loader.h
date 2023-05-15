@@ -43,6 +43,7 @@ typedef enum
     CAP_EXTRACTION  = 1 << 1,
     CAP_PARSING     = 1 << 2,
     CAP_ASYNC       = 1 << 3,
+    CAP_BROKEN      = 1 << 31, // used to report inconsistencies
 } plugin_caps_t;
 
 /*!
@@ -100,9 +101,12 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err);
 bool plugin_check_required_symbols(const plugin_handle_t* h, char* err);
 
 /*!
-    \brief Returns the capabilities supported by the given plugin handle
+    \brief Returns the capabilities supported by the given plugin handle.
+    In case of inconsistencies, the result will have the CAP_BROKEN bit set
+    and the err string will be filled up to PLUGIN_MAX_ERRLEN chars representing
+    the error encountered.
 */
-plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h);
+plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err);
 
 #ifdef __cplusplus
 }
