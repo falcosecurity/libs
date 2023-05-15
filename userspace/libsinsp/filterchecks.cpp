@@ -3517,7 +3517,7 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.plugininfo", "Plugin Info", "if the event comes from a plugin, a summary of the event as formatted by the plugin. The plugin must be currently loaded."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.source", "Event Source", "the name of the source that produced the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_async", "Async Event", "'true' for asynchronous events, 'false' otherwise."},
-	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.asynctype", "Async-Event Type", "If the event is asynchronous, the name of the event (e.g. 'container')."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.asynctype", "Async-Event Type", "If the event is asynchronous, the type of the event (e.g. 'container')."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
