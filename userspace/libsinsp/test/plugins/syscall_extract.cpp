@@ -248,6 +248,25 @@ static ss_plugin_rc plugin_extract_fields(ss_plugin_t *s, const ss_plugin_event_
                     in->fields[i].res_len = 0;
                     return SS_PLUGIN_FAILURE;
                 }
+
+                // testing that error reporting works as expected
+                tmp.s64 = 9999;
+                evtcount = in->table_reader.get_table_entry(ps->evtcount_table, &tmp);
+                if (evtcount)
+                {
+                    printf("sample_syscall_extract: unexpected success in getting unknown table entry from another plugin\n");
+                    exit(1);
+                }
+                else
+                {
+                    auto err = in->get_owner_last_error(in->owner);
+                    if (err == NULL || strlen(err) == 0)
+                    {
+                        printf("sample_syscall_extract: unexpected empty error in getting unknown table entry from another plugin\n");
+                        exit(1);
+                    }
+                }
+
                 tmp.s64 = ev->evt->type;
                 evtcount = in->table_reader.get_table_entry(ps->evtcount_table, &tmp);
                 if (!evtcount)
