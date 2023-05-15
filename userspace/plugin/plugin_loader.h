@@ -32,6 +32,9 @@ extern "C" {
     Currently, the supported capabilities are:
         * ability to source events and provide them to the event loop
         * ability to extract fields from events created by other plugins
+        * ability to parse events from the event loop (at most once) before
+          the field extraction phase
+        * ability to inject events asynchronously in the event loop
 */
 typedef enum
 {

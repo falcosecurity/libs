@@ -82,6 +82,7 @@ TEST(event_table, check_events_category)
 		+ num_plugin_events
 		+ num_unknown_events
 		- overlaps;
+	ASSERT_EQ(overlaps, 0); // for now, we want events to have 1 category only
 	ASSERT_EQ(num_syscall_events, SYSCALL_EVENTS_NUM);
 	ASSERT_EQ(num_tracepoint_events, TRACEPOINT_EVENTS_NUM);
 	ASSERT_EQ(num_metaevents, METAEVENTS_NUM);
