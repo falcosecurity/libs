@@ -31,8 +31,15 @@ typedef uint32_t ss_plugin_bool;
 // falcosecurity libs types.
 typedef enum ss_plugin_field_type
 {
-	FTYPE_UINT64 = 8,
-	FTYPE_STRING = 9
+	FTYPE_UINT64      = 8,
+	FTYPE_STRING      = 9,
+	FTYPE_RELTIME     = 20,
+	FTYPE_ABSTIME     = 21,
+	FTYPE_BOOL        = 25,
+	FTYPE_IPV4ADDR    = 26,
+	FTYPE_IPV4NET     = 37,
+	FTYPE_IPV6ADDR    = 38,
+	FTYPE_IPV6NET     = 39,
 } ss_plugin_field_type;
 
 // Values to return from init() / open() / next_batch() /
