@@ -383,6 +383,7 @@ bool sinsp_plugin::resolve_dylib_symbols(std::string &errstr)
 	}
 
 	// check that the API requirements are satisfied
+	// These are the minimum APIs that all plugins should implement
 	if (!plugin_check_required_symbols(m_handle, err))
 	{
 		errstr = err;

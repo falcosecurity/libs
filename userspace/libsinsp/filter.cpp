@@ -1159,8 +1159,12 @@ int32_t sinsp_filter_check::parse_field_name(const char* str, bool alloc_state, 
 			continue;
 		}
 
+		/* Here we are searching for the longest match */
 		if(strncmp(str, m_info.m_fields[j].m_name, fldlen) == 0)
 		{
+			/* we found some info about the required field, we save it in this way 
+			 * we don't have to loop again through the fields.
+			 */
 			m_field_id = j;
 			m_field = &m_info.m_fields[j];
 			max_fldlen = fldlen;
@@ -2000,4 +2004,3 @@ std::list<gen_event_filter_factory::filter_fieldclass_info> sinsp_filter_factory
 
 	return ret;
 }
-

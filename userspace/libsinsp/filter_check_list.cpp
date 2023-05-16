@@ -61,7 +61,7 @@ void filter_check_list::add_filter_check(sinsp_filter_check* filter_check)
 	m_check_list.push_back(filter_check);
 }
 
-void filter_check_list::get_all_fields(vector<const filter_check_info*>& list)
+void filter_check_list::get_all_fields(std::vector<const filter_check_info*>& list)
 {
 	for(auto *chk : m_check_list)
 	{
@@ -69,7 +69,8 @@ void filter_check_list::get_all_fields(vector<const filter_check_info*>& list)
 	}
 }
 
-sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const string& name,
+/* Craft a new filter check from the field name */
+sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::string& name,
 								     sinsp* inspector,
 								     bool do_exact_check)
 {
@@ -85,17 +86,18 @@ sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const strin
 			{
 				if((int32_t)name.size() != fldnamelen)
 				{
-					goto field_not_found;
+					break;
 				}
 			}
 
+			/* we craft a new filter check, maybe we could use `new_filter_check_from_another` to copy the `m_field_id` we just found
+			 * in the previous `parse_field_name` since probably we will call it again after this method! We could save a loop!
+			 */
 			sinsp_filter_check* newchk = chk->allocate_new();
 			newchk->set_inspector(inspector);
 			return newchk;
 		}
 	}
-
-field_not_found:
 
 	//
 	// If you are implementing a new filter check and this point is reached,
@@ -146,4 +148,3 @@ sinsp_filter_check_list::sinsp_filter_check_list()
 sinsp_filter_check_list::~sinsp_filter_check_list()
 {
 }
-
