@@ -273,11 +273,12 @@ protected:
 		}
 
 		std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
-		if (parse_result <= 0) {
+		if(chk == nullptr)
+		{
 			throw sinsp_exception("The field " + field_name + " is not a valid field.");
 		}
-
+		/* we created a filter check starting from the field name so if we arrive here we will find it for sure */
+		chk->parse_field_name(field_name.c_str(), true, false);
 		std::vector<extract_value_t> values;
 		return chk->extract(evt, values);
 	}
@@ -289,10 +290,12 @@ protected:
 		}
 
 		std::unique_ptr<sinsp_filter_check> chk(flist.new_filter_check_from_fldname(field_name, &m_inspector, false));
-		int32_t parse_result = chk->parse_field_name(field_name.c_str(), true, false);
-		if (parse_result <= 0) {
+		if(chk == nullptr)
+		{
 			throw sinsp_exception("The field " + field_name + " is not a valid field.");
 		}
+		/* we created a filter check starting from the field name so if we arrive here we will find it for sure */
+		chk->parse_field_name(field_name.c_str(), true, false);
 
 		const char* result = chk->tostring(evt);
 		if (result == nullptr) {

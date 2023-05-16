@@ -215,6 +215,7 @@ bool plugin_check_required_api_version(const plugin_handle_t* h, char* err)
     }
 
     failmsg = NULL;
+	/* The plugin requires a minimum framework version */
     if(PLUGIN_API_VERSION_MAJOR != major)
     {
         failmsg = "major versions disagree";

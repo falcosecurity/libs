@@ -155,6 +155,7 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 	struct source_plugin_engine *handle = engine.m_handle;
 	char *lasterr = engine.m_handle->m_lasterr;
 
+	/* we have to read a new batch */
 	if(handle->m_input_plugin_batch_idx >= handle->m_input_plugin_batch_nevts)
 	{
 		if(handle->m_input_plugin_last_batch_res != SS_PLUGIN_SUCCESS)

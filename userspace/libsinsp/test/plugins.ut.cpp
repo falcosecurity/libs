@@ -111,6 +111,8 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	filter_check_list pl_flist;
 	register_plugin(&m_inspector, get_plugin_api_sample_plugin_source);
+
+	/* Register a plugin with extraction capabilities */
 	auto pl = register_plugin(&m_inspector, get_plugin_api_sample_syscall_extract);
 	add_plugin_filterchecks(&m_inspector, pl, sinsp_syscall_event_source_name, pl_flist);
 	add_default_init_thread();
@@ -139,6 +141,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick", pl_flist), "false");
 
 	// should extract NULL for ignored event codes
+	// `PPME_SYSCALL_OPEN_BY_HANDLE_AT_X` is an ignored event, see plugin_get_extract_event_types
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, 4, 5, PPM_O_RDWR, "/tmp/the_file.txt");
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
@@ -151,7 +154,9 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 
 	// should extract NULL for unknown event sources
 	const char data[2048] = "hello world";
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 1, scap_const_sized_buffer{&data, strlen(data) + 1});
+	/* There are no added plugins with id `1` */
+	uint64_t unknwon_plugin_id = 1;
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, unknwon_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), sinsp_no_event_source_idx);
 	ASSERT_EQ(evt->get_source_name(), sinsp_no_event_source_name);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
@@ -162,7 +167,9 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 	ASSERT_FALSE(field_exists(evt, "sample.tick", pl_flist));
 
 	// should extract NULL for non-compatible event sources
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, (uint64_t) 999, scap_const_sized_buffer{&data, strlen(data) + 1});
+	/* This source plugin generate events with a source that we cannot extract with our plugin */
+	uint64_t source_plugin_id = 999;
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PLUGINEVENT_E, 2, source_plugin_id, scap_const_sized_buffer{&data, strlen(data) + 1});
 	ASSERT_EQ(evt->get_source_idx(), 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), std::string("sample"));
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
@@ -174,7 +181,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_extract)
 }
 
 // scenario: an event sourcing plugin should produce events of "syscall"
-// event source and we're should be able to extract filter values implemented
+// event source and we should be able to extract filter values implemented
 // by both libsinsp and another plugin with field extraction capability
 TEST_F(sinsp_with_test_input, plugin_syscall_source)
 {
@@ -359,6 +366,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 {
 	uint64_t max_count = 10;
 	uint64_t period_ns = 1000000; // 1ms
+	/* async plugin config */
 	std::string async_pl_cfg = std::to_string(max_count) + ":" + std::to_string(period_ns);
 	std::string srcname = sinsp_syscall_event_source_name;
 
@@ -373,8 +381,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	ASSERT_NO_THROW(chk->add_filter_value("sampleticker", strlen("sampleticker") + 1, 1));
 	ASSERT_ANY_THROW(chk->add_filter_value("badname", strlen("badname") + 1, 2));
 
-	// we will not use the test scap engine here, but open the src plugin instead
-	// note: we configure the plugin to just emit 1 event through its open params
+	// we will not use the test scap engine here, but open the no-driver instead
 	uint64_t count = 0;
 	uint64_t cycles = 0;
 	uint64_t max_cycles = max_count * 1.5; // avoid infinite loops
@@ -386,6 +393,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	{
 		cycles++;
 		rc = m_inspector.next(&evt);
+		/* The no driver engine sends only `PPME_SCAPEVENT_X` events */
 		if (rc == SCAP_TIMEOUT || evt->get_type() == PPME_SCAPEVENT_X)
 		{
 			// wait a bit so that the plugin can fire the async event
