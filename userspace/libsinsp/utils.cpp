@@ -950,8 +950,8 @@ void sinsp_utils::split_container_image(const std::string &image,
 	}
 }
 
-void sinsp_utils::parse_suppressed_types(const std::vector<std::string> &supp_strs,
-					 std::vector<uint16_t> *supp_ids)
+void sinsp_utils::parse_suppressed_types(const std::vector<std::string>& supp_strs,
+					 std::vector<ppm_event_code>* supp_ids)
 {
 	for (auto ii = 0; ii < PPM_EVENT_MAX; ii++)
 	{
@@ -959,7 +959,7 @@ void sinsp_utils::parse_suppressed_types(const std::vector<std::string> &supp_st
 				      event_name_by_id(ii));
 		if (iter != supp_strs.end())
 		{
-			supp_ids->push_back(ii);
+			supp_ids->push_back(static_cast<ppm_event_code>(ii));
 		}
 	}
 }
