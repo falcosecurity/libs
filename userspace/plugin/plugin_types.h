@@ -31,15 +31,22 @@ typedef uint32_t ss_plugin_bool;
 // falcosecurity libs types.
 typedef enum ss_plugin_field_type
 {
+	// A 64bit unsigned integer.
 	FTYPE_UINT64      = 8,
+	// A printable buffer of bytes, NULL terminated
 	FTYPE_STRING      = 9,
+	// A relative time. Seconds * 10^9  + nanoseconds. 64bit.
 	FTYPE_RELTIME     = 20,
+	// An absolute time interval. Seconds from epoch * 10^9  + nanoseconds. 64bit.
 	FTYPE_ABSTIME     = 21,
+	// A boolean value, 4 bytes.
 	FTYPE_BOOL        = 25,
-	FTYPE_IPV4ADDR    = 26,
-	FTYPE_IPV4NET     = 37,
-	FTYPE_IPV6ADDR    = 38,
-	FTYPE_IPV6NET     = 39,
+	// Either an IPv4 or IPv6 address. The length indicates which one it is.
+	FTYPE_IPADDR      = 40,
+	// Either an IPv4 or IPv6 network. The length indicates which one it is.
+	// The field encodes only the IP address, so this differs from FTYPE_IPADDR,
+	// from the way the framework perform runtime checks and comparisons.
+	FTYPE_IPNET       = 41,
 } ss_plugin_field_type;
 
 // Values to return from init() / open() / next_batch() /
