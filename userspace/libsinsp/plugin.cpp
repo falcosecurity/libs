@@ -51,10 +51,7 @@ const std::unordered_map<std::string, ppm_param_type> s_pt_lut = {
 	{"reltime", PT_RELTIME},
 	{"abstime", PT_ABSTIME},
 	{"bool", PT_BOOL},
-	{"ipv4addr", PT_IPV4ADDR},
-	{"ipv4net", PT_IPV4NET},
-	{"ipv6addr", PT_IPV6ADDR},
-	{"ipv6net", PT_IPV6NET},
+	{"ipaddr", PT_IPADDR},
 	{"ipnet", PT_IPNET},
 };
 
