@@ -2804,6 +2804,10 @@ libsinsp::event_processor::build_threadinfo(sinsp* inspector)
 
 void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sinsp_evt> evt)
 {
+	// note: this function can be invoked from different plugin threads,
+	// so we need to make sure that every variable we read is either constant
+	// during the lifetime of those threads, or that it is atomic.
+
 	// note: we make sure that async events are dequeued, however
 	// they are considered only during live captures, because
 	// offline captures will have the async events already encoded
