@@ -502,9 +502,14 @@ void sinsp::open_common(scap_open_args* oargs)
 		{
 			if (p->caps() & CAP_ASYNC)
 			{
-				p->set_async_event_handler([this](auto& p, auto e){
+				auto res = p->set_async_event_handler([this](auto& p, auto e){
 					this->handle_plugin_async_event(p, std::move(e));
 				});
+				if (!res)
+				{
+					throw sinsp_exception("can't set async event handler for plugin '"
+						+ p->name() + "' : " + p->get_last_error());
+				}
 			}
 		}
 	}
@@ -823,12 +828,25 @@ void sinsp::close()
 	// unset the meta-event callback to all plugins that support it
 	if (!is_capture())
 	{
+		std::string err;
 		for (auto& p : m_plugin_manager->plugins())
 		{
 			if (p->caps() & CAP_ASYNC)
 			{
-				p->set_async_event_handler(nullptr);
+				// collect errors but let's make sure we reset all the handlers
+				// event in case of one failure.
+				auto res = p->set_async_event_handler(nullptr);
+				if (!res)
+				{
+					err += err.empty() ? "" : ", ";
+					err += "can't reset async event handler for plugin '"
+						+ p->name() + "' : " + p->get_last_error();
+				}
 			}
+		}
+		if (!err.empty())
+		{
+			throw sinsp_exception(err);
 		}
 	}
 
@@ -1480,6 +1498,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	// the internal implementation of libsinsp.
 	for (auto& pp : m_plugin_parsers)
 	{
+		// todo(jason): should we log parsing errors here?
 		pp.process_event(evt, m_event_sources);
 	}
 
@@ -2823,7 +2842,7 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		const auto& cur_evtsrc = m_event_sources[cur_evtsrc_idx];
 		if (!sinsp_plugin::is_source_compatible(p.async_event_sources(), cur_evtsrc))
 		{
-			throw sinsp_exception("async events of plugin '" + p. name()
+			throw sinsp_exception("async events of plugin '" + p.name()
 				+ "' are not compatible with open event source '" + cur_evtsrc+ "'");
 		}
 
