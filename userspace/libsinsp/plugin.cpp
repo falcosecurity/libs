@@ -917,12 +917,16 @@ bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler)
 	{
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
-	auto callback = handler != nullptr ? sinsp_plugin::handle_plugin_async_event : NULL;
+	// note: setting the handler before invoking the plugin's function,
+	// so that it can be visible to other threads that can potentially
+	// be spawned by the plugin for producing async events.
+	m_async_evt_handler = handler;
+	auto callback = (handler != nullptr) ? sinsp_plugin::handle_plugin_async_event : NULL;
 	auto rc = m_handle->api.set_async_event_handler(m_state, this, callback);
-	if (rc == SS_PLUGIN_SUCCESS)
+	if (rc != SS_PLUGIN_SUCCESS)
 	{
-		m_async_evt_handler = handler;
-		return true;
+		m_async_evt_handler = nullptr;
+		return false;
 	}
-	return false;
+	return true;
 }

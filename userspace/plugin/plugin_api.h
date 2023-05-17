@@ -763,7 +763,12 @@ typedef struct
 		// on the same plugin, after which the new handler set will replace any
 		// already-set one. If the handler is set to a NULL function pointer,
 		// the plugin is instructed about disabling or stopping the
-		// production of async events.
+		// production of async events. If a NULL handler is set, and an
+		// asynchronous job has been started by the plugin before, the plugin
+		// should stop the job and wait for it to be finished before returning
+		// from this function. Although the event handler is thread-safe and
+		// can be invoked concurrently, this function is still invoked
+		// by the framework sequentially from the same thread.
 		//
 		// Async events encode a plugin ID that defines its event source.
 		// However, this value is set by the framework when the async event
