@@ -38,24 +38,37 @@ static const char * const source_plugin_counters_stats_names[] = {
 // of each of their subfields. This allows us to avoid divergences while at the
 // same time not sharing the same headers.
 #if defined __GNUC__ || __STDC_VERSION__ >= 201112L
-_Static_assert(
-	sizeof(struct ppm_evt_hdr) == sizeof(ss_plugin_event),
+_Static_assert(sizeof(struct ppm_evt_hdr) == sizeof(ss_plugin_event),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync");
-_Static_assert(
-	offsetof(struct ppm_evt_hdr, ts) == offsetof(ss_plugin_event, ts),
+_Static_assert(offsetof(struct ppm_evt_hdr, ts) == offsetof(ss_plugin_event, ts),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync (ts)");
-_Static_assert(
-	offsetof(struct ppm_evt_hdr, tid) == offsetof(ss_plugin_event, tid),
+_Static_assert(offsetof(struct ppm_evt_hdr, tid) == offsetof(ss_plugin_event, tid),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync (tid)");
-_Static_assert(
-	offsetof(struct ppm_evt_hdr, len) == offsetof(ss_plugin_event, len),
+_Static_assert(offsetof(struct ppm_evt_hdr, len) == offsetof(ss_plugin_event, len),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync (len)");
-_Static_assert(
-	offsetof(struct ppm_evt_hdr, type) == offsetof(ss_plugin_event, type),
+_Static_assert(offsetof(struct ppm_evt_hdr, type) == offsetof(ss_plugin_event, type),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync (type)");
-_Static_assert(
-	offsetof(struct ppm_evt_hdr, nparams) == offsetof(ss_plugin_event, nparams),
+_Static_assert(offsetof(struct ppm_evt_hdr, nparams) == offsetof(ss_plugin_event, nparams),
 	"structs ppm_evt_hdr and ss_plugin_event are out of sync (nparams)");
+#endif
+
+// We need to check that ppm_param_type and ss_plugin_field_type follow
+// the same enumeratives at compile-time.
+#if defined __GNUC__ || __STDC_VERSION__ >= 201112L
+_Static_assert((uint32_t) FTYPE_UINT64 == (uint32_t) PT_UINT64,
+	"ss_plugin_field_type and ppm_param_type are out of sync (UINT64)");
+_Static_assert((uint32_t) FTYPE_STRING == (uint32_t) PT_CHARBUF,
+	"ss_plugin_field_type and ppm_param_type are out of sync (STRING)");
+_Static_assert((uint32_t) FTYPE_RELTIME == (uint32_t) PT_RELTIME,
+	"ss_plugin_field_type and ppm_param_type are out of sync (RELTIME)");
+_Static_assert((uint32_t) FTYPE_ABSTIME == (uint32_t) PT_ABSTIME,
+	"ss_plugin_field_type and ppm_param_type are out of sync (ABSTIME)");
+_Static_assert((uint32_t) FTYPE_BOOL == (uint32_t) PT_BOOL,
+	"ss_plugin_field_type and ppm_param_type are out of sync (BOOL)");
+_Static_assert((uint32_t) FTYPE_IPADDR == (uint32_t) PT_IPADDR,
+	"ss_plugin_field_type and ppm_param_type are out of sync (IPADDR)");
+_Static_assert((uint32_t) FTYPE_IPNET == (uint32_t) PT_IPNET,
+	"ss_plugin_field_type and ppm_param_type are out of sync (IPNET)");
 #endif
 
 static int32_t plugin_rc_to_scap_rc(ss_plugin_rc plugin_rc)

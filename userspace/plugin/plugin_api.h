@@ -610,7 +610,8 @@ typedef struct
 		//   array.
 		//   Each field entry is a json object with the following properties:
 		//     "name": a string with a name for the field
-		//     "type": one of "string", "uint64"
+		//     "type": one of "string", "uint64", "bool", "reltime", "abstime",
+		//             "ipaddr", "ipnet"
 		//     "isList: (optional) If present and set to true, notes
 		//              that the field extracts a list of values.
 		//     "arg": (optional) if present, notes that the field can accept
