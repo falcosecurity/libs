@@ -178,10 +178,7 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 				res.ptr = (uint8_t*) &efield.res.u64[i];
 				break;
 			}
-			// maybe these fields could use directly str instead buf
-			case PT_IPV4NET:
-			case PT_IPV6ADDR:
-			case PT_IPV6NET:
+			case PT_IPADDR:
 			case PT_IPNET:
 			{
 				res.len = (uint32_t) efield.res.buf[i].len;
@@ -195,10 +192,9 @@ bool sinsp_filter_check_plugin::extract(sinsp_evt *evt, OUT vector<extract_value
 				break;
 			}
 			case PT_BOOL:
-			case PT_IPV4ADDR:
 			{
-				res.len = sizeof(uint32_t);
-				res.ptr = (uint8_t*) &efield.res.u32[i];
+				res.len = sizeof(ss_plugin_bool);
+				res.ptr = (uint8_t*) &efield.res.boolean[i];
 				break;
 			}
 			default:
