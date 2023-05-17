@@ -95,10 +95,13 @@ static void plugin_destroy(ss_plugin_t* s)
 {
     plugin_state *ps = (plugin_state *) s;
     // stop the async thread if it's running
-    if (ps->async_thread_run && ps->async_thread.joinable())
+    if (ps->async_thread_run)
     {
         ps->async_thread_run = false;
-        ps->async_thread.join();
+        if (ps->async_thread.joinable())
+        {
+            ps->async_thread.join();
+        }
     }
 
     delete ps;
@@ -142,10 +145,13 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
     plugin_state *ps = (plugin_state *) s;
 
     // stop the async thread if it's running
-    if (ps->async_thread_run && ps->async_thread.joinable())
+    if (ps->async_thread_run)
     {
         ps->async_thread_run = false;
-        ps->async_thread.join();
+        if (ps->async_thread.joinable())
+        {
+            ps->async_thread.join();
+        }
     }
 
     // launch the async thread with the handler, if one is provided
