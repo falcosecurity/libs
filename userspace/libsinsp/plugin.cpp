@@ -137,8 +137,8 @@ sinsp_plugin::~sinsp_plugin()
 	auto cur_async_handler = m_async_evt_handler.load();
 	if (cur_async_handler)
 	{
-		delete cur_async_handler;
 		m_async_evt_handler.store(nullptr);
+		delete cur_async_handler;
 	}
 }
 
