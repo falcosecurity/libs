@@ -21,6 +21,7 @@ limitations under the License.
 #include <unordered_set>
 #include <string>
 #include <vector>
+#include <atomic>
 #include <engine/source_plugin/source_plugin_public.h>
 #include "event.h"
 #include "version.h"
@@ -118,7 +119,7 @@ public:
 		m_accessed_tables(),
 		m_async_event_sources(),
 		m_async_event_names(),
-		m_async_evt_handler() { }
+		m_async_evt_handler(nullptr) { }
 	virtual ~sinsp_plugin();
 	sinsp_plugin(sinsp_plugin&&) = default;
 	sinsp_plugin& operator = (sinsp_plugin&&) = default;
@@ -266,7 +267,7 @@ private:
 	/** Async Events **/
 	std::unordered_set<std::string> m_async_event_sources;
 	std::unordered_set<std::string> m_async_event_names;
-	async_event_handler_t m_async_evt_handler;
+	std::atomic<async_event_handler_t*> m_async_evt_handler; // note: we don't have thread-safe smart pointers
 
 	/** Generic helpers **/
 	void validate_init_config(std::string& config);

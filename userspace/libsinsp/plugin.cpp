@@ -133,6 +133,13 @@ sinsp_plugin::~sinsp_plugin()
 {
 	destroy();
 	plugin_unload(m_handle);
+	
+	auto cur_async_handler = m_async_evt_handler.load();
+	if (cur_async_handler)
+	{
+		delete cur_async_handler;
+		m_async_evt_handler.store(nullptr);
+	}
 }
 
 bool sinsp_plugin::init(const std::string &config, std::string &errstr)
@@ -835,7 +842,11 @@ bool sinsp_plugin::parse_event(sinsp_evt* evt) const
 
 ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const ss_plugin_event* e, char* err)
 {
+	// note: this function can be invoked from different plugin threads,
+	// so we need to make sure that every variable we read is either constant
+	// during the lifetime of those threads, or that it is atomic.
 	auto p = static_cast<sinsp_plugin*>(o);
+	auto handler = p->m_async_evt_handler.load();
 	if (!(p->caps() & CAP_ASYNC))
 	{
 		if (err)
@@ -845,7 +856,7 @@ ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const
 		return SS_PLUGIN_FAILURE;
 	}
 
-	if (!p->m_async_evt_handler)
+	if (!handler)
 	{
 		if (err)
 		{
@@ -889,7 +900,7 @@ ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const
 		evt->m_pevt->tid = (uint64_t) -1;
 		evt->init();
 		// note: plugin ID and timestamp will be set by the inspector
-		p->m_async_evt_handler(*p, std::move(evt));
+		(*handler)(*p, std::move(evt));
 	}
 	catch (const std::exception& _e)
 	{
@@ -917,16 +928,64 @@ bool sinsp_plugin::set_async_event_handler(async_event_handler_t handler)
 	{
 		throw sinsp_exception(std::string(s_not_init_err) + ": " + m_name);
 	}
+
 	// note: setting the handler before invoking the plugin's function,
 	// so that it can be visible to other threads that can potentially
 	// be spawned by the plugin for producing async events.
-	m_async_evt_handler = handler;
+	// In the same way, we need to reset it to NULL after the function
+	// returns, to allow any potential extra threads to finish before
+	// changing the value. In any case, we make the handler function
+	// atomic in case plugin developers fail in stopping async threads.
+	//
+	// As for the atomic updates to m_async_evt_handler, the possible cases
+	// depend on the current handler (CH) and new handler (NH):
+	//   - CH null, NH null: the handler value is already null, no updates needed.
+	//   - CH null, NH not-null: the handler value must be updated before setting
+	//     it to the plugin, so that any newly-spawned thread in the plugin
+	//     can see the new value. In case of failure, we should set the handler
+	//     to its previous value.
+	//   - CH not-null, NH null: the handler value must be updated after setting
+	//     it to the plugin, so that any already-running thread in the plugin
+	//     can be stopped before setting the handler to null. In case of success,
+	//     we can set the handler value to null. 
+	//   - CH not-null, NH not-null: not supported for now, need to reset
+	//     the current handler to null before setting a new one.
+
+	auto cur_handler = m_async_evt_handler.load();
+	auto new_handler = (handler != nullptr) ? new async_event_handler_t(handler) : nullptr;
+
+	if (new_handler != nullptr)
+	{
+		if (cur_handler != nullptr)
+		{
+			delete new_handler;
+			throw sinsp_exception("must reset the async event handler before setting a new one");
+		}
+		m_async_evt_handler.store(new_handler);
+	}
+
 	auto callback = (handler != nullptr) ? sinsp_plugin::handle_plugin_async_event : NULL;
 	auto rc = m_handle->api.set_async_event_handler(m_state, this, callback);
-	if (rc != SS_PLUGIN_SUCCESS)
+
+	if (cur_handler == nullptr && new_handler != nullptr)
 	{
-		m_async_evt_handler = nullptr;
-		return false;
+		if (rc != SS_PLUGIN_SUCCESS)
+		{
+			// new handler rejected, restore current one
+			delete new_handler;
+			m_async_evt_handler.store(cur_handler);
+		}
 	}
-	return true;
+
+	if (cur_handler != nullptr && new_handler == nullptr)
+	{
+		if (rc == SS_PLUGIN_SUCCESS)
+		{
+			// new handler accepted, delete current one
+			delete cur_handler;
+			m_async_evt_handler.store(new_handler);
+		}
+	}
+
+	return rc == SS_PLUGIN_SUCCESS;
 }
