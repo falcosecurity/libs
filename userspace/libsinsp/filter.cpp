@@ -1253,42 +1253,87 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<
 		// Second, the comparison happens between the value parsed data, which
 		// means it may not work for all the supported data types, since
 		// flt_compare uses some additional logic for certain data types (e.g. ipv6).
-		// However, for now we only support lists of types PT_CHARBUF and
-		// PT_UINT64, that is what the plugin system is able to use. None of the
-		// libsinsp internal filterchecks use list type fields for now.
+		// None of the libsinsp internal filterchecks use list type fields for now.
 		//
-		// todo(jasondellaluce): once we support list fields for more types,
-		// refactor filter_value_t to actually use flt_compare instead of memcmp.
-		if (type != PT_CHARBUF && type != PT_UINT64)
+		// todo(jasondellaluce): refactor filter_value_t to actually use flt_compare instead of memcmp.
+		switch (type)
 		{
-			throw sinsp_exception("list filters are only supported for CHARBUF and UINT64 types");
+			case PT_CHARBUF:
+			case PT_UINT64:
+			case PT_RELTIME:
+			case PT_ABSTIME:
+			case PT_BOOL:
+			case PT_IPADDR:
+			case PT_IPNET:
+				break;
+			default:
+				throw sinsp_exception("list filters are not supported for type " + std::string(param_type_to_string(type)));
 		}
 		filter_value_t item(NULL, 0);
 		switch (op)
 		{
+			case CO_EXISTS:
+				// note: sinsp_filter_check_*::compare already discard NULL values
+				return true;
 			case CO_IN:
-				for (auto it = values.begin(); it != values.end(); ++it)
+				for (const auto& it : values)
 				{
-					item.first = (*it).ptr;
-					item.second = (*it).len;
-					if((*it).len < m_val_storages_min_size ||
-						(*it).len > m_val_storages_max_size ||
-						m_val_storages_members.find(item) == m_val_storages_members.end())
+					item.first = it.ptr;
+					item.second = it.len;
+					
+					// note: PT_IPNET would not work with simple memcmp comparison
+					// todo(jasondellaluce): refactor filter_value_t to actually use flt_compare instead of memcmp.
+					if (type == PT_IPNET)
 					{
-						return false;
+						bool found = false;
+						for (const auto& m : m_val_storages_members)
+						{
+							if (::flt_compare(CO_EQ, type, item.first, m.first, item.second, m.second))
+							{
+								found = true;
+								break;
+							}
+						}
+						if (!found)
+						{
+							return false;
+						}
+					}
+					else
+					{
+						if(it.len < m_val_storages_min_size || it.len > m_val_storages_max_size
+							 || m_val_storages_members.find(item) == m_val_storages_members.end())
+						{
+							return false;
+						}
 					}
 				}
 				return true;
 			case CO_INTERSECTS:
-				for (auto it = values.begin(); it != values.end(); ++it)
+				for (const auto& it : values)
 				{
-					item.first = (*it).ptr;
-					item.second = (*it).len;
-					if((*it).len >= m_val_storages_min_size &&
-						(*it).len <= m_val_storages_max_size &&
-						m_val_storages_members.find(item) != m_val_storages_members.end())
+					item.first = it.ptr;
+					item.second = it.len;
+
+					// note: PT_IPNET would not work with simple memcmp comparison
+					// todo(jasondellaluce): refactor filter_value_t to actually use flt_compare instead of memcmp.
+					if (type == PT_IPNET)
 					{
-						return true;
+						for (const auto& m : m_val_storages_members)
+						{
+							if (::flt_compare(CO_EQ, type, item.first, m.first, item.second, m.second))
+							{
+								return true;
+							}
+						}
+					}
+					else
+					{
+						if(it.len >= m_val_storages_min_size && it.len <= m_val_storages_max_size
+							&& m_val_storages_members.find(item) != m_val_storages_members.end())
+						{
+							return true;
+						}
 					}
 				}
 				return false;
@@ -1296,7 +1341,7 @@ bool sinsp_filter_check::flt_compare(cmpop op, ppm_param_type type, std::vector<
 				ASSERT(false);
 				throw sinsp_exception("list filter '"
 					+ std::string(m_info.m_fields[m_field_id].m_name)
-					+ "' only supports operators 'in' and 'intersects'");
+					+ "' only supports operators 'exists', 'in' and 'intersects'");
 		}
 	}
 	else if (values.size() > 1)
