@@ -22,6 +22,8 @@ class sinsp_evt;
 
 #include "scap_savefile_api.h"
 
+#include <string>
+
 typedef struct scap_dumper scap_dumper_t;
 
 /** @defgroup dump Dumping events to disk
