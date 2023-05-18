@@ -259,8 +259,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err)
             err_append(err, "must implement both 'plugin_get_id' and 'plugin_get_event_source' or neither (event sourcing)", ", ");
         }
     }
-    else if (h->api.open != NULL || h->api.close != NULL || h->api.next_batch != NULL
-            || h->api.get_id != NULL || h->api.get_event_source != NULL)
+    else if (h->api.open != NULL || h->api.close != NULL || h->api.next_batch != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
         err_append(err, "must implement all of 'plugin_open', 'plugin_close', and 'plugin_next_batch' (event sourcing)", ", ");
@@ -270,7 +269,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_EXTRACTION);
     }
-    else if (h->api.get_fields != NULL || h->api.extract_fields != NULL)
+    else if (h->api.extract_fields != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
         err_append(err, "must implement both 'plugin_get_fields' and 'plugin_extract_fields' (field extraction)", ", ");
@@ -285,7 +284,7 @@ plugin_caps_t plugin_get_capabilities(const plugin_handle_t* h, char* err)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_ASYNC);
     }
-    else if (h->api.get_async_events != NULL || h->api.set_async_event_handler != NULL)
+    else if (h->api.set_async_event_handler != NULL)
     {
         caps = (plugin_caps_t)((uint32_t) caps | (uint32_t) CAP_BROKEN);
         err_append(err, "must implement both 'plugin_get_async_events' and 'plugin_set_async_event_handler' (async events)", ", ");
