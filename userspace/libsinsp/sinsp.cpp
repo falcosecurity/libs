@@ -826,7 +826,7 @@ void sinsp::close()
 	}
 
 	// unset the meta-event callback to all plugins that support it
-	if (!is_capture())
+	if (!is_capture() && m_mode != SCAP_MODE_NONE)
 	{
 		std::string err;
 		for (auto& p : m_plugin_manager->plugins())

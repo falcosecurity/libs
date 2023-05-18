@@ -4541,7 +4541,7 @@ uint8_t* sinsp_filter_check_event::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 				// note: for async events, the event name is encoded
 				// inside the event itself. In this case libsinsp's evt.type
 				// field acts as an alias of evt.asynctype.
-				if (evt->get_type() == PPME_ASYNCEVENT_E)
+				if (etype == PPME_ASYNCEVENT_E)
 				{
 					evname = (uint8_t*) evt->get_param(1)->m_val;
 				}

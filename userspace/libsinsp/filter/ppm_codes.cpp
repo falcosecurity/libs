@@ -239,6 +239,7 @@ libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
     return v.m_last_node_codes;
 }
 
+// todo(jasondellaluce): should we deal with PPME_ASYNCEVENT_E at this level?
 libsinsp::events::set<ppm_event_code>
 libsinsp::filter::ast::ppm_event_codes(const libsinsp::filter::ast::expr* e)
 {
