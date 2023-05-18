@@ -98,6 +98,7 @@ std::unordered_set<std::string> libsinsp::events::event_set_to_names(const libsi
 	return events_names_set;
 }
 
+// todo(jasondellaluce): think about how we can handle well PPME_ASYNCEVENT_E
 libsinsp::events::set<ppm_event_code> libsinsp::events::names_to_event_set(const std::unordered_set<std::string>& events)
 {
 	std::unordered_set<std::string> remaining_events = events;
