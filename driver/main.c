@@ -2912,7 +2912,11 @@ int scap_init(void)
 		goto init_module_err;
 	}
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 0)
 	g_ppm_class = class_create(THIS_MODULE, DRIVER_DEVICE_NAME);
+#else
+	g_ppm_class = class_create(DRIVER_DEVICE_NAME);
+#endif
 	if (IS_ERR(g_ppm_class)) {
 		pr_err("can't allocate device class\n");
 		ret = -EFAULT;
