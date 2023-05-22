@@ -201,6 +201,13 @@ public:
 	}
 
 	/*!
+	  \brief Iterate over open file descriptors in the process.
+
+	  \return True if all callback invoations returned true, false if not
+	*/
+	bool loop_fds(sinsp_fdtable::fdtable_visitor_t visitor);
+
+	/*!
 	  \brief Return true if this thread is bound to the given server port.
 	*/
 	bool is_bound_to_port(uint16_t number);
