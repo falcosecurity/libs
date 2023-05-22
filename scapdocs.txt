@@ -1,0 +1,9 @@
+driver/ppm_events_public.h
+driver/driver_config.h
+driver/event_table.c
+driver/flags_table.c
+driver/ppm_api_version.h
+driver/SCHEMA_VERSION
+driver/API_VERSION
+userspace/libscap/scap_savefile.h
+userspace/libscap/scap_savefile.c

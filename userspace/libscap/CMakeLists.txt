@@ -247,4 +247,5 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libscap.pc.in ${CMAKE_CURRENT_BINARY_
 if (BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)
 	add_subdirectory(examples/02-validatebuffer)
+	add_subdirectory(examples/03-specification)
 endif()
