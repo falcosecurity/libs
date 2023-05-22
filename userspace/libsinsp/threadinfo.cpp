@@ -850,6 +850,18 @@ void sinsp_threadinfo::remove_fd(int64_t fd)
 	fd_table_ptr->erase(fd);
 }
 
+bool sinsp_threadinfo::loop_fds(sinsp_fdtable::fdtable_visitor_t visitor)
+{
+	sinsp_fdtable* fdt = get_fd_table();
+	if(fdt == NULL)
+	{
+		ASSERT(false);
+		return false;
+	}
+
+	return fdt->loop(visitor);
+}
+
 bool sinsp_threadinfo::is_bound_to_port(uint16_t number)
 {
 	std::unordered_map<int64_t, sinsp_fdinfo_t>::iterator it;

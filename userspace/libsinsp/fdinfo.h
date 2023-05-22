@@ -169,7 +169,7 @@ public:
 
 	  Can be on of 'file', 'directory', ipv4', 'ipv6', 'unix', 'pipe', 'event', 'signalfd', 'eventpoll', 'inotify', 'signalfd'.
 	*/
-	char* get_typestring();
+	char* get_typestring() const;
 
 	/*!
 	  \brief Return the fd name, after removing unprintable or invalid characters from it.
@@ -572,6 +572,21 @@ public:
 	
 	// If the key is already present, overwrite the existing value and return false.
 	sinsp_fdinfo_t* add(int64_t fd, sinsp_fdinfo_t* fdinfo);
+
+	typedef std::function<bool(int64_t, const sinsp_fdinfo_t&)> fdtable_visitor_t;
+
+	bool loop(const fdtable_visitor_t callback) const
+	{
+		for(auto it = m_table.begin(); it != m_table.end(); ++it)
+		{
+			if (!callback(it->first, it->second))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
 	// If the key is present, returns true, otherwise returns false.
 	void erase(int64_t fd);
 	void clear();
