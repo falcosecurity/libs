@@ -1776,15 +1776,15 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 				switch(stat)
 				{
 				case RUN_CNT:
-					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name) - dest_len);
+					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_CNT], sizeof(stats[offset].name) - dest_len - 1);
 					stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
-					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name) - dest_len);
+					strncat(stats[offset].name, bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(stats[offset].name) - dest_len - 1);
 					stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
-					strncat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name) - dest_len);
+					strncat(stats[offset].name, bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(stats[offset].name) - dest_len - 1);
 					stats[offset].value.u64 = 0;
 					if (info.run_cnt > 0)
 					{
