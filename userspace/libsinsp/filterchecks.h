@@ -352,6 +352,7 @@ public:
 	sinsp_filter_check_fd();
 	sinsp_filter_check* allocate_new();
 	int32_t parse_field_name(const char* str, bool alloc_state, bool needed_for_filtering);
+	bool extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings = true);
 	uint8_t* extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings = true);
 	int32_t extract_arg(std::string fldname, std::string val);
 	bool compare_ip(sinsp_evt *evt);
