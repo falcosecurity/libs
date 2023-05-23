@@ -170,7 +170,7 @@ int open_engine(int argc, char** argv)
 			}
 			else if(optarg == NULL)
 			{
-				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
+				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd) - 1);
 			}
 			else
 			{
@@ -199,7 +199,7 @@ int open_engine(int argc, char** argv)
 			}
 			else if(optarg == NULL)
 			{
-				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd));
+				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd) - 1);
 			}
 			else
 			{
