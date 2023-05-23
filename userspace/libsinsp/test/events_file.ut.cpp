@@ -660,7 +660,8 @@ TEST_F(sinsp_with_test_input, test_fdtypes)
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "1");
-	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "file");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "(file)");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(file)");
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, (int64_t)0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 1, (int64_t)2);
@@ -668,6 +669,13 @@ TEST_F(sinsp_with_test_input, test_fdtypes)
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_BPF_2_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "2");
 	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "bpf");
-	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "file");
-	ASSERT_EQ(get_field_as_string(evt, "fd.types[2]"), "bpf");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[1]"), "(file)");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[2]"), "(bpf)");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(bpf,file)");
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_E, 1, (int64_t)0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_BPF_2_X, 1, (int64_t)3);
+
+	ASSERT_EQ(get_field_as_string(evt, "fd.types[3]"), "(bpf)");
+	ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(bpf,file)");
 }

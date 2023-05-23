@@ -516,7 +516,7 @@ const filtercheck_field_info sinsp_filter_check_fd_fields[] =
 	{PT_INT32, EPF_NONE, PF_DEC, "fd.dev.minor", "FD Minor Device", "minor device number containing the referenced file"},
 	{PT_INT64, EPF_NONE, PF_DEC, "fd.ino", "FD Inode Number", "inode number of the referenced file"},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "fd.nameraw", "FD Name Raw", "FD full name raw. Just like fd.name, but only used if fd is a file path. File path is kept raw with limited sanitization and without deriving the absolute path."},
-	{PT_CHARBUF, EPF_NONE, PF_DEC, "fd.types", "FD Type", "type of FD. Can be passed an fd number e.g. fd.types[0] to get the type of stdout."},
+	{PT_CHARBUF, EPF_IS_LIST, PF_DEC, "fd.types", "FD Type", "List of FD types in used. Can be passed an fd number e.g. fd.types[0] to get the type of stdout as a single item list."},
 };
 
 sinsp_filter_check_fd::sinsp_filter_check_fd()
@@ -882,6 +882,54 @@ uint8_t* sinsp_filter_check_fd::extract_from_null_fd(sinsp_evt *evt, OUT uint32_
 	default:
 		return NULL;
 	}
+}
+
+bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_value_t>& values, bool sanitize_strings)
+{
+	values.clear();
+
+	if(!extract_fd(evt))
+	{
+		return NULL;
+	}
+
+	if(m_field_id == TYPE_FDTYPES && m_argid == -1)
+	{
+		// We are of the form fd.types so gather all open file
+		// descriptor types into a (de-duplicated) list
+		//
+		// Note that fd.types[num] handling is in the following
+		// implementation of sinsp_filter_check_fd::extract
+
+		// All of the pointers come from the fd_typesting() function so
+		// we shouldn't have the situation of two distinct pointers to
+		// the same string literal and we can just compare based on pointer
+		std::unordered_set<char*> fd_types;
+
+		// Iterate over the list of open file descriptors and add all
+		// unique file descriptor types to the vector for comparison
+		auto fd_type_gather = [this, &fd_types, &values](uint64_t, const sinsp_fdinfo_t& fdinfo)
+		{
+			char* type = fdinfo.get_typestring();
+
+			if (fd_types.emplace(type).second)
+			{
+				extract_value_t val;
+				val.ptr = (uint8_t*)type;
+				val.len = strlen(type);
+
+				values.push_back(val);
+			}
+
+			return true;
+		};
+
+		m_tinfo->loop_fds(fd_type_gather);
+
+		return true;
+	}
+
+	return sinsp_filter_check::extract(evt, values, sanitize_strings);
 }
 
 uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool sanitize_strings)
@@ -2189,6 +2237,7 @@ bool sinsp_filter_check_fd::compare_domain(sinsp_evt *evt)
 
 	return false;
 }
+
 bool sinsp_filter_check_fd::extract_fd(sinsp_evt *evt)
 {
 	ppm_event_flags eflags = evt->get_info_flags();
@@ -2246,6 +2295,15 @@ bool sinsp_filter_check_fd::compare(sinsp_evt *evt)
 	else if(m_field_id == TYPE_NET)
 	{
 		return compare_net(evt);
+	}
+	else if(m_field_id == TYPE_FDTYPES)
+	{
+		m_extracted_values.clear();
+		if(!extract_cached(evt, m_extracted_values, false))
+		{
+			return false;
+		}
+		return flt_compare(m_cmpop, m_info.m_fields[m_field_id].m_type, m_extracted_values);
 	}
 
 	//
