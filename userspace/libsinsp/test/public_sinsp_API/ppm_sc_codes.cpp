@@ -172,14 +172,14 @@ const libsinsp::events::set<ppm_event_code> expected_sinsp_state_event_set = {
 	PPME_DROP_E,
 	PPME_DROP_X,
 	PPME_SCAPEVENT_E,
-	PPME_CONTAINER_E, // <<<- test are failing because we are not covering old meta events versions. do we want meta events in this set, we have no a PPM_SC associated (?)
+	PPME_CONTAINER_E,
 	PPME_PROCINFO_E,
 	PPME_CPU_HOTPLUG_E,
 	PPME_K8S_E,
 	PPME_TRACER_E,
 	PPME_TRACER_X,
 	PPME_MESOS_E,
-	PPME_CONTAINER_JSON_E, // <<<- test are failing because we are not covering old meta events versions
+	PPME_CONTAINER_JSON_E,
 	PPME_NOTIFICATION_E,
 	PPME_INFRASTRUCTURE_EVENT_E,
 	PPME_CONTAINER_JSON_2_E,
