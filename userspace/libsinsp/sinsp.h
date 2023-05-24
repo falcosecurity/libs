@@ -633,11 +633,19 @@ public:
 	}
 
 	/*!
-	  \brief Returns true if the current capture has a plugin producing events
+	  \brief Returns true if the current capture has a plugin producing events.
 	*/
 	inline bool is_plugin()
 	{
-		return m_mode == SCAP_MODE_PLUGIN;
+		return m_mode == SCAP_MODE_PLUGIN && m_input_plugin != nullptr;
+	}
+
+	/*!
+	  \brief Returns true if the current capture has a plugin producing syscall events.
+	*/
+	inline bool is_syscall_plugin()
+	{
+		return is_plugin() && m_input_plugin->id() == 0;
 	}
 
 	/*!
@@ -685,7 +693,7 @@ public:
 	*/
 	inline bool large_envs_enabled()
 	{
-		return is_live() && m_large_envs_enabled;
+		return (is_live() || is_syscall_plugin()) && m_large_envs_enabled;
 	}
 
 	/*!

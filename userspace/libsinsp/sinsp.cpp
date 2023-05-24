@@ -345,7 +345,7 @@ void sinsp::init()
 		m_cycle_writer = NULL;
 	}
 
-	m_cycle_writer = new cycle_writer(is_live());
+	m_cycle_writer = new cycle_writer(!is_offline());
 
 	//
 	// Basic inits
@@ -432,7 +432,7 @@ void sinsp::init()
 	}
 
 #if defined(HAS_CAPTURE)
-	if(m_mode == SCAP_MODE_LIVE)
+	if(is_live())
 	{
 		int32_t res = scap_getpid_global(m_h, &m_self_pid);
 		ASSERT(res == SCAP_SUCCESS || res == SCAP_NOT_SUPPORTED);
@@ -1057,7 +1057,7 @@ void sinsp::import_user_list()
 void sinsp::refresh_ifaddr_list()
 {
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
-	if(!is_offline())
+	if(is_live() || is_syscall_plugin())
 	{
 		ASSERT(m_network_interfaces);
 		scap_refresh_iflist(m_h);
@@ -1724,7 +1724,7 @@ void sinsp::set_fullcapture_port_range(uint16_t range_start, uint16_t range_end)
 
 	if(!is_live())
 	{
-		throw sinsp_exception("set_fullcapture_port_range called on a trace file");
+		throw sinsp_exception("set_fullcapture_port_range called on a trace file, plugin, or test engine");
 	}
 
 	if(scap_set_fullcapture_port_range(m_h, range_start, range_end) != SCAP_SUCCESS)
@@ -1747,7 +1747,7 @@ void sinsp::set_statsd_port(const uint16_t port)
 
 	if(!is_live())
 	{
-		throw sinsp_exception("set_statsd_port called on a trace file");
+		throw sinsp_exception("set_statsd_port called on a trace file, plugin, or test engine");
 	}
 
 	if(scap_set_statsd_port(m_h, port) != SCAP_SUCCESS)
@@ -1843,7 +1843,7 @@ void sinsp::start_capture()
 #ifndef _WIN32
 void sinsp::stop_dropping_mode()
 {
-	if(m_mode == SCAP_MODE_LIVE)
+	if(is_live())
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "stopping drop mode");
 
@@ -1856,7 +1856,7 @@ void sinsp::stop_dropping_mode()
 
 void sinsp::start_dropping_mode(uint32_t sampling_ratio)
 {
-	if(m_mode == SCAP_MODE_LIVE)
+	if(is_live())
 	{
 		g_logger.format(sinsp_logger::SEV_INFO, "setting drop mode to %" PRIu32, sampling_ratio);
 
