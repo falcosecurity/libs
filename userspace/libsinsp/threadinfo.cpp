@@ -491,7 +491,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	set_cgroups(pi->cgroups, pi->cgroups_len);
 	m_root = pi->root;
 	ASSERT(m_inspector);
-	m_inspector->m_container_manager.resolve_container(this, !m_inspector->is_offline());
+	m_inspector->m_container_manager.resolve_container(this, m_inspector->is_live() || m_inspector->is_syscall_plugin());
 
 	set_group(pi->gid);
 	set_user(pi->uid);
@@ -564,7 +564,8 @@ void sinsp_threadinfo::set_user(uint32_t uid)
 	scap_userinfo *user = m_inspector->m_usergroup_manager.get_user(m_container_id, uid);
 	if (!user)
 	{
-		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid, NULL, NULL, NULL, m_inspector->is_live());
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		user = m_inspector->m_usergroup_manager.add_user(m_container_id, m_pid, uid, m_group.gid, NULL, NULL, NULL, notify);
 	}
 	if (user)
 	{
@@ -585,7 +586,8 @@ void sinsp_threadinfo::set_group(uint32_t gid)
 	scap_groupinfo *group = m_inspector->m_usergroup_manager.get_group(m_container_id, gid);
 	if (!group)
 	{
-		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, NULL, m_inspector->is_live());
+		auto notify = m_inspector->is_live() || m_inspector->is_syscall_plugin();
+		group = m_inspector->m_usergroup_manager.add_group(m_container_id, m_pid, gid, NULL, notify);
 	}
 	if (group)
 	{
