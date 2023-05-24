@@ -15,6 +15,10 @@ limitations under the License.
 
 */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include "scap.h"
 #include "scap-int.h"
