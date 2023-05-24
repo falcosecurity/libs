@@ -641,6 +641,7 @@ void sinsp_container_manager::update_container_with_size(sinsp_container_type ty
 				"Container type %d not found when requesting size for %s",
 				type,
 				container_id.c_str());
+		return;
 	}
 
 	g_logger.format(sinsp_logger::SEV_DEBUG,
