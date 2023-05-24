@@ -14,7 +14,9 @@
 #include <sched.h>
 
 #define ASSERT assert
-#define F_CANCELLK 1024 + 5
+#ifndef F_CANCELLK
+#define F_CANCELLK (1024 + 5)
+#endif
 
 #ifndef QFMT_VFS_OLD
 #define	QFMT_VFS_OLD 1
