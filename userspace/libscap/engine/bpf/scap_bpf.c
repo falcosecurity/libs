@@ -136,7 +136,9 @@ static void free_handle(struct scap_engine_handle engine)
 	free(engine.m_handle);
 }
 
+#ifndef UINT32_MAX
 # define UINT32_MAX (4294967295U)
+#endif
 
 /* Recommended log buffer size.
  * Taken from libbpf source code: https://github.com/libbpf/libbpf/blob/67a4b1464349345e483df26ed93f8d388a60cee1/src/bpf.h#L201
