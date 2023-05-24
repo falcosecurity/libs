@@ -1319,8 +1319,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	uint64_t ts = evt->get_ts();
 
 	if(m_firstevent_ts == 0 &&
-	   evt->m_pevt->type != PPME_CONTAINER_JSON_E && evt->m_pevt->type != PPME_CONTAINER_JSON_2_E &&
-	   evt->m_pevt->type != PPME_USER_ADDED_E && evt->m_pevt->type != PPME_GROUP_ADDED_E)
+		!libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()))
 	{
 		m_firstevent_ts = ts;
 	}
