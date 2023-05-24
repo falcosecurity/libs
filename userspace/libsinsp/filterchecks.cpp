@@ -1312,19 +1312,10 @@ uint8_t* sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT uint32_t* len, bool 
 		break;
 	case TYPE_UID:
 		{
-			// note: we need to skip events that have no thread info
-			if(evt->get_type() == PPME_CONTAINER_JSON_E ||
-				evt->get_type() == PPME_CONTAINER_JSON_2_E ||
-				evt->get_type() == PPME_USER_ADDED_E ||
-				evt->get_type() == PPME_USER_DELETED_E ||
-				evt->get_type() == PPME_GROUP_ADDED_E ||
-				evt->get_type() == PPME_GROUP_DELETED_E ||
-				evt->get_type() == PPME_PLUGINEVENT_E ||
-				evt->get_type() == PPME_ASYNCEVENT_E)
+			if(m_tinfo == nullptr)
 			{
 				return NULL;
 			}
-			ASSERT(m_tinfo != NULL);
 
 			m_tstr = to_string(m_tinfo->m_tid) + to_string(m_tinfo->m_lastevent_fd);
 			RETURN_EXTRACT_STRING(m_tstr);
