@@ -291,6 +291,8 @@ public:
 	// (e.g. "proc.name"), to field value (e.g. "nginx")
 	virtual bool get_field_values(gen_event *evt, std::map<std::string, std::string> &fields) = 0;
 
+	virtual void get_field_names(std::vector<std::string> &fields) = 0;
+
 	virtual output_format get_output_format() = 0;
 };
 
