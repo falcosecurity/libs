@@ -71,7 +71,7 @@ public:
 	// interface. It just calls resolve_tokens().
 	bool get_field_values(gen_event *evt, std::map<std::string, std::string> &fields) override;
 
-	void get_field_names(std::vector<std::string> &fields);
+	void get_field_names(std::vector<std::string> &fields) override;
 
 	gen_event_formatter::output_format get_output_format() override;
 
