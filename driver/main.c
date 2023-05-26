@@ -57,6 +57,10 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 #include "ppm_tp.h"
 
+#ifdef _HAS_SOCKETCALL
+#include "socketcall_to_syscall.h"
+#endif
+
 #define __NR_ia32_socketcall 102
 
 MODULE_LICENSE("GPL");
@@ -1361,119 +1365,21 @@ static const unsigned char compat_nas[21] = {
 static long convert_network_syscalls(struct pt_regs *regs, long socketcall_syscall)
 {
 	unsigned long __user args[6] = {};
+	int new_syscall_id = 0;
 	ppm_syscall_get_arguments(current, regs, args);
 
 	/* args[0] is the specific syscall code */
-	switch(args[0])
+	new_syscall_id = socketcall_code_to_syscall_code(args[0]);
+
+	/* If we are not able to convert the socketcall code to
+	 * a valid syscall code we return the original socketcall id
+	 * and we send a generic event
+	 */
+	if(new_syscall_id == -1)
 	{
-#ifdef __NR_socket
-	case SYS_SOCKET:
-		return __NR_socket;
-#endif
-
-#ifdef __NR_socketpair
-	case SYS_SOCKETPAIR:
-		return __NR_socketpair;
-#endif
-
-	case SYS_ACCEPT:
-#if defined(CONFIG_S390) && defined(__NR_accept4)
-		return __NR_accept4;
-#elif defined(__NR_accept)
-		return __NR_accept;
-#endif
-		break;
-
-#ifdef __NR_accept4
-	case SYS_ACCEPT4:
-		return __NR_accept4;
-#endif
-
-#ifdef __NR_bind
-	case SYS_BIND:
-		return __NR_bind;
-#endif
-
-#ifdef __NR_listen
-	case SYS_LISTEN:
-		return __NR_listen;
-#endif
-
-#ifdef __NR_connect
-	case SYS_CONNECT:
-		return __NR_connect;
-#endif
-
-#ifdef __NR_getsockname
-	case SYS_GETSOCKNAME:
-		return __NR_getsockname;
-#endif
-
-#ifdef __NR_getpeername
-	case SYS_GETPEERNAME:
-		return __NR_getpeername;
-#endif
-
-#ifdef __NR_getsockopt
-	case SYS_GETSOCKOPT:
-		return __NR_getsockopt;
-#endif
-
-#ifdef __NR_setsockopt
-	case SYS_SETSOCKOPT:
-		return __NR_setsockopt;
-#endif
-
-#ifdef __NR_recv
-	case SYS_RECV:
-		return __NR_recv;
-#endif
-
-#ifdef __NR_recvfrom
-	case SYS_RECVFROM:
-		return __NR_recvfrom;
-#endif
-
-#ifdef __NR_recvmsg
-	case SYS_RECVMSG:
-		return __NR_recvmsg;
-#endif
-
-#ifdef __NR_recvmmsg
-	case SYS_RECVMMSG:
-		return __NR_recvmmsg;
-#endif
-
-#ifdef __NR_send
-	case SYS_SEND:
-		return __NR_send;
-#endif
-
-#ifdef __NR_sendto
-	case SYS_SENDTO:
-		return __NR_sendto;
-#endif
-
-#ifdef __NR_sendmsg
-	case SYS_SENDMSG:
-		return __NR_sendmsg;
-#endif
-
-#ifdef __NR_sendmmsg
-	case SYS_SENDMMSG:
-		return __NR_sendmmsg;
-#endif
-
-#ifdef __NR_shutdown
-	case SYS_SHUTDOWN:
-		return __NR_shutdown;
-#endif
-	default:
-		break;
+		new_syscall_id = socketcall_syscall;
 	}
-
-	// reset NR_socketcall and send a generic event
-	return socketcall_syscall;
+	return new_syscall_id;
 }
 
 static int load_socketcall_params(struct event_filler_arguments *filler_args)
