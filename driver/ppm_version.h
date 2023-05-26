@@ -1,3 +1,6 @@
+#ifndef PPM_VERSION_H_
+#define PPM_VERSION_H_
+
 #ifndef UDIG
 #include <linux/version.h>
 #endif
@@ -18,3 +21,5 @@
 #define PPM_RHEL_RELEASE_CODE 0
 #define PPM_RHEL_RELEASE_VERSION(x,y) 0
 #endif
+
+#endif /* PPM_VERSION_H_ */
