@@ -118,6 +118,8 @@ set(DRIVER_SOURCES
 	ppm_tp.c
 	ppm_consumer.h
 	capture_macro.h
+	socketcall_to_syscall.h
+	socketcall_to_syscall.c
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)
