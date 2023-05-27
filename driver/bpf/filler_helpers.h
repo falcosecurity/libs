@@ -660,14 +660,26 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 			struct sockaddr_in *usrsockaddr_in = (struct sockaddr_in *)usrsockaddr;
 
 			if (is_inbound) {
-				/* To take inbound info we cannot use the `src_addr` obtained from the syscall
-				 * it could be empty!
-				 * From kernel 3.13 we can take both ipv4 and ipv6 info from here
-				 * https://elixir.bootlin.com/linux/v3.13/source/include/net/sock.h#L164
+				/* To take peer address info we try to use the kernel where possible.
+				 * TCP allows us to obtain the right information, while the kernel doesn't fill
+				 * `sk->__sk_common.skc_daddr` for UDP connection.
+				 * Instead of having a custom logic for each protocol we try to read from
+				 * kernel structs and if we don't find valid data we fallback to userspace
+				 * structs.
 				 */
-				bpf_probe_read_kernel(&sip, sizeof(sip), &sk->__sk_common.skc_daddr);
 				bpf_probe_read_kernel(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
-				sport = ntohs(sport);
+				if(sport != 0)
+				{
+					/* We can read from the kernel */
+					bpf_probe_read_kernel(&sip, sizeof(sip), &sk->__sk_common.skc_daddr);
+					sport = ntohs(sport);
+				}
+				else
+				{
+					/* Fallback to userspace struct */
+					sip = usrsockaddr_in->sin_addr.s_addr;
+					sport = ntohs(usrsockaddr_in->sin_port);
+				}
 				dip = ((struct sockaddr_in *)sock_address)->sin_addr.s_addr;
 				dport = ntohs(((struct sockaddr_in *)sock_address)->sin_port);
 			} else {
@@ -722,10 +734,20 @@ static __always_inline long bpf_fd_to_socktuple(struct filler_data *data,
 			struct sockaddr_in6 *usrsockaddr_in6 = (struct sockaddr_in6 *)usrsockaddr;
 
 			if (is_inbound) {
-				bpf_probe_read_kernel(&in6, sizeof(in6), &sk->__sk_common.skc_v6_daddr);
-				sip6 = in6.in6_u.u6_addr8;
 				bpf_probe_read_kernel(&sport, sizeof(sport), &sk->__sk_common.skc_dport);
-				sport = ntohs(sport);
+				if(sport != 0)
+				{
+					/* We can read from the kernel */
+					bpf_probe_read_kernel(&in6, sizeof(in6), &sk->__sk_common.skc_v6_daddr);
+					sip6 = in6.in6_u.u6_addr8;
+					sport = ntohs(sport);
+				}
+				else
+				{
+					/* Fallback to userspace struct */
+					sip6 = usrsockaddr_in6->sin6_addr.s6_addr;
+					sport = ntohs(usrsockaddr_in6->sin6_port);
+				}
 				dip6 = ((struct sockaddr_in6 *)sock_address)->sin6_addr.s6_addr;
 				dport = ntohs(((struct sockaddr_in6 *)sock_address)->sin6_port);
 			} else {
