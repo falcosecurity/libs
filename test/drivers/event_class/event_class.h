@@ -181,14 +181,14 @@ public:
 
 	/**
 	 * @brief Set stasd port
-	 * 
+	 *
 	 * @param port new statsd port
 	 */
 	void set_statsd_port(uint16_t port);
 
 	/**
 	 * @brief Set a range of network ports as interesting
-	 * 
+	 *
 	 * @param start first port of the range
 	 * @param end last port of the range
 	 */
@@ -305,6 +305,8 @@ public:
 	void connect_ipv4_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
 	void connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr);
 	void connect_unix_client_to_server(int32_t* client_socket, struct sockaddr_un* client_sockaddr, int32_t* server_socket, struct sockaddr_un* server_sockaddr);
+
+	void connect_ipv4_udp_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t client_port = IPV4_PORT_CLIENT, int32_t server_port = IPV4_PORT_SERVER);
 
 	/////////////////////////////////
 	// GENERIC EVENT ASSERTIONS
