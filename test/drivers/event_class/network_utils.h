@@ -18,13 +18,18 @@
 
 /*=============================== IPV4 ===========================*/
 
+/* Empty endpoint */
+#define IPV4_EMPTY "0.0.0.0"
+#define IPV4_PORT_EMPTY 0
+#define IPV4_PORT_EMPTY_STRING "0"
+
 /* IPv4 Client */
 #define IPV4_CLIENT "127.0.21.34"
 #define IPV4_PORT_CLIENT 51789
 #define IPV4_PORT_CLIENT_STRING "51789"
 
 /* IPv4 Server */
-#define IPV4_SERVER "127.0.21.35"
+#define IPV4_SERVER "127.59.21.35"
 #define IPV4_PORT_SERVER 52889
 #define IPV4_PORT_SERVER_STRING "52889"
 

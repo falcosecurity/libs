@@ -390,6 +390,32 @@ void event_test::connect_ipv4_client_to_server(int32_t* client_socket, struct so
 	assert_syscall_state(SYSCALL_SUCCESS, "connect (client)", syscall(__NR_connect, *client_socket, (struct sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
 }
 
+void event_test::connect_ipv4_udp_client_to_server(int32_t* client_socket, struct sockaddr_in* client_sockaddr, int32_t* server_socket, struct sockaddr_in* server_sockaddr, int32_t port_client, int32_t port_server)
+{
+	/* Create the server socket. */
+	*server_socket = syscall(__NR_socket, AF_INET, SOCK_DGRAM, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", *server_socket, NOT_EQUAL, -1);
+	server_reuse_address_port(*server_socket);
+
+	memset(server_sockaddr, 0, sizeof(*server_sockaddr));
+	server_fill_sockaddr_in(server_sockaddr, port_server);
+
+	/* Now we bind the server socket with the server address. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, *server_socket, (struct sockaddr*)server_sockaddr, sizeof(*server_sockaddr)), NOT_EQUAL, -1);
+
+	/* The server now is ready, we need to create at least one connection from the client. */
+
+	*client_socket = syscall(__NR_socket, AF_INET, SOCK_DGRAM, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", *client_socket, NOT_EQUAL, -1);
+	client_reuse_address_port(*client_socket);
+
+	memset(client_sockaddr, 0, sizeof(*client_sockaddr));
+	client_fill_sockaddr_in(client_sockaddr, port_client);
+
+	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, *client_socket, (struct sockaddr*)client_sockaddr, sizeof(*client_sockaddr)), NOT_EQUAL, -1);
+}
+
 void event_test::connect_ipv6_client_to_server(int32_t* client_socket, struct sockaddr_in6* client_sockaddr, int32_t* server_socket, struct sockaddr_in6* server_sockaddr)
 {
 	/* Create the server socket. */
