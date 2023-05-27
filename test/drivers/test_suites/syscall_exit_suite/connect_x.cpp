@@ -237,15 +237,15 @@ TEST(SyscallExit, connectX_failure)
 	evt_test->assert_num_params_pushed(3);
 }
 
-TEST(SyscallExit, connectX_failure_connection_refused)
+TEST(SyscallExit, connectX_failure_ECONNREFUSED)
 {
 	auto evt_test = get_syscall_event_test(__NR_connect, EXIT_EVENT);
 
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
-
-	int32_t client_socket_fd = syscall(__NR_socket, AF_INET, SOCK_DGRAM, 0);
+	/* The socket here is blocking so the errno will be ECONNREFUSED */
+	int32_t client_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM, 0);
 	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
 	evt_test->client_reuse_address_port(client_socket_fd);
 
@@ -255,13 +255,11 @@ TEST(SyscallExit, connectX_failure_connection_refused)
 	/* We need to bind the client socket with an address otherwise we cannot assert against it. */
 	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
 
-	/* Now we associate the client socket with the server address. 
-	 * Here the server `254.254.254.3:1` should be not reachable
-	 */
+	/* We try to reach this server that doesn't exist */
 	struct sockaddr_in server_addr;
-	evt_test->server_fill_sockaddr_in(&server_addr, 1, "254.254.254.3");
+	evt_test->server_fill_sockaddr_in(&server_addr);
+
 	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
-	int64_t errno_value = -errno;
 
 	/*=============================== TRIGGER SYSCALL ===========================*/
 
@@ -281,7 +279,7 @@ TEST(SyscallExit, connectX_failure_connection_refused)
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
 	/* Parameter 1: res (type: PT_ERRNO) */
-	evt_test->assert_numeric_param(1, (int64_t)errno_value);
+	evt_test->assert_numeric_param(1, (int64_t)-ECONNREFUSED);
 
 	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
 	/* Modern BPF doesn't return the tuple in case of failure */
@@ -291,8 +289,76 @@ TEST(SyscallExit, connectX_failure_connection_refused)
 	}
 	else
 	{
-		evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, "254.254.254.3", IPV4_PORT_CLIENT_STRING, "1");
+		evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
 	}
+
+	/* Parameter 3: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(3);
+}
+
+TEST(SyscallExit, connectX_failure_EINPROGRESS)
+{
+	auto evt_test = get_syscall_event_test(__NR_connect, EXIT_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	/* The socket here is not blocking so the errno will be EINPROGRESS */
+	int32_t client_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (client)", client_socket_fd, NOT_EQUAL, -1);
+	evt_test->client_reuse_address_port(client_socket_fd);
+
+	struct sockaddr_in client_addr;
+	evt_test->client_fill_sockaddr_in(&client_addr);
+
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (client)", syscall(__NR_bind, client_socket_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)), NOT_EQUAL, -1);
+
+	int32_t server_socket_fd = syscall(__NR_socket, AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	assert_syscall_state(SYSCALL_SUCCESS, "socket (server)", server_socket_fd, NOT_EQUAL, -1);
+	evt_test->server_reuse_address_port(server_socket_fd);
+
+	struct sockaddr_in server_addr;
+	evt_test->server_fill_sockaddr_in(&server_addr);
+
+	/* Now we bind the server socket with the server address. */
+	assert_syscall_state(SYSCALL_SUCCESS, "bind (server)", syscall(__NR_bind, server_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)), NOT_EQUAL, -1);
+
+	/* Here we don't call listen so the connection from the client should be
+	 * in progress.
+	 */
+
+	assert_syscall_state(SYSCALL_FAILURE, "connect (client)", syscall(__NR_connect, client_socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: res (type: PT_ERRNO) */
+	evt_test->assert_numeric_param(1, (int64_t)-EINPROGRESS);
+
+	/* Parameter 2: tuple (type: PT_SOCKTUPLE) */
+	/* `EINPROGRESS` is the unique failure case that the modern bpf probe
+	 * can catch.
+	 */
+	evt_test->assert_tuple_inet_param(2, PPM_AF_INET, IPV4_CLIENT, IPV4_SERVER, IPV4_PORT_CLIENT_STRING, IPV4_PORT_SERVER_STRING);
 
 	/* Parameter 3: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(3, (int64_t)client_socket_fd);
