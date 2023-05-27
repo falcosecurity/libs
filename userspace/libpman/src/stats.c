@@ -201,7 +201,6 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 			g_state.stats[MODERN_BPF_N_DROPS_SCRATCH_MAP].value.u64 += cnt_map.n_drops_max_event_size;
 			g_state.stats[MODERN_BPF_N_DROPS].value.u64 += (cnt_map.n_drops_buffer + cnt_map.n_drops_max_event_size);
 		}
-		close(counter_maps_fd);
 		offset = MODERN_BPF_MAX_KERNEL_COUNTERS_STATS;
 	}
 
