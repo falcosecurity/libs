@@ -209,6 +209,28 @@ TEST(modern_bpf, scap_stats_check)
 	scap_close(h);
 }
 
+TEST(modern_bpf, double_scap_stats_call)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
+
+	scap_stats stats;
+	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS);
+
+	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
+	ASSERT_GT(stats.n_evts, 0);
+
+	/* Double call */	
+	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
+	ASSERT_GT(stats.n_evts, 0);
+	
+	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS);
+	scap_close(h);
+}
+
 TEST(modern_bpf, scap_stats_v2_check_results)
 {
 	char error_buffer[FILENAME_MAX] = {0};
@@ -260,5 +282,29 @@ TEST(modern_bpf, scap_stats_v2_check_empty)
 	ASSERT_TRUE(scap_get_stats_v2(h, flags, &nstats, &rc));
 	ASSERT_EQ(nstats, 0);
 	ASSERT_EQ(rc, SCAP_SUCCESS);
+	scap_close(h);
+}
+
+TEST(modern_bpf, double_scap_stats_v2_call)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	/* We use buffers of 1 MB to be sure that we don't have drops */
+	scap_t* h = open_modern_bpf_engine(error_buffer, &ret, 1 * 1024 * 1024, 0, false);
+	ASSERT_EQ(!h || ret != SCAP_SUCCESS, false) << "unable to open modern bpf engine with one single shared ring buffer: " << error_buffer << std::endl;
+
+	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t nstats;
+	int32_t rc;
+
+	scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(nstats, 0);
+
+	/* Double call */
+	scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(nstats, 0);
+
 	scap_close(h);
 }
