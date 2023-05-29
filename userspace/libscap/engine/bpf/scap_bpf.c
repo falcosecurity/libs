@@ -1745,7 +1745,7 @@ const struct scap_stats_v2* scap_bpf_get_stats_v2(struct scap_engine_handle engi
 			}
 			struct bpf_prog_info info = {};
 			__u32 len = sizeof(info);
-			if((bpf_obj_get_info_by_fd(fd, &info, &len)))
+			if((ret = bpf_obj_get_info_by_fd(fd, &info, &len)))
 			{
 				*rc = scap_errprintf(handle->m_lasterr, -ret, "Error getting bpf prog info for fd %d", fd);
 				continue;
