@@ -28,6 +28,7 @@ limitations under the License.
 #include "strlcpy.h"
 #include <sys/utsname.h>
 #include "ringbuffer/ringbuffer.h"
+#include "scap_engine_util.h"
 
 static struct modern_bpf_engine* scap_modern_bpf__alloc_engine(scap_t* main_handle, char* lasterr_ptr)
 {
