@@ -108,6 +108,28 @@ TEST(bpf, scap_stats_check)
 	scap_close(h);
 }
 
+TEST(bpf, double_scap_stats_call)
+{
+	char error_buffer[FILENAME_MAX] = {0};
+	int ret = 0;
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
+	scap_stats stats;
+
+	ASSERT_EQ(scap_start_capture(h), SCAP_SUCCESS);
+
+	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
+	ASSERT_GT(stats.n_evts, 0);
+
+	/* Double call */
+	ASSERT_EQ(scap_get_stats(h, &stats), SCAP_SUCCESS);
+	ASSERT_GT(stats.n_evts, 0);
+
+	ASSERT_EQ(scap_stop_capture(h), SCAP_SUCCESS);
+	scap_close(h);
+}
+
 TEST(bpf, scap_stats_v2_check_results)
 {
 	char error_buffer[SCAP_LASTERR_SIZE] = {0};
@@ -141,6 +163,29 @@ TEST(bpf, scap_stats_v2_check_results)
 			FAIL() << "unable to find stat '" << stat_name << "' into the array";
 		}
 	}
+	scap_close(h);
+}
+
+TEST(bpf, double_scap_stats_v2_call)
+{
+	char error_buffer[SCAP_LASTERR_SIZE] = {0};
+	int ret = 0;
+	scap_t* h = open_bpf_engine(error_buffer, &ret, 4 * 4096, LIBSCAP_TEST_BPF_PROBE_PATH);
+	ASSERT_FALSE(!h || ret != SCAP_SUCCESS) << "unable to open bpf engine: " << error_buffer << std::endl;
+
+	uint32_t flags = PPM_SCAP_STATS_KERNEL_COUNTERS | PPM_SCAP_STATS_LIBBPF_STATS;
+	uint32_t nstats;
+	int32_t rc;
+	
+	scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(nstats, 0);
+
+	/* Double call */
+	scap_get_stats_v2(h, flags, &nstats, &rc);
+	ASSERT_EQ(rc, SCAP_SUCCESS);
+	ASSERT_GT(nstats, 0);
+
 	scap_close(h);
 }
 
