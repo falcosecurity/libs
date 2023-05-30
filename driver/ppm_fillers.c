@@ -153,6 +153,13 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 #endif /* UDIG */
 
 
+/*
+ * Detect whether the file being referenced is an anonymous file created using memfd_create()
+ * and is being executed by referencing its file descriptor (fd). This type of file does not
+ * exist on disk and resides solely in memory, but it is treated as a legitimate file with an
+ * inode object and other file attributes.
+ *
+ **/
 static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
