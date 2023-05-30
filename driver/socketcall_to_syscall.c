@@ -21,31 +21,31 @@ or GPL2.txt for full copies of the license.
 /* We need to import them explicitly otherwise if we import `linux/net`
  * we will have a redefinition of syscall codes.
  */
-#define SYS_SOCKET	1		/* sys_socket(2)		*/
-#define SYS_BIND	2		/* sys_bind(2)			*/
-#define SYS_CONNECT	3		/* sys_connect(2)		*/
-#define SYS_LISTEN	4		/* sys_listen(2)		*/
-#define SYS_ACCEPT	5		/* sys_accept(2)		*/
-#define SYS_GETSOCKNAME	6		/* sys_getsockname(2)		*/
-#define SYS_GETPEERNAME	7		/* sys_getpeername(2)		*/
-#define SYS_SOCKETPAIR	8		/* sys_socketpair(2)		*/
-#define SYS_SEND	9		/* sys_send(2)			*/
-#define SYS_RECV	10		/* sys_recv(2)			*/
-#define SYS_SENDTO	11		/* sys_sendto(2)		*/
-#define SYS_RECVFROM	12		/* sys_recvfrom(2)		*/
-#define SYS_SHUTDOWN	13		/* sys_shutdown(2)		*/
-#define SYS_SETSOCKOPT	14		/* sys_setsockopt(2)		*/
-#define SYS_GETSOCKOPT	15		/* sys_getsockopt(2)		*/
-#define SYS_SENDMSG	16		/* sys_sendmsg(2)		*/
-#define SYS_RECVMSG	17		/* sys_recvmsg(2)		*/
-#define SYS_ACCEPT4	18		/* sys_accept4(2)		*/
-#define SYS_RECVMMSG	19		/* sys_recvmmsg(2)		*/
-#define SYS_SENDMMSG	20		/* sys_sendmmsg(2)		*/
+#define SYS_SOCKET 1	  /* sys_socket(2)		*/
+#define SYS_BIND 2	  /* sys_bind(2)			*/
+#define SYS_CONNECT 3	  /* sys_connect(2)		*/
+#define SYS_LISTEN 4	  /* sys_listen(2)		*/
+#define SYS_ACCEPT 5	  /* sys_accept(2)		*/
+#define SYS_GETSOCKNAME 6 /* sys_getsockname(2)		*/
+#define SYS_GETPEERNAME 7 /* sys_getpeername(2)		*/
+#define SYS_SOCKETPAIR 8  /* sys_socketpair(2)		*/
+#define SYS_SEND 9	  /* sys_send(2)			*/
+#define SYS_RECV 10	  /* sys_recv(2)			*/
+#define SYS_SENDTO 11	  /* sys_sendto(2)		*/
+#define SYS_RECVFROM 12	  /* sys_recvfrom(2)		*/
+#define SYS_SHUTDOWN 13	  /* sys_shutdown(2)		*/
+#define SYS_SETSOCKOPT 14 /* sys_setsockopt(2)		*/
+#define SYS_GETSOCKOPT 15 /* sys_getsockopt(2)		*/
+#define SYS_SENDMSG 16	  /* sys_sendmsg(2)		*/
+#define SYS_RECVMSG 17	  /* sys_recvmsg(2)		*/
+#define SYS_ACCEPT4 18	  /* sys_accept4(2)		*/
+#define SYS_RECVMMSG 19	  /* sys_recvmmsg(2)		*/
+#define SYS_SENDMMSG 20	  /* sys_sendmmsg(2)		*/
 
 /* Please note that here `socketcall_syscall_id` could be the code
  * on 64-bit or 32-bit.
  */
-int socketcall_code_to_syscall_code(int socketcall_code)
+int socketcall_code_to_syscall_code(int socketcall_code, int socketcall_syscall_id)
 {
 	switch(socketcall_code)
 	{
@@ -59,13 +59,10 @@ int socketcall_code_to_syscall_code(int socketcall_code)
 		return __NR_socketpair;
 #endif
 
+#ifdef __NR_accept
 	case SYS_ACCEPT:
-#if defined(CONFIG_S390) && defined(__NR_accept4)
-		return __NR_accept4;
-#elif defined(__NR_accept)
 		return __NR_accept;
 #endif
-		break;
 
 #ifdef __NR_accept4
 	case SYS_ACCEPT4:
@@ -155,8 +152,15 @@ int socketcall_code_to_syscall_code(int socketcall_code)
 		break;
 	}
 
-	/* if we are not able to convert the
-	 * socketcall code we return -1
+	/* We are not able to convert the socket call code.
+	 * There are 2 possibilities:
+	 * 1. the user provided the wrong socket call code.
+	 * 2. The socket call code is defined but the corresponding
+	 *    syscall call is not defined. For example on s390x machines
+	 *    `SYS_ACCEPT` is defined but `__NR_accept` is not.
+	 * In both cases we return the original socketcall_syscall_id.
+	 * we will manage these corner cases in a second step when we
+	 * will have more info.
 	 */
-	return -1;
+	return socketcall_syscall_id;
 }
