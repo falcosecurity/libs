@@ -2069,19 +2069,19 @@ static __always_inline struct inode *get_file_inode(struct file *file)
 	return NULL;
 }
 
+/*
+ * Detect whether the file being referenced is an anonymous file created using memfd_create()
+ * and is being executed by referencing its file descriptor (fd). This type of file does not
+ * exist on disk and resides solely in memory, but it is treated as a legitimate file with an
+ * inode object and other file attributes.
+ *
+ **/
 static __always_inline bool get_exe_from_memfd(struct file *file)
 {
 	struct dentry *dentry = _READ(file->f_path.dentry);
 	if(!dentry)
 	{
 		bpf_printk("get_exe_from_memfd(): failed to get dentry");
-		return false;
-	}
-
-	const unsigned char *name = _READ(dentry->d_name.name);
-	if(!name)
-	{
-		bpf_printk("get_exe_from_memfd(): failed to get name");
 		return false;
 	}
 
@@ -2094,6 +2094,13 @@ static __always_inline bool get_exe_from_memfd(struct file *file)
 
 	if(parent != dentry)
 	{
+		return false;
+	}
+
+	const unsigned char *name = _READ(dentry->d_name.name);
+	if(!name)
+	{
+		bpf_printk("get_exe_from_memfd(): failed to get name");
 		return false;
 	}
 
