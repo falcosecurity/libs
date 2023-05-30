@@ -24,7 +24,7 @@ limitations under the License.
 #include "noop.h"
 
 #include "scap.h"
-#include "strlcpy.h"
+#include "strl.h"
 #include "gettimeofday.h"
 #include "sleep.h"
 

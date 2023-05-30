@@ -14,11 +14,18 @@ include(ExternalProject)
 
 include(CheckSymbolExists)
 check_symbol_exists(strlcpy "string.h" HAVE_STRLCPY)
+check_symbol_exists(strlcat "string.h" HAVE_STRLCAT)
 
 if(HAVE_STRLCPY)
 	message(STATUS "Existing strlcpy found, will *not* use local definition")
 else()
 	message(STATUS "No strlcpy found, will use local definition")
+endif()
+
+if(HAVE_STRLCAT)
+	message(STATUS "Existing strlcat found, will *not* use local definition")
+else()
+	message(STATUS "No strlcat found, will use local definition")
 endif()
 
 configure_file(${LIBSCAP_DIR}/userspace/common/common_config.h.in ${PROJECT_BINARY_DIR}/common/common_config.h)

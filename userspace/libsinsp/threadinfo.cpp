@@ -21,7 +21,7 @@ limitations under the License.
 #endif
 #include <stdio.h>
 #include <algorithm>
-#include "strlcpy.h"
+#include "strl.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "protodecoder.h"

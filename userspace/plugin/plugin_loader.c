@@ -23,7 +23,7 @@ limitations under the License.
     typedef void* library_handle_t;
 #endif
 
-#include "strlcpy.h"
+#include "strl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

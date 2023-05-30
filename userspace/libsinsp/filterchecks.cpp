@@ -33,7 +33,7 @@ limitations under the License.
 #include "tracers.h"
 #include "value_parser.h"
 
-#include "strlcpy.h"
+#include "strl.h"
 
 using namespace std;
 

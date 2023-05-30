@@ -38,7 +38,7 @@ limitations under the License.
 #include "filter.h"
 #include "filterchecks.h"
 #include "protodecoder.h"
-#include "strlcpy.h"
+#include "strl.h"
 #include "plugin_manager.h"
 #include "sinsp_observer.h"
 

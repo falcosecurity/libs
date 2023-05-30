@@ -39,7 +39,7 @@ struct iovec {
 #include "scap_reader.h"
 #include "../noop/noop.h"
 
-#include "strlcpy.h"
+#include "strl.h"
 
 //
 // Read the section header block

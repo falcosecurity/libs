@@ -38,7 +38,7 @@ limitations under the License.
 #include "parsers.h"
 #include "compat/misc.h"
 #include "../../driver/ppm_events_public.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 #include "userspace_flag_helpers.h"
 

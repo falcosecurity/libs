@@ -29,7 +29,7 @@ limitations under the License.
 #endif
 #include <json/json.h>
 
-#include "strlcpy.h"
+#include "strl.h"
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "chisel.h"

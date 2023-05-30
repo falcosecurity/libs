@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "strlcpy.h"
+#include "strl.h"
 #include "../scap.h"
 #include "scap_assert.h"
 

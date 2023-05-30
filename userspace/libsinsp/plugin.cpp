@@ -34,7 +34,7 @@ limitations under the License.
 #include "sinsp_exception.h"
 #include "plugin.h"
 #include "plugin_filtercheck.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 using namespace std;
 

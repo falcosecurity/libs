@@ -24,7 +24,7 @@ limitations under the License.
 #include "utils.h"
 #include <sinsp.h>
 #include "sinsp_public.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 void get_rss_vsz_pss_memory(uint32_t &rss, uint32_t &vsz, uint32_t &pss)
 {
