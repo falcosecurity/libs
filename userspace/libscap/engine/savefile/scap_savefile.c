@@ -119,6 +119,7 @@ static int32_t scap_read_proclist(scap_reader_t* r, uint32_t block_length, uint3
 		tinfo.exe_ino = 0;
 		tinfo.exe_ino_ctime = 0;
 		tinfo.exe_ino_mtime = 0;
+		tinfo.exe_from_memfd = false;
 
 		//
 		// len
