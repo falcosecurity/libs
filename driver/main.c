@@ -1368,16 +1368,17 @@ static const unsigned char compat_nas[21] = {
 
 
 #ifdef _HAS_SOCKETCALL
-static long convert_network_syscalls(struct pt_regs *regs, long socketcall_syscall_id)
+/* This method is just a pass-through to avoid exporting 
+ * `ppm_syscall_get_arguments` outside of `main.c`
+ */
+static long convert_network_syscalls(struct pt_regs *regs, bool* is_syscall_return)
 {
 	/* Here we extract just the first parameter of the socket call */
 	unsigned long __user args[6] = {};
-	int new_syscall_id = 0;
 	ppm_syscall_get_arguments(current, regs, args);
 
-	/* args[0] is the specific syscall code */
-	return socketcall_code_to_syscall_code(args[0], socketcall_syscall_id);
-
+	/* args[0] is the specific socket call code */
+	return socketcall_code_to_syscall_code(args[0], is_syscall_return);
 }
 
 static int load_socketcall_params(struct event_filler_arguments *filler_args)
@@ -1771,60 +1772,26 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	// Check if syscall is interesting for the consumer
 	if (event_datap->category == PPMC_SYSCALL)
 	{
-		if(event_datap->event_info.syscall_data.id == event_datap->socketcall_syscall_id)
-		{
-			/* If here we still have the socketcall_id there 2 possible cases:
-			 * 1. The user provided the wrong socket call code.
-			 *    In this case we will send a generic event to userspace
-			 * 2. The socket call code is defined but the corresponding
-			 *    syscall call is not defined in the system.
-			 *    In this case we convert the socket call code directly
-			 *    to the corresponding event and we send the right event
-			 *    to userspace.
-			 *    Please note: the unique downside here is that we cannot
-			 *    use the simple consumer on these converted events because
-			 *    we don't have the right syscall code, we just have the
-			 *    generic `__NR_socketcall`. So if in the simple consumer
-			 *    `__NR_socketcall` is true, we will always receive these
-			 *    converted events + generic events of point (1).
-			 *    If false, we will never receive neither the converted events
-			 *    nor the generic ones.
-			 */
-
-			unsigned long __user args_socketcall[6] = {};
-			ppm_syscall_get_arguments(current, event_datap->event_info.syscall_data.regs, args_socketcall);
-
-			/* UF_USED is the default flag we want to keep for not generic events */
-			drop_flags = UF_USED;
-			/* Even If we can convert to the right event we always have to extract the params
-			 * with the socketcall_mechanism.
-			 */
-			event_datap->extract_socketcall_params = true;
-			switch(args_socketcall[0])
-			{
-			case SYS_SEND:
-				event_type = PPME_SOCKET_SEND_E + PPME_IS_EXIT(event_type);
-				break;
-
-			case SYS_RECV:
-				event_type = PPME_SOCKET_RECV_E + PPME_IS_EXIT(event_type);
-				break;
-
-			case SYS_ACCEPT:
-				event_type = PPME_SOCKET_ACCEPT_5_E + PPME_IS_EXIT(event_type);
-				break;
-
-			default:
-				event_type = PPME_GENERIC_E + PPME_IS_EXIT(event_type);
-				drop_flags = UF_ALWAYS_DROP;
-				/* Not sure we need this! */
-				event_datap->extract_socketcall_params = false;
-				break;
-			}
-		}
-
+		/* Please note:
+		 * Right now we don't support the simple consumer on 32 bits.
+		 *
+		 * Please note:
+		 * If we have a syscall code equal to socketcall_id
+		 * there are 2 possible cases:
+		 * 
+		 * 1. The user provided the wrong socket call code.
+		 *    In this case we send a generic event to userspace.
+		 * 2. The socket call code is defined but the corresponding
+		 *    syscall call is not defined in the system.
+		 *    In this case we send the right syscall event.
+		 * 
+		 * In both cases we cannot use the simple consumer to filter out
+		 * specific events we can only keep or drop all of them.
+		 * If the socket call syscall is set as interesting we keep all
+		 * these events (specific ones + generic ones), otherwise we 
+		 * drop all of them.
+		 */
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
-		/* Please note that right now we don't have the simple consumer on 32 bits */
 		if(!test_bit(table_index, consumer->syscalls_mask) && !event_datap->compat)
 		{
 			return res;
@@ -2184,6 +2151,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	event_data.socketcall_syscall_id = -1;
 	event_data.extract_socketcall_params = false;
 
+	/* This could be overwritten if we are in a socket call */
+	event_data.event_info.syscall_data.id = id;
+
 	/* By default we are on 64 bit */
 	event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_table;
 	event_data.compat = false;
@@ -2211,25 +2181,39 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	g_n_tracepoint_hit_inc();
 
 #ifdef _HAS_SOCKETCALL
-	if(id == event_data.socketcall_syscall_id)
+	if(event_data.event_info.syscall_data.id == event_data.socketcall_syscall_id)
 	{
-		id = convert_network_syscalls(regs, event_data.socketcall_syscall_id);
-		/* The conversion was successful we set `extract_socketcall_params`
-		 * to true because we will need to extract the syscall real parameters
-		 * inside the first syscall argument.
-		 * If `id == event_data.socketcall_syscall_id` we have no enough info
-		 * to decide here.
+		bool is_syscall_return;
+		int return_code = convert_network_syscalls(regs, &is_syscall_return);
+
+		/* If the return code is not the generic event we will need to extract parameters
+		 * with the socket call mechanism.
 		 */
-		if(id != event_data.socketcall_syscall_id)
+		event_data.extract_socketcall_params = true;
+
+		/* If we return an event code, it means we need to call directly `record_event_all_consumers`
+		 * Please note that in this case the syscall id is always `__NR_socketcall`
+		 */
+		if(!is_syscall_return)
 		{
-			event_data.extract_socketcall_params = true;
+			/* The user provided a wrong code, we will send a generic event, 
+			 * no need for socket call arguments extraction logic.
+			 */
+			if(return_code == PPME_GENERIC_E)
+			{
+				event_data.extract_socketcall_params = false;
+			}
+			record_event_all_consumers(return_code, return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED, &event_data, KMOD_PROG_SYS_ENTER);
+			return;
 		}
+
+		/* If we return a syscall id we just set it */
+		event_data.event_info.syscall_data.id = return_code;
 	}
 #endif
 
 	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
-	event_data.event_info.syscall_data.id = id;
-	table_index = id - SYSCALL_TABLE_ID0;
+	table_index = event_data.event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
 		return;
@@ -2286,9 +2270,11 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
  	 * tracing about to attempt one, returns the system call number.
  	 * If @task is not executing a system call, i.e. it's blocked
  	 * inside the kernel for a fault or signal, returns -1.
+	 * 
+	 * The syscall id could be overwritten if we are in a socket call.
 	 */
-	long id = syscall_get_nr(current, regs);
-	if(id < 0)
+	event_data.event_info.syscall_data.id = syscall_get_nr(current, regs);
+	if(event_data.event_info.syscall_data.id < 0)
 	{
 		return;
 	}
@@ -2314,9 +2300,9 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	 * which is a very old syscall, not used anymore by most applications
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if (in_ia32_syscall() && id != __NR_execve) {
+	if (in_ia32_syscall() && event_data.event_info.syscall_data.id != __NR_execve) {
 #else
-	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && id != __NR_execve)) {
+	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && event_data.event_info.syscall_data.id != __NR_execve)) {
 #endif
 		event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_ia32_table;
 		event_data.compat = true;
@@ -2327,19 +2313,38 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	g_n_tracepoint_hit_inc();
 
 #ifdef _HAS_SOCKETCALL
-	if(id == event_data.socketcall_syscall_id)
+	if(event_data.event_info.syscall_data.id == event_data.socketcall_syscall_id)
 	{
-		id = convert_network_syscalls(regs, event_data.socketcall_syscall_id);
-		if(id != event_data.socketcall_syscall_id)
+		bool is_syscall_return;
+		int return_code = convert_network_syscalls(regs, &is_syscall_return);
+
+		/* If the return code is not the generic event we will need to extract parameters
+		 * with the socket call mechanism.
+		 */
+		event_data.extract_socketcall_params = true;
+
+		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
+		if(!is_syscall_return)
 		{
-			event_data.extract_socketcall_params = true;
+			/* The user provided a wrong code, we will send a generic event, 
+			 * no need for socket call arguments extraction logic.
+			 */
+			if(return_code == PPME_GENERIC_E)
+			{
+				event_data.extract_socketcall_params = false;
+			}
+			/* we need to use `return_code + 1` because return_code
+			 * is the enter event.
+			 */
+			record_event_all_consumers(return_code + 1, return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED, &event_data, KMOD_PROG_SYS_EXIT);
 		}
+
+		/* If we return a syscall id we just set it */
+		event_data.event_info.syscall_data.id = return_code;
 	}
 #endif
 
-	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
-	event_data.event_info.syscall_data.id = id;
-	table_index = id - SYSCALL_TABLE_ID0;
+	table_index = event_data.event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))
 	{
 		return;
