@@ -38,7 +38,7 @@ limitations under the License.
 #include "plugin.h"
 #include "plugin_manager.h"
 #include "plugin_filtercheck.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 #ifndef CYGWING_AGENT
 #ifndef MINIMAL_BUILD

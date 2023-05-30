@@ -50,7 +50,7 @@ limitations under the License.
 #include "filterchecks.h"
 #include "protodecoder.h"
 #include "uri.h"
-#include "strlcpy.h"
+#include "strl.h"
 #if !defined(_WIN32) && !defined(MINIMAL_BUILD)
 #include "curl/curl.h"
 #endif

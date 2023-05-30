@@ -22,7 +22,7 @@ limitations under the License.
 #include "filter_check_list.h"
 #include "filterchecks.h"
 
-#include "strlcpy.h"
+#include "strl.h"
 
 using namespace std;
 

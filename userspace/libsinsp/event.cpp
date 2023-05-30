@@ -34,7 +34,7 @@ limitations under the License.
 
 #include "sinsp.h"
 #include "sinsp_int.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 #include "scap.h"
 

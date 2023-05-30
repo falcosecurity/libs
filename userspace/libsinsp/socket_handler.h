@@ -53,7 +53,7 @@ limitations under the License.
 #include <cstring>
 #include <climits>
 
-#include "strlcpy.h"
+#include "strl.h"
 
 #ifndef SOCK_NONBLOCK
 #define SOCK_NONBLOCK 0

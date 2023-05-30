@@ -10,3 +10,4 @@ or GPL2.txt for full copies of the license.
 
 /* Define to 1 if our C library has strlcpy */
 #cmakedefine HAVE_STRLCPY 1
+#cmakedefine HAVE_STRLCAT 1

@@ -35,7 +35,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "utils.h"
 
-#include "strlcpy.h"
+#include "strl.h"
 
 #include "filter.h"
 #include "filterchecks.h"

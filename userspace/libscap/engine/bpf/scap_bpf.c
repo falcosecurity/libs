@@ -30,7 +30,7 @@ limitations under the License.
 #include <ctype.h>
 #include <time.h>
 #include <dirent.h>
-#include "strlcpy.h"
+#include "strl.h"
 
 #define SCAP_HANDLE_T struct bpf_engine
 
@@ -45,7 +45,7 @@ limitations under the License.
 #include "../../driver/bpf/maps.h"
 #include "compat/misc.h"
 #include "compat/bpf.h"
-#include "strlcpy.h"
+#include "strl.h"
 #include "noop.h"
 #include "strerror.h"
 

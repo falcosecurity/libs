@@ -26,7 +26,7 @@ limitations under the License.
 #include <compat/misc.h>
 #include <compat/bpf.h>
 #include <compat/perf_event.h>
-#include <strlcpy.h>
+#include <strl.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 

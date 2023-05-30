@@ -21,7 +21,7 @@ limitations under the License.
 #include "utils.h"
 #include "logger.h"
 #include "sinsp.h"
-#include "strlcpy.h"
+#include "strl.h"
 #include <sys/types.h>
 
 #ifdef HAVE_PWD_H

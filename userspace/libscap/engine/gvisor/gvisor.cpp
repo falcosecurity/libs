@@ -37,7 +37,7 @@ namespace scap_gvisor {
 #include <stdint.h>
 #include <utility>
 
-#include "strlcpy.h"
+#include "strl.h"
 
 #ifdef __cplusplus
 extern "C"{

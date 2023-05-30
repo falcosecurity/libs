@@ -18,7 +18,7 @@
 #include "ringbuffer/ringbuffer.h"
 #include "engine/noop/noop.h"
 #include "strerror.h"
-#include "strlcpy.h"
+#include "strl.h"
 
 #ifndef UDIG_INSTRUMENTER
 #define ud_shm_open shm_open

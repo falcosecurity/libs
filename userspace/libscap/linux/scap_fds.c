@@ -21,7 +21,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_linux_int.h"
 #include "scap_linux_platform.h"
-#include "strlcpy.h"
+#include "strl.h"
 #include "strerror.h"
 #include <sys/stat.h>
 #include <sys/types.h>
