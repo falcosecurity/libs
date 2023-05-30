@@ -8,6 +8,7 @@ or GPL2.txt for full copies of the license.
 */
 
 #include <linux/kconfig.h>
+#include "ppm_events_public.h"
 
 /* Right now we don't support architectures that have
  * socket-calls both on 64 and 32-bit
@@ -42,11 +43,11 @@ or GPL2.txt for full copies of the license.
 #define SYS_RECVMMSG 19	  /* sys_recvmmsg(2)		*/
 #define SYS_SENDMMSG 20	  /* sys_sendmmsg(2)		*/
 
-/* Please note that here `socketcall_syscall_id` could be the code
- * on 64-bit or 32-bit.
- */
-int socketcall_code_to_syscall_code(int socketcall_code, int socketcall_syscall_id)
+int socketcall_code_to_syscall_code(int socketcall_code, bool* is_syscall_return)
 {
+	/* First we check if we can convert a valid syscall code */
+	*is_syscall_return = true;
+
 	switch(socketcall_code)
 	{
 #ifdef __NR_socket
@@ -152,15 +153,92 @@ int socketcall_code_to_syscall_code(int socketcall_code, int socketcall_syscall_
 		break;
 	}
 
-	/* We are not able to convert the socket call code.
-	 * There are 2 possibilities:
+	/* If we cannot convert to a valid syscall id, there are 2 possibilities:
 	 * 1. the user provided the wrong socket call code.
+	 *	  In this case we will send a generic event at the end of this method
 	 * 2. The socket call code is defined but the corresponding
 	 *    syscall call is not defined. For example on s390x machines
 	 *    `SYS_ACCEPT` is defined but `__NR_accept` is not.
-	 * In both cases we return the original socketcall_syscall_id.
-	 * we will manage these corner cases in a second step when we
-	 * will have more info.
+	 * 	  In this way we will send the corresponding event.
+	 *
+	 * Known cases in which the socket call code is defined but
+	 * the corresponding syscall code is not:
+	 *
+	 * ----- s390x
+	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
+	 *
+	 * ----- x86 with CONFIG_IA32_EMULATION
+	 * - `SYS_ACCEPT` is defined but `__NR_accept` is not defined
+	 * - `SYS_SEND` is defined but `__NR_send` is not defined
+	 * - `SYS_RECV` is defined but `__NR_recv` is not defined
 	 */
-	return socketcall_syscall_id;
+	*is_syscall_return = false;
+
+	switch(socketcall_code)
+	{
+	case SYS_SOCKET:
+		return PPME_SOCKET_SOCKET_E;
+
+	case SYS_SOCKETPAIR:
+		return PPME_SOCKET_SOCKETPAIR_E;
+
+	case SYS_ACCEPT:
+		return PPME_SOCKET_ACCEPT_5_E;
+
+	case SYS_ACCEPT4:
+		return PPME_SOCKET_ACCEPT4_5_E;
+
+	case SYS_BIND:
+		return PPME_SOCKET_BIND_E;
+
+	case SYS_LISTEN:
+		return PPME_SOCKET_LISTEN_E;
+
+	case SYS_CONNECT:
+		return PPME_SOCKET_CONNECT_E;
+
+	case SYS_GETSOCKNAME:
+		return PPME_SOCKET_GETSOCKNAME_E;
+
+	case SYS_GETPEERNAME:
+		return PPME_SOCKET_GETPEERNAME_E;
+
+	case SYS_GETSOCKOPT:
+		return PPME_SOCKET_GETSOCKOPT_E;
+
+	case SYS_SETSOCKOPT:
+		return PPME_SOCKET_SETSOCKOPT_E;
+
+	case SYS_RECV:
+		return PPME_SOCKET_RECV_E;
+
+	case SYS_RECVFROM:
+		return PPME_SOCKET_RECVFROM_E;
+
+	case SYS_RECVMSG:
+		return PPME_SOCKET_RECVMSG_E;
+
+	case SYS_RECVMMSG:
+		return PPME_SOCKET_RECVMMSG_E;
+
+	case SYS_SEND:
+		return PPME_SOCKET_SEND_E;
+
+	case SYS_SENDTO:
+		return PPME_SOCKET_SENDTO_E;
+
+	case SYS_SENDMSG:
+		return PPME_SOCKET_SENDMSG_E;
+
+	case SYS_SENDMMSG:
+		return PPME_SOCKET_SENDMMSG_E;
+
+	case SYS_SHUTDOWN:
+		return PPME_SOCKET_SHUTDOWN_E;
+
+	default:
+		break;
+	}
+
+	return PPME_GENERIC_E;
 }
