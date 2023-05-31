@@ -186,7 +186,7 @@ int socketcall_code_to_syscall_code(int socketcall_code, bool* is_syscall_return
 		return PPME_SOCKET_ACCEPT_5_E;
 
 	case SYS_ACCEPT4:
-		return PPME_SOCKET_ACCEPT4_5_E;
+		return PPME_SOCKET_ACCEPT4_6_E;
 
 	case SYS_BIND:
 		return PPME_SOCKET_BIND_E;
