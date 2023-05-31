@@ -122,7 +122,10 @@ static bool is_cpu_online(uint16_t cpu_id)
 		}
 	}
 
-	fscanf(fp, "%d", &online);
+	if(fscanf(fp, "%d", &online) != 1)
+	{
+		online = 0;
+	}
 	fclose(fp);
 	return online == 1;
 }
