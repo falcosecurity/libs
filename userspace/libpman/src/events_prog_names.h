@@ -312,6 +312,8 @@ static const char* event_prog_names[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_SIGNALFD4_X] = "signalfd4_x",
 	[PPME_SYSCALL_PRCTL_E] = "prctl_e",
 	[PPME_SYSCALL_PRCTL_X] = "prctl_x",
+	[PPME_SYSCALL_MEMFD_CREATE_E] = "memfd_create_e",
+	[PPME_SYSCALL_MEMFD_CREATE_X] =  "memfd_create_x",
 };
 
 /* Some events can require more than one bpf program to collect all the data. */

@@ -686,9 +686,6 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_mount_setattr
 	[__NR_mount_setattr - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MOUNT_SETATTR},
 #endif
-#ifdef __NR_memfd_create
-	[__NR_memfd_create - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_CREATE},
-#endif
 #ifdef __NR_memfd_secret
 	[__NR_memfd_secret - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_MEMFD_SECRET},
 #endif
@@ -907,5 +904,8 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_sigsuspend
 	[__NR_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGSUSPEND},
+#endif
+#ifdef __NR_memfd_create
+	[__NR_memfd_create - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MEMFD_CREATE_E, PPME_SYSCALL_MEMFD_CREATE_X, PPM_SC_MEMFD_CREATE},
 #endif
 };

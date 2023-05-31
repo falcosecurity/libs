@@ -695,6 +695,13 @@ or GPL2.txt for full copies of the license.
 #define PPM_MLOCK_ONFAULT	(1<<0)
 
 /*
+ * Memfd_create flags
+ */
+#define PPM_MFD_CLOEXEC 		(1<<0)
+#define PPM_MFD_ALLOW_SEALING 	(1<<1)
+#define PPM_MFD_HUGETLB 		(1<<2)
+
+/*
  * Fsconfig flags
  */
 #define PPM_FSCONFIG_SET_FLAG	0
@@ -1368,7 +1375,9 @@ typedef enum {
 	PPME_SYSCALL_PRCTL_X = 401,
 	PPME_ASYNCEVENT_E = 402,
 	PPME_ASYNCEVENT_X = 403,
-	PPM_EVENT_MAX = 404
+	PPME_SYSCALL_MEMFD_CREATE_E = 404,
+	PPME_SYSCALL_MEMFD_CREATE_X = 405,
+	PPM_EVENT_MAX = 406
 } ppm_event_code;
 /*@}*/
 
@@ -2083,6 +2092,7 @@ extern const struct ppm_name_value fsconfig_cmds[];
 extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
 extern const struct ppm_name_value prctl_options[];
+extern const struct ppm_name_value memfd_create_flags[];
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
