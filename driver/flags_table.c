@@ -672,3 +672,10 @@ const struct ppm_name_value prctl_options[] = {
 	{"PR_CAP_AMBIENT",PPM_PR_CAP_AMBIENT},
 	{0, 0},
 };
+
+const struct ppm_name_value memfd_create_flags[] = {
+	{"MFD_CLOEXEC",PPM_MFD_CLOEXEC},
+	{"MFD_ALLOW_SEALING",PPM_MFD_ALLOW_SEALING},
+	{"MFD_HUGETLB",PPM_MFD_HUGETLB},
+	{0,0},
+};

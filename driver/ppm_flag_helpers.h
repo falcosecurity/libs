@@ -1724,6 +1724,21 @@ static __always_inline u32 mlock2_flags_to_scap(unsigned long flags)
 	return res;
 }
 
+static __always_inline u32 memfd_create_flags_to_scap(unsigned long flags)
+{
+	u32 res = 0;
+#ifdef MFD_CLOEXEC
+		if(flags & MFD_CLOEXEC) res |= PPM_MFD_CLOEXEC;
+#endif
+#ifdef MFD_ALLOW_SEALING
+		if(flags & MFD_ALLOW_SEALING) res |= PPM_MFD_ALLOW_SEALING;
+#endif
+#ifdef MFD_HUGETLB
+		if(flags & MFD_HUGETLB) res |= PPM_MFD_HUGETLB;
+#endif
+return res;
+}
+
 static __always_inline u32 unlinkat_flags_to_scap(unsigned long flags)
 {
 	u32 res = 0;
