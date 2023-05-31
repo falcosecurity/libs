@@ -46,9 +46,9 @@ static inline void err_append(char* s, const char* suffix, const char* sep)
 {
     if (*s != '\0')
     {
-        strncat(s, sep, PLUGIN_MAX_ERRLEN - strlen(s) - 1);
+        strlcat(s, sep, PLUGIN_MAX_ERRLEN);
     }
-    strncat(s, suffix, PLUGIN_MAX_ERRLEN - strlen(s) - 1);
+    strlcat(s, suffix, PLUGIN_MAX_ERRLEN);
 }
 
 static void* getsym(library_handle_t handle, const char* name)

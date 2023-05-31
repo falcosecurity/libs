@@ -139,9 +139,9 @@ int open_engine(int argc, char** argv)
 		return EXIT_FAILURE;
 	}
 
-	/* Get current cwd */
-	char cwd[FILENAME_MAX];
-	if(!getcwd(cwd, FILENAME_MAX))
+	/* Get current cwd as a base directory for the driver path */
+	char driver_path[FILENAME_MAX];
+	if(!getcwd(driver_path, FILENAME_MAX))
 	{
 		std::cerr << "Unable to get current dir" << std::endl;
 		return EXIT_FAILURE;
@@ -170,7 +170,8 @@ int open_engine(int argc, char** argv)
 			}
 			else if(optarg == NULL)
 			{
-				bpf_params.bpf_probe = strncat(cwd, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX - strlen(cwd) - 1);
+				strlcat(driver_path, BPF_PROBE_DEFAULT_PATH, FILENAME_MAX);
+				bpf_params.bpf_probe = driver_path;
 			}
 			else
 			{
@@ -199,7 +200,8 @@ int open_engine(int argc, char** argv)
 			}
 			else if(optarg == NULL)
 			{
-				kmod_path = strncat(cwd, KMOD_DEFAULT_PATH, FILENAME_MAX - strlen(cwd) - 1);
+				strlcat(driver_path, KMOD_DEFAULT_PATH, FILENAME_MAX);
+				kmod_path = driver_path;
 			}
 			else
 			{
