@@ -241,7 +241,6 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 				g_state.stats[offset].type = STATS_VALUE_TYPE_U64;
 				g_state.stats[offset].flags = PPM_SCAP_STATS_LIBBPF_STATS;
 				strlcpy(g_state.stats[offset].name, info.name, STATS_NAME_MAX);
-				size_t dest_len = strlen(g_state.stats[offset].name);
 				switch(stat)
 				{
 				case RUN_CNT:
