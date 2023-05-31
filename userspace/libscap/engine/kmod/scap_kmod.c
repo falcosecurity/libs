@@ -192,6 +192,21 @@ static int enforce_sc_set(struct kmod_engine* handle)
 	bool sched_prog_fork = false;
 	bool sched_prog_exec = false;
 
+	/* We need to enable the socketcall under the hood in case these syscalls are not
+	 * defined on the system but we just have the socketcall code.
+	 * See https://github.com/falcosecurity/libs/pull/1128
+     */
+	if(sc_set[PPM_SC_RECV] ||
+	   sc_set[PPM_SC_SEND] ||
+	   sc_set[PPM_SC_ACCEPT])
+	{
+		sc_set[PPM_SC_SOCKETCALL] = true;
+	}
+	else
+	{
+		sc_set[PPM_SC_SOCKETCALL] = false;
+	}
+
 	/* Enforce interesting syscalls */
 	for(int sc = 0; sc < PPM_SC_MAX; sc++)
 	{
