@@ -138,6 +138,12 @@ public:
 	~event_test();
 
 	/**
+	 * @brief Set a custom event type after opening the event_test
+	 * object
+	 */
+	void set_event_type(ppm_event_code evt_type);
+
+	/**
 	 * @brief Tracepoints can start to catch events.
 	 *
 	 */
