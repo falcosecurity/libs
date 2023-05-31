@@ -245,15 +245,15 @@ struct scap_stats_v2 *pman_get_scap_stats_v2(uint32_t flags, uint32_t *nstats, i
 				switch(stat)
 				{
 				case RUN_CNT:
-					strncat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_CNT], sizeof(g_state.stats[offset].name) - dest_len - 1);
+					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_CNT], sizeof(g_state.stats[offset].name));
 					g_state.stats[offset].value.u64 = info.run_cnt;
 					break;
 				case RUN_TIME_NS:
-					strncat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(g_state.stats[offset].name) - dest_len - 1);
+					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[RUN_TIME_NS], sizeof(g_state.stats[offset].name));
 					g_state.stats[offset].value.u64 = info.run_time_ns;
 					break;
 				case AVG_TIME_NS:
-					strncat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(g_state.stats[offset].name) - dest_len - 1);
+					strlcat(g_state.stats[offset].name, modern_bpf_libbpf_stats_names[AVG_TIME_NS], sizeof(g_state.stats[offset].name));
 					g_state.stats[offset].value.u64 = 0;
 					if(info.run_cnt > 0)
 					{
