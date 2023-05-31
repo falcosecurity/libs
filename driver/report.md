@@ -165,7 +165,7 @@ This table represents the syscalls supported by our drivers.
 | madvise                 | 🟡        |
 | mbind                   | 🟡        |
 | membarrier              | 🟡        |
-| memfd_create            | 🟡        |
+| memfd_create            | 🟢        |
 | memfd_secret            | 🟡        |
 | migrate_pages           | 🟡        |
 | mincore                 | 🟡        |
