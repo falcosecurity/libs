@@ -167,6 +167,11 @@ event_test::event_test():
 	}
 }
 
+void event_test::set_event_type(ppm_event_code evt_type)
+{
+	m_event_type = evt_type;
+}
+
 void event_test::enable_capture()
 {
 	for(int ppm_sc = 0; ppm_sc < PPM_SC_MAX; ppm_sc++)
