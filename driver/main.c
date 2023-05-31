@@ -1792,7 +1792,7 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		 * drop all of them.
 		 */
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
-		if(!test_bit(table_index, consumer->syscalls_mask) && !event_datap->compat)
+		if(!event_datap->compat && !test_bit(table_index, consumer->syscalls_mask))
 		{
 			return res;
 		}
