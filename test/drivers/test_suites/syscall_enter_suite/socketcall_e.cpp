@@ -327,11 +327,19 @@ TEST(SyscallEnter, socketcall_acceptE)
 {
 #ifdef __s390x__
 	auto evt_test = get_syscall_event_test(__NR_accept4, ENTER_EVENT);
+	/* The kmod can correctly handle accept also on s390x */
 	if(evt_test->is_kmod_engine())
-		GTEST_SKIP() << "[acceptE] kmod socketcall implementation is event based (rather syscall) " << std::endl;
+	{
+		/* we cannot set `__NR_accept` explicitly since it is not defined on s390x
+		 * we activate all syscalls.
+		 */
+		evt_test.reset(get_syscall_event_test().release());
+		evt_test->set_event_type(PPME_SOCKET_ACCEPT_5_E);
+	}
 #else
 	auto evt_test = get_syscall_event_test(__NR_accept, ENTER_EVENT);
 #endif
+
 	evt_test->enable_capture();
 
 	/*=============================== TRIGGER SYSCALL  ===========================*/
@@ -362,17 +370,21 @@ TEST(SyscallEnter, socketcall_acceptE)
 	evt_test->assert_header();
 
 #ifdef __s390x__
-	/* socketcall uses accept4 event for SYS_ACCEPT */
+	if(!evt_test->is_kmod_engine())
+	{
+		/* socketcall uses accept4 event for SYS_ACCEPT */
 
-	/*=============================== ASSERT PARAMETERS  ===========================*/
+		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 1: flags (type: PT_FLAGS32) */
-	/* Right now `flags` are not supported so we will catch always `0` */
-	evt_test->assert_numeric_param(1, (uint32_t)0);
+		/* Parameter 1: flags (type: PT_FLAGS32) */
+		/* Right now `flags` are not supported so we will catch always `0` */
+		evt_test->assert_numeric_param(1, (uint32_t)0);
 
-	/*=============================== ASSERT PARAMETERS  ===========================*/
+		/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	evt_test->assert_num_params_pushed(1);
+		evt_test->assert_num_params_pushed(1);
+		SUCCEED();
+	}
 #else
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
@@ -1079,8 +1091,9 @@ TEST(SyscallEnter, socketcall_getsocknameE)
 }
 #endif
 
-TEST(SyscallEnter, socketcall_wrong_code)
+TEST(SyscallEnter, socketcall_wrong_code_socketcall_interesting)
 {
+	/* if we set the socket call as interesting we will obtain a generic event */
 	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
 
 	evt_test->enable_capture();
@@ -1099,7 +1112,124 @@ TEST(SyscallEnter, socketcall_wrong_code)
 
 	evt_test->disable_capture();
 
-	/* if we send a socketcall with a wrong code we should immediately drop the event */
+	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_E);
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: ID (type: PT_SYSCALLID) */
+	/* this is the PPM_SC code obtained from the syscall id. */
+	evt_test->assert_numeric_param(1, (uint16_t)PPM_SC_SOCKETCALL);
+
+	/* Parameter 2: nativeID (type: PT_UINT16) */
+	evt_test->assert_numeric_param(2, (uint16_t)__NR_socketcall);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);
+}
+
+TEST(SyscallEnter, socketcall_wrong_code_socketcall_not_interesting)
+{
+	/* if we don't set the socketcall as interesting we won't obtain a generic event.
+	 * In this case we set `setsockopt` as interesting
+	 */
+	auto evt_test = get_syscall_event_test(__NR_setsockopt, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	unsigned long args[3] = {0};
+	args[0] = 47;
+	args[1] = 0;
+	args[2] = 0;
+	int wrong_code = 1230;
+
+	assert_syscall_state(SYSCALL_FAILURE, "socketcall", syscall(__NR_socketcall, wrong_code, args));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	evt_test->assert_event_absence(CURRENT_PID, PPME_GENERIC_E);
+}
+
+TEST(SyscallEnter, socketcall_null_pointer)
+{
+	auto evt_test = get_syscall_event_test(__NR_shutdown, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	assert_syscall_state(SYSCALL_FAILURE, "socketcall", syscall(__NR_socketcall, SYS_SHUTDOWN, NULL));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	if(evt_test->is_kmod_engine())
+	{
+		/* with a null pointer we are not able to correctly obtain the event so right now we drop it. */
+		evt_test->assert_event_absence();
+		SUCCEED();
+		return;
+	}
+
+	/* in bpf and modern bpf we can obtain an event even with a null pointer, but
+	 * all parameters will be 0.
+	 */
+	evt_test->assert_event_presence();
+
+	if(HasFatalFailure())
+	{
+		return;
+	}
+
+	evt_test->parse_event();
+
+	evt_test->assert_header();
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	/* Parameter 1: fd (type: PT_FD) */
+	evt_test->assert_numeric_param(1, (int64_t)0);
+
+	/* Parameter 2: how (type: PT_ENUMFLAGS8) */
+	evt_test->assert_numeric_param(2, (uint8_t)0);
+
+	/*=============================== ASSERT PARAMETERS  ===========================*/
+
+	evt_test->assert_num_params_pushed(2);	
+}
+
+TEST(SyscallEnter, socketcall_null_pointer_and_wrong_code_socketcall_interesting)
+{
+	auto evt_test = get_syscall_event_test(__NR_socketcall, ENTER_EVENT);
+
+	evt_test->enable_capture();
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	int wrong_code = 1230;
+	assert_syscall_state(SYSCALL_FAILURE, "socketcall", syscall(__NR_socketcall, wrong_code, NULL));
+
+	/*=============================== TRIGGER SYSCALL ===========================*/
+
+	evt_test->disable_capture();
+
+	/* Even if we have a null pointer, we will send a generic event so we don't need to preload
+	 * the socketcall params! This is the reason why we don't drop the event in this case.
+	 */
 	evt_test->assert_event_presence(CURRENT_PID, PPME_GENERIC_E);
 
 	if(HasFatalFailure())
