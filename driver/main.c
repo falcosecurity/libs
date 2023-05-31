@@ -2337,6 +2337,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 			 * is the enter event.
 			 */
 			record_event_all_consumers(return_code + 1, return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED, &event_data, KMOD_PROG_SYS_EXIT);
+			return;
 		}
 
 		/* If we return a syscall id we just set it */
