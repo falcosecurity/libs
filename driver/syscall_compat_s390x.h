@@ -1088,6 +1088,9 @@
 #ifndef __NR_landlock_restrict_self
 #define __NR_landlock_restrict_self 446
 #endif
+#ifndef __NR_memfd_secret
+#define __NR_memfd_secret 447
+#endif
 #ifndef __NR_process_mrelease
 #define __NR_process_mrelease 448
 #endif
