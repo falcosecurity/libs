@@ -2137,7 +2137,7 @@ static inline void g_n_tracepoint_hit_inc(void)
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	struct event_data_t event_data = {};
-	struct syscall_evt_pair event_pair = {};
+	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
 
 	/* Just to be extra-safe */
@@ -2219,9 +2219,9 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		return;
 	}
 
-	event_pair = event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
-	if (event_pair.flags & UF_USED)
-		record_event_all_consumers(event_pair.enter_event_type, event_pair.flags, &event_data, KMOD_PROG_SYS_ENTER);
+	event_pair = &event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
+	if (event_pair->flags & UF_USED)
+		record_event_all_consumers(event_pair->enter_event_type, event_pair->flags, &event_data, KMOD_PROG_SYS_ENTER);
 	else
 		record_event_all_consumers(PPME_GENERIC_E, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_ENTER);
 }
@@ -2264,7 +2264,7 @@ static __always_inline bool kmod_drop_syscall_exit_events(long ret, ppm_event_co
 TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 {
 	struct event_data_t event_data = {};
-	struct syscall_evt_pair event_pair = {};
+	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
 	/* If @task is executing a system call or is at system call
  	 * tracing about to attempt one, returns the system call number.
@@ -2351,15 +2351,15 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		return;
 	}
 
-	event_pair = event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
+	event_pair = &event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
-	if(kmod_drop_syscall_exit_events(ret, event_pair.exit_event_type))
+	if(kmod_drop_syscall_exit_events(ret, event_pair->exit_event_type))
 		return;
 #endif
 
-	if (event_pair.flags & UF_USED)
-		record_event_all_consumers(event_pair.exit_event_type, event_pair.flags, &event_data, KMOD_PROG_SYS_EXIT);
+	if (event_pair->flags & UF_USED)
+		record_event_all_consumers(event_pair->exit_event_type, event_pair->flags, &event_data, KMOD_PROG_SYS_EXIT);
 	else
 		record_event_all_consumers(PPME_GENERIC_X, UF_ALWAYS_DROP, &event_data, KMOD_PROG_SYS_EXIT);
 }
