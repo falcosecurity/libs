@@ -1,5 +1,5 @@
 
-# Driver Sanity Test Suites - Kernel Compatibility Tests
+# VM - Driver Sanity Test Suites - Kernel Compatibility Tests
 
 
 ![Architectures](https://img.shields.io/badge/ARCHS-x86__64-blueviolet?style=for-the-badge)
@@ -7,7 +7,7 @@
 Status: **Under development, experimental**
 
 
-## Running `driver-sanity` VM based tests on `localhost`
+## Running `vm` VM based tests on `localhost`
 
 ### System Requirements (Host OS)
 
@@ -23,7 +23,7 @@ Highly recommended to follow installation instructions in the official docs as w
 
 ### CMake Targets
 
-These test suites integrate with the broader project's CMake setup. However, in a way they are completely separate. For example, the primary driver-sanity build output folder resides in the libs src directory under `libs/test/driver-sanity/kernel_compat/build` in order to take advantage of caching even if the `libs/build` folder is re-created. In addition, all `scap-open` and `kmod` or `bpf` driver builds are done from scratch in containers - not using the `libs/build` dir.
+These test suites integrate with the broader project's CMake setup. However, in a way they are completely separate. For example, the primary vm build output folder resides in the libs src directory under `libs/test/vm/build` in order to take advantage of caching even if the `libs/build` folder is re-created. In addition, all `scap-open` and `kmod` or `bpf` driver builds are done from scratch in containers - not using the `libs/build` dir.
 
 More information around each step is provided in later sections of this document.
 
@@ -33,61 +33,61 @@ git clone https://github.com/falcosecurity/libs.git;
 cd libs;
 mkdir -p build;
 cd build;
-cmake -DCREATE_TEST_TARGETS=ON -DENABLE_DRIVER_SANITY_TESTS=ON ../;
+cmake -DCREATE_TEST_TARGETS=ON -DENABLE_VM_TESTS=ON ../;
 ```
 
 Create containers, download kernel and header packages, extract kernel headers, build vagrant VMs.
 
 ```bash
-# Target driver-sanity-init first run can take up to 25 min
+# Target vm-init first run can take up to 25 min
 # Re-running only re-builds VMs - can take up to 6 min
-# Use target driver-sanity-cleanup when wanting to start from scratch or delete libs/test/driver-sanity/kernel_compat/build/ manually
-make driver-sanity-init;
+# Use target vm-cleanup when wanting to start from scratch or delete libs/test/vm/build/ manually
+make vm-init;
 
 # Alternatively run each step separately
-make driver-sanity-container; # about 5 min
-make driver-sanity-kernel; # about 14 min
-make driver-sanity-init;
+make vm-container; # about 5 min
+make vm-kernel; # about 14 min
+make vm-init;
 ```
 
 Build scap-open and each driver artifact for array of compiler versions.
 
 ```bash
 # takes about 2 min
-make driver-sanity-compile;
+make vm-compile;
 ```
 
-Vagrant VM loop boots into each downloaded kernel within `libs/test/driver-sanity/kernel_compat/build/kernels/` folder and runs `scap-open` for `kmod` and `bpf` if the driver was successfully compiled for the respective compiler version. As a last step a results table (.png) is generated -> blue means driver works. Re-running the loops can increase confidence in results and reduce test flakiness issues (each re-run keeps old passed tests in the `driver-ok` dir). Re-running tests randomizes the order of kernels to be tested in order to be more resilient against failures. When rebooting into a new kernel script always sleeps x seconds.
+Vagrant VM loop boots into each downloaded kernel within `libs/test/vm/build/kernels/` folder and runs `scap-open` for `kmod` and `bpf` if the driver was successfully compiled for the respective compiler version. As a last step a results table (.png) is generated -> blue means driver works. Re-running the loops can increase confidence in results and reduce test flakiness issues (each re-run keeps old passed tests in the `driver_ok` dir). Re-running tests randomizes the order of kernels to be tested in order to be more resilient against failures.
 
 ```bash
-# centos7: should be under 7 min, centos7 loop seems more stable
-make driver-sanity-tests-centos7;
+# centos7: should be under 7 min, but can take longer depending on number of tests
+make vm-centos7;
 
-# ubuntu: can take 10-20 min, ubuntu VM kernel change is often flaky -> keep re-running, re-running also randomizes kernel loop order for more resiliency, a trick is to keep re-launching until you get the kernel that is still untested ...
-make driver-sanity-tests-ubuntu;
-# make driver-sanity-init; # would destroy and re-create VMs, can be helpful if ubuntu loop just keeps failing
+# ubuntu: can take 10-20 min or longer depending on number of tests
+make vm-ubuntu;
+# make vm-init; # would destroy and re-create VMs
 
-# Results table preserved in both build folders, will be generated or updated at the end of each test above (centos7 or ubuntu) -> option to re-create results output manually
+# Results table preserved in the test build folder, will be generated or updated at the end of each test above (centos7 or ubuntu) -> option to re-create results output manually
 # Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982
-make driver-sanity-results;
-ls -l libs/build/test/driver_sanity/kernel_compat/driver_compat_matrix.png;
-ls -l libs/test/driver-sanity/kernel_compat/build/driver_compat_matrix.png;
+make vm-result;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
+ls -l libs/test/vm/build/driver_compat_matrix_success.png;
 ```
 
-Cleanup. Destroy all VMs, untag containers, delete entire `libs/test/driver-sanity/kernel_compat/build` folder that caches all kernel packages and build artifacts.
+Cleanup. Destroy all VMs, untag containers, delete entire `libs/test/vm/build` folder that caches all kernel packages and build artifacts.
 
 ```bash
-make driver-sanity-cleanup;
+make vm-cleanup;
 ```
 
 ### How To Customize Tests?
 
-There are a few ways to customize the `driver-sanity` test grid:
+There are a few ways to customize the `vm` test grid:
 
 - The kernel grid is statically defined in [kernels.txt](kernels.txt). However, subsequently everything is auto-discovered based on downloaded kernel packages. This means changing the URLs in [kernels.txt](kernels.txt) allows you to customize the entire test suite.
-- In addition, kernel packages are downloaded into `libs/test/driver-sanity/kernel_compat/build/kernels/` or `libs/test/driver-sanity/kernel_compat/build/headers/` -> can purge packages to constraint VM loop as vagrant loop script runs `ls` on these folders ...
-- Want different or more compiler versions? Currently supported versions are `gcc-7`, `gcc-8`, `gcc-9`, `gcc-10`, `gcc-11`, `gcc-12`, `gcc-13` (for kmod) and `clang-7`, `clang-8`, `clang-9`, `clang-10`, `clang-11`, `clang-12`, `clang-13`, `clang-14`, `clang-15` (for bpf) -> update input args to Go script within `all_driver_sanity_test_compile.sh` script.
-- Recommended to run target `driver-sanity-cleanup` or performing parts of the cleanups manually when changing a lot of setups.
+- In addition, kernel packages are downloaded into `libs/test/vm/build/kernels/` or `libs/test/vm/build/headers/` -> can purge packages to constraint VM loop as vagrant loop script runs `ls` on these folders ...
+- Want different or more compiler versions? Currently supported versions are `gcc-7`, `gcc-8`, `gcc-9`, `gcc-10`, `gcc-11`, `gcc-12`, `gcc-13` (for kmod) and `clang-7`, `clang-8`, `clang-9`, `clang-10`, `clang-11`, `clang-12`, `clang-13`, `clang-14`, `clang-15`, `clang-16` (for bpf) -> update input args to Go script within `vm_compile.sh` script. Note however that older clang versions and their builder container are not compatible with newer kernels.
+- Recommended to run target `vm-cleanup` or performing parts of the cleanups manually when changing a lot of setups.
 - More options and robustness may be added in the future. At the moment changing scripts slightly can result in breaking tests.
 
 
@@ -128,7 +128,7 @@ Finally, this project also serves as guide for new developers joining the projec
 
 *End User's and Developers Perspective*
 
-- Knowing which compiler version may generally work for which kernel version based on distros and kernels included in the driver-sanity project.
+- Knowing which compiler version may generally work for which kernel version based on distros and kernels included in the vm project.
 - Disentangle cmake and GLIBC versions dependencies as well.
 - Useful scripts for building drivers for custom kernels that are not supported in [driverkit](https://github.com/falcosecurity/driverkit).
 - Self-serve project everyone can use and modify on localhost.
@@ -149,7 +149,7 @@ Finally, this project also serves as guide for new developers joining the projec
 *Don'ts*
 
 - Do not try to install more than 9-10 kernels at a time in a VM.
-- If one compiled driver artifact didn't work for one kernel no need to over interpret results. Alarming are only larger consistent gaps in the results table. This is because compilers in general and the eBPF verifier are not perfect and the vagrant VM looping approach can also be unstable.
+- If one compiled driver artifact didn't work for one kernel no need to over interpret results. Alarming are only larger consistent gaps in the results table.
 
 
 ## More Detailed Explanations of Steps
@@ -157,7 +157,7 @@ Finally, this project also serves as guide for new developers joining the projec
 
 ### Step 1 - Build Containers
 
-> Target `driver-sanity-container`. Done as part of `driver-sanity-init` target.
+> Target `vm-container`. Done as part of `vm-init` target.
 
 Builds all containers. For building userspace binary we pull the officially supported falco-builder container, else we build custom ubuntu containers. The following compiler versions are supported:
 
@@ -167,24 +167,24 @@ Builds all containers. For building userspace binary we pull the officially supp
 
 ### Step 2 - Download Kernel Sources
 
-> Target `driver-sanity-kernel`. Done as part of `driver-sanity-init` target.
+> Target `vm-kernel`. Done as part of `vm-init` target.
 
 All relevant `.deb` or `.rpm` packages are downloaded into the following folders.
 
 ```bash
-libs/test/driver-sanity/kernel_compat/build/kernels/ # actual kernels and other packages needed for VM re-boots
-libs/test/driver-sanity/kernel_compat/build/headers/ # kernel headers needed to build drivers (not needed for modern_bpf)
+libs/test/vm/build/kernels/ # actual kernels and other packages needed for VM re-boots
+libs/test/vm/build/headers/ # kernel headers needed to build drivers (not needed for modern_bpf)
 ```
 
 
 ### Step 3 - Extract Kernel Headers
 
-> Target `driver-sanity-kernel`. Done as part of `driver-sanity-init` target.
+> Target `vm-kernel`. Done as part of `vm-init` target.
 
 Extract kernel headers for each kernel into a new sub directory. Extracted kernel headers are only needed for bpf and kmod. They won't be needed for modern_bpf.
 
 ```bash
-libs/test/driver-sanity/kernel_compat/build/headers_extracted/ # extracted kernel headers (not needed for modern_bpf)
+libs/test/vm/build/headers_extracted/ # extracted kernel headers (not needed for modern_bpf)
 ```
 
 For example extracted kernel headers look like the directory structure below and `5.15.59-051559-generic` and `5.19.0-1.el7.elrepo.x86_64` would be `uname -r`.
@@ -209,16 +209,16 @@ For example extracted kernel headers look like the directory structure below and
 
 ### Step 4 - Init localhost VBox + vagrant VMs
 
-> Done as part of `driver-sanity-init` target.
+> Done as part of `vm-init` target.
 
 Init VMs while pre-installing all kernels. `ubuntu` and `centos7` are are a good choice to perform representative enough kernel compatibility grid-search tests.
 
 
 ### Step 5 - Build `scap-open` and `driver` Artifacts (Big Loop)
 
-> Done as part of `driver-sanity-compile` target.
+> Done as part of `vm-compile` target.
 
-Package up current libs source code (`libs/test/driver-sanity/kernel_compat/build/libs-src.tar.gz` file). `libs-src.tar.gz` is passed into containers to build the scap-open binary and each driver.
+Package up current libs source code (`libs/test/vm/build/libs-src.tar.gz` file). `libs-src.tar.gz` is passed into containers to build the scap-open binary and each driver.
 
 Drivers are built over a Go launcher scripts that simultaneously launches multiple build containers for concurrent driver builds in order to build the compiler and kernel versions grid in under 2 min.
 
@@ -227,7 +227,7 @@ Note that `.o` are eBPF object files and `.ko` are the compiled kernel modules. 
 Example resulting driver artifacts:
 
 ```bash
-libs/test/driver-sanity/kernel_compat/build/driver/
+libs/test/vm/build/driver/
 
 ├── clang-12
 │   ├── 4.16.18-041618-generic.o
@@ -255,7 +255,7 @@ libs/test/driver-sanity/kernel_compat/build/driver/
 
 ### Step 6 - Test Run all Drivers (Big Loop)
 
-> Done as part of `driver-sanity-tests-centos7` or `driver-sanity-tests-ubuntu` targets.
+> Done as part of `vm-centos7` or `vm-ubuntu` targets.
 
 Loop over kernels in both `centos7` and `ubuntu` VMs. Re-booting into each kernel while performing strict kernel change verification checks.
 
@@ -314,15 +314,15 @@ Number of dropped events: 0
 
 ### Step 7 - Generate Final Results Table
 
-> target `driver-sanity-results`. Done as part of `driver-sanity-tests-centos7` or `driver-sanity-tests-ubuntu` targets as well.
+> target `vm-results`. Done as part of `vm-centos7` or `vm-ubuntu` targets as well.
 
 For easy results inspection, results are served as table depicting boolean values. Color blue means that the driver works with this particular compiler version (e.g. in the eBPF case it means the eBPF probe loaded, passed the eBPF verifier and serves events up to userspace - all ok). Note that besides compiler version, GLIBC version in build container can influence results as well. Results are preserved in both build folders.
 
 Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982.
 
 ```bash
-ls -l libs/build/test/driver_sanity/kernel_compat/driver_compat_matrix.png;
-ls -l libs/test/driver-sanity/kernel_compat/build/driver_compat_matrix.png;
+ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
+ls -l libs/test/vm/build/driver_compat_matrix_success.png;
 ```
 
 ## Maintenance Overhead Projection

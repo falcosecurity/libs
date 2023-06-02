@@ -9,11 +9,11 @@ echo "Trying to build driver artifacts for extracted kernel headers, script cont
 
 
 DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS="/headers"; # host dir mounted in container
-DRIVER_OUT_DIR="/driver-sanity/build/driver"; # host dir mounted in container
-LIBS_TAR_GZ="/driver-sanity/build/libs-src.tar.gz"; # host dir mounted in container
+DRIVER_OUT_DIR="/vm/build/driver"; # host dir mounted in container
+LIBS_TAR_GZ="/vm/build/libs-src.tar.gz"; # host dir mounted in container
 
 if [[ ! -f ${LIBS_TAR_GZ} ]]; then
-	echo "Container requires libs source in libs-src.tar.gz format and mounted to /driver-sanity/build/libs-src.tar.gz in container"
+	echo "Container requires libs source in libs-src.tar.gz format and mounted to /vm/build/libs-src.tar.gz in container"
   exit 1
 fi
 
