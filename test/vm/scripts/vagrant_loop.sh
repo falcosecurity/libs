@@ -18,7 +18,7 @@ pushd ${BASE_DIR}/vm_provider/${VM_PROVIDER};
 SSH_BASE_COMMAND="ssh $(vagrant ssh-config ${VM_NAME} | sed '/^[[:space:]]*$/d' |  awk 'NR>1 {print " -o "$1"="$2}') localhost";
 SCP_BASE_COMMAND="scp -r $(vagrant ssh-config ${VM_NAME} | sed '/^[[:space:]]*$/d' |  awk 'NR>1 {print " -o "$1"="$2}')";
 KERNEL_DIR="../../build/headers_extracted";
-mkdir -p "../../build/driver-ok";
+mkdir -p "../../build/driver_ok";
 KERNEL_FILTER="el7";
 if [[ ${VM_NAME} == *"ubuntu"* ]]; then
     KERNEL_FILTER="generic";
@@ -29,7 +29,7 @@ KERNELS=$( ls ${KERNEL_DIR} | grep -e ${KERNEL_FILTER} | grep -v "linux-modules"
 ${SCP_BASE_COMMAND} ../../build/driver localhost:/home/vagrant/driver;
 ${SCP_BASE_COMMAND} ../../build/kernels localhost:/home/vagrant/kernels;
 ${SCP_BASE_COMMAND} ../../build/scap-open localhost:/home/vagrant/scap-open;
-${SCP_BASE_COMMAND} ../../scripts/vagrant_scap_open_test.sh localhost:/home/vagrant/vagrant_scap_open_test.sh;
+${SCP_BASE_COMMAND} ../../scripts/vagrant_test_run.sh localhost:/home/vagrant/vagrant_test_run.sh;
 
 function verify_kernel_change_success ()
 {
@@ -52,14 +52,14 @@ function unit_test()
     fi
     compiler_version=$(basename $compiler_version);
     echo ${compiler_version}
-    cmd="sudo bash /home/vagrant/vagrant_scap_open_test.sh ${compiler_version}";
+    cmd="sudo bash /home/vagrant/vagrant_test_run.sh ${compiler_version}";
     if ${SSH_BASE_COMMAND} "${cmd}"; then 
       echo "OK ${compiler_version}";
-      mkdir -p "../../build/driver-ok/${compiler_version}";
+      mkdir -p "../../build/driver_ok/${compiler_version}";
       if [[ ${compiler_version} == *"clang"* ]]; then
-        cp "../../build/driver/${compiler_version}/${kernel_uname_r}.o" "../../build/driver-ok/${compiler_version}/${kernel_uname_r}.o";
+        cp "../../build/driver/${compiler_version}/${kernel_uname_r}.o" "../../build/driver_ok/${compiler_version}/${kernel_uname_r}.o";
       elif [[ ${compiler_version} == *"gcc"* ]]; then
-        cp "../../build/driver/${compiler_version}/${kernel_uname_r}.ko" "../../build/driver-ok/${compiler_version}/${kernel_uname_r}.ko";
+        cp "../../build/driver/${compiler_version}/${kernel_uname_r}.ko" "../../build/driver_ok/${compiler_version}/${kernel_uname_r}.ko";
         ${SSH_BASE_COMMAND} "sudo reboot"; sleep 10;
       fi
     else

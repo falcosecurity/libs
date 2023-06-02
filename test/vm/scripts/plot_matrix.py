@@ -10,21 +10,24 @@ pd.set_option('display.max_rows', None, 'display.max_columns', None)
 """
 
 Example Usage:
-python kernel_plot_compat_matrix.py --driver_artifacts_dir=build/driver-ok --save_png=build/driver_compat_matrix.png \
---title="Falco (clang -> bpf) and (gcc -> kmod) driver kernel compat matrix"
+python3 plot_matrix.py --driver-artifacts-dir=/vm/build/driver_ok --save-png=/vm/build/driver_compat_matrix_success.png \
+--title="Driver (clang -> bpf, gcc -> kmod) kernel compat matrix [compiled + success]" --hex-color="#3074EC";
 
 """
 
 
 def arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--driver_artifacts_dir', help='Directory that contains subfolders by compiler version that contain the driver build artifact')
-    parser.add_argument('--save_png_dir', help='Directory to save png output file into')
+    parser.add_argument('--driver-artifacts-dir', help='Directory that contains subfolders by compiler version that contain the driver build artifact')
+    parser.add_argument('--save-png', help='Plot output file path')
     parser.add_argument('--title', help='Title of output plot')
+    parser.add_argument('--hex-color', help='Hex color reflecting success in output plot')
     return parser.parse_args()
 
 
 def get_directory_listing(directory):
+    if not os.path.exists(directory):
+        exit()
     list_of_files = list()
     for (dirpath, dirnames, filenames) in os.walk(directory):
         list_of_files += [os.path.join(dirpath, file) for file in filenames if not '.DS' in file]
@@ -70,7 +73,7 @@ def get_pivoted_sorted_df(directory_compiler_driver):
     return df
 
 
-def save_compatibility_plot(df, save_png_dir, title):
+def save_compatibility_plot(df, save_png_path, title, hex_color):
     plt.style.use('dark_background')
     plt.rcParams['figure.dpi'] = 1000
     plt.rcParams['savefig.dpi'] = 1000
@@ -78,17 +81,17 @@ def save_compatibility_plot(df, save_png_dir, title):
     fig, ax = plt.subplots(1, 1, tight_layout=True, figsize=(12, 8))
     sns.heatmap(df.to_numpy(dtype=float),
                 yticklabels=df.index,
-                cmap=sns.color_palette(['#000000', '#3074EC'], 2),
+                cmap=sns.color_palette(['#000000', hex_color], 2),
                 vmin=0, vmax=100, linewidth=0.1, cbar_kws={'shrink': .8}, cbar=False)
     ax.set_xticklabels(df.columns, rotation=90, size=10)
     ax.set_yticklabels(df.index, rotation=0, size=10)
-    ax.set_title('{}'.format(title), size=20)
-    plt.savefig('{}'.format(save_png_dir))
+    ax.set_title('{}'.format(title), size=16)
+    plt.savefig('{}'.format(save_png_path))
 
 
 if __name__ == "__main__":
     args_parsed = arg_parser()
     df_pivoted_sorted = get_pivoted_sorted_df(args_parsed.driver_artifacts_dir)
-    save_compatibility_plot(df_pivoted_sorted, args_parsed.save_png_dir, args_parsed.title)
+    save_compatibility_plot(df_pivoted_sorted, args_parsed.save_png, args_parsed.title, args_parsed.hex_color)
 
 

@@ -4,7 +4,7 @@
 set -e
 
 if [[ $# -ne 3 || "${EUID}" -eq 0 ]]; then
-	echo "Usage: bash all_vm_init.sh BASE_DIR VM_PROVIDER VM_NAMES"
+	echo "Usage: bash vm_init.sh BASE_DIR VM_PROVIDER VM_NAMES"
   echo "Run as non-root user"
   exit 1
 fi

@@ -2,7 +2,7 @@
 #!/bin/bash
 
 if [[ $# -ne 2 ]]; then
-	echo "Usage: all_vm_init.sh BASE_DIR VM_PROVIDER"
+	echo "Usage: vm_cleanup.sh BASE_DIR VM_PROVIDER"
   exit 1
 fi
 
@@ -15,6 +15,6 @@ echo "Destroy VMs";
 pushd ${BASE_DIR}/vm_provider/${VM_PROVIDER};
 vagrant destroy -f || true;
 
-echo "Delete driver_sanity/kernel_compat/build dir"
+echo "Delete vm/build dir"
 rm -rf ${BASE_DIR}/build;
 popd
