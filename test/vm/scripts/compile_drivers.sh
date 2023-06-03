@@ -1,12 +1,11 @@
 #!/bin/bash
 
 if [[ $# -ne 5 ]]; then
-	echo "Usage: bash compile_driver.sh LLC CLANG GCC KMOD BPF"
+  echo "Usage: bash compile_driver.sh LLC CLANG GCC KMOD BPF"
   exit 1
 fi
 
 echo "Trying to build driver artifacts for extracted kernel headers, script continues on failure ... "
-
 
 DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS="/headers"; # host dir mounted in container
 DRIVER_OUT_DIR="/vm/build/driver"; # host dir mounted in container
@@ -30,30 +29,35 @@ mkdir -p "${DRIVER_OUT_DIR}";
 mkdir -p "${LIBS_DIR}/build";
 tar -xvf ${LIBS_TAR_GZ} -C ${LIBS_DIR}/;  # fresh extraction of libs src in container, clean build dir
 
-pushd "${LIBS_DIR}/build";
-pwd
-
-cmake -DUSE_BUNDLED_DEPS=ON -DBUILD_BPF="${BPF}" -DBUILD_DRIVER="${KMOD}" -DBUILD_LIBSCAP_GVISOR=OFF -DCREATE_TEST_TARGETS=OFF ..
+cmake -DUSE_BUNDLED_DEPS=ON \
+    -DBUILD_BPF="${BPF}" \
+    -DBUILD_DRIVER="${KMOD}" \
+    -DBUILD_LIBSCAP_GVISOR=OFF \
+    -DCREATE_TEST_TARGETS=OFF \
+    -S "${LIBS_DIR}" \
+    -B "${LIBS_DIR}/build"
 
 CLANG_VERSION=$(echo ${CLANG} | sed "s/.*\///");
 GCC_VERSION=$(echo ${GCC} | sed "s/.*\///");
 if [[ "${BPF}" == *"ON"* ]]; then
-  OUT_BPF="${DRIVER_OUT_DIR}/${CLANG_VERSION}"; mkdir -p "${OUT_BPF}";
-  chown -R 1000:1000 "${OUT_BPF}";
+  OUT_BPF="${DRIVER_OUT_DIR}/${CLANG_VERSION}";
+  mkdir -p "${OUT_BPF}";
   if [[ ! -d "${OUT_BPF}" ]];  then
+    echo >&2 "Failed to create ${OUT_BPF}"
     exit 1
   fi
+  chown -R 1000:1000 "${OUT_BPF}";
 elif [[ "${KMOD}" == *"ON"* ]]; then
-  OUT_KMOD="${DRIVER_OUT_DIR}/${GCC_VERSION}"; mkdir -p "${OUT_KMOD}";
-  chown -R 1000:1000 "${OUT_KMOD}";
+  OUT_KMOD="${DRIVER_OUT_DIR}/${GCC_VERSION}";
+  mkdir -p "${OUT_KMOD}";
   if [[ ! -d "${OUT_KMOD}" ]];  then
+    echo >&2 "Failed to create ${OUT_KMOD}"
     exit 1
   fi
+  chown -R 1000:1000 "${OUT_KMOD}";
 fi
 
-DIRS="${DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS}/*"
-for d in $DIRS
-do
+for d in "${DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS}"/*; do
 
   KERNEL_UNAME_R=$(basename "${d}" | sed "s/.*devel-//" );
   echo ${KERNEL_UNAME_R}
@@ -93,7 +97,4 @@ do
 
 done
 
-popd;
 chown -R 1000:1000 "${DRIVER_OUT_DIR}";
-
-

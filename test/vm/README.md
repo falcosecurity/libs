@@ -60,15 +60,17 @@ make vm-compile;
 Vagrant VM loop boots into each downloaded kernel within `libs/test/vm/build/kernels/` folder and runs `scap-open` for `kmod` and `bpf` if the driver was successfully compiled for the respective compiler version. As a last step a results table (.png) is generated -> blue means driver works. Re-running the loops can increase confidence in results and reduce test flakiness issues (each re-run keeps old passed tests in the `driver_ok` dir). Re-running tests randomizes the order of kernels to be tested in order to be more resilient against failures.
 
 ```bash
+# make vm-init; # recommended, destroys and re-creates VMs
+
 # centos7: should be under 7 min, but can take longer depending on number of tests
 make vm-centos7;
 
 # ubuntu: can take 10-20 min or longer depending on number of tests
 make vm-ubuntu;
-# make vm-init; # would destroy and re-create VMs
 
-# Results table preserved in the test build folder, will be generated or updated at the end of each test above (centos7 or ubuntu) -> option to re-create results output manually
+# Result tables preserved in the test build folder, generated at the end of each test  -> option to re-create result manually
 # Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982
+
 make vm-result;
 ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
 ls -l libs/test/vm/build/driver_compat_matrix_success.png;
@@ -84,7 +86,7 @@ make vm-cleanup;
 
 There are a few ways to customize the `vm` test grid:
 
-- The kernel grid is statically defined in [kernels.txt](kernels.txt). However, subsequently everything is auto-discovered based on downloaded kernel packages. This means changing the URLs in [kernels.txt](kernels.txt) allows you to customize the entire test suite.
+- The kernel grid is statically defined in [kernels.jsonl](kernels.jsonl). However, subsequently everything is auto-discovered based on downloaded kernel packages. This means changing the URLs in [kernels.jsonl](kernels.jsonl) allows you to customize the entire test suite.
 - In addition, kernel packages are downloaded into `libs/test/vm/build/kernels/` or `libs/test/vm/build/headers/` -> can purge packages to constraint VM loop as vagrant loop script runs `ls` on these folders ...
 - Want different or more compiler versions? Currently supported versions are `gcc-7`, `gcc-8`, `gcc-9`, `gcc-10`, `gcc-11`, `gcc-12`, `gcc-13` (for kmod) and `clang-7`, `clang-8`, `clang-9`, `clang-10`, `clang-11`, `clang-12`, `clang-13`, `clang-14`, `clang-15`, `clang-16` (for bpf) -> update input args to Go script within `vm_compile.sh` script. Note however that older clang versions and their builder container are not compatible with newer kernels.
 - Recommended to run target `vm-cleanup` or performing parts of the cleanups manually when changing a lot of setups.
@@ -117,7 +119,7 @@ Driver Sanity Test Suites tested on:
 
 Because of the increasing complexity of libs and general nature of kernel development there is a need for ad-hoc grid-search like compatibility tests between distro / kernel versions and compiler versions, such as clang/llvm (eBPF) or gcc (kmod) versions. This project serves as sanity check when introducing major driver changes or when new kernels are published. This [issue](https://github.com/falcosecurity/falco/issues/1761) is a great example highlighting several challenges. Sanity checks will remain useful when CORE becomes available in modern_bpf and are a good practice for general regression testing.
 
-The kernel grid is statically defined in [kernels.txt](kernels.txt). Subsequently, eBPF and kernel module drivers are built for all relevant compiler versions for each kernel.
+The kernel grid is statically defined in [kernels.jsonl](kernels.jsonl). Subsequently, eBPF and kernel module drivers are built for all relevant compiler versions for each kernel.
 
 Headless vagrant VMs on localhost are re-booted into each kernel and drivers for each compiler version are test run using the [scap-open](https://github.com/falcosecurity/libs/tree/master/userspace/libscap/examples/01-open) utility binary. Results are served as table depicting boolean values. A successful test run means that the driver works with this particular compiler version (e.g. in the eBPF case it means the eBPF probe loaded, passed the eBPF verifier and serves events up to userspace).
 
@@ -184,7 +186,7 @@ libs/test/vm/build/headers/ # kernel headers needed to build drivers (not needed
 Extract kernel headers for each kernel into a new sub directory. Extracted kernel headers are only needed for bpf and kmod. They won't be needed for modern_bpf.
 
 ```bash
-libs/test/vm/build/headers_extracted/ # extracted kernel headers (not needed for modern_bpf)
+libs/test/vm/build/headers_extracted/ # extracted kernel headers (not applicable for modern_bpf)
 ```
 
 For example extracted kernel headers look like the directory structure below and `5.15.59-051559-generic` and `5.19.0-1.el7.elrepo.x86_64` would be `uname -r`.
@@ -263,24 +265,25 @@ Loop over kernels in both `centos7` and `ubuntu` VMs. Re-booting into each kerne
 ```bash
 ...
 
-Next up kernel 5.10.16-1.el7.elrepo.x86_64
+[STATUS] START 5.14.15-1.el7.elrepo.x86_64
 
 ...
 
-Current kernel 5.4.215-1.el7.elrepo.x86_64 -> 5.10.16-1.el7.elrepo.x86_64
+[STATUS] IN PROGRESS 6.1.12-1.el7.elrepo.x86_64 -> 5.14.15-1.el7.elrepo.x86_64
 
 ...
 
-Succesfully configured next kernel 5.10.16-1.el7.elrepo.x86_64 in grub
+[STATUS] DONE 5.14.15-1.el7.elrepo.x86_64 grub configuration
 
 Connection to 127.0.0.1 closed by remote host.
 
+...
 
+[STATUS] SUCCESS 5.14.15-1.el7.elrepo.x86_64 kernel change, proceed with unit tests
 
-Sleeping for 45 seconds ...
+...
 
-Kernel updated correctly to 5.10.16-1.el7.elrepo.x86_64, proceed with scap-open unit tests
-
+[STATUS] DONE 5.14.15-1.el7.elrepo.x86_64
 
 ```
 
@@ -291,34 +294,46 @@ Upon successful kernel change we loop over each driver and compiler version to t
 ```bash
 ...
 
-Test run for compiler/kernel clang-12/5.10.16-1.el7.elrepo.x86_64
+[STATUS] SUCCESS clang-14/5.14.15-1.el7.elrepo.x86_64.o, proceed with next test
+
+
+[STATUS] START TEST RUN clang-16/5.14.15-1.el7.elrepo.x86_64
+
 
 [SCAP-OPEN]: Hello!
 
----------------------- SCAP SOURCE ----------------------
-* BPF probe: '/home/vagrant/driver/clang-12/5.10.16-1.el7.elrepo.x86_64.o'
------------------------------------------------------------
+--------------------------- SCAP SOURCE --------------------------
+* BPF probe: '/home/vagrant/driver/clang-16/5.14.15-1.el7.elrepo.x86_64.o'
+------------------------------------------------------------------
+
 
 ...
 
-Events correctly captured (SCAP_SUCCESS): 595
-Seen by driver: 15523
-Time elapsed: 2 s
-Number of events/per-second: 297
-Number of dropped events: 0
+[SCAP-OPEN]: General statistics
+
+Events correctly captured (SCAP_SUCCESS): 1015
+Seen by driver (kernel side events): 3483
+Time elapsed: 4 s
+Rate of userspace events (events/second): 253
+Rate of kernel side events (events/second): 870
+Number of timeouts: 164
+Number of 'next' calls: 1179
+
+[SCAP-OPEN]: Stats v2.
+
 
 ...
 
 ```
 
 
-### Step 7 - Generate Final Results Table
+### Step 7 - Generate Final Result Table
 
-> target `vm-results`. Done as part of `vm-centos7` or `vm-ubuntu` targets as well.
+> target `vm-result`. Done as part of `vm-centos7` or `vm-ubuntu` targets as well.
 
-For easy results inspection, results are served as table depicting boolean values. Color blue means that the driver works with this particular compiler version (e.g. in the eBPF case it means the eBPF probe loaded, passed the eBPF verifier and serves events up to userspace - all ok). Note that besides compiler version, GLIBC version in build container can influence results as well. Results are preserved in both build folders.
+For easy results inspection, results are served as table depicting boolean values. Color blue means that the driver works with this particular compiler version (e.g. in the eBPF case it means the eBPF probe loaded, passed the eBPF verifier and serves events up to userspace - all ok). Note that besides compiler version, GLIBC version in build container can influence results as well.
 
-Some historical results tables are preserved in https://github.com/falcosecurity/libs/issues/982.
+Some historical results tables are preserved [here](https://github.com/falcosecurity/libs/issues/982).
 
 ```bash
 ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
@@ -327,7 +342,7 @@ ls -l libs/test/vm/build/driver_compat_matrix_success.png;
 
 ## Maintenance Overhead Projection
 
-- Occasionally update [kernels.txt](kernels.txt) kernel test grid.
+- Occasionally update [kernels.jsonl](kernels.jsonl) kernel test grid.
 - Add new containers to support newest clang/llvm or gcc compilers for building drivers.
 - Update project if either scap-open or driver build setup changes.
 - Add additional tips as issues or problems with building or running Falco drivers come up (re-use this project as troubleshooting guide for both devs and end users).
