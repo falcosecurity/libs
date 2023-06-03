@@ -1,9 +1,7 @@
 #!/bin/bash
 
-set -e
-
 if [[ $# -ne 1 || "${EUID}" -eq 0 ]]; then
-	echo "Usage: all_vm_test_run.sh BASE_DIR"
+  echo "Usage: all_vm_test_run.sh BASE_DIR"
   echo "Run as non-root user"
   exit 1
 fi
@@ -16,7 +14,9 @@ readonly LIBS_DIR="${BASE_DIR}/../..";
 
 echo "Package up libs source for builds in containers, save to build/libs-src.tar.gz";
 rm -rf /tmp/libs-src; 
-cp -r ${LIBS_DIR} /tmp/libs-src; rm -rf /tmp/libs-src/build; rm -rf /tmp/libs-src/test/vm/build;
+cp -r ${LIBS_DIR} /tmp/libs-src;
+rm -rf /tmp/libs-src/build;
+rm -rf /tmp/libs-src/test/vm/build;
 LIBS_TAR_GZ="${BASE_DIR}/build/libs-src.tar.gz";
 rm -f ${LIBS_TAR_GZ};
 tar -czvf ${LIBS_TAR_GZ} -C /tmp/libs-src .
@@ -29,5 +29,5 @@ go run ${BASE_DIR}/scripts/main.go -compilerVersionsClang=7,12,14,16 -compilerVe
 -dirExtractedKernelHeaders=${BASE_DIR}/build/headers_extracted/ -dir=${BASE_DIR}'
 
 echo "Build scap-open userspace binary that loads the driver, uses build/libs-src.tar.gz as libs src";
-docker run -v ${BASE_DIR}:/vm:z -v ${LIBS_DIR}:/falco-libs:z \
+docker run -v "${BASE_DIR}":/vm:z -v "${LIBS_DIR}":/falco-libs:z \
 falcosecurity/falco-builder:latest bash -c '/bin/bash /vm/scripts/compile_scap_open.sh';

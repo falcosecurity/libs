@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ ! $# -ge 2 ]]; then
-	echo "Usage: bash kernel_download.sh BASE_OUTPUT_DIR KERNELS_FILE FORCE_DOWNLOAD"
+  echo "Usage: bash kernel_download.sh BASE_OUTPUT_DIR KERNELS_FILE FORCE_DOWNLOAD"
   exit 1
 fi
 

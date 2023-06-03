@@ -46,11 +46,20 @@ RUN apt --fix-broken -y install && apt-get install -y --no-install-recommends \
     cpio \
     sudo \
     zstd \
-    libc6
-RUN apt-get install -y llvm-7 clang-7 gcc-7
-RUN apt-get install -y llvm-8 clang-8 gcc-8
-RUN apt-get install -y llvm-9 clang-9 gcc-9
-RUN apt-get install -y llvm-10 clang-10 gcc-10
+    libc6 \
+    llvm-7 \
+    clang-7 \
+    gcc-7 \
+    llvm-8 \
+    clang-8 \
+    gcc-8 \
+    llvm-9 \
+    clang-9 \
+    gcc-9 \
+    llvm-10 \
+    clang-10 \
+    gcc-10
+
 RUN ln -s -T /usr/bin/make /usr/bin/gmake
 
 ENTRYPOINT ["/bin/bash", "-c"]
