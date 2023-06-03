@@ -174,7 +174,6 @@ TEST(SyscallExit, execveatX_correct_exit)
 	/* Prepare the execve args */
 	int dirfd = 0;
 	const char *pathname = "/usr/bin/echo";
-	const char *comm = "echo";
 	const char *argv[] = {pathname, "[OUTPUT] SyscallExit.execveatX_success test", NULL};
 	const char *envp[] = {"IN_TEST=yes", "3_ARGUMENT=yes", "2_ARGUMENT=no", NULL};
 	int flags = 0;

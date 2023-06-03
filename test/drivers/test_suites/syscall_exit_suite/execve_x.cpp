@@ -292,7 +292,9 @@ TEST(SyscallExit, execveX_upperlayer_success)
     mkdir(target, 0777);
 
 	/* Construct the mount options string */
-    asprintf(&mntopts, "lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir);
+    if(asprintf(&mntopts, "lowerdir=%s,upperdir=%s,workdir=%s", lowerdir, upperdir, workdir) == -1){
+		FAIL() << "Cannot construct mount options string";
+	};
 
     /* Mount the overlayfs */
 	if (mount("overlay", target, "overlay", MS_MGC_VAL, mntopts) != 0)
