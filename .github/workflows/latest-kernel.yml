@@ -44,6 +44,12 @@ jobs:
             echo "target: arch" >> dk.yaml
           fi
           echo "latest_vers=$(grep kernelrelease dk.yaml | awk -F": " '{print $2}')" >> $GITHUB_OUTPUT
+      
+      - name: Upload driverkit config
+        uses: actions/upload-artifact@v3
+        with:
+          name: driverkit_config.yaml
+          path: linux/dk.yaml
           
       - name: Test drivers build
         run: |
