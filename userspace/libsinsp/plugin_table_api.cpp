@@ -29,25 +29,25 @@ limitations under the License.
 	switch (_kt) \
 	{ \
 		case ss_plugin_state_type::SS_PLUGIN_ST_INT8: \
-			_X(int8_t, s8) \
+			_X(int8_t, s8); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_INT16: \
-			_X(int16_t, s16) \
+			_X(int16_t, s16); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_INT32: \
-			_X(int32_t, s32) \
+			_X(int32_t, s32); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_INT64: \
-			_X(int64_t, s64) \
+			_X(int64_t, s64); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_UINT8: \
-			_X(uint8_t, u8) \
+			_X(uint8_t, u8); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_UINT16: \
-			_X(uint16_t, u16) \
+			_X(uint16_t, u16); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_UINT32: \
-			_X(uint32_t, u32) \
+			_X(uint32_t, u32); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_UINT64: \
-			_X(uint64_t, u64) \
+			_X(uint64_t, u64); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_STRING: \
-			_X(std::string, str) \
+			_X(std::string, str); break; \
 		case ss_plugin_state_type::SS_PLUGIN_ST_BOOL: \
-			_X(bool, b) \
+			_X(bool, b); break; \
 		default: \
 			throw sinsp_exception("can't convert plugin state type to typeinfo: " + std::to_string(_kt)); \
 	} \
@@ -441,6 +441,7 @@ struct sinsp_table_wrapper
 			{ \
 				return static_cast<ss_plugin_table_entry_t*>(ret.get()); \
 			} \
+			return NULL; \
 		}
 		__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
 			__PLUGIN_STATETYPE_SWITCH(t->m_key_type);
@@ -554,6 +555,7 @@ struct sinsp_table_wrapper
 		{ \
 			auto e = static_cast<libsinsp::state::table_entry*>(_e); \
 			auto ptr = std::unique_ptr<libsinsp::state::table_entry>(e); \
+			break; \
 		}
 		__CATCH_ERR_MSG(t->m_owner_plugin->m_last_owner_err, {
 			__PLUGIN_STATETYPE_SWITCH(t->m_key_type);
