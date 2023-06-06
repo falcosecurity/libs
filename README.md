@@ -1,5 +1,7 @@
 # falcosecurity/libs
 
+[![Falco Core Repository](https://github.com/falcosecurity/evolution/blob/main/repos/badges/falco-core-blue.svg)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#core-scope) [![Stable](https://img.shields.io/badge/status-stable-brightgreen?style=for-the-badge)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#stable) [![License](https://img.shields.io/github/license/falcosecurity/libs?style=for-the-badge)](./COPYING)
+
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
 [![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
 [![Drivers build against latest mainline kernel](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml/badge.svg)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
