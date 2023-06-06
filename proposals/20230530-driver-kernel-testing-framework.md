@@ -21,13 +21,15 @@ Acceptable confidence in the kernel drivers can be evaluated based on the follow
 
 By assessing these indicators, we can gauge the overall confidence, success, and performance of the kernel drivers within [The Falco Project](https://falco.org/).
 
+The initial proposal focuses primarily on the "Functionality" aspect, while the remaining key indicators are addressed in the outlook section.
+
 ## Key Terms
 
 First, let's clarify a few definitions and provide further context.
 
 - `kernel versions`: In the context of the testing framework, kernel versions refer to changes in the major and minor version of the kernel (e.g., 5.15 or 6.4). These version changes are specifically relevant for testing the Falco drivers, with a particular emphasis on testing with Long-Term Support (LTS) releases.
 - `kernel drivers`: 
-    - The kernel drivers powering Falco are custom code developed by Falco contributors to passively observe and analyze events within the Linux kernel. These drivers hook into tracepoints to gather information and generate structured Falco alerts. Falco's monitoring process is passive and does not exert any influence or modify the behavior of the events being monitored, such as syscalls.
+    - The kernel drivers powering Falco are custom code developed by Falco contributors to passively observe and analyze events within the Linux kernel. These drivers hook into tracepoints to gather information and generate structured Falco alerts. Falco's monitoring process is passive and does not exert any influence or modify the behavior of the kernel actions being monitored, such as syscalls.
     - Falco employs various kernel instrumentation strategies, including both traditional kernel modules and eBPF. eBPF is advertised as the safer option, as the driver code runs in a virtual machine with limited access to kernel data structures.
     - Lastly, the drivers themselves do not have their own control flow. Instead, they are invoked whenever a kernel event triggers at the hookpoints they are attached to. Consequently, the load on the drivers is contingent upon the workload and infrastructure in which they are deployed, making it different from a classic optimization problem where most influencing factors are under control.
 - `libscap`: The `libscap` module responsible for setting up and interacting with Falco's kernel drivers is of great importance in the context of kernel testing. `libscap` plays a critical role in consuming events from the shared space between Falco and its drivers, which acts as a temporary storage for monitored events. Inefficient performance of libscap has the potential to create backpressure on kernel monitoring, which can result in missed tracepoint invocations.
@@ -50,39 +52,37 @@ Moreover, robust testing practices contribute to the long-term viability and sca
 
 Ensuring compatibility between different kernel versions, distributions, architectures, and compiler versions is complex due to frequent updates and changes in the Linux kernel. 
 
-The curse of dimensionality and combinatorial explosion present challenges in kernel testing, as the testing complexity exponentially increases with the number of dimensions. Testing every possible combination exhaustively becomes impractical.
+The curse of dimensionality and combinatorial explosion present challenges in kernel testing, as the testing complexity exponentially increases with the number of dimensions. Testing every possible combination exhaustively becomes impractical. However, we have an advantage in that most distributions only change kernels from one LTS version to the next LTS, while frequently publishing new builds (kernel releases). In addition, compatibility issues tend to be tied to major and minor kernel version changes rather than individual kernel releases. As a result, the realistic grid of potential kernels becomes more manageable and tractable.
 
-Additionally, performance and impact can vary based on specific workloads and fine-grained kernel settings, which are difficult to predict for each adopter's unique use case.
+Performance and impact can vary based on specific workloads and fine-grained kernel settings, which are difficult to predict for each adopter's unique use case. Therefore, a strategic approach is crucial to balance coverage and resources in testing.
 
-Therefore, a strategic approach is crucial to balance coverage and resources in testing. Furthermore, considering real-world workloads and settings is essential for comprehensive testing and accurate performance evaluation, serving as the guiding principle throughout the process.
+Furthermore, considering real-world workloads and settings is essential for comprehensive testing and accurate performance evaluation, serving as the guiding principle throughout the process.
 
 
 ## Proposal
 
-### Phase 1: Functionality
-
-> Feasible (targeted for Falco release 0.36)
+The "Functionality" tests of the CI-powered test framework are targeted for Falco release 0.36.
 
 - Objective: Ensure Falco drivers run and work across different kernel versions and distributions.
 - Actions: Implement a comprehensive testing process and kernel test grid to validate driver compatibility, stability, and functionality across various kernel environments.
 - Expected Outcome: Increased confidence in the reliability and stability of Falco drivers.
 
-#### Test Category 1
+### Test Category 1
 
 Ensuring that the kernel driver successfully compiles for the agreed-upon kernel test grid. The optimal compiler version and build container are selected in alignment with the advancements in the Linux source tree and its related dependencies, based on the kernel version and driver type.
 
 
-#### Test Category 2
+### Test Category 2
 
 Verifying that the kernel driver can load, run, and capture events without errors. This is determined through [scap-open](https://github.com/falcosecurity/libs/tree/master/userspace/libscap/examples/01-open) and unit tests conducted in virtual machine (VM) environments. In essence, when we mention that the "driver loads and runs", it implies that the scap-open counter for captured events during a test run is positive and that the [drivers_test](https://github.com/falcosecurity/libs/tree/master/test/drivers) unit tests pass. The latter tests not only load the driver live but also simulate syscall events and verify that the expected information is extracted from the kernel tracepoint and retrieved by the libscap driver type-specific engine in userspace.
 
 
-#### Test Infrastructure
+### Test Infrastructure
 
 Our goal is to facilitate the expansion and integration of full Continuous Integration (CI) for the kernel test grid, enabling comprehensive testing of the kernel driver functionality. Concurrently, we will develop a test framework utilizing localhost virtual machines (VMs), which will include a limited kernel test grid. This framework will be accessible to adopters, providing them with a convenient option for local testing during the development or testing phases.
 
 
-#### Current State
+### Current State
 
 Currently (as of May 31, 2023), the relevant [falcosecurity/libs](https://github.com/falcosecurity/libs) CI drivers tests include:
 
@@ -100,11 +100,11 @@ Currently (as of May 31, 2023), the relevant [falcosecurity/libs](https://github
     - ubuntu-2004:202107-02 (x86_64)
 
 
-#### Desired `kernel test grid` Expansion
+### Desired `kernel test grid` Expansion
 
 *Distributions*
 
-Choose a minimum of five popular distributions from the pool of distributions for which Falco currently publishes kernel drivers (retrieved from [falcosecurity/kernel-crawler](https://github.com/falcosecurity/kernel-crawler/tree/kernels) on May 31, 2023). Ensure a balanced representation between deb-based and rpm-based distributions.
+Choose a minimum of five popular distributions from the pool of distributions for which Falco currently publishes kernel drivers (retrieved from [falcosecurity/kernel-crawler](https://github.com/falcosecurity/kernel-crawler/tree/kernels) on May 31, 2023). Ensure a balanced representation between deb-based and rpm-based distributions, taking into account their real-world popularity.
 
 - AliyunLinux
 - AlmaLinux
@@ -132,7 +132,8 @@ To achieve comprehensive coverage, the statistical sampling of versions across d
 
 *Architectures*
 
-Place higher priority on testing for `x86_64` compared to `aarch64`.
+
+Cover each officially supported architecture by the Falco project, including `x86_64`, `aarch64`, and `s390x` (supported by `libs` only).
 
 *Driver type*
 
@@ -140,31 +141,65 @@ Ensure equal testing coverage for each driver, taking into account the different
 
 *Compiler versions*
 
-Select the most appropriate compiler version and build container for the CI-integrated tests.
+Select the most appropriate compiler version and build container for the CI-integrated tests. Apart from the compiler version, the GLIBC version in the build container can also have an impact on the ability to compile the driver for a given kernel.
 
-#### LOE and Cost Estimates for Phase 1 Completion
+> The expanded CI tests may necessitate the use of approximately 30 low-resource virtual machines (VMs) that run continuously 24/7. These VMs would be distributed across multiple third-party cloud providers. To adequately cover the condensed kernel test grid, it is estimated that up to 70 test runs would be required for each testing cycle. These tests can be launched using GitHub workflows leveraging SSH remote commands. The test results are then retrieved through this method as well. Initially, it would be logical to support these tests on demand only to avoid simultaneous runs that may try to access the same VM at the same time. In addition to the test VMs, it may be necessary to expand the CI workflows in terms of builder containers.
 
-> The expanded CI tests may necessitate the use of approximately 30 low-resource virtual machines (VMs) that run continuously 24/7. These VMs would be distributed across multiple third-party cloud providers. To adequately cover the condensed kernel test grid, it is estimated that approximately 150 test runs would be required for each testing cycle. These tests can be launched using GitHub workflows leveraging SSH remote commands. The test results are then retrieved through this method as well. In addition to the test VMs, it may be necessary to expand the CI workflows in terms of builder containers.
+Please refer to Appendix 1 for a concrete example of a possible kernel test grid.
 
 
-### Phase 2: Regression, Cost and Benchmarking
+## Outlook
 
-> At Risk (contingent upon the availability of increased CI budgeting and additional engineering resources from community members, post Falco release 0.36)
+The following possibilities serve as an outlook for future enhancements. These potential improvements are anticipated after the release of Falco 0.36.
 
 - Objective: Conduct comprehensive regression testing, cost budgeting, and benchmarking.
 - Actions: Allocate additional resources and budget to expand the testing infrastructure, enabling thorough regression testing and performance evaluation with realistic workloads and simulations of production settings.
 - Expected Outcome: Improved detection of regressions, optimized cost budgeting for kernel monitoring, and benchmarking for performance optimization.
 
-TBD
-
-Note: Phase 2 is currently at risk due to resource limitations. The successful implementation of this phase relies not only on increased CI budgeting, but more importantly, on the availability of additional engineering resources. Furthermore, we aim to collaborate with the CNCF TAG Environmental Sustainability to establish core indices that reflect the appropriate cost implications of comprehensive kernel monitoring for threat detection. This collaboration will ensure that we adopt not only a sustainable approach but also the most compatible one, considering the various cost factors involved (see [Proof of Environmental Sustainability activities and best practices for CNCF projects](https://github.com/cncf/tag-env-sustainability/issues/64#issuecomment-1496197590)).
+The successful implementation depends on increased CI budgeting and, more importantly, the availability of additional engineering resources. Additionally, we are actively collaborating with the CNCF TAG Environmental Sustainability to establish core indices that reflect the cost implications of kernel monitoring for threat detection. This collaboration ensures that we adopt a sustainable and compatible approach, taking into account various cost factors. You can find more information on our activities and best practices for CNCF projects in the [Proof of Environmental Sustainability activities and best practices for CNCF projects](https://github.com/cncf/tag-env-sustainability/issues/64#issuecomment-1496197590) issue.
 
 
-
-### Resources
+## Resources
 
 - CI [Github Workflows](https://github.com/falcosecurity/libs/tree/master/.github/workflows)
 - CI [CircleCI](https://github.com/falcosecurity/libs/tree/master/.circleci) 
 - [falcosecurity/kernel-crawler](https://github.com/falcosecurity/kernel-crawler/) supported [kernels](https://github.com/falcosecurity/kernel-crawler/tree/kernels) 
 - Issue [CI Integration for Driver Test Suites](https://github.com/falcosecurity/libs/issues/531)
 - CNCF TAG Environmental Sustainability [Proof of Environmental Sustainability activities and best practices for CNCF projects](https://github.com/cncf/tag-env-sustainability/issues/64#issuecomment-1496197590)
+
+
+## Appendix 1
+
+Below is an example of a kernel test grid, which is not the final grid but serves to provide a clearer and more concrete illustration. Each VM is booted into a predefined kernel release to ensure the correct driver is built, particularly for the `kmod` and `bpf` cases.
+
+**architecture**|**driver type**|**distro**|**kernel (major.minor)**|**# test runs**
+:-----:|:-----:|:-----:|:-----:|:-----:
+x86\_64|[kmod and bpf]|AmazonLinux2|4.19|2
+x86\_64|[all drivers]|AmazonLinux2|5.10|3
+x86\_64|[kmod and bpf]|AmazonLinux2|5.4|2
+x86\_64|[all drivers]|AmazonLinux2022|5.15|3
+x86\_64|[all drivers]|AmazonLinux2023|6.1|3
+x86\_64|[all drivers]|ArchLinux|5.18|3
+x86\_64|[all drivers]|ArchLinux|6.0|3
+x86\_64|[kmod]|CentOS|2.6|1
+x86\_64|[kmod]|CentOS|3.10|1
+x86\_64|[kmod and bpf]|CentOS|4.18|2
+x86\_64|[all drivers]|CentOS|5.14|3
+x86\_64|[all drivers]|CentOS|6.3|3
+x86\_64|[all drivers]|Fedora|5.17|3
+x86\_64|[all drivers]|Fedora|5.8|3
+x86\_64|[all drivers]|Fedora|6.2|3
+x86\_64|[kmod]|OracleLinux|2.6|1
+x86\_64|[kmod]|OracleLinux|3.10|1
+x86\_64|[kmod and bpf]|OracleLinux|4.14|2
+x86\_64|[all drivers]|OracleLinux|5.15|3
+x86\_64|[kmod and bpf]|OracleLinux|5.4|2
+x86\_64|[kmod and bpf]|Ubuntu|4.15|2
+x86\_64|[all drivers]|Ubuntu|6.3|3
+aarch64|[kmod and bpf]|AmazonLinux2|5.4|2
+aarch64|[all drivers]|AmazonLinux2022|5.15|3
+aarch64|[kmod and bpf]|ArchLinux|4.15|2
+aarch64|[kmod and bpf]|OracleLinux|4.14|2
+aarch64|[all drivers]|OracleLinux|5.15|3
+aarch64|[all drivers]|Ubuntu|6.3|3
+aarch64|[all drivers]|Fedora|6.2|3
