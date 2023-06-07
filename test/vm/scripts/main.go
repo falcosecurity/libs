@@ -14,11 +14,12 @@ import (
 )
 
 var (
-	maxWorkers          = runtime.GOMAXPROCS(0)
-	sem                 = semaphore.NewWeighted(int64(maxWorkers))
-	ubuntuContainer2004 = "vm-ubuntu2004:latest"
-	ubuntuContainer2204 = "vm-ubuntu2204:latest"
-	ubuntuContainer2310 = "vm-ubuntu2310:latest"
+	maxWorkers            = runtime.GOMAXPROCS(0)
+	sem                   = semaphore.NewWeighted(int64(maxWorkers))
+	ubuntuContainer2004   = "vm-ubuntu2004:latest"
+	ubuntuContainer2204   = "vm-ubuntu2204:latest"
+	ubuntuContainer2310   = "vm-ubuntu2310:latest"
+	debianbusterContainer = "vm-debianbuster:latest"
 )
 
 func dockerRunCompileDriver(ctx context.Context, ver [2]string, headers string, dir string) {
@@ -39,6 +40,7 @@ func dockerRunCompileDriver(ctx context.Context, ver [2]string, headers string, 
 		}
 		shArgs = []string{"-c", fmt.Sprintf("docker run -v %s:/vm:z -v %s:/headers:z %s \"/bin/bash /vm/scripts/compile_drivers.sh /usr/bin/llc-%d /usr/bin/clang-%d /usr/bin/gcc-%d OFF ON\"", dir, headers, dockerImage, verNumeric, verNumeric, verNumeric)}
 	} else if compilerType == "gcc" {
+		dockerImage = debianbusterContainer
 		if verNumeric >= 9 {
 			dockerImage = ubuntuContainer2310
 		}
@@ -56,9 +58,13 @@ func semLaunchCompileDriver(compilerVersionsClang string, compilerVersionsGcc st
 	gccs := []string{}
 	if strings.Contains(compilerVersionsClang, ",") {
 		clangs = strings.Split(compilerVersionsClang, ",")
+	} else if _, err := strconv.Atoi(compilerVersionsClang); err == nil {
+		clangs = append(gccs, compilerVersionsClang)
 	}
 	if strings.Contains(compilerVersionsGcc, ",") {
 		gccs = strings.Split(compilerVersionsGcc, ",")
+	} else if _, err := strconv.Atoi(compilerVersionsGcc); err == nil {
+		gccs = append(gccs, compilerVersionsGcc)
 	}
 
 	searchArrayCompilerVersions := [][2]string{}

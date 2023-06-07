@@ -25,6 +25,9 @@ It is strongly advised to follow the installation instructions in the official d
 
 The test suites are integrated with the project's CMake setup but function independently. The primary VM build output is stored in the `libs/test/vm/build` directory to cache results, even if the `libs/build` folder is regenerated. The builds for scap-open and the kernel drivers are performed from scratch in containers, not using the `libs/build` directory. Further information about each step is available in later sections of this document.
 
+As a rule of thumb, test flakiness mostly arises due to failed kernel module (kmod) tests. These tests are best run on a powerful Linux box.
+
+
 ```bash
 mkdir -p build;
 cd build;
@@ -34,8 +37,8 @@ cmake -DCREATE_TEST_TARGETS=ON -DENABLE_VM_TESTS=ON ../;
 Create containers, download kernel and header packages, extract kernel headers, and build vagrant VMs.
 
 ```bash
-# Target vm-init first run can take up to 25 min
-# Re-running only re-builds VMs - can take up to 6 min
+# Target vm-init first run can take up to 25 min or longer
+# Re-running only re-builds VMs - can take up to 6 min or longer
 make vm-init;
 
 # Alternatively run each step separately
@@ -57,11 +60,13 @@ In a Vagrant VM loop, each downloaded kernel within the `libs/test/vm/build/kern
 ```bash
 # make vm-init; # recommended, destroys and re-creates VMs
 
-# centos7: should be under 10 min
+# centos7: should be under 10 min or take longer
 make vm-centos7;
 
-# ubuntu: can take 10-20 min
+# ubuntu: can take 10-20 min or longer
 make vm-ubuntu;
+
+# Explore libs/test/vm/CMakeLists.txt for new distro targets (e.g. `make vm-amazonlinux2` as example for an experimental distro) ...
 
 make vm-result;
 ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
@@ -78,7 +83,7 @@ make vm-cleanup;
 
 You have several options for customizing the VM test grid:
 
-- Modify the kernel grid by changing the URLs in the [kernels.jsonl](kernels.jsonl) file. This allows you to customize the entire test suite.
+- Modify the kernel grid by changing the URLs in the [kernels.jsonl](kernels.jsonl) file. This allows you to customize the entire test suite. When it comes to Amazon Linux distros, you can refer to [this link](https://github.com/falcosecurity/kernel-crawler/issues/145) to learn how to retrieve the `kernel` and `kernel-devel` RPMs. When downloading new RPMs, it is necessary to delete/remove the existing folders (`libs/test/vm/build/kernels/`, `libs/test/vm/build/headers/`, `libs/test/vm/build/headers_extracted/`) first.
 - To limit the VM loop, you can remove kernel packages from the `libs/test/vm/build/kernels/` and `libs/test/vm/build/headers/` as well as `libs/test/vm/build/headers_extracted/` directories. The compile and test loop scripts perform an `ls` operation on these folders.
 - If you want different or additional compiler versions, adjust the input arguments to the Go script within the `libs/test/vm/scripts/vm_compile.sh` script.
 
@@ -249,8 +254,7 @@ libs/test/vm/build/driver/
 
 > Targets  `vm-centos7` or `vm-ubuntu` or ... (new future distros)
 
-Iterate through the kernels in the VMs. Each kernel is sequentially booted, and strict kernel change verification checks are performed during the process.
-
+Iterate through the kernels in the VMs. Each kernel is sequentially booted, and strict kernel change verification checks are performed during the process. Explore `libs/test/vm/CMakeLists.txt` for evolving distro targets (e.g. `vm-amazonlinux2` is still in experimental phase) ...
 
 ```bash
 ...
