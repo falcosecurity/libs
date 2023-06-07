@@ -211,7 +211,7 @@ This table represents the syscalls supported by our drivers.
 | pause                   | 🟡        |
 | perf_event_open         | 🟡        |
 | personality             | 🟡        |
-| pidfd_getfd             | 🟡        |
+| pidfd_getfd             | 🟢        |
 | pidfd_open              | 🟡        |
 | pidfd_send_signal       | 🟡        |
 | pipe                    | 🟢        |
