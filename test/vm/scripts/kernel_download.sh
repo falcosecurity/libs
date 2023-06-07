@@ -28,6 +28,6 @@ then
   chown -R 1000:1000 "${HEADERS_DIR}";
   chown -R 1000:1000 "${KERNELS_DIR}";
 else
-  echo "Kernels and headers already downloaded"
+  printf "\n\n[STATUS] Kernels and headers already downloaded\n\n"
 fi
 

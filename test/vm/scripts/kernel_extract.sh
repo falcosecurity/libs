@@ -11,7 +11,7 @@ HEADERS_EXTRACT_OUT_DIR="${2}";
 set -eou pipefail
 
 if [[ -d "${HEADERS_EXTRACT_OUT_DIR}" ]]; then
-  echo "Kernels headers already extracted";
+  printf "\n\n[STATUS] Kernels headers already extracted\n\n";
   exit 0
 fi;
 
@@ -24,12 +24,12 @@ for f in "${HEADERS_RPMS_DIR}"/*; do
     KERNEL_HEADERS_PACKAGE_NAME=$(basename "${f}" .rpm)
     OUT="${HEADERS_EXTRACT_OUT_DIR}/${KERNEL_HEADERS_PACKAGE_NAME}";
     if [[ ! -d "${OUT}" ]]; then
-      echo "Extracting ${f} kernel ...";
+      printf "\n\n[STATUS] Extracting ${f} kernel ...\n\n";
       mkdir -p "${OUT}";
       rpm2cpio "${f}" | cpio -D "${OUT}" -idm
       chown -R 1000:1000 "${OUT}";
     else
-      echo "Skipping ${f} kernel extraction, already extracted ...";
+      printf "\n\n[STATUS] Skipping ${f} kernel extraction, already extracted ...\n\n";
     fi;
 
   elif [[ "${f}" == *".deb"* ]]; then
@@ -44,7 +44,7 @@ for f in "${HEADERS_RPMS_DIR}"/*; do
 
     OUT="${HEADERS_EXTRACT_OUT_DIR}/${KERNEL_HEADERS_PACKAGE_NAME}";
     if [[ ! -d "${OUT}" ]]; then
-      echo "Extracting ${f} kernel ...";
+      printf "\n\n[STATUS] Extracting ${f} kernel ...\n\n";
       mkdir -p "${OUT}";
       pushd "${OUT}";
       ar x "${f}";
@@ -55,7 +55,7 @@ for f in "${HEADERS_RPMS_DIR}"/*; do
       fi
       popd;
     else
-      echo "Skipping ${f} kernel extraction, already extracted ...";
+      printf "\n\n[STATUS] Skipping ${f} kernel extraction, already extracted ...\n\n";
     fi;
   fi;
 done
@@ -63,8 +63,10 @@ done
 for d in "${HEADERS_EXTRACT_OUT_DIR}"/*confs; do
   KERNEL_HEADERS_PACKAGE_NAME=$(echo "${d}" | sed 's/-confs//g');
   # Workaround for ubuntu to avoid readlinks
-  echo "Copying confs into $KERNEL_HEADERS_PACKAGE_NAME ubuntu generic headers directory ...";
-  cp -n -a "${d}/usr/src"/*/. "${KERNEL_HEADERS_PACKAGE_NAME}/usr/src"/*/
-  chown -R 1000:1000 "${KERNEL_HEADERS_PACKAGE_NAME}";
+  if [[ -d "${d}/usr/src" ]]; then
+    printf "\n\n[STATUS] Copying confs into $KERNEL_HEADERS_PACKAGE_NAME ubuntu generic headers directory ...\n\n";
+    cp -n -a "${d}/usr/src"/*/. "${KERNEL_HEADERS_PACKAGE_NAME}/usr/src"/*/
+    chown -R 1000:1000 "${KERNEL_HEADERS_PACKAGE_NAME}";
+  fi
   rm -rf "${d}";
 done

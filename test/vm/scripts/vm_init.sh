@@ -5,7 +5,7 @@ set -e
 
 if [[ $# -ne 3 || "${EUID}" -eq 0 ]]; then
   echo "Usage: bash vm_init.sh BASE_DIR VM_PROVIDER VM_NAMES"
-  echo "Run as non-root user"
+  echo "Run as non-root user on host"
   exit 1
 fi
 
@@ -18,6 +18,7 @@ set -eou pipefail
 echo "Init VMs";
 
 export VAGRANT_CWD="${BASE_DIR}/vm_provider/${VM_PROVIDER}"; 
+vagrant box update || true;
 vagrant destroy -f || true;
 vagrant up;
 
