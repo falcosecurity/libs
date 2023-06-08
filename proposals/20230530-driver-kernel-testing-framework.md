@@ -21,7 +21,7 @@ Acceptable confidence in the kernel drivers can be evaluated based on the follow
 
 By assessing these indicators, we can gauge the overall confidence, success, and performance of the kernel drivers within [The Falco Project](https://falco.org/).
 
-The initial proposal focuses primarily on the "Functionality" aspect, while the remaining key indicators are addressed in the outlook section.
+The initial proposal primarily emphasizes the "Functionality" aspect, while the other key indicators will be addressed in future iterations.
 
 ## Key Terms
 
@@ -29,7 +29,7 @@ First, let's clarify a few definitions and provide further context.
 
 - `kernel versions`: In the context of the testing framework, kernel versions refer to changes in the major and minor version of the kernel (e.g., 5.15 or 6.4). These version changes are specifically relevant for testing the Falco drivers, with a particular emphasis on testing with Long-Term Support (LTS) releases.
 - `kernel drivers`: 
-    - The kernel drivers powering Falco are custom code developed by Falco contributors to passively observe and analyze events within the Linux kernel. These drivers hook into tracepoints to gather information and generate structured Falco alerts. Falco's monitoring process is passive and does not exert any influence or modify the behavior of the kernel actions being monitored, such as syscalls.
+    - The kernel drivers powering Falco are custom code developed by contributors. They hook into tracepoints to gather information from kernel data structures of selected kernel events, enabling the generation of structured Falco alerts. Falco's monitoring process is passive and does not modify the behavior of the monitored kernel actions, such as syscalls.
     - Falco employs various kernel instrumentation strategies, including both traditional kernel modules and eBPF. eBPF is advertised as the safer option, as the driver code runs in a virtual machine with limited access to kernel data structures.
     - Lastly, the drivers themselves do not have their own control flow. Instead, they are invoked whenever a kernel event triggers at the hookpoints they are attached to. Consequently, the load on the drivers is contingent upon the workload and infrastructure in which they are deployed, making it different from a classic optimization problem where most influencing factors are under control.
 - `libscap`: The `libscap` module responsible for setting up and interacting with Falco's kernel drivers is of great importance in the context of kernel testing. `libscap` plays a critical role in consuming events from the shared space between Falco and its drivers, which acts as a temporary storage for monitored events. Inefficient performance of libscap has the potential to create backpressure on kernel monitoring, which can result in missed tracepoint invocations.
@@ -69,7 +69,7 @@ The "Functionality" tests of the CI-powered test framework are targeted for Falc
 
 ### Test Category 1
 
-Ensuring that the kernel driver successfully compiles for the agreed-upon kernel test grid. The optimal compiler version and build container are selected in alignment with the advancements in the Linux source tree and its related dependencies, based on the kernel version and driver type.
+Ensuring that the kernel driver successfully compiles for the agreed-upon kernel test grid. The optimal compiler version and build container are carefully selected to align with the advancements in the Linux source tree and its related dependencies. This selection takes into account various factors, including the specific kernel version, driver type, and the distribution being used.
 
 
 ### Test Category 2
@@ -79,67 +79,129 @@ Verifying that the kernel driver can load, run, and capture events without error
 
 ### Test Infrastructure
 
-Our goal is to facilitate the expansion and integration of full Continuous Integration (CI) for the kernel test grid, enabling comprehensive testing of the kernel driver functionality. Concurrently, we will develop a test framework utilizing localhost virtual machines (VMs), which will include a limited kernel test grid. This framework will be accessible to adopters, providing them with a convenient option for local testing during the development or testing phases.
+Our goal is to facilitate the expansion and integration of full Continuous Integration (CI) for the kernel test grid, enabling thorough testing of the functionality of the kernel drivers. 
+
+Concurrently, we will develop a test framework utilizing localhost virtual machines (VMs), which will include a limited kernel test grid. This framework will be accessible to adopters, providing them with a convenient option for local testing during the development or testing phases.
 
 
 ### Current State
 
 Currently (as of May 31, 2023), the relevant [falcosecurity/libs](https://github.com/falcosecurity/libs) CI drivers tests include:
 
-- Building kernel drivers for:
-    - Latest Archlinux kernel to spot possible incompatibilities with the latest kernel tree changes
-    - ubuntu-22.04 (x86_64)
-    - linux-2.6.32
-    - linux-3.10
-    - linux-4.18
-    - linux-5.19
-    - linux-6.2
-- Running [drivers_test](https://github.com/falcosecurity/libs/tree/master/test/drivers) unit tests on:
-    - ubuntu-22.04 (x86_64)
-    - ubuntu-2204:2022.10.2 (arm64)
-    - ubuntu-2004:202107-02 (x86_64)
+<details>
+    <summary>Build kernel drivers</summary>
+		<ul>
+			<li>Latest Archlinux kernel to spot possible incompatibilities with the latest kernel tree changes</li>
+			<li>ubuntu-22.04 (x86_64)</li>
+			<li>linux-2.6.32</li>
+			<li>linux-3.10</li>
+			<li>linux-4.18</li>
+			<li>linux-5.19</li>
+			<li>linux-6.2</li>
+		</ul>
+</details> 
+
+<details>
+    <summary>Run <a href="https://github.com/falcosecurity/libs/tree/master/test/drivers"> drivers_test</a> unit tests</summary>
+        <ul>
+            <li>ubuntu-22.04 (x86_64)</li>
+            <li>ubuntu-2204:2022.10.2 (arm64)</li>
+            <li>ubuntu-2004:202107-02 (x86_64)</li>
+        </ul>
+</details> 
+
+</br>
 
 
-### Desired `kernel test grid` Expansion
+### Desired Testing
 
 *Distributions*
 
 Choose a minimum of five popular distributions from the pool of distributions for which Falco currently publishes kernel drivers (retrieved from [falcosecurity/kernel-crawler](https://github.com/falcosecurity/kernel-crawler/tree/kernels) on May 31, 2023). Ensure a balanced representation between deb-based and rpm-based distributions, taking into account their real-world popularity.
 
-- AliyunLinux
-- AlmaLinux
-- AmazonLinux
-- AmazonLinux2
-- AmazonLinux2022
-- AmazonLinux2023
-- ArchLinux
-- BottleRocket
-- CentOS
-- Debian
-- Fedora
-- Flatcar
-- Minikube
-- OpenSUSE
-- OracleLinux
-- PhotonOS
-- RockyLinux
-- Talos
-- Ubuntu
+<details>
+    <summary>Candidate Kernel Distributions</summary>
+        <table>
+            <tr>
+                <td><b>Distribution</b></td>
+            </tr>
+            <tr>
+                <td>AliyunLinux</td>
+            </tr>
+            <tr>
+                <td>AlmaLinux</td>
+            </tr>
+            <tr>
+                <td>AmazonLinux</td>
+            </tr>
+            <tr>
+                <td>AmazonLinux2</td>
+            </tr>
+            <tr>
+                <td>AmazonLinux2022</td>
+            </tr>
+            <tr>
+                <td>AmazonLinux2023</td>
+            </tr>
+            <tr>
+                <td>ArchLinux</td>
+            </tr>
+            <tr>
+                <td>BottleRocket</td>
+            </tr>
+            <tr>
+                <td>CentOS</td>
+            </tr>
+            <tr>
+                <td>Debian</td>
+            </tr>
+            <tr>
+                <td>Fedora</td>
+            </tr>
+            <tr>
+                <td>Flatcar</td>
+            </tr>
+            <tr>
+                <td>Minikube</td>
+            </tr>
+            <tr>
+                <td>OpenSUSE</td>
+            </tr>
+            <tr>
+                <td>OracleLinux</td>
+            </tr>
+            <tr>
+                <td>PhotonOS</td>
+            </tr>
+            <tr>
+                <td>RockyLinux</td>
+            </tr>
+            <tr>
+                <td>Talos</td>
+            </tr>
+            <tr>
+                <td>Ubuntu</td>
+            </tr>
+        </table>
+</details> 
 
-*Kernel versions*
+</br>
 
-To achieve comprehensive coverage, the statistical sampling of versions across distributions will prioritize the minimum and maximum supported kernel versions per driver type. Additionally, a particular emphasis will be placed on selecting LTS (Long-Term Support) releases when choosing the remaining kernel versions. As part of this approach, a minimum of 10 kernel versions will be carefully selected for each driver type.
+
+*Kernel Versions*
+
+To achieve adequate and realistic coverage, the statistical sampling of versions across distributions will prioritize the minimum and maximum supported kernel versions per driver type. Additionally, a particular emphasis will be placed on selecting LTS (Long-Term Support) releases when choosing the remaining kernel versions. As part of this approach, a minimum of 10 kernel versions will be carefully selected for each driver type.
 
 *Architectures*
 
 
-Cover each officially supported architecture by the Falco project, including `x86_64`, `aarch64`, and `s390x` (supported by `libs` only).
+Cover each officially supported architecture by The Falco Project, including `x86_64`, `aarch64`, and `s390x` (supported by `libs` only).
 
-*Driver type*
+*Driver Type*
 
 Ensure equal testing coverage for each driver, taking into account the different minimum kernel versions they support.
 
-*Compiler versions*
+*Compiler Versions*
 
 Select the most appropriate compiler version and build container for the CI-integrated tests. Apart from the compiler version, the GLIBC version in the build container can also have an impact on the ability to compile the driver for a given kernel.
 
@@ -170,36 +232,220 @@ The successful implementation depends on increased CI budgeting and, more import
 
 ## Appendix 1
 
-Below is an example of a kernel test grid, which is not the final grid but serves to provide a clearer and more concrete illustration. Each VM is booted into a predefined kernel release to ensure the correct driver is built, particularly for the `kmod` and `bpf` cases.
+Below is an example of a kernel test grid, which is not the final grid but serves to provide a clearer and more concrete illustration. Each VM is booted into a predefined kernel release to ensure the correct driver is built, particularly for the `kmod` and `bpf` cases. The test grid will be regularly updated to incorporate the latest kernel versions.
 
-**architecture**|**driver type**|**distro**|**kernel (major.minor)**|**# test runs**
-:-----:|:-----:|:-----:|:-----:|:-----:
-x86\_64|[kmod and bpf]|AmazonLinux2|4.19|2
-x86\_64|[all drivers]|AmazonLinux2|5.10|3
-x86\_64|[kmod and bpf]|AmazonLinux2|5.4|2
-x86\_64|[all drivers]|AmazonLinux2022|5.15|3
-x86\_64|[all drivers]|AmazonLinux2023|6.1|3
-x86\_64|[all drivers]|ArchLinux|5.18|3
-x86\_64|[all drivers]|ArchLinux|6.0|3
-x86\_64|[kmod]|CentOS|2.6|1
-x86\_64|[kmod]|CentOS|3.10|1
-x86\_64|[kmod and bpf]|CentOS|4.18|2
-x86\_64|[all drivers]|CentOS|5.14|3
-x86\_64|[all drivers]|CentOS|6.3|3
-x86\_64|[all drivers]|Fedora|5.17|3
-x86\_64|[all drivers]|Fedora|5.8|3
-x86\_64|[all drivers]|Fedora|6.2|3
-x86\_64|[kmod]|OracleLinux|2.6|1
-x86\_64|[kmod]|OracleLinux|3.10|1
-x86\_64|[kmod and bpf]|OracleLinux|4.14|2
-x86\_64|[all drivers]|OracleLinux|5.15|3
-x86\_64|[kmod and bpf]|OracleLinux|5.4|2
-x86\_64|[kmod and bpf]|Ubuntu|4.15|2
-x86\_64|[all drivers]|Ubuntu|6.3|3
-aarch64|[kmod and bpf]|AmazonLinux2|5.4|2
-aarch64|[all drivers]|AmazonLinux2022|5.15|3
-aarch64|[kmod and bpf]|ArchLinux|4.15|2
-aarch64|[kmod and bpf]|OracleLinux|4.14|2
-aarch64|[all drivers]|OracleLinux|5.15|3
-aarch64|[all drivers]|Ubuntu|6.3|3
-aarch64|[all drivers]|Fedora|6.2|3
+<details>
+    <summary>Example Kernel Test Grid</summary>
+        <table>
+            <tr>
+                <td><b>Architecture</b></td>
+                <td><b>Driver Type</b</td>
+                <td><b>Distribution</b</td>
+                <td><b>Kernel (major.minor)</b</td>
+                <td><b># Test Runs</b</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>AmazonLinux2</td>
+                <td>4.19</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>AmazonLinux2</td>
+                <td>5.10</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>AmazonLinux2</td>
+                <td>5.4</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>AmazonLinux2022</td>
+                <td>5.15</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>AmazonLinux2023</td>
+                <td>6.1</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>ArchLinux</td>
+                <td>5.18</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>ArchLinux</td>
+                <td>6.0</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod</td>
+                <td>CentOS</td>
+                <td>2.6</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod</td>
+                <td>CentOS</td>
+                <td>3.10</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>CentOS</td>
+                <td>4.18</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>CentOS</td>
+                <td>5.14</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>CentOS</td>
+                <td>6.3</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>Fedora</td>
+                <td>5.17</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>Fedora</td>
+                <td>5.8</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>Fedora</td>
+                <td>6.2</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod</td>
+                <td>OracleLinux</td>
+                <td>2.6</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod</td>
+                <td>OracleLinux</td>
+                <td>3.10</td>
+                <td>1</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>OracleLinux</td>
+                <td>4.14</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>OracleLinux</td>
+                <td>5.15</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>OracleLinux</td>
+                <td>5.4</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>kmod and bpf</td>
+                <td>Ubuntu</td>
+                <td>4.15</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>x86_64</td>
+                <td>all drivers</td>
+                <td>Ubuntu</td>
+                <td>6.3</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>kmod and bpf</td>
+                <td>AmazonLinux2</td>
+                <td>5.4</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>all drivers</td>
+                <td>AmazonLinux2022</td>
+                <td>5.15</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>kmod and bpf</td>
+                <td>ArchLinux</td>
+                <td>4.15</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>kmod and bpf</td>
+                <td>OracleLinux</td>
+                <td>4.14</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>all drivers</td>
+                <td>OracleLinux</td>
+                <td>5.15</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>all drivers</td>
+                <td>Ubuntu</td>
+                <td>6.3</td>
+                <td>3</td>
+            </tr>
+            <tr>
+                <td>aarch64</td>
+                <td>all drivers</td>
+                <td>Fedora</td>
+                <td>6.2</td>
+                <td>3</td>
+            </tr>
+        </table>
+</details>
