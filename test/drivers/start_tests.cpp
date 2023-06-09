@@ -4,6 +4,7 @@
 #include <getopt.h>
 #include <gtest/gtest.h>
 #include "./event_class/event_class.h"
+#include "strl.h"
 
 #define UNKNOWN_ENGINE "unknown"
 
