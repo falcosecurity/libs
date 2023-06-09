@@ -708,8 +708,9 @@ void sinsp_usergroup_manager::notify_user_changed(const scap_userinfo *user, con
 			user->uid);
 
 	std::shared_ptr<sinsp_evt> cevt(evt);
-
+#ifndef __EMSCRIPTEN__	
 	m_inspector->m_pending_state_evts.push(cevt);
+#endif	
 }
 
 void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, const string &container_id, bool added)
@@ -735,5 +736,7 @@ void sinsp_usergroup_manager::notify_group_changed(const scap_groupinfo *group, 
 
 	std::shared_ptr<sinsp_evt> cevt(evt);
 
+#ifndef __EMSCRIPTEN__	
 	m_inspector->m_pending_state_evts.push(cevt);
+#endif
 }

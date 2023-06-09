@@ -15,10 +15,17 @@
 #
 
 include(jsoncpp)
-include(tbb)
-if(NOT MINIMAL_BUILD)
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	include(tbb)
+endif()
+if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 	include(curl)
 endif() # MINIMAL_BUILD
+
+if(NOT MINIMAL_BUILD)
+	include(zlib)
+endif()
+
 
 include_directories("..")
 include_directories(${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_DIR}/driver "${CMAKE_CURRENT_BINARY_DIR}")

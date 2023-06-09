@@ -1222,11 +1222,13 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			m_meta_event_callback(this, m_meta_event_callback_data);
 		}
 	}
+#ifndef __EMSCRIPTEN__	
 	else if (m_pending_state_evts.try_pop(m_state_evt))
 	{
 		res = SCAP_SUCCESS;
 		evt = m_state_evt.get();
 	}
+#endif
 	else
 	{
 		evt = &m_evt;
@@ -2807,7 +2809,9 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		evt->m_pevt->ts = (m_lastevent_ts == 0)
 			? sinsp_utils::get_current_time_ns()
 			: m_lastevent_ts;
+#ifndef __EMSCRIPTEN__				
 		m_pending_state_evts.push(std::move(evt));
+#endif
 	}
 }
 
