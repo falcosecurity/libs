@@ -43,7 +43,9 @@ limitations under the License.
 
 #include "capture_stats_source.h"
 
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_queue.h"
+#endif
 
 #include "sinsp_inet.h"
 #include "sinsp_public.h"
@@ -1262,7 +1264,9 @@ public:
 	// *	user added/removed events
 	// * 	group added/removed events
 	// *    async events produced by sinsp or plugins
+#ifndef __EMSCRIPTEN__
 	tbb::concurrent_queue<std::shared_ptr<sinsp_evt>> m_pending_state_evts;
+#endif
 
 	// Holds an event dequeued from the above queue
 	std::shared_ptr<sinsp_evt> m_state_evt;

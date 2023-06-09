@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 
-#ifndef MINIMAL_BUILD
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #ifdef HAS_CAPTURE
 #include "container_engine/cri.h"
 #endif // HAS_CAPTURE
@@ -374,7 +374,9 @@ void sinsp_container_manager::notify_new_container(const sinsp_container_info& c
 		std::shared_ptr<sinsp_evt> cevt(evt);
 
 		// Enqueue it onto the queue of pending container events for the inspector
+#ifndef __EMSCRIPTEN__	
 		m_inspector->m_pending_state_evts.push(cevt);
+#endif	
 	}
 	else
 	{
@@ -570,7 +572,7 @@ void sinsp_container_manager::create_engines()
 		m_container_engine_by_type[CT_STATIC] = engine;
 		return;
 	}
-#ifndef MINIMAL_BUILD
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #ifndef _WIN32
 	if (m_container_engine_mask & (1 << CT_PODMAN))
 	{
@@ -661,14 +663,14 @@ void sinsp_container_manager::cleanup()
 
 void sinsp_container_manager::set_docker_socket_path(std::string socket_path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(_WIN32)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::docker_linux::set_docker_sock(std::move(socket_path));
 #endif
 }
 
 void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 {
-#if !defined(MINIMAL_BUILD) && !defined(_WIN32)
+#if !defined(MINIMAL_BUILD) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::docker_async_source::set_query_image_info(query_image_info);
 #endif
 }

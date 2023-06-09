@@ -15,9 +15,7 @@ limitations under the License.
 
 */
 
-#ifndef _WIN32
-#include <dlfcn.h>
-#endif
+
 #include <inttypes.h>
 #include <string.h>
 #include <vector>

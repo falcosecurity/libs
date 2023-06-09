@@ -48,14 +48,15 @@ if(WITH_CHISEL)
 endif()
 
 if(NOT MINIMAL_BUILD)
-	include(cares)
-	if (NOT WIN32)
+	include(zlib)
+	if (NOT WIN32 AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 		include(curl)
+		include(cares)
 	endif() # NOT WIN32
 endif()
 
-if(NOT WIN32 AND NOT APPLE)
-	if(NOT MINIMAL_BUILD)
+if(NOT WIN32 AND NOT APPLE )
+	if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 		include(grpc)
 		include(protobuf)
 		include(openssl)
@@ -64,7 +65,9 @@ if(NOT WIN32 AND NOT APPLE)
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-include(tbb)
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	include(tbb)
+endif()
 
 set(SINSP_SOURCES
 	filter/ast.cpp
@@ -132,7 +135,7 @@ if(WITH_CHISEL)
 		../chisel/chisel_table.cpp)
 endif()
 
-if(NOT MINIMAL_BUILD)
+if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 	list(APPEND SINSP_SOURCES
 		addrinfo.cpp
 		sinsp_auth.cpp
@@ -196,9 +199,14 @@ set(SINSP_LIBRARIES
 	scap
 	"${CURL_LIBRARIES}"
 	"${JSONCPP_LIB}"
-	"${CARES_LIB}"
 	"${RE2_LIB}"
-	"${TBB_LIB}")
+)
+if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	list(APPEND 
+		SINSP_LIBRARIES
+		"${TBB_LIB}"
+		"${CARES_LIB}")
+endif()	
 
 if(USE_BUNDLED_VALIJSON)
 	add_dependencies(sinsp valijson)
@@ -233,13 +241,17 @@ endfunction()
 
 if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
-		add_dependencies(sinsp openssl curl)
+		if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+			add_dependencies(sinsp openssl curl)
+		endif()	
 	endif()
-	add_dependencies(sinsp tbb)
 
+	if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+		add_dependencies(sinsp tbb)
+	endif()	
 
 	if(NOT APPLE)
-		if(NOT MINIMAL_BUILD)
+		if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 			include(protobuf)
 			include(cares)
 			prepare_cri_grpc(v1alpha2)

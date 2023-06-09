@@ -51,7 +51,7 @@ limitations under the License.
 #include "protodecoder.h"
 #include "uri.h"
 #include "strl.h"
-#if !defined(_WIN32) && !defined(MINIMAL_BUILD)
+#if !defined(_WIN32) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "curl/curl.h"
 #endif
 
