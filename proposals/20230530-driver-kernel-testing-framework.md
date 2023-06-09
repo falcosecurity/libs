@@ -195,7 +195,10 @@ To achieve adequate and realistic coverage, the statistical sampling of versions
 *Architectures*
 
 
-Cover each officially supported architecture by The Falco Project, including `x86_64`, `aarch64`, and `s390x` (supported by `libs` only).
+Cover each officially supported architecture by The Falco Project.
+
+The prioritization of officially supported architectures for Falco is based on their adoption levels, with `x86_64` considered as P0 (highest priority) and `aarch64` as P1 (next priority level). For any other architectures supported by its libraries, a best effort approach (lower priority) is taken (e.g. `s390x`).
+
 
 *Driver Type*
 
