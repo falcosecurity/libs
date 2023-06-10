@@ -19,7 +19,7 @@ limitations under the License.
 //
 // extracts needed data from the k8s REST API interface
 //
-#ifndef MINIMAL_BUILD
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #pragma once
 
 #include "json/json.h"
