@@ -47,7 +47,7 @@ bool should_drop(sinsp_evt *evt);
 #endif
 #include "sinsp_int.h"
 
-#if !defined(MINIMAL_BUILD)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 #include "container_engine/docker/async_source.h"
 #endif
 
@@ -491,7 +491,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_CPU_HOTPLUG_E:
 		parse_cpu_hotplug_enter(evt);
 		break;
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	case PPME_K8S_E:
 		if(m_inspector->is_capture())
 		{
@@ -5921,7 +5921,7 @@ void sinsp_parser::parse_container_json_evt(sinsp_evt *evt)
 			container_info->m_created_time = created_time.asInt64();
 		}
 
-#if !defined(MINIMAL_BUILD) && !defined(_WIN32)
+#if !defined(MINIMAL_BUILD) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		libsinsp::container_engine::docker_async_source::parse_json_mounts(container["Mounts"], container_info->m_mounts);
 #endif
 
@@ -6230,7 +6230,7 @@ uint8_t* sinsp_parser::reserve_event_buffer()
 	}
 }
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 int sinsp_parser::get_k8s_version(const std::string& json)
 {
 	if(m_k8s_capture_version == k8s_state_t::CAPTURE_VERSION_NONE)

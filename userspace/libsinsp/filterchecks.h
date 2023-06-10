@@ -22,7 +22,7 @@ limitations under the License.
 #include <json/json.h>
 #include "filter_value.h"
 #include "prefix_search.h"
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "k8s.h"
 #include "mesos.h"
 #endif
@@ -997,7 +997,7 @@ private:
 	char m_addrbuff[100];
 };
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 
 class sinsp_filter_check_k8s : public sinsp_filter_check
 {
@@ -1048,7 +1048,6 @@ private:
 	void concatenate_labels(const k8s_pair_list& labels, std::string* s);
 	void concatenate_container_labels(const std::map<std::string, std::string>& labels, std::string* s);
 	bool find_label(const k8s_pair_list& labels, const std::string& key, std::string* value);
-
 	std::string m_argname;
 	std::string m_tstr;
 	uint32_t m_u32val;

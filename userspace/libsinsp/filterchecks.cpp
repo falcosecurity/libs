@@ -8680,7 +8680,7 @@ uint8_t* sinsp_filter_check_fdlist::extract(sinsp_evt *evt, OUT uint32_t* len, b
 	}
 }
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 
 ///////////////////////////////////////////////////////////////////////////////
 // sinsp_filter_check_k8s implementation
@@ -8856,6 +8856,7 @@ const k8s_deployment_t* sinsp_filter_check_k8s::find_deployment_by_pod(const k8s
 }
 
 #else
+#ifndef __EMSCRIPTEN__
 const k8s_pod_t* sinsp_filter_check_k8s::find_pod_for_thread(const sinsp_threadinfo* tinfo)
 {
 	if(tinfo->m_container_id.empty())
@@ -9671,3 +9672,4 @@ uint8_t* sinsp_filter_check_mesos::extract(sinsp_evt *evt, OUT uint32_t* len, bo
 	return NULL;
 }
 #endif // !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#endif

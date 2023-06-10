@@ -29,7 +29,6 @@ limitations under the License.
 #include <iostream>
 
 k8s_component::type_map k8s::m_components;
-
 k8s::k8s(const std::string& uri, bool is_captured,
 #ifdef HAS_CAPTURE
 		ssl_ptr_t ssl,

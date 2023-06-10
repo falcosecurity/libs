@@ -41,14 +41,14 @@ limitations under the License.
 #include "strl.h"
 
 #if !defined(CYGWING_AGENT)
-#if !defined(MINIMAL_BUILD)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "k8s_api_handler.h"
 #if defined(HAS_CAPTURE)
 #include <curl/curl.h>
 #endif // defined(HAS_CAPTURE)
-#else // !defined(MINIMAL_BUILD)
+#else // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 struct k8s_api_handler{}; // note: makes the unique_ptr static asserts happy
-#endif // !defined(MINIMAL_BUILD)
+#endif // !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #endif // !defined(CYGWING_AGENT)
 
 #ifdef GATHER_INTERNAL_STATS
@@ -85,7 +85,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_inited(false)
 {
 	++instance_count;
-#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && !defined(CYGWING_AGENT) && !defined(__EMSCRIPTEN__) && defined(HAS_CAPTURE) 
 	// used by mesos and container_manager
 	curl_global_init(CURL_GLOBAL_DEFAULT);
 #endif
@@ -163,7 +163,7 @@ sinsp::sinsp(bool static_container, const std::string &static_id, const std::str
 	m_meinfo.m_n_procinfo_evts = 0;
 	m_meta_event_callback = NULL;
 	m_meta_event_callback_data = NULL;
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	m_k8s_client = NULL;
 	m_k8s_last_watch_time_ns = 0;
 
@@ -222,7 +222,7 @@ sinsp::~sinsp()
 
 	m_container_manager.cleanup();
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 	delete m_k8s_client;
 	delete m_k8s_api_server;
 	delete m_k8s_api_cert;
@@ -1423,7 +1423,7 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 	{
 		m_container_manager.remove_inactive_containers();
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 		update_k8s_state();
 
 		if(m_mesos_client)
@@ -2207,7 +2207,7 @@ bool sinsp::remove_inactive_threads()
 	return m_thread_manager->remove_inactive_threads();
 }
 
-#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD)
+#if !defined(CYGWING_AGENT) && !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 void sinsp::init_mesos_client(std::string* api_server, bool verbose)
 {
 	m_verbose_json = verbose;

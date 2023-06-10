@@ -10,7 +10,7 @@ target_link_libraries(sinsp-example
 	sinsp
 )
 
-if (APPLE AND NOT MINIMAL_BUILD)
+if (APPLE AND NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
 	# Needed when linking libcurl
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -framework Foundation -framework SystemConfiguration")
 endif()
