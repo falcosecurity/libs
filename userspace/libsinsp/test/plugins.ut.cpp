@@ -193,6 +193,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(evt->get_source_idx(), syscall_source_idx);
+	ASSERT_EQ(evt->get_tid(), (uint64_t) 1);
 	ASSERT_EQ(std::string(evt->get_source_name()), syscall_source_name);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
 	ASSERT_EQ(get_field_as_string(evt, "fd.directory"), "/tmp");
@@ -220,6 +221,7 @@ TEST_F(sinsp_with_test_input, plugin_custom_source)
 	ASSERT_NE(evt, nullptr);
 	ASSERT_EQ(evt->get_type(), PPME_PLUGINEVENT_E);
 	ASSERT_EQ(evt->get_source_idx(), 1);
+	ASSERT_EQ(evt->get_tid(), (uint64_t) -1);
 	ASSERT_EQ(std::string(evt->get_source_name()), src_pl->event_source());
 	ASSERT_FALSE(field_exists(evt, "fd.name"));
 	ASSERT_EQ(get_field_as_string(evt, "evt.pluginname"), src_pl->name());
@@ -387,6 +389,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 		count++;
 		ASSERT_NE(evt, nullptr);
 		ASSERT_EQ(evt->get_type(), PPME_ASYNCEVENT_E);
+		ASSERT_EQ(evt->get_tid(), 1);
 		ASSERT_EQ(evt->get_source_idx(), 0); // "syscall" source
 		ASSERT_EQ(std::string(evt->get_source_name()), srcname);
 		if (cycles > 1)
