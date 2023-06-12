@@ -16,6 +16,7 @@ limitations under the License.
 */
 
 #include "state.h"
+#include <sys/resource.h>
 
 static int setup_libbpf_print_verbose(enum libbpf_print_level level, const char* format, va_list args)
 {
@@ -76,6 +77,20 @@ int pman_init_state(bool verbosity, unsigned long buf_bytes_dim, uint16_t cpus_f
 
 	/* Set libbpf verbosity. */
 	setup_libbpf_logging(verbosity);
+
+	/* Bump rlimit in any case. We need to do that because some kernels backport
+	 * just a few features but not all the necessary ones.
+	 * Falco issue: https://github.com/falcosecurity/falco/issues/2626
+	 * Libbpf issue: https://lore.kernel.org/netdev/20220610112648.29695-1-quentin@isovalent.com/T/
+	 */
+	struct rlimit rl = {0};
+	rl.rlim_max = RLIM_INFINITY;
+	rl.rlim_cur = rl.rlim_max;
+	if(setrlimit(RLIMIT_MEMLOCK, &rl))
+	{
+		pman_print_error("unable to bump RLIMIT_MEMLOCK to RLIM_INFINITY");
+		return -1;
+	}
 
 	/* Set the available number of CPUs inside the internal state. */
 	g_state.n_possible_cpus = libbpf_num_possible_cpus();
