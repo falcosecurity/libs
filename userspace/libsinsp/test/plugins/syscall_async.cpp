@@ -112,10 +112,11 @@ static const char* plugin_get_last_error(ss_plugin_t* s)
     return ((plugin_state *) s)->lasterr.c_str();
 }
 
-static void encode_async_event(ss_plugin_event* evt, const char* name, const char* data)
+static void encode_async_event(ss_plugin_event* evt, uint64_t tid, const char* name, const char* data)
 {
     // set event info
     evt->type = PPME_ASYNCEVENT_E;
+    evt->tid = tid;
     evt->len = sizeof(ss_plugin_event);
     evt->nparams = 3;
 
@@ -166,7 +167,7 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
             for (uint64_t i = 0; i < ps->async_maxevts && ps->async_thread_run; i++)
             {
                 // attempt sending an event that is not in the allowed name list
-                encode_async_event(ps->async_evt, "unsupportedname", data);
+                encode_async_event(ps->async_evt, 1, "unsupportedname", data);
                 if (SS_PLUGIN_SUCCESS == handler(owner, ps->async_evt, err))
                 {
                     printf("sample_syscall_async: unexpected success in sending unsupported asynchronous event from plugin\n");
@@ -174,7 +175,9 @@ static ss_plugin_rc plugin_set_async_event_handler(ss_plugin_t* s, ss_plugin_own
                 }
 
                 // send an event in the allowed name list
-                encode_async_event(ps->async_evt, name, data);
+                // note: we set a tid=1 to test that async events can have
+                // either an empty (-1) or a non-empty tid value
+                encode_async_event(ps->async_evt, 1, name, data);
                 if (SS_PLUGIN_SUCCESS != handler(owner, ps->async_evt, err))
                 {
                     printf("sample_syscall_async: unexpected failure in sending asynchronous event from plugin: %s\n", err);
