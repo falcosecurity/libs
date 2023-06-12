@@ -897,7 +897,6 @@ ss_plugin_rc sinsp_plugin::handle_plugin_async_event(ss_plugin_owner_t *o, const
 		evt->m_cpuid = 0;
 		evt->m_evtnum = 0;
 		evt->m_pevt = (scap_evt *) evt->m_pevt_storage;
-		evt->m_pevt->tid = (uint64_t) -1;
 		evt->init();
 		// note: plugin ID and timestamp will be set by the inspector
 		(*handler)(*p, std::move(evt));
