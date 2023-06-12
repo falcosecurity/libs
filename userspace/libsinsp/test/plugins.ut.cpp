@@ -202,7 +202,14 @@ TEST_F(sinsp_with_test_input, plugin_syscall_source)
 	ASSERT_FALSE(field_exists(evt, "sample.open_count"));
 	ASSERT_FALSE(field_exists(evt, "sample.evt_count"));
 	ASSERT_EQ(get_field_as_string(evt, "sample.tick"), "false");
-	ASSERT_EQ(next_event(), nullptr); // EOF is expected
+
+	size_t metaevt_count = 0;
+	evt = next_event(); // expecting a few or zero metaevts and then EOF
+	while (evt != nullptr && metaevt_count++ < 100)
+	{
+		ASSERT_TRUE(libsinsp::events::is_metaevent((ppm_event_code) evt->get_type()));
+		evt = next_event();
+	}
 }
 
 // scenario: a plugin with field extraction capability compatible with the
