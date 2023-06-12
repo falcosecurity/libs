@@ -229,15 +229,20 @@ static int32_t next(struct scap_engine_handle engine, OUT scap_evt** pevent, OUT
 		}
 	}
 
-	// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
-	if (evt->type == PPME_PLUGINEVENT_E && *plugin_id == 0)
+	if (evt->type == PPME_PLUGINEVENT_E)
 	{
-		snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin (no ID): '%s'", handle->m_input_plugin->name);
-		return SCAP_FAILURE;
+		// a zero plugin ID is not allowed for PPME_PLUGINEVENT_E
+		if (*plugin_id == 0)
+		{
+			snprintf(lasterr, SCAP_LASTERR_SIZE, "malformed plugin event produced by plugin (no ID): '%s'", handle->m_input_plugin->name);
+			return SCAP_FAILURE;
+		}
+
+		// plugin events have no thread associated
+		evt->tid = (uint64_t) -1;
 	}
 	
-	// automatically set tid, and timestamp if none was specified
-	evt->tid = (uint64_t) -1;
+	// automatically set timestamp if none was specified
 	if(evt->ts == UINT64_MAX)
 	{
 		evt->ts = get_timestamp_ns();
