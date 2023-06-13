@@ -222,6 +222,8 @@ TEST(SyscallExit, execveatX_correct_exit)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
+	const char *comm = "echo";
+
 	/* Please note here we cannot assert all the params, we check only the possible ones. */
 
 	/* Parameter 1: res (type: PT_ERRNO)*/
