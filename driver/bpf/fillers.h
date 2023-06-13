@@ -6676,6 +6676,7 @@ FILLER(sys_prctl_x, true)
 	unsigned long option;
 	unsigned long arg2;
 	unsigned long arg2_int;
+	int reaper_attr;
 	int res;
 	long retval;
 
@@ -6715,8 +6716,9 @@ FILLER(sys_prctl_x, true)
 			/*
 			 * arg2_int
 			 */
-			bpf_probe_read_user(&arg2_int,sizeof(arg2_int),(void*)arg2);
-			res = bpf_push_s64_to_ring(data, (int)arg2_int);
+			reaper_attr = 0;
+			bpf_probe_read_user(&reaper_attr, sizeof(reaper_attr), (void*)arg2);
+			res = bpf_push_s64_to_ring(data, (s64)reaper_attr);
 			CHECK_RES(res);
 			break;
 		case PPM_PR_SET_CHILD_SUBREAPER:
