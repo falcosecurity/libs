@@ -4917,6 +4917,166 @@ FILLER(sched_drop, false)
 	return bpf_push_u32_to_ring(data, data->settings->sampling_ratio);
 }
 
+/* In this kernel version the instruction limit was bumped to 1000000 */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
+#define MAX_THREADS_GROUPS 30
+#define MAX_HIERARCHY_TRAVERSE 60
+#else
+/* We need to find the right calibration here. On kernel 4.14 the limit
+ * seems to be MAX_THREADS_GROUPS*MAX_HIERARCHY_TRAVERSE <= 100
+ */
+#define MAX_THREADS_GROUPS 10
+#define MAX_HIERARCHY_TRAVERSE 10
+#endif
+
+/* 3 possible cases:
+ * - Looping between all threads of the current thread group we don't find a valid reaper. -> return 0
+ * - We cannot loop over all threads of the group due to BPF verifier limits (MAX_THREADS_GROUPS) -> return -1
+ * - We find a reaper -> return its `pid`
+ */
+static __always_inline pid_t find_alive_thread(struct task_struct *father)
+{
+	struct signal_struct *signal = (struct signal_struct *)_READ(father->signal);
+	struct list_head *head = &(signal->thread_head);
+	struct list_head *next_thread = (struct list_head *)_READ(head->next);
+
+	u8 cnt = 0;
+	u32 flags = 0;
+
+#pragma unroll MAX_THREADS_GROUPS
+	for(struct task_struct *t = container_of(next_thread, typeof(struct task_struct), thread_node);
+	    next_thread != (head) && cnt < MAX_THREADS_GROUPS;
+	    t = container_of(next_thread, typeof(struct task_struct), thread_node))
+	{
+		cnt++;
+		bpf_probe_read_kernel(&flags, sizeof(flags), &t->flags);
+		if(!(flags & PF_EXITING))
+		{
+			/* Found it */
+			return _READ(t->pid);
+		}
+		next_thread = (struct list_head *)_READ(t->thread_node.next);
+	}
+
+	/* If we cannot loop over all threads, we cannot know the right reaper */
+	if(cnt == MAX_THREADS_GROUPS)
+	{
+		return -1;
+	}
+
+	/* We didn't find it */
+	return 0;
+}
+
+/* When we die, we re-parent all our children, and try to:
+ * 1. give them to another thread in our thread group, if such a member exists
+ * 2. give it to the first ancestor process which prctl'd itself as a
+ *    child_subreaper for its children (like a service manager)
+ * 3. give it to the init process (PID 1) in our pid namespace
+ */
+static __always_inline pid_t find_new_reaper_pid(struct filler_data *data, struct task_struct *father)
+{
+	pid_t reaper_pid = find_alive_thread(father);
+	
+	/* - If we are not able to find the reaper due to BPF
+	 * verifier limits we return `-1` immediately in this
+	 * way the userspace can handle the reparenting logic
+	 * without complexity limits.
+	 * 
+	 * - If reaper_pid > 0 we find a valid reaper, we can return.
+	 */
+	if(reaper_pid != 0)
+	{
+		return reaper_pid;
+	}
+
+	struct pid_namespace *pid_ns = bpf_task_active_pid_ns(father);
+	/* This is the reaper of that namespace */
+	struct task_struct *child_ns_reaper = (struct task_struct *)_READ(pid_ns->child_reaper);
+
+	/* There could be a strange case in which the actual thread is the init one 
+	 * and we have no other threads in the same thread group, so the whole init group is dying.
+	 * The kernel will destroy all the processes in that namespace. We send a reaper equal to
+	 * `0` in userspace.
+	 */
+	if(child_ns_reaper == father)
+	{
+		return 0;
+	}
+
+	pid_t child_reaper_pid = 0;
+	bpf_probe_read_kernel(&child_reaper_pid, sizeof(child_reaper_pid), &child_ns_reaper->pid);
+
+	/* We need to read the whole `signal_struct` to access `has_child_subreaper` bit-field.
+	 * Please remember that bit-fields are not addressable
+	 */
+	struct signal_struct *signal = (struct signal_struct *)_READ(father->signal);
+	bpf_probe_read_kernel(data->tmp_scratch, sizeof(struct signal_struct), (const void *)signal);
+	signal = (struct signal_struct *)data->tmp_scratch;
+
+	/* If there are no sub reapers the reaper is the init process of that namespace */
+	if(!signal->has_child_subreaper)
+	{
+		return child_reaper_pid;
+	}
+
+	/* This is the namespace level of the thread that is dying, we will
+	 * use it to check that the reaper will be always in the same namespace.
+	 */
+	struct pid *thread_pid = bpf_task_pid(father);
+	unsigned int father_ns_level = _READ(thread_pid->level);
+	unsigned int current_ns_level = 0;
+
+	/* Find the first ->is_child_subreaper ancestor in our pid_ns.
+	 * We can't check with != child_reaper to ensure we do not
+	 * cross the namespaces, the exiting parent could be injected
+	 * by setns() + fork().
+	 * We check pid->level, this is slightly more efficient than
+	 * task_active_pid_ns(reaper) != task_active_pid_ns(father).
+	 */
+	u8 cnt = 0;
+	pid_t sub_reaper_pid = 0;
+
+#pragma unroll MAX_HIERARCHY_TRAVERSE
+	for(struct task_struct *possible_reaper = (struct task_struct *)_READ(father->real_parent); cnt < MAX_HIERARCHY_TRAVERSE;
+	    possible_reaper = (struct task_struct *)_READ(possible_reaper->real_parent))
+	{
+		cnt++;
+		thread_pid = bpf_task_pid(possible_reaper);
+		current_ns_level = _READ(thread_pid->level);
+
+		/* We are crossing the namespace or we are the child_ns_reaper */
+		if(father_ns_level != current_ns_level ||
+		 	possible_reaper == child_ns_reaper)
+		{
+			return child_reaper_pid;
+		}
+
+		signal = (struct signal_struct *)_READ(possible_reaper->signal);
+		bpf_probe_read_kernel(data->tmp_scratch, sizeof(struct signal_struct), (const void *)signal);
+		signal = (struct signal_struct *)data->tmp_scratch;
+		if(!signal->is_child_subreaper)
+		{
+			continue;
+		}
+
+		/* Here again we can return -1 in case we have verifier limits issues */
+		reaper_pid = find_alive_thread(possible_reaper);
+		if(reaper_pid != 0)
+		{
+			return reaper_pid;
+		}
+	}
+
+	/* We cannot traverse all the hierarchy, we cannot know the right reaper */
+	if(cnt == MAX_HIERARCHY_TRAVERSE)
+	{
+		return -1;
+	}
+
+	return child_reaper_pid;
+}
+
 FILLER(sys_procexit_e, false)
 {
 	struct task_struct *task;
@@ -4928,14 +5088,15 @@ FILLER(sys_procexit_e, false)
 
 	exit_code = _READ(task->exit_code);
 
-	/* Exit status */
+	/* Parameter 1: status (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, exit_code);
 	CHECK_RES(res);
 
-	/* Ret code */
+	/* Parameter 2: ret (type: PT_ERRNO) */
 	res = bpf_push_s64_to_ring(data, __WEXITSTATUS(exit_code));
 	CHECK_RES(res);
 
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	/* If signaled -> signum, else 0 */
 	if (__WIFSIGNALED(exit_code))
 	{
@@ -4945,8 +5106,28 @@ FILLER(sys_procexit_e, false)
 	}
 	CHECK_RES(res);
 
-	/* Did it produce a core? */
+	/* Parameter 4: core (type: PT_UINT8) */
 	res = bpf_push_u8_to_ring(data, __WCOREDUMP(exit_code) != 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: reaper (type: PT_PID) */
+	/* This is a sort of optimization if this thread has no children in the kernel
+	 * we don't need a reaper and we can save some precious cycles.
+	 * We send `reaper_pid==0` if the userspace still has some children
+	 * it will manage them with its userspace logic.
+	 */	
+	pid_t reaper_pid = 0;
+	struct list_head *head = &(task->children);
+	struct list_head *next_child = (struct list_head *)_READ(head->next);
+	if(next_child != head)
+	{
+		/* We have at least one child, so we need a reaper for it */
+		reaper_pid = find_new_reaper_pid(data, task);
+	}
+	/* Please note here `pid` is in kernel-lingo so it is a thread id.
+	 * the thread group id is `tgid`.
+	 */
+	res = bpf_push_s64_to_ring(data, (s64)reaper_pid);
 	CHECK_RES(res);
 
 #ifndef BPF_SUPPORTS_RAW_TRACEPOINTS
