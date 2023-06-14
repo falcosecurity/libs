@@ -7,8 +7,6 @@ or GPL2.txt for full copies of the license.
 
 */
 
-#include <linux/kconfig.h>
-
 #if defined(__KERNEL__) && defined(CONFIG_IA32_EMULATION)
 
 #include <asm/unistd_32.h>

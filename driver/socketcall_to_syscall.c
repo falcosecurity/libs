@@ -7,7 +7,6 @@ or GPL2.txt for full copies of the license.
 
 */
 
-#include <linux/kconfig.h>
 #include "ppm_events_public.h"
 
 /* Right now we don't support architectures that have
