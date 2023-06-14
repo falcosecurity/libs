@@ -5875,32 +5875,133 @@ int f_sys_dup3_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+/* Before kernel version 3.4.0 we dont' have the concept of
+ * "sub_reaper", `prctl` wasn't defined so we can simply send -1
+ * to userspace. It should be able through its logic to find the correct
+ * reaper!
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)
+
+static pid_t find_alive_thread(struct task_struct *father)
+{
+	struct task_struct *t = father;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0)
+	while_each_thread(father, t) {
+#else /* Kernel 3.19.0 switched to `for_each_thread` macro */
+	for_each_thread(father, t) {
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 19, 0) */		
+		/* We add an extra check here for `t != NULL` just to be sure */
+		if (t != NULL && (!(t->flags & PF_EXITING)))
+			return t->pid;
+	}
+	return 0;
+}
+
+/* When we die, we re-parent all our children, and try to:
+ * 1. give them to another thread in our thread group, if such a member exists
+ * 2. give it to the first ancestor process which prctl'd itself as a
+ *    child_subreaper for its children (like a service manager)
+ * 3. give it to the init process (PID 1) in our pid namespace
+ */
+static pid_t find_new_reaper_pid(struct task_struct *father)
+{
+	struct task_struct *possible_reaper;
+	/* This is the namespace level of the thread that is dying, we will
+	 * use it to check that the reaper will be always in the same namespace.
+	 */
+	unsigned int father_ns_level = task_pid(father)->level;
+	/* This is the reaper of that namespace */
+	struct task_struct *child_ns_reaper = task_active_pid_ns(father)->child_reaper;
+	/* Search an alive thread in the same thread group */
+	pid_t reaper_pid = find_alive_thread(father);
+
+	/* If `reaper_pid!=0` when we found an alive thread, that's enough */
+	if(reaper_pid != 0)
+	{
+		return reaper_pid;
+	}
+
+	/* There could be a strange case in which the actual thread is the init one 
+	 * and we have no other threads in the same thread group, so the whole init group is dying.
+	 * The kernel will destroy all the processes in that namespace. We send a reaper equal to
+	 * `0` in userspace.
+	 */
+	if(child_ns_reaper == father)
+	{
+		return 0;
+	}
+
+	/* If there are no sub reapers the reaper is the init process of that namespace */
+	if(!father->signal->has_child_subreaper)
+	{
+		return child_ns_reaper->pid;
+	}
+
+	/* If we fall here it means we have some sub_reapers.
+	 * Find the first ->is_child_subreaper ancestor in our pid_ns.
+	 * We can't check reaper != child_reaper to ensure we do not
+	 * cross the namespaces, the exiting parent could be injected
+	 * by setns() + fork().
+	 * We check pid->level, this is slightly more efficient than
+	 * task_active_pid_ns(reaper) != task_active_pid_ns(father).
+	 */
+	for(possible_reaper = father->real_parent;
+		task_pid(possible_reaper)->level == father_ns_level;
+		possible_reaper = possible_reaper->real_parent)
+	{
+		/* Here we could also check for child_ns_reaper 
+		 * but the kernel checks against init_task, so we are fine.
+		 */
+		if(possible_reaper == &init_task)
+		{
+			return child_ns_reaper->pid;
+		}
+
+		if(!possible_reaper->signal->is_child_subreaper)
+		{
+			continue;
+		}
+
+		reaper_pid = find_alive_thread(possible_reaper);
+		if(reaper_pid != 0)
+		{
+			return reaper_pid;
+		}
+	}
+
+	return child_ns_reaper->pid;
+}
+#else
+
+static pid_t find_new_reaper_pid(struct task_struct *father)
+{
+	return -1;
+}
+
+#endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0) */
+
 
 int f_sys_procexit_e(struct event_filler_arguments *args)
 {
 	int res;
 
 #ifndef UDIG
+	pid_t reaper_pid = 0;
+
 	if (args->sched_prev == NULL) {
 		ASSERT(false);
 		return -1;
 	}
-#endif
 
-	/*
-	 * status
-	 */
-#ifndef UDIG
-	/* Exit status */
+	/* Parameter 1: status (type: PT_ERRNO) */
 	res = val_to_ring(args, args->sched_prev->exit_code, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/* Ret code */
+	/* Parameter 2: ret (type: PT_ERRNO) */
 	res = val_to_ring(args, __WEXITSTATUS(args->sched_prev->exit_code), 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	/* If signaled -> signum, else 0 */
 	if (__WIFSIGNALED(args->sched_prev->exit_code))
 	{
@@ -5908,25 +6009,47 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	} else {
 		res = val_to_ring(args, 0, 0, false, 0);
 	}
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
 
-	/* Did it produce a core? */
+	/* Parameter 4: core (type: PT_UINT8) */
 	res = val_to_ring(args, __WCOREDUMP(args->sched_prev->exit_code) != 0, 0, false, 0);
-#else	
+	CHECK_RES(res);
+
+	/* Parameter 5: reaper (type: PT_PID) */
+	/* This is a sort of optimization if this thread has no children in the kernel
+	 * we don't need a reaper and we can save some precious cycles.
+	 * We send `reaper_pid==0` if the userspace still has some children
+	 * it will manage them with its userspace logic.
+	 */	
+	if(!list_empty(&current->children))
+	{
+		/* We have at least one child, so we need a reaper for it */
+		reaper_pid = find_new_reaper_pid(current);
+	}
+	res = val_to_ring(args, (s64)reaper_pid, 0, false, 0);
+	CHECK_RES(res);
+
+#else
+	/* Parameter 1: status (type: PT_ERRNO) */
 	res = val_to_ring(args, 0, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
+
+	/* Parameter 2: ret (type: PT_ERRNO) */
 	res = val_to_ring(args, 0, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
+
+	/* Parameter 3: sig (type: PT_SIGTYPE) */
 	res = val_to_ring(args, 0, 0, false, 0);
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
+	CHECK_RES(res);
+
+	/* Parameter 4: core (type: PT_UINT8) */
 	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 5: reaper (type: PT_PID) */
+	res = val_to_ring(args, 0, 0, false, 0);
+	CHECK_RES(res);
 #endif
-	if (unlikely(res != PPM_SUCCESS))
-		return res;
 
 	return add_sentinel(args);
 }
