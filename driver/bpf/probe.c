@@ -256,7 +256,11 @@ BPF_KPROBE(finish_task_switch)
 			}
 		}
 		// record enqueue time
-		if (_READ(p->state) == TASK_RUNNING) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 14, 0)
+		if (_READ(p->__state) == TASK_RUNNING) {
+#else	
+		if (_READ(p->state) == TASK_RUNNING) {	
+#endif	
 			u64 ts = bpf_ktime_get_ns();
 			bpf_map_update_elem(&cpu_runq, &tid, &ts, BPF_ANY);
 		}
