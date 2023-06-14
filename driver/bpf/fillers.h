@@ -6739,33 +6739,27 @@ FILLER(sys_prctl_x, true)
 	return res;
 }
 
-	FILLER(sys_memfd_create_x,true)
-	{
-		int retval;
-		unsigned long val;
-		unsigned long flags;
-		unsigned long res;
+FILLER(sys_memfd_create_x,true)
+{
+	int retval;
+	unsigned long val;
+	unsigned long flags;
+	unsigned long res;
 
-		/*
-		* fd
-		*/
-		retval = bpf_syscall_get_retval(data->ctx);
-		res = bpf_push_s64_to_ring(data, retval);
-		CHECK_RES(res);
+	/* Parameter 1: ret (type: PT_FD) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
 
-		/*
-		* name
-		*/
-		val = bpf_syscall_get_argument(data, 0);
-		res = bpf_push_u64_to_ring(data, val);
-		CHECK_RES(res);
+	/* Parameter 2: name (type: PT_CHARBUF) */
+	val = bpf_syscall_get_argument(data, 0);
+	res = bpf_val_to_ring(data, val);
+	CHECK_RES(res);
 
-		/*
-		* flags
-		*/
-		val = bpf_syscall_get_argument(data, 2);
-		flags = mlock2_flags_to_scap(val);
-		return bpf_push_u32_to_ring(data, flags);
-	}
+	/* Parameter 3: flags (type: PT_UINT32) */
+	val = bpf_syscall_get_argument(data, 1);
+	flags = memfd_create_flags_to_scap(val);
+	return bpf_push_u32_to_ring(data, flags);
+}
 
 #endif

@@ -400,6 +400,9 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #ifdef __NR_prctl
 	[__NR_prctl - SYSCALL_TABLE_ID0] = { UF_USED | UF_NEVER_DROP, PPME_SYSCALL_PRCTL_E, PPME_SYSCALL_PRCTL_X, PPM_SC_PRCTL },
 #endif
+#ifdef __NR_memfd_create
+	[__NR_memfd_create - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MEMFD_CREATE_E, PPME_SYSCALL_MEMFD_CREATE_X, PPM_SC_MEMFD_CREATE},
+#endif
 	[__NR_restart_syscall - SYSCALL_TABLE_ID0] = { .ppm_sc = PPM_SC_RESTART_SYSCALL },
 	[__NR_exit - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_EXIT},
 #ifdef __NR_time
@@ -904,8 +907,5 @@ const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE] = {
 #endif
 #ifdef __NR_sigsuspend
 	[__NR_sigsuspend - SYSCALL_TABLE_ID0] = {.ppm_sc = PPM_SC_SIGSUSPEND},
-#endif
-#ifdef __NR_memfd_create
-	[__NR_memfd_create - SYSCALL_TABLE_ID0] = {UF_USED, PPME_SYSCALL_MEMFD_CREATE_E, PPME_SYSCALL_MEMFD_CREATE_X, PPM_SC_MEMFD_CREATE},
 #endif
 };
