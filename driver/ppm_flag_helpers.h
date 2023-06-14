@@ -17,8 +17,10 @@ or GPL2.txt for full copies of the license.
 	#define ASSERT(expr)
 #endif
 
-#if !defined(UDIG) && !defined(__USE_VMLINUX__)
+#ifdef __NR_io_memfd_create
 #include <uapi/linux/memfd.h>
+#endif
+#if !defined(UDIG) && !defined(__USE_VMLINUX__)
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
