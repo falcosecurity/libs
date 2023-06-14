@@ -18,6 +18,7 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #if !defined(UDIG) && !defined(__USE_VMLINUX__)
+#include <uapi/linux/memfd.h>
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
@@ -1724,7 +1725,7 @@ static __always_inline u32 mlock2_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-static __always_inline u32 memfd_create_flags_to_scap(unsigned long flags)
+static __always_inline u32 memfd_create_flags_to_scap(u32 flags)
 {
 	u32 res = 0;
 #ifdef MFD_CLOEXEC
