@@ -6,11 +6,13 @@
 #include <poll.h>
 #include <sys/types.h>
 #include <sys/sem.h>
+#if !defined(__EMSCRIPTEN__)
 #include <sys/quota.h>
 #include <sys/ptrace.h>
+#include <sys/prctl.h>
+#endif
 #include <sys/resource.h>
 #include <sys/file.h>
-#include <sys/prctl.h>
 #include <sched.h>
 
 #define ASSERT assert
