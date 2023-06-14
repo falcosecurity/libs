@@ -17,9 +17,7 @@ or GPL2.txt for full copies of the license.
 	#define ASSERT(expr)
 #endif
 
-#ifdef __NR_io_memfd_create
-#include <uapi/linux/memfd.h>
-#endif
+
 #if !defined(UDIG) && !defined(__USE_VMLINUX__)
 #include <linux/mman.h>
 #include <linux/futex.h>
@@ -28,6 +26,9 @@ or GPL2.txt for full copies of the license.
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
 #include "ppm.h"
+#ifdef __NR_io_memfd_create
+#include <uapi/linux/memfd.h>
+#endif
 #ifdef __NR_io_uring_register
 #include <uapi/linux/io_uring.h>
 #endif
