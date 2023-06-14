@@ -18,7 +18,7 @@ or GPL2.txt for full copies of the license.
 #endif
 
 #if !defined(UDIG) && !defined(__USE_VMLINUX__)
-#include <linux/memfd.h>
+#include <uapi/linux/memfd.h>
 #include <linux/mman.h>
 #include <linux/futex.h>
 #include <linux/ptrace.h>
