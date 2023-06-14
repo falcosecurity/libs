@@ -734,6 +734,13 @@
 #define MCL_FUTURE 2  /* lock all future mappings */
 #define MCL_ONFAULT 4 /* lock all pages that are faulted in */
 
+//////////////////////////
+// memfd_create flags
+//////////////////////////
+#  define MFD_CLOEXEC 1U
+#  define MFD_ALLOW_SEALING 2U
+#  define MFD_HUGETLB 4U
+
 /*=============================== FLAGS ===========================*/
 
 /*=============================== PROTOCOL/ADDRESS FAMILIES ===========================*/
