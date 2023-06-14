@@ -10,8 +10,13 @@
 
 /* This header should include different definitions according to different architectures.*/
 
-/* PF_KTHREAD flag to mark the kernel threads */
-#define PF_KTHREAD 0x00200000
+/*
+ * Per process flags
+ */
+
+/* `/include/linux/sched.h`  from kernel source tree. */
+#define PF_EXITING		0x00000004	/* Getting shut down */
+#define PF_KTHREAD		0x00200000	/* I am a kernel thread */
 
 /*=============================== ARCH SPECIFIC ===========================*/
 
