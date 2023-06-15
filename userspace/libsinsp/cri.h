@@ -24,6 +24,8 @@ limitations under the License.
 #ifndef MINIMAL_BUILD
 #include "cri-v1alpha2.pb.h"
 #include "cri-v1alpha2.grpc.pb.h"
+#include "cri-v1.pb.h"
+#include "cri-v1.grpc.pb.h"
 #endif // MINIMAL_BUILD
 
 #include "container_info.h"
@@ -74,6 +76,36 @@ public:
 
 	using NamespaceMode = runtime::v1alpha2::NamespaceMode;
 	using MountPropagation = runtime::v1alpha2::MountPropagation;
+};
+
+class cri_api_v1
+{
+public:
+	static constexpr const char *version = "v1";
+	using RuntimeService = runtime::v1::RuntimeService;
+	using ImageService = runtime::v1::ImageService;
+
+	using ContainerStatusRequest = runtime::v1::ContainerStatusRequest;
+	using ContainerStatusResponse = runtime::v1::ContainerStatusResponse;
+	using ContainerStatus = runtime::v1::ContainerStatus;
+
+	using ContainerStatsRequest = runtime::v1::ContainerStatsRequest;
+	using ContainerStatsResponse = runtime::v1::ContainerStatsResponse;
+
+	using ListContainersRequest = runtime::v1::ListContainersRequest;
+	using ListContainersResponse = runtime::v1::ListContainersResponse;
+
+	using ListImagesRequest = runtime::v1::ListImagesRequest;
+	using ListImagesResponse = runtime::v1::ListImagesResponse;
+
+	using PodSandboxStatusRequest = runtime::v1::PodSandboxStatusRequest;
+	using PodSandboxStatusResponse = runtime::v1::PodSandboxStatusResponse;
+
+	using VersionRequest = runtime::v1::VersionRequest;
+	using VersionResponse = runtime::v1::VersionResponse;
+
+	using NamespaceMode = runtime::v1::NamespaceMode;
+	using MountPropagation = runtime::v1::MountPropagation;
 };
 
 template<class api> class cri_interface
@@ -245,5 +277,6 @@ private:
 };
 
 using cri_interface_v1alpha2 = cri_interface<cri_api_v1alpha2>;
+using cri_interface_v1 = cri_interface<cri_api_v1>;
 }
 }

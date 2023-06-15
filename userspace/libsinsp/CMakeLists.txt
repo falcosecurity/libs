@@ -239,9 +239,11 @@ if(NOT WIN32)
 			include(protobuf)
 			include(cares)
 			prepare_cri_grpc(v1alpha2)
+			prepare_cri_grpc(v1)
 
 			list(APPEND SINSP_LIBRARIES
 				"cri_v1alpha2"
+				"cri_v1"
 				"${GRPC_LIBRARIES}"
 				"${GRPCPP_LIB}"
 				"${GRPC_LIB}"
