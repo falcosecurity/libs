@@ -17,6 +17,8 @@ limitations under the License.
 
 #pragma once
 
+#define DEFAULT_CHILDREN_THRESHOLD 50
+
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
 #endif
@@ -68,11 +70,27 @@ typedef struct erase_fd_params
 */
 class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::table_entry
 {
+private:
+	/* This is the threshold after which we try to clean expired children
+	 * during reparenting.
+	 */
+	static uint32_t expired_children_threshold;
+
 public:
 	sinsp_threadinfo(
 		sinsp *inspector = nullptr,
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
+
+	static inline uint32_t get_expired_children_threshold()
+	{
+		return expired_children_threshold;
+	}
+
+	static inline void set_expired_children_threshold(uint32_t threshold)
+	{
+		expired_children_threshold = threshold;
+	}
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -342,6 +360,10 @@ public:
 	// Clear any value set in set_exec_enter_tid
 	void clear_exec_enter_tid();
 
+	void assign_children_to_reaper(sinsp_threadinfo* reaper);
+
+	void clean_expired_children();
+
 	static void populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo);
 
 	// Return true if this thread is a part of a healthcheck,
@@ -378,6 +400,7 @@ public:
 	int64_t m_tid;  ///< The id of this thread
 	int64_t m_pid; ///< The id of the process containing this thread. In single thread threads, this is equal to tid.
 	int64_t m_ptid; ///< The id of the process that started this thread.
+	int64_t m_reaper_tid; ///< The id of the reaper for this thread
 	int64_t m_sid; ///< The session id of the process containing this thread.
 	std::string m_comm; ///< Command name (e.g. "top")
 	std::string m_exe; ///< argv[0] (e.g. "sshd: user@pts/4")
@@ -710,10 +733,12 @@ public:
 
 	std::unique_ptr<sinsp_threadinfo> new_threadinfo() const;
 	bool add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable);
+	sinsp_threadinfo* find_new_reaper(sinsp_threadinfo*);
 	void remove_thread(int64_t tid);
 	// Returns true if the table is actually scanned
 	// NOTE: this is implemented in sinsp.cpp so we can inline it from there
 	inline bool remove_inactive_threads();
+	void remove_main_thread_fdtable(sinsp_threadinfo* main_thread);
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
