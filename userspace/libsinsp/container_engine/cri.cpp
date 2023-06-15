@@ -23,8 +23,8 @@ limitations under the License.
 #else
 #	include <grpc++/grpc++.h>
 #endif
-#include "cri.pb.h"
-#include "cri.grpc.pb.h"
+#include "cri-v1alpha2.pb.h"
+#include "cri-v1alpha2.grpc.pb.h"
 
 #include "cgroup_limits.h"
 #include "runc.h"
