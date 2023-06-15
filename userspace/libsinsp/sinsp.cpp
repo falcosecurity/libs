@@ -1445,7 +1445,10 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 
 	if(nfdr != 0)
 	{
-		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, true, true).get();
+		/* This is a removal logic we shouldn't scan /proc. If we don't have the thread 
+		 * to remove we are fine.
+		 */
+		sinsp_threadinfo* ptinfo = get_thread_ref(m_tid_of_fd_to_remove, false).get();
 		if(!ptinfo)
 		{
 			ASSERT(false);
@@ -2680,10 +2683,10 @@ void sinsp::set_proc_scan_log_interval_ms(uint64_t val)
 ///////////////////////////////////////////////////////////////////////////////
 // Note: this is defined here so we can inline it in sinso::next
 ///////////////////////////////////////////////////////////////////////////////
+
+/* Returns true when we scan the table */
 bool sinsp_thread_manager::remove_inactive_threads()
 {
-	bool res = false;
-
 	if(m_last_flush_time_ns == 0)
 	{
 		//
@@ -2705,52 +2708,44 @@ bool sinsp_thread_manager::remove_inactive_threads()
 	if(m_inspector->m_lastevent_ts >
 		m_last_flush_time_ns + m_inspector->m_inactive_thread_scan_time_ns)
 	{
-		std::unordered_map<uint64_t, bool> to_delete;
-
-		res = true;
+		std::unordered_set<int64_t> to_delete;
 
 		m_last_flush_time_ns = m_inspector->m_lastevent_ts;
 
 		g_logger.format(sinsp_logger::SEV_INFO, "Flushing thread table");
 
-		//
-		// Go through the table and remove dead entries.
-		//
+		/* Here we loop over the table in search of threads to delete. We remove:
+		 * 1. Invalid threads.
+		 * 2. Threads that we are not using and that are no more alive in /proc.
+		 */
 		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-			bool closed = (tinfo.m_flags & PPM_CL_CLOSED) != 0;
-
-			if(closed ||
+			tinfo.clean_expired_children();
+			if(tinfo.is_invalid() ||
 				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
-					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str()))
-					)
+					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
 			{
-				//
-				// Reset the cache
-				//
-				m_last_tid = 0;
-				m_last_tinfo.reset();
-
 #ifdef GATHER_INTERNAL_STATS
 				m_removed_threads->increment();
 #endif
-				to_delete[tinfo.m_tid] = closed;
+				to_delete.insert(tinfo.m_tid);
 			}
 			return true;
 		});
 
-		for (auto& it : to_delete)
+		for(const auto& tid_to_remove : to_delete)
 		{
-			remove_thread(it.first);
+			remove_thread(tid_to_remove);
 		}
 
 		//
 		// Rebalance the thread table dependency tree, so we free up threads that
 		// exited but that are stuck because of reference counting.
 		//
-		recreate_child_dependencies();
+		reset_child_dependencies();
+		return true;
 	}
 
-	return res;
+	return false;
 }
 
 sinsp_threadinfo*

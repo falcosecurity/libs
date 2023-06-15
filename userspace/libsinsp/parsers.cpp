@@ -724,7 +724,12 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 		etype == PPME_SYSCALL_VFORK_17_X ||
 		etype == PPME_SYSCALL_VFORK_20_X ||
 		etype == PPME_SYSCALL_CLONE3_X ||
-		etype == PPME_SCHEDSWITCH_6_E)
+		etype == PPME_SCHEDSWITCH_6_E ||
+		/* If we received a `procexit` event it means that the process
+		 * is dead in the kernel, `query_os==true` would just generate fake entries.
+		 */
+		etype == PPME_PROCEXIT_E ||
+		etype == PPME_PROCEXIT_1_E)
 	{
 		query_os = false;
 	}
@@ -774,11 +779,6 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 			m_inspector->m_thread_manager->m_failed_lookups->decrement();
 #endif
 		}
-		else
-		{
-			ASSERT(false);
-		}
-
 		return false;
 	}
 
@@ -4237,13 +4237,52 @@ void sinsp_parser::parse_pipe_exit(sinsp_evt *evt)
 
 void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 {
-	//
-	// Schedule the process for removal
-	//
-	if(evt->m_tinfo != nullptr)
+	/* We set the `m_tinfo` in `reset()`.
+	 * If we don't have the thread info we do nothing, this thread is already deleted
+	 */
+	if(evt->m_tinfo == nullptr)
 	{
-		evt->m_tinfo->m_flags |= PPM_CL_CLOSED;
-		m_inspector->m_tid_to_remove = evt->get_tid();
+		return;
+	}
+
+	/* [Mark thread as dead]
+	 * We mark the thread as dead here and we will remove it 
+	 * from the table during remove_thread().
+	 * Please note that the `!evt->m_tinfo->is_dead()` should be
+	 * necessary at all since here we shouldn't receive dead threads.
+	 * This is first place where we mark threads as dead.
+	 */
+	if(evt->m_tinfo->m_tginfo != nullptr && !evt->m_tinfo->is_dead())
+	{
+		evt->m_tinfo->m_tginfo->decrement_thread_count();
+	}
+	evt->m_tinfo->set_dead();
+
+	/* [Store the tid to remove] 
+	 * We set the current tid to remove. We don't remove it here so we can parse the event
+	 */
+	m_inspector->m_tid_to_remove = evt->get_tid();
+
+	/* If this thread has no children we don't send the reaper info from the kernel,
+	 * so we do nothing.
+	 */
+	if(evt->m_tinfo->m_children.size() == 0)
+	{
+		return;
+	}
+
+	/* [Set the reaper to the current thread]
+	 * We need to set the reaper for this thread
+	 */
+	if(evt->get_type() == PPME_PROCEXIT_1_E && evt->get_num_params() > 4)
+	{
+		sinsp_evt_param *parinfo = evt->get_param(4);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		evt->m_tinfo->m_reaper_tid = *(int64_t *)parinfo->m_val;
+	}
+	else
+	{
+		evt->m_tinfo->m_reaper_tid = -1;
 	}
 }
 
