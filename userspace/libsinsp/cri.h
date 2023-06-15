@@ -18,6 +18,7 @@ limitations under the License.
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #ifndef MINIMAL_BUILD
@@ -80,6 +81,13 @@ public:
 	 * @return status of the gRPC call
 	 */
 	grpc::Status get_container_stats(const std::string& container_id, runtime::v1alpha2::ContainerStatsResponse& resp);
+
+	/**
+	 * @brief get the size of the container's writable layer
+	 * @param container_id container ID
+	 * @return the size of the writable layer in bytes. Returns an empty option on error
+	 */
+	std::optional<int64_t> get_writable_layer_size(const std::string &container_id);
 
 	/**
 	 * @brief fill out container image information based on CRI response
