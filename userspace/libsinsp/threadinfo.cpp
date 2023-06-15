@@ -122,7 +122,6 @@ void sinsp_threadinfo::init()
 	m_lastexec_ts = 0;
 	m_lastevent_category.m_category = EC_UNKNOWN;
 	m_flags = PPM_CL_NAME_CHANGED;
-	m_nchilds = 0;
 	m_fdlimit = -1;
 	m_vmsize_kb = 0;
 	m_vmrss_kb = 0;
@@ -132,7 +131,6 @@ void sinsp_threadinfo::init()
 	m_vtid = -1;
 	m_vpid = -1;
 	m_pidns_init_start_ts = 0;
-	m_main_thread.reset();
 	m_lastevent_fd = 0;
 	m_last_latency_entertime = 0;
 	m_latency = 0;
@@ -482,7 +480,6 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 	m_vmswap_kb = pi->vmswap_kb;
 	m_pfmajor = pi->pfmajor;
 	m_pfminor = pi->pfminor;
-	m_nchilds = 0;
 	m_vtid = pi->vtid;
 	m_vpid = pi->vpid;
 	m_pidns_init_start_ts = pi->pidns_init_start_ts;
@@ -1131,28 +1128,6 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-void sinsp_threadinfo::set_exec_enter_tid(int64_t tid)
-{
-	m_exec_enter_tid.reset(new int64_t(tid));
-}
-
-bool sinsp_threadinfo::get_exec_enter_tid(int64_t* tid)
-{
-	if(m_exec_enter_tid == NULL)
-	{
-		return false;
-	}
-
-	*tid = *(m_exec_enter_tid.get());
-
-	return true;
-}
-
-void sinsp_threadinfo::clear_exec_enter_tid()
-{
-	m_exec_enter_tid = NULL;
-}
-
 void sinsp_threadinfo::clean_expired_children()
 {
 	/* Loop over all the children to clean up expired ones.
@@ -1284,11 +1259,6 @@ std::string sinsp_threadinfo::get_path_for_dir_fd(int64_t dir_fd)
 #endif // _WIN32
 	}
 	return dir_fdinfo->m_name;
-}
-
-std::shared_ptr<sinsp_threadinfo> sinsp_threadinfo::lookup_thread() const
-{
-	return m_inspector->get_thread_ref(m_pid, true, true, true);
 }
 
 size_t sinsp_threadinfo::args_len() const
@@ -1496,7 +1466,6 @@ void sinsp_thread_manager::clear()
 	m_threadtable.clear();
 	m_thread_groups.clear();
 	m_last_tid = 0;
-	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
 	m_n_drops = 0;
 
@@ -1590,28 +1559,6 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 		tinfo->m_ptid = 1;
 	}
 	parent_thread->m_children.push_front(tinfo);
-}
-
-void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)
-{
-	if(threadinfo->m_flags & PPM_CL_CLONE_THREAD)
-	{
-		//
-		// Increment the refcount of the main thread so it won't
-		// be deleted (if it calls pthread_exit()) until we are done
-		//
-		ASSERT(threadinfo->m_pid != threadinfo->m_tid);
-
-		sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(threadinfo->m_pid, true, true).get();
-		if(main_thread)
-		{
-			++main_thread->m_nchilds;
-		}
-		else
-		{
-			ASSERT(false);
-		}
-	}
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
@@ -1931,8 +1878,6 @@ void sinsp_thread_manager::fix_sockets_coming_from_proc()
 
 void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 {
-	tinfo.m_main_thread.reset();
-
 	sinsp_fdtable* fdt = tinfo.get_fd_table();
 	if(fdt != NULL)
 	{
@@ -1940,23 +1885,9 @@ void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 	}
 }
 
-/*
-void sinsp_thread_manager::clear_thread_pointers(threadinfo_map_iterator_t it)
-{
-	it->second.m_main_program_thread = NULL;
-	it->second.m_main_thread = NULL;
-	it->second.m_progid = -1LL;
-	it->second.m_fdtable.reset_cache();
-}
-*/
-
 void sinsp_thread_manager::reset_child_dependencies()
 {
-	m_last_tinfo.reset();
-	m_last_tid = 0;
-
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		tinfo.m_nchilds = 0;
 		clear_thread_pointers(tinfo);
 		return true;
 	});
@@ -1968,20 +1899,6 @@ void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
 		create_thread_dependencies(tinfo);
 		return true;
 	});
-}
-
-void sinsp_thread_manager::create_child_dependencies()
-{
-	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-		increment_mainthread_childcount(&tinfo);
-		return true;
-	});
-}
-
-void sinsp_thread_manager::recreate_child_dependencies()
-{
-	reset_child_dependencies();
-	create_child_dependencies();
 }
 
 void sinsp_thread_manager::update_statistics()
@@ -2262,14 +2179,13 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             // Add a fake entry to avoid a continuous lookup
             //
             newti->m_tid = tid;
-            newti->m_pid = tid;
+            newti->m_pid = -1;
             newti->m_ptid = -1;
             newti->m_reaper_tid = -1;
             newti->m_comm = "<NA>";
             newti->m_exe = "<NA>";
             newti->m_user.uid = 0xffffffff;
             newti->m_group.gid = 0xffffffff;
-            newti->m_nchilds = 0;
             newti->m_loginuser.uid = 0xffffffff;
         }
 
