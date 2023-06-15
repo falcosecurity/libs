@@ -27,7 +27,7 @@ limitations under the License.
 #include "runc.h"
 #include "container_engine/mesos.h"
 
-#include "../cri.cpp"
+#include "cri.hpp"
 
 #include <memory>
 #include "sinsp.h"
