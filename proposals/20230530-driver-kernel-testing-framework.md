@@ -27,7 +27,7 @@ The initial proposal primarily emphasizes the "Functionality" aspect, while the 
 
 First, let's clarify a few definitions and provide further context.
 
-- `kernel versions`: In the context of the testing framework, kernel versions refer to changes in the major and minor version of the kernel (e.g., 5.15 or 6.4). These version changes are specifically relevant for testing the Falco drivers, with a particular emphasis on testing with Long-Term Support (LTS) releases.
+- `kernel versions`: In the context of the testing framework, kernel versions refer to changes in the major and minor version of the kernel (e.g., 5.15 or 6.4). These version changes are specifically relevant for testing the Falco drivers, with a particular emphasis on testing with Long-Term Support (LTS) releases. We use the term "kernel versions" as it is more commonly used in everyday language. However, from a technical perspective, what we actually mean is a specific kernel release that we test, which is tied to the targeted major and minor version of the kernel.
 - `kernel drivers`: 
     - The kernel drivers powering Falco are custom code developed by contributors. They hook into tracepoints to gather information from kernel data structures of selected kernel events, enabling the generation of structured Falco alerts. Falco's monitoring process is passive and does not modify the behavior of the monitored kernel actions, such as syscalls.
     - Falco employs various kernel instrumentation strategies, including both traditional kernel modules and eBPF. eBPF is advertised as the safer option, as the driver code runs in a virtual machine with limited access to kernel data structures.
@@ -86,18 +86,18 @@ Concurrently, we will develop a test framework utilizing localhost virtual machi
 
 ### Current State
 
-Currently (as of May 31, 2023), the relevant [falcosecurity/libs](https://github.com/falcosecurity/libs) CI drivers tests include:
+Currently (as of June 6, 2023), the relevant [falcosecurity/libs](https://github.com/falcosecurity/libs) CI drivers tests include:
 
 <details>
-    <summary>Build kernel drivers</summary>
+	<summary>Build kernel drivers</summary>
 		<ul>
-			<li>Latest Archlinux kernel to spot possible incompatibilities with the latest kernel tree changes</li>
+			<li>build-latest-kernel, nightly-test build against latest mainline kernel (including RC)</li>
 			<li>ubuntu-22.04 (x86_64)</li>
-			<li>linux-2.6.32</li>
-			<li>linux-3.10</li>
-			<li>linux-4.18</li>
-			<li>linux-5.19</li>
-			<li>linux-6.2</li>
+			<li>linux-2.6.32 (x86_64)</li>
+			<li>linux-3.10 (x86_64)</li>
+			<li>linux-4.18 (x86_64)</li>
+			<li>linux-5.19 (x86_64)</li>
+			<li>linux-6.2 (x86_64)</li>
 		</ul>
 </details> 
 
@@ -208,7 +208,7 @@ Ensure equal testing coverage for each driver, taking into account the different
 
 Select the most appropriate compiler version and build container for the CI-integrated tests. Apart from the compiler version, the GLIBC version in the build container can also have an impact on the ability to compile the driver for a given kernel.
 
-> The expanded CI tests may necessitate the use of approximately 30 low-resource virtual machines (VMs) that run continuously 24/7. These VMs would be distributed across multiple third-party cloud providers. Alternatively, VMs with KVM on hosted GitHub runners can be utilized, or an equivalent suitable solution can be adopted. To adequately cover the condensed kernel test grid, it is estimated that up to 70 test runs would be required for each testing cycle. These tests can be launched using GitHub workflows leveraging SSH remote commands. The test results are then retrieved through this method as well. Initially, it would be logical to support these tests on demand only to avoid simultaneous runs that may try to access the same VM at the same time. In addition to the test VMs, it may be necessary to expand the CI workflows in terms of builder containers.
+> The expanded CI tests may necessitate the use of approximately 30 low-resource virtual machines (VMs) that can run continuously 24/7. These VMs would be distributed across multiple third-party cloud providers. Alternatively, VMs with KVM on hosted GitHub runners can be utilized, or an equivalent suitable solution can be adopted. To adequately cover the condensed kernel test grid, it is estimated that up to 70 test runs would be required for each testing cycle. These tests can be launched using GitHub workflows leveraging SSH remote commands. The test results are then retrieved through this method as well. Initially, it would be logical to support these tests on demand only (such as nightly tests) to avoid simultaneous runs that may try to access the same VM at the same time. In addition to the test VMs, it may be necessary to expand the CI workflows in terms of builder containers.
 
 Please refer to Appendix 1 for a concrete example of a possible kernel test grid.
 
