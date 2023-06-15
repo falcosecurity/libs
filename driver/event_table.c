@@ -453,8 +453,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_SYSCALL_PRCTL_X] = {"prctl", EC_PROCESS | EC_SYSCALL, EF_MODIFIES_STATE, 4, {{"res", PT_ERRNO, PF_DEC}, {"option", PT_ENUMFLAGS32, PF_DEC, prctl_options}, {"arg2_str", PT_CHARBUF, PF_NA}, {"arg2_int", PT_INT64, PF_DEC} } },
 	[PPME_ASYNCEVENT_E] = {"asyncevent", EC_OTHER | EC_METAEVENT, EF_LARGE_PAYLOAD, 3, {{"plugin_id", PT_UINT32, PF_DEC}, {"name", PT_CHARBUF, PF_NA}, {"data", PT_BYTEBUF, PF_NA} } },
 	[PPME_ASYNCEVENT_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
-	[PPME_SYSCALL_MEMFD_CREATE_E] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD | EF_NONE, 0},
-	[PPME_SYSCALL_MEMFD_CREATE_X] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD | EF_NONE, 3, {{"fd",PT_FD,PF_DEC},{"name", PT_CHARBUF, PF_NA},{"flags", PT_FLAGS32, PF_HEX, memfd_create_flags} } },
+	[PPME_SYSCALL_MEMFD_CREATE_E] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD, 0},
+	[PPME_SYSCALL_MEMFD_CREATE_X] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD, 3, {{"fd",PT_FD,PF_DEC},{"name", PT_CHARBUF, PF_NA},{"flags", PT_FLAGS32, PF_HEX, memfd_create_flags} } },
 };
 
 // This code is compiled on windows and osx too!
