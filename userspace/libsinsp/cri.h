@@ -27,6 +27,7 @@ limitations under the License.
 #endif // MINIMAL_BUILD
 
 #include "container_info.h"
+#include "cgroup_limits.h"
 
 #ifdef GRPC_INCLUDE_IS_GRPCPP
 #	include <grpcpp/grpcpp.h>
@@ -192,7 +193,17 @@ public:
 	 */
 	std::string get_container_image_id(const std::string &image_ref);
 
+	/**
+	 * @brief fill in container metadata using the CRI API
+	 * @param key the async lookup key (includes container_id)
+	 * @param container the container info to fill
+	 * @return true on success, false on failure
+	 */
+	bool parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container);
+
 private:
+	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse &status,
+			      sinsp_container_info &container);
 
 	std::unique_ptr<runtime::v1alpha2::RuntimeService::Stub> m_cri;
 	std::unique_ptr<runtime::v1alpha2::ImageService::Stub> m_cri_image;
