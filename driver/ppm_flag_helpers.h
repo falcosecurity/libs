@@ -26,7 +26,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
 #include "ppm.h"
-#ifdef __NR_io_memfd_create
+#ifdef __NR_memfd_create
 #include <uapi/linux/memfd.h>
 #endif
 #ifdef __NR_io_uring_register
