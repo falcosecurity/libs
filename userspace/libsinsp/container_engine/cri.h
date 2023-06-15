@@ -29,12 +29,6 @@ class sinsp_threadinfo;
 #include "container_async_source.h"
 #include <cri.h>
 
-namespace runtime {
-namespace v1alpha2 {
-class ContainerStatusResponse;
-}
-}
-
 namespace libsinsp {
 namespace container_engine {
 
@@ -63,8 +57,6 @@ public:
 
 	bool parse(const key_type& key, sinsp_container_info& container) override;
 private:
-	bool parse_containerd(const runtime::v1alpha2::ContainerStatusResponse& status, sinsp_container_info& container);
-
 	const char* name() const override { return "cri"; };
 
 	sinsp_container_type container_type(const key_type& key) const override
