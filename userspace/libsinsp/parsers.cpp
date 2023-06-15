@@ -261,12 +261,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETPGID_E:
 	case PPME_SYSCALL_UNLINK_E:
 	case PPME_SYSCALL_UNLINKAT_E:
-		store_event(evt);
-		break;
 	case PPME_SYSCALL_EXECVE_18_E:
 	case PPME_SYSCALL_EXECVE_19_E:
 	case PPME_SYSCALL_EXECVEAT_E:
-		parse_execve_enter(evt);
+		store_event(evt);
 		break;
 	case PPME_SYSCALL_WRITE_E:
 		if(!m_inspector->m_is_dumping && evt->m_tinfo != nullptr)
@@ -2217,38 +2215,6 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	return;
 }
 
-void sinsp_parser::parse_execve_enter(sinsp_evt *evt)
-{
-	store_event(evt);
-
-	if(evt->m_tinfo == nullptr)
-	{
-		// Should be impossible
-		ASSERT(false);
-
-		return;
-	}
-
-	// Find the main thread for this pid and note that this tid
-	// was an an exec enter event. When parsing the exit event,
-	// the threadinfo for the tid will be removed, as it no longer
-	// exists.
-	sinsp_threadinfo* main_thread = m_inspector->get_thread_ref(evt->m_tinfo->m_pid, true, true).get();
-
-	if(!main_thread)
-	{
-		return;
-	}
-
-	// Only set the exec enter tid for non-main threads
-	if(main_thread->m_tid == evt->m_tinfo->m_tid)
-	{
-		return;
-	}
-
-	main_thread->set_exec_enter_tid(evt->m_tinfo->m_tid);
-}
-
 void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 {
 	sinsp_evt_param *parinfo;
@@ -2283,6 +2249,18 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		//fprintf(stderr, "comm = %s, args = %s\n",evt->get_param(1)->m_val,evt->get_param(1)->m_val);
 		//ASSERT(false);
 		return;
+	}
+
+	/* In some corner cases an execve is thrown by a secondary thread when 
+	 * the main thread is already dead. In these cases the secondary thread
+	 * will become a main thread (it will change its tid) and here we will have
+	 * an execve exit event called by a main thread that is "theorically" dead.
+	 * What we need to do is to set the main thread as alive again and then
+	 * a new PROC_EXIT event will kill it again.
+	 */
+	if(evt->m_tinfo->is_dead())
+	{
+		evt->m_tinfo->ressurect_thread();
 	}
 
 	// Get the exe
@@ -2737,23 +2715,29 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		m_inspector->get_observer()->on_execve(evt);
 	}
 
-	// The exec may have been performed by a thread other than the
-	// main thread. If that occurred, remove the threadinfo for
-	// the now-nonexistent thread.
-	int64_t exec_enter_tid;
-	if(evt->m_tinfo->get_exec_enter_tid(&exec_enter_tid))
+	/* If any of the threads in a thread group performs an
+	 * execve, then all threads other than the thread group
+	 * leader are terminated, and the new program is executed in
+	 * the thread group leader.
+	 * 
+	 * if `evt->m_tinfo->m_tginfo->get_thread_count() > 1` it means
+	 * we still have some not leader threads in the group.
+	 */
+	if(evt->m_tinfo->m_tginfo != nullptr && evt->m_tinfo->m_tginfo->get_thread_count() > 1)
 	{
-		m_inspector->m_tid_to_remove = exec_enter_tid;
-
-		evt->m_tinfo->clear_exec_enter_tid();
+		for(const auto& thread : evt->m_tinfo->m_tginfo->get_thread_list())
+		{
+			auto thread_ptr = thread.lock().get();
+			/* we don't want to remove the main thread since it is the one
+			 * running in this parser!
+			 */
+			if(thread_ptr == nullptr || thread_ptr->is_main_thread())
+			{
+				continue;
+			}
+			m_inspector->remove_thread(thread_ptr->m_tid);
+		}
 	}
-
-	// This may have been a multithreaded program that exec()ed
-	// into a new process. In any case, all the other threads were
-	// destroyed by doing the exec, so reset the child thread
-	// count.
-	evt->m_tinfo->m_nchilds = 0;
-
 	return;
 }
 
