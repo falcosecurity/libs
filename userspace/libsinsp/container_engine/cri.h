@@ -45,7 +45,8 @@ class cri_async_source : public container_async_source<libsinsp::cgroup_limits::
 {
 	using key_type = libsinsp::cgroup_limits::cgroup_limits_key;
 public:
-	explicit cri_async_source(container_cache_interface *cache, ::libsinsp::cri::cri_interface *cri, uint64_t ttl_ms) :
+	explicit cri_async_source(container_cache_interface* cache, ::libsinsp::cri::cri_interface_v1alpha2* cri,
+				  uint64_t ttl_ms):
 		container_async_source(NO_WAIT_LOOKUP, ttl_ms, cache),
 		m_cri(cri)
 	{
@@ -68,7 +69,7 @@ private:
 		return key.m_container_id;
 	}
 
-	::libsinsp::cri::cri_interface *m_cri;
+	::libsinsp::cri::cri_interface_v1alpha2* m_cri;
 };
 
 class cri : public container_engine_base
@@ -86,7 +87,7 @@ public:
 
 private:
 	std::unique_ptr<cri_async_source> m_async_source;
-	std::unique_ptr<::libsinsp::cri::cri_interface> m_cri;
+	std::unique_ptr<::libsinsp::cri::cri_interface_v1alpha2> m_cri;
 };
 }
 }

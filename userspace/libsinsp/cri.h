@@ -76,10 +76,9 @@ public:
 	using MountPropagation = runtime::v1alpha2::MountPropagation;
 };
 
-class cri_interface
+template<class api> class cri_interface
 {
 public:
-	using api = cri_api_v1alpha2;
 
 	cri_interface(const std::string& cri_path);
 
@@ -105,7 +104,7 @@ public:
 	 * @param resp reference to the response (if the RPC is successful, it will be filled out)
 	 * @return status of the gRPC call
 	 */
-	grpc::Status get_container_status(const std::string &container_id, api::ContainerStatusResponse &resp);
+	grpc::Status get_container_status(const std::string &container_id, typename api::ContainerStatusResponse &resp);
 
 	/**
 	 * @brief thin wrapper around CRI gRPC ContainerStats call
@@ -113,7 +112,7 @@ public:
 	 * @param resp reference to the response (if the RPC is successful, it will be filled out)
 	 * @return status of the gRPC call
 	 */
-	grpc::Status get_container_stats(const std::string &container_id, api::ContainerStatsResponse &resp);
+	grpc::Status get_container_stats(const std::string &container_id, typename api::ContainerStatsResponse &resp);
 
 	/**
 	 * @brief get the size of the container's writable layer
@@ -129,7 +128,7 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_image(const api::ContainerStatus &status,
+	bool parse_cri_image(const typename api::ContainerStatus &status,
 			     const google::protobuf::Map<std::string, std::string> &info,
 			     sinsp_container_info &container);
 
@@ -139,7 +138,7 @@ public:
 	 * @param container the container info to fill out
 	 * @return true if successful
 	 */
-	bool parse_cri_mounts(const api::ContainerStatus &status, sinsp_container_info &container);
+	bool parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container);
 
 	/**
 	 * @brief fill out container environment variables based on CRI response
@@ -191,7 +190,7 @@ public:
 	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
 	 * @return the IP address if possible, 0 otherwise (e.g. when the pod uses host netns)
 	 */
-	uint32_t get_pod_sandbox_ip(api::PodSandboxStatusResponse &resp);
+	uint32_t get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp);
 
 	/**
 	 * @brief get unparsed JSON string with cni result of the pod sandbox from PodSandboxStatusResponse info()
@@ -199,7 +198,7 @@ public:
 	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
 	 * @param cniresult initialized cniresult
 	 */
-	void get_pod_info_cniresult(api::PodSandboxStatusResponse &resp, std::string &cniresult);
+	void get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult);
 
 	/**
 	 * @brief make request and get PodSandboxStatusResponse and grpc::Status.
@@ -207,7 +206,7 @@ public:
 	 * @param resp initialized api::PodSandboxStatusResponse of the pod sandbox
 	 * @param status initialized grpc::Status
 	 */
-	void get_pod_sandbox_resp(const std::string &pod_sandbox_id, api::PodSandboxStatusResponse &resp,
+	void get_pod_sandbox_resp(const std::string &pod_sandbox_id, typename api::PodSandboxStatusResponse &resp,
 				  grpc::Status &status);
 
 	/**
@@ -238,12 +237,13 @@ public:
 	bool parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container);
 
 private:
-	bool parse_containerd(const api::ContainerStatusResponse &status, sinsp_container_info &container);
+	bool parse_containerd(const typename api::ContainerStatusResponse &status, sinsp_container_info &container);
 
-	std::unique_ptr<api::RuntimeService::Stub> m_cri;
-	std::unique_ptr<api::ImageService::Stub> m_cri_image;
+	std::unique_ptr<typename api::RuntimeService::Stub> m_cri;
+	std::unique_ptr<typename api::ImageService::Stub> m_cri_image;
 	sinsp_container_type m_cri_runtime_type;
 };
 
+using cri_interface_v1alpha2 = cri_interface<cri_api_v1alpha2>;
 }
 }

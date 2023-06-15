@@ -26,16 +26,19 @@ limitations under the License.
 using namespace std;
 #define MAX_CNIRESULT_LENGTH 4096
 
-namespace {
-bool pod_uses_host_netns(const libsinsp::cri::cri_interface::api::PodSandboxStatusResponse &resp)
+namespace
+{
+template<typename api> bool pod_uses_host_netns(const typename api::PodSandboxStatusResponse &resp)
 {
 	const auto netns = resp.status().linux().namespaces().options().network();
-	return netns == libsinsp::cri::cri_interface::api::NamespaceMode::NODE;
+	return netns == api::NamespaceMode::NODE;
 }
-}
+} // namespace
 
-namespace libsinsp {
-namespace cri {
+namespace libsinsp
+{
+namespace cri
+{
 std::vector<std::string> s_cri_unix_socket_paths;
 int64_t s_cri_timeout = 1000;
 int64_t s_cri_size_timeout = 10000;
@@ -43,14 +46,14 @@ sinsp_container_type s_cri_runtime_type = CT_CRI;
 std::string s_cri_unix_socket_path;
 bool s_cri_extra_queries = true;
 
-cri_interface::cri_interface(const std::string& cri_path)
+template<typename api> cri_interface<api>::cri_interface(const std::string &cri_path)
 {
 	std::shared_ptr<grpc::Channel> channel = libsinsp::grpc_channel_registry::get_channel("unix://" + cri_path);
 
 	m_cri = api::RuntimeService::NewStub(channel);
 
-	api::VersionRequest vreq;
-	api::VersionResponse vresp;
+	typename api::VersionRequest vreq;
+	typename api::VersionResponse vresp;
 
 	vreq.set_version(api::version);
 	grpc::ClientContext context;
@@ -84,14 +87,16 @@ cri_interface::cri_interface(const std::string& cri_path)
 	s_cri_runtime_type = m_cri_runtime_type;
 }
 
-sinsp_container_type cri_interface::get_cri_runtime_type() const
+template<typename api> sinsp_container_type cri_interface<api>::get_cri_runtime_type() const
 {
 	return m_cri_runtime_type;
 }
 
-grpc::Status cri_interface::get_container_status(const std::string &container_id, api::ContainerStatusResponse &resp)
+template<typename api>
+grpc::Status cri_interface<api>::get_container_status(const std::string &container_id,
+						      typename api::ContainerStatusResponse &resp)
 {
-	api::ContainerStatusRequest req;
+	typename api::ContainerStatusRequest req;
 	req.set_container_id(container_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
@@ -100,9 +105,11 @@ grpc::Status cri_interface::get_container_status(const std::string &container_id
 	return m_cri->ContainerStatus(&context, req, &resp);
 }
 
-grpc::Status cri_interface::get_container_stats(const std::string &container_id, api::ContainerStatsResponse &resp)
+template<typename api>
+grpc::Status cri_interface<api>::get_container_stats(const std::string &container_id,
+						     typename api::ContainerStatsResponse &resp)
 {
-	api::ContainerStatsRequest req;
+	typename api::ContainerStatsRequest req;
 	req.set_container_id(container_id);
 	grpc::ClientContext context;
 	auto deadline = std::chrono::system_clock::now() + std::chrono::milliseconds(s_cri_size_timeout);
@@ -110,11 +117,12 @@ grpc::Status cri_interface::get_container_stats(const std::string &container_id,
 	return m_cri->ContainerStats(&context, req, &resp);
 }
 
-std::optional<int64_t> cri_interface::get_writable_layer_size(const std::string &container_id)
+template<typename api>
+std::optional<int64_t> cri_interface<api>::get_writable_layer_size(const std::string &container_id)
 {
 	// Synchronously get the stats response and update the container table.
 	// Note that this needs to use the full id.
-	api::ContainerStatsResponse resp;
+	typename api::ContainerStatsResponse resp;
 	grpc::Status status = get_container_stats(container_id, resp);
 
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
@@ -154,9 +162,10 @@ std::optional<int64_t> cri_interface::get_writable_layer_size(const std::string 
 	return resp_stats.writable_layer().used_bytes().value();
 }
 
-bool cri_interface::parse_cri_image(const api::ContainerStatus &status,
-				    const google::protobuf::Map<std::string, std::string> &info,
-				    sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &status,
+					 const google::protobuf::Map<std::string, std::string> &info,
+					 sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
 	// host/image@sha256:digest
@@ -280,7 +289,8 @@ bool cri_interface::parse_cri_image(const api::ContainerStatus &status,
 	return true;
 }
 
-bool cri_interface::parse_cri_mounts(const api::ContainerStatus &status, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &status, sinsp_container_info &container)
 {
 	for(const auto &mount : status.mounts())
 	{
@@ -361,7 +371,7 @@ bool set_numeric_64(const Json::Value &dict, const std::string &key, int64_t &va
 	return true;
 }
 
-bool cri_interface::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
+template<typename api> bool cri_interface<api>::parse_cri_env(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *envs;
 	if(!walk_down_json(info, &envs, "config", "envs") || !envs->isArray())
@@ -386,7 +396,8 @@ bool cri_interface::parse_cri_env(const Json::Value &info, sinsp_container_info 
 	return true;
 }
 
-bool cri_interface::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *image;
 	if(!walk_down_json(info, &image, "config", "image", "image") || !image->isString())
@@ -407,7 +418,8 @@ bool cri_interface::parse_cri_json_image(const Json::Value &info, sinsp_containe
 	return true;
 }
 
-bool cri_interface::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *linux = nullptr;
 	if(!walk_down_json(info, &linux, "runtimeSpec", "linux") || !linux->isObject())
@@ -455,7 +467,8 @@ bool cri_interface::parse_cri_ext_container_info(const Json::Value &info, sinsp_
 	return true;
 }
 
-bool cri_interface::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_cri_user_info(const Json::Value &info, sinsp_container_info &container)
 {
 	const Json::Value *uid = nullptr;
 	if(!walk_down_json(info, &uid, "runtimeSpec", "process", "user", "uid") || !uid->isInt())
@@ -467,10 +480,10 @@ bool cri_interface::parse_cri_user_info(const Json::Value &info, sinsp_container
 	return true;
 }
 
-bool cri_interface::is_pod_sandbox(const std::string &container_id)
+template<typename api> bool cri_interface<api>::is_pod_sandbox(const std::string &container_id)
 {
-	api::PodSandboxStatusRequest req;
-	api::PodSandboxStatusResponse resp;
+	typename api::PodSandboxStatusRequest req;
+	typename api::PodSandboxStatusResponse resp;
 	req.set_pod_sandbox_id(container_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
@@ -482,7 +495,8 @@ bool cri_interface::is_pod_sandbox(const std::string &container_id)
 }
 
 // TODO: Explore future schema standardizations, https://github.com/falcosecurity/falco/issues/2387
-void cri_interface::get_pod_info_cniresult(api::PodSandboxStatusResponse &resp, std::string &cniresult)
+template<typename api>
+void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusResponse &resp, std::string &cniresult)
 {
 	Json::Value root;
 	Json::Reader reader;
@@ -544,10 +558,11 @@ void cri_interface::get_pod_info_cniresult(api::PodSandboxStatusResponse &resp, 
 	}
 }
 
-void cri_interface::get_pod_sandbox_resp(const std::string &pod_sandbox_id, api::PodSandboxStatusResponse &resp,
-					 grpc::Status &status)
+template<typename api>
+void cri_interface<api>::get_pod_sandbox_resp(const std::string &pod_sandbox_id,
+					      typename api::PodSandboxStatusResponse &resp, grpc::Status &status)
 {
-	api::PodSandboxStatusRequest req;
+	typename api::PodSandboxStatusRequest req;
 	req.set_pod_sandbox_id(pod_sandbox_id);
 	req.set_verbose(true);
 	grpc::ClientContext context;
@@ -556,9 +571,9 @@ void cri_interface::get_pod_sandbox_resp(const std::string &pod_sandbox_id, api:
 	status = m_cri->PodSandboxStatus(&context, req, &resp);
 }
 
-uint32_t cri_interface::get_pod_sandbox_ip(api::PodSandboxStatusResponse &resp)
+template<typename api> uint32_t cri_interface<api>::get_pod_sandbox_ip(typename api::PodSandboxStatusResponse &resp)
 {
-	if(pod_uses_host_netns(resp))
+	if(pod_uses_host_netns<api>(resp))
 	{
 		return 0;
 	}
@@ -574,18 +589,21 @@ uint32_t cri_interface::get_pod_sandbox_ip(api::PodSandboxStatusResponse &resp)
 	{
 		ASSERT(false);
 		return 0;
-	} else
+	}
+	else
 	{
 		return ip;
 	}
 }
 
-void cri_interface::get_container_ip(const std::string &container_id, uint32_t &container_ip, std::string &cniresult)
+template<typename api>
+void cri_interface<api>::get_container_ip(const std::string &container_id, uint32_t &container_ip,
+					  std::string &cniresult)
 {
 	container_ip = 0;
 	cniresult = "";
-	api::ListContainersRequest req;
-	api::ListContainersResponse resp;
+	typename api::ListContainersRequest req;
+	typename api::ListContainersResponse resp;
 	auto filter = req.mutable_filter();
 	filter->set_id(container_id);
 	grpc::ClientContext context;
@@ -601,7 +619,7 @@ void cri_interface::get_container_ip(const std::string &container_id, uint32_t &
 			break;
 		case 1: {
 			const auto& cri_container = resp.containers(0);
-			api::PodSandboxStatusResponse resp_pod;
+			typename api::PodSandboxStatusResponse resp_pod;
 			grpc::Status status_pod;
 			get_pod_sandbox_resp(cri_container.pod_sandbox_id(), resp_pod, status_pod);
 			if (status_pod.ok())
@@ -617,10 +635,10 @@ void cri_interface::get_container_ip(const std::string &container_id, uint32_t &
 	}
 }
 
-std::string cri_interface::get_container_image_id(const std::string &image_ref)
+template<typename api> std::string cri_interface<api>::get_container_image_id(const std::string &image_ref)
 {
-	api::ListImagesRequest req;
-	api::ListImagesResponse resp;
+	typename api::ListImagesRequest req;
+	typename api::ListImagesResponse resp;
 	auto filter = req.mutable_filter();
 	auto spec = filter->mutable_image();
 	spec->set_image(image_ref);
@@ -648,7 +666,9 @@ std::string cri_interface::get_container_image_id(const std::string &image_ref)
 	return "";
 }
 
-bool cri_interface::parse_containerd(const api::ContainerStatusResponse &status, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse_containerd(const typename api::ContainerStatusResponse &status,
+					  sinsp_container_info &container)
 {
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s) in parse_containerd", container.m_id.c_str());
 
@@ -681,7 +701,7 @@ bool cri_interface::parse_containerd(const api::ContainerStatusResponse &status,
 	if(root.isMember("sandboxID") && root["sandboxID"].isString())
 	{
 		const auto pod_sandbox_id = root["sandboxID"].asString();
-		api::PodSandboxStatusResponse resp_pod;
+		typename api::PodSandboxStatusResponse resp_pod;
 		grpc::Status status_pod;
 		get_pod_sandbox_resp(pod_sandbox_id, resp_pod, status_pod);
 		if(status_pod.ok())
@@ -694,9 +714,10 @@ bool cri_interface::parse_containerd(const api::ContainerStatusResponse &status,
 	return ret;
 }
 
-bool cri_interface::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
+template<typename api>
+bool cri_interface<api>::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key, sinsp_container_info &container)
 {
-	api::ContainerStatusResponse resp;
+	typename api::ContainerStatusResponse resp;
 	grpc::Status status = get_container_status(container.m_id, resp);
 
 	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStatus: (%s)", container.m_id.c_str(),
@@ -780,5 +801,5 @@ bool cri_interface::parse(const libsinsp::cgroup_limits::cgroup_limits_key &key,
 
 	return true;
 }
-}
-}
+} // namespace cri
+} // namespace libsinsp

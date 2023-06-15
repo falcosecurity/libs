@@ -24,10 +24,12 @@ limitations under the License.
 #	include <grpc++/grpc++.h>
 #endif
 
-#include "cgroup_limits.h"
 #include "runc.h"
 #include "container_engine/mesos.h"
-#include <cri.h>
+
+#include "../cri.cpp"
+
+#include <memory>
 #include "sinsp.h"
 #include "sinsp_int.h"
 
@@ -84,7 +86,7 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 			continue;
 		}
 
-		m_cri = std::unique_ptr<libsinsp::cri::cri_interface>(new libsinsp::cri::cri_interface(cri_path));
+		m_cri = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
 		if(!m_cri->is_ok())
 		{
 			m_cri.reset(nullptr);

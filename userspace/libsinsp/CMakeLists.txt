@@ -181,7 +181,6 @@ if(NOT MINIMAL_BUILD)
 	if(NOT WIN32 AND NOT APPLE)
 		list(APPEND SINSP_SOURCES
 			cgroup_limits.cpp
-			cri.cpp
 			container_engine/cri.cpp
 			sinsp_resource_utilization.cpp
 			grpc_channel_registry.cpp
