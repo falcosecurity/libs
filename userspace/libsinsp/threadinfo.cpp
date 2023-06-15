@@ -1026,12 +1026,22 @@ double sinsp_threadinfo::get_fd_usage_pct_d()
 
 uint64_t sinsp_threadinfo::get_fd_opencount() const
 {
-	return get_main_thread()->m_fdtable.size();
+	auto main_thread = get_main_thread();
+	if(main_thread == nullptr)
+	{
+		return 0;
+	}
+	return main_thread->m_fdtable.size();
 }
 
 uint64_t sinsp_threadinfo::get_fd_limit()
 {
-	return get_main_thread()->m_fdlimit;
+	auto main_thread = get_main_thread();
+	if(main_thread == nullptr)
+	{
+		return 0;
+	}
+	return main_thread->m_fdlimit;
 }
 
 const std::string& sinsp_threadinfo::get_cgroup(const std::string& subsys) const
@@ -1402,6 +1412,7 @@ sinsp_thread_manager::sinsp_thread_manager(sinsp* inspector)
 void sinsp_thread_manager::clear()
 {
 	m_threadtable.clear();
+	m_thread_groups.clear();
 	m_last_tid = 0;
 	m_last_tinfo.reset();
 	m_last_flush_time_ns = 0;
@@ -1967,6 +1978,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
     return sinsp_proc;
 }
 
+/* `lookup_only==true` means that we don't fill the `m_last_tinfo` field */
 threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool lookup_only)
 {
 	threadinfo_map_t::ptr_t thr;
@@ -1976,7 +1988,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 	if(tid == m_last_tid)
 	{
 		thr = m_last_tinfo.lock();
-		if (thr)                                                                                     {
+		if (thr)
+		{
 #ifdef GATHER_INTERNAL_STATS
 			m_cached_lookups->increment();
 #endif
@@ -1984,7 +1997,8 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::find_thread(int64_t tid, bool look
 			// for something that may not need to be precise
 			thr->m_lastaccess_ts = m_inspector->get_lastevent_ts();
 			return thr;
-		}                                                                                        }
+		}
+	}
 
 	//
 	// Caching failed, do a real lookup
