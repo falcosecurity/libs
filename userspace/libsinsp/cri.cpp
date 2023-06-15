@@ -110,6 +110,50 @@ grpc::Status cri_interface::get_container_stats(const std::string& container_id,
 	return m_cri->ContainerStats(&context, req, &resp);
 }
 
+std::optional<int64_t> cri_interface::get_writable_layer_size(const std::string &container_id)
+{
+	// Synchronously get the stats response and update the container table.
+	// Note that this needs to use the full id.
+	runtime::v1alpha2::ContainerStatsResponse resp;
+	grpc::Status status = get_container_stats(container_id, resp);
+
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Status from ContainerStats: (%s)", container_id.c_str(),
+			status.error_message().empty() ? "SUCCESS" : status.error_message().c_str());
+
+	if(!status.ok())
+	{
+		return std::nullopt;
+	}
+
+	if(!resp.has_stats())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: stats() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return std::nullopt;
+	}
+
+	const auto &resp_stats = resp.stats();
+
+	if(!resp_stats.has_writable_layer())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: writable_layer() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return std::nullopt;
+	}
+
+	if(!resp_stats.writable_layer().has_used_bytes())
+	{
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): Failed to update size: used_bytes() not found",
+				container_id.c_str());
+		ASSERT(false);
+		return std::nullopt;
+	}
+
+	return resp_stats.writable_layer().used_bytes().value();
+}
+
 bool cri_interface::parse_cri_image(const runtime::v1alpha2::ContainerStatus &status, const google::protobuf::Map<std::string, std::string> &info, sinsp_container_info &container)
 {
 	// image_ref may be one of two forms:
