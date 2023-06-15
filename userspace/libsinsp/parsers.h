@@ -128,6 +128,7 @@ private:
 	void parse_select_poll_epollwait_enter(sinsp_evt *evt);
 	void parse_fcntl_enter(sinsp_evt* evt);
 	void parse_fcntl_exit(sinsp_evt* evt);
+	void parse_prctl_exit_event(sinsp_evt *evt);
 	void parse_context_switch(sinsp_evt* evt);
 	void parse_brk_munmap_mmap_exit(sinsp_evt* evt);
 	void parse_setresuid_exit(sinsp_evt* evt);
