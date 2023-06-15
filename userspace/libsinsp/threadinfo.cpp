@@ -1427,6 +1427,89 @@ void sinsp_thread_manager::clear()
 #endif
 }
 
+/* This is called on the table after the `/proc` scan */
+void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo)
+{
+	/* This should never happen */
+	if(tinfo == nullptr)
+	{
+		throw sinsp_exception("There is a NULL pointer in the thread table, this should never happen");
+	}
+
+	/* For invalid threads we do nothing.
+	 * They won't have a valid parent or a valid thread group.
+	 * We use them just to see which tid calls a syscall.
+	 */
+	if(tinfo->is_invalid())
+	{
+		return;
+	}
+
+	/* This is a defensive check, it should never happen
+	 * a thread that calls this method should never have a thread group info
+	 */
+	if(tinfo->m_tginfo != nullptr)
+	{
+		return;
+	}
+
+	bool reaper = false;
+	/* reaper should be true if we are an init process for the init namespace or for an inner namespace */
+	if(tinfo->m_pid == 1 || tinfo->m_vpid == 1)
+	{
+		reaper = true;
+	}
+
+	/* Create the thread group info for the thread. */
+	auto tginfo = m_inspector->m_thread_manager->get_thread_group_info(tinfo->m_pid);
+	if(tginfo == nullptr)
+	{
+		tginfo = std::make_shared<thread_group_info>(tinfo->m_pid, reaper, tinfo);
+		m_inspector->m_thread_manager->set_thread_group_info(tinfo->m_pid, tginfo);
+	}
+	else
+	{
+		tginfo->add_thread_to_the_group(tinfo, tinfo->is_main_thread());
+	}
+	tinfo->m_tginfo = tginfo;
+
+	/* init group has no parent */
+	if(tinfo->m_pid == 1)
+	{
+		return;
+	}
+
+	/* Assign the child to the parent for the first time, we are a thread
+	 * just created and we need to assign us to a parent. 
+	 * Remember that in `/proc` scan the `ptid` is `ppid`.
+	 * If we don't find the parent in the table we can do nothing, so we consider
+	 * INIT as the new parent.
+	 * 
+	 * Please note that here the parent could not have yet the `tginfo` since maybe
+	 * we still need to parse it.
+	 */
+	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
+	if(parent_thread == nullptr || parent_thread->is_invalid())
+	{
+		/* If init is not there we can do nothing.
+		 * If for some reason the process with tid `1` is not the reaper, we need to
+		 * implement some custom way to find the init reaper.
+		 * This could become dangerous if we are in a container because the parent would be outside
+		 * the container, but we have no other ways...
+		 */
+		parent_thread = m_inspector->get_thread_ref(1, false);
+		if(parent_thread == nullptr)
+		{
+			/* This should never happen, it means that we have a system without the init process (tid 1) under `/proc` */
+			tinfo->m_ptid = 0;
+			return;
+		}
+		/* We update also the parent tid of the thread */
+		tinfo->m_ptid = 1;
+	}
+	parent_thread->m_children.push_front(tinfo);
+}
+
 void sinsp_thread_manager::increment_mainthread_childcount(sinsp_threadinfo* threadinfo)
 {
 	if(threadinfo->m_flags & PPM_CL_CLONE_THREAD)
@@ -1455,14 +1538,18 @@ std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
 	return std::unique_ptr<sinsp_threadinfo>(tinfo);
 }
 
+/* Can be called when:
+ * 1. We crafted a new event to create in clone parsers. (`from_scap_proctable==false`)
+ * 2. We are doing a proc scan with a callback or without. (`from_scap_proctable==true`)
+ * 3. We are trying to obtain thread info from /proc through `get_thread_ref`
+ */
 bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_scap_proctable)
 {
 #ifdef GATHER_INTERNAL_STATS
 	m_added_threads->increment();
 #endif
 
-	m_last_tinfo.reset();
-
+	/* We have no more space */
 	if(m_threadtable.size() >= m_max_thread_table_size
 #if defined(HAS_CAPTURE)
 	   && threadinfo->m_pid != m_inspector->m_self_pid
@@ -1479,22 +1566,24 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 		return false;
 	}
 
+	auto tinfo_shared_ptr = std::shared_ptr<sinsp_threadinfo>(threadinfo);
+
 	if(!from_scap_proctable)
 	{
-		increment_mainthread_childcount(threadinfo);
+		create_thread_dependencies(tinfo_shared_ptr);
 	}
 
-	if (threadinfo->dynamic_fields() == nullptr)
+	if (tinfo_shared_ptr->dynamic_fields() == nullptr)
 	{
-		threadinfo->set_dynamic_fields(dynamic_fields());
+		tinfo_shared_ptr->set_dynamic_fields(dynamic_fields());
 	}
-	if (threadinfo->dynamic_fields() != dynamic_fields())
+	if (tinfo_shared_ptr->dynamic_fields() != dynamic_fields())
 	{
 		throw sinsp_exception("adding entry with incompatible dynamic defs to thread table");
 	}
 
-	threadinfo->compute_program_hash();
-	m_threadtable.put(threadinfo);
+	tinfo_shared_ptr->compute_program_hash();
+	m_threadtable.put(tinfo_shared_ptr);
 
 	return true;
 }
@@ -1650,6 +1739,14 @@ void sinsp_thread_manager::reset_child_dependencies()
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
 		tinfo.m_nchilds = 0;
 		clear_thread_pointers(tinfo);
+		return true;
+	});
+}
+
+void sinsp_thread_manager::create_thread_dependencies_after_proc_scan()
+{
+	m_threadtable.loop_shared_pointer([&](const std::shared_ptr<sinsp_threadinfo>& tinfo) {
+		create_thread_dependencies(tinfo);
 		return true;
 	});
 }

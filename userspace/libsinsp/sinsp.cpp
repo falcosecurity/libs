@@ -397,10 +397,8 @@ void sinsp::init()
 
 	import_user_list();
 
-	//
-	// Scan the list to create the proper parent/child dependencies
-	//
-	m_thread_manager->create_child_dependencies();
+	/* Create parent/child dependencies */
+	m_thread_manager->create_thread_dependencies_after_proc_scan();
 
 	//
 	// Scan the list to fix the direction of the sockets
