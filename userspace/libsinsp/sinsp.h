@@ -1034,7 +1034,7 @@ private:
 	void import_ifaddr_list();
 	void import_user_list();
 	void add_protodecoders();
-	void remove_thread(int64_t tid, bool force);
+	void remove_thread(int64_t tid);
 
 	//
 	// Note: lookup_only should be used when the query for the thread is made
