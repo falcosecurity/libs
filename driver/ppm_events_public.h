@@ -2095,7 +2095,7 @@ extern const struct ppm_name_value epoll_create1_flags[];
 extern const struct ppm_name_value fchownat_flags[];
 extern const struct ppm_name_value prctl_options[];
 extern const struct ppm_name_value memfd_create_flags[];
-extern const struct ppm_name_value pidfd_getfd_flags[];
+
 
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];

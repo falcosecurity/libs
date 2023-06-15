@@ -6769,37 +6769,28 @@ FILLER(sys_pidfd_getfd_x, true)
 	unsigned long res;
 	unsigned long flags;
 
-	/*
-	 * fd
-	*/
+	/* Parameter 1: ret (type: PT_FD) */
 	retval = bpf_syscall_get_retval(data->ctx);
 	res = bpf_push_s64_to_ring(data, retval);
 	CHECK_RES(res);
 
-	/*
-	 * pidfd
-	*/
-	val = bpf_syscall_get_argument(data, 0);
-	res = bpf_push_s64_to_ring(data, val);
+	/* Parameter 2: pidfd (type: PT_FD) */
+	s32 pidfd = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)pidfd);
 	CHECK_RES(res);
 
-	/*
-	 * targetfd
-	*/
-	val = bpf_syscall_get_argument(data, 1);
-	res = bpf_push_s64_to_ring(data, val);
+	/* Parameter 3: targetfd (type: PT_FD) */
+	s32 targetfd = bpf_syscall_get_argument(data, 1);
+	res = bpf_push_s64_to_ring(data, (s64)targetfd);
 	CHECK_RES(res);
 
-	/*
-	 * flags
-	*/
+	/* Parameter 4: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data,2);
 	 /*
      The flags argument is reserved for future use.  Currently, it must be specified as 0.
      See https://elixir.bootlin.com/linux/latest/source/kernel/pid.c#L709
     */
-	flags = 0;
-	return bpf_push_u32_to_ring(data, flags);
+	return bpf_push_u32_to_ring(data, val);
 }
 
 #endif

@@ -50,7 +50,7 @@ TEST(SyscallExit, pidfd_getfdX)
      evt_test->assert_numeric_param(3, (int64_t)target_fd);
 
      /* Parameter 4: flags (type: PT_FLAGS32)*/
-     evt_test->assert_numeric_param(4, 0);
+     evt_test->assert_numeric_param(4, flags);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
