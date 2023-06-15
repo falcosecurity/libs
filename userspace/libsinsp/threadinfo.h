@@ -346,20 +346,6 @@ public:
 	typedef std::function<bool (sinsp_threadinfo *)> visitor_func_t;
 	void traverse_parent_state(visitor_func_t &visitor);
 
-	// Note that the provided tid, a thread in this main thread's
-	// pid, has been used in an exec enter event. In the
-	// corresponding exec exit event, the threadinfo for this tid
-	// will be removed, as it no longer exists.
-	void set_exec_enter_tid(int64_t tid);
-
-	// Fill in the provided tid with any tid set in
-	// set_exec_enter_tid(). Returns true if a tid was set, false
-	// otherwise.
-	bool get_exec_enter_tid(int64_t* tid);
-
-	// Clear any value set in set_exec_enter_tid
-	void clear_exec_enter_tid();
-
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
 	void clean_expired_children();
@@ -383,16 +369,6 @@ public:
 
 	using cgroups_t = std::vector<std::pair<std::string, std::string>>;
 	cgroups_t& cgroups() const;
-
-	// In rare cases, a thread may do an exec, which results in
-	// the thread having its tid reset to be the main thread of
-	// the pid and all other threads for the pid being destroyed.
-	//
-	// We need to keep track of the tid that started the exec so
-	// when parsing the exec exit event, we delete the thread that
-	// performed the exec, as it is now the main thread of the new
-	// pid.
-	std::unique_ptr<int64_t> m_exec_enter_tid;
 
 	//
 	// Core state
@@ -425,7 +401,6 @@ public:
 	uint64_t m_exe_ino_mtime; ///< executable inode mtime (last modification time)
 	uint64_t m_exe_ino_ctime_duration_clone_ts; ///< duration in ns between executable inode ctime (last status change time) and clone_ts
 	uint64_t m_exe_ino_ctime_duration_pidns_start; ///< duration in ns between pidns start ts and executable inode ctime (last status change time) if pidns start predates ctime
-	uint64_t m_nchilds; ///< When this is 0 the process can be deleted
 	uint32_t m_vmsize_kb; ///< total virtual memory (as kb).
 	uint32_t m_vmrss_kb; ///< resident non-swapped memory (as kb).
 	uint32_t m_vmswap_kb; ///< swapped memory (as kb).
@@ -585,7 +560,6 @@ VISIBILITY_PRIVATE
 		}
 	}
 	void compute_program_hash();
-	std::shared_ptr<sinsp_threadinfo> lookup_thread() const;
 
 	size_t strvec_len(const std::vector<std::string> &strs) const;
 	void strvec_to_iovec(const std::vector<std::string> &strs,
@@ -610,7 +584,6 @@ VISIBILITY_PRIVATE
 	//
 	sinsp_fdtable m_fdtable; // The fd table of this thread
 	std::string m_cwd; // current working directory
-	mutable std::weak_ptr<sinsp_threadinfo> m_main_thread;
 	uint8_t* m_lastevent_data; // Used by some event parsers to store the last enter event
 
 	uint16_t m_lastevent_type;
@@ -742,9 +715,6 @@ public:
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
 	void create_thread_dependencies_after_proc_scan();
-	void create_child_dependencies();
-	void recreate_child_dependencies();
-
 	/*!
       \brief Look up a thread given its tid and return its information,
        and optionally go dig into proc if the thread is not in the thread table.
@@ -882,7 +852,6 @@ public:
 	}
 
 VISIBILITY_PRIVATE
-	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);

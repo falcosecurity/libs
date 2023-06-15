@@ -2721,9 +2721,6 @@ bool sinsp_thread_manager::remove_inactive_threads()
 				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
 			{
-#ifdef GATHER_INTERNAL_STATS
-				m_removed_threads->increment();
-#endif
 				to_delete.insert(tinfo.m_tid);
 			}
 			return true;
