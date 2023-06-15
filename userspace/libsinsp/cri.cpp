@@ -61,26 +61,30 @@ template<typename api> cri_interface<api>::cri_interface(const std::string &cri_
 	context.set_deadline(deadline);
 	grpc::Status status = m_cri->Version(&context, vreq, &vresp);
 
-	if (!status.ok())
+	if(!status.ok())
 	{
-		g_logger.format(sinsp_logger::SEV_NOTICE, "cri: CRI runtime returned an error after version check at %s: %s",
-				cri_path.c_str(), status.error_message().c_str());
+		g_logger.format(sinsp_logger::SEV_NOTICE,
+				"cri: CRI runtime returned an error after version check at %s: %s", cri_path.c_str(),
+				status.error_message().c_str());
 		m_cri.reset(nullptr);
 		return;
 	}
 
-	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(), vresp.runtime_version().c_str());
+	g_logger.format(sinsp_logger::SEV_INFO, "cri: CRI runtime: %s %s", vresp.runtime_name().c_str(),
+			vresp.runtime_version().c_str());
 
 	m_cri_image = api::ImageService::NewStub(channel);
 
-	const std::string& runtime_name = vresp.runtime_name();
+	const std::string &runtime_name = vresp.runtime_name();
 	if(runtime_name == "containerd")
 	{
 		m_cri_runtime_type = CT_CONTAINERD;
-	} else if(runtime_name == "cri-o")
+	}
+	else if(runtime_name == "cri-o")
 	{
 		m_cri_runtime_type = CT_CRIO;
-	} else
+	}
+	else
 	{
 		m_cri_runtime_type = CT_CRI;
 	}
@@ -177,12 +181,10 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 	bool get_tag_from_image = false;
 	auto digest_start = image_ref.find("sha256:");
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
-			container.m_id.c_str(),
-			image_ref.c_str(), digest_start);
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: image_ref=%s, digest_start=%d",
+			container.m_id.c_str(), image_ref.c_str(), digest_start);
 
-	switch (digest_start)
+	switch(digest_start)
 	{
 	case 0: // sha256:digest
 		have_digest = true;
@@ -201,7 +203,8 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 	if(image_name.empty() || strncmp(image_name.c_str(), "sha256", 6) == 0)
 	{
 		/* Retrieve image_name from annotations as backup when image name may start with sha256
-		or otherwise was not retrieved. Brute force try each schema we know of for containerd and crio container runtimes. */
+		or otherwise was not retrieved. Brute force try each schema we know of for containerd and crio container
+		runtimes. */
 
 		Json::Value root;
 		Json::Reader reader;
@@ -216,11 +219,13 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 					jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri.image-name"];
 					if(jvalue.isNull())
 					{
-						jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
+						jvalue =
+							root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.Image"];
 					}
 					if(jvalue.isNull())
 					{
-						jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.ImageName"];
+						jvalue = root["runtimeSpec"]["annotations"]
+							     ["io.kubernetes.cri-o.ImageName"];
 					}
 					if(!jvalue.isNull())
 					{
@@ -232,36 +237,21 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 		}
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"cri (%s): parse_cri_image: have_digest=%d image_name=%s",
-			container.m_id.c_str(),
-			have_digest, image_name.c_str());
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: have_digest=%d image_name=%s",
+			container.m_id.c_str(), have_digest, image_name.c_str());
 
 	string hostname, port, digest;
-	sinsp_utils::split_container_image(image_name,
-					   hostname,
-					   port,
-					   container.m_imagerepo,
-					   container.m_imagetag,
-					   digest,
-					   false);
+	sinsp_utils::split_container_image(image_name, hostname, port, container.m_imagerepo, container.m_imagetag,
+					   digest, false);
 
 	if(get_tag_from_image)
 	{
-		g_logger.format(sinsp_logger::SEV_DEBUG,
-				"cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
-				container.m_id.c_str(),
-				container.m_imagetag.c_str(),
-				status.image().image().c_str());
+		g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: tag=%s, pulling tag from %s",
+				container.m_id.c_str(), container.m_imagetag.c_str(), status.image().image().c_str());
 
 		string digest2, repo;
-		sinsp_utils::split_container_image(status.image().image(),
-						   hostname,
-						   port,
-						   repo,
-						   container.m_imagetag,
-						   digest2,
-						   false);
+		sinsp_utils::split_container_image(status.image().image(), hostname, port, repo, container.m_imagetag,
+						   digest2, false);
 
 		image_name.push_back(':');
 		image_name.append(container.m_imagetag);
@@ -278,13 +268,9 @@ bool cri_interface<api>::parse_cri_image(const typename api::ContainerStatus &st
 		container.m_imagedigest = digest;
 	}
 
-	g_logger.format(sinsp_logger::SEV_DEBUG,
-			"cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
-			container.m_id.c_str(),
-			container.m_imagerepo.c_str(),
-			container.m_imagetag.c_str(),
-			container.m_image.c_str(),
-			container.m_imagedigest.c_str());
+	g_logger.format(sinsp_logger::SEV_DEBUG, "cri (%s): parse_cri_image: repo=%s tag=%s image=%s digest=%s",
+			container.m_id.c_str(), container.m_imagerepo.c_str(), container.m_imagetag.c_str(),
+			container.m_image.c_str(), container.m_imagedigest.c_str());
 
 	return true;
 }
@@ -310,15 +296,10 @@ bool cri_interface<api>::parse_cri_mounts(const typename api::ContainerStatus &s
 			propagation = "unknown";
 			break;
 		}
-		container.m_mounts.emplace_back(
-			mount.host_path(),
-			mount.container_path(),
-			"",
-			!mount.readonly(),
-			propagation);
+		container.m_mounts.emplace_back(mount.host_path(), mount.container_path(), "", !mount.readonly(),
+						propagation);
 	}
 	return true;
-
 }
 
 bool walk_down_json(const Json::Value &root, const Json::Value **out, const std::string &key)
@@ -341,14 +322,14 @@ bool walk_down_json(const Json::Value &root, const Json::Value **out, const std:
 	return false;
 }
 
-bool set_numeric_32(const Json::Value& dict, const std::string& key, int32_t& val)
+bool set_numeric_32(const Json::Value &dict, const std::string &key, int32_t &val)
 {
-	if (!dict.isMember(key))
+	if(!dict.isMember(key))
 	{
 		return false;
 	}
-	const auto& json_val = dict[key];
-	if (!json_val.isNumeric())
+	const auto &json_val = dict[key];
+	if(!json_val.isNumeric())
 	{
 		return false;
 	}
@@ -410,7 +391,8 @@ bool cri_interface<api>::parse_cri_json_image(const Json::Value &info, sinsp_con
 	if(pos == string::npos)
 	{
 		container.m_imageid = move(image_str);
-	} else
+	}
+	else
 	{
 		container.m_imageid = image_str.substr(pos + 1);
 	}
@@ -453,13 +435,16 @@ bool cri_interface<api>::parse_cri_ext_container_info(const Json::Value &info, s
 	}
 
 	// containerd
-	if(!priv_found && walk_down_json(info, &privileged, "config", "linux", "security_context", "privileged") && privileged->isBool()) {
+	if(!priv_found && walk_down_json(info, &privileged, "config", "linux", "security_context", "privileged") &&
+	   privileged->isBool())
+	{
 		container.m_privileged = privileged->asBool();
 		priv_found = true;
 	}
 
 	// cri-o
-	if(!priv_found && walk_down_json(info, &privileged, "privileged") && privileged->isBool()) {
+	if(!priv_found && walk_down_json(info, &privileged, "privileged") && privileged->isBool())
+	{
 		container.m_privileged = privileged->asBool();
 		priv_found = true;
 	}
@@ -515,19 +500,21 @@ void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusRe
 	}
 
 	Json::Value jvalue;
-	/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
+	/* Lookup approach is brute force "try all schemas" we know of, do not condition by container runtime for
+	 * possible future "would just work" luck in case other runtimes standardize on one of the current schemas. */
 
-	jvalue = root["cniResult"]["Interfaces"];	/* pod info schema of CT_CONTAINERD runtime. */
+	jvalue = root["cniResult"]["Interfaces"]; /* pod info schema of CT_CONTAINERD runtime. */
 	if(!jvalue.isNull())
 	{
 		/* If applicable remove members / fields not needed for incident response. */
 		jvalue.removeMember("lo");
-		for (auto& key : jvalue.getMemberNames())
+		for(auto &key : jvalue.getMemberNames())
 		{
-			if (0 == strncmp(key.c_str(), "veth", 4))
+			if(0 == strncmp(key.c_str(), "veth", 4))
 			{
 				jvalue.removeMember(key);
-			} else
+			}
+			else
 			{
 				jvalue[key].removeMember("Mac");
 				jvalue[key].removeMember("Sandbox");
@@ -540,19 +527,21 @@ void cri_interface<api>::get_pod_info_cniresult(typename api::PodSandboxStatusRe
 
 	if(jvalue.isNull())
 	{
-		jvalue = root["runtimeSpec"]["annotations"]["io.kubernetes.cri-o.CNIResult"];	/* pod info schema of CT_CRIO runtime. Note interfaces names are unknown here. */
+		jvalue = root["runtimeSpec"]["annotations"]
+			     ["io.kubernetes.cri-o.CNIResult"]; /* pod info schema of CT_CRIO runtime. Note interfaces
+								   names are unknown here. */
 		if(!jvalue.isNull())
 		{
 			cniresult = jvalue.asString();
 		}
 	}
 
-	if(cniresult[cniresult.size() - 1] == '\n')		/* Make subsequent ETLs nicer w/ minor cleanups if applicable. */
+	if(cniresult[cniresult.size() - 1] == '\n') /* Make subsequent ETLs nicer w/ minor cleanups if applicable. */
 	{
 		cniresult.pop_back();
 	}
 
-	if (cniresult.size() > MAX_CNIRESULT_LENGTH)	/* Safety upper bound, should never happen. */
+	if(cniresult.size() > MAX_CNIRESULT_LENGTH) /* Safety upper bound, should never happen. */
 	{
 		cniresult.resize(MAX_CNIRESULT_LENGTH);
 	}
@@ -613,25 +602,28 @@ void cri_interface<api>::get_container_ip(const std::string &container_id, uint3
 
 	switch(resp.containers_size())
 	{
-		case 0:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI", container_id.c_str());
-			ASSERT(false);
-			break;
-		case 1: {
-			const auto& cri_container = resp.containers(0);
-			typename api::PodSandboxStatusResponse resp_pod;
-			grpc::Status status_pod;
-			get_pod_sandbox_resp(cri_container.pod_sandbox_id(), resp_pod, status_pod);
-			if (status_pod.ok())
-			{
-				container_ip =  ntohl(get_pod_sandbox_ip(resp_pod));
-				get_pod_info_cniresult(resp_pod, cniresult);
-			}
+	case 0:
+		g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s not in list from CRI",
+				container_id.c_str());
+		ASSERT(false);
+		break;
+	case 1:
+	{
+		const auto &cri_container = resp.containers(0);
+		typename api::PodSandboxStatusResponse resp_pod;
+		grpc::Status status_pod;
+		get_pod_sandbox_resp(cri_container.pod_sandbox_id(), resp_pod, status_pod);
+		if(status_pod.ok())
+		{
+			container_ip = ntohl(get_pod_sandbox_ip(resp_pod));
+			get_pod_info_cniresult(resp_pod, cniresult);
 		}
-		default:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI", container_id.c_str());
-			ASSERT(false);
-			break;
+	}
+	default:
+		g_logger.format(sinsp_logger::SEV_WARNING, "Container id %s matches more than once in list from CRI",
+				container_id.c_str());
+		ASSERT(false);
+		break;
 	}
 }
 
@@ -649,18 +641,20 @@ template<typename api> std::string cri_interface<api>::get_container_image_id(co
 
 	switch(resp.images_size())
 	{
-		case 0:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
-			ASSERT(false);
-			break;
-		case 1: {
-			const auto& image = resp.images(0);
-			return image.id();
-		}
-		default:
-			g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI", image_ref.c_str());
-			ASSERT(false);
-			break;
+	case 0:
+		g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s not in list from CRI", image_ref.c_str());
+		ASSERT(false);
+		break;
+	case 1:
+	{
+		const auto &image = resp.images(0);
+		return image.id();
+	}
+	default:
+		g_logger.format(sinsp_logger::SEV_WARNING, "Image ref %s matches more than once in list from CRI",
+				image_ref.c_str());
+		ASSERT(false);
+		break;
 	}
 
 	return "";
