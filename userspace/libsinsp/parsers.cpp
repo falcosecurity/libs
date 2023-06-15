@@ -1196,7 +1196,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		{
 			if(evt->get_ts() - evt->m_tinfo->m_clone_ts > CLONE_STALE_TIME_NS)
 			{
-				m_inspector->remove_thread(tid, true);
+				m_inspector->remove_thread(tid);
 				evt->m_tinfo = NULL;
 			}
 		}
@@ -1318,7 +1318,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		}
 		else
 		{
-			m_inspector->remove_thread(childtid, true);
+			m_inspector->remove_thread(childtid);
 			tid_collision = true;
 		}
 	}
@@ -1409,7 +1409,7 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 		// Parent is an invalid thread, which is strange since it's performing
 		// a clone. We try to remove and look it up in proc.
 		//
-		m_inspector->remove_thread(tid, true);
+		m_inspector->remove_thread(tid);
 		tid_collision = true;
 
 		ptinfo = m_inspector->get_thread_ref(tid,

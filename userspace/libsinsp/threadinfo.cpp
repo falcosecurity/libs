@@ -1488,7 +1488,7 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	return true;
 }
 
-void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
+void sinsp_thread_manager::remove_thread(int64_t tid)
 {
 	uint64_t nchilds;
 	sinsp_threadinfo* tinfo = m_threadtable.get(tid);
@@ -1506,7 +1506,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid, bool force)
 #endif
 		return;
 	}
-	else if((nchilds = tinfo->m_nchilds) == 0 || force)
+	else if((nchilds = tinfo->m_nchilds) == 0)
 	{
 		//
 		// Decrement the refcount of the main thread/program because
