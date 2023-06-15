@@ -184,8 +184,6 @@ if(NOT MINIMAL_BUILD)
 			cri.cpp
 			container_engine/cri.cpp
 			sinsp_resource_utilization.cpp
-			${CMAKE_CURRENT_BINARY_DIR}/cri-v1alpha2.grpc.pb.cc
-			${CMAKE_CURRENT_BINARY_DIR}/cri-v1alpha2.pb.cc
 			grpc_channel_registry.cpp
 		)
 	endif()
@@ -226,6 +224,8 @@ function(prepare_cri_grpc api_version)
 			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --cpp_out=. ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
 			COMMAND ${PROTOC} -I ${CMAKE_CURRENT_BINARY_DIR} --grpc_out=. --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN} ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.proto
 			WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+	add_library(cri_${api_version} STATIC ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.pb.cc ${CMAKE_CURRENT_BINARY_DIR}/cri-${api_version}.grpc.pb.cc)
+	add_dependencies(cri_${api_version} grpc)
 endfunction()
 
 if(NOT WIN32)
@@ -241,8 +241,8 @@ if(NOT WIN32)
 			include(cares)
 			prepare_cri_grpc(v1alpha2)
 
-			add_dependencies(sinsp grpc)
 			list(APPEND SINSP_LIBRARIES
+				"cri_v1alpha2"
 				"${GRPC_LIBRARIES}"
 				"${GRPCPP_LIB}"
 				"${GRPC_LIB}"
