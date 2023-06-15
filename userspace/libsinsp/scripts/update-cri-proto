@@ -4,7 +4,7 @@ set -euo pipefail
 
 CRI_PROTO_URL=https://raw.githubusercontent.com/kubernetes/cri-api/master/pkg/apis/runtime/v1alpha2/api.proto
 CRI_PROTO_TMP=$(mktemp /tmp/falcosecurity-libs-cri-proto.XXXXXX)
-CRI_PROTO="$(dirname $0)/../cri.proto"
+CRI_PROTO="$(dirname $0)/../cri-v1alpha2.proto"
 
 cleanup() {
 	rm -f "$CRI_PROTO_TMP"
