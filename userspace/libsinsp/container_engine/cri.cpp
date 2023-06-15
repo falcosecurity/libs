@@ -86,10 +86,10 @@ cri::cri(container_cache_interface &cache) : container_engine_base(cache)
 			continue;
 		}
 
-		m_cri = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
-		if(!m_cri->is_ok())
+		m_cri_v1alpha2 = std::make_unique<libsinsp::cri::cri_interface_v1alpha2>(cri_path);
+		if(!m_cri_v1alpha2->is_ok())
 		{
-			m_cri.reset(nullptr);
+			m_cri_v1alpha2.reset(nullptr);
 		}
 		else
 		{
@@ -145,7 +145,7 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 	}
 	tinfo->m_container_id = container_id;
 
-	if(!m_cri)
+	if(!m_cri_v1alpha2)
 	{
 		// This isn't an error in the case where the
 		// configured unix domain socket doesn't exist. In
@@ -157,14 +157,14 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 		return false;
 	}
 
-	if(!cache->should_lookup(container_id, m_cri->get_cri_runtime_type()))
+	if(!cache->should_lookup(container_id, m_cri_v1alpha2->get_cri_runtime_type()))
 	{
 		return true;
 	}
 
 	auto container = sinsp_container_info();
 	container.m_id = container_id;
-	container.m_type = m_cri->get_cri_runtime_type();
+	container.m_type = m_cri_v1alpha2->get_cri_runtime_type();
 	if (mesos::set_mesos_task_id(container, tinfo))
 	{
 		g_logger.format(sinsp_logger::SEV_DEBUG,
@@ -204,11 +204,11 @@ bool cri::resolve(sinsp_threadinfo *tinfo, bool query_os_for_missing_info)
 			// With n=5 the result is 13875ms, we keep some margin as we are
 			// taking into account elapsed time.
 			uint64_t max_wait_ms = 20000;
-			auto async_source = new cri_async_source(cache, m_cri.get(), max_wait_ms);
+			auto async_source = new cri_async_source(cache, m_cri_v1alpha2.get(), max_wait_ms);
 			m_async_source = std::unique_ptr<cri_async_source>(async_source);
 		}
 
-		cache->set_lookup_status(container_id, m_cri->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
+		cache->set_lookup_status(container_id, m_cri_v1alpha2->get_cri_runtime_type(), sinsp_container_lookup::state::STARTED);
 
 		// sinsp_container_lookup is set-up to perform 5 retries at most, with
 		// an exponential backoff with 2000 ms of maximum wait time.
@@ -265,7 +265,7 @@ void cri::update_with_size(const std::string& container_id)
 		return;
 	}
 
-	std::optional<int64_t> writable_layer_size = m_cri->get_writable_layer_size(existing->m_full_id);
+	std::optional<int64_t> writable_layer_size = m_cri_v1alpha2->get_writable_layer_size(existing->m_full_id);
 
 	if(!writable_layer_size.has_value())
 	{
@@ -287,5 +287,5 @@ void cri::update_with_size(const std::string& container_id)
 
 bool cri_async_source::parse(const cri_async_source::key_type &key, sinsp_container_info &container)
 {
-	return m_cri->parse(key, container);
+	return m_cri_v1alpha2->parse(key, container);
 }
