@@ -45,10 +45,12 @@ class cri_async_source : public container_async_source<libsinsp::cgroup_limits::
 {
 	using key_type = libsinsp::cgroup_limits::cgroup_limits_key;
 public:
-	explicit cri_async_source(container_cache_interface* cache, ::libsinsp::cri::cri_interface_v1alpha2* cri,
-				  uint64_t ttl_ms):
+	explicit cri_async_source(container_cache_interface* cache,
+				  ::libsinsp::cri::cri_interface_v1alpha2* cri_v1alpha2,
+				  ::libsinsp::cri::cri_interface_v1* cri_v1, uint64_t ttl_ms):
 		container_async_source(NO_WAIT_LOOKUP, ttl_ms, cache),
-		m_cri_v1alpha2(cri)
+		m_cri_v1alpha2(cri_v1alpha2),
+		m_cri_v1(cri_v1)
 	{
 	}
 
@@ -62,7 +64,18 @@ private:
 
 	sinsp_container_type container_type(const key_type& key) const override
 	{
-		return m_cri_v1alpha2->get_cri_runtime_type();
+		if(m_cri_v1)
+		{
+			return m_cri_v1->get_cri_runtime_type();
+		}
+		else if(m_cri_v1alpha2)
+		{
+			return m_cri_v1alpha2->get_cri_runtime_type();
+		}
+		else
+		{
+			return sinsp_container_type::CT_CRI;
+		}
 	}
 	std::string container_id(const key_type& key) const override
 	{
@@ -70,6 +83,7 @@ private:
 	}
 
 	::libsinsp::cri::cri_interface_v1alpha2* m_cri_v1alpha2;
+	::libsinsp::cri::cri_interface_v1* m_cri_v1;
 };
 
 class cri : public container_engine_base
@@ -86,8 +100,13 @@ public:
 	static void set_async(bool async_limits);
 
 private:
+	[[nodiscard]] sinsp_container_type get_cri_runtime_type() const;
+
+	std::optional<int64_t> get_writable_layer_size(const std::string &container_id);
+
 	std::unique_ptr<cri_async_source> m_async_source;
 	std::unique_ptr<::libsinsp::cri::cri_interface_v1alpha2> m_cri_v1alpha2;
+	std::unique_ptr<::libsinsp::cri::cri_interface_v1> m_cri_v1;
 };
 }
 }
