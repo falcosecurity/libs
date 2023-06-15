@@ -676,7 +676,7 @@ const struct ppm_name_value prctl_options[] = {
 	The flags argument is reserved for future use. Currently, it must be specified as 0.
 	See https://elixir.bootlin.com/linux/latest/source/kernel/pid.c#L709
 */
-const struct ppm_name_value pidfd_getfd_flags[] = {{0,0}};
+
 const struct ppm_name_value memfd_create_flags[] = {
 	{"MFD_CLOEXEC",PPM_MFD_CLOEXEC},
 	{"MFD_ALLOW_SEALING",PPM_MFD_ALLOW_SEALING},
