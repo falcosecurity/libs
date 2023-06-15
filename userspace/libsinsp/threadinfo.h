@@ -614,13 +614,14 @@ VISIBILITY_PRIVATE
 class threadinfo_map_t
 {
 public:
+	typedef std::function<bool(const std::shared_ptr<sinsp_threadinfo>&)> shared_ptr_visitor_t;
 	typedef std::function<bool(const sinsp_threadinfo&)> const_visitor_t;
 	typedef std::function<bool(sinsp_threadinfo&)> visitor_t;
 	typedef std::shared_ptr<sinsp_threadinfo> ptr_t;
 
-	inline void put(sinsp_threadinfo* tinfo)
+	inline void put(ptr_t tinfo)
 	{
-		m_threads[tinfo->m_tid] = ptr_t(tinfo);
+		m_threads[tinfo->m_tid] = tinfo;
 	}
 
 	inline sinsp_threadinfo* get(uint64_t tid)
@@ -651,6 +652,18 @@ public:
 	inline void clear()
 	{
 		m_threads.clear();
+	}
+
+	bool loop_shared_pointer(shared_ptr_visitor_t callback)
+	{
+		for (auto& it : m_threads)
+		{
+			if (!callback(it.second))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	bool const_loop(const_visitor_t callback) const
@@ -703,6 +716,7 @@ public:
 	inline bool remove_inactive_threads();
 	void fix_sockets_coming_from_proc();
 	void reset_child_dependencies();
+	void create_thread_dependencies_after_proc_scan();
 	void create_child_dependencies();
 	void recreate_child_dependencies();
 
@@ -844,6 +858,7 @@ public:
 
 VISIBILITY_PRIVATE
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
+	void create_thread_dependencies(const std::shared_ptr<sinsp_threadinfo>& tinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
