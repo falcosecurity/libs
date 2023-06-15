@@ -36,6 +36,7 @@ struct iovec {
 #include "fdinfo.h"
 #include "internal_metrics.h"
 #include "state/table.h"
+#include "thread_group_info.h"
 
 class sinsp_delays_info;
 class sinsp_tracerparser;
@@ -121,6 +122,84 @@ public:
 		return (m_flags & PPM_CL_CHILD_IN_PIDNS || m_tid != m_vtid);
 	}
 
+	/*!
+	  \brief Return true if the thread is invalid. Sometimes we create some
+	  invalid thread info, if we are not able to scan proc.
+	*/
+	inline bool is_invalid() const
+	{
+		return m_tid < 0 || m_pid < 0 || m_ptid < 0;
+	}
+
+	/*!
+	  \brief Return true if the thread is dead.
+	*/
+	inline bool is_dead() const
+	{
+		return m_flags & PPM_CL_CLOSED;
+	}
+
+	/*!
+	  \brief Mark thread as dead.
+	*/
+	inline void set_dead()
+	{
+		m_flags |= PPM_CL_CLOSED;
+	}
+
+	/*!
+	  \brief In some corner cases is possible that a dead main thread could
+	  become again alive. For example, when an execve is performed by a secondary
+	  thread and the main thread is already dead
+	*/
+	inline void ressurect_thread()
+	{
+		/* If the thread is not dead we do nothing.
+		 * It should never happen
+		 */
+		if(!is_dead())
+		{
+			return;
+		}
+
+		m_flags &= ~PPM_CL_CLOSED;
+		if(!m_tginfo)
+		{
+			return;
+		}
+		/* we increment again the threadcount since we 
+		 * decremented it during the proc_exit event.
+		 */
+		m_tginfo->increment_thread_count();
+	}
+
+	/*!
+		\brief Return the number of alive threads in the thread group, including the thread leader.
+	*/
+	inline uint64_t get_num_threads() const
+	{
+		return m_tginfo ? m_tginfo->get_thread_count() : 0;
+	}
+
+	/*!
+		\brief Return the number of alive threads in the thread group, excluding the thread leader.
+	*/
+	inline uint64_t get_num_not_leader_threads() const
+	{
+		if(!m_tginfo)
+		{
+			return 0;
+		}
+		
+		auto main_thread = get_main_thread();
+		if(main_thread != nullptr && !main_thread->is_dead())
+		{
+			return m_tginfo->get_thread_count()-1;
+		}
+		/* we don't have the main thread in the group or it is dead */
+		return m_tginfo->get_thread_count();
+	}
+
 	/*
 	  \brief returns true if there is a loop detected in the thread parent state.
 	  Needs traverse_parent_state() to have been called first.
@@ -135,39 +214,24 @@ public:
 	*/
 	inline sinsp_threadinfo* get_main_thread() const
 	{
-		auto main_thread = m_main_thread.lock();
-		if(!main_thread)
+		if(this->is_main_thread())
 		{
-			//
-			// Is this a child thread?
-			//
-			if((m_pid == m_tid) || m_flags & PPM_CL_IS_MAIN_THREAD)
-			{
-				//
-				// No, this is either a single thread process or the root thread of a
-				// multithread process.
-				// Note: we don't set m_main_thread because there are cases in which this is
-				//       invoked for a threadinfo that is in the stack. Caching the this pointer
-				//       would cause future mess.
-				//
-				return const_cast<sinsp_threadinfo*>(this);
-			}
-			else
-			{
-				//
-				// Yes, this is a child thread. Find the process root thread.
-				//
-				auto ptinfo = lookup_thread();
-				if (!ptinfo)
-				{
-					return NULL;
-				}
-				m_main_thread = ptinfo;
-				return &*ptinfo;
-			}
+			return const_cast<sinsp_threadinfo*>(this);
 		}
 
-		return &*main_thread;
+		/* This is possible when we have invalid threads */
+		if(m_tginfo == nullptr)
+		{
+			return nullptr;
+		}
+
+		/* If we have the main thread in the group, it is always the first one */
+		auto possible_main = m_tginfo->get_first_thread();
+		if(possible_main == nullptr || !possible_main->is_main_thread())
+		{
+			return nullptr;
+		}
+		return possible_main;
 	}
 
 	/*!
@@ -352,6 +416,8 @@ public:
 	size_t m_program_hash; ///< Unique hash of the current program
 	size_t m_program_hash_scripts;  ///< Unique hash of the current program, including arguments for scripting programs (like python or ruby)
 	int32_t m_tty; ///< Number of controlling terminal
+	std::shared_ptr<thread_group_info> m_tginfo;
+	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
 
 
 	// In some cases, a threadinfo has a category that identifies
@@ -414,18 +480,32 @@ public: // types required for use in sets
 	struct hasher {
 		size_t operator()(sinsp_threadinfo* tinfo) const
 		{
-			return tinfo->get_main_thread()->m_program_hash;
+			auto main_thread = tinfo->get_main_thread();
+			if(main_thread == nullptr)
+			{
+				return 0;
+			}
+			return main_thread->m_program_hash;
 		}
 	};
 
 	struct comparer {
 		size_t operator()(sinsp_threadinfo* lhs, sinsp_threadinfo* rhs) const
 		{
-			return lhs->get_main_thread()->m_program_hash == rhs->get_main_thread()->m_program_hash;
+			auto lhs_main_thread = lhs->get_main_thread();
+			auto rhs_main_thread = rhs->get_main_thread();
+			if(lhs_main_thread == nullptr || rhs_main_thread == nullptr)
+			{
+				return 0;
+			}
+			return lhs_main_thread->m_program_hash == rhs_main_thread->m_program_hash;
 		}
 	};
 
 protected:
+	/* Note that `fd_table` should be shared with the main thread only if `PPM_CL_CLONE_FILES`
+	 * is specified. Today we always specify `PPM_CL_CLONE_FILES` for all threads.
+	 */
 	inline sinsp_fdtable* get_fd_table()
 	{
 		if(!(m_flags & PPM_CL_CLONE_FILES))
@@ -738,13 +818,39 @@ public:
 		return false;
 	}
 
-private:
+	
+	inline std::shared_ptr<thread_group_info> get_thread_group_info(int64_t pid) const
+	{ 
+		auto tgroup = m_thread_groups.find(pid);
+		if(tgroup != m_thread_groups.end())
+		{
+			return tgroup->second;
+		}
+		return nullptr;
+	}
+
+	inline void set_thread_group_info(int64_t pid, const std::shared_ptr<thread_group_info>& tginfo)
+	{ 
+		/* It should be impossible to have a pid conflict...
+		 * Right now we manage it but we could also remove it.
+		 */
+		auto ret = m_thread_groups.insert({pid, tginfo});
+		if(!ret.second)
+		{	
+			m_thread_groups.erase(ret.first);
+			m_thread_groups.insert({pid, tginfo});
+		}
+	}
+
+VISIBILITY_PRIVATE
 	void increment_mainthread_childcount(sinsp_threadinfo* threadinfo);
 	inline void clear_thread_pointers(sinsp_threadinfo& threadinfo);
 	void free_dump_fdinfos(std::vector<scap_fdinfo*>* fdinfos_to_free);
 	void thread_to_scap(sinsp_threadinfo& tinfo, scap_threadinfo* sctinfo);
 
 	sinsp* m_inspector;
+	/* the key is the pid of the group, and the value is a shared pointer to the thread_group_info */
+	std::unordered_map<int64_t, std::shared_ptr<thread_group_info>> m_thread_groups;
 	threadinfo_map_t m_threadtable;
 	int64_t m_last_tid;
 	std::weak_ptr<sinsp_threadinfo> m_last_tinfo;

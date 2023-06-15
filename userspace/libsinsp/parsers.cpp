@@ -4967,19 +4967,14 @@ void sinsp_parser::parse_getrlimit_setrlimit_exit(sinsp_evt *evt)
 			curval = *(uint64_t *)parinfo->m_val;
 			ASSERT(parinfo->m_len == sizeof(uint64_t));
 
-#ifdef _DEBUG
-			if(evt->get_type() == PPME_SYSCALL_GETRLIMIT_X)
-			{
-				if(evt->m_tinfo->get_main_thread()->m_fdlimit != -1)
-				{
-//					ASSERT(curval == evt->m_tinfo->get_main_thread()->m_fdlimit);
-				}
-			}
-#endif
-
 			if(curval != -1)
 			{
-				evt->m_tinfo->get_main_thread()->m_fdlimit = curval;
+				auto main_thread = evt->m_tinfo->get_main_thread();
+				if(main_thread == nullptr)
+				{
+					return;
+				}
+				main_thread->m_fdlimit = curval;
 			}
 			else
 			{
@@ -5049,7 +5044,10 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				}
 
 				sinsp_threadinfo* ptinfo = m_inspector->get_thread_ref(tid, true, true).get();
-				if(ptinfo == NULL)
+				/* If the thread info is invalid we cannot recover the main thread because we don't even
+				 * have the `pid` of the thread.
+				 */
+				if(ptinfo == nullptr || ptinfo->is_invalid())
 				{
 					ASSERT(false);
 					return;
@@ -5058,7 +5056,12 @@ void sinsp_parser::parse_prlimit_exit(sinsp_evt *evt)
 				//
 				// update the process fdlimit
 				//
-				ptinfo->get_main_thread()->m_fdlimit = newcur;
+				auto main_thread = ptinfo->get_main_thread();
+				if(main_thread == nullptr)
+				{
+					return;
+				}
+				main_thread->m_fdlimit = newcur;
 			}
 		}
 	}
@@ -5859,7 +5862,6 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 	fd = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
-	evt->m_fdinfo = evt->m_tinfo->get_main_thread()->get_fd(fd);
 	evt->m_tinfo->m_lastevent_fd = fd;
 
 	// right now we only parse getsockopt() for SO_ERROR options
@@ -5894,6 +5896,12 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 
 	if(level == PPM_SOCKOPT_LEVEL_SOL_SOCKET && optname == PPM_SOCKOPT_SO_ERROR)
 	{
+		auto main_thread = evt->m_tinfo->get_main_thread();
+		if(main_thread == nullptr)
+		{
+			return;
+		}
+		evt->m_fdinfo = main_thread->get_fd(fd);
 		if (!evt->m_fdinfo)
 		{
 			return;
