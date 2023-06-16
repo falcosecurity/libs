@@ -303,6 +303,10 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_OPEN_BY_HANDLE_AT_X:
 		parse_open_openat_creat_exit(evt);
 		break;
+	case PPME_SYSCALL_FCHMOD_X:
+	case PPME_SYSCALL_FCHOWN_X:
+		parse_fchmod_fchown_exit(evt);
+		break;
 	case PPME_SYSCALL_SELECT_E:
 	case PPME_SYSCALL_POLL_E:
 	case PPME_SYSCALL_PPOLL_E:
@@ -2760,6 +2764,26 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 	{
 		m_fd_listener->on_file_open(evt, fullpath, flags);
 	}
+}
+
+void sinsp_parser::parse_fchmod_fchown_exit(sinsp_evt *evt)
+{
+	sinsp_evt_param* parinfo;
+
+	// Both of these syscalls act on fds although they do not
+	// create them. Take the fd argument and attempt to look up
+	// the fd from the thread.
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(1)->type == PT_FD);
+	int64_t fd = *(int64_t *)parinfo->m_val;
+	evt->m_tinfo->m_lastevent_fd = fd;
+	evt->m_fdinfo = evt->m_tinfo->get_fd(fd);
 }
 
 //

@@ -98,6 +98,7 @@ private:
 	void parse_execve_exit(sinsp_evt* evt);
 	void proc_schedule_removal(sinsp_evt* evt);
 	void parse_open_openat_creat_exit(sinsp_evt* evt);
+	void parse_fchmod_fchown_exit(sinsp_evt* evt);
 	void parse_pipe_exit(sinsp_evt* evt);
 	void parse_socketpair_exit(sinsp_evt* evt);
 	void parse_socket_exit(sinsp_evt* evt);
