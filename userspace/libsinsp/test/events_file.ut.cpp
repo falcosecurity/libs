@@ -571,3 +571,57 @@ TEST_F(sinsp_with_test_input, signalfd4)
 	ASSERT_EQ(fdinfo->get_ino(), 0);
 	ASSERT_FD_GETTERS_NOT_FILE(fdinfo)
 }
+
+TEST_F(sinsp_with_test_input, fchmod)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	const char *path = "/tmp/test";
+	int64_t fd = 3;
+	int32_t flags = PPM_O_RDWR;
+	uint32_t mode = 0;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
+
+	int64_t res = 0;
+
+	// We need to open a fd first so fchmod can act on it
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, path, flags, mode, dev, ino);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHMOD_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHMOD_X, 3, res, fd, mode);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
+}
+
+TEST_F(sinsp_with_test_input, fchown)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	const char *path = "/tmp/test";
+	int64_t fd = 3;
+	int32_t flags = PPM_O_RDWR;
+	uint32_t mode = 0;
+	uint32_t dev = 0;
+	uint64_t ino = 0;
+
+	int64_t res = 0;
+	uint32_t uid = 0;
+	uint32_t gid = 0;
+
+	// We need to open a fd first so fchmod can act on it
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, path, flags, mode, dev, ino);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
+
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHOWN_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCHOWN_X, 4, res, fd, uid, gid);
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
+}
