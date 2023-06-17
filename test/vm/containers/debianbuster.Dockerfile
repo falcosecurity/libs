@@ -3,7 +3,7 @@ FROM docker.io/library/debian:buster
 LABEL maintainer="cncf-falco-dev@lists.cncf.io"
 # adopted from https://raw.githubusercontent.com/falcosecurity/driverkit/master/docker/builders/builder-any-x86_64_gcc8.0.0_gcc6.0.0_gcc5.0.0_gcc4.9.0_gcc4.8.0.Dockerfile
 
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 ARG CMAKE_VERSION=3.22.5
 
 RUN cp /etc/skel/.bashrc /root && cp /etc/skel/.profile /root

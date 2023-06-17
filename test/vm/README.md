@@ -20,6 +20,7 @@ It is strongly advised to follow the installation instructions in the official d
 	- [vagrant virtualbox](https://www.vagrantup.com/docs/providers/virtualbox)
 	- `vagrant plugin install vagrant-vbguest`
 - [Go](https://go.dev/) >= 1.15
+- Ensure that necessary binaries are available on your host machine, such as, `bash`, `time`, `ssh`, `scp`, `tar`.
 
 ### CMake Targets
 
@@ -43,7 +44,7 @@ make vm-init;
 
 # Alternatively run each step separately
 make vm-container;
-make vm-kernel;
+make vm-kernel; # If the kernel mirror is unavailable, the URLs need to be changed.
 make vm-init;
 ```
 
@@ -165,6 +166,7 @@ libs/test/vm/build/kernels/ # actual kernels and other packages needed for VM re
 libs/test/vm/build/headers/ # kernel headers needed to build drivers (not applicable for modern_bpf)
 ```
 
+ If you encounter a situation where kernel mirrors become unavailable, you can adjust the URLs in the `kernels.jsonl` file to point to alternative mirror locations.
 
 ### Step 3 - Extract Kernel Headers
 
