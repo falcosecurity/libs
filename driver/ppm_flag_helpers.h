@@ -2078,15 +2078,6 @@ static __always_inline uint32_t splice_flags_to_scap(uint32_t flags)
 	return res;
 }
 
-/*
-The flags argument is reserved for future use.  Currently, it must be specified as 0.
-See https://elixir.bootlin.com/linux/latest/source/kernel/pid.c#L709
-*/
-static __always_inline uint32_t pidfd_getfd_flags_to_scap(uint32_t flags)
-{
-	return 0;
-}
-
 #ifdef OVERLAYFS_SUPER_MAGIC
 #define PPM_OVERLAYFS_SUPER_MAGIC OVERLAYFS_SUPER_MAGIC
 #else

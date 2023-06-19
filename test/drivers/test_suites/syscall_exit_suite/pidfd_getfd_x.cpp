@@ -11,8 +11,8 @@ TEST(SyscallExit, pidfd_getfdX)
 
     /*=============================== TRIGGER SYSCALL ===========================*/
 
-    int pid_fd = 0;
-    int target_fd = 0;
+    int pid_fd = -1;
+    int target_fd = -1;
     uint32_t flags = 1;
     int64_t errno_value = -EINVAL;
 
