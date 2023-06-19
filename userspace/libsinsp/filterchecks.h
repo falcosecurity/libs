@@ -512,6 +512,7 @@ public:
 		TYPE_SOURCE = 14,
 		TYPE_ISASYNC = 15,
 		TYPE_ASYNCTYPE = 16,
+		TYPE_HOSTNAME = 17,
 	};
 
 	sinsp_filter_check_gen_event();

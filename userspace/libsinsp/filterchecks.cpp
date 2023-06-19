@@ -3869,6 +3869,7 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.source", "Event Source", "the name of the source that produced the event."},
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_async", "Async Event", "'true' for asynchronous events, 'false' otherwise."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.asynctype", "Async-Event Type", "If the event is asynchronous, the type of the event (e.g. 'container')."},
+	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.hostname", "Hostname", "The hostname of the underlying host can be customized by setting an environment variable (e.g. FALCO_HOSTNAME for the Falco agent)."},
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
@@ -3919,6 +3920,7 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 {
 
 	std::shared_ptr<sinsp_plugin> plugin;
+	const scap_machine_info* minfo;
 
 	*len = 0;
 	switch(m_field_id)
@@ -4011,6 +4013,13 @@ uint8_t* sinsp_filter_check_gen_event::extract(sinsp_evt *evt, OUT uint32_t* len
 			RETURN_EXTRACT_CSTR(evt->get_param(1)->m_val);
 		}
 		RETURN_EXTRACT_CSTR(evt->get_name());
+	case TYPE_HOSTNAME:
+		minfo = m_inspector->get_machine_info();
+		if (!minfo)
+		{
+			return NULL;
+		}
+		RETURN_EXTRACT_CSTR(minfo->hostname);
 	default:
 		ASSERT(false);
 		return NULL;
