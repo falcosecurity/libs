@@ -6783,7 +6783,7 @@ FILLER(sys_pidfd_getfd_x, true)
 	s32 targetfd = bpf_syscall_get_argument(data, 1);
 	res = bpf_push_s64_to_ring(data, (s64)targetfd);
 	CHECK_RES(res);
-
+	
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	val = bpf_syscall_get_argument(data,2);
 	 /*

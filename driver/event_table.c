@@ -455,8 +455,8 @@ const struct ppm_event_info g_event_info[] = {
 	[PPME_ASYNCEVENT_X] = {"NA", EC_UNKNOWN, EF_UNUSED, 0},
 	[PPME_SYSCALL_MEMFD_CREATE_E] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD, 0},
 	[PPME_SYSCALL_MEMFD_CREATE_X] = {"memfd_create", EC_MEMORY | EC_SYSCALL, EF_CREATES_FD, 3, {{"fd",PT_FD,PF_DEC},{"name", PT_CHARBUF, PF_NA},{"flags", PT_FLAGS32, PF_HEX, memfd_create_flags} } },
-	[PPME_SYSCALL_PIDFD_GETFD_E] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_NONE, 0},
-	[PPME_SYSCALL_PIDFD_GETFD_X] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD | EF_NONE, 4, {{"fd", PT_FD, PF_DEC}, {"pid_fd", PT_FD, PF_DEC}, {"target_fd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}}
+	[PPME_SYSCALL_PIDFD_GETFD_E] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD , 0},
+	[PPME_SYSCALL_PIDFD_GETFD_X] = {"pidfd_getfd", EC_PROCESS | EC_SYSCALL, EF_CREATES_FD , 4, {{"fd", PT_FD, PF_DEC}, {"pid_fd", PT_FD, PF_DEC}, {"target_fd", PT_FD, PF_DEC}, {"flags", PT_FLAGS32, PF_HEX}}}
 };
 
 // We don't need this check in kmod (this source file is included during kmod compilation!)
