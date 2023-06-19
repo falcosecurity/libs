@@ -36,6 +36,10 @@ or GPL2.txt for full copies of the license.
 #endif
 #endif // ifndef UDIG
 
+#ifndef __always_inline
+#define __always_inline inline
+#endif
+
 #define PPM_MS_MGC_MSK 0xffff0000
 #define PPM_MS_MGC_VAL 0xC0ED0000
 

@@ -31,7 +31,7 @@ TEST(sinsp_filter_check, bcontains_bstartswith)
 	scap_evt.buf = (void*) &scap_evt_buf[0];
 	scap_evt.size = (size_t) sizeof(scap_evt_buf);
 	if (scap_event_encode_params(
-		scap_evt, &evt_size, scap_evt_err, PPME_SYSCALL_READ_X, 3, 0,
+		scap_evt, &evt_size, scap_evt_err, PPME_SYSCALL_READ_X, 3, (int64_t) 0,
 		scap_const_sized_buffer{&read_buf[0],sizeof(read_buf)}) != SCAP_SUCCESS)
 	{
 		FAIL() << "could not create scap event";

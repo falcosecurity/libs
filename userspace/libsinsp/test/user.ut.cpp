@@ -80,6 +80,8 @@ TEST_F(usergroup_manager_test, add_rm)
 	ASSERT_EQ(mgr.get_group(container_id, 0), nullptr);
 }
 
+// note(jasondellaluce): emscripten has issues with getpwuid
+#if !defined(__EMSCRIPTEN__)
 TEST_F(usergroup_manager_test, system_lookup)
 {
 	std::string container_id{""};
@@ -101,6 +103,7 @@ TEST_F(usergroup_manager_test, system_lookup)
 	ASSERT_EQ(group->gid, 0);
 	ASSERT_STREQ(group->name, "root");
 }
+#endif
 
 TEST_F(usergroup_manager_test, add_no_import_users)
 {
@@ -129,7 +132,8 @@ TEST_F(usergroup_manager_test, add_no_import_users)
 	ASSERT_EQ(group, nullptr);
 }
 
-#if defined(HAVE_PWD_H) || defined(HAVE_GRP_H)
+// note(jasondellaluce): emscripten has issues with fgetpwent
+#if (defined(HAVE_PWD_H) || defined(HAVE_GRP_H)) && !defined(__EMSCRIPTEN__)
 class usergroup_manager_host_root_test : public sinsp_with_test_input
 {
 protected:

@@ -105,7 +105,7 @@ TEST(scap_event, int_args)
 {
     char scap_error[SCAP_LASTERR_SIZE];
     scap_evt *maybe_evt;
-    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_KILL_E, 2, 1234, 9);
+    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_KILL_E, 2, (uint64_t) 1234, (uint8_t) 9);
     ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
     ASSERT_NE(maybe_evt, nullptr);
     std::unique_ptr<scap_evt, decltype(free)*> evt {maybe_evt, free};
@@ -131,7 +131,7 @@ TEST(scap_event, empty_buffers)
 
 	// empty string should be of size 1
     scap_evt *maybe_evt;
-    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_GETCWD_X, 2, 0, "");
+    uint32_t status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_GETCWD_X, 2, (uint64_t) 0, (const char*) "");
     ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
     ASSERT_NE(maybe_evt, nullptr);
     std::unique_ptr<scap_evt, decltype(free)*> evt {maybe_evt, free};
@@ -144,7 +144,7 @@ TEST(scap_event, empty_buffers)
 	EXPECT_EQ(decoded_params[0].size, sizeof(uint64_t));
 	EXPECT_EQ(decoded_params[1].size, 1);
 
-    status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_READ_X, 2, 0, scap_const_sized_buffer{nullptr, 0});
+    status = scap_event_generate(&maybe_evt, scap_error, PPME_SYSCALL_READ_X, 2, (uint64_t) 0, scap_const_sized_buffer{nullptr, 0});
     ASSERT_EQ(status, SCAP_SUCCESS) << "scap_event_generate failed with error " << scap_error;
     ASSERT_NE(maybe_evt, nullptr);
 	evt.reset(maybe_evt);

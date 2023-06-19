@@ -380,6 +380,8 @@ TEST_F(sinsp_with_test_input, plugin_syscall_parse)
 // extraction capability are loaded, both compatible with the "syscall"
 // event source. An inspector is opened in no driver mode, so that
 // the only events received are the ones coming from the async plugin.
+// note: emscripten has trouble with the nodriver engine and async events
+#if !defined(__EMSCRIPTEN__)
 TEST_F(sinsp_with_test_input, plugin_syscall_async)
 {
 	uint64_t max_count = 10;
@@ -440,6 +442,7 @@ TEST_F(sinsp_with_test_input, plugin_syscall_async)
 	m_inspector.close();
 	ASSERT_EQ(count, max_count);
 }
+#endif // !defined(__EMSCRIPTEN__)
 
 // Scenario we load a plugin that parses any event and plays with the
 // thread table, by stressing all the operations supported. After that, we

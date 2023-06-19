@@ -19,17 +19,20 @@ limitations under the License.
 
 #include <cstring>
 
-#if !defined(__EMSCRIPTEN__)
+#if __linux__
 #include <linux/un.h>
+#else
+#include <sys/un.h>
+#ifndef UNIX_PATH_MAX
+#define UNIX_PATH_MAX 108
+#endif
 #endif
 
 #include <arpa/inet.h>
 #include <stdint.h>
 
 #include "ppm_events_public.h"
-#if !defined(__EMSCRIPTEN__)
 #include "userspace_flag_helpers.h"
-#endif
 
 namespace test_utils {
 
@@ -138,13 +141,11 @@ std::vector<uint8_t> pack_addr(sockaddr *sa)
 
 		case AF_UNIX:
 		{
-			#if !defined(__EMSCRIPTEN__)
 			sockaddr_un *sa_un = (sockaddr_un *)sa;
 			std::string path = std::string(sa_un->sun_path);
 			path = path.substr(0, UNIX_PATH_MAX);
 			path.push_back('\0');
 			res.insert(res.end(), path.begin(), path.end());
-			#endif
 		}
 		break;
 	}
@@ -207,28 +208,22 @@ uint8_t get_sock_family(sockaddr *sa)
 	{
 		case AF_INET:
 		{
-			#if !defined(__EMSCRIPTEN__)
 			sockaddr_in *sa_in = (sockaddr_in *)sa;
 			sock_family = socket_family_to_scap(sa_in->sin_family);
-			#endif
 		}
 		break;
 
 		case AF_INET6:
 		{
-			#if !defined(__EMSCRIPTEN__)
 			sockaddr_in6 *sa_in6 = (sockaddr_in6 *)sa;
 			sock_family = socket_family_to_scap(sa_in6->sin6_family);
-			#endif
 		}
 		break;
 
 		case AF_UNIX:
 		{
-			#if !defined(__EMSCRIPTEN__)
 			sockaddr_un *sa_un = (sockaddr_un *)sa;
 			sock_family = socket_family_to_scap(sa_un->sun_family);
-			#endif
 		}
 		break;
 	}

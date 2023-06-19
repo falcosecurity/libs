@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 
-include(protobuf)
 include_directories(..)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
@@ -30,6 +29,7 @@ if(BUILD_LIBSCAP_MODERN_BPF)
 endif()
 
 if (BUILD_LIBSCAP_GVISOR)
+	include(protobuf)
 	list(APPEND LIBSCAP_UNIT_TESTS_SOURCES scap_gvisor_parsers.ut.cpp)
 	include_directories(../engine/gvisor)
 	include_directories(${CMAKE_CURRENT_BINARY_DIR}/../engine/gvisor)

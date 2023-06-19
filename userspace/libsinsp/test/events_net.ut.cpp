@@ -50,7 +50,7 @@ TEST_F(sinsp_with_test_input, net_socket)
 	sinsp_fdinfo_t* fdinfo = NULL;
 
 	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM,  (uint32_t) 0);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 	fdinfo = evt->get_fd_info();
 	ASSERT_NE(fdinfo, nullptr);
@@ -86,7 +86,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect)
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -168,7 +168,7 @@ TEST_F(sinsp_with_test_input, net_ipv4_connect_with_intermediate_event)
 	sinsp_fdinfo_t* fdinfo = NULL;
 	int64_t client_fd = 8;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -197,7 +197,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects)
 	sinsp_evt* evt = NULL;
 
 	int64_t client_fd = 9;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET6, (uint32_t) SOCK_DGRAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	sockaddr_in6 client = test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
@@ -251,7 +251,7 @@ TEST_F(sinsp_with_test_input, net_ipv6_multiple_connects)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), new_fd_name);
 
 	scap_const_sized_buffer null_buf = scap_const_sized_buffer{nullptr, 0};
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, client_fd, 6, null_buf);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SENDTO_E, 3, client_fd, (uint32_t) 6, null_buf);
 	/* the tuple of `sendto` is empty so we won't update anything */
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), new_fd_name);
 }
@@ -266,7 +266,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 
 	int64_t server_fd = 3;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, server_fd);
 
 	/* We have no parsers for bind enter event */
@@ -305,7 +305,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 	ASSERT_FALSE(field_exists(evt, "fd.rport"));
 	ASSERT_FALSE(field_exists(evt, "fd.lport"));
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, (uint32_t) 5);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, return_value);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -314,7 +314,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 
 	int64_t new_connected_fd = 6;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, new_connected_fd, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, new_connected_fd, scap_const_sized_buffer{st.data(), st.size()}, (uint8_t) 0, (uint32_t) 0, (uint32_t) 5);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV4_FDNAME);
 	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), DEFAULT_IPV4_SERVER_STRING);
@@ -336,7 +336,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6)
 	sinsp_evt* evt = NULL;
 
 	int64_t server_fd = 3;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET6, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET6, (uint32_t) SOCK_STREAM, 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, server_fd);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_BIND_E, 1, server_fd);
 
@@ -348,7 +348,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, (uint32_t) 5);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, return_value);
 
 	sockaddr_in6 client = test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
@@ -357,7 +357,7 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6)
 
 	int64_t new_connected_fd = 6;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_E, 0);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, new_connected_fd, scap_const_sized_buffer{st.data(), st.size()}, 0, 0, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_ACCEPT_5_X, 5, new_connected_fd, scap_const_sized_buffer{st.data(), st.size()}, (uint8_t) 0, (uint32_t) 0, (uint32_t) 5);
 
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), DEFAULT_IPV6_FDNAME);
 	ASSERT_EQ(get_field_as_string(evt, "fd.sip"), DEFAULT_IPV6_SERVER_STRING);
@@ -380,7 +380,7 @@ TEST_F(sinsp_with_test_input, net_connect_exit_event_fails)
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_STREAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_STREAM, 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -453,7 +453,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_empty)
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_DGRAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
@@ -523,7 +523,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing)
 	char ipv4_string[DEFAULT_IP_STRING_SIZE];
 	int64_t client_fd = 7;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_DGRAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	int port_client = 12;
@@ -580,7 +580,7 @@ TEST_F(sinsp_with_test_input, net_connect_enter_event_is_missing_wo_fd_param_exi
 	sinsp_fdinfo_t* fdinfo = NULL;
 	int64_t client_fd = 7;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, PPM_AF_INET, SOCK_DGRAM, 0);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_E, 3, (uint32_t) PPM_AF_INET, (uint32_t) SOCK_DGRAM, (uint32_t) 0);
 	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_SOCKET_X, 1, client_fd);
 
 	int port_client = 12;
