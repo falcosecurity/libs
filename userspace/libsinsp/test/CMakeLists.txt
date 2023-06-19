@@ -36,9 +36,6 @@ configure_file (
     "${CMAKE_CURRENT_BINARY_DIR}/libsinsp_test_var.h"
 )
 
-## Public libsinsp API
-file(GLOB_RECURSE PUBLIC_SINSP_API_SUITE ${CMAKE_CURRENT_SOURCE_DIR}/public_sinsp_API/*.cpp)
-
 file(GLOB_RECURSE TEST_PLUGINS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.cpp)
 
 add_definitions(-DRESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources")
@@ -80,7 +77,6 @@ file(GLOB_RECURSE TEST_HELPERS ${CMAKE_CURRENT_SOURCE_DIR}/helpers/*.cpp)
 
 set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
-	async_key_value_source.ut.cpp
 	cgroup_list_counter.ut.cpp
 	events_evt.ut.cpp
 	events_file.ut.cpp
@@ -102,7 +98,6 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	filter_op_bcontains.ut.cpp
 	filter_op_pmatch.ut.cpp
 	filter_compiler.ut.cpp
-	filter_ppm_codes.ut.cpp
 	user.ut.cpp
 	container_info.ut.cpp
 	sinsp_utils.ut.cpp
@@ -110,7 +105,8 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	eventformatter.ut.cpp
 	savefile.ut.cpp
 	thread_table.ut.cpp
-	"${PUBLIC_SINSP_API_SUITE}"
+	public_sinsp_API/event_related.cpp
+	public_sinsp_API/sinsp_logger.cpp
 	"${TEST_PLUGINS}"
 	"${SINSP_PARSERS_SUITE}"
 	"${SINSP_CLASSES_SUITE}"
@@ -125,7 +121,22 @@ if(NOT MINIMAL_BUILD)
 	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES procfs_utils.ut.cpp)
 endif()
 
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+	list(APPEND LIBSINSP_UNIT_TESTS_SOURCES
+		async_key_value_source.ut.cpp
+		filter_ppm_codes.ut.cpp
+		public_sinsp_API/events_set.cpp
+		public_sinsp_API/interesting_syscalls.cpp
+		public_sinsp_API/ppm_sc_codes.cpp)
+endif()
+
 add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
+
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	target_compile_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
+	target_link_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
+	target_link_options(unit-test-libsinsp PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
+endif()
 
 target_link_libraries(unit-test-libsinsp
 	"${GTEST_LIB}"

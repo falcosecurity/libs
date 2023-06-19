@@ -193,6 +193,10 @@ endif()
 
 add_library(sinsp ${SINSP_SOURCES})
 
+if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	target_compile_options(sinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
+endif()
+
 set_sinsp_target_properties(sinsp)
 
 set(SINSP_LIBRARIES

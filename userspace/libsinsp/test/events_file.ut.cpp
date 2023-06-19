@@ -59,8 +59,8 @@ TEST_F(sinsp_with_test_input, file_open)
 
 	// since adding and reading events happens on a single thread they can be interleaved.
 	// tests may need to change if that will not be the case anymore
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", PPM_O_RDWR, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", PPM_O_RDWR, 0, 5, (uint64_t)123);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/the_file", (uint32_t) PPM_O_RDWR, (uint32_t) 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, (uint64_t)3, "/tmp/the_file", (uint32_t) PPM_O_RDWR, (uint32_t) 0, (uint32_t) 5, (uint64_t)123);
 
 	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_OPEN_X);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/the_file");
@@ -77,8 +77,8 @@ TEST_F(sinsp_with_test_input, dup_dup2_dup3)
 
 	int64_t fd = 3, res = 1, oldfd = 3, newfd = 123;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/test", PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY, 0666);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, "/tmp/test", PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY, 0666, 0xCA02, (uint64_t)123);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, "/tmp/test", (uint32_t) (PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY), (uint32_t) 0666);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, "/tmp/test", (uint32_t) (PPM_O_TRUNC | PPM_O_CREAT | PPM_O_WRONLY), (uint32_t) 0666, (uint32_t) 0xCA02, (uint64_t)123);
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_E, 1, fd);
 	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_DUP_X, 1, newfd);
@@ -149,8 +149,8 @@ TEST_F(sinsp_with_test_input, path_too_long)
 	std::string long_path = long_path_ss.str();
 	int64_t fd = 3, mountfd = 5;
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, long_path.c_str(), PPM_O_RDWR, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, long_path.c_str(), PPM_O_RDWR, 0, 5, (uint64_t)123);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_E, 3, long_path.c_str(), (uint32_t) PPM_O_RDWR, (uint32_t) 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_X, 6, fd, long_path.c_str(), (uint32_t) PPM_O_RDWR, (uint32_t) 0, (uint32_t) 5, (uint64_t)123);
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/PATH_TOO_LONG");
 
 	fd = 4;

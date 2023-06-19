@@ -157,8 +157,8 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path)
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	int invalid_dirfd = 0;
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/file", 0);
+	uint64_t invalid_dirfd = 0;
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/file", (uint32_t) 0);
 
 	/* Please note the exit event for an `execveat` is an `execve` if the syscall succeeds. */
 	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
@@ -260,7 +260,7 @@ TEST_F(sinsp_with_test_input, execveat_absolute_path_s390)
 	/* Now we call the `execveat_e` event,`sinsp` will store this enter
 	 * event in the thread storage, in this way the exit event can use it.
 	 */
-	int invalid_dirfd = 0;
+	uint64_t invalid_dirfd = 0;
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_EXECVEAT_E, 3, invalid_dirfd, "/tmp/s390/file", 0);
 
 	struct scap_const_sized_buffer empty_bytebuf = {nullptr, 0};
@@ -343,7 +343,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	
 	/* Execve exit event */
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, loginuid, PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t) 34818, parent_pid, loginuid, (int32_t) PPM_EXE_WRITABLE, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
 	// check that the cwd is inherited from the parent (default process has /root/)
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/root/");
@@ -424,7 +424,7 @@ TEST_F(sinsp_with_test_input, spawn_process)
 }
 
 // check parsing of container events (possibly from capture files)
-#ifndef MINIMAL_BUILD // MINIMAL_BUILD does not support containers at all
+#if !defined(MINIMAL_BUILD) and !defined(__EMSCRIPTEN__) // MINIMAL_BUILD and emscripten don't support containers at all
 TEST_F(sinsp_with_test_input, spawn_process_container)
 {
 	add_default_init_thread();
@@ -452,14 +452,14 @@ TEST_F(sinsp_with_test_input, spawn_process_container)
 	/* Caller clone exit event.
 	 * The child is in a container the caller event won't generate the child thread info
 	 */
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, 1, 1, 0, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS, 1000, 1000, parent_tid, parent_pid);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, (uint64_t) 1, (uint64_t) 1, (uint64_t) 0, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 12088, (uint32_t) 7208, (uint32_t) 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t) 1000, (uint32_t) 1000, (uint64_t) parent_tid, (uint64_t) parent_pid);
 
 	/* Child clone exit event */
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_tid, child_pid, 1, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS, 1000, 1000, 1, 1);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (uint64_t) 0, "bash", empty_bytebuf, child_tid, child_pid, (uint64_t) 1, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 12088, (uint32_t) 3764, (uint32_t) 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID | PPM_CL_CLONE_NEWPID | PPM_CL_CHILD_IN_PIDNS), (uint32_t) 1000, (uint32_t) 1000, (uint64_t) 1, (uint64_t) 1);
 	add_event_advance_ts(increasing_ts(), -1, PPME_CONTAINER_JSON_2_E, 1, container.c_str());
 
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, loginuid, PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 27, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (int32_t) 34818, parent_pid, loginuid, (int32_t) PPM_EXE_UPPER_LAYER, parent_pid, parent_pid, parent_pid, exe_ino, ctime, mtime, euid);
 
 	// check that the container has been correctly detected and the short ID is correct
 	ASSERT_EQ(get_field_as_string(evt, "container.id"), "f9c7a020960a");
@@ -483,7 +483,7 @@ TEST_F(sinsp_with_test_input, chdir_fchdir)
 	sinsp_evt *evt = NULL;
 
 	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, 0, "/tmp/target-directory");
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_CHDIR_X, 2, (int64_t) 0, "/tmp/target-directory");
 	ASSERT_EQ(get_field_as_string(evt, "proc.cwd"), "/tmp/target-directory/");
 
 	// generate a fd associated with the directory we wish to change to
@@ -523,16 +523,16 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	std::string argsv = test_utils::to_null_delimited(args);
 
 	/* Parent clone exit event */
-	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, 0, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, parent_pid, parent_tid);
+	add_event_advance_ts(increasing_ts(), parent_tid, PPME_SYSCALL_CLONE_20_X, 20, child_tid, "bash", empty_bytebuf, parent_pid, parent_tid, (int64_t) 0, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID), (uint32_t) 1000, (uint32_t) 1000, parent_pid, parent_tid);
 
 	/* Child clone exit event */
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_vpid, child_vtid);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, (int64_t) 0, "bash", empty_bytebuf, child_pid, child_tid, parent_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "bash", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID), (uint32_t) 1000, (uint32_t) 1000, child_vpid, child_vtid);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 	
 	/* Execve exit event */
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", (uint64_t) 1024, (uint64_t) 0, (uint64_t) 28, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (uint32_t) 34818, parent_pid, (int32_t) 1000, (uint32_t) 1);
 
 	ASSERT_FALSE(field_exists(evt, "proc.pid"));
 	ASSERT_FALSE(field_exists(evt, "thread.tid"));
@@ -547,16 +547,16 @@ TEST_F(sinsp_with_test_input, pid_over_32bit)
 	/* Child clone exit event 
 	 * Please note that now we are calling the child exit event before the parent one.
 	 */
-	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_CLONE_20_X, 20, 0, "/bin/test-exe", empty_bytebuf, child2_pid, child2_tid, child_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 3764, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child2_vpid, child2_vtid);
+	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_CLONE_20_X, 20, (int64_t) 0, "/bin/test-exe", empty_bytebuf, child2_pid, child2_tid, child_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 12088, (uint32_t) 3764, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID), (uint32_t) 1000, (uint32_t) 1000, child2_vpid, child2_vtid);
 
 	/* Parent clone exit event */
-	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, child2_tid, "/bin/test-exe", empty_bytebuf, child_pid, child_tid, child_tid, "", fdlimit, pgft_maj, pgft_min, 12088, 7208, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID, 1000, 1000, child_vpid, child_vtid);
+	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_CLONE_20_X, 20, child2_tid, "/bin/test-exe", empty_bytebuf, child_pid, child_tid, child_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 12088, (uint32_t) 7208, (uint32_t) 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, (uint32_t) (PPM_CL_CLONE_CHILD_CLEARTID | PPM_CL_CLONE_CHILD_SETTID), (uint32_t) 1000, (uint32_t) 1000, child_vpid, child_vtid);
 
 	/* Execve enter event */
 	add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe2");
 
 	/* Execve exit event */
-	evt = add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe2", scap_const_sized_buffer{argsv.data(), argsv.size()}, child2_tid, child2_pid, child_tid, "", fdlimit, pgft_maj, pgft_min, 29612, 4, 0, "test-exe2", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, child_pid, 1000, 1);
+	evt = add_event_advance_ts(increasing_ts(), child2_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe2", scap_const_sized_buffer{argsv.data(), argsv.size()}, child2_tid, child2_pid, child_tid, "", fdlimit, pgft_maj, pgft_min, (uint32_t) 29612, (uint32_t) 4, (uint32_t) 0, "test-exe2", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, (uint32_t) 34818, child_pid, (int32_t) 1000, (uint32_t) 1);
 
 	ASSERT_FALSE(field_exists(evt, "proc.pid"));
 	ASSERT_FALSE(field_exists(evt, "thread.tid"));
@@ -605,7 +605,7 @@ TEST_F(sinsp_with_test_input, last_exec_ts)
 
 	add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_E, 1, "/bin/test-exe");
 
-	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
+	evt = add_event_advance_ts(increasing_ts(), child_tid, PPME_SYSCALL_EXECVE_19_X, 20, (int64_t) 0, "/bin/test-exe", scap_const_sized_buffer{argsv.data(), argsv.size()}, child_tid, child_pid, parent_tid, "", 1024, 0, 28, 29612, 4, 0, "test-exe", scap_const_sized_buffer{cgroupsv.data(), cgroupsv.size()}, scap_const_sized_buffer{envv.data(), envv.size()}, 34818, parent_pid, 1000, 1);
 
 	// Check last exec was recorded
 	ASSERT_GT(evt->get_thread_info()->m_lastexec_ts, 0);

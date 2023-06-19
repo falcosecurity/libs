@@ -208,8 +208,8 @@ TEST_F(sinsp_with_test_input, enter_event_retrieval)
 	open_inspector();
 	sinsp_evt* evt = NULL;
 	const char* expected_string = "/tmp/the_file";
-	int dirfd = 3;
-	int new_fd = 100;
+	uint64_t dirfd = 3;
+	uint64_t new_fd = 100;
 
 	std::vector<const char*> invalid_inputs = {"<NA>", "(NULL)", NULL};
 
@@ -338,7 +338,7 @@ TEST_F(sinsp_with_test_input, enumparams_fcntl_dupfd)
 
 	/* `PPME_SYSCALL_FCNTL_E` is a simple event that uses a PT_ENUMFLAGS32 (param 2) */
 	uint8_t flag = PPM_FCNTL_F_DUPFD;
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCNTL_E, 2, 0, flag);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_FCNTL_E, 2, (int64_t) 0, flag);
 
 	param = evt->get_param(1);
 	ASSERT_EQ(*(uint8_t *)param->m_val, PPM_FCNTL_F_DUPFD);
