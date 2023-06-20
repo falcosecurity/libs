@@ -52,6 +52,10 @@ void scap_refresh_iflist(struct scap* handle);
 */
 struct scap_userlist* scap_get_user_list(struct scap* handle);
 
+// get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
+// XXX: procdir is Linux-specific
+uint32_t scap_get_device_by_mount_id(struct scap *handle, const char *procdir, unsigned long requested_mount_id);
+
 #ifdef __cplusplus
 };
 #endif
