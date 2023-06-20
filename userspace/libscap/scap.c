@@ -908,23 +908,6 @@ bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_
 	return true;
 }
 
-struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
-{
-	if(handle->m_vtable)
-	{
-		int res = handle->m_vtable->get_threadlist(handle->m_engine, &handle->m_driver_procinfo, handle->m_lasterr);
-		if(res != SCAP_SUCCESS)
-		{
-			return NULL;
-		}
-
-		return handle->m_driver_procinfo;
-	}
-
-	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
-	return NULL;
-}
-
 uint64_t scap_ftell(scap_t *handle)
 {
 	if(handle->m_vtable->savefile_ops)

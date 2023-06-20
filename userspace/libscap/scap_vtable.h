@@ -252,19 +252,6 @@ struct scap_vtable {
 	uint64_t (*get_max_buf_used)(struct scap_engine_handle engine);
 
 	/**
-	 * @brief get the list of all threads in the system, with their cpu usage
-	 * @param engine wraps the pointer to the engine-specific handle
-	 * @param procinfo_p pointer to pointer to the resulting list
-	 * @param lasterr pointer to a buffer of SCAP_LASTERR_SIZE bytes
-	 *                for the error message (if any)
-	 * @return SCAP_SUCCESS or a failure code
-	 *
-	 * `procinfo_p` must not be NULL, but `*procinfo_p` may be; the returned
-	 * list will be (re)allocated on demand
-	 */
-	int32_t (*get_threadlist)(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
-
-	/**
 	 * @brief get the API version
 	 * @param engine wraps the pointer to the engine-specific handle
 	 * @return the API version

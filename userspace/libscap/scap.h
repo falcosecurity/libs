@@ -823,11 +823,6 @@ int32_t scap_set_dropfailed(scap_t* handle, bool enabled);
 const char* scap_get_host_root();
 
 /*!
-  \brief Get the process list.
-*/
-struct ppm_proclist_info* scap_get_threadlist(scap_t* handle);
-
-/*!
   \brief Check if the current engine name matches the provided engine_name
 */
 bool scap_check_current_engine(scap_t *handle, const char* engine_name);
