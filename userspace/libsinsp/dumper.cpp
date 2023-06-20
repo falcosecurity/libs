@@ -18,6 +18,7 @@ limitations under the License.
 #include "sinsp.h"
 #include "sinsp_int.h"
 #include "scap.h"
+#include "scap-int.h" // for scap_t->m_platform
 #include "dumper.h"
 
 sinsp_dumper::sinsp_dumper()
@@ -52,7 +53,12 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 
 	if(m_target_memory_buffer)
 	{
-		m_dumper = scap_memory_dump_open(inspector->m_h, m_target_memory_buffer, m_target_memory_buffer_size);
+		char error[SCAP_LASTERR_SIZE];
+		m_dumper = scap_memory_dump_open(inspector->m_h->m_platform, m_target_memory_buffer, m_target_memory_buffer_size, error);
+		if(m_dumper == nullptr)
+		{
+			throw sinsp_exception(error);
+		}
 	}
 	else
 	{
@@ -64,11 +70,10 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 		{
 			m_dumper = scap_dump_open(inspector->m_h, filename.c_str(), SCAP_COMPRESSION_NONE, threads_from_sinsp);
 		}
-	}
-
-	if(m_dumper == NULL)
-	{
-		throw sinsp_exception(scap_getlasterr(inspector->m_h));
+		if(m_dumper == NULL)
+		{
+			throw sinsp_exception(scap_getlasterr(inspector->m_h));
+		}
 	}
 
 	if(threads_from_sinsp)
