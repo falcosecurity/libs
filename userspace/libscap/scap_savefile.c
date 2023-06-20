@@ -34,6 +34,7 @@ struct iovec {
 #include "scap_platform_impl.h"
 #include "scap_savefile_api.h"
 #include "scap_savefile.h"
+#include "strl.h"
 
 const char* scap_dump_getlasterr(scap_dumper_t* d)
 {
@@ -1279,12 +1280,12 @@ scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compre
 //
 // Open a memory "savefile"
 //
-scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize)
+scap_dumper_t *scap_memory_dump_open(struct scap_platform* platform, uint8_t* targetbuf, uint64_t targetbufsize, char* lasterr)
 {
 	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
 	if(res == NULL)
 	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "scap_dump_memory_open memory allocation failure (1)");
+		snprintf(lasterr, SCAP_LASTERR_SIZE, "scap_dump_memory_open memory allocation failure (1)");
 		return NULL;
 	}
 
@@ -1294,9 +1295,9 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	res->m_targetbufcurpos = targetbuf;
 	res->m_targetbufend = targetbuf + targetbufsize;
 
-	if(scap_setup_dump(res, handle->m_mode == SCAP_MODE_PLUGIN ? NULL : handle->m_platform, "") != SCAP_SUCCESS)
+	if(scap_setup_dump(res, platform, "") != SCAP_SUCCESS)
 	{
-		strcpy(handle->m_lasterr, res->m_lasterr);
+		strlcpy(lasterr, res->m_lasterr, SCAP_LASTERR_SIZE);
 		free(res);
 		res = NULL;
 	}

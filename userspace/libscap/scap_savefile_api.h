@@ -27,6 +27,8 @@ limitations under the License.
 extern "C" {
 #endif
 
+struct scap_platform;
+
 typedef enum ppm_dumper_type
 {
 	DT_FILE = 0,
@@ -65,7 +67,7 @@ uint8_t* scap_get_memorydumper_curpos(scap_dumper_t *d);
 int32_t scap_write_proc_fds(scap_dumper_t *d, struct scap_threadinfo *tinfo);
 scap_dumper_t* scap_write_proclist_begin();
 int scap_write_proclist_end(scap_dumper_t *d, scap_dumper_t *proclist_dumper, uint32_t totlen);
-scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_t targetbufsize);
+scap_dumper_t *scap_memory_dump_open(struct scap_platform* platform, uint8_t* targetbuf, uint64_t targetbufsize, char* lasterr);
 scap_dumper_t *scap_managedbuf_dump_create();
 
 // Variant of scap_write_proclist_entry where array-backed information
