@@ -1231,7 +1231,7 @@ char * decode_st_mode(struct stat* sb)
 //
 // Scan the directory containing the fd's of a proc /proc/x/fd
 //
-int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, uint64_t* num_fds_ret, char *error)
+int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform, struct scap_proclist *proclist, char *procdir, scap_threadinfo *tinfo, struct scap_ns_socket_list **sockets_by_ns, uint64_t* num_fds_ret, char *error)
 {
 	DIR *dir_p;
 	struct dirent *dir_entry_p;
@@ -1245,7 +1245,6 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 	uint64_t net_ns;
 	ssize_t r;
 	uint32_t fd_added = 0;
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	if (num_fds_ret != NULL)
 	{
@@ -1291,7 +1290,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 
 		// In no driver mode to limit cpu usage we just parse sockets
 		// because we are interested only on them
-		if(handle->m_minimal_scan && !S_ISSOCK(sb.st_mode))
+		if(linux_platform->m_minimal_scan && !S_ISSOCK(sb.st_mode))
 		{
 			continue;
 		}
@@ -1305,7 +1304,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for fifo fd %" PRIu64, fd);
 				break;
 			}
-			res = scap_fd_handle_pipe(&handle->m_proclist, f_name, tinfo, fdi, error);
+			res = scap_fd_handle_pipe(proclist, f_name, tinfo, fdi, error);
 			break;
 		case S_IFREG:
 		case S_IFBLK:
@@ -1318,7 +1317,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFDIR:
 			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_DIRECTORY);
@@ -1328,7 +1327,7 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		case S_IFSOCK:
 			res = scap_fd_allocate_fdinfo(&fdi, fd, SCAP_FD_UNKNOWN);
@@ -1337,8 +1336,8 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				snprintf(error, SCAP_LASTERR_SIZE, "can't allocate scap fd handle for sock fd %" PRIu64, fd);
 				break;
 			}
-			res = scap_fd_handle_socket(&handle->m_proclist, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
-			if(handle->m_proclist.m_proc_callback == NULL)
+			res = scap_fd_handle_socket(proclist, f_name, tinfo, fdi, procdir, net_ns, sockets_by_ns, error);
+			if(proclist->m_proc_callback == NULL)
 			{
 				// we can land here if we've got a netlink socket
 				if(fdi->type == SCAP_FD_UNKNOWN)
@@ -1355,11 +1354,11 @@ int32_t scap_fd_scan_fd_dir(scap_t *handle, char *procdir, scap_threadinfo *tinf
 				break;
 			}
 			fdi->ino = sb.st_ino;
-			res = scap_fd_handle_regular_file(&handle->m_proclist, f_name, tinfo, fdi, procdir, error);
+			res = scap_fd_handle_regular_file(proclist, f_name, tinfo, fdi, procdir, error);
 			break;
 		}
 
-		if(handle->m_proclist.m_proc_callback != NULL)
+		if(proclist->m_proc_callback != NULL)
 		{
 			if(fdi)
 			{
