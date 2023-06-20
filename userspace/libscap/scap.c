@@ -278,11 +278,17 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 #endif // HAS_ENGINE_UDIG
 
 #ifdef HAS_ENGINE_TEST_INPUT
-int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
+int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
 {
 	int32_t rc;
 
+	//
+	// Preliminary initializations
+	//
+	handle->m_mode = oargs->mode;
 	handle->m_vtable = &scap_test_input_engine;
+	handle->m_platform = platform;
+
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
@@ -295,11 +301,6 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 	{
 		return rc;
 	}
-
-	//
-	// Preliminary initializations
-	//
-	handle->m_mode = oargs->mode;
 
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
@@ -314,6 +315,11 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs)
 	}
 
 	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -625,7 +631,20 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_TEST_INPUT
 	if(strcmp(engine_name, TEST_INPUT_ENGINE) == 0)
 	{
-		return scap_init_test_input_int(handle, oargs);
+		if(oargs->mode == SCAP_MODE_LIVE)
+		{
+			platform = scap_linux_alloc_platform();
+		}
+		else
+		{
+			platform = scap_generic_alloc_platform();
+		}
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_test_input_int(handle, oargs, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_KMOD
