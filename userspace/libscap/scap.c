@@ -267,7 +267,7 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct s
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
-	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
+	if ((rc = handle->m_vtable->get_threadinfos(handle->m_engine, &handle->m_proclist, handle->m_lasterr)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -312,7 +312,7 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs, struct scap_
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
-	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
+	if ((rc = handle->m_vtable->get_threadinfos(handle->m_engine, &handle->m_proclist, handle->m_lasterr)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}

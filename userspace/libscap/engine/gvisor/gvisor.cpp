@@ -25,6 +25,7 @@ namespace scap_gvisor {
 #include "gvisor.h"
 #include "gvisor_platform.h"
 #include "scap-int.h"
+#include "scap_proc_util.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -160,14 +161,25 @@ static int32_t gvisor_get_threadlist(struct scap_engine_handle engine, struct pp
 	return SCAP_SUCCESS;
 }
 
-static int32_t gvisor_get_threadinfos(struct scap_engine_handle engine, uint64_t *n, const scap_threadinfo **tinfos)
+static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
 {
-	return engine.m_handle->get_threadinfos(n, tinfos);
+	auto engine = static_cast<scap_gvisor::engine*>(ctx);
+
+	return engine->get_fdinfos(tinfo, n, fdinfos);
 }
 
-static int32_t gvisor_get_fdinfos(struct scap_engine_handle engine, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
+static int32_t gvisor_get_threadinfos(struct scap_engine_handle engine, struct scap_proclist* proclist, char *error)
 {
-	return engine.m_handle->get_fdinfos(tinfo, n, fdinfos);
+	uint64_t n;
+	const scap_threadinfo* tinfos;
+	int ret = engine.m_handle->get_threadinfos(&n, &tinfos);
+
+	if(ret != SCAP_SUCCESS)
+	{
+		return ret;
+	}
+
+	return scap_proc_scan_vtable(error, proclist, n, tinfos, engine.m_handle, get_fdinfos);
 }
 
 static int32_t gvisor_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
@@ -201,7 +213,6 @@ extern const struct scap_vtable scap_gvisor_engine = {
 	.get_max_buf_used = gvisor_get_max_buf_used,
 	.get_threadlist = gvisor_get_threadlist,
 	.get_threadinfos = gvisor_get_threadinfos,
-	.get_fdinfos = gvisor_get_fdinfos,
 	.getpid_global = gvisor_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
