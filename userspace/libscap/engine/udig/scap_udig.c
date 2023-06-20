@@ -276,9 +276,8 @@ bool acquire_and_init_ring_status_buffer(struct scap_device *dev)
 	return res;
 }
 
-int32_t udig_begin_capture(struct scap_engine_handle engine, char *error)
+int32_t udig_begin_capture(struct scap_device *dev, char *error)
 {
-	struct scap_device *dev = &engine.m_handle->m_dev_set.m_devs[0];
 	struct udig_ring_buffer_status* rbs = dev->m_bufstatus;
 
 	if(rbs->m_capturing_pid != 0)
@@ -311,7 +310,6 @@ int32_t udig_begin_capture(struct scap_engine_handle engine, char *error)
 
 	if(acquire_and_init_ring_status_buffer(dev))
 	{
-		engine.m_handle->m_udig_capturing = true;
 		return SCAP_SUCCESS;
 	}
 	else
@@ -547,7 +545,20 @@ static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	return scap_udig_alloc_dev(&handle->m_dev_set.m_devs[0], handle->m_lasterr);
+	rc = scap_udig_alloc_dev(&handle->m_dev_set.m_devs[0], handle->m_lasterr);
+	if(rc != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	struct scap_device *dev = &handle->m_dev_set.m_devs[0];
+	rc = udig_begin_capture(dev, handle->m_lasterr);
+	if(rc == SCAP_SUCCESS)
+	{
+		handle->m_udig_capturing = true;
+	}
+
+	return rc;
 }
 
 static uint32_t get_n_devs(struct scap_engine_handle engine)

@@ -129,11 +129,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	//
 	// Now that /proc parsing has been done, start the capture
 	//
-	if((rc = udig_begin_capture(handle->m_engine, handle->m_lasterr)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
 	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
