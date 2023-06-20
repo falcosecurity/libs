@@ -21,13 +21,48 @@ limitations under the License.
 extern "C" {
 #endif
 
+#ifndef SCAP_HANDLE_T
+#define SCAP_HANDLE_T void
+#endif
+
 #include "scap_platform_impl.h"
+#include "scap_platform.h"
+#include "engine_handle.h"
+
+struct scap_linux_vtable {
+	/**
+	 * @brief get the vpid of a process
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param pid the pid of the process to check
+	 * @param vpid output parameter, pointer to the vpid
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * `vpid` is the pid as seen by the process itself, i.e. within its
+	 * PID namespace
+	 */
+	int32_t (*get_vpid)(struct scap_engine_handle engine, uint64_t pid, int64_t *vpid);
+
+	/**
+	 * @brief get the vtid of a process
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @param tid the tid of the process to check
+	 * @param vtid output parameter, pointer to the vtid
+	 * @return SCAP_SUCCESS or a failure code
+	 *
+	 * `vtid` is the tid as seen by the process itself, i.e. within its
+	 * PID namespace
+	 */
+	int32_t (*get_vtid)(struct scap_engine_handle engine, uint64_t tid, int64_t *vtid);
+};
 
 struct scap_linux_platform
 {
 	struct scap_platform m_generic;
 
 	char* m_lasterr;
+
+	struct scap_engine_handle m_engine;
+	const struct scap_linux_vtable* m_linux_vtable;
 };
 
 struct scap_platform* scap_linux_alloc_platform();
