@@ -49,7 +49,6 @@ typedef struct scap_dumper
 	char m_lasterr[SCAP_LASTERR_SIZE];
 } scap_dumper_t;
 
-typedef struct scap scap_t;
 struct scap_threadinfo;
 typedef struct ppm_evt_hdr scap_evt;
 struct iovec;
