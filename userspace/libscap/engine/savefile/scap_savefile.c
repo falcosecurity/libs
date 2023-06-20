@@ -2253,7 +2253,7 @@ static int32_t init(struct scap* main_handle, struct scap_open_args* oargs)
 		handle,
 		reader,
 		&main_handle->m_machine_info,
-		&main_handle->m_proclist,
+		&platform->m_proclist,
 		&platform->m_addrlist,
 		&platform->m_userlist,
 		main_handle->m_lasterr
@@ -2321,7 +2321,7 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 		engine,
 		engine->m_reader,
 		&handle->m_machine_info,
-		&handle->m_proclist,
+		&platform->m_proclist,
 		&platform->m_addrlist,
 		&platform->m_userlist,
 		handle->m_lasterr)) != SCAP_SUCCESS)

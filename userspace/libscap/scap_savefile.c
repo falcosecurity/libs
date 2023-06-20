@@ -1089,7 +1089,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the process list
 		//
-		if(scap_write_proclist(d, &handle->m_proclist) != SCAP_SUCCESS)
+		if(scap_write_proclist(d, &handle->m_platform->m_proclist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1097,7 +1097,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the fd lists
 		//
-		if(scap_write_fdlist(d, &handle->m_proclist) != SCAP_SUCCESS)
+		if(scap_write_fdlist(d, &handle->m_platform->m_proclist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1113,10 +1113,10 @@ static inline int32_t scap_dump_rescan_proc(scap_t *handle)
 {
 	int32_t ret = SCAP_SUCCESS;
 #ifdef __linux__
-	proc_entry_callback tcb = handle->m_proclist.m_proc_callback;
-	handle->m_proclist.m_proc_callback = NULL;
+	proc_entry_callback tcb = handle->m_platform->m_proclist.m_proc_callback;
+	handle->m_platform->m_proclist.m_proc_callback = NULL;
 	ret = scap_refresh_proc_table(handle);
-	handle->m_proclist.m_proc_callback = tcb;
+	handle->m_platform->m_proclist.m_proc_callback = tcb;
 #endif
 	return ret;
 }
@@ -1213,9 +1213,9 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 	//
 	// If the user doesn't need the thread table, free it
 	//
-	if(handle->m_proclist.m_proc_callback != NULL)
+	if(handle->m_platform->m_proclist.m_proc_callback != NULL)
 	{
-		scap_proc_free_table(&handle->m_proclist);
+		scap_proc_free_table(&handle->m_platform->m_proclist);
 	}
 
 	return res;
@@ -1266,9 +1266,9 @@ scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compre
 	//
 	// If the user doesn't need the thread table, free it
 	//
-	if(handle->m_proclist.m_proc_callback != NULL)
+	if(handle->m_platform->m_proclist.m_proc_callback != NULL)
 	{
-		scap_proc_free_table(&handle->m_proclist);
+		scap_proc_free_table(&handle->m_platform->m_proclist);
 	}
 	return res;
 }

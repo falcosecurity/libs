@@ -677,34 +677,6 @@ uint32_t scap_event_get_dump_flags(scap_t* handle);
 int64_t scap_get_readfile_offset(scap_t* handle);
 
 /*!
-  \brief Get the process list for the given capture instance
-
-  \param handle Handle to the capture instance.
-
-  \return Pointer to the process list.
-
-  for live captures, the process list is created when the capture starts by scanning the
-  proc file system. For offline captures, it is retrieved from the file.
-  The process list contains information about the processes that were already open when
-  the capture started. It can be traversed with uthash, using the following syntax:
-
-  \code
-  scap_threadinfo *pi;
-  scap_threadinfo *tpi;
-  scap_threadinfo *table = scap_get_proc_table(phandle);
-
-  HASH_ITER(hh, table, pi, tpi)
-  {
-    // do something with pi
-  }
-  \endcode
-
-  Refer to the documentation of the \ref scap_threadinfo struct for details about its
-  content.
-*/
-scap_threadinfo* scap_get_proc_table(scap_t* handle);
-
-/*!
   \brief Return the capture statistics for the given capture handle.
 
   \param handle Handle to the capture instance.

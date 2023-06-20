@@ -52,7 +52,6 @@ struct scap
 	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
-	struct scap_proclist m_proclist;
 	uint64_t m_evtcnt;
 	scap_machine_info m_machine_info;
 	scap_agent_info m_agent_info;

@@ -17,16 +17,22 @@ limitations under the License.
 
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "scap_platform_impl.h"
 
-namespace scap_gvisor
-{
-	class platform;
-};
+struct scap_test_input_data;
 
-struct scap_gvisor_platform
+struct scap_test_input_platform
 {
 	struct scap_platform m_generic;
+	struct scap_test_input_data* m_data;
 	char* m_lasterr;
-	std::unique_ptr<scap_gvisor::platform> m_platform;
 };
+
+#ifdef __cplusplus
+};
+#endif
+

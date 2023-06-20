@@ -386,63 +386,6 @@ int32_t engine::stop_capture()
     return SCAP_SUCCESS;
 }
 
-uint32_t engine::get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos)
-{
-	runsc::result sandboxes_res = runsc::list(m_root_path);
-	std::vector<std::string> &sandboxes = sandboxes_res.output;
-
-	m_threadinfos_threads.clear();
-	m_threadinfos_fds.clear();
-
-	for(const auto &sandbox : sandboxes)
-	{
-		runsc::result procfs_res = runsc::trace_procfs(m_root_path, sandbox);
-
-		// We may be unable to read procfs for several reasons, e.g. the pause container on k8s or a sandbox that was
-		// being removed
-		if (procfs_res.error != 0)
-		{
-			continue;
-		}
-
-		for(const auto &line : procfs_res.output)
-		{
-			// skip first line of the output and empty lines
-			if(line.find("PROCFS DUMP") != std::string::npos || std::all_of(line.begin(), line.end(), isspace))
-			{
-				continue;
-			}
-
-			parsers::procfs_result res = parsers::parse_procfs_json(line, sandbox);
-			if(res.status != SCAP_SUCCESS)
-			{
-				*tinfos = NULL;
-				*n = 0;
-				snprintf(m_lasterr, SCAP_LASTERR_SIZE, "%s", res.error.c_str());
-				return res.status;
-			}
-			
-			m_threadinfos_threads.emplace_back(res.tinfo);
-			m_threadinfos_fds[res.tinfo.tid] = res.fdinfos;
-		}
-	}
-
-	*tinfos = m_threadinfos_threads.data();
-	*n = m_threadinfos_threads.size();
-
-	return SCAP_SUCCESS;
-}
-
-uint32_t engine::get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
-{
-	*n = m_threadinfos_fds[tinfo->tid].size();
-	if (*n != 0) {
-		*fdinfos = m_threadinfos_fds[tinfo->tid].data();
-	}
-
-	return SCAP_SUCCESS;
-}
-
 uint32_t engine::get_vxid(uint64_t xid)
 {
 	return parsers::get_vxid(xid);
