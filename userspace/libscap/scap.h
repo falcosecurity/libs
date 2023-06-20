@@ -949,9 +949,6 @@ extern int32_t scap_readbuf(scap_t* handle, uint32_t cpuid, OUT char** buf, OUT 
 uint32_t scap_event_get_sentinel_begin(scap_evt* e);
 #endif
 
-// like getpid() but returns the global PID even inside a container
-int32_t scap_getpid_global(scap_t* handle, int64_t* pid);
-
 struct scap_threadinfo *scap_proc_alloc(scap_t* handle);
 void scap_proc_free(scap_t* handle, struct scap_threadinfo* procinfo);
 int32_t scap_stop_dropping_mode(scap_t* handle);

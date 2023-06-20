@@ -2038,7 +2038,6 @@ const struct scap_vtable scap_bpf_engine = {
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
 	.get_threadlist = scap_procfs_get_threadlist,
-	.getpid_global = scap_os_getpid_global,
 	.get_api_version = scap_bpf_get_api_version,
 	.get_schema_version = scap_bpf_get_schema_version,
 };

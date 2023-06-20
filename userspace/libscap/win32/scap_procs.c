@@ -26,12 +26,6 @@ struct ppm_proclist_info;
 #include "engine_handle.h"
 #include "scap_const.h"
 
-int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, char* error)
-{
-	*pid = _getpid();
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
 	return SCAP_FAILURE;
