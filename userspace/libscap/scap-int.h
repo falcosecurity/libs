@@ -65,8 +65,6 @@ struct scap
 // Internal library functions
 //
 
-// Scan a directory containing process information
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error);
 // Free the process table
 void scap_proc_free_table(struct scap_proclist* proclist);
 // Return the process info entry given a tid

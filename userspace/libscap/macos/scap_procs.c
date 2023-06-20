@@ -32,11 +32,6 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 	return SCAP_SUCCESS;
 }
 
-int32_t scap_proc_scan_proc_dir(scap_t* handle, char* procdirname, char *error)
-{
-	return SCAP_NOT_SUPPORTED;
-}
-
 bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
 {
 	return false;
