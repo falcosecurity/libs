@@ -52,6 +52,8 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 
 	linux_platform->m_engine = engine;
 
+	linux_platform->m_debug_log_fn = oargs->debug_log_fn;
+
 	rc = scap_linux_create_iflist(platform);
 	if(rc != SCAP_SUCCESS)
 	{
