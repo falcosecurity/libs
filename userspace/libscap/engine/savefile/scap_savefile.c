@@ -33,6 +33,7 @@ struct iovec {
 #include "savefile.h"
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_platform.h"
 #include "scap_savefile.h"
 #include "scap_reader.h"
 #include "../noop/noop.h"
@@ -2264,6 +2265,8 @@ static int32_t scap_savefile_restart_capture(scap_t* handle)
 {
 	struct savefile_engine *engine = handle->m_engine.m_handle;
 	int32_t res;
+
+	scap_platform_close(handle->m_platform);
 
 	if((res = scap_read_init(
 		engine,
