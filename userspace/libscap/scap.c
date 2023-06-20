@@ -279,28 +279,6 @@ void scap_close(scap_t* handle)
 	scap_deinit(handle);
 	scap_free(handle);
 }
-
-scap_os_platform scap_get_os_platform(scap_t* handle)
-{
-#if defined(_M_IX86) || defined(__i386__)
-#ifdef linux
-	return SCAP_PFORM_LINUX_I386;
-#else
-	return SCAP_PFORM_WINDOWS_I386;
-#endif // linux
-#else
-#if defined(_M_X64) || defined(__AMD64__)
-#ifdef linux
-	return SCAP_PFORM_LINUX_X64;
-#else
-	return SCAP_PFORM_WINDOWS_X64;
-#endif // linux
-#else
-	return SCAP_PFORM_UNKNOWN;
-#endif // defined(_M_X64) || defined(__AMD64__)
-#endif // defined(_M_IX86) || defined(__i386__)
-}
-
 uint32_t scap_get_ndevs(scap_t* handle)
 {
 	if(handle->m_vtable)
