@@ -16,32 +16,20 @@ limitations under the License.
 */
 
 #include <stdio.h>
-#include <stdlib.h>
-#ifdef _WIN32
-#include <Winsock2.h>
-#else
-#include <unistd.h>
-#include <inttypes.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#endif // _WIN32
 
 #include "scap.h"
 #include "strerror.h"
 #include "strl.h"
-#include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 #include "scap_api_version.h"
 #include "scap_platform.h"
 
+#define SCAP_HANDLE_T void
 #include "scap_engines.h"
 
 #ifdef __linux__
 #include "scap_linux_platform.h"
 #endif
-
-//#define NDEBUG
-#include <assert.h>
 
 const char* scap_getlasterr(scap_t* handle)
 {
