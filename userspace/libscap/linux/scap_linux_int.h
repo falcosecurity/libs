@@ -30,6 +30,9 @@ struct scap_ns_socket_list
 	UT_hash_handle hh;
 };
 
+struct scap_platform;
+
+int32_t scap_linux_create_iflist(struct scap_platform* platform);
 
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);

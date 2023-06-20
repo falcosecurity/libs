@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_linux_platform.h"
 #include "strlcpy.h"
 
 #include <sys/types.h>
@@ -32,8 +33,9 @@ limitations under the License.
 //
 // Allocate and return the list of interfaces on this system
 //
-int32_t scap_create_iflist(scap_t* handle)
+int32_t scap_linux_create_iflist(struct scap_platform* platform)
 {
+	struct scap_linux_platform* handle = (struct scap_linux_platform*)platform;
 	struct ifaddrs *interfaceArray = NULL, *tempIfAddr = NULL;
 	void *tempAddrPtr = NULL;
 	int rc = 0;
@@ -45,10 +47,10 @@ int32_t scap_create_iflist(scap_t* handle)
 	// If the list of interfaces was already allocated for this handle (for example because this is
 	// not the first interface list block), free it
 	//
-	if(handle->m_addrlist != NULL)
+	if(platform->m_addrlist != NULL)
 	{
-		scap_free_iflist(handle->m_addrlist);
-		handle->m_addrlist = NULL;
+		scap_free_iflist(platform->m_addrlist);
+		platform->m_addrlist = NULL;
 	}
 
 	rc = getifaddrs(&interfaceArray);  /* retrieve the current interfaces */
@@ -82,13 +84,13 @@ int32_t scap_create_iflist(scap_t* handle)
 	//
 	// Allocate the handle and the arrays
 	//
-	handle->m_addrlist = (scap_addrlist*)malloc(sizeof(scap_addrlist));
-	if(!handle->m_addrlist)
+	platform->m_addrlist = (scap_addrlist*)malloc(sizeof(scap_addrlist));
+	if(!platform->m_addrlist)
 	{
 		snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "getifaddrs allocation failed(1)");
 		return SCAP_FAILURE;
 	}
-	addrlist = handle->m_addrlist;
+	addrlist = platform->m_addrlist;
 
 	if(ifcnt4 != 0)
 	{
@@ -225,11 +227,3 @@ int32_t scap_create_iflist(scap_t* handle)
 
 	return SCAP_SUCCESS;
 }
-
-void scap_refresh_iflist(scap_t* handle)
-{
-	scap_free_iflist(handle->m_addrlist);
-	handle->m_addrlist = NULL;
-	scap_create_iflist(handle);
-}
-

@@ -1,5 +1,5 @@
 /*
-Copyright (C) 2023 The Falco Authors.
+Copyright (C) 2022 The Falco Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,20 +17,30 @@ limitations under the License.
 
 #pragma once
 
+#include <stdint.h>
+
+// this header is designed to be useful to scap consumers,
+// using the scap_t wrapper functions
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "scap_platform_impl.h"
+struct scap;
+struct scap_addrlist;
 
-struct scap_linux_platform
-{
-	struct scap_platform m_generic;
+/*!
+  \brief Return the list of the the user interfaces of the machine from which the
+  events are being captured.
 
-	char* m_lasterr;
-};
+  \param handle Handle to the capture instance.
 
-struct scap_platform* scap_linux_alloc_platform();
+  \return The pointer to a \ref scap_addrlist structure containing the interface list,
+  or NULL if the function fails.
+*/
+struct scap_addrlist* scap_get_ifaddr_list(struct scap* handle);
+
+void scap_refresh_iflist(struct scap* handle);
 
 #ifdef __cplusplus
 };
