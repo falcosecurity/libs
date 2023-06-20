@@ -38,6 +38,11 @@ static struct nodriver_engine* alloc_handle(scap_t* main_handle, char* lasterr_p
 	return engine;
 }
 
+static int32_t init(scap_t* handle, scap_open_args *oargs)
+{
+	return SCAP_SUCCESS;
+}
+
 static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_t* pcpuid)
 {
 	static scap_evt evt;
@@ -59,7 +64,7 @@ const struct scap_vtable scap_nodriver_engine = {
 	.savefile_ops = NULL,
 
 	.alloc_handle = alloc_handle,
-	.init = NULL,
+	.init = init,
 	.free_handle = noop_free_handle,
 	.close = noop_close_engine,
 	.next = next,

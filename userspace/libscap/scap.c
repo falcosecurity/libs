@@ -420,7 +420,7 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 #endif
 
 #ifdef HAS_ENGINE_NODRIVER
-int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
+int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
 {
 	int32_t rc;
 	struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
@@ -439,6 +439,8 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 	//
 	handle->m_mode = SCAP_MODE_NODRIVER;
 	handle->m_vtable = &scap_nodriver_engine;
+	handle->m_platform = platform;
+
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
@@ -507,7 +509,12 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs)
 		return rc;
 	}
 
-	return rc;
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	return SCAP_SUCCESS;
 }
 #endif // HAS_ENGINE_NODRIVER
 
@@ -640,7 +647,13 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_NODRIVER
 	if(strcmp(engine_name, NODRIVER_ENGINE) == 0)
 	{
-		return scap_init_nodriver_int(handle, oargs);
+		platform = scap_linux_alloc_platform();
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_nodriver_int(handle, oargs, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_SOURCE_PLUGIN
