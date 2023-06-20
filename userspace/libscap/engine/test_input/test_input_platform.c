@@ -72,9 +72,15 @@ static void scap_test_input_free_platform(struct scap_platform* platform)
 	free(platform);
 }
 
+static bool scap_test_input_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
+{
+	return false;
+}
+
 static const struct scap_platform_vtable scap_test_input_platform = {
 	.init_platform = scap_test_input_init_platform,
 	.free_platform = scap_test_input_free_platform,
+	.is_thread_alive = scap_test_input_is_thread_alive,
 };
 
 struct scap_platform* scap_test_input_alloc_platform()

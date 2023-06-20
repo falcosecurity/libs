@@ -1196,19 +1196,10 @@ struct scap_threadinfo* scap_linux_proc_get(struct scap_platform* platform, stru
 	return tinfo;
 }
 
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
+bool scap_linux_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
 {
 	char charbuf[SCAP_MAX_PATH_SIZE];
 	FILE* f;
-
-
-	//
-	// No /proc parsing for offline captures
-	//
-	if(handle->m_mode == SCAP_MODE_CAPTURE || handle->m_mode == SCAP_MODE_TEST)
-	{
-		return false;
-	}
 
 	snprintf(charbuf, sizeof(charbuf), "%s/proc/%" PRId64 "/task/%" PRId64 "/comm", scap_get_host_root(), pid, tid);
 

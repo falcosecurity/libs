@@ -96,12 +96,18 @@ static void scap_gvisor_free_platform(struct scap_platform* platform)
 	delete gvisor_platform;
 }
 
+bool scap_gvisor_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
+{
+	return true; // TODO we actually need a real implementation
+}
+
 static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 	.init_platform = scap_gvisor_init_platform,
 	.refresh_addr_list = NULL,
 	.get_device_by_mount_id = NULL,
 	.get_proc = NULL,
 	.refresh_proc_table = scap_gvisor_refresh_proc_table,
+	.is_thread_alive = scap_gvisor_is_thread_alive,
 	.close_platform = scap_gvisor_close_platform,
 	.free_platform = scap_gvisor_free_platform,
 };
