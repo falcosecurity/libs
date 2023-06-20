@@ -32,11 +32,6 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 	return SCAP_SUCCESS;
 }
 
-bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* comm)
-{
-	return false;
-}
-
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
 	return SCAP_FAILURE;

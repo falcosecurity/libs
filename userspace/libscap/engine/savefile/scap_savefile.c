@@ -2157,8 +2157,14 @@ static void scap_savefile_free_platform(struct scap_platform* platform)
 	free(platform);
 }
 
+bool scap_savefile_is_thread_alive(struct scap_platform* platform, int64_t pid, int64_t tid, const char* comm)
+{
+	return false;
+}
+
 static const struct scap_platform_vtable scap_savefile_platform_vtable = {
 	.init_platform = scap_savefile_init_platform,
+	.is_thread_alive = scap_savefile_is_thread_alive,
 	.close_platform = scap_savefile_close_platform,
 	.free_platform = scap_savefile_free_platform,
 };
