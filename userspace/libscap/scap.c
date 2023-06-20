@@ -374,7 +374,7 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs, struct scap_
 #endif // HAS_ENGINE_GVISOR
 
 #ifdef HAS_ENGINE_SAVEFILE
-int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
+int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
 {
 	int32_t rc;
 
@@ -383,6 +383,8 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 	//
 	handle->m_mode = SCAP_MODE_CAPTURE;
 	handle->m_vtable = &scap_savefile_engine;
+	handle->m_platform = platform;
+
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
@@ -412,6 +414,11 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs)
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
+		return rc;
+	}
+
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
+	{
 		return rc;
 	}
 
@@ -581,7 +588,13 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_SAVEFILE
 	if(strcmp(engine_name, SAVEFILE_ENGINE) == 0)
 	{
-		return scap_init_offline_int(handle, oargs);
+		platform = scap_savefile_alloc_platform();
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_offline_int(handle, oargs, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_UDIG

@@ -30,6 +30,9 @@ extern "C"
 		uint32_t fbuffer_size; ///< If non-zero, offline captures will read from file using a buffer of this size.
 	};
 
+	struct scap_platform;
+	struct scap_platform* scap_savefile_alloc_platform();
+
 #ifdef __cplusplus
 };
 #endif
