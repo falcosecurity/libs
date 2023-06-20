@@ -43,7 +43,7 @@ limitations under the License.
 
 #include "capture_stats_source.h"
 
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__)
 #include "tbb/concurrent_queue.h"
 #endif
 
