@@ -101,7 +101,7 @@ scap_dumper_t *scap_dump_open(struct scap_platform* platform, const char *fname,
 
   \return Dump handle that can be used to identify this specific dump instance.
 */
-scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compress, bool skip_proc_scan);
+scap_dumper_t* scap_dump_open_fd(struct scap_platform* platform, int fd, compression_mode compress, bool skip_proc_scan, char* lasterr);
 
 /*!
   \brief Close a trace file.
