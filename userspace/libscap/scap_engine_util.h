@@ -34,3 +34,5 @@ limitations under the License.
  * - needs as much accuracy as we can get (otherwise eBPF event timestamps will be wrong)
  */
 int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time);
+
+bool scap_get_bpf_stats_enabled();

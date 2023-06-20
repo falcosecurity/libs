@@ -253,6 +253,16 @@ void scap_close(scap_t* handle)
 	scap_deinit(handle);
 	scap_free(handle);
 }
+
+uint64_t scap_get_engine_flags(scap_t* handle)
+{
+	if(handle && handle->m_vtable && handle->m_vtable->get_flags)
+	{
+		return handle->m_vtable->get_flags(handle->m_engine);
+	}
+	return 0;
+}
+
 uint32_t scap_get_ndevs(scap_t* handle)
 {
 	if(handle->m_vtable)

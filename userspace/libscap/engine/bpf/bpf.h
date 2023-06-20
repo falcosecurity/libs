@@ -60,4 +60,5 @@ struct bpf_engine
 	bool capturing;
 	scap_stats_v2* m_stats;
 	uint32_t m_nstats;
+	uint64_t m_flags;
 };

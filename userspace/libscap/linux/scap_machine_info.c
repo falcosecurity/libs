@@ -122,24 +122,6 @@ static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
 	return 0;
 }
 
-static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
-{
-	machine_info->flags &= ~PPM_BPF_STATS_ENABLED;
-	FILE* f;
-	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
-	{
-		uint32_t bpf_stats_enabled = 0;
-		if(fscanf(f, "%u", &bpf_stats_enabled) == 1)
-		{
-			if (bpf_stats_enabled != 0)
-			{
-				machine_info->flags |= PPM_BPF_STATS_ENABLED;
-			}
-		}
-		fclose(f);
-	}
-}
-
 static void scap_gethostname(char* buf, size_t size)
 {
 	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
@@ -185,7 +167,6 @@ int32_t scap_os_get_machine_info(scap_machine_info* machine_info, char* lasterr)
 	{
 		return SCAP_FAILURE;
 	}
-	scap_get_bpf_stats_enabled(machine_info);
 
 	return SCAP_SUCCESS;
 }

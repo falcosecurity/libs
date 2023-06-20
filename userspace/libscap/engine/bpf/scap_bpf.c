@@ -2030,7 +2030,18 @@ static int32_t init(scap_t* handle, scap_open_args *oargs)
 	/* Store interesting sc codes */
 	memcpy(&engine.m_handle->curr_sc_set, &oargs->ppm_sc_of_interest, sizeof(interesting_ppm_sc_set));
 
+	engine.m_handle->m_flags = 0;
+	if(scap_get_bpf_stats_enabled())
+	{
+		engine.m_handle->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
+	}
+
 	return SCAP_SUCCESS;
+}
+
+static uint64_t get_flags(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_flags;
 }
 
 static uint32_t get_n_devs(struct scap_engine_handle engine)
@@ -2070,6 +2081,7 @@ const struct scap_vtable scap_bpf_engine = {
 
 	.alloc_handle = alloc_handle,
 	.init = init,
+	.get_flags = get_flags,
 	.free_handle = free_handle,
 	.close = scap_bpf_close,
 	.next = next,

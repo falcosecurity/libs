@@ -118,6 +118,8 @@ struct scap_savefile_vtable {
 	int64_t (*get_readfile_offset)(struct scap_engine_handle engine);
 };
 
+#define ENGINE_FLAG_BPF_STATS_ENABLED (1<<0)
+
 struct scap_vtable {
 	/**
 	 * @brief name of the engine
@@ -149,6 +151,13 @@ struct scap_vtable {
 	 * @return SCAP_SUCCESS or a failure code
 	 */
 	int32_t (*init)(scap_t* main_handle, scap_open_args* open_args);
+
+	/**
+	 * @brief get features supported by the engine
+	 * @param engine wraps the pointer to the engine-specific handle
+	 * @return a bitmask of ENGINE_FLAGS_*
+	 */
+	uint64_t (*get_flags)(struct scap_engine_handle engine);
 
 	/**
 	 * @brief free the engine-specific handle

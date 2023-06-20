@@ -850,6 +850,9 @@ int32_t scap_event_encode_params_v(struct scap_sized_buffer event_buf, size_t *e
 // Non public functions
 ///////////////////////////////////////////////////////////////////////////////
 
+// get the features supported by the engine (bitmask of ENGINE_FLAG_* flags)
+uint64_t scap_get_engine_flags(scap_t* handle);
+
 //
 // Return the number of event capture devices that the library is handling. Each processor
 // has its own event capture device.
