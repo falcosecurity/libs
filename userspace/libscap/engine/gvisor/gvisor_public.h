@@ -28,6 +28,9 @@ extern "C"
 		bool no_events; //< Pinky swear we don't want any event from it (i.e. next will always fail, just have proc scan)
 	};
 
+	struct scap_platform;
+	struct scap_platform* scap_gvisor_alloc_platform();
+
 #ifdef __cplusplus
 };
 #endif
