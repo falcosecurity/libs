@@ -604,7 +604,13 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_KMOD
 	if(strcmp(engine_name, KMOD_ENGINE) == 0)
 	{
-		return scap_init_live_int(handle, oargs, &scap_kmod_engine, NULL);
+		platform = scap_linux_alloc_platform();
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_live_int(handle, oargs, &scap_kmod_engine, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_BPF
