@@ -588,7 +588,6 @@ const struct scap_vtable scap_udig_engine = {
 	.get_n_tracepoint_hit = get_n_tracepoint_hit,
 	.get_n_devs = get_n_devs,
 	.get_max_buf_used = get_max_buf_used,
-	.get_threadlist = scap_procfs_get_threadlist,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
 };

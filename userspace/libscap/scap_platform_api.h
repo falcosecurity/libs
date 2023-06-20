@@ -27,6 +27,7 @@ limitations under the License.
 extern "C" {
 #endif
 
+struct ppm_proclist_info;
 struct scap;
 struct scap_addrlist;
 struct _scap_machine_info;
@@ -118,6 +119,11 @@ const struct _scap_machine_info* scap_get_machine_info(struct scap* handle);
   \note for live captures only.
 */
 const scap_agent_info* scap_get_agent_info(struct scap* handle);
+
+/*!
+  \brief Get the process list.
+*/
+struct ppm_proclist_info* scap_get_threadlist(struct scap* handle);
 
 #ifdef __cplusplus
 };

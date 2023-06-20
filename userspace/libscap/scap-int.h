@@ -99,8 +99,6 @@ void scap_free_device_table(scap_mountinfo* dev_list);
 int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
 			      uint16_t devid, bool *suppressed, char *error);
 
-int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
-
 //
 // Retrieve machine info.
 //

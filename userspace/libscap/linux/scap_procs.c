@@ -1263,8 +1263,15 @@ int32_t scap_linux_refresh_proc_table(struct scap_platform* platform, struct sca
 	return ret;
 }
 
-int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
+int32_t scap_linux_get_threadlist(struct scap_platform* platform, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)platform;
+
+	if(linux_platform->m_linux_vtable && linux_platform->m_linux_vtable->get_threadlist)
+	{
+		return linux_platform->m_linux_vtable->get_threadlist(linux_platform->m_engine, procinfo_p, lasterr);
+	}
+
 	DIR *dir_p = NULL;
 	DIR *taskdir_p = NULL;
 	FILE *fp = NULL;
