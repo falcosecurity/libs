@@ -68,34 +68,6 @@ static int32_t next(struct scap_engine_handle handle, scap_evt** pevent, uint16_
 	return SCAP_SUCCESS;
 }
 
-
-static int32_t get_fdinfos(void* ctx, const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos)
-{
-	test_input_engine *engine = ctx;
-	scap_test_input_data *data = engine->m_data;
-	size_t i;
-
-	for (i = 0; i < data->thread_count; i++)
-	{
-		if(data->threads[i].tid == tinfo->tid) {
-			*fdinfos = data->fdinfo_data[i].fdinfos;
-			*n = data->fdinfo_data[i].fdinfo_count;
-			return SCAP_SUCCESS;
-		}
-	}
-
-	snprintf(engine->m_lasterr, SCAP_LASTERR_SIZE, "Could not find thread info for tid %lu", tinfo->tid);
-	return SCAP_FAILURE;
-}
-
-static int32_t get_threadinfos(struct scap_engine_handle handle, struct scap_proclist *proclist, char *error)
-{
-	test_input_engine *engine = handle.m_handle;
-	scap_test_input_data *data = engine->m_data;
-
-	return scap_proc_scan_vtable(error, proclist, data->thread_count, data->threads, engine, get_fdinfos);
-}
-
 static int32_t init(scap_t* main_handle, scap_open_args* oargs)
 {
 	test_input_engine *engine = main_handle->m_engine.m_handle;
@@ -128,8 +100,7 @@ const struct scap_vtable scap_test_input_engine = {
 	.get_n_tracepoint_hit = noop_get_n_tracepoint_hit,
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
-	.get_threadlist = noop_get_threadlist,
-	.get_threadinfos = get_threadinfos,
+	.get_threadlist = NULL,
 	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,

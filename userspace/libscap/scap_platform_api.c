@@ -63,7 +63,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 {
 	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_proc)
 	{
-		return handle->m_platform->m_vtable->get_proc(handle->m_platform, &handle->m_proclist, tid, scan_sockets);
+		return handle->m_platform->m_vtable->get_proc(handle->m_platform, &handle->m_platform->m_proclist, tid, scan_sockets);
 	}
 
 	return NULL;
@@ -73,8 +73,18 @@ int32_t scap_refresh_proc_table(scap_t* handle)
 {
 	if (handle && handle->m_platform && handle->m_platform->m_vtable->refresh_proc_table)
 	{
-		return handle->m_platform->m_vtable->refresh_proc_table(handle->m_platform, &handle->m_proclist);
+		return handle->m_platform->m_vtable->refresh_proc_table(handle->m_platform, &handle->m_platform->m_proclist);
 	}
 
 	return SCAP_FAILURE;
+}
+
+scap_threadinfo* scap_get_proc_table(scap_t* handle)
+{
+	if (handle && handle->m_platform)
+	{
+		return handle->m_platform->m_proclist.m_proclist;
+	}
+
+	return NULL;
 }

@@ -143,8 +143,6 @@ public:
 
     int32_t next(scap_evt **pevent, uint16_t *pcpuid);
 
-    uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
-    uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
     uint32_t get_vxid(uint64_t pid);
     int32_t get_stats(scap_stats *stats);
     const struct scap_stats_v2* get_stats_v2(uint32_t flags, uint32_t* nstats, int32_t* rc);
@@ -167,11 +165,6 @@ private:
     // stores per-sandbox data. All buffers used to contain parsed event data are owned by this map
     std::unordered_map<int, sandbox_entry> m_sandbox_data;
 
-    // the following two maps store and manage memory for thread information requested
-    // when get_threadinfos() is called. They are only updated upon get_threadinfos()
-    std::vector<scap_threadinfo> m_threadinfos_threads;
-    std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
-
     // the following two strings contains the path of the root dir used by the runsc command
     // and the path the trace session configuration file used to set up traces, respectively
     std::string m_root_path;
@@ -190,6 +183,26 @@ private:
     // Stats v2.
     scap_stats_v2 m_stats[scap_gvisor::stats::MAX_GVISOR_COUNTERS_STATS];
 
+};
+
+class platform
+{
+public:
+	platform(char *lasterr, std::string &&root_path) :
+		m_lasterr(lasterr),
+		m_root_path(std::move(root_path)) {}
+
+	uint32_t get_threadinfos(uint64_t *n, const scap_threadinfo **tinfos);
+	uint32_t get_fdinfos(const scap_threadinfo *tinfo, uint64_t *n, const scap_fdinfo **fdinfos);
+
+private:
+	// the following two maps store and manage memory for thread information requested
+	// when get_threadinfos() is called. They are only updated upon get_threadinfos()
+	std::vector<scap_threadinfo> m_threadinfos_threads;
+	std::unordered_map<uint64_t, std::vector<scap_fdinfo>> m_threadinfos_fds;
+
+	char* m_lasterr;
+	std::string m_root_path;
 };
 
 } // namespace scap_gvisor

@@ -27,6 +27,8 @@ extern "C"
 		scap_test_input_data* test_input_data; ///<  only used for testing scap consumers by supplying arbitrary test data.
 	};
 
+	struct scap_platform;
+	struct scap_platform* scap_test_input_alloc_platform();
 #ifdef __cplusplus
 };
 #endif

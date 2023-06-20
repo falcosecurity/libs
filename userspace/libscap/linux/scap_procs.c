@@ -1161,7 +1161,7 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 
 	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 	scap_cgroup_enable_cache(&linux_platform->m_cgroups);
-	int32_t ret = _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_proclist, procdirname, -1, error);
+	int32_t ret = _scap_proc_scan_proc_dir_impl(linux_platform, &handle->m_platform->m_proclist, procdirname, -1, error);
 	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
 	return ret;
 }
