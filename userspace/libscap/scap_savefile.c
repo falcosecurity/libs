@@ -1126,7 +1126,7 @@ static inline int32_t scap_dump_rescan_proc(struct scap_platform* platform)
 }
 
 // fname is only used for log messages in scap_setup_dump
-static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const char *fname, bool skip_proc_scan)
+static scap_dumper_t *scap_dump_open_gzfile(struct scap_platform* platform, gzFile gzfile, const char *fname, char* lasterr)
 {
 	scap_dumper_t* res = (scap_dumper_t*)malloc(sizeof(scap_dumper_t));
 	res->m_f = gzfile;
@@ -1135,9 +1135,9 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	res->m_targetbufcurpos = NULL;
 	res->m_targetbufend = NULL;
 
-	if(scap_setup_dump(res, handle->m_mode == SCAP_MODE_PLUGIN ? NULL : handle->m_platform, fname) != SCAP_SUCCESS)
+	if(scap_setup_dump(res, platform, fname) != SCAP_SUCCESS)
 	{
-		strcpy(handle->m_lasterr, res->m_lasterr);
+		strlcpy(lasterr, res->m_lasterr, SCAP_LASTERR_SIZE);
 		free(res);
 		res = NULL;
 	}
@@ -1213,7 +1213,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		}
 	}
 
-	res = scap_dump_open_gzfile(handle, f, fname, skip_proc_scan);
+	res = scap_dump_open_gzfile(handle->m_platform, f, fname, handle->m_lasterr);
 	//
 	// If the user doesn't need the thread table, free it
 	//
@@ -1265,7 +1265,7 @@ scap_dumper_t* scap_dump_open_fd(scap_t *handle, int fd, compression_mode compre
 		}
 	}
 
-	res = scap_dump_open_gzfile(handle, f, "", skip_proc_scan);
+	res = scap_dump_open_gzfile(handle->m_platform, f, "", handle->m_lasterr);
 
 	//
 	// If the user doesn't need the thread table, free it
