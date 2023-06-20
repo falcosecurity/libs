@@ -383,3 +383,27 @@ jobs:
           name: ${{ matrix.name }}_report
           path: |
             ${{ github.workspace }}/build/report/
+
+  build-libs-emscripten:
+    name: build-libs-emscripten 🧐
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install deps ⛓️
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends ca-certificates cmake build-essential clang-14 llvm-14 git pkg-config autoconf automake libtool libelf-dev libcap-dev linux-headers-$(uname -r) emscripten
+
+      - name: Checkout Libs ⤵️
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Git safe directory
+        run: |
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+
+      - name: Build and test 🏗️🧪
+        run: |
+          mkdir -p build
+          cd build && emcmake cmake -DUSE_BUNDLED_DEPS=True ../
+          KERNELDIR=/lib/modules/$(ls /lib/modules)/build emmake make run-unit-tests -j4
