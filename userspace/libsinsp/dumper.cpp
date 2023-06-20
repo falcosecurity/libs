@@ -87,6 +87,7 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 
 void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress, bool threads_from_sinsp)
 {
+	char error[SCAP_LASTERR_SIZE];
 	if(inspector->m_h == NULL)
 	{
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
@@ -94,16 +95,16 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress, bool threads_
 
 	if(compress)
 	{
-		m_dumper = scap_dump_open_fd(inspector->m_h, fd, SCAP_COMPRESSION_GZIP, threads_from_sinsp);
+		m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, SCAP_COMPRESSION_GZIP, threads_from_sinsp, error);
 	}
 	else
 	{
-		m_dumper = scap_dump_open_fd(inspector->m_h, fd, SCAP_COMPRESSION_NONE, threads_from_sinsp);
+		m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, SCAP_COMPRESSION_NONE, threads_from_sinsp, error);
 	}
 
-	if(m_dumper == NULL)
+	if(m_dumper == nullptr)
 	{
-		throw sinsp_exception(scap_getlasterr(inspector->m_h));
+		throw sinsp_exception(error);
 	}
 
 	if(threads_from_sinsp)
