@@ -63,6 +63,7 @@ struct scap_linux_platform
 
 	char* m_lasterr;
 	struct scap_mountinfo* m_dev_list;
+	uint32_t m_fd_lookup_limit;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;

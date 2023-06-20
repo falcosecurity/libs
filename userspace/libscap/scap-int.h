@@ -57,7 +57,6 @@ struct scap
 	scap_machine_info m_machine_info;
 	scap_agent_info m_agent_info;
 	struct ppm_proclist_info* m_driver_procinfo;
-	uint32_t m_fd_lookup_limit;
 	bool m_minimal_scan;
 #ifdef __linux__
 	struct scap_cgroup_interface m_cgroups;
