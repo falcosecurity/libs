@@ -15,10 +15,10 @@
 #
 
 include(jsoncpp)
-if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (NOT EMSCRIPTEN)
 	include(tbb)
 endif()
-if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 	include(curl)
 endif() # MINIMAL_BUILD
 
@@ -128,7 +128,7 @@ endif()
 
 add_executable(unit-test-libsinsp ${LIBSINSP_UNIT_TESTS_SOURCES})
 
-if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (EMSCRIPTEN)
 	target_compile_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 	target_link_options(unit-test-libsinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 	target_link_options(unit-test-libsinsp PRIVATE "-sEXPORTED_FUNCTIONS=['_main','_htons','_ntohs']")
