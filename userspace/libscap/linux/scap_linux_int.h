@@ -31,6 +31,9 @@ struct scap_ns_socket_list
 };
 
 struct scap_platform;
+struct scap_linux_platform;
+struct scap_proclist;
+typedef struct scap_threadinfo scap_threadinfo;
 
 int32_t scap_linux_create_iflist(struct scap_platform* platform);
 int32_t scap_linux_create_userlist(struct scap_platform* platform);
@@ -41,4 +44,4 @@ uint32_t scap_linux_get_device_by_mount_id(struct scap_platform* platform, const
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);
 void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list** sockets);
 // read the file descriptors for a given process directory
-int32_t scap_fd_scan_fd_dir(scap_t* handle, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
+int32_t scap_fd_scan_fd_dir(struct scap_linux_platform *linux_platform, struct scap_proclist *proclist, char * procdir, scap_threadinfo* pi, struct scap_ns_socket_list** sockets_by_ns, uint64_t* num_fds_ret, char *error);
