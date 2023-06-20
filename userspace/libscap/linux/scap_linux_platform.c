@@ -19,12 +19,17 @@ limitations under the License.
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_machine_info.h"
 #include "scap_linux_int.h"
+
+#include "compat/misc.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #define SECOND_TO_NS 1000000000
 
@@ -98,6 +103,82 @@ static void scap_linux_retrieve_agent_info(scap_agent_info* agent_info)
 	snprintf(agent_info->uname_r, sizeof(agent_info->uname_r), "%s", uts.release);
 }
 
+static uint64_t scap_linux_get_host_boot_time_ns(char* last_err)
+{
+	uint64_t btime = 0;
+	char proc_stat[PPM_MAX_PATH_SIZE];
+	char line[512];
+
+	/* Get boot time from btime value in /proc/stat
+	 * ref: https://github.com/falcosecurity/libs/issues/932
+	 * /proc/uptime and btime in /proc/stat are fed by the same kernel sources.
+	 *
+	 * Multiple ways to get boot time:
+	 *	btime in /proc/stat
+	 *	calculation via clock_gettime(CLOCK_REALTIME - CLOCK_BOOTTIME)
+	 *	calculation via time(NULL) - sysinfo().uptime
+	 *
+	 * Maintainers preferred btime in /proc/stat because:
+	 *	value does not depend on calculation using current timestamp
+	 *	btime is "static" and doesn't change once set
+	 *	btime is available in kernels from 2008
+	 *	CLOCK_BOOTTIME is available in kernels from 2011 (2.6.38
+	 *
+	 * By scraping btime from /proc/stat,
+	 * it is both the heaviest and most likely to succeed
+	 */
+	snprintf(proc_stat, sizeof(proc_stat), "%s/proc/stat", scap_get_host_root());
+	FILE* f = fopen(proc_stat, "r");
+	if (f == NULL)
+	{
+		ASSERT(false);
+		return 0;
+	}
+
+	while(fgets(line, sizeof(line), f) != NULL)
+	{
+		if(sscanf(line, "btime %" PRIu64, &btime) == 1)
+		{
+			fclose(f);
+			return btime * (uint64_t) SECOND_TO_NS;
+		}
+	}
+	fclose(f);
+	ASSERT(false);
+	return 0;
+}
+
+static void scap_get_bpf_stats_enabled(scap_machine_info* machine_info)
+{
+	machine_info->flags &= ~PPM_BPF_STATS_ENABLED;
+	FILE* f;
+	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
+	{
+		uint32_t bpf_stats_enabled = 0;
+		if(fscanf(f, "%u", &bpf_stats_enabled) == 1)
+		{
+			if (bpf_stats_enabled != 0)
+			{
+				machine_info->flags |= PPM_BPF_STATS_ENABLED;
+			}
+		}
+		fclose(f);
+	}
+}
+
+static void scap_gethostname(char* buf, size_t size)
+{
+	char *env_hostname = getenv(SCAP_HOSTNAME_ENV_VAR);
+	if(env_hostname != NULL)
+	{
+		snprintf(buf, size, "%s", env_hostname);
+	}
+	else
+	{
+		gethostname(buf, size);
+	}
+}
+
 int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
 {
 	int rc;
@@ -105,6 +186,18 @@ int32_t scap_linux_init_platform(struct scap_platform* platform, char* lasterr, 
 	linux_platform->m_lasterr = lasterr;
 
 	linux_platform->m_engine = engine;
+
+	platform->m_machine_info.num_cpus = sysconf(_SC_NPROCESSORS_ONLN);
+	platform->m_machine_info.memory_size_bytes = (uint64_t)sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
+	scap_gethostname(platform->m_machine_info.hostname, sizeof(platform->m_machine_info.hostname));
+	platform->m_machine_info.boot_ts_epoch = scap_linux_get_host_boot_time_ns(lasterr);
+	if(platform->m_machine_info.boot_ts_epoch == 0)
+	{
+		return SCAP_FAILURE;
+	}
+	scap_get_bpf_stats_enabled(&platform->m_machine_info);
+	platform->m_machine_info.reserved3 = 0;
+	platform->m_machine_info.reserved4 = 0;
 
 	linux_platform->m_proc_scan_timeout_ms = oargs->proc_scan_timeout_ms;
 	linux_platform->m_proc_scan_log_interval_ms = oargs->proc_scan_log_interval_ms;

@@ -53,7 +53,6 @@ struct scap
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
 	uint64_t m_evtcnt;
-	scap_machine_info m_machine_info;
 	struct ppm_proclist_info* m_driver_procinfo;
 
 	// Function which may be called to log a debug event
