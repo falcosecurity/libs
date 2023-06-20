@@ -123,11 +123,6 @@ extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_event_entry g_ppm_events[];
 
-//
-// udig stuff
-//
-int32_t udig_begin_capture(struct scap_engine_handle engine, char *error);
-
 #ifdef __cplusplus
 }
 #endif
