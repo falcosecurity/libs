@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(MINIMAL_BUILD)
 #include <curl/curl.h>
 #include <curl/easy.h>
 #include <curl/multi.h>
@@ -35,7 +35,7 @@ public:
 private:
 	std::string m_api_version;
 
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(_WIN32) && !defined(__EMSCRIPTEN__) && !defined(MINIMAL_BUILD)
 	CURLM *m_curlm;
 #endif
 };

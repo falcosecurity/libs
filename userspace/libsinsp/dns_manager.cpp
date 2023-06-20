@@ -19,7 +19,7 @@ limitations under the License.
 
 void sinsp_dns_resolver::refresh(uint64_t erase_timeout, uint64_t base_refresh_timeout, uint64_t max_refresh_timeout, std::future<void> f_exit)
 {
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	sinsp_dns_manager &manager = sinsp_dns_manager::get();
 	while(true)
 	{
@@ -79,7 +79,7 @@ void sinsp_dns_resolver::refresh(uint64_t erase_timeout, uint64_t base_refresh_t
 #endif
 }
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string &name, uint64_t ts)
 {
 	dns_info dinfo;
@@ -114,7 +114,7 @@ inline sinsp_dns_manager::dns_info sinsp_dns_manager::resolve(const std::string 
 
 bool sinsp_dns_manager::match(const char *name, int af, void *addr, uint64_t ts)
 {
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	if(!m_resolver)
 	{
 		m_resolver = new std::thread(sinsp_dns_resolver::refresh, m_erase_timeout, m_base_refresh_timeout, m_max_refresh_timeout, m_exit_signal.get_future());
@@ -155,7 +155,7 @@ std::string sinsp_dns_manager::name_of(int af, void *addr, uint64_t ts)
 {
 	std::string ret;
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	if(!m_cache.empty())
 	{
 		m_erase_mutex.lock();

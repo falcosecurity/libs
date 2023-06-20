@@ -677,35 +677,35 @@ void sinsp_container_manager::set_query_docker_image_info(bool query_image_info)
 
 void sinsp_container_manager::set_cri_extra_queries(bool extra_queries)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_extra_queries(extra_queries);
 #endif
 }
 
 void sinsp_container_manager::set_cri_socket_path(const std::string &path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::add_cri_socket_path(const std::string &path)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::add_cri_socket_path(path);
 #endif
 }
 
 void sinsp_container_manager::set_cri_timeout(int64_t timeout_ms)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_cri_timeout(timeout_ms);
 #endif
 }
 
 void sinsp_container_manager::set_cri_async(bool async)
 {
-#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE)
+#if !defined(MINIMAL_BUILD) && defined(HAS_CAPTURE) && !defined(__EMSCRIPTEN__)
 	libsinsp::container_engine::cri::set_async(async);
 #endif
 }

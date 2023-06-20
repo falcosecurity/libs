@@ -235,7 +235,12 @@ libsinsp::filter::ast::ppm_sc_codes(const libsinsp::filter::ast::expr* e)
         libsinsp::events::set<ppm_sc_code>,
         libsinsp::events::all_sc_set,
         libsinsp::events::event_names_to_sc_set> v;
+// note(jasondellaluce): ppm_sc code mappings are available for linux only so far
+#ifdef __linux
     e->accept(&v);
+#else
+    v.m_last_node_codes = { };
+#endif
     return v.m_last_node_codes;
 }
 
