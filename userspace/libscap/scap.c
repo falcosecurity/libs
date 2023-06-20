@@ -166,7 +166,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 #endif // HAS_LIVE_CAPTURE
 
 #ifdef HAS_ENGINE_UDIG
-int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
+int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
 {
 	int32_t rc;
 
@@ -183,8 +183,9 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	// Preliminary initializations
 	//
 	handle->m_mode = SCAP_MODE_LIVE;
-
 	handle->m_vtable = &scap_udig_engine;
+	handle->m_platform = platform;
+
 	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
 	if(!handle->m_engine.m_handle)
 	{
@@ -269,6 +270,11 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs)
 	// Now that /proc parsing has been done, start the capture
 	//
 	if((rc = udig_begin_capture(handle->m_engine, handle->m_lasterr)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
+
+	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
@@ -613,7 +619,13 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 #ifdef HAS_ENGINE_UDIG
 	if(strcmp(engine_name, UDIG_ENGINE) == 0)
 	{
-		return scap_init_udig_int(handle, oargs);
+		platform = scap_linux_alloc_platform();
+		if(!platform)
+		{
+			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		return scap_init_udig_int(handle, oargs, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
