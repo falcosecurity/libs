@@ -17,6 +17,7 @@ limitations under the License.
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // this header is designed to be useful to scap consumers,
@@ -28,6 +29,7 @@ extern "C" {
 
 struct scap;
 struct scap_addrlist;
+struct scap_threadinfo;
 
 /*!
   \brief Return the list of the the user interfaces of the machine from which the
@@ -55,6 +57,10 @@ struct scap_userlist* scap_get_user_list(struct scap* handle);
 // get the device major/minor number for the requested_mount_id, looking in procdir/mountinfo if needed
 // XXX: procdir is Linux-specific
 uint32_t scap_get_device_by_mount_id(struct scap *handle, const char *procdir, unsigned long requested_mount_id);
+
+// Get the information about a process.
+// The returned pointer must be freed via scap_proc_free by the caller.
+struct scap_threadinfo* scap_proc_get(struct scap* handle, int64_t tid, bool scan_sockets);
 
 #ifdef __cplusplus
 };
