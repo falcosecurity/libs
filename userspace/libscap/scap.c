@@ -376,7 +376,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 	handle->m_evtcnt = 0;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
-	handle->m_fd_lookup_limit = 0;
 
 	handle->m_proclist.m_proc_callback = oargs->proc_callback;
 	handle->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
@@ -443,7 +442,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	if(!engine_params || !engine_params->full_proc_scan)
 	{
 		handle->m_minimal_scan = true;
-		handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 	}
 
 #ifdef __linux__
@@ -513,7 +511,6 @@ int32_t scap_init_plugin_int(scap_t* handle, scap_open_args* oargs, struct scap_
 	// Extract machine information
 	//
 	scap_retrieve_machine_info(&handle->m_machine_info, (uint64_t)0);
-	handle->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP; // fd lookup is limited here because is very expensive
 
 	//
 	// Extract agent information
@@ -651,6 +648,12 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 		if(!platform)
 		{
 			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
+		}
+
+		struct scap_nodriver_engine_params* engine_params = oargs->engine_params;
+		if(!engine_params || !engine_params->full_proc_scan)
+		{
+			((struct scap_linux_platform*)platform)->m_fd_lookup_limit = SCAP_NODRIVER_MAX_FD_LOOKUP;
 		}
 
 		return scap_init_nodriver_int(handle, oargs, platform);
