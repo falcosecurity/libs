@@ -906,9 +906,8 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 //
 // Read a single thread info from /proc
 //
-int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
+int32_t scap_proc_read_thread(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
 {
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	int32_t res;
@@ -919,7 +918,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(linux_platform, &handle->m_proclist, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
+	res = scap_proc_add_from_proc(linux_platform, proclist, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		scap_errprintf(error, 0, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -1197,6 +1196,7 @@ int32_t scap_os_getpid_global(struct scap_engine_handle engine, int64_t *pid, ch
 
 struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_sockets)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	//
 	// No /proc parsing for offline captures
@@ -1209,7 +1209,7 @@ struct scap_threadinfo* scap_proc_get(scap_t* handle, int64_t tid, bool scan_soc
 	struct scap_threadinfo* tinfo = NULL;
 	char filename[SCAP_MAX_PATH_SIZE];
 	snprintf(filename, sizeof(filename), "%s/proc", scap_get_host_root());
-	if(scap_proc_read_thread(handle, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
+	if(scap_proc_read_thread(linux_platform, &handle->m_proclist, filename, tid, &tinfo, handle->m_lasterr, scan_sockets) != SCAP_SUCCESS)
 	{
 		free(tinfo);
 		return NULL;
