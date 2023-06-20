@@ -19,6 +19,7 @@ limitations under the License.
 #pragma once
 
 #include "scap_vtable.h"
+#include "scap_config.h"
 
 #ifdef __cplusplus
 extern "C" {
