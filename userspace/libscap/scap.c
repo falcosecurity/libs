@@ -69,10 +69,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
 
-	//
-	// Open and initialize all the devices
-	//
-	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
+	if(handle->m_vtable->init && (rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
 		return rc;
 	}
