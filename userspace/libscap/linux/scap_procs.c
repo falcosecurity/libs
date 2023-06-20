@@ -548,7 +548,7 @@ int32_t scap_proc_fill_exe_writable(char* error, struct scap_threadinfo* tinfo, 
 //
 // Add a process to the list by parsing its entry under /proc
 //
-static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, uint64_t* num_fds_ret, char *error)
+static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platform, struct scap_proclist* proclist, uint32_t tid, char* procdirname, struct scap_ns_socket_list** sockets_by_ns, scap_threadinfo** procinfo, uint64_t* num_fds_ret, char *error)
 {
 	char dir_name[256];
 	char target_name[SCAP_MAX_PATH_SIZE];
@@ -563,7 +563,6 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	bool free_tinfo = false;
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
-	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -867,9 +866,9 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		//
 		// Done. Add the entry to the process table, or fire the notification callback
 		//
-		if(handle->m_proclist.m_proc_callback == NULL)
+		if(proclist->m_proc_callback == NULL)
 		{
-			HASH_ADD_INT64(handle->m_proclist.m_proclist, tid, tinfo);
+			HASH_ADD_INT64(proclist->m_proclist, tid, tinfo);
 			if(uth_status != SCAP_SUCCESS)
 			{
 				free(tinfo);
@@ -878,8 +877,8 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 		}
 		else
 		{
-			handle->m_proclist.m_proc_callback(
-				handle->m_proclist.m_proc_callback_context, tinfo->tid, tinfo, NULL);
+			proclist->m_proc_callback(
+				proclist->m_proc_callback_context, tinfo->tid, tinfo, NULL);
 			free_tinfo = true;
 		}
 	}
@@ -893,7 +892,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	//
 	if(tinfo->pid == tinfo->tid)
 	{
-		res = scap_fd_scan_fd_dir(linux_platform, &handle->m_proclist, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
+		res = scap_fd_scan_fd_dir(linux_platform, proclist, dir_name, tinfo, sockets_by_ns, num_fds_ret, error);
 	}
 
 	if(free_tinfo)
@@ -909,6 +908,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 //
 int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, struct scap_threadinfo** pi, char *error, bool scan_sockets)
 {
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 	struct scap_ns_socket_list* sockets_by_ns = NULL;
 
 	int32_t res;
@@ -919,7 +919,7 @@ int32_t scap_proc_read_thread(scap_t* handle, char* procdirname, uint64_t tid, s
 		sockets_by_ns = (void*)-1;
 	}
 
-	res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
+	res = scap_proc_add_from_proc(linux_platform, &handle->m_proclist, tid, procdirname, &sockets_by_ns, pi, NULL, add_error);
 	if(res != SCAP_SUCCESS)
 	{
 		scap_errprintf(error, 0, "cannot add proc tid = %"PRIu64", dirname = %s, error=%s", tid, procdirname, add_error);
@@ -1027,7 +1027,7 @@ static int32_t _scap_proc_scan_proc_dir_impl(scap_t* handle, char* procdirname, 
 		// We have a process that needs to be explored
 		//
 		uint64_t num_fds_this_proc;
-		res = scap_proc_add_from_proc(handle, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
+		res = scap_proc_add_from_proc(linux_platform, &handle->m_proclist, tid, procdirname, &sockets_by_ns, NULL, &num_fds_this_proc, add_error);
 		if(res != SCAP_SUCCESS)
 		{
 			//
