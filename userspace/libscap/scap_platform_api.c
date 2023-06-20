@@ -113,3 +113,17 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Cannot get pid (capture not enabled)");
 	return SCAP_FAILURE;
 }
+
+//
+// Get the agent information
+//
+const scap_agent_info* scap_get_agent_info(scap_t* handle)
+{
+	if(handle && handle->m_platform)
+	{
+		return (const scap_agent_info*)&handle->m_platform->m_agent_info;
+	}
+
+	return NULL;
+}
+

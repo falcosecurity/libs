@@ -30,6 +30,7 @@ extern "C" {
 struct scap;
 struct scap_addrlist;
 struct scap_threadinfo;
+typedef struct _scap_agent_info scap_agent_info;
 
 /*!
   \brief Return the list of the the user interfaces of the machine from which the
@@ -97,6 +98,15 @@ bool scap_is_thread_alive(struct scap* handle, int64_t pid, int64_t tid, const c
 
 // like getpid() but returns the global PID even inside a container
 int32_t scap_getpid_global(struct scap* handle, int64_t* pid);
+
+/*!
+  \brief Get generic agent information
+
+  \return The pointer to a \ref scap_agent_info structure containing the information.
+
+  \note for live captures only.
+*/
+const scap_agent_info* scap_get_agent_info(struct scap* handle);
 
 #ifdef __cplusplus
 };

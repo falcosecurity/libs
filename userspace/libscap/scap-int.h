@@ -54,7 +54,6 @@ struct scap
 
 	uint64_t m_evtcnt;
 	scap_machine_info m_machine_info;
-	scap_agent_info m_agent_info;
 	struct ppm_proclist_info* m_driver_procinfo;
 
 	// Function which may be called to log a debug event
@@ -102,11 +101,6 @@ int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
 			      uint16_t devid, bool *suppressed, char *error);
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr);
-
-//
-// Retrieve agent info.
-//
-void scap_retrieve_agent_info(scap_agent_info* agent_info);
 
 //
 // Retrieve machine info.
