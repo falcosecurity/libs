@@ -67,6 +67,7 @@ else()
         ${PROTOBUF_LIB}
         ${JSONCPP_LIB}
         scap
+        scap_platform_util
     )
     set_scap_target_properties(scap_engine_gvisor)
 endif()
