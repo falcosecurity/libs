@@ -148,9 +148,9 @@ struct ppm_proclist_info* scap_get_threadlist(scap_t* handle)
 {
 	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_threadlist)
 	{
-		if(handle->m_platform->m_vtable->get_threadlist(handle->m_platform, &handle->m_driver_procinfo, handle->m_lasterr) == SCAP_SUCCESS)
+		if(handle->m_platform->m_vtable->get_threadlist(handle->m_platform, &handle->m_platform->m_driver_procinfo, handle->m_lasterr) == SCAP_SUCCESS)
 		{
-			return handle->m_driver_procinfo;
+			return handle->m_platform->m_driver_procinfo;
 		}
 		return NULL;
 	}
