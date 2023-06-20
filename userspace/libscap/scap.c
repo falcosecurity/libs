@@ -48,7 +48,7 @@ const char* scap_getlasterr(scap_t* handle)
 	return handle ? handle->m_lasterr : "null scap handle";
 }
 
-#if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF)
+#if defined(HAS_ENGINE_KMOD) || defined(HAS_ENGINE_BPF) || defined(HAS_ENGINE_MODERN_BPF) || defined(HAS_ENGINE_UDIG)
 int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct scap_vtable* vtable, struct scap_platform* platform)
 {
 	int32_t rc;
@@ -90,50 +90,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	return SCAP_SUCCESS;
 }
 #endif // HAS_LIVE_CAPTURE
-
-#ifdef HAS_ENGINE_UDIG
-int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_platform* platform)
-{
-	int32_t rc;
-
-	//
-	// Preliminary initializations
-	//
-	handle->m_mode = SCAP_MODE_LIVE;
-	handle->m_vtable = &scap_udig_engine;
-	handle->m_platform = platform;
-
-	handle->m_engine.m_handle = handle->m_vtable->alloc_handle(handle, handle->m_lasterr);
-	if(!handle->m_engine.m_handle)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error allocating the engine structure");
-		return SCAP_FAILURE;
-	}
-
-	rc = handle->m_vtable->init(handle, oargs);
-	if(rc != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	//
-	// Additional initializations
-	//
-	scap_stop_dropping_mode(handle);
-
-	//
-	// Now that /proc parsing has been done, start the capture
-	//
-	if((rc = scap_platform_init(handle->m_platform, handle->m_lasterr, handle->m_engine, oargs)) != SCAP_SUCCESS)
-	{
-		return rc;
-	}
-
-	return SCAP_SUCCESS;
-}
-#endif // HAS_ENGINE_UDIG
 
 #ifdef HAS_ENGINE_TEST_INPUT
 int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
@@ -346,7 +302,7 @@ int32_t scap_init(scap_t* handle, scap_open_args* oargs)
 			return scap_errprintf(handle->m_lasterr, 0, "failed to allocate platform struct");
 		}
 
-		return scap_init_udig_int(handle, oargs, platform);
+		return scap_init_live_int(handle, oargs, &scap_udig_engine, platform);
 	}
 #endif
 #ifdef HAS_ENGINE_GVISOR
