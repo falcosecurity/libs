@@ -114,6 +114,23 @@ int32_t scap_getpid_global(scap_t* handle, int64_t* pid)
 	return SCAP_FAILURE;
 }
 
+const scap_machine_info* scap_get_machine_info(scap_t* handle)
+{
+	if(handle && handle->m_platform)
+	{
+		scap_machine_info* machine_info = &handle->m_platform->m_machine_info;
+		if(machine_info->num_cpus != (uint32_t)-1)
+		{
+			return machine_info;
+		}
+	}
+
+	//
+	// Reading from a file with no process info block
+	//
+	return NULL;
+}
+
 //
 // Get the agent information
 //
