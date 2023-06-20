@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../common")
+include_directories("${PROJECT_BINARY_DIR}/libscap")
 
 option(USE_BUNDLED_DEPS "Enable bundled dependencies instead of using the system ones" ON)
 
@@ -95,7 +96,7 @@ option(CREATE_TEST_TARGETS "Enable make-targets for unit testing" ON)
 
 if(CREATE_TEST_TARGETS)
 	# Add engine only used for testing
-	add_definitions(-DHAS_ENGINE_TEST_INPUT)
+	set(HAS_ENGINE_TEST_INPUT On)
 	add_subdirectory(engine/test_input)
 	target_link_libraries(scap scap_engine_test_input)
 endif()
@@ -144,40 +145,39 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 	target_link_libraries(scap scap_engine_util)
 endif()
 
-add_definitions(-DHAS_ENGINE_NOOP)
 add_subdirectory(engine/noop)
 # don't link the noop engine to libscap directly,
 # it's a helper library for other engines (it's completely useless on its own)
 
-add_definitions(-DHAS_ENGINE_NODRIVER)
+set(HAS_ENGINE_NODRIVER On)
 add_subdirectory(engine/nodriver)
 target_link_libraries(scap scap_engine_nodriver)
 
-add_definitions(-DHAS_ENGINE_SAVEFILE)
+set(HAS_ENGINE_SAVEFILE On)
 add_subdirectory(engine/savefile)
 target_link_libraries(scap scap_engine_savefile)
 
-add_definitions(-DHAS_ENGINE_SOURCE_PLUGIN)
+set(HAS_ENGINE_SOURCE_PLUGIN On)
 add_subdirectory(engine/source_plugin)
 target_link_libraries(scap scap_engine_source_plugin)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	add_definitions(-DHAS_ENGINE_UDIG)
+	set(HAS_ENGINE_UDIG On)
 	add_subdirectory(engine/udig)
 	target_link_libraries(scap scap_engine_udig)
 
 	include(libelf)
 
-	add_definitions(-DHAS_ENGINE_BPF)
+	set(HAS_ENGINE_BPF On)
 	add_subdirectory(engine/bpf)
 	target_link_libraries(scap scap_engine_bpf)
 
-	add_definitions(-DHAS_ENGINE_KMOD)
+	set(HAS_ENGINE_KMOD On)
 	add_subdirectory(engine/kmod)
 	target_link_libraries(scap scap_engine_kmod)
 
 	if(BUILD_LIBSCAP_MODERN_BPF)
-		add_definitions(-DHAS_ENGINE_MODERN_BPF)
+		set(HAS_ENGINE_MODERN_BPF On)
 		add_subdirectory(engine/modern_bpf)
 		target_link_libraries(scap scap_engine_modern_bpf)
 	endif()
@@ -188,7 +188,7 @@ endif()
 if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux" AND NOT MINIMAL_BUILD)
 	option(BUILD_LIBSCAP_GVISOR "Build gVisor support" ON)
 	if (BUILD_LIBSCAP_GVISOR)
-		add_definitions(-DHAS_ENGINE_GVISOR)
+		set(HAS_ENGINE_GVISOR On)
 		add_subdirectory(engine/gvisor)
 		# The static and shared build differs here because a shared scap_engine_gvisor
 		# will result in circular dependencies.
@@ -206,6 +206,8 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND CMAKE_SYSTEM_NAME MATCHES "Linux
 		endif()
 	endif()
 endif()
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scap_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/scap_config.h)
 
 if (BUILD_LIBSCAP_EXAMPLES)
 	add_subdirectory(examples/01-open)

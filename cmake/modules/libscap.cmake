@@ -59,7 +59,7 @@ endif()
 
 get_filename_component(LIBSCAP_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/libscap ABSOLUTE)
 get_filename_component(LIBSCAP_COMMON_INCLUDE_DIR ${LIBSCAP_DIR}/userspace/common ABSOLUTE)
-set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_COMMON_INCLUDE_DIR} ${DRIVER_CONFIG_DIR})
+set(LIBSCAP_INCLUDE_DIRS ${LIBSCAP_INCLUDE_DIR} ${LIBSCAP_COMMON_INCLUDE_DIR} ${PROJECT_BINARY_DIR}/libscap ${DRIVER_CONFIG_DIR})
 
 function(set_scap_target_properties target)
 	set_target_properties(${target} PROPERTIES
@@ -147,5 +147,6 @@ install(DIRECTORY "${PROJECT_BINARY_DIR}/common" DESTINATION "${CMAKE_INSTALL_IN
 install(DIRECTORY "${LIBSCAP_DIR}/userspace/plugin" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace"
 		COMPONENT "scap"
 		FILES_MATCHING PATTERN "*.h")
+install(FILES ${PROJECT_BINARY_DIR}/libscap/scap_config.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${LIBS_PACKAGE_NAME}/userspace/libscap)
 install(FILES ${PROJECT_BINARY_DIR}/libscap/libscap.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
