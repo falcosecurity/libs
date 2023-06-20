@@ -32,6 +32,7 @@ extern "C" {
 #endif
 
 #include "engine_handle.h"
+#include "scap_suppress.h"
 
 struct scap_addrlist;
 struct scap_open_args;
@@ -67,6 +68,7 @@ struct scap_platform
 	const struct scap_platform_vtable* m_vtable;
 	struct scap_addrlist *m_addrlist;
 	struct scap_userlist *m_userlist;
+	struct scap_suppress m_suppress;
 };
 
 #ifdef __cplusplus

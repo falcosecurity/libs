@@ -654,7 +654,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	}
 
 	bool suppressed;
-	if ((res = scap_update_suppressed(&handle->m_suppress, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
+	if ((res = scap_update_suppressed(&linux_platform->m_generic.m_suppress, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't update set of suppressed tids");
