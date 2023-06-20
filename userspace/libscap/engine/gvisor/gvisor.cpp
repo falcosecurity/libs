@@ -23,6 +23,7 @@ namespace scap_gvisor {
 
 #include "scap.h"
 #include "gvisor.h"
+#include "gvisor_platform.h"
 #include "scap-int.h"
 
 #include <stdio.h>
@@ -41,6 +42,36 @@ namespace scap_gvisor {
 #ifdef __cplusplus
 extern "C"{
 #endif
+
+static int32_t scap_gvisor_init_platform(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs)
+{
+	return SCAP_SUCCESS;
+}
+
+static int32_t scap_gvisor_close_platform(struct scap_platform* platform)
+{
+	return SCAP_SUCCESS;
+}
+
+static void scap_gvisor_free_platform(struct scap_platform* platform)
+{
+	auto gvisor_platform = reinterpret_cast<struct scap_gvisor_platform*>(platform);
+	delete gvisor_platform;
+}
+
+static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
+	.init_platform = scap_gvisor_init_platform,
+	.close_platform = scap_gvisor_close_platform,
+	.free_platform = scap_gvisor_free_platform,
+};
+
+struct scap_platform* scap_gvisor_alloc_platform()
+{
+	auto platform = new scap_gvisor_platform;
+	platform->m_generic.m_vtable = &scap_gvisor_platform_vtable;
+
+	return &platform->m_generic;
+}
 
 static SCAP_HANDLE_T *gvisor_alloc_handle(scap_t* main_handle, char *lasterr_ptr)
 {
