@@ -3,7 +3,6 @@ LIBRARY scap
 EXPORTS
 		scap_open
 		scap_close
-		scap_get_os_platform
 		scap_get_ndevs
 		scap_getlasterr
 		scap_max_buf_used
