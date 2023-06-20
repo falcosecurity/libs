@@ -42,11 +42,6 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 	return false;
 }
 
-int32_t scap_refresh_proc_table(scap_t* handle)
-{
-	return SCAP_SUCCESS;
-}
-
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
 {
 	return SCAP_FAILURE;

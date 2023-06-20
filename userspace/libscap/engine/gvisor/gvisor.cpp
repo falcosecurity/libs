@@ -64,6 +64,7 @@ static const struct scap_platform_vtable scap_gvisor_platform_vtable = {
 	.refresh_addr_list = NULL,
 	.get_device_by_mount_id = NULL,
 	.get_proc = NULL,
+	.refresh_proc_table = NULL, // TODO use a single abstraction for this
 	.close_platform = scap_gvisor_close_platform,
 	.free_platform = scap_gvisor_free_platform,
 };
