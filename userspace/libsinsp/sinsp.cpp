@@ -505,6 +505,9 @@ void sinsp::open_common(scap_open_args* oargs)
 	// in the event stream.
 	if (!is_capture())
 	{
+		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
+		// tbb queues, so async event production is disabled
+#ifndef __EMSCRIPTEN__
 		for (auto& p : m_plugin_manager->plugins())
 		{
 			if (p->caps() & CAP_ASYNC)
@@ -519,6 +522,7 @@ void sinsp::open_common(scap_open_args* oargs)
 				}
 			}
 		}
+#endif
 	}
 }
 
@@ -837,6 +841,9 @@ void sinsp::close()
 	if (!is_capture() && m_mode != SCAP_MODE_NONE)
 	{
 		std::string err;
+		// note(jasondellaluce,rohith-raju): for now the emscripten build does not support
+		// tbb queues, so async event production is disabled
+#ifndef __EMSCRIPTEN__
 		for (auto& p : m_plugin_manager->plugins())
 		{
 			if (p->caps() & CAP_ASYNC)
@@ -852,6 +859,7 @@ void sinsp::close()
 				}
 			}
 		}
+#endif
 		if (!err.empty())
 		{
 			throw sinsp_exception(err);
