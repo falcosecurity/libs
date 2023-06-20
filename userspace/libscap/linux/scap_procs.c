@@ -34,6 +34,7 @@ limitations under the License.
 #include "scap-int.h"
 #include "scap_cgroup.h"
 #include "scap_linux_int.h"
+#include "scap_linux_platform.h"
 #include "strerror.h"
 #include "clock_helpers.h"
 #include "debug_log_helpers.h"
@@ -397,22 +398,22 @@ int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo
 	}
 }
 
-static int32_t scap_get_vtid(scap_t* handle, uint64_t tid, int64_t *vtid)
+static int32_t scap_get_vtid(struct scap_linux_platform *platform, uint64_t tid, int64_t *vtid)
 {
-	if(handle->m_vtable)
+	if(platform->m_linux_vtable && platform->m_linux_vtable->get_vtid)
 	{
-		return handle->m_vtable->get_vtid(handle->m_engine, tid, vtid);
+		return platform->m_linux_vtable->get_vtid(platform->m_engine, tid, vtid);
 	}
 
 	ASSERT(false);
 	return SCAP_FAILURE;
 }
 
-static int32_t scap_get_vpid(scap_t* handle, int64_t pid, int64_t *vpid)
+static int32_t scap_get_vpid(struct scap_linux_platform *platform, int64_t pid, int64_t *vpid)
 {
-	if(handle->m_vtable)
+	if(platform->m_linux_vtable && platform->m_linux_vtable->get_vpid)
 	{
-		return handle->m_vtable->get_vpid(handle->m_engine, pid, vpid);
+		return platform->m_linux_vtable->get_vpid(platform->m_engine, pid, vpid);
 	}
 
 	ASSERT(false);
@@ -562,6 +563,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 	bool free_tinfo = false;
 	int32_t res = SCAP_SUCCESS;
 	struct stat dirstat;
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
 
 	snprintf(dir_name, sizeof(dir_name), "%s/%u/", procdirname, tid);
 	snprintf(filename, sizeof(filename), "%sexe", dir_name);
@@ -785,12 +787,12 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 
 	// These values should be read already from /status file, leave these
 	// fallback functions for older kernels < 4.1
-	if(tinfo->vtid == 0 && scap_get_vtid(handle, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
+	if(tinfo->vtid == 0 && scap_get_vtid(linux_platform, tinfo->tid, &tinfo->vtid) == SCAP_FAILURE)
 	{
 		tinfo->vtid = tinfo->tid;
 	}
 
-	if(tinfo->vpid == 0 && scap_get_vpid(handle, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
+	if(tinfo->vpid == 0 && scap_get_vpid(linux_platform, tinfo->tid, &tinfo->vpid) == SCAP_FAILURE)
 	{
 		tinfo->vpid = tinfo->pid;
 	}

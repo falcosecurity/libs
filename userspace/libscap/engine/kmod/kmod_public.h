@@ -21,12 +21,14 @@ limitations under the License.
 extern "C"
 {
 #endif
+	#include "linux/scap_linux_platform.h"
 
 	struct scap_kmod_engine_params
 	{
 		unsigned long buffer_bytes_dim; ///< Dimension of a single per-CPU buffer in bytes. Please note: this buffer will be mapped twice in the process virtual memory, so pay attention to its size.
 	};
 
+	extern const struct scap_linux_vtable scap_kmod_linux_vtable;
 #ifdef __cplusplus
 };
 #endif

@@ -113,11 +113,6 @@ int32_t noop_get_threadlist(struct scap_engine_handle engine, struct ppm_proclis
 	return SCAP_NOT_SUPPORTED;
 }
 
-int32_t noop_get_vxid(struct scap_engine_handle engine, uint64_t xid, int64_t* vxid)
-{
-	return SCAP_NOT_SUPPORTED;
-}
-
 int32_t noop_getpid_global(struct scap_engine_handle engine, int64_t* pid, char* error)
 {
 	return SCAP_NOT_SUPPORTED;
@@ -142,8 +137,6 @@ const struct scap_vtable scap_noop_engine = {
 	.get_n_devs = noop_get_n_devs,
 	.get_max_buf_used = noop_get_max_buf_used,
 	.get_threadlist = noop_get_threadlist,
-	.get_vpid = noop_get_vxid,
-	.get_vtid = noop_get_vxid,
 	.getpid_global = noop_getpid_global,
 	.get_api_version = NULL,
 	.get_schema_version = NULL,
