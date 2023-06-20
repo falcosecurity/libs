@@ -55,7 +55,14 @@ if (DEFINED SCAP_BPF_PROGS_TAIL_CALLED_MAX)
 	add_definitions(-DBPF_PROGS_TAIL_CALLED_MAX=${SCAP_BPF_PROGS_TAIL_CALLED_MAX})
 endif()
 
-list(APPEND targetfiles
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
+    include_directories(${PROJECT_BINARY_DIR}/driver/src)
+endif()
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+add_library(scap
 	scap.c
 	scap_api_version.c
 	scap_fds.c
@@ -67,23 +74,12 @@ list(APPEND targetfiles
 	scap_suppress.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-	list(APPEND targetfiles linux/scap_machine_info.c)
+	target_sources(scap PRIVATE linux/scap_machine_info.c)
 elseif(WIN32)
-	list(APPEND targetfiles win32/scap_machine_info.c)
+	target_sources(scap PRIVATE win32/scap_machine_info.c)
 elseif(APPLE)
-	list(APPEND targetfiles macos/scap_machine_info.c)
+	target_sources(scap PRIVATE macos/scap_machine_info.c)
 endif()
-
-
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}) # temporary
-    include_directories(${PROJECT_BINARY_DIR}/driver/src)
-endif()
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
-add_library(scap
-	${targetfiles})
 
 set_scap_target_properties(scap)
 
