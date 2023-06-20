@@ -31,6 +31,7 @@ limitations under the License.
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
 #include "scap_engine_util.h"
+#include "scap_platform.h"
 
 #include "scap_engines.h"
 
@@ -686,6 +687,12 @@ void scap_deinit(scap_t* handle)
 {
 	scap_deinit_state(handle);
 	scap_suppress_close(&handle->m_suppress);
+
+	if(handle->m_platform)
+	{
+		scap_platform_close(handle->m_platform);
+		scap_platform_free(handle->m_platform);
+	}
 
 	if(handle->m_vtable)
 	{
