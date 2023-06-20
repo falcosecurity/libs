@@ -20,6 +20,7 @@ limitations under the License.
 #include <stdlib.h>
 #include <signal.h>
 #include <scap.h>
+#include <scap-int.h>
 #include <arpa/inet.h>
 #include <sys/time.h>
 #include "strl.h"
@@ -766,7 +767,7 @@ void print_stats()
 	int32_t rc;
 	const scap_stats_v2* stats_v2;
 	stats_v2 = scap_get_stats_v2(g_h, flags, &nstats, &rc);
-	const scap_machine_info* scap_machine_info = scap_get_machine_info(g_h);
+	uint64_t engine_flags = scap_get_engine_flags(g_h);
 	uint64_t n_evts = 0;
 	if (stats_v2 && nstats > 0)
 	{
@@ -800,7 +801,7 @@ void print_stats()
 	{
 		printf("[SCAP-OPEN]: [1] kernel-side counters\n");
 		printf("[SCAP-OPEN]: [2] libbpf stats (compare to `bpftool prog show` CLI)\n\n");
-		if (!(scap_machine_info->flags & PPM_BPF_STATS_ENABLED))
+		if (!(engine_flags & ENGINE_FLAG_BPF_STATS_ENABLED))
 		{
 			printf("\n[Notice]: `/proc/sys/kernel/bpf_stats_enabled` not enabled, no `libbpf` stats retrieved.\n\n");
 		}

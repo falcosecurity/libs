@@ -228,7 +228,18 @@ int32_t scap_modern_bpf__init(scap_t* handle, scap_open_args* oargs)
 	engine.m_handle->m_api_version = pman_get_probe_api_ver();
 	engine.m_handle->m_schema_version = pman_get_probe_schema_ver();
 
+	engine.m_handle->m_flags = 0;
+	if(scap_get_bpf_stats_enabled())
+	{
+		engine.m_handle->m_flags |= ENGINE_FLAG_BPF_STATS_ENABLED;
+	}
+
 	return SCAP_SUCCESS;
+}
+
+static uint64_t scap_modern_bpf__get_flags(struct scap_engine_handle engine)
+{
+	return engine.m_handle->m_flags;
 }
 
 int32_t scap_modern_bpf__close(struct scap_engine_handle engine)
@@ -282,6 +293,7 @@ struct scap_vtable scap_modern_bpf_engine = {
 
 	.alloc_handle = scap_modern_bpf__alloc_engine,
 	.init = scap_modern_bpf__init,
+	.get_flags = scap_modern_bpf__get_flags,
 	.free_handle = scap_modern_bpf__free_engine,
 	.close = scap_modern_bpf__close,
 	.next = scap_modern_bpf__next,

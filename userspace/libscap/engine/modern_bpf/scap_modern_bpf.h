@@ -34,4 +34,5 @@ struct modern_bpf_engine
 	uint64_t m_api_version;
 	uint64_t m_schema_version;
 	bool capturing;
+	uint64_t m_flags;
 };

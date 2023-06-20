@@ -48,3 +48,21 @@ int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
 	*boot_time = timespec_to_nsec(&wall_ts) - timespec_to_nsec(&boot_ts);
 	return SCAP_SUCCESS;
 }
+
+bool scap_get_bpf_stats_enabled()
+{
+	FILE* f;
+	if((f = fopen("/proc/sys/kernel/bpf_stats_enabled", "r")))
+	{
+		uint32_t bpf_stats_enabled = 0;
+		if(fscanf(f, "%u", &bpf_stats_enabled) == 1)
+		{
+			fclose(f);
+			return bpf_stats_enabled;
+		}
+
+		fclose(f);
+	}
+	return false;
+}
+
