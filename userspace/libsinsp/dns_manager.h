@@ -68,7 +68,7 @@ public:
 
 	size_t size()
 	{
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 		return m_cache.size();
 #else
 		return 0;
@@ -85,7 +85,7 @@ private:
         sinsp_dns_manager(sinsp_dns_manager const&) = delete;
         void operator=(sinsp_dns_manager const&) = delete;
 
-#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN_)
+#if defined(HAS_CAPTURE) && !defined(CYGWING_AGENT) && !defined(_WIN32) && !defined(__EMSCRIPTEN__)
 	struct dns_info
 	{
 		bool operator==(const dns_info &other) const
