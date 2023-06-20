@@ -58,7 +58,6 @@ struct scap
 	uint64_t m_evtcnt;
 	scap_machine_info m_machine_info;
 	scap_agent_info m_agent_info;
-	scap_userlist* m_userlist;
 	struct ppm_proclist_info* m_driver_procinfo;
 	uint32_t m_fd_lookup_limit;
 	bool m_minimal_scan;
@@ -102,8 +101,6 @@ uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsign
 int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
 void scap_free_iflist(scap_addrlist* ifhandle);
-// Allocate and return the list of users on this system
-int32_t scap_create_userlist(scap_t* handle);
 // Free a previously allocated list of users
 void scap_free_userlist(scap_userlist* uhandle);
 // Allocate a file descriptor
