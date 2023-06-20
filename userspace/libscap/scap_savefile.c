@@ -1033,7 +1033,7 @@ static int32_t scap_write_userlist(scap_dumper_t* d, struct scap_userlist *userl
 //
 // Create the dump file headers and add the tables
 //
-static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fname)
+static int32_t scap_setup_dump(scap_dumper_t* d, struct scap_platform *platform, const char *fname)
 {
 	block_header bh;
 	section_header_block sh;
@@ -1060,12 +1060,12 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		return SCAP_FAILURE;
 	}
 
-	if(handle->m_mode != SCAP_MODE_PLUGIN)
+	if(platform)
 	{
 		//
 		// Write the machine info
 		//
-		if(scap_write_machine_info(d, &handle->m_platform->m_machine_info) != SCAP_SUCCESS)
+		if(scap_write_machine_info(d, &platform->m_machine_info) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1073,7 +1073,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the interface list
 		//
-		if(scap_write_iflist(d, handle->m_platform->m_addrlist) != SCAP_SUCCESS)
+		if(scap_write_iflist(d, platform->m_addrlist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1081,7 +1081,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the user list
 		//
-		if(scap_write_userlist(d, handle->m_platform->m_userlist) != SCAP_SUCCESS)
+		if(scap_write_userlist(d, platform->m_userlist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1089,7 +1089,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the process list
 		//
-		if(scap_write_proclist(d, &handle->m_platform->m_proclist) != SCAP_SUCCESS)
+		if(scap_write_proclist(d, &platform->m_proclist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1097,7 +1097,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the fd lists
 		//
-		if(scap_write_fdlist(d, &handle->m_platform->m_proclist) != SCAP_SUCCESS)
+		if(scap_write_fdlist(d, &platform->m_proclist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
@@ -1131,7 +1131,7 @@ static scap_dumper_t *scap_dump_open_gzfile(scap_t *handle, gzFile gzfile, const
 	res->m_targetbufcurpos = NULL;
 	res->m_targetbufend = NULL;
 
-	if(scap_setup_dump(handle, res, fname) != SCAP_SUCCESS)
+	if(scap_setup_dump(res, handle->m_mode == SCAP_MODE_PLUGIN ? NULL : handle->m_platform, fname) != SCAP_SUCCESS)
 	{
 		strcpy(handle->m_lasterr, res->m_lasterr);
 		free(res);
@@ -1291,7 +1291,7 @@ scap_dumper_t *scap_memory_dump_open(scap_t *handle, uint8_t* targetbuf, uint64_
 	res->m_targetbufcurpos = targetbuf;
 	res->m_targetbufend = targetbuf + targetbufsize;
 
-	if(scap_setup_dump(handle, res, "") != SCAP_SUCCESS)
+	if(scap_setup_dump(res, handle->m_mode == SCAP_MODE_PLUGIN ? NULL : handle->m_platform, "") != SCAP_SUCCESS)
 	{
 		strcpy(handle->m_lasterr, res->m_lasterr);
 		free(res);
