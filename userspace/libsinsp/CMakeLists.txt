@@ -49,14 +49,14 @@ endif()
 
 if(NOT MINIMAL_BUILD)
 	include(zlib)
-	if (NOT WIN32 AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	if (NOT WIN32 AND NOT EMSCRIPTEN)
 		include(curl)
 		include(cares)
 	endif() # NOT WIN32
 endif()
 
 if(NOT WIN32 AND NOT APPLE )
-	if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 		include(grpc)
 		include(protobuf)
 		include(openssl)
@@ -65,7 +65,7 @@ if(NOT WIN32 AND NOT APPLE )
 	include_directories("${CMAKE_CURRENT_BINARY_DIR}")
 endif()
 
-if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (NOT EMSCRIPTEN)
 	include(tbb)
 endif()
 
@@ -135,7 +135,7 @@ if(WITH_CHISEL)
 		../chisel/chisel_table.cpp)
 endif()
 
-if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 	list(APPEND SINSP_SOURCES
 		addrinfo.cpp
 		sinsp_auth.cpp
@@ -193,7 +193,7 @@ endif()
 
 add_library(sinsp ${SINSP_SOURCES})
 
-if (CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if (EMSCRIPTEN)
 	target_compile_options(sinsp PRIVATE "-sDISABLE_EXCEPTION_CATCHING=0")
 endif()
 
@@ -205,7 +205,7 @@ set(SINSP_LIBRARIES
 	"${JSONCPP_LIB}"
 	"${RE2_LIB}"
 )
-if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+if(NOT EMSCRIPTEN)
 	list(APPEND 
 		SINSP_LIBRARIES
 		"${TBB_LIB}"
@@ -245,17 +245,17 @@ endfunction()
 
 if(NOT WIN32)
 	if(NOT MINIMAL_BUILD)
-		if(NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+		if(NOT EMSCRIPTEN)
 			add_dependencies(sinsp openssl curl)
 		endif()	
 	endif()
 
-	if (NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+	if (NOT EMSCRIPTEN)
 		add_dependencies(sinsp tbb)
 	endif()	
 
 	if(NOT APPLE)
-		if(NOT MINIMAL_BUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Emscripten")
+		if(NOT MINIMAL_BUILD AND NOT EMSCRIPTEN)
 			include(protobuf)
 			include(cares)
 			prepare_cri_grpc(v1alpha2)
