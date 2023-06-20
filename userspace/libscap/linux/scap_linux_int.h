@@ -35,6 +35,8 @@ struct scap_platform;
 int32_t scap_linux_create_iflist(struct scap_platform* platform);
 int32_t scap_linux_create_userlist(struct scap_platform* platform);
 
+uint32_t scap_linux_get_device_by_mount_id(struct scap_platform* platform, const char *procdir, unsigned long requested_mount_id);
+
 // read all sockets and add them to the socket table hashed by their ino
 int32_t scap_fd_read_sockets(char* procdir, struct scap_ns_socket_list* sockets, char *error);
 void scap_fd_free_ns_sockets_list(struct scap_ns_socket_list** sockets);

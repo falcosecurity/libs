@@ -48,3 +48,13 @@ scap_userlist* scap_get_user_list(scap_t* handle)
 
 	return NULL;
 }
+
+uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id)
+{
+	if (handle && handle->m_platform && handle->m_platform->m_vtable->get_device_by_mount_id)
+	{
+		return handle->m_platform->m_vtable->get_device_by_mount_id(handle->m_platform, procdir, requested_mount_id);
+	}
+
+	return 0;
+}

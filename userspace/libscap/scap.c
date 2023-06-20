@@ -373,7 +373,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 		return SCAP_FAILURE;
 	}
 
-	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
@@ -701,13 +700,6 @@ static inline void scap_deinit_state(scap_t* handle)
 	{
 		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
-	}
-
-	// Free the device table
-	if(handle->m_dev_list != NULL)
-	{
-		scap_free_device_table(handle);
-		handle->m_dev_list = NULL;
 	}
 
 	if(handle->m_driver_procinfo)

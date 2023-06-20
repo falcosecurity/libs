@@ -20,6 +20,7 @@ limitations under the License.
 #include "scap.h"
 #include "scap-int.h"
 #include "scap_linux_int.h"
+#include "scap_linux_platform.h"
 #include "strlcpy.h"
 #include "strerror.h"
 #include <sys/stat.h>
@@ -162,14 +163,15 @@ static inline uint32_t open_flags_to_scap(unsigned long flags)
 	return res;
 }
 
-uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsigned long requested_mount_id)
+uint32_t scap_linux_get_device_by_mount_id(struct scap_platform *platform, const char *procdir, unsigned long requested_mount_id)
 {
 	char fd_dir_name[SCAP_MAX_PATH_SIZE];
 	char line[SCAP_MAX_PATH_SIZE];
 	FILE *finfo;
 	scap_mountinfo *mountinfo;
+	struct scap_linux_platform *linux_platform = (struct scap_linux_platform *)platform;
 
-	HASH_FIND_INT64(handle->m_dev_list, &requested_mount_id, mountinfo);
+	HASH_FIND_INT64(linux_platform->m_dev_list, &requested_mount_id, mountinfo);
 	if(mountinfo != NULL)
 	{
 		return mountinfo->dev;
@@ -199,7 +201,7 @@ uint32_t scap_get_device_by_mount_id(scap_t *handle, const char *procdir, unsign
 				int32_t uth_status = SCAP_SUCCESS;
 				mountinfo->mount_id = mount_id;
 				mountinfo->dev = dev;
-				HASH_ADD_INT64(handle->m_dev_list, mount_id, mountinfo);
+				HASH_ADD_INT64(linux_platform->m_dev_list, mount_id, mountinfo);
 				if(uth_status != SCAP_SUCCESS)
 				{
 					free(mountinfo);
