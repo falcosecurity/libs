@@ -56,7 +56,7 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	//
 	// Preliminary initializations
 	//
-	handle->m_mode = SCAP_MODE_LIVE;
+	handle->m_mode = vtable->mode;
 	handle->m_vtable = vtable;
 	handle->m_platform = platform;
 
