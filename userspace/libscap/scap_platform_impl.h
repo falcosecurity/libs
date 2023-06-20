@@ -33,6 +33,7 @@ extern "C" {
 
 #include "engine_handle.h"
 
+struct scap_addrlist;
 struct scap_open_args;
 struct scap_platform;
 
@@ -42,6 +43,10 @@ struct scap_platform_vtable
 	// initialize the platform-specific structure
 	// at this point the engine is fully initialized and operational
 	int32_t (*init_platform)(struct scap_platform* platform, char* lasterr, struct scap_engine_handle engine, struct scap_open_args* oargs);
+
+	// refresh the interface list and place it inside
+	// platform->m_addrlist
+	int32_t (*refresh_addr_list)(struct scap_platform* platform);
 
 	// close the platform structure
 	// clean up all data, make it ready for another call to `init_platform`
@@ -59,6 +64,7 @@ struct scap_platform_vtable
 struct scap_platform
 {
 	const struct scap_platform_vtable* m_vtable;
+	struct scap_addrlist *m_addrlist;
 };
 
 #ifdef __cplusplus

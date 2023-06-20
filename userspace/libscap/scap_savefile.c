@@ -31,6 +31,7 @@ struct iovec {
 
 #include "scap.h"
 #include "scap-int.h"
+#include "scap_platform_impl.h"
 #include "scap_savefile_api.h"
 #include "scap_savefile.h"
 
@@ -1072,7 +1073,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the interface list
 		//
-		if(scap_write_iflist(d, handle->m_addrlist) != SCAP_SUCCESS)
+		if(scap_write_iflist(d, handle->m_platform->m_addrlist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}
