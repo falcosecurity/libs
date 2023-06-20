@@ -106,12 +106,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	}
 #endif
 
-	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return rc;
-	}
-
 	//
 	// Open and initialize all the devices
 	//
@@ -213,11 +207,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 		return SCAP_FAILURE;
 	}
 #endif
-	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return rc;
-	}
 
 	//
 	// Additional initializations
@@ -306,12 +295,6 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct s
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
-	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return rc;
-	}
-
 	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
 	{
 		return rc;
@@ -356,12 +339,6 @@ int32_t scap_init_gvisor_int(scap_t* handle, scap_open_args* oargs, struct scap_
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
-
-	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
-		return rc;
-	}
 
 	if ((rc = scap_proc_scan_vtable(handle->m_lasterr, handle)) != SCAP_SUCCESS)
 	{
@@ -410,12 +387,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 
 	if((rc = handle->m_vtable->init(handle, oargs)) != SCAP_SUCCESS)
 	{
-		return rc;
-	}
-
-	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
 		return rc;
 	}
 
@@ -763,7 +734,6 @@ uint32_t scap_restart_capture(scap_t* handle)
 void scap_deinit(scap_t* handle)
 {
 	scap_deinit_state(handle);
-	scap_suppress_close(&handle->m_suppress);
 
 	if(handle->m_platform)
 	{
@@ -869,14 +839,14 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 
 		// Check to see if the event should be suppressed due
 		// to coming from a supressed tid
-		if((res = scap_check_suppressed(&handle->m_suppress, *pevent, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
+		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
 		{
 			return res;
 		}
 
 		if(suppressed)
 		{
-			handle->m_suppress.m_num_suppressed_evts++;
+			handle->m_platform->m_suppress.m_num_suppressed_evts++;
 			return SCAP_FILTERED_EVENT;
 		}
 		else
@@ -925,8 +895,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;
-	stats->n_suppressed = handle->m_suppress.m_num_suppressed_evts;
-	stats->n_tids_suppressed = HASH_COUNT(handle->m_suppress.m_suppressed_tids);
+	stats->n_suppressed = handle->m_platform->m_suppress.m_num_suppressed_evts;
+	stats->n_tids_suppressed = HASH_COUNT(handle->m_platform->m_suppress.m_suppressed_tids);
 
 	if(handle->m_vtable)
 	{
@@ -1256,17 +1226,17 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name)
 
 int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
 {
-	return scap_suppress_events_comm_impl(&handle->m_suppress, comm);
+	return scap_suppress_events_comm_impl(&handle->m_platform->m_suppress, comm);
 }
 
 int32_t scap_suppress_events_tid(scap_t *handle, int64_t tid)
 {
-	return scap_suppress_events_tid_impl(&handle->m_suppress, tid);
+	return scap_suppress_events_tid_impl(&handle->m_platform->m_suppress, tid);
 }
 
 bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
 {
-	return scap_check_suppressed_tid_impl(&handle->m_suppress, tid);
+	return scap_check_suppressed_tid_impl(&handle->m_platform->m_suppress, tid);
 }
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)
