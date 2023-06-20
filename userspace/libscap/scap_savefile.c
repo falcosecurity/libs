@@ -1148,7 +1148,7 @@ static scap_dumper_t *scap_dump_open_gzfile(struct scap_platform* platform, gzFi
 //
 // Open a "savefile" for writing.
 //
-scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mode compress, bool skip_proc_scan)
+scap_dumper_t *scap_dump_open(struct scap_platform* platform, const char *fname, compression_mode compress, bool skip_proc_scan, char* lasterr)
 {
 	gzFile f = NULL;
 	int fd = -1;
@@ -1165,7 +1165,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		break;
 	default:
 		ASSERT(false);
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
+		snprintf(lasterr, SCAP_LASTERR_SIZE, "invalid compression mode");
 		return NULL;
 	}
 
@@ -1196,7 +1196,7 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 		}
 #endif
 
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
+		snprintf(lasterr, SCAP_LASTERR_SIZE, "can't open %s", fname);
 		return NULL;
 	}
 
@@ -1205,21 +1205,21 @@ scap_dumper_t *scap_dump_open(scap_t *handle, const char *fname, compression_mod
 	// so we don't lose information about processes created in the interval
 	// between opening the handle and starting the dump
 	//
-	if(handle->m_mode != SCAP_MODE_CAPTURE && !skip_proc_scan)
+	if(!skip_proc_scan)
 	{
-		if(scap_dump_rescan_proc(handle->m_platform) != SCAP_SUCCESS)
+		if(scap_dump_rescan_proc(platform) != SCAP_SUCCESS)
 		{
 			return NULL;
 		}
 	}
 
-	res = scap_dump_open_gzfile(handle->m_platform, f, fname, handle->m_lasterr);
+	res = scap_dump_open_gzfile(platform, f, fname, lasterr);
 	//
 	// If the user doesn't need the thread table, free it
 	//
-	if(handle->m_platform->m_proclist.m_proc_callback != NULL)
+	if(platform->m_proclist.m_proc_callback != NULL)
 	{
-		scap_proc_free_table(&handle->m_platform->m_proclist);
+		scap_proc_free_table(&platform->m_proclist);
 	}
 
 	return res;
