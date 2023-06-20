@@ -106,22 +106,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	}
 #endif
 
-	//
-	// Create the user list
-	//
-	if(oargs->import_users)
-	{
-		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
-			return rc;
-		}
-	}
-	else
-	{
-		handle->m_userlist = NULL;
-	}
-
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -229,23 +213,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 		return SCAP_FAILURE;
 	}
 #endif
-
-	//
-	// Create the user list
-	//
-	if(oargs->import_users)
-	{
-		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
-			return rc;
-		}
-	}
-	else
-	{
-		handle->m_userlist = NULL;
-	}
-
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
 		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error copying suppressed comms");
@@ -431,7 +398,6 @@ int32_t scap_init_offline_int(scap_t* handle, scap_open_args* oargs, struct scap
 
 	handle->m_dev_list = NULL;
 	handle->m_evtcnt = 0;
-	handle->m_userlist = NULL;
 	handle->m_machine_info.num_cpus = (uint32_t)-1;
 	handle->m_driver_procinfo = NULL;
 	handle->m_fd_lookup_limit = 0;
@@ -523,22 +489,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	//
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
-
-	//
-	// Create the user list
-	//
-	if(oargs->import_users)
-	{
-		if((rc = scap_create_userlist(handle)) != SCAP_SUCCESS)
-		{
-			snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "error creating the user list");
-			return rc;
-		}
-	}
-	else
-	{
-		handle->m_userlist = NULL;
-	}
 
 	//
 	// Create the process list
@@ -785,13 +735,6 @@ static inline void scap_deinit_state(scap_t* handle)
 	{
 		scap_free_device_table(handle);
 		handle->m_dev_list = NULL;
-	}
-
-	// Free the user list
-	if(handle->m_userlist)
-	{
-		scap_free_userlist(handle->m_userlist);
-		handle->m_userlist = NULL;
 	}
 
 	if(handle->m_driver_procinfo)
@@ -1086,14 +1029,6 @@ int32_t scap_start_dropping_mode(scap_t* handle, uint32_t sampling_ratio)
 	snprintf(handle->m_lasterr,	SCAP_LASTERR_SIZE, "operation not supported");
 	ASSERT(false);
 	return SCAP_FAILURE;
-}
-
-//
-// Return the list of machine users
-//
-scap_userlist* scap_get_user_list(scap_t* handle)
-{
-	return handle->m_userlist;
 }
 
 //

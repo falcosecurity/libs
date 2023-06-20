@@ -1081,7 +1081,7 @@ static int32_t scap_setup_dump(scap_t *handle, scap_dumper_t* d, const char *fna
 		//
 		// Write the user list
 		//
-		if(scap_write_userlist(d, handle->m_userlist) != SCAP_SUCCESS)
+		if(scap_write_userlist(d, handle->m_platform->m_userlist) != SCAP_SUCCESS)
 		{
 			return SCAP_FAILURE;
 		}

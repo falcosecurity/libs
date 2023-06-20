@@ -782,16 +782,6 @@ int32_t scap_stop_capture(scap_t* handle);
 int32_t scap_start_capture(scap_t* handle);
 
 /*!
-  \brief Return the machine user and group lists
-
-  \param handle Handle to the capture instance.
-
-  \return The pointer to a \ref scap_userlist structure containing the user and
-  group lists, or NULL if the function fails.
-*/
-scap_userlist* scap_get_user_list(scap_t* handle);
-
-/*!
   \brief Retrieve the table with the description of every event type that
   the capture driver supports.
 

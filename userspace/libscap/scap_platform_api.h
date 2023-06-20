@@ -42,6 +42,16 @@ struct scap_addrlist* scap_get_ifaddr_list(struct scap* handle);
 
 void scap_refresh_iflist(struct scap* handle);
 
+/*!
+  \brief Return the machine user and group lists
+
+  \param handle Handle to the capture instance.
+
+  \return The pointer to a \ref scap_userlist structure containing the user and
+  group lists, or NULL if the function fails.
+*/
+struct scap_userlist* scap_get_user_list(struct scap* handle);
+
 #ifdef __cplusplus
 };
 #endif

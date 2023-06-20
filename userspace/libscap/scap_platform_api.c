@@ -38,3 +38,13 @@ void scap_refresh_iflist(scap_t* handle)
 		handle->m_platform->m_vtable->refresh_addr_list(handle->m_platform);
 	}
 }
+
+scap_userlist* scap_get_user_list(scap_t* handle)
+{
+	if (handle && handle->m_platform)
+	{
+		return handle->m_platform->m_userlist;
+	}
+
+	return NULL;
+}

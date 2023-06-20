@@ -36,6 +36,7 @@ extern "C" {
 struct scap_addrlist;
 struct scap_open_args;
 struct scap_platform;
+struct scap_userlist;
 
 // a method table for platform-specific operations
 struct scap_platform_vtable
@@ -65,6 +66,7 @@ struct scap_platform
 {
 	const struct scap_platform_vtable* m_vtable;
 	struct scap_addrlist *m_addrlist;
+	struct scap_userlist *m_userlist;
 };
 
 #ifdef __cplusplus
