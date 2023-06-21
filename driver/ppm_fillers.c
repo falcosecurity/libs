@@ -170,21 +170,12 @@ static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
 		return 0;
 	}
 
-	int i = 0;
 	const char expected_prefix[] = "memfd:";
-	const char *fname = exe_file->f_path.dentry->d_name.name;
+    if (strncmp(exe_file->f_path.dentry->d_name.name, expected_prefix, sizeof(expected_prefix)) == 0)
+    {
+        return PPM_EXE_FROM_MEMFD;
 
-	for(i = 0; fname && i < sizeof(expected_prefix); i++)
-	{
-		if(expected_prefix[i] != fname[i])
-		{
-			break;
-		}
-		else if(expected_prefix[i] == ':')
-		{
-			return PPM_EXE_FROM_MEMFD;
-		}
-	}
+    }
 #endif
 	return 0;
 }
