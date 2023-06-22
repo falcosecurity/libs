@@ -2107,7 +2107,7 @@ static __always_inline bool get_exe_from_memfd(struct file *file)
 	const char expected_prefix[] = "memfd:";
 	char memfd_name[sizeof(expected_prefix)] = {'\0'};
 
-	if(bpf_probe_read_str(memfd_name, sizeof(memfd_name), name) != sizeof(expected_prefix))
+	if(bpf_probe_read_kernel_str(memfd_name, sizeof(memfd_name), name) != sizeof(expected_prefix))
 	{
 		return false;
 	}
