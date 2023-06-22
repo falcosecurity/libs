@@ -287,6 +287,13 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct scap_platform *platform)
 {
 	int32_t rc;
+	// Get boot_time
+	//
+	uint64_t boot_time = 0;
+	if((rc = scap_get_boot_time(handle->m_lasterr, &boot_time)) != SCAP_SUCCESS)
+	{
+		return rc;
+	}
 
 	//
 	// Preliminary initializations
@@ -313,6 +320,18 @@ int32_t scap_init_test_input_int(scap_t* handle, scap_open_args* oargs, struct s
 	handle->m_proclist.m_proclist = NULL;
 
 	handle->m_debug_log_fn = oargs->debug_log_fn;
+
+	//
+	// Extract machine information
+	//
+
+	scap_retrieve_machine_info(&handle->m_machine_info, boot_time);
+
+	//
+	// Extract agent information
+	//
+
+	scap_retrieve_agent_info(&handle->m_agent_info);
 
 	if ((rc = scap_suppress_init(&handle->m_suppress, oargs->suppressed_comms)) != SCAP_SUCCESS)
 	{
