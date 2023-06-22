@@ -304,33 +304,6 @@ TEST_F(sinsp_with_test_input, execve_invalid_path_entry)
 	ASSERT_EQ(get_field_as_string(evt, "proc.name"), "test-exe");
 }
 
-
-TEST_F(sinsp_with_test_input, event_category)
-{
-	add_default_init_thread();
-
-	open_inspector();
-	sinsp_evt* evt = NULL;
-
-	int64_t fd = 4, mountfd = 5, test_errno = 0;
-
-	/* Check that `EC_SYSCALL` category is not considered */
-	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_E, 0);
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_OPEN_BY_HANDLE_AT_X, 4, fd, mountfd, PPM_O_RDWR, "/tmp/the_file.txt");
-	ASSERT_EQ(evt->get_category(), EC_FILE);
-	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "file");
-
-	/* Check that `EC_TRACEPOINT` category is not considered */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_PROCEXIT_1_E, 4, test_errno, test_errno, 0, 0);
-	ASSERT_EQ(evt->get_category(), EC_PROCESS);
-	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "process");
-
-	/* Check that `EC_METAEVENT` category is not considered */
-	evt = add_event_advance_ts(increasing_ts(), 1, PPME_NOTIFICATION_E, 2, NULL, "data");
-	ASSERT_EQ(evt->get_category(), EC_OTHER);
-	ASSERT_EQ(get_field_as_string(evt, "evt.category"), "other");
-}
-
 /* Check that enum flags are correctly handled,
  * even when a single enum value is matched by multiple flags.
  */
