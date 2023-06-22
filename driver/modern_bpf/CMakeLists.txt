@@ -1,5 +1,8 @@
 option(MODERN_BPF_DEBUG_MODE "Enable BPF debug prints" OFF)
 option(MODERN_BPF_EXCLUDE_PROGS "Regex to exclude tail-called programs" "")
+# This is a temporary workaround to solve this regression https://github.com/falcosecurity/libs/issues/1157
+# We need to find a better solution
+option(MODERN_BPF_COS_WORKAROUND "Allow to correctly extract 'loginuid' from COS system, but requires at least CAP_SYS_ADMIN" OFF)
 
 ########################
 # Debug mode
@@ -11,6 +14,13 @@ else()
   set(DEBUG "")
 endif()
 message(STATUS "${MODERN_BPF_LOG_PREFIX} MODERN_BPF_DEBUG_MODE: ${MODERN_BPF_DEBUG_MODE}")
+
+if(MODERN_BPF_COS_WORKAROUND)
+  set(COS_WORKAROUND "COS_WORKAROUND")
+else()
+  set(COS_WORKAROUND "")
+endif()
+message(STATUS "${MODERN_BPF_LOG_PREFIX} MODERN_BPF_COS_WORKAROUND: ${MODERN_BPF_COS_WORKAROUND}")
 
 ########################
 # Check kernel version.
@@ -195,6 +205,7 @@ list(APPEND CLANG_FLAGS
     -g -O2
     -target bpf
     -D__${DEBUG}__
+    -D__${COS_WORKAROUND}__
     -D__TARGET_ARCH_${ARCH} # Match libbpf usage in `/libbpf/src/bpf_tracing.h`
     -D__USE_VMLINUX__ # Used to compile without kernel headers.
     -I${LIBBPF_INCLUDE}
