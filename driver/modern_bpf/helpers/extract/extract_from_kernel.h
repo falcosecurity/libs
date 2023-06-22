@@ -610,6 +610,7 @@ static __always_inline void extract__loginuid(struct task_struct *task, u32 *log
 	{
 		READ_TASK_FIELD_INTO(loginuid, task, loginuid.val);
 	}
+#ifdef __COS_WORKAROUND__	
 	else
 	{
 		struct task_struct___cos *task_cos = (void *)task;
@@ -619,6 +620,7 @@ static __always_inline void extract__loginuid(struct task_struct *task, u32 *log
 			READ_TASK_FIELD_INTO(loginuid, task_cos, audit, loginuid.val);
 		}
 	}
+#endif
 }
 
 /////////////////////////
