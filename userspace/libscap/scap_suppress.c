@@ -130,8 +130,7 @@ void scap_suppress_close(struct scap_suppress* suppress)
 		struct scap_tid *ttid;
 		HASH_ITER(hh, suppress->m_suppressed_tids, tid, ttid)
 		{
-			HASH_DEL(suppress->m_suppressed_tids, tid);
-			free(tid);
+			scap_remove_and_free_suppressed(suppress, tid);
 		}
 
 		suppress->m_suppressed_tids = NULL;
@@ -195,10 +194,27 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 	else if (!*suppressed && stid != NULL)
 	{
 		/* if the tid shouldn't be suppressed but we have it in the hash table we remove it */
-		HASH_DEL(suppress->m_suppressed_tids, stid);
-		free(stid);
+		scap_remove_and_free_suppressed(suppress, stid);
 		*suppressed = false;
 	}
 
 	return SCAP_SUCCESS;
+}
+
+void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *stid)
+{
+	uint16_t cpuid;
+
+	// Remove from cache around hash table.
+	for(cpuid = 0; cpuid < SCAP_CPUID_MAX; cpuid ++)
+	{
+		if(stid == suppress->m_cpuid_key_value_cache[cpuid].val)
+		{
+			suppress->m_cpuid_key_value_cache[cpuid].key = 0;
+			suppress->m_cpuid_key_value_cache[cpuid].val = NULL;
+		}
+	}
+	// Remove from hash table and free().
+	HASH_DEL(suppress->m_suppressed_tids, stid);
+	free(stid);
 }

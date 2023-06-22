@@ -120,7 +120,7 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 }
 
-int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, bool *suppressed, char *error)
+int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, uint16_t cpuid, bool *suppressed, char *error)
 {
 	uint16_t *lens;
 	char *valptr;
@@ -194,15 +194,32 @@ int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, 
 
 	default:
 
-		HASH_FIND_INT64(suppress->m_suppressed_tids, &(pevent->tid), stid);
+		if(suppress->m_suppressed_tids)
+		{
+			uint64_t key = pevent->tid;
+			if(suppress->m_cpuid_key_value_cache[cpuid].key == key)
+			{
+				stid = suppress->m_cpuid_key_value_cache[cpuid].val; // use cached
+			}
+			else
+			{
+				HASH_FIND_INT64(suppress->m_suppressed_tids, &(pevent->tid), stid);
+				suppress->m_cpuid_key_value_cache[cpuid].key = key; //  re-cache
+				suppress->m_cpuid_key_value_cache[cpuid].val = stid; // re-cache
+			}
+		}
+		else
+		{
+			// suppressed TIDs hash table is not allocated / used
+			stid = NULL;
+		}
 
 		// When threads exit they are always removed and no longer suppressed.
 		if(pevent->type == PPME_PROCEXIT_1_E)
 		{
 			if(stid != NULL)
 			{
-				HASH_DEL(suppress->m_suppressed_tids, stid);
-				free(stid);
+				scap_remove_and_free_suppressed(suppress, stid);
 				*suppressed = true;
 			}
 			else

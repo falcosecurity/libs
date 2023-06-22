@@ -52,6 +52,7 @@ int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppress
 int32_t scap_suppress_events_comm_impl(struct scap_suppress *suppress, const char *comm);
 int32_t scap_suppress_events_tid_impl(struct scap_suppress *suppress, int64_t tid);
 bool scap_check_suppressed_tid_impl(struct scap_suppress* suppress, int64_t tid);
+void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *stid);
 
 // Possibly add or remove the provided comm, tid combination to the
 // set of suppressed processes. If the ptid is currently in the
