@@ -33,6 +33,13 @@ typedef struct scap_tid
 	UT_hash_handle hh; ///< makes this structure hashable
 } scap_tid;
 
+// Famous last words: will never have more than 1024 CPUs... :-)
+#define SCAP_CPUID_MAX (1024)
+
+typedef struct scap_key_value_cache {
+	uint64_t key;
+	void *val;
+} scap_key_value_cache;
 
 struct scap_suppress
 {
@@ -46,6 +53,12 @@ struct scap_suppress
 	// The number of events that were skipped due to the comm
 	// matching an entry in m_suppressed_comms.
 	uint64_t m_num_suppressed_evts;
+
+	// The cache around the m_suppressed_tids hash table. Why?
+	// In benchmarks as of June 2023, scap_check_suppressed() with
+	// suppressed TIDs increases speed from 17.51s to 7.24s. Why?
+	// The cache is a single cache line fetch with no hashing.
+	scap_key_value_cache __attribute__ ((aligned (64))) m_cpuid_key_value_cache[SCAP_CPUID_MAX];
 };
 
 int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppressed_comms);
