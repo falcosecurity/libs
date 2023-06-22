@@ -208,10 +208,10 @@ void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *s
 	// Remove from cache around hash table.
 	for(cpuid = 0; cpuid < SCAP_CPUID_MAX; cpuid ++)
 	{
-		if(stid == suppress->m_cpuid_key_value_cache[cpuid].val)
+		if(stid == suppress->m_cpuid_tid_stid_cache[cpuid].stid)
 		{
-			suppress->m_cpuid_key_value_cache[cpuid].key = 0;
-			suppress->m_cpuid_key_value_cache[cpuid].val = NULL;
+			suppress->m_cpuid_tid_stid_cache[cpuid].tid = 0;
+			suppress->m_cpuid_tid_stid_cache[cpuid].stid = NULL;
 		}
 	}
 	// Remove / delete from hash table and free().
