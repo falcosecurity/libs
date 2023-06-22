@@ -58,7 +58,7 @@ struct scap_suppress
 	// In benchmarks as of June 2023, scap_check_suppressed() with
 	// suppressed TIDs increases speed from 17.51s to 7.24s. Why?
 	// The cache is a single cache line fetch with no hashing.
-	scap_key_value_cache __attribute__ ((aligned (64))) m_cpuid_key_value_cache[SCAP_CPUID_MAX];
+	scap_key_value_cache m_cpuid_key_value_cache[SCAP_CPUID_MAX];
 };
 
 int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppressed_comms);
