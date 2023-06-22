@@ -214,7 +214,7 @@ void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *s
 			suppress->m_cpuid_key_value_cache[cpuid].val = NULL;
 		}
 	}
-	// Remove from hash table and free().
+	// Remove / delete from hash table and free().
 	HASH_DEL(suppress->m_suppressed_tids, stid);
 	free(stid);
 }
