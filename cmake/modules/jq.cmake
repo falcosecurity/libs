@@ -54,10 +54,10 @@ else()
 			URL "https://download.falco.org/dependencies/jq-1.6.tar.gz"
 			URL_HASH "SHA256=787518068c35e244334cc79b8e56b60dbab352dff175b7f04a94f662b540bfd9"
 			CONFIGURE_COMMAND ./configure --disable-maintainer-mode ${JQ_STATIC_OPTION} --disable-dependency-tracking --with-oniguruma=builtin --prefix=${JQ_INSTALL_DIR}
-			BUILD_COMMAND ${CMD_MAKE} clean all LDFLAGS=${JQ_LDFLAGS}
+                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} clean all LDFLAGS=${JQ_LDFLAGS}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${JQ_LIB} ${ONIGURUMA_LIB}
-			INSTALL_COMMAND ${CMD_MAKE} install)
+                        INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install)
 		install(FILES "${JQ_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
 		install(FILES "${ONIGURUMA_LIB}" DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"

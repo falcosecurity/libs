@@ -39,7 +39,7 @@ else()
 					GIT_REPOSITORY "https://github.com/moonjit/moonjit"
 					GIT_TAG "2.1.2"
 					CONFIGURE_COMMAND ""
-					BUILD_COMMAND ${CMD_MAKE}
+                                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
 					UPDATE_COMMAND ""
@@ -50,7 +50,7 @@ else()
 					GIT_REPOSITORY "https://github.com/linux-on-ibm-z/LuaJIT.git"
 					GIT_TAG "v2.1"
 					CONFIGURE_COMMAND ""
-					BUILD_COMMAND ${CMD_MAKE}
+                                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
 					UPDATE_COMMAND ""
@@ -71,7 +71,7 @@ else()
 					GIT_REPOSITORY "https://github.com/LuaJIT/LuaJIT"
 					GIT_TAG "f3c856915b4ce7ccd24341e8ac73e8a9fd934171"
 					CONFIGURE_COMMAND ""
-					BUILD_COMMAND ${CMD_MAKE}
+                                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 					BUILD_IN_SOURCE 1
 					BUILD_BYPRODUCTS ${LUAJIT_LIB}
 					UPDATE_COMMAND ""

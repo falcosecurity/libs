@@ -7,12 +7,6 @@ endif()
 
 # NOTE: do not add `add_definition` in this file because consumers project won't import it.
 
-if(CMAKE_SYSTEM_NAME MATCHES "SunOS")
-	set(CMD_MAKE gmake)
-else()
-	set(CMD_MAKE make)
-endif()
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

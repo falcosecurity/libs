@@ -84,7 +84,7 @@ else()
 			--disable-threaded-resolver
 			--without-brotli
 			--without-zstd
-			BUILD_COMMAND ${CMD_MAKE}
+                        BUILD_COMMAND ${CMAKE_MAKE_PROGRAM}
 			BUILD_IN_SOURCE 1
 			BUILD_BYPRODUCTS ${CURL_LIBRARIES}
 			INSTALL_COMMAND "")

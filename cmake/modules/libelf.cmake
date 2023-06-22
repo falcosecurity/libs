@@ -33,8 +33,8 @@ else()
             URL_HASH "SHA256=e70b0dfbe610f90c4d1fe0d71af142a4e25c3c4ef9ebab8d2d72b65159d454c8"
             CONFIGURE_COMMAND ./configure LDFLAGS=-L${ZLIB_SRC} "CFLAGS=-I${ZLIB_INCLUDE}" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
             BUILD_IN_SOURCE 1
-            BUILD_COMMAND ${CMD_MAKE} -C lib libeu.a
-            COMMAND ${CMD_MAKE} -C libelf libelf${LIBELF_LIB_SUFFIX}
+            BUILD_COMMAND ${CMAKE_MAKE_PROGRAM} -C lib libeu.a
+            COMMAND ${CMAKE_MAKE_PROGRAM} -C libelf libelf${LIBELF_LIB_SUFFIX}
             INSTALL_COMMAND ""
             UPDATE_COMMAND ""
     )

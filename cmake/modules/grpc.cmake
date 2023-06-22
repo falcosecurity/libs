@@ -190,7 +190,7 @@ else()
 			# Keep installation files into the local ${GRPC_INSTALL_DIR} 
 			# since here is the case when we are embedding gRPC
 			UPDATE_COMMAND ""
-			INSTALL_COMMAND DESTDIR= ${CMD_MAKE} install
+                        INSTALL_COMMAND DESTDIR= ${CMAKE_MAKE_PROGRAM} install
 		)
 		install(FILES ${GRPC_MAIN_LIBS} DESTINATION "${CMAKE_INSTALL_LIBDIR}/${LIBS_PACKAGE_NAME}"
 				COMPONENT "libs-deps")
