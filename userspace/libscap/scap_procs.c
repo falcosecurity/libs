@@ -196,16 +196,15 @@ int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, 
 
 		if(suppress->m_suppressed_tids)
 		{
-			uint64_t key = pevent->tid;
-			if(suppress->m_cpuid_key_value_cache[cpuid].key == key)
+			if(suppress->m_cpuid_tid_stid_cache[cpuid].tid == pevent->tid)
 			{
-				stid = suppress->m_cpuid_key_value_cache[cpuid].val; // use cached
+				stid = suppress->m_cpuid_tid_stid_cache[cpuid].stid; // use cached
 			}
 			else
 			{
 				HASH_FIND_INT64(suppress->m_suppressed_tids, &(pevent->tid), stid);
-				suppress->m_cpuid_key_value_cache[cpuid].key = key; //  re-cache
-				suppress->m_cpuid_key_value_cache[cpuid].val = stid; // re-cache
+				suppress->m_cpuid_tid_stid_cache[cpuid].tid = pevent->tid; //  re-cache
+				suppress->m_cpuid_tid_stid_cache[cpuid].stid = stid; // re-cache
 			}
 		}
 		else
