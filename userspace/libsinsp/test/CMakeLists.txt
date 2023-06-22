@@ -32,6 +32,7 @@ set(LIBSINSP_UNIT_TESTS_SOURCES
 	test_utils.cpp
 	async_key_value_source.ut.cpp
 	cgroup_list_counter.ut.cpp
+	events_evt.ut.cpp
 	events_file.ut.cpp
 	events_fspath.ut.cpp
 	events_net.ut.cpp

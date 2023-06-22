@@ -3870,6 +3870,7 @@ const filtercheck_field_info sinsp_filter_check_gen_event_fields[] =
 	{PT_BOOL, EPF_NONE, PF_NA, "evt.is_async", "Async Event", "'true' for asynchronous events, 'false' otherwise."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.asynctype", "Async-Event Type", "If the event is asynchronous, the type of the event (e.g. 'container')."},
 	{PT_CHARBUF, EPF_NONE, PF_NA, "evt.hostname", "Hostname", "The hostname of the underlying host can be customized by setting an environment variable (e.g. FALCO_HOSTNAME for the Falco agent)."},
+	/* Note for libs adopters: libs exposes a customizable env variable for hostname which defaults to `set(SCAP_HOSTNAME_ENV_VAR "SCAP_HOSTNAME")`, and Falco client adopts "FALCO_HOSTNAME". */
 };
 
 sinsp_filter_check_gen_event::sinsp_filter_check_gen_event()
