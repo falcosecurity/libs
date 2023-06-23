@@ -203,18 +203,18 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *stid)
 {
-	uint16_t cpuid;
+	uint16_t slot;
 
 	// Remove from cache around hash table.
-	for(cpuid = 0; cpuid < SCAP_CPUID_MAX; cpuid ++)
+	for(slot = 0; slot < SCAP_CACHE_CPUID_MAX; slot ++)
 	{
-		if(stid == suppress->m_cpuid_tid_stid_cache[cpuid].stid)
+		if(stid == suppress->m_cpuid_tid_stid_cache[slot].stid)
 		{
-			suppress->m_cpuid_tid_stid_cache[cpuid].tid = 0;
-			suppress->m_cpuid_tid_stid_cache[cpuid].stid = NULL;
+			suppress->m_cpuid_tid_stid_cache[slot].tid = 0;
+			suppress->m_cpuid_tid_stid_cache[slot].stid = NULL;
 		}
 	}
-	// Remove / delete from hash table and free().
+	// Remove from hash table and free().
 	HASH_DEL(suppress->m_suppressed_tids, stid);
 	free(stid);
 }
