@@ -171,6 +171,7 @@ typedef enum scap_fd_type
 	SCAP_FD_BPF = 17,
 	SCAP_FD_USERFAULTFD = 18,
 	SCAP_FD_IOURING = 19,
+  SCAP_FD_MEMFD = 20
 }scap_fd_type;
 
 /*!
