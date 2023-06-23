@@ -319,6 +319,7 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_FCHMOD_X:
 	case PPME_SYSCALL_FCHOWN_X:
 		parse_fchmod_fchown_exit(evt);
+		break;
 	case PPME_SYSCALL_OPENAT_X:
 		parse_fspath_related_exit(evt);
 		parse_open_openat_creat_exit(evt);
