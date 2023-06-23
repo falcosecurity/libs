@@ -48,6 +48,7 @@ class sinsp_protodecoder;
 #define CHAR_FD_BPF     		'b'
 #define CHAR_FD_USERFAULTFD		'u'
 #define CHAR_FD_IO_URING		'r'
+#define CHAR_FD_MEMFD			'm'
 
 /** @defgroup state State management 
  * A collection of classes to query process and FD state.

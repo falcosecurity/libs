@@ -338,6 +338,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_SETNS_X:
 		parse_unshare_setns_exit(evt);
 		break;
+	case PPME_SYSCALL_MEMFD_CREATE_X:
+		parse_memfd_create_exit(evt, SCAP_FD_MEMFD);
+		break;
 	case PPME_SYSCALL_CLONE_11_X:
 	case PPME_SYSCALL_CLONE_16_X:
 	case PPME_SYSCALL_CLONE_17_X:
@@ -6028,4 +6031,53 @@ void sinsp_parser::free_event_buffer(uint8_t *ptr)
 	{
 		free(ptr);
 	}
+}
+
+void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
+{
+	sinsp_evt_param* parinfo;
+	int64_t fd;
+	char *name;
+	uint32_t flags;
+	sinsp_fdinfo_t fdi;
+
+
+	ASSERT(evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	/* ret (fd) */
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(0)->type == PT_FD);
+	fd = *(int64_t *)parinfo->m_val;
+	
+	/* name */
+	parinfo = evt->get_param(1);
+	name = parinfo->m_val;
+	
+	/* flags */
+	parinfo = evt->get_param(2);
+	ASSERT(parinfo->m_len == sizeof(uint32_t));
+	flags = *(uint32_t *)parinfo->m_val;
+
+	if(fd >= 0)
+	{
+		fdi.m_type = type;
+		fdi.add_filename(name);
+		fdi.m_openflags = flags;
+	}
+
+	if(fdi.m_name == USER_EVT_DEVICE_NAME)
+	{
+		fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_TRACER_FILE;
+	}
+	else
+	{
+		fdi.m_flags |= sinsp_fdinfo_t::FLAGS_IS_NOT_TRACER_FD;
+	}
+
+	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
 }

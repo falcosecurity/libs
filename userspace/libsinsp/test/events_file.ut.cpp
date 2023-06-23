@@ -625,3 +625,22 @@ TEST_F(sinsp_with_test_input, fchown)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), "/tmp/test");
 	ASSERT_EQ(get_field_as_string(evt, "fd.num"), "3");
 }
+
+TEST_F(sinsp_with_test_input, memfd_create)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	const char *name = "test_name";
+	int64_t fd = 4;
+
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_MEMFD_CREATE_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_MEMFD_CREATE_X, 3, fd, name, 0);
+	
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_MEMFD_CREATE_X);
+	ASSERT_EQ(get_field_as_string(evt, "fd.num"), std::to_string(fd));
+	ASSERT_EQ(get_field_as_string(evt, "fd.name"), name);
+	ASSERT_EQ(get_field_as_string(evt, "fd.typechar"), "m"); 
+	ASSERT_EQ(get_field_as_string(evt, "fd.type"), "memfd");
+
+}

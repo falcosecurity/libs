@@ -105,6 +105,8 @@ template<> char sinsp_fdinfo_t::get_typechar()
 		return CHAR_FD_USERFAULTFD;
 	case SCAP_FD_IOURING:
 		return CHAR_FD_IO_URING;
+	case SCAP_FD_MEMFD:
+		return CHAR_FD_MEMFD;
 	default:
 //		ASSERT(false);
 		return '?';
@@ -148,6 +150,8 @@ template<> char* sinsp_fdinfo_t::get_typestring()
 		return (char*)"userfaultfd";
 	case SCAP_FD_IOURING:
 		return (char*)"io_uring";
+	case SCAP_FD_MEMFD:
+		return (char*)"memfd";	
 	default:
 		return (char*)"<NA>";
 	}
