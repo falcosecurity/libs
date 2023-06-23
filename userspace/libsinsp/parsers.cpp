@@ -5919,13 +5919,16 @@ void sinsp_parser::parse_unshare_setns_exit(sinsp_evt *evt)
 	int64_t retval;
 	uint32_t flags = 0;
 
-	retrieve_enter_event(enter_evt, evt);
-
 	parinfo = evt->get_param(0);
 	retval = *(int64_t *)parinfo->m_val;
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 
-	if(!enter_evt || retval < 0)
+	if(retval < 0)
+	{
+		return;
+	}
+
+	if(!retrieve_enter_event(enter_evt, evt))
 	{
 		return;
 	}
