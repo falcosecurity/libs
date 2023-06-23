@@ -227,7 +227,6 @@ The successful implementation depends on increased CI budgeting and, more import
 ## Resources
 
 - CI [Github Workflows](https://github.com/falcosecurity/libs/tree/master/.github/workflows)
-- CI [CircleCI](https://github.com/falcosecurity/libs/tree/master/.circleci) 
 - [falcosecurity/kernel-crawler](https://github.com/falcosecurity/kernel-crawler/) supported [kernels](https://github.com/falcosecurity/kernel-crawler/tree/kernels) 
 - Issue [CI Integration for Driver Test Suites](https://github.com/falcosecurity/libs/issues/531)
 - CNCF TAG Environmental Sustainability [Proof of Environmental Sustainability activities and best practices for CNCF projects](https://github.com/cncf/tag-env-sustainability/issues/64#issuecomment-1496197590)
