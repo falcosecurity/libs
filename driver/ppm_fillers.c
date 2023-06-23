@@ -163,6 +163,7 @@ static inline struct pid_namespace *pid_ns_for_children(struct task_struct *task
 static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
 {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0)
+	const char expected_prefix[] = "memfd:";
 	if(!(exe_file &&
 		 exe_file->f_path.dentry &&
 		 exe_file->f_path.dentry == exe_file->f_path.dentry->d_parent))
@@ -170,8 +171,7 @@ static inline uint32_t get_exe_from_memfd(const struct file *exe_file)
 		return 0;
 	}
 
-	const char expected_prefix[] = "memfd:";
-    if (strncmp(exe_file->f_path.dentry->d_name.name, expected_prefix, sizeof(expected_prefix)) == 0)
+    if(strncmp(exe_file->f_path.dentry->d_name.name, expected_prefix, sizeof(expected_prefix) - 1) == 0)
     {
         return PPM_EXE_FROM_MEMFD;
 
