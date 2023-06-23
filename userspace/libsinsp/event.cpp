@@ -197,6 +197,8 @@ sinsp_evt_param *sinsp_evt::get_param(uint32_t id)
 		m_flags |= (uint32_t)sinsp_evt::SINSP_EF_PARAMS_LOADED;
 	}
 
+	ASSERT(id < m_params.size());
+
 	return &(m_params.at(id));
 }
 
