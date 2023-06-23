@@ -769,7 +769,6 @@ static __always_inline bool extract__exe_from_memfd(struct file *file)
 		return false;
 	}
 
-#pragma unroll
 	for(int i = 0; i < sizeof(expected_prefix); i++)
 	{
 		if(expected_prefix[i] != memfd_name[i])
