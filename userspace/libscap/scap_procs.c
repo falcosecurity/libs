@@ -132,6 +132,12 @@ int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, 
 
 	*suppressed = false;
 
+	/* If we have neither suppressed comms nor suppressed tids we return immediately */
+	if(suppress->m_num_suppressed_comms == 0 && suppress->m_suppressed_tids == NULL)
+	{
+		return SCAP_SUCCESS;
+	}
+
 	// For events that can create a new tid (fork, vfork, clone),
 	// we need to check the comm, which might also update the set
 	// of suppressed tids.
