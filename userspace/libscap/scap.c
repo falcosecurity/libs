@@ -43,7 +43,6 @@ int32_t scap_init_int(scap_t* handle, scap_open_args* oargs, const struct scap_v
 	//
 	// Preliminary initializations
 	//
-	handle->m_mode = vtable->mode;
 	handle->m_vtable = vtable;
 	handle->m_platform = platform;
 
