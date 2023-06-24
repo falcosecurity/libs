@@ -57,6 +57,7 @@ endif()
 
 list(APPEND targetfiles
 	scap.c
+	scap_api_version.c
 	scap_fds.c
 	scap_savefile.c
 	scap_platform.c

@@ -31,7 +31,7 @@ limitations under the License.
 #include "strl.h"
 #include "../../driver/ppm_ringbuffer.h"
 #include "scap-int.h"
-#include "scap_engine_util.h"
+#include "scap_api_version.h"
 #include "scap_platform.h"
 
 #include "scap_engines.h"

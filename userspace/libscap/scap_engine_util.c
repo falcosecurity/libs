@@ -19,89 +19,11 @@ limitations under the License.
 #include <stdio.h>
 #include <time.h>
 
-#include "scap.h"
-#include "scap-int.h"
 #include "scap_engine_util.h"
-#include "scap_vtable.h"
+#include "scap_const.h"
 #include "strerror.h"
 
-#ifdef __linux__
 #include "compat/misc.h"
-#endif
-
-bool scap_apply_semver_check(uint32_t current_major, uint32_t current_minor, uint32_t current_patch,
-							uint32_t required_major, uint32_t required_minor, uint32_t required_patch)
-{
-	if(current_major != required_major)
-	{
-		return false;
-	}
-
-	if(current_minor < required_minor)
-	{
-		return false;
-	}
-	if(current_minor == required_minor && current_patch < required_patch)
-	{
-		return false;
-	}
-
-	return true;
-}
-
-bool scap_is_api_compatible(unsigned long driver_api_version, unsigned long required_api_version)
-{
-	unsigned long driver_major = PPM_API_VERSION_MAJOR(driver_api_version);
-	unsigned long driver_minor = PPM_API_VERSION_MINOR(driver_api_version);
-	unsigned long driver_patch = PPM_API_VERSION_PATCH(driver_api_version);
-	unsigned long required_major = PPM_API_VERSION_MAJOR(required_api_version);
-	unsigned long required_minor = PPM_API_VERSION_MINOR(required_api_version);
-	unsigned long required_patch = PPM_API_VERSION_PATCH(required_api_version);
-
-	return scap_apply_semver_check(driver_major, driver_minor, driver_patch, required_major, required_minor, required_patch);
-}
-
-static int32_t check_api_compatibility_impl(uint64_t current_version, uint64_t minimum_version, const char* label, char *error)
-{
-	if(!scap_is_api_compatible(current_version, minimum_version))
-	{
-		return scap_errprintf(error, 0, "Driver supports %s version %llu.%llu.%llu, but running version needs %llu.%llu.%llu",
-			label,
-			PPM_API_VERSION_MAJOR(current_version),
-			PPM_API_VERSION_MINOR(current_version),
-			PPM_API_VERSION_PATCH(current_version),
-			PPM_API_VERSION_MAJOR(minimum_version),
-			PPM_API_VERSION_MINOR(minimum_version),
-			PPM_API_VERSION_PATCH(minimum_version));
-	}
-	return SCAP_SUCCESS;
-}
-
-	int32_t check_api_compatibility(const struct scap_vtable* vtable, struct scap_engine_handle engine, char *error)
-{
-	int rc;
-	if(vtable && vtable->get_api_version)
-	{
-		uint64_t version = vtable->get_api_version(engine);
-		rc = check_api_compatibility_impl(version, SCAP_MINIMUM_DRIVER_API_VERSION, "API", error);
-		if(rc != SCAP_SUCCESS)
-		{
-			return rc;
-		}
-	}
-
-	if(vtable && vtable->get_schema_version)
-	{
-		uint64_t version = vtable->get_schema_version(engine);
-		rc = check_api_compatibility_impl(version, SCAP_MINIMUM_DRIVER_SCHEMA_VERSION, "schema", error);
-		if(rc != SCAP_SUCCESS)
-		{
-			return rc;
-		}
-	}
-
-	return SCAP_SUCCESS;
-}
 
 static inline uint64_t timespec_to_nsec(const struct timespec* ts)
 {
@@ -110,7 +32,6 @@ static inline uint64_t timespec_to_nsec(const struct timespec* ts)
 
 int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
 {
-#ifdef __linux__
 	struct timespec wall_ts, boot_ts;
 
 	if(clock_gettime(CLOCK_BOOTTIME, &boot_ts) < 0)
@@ -125,7 +46,4 @@ int32_t scap_get_precise_boot_time(char* last_err, uint64_t *boot_time)
 
 	*boot_time = timespec_to_nsec(&wall_ts) - timespec_to_nsec(&boot_ts);
 	return SCAP_SUCCESS;
-#else
-	return scap_errprintf(last_err, 0, "scap_get_precise_boot_time not implemented on this platform");
-#endif
 }
