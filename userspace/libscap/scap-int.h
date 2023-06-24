@@ -49,7 +49,6 @@ struct scap
 	struct scap_engine_handle m_engine;
 	struct scap_platform *m_platform;
 
-	scap_mode_t m_mode;
 	char m_lasterr[SCAP_LASTERR_SIZE];
 
 	uint64_t m_evtcnt;
