@@ -1531,6 +1531,7 @@ int32_t scap_bpf_load(
 		int ret;
 		struct scap_device *dev;
 
+		/* We suppose that CPU 0 is always online, so we only check for j > 0 */
 		if(j > 0)
 		{
 			char filename[SCAP_MAX_PATH_SIZE];

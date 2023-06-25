@@ -150,9 +150,18 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 	HASH_FIND_INT64(suppress->m_suppressed_tids, &ptid, stid);
 
+	/* We suppress the actual tid in 2 cases:
+	 * 1. Its parent is suppressed.
+	 * 2. Its comm is in the suppressed list
+	 */
 	if(stid != NULL)
 	{
 		*suppressed = true;
+		/* Please note that we don't update the suppressed_comms list
+		 * even if the comm of the child could be different from the parent one.
+		 * The only case in which we update the suppressed_comms list is when
+		 * we explicitly call the `scap_suppress_events_comm` API.
+		 */
 	}
 	else
 	{
@@ -173,6 +182,7 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 	if(*suppressed && stid == NULL)
 	{
+		/* if the tid should be suppressed but we don't have it in the hash table we add it */
 		if(scap_suppress_events_tid_impl(suppress, tid) == SCAP_SUCCESS)
 		{
 			*suppressed = true;
@@ -184,6 +194,7 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 	}
 	else if (!*suppressed && stid != NULL)
 	{
+		/* if the tid shouldn't be suppressed but we have it in the hash table we remove it */
 		HASH_DEL(suppress->m_suppressed_tids, stid);
 		free(stid);
 		*suppressed = false;
@@ -191,4 +202,3 @@ int32_t scap_update_suppressed(struct scap_suppress *suppress,
 
 	return SCAP_SUCCESS;
 }
-
