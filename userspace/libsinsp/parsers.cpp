@@ -6051,6 +6051,10 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	fd = *(int64_t *)parinfo->m_val;
 	
 	/* name */
+	/*
+	Suppose you create a memfd named libstest resulting in a fd.name libstest while on disk 
+	(e.g. ls -l /proc/$PID/fd/$FD_NUM) it may look like /memfd:libstest (deleted)
+	*/
 	parinfo = evt->get_param(1);
 	name = parinfo->m_val;
 	
