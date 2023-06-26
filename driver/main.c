@@ -54,6 +54,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm_ringbuffer.h"
 #include "ppm_events_public.h"
 #include "ppm_events.h"
+#include "ppm_version.h"
 #include "ppm.h"
 #include "ppm_tp.h"
 
@@ -2731,7 +2732,7 @@ static int get_tracepoint_handles(void)
 #endif
 
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 20)
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)) || ((PPM_RHEL_RELEASE_CODE > 0) && (PPM_RHEL_RELEASE_CODE >= PPM_RHEL_RELEASE_VERSION(9, 3)))
 static char *ppm_devnode(const struct device *dev, umode_t *mode)
 #else
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 3, 0)
