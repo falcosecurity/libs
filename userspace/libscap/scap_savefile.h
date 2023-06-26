@@ -21,8 +21,6 @@ limitations under the License.
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
-#elif defined __sun
-#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -154,8 +152,4 @@ typedef struct _section_header_block
 
 #define EVF_BLOCK_TYPE_V2_LARGE		0x222
 
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
