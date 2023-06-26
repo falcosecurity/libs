@@ -19,6 +19,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 
+#include "filter_compiler.h"
 #include "sinsp_with_test_input.h"
 
 class fspath : public sinsp_with_test_input
@@ -67,6 +68,13 @@ protected:
 	uint32_t uid = 0;
 	uint32_t gid = 0;
 
+	const char *fs_path_name = "fs.path.name";
+	const char *fs_path_nameraw = "fs.path.nameraw";
+	const char *fs_path_source = "fs.path.source";
+	const char *fs_path_sourceraw = "fs.path.sourceraw";
+	const char *fs_path_target = "fs.path.target";
+	const char *fs_path_targetraw = "fs.path.targetraw";
+
 	void SetUp()
 	{
 		sinsp_with_test_input::SetUp();
@@ -84,12 +92,28 @@ protected:
 	void verify_no_fields(sinsp_evt *evt)
 
 	{
-		ASSERT_FALSE(field_exists(evt, "fs.path.name"));
-		ASSERT_FALSE(field_exists(evt, "fs.path.nameraw"));
-		ASSERT_FALSE(field_exists(evt, "fs.path.source"));
-		ASSERT_FALSE(field_exists(evt, "fs.path.sourceraw"));
-		ASSERT_FALSE(field_exists(evt, "fs.path.target"));
-		ASSERT_FALSE(field_exists(evt, "fs.path.targetraw"));
+		ASSERT_FALSE(field_exists(evt, fs_path_name));
+		ASSERT_FALSE(field_exists(evt, fs_path_nameraw));
+		ASSERT_FALSE(field_exists(evt, fs_path_source));
+		ASSERT_FALSE(field_exists(evt, fs_path_sourceraw));
+		ASSERT_FALSE(field_exists(evt, fs_path_target));
+		ASSERT_FALSE(field_exists(evt, fs_path_targetraw));
+	}
+
+	void verify_value_using_filters(sinsp_evt *evt,
+					const char *field,
+					const char *expected)
+	{
+		std::string fieldstr = field;
+
+		std::string eq_filter_str = fieldstr + " = " + expected;
+		filter_run(evt, true, eq_filter_str);
+
+		std::string in_filter_str = fieldstr + " in (" + expected + ")";
+		filter_run(evt, true, in_filter_str);
+
+		std::string pmatch_filter_str = fieldstr + " pmatch (" + expected + ")";
+		filter_run(evt, true, pmatch_filter_str);
 	}
 
 	void verify_fields(sinsp_evt *evt,
@@ -102,32 +126,38 @@ protected:
 	{
 		if(expected_name)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.name").c_str(), expected_name);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_name).c_str(), expected_name);
+			verify_value_using_filters(evt, fs_path_name, expected_name);
 		}
 
 		if(expected_nameraw)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.nameraw").c_str(), expected_nameraw);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_nameraw).c_str(), expected_nameraw);
+			verify_value_using_filters(evt, fs_path_nameraw, expected_nameraw);
 		}
 
 		if(expected_source)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.source").c_str(), expected_source);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_source).c_str(), expected_source);
+			verify_value_using_filters(evt, fs_path_source, expected_source);
 		}
 
 		if(expected_sourceraw)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.sourceraw").c_str(), expected_sourceraw);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_sourceraw).c_str(), expected_sourceraw);
+			verify_value_using_filters(evt, fs_path_sourceraw, expected_sourceraw);
 		}
 
 		if(expected_target)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.target").c_str(), expected_target);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_target).c_str(), expected_target);
+			verify_value_using_filters(evt, fs_path_target, expected_target);
 		}
 
 		if(expected_targetraw)
 		{
-			ASSERT_STREQ(get_field_as_string(evt, "fs.path.targetraw").c_str(), expected_targetraw);
+			ASSERT_STREQ(get_field_as_string(evt, fs_path_targetraw).c_str(), expected_targetraw);
+			verify_value_using_filters(evt, fs_path_targetraw, expected_targetraw);
 		}
 	}
 
