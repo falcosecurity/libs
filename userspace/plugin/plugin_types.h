@@ -95,8 +95,6 @@ typedef enum ss_plugin_schema_type
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
-#elif defined __sun
-#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -110,11 +108,7 @@ struct ss_plugin_event {
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
 };
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 typedef struct ss_plugin_event ss_plugin_event;
 
 // This struct represents an event provided by the framework to the plugin

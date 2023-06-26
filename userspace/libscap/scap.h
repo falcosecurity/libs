@@ -310,8 +310,6 @@ typedef struct {
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
-#elif defined __sun
-#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -383,11 +381,7 @@ typedef struct scap_ifinfo_ipv6
 	char ifname[SCAP_MAX_PATH_SIZE]; ///< interface name (e.g. "eth0")
 }scap_ifinfo_ipv6;
 
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 /*!
   \brief List of the machine network interfaces

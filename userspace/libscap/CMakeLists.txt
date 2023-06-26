@@ -78,11 +78,6 @@ add_library(scap
 
 set_scap_target_properties(scap)
 
-if (CMAKE_SYSTEM_NAME MATCHES "SunOS")
-	target_link_libraries(scap
-		socket nsl)
-endif()
-
 if(NOT MINIMAL_BUILD)
 target_link_libraries(scap
 	"${ZLIB_LIB}")

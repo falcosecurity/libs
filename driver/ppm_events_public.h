@@ -10,10 +10,6 @@ or GPL2.txt for full copies of the license.
 #ifndef EVENTS_PUBLIC_H_
 #define EVENTS_PUBLIC_H_
 
-#if defined(__sun)
-#include <sys/ioccom.h>
-#endif
-
 #ifdef __KERNEL__
 #include <linux/types.h>
 #elif defined(__USE_VMLINUX__ )
@@ -1988,8 +1984,6 @@ struct ppm_event_info {
 #if defined _MSC_VER
 #pragma pack(push)
 #pragma pack(1)
-#elif defined __sun
-#pragma pack(1)
 #else
 #pragma pack(push, 1)
 #endif
@@ -2003,11 +1997,7 @@ struct ppm_evt_hdr {
 	uint16_t type; /* the event type */
 	uint32_t nparams; /* the number of parameters of the event */
 };
-#if defined __sun
-#pragma pack()
-#else
 #pragma pack(pop)
-#endif
 
 /*
  * IOCTL codes
