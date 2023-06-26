@@ -432,6 +432,16 @@ uint8_t* sinsp_filter_check_fspath::extract(sinsp_evt* evt, OUT uint32_t* len, b
 		m_tstr = std::filesystem::absolute(tstr).lexically_normal().string();
 	}
 
+	// If m_tstr ends in a c-style \0, remove it to be
+	// consistent. Generally, the evt.rawarg fields above *will*
+	// end in c-style \0 characters, while the ones that extract
+	// from the enter event or have values populated by parsers
+	// (e.g. fchmod/fchown) will not.
+	if(m_tstr.back() == '\0')
+	{
+		m_tstr.pop_back();
+	}
+
 	RETURN_EXTRACT_STRING(m_tstr);
 }
 
