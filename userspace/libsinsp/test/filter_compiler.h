@@ -18,6 +18,7 @@ limitations under the License.
 #include <gen_filter.h>
 #include <filter.h>
 #include <event.h>
+#include <sinsp_exception.h>
 #include <memory>
 
 // passing a NULL out pointer means expecting a failure
