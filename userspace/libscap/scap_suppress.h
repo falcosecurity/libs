@@ -33,9 +33,9 @@ typedef struct scap_tid
 	UT_hash_handle hh; ///< makes this structure hashable
 } scap_tid;
 
-// SCAP_CACHE_CPUID_MAX must be a power of two.
+// SCAP_CACHE_DEVID_MAX must be a power of two.
 // Boxes with > 1024 CPUs will benefit from less suppress TID caching.
-#define SCAP_CACHE_CPUID_MAX (1024)
+#define SCAP_CACHE_DEVID_MAX (1024)
 
 typedef struct scap_tid_stid {
 	uint64_t tid;
@@ -60,7 +60,7 @@ struct scap_suppress
 	// suppressed TIDs increases speed from 17.51s to 7.24s. Why?
 	// Cache lookup is a single cache line fetch with no hashing.
 	// Avoid dynamic allocation to avoid extra cache line fetch.
-	scap_tid_stid m_cpuid_tid_stid_cache[SCAP_CACHE_CPUID_MAX];
+	scap_tid_stid m_devid_tid_stid_cache[SCAP_CACHE_DEVID_MAX];
 };
 
 int32_t scap_suppress_init(struct scap_suppress* suppress, const char** suppressed_comms);

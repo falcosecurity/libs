@@ -771,12 +771,16 @@ uint64_t scap_max_buf_used(scap_t* handle)
 	return 0;
 }
 
-int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
+int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 {
+	// Note: devid is like cpuid but not 1:1, e.g. consider CPU1 offline:
+	// CPU0 CPU1 CPU2 CPU3
+	// DEV0 DEV1 DEV2 DEV3 <- CPU1  online
+	// DEV0 XXXX DEV1 DEV2 <- CPU1 offline
 	int32_t res = SCAP_FAILURE;
 	if(handle->m_vtable)
 	{
-		res = handle->m_vtable->next(handle->m_engine, pevent, pcpuid);
+		res = handle->m_vtable->next(handle->m_engine, pevent, pdevid);
 	}
 	else
 	{
@@ -790,7 +794,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pcpuid)
 
 		// Check to see if the event should be suppressed due
 		// to coming from a supressed tid
-		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, *pcpuid, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
+		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, *pdevid, *pcpuid, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
 		{
 			return res;
 		}

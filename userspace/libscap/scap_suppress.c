@@ -206,12 +206,12 @@ void scap_remove_and_free_suppressed(struct scap_suppress *suppress, scap_tid *s
 	uint16_t slot;
 
 	// Remove from cache around hash table.
-	for(slot = 0; slot < SCAP_CACHE_CPUID_MAX; slot ++)
+	for(slot = 0; slot < SCAP_CACHE_DEVID_MAX; slot ++)
 	{
-		if(stid == suppress->m_cpuid_tid_stid_cache[slot].stid)
+		if(stid == suppress->m_devid_tid_stid_cache[slot].stid)
 		{
-			suppress->m_cpuid_tid_stid_cache[slot].tid = 0;
-			suppress->m_cpuid_tid_stid_cache[slot].stid = NULL;
+			suppress->m_devid_tid_stid_cache[slot].tid = 0;
+			suppress->m_devid_tid_stid_cache[slot].stid = NULL;
 		}
 	}
 	// Remove from hash table and free().
