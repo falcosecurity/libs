@@ -120,7 +120,7 @@ int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fd
 	}
 }
 
-int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, uint16_t cpuid, bool *suppressed, char *error)
+int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, uint16_t devid, bool *suppressed, char *error)
 {
 	uint16_t *lens;
 	char *valptr;
@@ -196,16 +196,16 @@ int32_t scap_check_suppressed(struct scap_suppress* suppress, scap_evt *pevent, 
 
 		if(suppress->m_suppressed_tids)
 		{
-			uint16_t slot = (cpuid & (SCAP_CACHE_CPUID_MAX - 1));
-			if(suppress->m_cpuid_tid_stid_cache[slot].tid == pevent->tid)
+			uint16_t slot = (devid & (SCAP_CACHE_DEVID_MAX - 1));
+			if(suppress->m_devid_tid_stid_cache[slot].tid == pevent->tid)
 			{
-				stid = suppress->m_cpuid_tid_stid_cache[cpuid].stid; // use cached
+				stid = suppress->m_devid_tid_stid_cache[slot].stid; // use cached
 			}
 			else
 			{
 				HASH_FIND_INT64(suppress->m_suppressed_tids, &(pevent->tid), stid);
-				suppress->m_cpuid_tid_stid_cache[slot].tid = pevent->tid; //  re-cache
-				suppress->m_cpuid_tid_stid_cache[slot].stid = stid; // re-cache
+				suppress->m_devid_tid_stid_cache[slot].tid = pevent->tid; //  re-cache
+				suppress->m_devid_tid_stid_cache[slot].stid = stid; // re-cache
 			}
 		}
 		else
