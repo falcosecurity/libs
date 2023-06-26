@@ -1135,7 +1135,7 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 {
 	if(reaper == nullptr)
 	{
-		throw sinsp_exception("The reaper cannot be nullprt");
+		throw sinsp_exception("The reaper cannot be nullptr");
 	}
 
 	if(reaper == this)
@@ -1510,17 +1510,15 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
 	if(parent_thread == nullptr || parent_thread->is_invalid())
 	{
-		/* If init is not there we can do nothing.
-		 * If for some reason the process with tid `1` is not the reaper, we need to
-		 * implement some custom way to find the init reaper.
-		 * This could become dangerous if we are in a container because the parent would be outside
-		 * the container, but we have no other ways...
+		/* We assign it to init. Please note that if Init is not there we try to create it
+		 * scanning proc, otherwise we will create a fake thread-info. If we obtain a nullptr
+		 * it means we have no more space in the table to create a fake thread_info for init.
+		 * and this should never happen so we throw an exception.
 		 */
-		parent_thread = m_inspector->get_thread_ref(1, false);
+		parent_thread = m_inspector->get_thread_ref(1, true);
 		if(parent_thread == nullptr)
 		{
-			/* This should never happen, it means that we have a system without the init process (tid 1) under `/proc` */
-			tinfo->m_ptid = 0;
+			sinsp_exception("No more space in the table to create a mock thread_info for init\n");
 			return;
 		}
 	}
@@ -1657,12 +1655,7 @@ sinsp_threadinfo* sinsp_thread_manager::find_new_reaper(sinsp_threadinfo* tinfo)
 	/* If we don't find a reaper in the hierarchy we fallback to init
 	 * WARNING: this could cause a container escape if we are in a container!
 	 */
-	auto reaper_tinfo = m_threadtable.get(1);
-	if(reaper_tinfo == nullptr)
-	{
-		throw sinsp_exception("we don't have the init process (tid==1) in the table");
-	}
-	return reaper_tinfo;	
+	return m_inspector->get_thread_ref(1, true).get();
 }
 
 void sinsp_thread_manager::remove_main_thread_fdtable(sinsp_threadinfo* main_thread)
