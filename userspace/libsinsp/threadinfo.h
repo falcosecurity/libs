@@ -17,7 +17,7 @@ limitations under the License.
 
 #pragma once
 
-#define DEFAULT_CHILDREN_THRESHOLD 50
+#define DEFAULT_EXPIRED_CHILDREN_THRESHOLD 10
 
 #ifndef VISIBILITY_PRIVATE
 #define VISIBILITY_PRIVATE private:
@@ -70,11 +70,6 @@ typedef struct erase_fd_params
 */
 class SINSP_PUBLIC sinsp_threadinfo: public libsinsp::state::table_entry
 {
-private:
-	/* This is the threshold after which we try to clean expired children
-	 * during reparenting.
-	 */
-	static uint32_t expired_children_threshold;
 
 public:
 	sinsp_threadinfo(
@@ -82,15 +77,6 @@ public:
 		std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields = nullptr);
 	virtual ~sinsp_threadinfo();
 
-	static inline uint32_t get_expired_children_threshold()
-	{
-		return expired_children_threshold;
-	}
-
-	static inline void set_expired_children_threshold(uint32_t threshold)
-	{
-		expired_children_threshold = threshold;
-	}
 
 	/*!
 	  \brief Return the name of the process containing this thread, e.g. "top".
@@ -348,7 +334,50 @@ public:
 
 	void assign_children_to_reaper(sinsp_threadinfo* reaper);
 
-	void clean_expired_children();
+	inline void add_child(const std::shared_ptr<sinsp_threadinfo>& child)
+	{
+		m_children.push_front(child);
+		/* Set current thread as parent */
+		child->m_ptid = m_tid;
+		/* Increment the number of not expired children */
+		m_not_expired_children++;		
+	}
+
+	/* We call it immediately before removing the thread from the thread table. */
+	inline void remove_child_from_parent()
+	{
+		auto parent = get_parent_thread();
+		if(parent == nullptr)
+		{
+			return;
+		}
+
+		parent->m_not_expired_children--;
+
+		/* Clean expired children if necessary. */
+		if((parent->m_children.size() - parent->m_not_expired_children) > DEFAULT_EXPIRED_CHILDREN_THRESHOLD)
+		{
+			parent->clean_expired_children();
+		}
+	}
+
+	inline void clean_expired_children()
+	{
+		auto child = m_children.begin();
+		while(child != m_children.end())
+		{
+			/* This child is expired */
+			if(child->expired())
+			{
+				/* `erase` returns the pointer to the next child
+				 * no need for manual increment.
+				 */
+				child = m_children.erase(child);
+				continue;
+			}
+			child++;
+		}
+	}
 
 	static void populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo);
 
@@ -416,6 +445,7 @@ public:
 	int32_t m_tty; ///< Number of controlling terminal
 	std::shared_ptr<thread_group_info> m_tginfo;
 	std::list<std::weak_ptr<sinsp_threadinfo>> m_children;
+	uint64_t m_not_expired_children;
 
 
 	// In some cases, a threadinfo has a category that identifies
