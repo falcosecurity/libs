@@ -47,8 +47,6 @@ static void copy_ipv6_address(uint32_t* dest, uint32_t* src)
 // sinsp_threadinfo implementation
 ///////////////////////////////////////////////////////////////////////////////
 
-uint32_t sinsp_threadinfo::expired_children_threshold = DEFAULT_CHILDREN_THRESHOLD;
-
 sinsp_threadinfo::sinsp_threadinfo(sinsp* inspector, std::shared_ptr<libsinsp::state::dynamic_struct::field_infos> dyn_fields):
 	table_entry(dyn_fields),
 	m_cgroups(new cgroups_t),
@@ -114,6 +112,7 @@ void sinsp_threadinfo::init()
 	m_vpgid = (uint64_t) - 1LL;
 	set_lastevent_data_validity(false);
 	m_reaper_tid = - 1;
+	m_not_expired_children = 0;
 	m_lastevent_type = -1;
 	m_lastevent_ts = 0;
 	m_prevevent_ts = 0;
@@ -452,6 +451,7 @@ void sinsp_threadinfo::init(scap_threadinfo* pi)
 
 	/* We cannot obtain the reaper_tid from a /proc scan */
 	m_reaper_tid = -1;
+	m_not_expired_children = 0;
 
 	set_args(pi->args, pi->args_len);
 	if(is_main_thread())
@@ -1128,30 +1128,6 @@ void sinsp_threadinfo::traverse_parent_state(visitor_func_t &visitor)
 	}
 }
 
-void sinsp_threadinfo::clean_expired_children()
-{
-	/* Loop over all the children to clean up expired ones.
-	 * We don't want to do it every time, we set a threshold.
-	 */
-	if(m_children.size() > sinsp_threadinfo::get_expired_children_threshold())
-	{
-		auto child = m_children.begin();
-		while(child != m_children.end())
-		{
-			/* This child is expired */
-			if(child->expired())
-			{
-				/* `erase` returns the pointer to the next child
-				 * no need for manual increment.
-				 */
-				child = m_children.erase(child);
-				continue;
-			}
-			child++;
-		}
-	}
-}
-
 /* We should never call this method if we don't have children to reparent
  * if we want to save some clock cycles
  */
@@ -1173,11 +1149,6 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 		return;
 	}
 
-	/* Before adding new children we clean expired children
-	 * of the reaper if necessary.
-	 */
-	reaper->clean_expired_children();
-
 	auto child = m_children.begin();
 	while(child != m_children.end())
 	{
@@ -1187,10 +1158,7 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 		if(!child->expired())
 		{
 			/* Add the child to the reaper list */
-			reaper->m_children.push_front(*child);
-		
-			/* update ptid of the child with the new parent */
-			child->lock().get()->m_ptid = reaper->m_tid;
+			reaper->add_child(child->lock());
 		}
 
 		/* In any case (expired or not) we remove the child
@@ -1198,7 +1166,7 @@ void sinsp_threadinfo::assign_children_to_reaper(sinsp_threadinfo* reaper)
 		 */
 		child = m_children.erase(child);
 	}
-	/* At the end of this loop, m_children.size() should be always 0 */
+	m_not_expired_children = 0;
 }
 
 void sinsp_threadinfo::populate_cmdline(std::string &cmdline, const sinsp_threadinfo *tinfo)
@@ -1555,10 +1523,8 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 			tinfo->m_ptid = 0;
 			return;
 		}
-		/* We update also the parent tid of the thread */
-		tinfo->m_ptid = 1;
 	}
-	parent_thread->m_children.push_front(tinfo);
+	parent_thread->add_child(tinfo);
 }
 
 std::unique_ptr<sinsp_threadinfo> sinsp_thread_manager::new_threadinfo() const
@@ -1612,7 +1578,7 @@ bool sinsp_thread_manager::add_thread(sinsp_threadinfo *threadinfo, bool from_sc
 	}
 
 	tinfo_shared_ptr->compute_program_hash();
-	m_threadtable.put(tinfo_shared_ptr);
+	m_threadtable.put(std::move(tinfo_shared_ptr));
 
 	return true;
 }
@@ -1760,6 +1726,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 */
 	if(thread_to_remove->is_invalid() || thread_to_remove->m_tginfo == nullptr)
 	{
+		thread_to_remove->remove_child_from_parent();
 		m_threadtable.erase(tid);
 		m_last_tid = -1;
 		return;
@@ -1845,6 +1812,10 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 		remove_main_thread_fdtable(thread_to_remove->get_main_thread());
 
 		/* we remove the main thread and the thread group */
+		/* even if thread_to_remove is not the main thread the parent will be
+		 * the same so it's ok.
+		 */
+		thread_to_remove->remove_child_from_parent();
 		m_thread_groups.erase(thread_to_remove->m_pid);
 		m_threadtable.erase(thread_to_remove->m_pid);
 	}
@@ -1856,6 +1827,7 @@ void sinsp_thread_manager::remove_thread(int64_t tid)
 	 */
 	if(!thread_to_remove->is_main_thread())
 	{
+		thread_to_remove->remove_child_from_parent();
 		m_threadtable.erase(tid);
 	}
 
@@ -1888,6 +1860,15 @@ void sinsp_thread_manager::clear_thread_pointers(sinsp_threadinfo& tinfo)
 void sinsp_thread_manager::reset_child_dependencies()
 {
 	m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
+		tinfo.clean_expired_children();
+		/* Little optimization: only the main thread cleans the thread group from expired threads.
+		 * Downside: if the main thread is not present in the thread group because we lost it we don't
+		 * clean the thread group from expired threads.
+		 */
+		if(tinfo.is_main_thread() && tinfo.m_tginfo != nullptr)
+		{
+			tinfo.m_tginfo->clean_expired_threads();
+		}
 		clear_thread_pointers(tinfo);
 		return true;
 	});
@@ -2182,6 +2163,7 @@ threadinfo_map_t::ptr_t sinsp_thread_manager::get_thread_ref(int64_t tid, bool q
             newti->m_pid = -1;
             newti->m_ptid = -1;
             newti->m_reaper_tid = -1;
+            newti->m_not_expired_children = 0;
             newti->m_comm = "<NA>";
             newti->m_exe = "<NA>";
             newti->m_user.uid = 0xffffffff;

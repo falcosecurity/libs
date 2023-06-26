@@ -23,19 +23,16 @@ limitations under the License.
 /* Forward declaration */
 class sinsp_threadinfo;
 
-#define DEFAULT_THREADS_THRESHOLD 40
+/* Apart from the main thread all other threads when marked as dead should be removed
+ * from the thread_table at the next event loop and so become expired. For this reason when we have
+ * at least 10 dead threads we can try to clean up expired ones.
+ */
+#define DEFAULT_DEAD_THREADS_THRESHOLD 10
 
 /* New struct that keep information regarding the thread group */
 typedef struct thread_group_info
 {
-private:
-	static uint32_t expired_threads_threshold;
-
 public:
-	static inline uint32_t get_expired_threads_threshold() { return expired_threads_threshold; }
-
-	static inline void set_expired_threads_threshold(uint32_t threshold) { expired_threads_threshold = threshold; }
-
 	thread_group_info(int64_t group_pid, bool reaper, std::weak_ptr<sinsp_threadinfo> current_thread):
 		m_pid(group_pid), m_reaper(reaper)
 	{
@@ -51,7 +48,20 @@ public:
 
 	inline void increment_thread_count() { m_alive_count++; }
 
-	inline void decrement_thread_count() { m_alive_count--; }
+	inline void decrement_thread_count()
+	{
+		m_alive_count--;
+
+		/* Clean expired threads if necessary.
+		 * Please note that this is an approximation, `m_threads.size() - m_alive_count` are not the
+		 * real expired threads, they are just the ones marked as dead. For example the main thread
+		 * of the group is marked as dead but it will be never expired until the thread group exists.
+		 */
+		if((m_threads.size() - m_alive_count) > DEFAULT_DEAD_THREADS_THRESHOLD)
+		{
+			clean_expired_threads();
+		}
+	}
 
 	inline uint64_t get_thread_count() const { return m_alive_count; }
 
@@ -77,13 +87,7 @@ public:
 			m_threads.push_back(thread);
 		}
 		/* we are adding a thread so we increment the count */
-		m_alive_count++;
-
-		/* Clean expired threads if necessary */
-		if(m_threads.size() > thread_group_info::get_expired_threads_threshold())
-		{
-			clean_expired_threads();
-		}
+		increment_thread_count();
 	}
 
 	inline void clean_expired_threads()

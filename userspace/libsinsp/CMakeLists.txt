@@ -116,8 +116,7 @@ set(SINSP_SOURCES
 	user.cpp
 	gvisor_config.cpp
 	events/sinsp_events.cpp
-	events/sinsp_events_ppm_sc.cpp
-	thread_group_info.cpp)
+	events/sinsp_events_ppm_sc.cpp)
 
 if(NOT WIN32 AND NOT APPLE)
 	list(APPEND SINSP_SOURCES procfs_utils.cpp sinsp_cgroup.cpp)

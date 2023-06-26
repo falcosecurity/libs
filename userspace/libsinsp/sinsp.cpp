@@ -2716,7 +2716,6 @@ bool sinsp_thread_manager::remove_inactive_threads()
 		 * 2. Threads that we are not using and that are no more alive in /proc.
 		 */
 		m_threadtable.loop([&] (sinsp_threadinfo& tinfo) {
-			tinfo.clean_expired_children();
 			if(tinfo.is_invalid() ||
 				((m_inspector->m_lastevent_ts > tinfo.m_lastaccess_ts + m_inspector->m_thread_timeout_ns) &&
 					!scap_is_thread_alive(m_inspector->m_h, tinfo.m_pid, tinfo.m_tid, tinfo.m_comm.c_str())))
@@ -2731,10 +2730,7 @@ bool sinsp_thread_manager::remove_inactive_threads()
 			remove_thread(tid_to_remove);
 		}
 
-		//
-		// Rebalance the thread table dependency tree, so we free up threads that
-		// exited but that are stuck because of reference counting.
-		//
+		/* Clean expired threads in the group and children */
 		reset_child_dependencies();
 		return true;
 	}
