@@ -691,9 +691,9 @@ void sinsp::open_modern_bpf(unsigned long driver_buffer_bytes_dim, uint16_t cpus
 	open_common(&oargs);
 }
 
-void sinsp::open_test_input(scap_test_input_data* data)
+void sinsp::open_test_input(scap_test_input_data* data, scap_mode_t mode)
 {
-	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, SCAP_MODE_TEST);
+	scap_open_args oargs = factory_open_args(TEST_INPUT_ENGINE, mode);
 	struct scap_test_input_engine_params params;
 	params.test_input_data = data;
 	oargs.engine_params = &params;

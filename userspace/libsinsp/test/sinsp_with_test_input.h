@@ -50,9 +50,8 @@ protected:
 
 	sinsp m_inspector;
 
-	void open_inspector()
-	{
-		m_inspector.open_test_input(m_test_data.get());
+	void open_inspector(scap_mode_t mode = SCAP_MODE_TEST) {
+		m_inspector.open_test_input(m_test_data.get(), mode);
 	}
 
 	scap_evt* add_event(uint64_t ts, uint64_t tid, ppm_event_code event_type, uint32_t n, ...)
