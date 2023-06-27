@@ -16,6 +16,10 @@ set(VM_CONTAINERS
 	falcosecurity/falco-builder:latest
 )
 
+add_custom_target(vm-dependency-check
+	COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/dependency_check.sh;
+)
+
 add_custom_target(vm-container
 	COMMAND time docker build -f ${CMAKE_CURRENT_SOURCE_DIR}/containers/ubuntu2004.Dockerfile -t ${UBUNTU_CONTAINER1} .;
 	COMMAND time docker build -f ${CMAKE_CURRENT_SOURCE_DIR}/containers/ubuntu2204.Dockerfile  -t ${UBUNTU_CONTAINER2} .;
