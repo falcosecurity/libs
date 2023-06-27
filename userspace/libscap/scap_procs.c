@@ -76,22 +76,6 @@ void scap_proc_free(scap_t* handle, struct scap_threadinfo* proc)
 	free(proc);
 }
 
-int32_t scap_proc_add(scap_t* handle, uint64_t tid, scap_threadinfo* tinfo)
-{
-	int32_t uth_status = SCAP_SUCCESS;
-
-	HASH_ADD_INT64(handle->m_platform->m_proclist.m_proclist, tid, tinfo);
-	if(uth_status == SCAP_SUCCESS)
-	{
-		return SCAP_SUCCESS;
-	}
-	else
-	{
-		snprintf(handle->m_lasterr, SCAP_LASTERR_SIZE, "Could not add tid to hash table");
-		return SCAP_FAILURE;
-	}
-}
-
 int32_t scap_fd_add(scap_t *handle, scap_threadinfo* tinfo, uint64_t fd, scap_fdinfo* fdinfo)
 {
 	int32_t uth_status = SCAP_SUCCESS;
