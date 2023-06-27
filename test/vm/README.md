@@ -38,6 +38,9 @@ cmake -DCREATE_TEST_TARGETS=ON -DENABLE_VM_TESTS=ON ../;
 Create containers, download kernel and header packages, extract kernel headers, and build vagrant VMs.
 
 ```bash
+# Check dependencies
+make vm-dependency-check;
+
 # Target vm-init first run can take up to 25 min or longer
 # Re-running only re-builds VMs - can take up to 6 min or longer
 make vm-init;
