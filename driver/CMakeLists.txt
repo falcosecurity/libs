@@ -12,7 +12,8 @@ project(driver)
 set(TARGET_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 if((NOT TARGET_ARCH STREQUAL "x86_64") AND
    (NOT TARGET_ARCH STREQUAL "aarch64") AND
-   (NOT TARGET_ARCH STREQUAL "s390x"))
+   (NOT TARGET_ARCH STREQUAL "s390x") AND
+   (NOT TARGET_ARCH STREQUAL "riscv64"))
 	message(WARNING "Target architecture not officially supported by our drivers!")
 else()
 	# Load current kernel version
@@ -24,6 +25,7 @@ else()
 	set(kmod_min_kver_map_x86_64 2.6)
 	set(kmod_min_kver_map_aarch64 3.16)
 	set(kmod_min_kver_map_s390x 2.6)
+	set(kmod_min_kver_map_riscv64 5.0)
 	if (LINUX_KERNEL_VERSION VERSION_LESS ${kmod_min_kver_map_${TARGET_ARCH}})
 		message(WARNING "[KMOD] To run this driver you need a Linux kernel version >= ${kmod_min_kver_map_${TARGET_ARCH}} but actual kernel version is: ${UNAME_RESULT}")
 	endif()

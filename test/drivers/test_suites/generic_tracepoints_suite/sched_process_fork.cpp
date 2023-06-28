@@ -526,7 +526,7 @@ TEST(GenericTracepoints, sched_proc_fork_case_clone)
 
 #ifdef __s390x__
 	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
-#elif __aarch64__
+#elif defined(__aarch64__) || defined(__riscv)
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);

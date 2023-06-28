@@ -45,7 +45,7 @@ TEST(SyscallEnter, cloneE)
 	 */
 #ifdef __s390x__
 	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls));
-#elif __aarch64__
+#elif defined(__aarch64__) || defined(__riscv)
 	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid));
 #else
 	assert_syscall_state(SYSCALL_FAILURE, "clone", syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls));
