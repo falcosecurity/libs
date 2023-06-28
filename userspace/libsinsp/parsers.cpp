@@ -1222,8 +1222,9 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 
 	/* PPM_CL_CHILD_IN_PIDNS is true when:
 	 * - the caller is running into a container and so the child
-	 * - Only the child is running into a container (when the child is
-	 *   the init process of the new namespace this flag is not set)
+	 * Please note: if only the child is running into a container
+	 * (so when the child is the init process of the new namespace)
+	 * this flag is not set
 	 * 
 	 * PPM_CL_CLONE_NEWPID is true when:
 	 * - the child is the init process of a new namespace
@@ -1270,7 +1271,7 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 	/*=============================== CREATE CHILD ===========================*/
 
 	/* Allocate the new thread info and initialize it.
-	 * We must avoid `malloc` here and get the item from a preallocated list.
+	 * We avoid `malloc` here and get the item from a preallocated list.
 	 */
 	child_tinfo = m_inspector->build_threadinfo();
 
@@ -1361,8 +1362,9 @@ void sinsp_parser::parse_clone_exit_caller(sinsp_evt *evt, int64_t child_tid)
 		child_tinfo->m_ptid = caller_tinfo->m_ptid;
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with `/proc` scan.
-		 * Threads will never have their `fdtable` they will use the main thread one, for this reason, we keep the
-		 * main thread alive until we have some threads in the group.
+		 *
+		 * In our approximation threads will never have their `fdtable` they will use the main thread one, for
+		 * this reason, we keep the main thread alive until we have some threads in the group.
 		 */
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
 
@@ -1641,10 +1643,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	int64_t tid_collision = -1;
 	bool valid_lookup_thread = true;
 
-	/* The clone child exit event has only 1 main purpose:
-	 * 1. create a new thread info for the child.
-	 */
-
 	/*=============================== CHILD ALREADY THERE ===========================*/
 
 	/* Before embarking on parsing the event, check if there's already
@@ -1709,6 +1707,37 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int64_t));
 	child_tinfo->m_ptid = *(int64_t *)parinfo->m_val;
 
+	/* `vtid` and `vpid`
+	 * We preset these values for old scap-files compatibility.
+	 */
+	child_tinfo->m_vtid = child_tinfo->m_tid;
+	child_tinfo->m_vpid = -1;
+	switch(etype)
+	{
+	case PPME_SYSCALL_CLONE_11_X:
+	case PPME_SYSCALL_CLONE_16_X:
+	case PPME_SYSCALL_CLONE_17_X:
+	case PPME_SYSCALL_FORK_X:
+	case PPME_SYSCALL_FORK_17_X:
+	case PPME_SYSCALL_VFORK_X:
+	case PPME_SYSCALL_VFORK_17_X:
+		break;
+	case PPME_SYSCALL_CLONE_20_X:
+	case PPME_SYSCALL_FORK_20_X:
+	case PPME_SYSCALL_VFORK_20_X:
+	case PPME_SYSCALL_CLONE3_X:
+		parinfo = evt->get_param(18);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		child_tinfo->m_vtid = *(int64_t *)parinfo->m_val;
+
+		parinfo = evt->get_param(19);
+		ASSERT(parinfo->m_len == sizeof(int64_t));
+		child_tinfo->m_vpid = *(int64_t *)parinfo->m_val;
+		break;
+	default:
+		ASSERT(false);
+	}
+
 	/* flags */
 	switch(etype)
 	{
@@ -1766,7 +1795,8 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 		lookup_tid = child_tinfo->m_pid;
 
 		/* Please note this is not the right behavior, it is something we do to be compliant with `/proc` scan.
-		 * Threads will never have their `fdtable` they will use the main thread one, for this reason, we keep
+		 *
+		 * In our approximation threads will never have their `fdtable` they will use the main thread one, for this reason, we keep
 		 * the main thread alive until we have some threads in the group.
 		 */
 		child_tinfo->m_flags |= PPM_CL_CLONE_FILES;
@@ -1801,6 +1831,14 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 			/* ptid */
 			/* the new thread ptid is the same of the main thread */
 			lookup_tinfo->m_ptid = child_tinfo->m_ptid;
+
+			/* vpid */
+			/* we are in the same thread group, the vpid is the same of the child */
+			lookup_tinfo->m_vpid = child_tinfo->m_vpid;
+
+			/* vtid */
+			/* we are a main thread so vtid==vpid */
+			lookup_tinfo->m_vtid = lookup_tinfo->m_vpid;
 
 			/* Create thread groups and parenting relationships */
 			m_inspector->m_thread_manager->create_thread_dependencies(lookup_tinfo);
@@ -2059,37 +2097,6 @@ void sinsp_parser::parse_clone_exit_child(sinsp_evt *evt)
 	ASSERT(parinfo->m_len == sizeof(int32_t));
 	child_tinfo->set_group(*(int32_t *)parinfo->m_val);
 
-	/* `vtid` and `vpid`
-	 * We preset these values for old scap-files compatibility.
-	 */
-	child_tinfo->m_vtid = child_tinfo->m_tid;
-	child_tinfo->m_vpid = -1;
-	switch(etype)
-	{
-	case PPME_SYSCALL_CLONE_11_X:
-	case PPME_SYSCALL_CLONE_16_X:
-	case PPME_SYSCALL_CLONE_17_X:
-	case PPME_SYSCALL_FORK_X:
-	case PPME_SYSCALL_FORK_17_X:
-	case PPME_SYSCALL_VFORK_X:
-	case PPME_SYSCALL_VFORK_17_X:
-		break;
-	case PPME_SYSCALL_CLONE_20_X:
-	case PPME_SYSCALL_FORK_20_X:
-	case PPME_SYSCALL_VFORK_20_X:
-	case PPME_SYSCALL_CLONE3_X:
-		parinfo = evt->get_param(18);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		child_tinfo->m_vtid = *(int64_t *)parinfo->m_val;
-
-		parinfo = evt->get_param(19);
-		ASSERT(parinfo->m_len == sizeof(int64_t));
-		child_tinfo->m_vpid = *(int64_t *)parinfo->m_val;
-		break;
-	default:
-		ASSERT(false);
-	}
-
 	/* Set cgroups and heuristically detect container id */
 	switch(etype)
 	{
@@ -2254,9 +2261,10 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	/* In some corner cases an execve is thrown by a secondary thread when 
 	 * the main thread is already dead. In these cases the secondary thread
 	 * will become a main thread (it will change its tid) and here we will have
-	 * an execve exit event called by a main thread that is "theorically" dead.
+	 * an execve exit event called by a main thread that is dead.
 	 * What we need to do is to set the main thread as alive again and then
 	 * a new PROC_EXIT event will kill it again.
+	 * This is what happens with `stress-ng --exec`.
 	 */
 	if(evt->m_tinfo->is_dead())
 	{
@@ -2311,6 +2319,13 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 		parinfo = evt->get_param(5);
 		ASSERT(parinfo->m_len == sizeof(uint64_t));
 		evt->m_tinfo->m_ptid = *(uint64_t *)parinfo->m_val;
+
+		/* We are not in a namespace we recover also vtid and vpid */
+		if((evt->m_tinfo->m_flags & PPM_CL_CHILD_IN_PIDNS) == 0)
+		{
+			evt->m_tinfo->m_vtid = evt->m_tinfo->m_tid;
+			evt->m_tinfo->m_vpid = evt->m_tinfo->m_pid;
+		}
 
 		auto tinfo = m_inspector->get_thread_ref(evt->m_tinfo->m_tid, false);
 		/* Create thread groups and parenting relationships */
@@ -4232,7 +4247,7 @@ void sinsp_parser::parse_thread_exit(sinsp_evt *evt)
 	/* [Mark thread as dead]
 	 * We mark the thread as dead here and we will remove it 
 	 * from the table during remove_thread().
-	 * Please note that the `!evt->m_tinfo->is_dead()` should be
+	 * Please note that the `!evt->m_tinfo->is_dead()` shouldn't be
 	 * necessary at all since here we shouldn't receive dead threads.
 	 * This is first place where we mark threads as dead.
 	 */

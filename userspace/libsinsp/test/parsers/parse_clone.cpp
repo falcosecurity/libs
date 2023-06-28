@@ -614,14 +614,12 @@ TEST_F(sinsp_with_test_input, CLONE_CHILD_missing_both_clone_events_create_secon
 	generate_clone_x_event(0, p1_t2_tid, p1_t2_pid, p1_t2_ptid, PPM_CL_CLONE_THREAD);
 
 	/* We should have created a valid thread info for p1_t1 */
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p1_t1_tid, p1_t1_pid, p1_t1_ptid, -1, -1);
+	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid);
 	ASSERT_THREAD_GROUP_INFO(p1_t1_pid, 2, false, 2, 2, p1_t1_tid, p1_t2_tid);
 	ASSERT_THREAD_CHILDREN(INIT_TID, 2, 2, p1_t1_tid, p1_t2_tid);
 
 	/* We create also the new child of course */
 	ASSERT_THREAD_INFO_PIDS(p1_t2_tid, p1_t2_pid, p1_t2_ptid)
-
-	GTEST_SKIP() << "When we create a new thread info for the caller we don't set vtid and vpid, we can fix this\n";
 }
 
 /*=============================== CLONE CHILD EXIT EVENT ===========================*/

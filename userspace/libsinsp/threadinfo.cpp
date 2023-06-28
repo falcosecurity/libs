@@ -1503,9 +1503,6 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 	 * Remember that in `/proc` scan the `ptid` is `ppid`.
 	 * If we don't find the parent in the table we can do nothing, so we consider
 	 * INIT as the new parent.
-	 * 
-	 * Please note that here the parent could not have yet the `tginfo` since maybe
-	 * we still need to parse it.
 	 */
 	auto parent_thread = m_inspector->get_thread_ref(tinfo->m_ptid, false);
 	if(parent_thread == nullptr || parent_thread->is_invalid())
@@ -1513,7 +1510,7 @@ void sinsp_thread_manager::create_thread_dependencies(const std::shared_ptr<sins
 		/* We assign it to init. Please note that if Init is not there we try to create it
 		 * scanning proc, otherwise we will create a fake thread-info. If we obtain a nullptr
 		 * it means we have no more space in the table to create a fake thread_info for init.
-		 * and this should never happen so we throw an exception.
+		 * and this should never happen.
 		 */
 		parent_thread = m_inspector->get_thread_ref(1, true);
 		if(parent_thread == nullptr)
