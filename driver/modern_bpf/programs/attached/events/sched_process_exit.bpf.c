@@ -184,7 +184,7 @@ int BPF_PROG(sched_proc_exit, struct task_struct *task)
 	u8 core = __WCOREDUMP(exit_code) != 0;
 	auxmap__store_u8_param(auxmap, core);
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	/* This is a sort of optimization if we don't have children in the kernel
 	 * we don't need a reaper and we can save some precious cycles.
 	 * We send `reaper_pid==0` if the userspace still has some children
