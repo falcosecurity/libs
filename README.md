@@ -3,7 +3,7 @@
 [![Falco Core Repository](https://github.com/falcosecurity/evolution/blob/main/repos/badges/falco-core-blue.svg)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#core-scope) [![Stable](https://img.shields.io/badge/status-stable-brightgreen?style=for-the-badge)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#stable) [![License](https://img.shields.io/github/license/falcosecurity/libs?style=for-the-badge)](./COPYING)
 
 [![CI Build](https://github.com/falcosecurity/libs/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/falcosecurity/libs/actions/workflows/ci.yml)
-[![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x-blueviolet)](#drivers-officially-supported-architectures)
+[![Architectures](https://img.shields.io/badge/ARCHS-x86__64%7Caarch64%7Cs390x%7Criscv64-blueviolet)](#drivers-officially-supported-architectures)
 [![Drivers](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/FedeDP/1cbc5d42edf8e3a02fb75e76625f1072/raw/kernel.json)](https://github.com/falcosecurity/libs/actions/workflows/latest-kernel.yml)
 [![Github Pages](https://github.com/falcosecurity/libs/actions/workflows/pages.yml/badge.svg)](https://falcosecurity.github.io/libs/)
 
@@ -50,6 +50,7 @@ Our drivers officially support the following architectures:
 | **x86_64**  | >= 2.6                                                                                       | >= 4.14    | >= 5.8            | _STABLE_ |
 | **aarch64** | >= [3.16](https://github.com/torvalds/linux/commit/055b1212d141f1f398fca548f8147787c0b6253f) | >= 4.17    | >= 5.8            | _STABLE_ |
 | **s390x**   | >= 2.6                                                                                       | >= [5.5](https://github.com/torvalds/linux/commit/6ae08ae3dea) | >= 5.8            | _EXPERIMENTAL_ |
+| **riscv64** | >= [5.0](https://github.com/torvalds/linux/commit/5aeb1b36cedd3a1dfdbfe368629fed52dee34103)  | N/A                                                            | N/A               | _EXPERIMENTAL_ |
 
 
 To access up-to-date status reports on Falco drivers kernel testing, please visit this [page](https://falcosecurity.github.io/libs/). It provides a list of supported syscalls as well as the [report](https://falcosecurity.github.io/libs/report/).

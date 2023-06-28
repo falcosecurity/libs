@@ -35,7 +35,7 @@ TEST(SyscallExit, cloneX_father)
 	 * is not the same as for all architectures. `/kernel/fork.c` from kernel source tree.
 	 *
 	 *  #ifdef CONFIG_CLONE_BACKWARDS
-	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64` systems use this.
+	 *	SYSCALL_DEFINE5(clone, unsigned long, clone_flags, unsigned long, newsp,  	  <-- `aarch64` and `riscv` systems use this.
 	 *			int __user *, parent_tidptr,
 	 *			unsigned long, tls,
 	 *			int __user *, child_tidptr)
@@ -60,7 +60,7 @@ TEST(SyscallExit, cloneX_father)
 	 */
 #ifdef __s390x__
 	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
-#elif __aarch64__
+#elif defined(__aarch64__) || defined(__riscv)
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);
@@ -197,7 +197,7 @@ TEST(SyscallExit, cloneX_child)
 
 #ifdef __s390x__
 	ret_pid = syscall(__NR_clone, newsp, clone_flags, &parent_tid, &child_tid, tls);
-#elif __aarch64__
+#elif defined(__aarch64__) || defined(__riscv)
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, tls, &child_tid);
 #else
 	ret_pid = syscall(__NR_clone, clone_flags, newsp, &parent_tid, &child_tid, tls);

@@ -24,6 +24,8 @@ or GPL2.txt for full copies of the license.
 #include "syscall_compat_aarch64.h"
 #elif defined(__s390x__)
 #include "syscall_compat_s390x.h"
+#elif defined(__riscv)
+#include "syscall_compat_riscv64.h"
 #endif /* __x86_64__ */
 #elif defined(_MSC_VER) || defined(__EMSCRIPTEN__)
 // these are Linux syscall numbers and obviously meaningless for Windows/macOS
