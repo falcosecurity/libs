@@ -25,6 +25,13 @@ limitations under the License.
 #include "filterchecks.h"
 #include "strl.h"
 #include "test_utils.h"
+#include <libsinsp_test_var.h>
+
+#define DEFAULT_VALUE 0
+#define INIT_TID 1
+#define INIT_PID INIT_TID
+#define INIT_PTID 0
+#define UNUSED __attribute__((unused))
 
 class sinsp_with_test_input : public ::testing::Test {
 protected:
@@ -149,6 +156,66 @@ protected:
 		return event;
 	}
 
+	/*=============================== PROCESS GENERATION ===========================*/
+
+	sinsp_evt* generate_clone_x_event(int64_t retval, int64_t tid, int64_t pid, int64_t ppid, uint32_t flags = 0, int64_t vtid = DEFAULT_VALUE, int64_t vpid = DEFAULT_VALUE, std::string name = "bash")
+	{
+		if(vtid == DEFAULT_VALUE)
+		{
+			vtid = tid;
+		}
+
+		if(vpid == DEFAULT_VALUE)
+		{
+			vpid = pid;
+		}
+
+		/* Scaffolding needed to call the PPME_SYSCALL_CLONE_20_X */
+		uint64_t not_relevant_64 = 0;
+		uint32_t not_relevant_32 = 0;
+		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+		return add_event_advance_ts(increasing_ts(), tid, PPME_SYSCALL_CLONE_20_X, 20, retval, name.c_str(), empty_bytebuf, tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, name.c_str(), empty_bytebuf, flags, not_relevant_32, not_relevant_32, vtid, vpid);
+	}
+
+	sinsp_evt* generate_execve_enter_and_exit_event(int64_t retval, int64_t old_tid, int64_t new_tid, int64_t pid, int64_t ppid, std::string filename = "/bin/test-exe")
+	{
+		/* Scaffolding needed to call the PPME_SYSCALL_EXECVE_19_X */
+		uint64_t not_relevant_64 = 0;
+		uint32_t not_relevant_32 = 0;
+		scap_const_sized_buffer empty_bytebuf = {.buf = nullptr, .size = 0};
+
+		add_event_advance_ts(increasing_ts(), old_tid, PPME_SYSCALL_EXECVE_19_E, 1, filename.c_str());
+		/* we have an `old_tid` and a `new_tid` because if a secondary thread calls the
+		 * execve the thread leader will take control so the `tid` between enter and exit event
+		 * will change
+		 * */
+		return add_event_advance_ts(increasing_ts(), new_tid, PPME_SYSCALL_EXECVE_19_X, 27, retval, filename.c_str(), empty_bytebuf, new_tid, pid, ppid, "", not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_32, filename.c_str(), empty_bytebuf, empty_bytebuf, not_relevant_32, not_relevant_64, not_relevant_32, not_relevant_32, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_64, not_relevant_32);
+	}
+
+	void remove_thread(int64_t tid_to_remove, int64_t reaper_tid)
+	{
+		generate_proc_exit_event(tid_to_remove, reaper_tid);
+		/* Generate a random event on init to trigger the removal after proc exit */
+		generate_random_event();
+	}
+
+	sinsp_evt* generate_proc_exit_event(int64_t tid_to_remove, int64_t reaper_tid)
+	{
+		/* Scaffolding needed to call the PPME_PROCEXIT_1_E */
+		int64_t not_relevant_64 = 0;
+		uint8_t not_relevant_8 = 0;
+
+		return add_event_advance_ts(increasing_ts(), tid_to_remove, PPME_PROCEXIT_1_E, 5, not_relevant_64, not_relevant_64, not_relevant_8, not_relevant_8, reaper_tid);
+	}
+
+	sinsp_evt* generate_random_event(int64_t tid_caller = INIT_TID)
+	{
+		/* Generate a random event on init to trigger the removal after proc exit */
+		return add_event_advance_ts(increasing_ts(), tid_caller, PPME_SYSCALL_GETCWD_E, 0);
+	}
+
+	/*=============================== PROCESS GENERATION ===========================*/
+
 	void add_thread(const scap_threadinfo &tinfo, const std::vector<scap_fdinfo> &fdinfos)
 	{
 		m_threads.push_back(tinfo);
@@ -165,12 +232,37 @@ protected:
 		m_test_data->fdinfo_data = m_test_fdinfo_data.data();
 	}
 
+	void set_threadinfo_last_access_time(int64_t tid, uint64_t access_time_ns)
+	{
+		auto tinfo = m_inspector.get_thread_ref(tid, false).get();
+		if(tinfo != nullptr)
+		{
+			tinfo->m_lastaccess_ts = access_time_ns;
+		}
+		else
+		{
+			throw sinsp_exception("There is no thread info associated with tid: " + std::to_string(tid));
+		}
+	}
+
+	/* Remove all threads with `tinfo->m_lastaccess_ts` minor than `m_lastevent_ts - thread_timeout` */
+	void remove_inactive_threads(uint64_t m_lastevent_ts, uint64_t thread_timeout)
+	{
+		/* We need to set these 2 variables to enable the remove_inactive_logic */
+		m_inspector.m_thread_manager->m_last_flush_time_ns = 1;
+		m_inspector.m_inactive_thread_scan_time_ns = 2;
+
+		m_inspector.m_lastevent_ts = m_lastevent_ts;
+		m_inspector.m_thread_timeout_ns = thread_timeout;
+		m_inspector.remove_inactive_threads();
+	}
+
 	static scap_threadinfo create_threadinfo(
 		uint64_t tid, uint64_t pid, uint64_t ptid, uint64_t vpgid, int64_t vtid, int64_t vpid,
 		std::string comm, std::string exe, std::string exepath, uint64_t clone_ts, uint32_t uid, uint32_t gid,
 
-		std::vector<std::string> args={}, uint64_t sid=0, std::vector<std::string> env={}, std::string cwd="",
-		int64_t fdlimit=0x100000, uint32_t flags=0, bool exe_writable=true,
+		std::vector<std::string> args={}, uint64_t sid=0, std::vector<std::string> env={}, std::string cwd="/test",
+		int64_t fdlimit=0x100000, uint32_t flags=0, bool exe_writable=true, 
 		uint64_t cap_permitted=0x1ffffffffff, uint64_t cap_inheritable=0, uint64_t cap_effective=0x1ffffffffff,
 		uint32_t vmsize_kb=10000, uint32_t vmrss_kb=100, uint32_t vmswap_kb=0, uint64_t pfmajor=222, uint64_t pfminor=22,
 		std::vector<std::string> cgroups={}, std::string root="/", int filtered_out=0, int32_t tty=0, int32_t loginuid=-1)
@@ -256,6 +348,12 @@ protected:
 		fdinfos.push_back(fdinfo);
 
 		add_thread(tinfo, fdinfos);
+	}
+
+	void add_simple_thread(int64_t tid, int64_t pid, int64_t ptid, std::string comm = "random")
+	{
+		scap_threadinfo tinfo = create_threadinfo(tid, pid, ptid, tid, tid, pid, comm, "/sbin/init", "/sbin/init", increasing_ts(), 0, 0, {}, 0, {}, "/root/");
+		add_thread(tinfo, {});
 	}
 
 	uint64_t increasing_ts()
