@@ -361,6 +361,9 @@ TEST_F(sinsp_with_test_input, spawn_process)
 	//check process group leader (vpgid) related fields
 	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid"), "1");
 	ASSERT_EQ(get_field_as_string(evt, "proc.is_vpgid_leader"), "false");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.name"), "init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.exe"), "/sbin/init");
+	ASSERT_EQ(get_field_as_string(evt, "proc.vpgid.exepath"), "/sbin/init");
 
 	// check that parent/ancestor info retrieved from the parent process lineage
 	ASSERT_EQ(get_field_as_string(evt, "proc.pname"), "init");
