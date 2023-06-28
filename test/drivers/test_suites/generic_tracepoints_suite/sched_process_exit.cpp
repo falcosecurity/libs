@@ -75,7 +75,7 @@ TEST(GenericTracepoints, sched_proc_exit_no_children)
 	/* Parameter 4: core (type: PT_UINT8) */
 	evt_test->assert_numeric_param(4, (uint8_t)(__WCOREDUMP(status) != 0));
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	/* The dead thread has no children so the reaper is 0 */
 	evt_test->assert_numeric_param(5, (int64_t)0);
 
@@ -196,7 +196,7 @@ TEST(GenericTracepoints, sched_proc_exit_prctl_subreaper)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	evt_test->assert_numeric_param(5, (int64_t)p1_t1);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -309,7 +309,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	evt_test->assert_numeric_param(5, (int64_t)p1_t1[1]);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
@@ -394,7 +394,7 @@ TEST(GenericTracepoints, sched_proc_exit_child_namespace_reaper_die)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	/*dies we should see `0` has a new reaper because it was the last init process */
 	evt_test->assert_numeric_param(5, (int64_t)0);
 
@@ -473,7 +473,7 @@ TEST(GenericTracepoints, sched_proc_exit_reaper_in_the_same_group)
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	evt_test->assert_numeric_param(5, (int64_t)getpid());
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/

@@ -5110,7 +5110,7 @@ FILLER(sys_procexit_e, false)
 	res = bpf_push_u8_to_ring(data, __WCOREDUMP(exit_code) != 0);
 	CHECK_RES(res);
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	/* This is a sort of optimization if this thread has no children in the kernel
 	 * we don't need a reaper and we can save some precious cycles.
 	 * We send `reaper_pid==0` if the userspace still has some children

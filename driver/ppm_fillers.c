@@ -6015,7 +6015,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, __WCOREDUMP(args->sched_prev->exit_code) != 0, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	/* This is a sort of optimization if this thread has no children in the kernel
 	 * we don't need a reaper and we can save some precious cycles.
 	 * We send `reaper_pid==0` if the userspace still has some children
@@ -6046,7 +6046,7 @@ int f_sys_procexit_e(struct event_filler_arguments *args)
 	res = val_to_ring(args, 0, 0, false, 0);
 	CHECK_RES(res);
 
-	/* Parameter 5: reaper (type: PT_PID) */
+	/* Parameter 5: reaper_tid (type: PT_PID) */
 	res = val_to_ring(args, 0, 0, false, 0);
 	CHECK_RES(res);
 #endif
