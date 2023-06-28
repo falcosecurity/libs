@@ -132,12 +132,9 @@ TEST_F(sinsp_with_test_input, EXECVE_missing_process_execve_repair)
 	/* we should have a valid thread group info and init should have a child now
 	 * we are not in a container but we want to assert also vtid, vpid.
 	 */
-	ASSERT_THREAD_INFO_PIDS_IN_CONTAINER(p1_t1_tid, p1_t1_pid, p1_t1_ptid, -1, -1);
+	ASSERT_THREAD_INFO_PIDS(p1_t1_tid, p1_t1_pid, p1_t1_ptid);
 	ASSERT_THREAD_GROUP_INFO(p1_t1_pid, 1, false, 1, 1, p1_t1_tid);
 	ASSERT_THREAD_CHILDREN(INIT_TID, 1, 1, p1_t1_tid);
-
-	GTEST_SKIP() << "When we create a new thread info for the invalid thread we don't set vtid and vpid, we can "
-			"fix this\n";
 }
 
 /*=============================== EXECVE ===========================*/
