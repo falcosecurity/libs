@@ -156,7 +156,7 @@ public:
 	  become again alive. For example, when an execve is performed by a secondary
 	  thread and the main thread is already dead
 	*/
-	inline void ressurect_thread()
+	inline void resurrect_thread()
 	{
 		/* If the thread is not dead we do nothing.
 		 * It should never happen
@@ -355,7 +355,7 @@ public:
 		parent->m_not_expired_children--;
 
 		/* Clean expired children if necessary. */
-		if((parent->m_children.size() - parent->m_not_expired_children) > DEFAULT_EXPIRED_CHILDREN_THRESHOLD)
+		if((parent->m_children.size() - parent->m_not_expired_children) >= DEFAULT_EXPIRED_CHILDREN_THRESHOLD)
 		{
 			parent->clean_expired_children();
 		}

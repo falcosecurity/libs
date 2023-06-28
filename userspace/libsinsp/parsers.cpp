@@ -2260,7 +2260,7 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	 */
 	if(evt->m_tinfo->is_dead())
 	{
-		evt->m_tinfo->ressurect_thread();
+		evt->m_tinfo->resurrect_thread();
 	}
 
 	// Get the exe
