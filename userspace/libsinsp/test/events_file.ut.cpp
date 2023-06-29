@@ -679,3 +679,21 @@ TEST_F(sinsp_with_test_input, test_fdtypes)
 	ASSERT_EQ(get_field_as_string(evt, "fd.types[3]"), "(bpf)");
 	ASSERT_EQ(get_field_as_string(evt, "fd.types"), "(bpf,file)");
 }
+
+
+TEST_F(sinsp_with_test_input, pidfd_getfd)
+{
+	add_default_init_thread();
+	open_inspector();
+	sinsp_evt* evt = NULL;
+	int64_t fd = -1;
+	int64_t pidfd = -2;
+	int64_t targetfd = -3;
+	
+	add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIDFD_GETFD_E, 0);
+	evt = add_event_advance_ts(increasing_ts(), 1, PPME_SYSCALL_PIDFD_GETFD_X, 4, fd, pidfd, targetfd, 0);
+
+	ASSERT_EQ(evt->get_type(), PPME_SYSCALL_PIDFD_GETFD_X);
+	ASSERT_EQ(get_field_as_string(evt,"fd.num"), std::to_string(fd));
+	
+}
