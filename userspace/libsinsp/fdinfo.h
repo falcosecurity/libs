@@ -279,6 +279,12 @@ public:
 		return m_ino;
 	}
 
+	void set_unix_info(uint8_t* packed_data)
+	{
+		m_sockinfo.m_unixinfo.m_fields.m_source = *(uint64_t *)(packed_data + 1);
+		m_sockinfo.m_unixinfo.m_fields.m_dest = *(uint64_t *)(packed_data + 9);
+	}
+
 	/*!
 	  \brief If this is a socket, returns the IP protocol. Otherwise, return SCAP_FD_UNKNOWN.
 	*/
