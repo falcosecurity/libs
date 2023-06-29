@@ -772,7 +772,7 @@ static int32_t scap_proc_add_from_proc(scap_t* handle, uint32_t tid, char* procd
 			 dir_name, linux_platform->m_lasterr);
 	}
 
-	if(scap_cgroup_get_thread(&handle->m_cgroups, dir_name, &tinfo->cgroups, linux_platform->m_lasterr) == SCAP_FAILURE)
+	if(scap_cgroup_get_thread(&linux_platform->m_cgroups, dir_name, &tinfo->cgroups, linux_platform->m_lasterr) == SCAP_FAILURE)
 	{
 		free(tinfo);
 		return scap_errprintf(error, 0, "can't fill cgroups for %s (%s)",
@@ -1159,9 +1159,10 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 	char procdirname[SCAP_MAX_PATH_SIZE];
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
 
-	scap_cgroup_enable_cache(&handle->m_cgroups);
+	struct scap_linux_platform* linux_platform = (struct scap_linux_platform*)handle->m_platform;
+	scap_cgroup_enable_cache(&linux_platform->m_cgroups);
 	int32_t ret = _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
-	scap_cgroup_clear_cache(&handle->m_cgroups);
+	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
 	return ret;
 }
 

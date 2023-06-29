@@ -34,6 +34,8 @@ static int32_t scap_linux_close_platform(struct scap_platform* platform)
 		linux_platform->m_dev_list = NULL;
 	}
 
+	scap_cgroup_clear_cache(&linux_platform->m_cgroups);
+
 	return SCAP_SUCCESS;
 }
 

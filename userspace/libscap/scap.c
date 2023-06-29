@@ -700,10 +700,6 @@ void scap_deinit(scap_t* handle)
 		scap_platform_free(handle->m_platform);
 	}
 
-#ifdef __linux__
-	scap_cgroup_clear_cache(&handle->m_cgroups);
-#endif // __linux__
-
 	if(handle->m_vtable)
 	{
 		/* The capture should be stopped before

@@ -25,6 +25,7 @@ extern "C" {
 #define SCAP_HANDLE_T void
 #endif
 
+#include "scap_cgroup.h"
 #include "scap_platform_impl.h"
 #include "scap_platform.h"
 #include "engine_handle.h"
@@ -64,6 +65,7 @@ struct scap_linux_platform
 	char* m_lasterr;
 	struct scap_mountinfo* m_dev_list;
 	uint32_t m_fd_lookup_limit;
+	struct scap_cgroup_interface m_cgroups;
 
 	struct scap_engine_handle m_engine;
 	const struct scap_linux_vtable* m_linux_vtable;
