@@ -58,9 +58,6 @@ struct scap
 	scap_agent_info m_agent_info;
 	struct ppm_proclist_info* m_driver_procinfo;
 	bool m_minimal_scan;
-#ifdef __linux__
-	struct scap_cgroup_interface m_cgroups;
-#endif // __linux__
 
 	// /proc scan parameters
 	uint64_t m_proc_scan_timeout_ms;
