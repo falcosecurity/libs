@@ -563,6 +563,7 @@ private:
 	int render_fd_json(Json::Value *ret, int64_t fd, const char** resolved_str, sinsp_evt::param_fmt fmt);
 	uint32_t get_dump_flags();
 	static bool clone_event(sinsp_evt& dest, const sinsp_evt& src);
+	int32_t get_errorcode() { return m_errorcode; }
 
 	// Save important values from the provided enter event. They
 	// are accessible from get_enter_evt_param().
@@ -623,7 +624,6 @@ VISIBILITY_PRIVATE
 	friend class sinsp_filter_check_event;
 	friend class sinsp_filter_check_thread;
 	friend class sinsp_dumper;
-	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_analyzer_parsers;
 	friend class lua_cbacks;
 	friend class sinsp_container_manager;
