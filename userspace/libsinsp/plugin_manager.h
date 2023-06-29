@@ -179,7 +179,6 @@ private:
 	/* vector containing all loaded plugins, added in order of arrival */
 	std::vector<std::shared_ptr<sinsp_plugin>> m_plugins;
 
-	/// todo(@Andreagit97): this should be called `m_plugins_id_plugin_index`
 	/* The key is the plugin id the value is the index of the plugin in the `m_plugins` vector */
 	std::unordered_map<uint32_t, size_t> m_plugins_id_index;
 	
