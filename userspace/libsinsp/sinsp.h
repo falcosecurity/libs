@@ -1005,6 +1005,9 @@ public:
 	void set_observer(sinsp_observer* observer) { m_observer = observer; }
 	sinsp_observer* get_observer() const { return m_observer; }
 
+	bool get_track_connection_status();
+	void set_track_connection_status(bool enabled);
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)

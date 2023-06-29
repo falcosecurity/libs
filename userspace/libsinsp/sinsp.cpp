@@ -2821,3 +2821,13 @@ void sinsp::handle_plugin_async_event(const sinsp_plugin& p, std::unique_ptr<sin
 		m_pending_state_evts.push(std::move(evt));
 	}
 }
+
+bool sinsp::get_track_connection_status()
+{
+	return m_parser->get_track_connection_status();
+}
+
+void sinsp::set_track_connection_status(bool enabled)
+{
+	m_parser->set_track_connection_status(enabled);
+}
