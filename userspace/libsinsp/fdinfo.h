@@ -79,7 +79,8 @@ public:
   \note As a library user, you won't need to construct thread objects. Rather,
    you get them by calling \ref sinsp_evt::get_fd_info or 
    \ref sinsp_threadinfo::get_fd.
-*/template<class T>
+*/
+template<class T>
 class SINSP_PUBLIC sinsp_fdinfo
 {
 public:
@@ -355,13 +356,6 @@ public:
 		return (m_callbacks != NULL);
 	}
 
-VISIBILITY_PRIVATE
-
-// Doxygen doesn't understand VISIBILITY_PRIVATE
-#ifdef _DOXYGEN
-private:
-#endif
-
 	/*!
 	  \brief FD flags.
 	*/
@@ -390,7 +384,6 @@ private:
 	void add_filename_raw(const char* rawpath);
 	void add_filename(const char* fullpath);
 
-public:
 	inline bool is_transaction() const
 	{
 		return (m_usrstate != NULL); 
@@ -402,9 +395,6 @@ public:
 	}
 
 
-	
-
-private:
 	inline void set_role_server()
 	{
 		m_flags |= FLAGS_ROLE_SERVER;
@@ -507,18 +497,6 @@ private:
 	uint64_t m_ino;
 
 	fd_callbacks_info* m_callbacks;
-
-	friend class sinsp;
-	friend class sinsp_parser;
-	friend class sinsp_threadinfo;
-	friend class sinsp_analyzer;
-	friend class sinsp_analyzer_fd_listener;
-	friend class sinsp_fdtable;
-	friend class sinsp_filter_check_fd;
-	friend class sinsp_filter_check_event;
-	friend class lua_cbacks;
-	friend class sinsp_baseliner;
-	friend class protocol_manager;
 };
 
 /*@}*/
