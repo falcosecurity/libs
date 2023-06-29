@@ -90,9 +90,6 @@ sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::
 				}
 			}
 
-			/* we craft a new filter check, maybe we could use `new_filter_check_from_another` to copy the `m_field_id` we just found
-			 * in the previous `parse_field_name` since probably we will call it again after this method! We could save a loop!
-			 */
 			sinsp_filter_check* newchk = chk->allocate_new();
 			newchk->set_inspector(inspector);
 			return newchk;
@@ -105,20 +102,6 @@ sinsp_filter_check* filter_check_list::new_filter_check_from_fldname(const std::
 	// the constructor
 	//
 	return NULL;
-}
-
-sinsp_filter_check* filter_check_list::new_filter_check_from_another(sinsp_filter_check *chk)
-{
-	sinsp_filter_check *newchk = chk->allocate_new();
-
-	newchk->m_inspector = chk->m_inspector;
-	newchk->m_field_id = chk->m_field_id;
-	newchk->m_field = &chk->m_info.m_fields[chk->m_field_id];
-
-	newchk->m_boolop = chk->m_boolop;
-	newchk->m_cmpop = chk->m_cmpop;
-
-	return newchk;
 }
 
 sinsp_filter_check_list::sinsp_filter_check_list()
