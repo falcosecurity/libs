@@ -40,6 +40,7 @@ limitations under the License.
 #include "protodecoder.h"
 #include "strlcpy.h"
 #include "plugin_manager.h"
+#include "sinsp_observer.h"
 
 #ifdef SIMULATE_DROP_MODE
 bool should_drop(sinsp_evt *evt);
@@ -56,7 +57,6 @@ extern sinsp_evttables g_infotables;
 sinsp_parser::sinsp_parser(sinsp *inspector) :
 	m_inspector(inspector),
 	m_tmp_evt(m_inspector),
-	m_fd_listener(NULL),
 	m_syscall_event_source_idx(sinsp_no_event_source_idx)
 {
 	m_fake_userevt = (scap_evt*)m_fake_userevt_storage;
@@ -891,9 +891,9 @@ bool sinsp_parser::reset(sinsp_evt *evt)
 				return false;
 			}
 
-			if(evt->m_errorcode != 0 && m_fd_listener)
+			if(evt->m_errorcode != 0 && m_inspector->get_observer())
 			{
-				m_fd_listener->on_error(evt);
+				m_inspector->get_observer()->on_error(evt);
 			}
 
 			if(evt->m_fdinfo->m_flags & sinsp_fdinfo_t::FLAGS_CLOSE_CANCELED)
@@ -1768,9 +1768,9 @@ void sinsp_parser::parse_clone_exit(sinsp_evt *evt)
 	//
 	// If there's a listener, invoke it
 	//
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_clone(evt, tinfo);
+		m_inspector->get_observer()->on_clone(evt, tinfo);
 	}
 
 	//
@@ -2307,9 +2307,9 @@ void sinsp_parser::parse_execve_exit(sinsp_evt *evt)
 	//
 	// If there's a listener, invoke it
 	//
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_execve(evt);
+		m_inspector->get_observer()->on_execve(evt);
 	}
 
 	// The exec may have been performed by a thread other than the
@@ -2784,9 +2784,9 @@ void sinsp_parser::parse_open_openat_creat_exit(sinsp_evt *evt)
 		}
 	}
 
-	if(m_fd_listener && !(flags & PPM_O_DIRECTORY))
+	if(m_inspector->get_observer() && !(flags & PPM_O_DIRECTORY))
 	{
-		m_fd_listener->on_file_open(evt, fullpath, flags);
+		m_inspector->get_observer()->on_file_open(evt, fullpath, flags);
 	}
 }
 
@@ -3134,9 +3134,9 @@ void sinsp_parser::parse_bind_exit(sinsp_evt *evt)
 	//
 	// If there's a listener callback, invoke it
 	//
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_bind(evt);
+		m_inspector->get_observer()->on_bind(evt);
 	}
 }
 
@@ -3238,9 +3238,9 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
     //
     // If there's a listener callback and we're tracking connection status, invoke it
     //
-    if(m_track_connection_status && m_fd_listener)
+    if(m_track_connection_status && m_inspector->get_observer())
     {
-        m_fd_listener->on_connect(evt, packed_data);
+        m_inspector->get_observer()->on_connect(evt, packed_data);
     }
 }
 
@@ -3438,9 +3438,9 @@ void sinsp_parser::parse_connect_exit(sinsp_evt *evt)
 	//
 	// If there's a listener callback, invoke it
 	//
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_connect(evt, packed_data);
+		m_inspector->get_observer()->on_connect(evt, packed_data);
 	}
 }
 
@@ -3546,9 +3546,9 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	fdi.m_name = evt->get_param_as_str(1, &parstr, sinsp_evt::PF_SIMPLE);
 	fdi.m_flags = 0;
 
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_accept(evt, fd, packed_data, &fdi);
+		m_inspector->get_observer()->on_accept(evt, fd, packed_data, &fdi);
 	}
 
 	//
@@ -3614,9 +3614,9 @@ void sinsp_parser::erase_fd(erase_fd_params* params)
 		m_inspector->m_fds_to_remove->push_back(params->m_fd);
 	}
 
-	if(m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		m_fd_listener->on_erase_fd(params);
+		m_inspector->get_observer()->on_erase_fd(params);
 	}
 }
 
@@ -4407,9 +4407,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			// If there's an fd listener, call it now
 			//
-			if(m_fd_listener)
+			if(m_inspector->get_observer())
 			{
-				m_fd_listener->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
+				m_inspector->get_observer()->on_read(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
 					data, (uint32_t)retval, datalen);
 			}
 
@@ -4495,9 +4495,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 			//
 			// If there's an fd listener, call it now
 			//
-			if(m_fd_listener)
+			if(m_inspector->get_observer())
 			{
-				m_fd_listener->on_write(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
+				m_inspector->get_observer()->on_write(evt, tid, evt->m_tinfo->m_lastevent_fd, evt->m_fdinfo,
 					data, (uint32_t)retval, datalen);
 			}
 
@@ -4518,9 +4518,9 @@ void sinsp_parser::parse_rw_exit(sinsp_evt *evt)
 		if (evt->m_fdinfo->m_type == SCAP_FD_IPV4_SOCK ||
 		    evt->m_fdinfo->m_type == SCAP_FD_IPV6_SOCK) {
 			evt->m_fdinfo->set_socket_failed();
-			if (m_fd_listener)
+			if (m_inspector->get_observer())
 			{
-				m_fd_listener->on_socket_status_changed(evt);
+				m_inspector->get_observer()->on_socket_status_changed(evt);
 			}
 		}
 	}
@@ -4566,9 +4566,9 @@ void sinsp_parser::parse_sendfile_exit(sinsp_evt *evt)
 		//
 		// If there's an fd listener, call it now
 		//
-		if(m_fd_listener)
+		if(m_inspector->get_observer())
 		{
-			m_fd_listener->on_sendfile(evt, fdin, (uint32_t)retval);
+			m_inspector->get_observer()->on_sendfile(evt, fdin, (uint32_t)retval);
 		}
 	}
 }
@@ -4771,9 +4771,9 @@ void sinsp_parser::parse_shutdown_exit(sinsp_evt *evt)
 			return;
 		}
 
-		if(m_fd_listener)
+		if(m_inspector->get_observer())
 		{
-			m_fd_listener->on_socket_shutdown(evt);
+			m_inspector->get_observer()->on_socket_shutdown(evt);
 		}
 	}
 }
@@ -5925,9 +5925,9 @@ void sinsp_parser::parse_getsockopt_exit(sinsp_evt *evt)
 		{
 			evt->m_fdinfo->set_socket_connected();
 		}
-		if (m_fd_listener)
+		if (m_inspector->get_observer())
 		{
-			m_fd_listener->on_socket_status_changed(evt);
+			m_inspector->get_observer()->on_socket_status_changed(evt);
 		}
 	}
 }

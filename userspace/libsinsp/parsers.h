@@ -21,8 +21,6 @@ limitations under the License.
 #pragma once
 #include "sinsp.h"
 
-class sinsp_fd_listener;
-
 class metaevents_state
 {
 public:
@@ -183,9 +181,6 @@ private:
 
 	bool m_track_connection_status = false;
 
-	// FD listener callback
-	sinsp_fd_listener* m_fd_listener;
-
 	//
 	// The protocol decoders allocated by this parser
 	//
@@ -200,9 +195,5 @@ private:
 	// caches the index of the "syscall" event source
 	size_t m_syscall_event_source_idx;
 
-	friend class sinsp_analyzer;
-	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_protodecoder;
-	friend class sinsp_baseliner;
-	friend class sinsp_container_manager;
 };
