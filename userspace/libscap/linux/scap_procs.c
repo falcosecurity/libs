@@ -1159,7 +1159,10 @@ int32_t scap_proc_scan_proc_dir(scap_t* handle, char *error)
 	char procdirname[SCAP_MAX_PATH_SIZE];
 	snprintf(procdirname, sizeof(procdirname), "%s/proc", scap_get_host_root());
 
-	return _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
+	scap_cgroup_enable_cache(&handle->m_cgroups);
+	int32_t ret = _scap_proc_scan_proc_dir_impl(handle, procdirname, -1, error);
+	scap_cgroup_clear_cache(&handle->m_cgroups);
+	return ret;
 }
 
 
@@ -1266,17 +1269,13 @@ bool scap_is_thread_alive(scap_t* handle, int64_t pid, int64_t tid, const char* 
 
 int32_t scap_refresh_proc_table(scap_t* handle)
 {
-	int ret;
 	if(handle->m_proclist.m_proclist)
 	{
 		scap_proc_free_table(&handle->m_proclist);
 		handle->m_proclist.m_proclist = NULL;
 	}
 
-	scap_cgroup_enable_cache(&handle->m_cgroups);
-	ret = scap_proc_scan_proc_dir(handle, handle->m_lasterr);
-	scap_cgroup_clear_cache(&handle->m_cgroups);
-	return ret;
+	return scap_proc_scan_proc_dir(handle, handle->m_lasterr);
 }
 
 int32_t scap_procfs_get_threadlist(struct scap_engine_handle engine, struct ppm_proclist_info **procinfo_p, char *lasterr)
