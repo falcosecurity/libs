@@ -3231,7 +3231,7 @@ void sinsp_parser::parse_connect_enter(sinsp_evt *evt){
         //
         // Update the FD with this tuple
         //
-        m_inspector->m_parser->set_unix_info(evt->m_fdinfo, packed_data);
+        evt->m_fdinfo->set_unix_info(packed_data);
 #endif
 	}
 
@@ -3326,7 +3326,7 @@ inline void sinsp_parser::fill_client_socket_info(sinsp_evt *evt, uint8_t *packe
         //
         // Update the FD with this tuple
         //
-        m_inspector->m_parser->set_unix_info(evt->m_fdinfo, packed_data);
+        evt->m_fdinfo->set_unix_info(packed_data);
 #endif
     }
 
@@ -3533,7 +3533,7 @@ void sinsp_parser::parse_accept_exit(sinsp_evt *evt)
 	else if(*packed_data == PPM_AF_UNIX)
 	{
 		fdi.m_type = SCAP_FD_UNIX_SOCK;
-		set_unix_info(&fdi, packed_data);
+		fdi.set_unix_info(packed_data);
 	}
 	else
 	{
@@ -3948,14 +3948,6 @@ bool sinsp_parser::set_ipv6_addresses_and_ports(sinsp_fdinfo_t* fdinfo, uint8_t*
 	return changed;
 }
 
-bool sinsp_parser::set_unix_info(sinsp_fdinfo_t* fdinfo, uint8_t* packed_data)
-{
-	fdinfo->m_sockinfo.m_unixinfo.m_fields.m_source = *(uint64_t *)(packed_data + 1);
-	fdinfo->m_sockinfo.m_unixinfo.m_fields.m_dest = *(uint64_t *)(packed_data + 9);
-
-	return true;
-}
-
 
 // Return false if the update didn't happen (for example because the tuple is NULL)
 bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
@@ -4015,11 +4007,7 @@ bool sinsp_parser::update_fd(sinsp_evt *evt, sinsp_evt_param *parinfo)
 	else if(family == PPM_AF_UNIX)
 	{
 		evt->m_fdinfo->m_type = SCAP_FD_UNIX_SOCK;
-		if(set_unix_info(evt->m_fdinfo, packed_data) == false)
-		{
-			return false;
-		}
-
+		evt->m_fdinfo->set_unix_info(packed_data);
 		evt->m_fdinfo->m_name = ((char*)packed_data) + 17;
 
 		//
