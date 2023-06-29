@@ -352,6 +352,9 @@ void sinsp_parser::process_event(sinsp_evt *evt)
 	case PPME_SYSCALL_CLONE3_X:
 		parse_clone_exit(evt);
 		break;
+	case PPME_SYSCALL_PIDFD_GETFD_X:
+		parse_pidfd_getfd_exit(evt);
+		break;
 	case PPME_SYSCALL_EXECVE_8_X:
 	case PPME_SYSCALL_EXECVE_13_X:
 	case PPME_SYSCALL_EXECVE_14_X:
@@ -6624,4 +6627,56 @@ void sinsp_parser::parse_memfd_create_exit(sinsp_evt *evt, scap_fd_type type)
 	}
 
 	evt->m_fdinfo = evt->m_tinfo->add_fd(fd, &fdi);
+}
+
+void sinsp_parser::parse_pidfd_getfd_exit(sinsp_evt *evt)
+{
+
+	sinsp_evt_param* parinfo;
+	int64_t fd;
+	int64_t pidfd;
+	int64_t targetfd;
+
+	ASSERT(evt->m_tinfo)
+	if(evt->m_tinfo == nullptr)
+	{
+		return;
+	}
+
+	/* ret (fd) */
+	parinfo = evt->get_param(0);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(0)->type == PT_FD);
+	fd = *(int64_t *)parinfo->m_val;
+
+	/* pidfd */
+	parinfo = evt->get_param(1);
+	ASSERT(parinfo->m_len == sizeof(int64_t));
+	ASSERT(evt->get_param_info(1)->type == PT_FD);
+	pidfd = *(int64_t *)parinfo->m_val;
+
+	auto target_tinfo = m_inspector->get_thread_ref(pidfd);
+
+	if(target_tinfo == nullptr)
+	{
+		return;
+	}
+
+	/* targetfd */
+	parinfo = evt->get_param(2);
+	ASSERT(parinfo->m_len == sizeof(int64_t))
+	ASSERT(evt->get_param_info(2)->type == PT_FD);
+	targetfd = *(int64_t *)parinfo->m_val;
+
+	auto target_fdinfo = target_tinfo->get_fd(targetfd);
+
+	if(target_fdinfo == nullptr)
+	{
+		return;
+	}
+
+	sinsp_fdinfo_t new_fd = *target_fdinfo;
+
+	evt->m_tinfo->add_fd(fd, &new_fd);
+
 }
