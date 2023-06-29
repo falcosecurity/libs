@@ -114,6 +114,7 @@ class sinsp_partial_tracer;
 class mesos;
 class sinsp_plugin;
 class sinsp_plugin_manager;
+class sinsp_observer;
 
 #if defined(HAS_CAPTURE) && !defined(_WIN32)
 class sinsp_ssl;
@@ -1001,6 +1002,9 @@ public:
 	const std::string& get_host_root() const { return m_host_root; }
 	void set_host_root(const std::string& s) { m_host_root = s; }
 
+	void set_observer(sinsp_observer* observer) { m_observer = observer; }
+	sinsp_observer* get_observer() const { return m_observer; }
+
 VISIBILITY_PROTECTED
 	bool add_thread(const sinsp_threadinfo *ptinfo);
 	void set_mode(scap_mode_t value)
@@ -1325,6 +1329,8 @@ public:
 	// A registry that managers the state tables of this inspector
 	std::shared_ptr<libsinsp::state::table_registry> m_table_registry;
 
+	sinsp_observer* m_observer{nullptr};
+
 	bool m_inited;
 	static std::atomic<int> instance_count;
 
@@ -1337,7 +1343,6 @@ public:
 	friend class sinsp_thread_manager;
 	friend class sinsp_container_manager;
 	friend class sinsp_dumper;
-	friend class sinsp_analyzer_fd_listener;
 	friend class sinsp_chisel;
 	friend class sinsp_tracerparser;
 	friend class sinsp_filter_check_event;

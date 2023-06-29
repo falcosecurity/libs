@@ -37,6 +37,7 @@ limitations under the License.
 #include "sinsp_int.h"
 #include "container.h"
 #include "utils.h"
+#include "sinsp_observer.h"
 
 using namespace libsinsp;
 
@@ -125,9 +126,9 @@ bool sinsp_container_manager::resolve_container(sinsp_threadinfo* tinfo, bool qu
 	bool matches = false;
 
 	tinfo->m_container_id = "";
-	if (m_inspector->m_parser->m_fd_listener)
+	if(m_inspector->get_observer())
 	{
-		matches = m_inspector->m_parser->m_fd_listener->on_resolve_container(this, tinfo, query_os_for_missing_info);
+		matches = m_inspector->get_observer()->on_resolve_container(this, tinfo, query_os_for_missing_info);
 	}
 
 	// Delayed so there's a chance to set alternate socket paths,
