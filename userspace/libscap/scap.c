@@ -98,14 +98,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
-#ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, scap_get_host_root(), handle->m_lasterr, true)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return SCAP_FAILURE;
-	}
-#endif
-
 	//
 	// Open and initialize all the devices
 	//
@@ -137,10 +129,6 @@ int32_t scap_init_live_int(scap_t* handle, scap_open_args* oargs, const struct s
 	{
 		return rc;
 	}
-
-#ifdef __linux__
-	scap_cgroup_clear_cache(&handle->m_cgroups);
-#endif
 
 	return SCAP_SUCCESS;
 }
@@ -200,14 +188,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 
 	scap_retrieve_agent_info(&handle->m_agent_info);
 
-#ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, scap_get_host_root(), handle->m_lasterr, true)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return SCAP_FAILURE;
-	}
-#endif
-
 	//
 	// Additional initializations
 	//
@@ -236,10 +216,6 @@ int32_t scap_init_udig_int(scap_t* handle, scap_open_args* oargs, struct scap_pl
 	{
 		return rc;
 	}
-
-#ifdef __linux__
-	scap_cgroup_clear_cache(&handle->m_cgroups);
-#endif
 
 	return SCAP_SUCCESS;
 }
@@ -444,14 +420,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 		handle->m_minimal_scan = true;
 	}
 
-#ifdef __linux__
-	if((rc = scap_cgroup_interface_init(&handle->m_cgroups, scap_get_host_root(), handle->m_lasterr, true)) != SCAP_SUCCESS)
-	{
-		scap_close(handle);
-		return SCAP_FAILURE;
-	}
-#endif
-
 	//
 	// Extract agent information
 	//
@@ -473,10 +441,6 @@ int32_t scap_init_nodriver_int(scap_t* handle, scap_open_args* oargs, struct sca
 	{
 		return rc;
 	}
-
-#ifdef __linux__
-	scap_cgroup_clear_cache(&handle->m_cgroups);
-#endif
 
 	return SCAP_SUCCESS;
 }
