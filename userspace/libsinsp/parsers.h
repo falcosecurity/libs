@@ -110,6 +110,7 @@ private:
 	void parse_thread_exit(sinsp_evt* evt);
 	void parse_memfd_create_exit(sinsp_evt* evt, scap_fd_type type);
 	inline bool detect_and_process_tracer_write(sinsp_evt *evt, int64_t retval, ppm_event_flags eflags);
+	void parse_pidfd_getfd_exit(sinsp_evt* evt);
 	void parse_fspath_related_exit(sinsp_evt* evt);
 	inline void parse_rw_exit(sinsp_evt* evt);
 	void parse_sendfile_exit(sinsp_evt* evt);
