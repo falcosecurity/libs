@@ -2901,171 +2901,131 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		}
 	case TYPE_VPGID_NAME:
 		{
-			bool is_host = true;
 			sinsp_threadinfo* vpgidinfo = NULL;
-			auto flags = tinfo->m_flags;
-			if((flags && flags & PPM_CL_CHILD_IN_PIDNS) || tinfo->m_tid != tinfo->m_vtid)
-			{
-				is_host = false;
-			}
 
-			if(is_host)
+			if(!tinfo->is_in_pid_namespace())
 			{
 				// Relying on the convention that a process group id is the process id of the process group leader.
 				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
 				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
 				// lineage until we find a match.
 				vpgidinfo = m_inspector->get_thread_ref(tinfo->m_vpgid, false, true).get();
-			}
-			if(vpgidinfo != NULL)
-			{
-				m_tstr = vpgidinfo->get_comm();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the process group leader process has exited or if the process
-				// is running in a pid namespace and we only have the virtual process group id, as 
-				// seen from its pid namespace.
-				// Find the highest ancestor process that has the same process group id and
-				// declare it to be the process group leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				if(vpgidinfo != NULL)
 				{
-					return NULL;
+					m_tstr = vpgidinfo->get_comm();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t vpgid = mt->m_vpgid;
-				sinsp_threadinfo::visitor_func_t visitor = [vpgid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_vpgid != vpgid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same process group id.
-				// mt's comm is considered the process group leader.
-				m_tstr = mt->get_comm();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+			// This can occur when the process group leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual process group id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same process group id and
+			// declare it to be the process group leader.
+			sinsp_threadinfo* group_leader = tinfo;
+
+			int64_t vpgid = tinfo->m_vpgid;
+			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_vpgid != vpgid)
+				{
+					return false;
+				}
+				group_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// group_leader has been updated to the highest process that has the same process group id.
+			// group_leader's comm is considered the process group leader.
+			m_tstr = group_leader->get_comm();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_VPGID_EXE:
 		{
-			bool is_host = true;
 			sinsp_threadinfo* vpgidinfo = NULL;
-			auto flags = tinfo->m_flags;
-			if((flags && flags & PPM_CL_CHILD_IN_PIDNS) || tinfo->m_tid != tinfo->m_vtid)
-			{
-				is_host = false;
-			}
 
-			if(is_host)
+			if(!tinfo->is_in_pid_namespace())
 			{
 				// Relying on the convention that a process group id is the process id of the process group leader.
 				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
 				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
 				// lineage until we find a match.
 				vpgidinfo = m_inspector->get_thread_ref(tinfo->m_vpgid, false, true).get();
-			}
-			if(vpgidinfo != NULL)
-			{
-				m_tstr = vpgidinfo->get_exe();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the process group leader process has exited or if the process
-				// is running in a pid namespace and we only have the virtual process group id, as 
-				// seen from its pid namespace.
-				// Find the highest ancestor process that has the same process group id and
-				// declare it to be the process group leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				if(vpgidinfo != NULL)
 				{
-					return NULL;
+					m_tstr = vpgidinfo->get_exe();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t vpgid = mt->m_vpgid;
-				sinsp_threadinfo::visitor_func_t visitor = [vpgid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_vpgid != vpgid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same process group id.
-				// mt's comm is considered the process group leader.
-				m_tstr = mt->get_exe();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+			// This can occur when the process group leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual process group id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same process group id and
+			// declare it to be the process group leader.
+			sinsp_threadinfo* group_leader = tinfo;
+
+			int64_t vpgid = tinfo->m_vpgid;
+			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_vpgid != vpgid)
+				{
+					return false;
+				}
+				group_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// group_leader has been updated to the highest process that has the same process group id.
+			// group_leader's comm is considered the process group leader.
+			m_tstr = group_leader->get_exe();
+			RETURN_EXTRACT_STRING(m_tstr);
+
 		}
 	case TYPE_VPGID_EXEPATH:
 		{
-			bool is_host = true;
 			sinsp_threadinfo* vpgidinfo = NULL;
-			auto flags = tinfo->m_flags;
-			if((flags && flags & PPM_CL_CHILD_IN_PIDNS) || tinfo->m_tid != tinfo->m_vtid)
-			{
-				is_host = false;
-			}
 
-			if(is_host)
+			if(!tinfo->is_in_pid_namespace())
 			{
 				// Relying on the convention that a process group id is the process id of the process group leader.
 				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
 				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
 				// lineage until we find a match.
 				vpgidinfo = m_inspector->get_thread_ref(tinfo->m_vpgid, false, true).get();
-			}
-			if(vpgidinfo != NULL)
-			{
-				m_tstr = vpgidinfo->get_exepath();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the process group leader process has exited or if the process
-				// is running in a pid namespace and we only have the virtual process group id, as 
-				// seen from its pid namespace.
-				// Find the highest ancestor process that has the same process group id and
-				// declare it to be the process group leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				if(vpgidinfo != NULL)
 				{
-					return NULL;
+					m_tstr = vpgidinfo->get_exepath();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t vpgid = mt->m_vpgid;
-				sinsp_threadinfo::visitor_func_t visitor = [vpgid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_vpgid != vpgid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same process group id.
-				// mt's comm is considered the process group leader.
-				m_tstr = mt->get_exepath();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+
+			// This can occur when the process group leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual process group id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same process group id and
+			// declare it to be the process group leader.
+			sinsp_threadinfo* group_leader = tinfo;
+
+			int64_t vpgid = tinfo->m_vpgid;
+			sinsp_threadinfo::visitor_func_t visitor = [vpgid, &group_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_vpgid != vpgid)
+				{
+					return false;
+				}
+				group_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// group_leader has been updated to the highest process that has the same process group id.
+			// group_leader's comm is considered the process group leader.
+			m_tstr = group_leader->get_exepath();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_TTY:
 		RETURN_EXTRACT_VAR(tinfo->m_tty);

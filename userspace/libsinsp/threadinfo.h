@@ -113,6 +113,14 @@ public:
 		return (m_tid == m_pid) || m_flags & PPM_CL_IS_MAIN_THREAD;
 	}
 
+	/*!
+	  \brief Return true if this thread belongs to a pid namespace.
+	*/
+	inline bool is_in_pid_namespace() const
+	{
+		return (m_tid != m_vtid) || m_flags & PPM_CL_CHILD_IN_PIDNS;
+	}
+
 	/*
 	  \brief returns true if there is a loop detected in the thread parent state.
 	  Needs traverse_parent_state() to have been called first.
