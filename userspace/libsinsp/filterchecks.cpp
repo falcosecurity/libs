@@ -2769,135 +2769,132 @@ uint8_t* sinsp_filter_check_thread::extract(sinsp_evt *evt, OUT uint32_t* len, b
 		RETURN_EXTRACT_VAR(tinfo->m_vpgid);
 	case TYPE_SNAME:
 		{
-			//
-			// Relying on the convention that a session id is the process id of the session leader
-			//
-			sinsp_threadinfo* sinfo =
-				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+			sinsp_threadinfo* sinfo = NULL;
 
-			if(sinfo != NULL)
+			if(!tinfo->is_in_pid_namespace())
 			{
-				m_tstr = sinfo->get_comm();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the session leader process has exited.
-				// Find the highest ancestor process that has the same session id and
-				// declare it to be the session leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				// Relying on the convention that a session id is the process id of the session leader.
+				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
+				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
+				// lineage until we find a match.
+				sinfo = m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+				if(sinfo != NULL)
 				{
-					return NULL;
+					m_tstr = sinfo->get_comm();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t sid = mt->m_sid;
-				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_sid != sid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same session id.
-				// mt's comm is considered the session leader.
-				m_tstr = mt->get_comm();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+
+			// This can occur when the session leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual session id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same session id and
+			// declare it to be the session leader.
+			sinsp_threadinfo* session_leader = tinfo;
+
+			int64_t sid = tinfo->m_sid;
+			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_sid != sid)
+				{
+					return false;
+				}
+				session_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// session_leader has been updated to the highest process that has the same session id.
+			// session_leader's comm is considered the session leader.
+			m_tstr = session_leader->get_comm();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_SID_EXE:
 		{
-			//
-			// Relying on the convention that a session id is the process id of the session leader
-			//
-			sinsp_threadinfo* sinfo =
-				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+			sinsp_threadinfo* sinfo = NULL;
 
-			if(sinfo != NULL)
+			if(!tinfo->is_in_pid_namespace())
 			{
-				m_tstr = sinfo->get_exe();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the session leader process has exited.
-				// Find the highest ancestor process that has the same session id and
-				// declare it to be the session leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				// Relying on the convention that a session id is the process id of the session leader.
+				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
+				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
+				// lineage until we find a match.
+				sinfo = m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+				if(sinfo != NULL)
 				{
-					return NULL;
+					m_tstr = sinfo->get_exe();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t sid = mt->m_sid;
-				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_sid != sid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same session id.
-				// mt's comm is considered the session leader.
-				m_tstr = mt->get_exe();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+
+			// This can occur when the session leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual session id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same session id and
+			// declare it to be the session leader.
+			sinsp_threadinfo* session_leader = tinfo;
+
+			int64_t sid = tinfo->m_sid;
+			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_sid != sid)
+				{
+					return false;
+				}
+				session_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// session_leader has been updated to the highest process that has the same session id.
+			// session_leader's comm is considered the session leader.
+			m_tstr = session_leader->get_exe();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_SID_EXEPATH:
 		{
-			//
-			// Relying on the convention that a session id is the process id of the session leader
-			//
-			sinsp_threadinfo* sinfo =
-				m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+			sinsp_threadinfo* sinfo = NULL;
 
-			if(sinfo != NULL)
+			if(!tinfo->is_in_pid_namespace())
 			{
-				m_tstr = sinfo->get_exepath();
-				RETURN_EXTRACT_STRING(m_tstr);
-			}
-			else
-			{
-				// This can occur when the session leader process has exited.
-				// Find the highest ancestor process that has the same session id and
-				// declare it to be the session leader.
-				sinsp_threadinfo* mt = tinfo->get_main_thread();
-
-				if(mt == NULL)
+				// Relying on the convention that a session id is the process id of the session leader.
+				// `threadinfo` lookup only applies when the process is running on the host and not in a pid
+				// namespace. However, if the process is running in a pid namespace, we instead traverse the process
+				// lineage until we find a match.
+				sinfo = m_inspector->get_thread_ref(tinfo->m_sid, false, true).get();
+				if(sinfo != NULL)
 				{
-					return NULL;
+					m_tstr = sinfo->get_exepath();
+					RETURN_EXTRACT_STRING(m_tstr);
 				}
-
-				int64_t sid = mt->m_sid;
-				sinsp_threadinfo::visitor_func_t visitor = [sid, &mt] (sinsp_threadinfo *pt)
-				{
-					if(pt->m_sid != sid)
-					{
-						return false;
-					}
-					mt = pt;
-					return true;
-				};
-
-				mt->traverse_parent_state(visitor);
-
-				// mt has been updated to the highest process that has the same session id.
-				// mt's comm is considered the session leader.
-				m_tstr = mt->get_exepath();
-				RETURN_EXTRACT_STRING(m_tstr);
 			}
+			
+			// This can occur when the session leader process has exited or if the process
+			// is running in a pid namespace and we only have the virtual session id, as 
+			// seen from its pid namespace.
+			// Find the highest ancestor process that has the same session id and
+			// declare it to be the session leader.
+			sinsp_threadinfo* session_leader = tinfo;
+
+			int64_t sid = tinfo->m_sid;
+			sinsp_threadinfo::visitor_func_t visitor = [sid, &session_leader](sinsp_threadinfo* pt)
+			{
+				if(pt->m_sid != sid)
+				{
+					return false;
+				}
+				session_leader = pt;
+				return true;
+			};
+
+			tinfo->traverse_parent_state(visitor);
+
+			// session_leader has been updated to the highest process that has the same session id.
+			// session_leader's comm is considered the session leader.
+			m_tstr = session_leader->get_exepath();
+			RETURN_EXTRACT_STRING(m_tstr);
 		}
 	case TYPE_VPGID_NAME:
 		{
