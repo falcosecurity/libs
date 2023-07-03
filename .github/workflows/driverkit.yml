@@ -37,3 +37,28 @@ jobs:
       - name: Test drivers build on ${{ matrix.name }}
         run: |
           driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --output-probe /tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }}
+          
+  build-drivers-arm64:
+    strategy:
+      matrix:
+        name: [linux-4.x, linux-5.x, linux-6.x]
+        include:
+          - name: linux-4.x
+            kernelrelease: 4.18.0-305.25.1.el8_4.aarch64
+            target: centos
+            kernelurls: https://download.falco.org/fixtures/libs/kernel-devel-4.18.0-305.25.1.el8_4.aarch64.rpm
+          - name: linux-5.x
+            kernelrelease: 5.14.0-331.el9.aarch64
+            target: centos
+            kernelurls: https://download.falco.org/fixtures/libs/kernel-devel-5.14.0-331.el9.aarch64.rpm
+          - name: linux-6.x
+            kernelrelease: 6.4.1-1.el9.elrepo.aarch64
+            target: centos
+            kernelurls: https://download.falco.org/fixtures/libs/kernel-ml-devel-6.4.1-1.el9.elrepo.aarch64.rpm
+    runs-on: ubuntu-latest
+    container:
+      image: falcosecurity/driverkit:latest
+    steps:
+      - name: Test drivers build on ${{ matrix.name }}
+        run: |
+          driverkit docker --kernelrelease ${{ matrix.kernelrelease }} --target ${{ matrix.target }} --output-module /tmp/libs.ko --output-probe /tmp/libs.o --driverversion $GITHUB_SHA --loglevel debug --kernelurls ${{ matrix.kernelurls }} --architecture arm64 --timeout 600
