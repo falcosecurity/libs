@@ -772,6 +772,11 @@ or GPL2.txt for full copies of the license.
 #define PPM_PR_SET_SECUREBITS 28
 
 /*
+ * pidfd_open flags	
+*/
+#define PPM_PIDFD_NONBLOCK (1<<0)
+
+/*
  * Get/set the timerslack as used by poll/select/nanosleep
  * A value of 0 means "use default"
  */
@@ -1376,7 +1381,9 @@ typedef enum {
 	PPME_SYSCALL_MEMFD_CREATE_X = 405,
 	PPME_SYSCALL_PIDFD_GETFD_E = 406,
 	PPME_SYSCALL_PIDFD_GETFD_X = 407,
-	PPM_EVENT_MAX = 408
+	PPME_SYSCALL_PIDFD_OPEN_E = 408,
+	PPME_SYSCALL_PIDFD_OPEN_X = 409,
+	PPM_EVENT_MAX = 410
 } ppm_event_code;
 /*@}*/
 
@@ -2089,6 +2096,7 @@ extern const struct ppm_name_value memfd_create_flags[];
 extern const struct ppm_param_info sockopt_dynamic_param[];
 extern const struct ppm_param_info ptrace_dynamic_param[];
 extern const struct ppm_param_info bpf_dynamic_param[];
+extern const struct ppm_param_info pidfd_open_flags[];
 
 /*!
   \brief Process information as returned by the PPM_IOCTL_GET_PROCLIST IOCTL.

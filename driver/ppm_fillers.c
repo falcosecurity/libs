@@ -8112,7 +8112,8 @@ int f_sys_memfd_create_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
-int f_sys_pidfd_getfd_x(struct event_filler_arguments *args){
+int f_sys_pidfd_getfd_x(struct event_filler_arguments *args)
+{
 	unsigned long val;
 	int res;
 	int retval;
@@ -8138,6 +8139,32 @@ int f_sys_pidfd_getfd_x(struct event_filler_arguments *args){
 	/* Parameter 4: flags (type: PT_FLAGS32) */
 	syscall_get_arguments_deprecated(args, 2, 1, &val);
 	res = val_to_ring(args, val, 0, true, 0);
+	CHECK_RES(res)
+	
+	return add_sentinel(args);
+}
+
+int f_sys_pidfd_open_x(struct event_filler_arguments *args)
+{
+	unsigned long val;
+	int res;
+	int retval;
+	s32 fd;
+
+	/* Parameter 1: ret (type: PT_FD) */
+	retval = (int64_t) syscall_get_return_value(current,args->regs);
+	res = val_to_ring(args, retval, 0, false, 0);
+	CHECK_RES(res)
+	
+	/* Parameter 2: pid (type: PT_PID) */
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, true, 0);
+	CHECK_RES(res)
+	
+	/* Parameter 4: flags (type: PT_FLAGS32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	res = val_to_ring(args, pidfd_open_flags_to_scap(val), 0, true, 0);
 	CHECK_RES(res)
 	
 	return add_sentinel(args);

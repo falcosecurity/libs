@@ -341,5 +341,7 @@ const struct ppm_event_entry g_ppm_events[PPM_EVENT_MAX] = {
 	[PPME_SYSCALL_MEMFD_CREATE_E] = {FILLER_REF(sys_empty)},
 	[PPME_SYSCALL_MEMFD_CREATE_X] = {FILLER_REF(sys_memfd_create_x)},
 	[PPME_SYSCALL_PIDFD_GETFD_E] = {FILLER_REF(sys_empty)},
-	[PPME_SYSCALL_PIDFD_GETFD_X] = {FILLER_REF(sys_pidfd_getfd_x)}
+	[PPME_SYSCALL_PIDFD_GETFD_X] = {FILLER_REF(sys_pidfd_getfd_x)},
+	[PPME_SYSCALL_PIDFD_OPEN_E] = {FILLER_REF(sys_empty)},
+	[PPME_SYSCALL_PIDFD_OPEN_X] = {FILLER_REF(sys_pidfd_open_x)}
 };

@@ -212,7 +212,7 @@ This table represents the syscalls supported by our drivers.
 | perf_event_open         | 🟡        |
 | personality             | 🟡        |
 | pidfd_getfd             | 🟢        |
-| pidfd_open              | 🟡        |
+| pidfd_open              | 🟢        |
 | pidfd_send_signal       | 🟡        |
 | pipe                    | 🟢        |
 | pipe2                   | 🟢        |

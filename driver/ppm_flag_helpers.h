@@ -25,6 +25,7 @@ or GPL2.txt for full copies of the license.
 #include <linux/capability.h>
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
+#include <linux/pidfd.h>
 #include "ppm.h"
 #ifdef __NR_memfd_create
 #include <uapi/linux/memfd.h>
@@ -2074,6 +2075,15 @@ static __always_inline uint32_t splice_flags_to_scap(uint32_t flags)
 #ifdef SPLICE_F_GIFT
 	if (flags & SPLICE_F_GIFT)
 		res |= PPM_SPLICE_F_GIFT;
+#endif
+	return res;
+}
+
+static __always_inline uint32_t pidfd_open_flags_to_scap(uint32_t flags)
+{
+	uint32_t res = 0;
+#ifdef PIDFD_NONBLOCK
+	if(flags & MFD_CLOEXEC) res |= PPM_MFD_CLOEXEC;
 #endif
 	return res;
 }
