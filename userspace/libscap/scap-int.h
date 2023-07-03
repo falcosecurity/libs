@@ -98,11 +98,6 @@ int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
 			      uint16_t devid, bool *suppressed, char *error);
 
 //
-// Retrieve machine info.
-//
-void scap_retrieve_machine_info(scap_machine_info* machine_info, uint64_t boot_time);
-
-//
 //
 // Useful stuff
 //
