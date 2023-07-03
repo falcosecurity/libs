@@ -52,6 +52,18 @@ jobs:
           path: linux/dk.yaml
           
       - name: Test drivers build
+        id: build
         run: |
           echo "Testing build of drivers against: ${{ steps.latest-version.outputs.latest_vers }}"
           driverkit docker -c linux/dk.yaml -l debug
+          
+      - name: Update README badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        if: always() && inputs.linux-version == ''
+        with:
+          auth: ${{ secrets.FEDEDP_GIST_SECRET }}
+          gistID: 1cbc5d42edf8e3a02fb75e76625f1072
+          filename: kernel.json
+          label: Drivers build
+          message: ${{ steps.latest-version.outputs.latest_vers }}
+          color: ${{ steps.build.outcome != 'success' && 'red' || 'brightgreen' }}
