@@ -47,7 +47,7 @@ bool should_drop(sinsp_evt *evt);
 #endif
 #include "sinsp_int.h"
 
-#if !defined(_WIN32) && !defined(__EMSCRIPTEN__)
+#if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
 #include "container_engine/docker/async_source.h"
 #endif
 
