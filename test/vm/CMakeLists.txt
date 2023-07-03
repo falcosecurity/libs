@@ -6,7 +6,7 @@ set(VM_PROVIDER_VBOX "virtualbox")
 set(VM_NAMES_VBOX_VAGRANT_CENTOS7 "centos7")
 set(VM_NAMES_VBOX_VAGRANT_UBUNTU "ubuntu")
 set(VM_NAMES_VBOX_VAGRANT_AMAZONLINUX2 "amazonlinux2")
-set(VM_NAMES_VBOX_VAGRANT "centos7 ubuntu amazonlinux2")
+set(VM_NAMES_VBOX_VAGRANT "centos7 ubuntu amazonlinux2") # needs to be one string
 
 set(VM_CONTAINERS
 	${UBUNTU_CONTAINER1} 

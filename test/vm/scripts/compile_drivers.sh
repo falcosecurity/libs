@@ -7,7 +7,7 @@ fi
 
 printf "\n\n[STATUS] Build driver artifacts for extracted kernel headers, script continues on failure ...\n\n"
 
-DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS="/headers"; # host dir mounted in container
+DIR_EXTRACTED_KERNEL_HEADERS_SUB_DIRS="/headers"; # host dir mounted in container, it is a directory with sub directories containing extracted kernel headers
 DRIVER_OUT_DIR="/vm/build/driver"; # host dir mounted in container
 LIBS_TAR_GZ="/vm/build/libs-src.tar.gz"; # host dir mounted in container
 
@@ -24,7 +24,8 @@ BPF="${5}";
 
 set -eou pipefail
 
-LIBS_DIR="/libs";
+LIBS_DIR="/libs"; # dir mounted in container
+rm -f "${LIBS_DIR}";
 mkdir -p "${DRIVER_OUT_DIR}";
 mkdir -p "${LIBS_DIR}/build";
 tar -xvf ${LIBS_TAR_GZ} -C ${LIBS_DIR}/;  # fresh extraction of libs src in container, clean build dir
