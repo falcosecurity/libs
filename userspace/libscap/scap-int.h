@@ -71,8 +71,6 @@ void scap_fd_free_proc_fd_table(scap_threadinfo* pi);
 // Add the file descriptor info pointed by fdi to the fd table for process pi.
 // Note: silently skips if fdi->type is SCAP_FD_UNKNOWN.
 int32_t scap_add_fd_to_proc_table(struct scap_proclist* proclist, scap_threadinfo* pi, scap_fdinfo* fdi, char *error);
-// Allocate and return the list of interfaces on this system
-int32_t scap_create_iflist(scap_t* handle);
 // Free a previously allocated list of interfaces
 void scap_free_iflist(scap_addrlist* ifhandle);
 // Free a previously allocated list of users
