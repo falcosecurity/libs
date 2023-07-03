@@ -7,11 +7,16 @@
 Status: **Under development, experimental**
 
 
+We have developed this framework with the sole intention of providing a convenient and efficient solution for `localhost` testing. It serves a unique purpose that is distinct from our official CI tests or the CI-powered kernel driver artifact build mechanisms. The choice of technology was based on the need for a widely adopted framework that can function effectively on different developer machines. Our aim is to cater to developers who desire to test with various compiler versions across a reasonable kernel grid without having to dedicate excessive hours to testing. Additionally, we understand their preference to conveniently conduct these tests on the same development box. As a result, these considerations have guided the setup of our `localhost` testing infrastructure. If you are considering adopting a CI-powered testing approach, we would like to encourage you to explore the projects' setup designed specifically for that purpose.
+
+
 ## Running VM-based Driver Functionality Tests on `localhost`
 
 ### System Requirements (Host OS)
 
 It is strongly advised to follow the installation instructions in the official documentation and to run official smoke-tests for every dependency. See [Support Matrix](#support-matrix) for supported host and guest OS / VM specifications.
+
+> If this is your first time using VirtualBox on your machine, you may encounter some minor challenges during the installation process. We recommend following troubleshooting guides or tutorials available on the internet. Additionally, we provide a target called `vm-dependency-check` to assist in confirming the installation and checking other dependencies.
 
 - [Docker](https://www.docker.com/products/docker-desktop/) >= 20.10.9
 	- Configure docker to run as non-root user
@@ -24,13 +29,13 @@ It is strongly advised to follow the installation instructions in the official d
 
 ### CMake Targets
 
-The test suites are integrated with the project's CMake setup but function independently. The primary VM build output is stored in the `libs/test/vm/build` directory to cache results, even if the `libs/build` folder is regenerated. The builds for scap-open and the kernel drivers are performed from scratch in containers, not using the `libs/build` directory. Further information about each step is available in later sections of this document.
+The test suites are integrated with the project's CMake setup but function independently. While you still execute all the cmake and make commands from the usual `libs/build` folder, the primary VM build output is stored in the `libs/test/vm/build` directory to cache results, even if the `libs/build` folder is regenerated. The builds for scap-open and the kernel drivers are performed from scratch in containers, not using the `libs/build` directory. Further information about each step is available in later sections of this document.
 
 As a rule of thumb, test flakiness mostly arises due to failed kernel module (kmod) tests. These tests are best run on a powerful Linux box.
 
 
 ```bash
-mkdir -p build;
+mkdir -p build; # this is the usual libs/build folder under the libs repo root
 cd build;
 cmake -DCREATE_TEST_TARGETS=ON -DENABLE_VM_TESTS=ON ../;
 ```
@@ -104,15 +109,16 @@ The current virtualization framework of choice for the project is [VirtualBox](h
 |   ✔  macOS (x86_64)         |     ✔  Linux (x86_64)    |   ❌ Linux (aarch64)              |
 |   ❌ Windows (x86_64)       |     ❌ Linux (x86_64)    |   ❌ Linux (aarch64)              |
 |   ❌ Linux (aarch64)          |     ❌ Linux (aarch64)     |   ❌ Linux (x86_64)             |
-|   ❌ macOS (Apple Silicon)  |     ❌ Linux (aarch64)     |   ❌ Linux (x86_64)             |
+|   ❌ macOS (Apple silicon)  |     ❌ Linux (aarch64)     |   ❌ Linux (x86_64)             |
 
 
-This test suite is a best effort and has been on:
+This test suite is a best effort and has been tested on:
 
-- Linux fedora36 - Intel x86_64  
-- Linux ubuntu 22.04 - Intel x86_64  
+- ArchLinux (x86_64)
+- Linux fedora36 (x86_64)
+- Linux ubuntu (x86_64)
 - macOS (latest) - Intel x86_64
-- Note: This test framework currently does not support Apple Silicon, but Falco has published a [blog post](https://falco.org/blog/falco-apple-silicon/) specifically addressing the usage of Falco in a Linux VM on macOS with Apple Silicon made possible by Falco's aarch64 support.
+- Note: This test framework currently does not support Apple silicon, but Falco has published a [blog post](https://falco.org/blog/falco-apple-silicon/) specifically addressing the usage of Falco in a Linux VM on macOS with Apple Silicon made possible by Falco's aarch64 support.
 
 
 ## Motivation
