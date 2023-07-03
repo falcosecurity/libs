@@ -7052,3 +7052,29 @@ FILLER(sys_pidfd_getfd_x, true)
 }
 
 #endif
+
+FILLER(sys_pidfd_open_x, true)
+{
+	int retval;
+	unsigned long val;
+	unsigned long res;
+	unsigned long flags;
+
+	/* Parameter 1: ret (type: PT_FD) */
+	retval = bpf_syscall_get_retval(data->ctx);
+	res = bpf_push_s64_to_ring(data, retval);
+	CHECK_RES(res);
+
+	/* Parameter 2: pid (type: PT_PID)*/
+	pid_t pid = (s32)bpf_syscall_get_argument(data, 0);
+	res = bpf_push_s64_to_ring(data, (s64)pid);
+	CHECK_RES(res);
+
+	/* Parameter 3: flags (type: PT_FLAGS32)*/
+	val = bpf_syscall_get_argument(data, 1);
+	flags = pidfd_open_flags_to_scap(val);
+	return bpf_push_u32_to_ring(data, flags);
+
+}
+
+

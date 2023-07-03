@@ -440,7 +440,8 @@ static const ppm_sc_code *g_events_to_sc_map[] = {
 	[PPME_SYSCALL_MEMFD_CREATE_X] = (ppm_sc_code[]){PPM_SC_MEMFD_CREATE, -1},
 	[PPME_SYSCALL_PIDFD_GETFD_E] = (ppm_sc_code[]){PPM_SC_PIDFD_GETFD, -1},
 	[PPME_SYSCALL_PIDFD_GETFD_X] = (ppm_sc_code[]){PPM_SC_PIDFD_GETFD, -1},
-	
+	[PPME_SYSCALL_PIDFD_OPEN_E] = (ppm_sc_code[]){PPM_SC_PIDFD_OPEN, -1},
+	[PPME_SYSCALL_PIDFD_OPEN_X] = (ppm_sc_code[]){PPM_SC_PIDFD_OPEN, -1},
 };
 
 _Static_assert(sizeof(g_events_to_sc_map) / sizeof(*g_events_to_sc_map) == PPM_EVENT_MAX, "Missing entries in g_events_to_sc_map table.");

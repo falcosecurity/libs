@@ -60,7 +60,7 @@ TEST(SyscallExit, memfd_createX_failure)
 
     const char* name = "test";
     int flags = -1;
-    assert_syscall_state(SYSCALL_FAILURE,"memfd_create",syscall(__NR_memfd_create,name,flags));
+    assert_syscall_state(SYSCALL_FAILURE, "memfd_create",syscall(__NR_memfd_create,name,flags));
     int64_t errno_value = -errno;
 
      /*=============================== TRIGGER SYSCALL ===========================*/
