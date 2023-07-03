@@ -34,7 +34,6 @@ printf "\n\n[STATUS] Compile drivers (kmod and bpf, not modern_bpf) for each com
 rm -rf ${BASE_DIR}/build/driver || true;
 rm -rf ${BASE_DIR}/build/driver_ok || true;
 
-
 # You have the option to customize the args to the Go launcher script
 # -compilerVersionsClang=15
 # -compilerVersionsClang=7,9,10,12,14,15,16

@@ -5,6 +5,7 @@ set -eou pipefail
 echo "Building scap-open"
 
 LIBS_DIR="/libs"; # dir mounted in container
+rm -rf "${LIBS_DIR}";
 mkdir -p "${LIBS_DIR}/build";
 LIBS_TAR_GZ="/vm/build/libs-src.tar.gz"; # host dir mounted in container
 

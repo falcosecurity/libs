@@ -7,7 +7,9 @@
 Status: **Under development, experimental**
 
 
-We have developed this framework with the sole intention of providing a convenient and efficient solution for `localhost` testing. It serves a unique purpose that is distinct from our official CI tests or the CI-powered kernel driver artifact build mechanisms. The choice of technology was based on the need for a widely adopted framework that can function effectively on different developer machines. Our aim is to cater to developers who desire to test with various compiler versions across a reasonable kernel grid without having to dedicate excessive hours to testing. Additionally, we understand their preference to conveniently conduct these tests on the same development box. As a result, these considerations have guided the setup of our `localhost` testing infrastructure. If you are considering adopting a CI-powered testing approach, we would like to encourage you to explore the projects' setup designed specifically for that purpose.
+We have developed this framework with the sole intention of providing a convenient and efficient solution for `localhost` testing. It serves a unique purpose that is distinct from our official CI tests or the CI-powered kernel driver artifact build mechanisms. The choice of technology was based on the need for a widely adopted framework that can function effectively on different developer machines. Our aim is to cater to developers who desire to test with various compiler versions across a reasonable kernel grid without having to dedicate excessive hours to testing. Additionally, we understand their preference to conveniently conduct these tests on the same development box. As a result, these considerations have guided the setup of our `localhost` testing infrastructure. If you are considering adopting a CI-powered testing approach, we would like to encourage you to explore the projects' setup designed specifically for that purpose.   
+
+Running these tests is a time-consuming process, typically taking at least one hour from scratch. We kindly request your patience during the execution of these tests.
 
 
 ## Running VM-based Driver Functionality Tests on `localhost`
@@ -46,8 +48,9 @@ Create containers, download kernel and header packages, extract kernel headers, 
 # Check dependencies
 make vm-dependency-check;
 
-# Target vm-init first run can take up to 25 min or longer
-# Re-running only re-builds VMs - can take up to 6 min or longer
+# The initial run of the target vm-init takes longer as we
+# create containers and download and extract kernel headers.
+# Re-running only re-builds VMs and is faster.
 make vm-init;
 
 # Alternatively run each step separately
@@ -59,7 +62,7 @@ make vm-init;
 By utilizing compatible containers, build scap-open and each driver artifact for an array of compiler versions. For this step, we also generate a results table that allows us to inspect which compiler version successfully compiled the driver for a given kernel version. We have included kernels 2.6.32 and 3.10 in order to check if they build successfully. However, no VM tests are launched for those kernels.
 
 ```bash
-# takes about 2 min
+# Should not take too long.
 make vm-compile;
 ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
 ```
@@ -69,13 +72,14 @@ In a Vagrant VM loop, each downloaded kernel within the `libs/test/vm/build/kern
 ```bash
 # make vm-init; # recommended, destroys and re-creates VMs
 
-# centos7: should be under 10 min or take longer
+# Tests take a long time, please be patient as it also depends on your machine.
 make vm-centos7;
 
-# ubuntu: can take 10-20 min or longer
+# Tests take a long time, please be patient as it also depends on your machine.
 make vm-ubuntu;
 
-# Explore libs/test/vm/CMakeLists.txt for new distro targets (e.g. `make vm-amazonlinux2` as example for an experimental distro) ...
+# Explore libs/test/vm/CMakeLists.txt for new distro targets
+# (e.g. `make vm-amazonlinux2` as example for an experimental distro) ...
 
 make vm-result;
 ls -l libs/test/vm/build/driver_compat_matrix_compiled.png;
@@ -222,7 +226,7 @@ Initialize VirtualBox VMs while pre-installing all kernels, using the Vagrant fr
 
 Package the current libs source code into the `libs-src.tar.gz` file located at `libs/test/vm/build`. This file is then passed into the containers to build the scap-open binary and each driver.
 
-The drivers are built using a Go launcher script, that allows for simultaneous launching of multiple build containers. This concurrent approach enables the building of the compiler and kernel versions grid in under 2 minutes.
+The drivers are built using a Go launcher script, that allows for simultaneous launching of multiple build containers. This concurrent approach enables the building of the compiler and kernel versions grid in minutes.
 
 Note that the `.o` files represent eBPF object files, while the `.ko` files represent the compiled kernel modules. The eBPF driver uses clang/llvm as the compiler, while the kernel module driver uses gcc.
 
