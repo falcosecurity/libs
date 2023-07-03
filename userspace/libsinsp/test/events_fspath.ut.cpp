@@ -54,8 +54,8 @@ protected:
 	uint32_t mode = S_IFREG;
 	int64_t res = 0;
 	int64_t failed_res = -1;
-	int dirfd = 0;
-	int rel_dirfd = AT_FDCWD;
+	int64_t dirfd = 0;
+	int64_t rel_dirfd = AT_FDCWD;
 	int64_t olddirfd = -1;
 	int64_t newdirfd = -1;
 	int64_t linkdirfd = -1;
