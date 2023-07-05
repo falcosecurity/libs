@@ -2083,7 +2083,7 @@ static __always_inline uint32_t pidfd_open_flags_to_scap(uint32_t flags)
 {
 	uint32_t res = 0;
 #ifdef PIDFD_NONBLOCK
-	if(flags & MFD_CLOEXEC) res |= PPM_MFD_CLOEXEC;
+	if(flags & PIDFD_NONBLOCK) res |= PPM_PIDFD_NONBLOCK;
 #endif
 	return res;
 }

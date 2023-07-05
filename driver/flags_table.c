@@ -680,3 +680,8 @@ const struct ppm_name_value memfd_create_flags[] = {
 	{"MFD_HUGETLB",PPM_MFD_HUGETLB},
 	{0,0},
 };
+
+const struct ppm_name_value pidfd_open_flags[] = {
+	{"PIDFD_NONBLOCK", PPM_PIDFD_NONBLOCK},
+	{0,0},
+};

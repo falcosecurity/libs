@@ -746,6 +746,11 @@
 #  define MFD_ALLOW_SEALING 2U
 #  define MFD_HUGETLB 4U
 
+//////////////////////////
+// pidfd_open flags
+//////////////////////////
+# define PIDFD_NONBLOCK 1U
+
 /*=============================== FLAGS ===========================*/
 
 /*=============================== PROTOCOL/ADDRESS FAMILIES ===========================*/

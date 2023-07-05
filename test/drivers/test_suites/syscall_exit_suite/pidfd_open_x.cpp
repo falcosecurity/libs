@@ -1,7 +1,7 @@
 #include "../../event_class/event_class.h"
 
-#include "unistd.h"
-#include <linux/pidfd.h>
+#include <unistd.h>
+
 
 #ifdef __NR_pidfd_open
 
@@ -13,8 +13,8 @@ TEST(SyscallExit, pidfd_openX_success)
 
     /*=============================== TRIGGER SYSCALL ===========================*/
 
-    int flags = PIDFD_NONBLOCK;
-    pid_t pid = syscall(__NR_pidfd_open);
+    int flags = O_NONBLOCK;
+    pid_t pid = syscall(__NR_fork);
     if(pid == 0)
     {
         exit(EXIT_SUCCESS);
@@ -63,9 +63,9 @@ TEST(SyscallExit, pidfd_openX_failure)
 
     /*=============================== TRIGGER SYSCALL ===========================*/
 
-    int flags = PIDFD_NONBLOCK;
-    pid_t pid = -1;
-    int64_t errno_value = -errno;
+    int flags = O_NONBLOCK;
+    pid_t pid = 0;
+    int64_t errno_value = -EINVAL;
     assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_open, pid, flags));
 
      /*=============================== TRIGGER SYSCALL ===========================*/
