@@ -794,7 +794,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid)
 
 		// Check to see if the event should be suppressed due
 		// to coming from a supressed tid
-		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, *pdevid, *pcpuid, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
+		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, *pdevid, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
 		{
 			return res;
 		}
