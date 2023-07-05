@@ -1,4 +1,5 @@
-include_directories(${LIBSCAP_INCLUDE_DIRS})
+include(driver_config)
+include_directories(${LIBSCAP_INCLUDE_DIRS} ${DRIVER_CONFIG_OUTPUT_DIR})
 add_library(scap_engine_kmod scap_kmod.c)
 target_link_libraries(scap_engine_kmod scap_event_schema scap_platform scap_engine_util scap_error)
 add_dependencies(scap_engine_kmod scap_event_schema scap_platform scap_engine_util scap_error)

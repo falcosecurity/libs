@@ -80,15 +80,9 @@ endif()
 # ${CMAKE_CURRENT_BINARY_DIR}/src. To maintain compatibility with older versions,
 # after the build we copy the compiled module one directory up,
 # to ${CMAKE_CURRENT_BINARY_DIR}.
-include(compute_versions RESULT_VARIABLE RESULT)
-if(RESULT STREQUAL NOTFOUND)
-  message(FATAL_ERROR "problem with compute_versions.cmake in ${CMAKE_MODULE_PATH}")
-endif()
-compute_versions(API_VERSION SCHEMA_VERSION)
-
 configure_file(dkms.conf.in src/dkms.conf)
 configure_file(Makefile.in src/Makefile)
-configure_file(driver_config.h.in src/driver_config.h)
+include(driver_config)
 
 set(DRIVER_SOURCES
 	dynamic_params_table.c
@@ -160,7 +154,7 @@ add_custom_target(install_driver
 if(ENABLE_DKMS)
 	install(FILES ${CMAKE_CURRENT_BINARY_DIR}/src/Makefile
 		${CMAKE_CURRENT_BINARY_DIR}/src/dkms.conf
-		${CMAKE_CURRENT_BINARY_DIR}/src/driver_config.h
+		${CMAKE_BINARY_DIR}/driver_config/driver_config.h
 		${DRIVER_SOURCES}
 		DESTINATION "src/${DRIVER_PACKAGE_NAME}-${DRIVER_VERSION}"
 		COMPONENT ${DRIVER_COMPONENT_NAME})

@@ -5,7 +5,7 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-configure_file(../driver_config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/../driver_config.h)
+include(driver_config)
 
 option(BUILD_BPF "Build the BPF driver on Linux" OFF)
 
@@ -22,7 +22,7 @@ set(BPF_SOURCES
 	quirks.h
 	ring_helpers.h
 	types.h
-	${CMAKE_CURRENT_SOURCE_DIR}/../driver_config.h
+	${DRIVER_CONFIG_OUTPUT_DIR}/driver_config.h
 	../ppm_api_version.h
 	../ppm_events_public.h
 	../feature_gates.h
