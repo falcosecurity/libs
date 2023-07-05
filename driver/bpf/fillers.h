@@ -7051,8 +7051,6 @@ FILLER(sys_pidfd_getfd_x, true)
 	return bpf_push_u32_to_ring(data, val);
 }
 
-#endif
-
 FILLER(sys_pidfd_open_x, true)
 {
 	int retval;
@@ -7076,5 +7074,4 @@ FILLER(sys_pidfd_open_x, true)
 	return bpf_push_u32_to_ring(data, flags);
 
 }
-
-
+#endif

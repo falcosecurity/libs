@@ -1,8 +1,9 @@
 #include "../../event_class/event_class.h"
+#include <unistd.h>
 
 #ifdef __NR_pidfd_open
 
-TEST(SyscallEnter, pidfd_getfdE)
+TEST(SyscallEnter, pidfd_openE)
 {
     auto evt_test = get_syscall_event_test(__NR_pidfd_open, ENTER_EVENT);
 
@@ -12,7 +13,7 @@ TEST(SyscallEnter, pidfd_getfdE)
 
     int pid = 0;
     int flags = 0;
-    assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_getfd, pid, flags));
+    assert_syscall_state(SYSCALL_FAILURE, "pidfd_open", syscall(__NR_pidfd_open, pid, flags));
 
     /*=============================== TRIGGER SYSCALL ===========================*/
 
