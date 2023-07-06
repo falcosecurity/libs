@@ -58,14 +58,8 @@ void sinsp_dumper::open(sinsp* inspector, const std::string& filename, bool comp
 	}
 	else
 	{
-		if(compress)
-		{
-			m_dumper = scap_dump_open(inspector->m_h->m_platform, filename.c_str(), SCAP_COMPRESSION_GZIP, threads_from_sinsp, error);
-		}
-		else
-		{
-			m_dumper = scap_dump_open(inspector->m_h->m_platform, filename.c_str(), SCAP_COMPRESSION_NONE, threads_from_sinsp, error);
-		}
+		auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
+		m_dumper = scap_dump_open(inspector->m_h->m_platform, filename.c_str(), compress_mode, threads_from_sinsp, error);
 	}
 
 	if(m_dumper == nullptr)
@@ -93,14 +87,8 @@ void sinsp_dumper::fdopen(sinsp* inspector, int fd, bool compress, bool threads_
 		throw sinsp_exception("can't start event dump, inspector not opened yet");
 	}
 
-	if(compress)
-	{
-		m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, SCAP_COMPRESSION_GZIP, threads_from_sinsp, error);
-	}
-	else
-	{
-		m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, SCAP_COMPRESSION_NONE, threads_from_sinsp, error);
-	}
+	auto compress_mode = compress ? SCAP_COMPRESSION_GZIP : SCAP_COMPRESSION_NONE;
+	m_dumper = scap_dump_open_fd(inspector->m_h->m_platform, fd, compress_mode, threads_from_sinsp, error);
 
 	if(m_dumper == nullptr)
 	{
