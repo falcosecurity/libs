@@ -20,6 +20,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/..)
 
 set(LIBSCAP_UNIT_TESTS_SOURCES
     scap_event.ut.cpp
+	common_strl.ut.cpp
 )
 
 # Modern BPF is supported only on kernel versions >= 5.8.
