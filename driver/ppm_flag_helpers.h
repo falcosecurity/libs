@@ -25,7 +25,9 @@ or GPL2.txt for full copies of the license.
 #include <linux/capability.h>
 #include <linux/eventpoll.h>
 #include <linux/prctl.h>
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 10, 0))
 #include <linux/pidfd.h>
+#endif
 #include "ppm.h"
 #ifdef __NR_memfd_create
 #include <uapi/linux/memfd.h>
@@ -2085,6 +2087,16 @@ static __always_inline uint32_t pidfd_open_flags_to_scap(uint32_t flags)
 #ifdef PIDFD_NONBLOCK
 	if(flags & PIDFD_NONBLOCK) res |= PPM_PIDFD_NONBLOCK;
 #endif
+
+/*
+	PIDFD_NONBLOCK is available only on kernal versions > 5.10.00, hence used O_NONBLOCK 
+	See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
+*/
+    
+#ifdef O_NONBLOCK
+	if(flags & O_NONBLOCK) res |= PPM_PIDFD_NONBLOCK;
+#endif
+
 	return res;
 }
 

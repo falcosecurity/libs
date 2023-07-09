@@ -5,6 +5,7 @@
 
 #ifdef __NR_pidfd_open
 
+#ifdef __NR_fork
 TEST(SyscallExit, pidfd_openX_success)
 {
     auto evt_test = get_syscall_event_test(__NR_pidfd_open, EXIT_EVENT);
@@ -12,7 +13,11 @@ TEST(SyscallExit, pidfd_openX_success)
     evt_test->enable_capture();
 
     /*=============================== TRIGGER SYSCALL ===========================*/
-
+    /*
+      PIDFD_NONBLOCK is available only on kernal versions > 5.10.00, hence used O_NONBLOCK 
+      See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
+    */
+    
     int flags = O_NONBLOCK;
     pid_t pid = syscall(__NR_fork);
     if(pid == 0)
@@ -54,6 +59,7 @@ TEST(SyscallExit, pidfd_openX_success)
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
 }
+#endif
 
 TEST(SyscallExit, pidfd_openX_failure)
 {
