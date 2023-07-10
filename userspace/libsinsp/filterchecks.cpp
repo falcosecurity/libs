@@ -890,7 +890,7 @@ bool sinsp_filter_check_fd::extract(sinsp_evt *evt, OUT std::vector<extract_valu
 
 	if(!extract_fd(evt))
 	{
-		return NULL;
+		return false;
 	}
 
 	if(m_field_id == TYPE_FDTYPES && m_argid == -1)
