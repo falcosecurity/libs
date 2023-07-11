@@ -355,13 +355,13 @@ public:
 		}
 	}
 
-	int get_all_data_secure(std::vector<char> &buf)
+	unsigned int get_all_data_secure(std::vector<char> &buf)
 	{
-		int processed = 0;
+		unsigned int processed = 0;
 		int rec = SSL_read(m_ssl_connection, &buf[0], buf.size());
 		if (rec > 0)
 		{
-			processed += rec;
+			processed += (unsigned int)rec;
 		}
 		int err = SSL_get_error(m_ssl_connection, rec);
 		switch (err) {
@@ -381,9 +381,9 @@ public:
 		return processed;
 	}
 
-	int get_all_data_unsecure(std::vector<char> &buf) {
+	unsigned int get_all_data_unsecure(std::vector<char> &buf) {
 		int rec;
-		int processed = 0;
+		unsigned int processed = 0;
 		int count = 0;
 		int ioret = ioctl(m_socket, FIONREAD, &count);
 		if(ioret >= 0 && count > 0)
@@ -399,7 +399,7 @@ public:
 				break;
 			default:
 				process(&buf[0], rec, false);
-				processed = rec;
+				processed = (unsigned int)rec;
 				break;
 			}
 		}
@@ -408,7 +408,7 @@ public:
 
 	int get_all_data()
 	{
-		int processed = 0;
+		unsigned int processed = 0;
 		int counter = 0;
 		std::vector<char> buf(1024, 0);
 

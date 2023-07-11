@@ -262,7 +262,7 @@ uint32_t binary_buffer_to_hex_string(char *dst, char *src, uint32_t dstlen, uint
 			{
 				ret = snprintf(row + k, sizeof(row) - k, " %.4x", chunk);
 			}
-			if (ret < 0 || ret >= sizeof(row) - k)
+			if (ret < 0 || (unsigned int)ret >= sizeof(row) - k)
 			{
 				dst[0] = 0;
 				return 0;

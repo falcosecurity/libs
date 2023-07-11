@@ -121,7 +121,7 @@ cycle_writer::conclusion cycle_writer::consider(sinsp_evt* evt, uint64_t written
 		}
 	}
 
-	if(m_rollover_mb > 0 && written_bytes > m_rollover_mb)
+	if(m_rollover_mb > 0 && written_bytes > (uint64_t)m_rollover_mb)
 	{
 		m_last_reason = "Maximum File Size Reached";
 		return next_file();
