@@ -1,6 +1,7 @@
 #include "../../event_class/event_class.h"
 
 #include <unistd.h>
+#include <linux/version.h>
 
 
 #ifdef __NR_pidfd_open
@@ -18,10 +19,13 @@ TEST(SyscallExit, pidfd_openX_success)
       See https://elixir.bootlin.com/linux/v5.10.185/source/include/uapi/linux/pidfd.h#L10
     */
     
-    int flags = O_NONBLOCK;
+    int flags = 0;
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 10, 0))
+    flags = O_NONBLOCK;
+#endif 
     pid_t pid = syscall(__NR_fork);
     if(pid == 0)
-    {
+    { 
         exit(EXIT_SUCCESS);
     }
     assert_syscall_state(SYSCALL_SUCCESS, "fork", pid, NOT_EQUAL, -1);
@@ -53,8 +57,12 @@ TEST(SyscallExit, pidfd_openX_success)
     /* Parameter 1: pid (type: PT_PID)*/
     evt_test->assert_numeric_param(2, (int64_t)pid);
 
+    #if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 10, 0))
     /* Parameter 3: flags (type: PT_FLAGS32) */ 
     evt_test->assert_numeric_param(3, (uint32_t)PPM_PIDFD_NONBLOCK);
+    #endif
+    /* Parameter 3: flags (type: PT_FLAGS32) */ 
+    evt_test->assert_numeric_param(3, 0);
 
     /*=============================== ASSERT PARAMETERS  ===========================*/
 
