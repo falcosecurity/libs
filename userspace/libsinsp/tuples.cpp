@@ -124,7 +124,7 @@ bool ipv6net::in_cidr(const ipv6addr &other) const
 	auto this_bytes  = (const uint8_t*)(&m_addr.m_b);
 	auto other_bytes = (const uint8_t*)(&other.m_b);
 
-	int i = 0;
+	unsigned int i = 0;
 	for (; i < m_mask_len_bytes; i++)
 	{
 		if(this_bytes[i] != other_bytes[i])
