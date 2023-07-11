@@ -120,6 +120,7 @@ set(DRIVER_SOURCES
 	capture_macro.h
 	socketcall_to_syscall.h
 	socketcall_to_syscall.c
+	syscall_ia32_64_map.c
 )
 
 foreach(FILENAME IN LISTS DRIVER_SOURCES)
