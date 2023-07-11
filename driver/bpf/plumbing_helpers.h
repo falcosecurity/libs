@@ -95,6 +95,52 @@ static __always_inline long bpf_syscall_get_retval(void *ctx)
 	return args->ret;
 }
 
+static __always_inline bool bpf_in_ia32_syscall()
+{
+	struct task_struct *task = (struct task_struct *)bpf_get_current_task();
+	u32 status = 0;
+
+#ifdef CONFIG_X86_64
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18)
+	status = _READ(task->thread.status);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 0)
+	status = _READ(task->thread_info.status);
+#elif LINUX_VERSION_CODE < KERNEL_VERSION(4, 15, 2)
+	status = _READ(task->thread.status);
+#else
+	status = _READ(task->thread_info.status);
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 14, 18) */
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/x86/include/asm/thread_info.h#L212
+	 */
+	return status & TS_COMPAT;
+
+#elif defined(CONFIG_ARM64)
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/arm64/include/asm/thread_info.h#L99
+	 */
+	status = _READ(task->thread_info.flags);
+	return status & _TIF_32BIT;
+
+#elif defined(CONFIG_S390)
+
+	/* See here for the definition:
+	 * https://github.com/torvalds/linux/blob/69cb6c6556ad89620547318439d6be8bb1629a5a/arch/s390/include/asm/thread_info.h#L101
+	 */
+	status = _READ(task->thread_info.flags);
+	return status & _TIF_31BIT;
+
+#else
+
+	/* Unknown architecture. */
+	return false;
+
+#endif /* CONFIG_X86_64 */
+}
+
 /* Can be called from both enter and exit event, id is at the same
  * offset in both struct sys_enter_args and struct sys_exit_args
  */
@@ -166,6 +212,32 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	struct pt_regs *regs = (struct pt_regs *)args->regs;
 
 #ifdef CONFIG_X86_64
+	if (bpf_in_ia32_syscall())
+	{
+		switch (idx) {
+		case 0:
+			arg = _READ(regs->bx);
+			break;
+		case 1:
+			arg = _READ(regs->cx);
+			break;
+		case 2:
+			arg = _READ(regs->dx);
+			break;
+		case 3:
+			arg = _READ(regs->si);
+			break;
+		case 4:
+			arg = _READ(regs->di);
+			break;
+		case 5:
+			arg = _READ(regs->bp);
+			break;
+		default:
+			arg = 0;
+		}
+		return arg;
+	}
 
 	/* See here for the definition:
 	 * https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h#L75-L87

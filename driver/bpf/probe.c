@@ -45,12 +45,17 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	long id;
 	bool enabled;
 
-	if (bpf_in_ia32_syscall())
-		return 0;
-
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
+
+	if (bpf_in_ia32_syscall())
+	{
+		if(id == 6)
+			id = 3;
+		else
+			return 0;
+	}
 
 #if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == __NR_socketcall)
@@ -102,12 +107,17 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	struct scap_bpf_settings *settings;
 	long retval;
 
-	if (bpf_in_ia32_syscall())
-		return 0;
-
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
 		return 0;
+
+	if (bpf_in_ia32_syscall())
+	{
+		if(id == 6)
+			id = 3;
+		else
+			return 0;
+	}
 
 #if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == __NR_socketcall)
