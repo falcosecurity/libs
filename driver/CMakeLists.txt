@@ -109,7 +109,6 @@ set(DRIVER_SOURCES
 	ppm_flag_helpers.h
 	ppm_ringbuffer.h
 	syscall_table.c
-	syscall_table32.c
 	syscall_table64.c
 	ppm_cputime.c
 	ppm_version.h
