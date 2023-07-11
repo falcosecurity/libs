@@ -75,6 +75,12 @@ __weak uint8_t g_64bit_sampling_syscall_table[SYSCALL_TABLE_SIZE];
 __weak uint8_t g_64bit_sampling_tracepoint_table[PPM_EVENT_MAX];
 
 /**
+ * @brief Given the syscall id on 32-bit x86 arch returns
+ * its x64 value. Used to support ia32 syscall emulation.
+ */
+__weak uint32_t g_ia32_to_64_table[SYSCALL_TABLE_SIZE];
+
+/**
  * @brief Global capture settings shared between userspace and
  * bpf programs.
  */
