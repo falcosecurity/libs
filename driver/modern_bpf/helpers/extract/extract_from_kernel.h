@@ -65,6 +65,39 @@ static __always_inline u32 extract__syscall_id(struct pt_regs *regs)
 static __always_inline unsigned long extract__syscall_argument(struct pt_regs *regs, int idx)
 {
 	unsigned long arg;
+#if defined(__TARGET_ARCH_x86)
+	// TODO: somehow use syscalls_dispatcher__check_32bit_syscalls()
+	uint32_t status;
+	struct task_struct *task = get_current_task();
+	READ_TASK_FIELD_INTO(&status, task, thread_info.status);
+	if (status & TS_COMPAT)
+	{
+		switch(idx)
+		{
+		case 0:
+			arg = BPF_CORE_READ(regs, bx);
+			break;
+		case 1:
+			arg = BPF_CORE_READ(regs, cx);
+			break;
+		case 2:
+			arg = BPF_CORE_READ(regs, dx);
+			break;
+		case 3:
+			arg = BPF_CORE_READ(regs, si);
+			break;
+		case 4:
+			arg = BPF_CORE_READ(regs, di);
+			break;
+		case 5:
+			arg = BPF_CORE_READ(regs, bp);
+			break;
+		default:
+			arg = 0;
+		}
+		return arg;
+	}
+#endif
 	switch(idx)
 	{
 	case 0:

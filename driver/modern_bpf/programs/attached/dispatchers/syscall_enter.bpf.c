@@ -18,6 +18,15 @@ int BPF_PROG(sys_enter,
 	     long syscall_id)
 {
 
+	/* Right now, drops all ia32 syscalls. */
+	if(syscalls_dispatcher__check_32bit_syscalls())
+	{
+		if (syscall_id == 6)
+			syscall_id = 3;
+		else
+			return 0;
+	}
+
 #ifdef CAPTURE_SOCKETCALL
 	/* we convert it here in this way the syscall will be treated exactly as the original one */
 	if(syscall_id == __NR_socketcall)
@@ -26,12 +35,6 @@ int BPF_PROG(sys_enter,
 	}
 #endif
 
-	/* The `syscall-id` can refer to both 64-bit and 32-bit architectures.
-	 * Right now we filter only 64-bit syscalls, all the 32-bit syscalls
-	 * will be dropped with `syscalls_dispatcher__check_32bit_syscalls`.
-	 *
-	 * If the syscall is not interesting we drop it.
-	 */
 	if(!syscalls_dispatcher__64bit_interesting_syscall(syscall_id))
 	{
 		return 0;
@@ -42,11 +45,7 @@ int BPF_PROG(sys_enter,
 		return 0;
 	}
 
-	/* Right now, drops all ia32 syscalls. */
-	if(syscalls_dispatcher__check_32bit_syscalls())
-	{
-		return 0;
-	}
+
 
 	bpf_tail_call(ctx, &syscall_enter_tail_table, syscall_id);
 	return 0;
