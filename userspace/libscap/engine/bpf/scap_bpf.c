@@ -986,6 +986,27 @@ static int32_t populate_fillers_table_map(struct bpf_engine *handle)
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_FILLERS_TABLE]);
 }
 
+static int32_t populate_ia32_to_64_map(struct bpf_engine *handle)
+{
+	int j;
+	int ret;
+
+	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
+	{
+		const int *x64_val = &g_ia32_64_map[j];
+		if (*x64_val != 0)
+		{
+			if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_IA32_64_MAP], &j, x64_val,
+						      BPF_ANY)) != 0)
+			{
+				return scap_errprintf(handle->m_lasterr, -ret,
+						      "SCAP_FILLERS_TABLE bpf_map_update_elem ");
+			}
+		}
+	}
+	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_IA32_64_MAP]);
+}
+
 static int enforce_sc_set(struct bpf_engine* handle)
 {
 	/* handle->capturing == false means that we want to disable the capture */
@@ -1513,6 +1534,11 @@ int32_t scap_bpf_load(
 	}
 
 	if(populate_fillers_table_map(handle) != SCAP_SUCCESS)
+	{
+		return SCAP_FAILURE;
+	}
+
+	if (populate_ia32_to_64_map(handle) != SCAP_SUCCESS)
 	{
 		return SCAP_FAILURE;
 	}
