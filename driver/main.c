@@ -98,19 +98,12 @@ struct ppm_device {
 struct event_data_t {
 	enum ppm_capture_category category;
 	bool compat;
-
 	/* We need this when we preload syscall params */
 	bool extract_socketcall_params;
-	/* We save here the id of the socket call syscall.
-	 * we need to save it because it could be on 32 or 64 bits.
-	 */
-	int socketcall_syscall_id;
-
 	union {
 		struct {
 			struct pt_regs *regs;
 			long id;
-			const struct syscall_evt_pair *cur_g_syscall_table;
 		} syscall_data;
 
 		struct {
@@ -199,6 +192,8 @@ TRACEPOINT_PROBE(sched_proc_fork_probe, struct task_struct *parent, struct task_
 #ifdef CAPTURE_SCHED_PROC_EXEC
 TRACEPOINT_PROBE(sched_proc_exec_probe, struct task_struct *p, pid_t old_pid, struct linux_binprm *bprm);
 #endif
+
+extern const int g_ia32_64_map[];
 
 static struct ppm_device *g_ppm_devs;
 static struct class *g_ppm_class;
@@ -1747,27 +1742,8 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 	// Check if syscall is interesting for the consumer
 	if (event_datap->category == PPMC_SYSCALL)
 	{
-		/* Please note:
-		 * Right now we don't support the simple consumer on 32 bits.
-		 *
-		 * Please note:
-		 * If we have a syscall code equal to socketcall_id
-		 * there are 2 possible cases:
-		 * 
-		 * 1. The user provided the wrong socket call code.
-		 *    In this case we send a generic event to userspace.
-		 * 2. The socket call code is defined but the corresponding
-		 *    syscall call is not defined in the system.
-		 *    In this case we send the right syscall event.
-		 * 
-		 * In both cases we cannot use the simple consumer to filter out
-		 * specific events we can only keep or drop all of them.
-		 * If the socket call syscall is set as interesting we keep all
-		 * these events (specific ones + generic ones), otherwise we 
-		 * drop all of them.
-		 */
 		table_index = event_datap->event_info.syscall_data.id - SYSCALL_TABLE_ID0;
-		if(!event_datap->compat && !test_bit(table_index, consumer->syscalls_mask))
+		if(!test_bit(table_index, consumer->syscalls_mask))
 		{
 			return res;
 		}
@@ -1783,7 +1759,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 
 		args.regs = event_datap->event_info.syscall_data.regs;
 		args.syscall_id = event_datap->event_info.syscall_data.id;
-		args.cur_g_syscall_table = event_datap->event_info.syscall_data.cur_g_syscall_table;
 		args.compat = event_datap->compat;
 		/* If the syscall is interesting we need to preload params */
 		if(unlikely(preload_params(&args, event_datap->extract_socketcall_params) == -1))
@@ -1908,7 +1883,6 @@ static int record_event_consumer(struct ppm_consumer_t *consumer,
 		{
 			args.regs = NULL;
 			args.syscall_id = -1;
-			args.cur_g_syscall_table = NULL;
 			args.compat = false;
 		}
 
@@ -2125,40 +2099,35 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
-	event_data.socketcall_syscall_id = -1;
 	event_data.extract_socketcall_params = false;
 
 	/* This could be overwritten if we are in a socket call */
 	event_data.event_info.syscall_data.id = id;
-
-	/* By default we are on 64 bit */
-	event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_table;
 	event_data.compat = false;
-
-#ifdef __NR_socketcall
-	event_data.socketcall_syscall_id = __NR_socketcall;
-#endif
 
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	/*
-	 * If this is a 32bit process running on a 64bit kernel (see the CONFIG_IA32_EMULATION
-	 * kernel flag), we switch to the ia32 syscall table.
+	 * If this is a 32bit syscall running on a 64bit kernel (see the CONFIG_IA32_EMULATION
+	 * kernel flag), we convert it to 64bit syscall.
 	 */
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
 	if (in_ia32_syscall()) {
 #else
 	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
 #endif
-		event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_ia32_table;
 		event_data.compat = true;
-		event_data.socketcall_syscall_id = __NR_ia32_socketcall;
+		event_data.event_info.syscall_data.id = g_ia32_64_map[id];
+		if (event_data.event_info.syscall_data.id == 0)
+		{
+			return;
+		}
 	}
 #endif
 
 	g_n_tracepoint_hit_inc();
 
-#ifdef _HAS_SOCKETCALL
-	if(event_data.event_info.syscall_data.id == event_data.socketcall_syscall_id)
+#if defined(_HAS_SOCKETCALL) && defined(__NR_socketcall)
+	if(event_data.event_info.syscall_data.id == __NR_socketcall)
 	{
 		bool is_syscall_return;
 		int return_code = convert_network_syscalls(regs, &is_syscall_return);
@@ -2196,7 +2165,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		return;
 	}
 
-	event_pair = &event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
+	event_pair = &g_syscall_table[table_index];
 	if (event_pair->flags & UF_USED)
 		record_event_all_consumers(event_pair->enter_event_type, event_pair->flags, &event_data, KMOD_PROG_SYS_ENTER);
 	else
@@ -2258,16 +2227,8 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	event_data.category = PPMC_SYSCALL;
 	event_data.event_info.syscall_data.regs = regs;
-	event_data.socketcall_syscall_id = -1;
 	event_data.extract_socketcall_params = false;
-
-	/* By default we are on 64 bit */
-	event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_table;
 	event_data.compat = false;
-
-#ifdef __NR_socketcall
-	event_data.socketcall_syscall_id = __NR_socketcall;
-#endif
 
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 	/*
@@ -2281,16 +2242,19 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 #else
 	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && event_data.event_info.syscall_data.id != __NR_execve)) {
 #endif
-		event_data.event_info.syscall_data.cur_g_syscall_table = g_syscall_ia32_table;
 		event_data.compat = true;
-		event_data.socketcall_syscall_id = __NR_ia32_socketcall;
+		event_data.event_info.syscall_data.id = g_ia32_64_map[event_data.event_info.syscall_data.id];
+		if (event_data.event_info.syscall_data.id == 0)
+		{
+			return;
+		}
 	}
 #endif
 
 	g_n_tracepoint_hit_inc();
 
-#ifdef _HAS_SOCKETCALL
-	if(event_data.event_info.syscall_data.id == event_data.socketcall_syscall_id)
+#if defined(_HAS_SOCKETCALL) && defined(__NR_socketcall)
+	if(event_data.event_info.syscall_data.id == __NR_socketcall)
 	{
 		bool is_syscall_return;
 		int return_code = convert_network_syscalls(regs, &is_syscall_return);
@@ -2328,7 +2292,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		return;
 	}
 
-	event_pair = &event_data.event_info.syscall_data.cur_g_syscall_table[table_index];
+	event_pair = &g_syscall_table[table_index];
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
 	if(kmod_drop_syscall_exit_events(ret, event_pair->exit_event_type))
