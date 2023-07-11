@@ -51,9 +51,16 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 	if (bpf_in_ia32_syscall())
 	{
+#ifdef CONFIG_X86_64
 		id = convert_ia32_to_64(id);
 		if (id == 0)
+		{
 			return 0;
+		}
+#else
+		// TODO: unsupported
+		return 0;
+#endif
 	}
 
 #if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
@@ -112,9 +119,16 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	if (bpf_in_ia32_syscall())
 	{
+#ifdef CONFIG_X86_64
 		id = convert_ia32_to_64(id);
-		if (id == 0)
+		if(id == 0)
+		{
 			return 0;
+		}
+#else
+		// TODO: unsupported
+		return 0;
+#endif
 	}
 
 #if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)

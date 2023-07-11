@@ -22,11 +22,16 @@ int BPF_PROG(sys_exit,
 
 	if(syscalls_dispatcher__check_32bit_syscalls())
 	{
+#if defined(__TARGET_ARCH_x86)
 		syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
-		if (syscall_id == 0)
+		if(syscall_id == 0)
 		{
 			return 0;
 		}
+#else
+		// TODO: unsupported
+		return 0;
+#endif
 	}
 
 #ifdef CAPTURE_SOCKETCALL

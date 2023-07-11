@@ -2085,6 +2085,25 @@ static inline void g_n_tracepoint_hit_inc(void)
 #endif
 }
 
+static inline bool kmod_in_ia32_syscall(void)
+{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
+	if (in_ia32_syscall())
+#else
+	if (unlikely(task_thread_info(current)->status & TS_COMPAT))
+#endif
+		return true;
+#elif defined(CONFIG_ARM64)
+	if (unlikely(task_thread_info(current)->flags & _TIF_32BIT))
+		return true;
+#elif defined(CONFIG_S390)
+	if (unlikely(task_thread_info(current)->flags & _TIF_31BIT))
+		return true;
+#endif /* CONFIG_X86_64 */
+	return false;
+}
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	struct event_data_t event_data = {};
@@ -2105,24 +2124,20 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	event_data.event_info.syscall_data.id = id;
 	event_data.compat = false;
 
+	if (kmod_in_ia32_syscall())
+	{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-	/*
-	 * If this is a 32bit syscall running on a 64bit kernel (see the CONFIG_IA32_EMULATION
-	 * kernel flag), we convert it to 64bit syscall.
-	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if (in_ia32_syscall()) {
-#else
-	if (unlikely(task_thread_info(current)->status & TS_COMPAT)) {
-#endif
 		event_data.compat = true;
 		event_data.event_info.syscall_data.id = g_ia32_64_map[id];
-		if (event_data.event_info.syscall_data.id == 0)
+		if(event_data.event_info.syscall_data.id == 0)
 		{
-			return;
+				return;
 		}
-	}
+#else
+		// TODO: unsupported
+		return;
 #endif
+	}
 
 	g_n_tracepoint_hit_inc();
 
@@ -2230,26 +2245,30 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	event_data.extract_socketcall_params = false;
 	event_data.compat = false;
 
+	if (kmod_in_ia32_syscall())
+	{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-	/*
-	 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
-	 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
-	 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
-	 * which is a very old syscall, not used anymore by most applications
-	 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 9, 0)
-	if (in_ia32_syscall() && event_data.event_info.syscall_data.id != __NR_execve) {
-#else
-	if (unlikely((task_thread_info(current)->status & TS_COMPAT) && event_data.event_info.syscall_data.id != __NR_execve)) {
-#endif
-		event_data.compat = true;
-		event_data.event_info.syscall_data.id = g_ia32_64_map[event_data.event_info.syscall_data.id];
-		if (event_data.event_info.syscall_data.id == 0)
+		/*
+		 * TODO: is this still needed? Do we need to add execveat too?
+		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+		 * which is a very old syscall, not used anymore by most applications
+		 */
+		if (event_data.event_info.syscall_data.id != __NR_execve)
 		{
-			return;
+			event_data.compat = true;
+			event_data.event_info.syscall_data.id = g_ia32_64_map[event_data.event_info.syscall_data.id];
+			if(event_data.event_info.syscall_data.id == 0)
+			{
+				return;
+			}
 		}
-	}
+#else
+		// TODO: unsupported
+		return;
 #endif
+	}
 
 	g_n_tracepoint_hit_inc();
 
