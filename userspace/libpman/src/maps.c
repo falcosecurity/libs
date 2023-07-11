@@ -24,6 +24,7 @@ limitations under the License.
 
 extern const struct ppm_event_info g_event_info[PPM_EVENT_MAX];
 extern const struct syscall_evt_pair g_syscall_table[SYSCALL_TABLE_SIZE];
+extern const int g_ia32_64_map[];
 
 /*=============================== BPF READ-ONLY GLOBAL VARIABLES ===============================*/
 
@@ -141,6 +142,18 @@ void pman_fill_syscall_tracepoint_table()
 	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SCHEDSWITCH_6_E] = 0;
 	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_PAGE_FAULT_E] = UF_ALWAYS_DROP;
 	g_state.skel->bss->g_64bit_sampling_tracepoint_table[PPME_SIGNALDELIVER_E] = UF_ALWAYS_DROP;
+}
+
+void pman_fill_ia32_to_64_table()
+{
+	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
+	{
+		const int x64_val = g_ia32_64_map[syscall_id];
+		if (x64_val != 0)
+		{
+			g_state.skel->bss->g_ia32_to_64_table[syscall_id] = x64_val;
+		}
+	}
 }
 
 
@@ -358,6 +371,7 @@ int pman_finalize_maps_after_loading()
 	/* We have to fill all ours tail tables. */
 	pman_fill_syscall_sampling_table();
 	pman_fill_syscall_tracepoint_table();
+	pman_fill_ia32_to_64_table();
 	err = pman_fill_syscalls_tail_table();
 	err = err ?: pman_fill_extra_event_prog_tail_table();
 	return err;

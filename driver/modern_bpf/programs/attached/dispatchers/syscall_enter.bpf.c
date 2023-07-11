@@ -18,13 +18,13 @@ int BPF_PROG(sys_enter,
 	     long syscall_id)
 {
 
-	/* Right now, drops all ia32 syscalls. */
 	if(syscalls_dispatcher__check_32bit_syscalls())
 	{
-		if (syscall_id == 6)
-			syscall_id = 3;
-		else
+		syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
+		if (syscall_id == 0)
+		{
 			return 0;
+		}
 	}
 
 #ifdef CAPTURE_SOCKETCALL

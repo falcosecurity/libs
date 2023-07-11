@@ -101,6 +101,15 @@ static __always_inline bool maps__64bit_interesting_syscall(u32 syscall_id)
 
 /*=============================== SYSCALL-64 INTERESTING TABLE ===========================*/
 
+/*=============================== IA32 to 64 TABLE ===========================*/
+
+static __always_inline u32 maps__ia32_to_64(u32 syscall_id)
+{
+	return g_ia32_to_64_table[syscall_id & (SYSCALL_TABLE_SIZE - 1)];
+}
+
+/*=============================== SYSCALL-64 INTERESTING TABLE ===========================*/
+
 /*=============================== EVENT NUM PARAMS TABLE ===========================*/
 
 static __always_inline u8 maps__get_event_num_params(u32 event_id)

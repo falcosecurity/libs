@@ -37,6 +37,11 @@ static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(u32 s
 	return maps__64bit_interesting_syscall(syscall_id);
 }
 
+static __always_inline u32 syscalls_dispatcher__convert_ia32_to_64(u32 syscall_id)
+{
+	return maps__ia32_to_64(syscall_id);
+}
+
 #ifdef CAPTURE_SOCKETCALL
 static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 {
