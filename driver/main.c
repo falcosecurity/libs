@@ -2104,11 +2104,58 @@ static inline bool kmod_in_ia32_syscall(void)
 	return false;
 }
 
+#ifdef _HAS_SOCKETCALL
+static inline struct event_data_t *manage_socketcall(struct event_data_t *event_data, int socketcall_syscall_id, bool is_exit)
+{
+	if(event_data->event_info.syscall_data.id == socketcall_syscall_id)
+	{
+		bool is_syscall_return;
+		int return_code = convert_network_syscalls(event_data->event_info.syscall_data.regs, &is_syscall_return);
+
+		/* If the return code is not the generic event we will need to extract parameters
+		 * with the socket call mechanism.
+		 */
+		event_data->extract_socketcall_params = true;
+
+		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
+		if(!is_syscall_return)
+		{
+			/* The user provided a wrong code, we will send a generic event,
+			 * no need for socket call arguments extraction logic.
+			 */
+			if(return_code == PPME_GENERIC_E)
+			{
+				event_data->extract_socketcall_params = false;
+			}
+			/* we need to use `return_code + 1` because return_code
+			 * is the enter event.
+			 */
+			record_event_all_consumers(return_code + is_exit,
+						   return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED,
+						   event_data, is_exit ? KMOD_PROG_SYS_EXIT : KMOD_PROG_SYS_ENTER);
+			return NULL; // managed
+		}
+
+		/* If we return a syscall id we just set it */
+		if(event_data->compat)
+		{
+			event_data->event_info.syscall_data.id = g_ia32_64_map[return_code];
+		}
+		else
+		{
+			event_data->event_info.syscall_data.id = return_code;
+		}
+	}
+	return event_data;
+}
+#endif
+
 TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 {
 	struct event_data_t event_data = {};
 	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
+	int socketcall_syscall_id = -1;
 
 	/* Just to be extra-safe */
 	if(id < 0)
@@ -2124,52 +2171,38 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 	event_data.event_info.syscall_data.id = id;
 	event_data.compat = false;
 
+#ifdef __NR_socketcall
+	socketcall_syscall_id = __NR_socketcall;
+#endif
+
 	if (kmod_in_ia32_syscall())
 	{
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 		event_data.compat = true;
-		event_data.event_info.syscall_data.id = g_ia32_64_map[id];
-		if(event_data.event_info.syscall_data.id == 0)
+		if (id == __NR_ia32_socketcall)
 		{
-				return;
+			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
+		else
+		{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+			event_data.event_info.syscall_data.id = g_ia32_64_map[id];
+			if(event_data.event_info.syscall_data.id == 0)
+			{
+				return;
+			}
 #else
-		// TODO: unsupported
-		return;
+			// TODO: unsupported
+			return;
 #endif
+		}
 	}
 
 	g_n_tracepoint_hit_inc();
 
-#if defined(_HAS_SOCKETCALL) && defined(__NR_socketcall)
-	if(event_data.event_info.syscall_data.id == __NR_socketcall)
+#ifdef _HAS_SOCKETCALL
+	if (manage_socketcall(&event_data, socketcall_syscall_id, false) == NULL)
 	{
-		bool is_syscall_return;
-		int return_code = convert_network_syscalls(regs, &is_syscall_return);
-
-		/* If the return code is not the generic event we will need to extract parameters
-		 * with the socket call mechanism.
-		 */
-		event_data.extract_socketcall_params = true;
-
-		/* If we return an event code, it means we need to call directly `record_event_all_consumers`
-		 * Please note that in this case the syscall id is always `__NR_socketcall`
-		 */
-		if(!is_syscall_return)
-		{
-			/* The user provided a wrong code, we will send a generic event, 
-			 * no need for socket call arguments extraction logic.
-			 */
-			if(return_code == PPME_GENERIC_E)
-			{
-				event_data.extract_socketcall_params = false;
-			}
-			record_event_all_consumers(return_code, return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED, &event_data, KMOD_PROG_SYS_ENTER);
-			return;
-		}
-
-		/* If we return a syscall id we just set it */
-		event_data.event_info.syscall_data.id = return_code;
+		return;
 	}
 #endif
 
@@ -2227,6 +2260,8 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	struct event_data_t event_data = {};
 	const struct syscall_evt_pair *event_pair = NULL;
 	long table_index = 0;
+	int socketcall_syscall_id = -1;
+
 	/* If @task is executing a system call or is at system call
  	 * tracing about to attempt one, returns the system call number.
  	 * If @task is not executing a system call, i.e. it's blocked
@@ -2245,63 +2280,49 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 	event_data.extract_socketcall_params = false;
 	event_data.compat = false;
 
+#ifdef __NR_socketcall
+	socketcall_syscall_id = __NR_socketcall;
+#endif
+
 	if (kmod_in_ia32_syscall())
 	{
-#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-		/*
-		 * TODO: is this still needed? Do we need to add execveat too?
-		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
-		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
-		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
-		 * which is a very old syscall, not used anymore by most applications
-		 */
-		if (event_data.event_info.syscall_data.id != __NR_execve)
+		event_data.compat = true;
+		if (event_data.event_info.syscall_data.id == __NR_ia32_socketcall)
 		{
-			event_data.compat = true;
-			event_data.event_info.syscall_data.id = g_ia32_64_map[event_data.event_info.syscall_data.id];
-			if(event_data.event_info.syscall_data.id == 0)
-			{
-				return;
-			}
+			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
+		else
+		{
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+			/*
+			 * TODO: do we need to add execveat too?
+			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+			 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+			 * which is a very old syscall, not used anymore by most applications
+			 */
+			if (event_data.event_info.syscall_data.id != __NR_execve)
+			{
+				event_data.event_info.syscall_data.id =
+					g_ia32_64_map[event_data.event_info.syscall_data.id];
+				if(event_data.event_info.syscall_data.id == 0)
+				{
+					return;
+				}
+			}
 #else
-		// TODO: unsupported
-		return;
+			// TODO: unsupported
+			return;
 #endif
+		}
 	}
 
 	g_n_tracepoint_hit_inc();
 
-#if defined(_HAS_SOCKETCALL) && defined(__NR_socketcall)
-	if(event_data.event_info.syscall_data.id == __NR_socketcall)
+#ifdef _HAS_SOCKETCALL
+	if (manage_socketcall(&event_data, socketcall_syscall_id, true) == NULL)
 	{
-		bool is_syscall_return;
-		int return_code = convert_network_syscalls(regs, &is_syscall_return);
-
-		/* If the return code is not the generic event we will need to extract parameters
-		 * with the socket call mechanism.
-		 */
-		event_data.extract_socketcall_params = true;
-
-		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
-		if(!is_syscall_return)
-		{
-			/* The user provided a wrong code, we will send a generic event, 
-			 * no need for socket call arguments extraction logic.
-			 */
-			if(return_code == PPME_GENERIC_E)
-			{
-				event_data.extract_socketcall_params = false;
-			}
-			/* we need to use `return_code + 1` because return_code
-			 * is the enter event.
-			 */
-			record_event_all_consumers(return_code + 1, return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED, &event_data, KMOD_PROG_SYS_EXIT);
-			return;
-		}
-
-		/* If we return a syscall id we just set it */
-		event_data.event_info.syscall_data.id = return_code;
+		return;
 	}
 #endif
 
