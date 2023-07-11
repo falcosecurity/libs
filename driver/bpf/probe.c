@@ -51,9 +51,8 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 	if (bpf_in_ia32_syscall())
 	{
-		if(id == 6)
-			id = 3;
-		else
+		id = convert_ia32_to_64(id);
+		if (id == 0)
 			return 0;
 	}
 
@@ -113,9 +112,8 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	if (bpf_in_ia32_syscall())
 	{
-		if(id == 6)
-			id = 3;
-		else
+		id = convert_ia32_to_64(id);
+		if (id == 0)
 			return 0;
 	}
 

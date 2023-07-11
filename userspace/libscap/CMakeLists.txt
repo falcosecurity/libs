@@ -120,6 +120,7 @@ add_library(scap_event_schema
 		../../driver/event_table.c
 		../../driver/flags_table.c
 		../../driver/syscall_table64.c
+		../../driver/syscall_ia32_64_map.c
 		linux/scap_ppm_sc.c
         )
 add_dependencies(scap_event_schema uthash)

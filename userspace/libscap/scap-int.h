@@ -115,6 +115,7 @@ int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
 extern const struct syscall_evt_pair g_syscall_table[];
 extern const struct ppm_event_info g_event_info[];
 extern const struct ppm_event_entry g_ppm_events[];
+extern const int g_ia32_64_map[];
 
 #ifdef __cplusplus
 }

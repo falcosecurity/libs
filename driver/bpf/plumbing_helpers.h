@@ -399,6 +399,19 @@ static __always_inline bool is_syscall_interesting(int id)
 	return *enabled;
 }
 
+static __always_inline int convert_ia32_to_64(int id)
+{
+	int *x64_id = bpf_map_lookup_elem(&ia32_64_map, &id);
+
+	if (!x64_id)
+	{
+		bpf_printk("no 64bit mapped value for %d\n", id);
+		return 0;
+	}
+
+	return *x64_id;
+}
+
 static __always_inline const struct ppm_event_info *get_event_info(ppm_event_code event_type)
 {
 	const struct ppm_event_info *e =
