@@ -119,11 +119,24 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	if (bpf_in_ia32_syscall())
 	{
-#ifdef CONFIG_X86_64
-		id = convert_ia32_to_64(id);
-		if(id == 0)
+#if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
+		/*
+		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+		 * which is a very old syscall, not used anymore by most applications
+		 */
+#ifdef __NR_execveat
+		if (id != __NR_execve && id != __NR_execveat)
+#else
+		if (id != __NR_execve)
+#endif
 		{
-			return 0;
+			id = convert_ia32_to_64(id);
+			if(id == 0)
+			{
+				return 0;
+			}
 		}
 #else
 		// TODO: unsupported
