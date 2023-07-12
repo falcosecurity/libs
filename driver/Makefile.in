@@ -6,7 +6,7 @@
 # MIT.txt or GPL.txt for full copies of the license.
 #
 
-@DRIVER_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table64.o ppm_cputime.o ppm_tp.o socketcall_to_syscall.o syscall_ia32_64_map.o
+@DRIVER_NAME@-y += main.o dynamic_params_table.o fillers_table.o flags_table.o ppm_events.o ppm_fillers.o event_table.o syscall_table64.o ppm_cputime.o ppm_tp.o syscall_ia32_64_map.o
 obj-m += @DRIVER_NAME@.o
 ccflags-y := @KBUILD_FLAGS@
 

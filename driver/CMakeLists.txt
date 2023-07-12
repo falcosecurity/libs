@@ -118,7 +118,6 @@ set(DRIVER_SOURCES
 	ppm_consumer.h
 	capture_macro.h
 	socketcall_to_syscall.h
-	socketcall_to_syscall.c
 	syscall_ia32_64_map.c
 )
 

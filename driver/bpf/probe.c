@@ -42,7 +42,7 @@ int bpf_##event(struct type *ctx)
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
 	const struct syscall_evt_pair *sc_evt;
-	ppm_event_code evt_type;
+	ppm_event_code evt_type = -1;
 	int drop_flags;
 	long id;
 	bool enabled;
@@ -80,27 +80,46 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 #if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == socketcall_syscall_id)
 	{
-		id = convert_network_syscalls(ctx);
+		bool is_syscall_return;
+		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
+		if(!is_syscall_return)
+		{
+			evt_type = return_code;
+			drop_flags = return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED;
+		}
+		else
+		{
+			id = return_code;
+		}
 	}
 #endif
 
 	enabled = is_syscall_interesting(id);
-	if (!enabled)
+	if(!enabled)
 	{
 		return 0;
 	}
 
-	sc_evt = get_syscall_info(id);
-	if (!sc_evt)
-		return 0;
+	// Load evt type only if it wasn't already set before (by the socketcall fallback mechanism)
+	if (evt_type == -1)
+	{
+		sc_evt = get_syscall_info(id);
+		if(!sc_evt)
+			return 0;
 
-	if (sc_evt->flags & UF_USED) {
-		evt_type = sc_evt->enter_event_type;
-		drop_flags = sc_evt->flags;
-	} else {
-		evt_type = PPME_GENERIC_E;
-		drop_flags = UF_ALWAYS_DROP;
+		if(sc_evt->flags & UF_USED)
+		{
+			evt_type = sc_evt->enter_event_type;
+			drop_flags = sc_evt->flags;
+		}
+		else
+		{
+			evt_type = PPME_GENERIC_E;
+			drop_flags = UF_ALWAYS_DROP;
+		}
 	}
+
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
@@ -120,7 +139,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 {
 	const struct syscall_evt_pair *sc_evt;
-	ppm_event_code evt_type;
+	ppm_event_code evt_type = -1;
 	int drop_flags;
 	long id;
 	bool enabled;
@@ -146,10 +165,10 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			/*
-		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
-		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
-		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
-		 * which is a very old syscall, not used anymore by most applications
+			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+			 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+			 * which is a very old syscall, not used anymore by most applications
 			 */
 #ifdef __NR_execveat
 			if(id != __NR_execve && id != __NR_execveat)
@@ -173,7 +192,18 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 #if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == socketcall_syscall_id)
 	{
-		id = convert_network_syscalls(ctx);
+		bool is_syscall_return;
+		int return_code = convert_network_syscalls(ctx, &is_syscall_return);
+		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
+		if(!is_syscall_return)
+		{
+			evt_type = return_code;
+			drop_flags = return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED;
+		}
+		else
+		{
+			id = return_code;
+		}
 	}
 #endif
 
@@ -197,16 +227,23 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		}
 	}
 
-	sc_evt = get_syscall_info(id);
-	if (!sc_evt)
-		return 0;
+	// Load evt type only if it wasn't already set before (by the socketcall fallback mechanism)
+	if (evt_type == -1)
+	{
+		sc_evt = get_syscall_info(id);
+		if(!sc_evt)
+			return 0;
 
-	if (sc_evt->flags & UF_USED) {
-		evt_type = sc_evt->exit_event_type;
-		drop_flags = sc_evt->flags;
-	} else {
-		evt_type = PPME_GENERIC_X;
-		drop_flags = UF_ALWAYS_DROP;
+		if(sc_evt->flags & UF_USED)
+		{
+			evt_type = sc_evt->exit_event_type;
+			drop_flags = sc_evt->flags;
+		}
+		else
+		{
+			evt_type = PPME_GENERIC_X;
+			drop_flags = UF_ALWAYS_DROP;
+		}
 	}
 
 #if defined(CAPTURE_SCHED_PROC_FORK) || defined(CAPTURE_SCHED_PROC_EXEC)
