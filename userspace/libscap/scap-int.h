@@ -31,7 +31,6 @@ limitations under the License.
 
 #include "settings.h"
 #include "scap_assert.h"
-#include "scap_suppress.h"
 #include "falcosecurity/log.h"
 
 #ifdef __linux__
@@ -87,15 +86,6 @@ int32_t scap_proc_fill_pidns_start_ts(char* error, struct scap_threadinfo* tinfo
 bool scap_alloc_proclist_info(struct ppm_proclist_info **proclist_p, uint32_t n_entries, char* error);
 
 void scap_free_device_table(scap_mountinfo* dev_list);
-
-// Determine whether or not the provided event should be suppressed,
-// based on its event type and parameters. May update the set of
-// suppressed tids as a side-effect.
-//
-// Returns SCAP_FAILURE if we tried to add the tid to the suppressed
-// tid set, but it could *not* be added, SCAP_SUCCESS otherwise.
-int32_t scap_check_suppressed(struct scap_suppress *suppress, scap_evt *pevent,
-			      uint16_t devid, bool *suppressed, char *error);
 
 //
 //

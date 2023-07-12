@@ -86,10 +86,6 @@ extern "C"
 		proc_entry_callback proc_callback;			 ///< Callback to be invoked for each thread/fd that is extracted from /proc, or NULL if no callback is needed.
 		void* proc_callback_context;				 ///< Opaque pointer that will be included in the calls to proc_callback. Ignored if proc_callback is NULL.
 		bool import_users;					 ///< true if the user list should be created when opening the capture.
-		const char* suppressed_comms[SCAP_MAX_SUPPRESSED_COMMS]; ///< A list of processes (comm) for which no
-									 // events should be returned, with a trailing NULL value.
-									 // You can provide additional comm
-									 // values via scap_suppress_events_comm().
 		interesting_ppm_sc_set ppm_sc_of_interest; ///< syscalls of interest.
                 falcosecurity_log_fn log_fn; //< Function which SCAP may use to log messages
 		uint64_t proc_scan_timeout_ms; //< Timeout in msec, after which so-far-successful scan of /proc should be cut short with success return

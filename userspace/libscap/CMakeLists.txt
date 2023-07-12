@@ -69,8 +69,7 @@ add_library(scap
 	scap_platform.c
 	scap_platform_api.c
 	scap_procs.c
-	scap_userlist.c
-	scap_suppress.c)
+	scap_userlist.c)
 
 set_scap_target_properties(scap)
 

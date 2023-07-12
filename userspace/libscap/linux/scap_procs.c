@@ -653,19 +653,6 @@ static int32_t scap_proc_add_from_proc(struct scap_linux_platform* linux_platfor
 		fclose(f);
 	}
 
-	bool suppressed;
-	if ((res = scap_update_suppressed(&linux_platform->m_generic.m_suppress, tinfo->comm, tid, 0, &suppressed)) != SCAP_SUCCESS)
-	{
-		free(tinfo);
-		return scap_errprintf(error, 0, "can't update set of suppressed tids");
-	}
-
-	if (suppressed && !procinfo)
-	{
-		free(tinfo);
-		return SCAP_SUCCESS;
-	}
-
 	//
 	// Gather the command line
 	//

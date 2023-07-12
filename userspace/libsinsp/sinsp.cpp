@@ -40,6 +40,7 @@ limitations under the License.
 #include "plugin_manager.h"
 #include "plugin_filtercheck.h"
 #include "strl.h"
+#include "scap-int.h"
 
 #if !defined(CYGWING_AGENT)
 #if !defined(MINIMAL_BUILD) && !defined(__EMSCRIPTEN__)
@@ -478,8 +479,6 @@ void sinsp::open_common(scap_open_args* oargs)
 	// We need to subscribe to container manager notifiers before
 	// scap starts scanning proc.
 	m_usergroup_manager.subscribe_container_mgr();
-
-	add_suppressed_comms(oargs);
 
 	oargs->log_fn = &sinsp_scap_log_fn;
 	oargs->proc_scan_timeout_ms = m_proc_scan_timeout_ms;
@@ -958,6 +957,13 @@ void sinsp::on_new_entry_from_proc(void* context,
 		}
 	}
 
+	if(m_suppress.check_suppressed_comm(tid, tinfo->comm))
+	{
+		free(tinfo);
+		scap_fd_free_table(&fdinfo);
+		return;
+	}
+
 	//
 	// Add the thread or FD
 	//
@@ -1291,6 +1297,11 @@ int32_t sinsp::next(OUT sinsp_evt **puevt)
 			res = scap_next(m_h, &(evt->m_pevt), &(evt->m_cpuid), &(evt->m_dump_flags));
 		}
 
+		if(res == SCAP_SUCCESS)
+		{
+			res = m_suppress.process_event(evt->m_pevt);
+		}
+
 		if(res != SCAP_SUCCESS)
 		{
 			if(res == SCAP_TIMEOUT)
@@ -1586,52 +1597,19 @@ void sinsp::remove_thread(int64_t tid)
 
 bool sinsp::suppress_events_comm(const std::string &comm)
 {
-	if(m_suppressed_comms.size() >= SCAP_MAX_SUPPRESSED_COMMS)
-	{
-		return false;
-	}
-
-	m_suppressed_comms.insert(comm);
-
-	if(m_h)
-	{
-		if (scap_suppress_events_comm(m_h, comm.c_str()) != SCAP_SUCCESS)
-		{
-			return false;
-		}
-	}
-
+	m_suppress.suppress_comm(comm);
 	return true;
 }
 
 bool sinsp::suppress_events_tid(int64_t tid)
 {
-	if(m_h && scap_suppress_events_tid(m_h, tid) == SCAP_SUCCESS)
-	{
-		return true;
-	}
-
-	return false;
+	m_suppress.suppress_tid(tid);
+	return true;
 }
 
 bool sinsp::check_suppressed(int64_t tid)
 {
-	return scap_check_suppressed_tid(m_h, tid);
-}
-
-void sinsp::add_suppressed_comms(scap_open_args* oargs)
-{
-	uint32_t i = 0;
-
-	// Note--using direct pointers to values in
-	// m_suppressed_comms. This is ok given that a scap_open()
-	// will immediately follow after which the args won't be used.
-	for(auto &comm : m_suppressed_comms)
-	{
-		oargs->suppressed_comms[i++] = comm.c_str();
-	}
-
-	oargs->suppressed_comms[i++] = NULL;
+	return m_suppress.is_suppressed_tid(tid);
 }
 
 void sinsp::set_docker_socket_path(std::string socket_path)
@@ -1957,6 +1935,8 @@ void sinsp::get_capture_stats(scap_stats* stats) const
 {
 	/* On purpose ignoring failures to not interrupt in case of stats retrieval failure. */
 	scap_get_stats(m_h, stats);
+	stats->n_suppressed = m_suppress.get_num_suppressed_events();
+	stats->n_tids_suppressed = m_suppress.get_num_suppressed_tids();
 }
 
 void sinsp::print_capture_stats(sinsp_logger::severity sev) const
