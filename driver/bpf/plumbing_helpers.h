@@ -411,7 +411,7 @@ static __always_inline int convert_ia32_to_64(int id)
 	if (!x64_id)
 	{
 		bpf_printk("no 64bit mapped value for %d\n", id);
-		return 0;
+		return -1;
 	}
 
 	return *x64_id;

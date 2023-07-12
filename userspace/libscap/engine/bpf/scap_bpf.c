@@ -993,15 +993,16 @@ static int32_t populate_ia32_to_64_map(struct bpf_engine *handle)
 
 	for(j = 0; j < SYSCALL_TABLE_SIZE; ++j)
 	{
+		// Note: we will map all syscalls from the upper limit of the ia32 table
+		// up to SYSCALL_TABLE_SIZE to 0 (because they are not set in the g_ia32_64_map).
+		// 0 is read on x86_64; this is not a problem though because
+		// we will never receive a 32bit syscall above the upper limit, since it won't be existent
 		const int *x64_val = &g_ia32_64_map[j];
-		if (*x64_val != 0)
+		if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_IA32_64_MAP], &j, x64_val,
+					      BPF_ANY)) != 0)
 		{
-			if((ret = bpf_map_update_elem(handle->m_bpf_map_fds[SCAP_IA32_64_MAP], &j, x64_val,
-						      BPF_ANY)) != 0)
-			{
-				return scap_errprintf(handle->m_lasterr, -ret,
-						      "SCAP_FILLERS_TABLE bpf_map_update_elem ");
-			}
+			return scap_errprintf(handle->m_lasterr, -ret,
+					      "SCAP_FILLERS_TABLE bpf_map_update_elem ");
 		}
 	}
 	return bpf_map_freeze(handle->m_bpf_map_fds[SCAP_IA32_64_MAP]);

@@ -22,7 +22,7 @@ int BPF_PROG(sys_enter,
 	{
 #if defined(__TARGET_ARCH_x86)
 		syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
-		if (syscall_id == 0)
+		if(syscall_id == (u32)-1)
 		{
 			return 0;
 		}

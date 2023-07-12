@@ -148,11 +148,12 @@ void pman_fill_ia32_to_64_table()
 {
 	for(int syscall_id = 0; syscall_id < SYSCALL_TABLE_SIZE; syscall_id++)
 	{
+		// Note: we will map all syscalls from the upper limit of the ia32 table
+		// up to SYSCALL_TABLE_SIZE to 0 (because they are not set in the g_ia32_64_map).
+		// 0 is read on x86_64; this is not a problem though because
+		// we will never receive a 32bit syscall above the upper limit, since it won't be existent.
 		const int x64_val = g_ia32_64_map[syscall_id];
-		if (x64_val != 0)
-		{
-			g_state.skel->bss->g_ia32_to_64_table[syscall_id] = x64_val;
-		}
+		g_state.skel->bss->g_ia32_to_64_table[syscall_id] = x64_val;
 	}
 }
 
