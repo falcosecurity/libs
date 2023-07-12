@@ -331,24 +331,7 @@ int32_t scap_next(scap_t* handle, OUT scap_evt** pevent, OUT uint16_t* pdevid, O
 
 	if(res == SCAP_SUCCESS)
 	{
-		bool suppressed;
-
-		// Check to see if the event should be suppressed due
-		// to coming from a supressed tid
-		if((res = scap_check_suppressed(&handle->m_platform->m_suppress, *pevent, *pdevid, &suppressed, handle->m_lasterr)) != SCAP_SUCCESS)
-		{
-			return res;
-		}
-
-		if(suppressed)
-		{
-			handle->m_platform->m_suppress.m_num_suppressed_evts++;
-			return SCAP_FILTERED_EVENT;
-		}
-		else
-		{
-			handle->m_evtcnt++;
-		}
+		handle->m_evtcnt++;
 	}
 
 	return res;
@@ -385,8 +368,8 @@ int32_t scap_get_stats(scap_t* handle, OUT scap_stats* stats)
 	stats->n_drops_pf = 0;
 	stats->n_drops_bug = 0;
 	stats->n_preemptions = 0;
-	stats->n_suppressed = handle->m_platform->m_suppress.m_num_suppressed_evts;
-	stats->n_tids_suppressed = HASH_COUNT(handle->m_platform->m_suppress.m_suppressed_tids);
+	stats->n_suppressed = 0;
+	stats->n_tids_suppressed = 0;
 
 	if(handle->m_vtable)
 	{
@@ -657,21 +640,6 @@ bool scap_check_current_engine(scap_t *handle, const char* engine_name)
 		return strcmp(handle->m_vtable->name, engine_name) == 0;
 	}
 	return false;
-}
-
-int32_t scap_suppress_events_comm(scap_t *handle, const char *comm)
-{
-	return scap_suppress_events_comm_impl(&handle->m_platform->m_suppress, comm);
-}
-
-int32_t scap_suppress_events_tid(scap_t *handle, int64_t tid)
-{
-	return scap_suppress_events_tid_impl(&handle->m_platform->m_suppress, tid);
-}
-
-bool scap_check_suppressed_tid(scap_t *handle, int64_t tid)
-{
-	return scap_check_suppressed_tid_impl(&handle->m_platform->m_suppress, tid);
 }
 
 int32_t scap_set_fullcapture_port_range(scap_t* handle, uint16_t range_start, uint16_t range_end)

@@ -808,26 +808,6 @@ const char* scap_get_host_root();
 bool scap_check_current_engine(scap_t *handle, const char* engine_name);
 
 /*!
-  \brief stop returning events for all subsequently spawned
-  processes with the provided comm, as well as their children.
-  This includes fork()/clone()ed processes that might later
-  exec to a different comm.
-
-  returns SCAP_FAILURE if there are already MAX_SUPPRESSED_COMMS comm
-  values, SCAP_SUCCESS otherwise.
-*/
-
-int32_t scap_suppress_events_comm(scap_t* handle, const char *comm);
-
-int32_t scap_suppress_events_tid(scap_t *handle, int64_t tid);
-
-/*!
-  \brief return whether the provided tid is currently being suppressed.
-*/
-
-bool scap_check_suppressed_tid(scap_t *handle, int64_t tid);
-
-/*!
   \brief Get (at most) n parameters for this event.
  
   \param e The scap event.

@@ -18,7 +18,6 @@ limitations under the License.
 
 #include "scap_platform_impl.h"
 #include "scap_platform.h"
-#include "scap_suppress.h"
 
 #include "scap.h"
 #include "scap-int.h"
@@ -31,13 +30,11 @@ int32_t scap_generic_init_platform(struct scap_platform* platform, char* lasterr
 	platform->m_proclist.m_proc_callback_context = oargs->proc_callback_context;
 	platform->m_proclist.m_proclist = NULL;
 
-	return scap_suppress_init(&platform->m_suppress, oargs->suppressed_comms);
+	return SCAP_SUCCESS;
 }
 
 static int32_t scap_generic_close_platform(struct scap_platform* platform)
 {
-	scap_suppress_close(&platform->m_suppress);
-
 	if (platform->m_addrlist)
 	{
 		scap_free_iflist(platform->m_addrlist);
