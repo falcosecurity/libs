@@ -15,7 +15,7 @@ int BPF_PROG(listen_e,
 	     long id)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, LISTEN_E_SIZE, PPME_SOCKET_LISTEN_E))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, LISTEN_E_SIZE, PPME_SOCKET_LISTEN_1_E))
 	{
 		return 0;
 	}
@@ -32,10 +32,9 @@ int BPF_PROG(listen_e,
 	s32 fd = (s32)args[0];
 	ringbuf__store_s64(&ringbuf, (s64)fd);
 
-	/* Parameter 2: backlog (type: PT_UINT32) */
-	/// TODO: This should be an `int` not a `uint32_t`
-	u32 backlog = (u32)args[1];
-	ringbuf__store_u32(&ringbuf, backlog);
+	/* Parameter 2: backlog (type: PT_INT32) */
+	s32 backlog = (s32)args[1];
+	ringbuf__store_s32(&ringbuf, backlog);
 
 	/*=============================== COLLECT PARAMETERS  ===========================*/
 
@@ -54,7 +53,7 @@ int BPF_PROG(listen_x,
 	     long ret)
 {
 	struct ringbuf_struct ringbuf;
-	if(!ringbuf__reserve_space(&ringbuf, ctx, LISTEN_X_SIZE, PPME_SOCKET_LISTEN_X))
+	if(!ringbuf__reserve_space(&ringbuf, ctx, LISTEN_X_SIZE, PPME_SOCKET_LISTEN_1_X))
 	{
 		return 0;
 	}
