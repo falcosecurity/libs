@@ -77,7 +77,6 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 		}
 	}
 
-#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == socketcall_syscall_id)
 	{
 		bool is_syscall_return;
@@ -93,7 +92,6 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 			id = return_code;
 		}
 	}
-#endif
 
 	enabled = is_syscall_interesting(id);
 	if(!enabled)
@@ -189,7 +187,6 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		}
 	}
 
-#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 	if(id == socketcall_syscall_id)
 	{
 		bool is_syscall_return;
@@ -205,7 +202,6 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 			id = return_code;
 		}
 	}
-#endif
 
 	enabled = is_syscall_interesting(id);
 	if (!enabled)

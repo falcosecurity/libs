@@ -66,21 +66,6 @@ or GPL2.txt for full copies of the license.
 #endif
 
 ///////////////////////////////
-// CAPTURE_SOCKETCALL
-///////////////////////////////
-
-/* There are architectures that used history socketcall to multiplex
- * the network system calls.  Even if architectures, like s390x, has
- * direct support for those network system calls, kernel version header
- * dependencies in libc prevent using them.
- *
- * For details, see also https://sourceware.org/pipermail/libc-alpha/2022-September/142108.html
- */
-#if defined(CONFIG_S390)
-	#define CAPTURE_SOCKETCALL
-#endif
-
-///////////////////////////////
 // CAPTURE_SCHED_PROC_EXEC 
 ///////////////////////////////
 
@@ -183,14 +168,6 @@ or GPL2.txt for full copies of the license.
 	#define CAPTURE_PAGE_FAULTS 
 #endif
 
-///////////////////////////////
-// CAPTURE_SOCKETCALL
-///////////////////////////////
-
-#if defined(__TARGET_ARCH_s390)
-	#define CAPTURE_SOCKETCALL
-#endif
-
 #else /* Userspace */
 
 /* Please note: the userspace loads the filler table for the bpf probe
@@ -240,14 +217,6 @@ or GPL2.txt for full copies of the license.
 
 #if defined(__aarch64__)
 	#define CAPTURE_SCHED_PROC_EXEC 
-#endif
-
-///////////////////////////////
-// CAPTURE_SOCKETCALL
-///////////////////////////////
-
-#if defined(__s390x__)
-	#define CAPTURE_SOCKETCALL
 #endif
 
 #endif /* UDIG */
