@@ -10,6 +10,9 @@
 #include <helpers/interfaces/attached_programs.h>
 #include <bpf/bpf_helpers.h>
 
+#define X86_64_NR_EXECVE        59
+#define X86_64_NR_EXECVEAT      322
+
 /* From linux tree: /include/trace/events/syscall.h
  * TP_PROTO(struct pt_regs *regs, long ret),
  */
@@ -23,10 +26,19 @@ int BPF_PROG(sys_exit,
 	if(syscalls_dispatcher__check_32bit_syscalls())
 	{
 #if defined(__TARGET_ARCH_x86)
-		syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
-		if(syscall_id == 0)
+		/*
+		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
+		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
+		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
+		 * which is a very old syscall, not used anymore by most applications
+		 */
+		if (syscall_id != X86_64_NR_EXECVE && syscall_id != X86_64_NR_EXECVEAT)
 		{
-			return 0;
+			syscall_id = syscalls_dispatcher__convert_ia32_to_64(syscall_id);
+			if(syscall_id == 0)
+			{
+				return 0;
+			}
 		}
 #else
 		// TODO: unsupported

@@ -2295,13 +2295,16 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 		{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			/*
-			 * TODO: do we need to add execveat too?
 			 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
 			 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
 			 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
 			 * which is a very old syscall, not used anymore by most applications
 			 */
+#ifdef __NR_execveat
+			if (event_data.event_info.syscall_data.id != __NR_execve && event_data.event_info.syscall_data.id != __NR_execveat)
+#else
 			if (event_data.event_info.syscall_data.id != __NR_execve)
+#endif
 			{
 				event_data.event_info.syscall_data.id =
 					g_ia32_64_map[event_data.event_info.syscall_data.id];
