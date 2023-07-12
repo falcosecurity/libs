@@ -253,6 +253,7 @@ struct tail_context {
 	unsigned long curoff;
 	unsigned long len;
 	int prev_res;
+	int socketcall_syscall_id;
 } __attribute__((packed));
 
 struct scap_bpf_per_cpu_state {

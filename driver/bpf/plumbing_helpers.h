@@ -17,7 +17,7 @@ or GPL2.txt for full copies of the license.
 #include "types.h"
 #include "builtins.h"
 
-#ifdef CAPTURE_SOCKETCALL
+#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
 #include <linux/net.h>
 #endif
 
@@ -322,14 +322,19 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	return arg;
 }
 
-#ifdef CAPTURE_SOCKETCALL
+#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
 static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx)
 {
 	unsigned long arg = 0;
 	unsigned long args_pointer = 0;
 
+	size_t size = sizeof(unsigned long);
+	if (bpf_in_ia32_syscall())
+	{
+		size = sizeof(u32);
+	}
 	args_pointer = bpf_syscall_get_argument_from_ctx(ctx, 1);
-	bpf_probe_read_user(&arg, sizeof(unsigned long), (void*)(args_pointer + (idx * sizeof(unsigned long))));
+	bpf_probe_read_user(&arg, size, (void*)(args_pointer + (idx * size)));
 
 	return arg;
 }
@@ -341,8 +346,8 @@ static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
 
 /* We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS */
-#ifdef CAPTURE_SOCKETCALL
-	if(bpf_syscall_get_nr(data->ctx) == __NR_socketcall)
+#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
+	if(bpf_syscall_get_nr(data->ctx) == data->state->tail_ctx.socketcall_syscall_id)
 	{
 		return bpf_syscall_get_socketcall_arg(data->ctx, idx);
 	}
@@ -684,7 +689,8 @@ static __always_inline void reset_tail_ctx(struct scap_bpf_per_cpu_state *state,
 static __always_inline void call_filler(void *ctx,
 					void *stack_ctx,
 					ppm_event_code evt_type,
-					enum syscall_flags drop_flags)
+					enum syscall_flags drop_flags,
+					int socketcall_syscall_id)
 {
 	struct scap_bpf_settings *settings;
 	const struct ppm_event_entry *filler_info;
@@ -720,6 +726,8 @@ static __always_inline void call_filler(void *ctx,
 
 	++state->n_evts;
 
+	state->tail_ctx.socketcall_syscall_id = socketcall_syscall_id;
+
 	filler_info = get_event_filler_info(state->tail_ctx.evt_type);
 	if (!filler_info)
 		goto cleanup;
@@ -733,11 +741,10 @@ cleanup:
 	release_local_state(state);
 }
 
-#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
 static __always_inline long convert_network_syscalls(void *ctx)
 {
 	int socketcall_id = (int)bpf_syscall_get_argument_from_ctx(ctx, 0);
-
 	switch(socketcall_id)
 	{
 #ifdef __NR_socket
@@ -846,8 +853,13 @@ static __always_inline long convert_network_syscalls(void *ctx)
 		break;
 	}
 
+#ifdef __NR_socketcall
 	// Reset NR_socketcall to send a generic even with correct id
 	return __NR_socketcall;
+#else
+	// Send a generic event
+	return SYSCALL_TABLE_SIZE - 1;
+#endif
 }
 #endif
 

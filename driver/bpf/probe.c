@@ -37,6 +37,8 @@ __bpf_section(TP_NAME prefix #event)			\
 int bpf_##event(struct type *ctx)
 #endif
 
+#define __NR_ia32_socketcall 102
+
 BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 {
 	const struct syscall_evt_pair *sc_evt;
@@ -44,6 +46,11 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	int drop_flags;
 	long id;
 	bool enabled;
+	int socketcall_syscall_id = -1;
+
+#ifdef __NR_socketcall
+	socketcall_syscall_id = __NR_socketcall;
+#endif
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
@@ -51,20 +58,27 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 
 	if (bpf_in_ia32_syscall())
 	{
-#ifdef CONFIG_X86_64
-		id = convert_ia32_to_64(id);
-		if (id == 0)
+		if (id == __NR_ia32_socketcall)
 		{
-			return 0;
+			socketcall_syscall_id = __NR_ia32_socketcall;
 		}
+		else
+		{
+#ifdef CONFIG_X86_64
+			id = convert_ia32_to_64(id);
+			if(id == 0)
+			{
+				return 0;
+			}
 #else
-		// TODO: unsupported
-		return 0;
+			// TODO: unsupported
+			return 0;
 #endif
+		}
 	}
 
-#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
-	if(id == __NR_socketcall)
+#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+	if(id == socketcall_syscall_id)
 	{
 		id = convert_network_syscalls(ctx);
 	}
@@ -89,7 +103,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	}
 
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-	call_filler(ctx, ctx, evt_type, drop_flags);
+	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
 #else
 	/* Duplicated here to avoid verifier madness */
 	struct sys_enter_args stack_ctx;
@@ -98,7 +112,7 @@ BPF_PROBE("raw_syscalls/", sys_enter, sys_enter_args)
 	if (stash_args(stack_ctx.args))
 		return 0;
 
-	call_filler(ctx, &stack_ctx, evt_type, drop_flags);
+	call_filler(ctx, &stack_ctx, evt_type, drop_flags, socketcall_syscall_id);
 #endif
 	return 0;
 }
@@ -112,6 +126,11 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 	bool enabled;
 	struct scap_bpf_settings *settings;
 	long retval;
+	int socketcall_syscall_id = -1;
+
+#ifdef __NR_socketcall
+	socketcall_syscall_id = __NR_socketcall;
+#endif
 
 	id = bpf_syscall_get_nr(ctx);
 	if (id < 0 || id >= SYSCALL_TABLE_SIZE)
@@ -119,33 +138,40 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 
 	if (bpf_in_ia32_syscall())
 	{
+		if (id == __NR_ia32_socketcall)
+		{
+			socketcall_syscall_id = __NR_ia32_socketcall;
+		}
+		else
+		{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
-		/*
+			/*
 		 * When a process does execve from 64bit to 32bit, TS_COMPAT is marked true
 		 * but the id of the syscall is __NR_execve, so to correctly parse it we need to
 		 * use 64bit syscall table. On 32bit __NR_execve is equal to __NR_ia32_oldolduname
 		 * which is a very old syscall, not used anymore by most applications
-		 */
+			 */
 #ifdef __NR_execveat
-		if (id != __NR_execve && id != __NR_execveat)
+			if(id != __NR_execve && id != __NR_execveat)
 #else
-		if (id != __NR_execve)
+			if(id != __NR_execve)
 #endif
-		{
-			id = convert_ia32_to_64(id);
-			if(id == 0)
 			{
-				return 0;
+				id = convert_ia32_to_64(id);
+				if(id == 0)
+				{
+					return 0;
+				}
 			}
-		}
 #else
-		// TODO: unsupported
-		return 0;
+			// TODO: unsupported
+			return 0;
 #endif
+		}
 	}
 
-#if defined(CAPTURE_SOCKETCALL) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
-	if(id == __NR_socketcall)
+#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
+	if(id == socketcall_syscall_id)
 	{
 		id = convert_network_syscalls(ctx);
 	}
@@ -188,7 +214,7 @@ BPF_PROBE("raw_syscalls/", sys_exit, sys_exit_args)
 		return 0;
 #endif
 
-	call_filler(ctx, ctx, evt_type, drop_flags);
+	call_filler(ctx, ctx, evt_type, drop_flags, socketcall_syscall_id);
 	return 0;
 }
 
@@ -206,7 +232,7 @@ BPF_PROBE("sched/", sched_process_exit, sched_process_exit_args)
 
 	evt_type = PPME_PROCEXIT_1_E;
 
-	call_filler(ctx, ctx, evt_type, UF_NEVER_DROP);
+	call_filler(ctx, ctx, evt_type, UF_NEVER_DROP, -1);
 	return 0;
 }
 
@@ -216,7 +242,7 @@ BPF_PROBE("sched/", sched_switch, sched_switch_args)
 
 	evt_type = PPME_SCHEDSWITCH_6_E;
 
-	call_filler(ctx, ctx, evt_type, 0);
+	call_filler(ctx, ctx, evt_type, 0, -1);
 	return 0;
 }
 
@@ -227,7 +253,7 @@ static __always_inline int bpf_page_fault(struct page_fault_args *ctx)
 
 	evt_type = PPME_PAGE_FAULT_E;
 
-	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP);
+	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP, -1);
 	return 0;
 }
 
@@ -248,7 +274,7 @@ BPF_PROBE("signal/", signal_deliver, signal_deliver_args)
 
 	evt_type = PPME_SIGNALDELIVER_E;
 
-	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP);
+	call_filler(ctx, ctx, evt_type, UF_ALWAYS_DROP, -1);
 	return 0;
 }
 
