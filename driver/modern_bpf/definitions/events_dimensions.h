@@ -92,7 +92,7 @@
 #define ACCEPT_E_SIZE HEADER_LEN
 #define ACCEPT4_E_SIZE HEADER_LEN + sizeof(uint32_t) + PARAM_LEN
 #define BIND_E_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
-#define LISTEN_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(uint32_t) + PARAM_LEN * 2
+#define LISTEN_E_SIZE HEADER_LEN + sizeof(int64_t) + sizeof(int32_t) + PARAM_LEN * 2
 #define LISTEN_X_SIZE HEADER_LEN + sizeof(int64_t) + PARAM_LEN
 #define CLONE_E_SIZE HEADER_LEN
 #define CLONE3_E_SIZE HEADER_LEN

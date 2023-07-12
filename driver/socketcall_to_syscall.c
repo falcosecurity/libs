@@ -191,7 +191,7 @@ int socketcall_code_to_syscall_code(int socketcall_code, bool* is_syscall_return
 		return PPME_SOCKET_BIND_E;
 
 	case SYS_LISTEN:
-		return PPME_SOCKET_LISTEN_E;
+		return PPME_SOCKET_LISTEN_1_E;
 
 	case SYS_CONNECT:
 		return PPME_SOCKET_CONNECT_E;

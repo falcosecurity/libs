@@ -484,8 +484,8 @@ TEST(SyscallEnter, socketcall_listenE)
 	/* Parameter 1: fd (type: PT_FD) */
 	evt_test->assert_numeric_param(1, (int64_t)socket_fd);
 
-	/* Parameter 2: backlog (type: PT_UINT32) */
-	evt_test->assert_numeric_param(2, (uint32_t)backlog);
+	/* Parameter 2: backlog (type: PT_INT32) */
+	evt_test->assert_numeric_param(2, (int32_t)backlog);
 
 	/*=============================== ASSERT PARAMETERS  ===========================*/
 

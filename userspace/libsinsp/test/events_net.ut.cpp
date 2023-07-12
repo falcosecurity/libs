@@ -305,8 +305,8 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv4)
 	ASSERT_FALSE(field_exists(evt, "fd.rport"));
 	ASSERT_FALSE(field_exists(evt, "fd.lport"));
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, 5);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, return_value);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_1_E, 2, server_fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_1_X, 1, return_value);
 
 	sockaddr_in client = test_utils::fill_sockaddr_in(DEFAULT_CLIENT_PORT, DEFAULT_IPV4_CLIENT_STRING);
 
@@ -348,8 +348,8 @@ TEST_F(sinsp_with_test_input, net_bind_listen_accept_ipv6)
 	ASSERT_EQ(get_field_as_string(evt, "fd.name"), fdname);
 	ASSERT_EQ(get_field_as_string(evt, "fd.is_server"), "true");
 
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_E, 2, server_fd, 5);
-	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_X, 1, return_value);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_1_E, 2, server_fd, 5);
+	add_event_advance_ts(increasing_ts(), 1, PPME_SOCKET_LISTEN_1_X, 1, return_value);
 
 	sockaddr_in6 client = test_utils::fill_sockaddr_in6(DEFAULT_CLIENT_PORT, DEFAULT_IPV6_CLIENT_STRING);
 
