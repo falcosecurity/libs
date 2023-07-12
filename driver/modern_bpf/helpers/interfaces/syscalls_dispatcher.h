@@ -15,21 +15,7 @@
 
 static __always_inline bool syscalls_dispatcher__check_32bit_syscalls()
 {
-	uint32_t status;
-	struct task_struct *task = get_current_task();
-
-#if defined(__TARGET_ARCH_x86)
-	READ_TASK_FIELD_INTO(&status, task, thread_info.status);
-	return status & TS_COMPAT;
-#elif defined(__TARGET_ARCH_arm64)
-	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
-	return status & _TIF_32BIT;
-#elif defined(__TARGET_ARCH_s390)
-	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
-	return status & _TIF_31BIT;
-#else
-	return false;
-#endif
+	return extract__32bit_syscall();
 }
 
 static __always_inline bool syscalls_dispatcher__64bit_interesting_syscall(u32 syscall_id)
@@ -42,7 +28,6 @@ static __always_inline u32 syscalls_dispatcher__convert_ia32_to_64(u32 syscall_i
 	return maps__ia32_to_64(syscall_id);
 }
 
-#ifdef CAPTURE_SOCKETCALL
 static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 {
 	int socketcall_id = (int)extract__syscall_argument(regs, 0);
@@ -156,6 +141,9 @@ static __always_inline long convert_network_syscalls(struct pt_regs *regs)
 	}
 
 	// Reset NR_socketcall to send a generic even with correct id
+#ifdef __NR_socketcall
 	return __NR_socketcall;
-}
+#else
+	return -1;
 #endif
+}

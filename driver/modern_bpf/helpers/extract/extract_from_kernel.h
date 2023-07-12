@@ -12,9 +12,11 @@
 #include <helpers/base/read_from_task.h>
 #include <driver/ppm_flag_helpers.h>
 
-#ifdef CAPTURE_SOCKETCALL
-#include <syscall.h>
+#if __has_include(<sys/syscall.h>)
+#include <sys/syscall.h>
 #endif
+
+#define __NR_ia32_socketcall 102
 
 /* Used to convert from page number to KB. */
 #define DO_PAGE_SHIFT(x) (x) << (IOC_PAGE_SHIFT - 10)
@@ -54,6 +56,25 @@ static __always_inline u32 extract__syscall_id(struct pt_regs *regs)
 #endif
 }
 
+static __always_inline bool extract__32bit_syscall()
+{
+	uint32_t status;
+	struct task_struct *task = get_current_task();
+
+#if defined(__TARGET_ARCH_x86)
+	READ_TASK_FIELD_INTO(&status, task, thread_info.status);
+	return status & TS_COMPAT;
+#elif defined(__TARGET_ARCH_arm64)
+	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
+	return status & _TIF_32BIT;
+#elif defined(__TARGET_ARCH_s390)
+	READ_TASK_FIELD_INTO(&status, task, thread_info.flags);
+	return status & _TIF_31BIT;
+#else
+	return false;
+#endif
+}
+
 /**
  * @brief Extract a specific syscall argument
  *
@@ -66,11 +87,7 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
 {
 	unsigned long arg;
 #if defined(__TARGET_ARCH_x86)
-	// TODO: somehow use syscalls_dispatcher__check_32bit_syscalls()
-	uint32_t status;
-	struct task_struct *task = get_current_task();
-	READ_TASK_FIELD_INTO(&status, task, thread_info.status);
-	if (status & TS_COMPAT)
+	if (extract__32bit_syscall())
 	{
 		switch(idx)
 		{
@@ -140,15 +157,29 @@ static __always_inline unsigned long extract__syscall_argument(struct pt_regs *r
  */
 static __always_inline void extract__network_args(void *argv, int num, struct pt_regs *regs)
 {
-#ifdef CAPTURE_SOCKETCALL
 	int id = extract__syscall_id(regs);
+#ifdef __NR_socketcall
 	if(id == __NR_socketcall)
 	{
+		size_t size = sizeof(unsigned long);
+#elif defined(__TARGET_ARCH_x86)
+	if(extract__32bit_syscall() && id == __NR_ia32_socketcall)
+	{
+		size_t size = sizeof(u32);
+#else
+	if (false)
+	{
+		size_t size = sizeof(unsigned long);
+#endif
+		__builtin_memset(argv, 0, sizeof(unsigned long) * num);
 		unsigned long args_pointer = extract__syscall_argument(regs, 1);
-		bpf_probe_read_user(argv, num * sizeof(unsigned long), (void*)args_pointer);
+		for (int i = 0; i < num; i++)
+		{
+			unsigned long *dst = ((unsigned long *)argv) + i;
+			bpf_probe_read_user(dst, size, ((char*)(args_pointer)) + i * size);
+		}
 		return;
 	}
-#endif
 	for (int i = 0; i < num; i++)
 	{
 		unsigned long *dst = (unsigned long *)argv;

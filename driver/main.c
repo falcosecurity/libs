@@ -52,9 +52,7 @@ or GPL2.txt for full copies of the license.
 #include "ppm.h"
 #include "ppm_tp.h"
 
-#ifdef _HAS_SOCKETCALL
 #include "socketcall_to_syscall.h"
-#endif
 
 #define __NR_ia32_socketcall 102
 
@@ -1359,8 +1357,7 @@ static const unsigned char compat_nas[21] = {
 #endif
 
 
-#ifdef _HAS_SOCKETCALL
-/* This method is just a pass-through to avoid exporting 
+/* This method is just a pass-through to avoid exporting
  * `ppm_syscall_get_arguments` outside of `main.c`
  */
 static long convert_network_syscalls(struct pt_regs *regs, bool* is_syscall_return)
@@ -1406,51 +1403,44 @@ static int load_socketcall_params(struct event_filler_arguments *filler_args)
 
 static inline struct event_data_t *manage_socketcall(struct event_data_t *event_data, int socketcall_syscall_id, bool is_exit)
 {
-	if(event_data->event_info.syscall_data.id == socketcall_syscall_id)
+	bool is_syscall_return;
+	int return_code = convert_network_syscalls(event_data->event_info.syscall_data.regs, &is_syscall_return);
+
+	/* If the return code is not the generic event we will need to extract parameters
+	 * with the socket call mechanism.
+	 */
+	event_data->extract_socketcall_params = true;
+
+	/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
+	if(!is_syscall_return)
 	{
-		bool is_syscall_return;
-		int return_code = convert_network_syscalls(event_data->event_info.syscall_data.regs, &is_syscall_return);
-
-		/* If the return code is not the generic event we will need to extract parameters
-		 * with the socket call mechanism.
+		/* The user provided a wrong code, we will send a generic event,
+		 * no need for socket call arguments extraction logic.
 		 */
-		event_data->extract_socketcall_params = true;
-
-		/* If we return an event code, it means we need to call directly `record_event_all_consumers` */
-		if(!is_syscall_return)
+		if(return_code == PPME_GENERIC_E)
 		{
-			/* The user provided a wrong code, we will send a generic event,
-			 * no need for socket call arguments extraction logic.
-			 */
-			if(return_code == PPME_GENERIC_E)
-			{
-				event_data->extract_socketcall_params = false;
-			}
-			/* we need to use `return_code + 1` because return_code
-			 * is the enter event.
-			 */
-			record_event_all_consumers(return_code + is_exit,
-						   return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED,
-						   event_data, is_exit ? KMOD_PROG_SYS_EXIT : KMOD_PROG_SYS_ENTER);
-			return NULL; // managed
+			event_data->extract_socketcall_params = false;
 		}
-
-		/* If we return a syscall id we just set it */
-		event_data->event_info.syscall_data.id = return_code;
+		/* we need to use `return_code + 1` because return_code
+		 * is the enter event.
+		 */
+		record_event_all_consumers(return_code + is_exit,
+					   return_code == PPME_GENERIC_E ? UF_ALWAYS_DROP : UF_USED,
+					   event_data, is_exit ? KMOD_PROG_SYS_EXIT : KMOD_PROG_SYS_ENTER);
+		return NULL; // managed
 	}
+
+	/* If we return a syscall id we just set it */
+	event_data->event_info.syscall_data.id = return_code;
 	return event_data;
 }
 
-#endif /* _HAS_SOCKETCALL */
-
 static int preload_params(struct event_filler_arguments *filler_args, bool extract_socketcall_params)
 {
-#ifdef _HAS_SOCKETCALL
 	if (extract_socketcall_params)
 	{
 		return load_socketcall_params(filler_args);
 	}
-#endif
 	ppm_syscall_get_arguments(current, filler_args->regs, filler_args->args);
 	return 0;
 }
@@ -2190,12 +2180,13 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 
 	g_n_tracepoint_hit_inc();
 
-#ifdef _HAS_SOCKETCALL
-	if (manage_socketcall(&event_data, socketcall_syscall_id, false) == NULL)
+	if(event_data.event_info.syscall_data.id == socketcall_syscall_id)
 	{
-		return;
+		if(manage_socketcall(&event_data, socketcall_syscall_id, false) == NULL)
+		{
+			return;
+		}
 	}
-#endif
 
 	/* We need to set here the `syscall_id` because it could change in case of socketcalls */
 	table_index = event_data.event_info.syscall_data.id - SYSCALL_TABLE_ID0;
@@ -2313,12 +2304,13 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 
 	g_n_tracepoint_hit_inc();
 
-#ifdef _HAS_SOCKETCALL
-	if (manage_socketcall(&event_data, socketcall_syscall_id, true) == NULL)
+	if(event_data.event_info.syscall_data.id == socketcall_syscall_id)
 	{
-		return;
+		if (manage_socketcall(&event_data, socketcall_syscall_id, true) == NULL)
+		{
+			return;
+		}
 	}
-#endif
 
 	table_index = event_data.event_info.syscall_data.id - SYSCALL_TABLE_ID0;
 	if (unlikely(table_index < 0 || table_index >= SYSCALL_TABLE_SIZE))

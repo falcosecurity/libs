@@ -16,10 +16,7 @@ or GPL2.txt for full copies of the license.
 
 #include "types.h"
 #include "builtins.h"
-
-#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
-#include <linux/net.h>
-#endif
+#include "../socketcall_to_syscall.h"
 
 #define _READ(P) ({ typeof(P) _val;					\
 		    bpf_probe_read_kernel(&_val, sizeof(_val), &P);	\
@@ -322,7 +319,6 @@ static __always_inline unsigned long bpf_syscall_get_argument_from_ctx(void *ctx
 	return arg;
 }
 
-#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
 static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, int idx)
 {
 	unsigned long arg = 0;
@@ -338,20 +334,16 @@ static __always_inline unsigned long bpf_syscall_get_socketcall_arg(void *ctx, i
 
 	return arg;
 }
-#endif /* CAPTURE_SOCKETCALL */
 
 static __always_inline unsigned long bpf_syscall_get_argument(struct filler_data *data,
 							      int idx)
 {
 #ifdef BPF_SUPPORTS_RAW_TRACEPOINTS
-
-/* We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS */
-#if defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))
+	/* We define it here because we support socket calls only on kernels with BPF_SUPPORTS_RAW_TRACEPOINTS */
 	if(bpf_syscall_get_nr(data->ctx) == data->state->tail_ctx.socketcall_syscall_id)
 	{
 		return bpf_syscall_get_socketcall_arg(data->ctx, idx);
 	}
-#endif /* CAPTURE_SOCKETCALL */
 	return bpf_syscall_get_argument_from_ctx(data->ctx, idx);
 #else
 	return bpf_syscall_get_argument_from_args(data->args, idx);
@@ -741,14 +733,10 @@ cleanup:
 	release_local_state(state);
 }
 
-#if (defined(CAPTURE_SOCKETCALL) || (defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION))) && defined(BPF_SUPPORTS_RAW_TRACEPOINTS)
-#include "../socketcall_to_syscall.h"
-
 static __always_inline long convert_network_syscalls(void *ctx, bool *is_syscall)
 {
 	int socketcall_id = (int)bpf_syscall_get_argument_from_ctx(ctx, 0);
 	return socketcall_code_to_syscall_code(socketcall_id, is_syscall);
 }
-#endif
 
 #endif
