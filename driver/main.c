@@ -2186,7 +2186,7 @@ TRACEPOINT_PROBE(syscall_enter_probe, struct pt_regs *regs, long id)
 		{
 #if defined(CONFIG_X86_64) && defined(CONFIG_IA32_EMULATION)
 			event_data.event_info.syscall_data.id = g_ia32_64_map[id];
-			if(event_data.event_info.syscall_data.id == 0)
+			if(event_data.event_info.syscall_data.id == -1)
 			{
 				return;
 			}
@@ -2308,7 +2308,7 @@ TRACEPOINT_PROBE(syscall_exit_probe, struct pt_regs *regs, long ret)
 			{
 				event_data.event_info.syscall_data.id =
 					g_ia32_64_map[event_data.event_info.syscall_data.id];
-				if(event_data.event_info.syscall_data.id == 0)
+				if(event_data.event_info.syscall_data.id == -1)
 				{
 					return;
 				}
