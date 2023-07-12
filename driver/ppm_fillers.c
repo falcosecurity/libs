@@ -2808,6 +2808,28 @@ int f_sys_sendmsg_x(struct event_filler_arguments *args)
 	return add_sentinel(args);
 }
 
+int f_sys_listen_e(struct event_filler_arguments *args)
+{
+	unsigned long val = 0;
+	int res = 0;
+	s32 fd = 0;
+	s32 backlog = 0;
+
+	/* Parameter 1: fd (type: PT_FD)*/
+	syscall_get_arguments_deprecated(args, 0, 1, &val);
+	fd = (s32)val;
+	res = val_to_ring(args, (s64)fd, 0, false, 0);
+	CHECK_RES(res);
+
+	/* Parameter 2: backlog (type: PT_INT32) */
+	syscall_get_arguments_deprecated(args, 1, 1, &val);
+	backlog = (s32)val;
+	res = val_to_ring(args, (s32)backlog, 0, false, 0);
+	CHECK_RES(res);
+
+	return add_sentinel(args);
+}
+
 int f_sys_recvmsg_e(struct event_filler_arguments *args)
 {
 	unsigned long val = 0;
